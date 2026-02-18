@@ -1,0 +1,23 @@
+{
+  "name": "arcana-",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "ingest:hairtpclinic": "node scripts/ingest-site.js --base https://www.hairtpclinic.se --out ./knowledge/hair-tp-clinic/site --sitemap --maxPages 120",
+    "ingest:curatiio": "node scripts/ingest-site.js --base https://www.curatiio.se --out ./knowledge/curatiio/site --sitemap --maxPages 120",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "openai": "^6.22.0"
+  }
+}
