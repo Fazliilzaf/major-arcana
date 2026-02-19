@@ -7,6 +7,7 @@ const els = {
   newChat: document.getElementById('newChatBtn'),
   book: document.getElementById('bookBtn'),
   brandMark: document.getElementById('brandMark'),
+  bookingBrandMark: document.getElementById('bookingBrandMark'),
   bookingModal: document.getElementById('bookingModal'),
   bookingBackdrop: document.getElementById('bookingBackdrop'),
   bookingClose: document.getElementById('bookingCloseBtn'),
@@ -52,6 +53,15 @@ function applyBrandUi() {
       els.brandMark.classList.add('hidden');
     }
   }
+
+  if (els.bookingBrandMark) {
+    if (brand === 'hair-tp-clinic') {
+      els.bookingBrandMark.src = '/assets/hairtpclinic-mark.svg';
+      els.bookingBrandMark.classList.remove('hidden');
+    } else {
+      els.bookingBrandMark.classList.add('hidden');
+    }
+  }
 }
 
 function applyBrandTheme() {
@@ -62,7 +72,7 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-primary', '#cabaae');
     document.body.style.setProperty('--arcana-primary-hover', '#d7c9be');
     document.body.style.setProperty('--arcana-primary-text', '#303030');
-    document.body.style.setProperty('--cb-color-primary', '#c2aa9c');
+    document.body.style.setProperty('--cb-color-primary', '#cabaae');
 
     document.body.style.setProperty('--arcana-bg', '#303030');
     document.body.style.setProperty('--arcana-surface', 'rgba(48, 48, 48, 0.72)');
@@ -304,6 +314,154 @@ function showBookingStatus(html) {
   els.clientoMount.innerHTML = html;
 }
 
+function installClientoOverridesStyle() {
+  const styleId = 'arcana-cliento-overrides';
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = styleId;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = `
+    #cliento-booking {
+      font-family: inherit !important;
+      color: #0f172a !important;
+      accent-color: var(--arcana-primary) !important;
+      --cb-color-primary: var(--arcana-primary);
+      --cb-color-primary-hover: var(--arcana-primary-hover);
+      --cb-color-primary-text: var(--arcana-primary-text);
+    }
+
+    #cliento-booking [data-arcana-hidden="true"] {
+      display: none !important;
+    }
+
+    #cliento-booking :is(a, button) {
+      font-family: inherit !important;
+    }
+
+    #cliento-booking a {
+      color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking .cb-nav-item.active {
+      background: var(--arcana-primary) !important;
+      color: var(--arcana-primary-text) !important;
+    }
+
+    #cliento-booking .cb-day-header.today,
+    #cliento-booking .cb-summary-table .cb-details,
+    #cliento-booking .cb-slot strong,
+    #cliento-booking .cb-slot:link strong,
+    #cliento-booking .cb-slot:visited strong {
+      color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking .cb-checkbox.checked {
+      background: var(--arcana-primary) !important;
+      border-color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking .cb-button,
+    #cliento-booking button[type="button"].cb-button,
+    #cliento-booking button[type="submit"].cb-button,
+    #cliento-booking a.cb-button,
+    #cliento-booking .arcana-cliento-action {
+      background: var(--arcana-primary) !important;
+      border-color: var(--arcana-primary) !important;
+      color: var(--arcana-primary-text) !important;
+      border-radius: 9999px !important;
+    }
+
+    #cliento-booking .cb-button:hover,
+    #cliento-booking button[type="button"].cb-button:hover,
+    #cliento-booking button[type="submit"].cb-button:hover,
+    #cliento-booking a.cb-button:hover,
+    #cliento-booking .arcana-cliento-action:hover {
+      background: var(--arcana-primary-hover) !important;
+      border-color: var(--arcana-primary-hover) !important;
+    }
+
+    #cliento-booking :is(button, a):focus-visible {
+      outline: 2px solid var(--arcana-primary) !important;
+      outline-offset: 2px !important;
+    }
+  `;
+}
+
+let clientoObserver = null;
+
+function findClientoSectionRoot(el, root) {
+  if (!el || !root) return null;
+  const preferred = el.closest(
+    '.cb-location, .cb-location-item, .cb-accordion-item, .cb-accordion, .cb-group, .cb-card'
+  );
+  if (preferred && root.contains(preferred)) return preferred;
+
+  let node = el;
+  for (let i = 0; i < 12 && node && node !== root; i++) {
+    if (node.classList && Array.from(node.classList).some((c) => String(c).startsWith('cb-'))) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return el.closest('div, section, li') || el;
+}
+
+function decorateClientoWidgetDom() {
+  const root = document.getElementById('cliento-booking');
+  if (!root) return;
+
+  // Style action buttons like "Välj" consistently.
+  for (const el of root.querySelectorAll('button, a')) {
+    const label = String(el.textContent || '').trim().toLowerCase();
+    if (!label) continue;
+    if (label === 'välj' || label === 'välj tid' || label === 'boka' || label === 'boka tid') {
+      el.classList.add('arcana-cliento-action');
+    }
+  }
+
+  // Hide other company to avoid confusing customers.
+  const brand = publicConfig?.brand;
+  const blocked =
+    brand === 'hair-tp-clinic'
+      ? ['curatiio']
+      : brand === 'curatiio'
+        ? ['hair tp clinic', 'hair-tp clinic', 'hairtpclinic']
+        : [];
+
+  if (blocked.length === 0) return;
+
+  const candidates = Array.from(root.querySelectorAll('button, a, h1, h2, h3, h4, div, span'));
+  for (const el of candidates) {
+    const text = String(el.textContent || '').trim();
+    if (!text) continue;
+    if (text.length > 48) continue;
+    if (text.includes('\n')) continue;
+
+    const lowered = text.toLowerCase();
+    const normalized = lowered.replace(/[^a-z0-9]+/g, ' ').trim();
+    const hit = blocked.find((name) => normalized === name.replace(/[^a-z0-9]+/g, ' ').trim());
+    if (!hit) continue;
+    const sectionRoot = findClientoSectionRoot(el, root);
+    if (!sectionRoot) continue;
+    sectionRoot.dataset.arcanaHidden = 'true';
+  }
+}
+
+function ensureClientoObserver() {
+  const root = document.getElementById('cliento-booking');
+  if (!root) return;
+  if (clientoObserver) return;
+
+  clientoObserver = new MutationObserver(() => {
+    decorateClientoWidgetDom();
+  });
+
+  clientoObserver.observe(root, { subtree: true, childList: true, characterData: true });
+}
+
 function ensureClientoLoaded() {
   if (clientoState.loaded || clientoState.loading) return;
 
@@ -337,6 +495,7 @@ function ensureClientoLoaded() {
   }
 
   clientoState.loading = true;
+  installClientoOverridesStyle();
   showBookingStatus('<div class="p-4 text-sm text-slate-700">Laddar bokning…</div>');
 
   if (!document.getElementById('cliento-booking')) {
@@ -372,6 +531,9 @@ function ensureClientoLoaded() {
   s.onload = () => {
     clientoState.loaded = true;
     clientoState.loading = false;
+    installClientoOverridesStyle();
+    decorateClientoWidgetDom();
+    ensureClientoObserver();
   };
   s.onerror = () => {
     clientoState.loaded = false;

@@ -130,6 +130,9 @@
       (position === 'left' ? 'left:18px;' : 'right:18px;') +
       'bottom:78px;' +
       'width:390px;height:640px;' +
+      '--arcana-embed-topbar:52px;' +
+      'box-sizing:border-box;' +
+      'padding-top:var(--arcana-embed-topbar);' +
       'border-radius:22px;' +
       'overflow:hidden;' +
       'border:1px solid var(--arcana-embed-panel-border);' +
@@ -141,17 +144,7 @@
       '}' +
       '#arcana-embed-panel[data-open=\"true\"]{opacity:1;pointer-events:auto;transform:translateY(0);}' +
       '#arcana-embed-backdrop[data-open=\"true\"]{opacity:1;pointer-events:auto;}' +
-      '#arcana-embed-close{' +
-      'position:absolute;top:10px;right:10px;z-index:2;' +
-      'width:36px;height:36px;' +
-      'border-radius:999px;' +
-      'border:1px solid rgba(255,255,255,0.18);' +
-      'background:rgba(0,0,0,0.45);' +
-      'color:#fff;' +
-      'cursor:pointer;' +
-      '}' +
-      '#arcana-embed-close:hover{background:rgba(0,0,0,0.65);}' +
-      '#arcana-embed-iframe{width:100%;height:100%;border:0;display:block;background:#fff;}' +
+      '#arcana-embed-iframe{width:100%;height:calc(100% - var(--arcana-embed-topbar));border:0;display:block;background:#fff;}' +
       '@media (max-width: 640px){' +
       '#arcana-embed-panel{' +
       'left:0 !important;right:0 !important;top:0 !important;bottom:0 !important;' +
@@ -175,19 +168,12 @@
     panel.setAttribute('aria-modal', 'true');
     panel.setAttribute('aria-label', 'Arcana chatt');
 
-    var closeBtn = document.createElement('button');
-    closeBtn.id = 'arcana-embed-close';
-    closeBtn.type = 'button';
-    closeBtn.setAttribute('aria-label', 'Stäng chatten');
-    closeBtn.textContent = '✕';
-
     var iframe = document.createElement('iframe');
     iframe.id = 'arcana-embed-iframe';
     iframe.title = 'Arcana chatt';
     iframe.loading = 'lazy';
     iframe.setAttribute('allow', 'clipboard-write');
 
-    panel.appendChild(closeBtn);
     panel.appendChild(iframe);
 
     var launcher = document.createElement('button');
@@ -238,10 +224,6 @@
     launcher.addEventListener('click', function () {
       var open = panel.getAttribute('data-open') === 'true';
       setOpen(!open);
-    });
-
-    closeBtn.addEventListener('click', function () {
-      setOpen(false);
     });
 
     backdrop.addEventListener('click', function () {

@@ -76,15 +76,25 @@
     <div id="bookingBackdrop" class="absolute inset-0 bg-black/70"></div>
     <div class="relative mx-auto flex h-full max-w-3xl flex-col p-4">
       <div class="flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-4 py-3 backdrop-blur">
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-[color:var(--arcana-text)]">Boka tid</div>
-          <div class="text-xs text-[color:var(--arcana-text-muted)]">Öppnas via Cliento</div>
+        <div class="flex min-w-0 items-center gap-3">
+          <img
+            id="bookingBrandMark"
+            src="/assets/hairtpclinic-mark.svg"
+            alt=""
+            class="h-10 w-10 shrink-0 opacity-95"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-[color:var(--arcana-text)]">Boka tid</div>
+            <div class="text-xs text-[color:var(--arcana-text-muted)]">Öppnas via Cliento</div>
+          </div>
         </div>
         <button id="bookingCloseBtn" class="btn-ghost rounded-lg px-3 py-2 text-sm">
           Stäng
         </button>
       </div>
-      <div class="flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white">
+      <div class="flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white text-slate-900">
         <div id="clientoMount" class="min-h-full p-2">
           <div class="p-4 text-sm text-slate-700">Laddar bokning…</div>
         </div>
@@ -218,7 +228,6 @@
     #cliento-booking button[type=submit].cb-button {
       background: var(--cb-color-primary) !important;
       border-radius: 12px !important;
-      width: 100%;
     }
 
     #cliento-booking .cb-checkbox.checked {
