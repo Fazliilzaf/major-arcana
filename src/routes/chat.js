@@ -465,8 +465,10 @@ function buildHairTPFallbackReply({ brand, message }) {
     ])
   ) {
     return joinLines([
-      'Jag har ingen bekräftad information om delbetalning i underlaget just nu.',
-      'För korrekt besked, kontakta kliniken direkt:',
+      'Ja, Hair TP Clinic uppger att de erbjuder finansiering via Medical Finance.',
+      'Exempel från deras information: lån på 50 000 SEK med 0 % ränta och 24 månaders återbetalningstid kan erbjudas efter godkänd ansökan.',
+      'Exakt upplägg beror på kreditprövning och din ansökan.',
+      'För frågor om finansiering, kontakta kliniken direkt:',
       'Telefon: 031 88 11 66',
       'E-post: contact@hairtpclinic.com',
     ]);
