@@ -23,6 +23,8 @@ async function maybeSummarizeConversation({
   triggerMessages = 24,
   keepLast = 12,
 }) {
+  if (!openai || !model) return { summarized: false };
+
   if (!conversation) return { summarized: false };
   const allMessages = Array.isArray(conversation.messages)
     ? conversation.messages

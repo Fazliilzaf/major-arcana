@@ -64,6 +64,12 @@ function asJsonObject(value, fallback = null) {
   return fallback;
 }
 
+function normalizeAiProvider(value, fallback = 'openai') {
+  const normalized = asNonEmptyString(value, fallback).toLowerCase();
+  if (['openai', 'fallback'].includes(normalized)) return normalized;
+  return fallback;
+}
+
 const port = asInt(process.env.PORT, 3000);
 const publicBaseUrl = asNonEmptyString(
   process.env.PUBLIC_BASE_URL,
@@ -82,12 +88,44 @@ const config = {
 
   openaiApiKey: asNonEmptyString(process.env.OPENAI_API_KEY),
   openaiModel: asNonEmptyString(process.env.OPENAI_MODEL, 'gpt-4o-mini'),
+  aiProvider: normalizeAiProvider(process.env.ARCANA_AI_PROVIDER, 'openai'),
 
   memoryStorePath: asNonEmptyString(
     process.env.MEMORY_STORE_PATH,
     path.join(process.cwd(), 'data', 'memory.json')
   ),
   memoryTtlDays: asInt(process.env.MEMORY_TTL_DAYS, 30),
+
+  authStorePath: asNonEmptyString(
+    process.env.AUTH_STORE_PATH,
+    path.join(process.cwd(), 'data', 'auth.json')
+  ),
+  authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 12),
+  authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
+  authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
+  authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 60),
+  authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
+  authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
+  defaultTenantId: asNonEmptyString(process.env.ARCANA_DEFAULT_TENANT, brand),
+  bootstrapOwnerEmail: asNonEmptyString(process.env.ARCANA_OWNER_EMAIL),
+  bootstrapOwnerPassword: asNonEmptyString(process.env.ARCANA_OWNER_PASSWORD),
+
+  templateStorePath: asNonEmptyString(
+    process.env.TEMPLATE_STORE_PATH,
+    path.join(process.cwd(), 'data', 'templates.json')
+  ),
+  templateEvalMaxEntries: asInt(process.env.TEMPLATE_EVAL_MAX_ENTRIES, 10000),
+
+  tenantConfigStorePath: asNonEmptyString(
+    process.env.TENANT_CONFIG_STORE_PATH,
+    path.join(process.cwd(), 'data', 'tenant-config.json')
+  ),
+  backupDir: asNonEmptyString(
+    process.env.ARCANA_BACKUP_DIR,
+    path.join(process.cwd(), 'data', 'backups')
+  ),
+  backupRetentionMaxFiles: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_FILES, 50),
+  backupRetentionMaxAgeDays: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS, 30),
 
   knowledgeDir: asNonEmptyString(
     process.env.KNOWLEDGE_DIR,
@@ -104,7 +142,7 @@ const config = {
   clientoLocale: asNonEmptyString(process.env.CLIENTO_LOCALE, 'sv'),
 };
 
-if (!config.openaiApiKey) {
+if (config.aiProvider === 'openai' && !config.openaiApiKey) {
   throw new Error('Missing env var: OPENAI_API_KEY');
 }
 

@@ -1,0 +1,39 @@
+name: arcana-ci
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCANA_AI_PROVIDER: fallback
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      ARCANA_OWNER_EMAIL: owner@hairtpclinic.se
+      ARCANA_OWNER_PASSWORD: ArcanaPilot!2026
+      PORT: 3000
+      PUBLIC_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Syntax check
+        run: |
+          find ./src ./scripts ./public -type f -name "*.js" -print0 | xargs -0 -n1 node --check
+          node --check server.js
+
+      - name: Smoke (local)
+        run: npm run smoke:local

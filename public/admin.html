@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arcana Admin</title>
+  <style>
+    :root {
+      --bg: #121419;
+      --panel: #1a1e26;
+      --panel-soft: #202632;
+      --text: #e8edf5;
+      --muted: #9aa6bb;
+      --line: #2b3342;
+      --accent: #cabaae;
+      --accent-text: #1f2430;
+      --ok: #50c878;
+      --warn: #f2b84b;
+      --bad: #e46b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0%, #1e2430 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .container { width: min(1200px, 94vw); margin: 24px auto 64px; }
+    .row { display: grid; gap: 14px; }
+    .row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .row.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .row.cols-4, .row.cols-3, .row.cols-2 { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+    h1, h2, h3 { margin: 0 0 8px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 18px; color: var(--text); }
+    h3 { font-size: 14px; color: var(--muted); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .value { font-size: 26px; font-weight: 700; }
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.bad { background: var(--bad); }
+    .header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: 1px solid var(--line);
+      background: #171c24;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: #3c475c; }
+    .btn.primary {
+      background: var(--accent);
+      color: #272018;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn.small { padding: 6px 10px; font-size: 12px; }
+    .btn.danger { border-color: #7f2f2f; color: #ffb2b2; }
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+    }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    label { font-size: 12px; color: var(--muted); display: block; margin: 0 0 6px; }
+    input, select, textarea {
+      width: 100%;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 14px;
+    }
+    textarea { min-height: 74px; resize: vertical; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .hidden { display: none !important; }
+    .status-line {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+    .list {
+      max-height: 320px;
+      overflow: auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .list li {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 0;
+      font-size: 13px;
+    }
+    .mini { font-size: 12px; }
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.01);
+    }
+    .code-block {
+      border: 1px solid var(--line);
+      background: #141820;
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 220px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #d7deea;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Arcana Executive OS — Owner Panel</h1>
+        <div class="muted">Pilot 0.1 (Auth + Templates + Risk + Audit)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <div id="sessionMeta" class="muted">Inte inloggad</div>
+        <div class="seg">
+          <select id="tenantSwitchSelect" style="min-width:180px">
+            <option value="">Tenant</option>
+          </select>
+          <button id="switchTenantBtn" class="btn">Byt tenant</button>
+          <button id="refreshBtn" class="btn">Uppdatera</button>
+          <button id="logoutBtn" class="btn danger">Logga ut</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="loginPanel" class="panel">
+      <h2>Logga in</h2>
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="emailInput">E-post</label>
+          <input id="emailInput" type="email" value="owner@hairtpclinic.se" />
+        </div>
+        <div>
+          <label for="tenantInput">Tenant (valfri)</label>
+          <input id="tenantInput" type="text" value="hair-tp-clinic" />
+        </div>
+        <div>
+          <label for="passwordInput">Lösenord</label>
+          <input id="passwordInput" type="password" />
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button id="loginBtn" class="btn primary">Logga in</button>
+      </div>
+      <div id="loginStatus" class="status-line"></div>
+      <div id="tenantSelectionPanel" class="hidden" style="margin-top:10px">
+        <label for="tenantSelectionSelect">Flera tenants hittades. Välj tenant:</label>
+        <div class="seg">
+          <select id="tenantSelectionSelect" style="min-width:220px"></select>
+          <button id="completeTenantSelectionBtn" class="btn primary">Fortsätt</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="dashboardPanel" class="hidden">
+      <div class="row cols-4" style="margin-bottom:14px">
+        <article class="panel">
+          <h3>Templates</h3>
+          <div id="templatesTotal" class="value">0</div>
+        </article>
+        <article class="panel">
+          <h3>Aktiva versioner</h3>
+          <div id="templatesActive" class="value">0</div>
+        </article>
+        <article class="panel">
+          <h3>Riskutvärderingar</h3>
+          <div id="riskTotal" class="value">0</div>
+        </article>
+        <article class="panel">
+          <h3>High/Critical öppna</h3>
+          <div id="riskOpen" class="value">0</div>
+        </article>
+      </div>
+
+      <div class="row cols-2">
+        <section class="panel">
+          <h2>Tenant Config</h2>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="assistantName">assistantName</label>
+              <input id="assistantName" type="text" />
+            </div>
+            <div>
+              <label for="toneStyle">toneStyle</label>
+              <input id="toneStyle" type="text" />
+            </div>
+            <div>
+              <label for="brandProfile">brandProfile</label>
+              <input id="brandProfile" type="text" />
+            </div>
+            <div>
+              <label for="riskModifier">riskSensitivityModifier (-10 → 10)</label>
+              <input id="riskModifier" type="number" step="0.1" min="-10" max="10" />
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="templateEmailSignature">templateSignaturesByChannel.email</label>
+              <textarea id="templateEmailSignature" style="min-height:90px" placeholder="Med vänlig hälsning,\n{{clinic_name}}\n{{clinic_phone}}"></textarea>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="templateAllowlistOverrides">templateVariableAllowlistByCategory (JSON)</label>
+              <textarea id="templateAllowlistOverrides" style="min-height:90px" placeholder='{"CONSULTATION":["patient_name"]}'></textarea>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="templateRequiredOverrides">templateRequiredVariablesByCategory (JSON)</label>
+              <textarea id="templateRequiredOverrides" style="min-height:90px" placeholder='{"CONSULTATION":["patient_name"]}'></textarea>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <button id="saveTenantConfigBtn" class="btn primary">Spara config</button>
+          </div>
+          <div id="tenantConfigStatus" class="status-line"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Template Categories</h2>
+          <div id="categoryBadges"></div>
+          <h2 style="margin-top:16px">Risknivåer</h2>
+          <div id="riskBadges"></div>
+        </section>
+      </div>
+
+      <div class="row cols-2" style="margin-top:14px">
+        <section class="panel">
+          <h2>Mina tenants</h2>
+          <div style="margin-top:8px" class="seg">
+            <button id="refreshTenantsBtn" class="btn">Uppdatera tenant-lista</button>
+          </div>
+          <div id="tenantCatalog" class="code-block" style="margin-top:10px">Ingen data ännu.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Onboard ny tenant</h2>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="onboardTenantId">tenantId (slug)</label>
+              <input id="onboardTenantId" type="text" placeholder="curatiio" />
+            </div>
+            <div>
+              <label for="onboardOwnerEmail">ownerEmail (valfri)</label>
+              <input id="onboardOwnerEmail" type="email" placeholder="owner@clinic.se" />
+            </div>
+            <div>
+              <label for="onboardOwnerPassword">ownerPassword (valfri)</label>
+              <input id="onboardOwnerPassword" type="password" placeholder="krävs om ownerEmail är annan user" />
+            </div>
+            <div>
+              <label for="onboardAssistantName">assistantName</label>
+              <input id="onboardAssistantName" type="text" placeholder="Arcana" />
+            </div>
+            <div>
+              <label for="onboardToneStyle">toneStyle</label>
+              <input id="onboardToneStyle" type="text" placeholder="professional-warm" />
+            </div>
+            <div>
+              <label for="onboardBrandProfile">brandProfile</label>
+              <input id="onboardBrandProfile" type="text" placeholder="Curatiio" />
+            </div>
+            <div>
+              <label for="onboardRiskModifier">riskSensitivityModifier (-10 → 10)</label>
+              <input id="onboardRiskModifier" type="number" step="0.1" min="-10" max="10" placeholder="0" />
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <button id="onboardTenantBtn" class="btn primary">Onboard tenant</button>
+          </div>
+          <div id="tenantOnboardStatus" class="status-line"></div>
+        </section>
+      </div>
+
+      <div class="row cols-2" style="margin-top:14px">
+        <section class="panel">
+          <h2>Staff Management</h2>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="staffEmailInput">E-post</label>
+              <input id="staffEmailInput" type="email" placeholder="staff@hairtpclinic.se" />
+            </div>
+            <div>
+              <label for="staffPasswordInput">Lösenord</label>
+              <input id="staffPasswordInput" type="password" placeholder="Tillfälligt lösenord" />
+            </div>
+          </div>
+          <div style="margin-top:10px" class="seg">
+            <button id="createStaffBtn" class="btn primary">Skapa/Uppdatera staff</button>
+            <button id="refreshStaffBtn" class="btn">Uppdatera lista</button>
+          </div>
+          <div id="staffStatus" class="status-line"></div>
+          <div style="overflow:auto; margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th>E-post</th>
+                  <th>Roll</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="staffTableBody"></tbody>
+            </table>
+          </div>
+
+          <h2 style="margin-top:18px">Aktiva sessioner</h2>
+          <div class="seg" style="margin-top:8px">
+            <label class="mini" for="sessionsScopeSelect" style="margin:0;display:flex;align-items:center;gap:8px">
+              Scope:
+              <select id="sessionsScopeSelect" style="width:auto;min-width:130px">
+                <option value="me">me</option>
+                <option value="tenant">tenant</option>
+              </select>
+            </label>
+            <label class="mini" for="sessionsIncludeRevoked" style="margin:0;display:flex;align-items:center;gap:6px">
+              <input id="sessionsIncludeRevoked" type="checkbox" style="width:auto" />
+              Visa revokerade
+            </label>
+            <button id="loadSessionsBtn" class="btn small">Uppdatera sessioner</button>
+          </div>
+          <div id="sessionsStatus" class="status-line"></div>
+          <div style="overflow:auto; margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Användare</th>
+                  <th>Roll</th>
+                  <th>Last seen</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Risk Lab (Preview)</h2>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="riskLabCategory">Kategori</label>
+              <select id="riskLabCategory">
+                <option value="CONSULTATION">CONSULTATION</option>
+                <option value="BOOKING">BOOKING</option>
+                <option value="AFTERCARE">AFTERCARE</option>
+                <option value="LEAD">LEAD</option>
+                <option value="INTERNAL">INTERNAL</option>
+              </select>
+            </div>
+            <div>
+              <label for="riskLabScope">Scope</label>
+              <select id="riskLabScope">
+                <option value="output">output</option>
+                <option value="input">input</option>
+              </select>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="riskLabContent">Text att utvärdera</label>
+              <textarea id="riskLabContent" style="min-height:120px" placeholder="Klistra in malltext eller instruktion..."></textarea>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="riskLabVariables">Variabler (komma-separerat, valfritt)</label>
+              <input id="riskLabVariables" type="text" placeholder="first_name, clinic_name" />
+            </div>
+          </div>
+          <div class="seg" style="margin-top:10px">
+            <button id="runRiskPreviewBtn" class="btn primary">Kör preview</button>
+          </div>
+          <div id="riskLabStatus" class="status-line"></div>
+          <div id="riskLabResult" class="code-block" style="margin-top:8px">Ingen preview körd ännu.</div>
+        </section>
+      </div>
+
+      <div class="row cols-3" style="margin-top:14px">
+        <section class="panel">
+          <h2>Arcana Orchestrator</h2>
+          <div style="margin-top:10px">
+            <label for="orchestratorPromptInput">Intern uppgift</label>
+            <textarea id="orchestratorPromptInput" style="min-height:120px" placeholder="Ex: Granska high/critical och föreslå owner actions för idag."></textarea>
+          </div>
+          <div class="seg" style="margin-top:10px">
+            <button id="runOrchestratorBtn" class="btn primary">Kör orchestrator</button>
+          </div>
+          <div id="orchestratorStatus" class="status-line"></div>
+          <div id="orchestratorResult" class="code-block" style="margin-top:8px">Ingen körning ännu.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Risk Calibration</h2>
+          <div class="seg" style="margin-top:10px">
+            <button id="fetchCalibrationSuggestionBtn" class="btn">Hämta förslag</button>
+            <button id="applyCalibrationSuggestionBtn" class="btn primary">Applicera förslag</button>
+          </div>
+          <div style="margin-top:10px">
+            <label for="calibrationNoteInput">Notering (valfritt)</label>
+            <input id="calibrationNoteInput" type="text" placeholder="Owner note för audit logg" />
+          </div>
+          <div id="calibrationStatus" class="status-line"></div>
+          <div id="calibrationResult" class="code-block" style="margin-top:8px">Inget kalibreringsförslag ännu.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Pilot Report</h2>
+          <div class="seg" style="margin-top:10px">
+            <label class="mini" for="reportDaysInput" style="margin:0;display:flex;align-items:center;gap:8px">
+              Days:
+              <input id="reportDaysInput" type="number" value="14" min="1" max="90" style="width:96px" />
+            </label>
+            <button id="runPilotReportBtn" class="btn primary">Generera rapport</button>
+          </div>
+          <div id="reportStatus" class="status-line"></div>
+          <div id="pilotReportResult" class="code-block" style="margin-top:8px">Ingen rapport körd ännu.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Monitor Status</h2>
+          <div class="seg" style="margin-top:10px">
+            <button id="refreshMonitorBtn" class="btn">Uppdatera monitor</button>
+          </div>
+          <div id="monitorPanelStatus" class="status-line"></div>
+          <div id="monitorResult" class="code-block" style="margin-top:8px">Ingen monitor-data ännu.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Ops Backup</h2>
+          <div class="seg" style="margin-top:10px">
+            <button id="loadStateManifestBtn" class="btn">Läs state manifest</button>
+            <button id="createStateBackupBtn" class="btn primary">Skapa backup</button>
+            <button id="listStateBackupsBtn" class="btn">Lista backups</button>
+            <button id="previewPruneBackupsBtn" class="btn">Preview prune</button>
+            <button id="runPruneBackupsBtn" class="btn danger">Kör prune</button>
+          </div>
+          <div style="margin-top:10px">
+            <label for="restoreBackupFileInput">Backupfil (från listan)</label>
+            <input id="restoreBackupFileInput" type="text" placeholder="arcana-state-YYYYMMDD-HHMMSS.json" />
+          </div>
+          <div class="seg" style="margin-top:10px">
+            <button id="previewStateRestoreBtn" class="btn">Restore preview</button>
+            <button id="runStateRestoreBtn" class="btn danger">Kör restore</button>
+          </div>
+          <div class="muted" style="margin-top:8px">
+            Restore kräver bekräftelse med exakt text: <code>RESTORE &lt;filnamn&gt;</code>
+          </div>
+          <div id="opsStatus" class="status-line"></div>
+          <div id="opsResult" class="code-block" style="margin-top:8px">Ingen ops-data ännu.</div>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top:14px">
+        <h2>Template Lifecycle</h2>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="templateNameInput">Ny mall: namn</label>
+            <input id="templateNameInput" type="text" placeholder="Ex. Konsultation bekräftelse" />
+          </div>
+          <div>
+            <label for="templateCategoryInput">Kategori</label>
+            <select id="templateCategoryInput">
+              <option value="CONSULTATION">CONSULTATION</option>
+              <option value="BOOKING">BOOKING</option>
+              <option value="AFTERCARE">AFTERCARE</option>
+              <option value="LEAD">LEAD</option>
+              <option value="INTERNAL">INTERNAL</option>
+            </select>
+          </div>
+          <div>
+            <label for="templateChannelInput">Channel</label>
+            <input id="templateChannelInput" type="text" value="email" />
+          </div>
+          <div>
+            <label for="templateLocaleInput">Locale</label>
+            <input id="templateLocaleInput" type="text" value="sv-SE" />
+          </div>
+        </div>
+        <div style="margin-top:12px" class="seg">
+          <button id="createTemplateBtn" class="btn primary">Skapa mall</button>
+          <label class="mini" for="templateFilterSelect" style="margin:0;display:flex;align-items:center;gap:8px">
+            Filter:
+            <select id="templateFilterSelect" style="width:auto;min-width:180px">
+              <option value="">Alla</option>
+              <option value="CONSULTATION">CONSULTATION</option>
+              <option value="BOOKING">BOOKING</option>
+              <option value="AFTERCARE">AFTERCARE</option>
+              <option value="LEAD">LEAD</option>
+              <option value="INTERNAL">INTERNAL</option>
+            </select>
+          </label>
+        </div>
+        <div id="templateStatus" class="status-line"></div>
+
+        <div class="row cols-2" style="margin-top:10px">
+          <div>
+            <h3>Templates</h3>
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Namn</th>
+                    <th>Kategori</th>
+                    <th>Aktiv</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="templateTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3>Versioner</h3>
+            <div id="selectedTemplateMeta" class="mini muted" style="margin-bottom:8px">Ingen mall vald.</div>
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>v#</th>
+                    <th>State</th>
+                    <th>Risk</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="versionTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <h3>Version Editor</h3>
+          <div id="selectedVersionMeta" class="mini muted" style="margin-bottom:8px">Ingen version vald.</div>
+          <div class="grid">
+            <div>
+              <label for="versionTitleInput">Titel</label>
+              <input id="versionTitleInput" type="text" />
+            </div>
+            <div>
+              <label for="draftInstructionInput">AI instruction (för nytt utkast)</label>
+              <input id="draftInstructionInput" type="text" placeholder="Skriv vad mallen ska innehålla..." />
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="versionContentInput">Innehåll</label>
+              <textarea id="versionContentInput" style="min-height:160px"></textarea>
+            </div>
+          </div>
+          <div class="seg" style="margin-top:10px">
+            <button id="generateDraftBtn" class="btn">Generera draft (AI)</button>
+            <button id="saveDraftBtn" class="btn">Spara draft</button>
+            <button id="evaluateBtn" class="btn">Evaluate</button>
+            <button id="activateBtn" class="btn primary">Activate</button>
+            <button id="archiveBtn" class="btn">Archive</button>
+            <button id="cloneBtn" class="btn">Clone</button>
+          </div>
+          <div id="versionStatus" class="status-line"></div>
+          <div id="versionRiskBlock" class="code-block" style="margin-top:8px"></div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <h2>Risk Evaluations (>= 3)</h2>
+        <div class="muted" style="margin-bottom:10px">Owner actions: approve_exception, mark_false_positive, request_revision, escalate</div>
+        <div class="seg" style="margin-bottom:10px">
+          <label class="mini" for="riskMinFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Min risk:
+            <select id="riskMinFilter" style="width:auto;min-width:120px">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+          <label class="mini" for="riskOwnerDecisionFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Owner decision:
+            <select id="riskOwnerDecisionFilter" style="width:auto;min-width:180px">
+              <option value="">Alla</option>
+              <option value="pending">pending</option>
+              <option value="approved_exception">approved_exception</option>
+              <option value="false_positive">false_positive</option>
+              <option value="revision_requested">revision_requested</option>
+              <option value="escalated">escalated</option>
+            </select>
+          </label>
+          <button id="applyRiskFilterBtn" class="btn small">Applicera filter</button>
+        </div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Evaluation</th>
+                <th>Template</th>
+                <th>Risk</th>
+                <th>Decision</th>
+                <th>Owner</th>
+                <th>AI/Rule score</th>
+                <th>Policy</th>
+                <th>Reason Codes</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="riskTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <h2>Senaste audit events</h2>
+        <ul id="auditList" class="list"></ul>
+      </section>
+    </section>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

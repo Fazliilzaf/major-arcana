@@ -149,26 +149,35 @@ function scrollToBottom() {
   });
 }
 
-function bubbleBase(role) {
+function bubbleBase(role, { fullWidth = false } = {}) {
   const wrapper = document.createElement('div');
   wrapper.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
 
+  const widthClass = fullWidth ? 'w-full max-w-full' : 'max-w-[85%]';
   const bubble = document.createElement('div');
   bubble.className =
     role === 'user'
-      ? 'bubble-user max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm'
-      : 'bubble-assistant max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm';
+      ? `bubble-user ${widthClass} rounded-2xl px-4 py-3 text-sm shadow-sm`
+      : `bubble-assistant ${widthClass} rounded-2xl px-4 py-3 text-sm shadow-sm`;
 
   const content = document.createElement('div');
   content.className = 'whitespace-pre-wrap leading-relaxed';
+
+  if (fullWidth && role !== 'user') {
+    bubble.style.maxHeight = 'none';
+    bubble.style.overflow = 'visible';
+    content.style.maxHeight = 'none';
+    content.style.overflow = 'visible';
+  }
+
   bubble.appendChild(content);
 
   wrapper.appendChild(bubble);
   return { wrapper, content };
 }
 
-function addMessage(role, text, { scroll = true } = {}) {
-  const { wrapper, content } = bubbleBase(role);
+function addMessage(role, text, { scroll = true, fullWidth = false } = {}) {
+  const { wrapper, content } = bubbleBase(role, { fullWidth });
   content.textContent = String(text ?? '');
   els.messages.appendChild(wrapper);
   if (scroll) scrollToBottom();
@@ -264,11 +273,12 @@ function seedWelcome() {
       `Hej! Jag är Arcana, ${brandLabel()}s digitala assistent.`,
       '',
       'Jag kan hjälpa dig med:',
-      '- Info om behandling, eftervård och praktiska frågor',
-      '- Att boka konsultation (klicka på “Boka tid” så öppnas bokningen)',
+      '- Behandlingar, eftervård och praktiska frågor',
+      '- Boka konsultation (klicka på “Boka tid”)',
       '',
-      'Vad vill du ha hjälp med?',
-    ].join('\n')
+      'Vad vill du ha hjälp med idag?',
+    ].join('\n'),
+    { fullWidth: true }
   );
 }
 
@@ -333,16 +343,29 @@ function installClientoOverridesStyle() {
       --cb-color-primary-text: var(--arcana-primary-text);
     }
 
+    #cliento-booking,
+    #cliento-booking * {
+      box-sizing: border-box;
+    }
+
     #cliento-booking [data-arcana-hidden="true"] {
       display: none !important;
     }
 
-    #cliento-booking :is(a, button) {
+    #cliento-booking :is(a, button, input, select, textarea, label, p, h1, h2, h3, h4, h5, h6, span, div) {
       font-family: inherit !important;
+    }
+
+    #cliento-booking :is(p, span, div, small, strong, b, h1, h2, h3, h4, h5, h6, label) {
+      color: #1f2937 !important;
     }
 
     #cliento-booking a {
       color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking :is(button, a[role="button"], .cb-button) {
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
     }
 
     #cliento-booking .cb-nav-item.active {
@@ -392,6 +415,33 @@ function installClientoOverridesStyle() {
 
 let clientoObserver = null;
 
+function normalizeUiText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isClientoActionLabel(label) {
+  const normalized = normalizeUiText(label);
+  if (!normalized) return false;
+  if (normalized === 'välj' || normalized === 'välj tid') return true;
+  if (normalized === 'boka' || normalized === 'boka tid') return true;
+  if (normalized === 'fortsätt' || normalized === 'bekräfta') return true;
+  if (normalized.startsWith('välj ')) return true;
+  if (normalized.startsWith('fortsätt')) return true;
+  return false;
+}
+
+function forceBrandActionStyle(el) {
+  if (!el) return;
+  el.classList.add('arcana-cliento-action');
+  el.style.setProperty('background-color', 'var(--arcana-primary)', 'important');
+  el.style.setProperty('border-color', 'var(--arcana-primary)', 'important');
+  el.style.setProperty('color', 'var(--arcana-primary-text)', 'important');
+  el.style.setProperty('border-radius', '9999px', 'important');
+}
+
 function findClientoSectionRoot(el, root) {
   if (!el || !root) return null;
   const preferred = el.closest(
@@ -415,10 +465,17 @@ function decorateClientoWidgetDom() {
 
   // Style action buttons like "Välj" consistently.
   for (const el of root.querySelectorAll('button, a')) {
-    const label = String(el.textContent || '').trim().toLowerCase();
+    const label = String(el.textContent || '').trim();
     if (!label) continue;
-    if (label === 'välj' || label === 'välj tid' || label === 'boka' || label === 'boka tid') {
-      el.classList.add('arcana-cliento-action');
+    if (isClientoActionLabel(label)) {
+      forceBrandActionStyle(el);
+      continue;
+    }
+
+    const normalized = normalizeUiText(label);
+    if (normalized === 'visa mer' || normalized.startsWith('visa mer ')) {
+      el.style.setProperty('color', 'var(--arcana-primary)', 'important');
+      el.style.setProperty('font-weight', '500', 'important');
     }
   }
 
@@ -440,14 +497,30 @@ function decorateClientoWidgetDom() {
     if (text.length > 48) continue;
     if (text.includes('\n')) continue;
 
-    const lowered = text.toLowerCase();
-    const normalized = lowered.replace(/[^a-z0-9]+/g, ' ').trim();
-    const hit = blocked.find((name) => normalized === name.replace(/[^a-z0-9]+/g, ' ').trim());
+    const normalized = normalizeUiText(text).replace(/[^a-z0-9]+/g, ' ').trim();
+    const hit = blocked.find((name) => {
+      const expected = name.replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!expected) return false;
+      if (normalized === expected) return true;
+      if (normalized.startsWith(`${expected} `)) return true;
+      if (normalized.endsWith(` ${expected}`)) return true;
+      if (normalized.includes(` ${expected} `)) return true;
+      return false;
+    });
     if (!hit) continue;
     const sectionRoot = findClientoSectionRoot(el, root);
     if (!sectionRoot) continue;
     sectionRoot.dataset.arcanaHidden = 'true';
+    sectionRoot.setAttribute('aria-hidden', 'true');
   }
+}
+
+function scheduleClientoDecorationPasses() {
+  decorateClientoWidgetDom();
+  window.setTimeout(decorateClientoWidgetDom, 120);
+  window.setTimeout(decorateClientoWidgetDom, 420);
+  window.setTimeout(decorateClientoWidgetDom, 1000);
+  window.setTimeout(decorateClientoWidgetDom, 2200);
 }
 
 function ensureClientoObserver() {
@@ -532,7 +605,7 @@ function ensureClientoLoaded() {
     clientoState.loaded = true;
     clientoState.loading = false;
     installClientoOverridesStyle();
-    decorateClientoWidgetDom();
+    scheduleClientoDecorationPasses();
     ensureClientoObserver();
   };
   s.onerror = () => {
@@ -549,6 +622,7 @@ async function openBookingModal() {
   openModal();
   await publicConfigPromise;
   ensureClientoLoaded();
+  scheduleClientoDecorationPasses();
 }
 
 els.bookingClose?.addEventListener('click', closeModal);

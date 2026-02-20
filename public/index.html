@@ -75,22 +75,22 @@
   <div id="bookingModal" class="fixed inset-0 z-50 hidden">
     <div id="bookingBackdrop" class="absolute inset-0 bg-black/70"></div>
     <div class="relative mx-auto flex h-full max-w-3xl flex-col p-4">
-      <div class="flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-4 py-3 backdrop-blur">
-        <div class="flex min-w-0 items-center gap-3">
+      <div class="flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-5 py-4 backdrop-blur sm:px-6">
+        <div class="flex min-w-0 items-center gap-4">
           <img
             id="bookingBrandMark"
             src="/assets/hairtpclinic-mark.svg"
             alt=""
-            class="h-10 w-10 shrink-0 opacity-95"
+            class="h-20 w-20 shrink-0 opacity-95"
             loading="lazy"
             decoding="async"
           />
           <div class="min-w-0">
-            <div class="text-sm font-semibold text-[color:var(--arcana-text)]">Boka tid</div>
-            <div class="text-xs text-[color:var(--arcana-text-muted)]">Öppnas via Cliento</div>
+            <div class="text-base font-semibold leading-tight text-[color:var(--arcana-text)]">Boka tid</div>
+            <div class="mt-0.5 text-sm leading-tight text-[color:var(--arcana-text-muted)]">Öppnas via Cliento</div>
           </div>
         </div>
-        <button id="bookingCloseBtn" class="btn-ghost rounded-lg px-3 py-2 text-sm">
+        <button id="bookingCloseBtn" class="btn-ghost self-start rounded-lg px-4 py-2 text-sm">
           Stäng
         </button>
       </div>
@@ -214,7 +214,7 @@
     /* Generic Cliento widget styling */
     #cliento-booking .cb-nav-item.active {
       background: var(--cb-color-primary) !important;
-      color: #fff !important;
+      color: var(--arcana-primary-text) !important;
     }
 
     #cliento-booking .cb-day-header.today,
@@ -227,6 +227,8 @@
     #cliento-booking button[type=button].cb-button,
     #cliento-booking button[type=submit].cb-button {
       background: var(--cb-color-primary) !important;
+      border-color: var(--cb-color-primary) !important;
+      color: var(--arcana-primary-text) !important;
       border-radius: 12px !important;
     }
 

@@ -14,6 +14,10 @@ async function runChatWithTools({
   toolHandlers,
   maxTurns = 4,
 }) {
+  if (!openai || !model) {
+    return 'Jag har begränsat AI-läge just nu. Skriv gärna en konkret fråga så svarar jag med tillgänglig information.';
+  }
+
   const workingMessages = Array.isArray(messages) ? [...messages] : [];
 
   for (let turn = 0; turn < maxTurns; turn += 1) {

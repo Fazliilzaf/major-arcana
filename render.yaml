@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: arcana
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /readyz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ARCANA_AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: ARCANA_DEFAULT_TENANT
+        value: hair-tp-clinic
+      - key: ARCANA_OWNER_EMAIL
+        sync: false
+      - key: ARCANA_OWNER_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: TRUST_PROXY
+        value: true

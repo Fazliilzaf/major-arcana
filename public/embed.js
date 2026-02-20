@@ -150,9 +150,14 @@
       'left:0 !important;right:0 !important;top:0 !important;bottom:0 !important;' +
       'width:auto !important;height:auto !important;border-radius:0 !important;' +
       '}' +
-      '#arcana-embed-launcher{bottom:16px;' +
+      '#arcana-embed-launcher{bottom:12px;' +
       (position === 'left' ? 'left:16px;' : 'right:16px;') +
+      'padding:10px 12px;' +
+      'gap:8px;' +
+      'font:500 12px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;' +
+      'box-shadow:0 10px 26px rgba(0,0,0,0.3);' +
       '}' +
+      '#arcana-embed-launcher img{width:18px;height:18px;}' +
       '}';
 
     document.head.appendChild(style);

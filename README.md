@@ -12,6 +12,208 @@ Node + Express-app med en patientvänlig chatt som:
 
 Öppna sedan `http://localhost:3000`.
 
+### Offline/CI-läge (utan OpenAI-anrop)
+Sätt `ARCANA_AI_PROVIDER=fallback` i `.env` för att köra Arcana utan externa OpenAI-anrop.
+Det är användbart för lokal smoke/CI och kräver då inte `OPENAI_API_KEY`.
+
+### Deploy på Render (Blueprint)
+Repo:t innehåller `render.yaml` för snabb deploy.
+I Render: välj **Blueprint** och fyll minst:
+- `OPENAI_API_KEY`
+- `ARCANA_OWNER_EMAIL`
+- `ARCANA_OWNER_PASSWORD`
+- `PUBLIC_BASE_URL` (t.ex. `https://arcana.hairtpclinic.se`)
+
+## Steg 1: Foundation (Auth + RBAC + Tenant + Audit)
+Arcana har nu en intern API-bas på `/api/v1` för Pilot 0.1.
+
+### 1) Sätt owner i `.env`
+```env
+ARCANA_DEFAULT_TENANT=hair-tp-clinic
+ARCANA_OWNER_EMAIL=owner@hairtpclinic.se
+ARCANA_OWNER_PASSWORD=byt-till-starkt-losenord
+```
+
+### 2) Starta servern
+`npm run dev`
+
+Vid uppstart bootstrapas första OWNER automatiskt om ovan variabler finns.
+
+### 3) Viktiga endpoints (Foundation)
+- `GET /healthz` (liveness)
+- `GET /readyz` (readiness)
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/select-tenant` (om användaren har flera tenants)
+- `POST /api/v1/auth/switch-tenant` (inloggad OWNER/STAFF, byter tenant utan ny login)
+- `GET /api/v1/auth/me`
+- `GET /api/v1/auth/sessions` (OWNER/STAFF, scope=`me|tenant`, tenant-scope endast OWNER)
+- `POST /api/v1/auth/sessions/:sessionId/revoke` (OWNER/STAFF, OWNER kan revoka tenantens sessioner)
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/tenants/my` (OWNER/STAFF, lista egna tenants)
+- `POST /api/v1/tenants/onboard` (OWNER, skapa/onboard tenant + owner)
+- `GET /api/v1/tenants/:tenantId/access-check` (tenant isolation check)
+- `GET /api/v1/users/staff` (OWNER)
+- `POST /api/v1/users/staff` (OWNER)
+- `PATCH /api/v1/users/staff/:membershipId` (OWNER)
+- `GET /api/v1/monitor/status` (OWNER/STAFF)
+- `GET /api/v1/ops/state/manifest` (OWNER)
+- `GET /api/v1/ops/state/backups` (OWNER)
+- `POST /api/v1/ops/state/backup` (OWNER)
+- `POST /api/v1/ops/state/backups/prune` (OWNER, dry-run eller apply)
+- `POST /api/v1/ops/state/restore` (OWNER, dry-run + restore med confirmText)
+- `GET /api/v1/audit/events` (OWNER/STAFF)
+
+## Steg 2: Template Engine (Pilot 0.1)
+Template Engine finns nu i `/api/v1` med draft/active-workflow och riskutvärdering.
+
+Tenant-bunden template-policy stöds via `tenant-config`:
+- `templateVariableAllowlistByCategory` (extra tillåtna variabler per kategori)
+- `templateRequiredVariablesByCategory` (extra obligatoriska variabler per kategori)
+- `templateSignaturesByChannel` (t.ex. automatisk email-signatur)
+
+Snabbtest (rekommenderat):
+`bash ./scripts/smoke-template.sh`
+eller
+`npm run smoke`
+
+Stabil engångskörning (startar rätt server, stänger gamla processer på port 3000, kör smoke):
+`bash ./scripts/run-smoke-local.sh`
+eller
+`npm run smoke:local`
+
+Hel verifiering lokalt:
+`npm run verify`
+
+### Viktiga endpoints (Template Engine)
+- `GET /api/v1/templates/meta`
+- `GET /api/v1/templates`
+- `POST /api/v1/templates`
+- `GET /api/v1/templates/:templateId/versions`
+- `GET /api/v1/templates/:templateId/versions/:versionId`
+- `POST /api/v1/templates/:templateId/drafts/generate`
+- `PATCH /api/v1/templates/:templateId/versions/:versionId`
+- `POST /api/v1/templates/:templateId/versions/:versionId/evaluate`
+- `POST /api/v1/templates/:templateId/versions/:versionId/activate` (OWNER)
+- `POST /api/v1/templates/:templateId/versions/:versionId/archive` (OWNER)
+- `POST /api/v1/templates/:templateId/versions/:versionId/clone`
+- `GET /api/v1/risk/summary`
+- `GET /api/v1/risk/evaluations`
+- `GET /api/v1/risk/evaluations/:evaluationId`
+- `POST /api/v1/risk/evaluations/:evaluationId/owner-action` (OWNER)
+
+Owner action `action` (endast OWNER):
+- `approve_exception`
+- `mark_false_positive`
+- `request_revision`
+- `escalate`
+
+## Steg 3: Owner Risk Panel (web)
+- Admin UI: `http://localhost:3000/admin`
+- Multi-tenant i UI:
+  - login hanterar `requiresTenantSelection` automatiskt
+  - tenant-switcher i header (OWNER/STAFF) använder `POST /api/v1/auth/switch-tenant`
+  - tenant-lista + onboarding-form (OWNER) använder `GET /api/v1/tenants/my` och `POST /api/v1/tenants/onboard`
+- Dashboard API: `GET /api/v1/dashboard/owner`
+- Tenant config: `GET /api/v1/tenant-config`, `PATCH /api/v1/tenant-config` (OWNER)
+- Template lifecycle i UI:
+  - create template
+  - list templates/versions
+  - generate draft (AI), save draft, evaluate
+  - activate/archive/clone version
+- Staff management i UI:
+  - skapa/uppdatera staff (`POST /api/v1/users/staff`)
+  - enable/disable staff (`PATCH /api/v1/users/staff/:membershipId`)
+- Session management i UI:
+  - lista sessioner (`GET /api/v1/auth/sessions`)
+  - avsluta session (`POST /api/v1/auth/sessions/:sessionId/revoke`)
+- Monitor-panel i UI:
+  - driftstatus, minne, datastores och tenant-KPI (`GET /api/v1/monitor/status`)
+- Ops backup-panel i UI (OWNER):
+  - state manifest (`GET /api/v1/ops/state/manifest`)
+  - skapa backup (`POST /api/v1/ops/state/backup`)
+  - lista backups (`GET /api/v1/ops/state/backups`)
+  - prune backups (`POST /api/v1/ops/state/backups/prune`)
+  - restore preview + restore (`POST /api/v1/ops/state/restore`)
+ - Orchestrator-panel i UI:
+   - kör intern orchestration och visa trace
+ - Risk calibration-panel i UI:
+   - hämta förslag och applicera owner-godkänt förslag
+ - Pilot report-panel i UI:
+   - generera KPI-rapport per tidsfönster
+
+## Steg 4: Risk Calibration (tenant-styrd)
+- Risk settings API:
+  - `GET /api/v1/risk/settings`
+  - `PATCH /api/v1/risk/settings` (OWNER)
+- Risk lab API:
+  - `POST /api/v1/risk/preview` (OWNER/STAFF)
+- Risk calibration API:
+  - `GET /api/v1/risk/calibration/suggestion` (OWNER/STAFF)
+  - `POST /api/v1/risk/calibration/apply-suggestion` (OWNER)
+- Policy floor API:
+  - `GET /api/v1/policy/floor` (OWNER/STAFF)
+- Tenantens `riskSensitivityModifier` appliceras nu i template-riskutvärdering (generate/update/evaluate).
+
+## Steg 5: Activation Gate (Owner-control)
+- Om riskbeslut = `review_required` eller `blocked` krävs owner-beslut före aktivering.
+- Tillåtna owner-beslut för aktivering:
+  - `approve_exception`
+  - `mark_false_positive`
+- Annars stoppas `POST /api/v1/templates/:templateId/versions/:versionId/activate`.
+
+## Steg 6: Arcana Orchestrator (intern)
+- Orchestrator API:
+  - `GET /api/v1/orchestrator/meta`
+  - `POST /api/v1/orchestrator/admin-run`
+- Returnerar:
+  - intent + confidence
+  - valda agenter
+  - handlingsplan
+  - föreslagna API-anrop
+  - säkerhetsvaliderad output (risk + policy floor)
+
+## Steg 7: Pilot Reporting
+- Rapport API:
+  - `GET /api/v1/reports/pilot?days=14`
+- Rapporten innehåller:
+  - template KPI
+  - risk KPI
+  - owner action coverage
+  - operativa audit events
+
+Tips vid route-fel (`Cannot GET ...`): stoppa alla gamla processer på port 3000 och starta om `npm run dev`.
+
+## Drift: Backup & Restore
+- Skapa backupbundle:
+  - `npm run backup:state`
+- Lista senaste backupfiler:
+  - `npm run backup:list`
+- Preview prune enligt retention-regler:
+  - `npm run backup:prune`
+- Kör prune:
+  - `npm run backup:prune:apply`
+- Återställ från backupfil:
+  - `npm run restore:state -- --file ./data/backups/arcana-state-YYYYMMDD-HHMMSS.json`
+  - Lägg till `--yes` för icke-interaktiv restore.
+- API prune preview/run (OWNER):
+  - `POST /api/v1/ops/state/backups/prune` med body `{ "dryRun": true }` eller `{ "dryRun": false }`
+- API restore preview (OWNER):
+  - `POST /api/v1/ops/state/restore` med body `{ "fileName": "arcana-state-YYYYMMDD-HHMMSS.json", "dryRun": true }`
+- API restore run (OWNER):
+  - `POST /api/v1/ops/state/restore` med body
+    `{ "fileName": "...", "dryRun": false, "confirmText": "RESTORE <filnamn>" }`
+
+Backup inkluderar:
+- `AUTH_STORE_PATH`
+- `TEMPLATE_STORE_PATH`
+- `TENANT_CONFIG_STORE_PATH`
+- `MEMORY_STORE_PATH`
+
+Katalog styrs av:
+- `ARCANA_BACKUP_DIR` (default: `./data/backups`)
+- `ARCANA_BACKUP_RETENTION_MAX_FILES` (default: `50`)
+- `ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS` (default: `30`)
+
 ## Lägg in Arcana på hemsidan (WordPress)
 Arcana behöver först köras på en publik **HTTPS**-adress (t.ex. `https://arcana.dindomän.se/`).
 
@@ -61,3 +263,30 @@ Om du vill köra **en** Arcana-server men ha rätt innehåll/bokning per domän:
 Tips:
 - Om du kör bakom en reverse proxy: sätt `TRUST_PROXY=true` så `req.hostname` blir rätt.
 - Om Arcana kör på en separat domän men embed:as i en iframe så används `document.referrer` (parent-sidans URL) för att välja brand.
+
+## QA-checklista (mobil + desktop)
+Kör detta efter varje deploy:
+
+1) Verifiera script och cache
+- Kontrollera att `view-source:https://hairtpclinic.se` innehåller `https://arcana.hairtpclinic.se/embed.js`.
+- Purga WordPress-cache/CDN och gör hård omladdning.
+
+2) Verifiera chat-bubbla
+- Bubblan ska synas på både `https://hairtpclinic.se` och `https://www.hairtpclinic.se`.
+- Klick på bubblan ska öppna panel utan överlappande extra `X`.
+
+3) Verifiera bokningsheader
+- Loggan i bokningsheader ska vara stor och tydlig.
+- `Stäng`-knappen ska inte krocka med logga eller rubrik.
+
+4) Verifiera Cliento-tema
+- `Välj`/`Fortsätt`-knappar ska följa Arcana-färger (inte blå/lila default).
+- Länkar som `Visa mer` ska följa varumärkesfärgen.
+
+5) Verifiera bolagsfiltrering
+- På Hair TP ska endast Hair TP Clinic-innehåll synas i bokningen.
+- Curatiio-namn/tjänster ska inte visas i Hair TP-flödet.
+
+6) Verifiera responsivt
+- Testa minst en mobilbredd (390px) och en desktopbredd (1440px).
+- Kontrollera att modalen kan scrollas utan att sidans bakgrund scrollar.

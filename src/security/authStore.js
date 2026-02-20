@@ -435,6 +435,90 @@ async function createAuthStore({
     return count;
   }
 
+  async function getSessionById(sessionId) {
+    const normalizedSessionId = typeof sessionId === 'string' ? sessionId.trim() : '';
+    if (!normalizedSessionId) return null;
+    const session = state.sessions[normalizedSessionId];
+    return toSafeSession(session);
+  }
+
+  async function getSessionDetailsById(sessionId) {
+    const normalizedSessionId = typeof sessionId === 'string' ? sessionId.trim() : '';
+    if (!normalizedSessionId) return null;
+    const session = state.sessions[normalizedSessionId];
+    if (!session) return null;
+    const user = state.users[session.userId] || null;
+    const membership = state.memberships[session.membershipId] || null;
+    return {
+      session: toSafeSession(session),
+      user: toSafeUser(user),
+      membership: toSafeMembership(membership),
+    };
+  }
+
+  async function listSessions({
+    tenantId = '',
+    userId = '',
+    includeRevoked = false,
+    limit = 100,
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedUserId = typeof userId === 'string' ? userId.trim() : '';
+    const numericLimit = Number.isFinite(Number(limit)) ? Number(limit) : 100;
+    const clampedLimit = Math.max(1, Math.min(500, numericLimit));
+
+    const now = Date.now();
+    const sessions = Object.values(state.sessions)
+      .filter((session) => {
+        if (normalizedTenantId && normalizeTenantId(session.tenantId) !== normalizedTenantId) {
+          return false;
+        }
+        if (normalizedUserId && session.userId !== normalizedUserId) {
+          return false;
+        }
+        if (!includeRevoked && session.revokedAt) {
+          return false;
+        }
+        const expiresAt = Date.parse(session.expiresAt || '');
+        if (Number.isFinite(expiresAt) && expiresAt <= now) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const aTs = Date.parse(a.lastSeenAt || a.createdAt || 0);
+        const bTs = Date.parse(b.lastSeenAt || b.createdAt || 0);
+        return bTs - aTs;
+      })
+      .slice(0, clampedLimit);
+
+    return sessions.map((session) => toSafeSession(session));
+  }
+
+  async function listSessionsDetailed({
+    tenantId = '',
+    userId = '',
+    includeRevoked = false,
+    limit = 100,
+  } = {}) {
+    const sessions = await listSessions({
+      tenantId,
+      userId,
+      includeRevoked,
+      limit,
+    });
+
+    return sessions.map((session) => {
+      const user = state.users[session.userId] || null;
+      const membership = state.memberships[session.membershipId] || null;
+      return {
+        session,
+        user: toSafeUser(user),
+        membership: toSafeMembership(membership),
+      };
+    });
+  }
+
   async function updateMembership(membershipId, patch = {}) {
     const membership = state.memberships[membershipId];
     if (!membership) return null;
@@ -499,6 +583,49 @@ async function createAuthStore({
       userId: rawUser.id,
       tenantId: normalizedTenantId,
       role: ROLE_STAFF,
+      createdBy: actorUserId,
+    });
+
+    return {
+      user: toSafeUser(rawUser),
+      membership,
+      createdUser,
+    };
+  }
+
+  async function upsertOwnerMember({
+    tenantId,
+    email,
+    password,
+    actorUserId = null,
+  }) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    if (!normalizedTenantId) throw new Error('tenantId saknas.');
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) throw new Error('E-postadress saknas.');
+    if (typeof password !== 'string' || !password.trim()) {
+      throw new Error('Lösenord saknas.');
+    }
+
+    let rawUser = findRawUserByEmail(normalizedEmail);
+    let createdUser = false;
+
+    if (!rawUser) {
+      const created = await createUser({ email: normalizedEmail, password, mfaRequired: true });
+      rawUser = state.users[created.id];
+      createdUser = true;
+    } else if (rawUser.status !== 'active') {
+      rawUser.status = 'active';
+      rawUser.updatedAt = nowIso();
+      await setUserPassword(rawUser.id, password);
+    } else if (password.trim()) {
+      await setUserPassword(rawUser.id, password);
+    }
+
+    const membership = await ensureMembership({
+      userId: rawUser.id,
+      tenantId: normalizedTenantId,
+      role: ROLE_OWNER,
       createdBy: actorUserId,
     });
 
@@ -606,11 +733,16 @@ async function createAuthStore({
     consumePendingLoginTicket,
     createSession,
     getSessionContextByToken,
+    getSessionById,
+    getSessionDetailsById,
+    listSessions,
+    listSessionsDetailed,
     touchSession,
     revokeSession,
     revokeSessionsByMembership,
     updateMembership,
     upsertStaffMember,
+    upsertOwnerMember,
     listTenantMembers,
     addAuditEvent,
     listAuditEvents,
