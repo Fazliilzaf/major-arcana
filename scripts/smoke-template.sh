@@ -283,6 +283,33 @@ REPORT_RESPONSE="$(curl -s "$BASE_URL/api/v1/reports/pilot?days=14" \
 REPORT_EVALS="$(printf '%s' "$REPORT_RESPONSE" | json_get kpis.evaluationsTotal)"
 echo "✅ reports/pilot OK (evaluations: ${REPORT_EVALS})"
 
+MAIL_INSIGHTS_RESPONSE="$(curl -s "$BASE_URL/api/v1/mail/insights" \
+  -H "Authorization: Bearer $TOKEN")"
+MAIL_READY="$(printf '%s' "$MAIL_INSIGHTS_RESPONSE" | json_get ready)"
+MAIL_QA_PAIRS="$(printf '%s' "$MAIL_INSIGHTS_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const v=d?.report?.counts?.qaPairs; process.stdout.write(String(Number.isFinite(Number(v))?Number(v):0));")"
+echo "✅ mail/insights OK (ready: ${MAIL_READY}, qaPairs: ${MAIL_QA_PAIRS})"
+
+if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
+  MAIL_SEED_PREVIEW_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/mail/template-seeds/apply" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"dryRun":true,"limit":2}')"
+  if MAIL_SEED_PREVIEW_SELECTED="$(printf '%s' "$MAIL_SEED_PREVIEW_RESPONSE" | json_get selected 2>/dev/null)"; then
+    echo "✅ mail/template-seeds/apply preview OK (selected: ${MAIL_SEED_PREVIEW_SELECTED})"
+  else
+    MAIL_SEED_PREVIEW_ERROR="$(printf '%s' "$MAIL_SEED_PREVIEW_RESPONSE" | json_get error 2>/dev/null || true)"
+    if [[ "$MAIL_SEED_PREVIEW_ERROR" == *"Hittade inga template seeds"* ]]; then
+      echo "ℹ️ mail/template-seeds/apply preview SKIP (${MAIL_SEED_PREVIEW_ERROR})"
+    else
+      echo "❌ mail/template-seeds/apply preview misslyckades"
+      printf '%s\n' "$MAIL_SEED_PREVIEW_RESPONSE"
+      exit 1
+    fi
+  fi
+else
+  echo "ℹ️ mail/template-seeds/apply preview SKIP (ej OWNER)"
+fi
+
 SUMMARY_RESPONSE="$(curl -s "$BASE_URL/api/v1/risk/summary?minRiskLevel=1" \
   -H "Authorization: Bearer $TOKEN")"
 SUMMARY_TOTAL="$(printf '%s' "$SUMMARY_RESPONSE" | json_get totals.evaluations)"

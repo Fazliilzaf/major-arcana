@@ -34,6 +34,7 @@ const { createOrchestratorRouter } = require('./src/routes/orchestrator');
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
+const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 
 const runtimeState = {
   startedAt: new Date().toISOString(),
@@ -336,6 +337,18 @@ app.get('/readyz', (req, res) => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       runtimeState,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createMailInsightsRouter({
+      authStore,
+      templateStore,
+      tenantConfigStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
     })
   );
 

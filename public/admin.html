@@ -468,6 +468,41 @@
         </section>
 
         <section class="panel">
+          <h2>Mail Insights</h2>
+          <div class="seg" style="margin-top:10px">
+            <button id="refreshMailInsightsBtn" class="btn">Ladda mail-insikter</button>
+            <button id="previewMailSeedsBtn" class="btn">Preview seeds → drafts</button>
+            <button id="applyMailSeedsBtn" class="btn primary">Skapa drafts från seeds</button>
+          </div>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="mailSeedsCategory">Kategori (valfri)</label>
+              <select id="mailSeedsCategory">
+                <option value="">Alla</option>
+                <option value="CONSULTATION">CONSULTATION</option>
+                <option value="BOOKING">BOOKING</option>
+                <option value="AFTERCARE">AFTERCARE</option>
+                <option value="LEAD">LEAD</option>
+                <option value="INTERNAL">INTERNAL</option>
+              </select>
+            </div>
+            <div>
+              <label for="mailSeedsLimit">Limit (1–50)</label>
+              <input id="mailSeedsLimit" type="number" min="1" max="50" value="8" />
+            </div>
+            <div style="grid-column:1 / -1">
+              <label for="mailSeedsNamePrefix">Namn-prefix (valfri)</label>
+              <input id="mailSeedsNamePrefix" type="text" placeholder="Mail seed HTPC" />
+            </div>
+          </div>
+          <div class="muted" style="margin-top:8px">
+            Läser anonymiserade filer från <code>knowledge/&lt;brand&gt;/mail</code>.
+          </div>
+          <div id="mailInsightsStatus" class="status-line"></div>
+          <div id="mailInsightsResult" class="code-block" style="margin-top:8px">Ingen mail-data ännu.</div>
+        </section>
+
+        <section class="panel">
           <h2>Monitor Status</h2>
           <div class="seg" style="margin-top:10px">
             <button id="refreshMonitorBtn" class="btn">Uppdatera monitor</button>

@@ -18,11 +18,29 @@ services:
         value: gpt-4o-mini
       - key: ARCANA_DEFAULT_TENANT
         value: hair-tp-clinic
+      - key: ARCANA_BRAND_BY_HOST
+        sync: false
       - key: ARCANA_OWNER_EMAIL
         sync: false
       - key: ARCANA_OWNER_PASSWORD
         sync: false
       - key: PUBLIC_BASE_URL
         sync: false
+      - key: CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC
+        sync: false
+      - key: CLIENTO_BOOKING_URL_HAIR_TP_CLINIC
+        sync: false
+      - key: CLIENTO_WIDGET_SRC_HAIR_TP_CLINIC
+        value: https://cliento.com/widget-v3/cliento.js
+      - key: CLIENTO_ACCOUNT_IDS_CURATIIO
+        sync: false
+      - key: CLIENTO_BOOKING_URL_CURATIIO
+        sync: false
+      - key: CLIENTO_WIDGET_SRC_CURATIIO
+        value: https://cliento.com/widget-v3/cliento.js
+      - key: ARCANA_BACKUP_RETENTION_MAX_FILES
+        value: 50
+      - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
+        value: 30
       - key: TRUST_PROXY
         value: true

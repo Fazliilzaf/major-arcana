@@ -84,6 +84,35 @@ eller
 Hel verifiering lokalt:
 `npm run verify`
 
+## Pilot Go-Live (sista 5%)
+Kör detta i ordning:
+
+Snabbaste vägen (allt i ett):
+- `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
+
+1) Lokal kvalitet:
+- `npm run verify`
+- `npm run git:check-large`
+
+2) Deploy (Render):
+- Pusha branchen till GitHub.
+- Säkerställ env i Render (se `render.yaml`, särskilt `PUBLIC_BASE_URL`, owner-credentials och Cliento-variabler).
+
+3) Verifiera publik drift:
+- `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public`
+- För auth-check i samma körning:
+  - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`
+- `smoke:public` läser även owner-credentials från lokal `.env` om env-variabler inte skickas in.
+- Om login misslyckas i public smoke: synka owner-credentials i Render och kör igen.
+
+4) Mail-baserade mallutkast (när export finns):
+- `npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`
+- `npm run mail:seeds:preview`
+- `npm run mail:seeds:apply`
+
+Tips:
+- Om `mail/insights` visar `ready:false` saknas ingestad maildata för tenant (det är okej tills ni kör ingest).
+
 ### Viktiga endpoints (Template Engine)
 - `GET /api/v1/templates/meta`
 - `GET /api/v1/templates`
@@ -134,6 +163,12 @@ Owner action `action` (endast OWNER):
   - lista backups (`GET /api/v1/ops/state/backups`)
   - prune backups (`POST /api/v1/ops/state/backups/prune`)
   - restore preview + restore (`POST /api/v1/ops/state/restore`)
+ - Mail insights-panel i UI:
+   - läser anonymiserad mail-kunskap per tenant
+   - endpoint: `GET /api/v1/mail/insights`
+   - seed preview och seed→draft:
+     - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":true}`
+     - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":false}` (OWNER)
  - Orchestrator-panel i UI:
    - kör intern orchestration och visa trace
  - Risk calibration-panel i UI:
@@ -243,6 +278,59 @@ Fyll `knowledge/` med innehåll. För snabb import kan du testa:
 `npm run ingest:hairtpclinic`
 
 Starta om servern efter import för att indexera nya filer.
+
+## Mail-ingest (Outlook → anonymiserad kunskap)
+Om du vill träna tonalitet, FAQ och templates från gamla mailtrådar:
+
+1) Lägg exporterade filer lokalt (rekommenderat i `./mail-exports/`), t.ex. `.eml`, `.mbox` eller `.json`.
+   - Apple Mail `.mbox`-paket (mappar) stöds också; scriptet läser interna `mbox`-filer automatiskt.
+2) Kör ingest:
+
+`npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`
+
+3) Output skrivs till:
+`knowledge/hair-tp-clinic/mail/`
+- `mail-summary.md`
+- `faq-from-mails.md`
+- `tone-style-from-mails.md`
+- `template-seeds-from-mails.md`
+- `template-seeds.json` (maskinläsbar seed-källa för draft-automation)
+- `thread-samples.md`
+- `inbound-intents.md` (fungerar även om du bara har Inbox-export)
+- `ingest-report.json`
+
+4) Generera template drafts från seeds (Owner API):
+
+Preview:
+`curl -X POST http://localhost:3000/api/v1/mail/template-seeds/apply -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"dryRun":true,"limit":8}'`
+
+Skapa drafts:
+`curl -X POST http://localhost:3000/api/v1/mail/template-seeds/apply -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"dryRun":false,"limit":8}'`
+
+Snabbare via npm:
+- Preview: `npm run mail:seeds:preview`
+- Skapa drafts: `npm run mail:seeds:apply`
+- Skapa + aktivera auto i batch (alla `allow`; review/block skippas): `npm run mail:seeds:apply-activate`
+- Paginering manuellt: `bash ./scripts/apply-mail-seeds.sh --apply --limit 20 --offset 20`
+- Med filter: `bash ./scripts/apply-mail-seeds.sh --apply --limit 12 --category CONSULTATION --name-prefix "Mail seed HTPC"`
+- Duplicering stoppas som default (`skipExisting=true`). För att tillåta dubbletter:
+  - `bash ./scripts/apply-mail-seeds.sh --apply --allow-duplicates`
+  - `node ./scripts/apply-activate-mail-seeds.js --all --allow-duplicates`
+
+Viktigt:
+- `.olm` läses inte direkt av scriptet. Exportera vidare till `.eml`, `.mbox` eller `.json`.
+- Output anonymiserar e-post, personnummer och telefonnummer.
+- Lägg inte råmail i git (se `.gitignore`).
+
+### GitHub push-skydd (stora filer)
+Kör innan push:
+`npm run git:check-large`
+
+Den checkar både:
+- tracked filer i working tree
+- blobbar i Git-historik
+
+Default-gräns är 95 MB (för att ligga under GitHubs 100 MB-gräns).
 
 ## Bokningar
 Bokning sker via **Cliento** i en inbyggd modal (widget).

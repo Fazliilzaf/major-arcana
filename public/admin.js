@@ -76,6 +76,14 @@
     runPilotReportBtn: document.getElementById('runPilotReportBtn'),
     reportStatus: document.getElementById('reportStatus'),
     pilotReportResult: document.getElementById('pilotReportResult'),
+    refreshMailInsightsBtn: document.getElementById('refreshMailInsightsBtn'),
+    previewMailSeedsBtn: document.getElementById('previewMailSeedsBtn'),
+    applyMailSeedsBtn: document.getElementById('applyMailSeedsBtn'),
+    mailSeedsCategory: document.getElementById('mailSeedsCategory'),
+    mailSeedsLimit: document.getElementById('mailSeedsLimit'),
+    mailSeedsNamePrefix: document.getElementById('mailSeedsNamePrefix'),
+    mailInsightsStatus: document.getElementById('mailInsightsStatus'),
+    mailInsightsResult: document.getElementById('mailInsightsResult'),
     refreshMonitorBtn: document.getElementById('refreshMonitorBtn'),
     monitorPanelStatus: document.getElementById('monitorPanelStatus'),
     monitorResult: document.getElementById('monitorResult'),
@@ -273,6 +281,12 @@
     if (els.fetchCalibrationSuggestionBtn) els.fetchCalibrationSuggestionBtn.disabled = !writer;
     if (els.applyCalibrationSuggestionBtn) els.applyCalibrationSuggestionBtn.disabled = !owner;
     if (els.runPilotReportBtn) els.runPilotReportBtn.disabled = !writer;
+    if (els.refreshMailInsightsBtn) els.refreshMailInsightsBtn.disabled = !writer;
+    if (els.previewMailSeedsBtn) els.previewMailSeedsBtn.disabled = !owner;
+    if (els.applyMailSeedsBtn) els.applyMailSeedsBtn.disabled = !owner;
+    if (els.mailSeedsCategory) els.mailSeedsCategory.disabled = !owner;
+    if (els.mailSeedsLimit) els.mailSeedsLimit.disabled = !owner;
+    if (els.mailSeedsNamePrefix) els.mailSeedsNamePrefix.disabled = !owner;
     if (els.refreshMonitorBtn) els.refreshMonitorBtn.disabled = !writer;
     if (els.refreshTenantsBtn) els.refreshTenantsBtn.disabled = !writer;
     if (els.onboardTenantBtn) els.onboardTenantBtn.disabled = !owner;
@@ -1171,6 +1185,148 @@
     }
   }
 
+  function renderMailInsights(data) {
+    if (!els.mailInsightsResult) return;
+    if (!data?.ready) {
+      const guidance = Array.isArray(data?.guidance) ? data.guidance : [];
+      const message = guidance.length
+        ? guidance.map((line) => `- ${line}`).join('\n')
+        : '- Ingen mail-data hittades för tenant ännu.';
+      els.mailInsightsResult.textContent = [
+        'Mail-insikter saknas',
+        '',
+        message,
+      ].join('\n');
+      return;
+    }
+
+    const counts = data?.report?.counts || {};
+    const lines = [
+      `Tenant: ${data?.tenantId || '-'}`,
+      `Brand: ${data?.brand || '-'}`,
+      `Mail-dir: ${data?.paths?.mailDir || '-'}`,
+      '',
+      `Meddelanden använda: ${counts.messagesUsed ?? 0}`,
+      `Trådar: ${counts.threads ?? 0}`,
+      `Inbound: ${counts.inbound ?? 0}`,
+      `Outbound: ${counts.outbound ?? 0}`,
+      `QA-par: ${counts.qaPairs ?? 0}`,
+      `Template seeds: ${counts.templateSeeds ?? 0}`,
+      '',
+      'Summary (preview):',
+      (data?.previews?.summary || '').slice(0, 500) || '(saknas)',
+    ];
+
+    els.mailInsightsResult.textContent = lines.join('\n');
+  }
+
+  function getMailSeedApplyPayload({ forceDryRun } = {}) {
+    const limitRaw = Number.parseInt(String(els.mailSeedsLimit?.value || '8'), 10);
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, limitRaw)) : 8;
+    if (els.mailSeedsLimit) els.mailSeedsLimit.value = String(limit);
+
+    const category = String(els.mailSeedsCategory?.value || '').trim();
+    const namePrefix = String(els.mailSeedsNamePrefix?.value || '').trim();
+
+    const payload = {
+      limit,
+      dryRun: Boolean(forceDryRun),
+    };
+    if (category) payload.category = category;
+    if (namePrefix) payload.namePrefix = namePrefix;
+    return payload;
+  }
+
+  function renderMailSeedPreview(response) {
+    if (!els.mailInsightsResult) return;
+    const preview = Array.isArray(response?.preview) ? response.preview : [];
+    const rows = preview.map((item, index) => {
+      const unknown = Array.isArray(item?.unknownVariables) ? item.unknownVariables.length : 0;
+      const missing = Array.isArray(item?.missingRequiredVariables)
+        ? item.missingRequiredVariables.length
+        : 0;
+      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • unknownVars=${unknown} • missingRequired=${missing}`;
+    });
+    const lines = [
+      `Seed preview: selected=${response?.selected ?? 0}`,
+      `Tenant: ${response?.tenantId || '-'}`,
+      '',
+      ...(rows.length ? rows : ['(inga preview-rader)']),
+    ];
+    els.mailInsightsResult.textContent = lines.join('\n');
+  }
+
+  function renderMailSeedApplyResult(response) {
+    if (!els.mailInsightsResult) return;
+    const templates = Array.isArray(response?.templates) ? response.templates : [];
+    const rows = templates.map((item, index) => {
+      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • decision=${item?.decision || '-'} • risk=L${item?.riskLevel ?? '-'}`;
+    });
+    const lines = [
+      `Seed apply: created=${response?.created ?? 0} av selected=${response?.selected ?? 0}`,
+      `Tenant: ${response?.tenantId || '-'}`,
+      '',
+      ...(rows.length ? rows : ['(inga skapade mallar)']),
+    ];
+    els.mailInsightsResult.textContent = lines.join('\n');
+  }
+
+  async function applyMailTemplateSeeds({ dryRun }) {
+    try {
+      if (!isOwner()) throw new Error('Endast OWNER kan köra seed → draft.');
+      const payload = getMailSeedApplyPayload({ forceDryRun: dryRun });
+      setStatus(
+        els.mailInsightsStatus,
+        dryRun ? 'Kör seed preview...' : 'Skapar drafts från seeds...'
+      );
+
+      const response = await api('/mail/template-seeds/apply', {
+        method: 'POST',
+        body: payload,
+      });
+
+      if (dryRun) {
+        renderMailSeedPreview(response);
+        setStatus(
+          els.mailInsightsStatus,
+          `Preview klar: ${response?.selected ?? 0} seeds valda.`
+        );
+        return;
+      }
+
+      renderMailSeedApplyResult(response);
+      setStatus(
+        els.mailInsightsStatus,
+        `Klart: ${response?.created ?? 0} drafts skapade från seeds.`
+      );
+      await loadDashboard();
+      await loadTemplates({ preserveSelection: false });
+      await loadMailInsights();
+    } catch (error) {
+      setStatus(
+        els.mailInsightsStatus,
+        error.message || 'Kunde inte köra seed → draft.',
+        true
+      );
+    }
+  }
+
+  async function loadMailInsights() {
+    try {
+      setStatus(els.mailInsightsStatus, 'Laddar mail-insikter...');
+      const response = await api('/mail/insights');
+      renderMailInsights(response);
+      if (response?.ready) {
+        const qaPairs = Number(response?.report?.counts?.qaPairs || 0);
+        setStatus(els.mailInsightsStatus, `Mail-insikter laddade (QA-par: ${qaPairs}).`);
+      } else {
+        setStatus(els.mailInsightsStatus, 'Ingen mail-ingest hittad ännu.');
+      }
+    } catch (error) {
+      setStatus(els.mailInsightsStatus, error.message || 'Kunde inte läsa mail-insikter.', true);
+    }
+  }
+
   async function loadMonitorStatus() {
     try {
       setStatus(els.monitorPanelStatus, 'Laddar monitor-status...');
@@ -1467,6 +1623,7 @@
     await loadStaffMembers();
     await loadSessionsPanel();
     await loadTemplates({ preserveSelection: true });
+    await loadMailInsights();
     await loadMonitorStatus();
     if (isOwner()) {
       await loadStateManifest();
@@ -1718,6 +1875,7 @@
     setStatus(els.orchestratorStatus, '');
     setStatus(els.calibrationStatus, '');
     setStatus(els.reportStatus, '');
+    setStatus(els.mailInsightsStatus, '');
     setStatus(els.monitorPanelStatus, '');
     setStatus(els.opsStatus, '');
     setStatus(els.tenantOnboardStatus, '');
@@ -1725,6 +1883,7 @@
     if (els.orchestratorResult) els.orchestratorResult.textContent = 'Ingen körning ännu.';
     if (els.calibrationResult) els.calibrationResult.textContent = 'Inget kalibreringsförslag ännu.';
     if (els.pilotReportResult) els.pilotReportResult.textContent = 'Ingen rapport körd ännu.';
+    if (els.mailInsightsResult) els.mailInsightsResult.textContent = 'Ingen mail-data ännu.';
     if (els.monitorResult) els.monitorResult.textContent = 'Ingen monitor-data ännu.';
     if (els.opsResult) els.opsResult.textContent = 'Ingen ops-data ännu.';
     if (els.restoreBackupFileInput) els.restoreBackupFileInput.value = '';
@@ -1789,6 +1948,13 @@
   els.fetchCalibrationSuggestionBtn?.addEventListener('click', fetchCalibrationSuggestion);
   els.applyCalibrationSuggestionBtn?.addEventListener('click', applyCalibrationSuggestion);
   els.runPilotReportBtn?.addEventListener('click', runPilotReport);
+  els.refreshMailInsightsBtn?.addEventListener('click', loadMailInsights);
+  els.previewMailSeedsBtn?.addEventListener('click', () =>
+    applyMailTemplateSeeds({ dryRun: true })
+  );
+  els.applyMailSeedsBtn?.addEventListener('click', () =>
+    applyMailTemplateSeeds({ dryRun: false })
+  );
   els.refreshMonitorBtn?.addEventListener('click', loadMonitorStatus);
   els.loadStateManifestBtn?.addEventListener('click', loadStateManifest);
   els.createStateBackupBtn?.addEventListener('click', createStateBackup);
