@@ -194,7 +194,8 @@ function getLatestEvaluationForVersionInternal(state, templateId, templateVersio
   const templateVersionIdValue = normalizeText(templateVersionId);
   if (!templateIdValue || !templateVersionIdValue) return null;
 
-  const candidates = state.evaluations
+  const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+  const candidates = evaluations
     .filter(
       (item) =>
         item.templateId === templateIdValue && item.templateVersionId === templateVersionIdValue
@@ -225,6 +226,9 @@ async function createTemplateStore({
   };
 
   function prune() {
+    if (!Array.isArray(state.evaluations)) {
+      state.evaluations = [];
+    }
     if (state.evaluations.length > maxEvaluations) {
       state.evaluations = state.evaluations.slice(-maxEvaluations);
     }
@@ -406,6 +410,9 @@ async function createTemplateStore({
     version.updatedAt = nowIso();
     template.updatedAt = nowIso();
 
+    if (!Array.isArray(state.evaluations)) {
+      state.evaluations = [];
+    }
     state.evaluations.push({
       id: crypto.randomUUID(),
       templateId,
@@ -564,7 +571,8 @@ async function createTemplateStore({
     const sinceWindowMs = sinceWindowDays > 0 ? Date.now() - sinceWindowDays * 24 * 60 * 60 * 1000 : null;
     const openOwnerDecisions = new Set(['pending', 'revision_requested']);
 
-    const items = state.evaluations
+    const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+    const items = evaluations
       .filter((evaluation) => {
         if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) return false;
         if (normalizedTemplateId && evaluation.templateId !== normalizedTemplateId) return false;
@@ -637,8 +645,8 @@ async function createTemplateStore({
     if (!normalizedEvaluationId) return null;
     const normalizedTenantId = normalizeTenantId(tenantId);
 
-    const evaluation =
-      state.evaluations.find((item) => item.id === normalizedEvaluationId) || null;
+    const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+    const evaluation = evaluations.find((item) => item.id === normalizedEvaluationId) || null;
     if (!evaluation) return null;
     if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) return null;
     return toSafeEvaluation(evaluation);
@@ -660,6 +668,9 @@ async function createTemplateStore({
       throw new Error('Ogiltig owner action.');
     }
 
+    if (!Array.isArray(state.evaluations)) {
+      state.evaluations = [];
+    }
     const evaluation =
       state.evaluations.find((item) => item.id === normalizedEvaluationId) || null;
     if (!evaluation) throw new Error('Riskutvärderingen hittades inte.');
@@ -690,7 +701,8 @@ async function createTemplateStore({
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const minimum = Math.max(1, Math.min(5, Number(minRiskLevel) || 1));
-    const filtered = state.evaluations.filter((evaluation) => {
+    const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+    const filtered = evaluations.filter((evaluation) => {
       if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) return false;
       return Number(evaluation.riskLevel || 0) >= minimum;
     });
