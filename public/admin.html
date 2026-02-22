@@ -28,10 +28,11 @@
     .container { width: min(1200px, 94vw); margin: 24px auto 64px; }
     .row { display: grid; gap: 14px; }
     .row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .row.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     .row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .row.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     @media (max-width: 980px) {
-      .row.cols-4, .row.cols-3, .row.cols-2 { grid-template-columns: 1fr; }
+      .row.cols-4, .row.cols-6, .row.cols-3, .row.cols-2 { grid-template-columns: 1fr; }
     }
     .panel {
       background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
@@ -84,6 +85,10 @@
       border-color: var(--accent);
       font-weight: 600;
     }
+    .btn.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(202, 186, 174, 0.5);
+    }
     .btn.small { padding: 6px 10px; font-size: 12px; }
     .btn.danger { border-color: #7f2f2f; color: #ffb2b2; }
     .grid {
@@ -101,6 +106,10 @@
       border-radius: 10px;
       padding: 10px 11px;
       font-size: 14px;
+    }
+    input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
     }
     textarea { min-height: 74px; resize: vertical; }
     table {
@@ -123,6 +132,171 @@
       font-size: 13px;
       color: var(--muted);
       min-height: 18px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 11, 16, 0.66);
+      backdrop-filter: blur(1px);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .modal-dialog {
+      width: min(560px, calc(100vw - 28px));
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #1e2430 0%, #171c24 100%);
+      box-shadow: 0 24px 44px rgba(0,0,0,0.45);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    @keyframes modalNudge {
+      0% { transform: translateX(0); }
+      35% { transform: translateX(-5px); }
+      70% { transform: translateX(5px); }
+      100% { transform: translateX(0); }
+    }
+    .modal-dialog.modal-nudge {
+      animation: modalNudge 180ms ease-out;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .modal-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .modal-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .modal-body {
+      display: grid;
+      gap: 8px;
+    }
+    .modal-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .modal-input {
+      width: 100%;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 14px;
+    }
+    .modal-input.input-error {
+      border-color: rgba(228, 107, 107, 0.75);
+      box-shadow: 0 0 0 1px rgba(228, 107, 107, 0.35);
+    }
+    .modal-hint {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .modal-hint.error {
+      color: #ffb2b2;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    body.modal-open {
+      overflow: hidden;
+    }
+    .toast-viewport {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+      pointer-events: none;
+      width: min(380px, calc(100vw - 24px));
+    }
+    .toast {
+      pointer-events: auto;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(36, 42, 54, 0.96), rgba(20, 24, 31, 0.96));
+      box-shadow: 0 16px 34px rgba(0,0,0,0.36);
+      padding: 10px 12px;
+      display: grid;
+      gap: 6px;
+      transform: translateY(0);
+      opacity: 1;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.closing {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    .toast.success {
+      border-color: rgba(80, 200, 120, 0.45);
+    }
+    .toast.warn {
+      border-color: rgba(242, 184, 75, 0.55);
+    }
+    .toast.error {
+      border-color: rgba(228, 107, 107, 0.65);
+    }
+    .toast-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .toast-title {
+      font-size: 12px;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .toast.success .toast-title { color: #86d3a0; }
+    .toast.warn .toast-title { color: #f4c56c; }
+    .toast.error .toast-title { color: #ffb2b2; }
+    .toast-message {
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .toast-close {
+      border: 1px solid var(--line);
+      background: #141820;
+      color: var(--muted);
+      border-radius: 8px;
+      width: 26px;
+      height: 24px;
+      line-height: 1;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+    }
+    .toast-close:hover {
+      color: var(--text);
+      border-color: #3c475c;
     }
     .list {
       max-height: 320px;
@@ -157,6 +331,663 @@
       font-size: 12px;
       color: #d7deea;
       white-space: pre-wrap;
+    }
+    tr.risk-row-selected {
+      background: rgba(202, 186, 174, 0.12);
+    }
+    .sla-chip { font-weight: 600; }
+    .sla-ok { border-color: rgba(86, 197, 128, 0.45); color: #86d3a0; }
+    .sla-warn { border-color: rgba(244, 197, 108, 0.5); color: #f4c56c; }
+    .sla-critical { border-color: rgba(255, 145, 145, 0.6); color: #ff9191; }
+    .sla-breached { border-color: rgba(255, 95, 95, 0.8); color: #ff5f5f; background: rgba(255, 95, 95, 0.12); }
+    .kpi-meta { margin-top: 6px; font-size: 12px; color: var(--muted); min-height: 16px; }
+    .kpi-meta.ok { color: #86d3a0; }
+    .kpi-meta.warn { color: #f4c56c; }
+    .kpi-meta.bad { color: #ff9191; }
+    .risk-detail-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    @media (max-width: 980px) {
+      .risk-detail-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .risk-detail-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .risk-detail-card h4 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .02em;
+      font-weight: 600;
+    }
+    .risk-timeline {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .risk-timeline li {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+    }
+    .risk-timeline li:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .risk-timeline-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .risk-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    #riskDetailNoteInput {
+      min-width: 220px;
+      flex: 1 1 260px;
+    }
+    .audit-layout {
+      display: grid;
+      grid-template-columns: 1.25fr .95fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px) {
+      .audit-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .audit-timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      max-height: 360px;
+      overflow: auto;
+      background: rgba(255,255,255,0.01);
+    }
+    .audit-timeline-item {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      cursor: pointer;
+    }
+    .audit-timeline-item:last-child {
+      border-bottom: 0;
+    }
+    .audit-timeline-item.active {
+      background: rgba(202, 186, 174, 0.14);
+    }
+    .audit-timeline-item-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .audit-detail {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.01);
+    }
+    .audit-facts {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .audit-diff {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .audit-diff-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(255,255,255,0.01);
+    }
+    .audit-diff-row-header {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .audit-diff-row-values {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .audit-diff-value {
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px;
+      font-size: 11px;
+      line-height: 1.4;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      word-break: break-word;
+    }
+    .audit-diff-value.before {
+      border-color: rgba(234, 67, 53, 0.4);
+      background: rgba(234, 67, 53, 0.08);
+    }
+    .audit-diff-value.after {
+      border-color: rgba(52, 168, 83, 0.4);
+      background: rgba(52, 168, 83, 0.08);
+    }
+    .audit-diff-arrow {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .audit-summary {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .overview-layout {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 980px) {
+      .overview-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 760px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .overview-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .overview-card h3 {
+      margin: 0 0 8px;
+    }
+    .overview-card .list {
+      max-height: 220px;
+      padding-right: 2px;
+    }
+    .overview-card .list li {
+      padding: 8px 0;
+    }
+    .risk-trend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .risk-trend-row {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr) 36px;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .risk-trend-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .risk-trend-fill {
+      height: 100%;
+      border-radius: 999px;
+      width: 0%;
+    }
+    .risk-trend-fill.level-1 { background: #50c878; }
+    .risk-trend-fill.level-2 { background: #67a9ff; }
+    .risk-trend-fill.level-3 { background: #f2b84b; }
+    .risk-trend-fill.level-4 { background: #ef8b63; }
+    .risk-trend-fill.level-5 { background: #e46b6b; }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .quick-actions .btn {
+      flex: 1 1 160px;
+      text-align: left;
+    }
+    .notification-list {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+      max-height: 280px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.01);
+    }
+    .notification-item {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+    }
+    .notification-item:last-child {
+      border-bottom: 0;
+    }
+    .notification-item.warn {
+      border-left: 3px solid var(--warn);
+    }
+    .notification-item.bad {
+      border-left: 3px solid var(--bad);
+    }
+    .notification-item.ok {
+      border-left: 3px solid var(--ok);
+    }
+    .notification-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .notification-detail {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .section-nav {
+      position: sticky;
+      top: 8px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding: 10px;
+      backdrop-filter: blur(6px);
+    }
+    .section-nav .btn {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .template-view-toggle {
+      align-items: center;
+    }
+    .template-category-chips {
+      align-items: center;
+    }
+    .template-category-chips .btn {
+      text-transform: none;
+    }
+    .template-category-chips .btn.active {
+      color: #272018;
+    }
+    .template-bulk-toolbar {
+      align-items: center;
+    }
+    .template-bulk-toolbar .mini {
+      margin: 0;
+    }
+    .template-selection-meta {
+      margin-left: auto;
+      text-align: right;
+    }
+    .template-select-col {
+      width: 34px;
+      text-align: center;
+    }
+    .template-select-col input {
+      margin: 0;
+    }
+    .template-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px) {
+      .template-card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .template-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.01);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .template-card .title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .template-card .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .template-card .footer {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .template-card .selection {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .template-card .selection input {
+      margin: 0;
+    }
+    .template-editor-assist {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .template-editor-assist {
+        grid-template-columns: 1fr;
+      }
+    }
+    .template-editor-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.01);
+    }
+    .template-editor-card h4 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .02em;
+      font-weight: 600;
+    }
+    .template-variable-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .template-variable-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+    }
+    .template-variable-chip.btn {
+      cursor: pointer;
+      color: var(--text);
+      background: #171c24;
+    }
+    .template-variable-chip.ok {
+      border-color: rgba(86, 197, 128, 0.5);
+      color: #86d3a0;
+    }
+    .template-variable-chip.warn {
+      border-color: rgba(244, 197, 108, 0.55);
+      color: #f4c56c;
+    }
+    .template-variable-chip.bad {
+      border-color: rgba(255, 120, 120, 0.7);
+      color: #ff9f9f;
+    }
+    .template-validation-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .template-validation-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
+      background: rgba(255,255,255,0.01);
+    }
+    .template-validation-item.good {
+      border-color: rgba(86, 197, 128, 0.5);
+      color: #86d3a0;
+    }
+    .template-validation-item.warn {
+      border-color: rgba(244, 197, 108, 0.55);
+      color: #f4c56c;
+    }
+    .template-validation-item.bad {
+      border-color: rgba(255, 120, 120, 0.7);
+      color: #ff9f9f;
+    }
+    .template-signature-row {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tone-presets .btn {
+      text-transform: none;
+    }
+    .setting-preview {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.01);
+      line-height: 1.45;
+    }
+    .preview-brand-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .preview-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #111621;
+      object-fit: cover;
+    }
+    .preview-logo.hidden {
+      display: none;
+    }
+    .preview-swatches {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .preview-swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+    }
+    .preview-swatch-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .preview-cta {
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .01em;
+      text-transform: none;
+      background: #1A73E8;
+      color: #fff;
+    }
+    .preview-cta.secondary {
+      background: transparent;
+      border-color: #A855F7;
+      color: #C8A7FF;
+      margin-left: 8px;
+    }
+    .setting-preview .preview-meta {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .inline-range {
+      display: grid;
+      gap: 8px;
+    }
+    .team-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px) {
+      .team-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .team-summary-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .team-summary-item .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    .team-summary-item .value {
+      font-size: 18px;
+      margin-top: 4px;
+    }
+    .team-filters {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 160px auto;
+      gap: 8px;
+      align-items: end;
+    }
+    .team-profile-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .team-profile-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .team-profile-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .team-profile-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+    .team-profile-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    @media (max-width: 980px) {
+      .team-profile-list {
+        grid-template-columns: 1fr;
+      }
+    }
+    .team-profile-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .team-profile-item .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    .team-profile-item .value {
+      margin-top: 3px;
+      font-size: 13px;
+      word-break: break-word;
+    }
+    .team-password-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    @media (max-width: 980px) {
+      .team-password-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .staff-row-active {
+      outline: 1px solid rgba(122, 162, 255, 0.45);
+      outline-offset: -1px;
+      background: rgba(122, 162, 255, 0.08);
+    }
+    .invite-preview-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 980px) {
+      .team-filters {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -210,7 +1041,17 @@
     </section>
 
     <section id="dashboardPanel" class="hidden">
-      <div class="row cols-4" style="margin-bottom:14px">
+      <nav id="sectionNav" class="section-nav panel">
+        <button class="btn small sectionNavBtn active" data-target="overviewSection">Overview</button>
+        <button class="btn small sectionNavBtn" data-target="templateLifecycleSection">Templates</button>
+        <button class="btn small sectionNavBtn" data-target="reviewsQueueSection">Reviews</button>
+        <button class="btn small sectionNavBtn" data-target="incidentsQueueSection">Incidents</button>
+        <button class="btn small sectionNavBtn" data-target="auditSection">Audit</button>
+        <button class="btn small sectionNavBtn" data-target="teamSection">Team</button>
+        <button class="btn small sectionNavBtn" data-target="settingsSection">Settings</button>
+      </nav>
+
+      <div id="overviewSection" class="row cols-6" style="margin-bottom:14px">
         <article class="panel">
           <h3>Templates</h3>
           <div id="templatesTotal" class="value">0</div>
@@ -222,14 +1063,62 @@
         <article class="panel">
           <h3>Riskutvärderingar</h3>
           <div id="riskTotal" class="value">0</div>
+          <div class="kpi-meta">Öppna review-kön för L3-utkast.</div>
+          <button id="openReviewsQueueBtn" class="btn small" style="margin-top:8px">Öppna kö</button>
         </article>
         <article class="panel">
           <h3>High/Critical öppna</h3>
           <div id="riskOpen" class="value">0</div>
+          <div class="kpi-meta">Prioritera incidents med SLA.</div>
+          <button id="openIncidentsQueueBtn" class="btn small" style="margin-top:8px">Se incidents</button>
+        </article>
+        <article class="panel">
+          <h3>Owner action coverage</h3>
+          <div id="ownerCoverageValue" class="value">0%</div>
+          <div id="ownerCoverageMeta" class="kpi-meta">Ingen riskhistorik ännu.</div>
+        </article>
+        <article class="panel">
+          <h3>SLA-indikator</h3>
+          <div id="slaIndicatorValue" class="value">0</div>
+          <div id="slaIndicatorMeta" class="kpi-meta">Inga öppna incidents.</div>
         </article>
       </div>
 
-      <div class="row cols-2">
+      <div class="overview-layout">
+        <section class="panel">
+          <h2>Overview Insights</h2>
+          <div class="overview-grid" style="margin-top:10px">
+            <article class="overview-card">
+              <h3>Latest Activity</h3>
+              <ul id="latestActivityList" class="list">
+                <li class="muted mini">Ingen aktivitet ännu.</li>
+              </ul>
+            </article>
+            <article class="overview-card">
+              <h3>Risk Trends (7 dagar)</h3>
+              <div id="riskTrendBars" class="risk-trend-list">
+                <div class="mini muted">Ingen riskhistorik ännu.</div>
+              </div>
+              <div id="riskTrendMeta" class="mini muted" style="margin-top:8px">Väntar på data.</div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <h2>Quick Actions</h2>
+          <div class="quick-actions">
+            <button id="quickCreateTemplateBtn" class="btn primary">Create Template</button>
+            <button id="quickGenerateDraftBtn" class="btn">Generate Draft with AI</button>
+            <button id="quickReviewFlaggedBtn" class="btn">Review Flagged Drafts</button>
+          </div>
+          <h3 style="margin-top:16px">Notifications</h3>
+          <ul id="overviewNotificationsList" class="notification-list">
+            <li class="notification-item"><div class="notification-detail">Inga notifieringar ännu.</div></li>
+          </ul>
+        </aside>
+      </div>
+
+      <div id="settingsSection" class="row cols-2">
         <section class="panel">
           <h2>Tenant Config</h2>
           <div class="grid" style="margin-top:10px">
@@ -246,8 +1135,43 @@
               <input id="brandProfile" type="text" />
             </div>
             <div>
+              <label for="brandLogoUrl">brandLogoUrl (http(s):// eller /path)</label>
+              <input id="brandLogoUrl" type="text" placeholder="https://..." />
+            </div>
+            <div>
+              <label for="brandPrimaryColor">brandPrimaryColor (palett)</label>
+              <select id="brandPrimaryColor">
+                <option value="#1A73E8">#1A73E8</option>
+                <option value="#2B7FFF">#2B7FFF</option>
+                <option value="#2563EB">#2563EB</option>
+                <option value="#3B82F6">#3B82F6</option>
+              </select>
+            </div>
+            <div>
+              <label for="brandAccentColor">brandAccentColor (palett)</label>
+              <select id="brandAccentColor">
+                <option value="#A855F7">#A855F7</option>
+                <option value="#9333EA">#9333EA</option>
+                <option value="#8B5CF6">#8B5CF6</option>
+                <option value="#C084FC">#C084FC</option>
+              </select>
+            </div>
+            <div>
               <label for="riskModifier">riskSensitivityModifier (-10 → 10)</label>
-              <input id="riskModifier" type="number" step="0.1" min="-10" max="10" />
+              <div class="inline-range">
+                <input id="riskModifier" type="number" step="0.1" min="-10" max="10" />
+                <input id="riskModifierRange" type="range" step="0.5" min="-10" max="10" />
+                <div id="riskModifierDisplay" class="mini muted">0 • neutral</div>
+              </div>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label>Tone presets</label>
+              <div id="tonePresetButtons" class="seg tone-presets">
+                <button type="button" class="btn small tonePresetBtn" data-tone="professional-warm">Professional Warm</button>
+                <button type="button" class="btn small tonePresetBtn" data-tone="concise-executive">Concise Executive</button>
+                <button type="button" class="btn small tonePresetBtn" data-tone="empathetic-clinical">Empathetic Clinical</button>
+                <button type="button" class="btn small tonePresetBtn" data-tone="luxury-premium">Luxury Premium</button>
+              </div>
             </div>
             <div style="grid-column:1 / -1">
               <label for="templateEmailSignature">templateSignaturesByChannel.email</label>
@@ -260,6 +1184,30 @@
             <div style="grid-column:1 / -1">
               <label for="templateRequiredOverrides">templateRequiredVariablesByCategory (JSON)</label>
               <textarea id="templateRequiredOverrides" style="min-height:90px" placeholder='{"CONSULTATION":["patient_name"]}'></textarea>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label>Preview</label>
+              <div id="tonePreviewCard" class="setting-preview">
+                <div class="preview-brand-row">
+                  <img id="tonePreviewLogo" class="preview-logo hidden" alt="Brand logo preview" />
+                  <div class="preview-swatches">
+                    <div class="preview-swatch">
+                      <span id="tonePreviewPrimaryDot" class="preview-swatch-dot"></span>
+                      Primary
+                    </div>
+                    <div class="preview-swatch">
+                      <span id="tonePreviewAccentDot" class="preview-swatch-dot"></span>
+                      Accent
+                    </div>
+                  </div>
+                </div>
+                <div id="tonePreviewMeta" class="preview-meta">Ingen preview ännu.</div>
+                <div id="tonePreviewText">Välj tone och assistantName för att se exempeltext.</div>
+                <div>
+                  <span id="tonePreviewPrimaryBtn" class="preview-cta">Primär CTA</span>
+                  <span id="tonePreviewAccentBtn" class="preview-cta secondary">Sekundär CTA</span>
+                </div>
+              </div>
             </div>
           </div>
           <div style="margin-top:12px">
@@ -325,23 +1273,115 @@
       </div>
 
       <div class="row cols-2" style="margin-top:14px">
-        <section class="panel">
+        <section id="teamSection" class="panel">
           <h2>Staff Management</h2>
-          <div class="grid" style="margin-top:10px">
+          <div id="teamSummary" class="team-summary">
+            <article class="team-summary-item">
+              <div class="label">Totalt</div>
+              <div id="teamSummaryTotal" class="value">0</div>
+            </article>
+            <article class="team-summary-item">
+              <div class="label">Aktiva</div>
+              <div id="teamSummaryActive" class="value">0</div>
+            </article>
+            <article class="team-summary-item">
+              <div class="label">Disabled</div>
+              <div id="teamSummaryDisabled" class="value">0</div>
+            </article>
+            <article class="team-summary-item">
+              <div class="label">Owners</div>
+              <div id="teamSummaryOwners" class="value">0</div>
+            </article>
+          </div>
+          <div class="team-profile-grid">
+            <article class="team-profile-card">
+              <h3>Bjud in / skapa Staff</h3>
+              <div class="grid" style="margin-top:6px">
+                <div>
+                  <label for="staffEmailInput">E-post</label>
+                  <input id="staffEmailInput" type="email" placeholder="staff@hairtpclinic.se" />
+                </div>
+                <div>
+                  <label for="staffPasswordInput">Lösenord (valfritt)</label>
+                  <input id="staffPasswordInput" type="password" placeholder="Tomt = auto-generera" />
+                </div>
+              </div>
+              <div style="margin-top:10px" class="seg">
+                <button id="createStaffBtn" class="btn primary">Skapa/Uppdatera staff</button>
+                <button id="generateStaffPasswordBtn" class="btn">Generera lösenord</button>
+                <button id="copyInviteMessageBtn" class="btn">Kopiera invite-text</button>
+              </div>
+              <div id="staffStatus" class="status-line"></div>
+              <div id="staffInvitePreview" class="code-block" style="margin-top:8px">Ingen invite-text ännu.</div>
+            </article>
+            <article class="team-profile-card">
+              <h3>Min profil & säkerhet</h3>
+              <div id="profileSummaryList" class="team-profile-list">
+                <div class="team-profile-item">
+                  <div class="label">E-post</div>
+                  <div id="profileEmailValue" class="value">-</div>
+                </div>
+                <div class="team-profile-item">
+                  <div class="label">Roll</div>
+                  <div id="profileRoleValue" class="value">-</div>
+                </div>
+                <div class="team-profile-item">
+                  <div class="label">Tenant</div>
+                  <div id="profileTenantValue" class="value">-</div>
+                </div>
+                <div class="team-profile-item">
+                  <div class="label">Session går ut</div>
+                  <div id="profileSessionExpiresValue" class="value">-</div>
+                </div>
+                <div class="team-profile-item">
+                  <div class="label">Behörigheter</div>
+                  <div id="profilePermissionsValue" class="value">0</div>
+                </div>
+                <div class="team-profile-item">
+                  <div class="label">Mina tenants</div>
+                  <div id="profileTenantsValue" class="value">0</div>
+                </div>
+              </div>
+              <div class="team-password-grid">
+                <div>
+                  <label for="currentPasswordInput">Nuvarande lösenord</label>
+                  <input id="currentPasswordInput" type="password" placeholder="Nuvarande lösenord" />
+                </div>
+                <div>
+                  <label for="newPasswordInput">Nytt lösenord</label>
+                  <input id="newPasswordInput" type="password" placeholder="Minst 10 tecken" />
+                </div>
+              </div>
+              <div class="invite-preview-actions">
+                <button id="changeOwnPasswordBtn" class="btn">Byt mitt lösenord</button>
+                <button id="refreshProfileBtn" class="btn small">Uppdatera profil</button>
+              </div>
+              <div id="profileStatus" class="status-line"></div>
+            </article>
+          </div>
+          <div class="team-filters">
             <div>
-              <label for="staffEmailInput">E-post</label>
-              <input id="staffEmailInput" type="email" placeholder="staff@hairtpclinic.se" />
+              <label for="staffSearchInput">Sök staff</label>
+              <input id="staffSearchInput" type="text" placeholder="Sök på e-post eller roll" />
             </div>
             <div>
-              <label for="staffPasswordInput">Lösenord</label>
-              <input id="staffPasswordInput" type="password" placeholder="Tillfälligt lösenord" />
+              <label for="staffStatusFilter">Statusfilter</label>
+              <select id="staffStatusFilter">
+                <option value="">Alla</option>
+                <option value="active">Aktiva</option>
+                <option value="disabled">Disabled</option>
+                <option value="owner">Owners</option>
+              </select>
+            </div>
+            <div>
+              <label class="mini">Bulk actions</label>
+              <div class="seg">
+                <button id="refreshStaffBtn" class="btn small">Uppdatera lista</button>
+                <button id="staffEnableFilteredBtn" class="btn small">Enable filtrerade</button>
+                <button id="staffDisableFilteredBtn" class="btn small">Disable filtrerade</button>
+              </div>
             </div>
           </div>
-          <div style="margin-top:10px" class="seg">
-            <button id="createStaffBtn" class="btn primary">Skapa/Uppdatera staff</button>
-            <button id="refreshStaffBtn" class="btn">Uppdatera lista</button>
-          </div>
-          <div id="staffStatus" class="status-line"></div>
           <div style="overflow:auto; margin-top:10px">
             <table>
               <thead>
@@ -349,13 +1389,23 @@
                   <th>E-post</th>
                   <th>Roll</th>
                   <th>Status</th>
+                  <th>Senast ändrad</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="staffTableBody"></tbody>
             </table>
           </div>
-
+          <div class="team-profile-card" style="margin-top:10px">
+            <h3>Vald användarprofil</h3>
+            <div id="selectedStaffMeta" class="mini muted">Ingen staff vald.</div>
+            <div id="selectedStaffDetails" class="code-block" style="margin-top:8px">Välj en rad i tabellen för att se detaljer och nästa steg.</div>
+            <div class="invite-preview-actions">
+              <button id="resetSelectedStaffPasswordBtn" class="btn small">Reset lösenord</button>
+              <button id="selectedStaffRoleBtn" class="btn small">Ändra roll</button>
+              <button id="copySelectedStaffInviteBtn" class="btn small">Kopiera invite-text</button>
+            </div>
+          </div>
           <h2 style="margin-top:18px">Aktiva sessioner</h2>
           <div class="seg" style="margin-top:8px">
             <label class="mini" for="sessionsScopeSelect" style="margin:0;display:flex;align-items:center;gap:8px">
@@ -536,7 +1586,7 @@
         </section>
       </div>
 
-      <section class="panel" style="margin-top:14px">
+      <section id="templateLifecycleSection" class="panel" style="margin-top:14px">
         <h2>Template Lifecycle</h2>
         <div class="grid" style="margin-top:10px">
           <div>
@@ -564,9 +1614,15 @@
         </div>
         <div style="margin-top:12px" class="seg">
           <button id="createTemplateBtn" class="btn primary">Skapa mall</button>
-          <label class="mini" for="templateFilterSelect" style="margin:0;display:flex;align-items:center;gap:8px">
-            Filter:
-            <select id="templateFilterSelect" style="width:auto;min-width:180px">
+        </div>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="templateSearchInput">Sök mall</label>
+            <input id="templateSearchInput" type="text" placeholder="Namn, kategori, locale, channel..." />
+          </div>
+          <div>
+            <label for="templateFilterSelect">Kategori</label>
+            <select id="templateFilterSelect">
               <option value="">Alla</option>
               <option value="CONSULTATION">CONSULTATION</option>
               <option value="BOOKING">BOOKING</option>
@@ -574,20 +1630,66 @@
               <option value="LEAD">LEAD</option>
               <option value="INTERNAL">INTERNAL</option>
             </select>
-          </label>
+          </div>
+          <div>
+            <label for="templateStatusFilterSelect">Status</label>
+            <select id="templateStatusFilterSelect">
+              <option value="">Alla</option>
+              <option value="with_active">Med aktiv version</option>
+              <option value="without_active">Utan aktiv version</option>
+            </select>
+          </div>
+          <div>
+            <label for="templateSortSelect">Sortering</label>
+            <select id="templateSortSelect">
+              <option value="updated_desc">Senast uppdaterad</option>
+              <option value="name_asc">Namn A–Ö</option>
+              <option value="name_desc">Namn Ö–A</option>
+              <option value="category_asc">Kategori A–Ö</option>
+              <option value="risk_desc">Högst risk först</option>
+            </select>
+          </div>
         </div>
+        <div id="templateCategoryChips" class="seg template-category-chips" style="margin-top:8px"></div>
         <div id="templateStatus" class="status-line"></div>
+        <div id="templateResultsMeta" class="mini muted" style="margin-top:6px"></div>
+        <div class="seg template-view-toggle" style="margin-top:8px">
+          <span class="mini muted">Vy:</span>
+          <button id="templateViewTableBtn" class="btn small active">Tabell</button>
+          <button id="templateViewCardBtn" class="btn small">Kort</button>
+        </div>
+        <div class="seg template-bulk-toolbar" style="margin-top:8px">
+          <label class="mini muted" for="templateBulkAction" style="display:flex;align-items:center;gap:8px">
+            Bulk:
+            <select id="templateBulkAction" style="width:auto;min-width:220px">
+              <option value="evaluate_latest">Evaluate senaste version</option>
+              <option value="clone_latest">Klona senaste version</option>
+              <option value="archive_active">Arkivera aktiv version (OWNER)</option>
+            </select>
+          </label>
+          <button id="applyTemplateBulkBtn" class="btn small">Applicera på valda</button>
+          <button id="templateClearSelectionBtn" class="btn small">Rensa val</button>
+          <div id="templateSelectionMeta" class="template-selection-meta mini muted">0 valda</div>
+        </div>
+        <div id="templateBulkStatus" class="status-line"></div>
 
         <div class="row cols-2" style="margin-top:10px">
           <div>
             <h3>Templates</h3>
-            <div style="overflow:auto">
+            <div id="templateCardList" class="template-card-grid hidden"></div>
+            <div id="templateTableWrap" style="overflow:auto">
               <table>
                 <thead>
                   <tr>
+                    <th class="template-select-col">
+                      <input id="templateSelectAll" type="checkbox" title="Välj alla mallar i listan" />
+                    </th>
                     <th>Namn</th>
                     <th>Kategori</th>
+                    <th>Status</th>
                     <th>Aktiv</th>
+                    <th>Risk</th>
+                    <th>Uppdaterad</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -631,6 +1733,23 @@
               <textarea id="versionContentInput" style="min-height:160px"></textarea>
             </div>
           </div>
+          <div class="template-editor-assist">
+            <article class="template-editor-card">
+              <h4>Variabler</h4>
+              <div id="templateVariableMeta" class="mini muted">Laddar variabelpolicy…</div>
+              <div id="templateRequiredVariables" class="template-variable-cloud"></div>
+              <div class="mini muted" style="margin-top:10px">Insert token i innehåll:</div>
+              <div id="templateVariablePicker" class="template-variable-cloud"></div>
+            </article>
+            <article class="template-editor-card">
+              <h4>Validering</h4>
+              <div id="templateValidationList" class="template-validation-list"></div>
+              <div class="template-signature-row">
+                <span id="templateSignatureStatus" class="mini muted">Signatur: okänd</span>
+                <button id="appendSignatureBtn" class="btn small">Lägg till signatur</button>
+              </div>
+            </article>
+          </div>
           <div class="seg" style="margin-top:10px">
             <button id="generateDraftBtn" class="btn">Generera draft (AI)</button>
             <button id="saveDraftBtn" class="btn">Spara draft</button>
@@ -644,9 +1763,10 @@
         </div>
       </section>
 
-      <section class="panel" style="margin-top:14px">
-        <h2>Risk Evaluations (>= 3)</h2>
-        <div class="muted" style="margin-bottom:10px">Owner actions: approve_exception, mark_false_positive, request_revision, escalate</div>
+      <section id="reviewsIncidentsSection" class="panel" style="margin-top:14px">
+        <h2>Reviews & Incidents</h2>
+        <div class="muted" style="margin-bottom:10px">Reviews = L3 • Incidents = L4-L5 med SLA (L4: 4h, L5: 30m)</div>
+        <div id="riskQueueSummary" class="seg" style="margin-bottom:10px"></div>
         <div class="seg" style="margin-bottom:10px">
           <label class="mini" for="riskMinFilter" style="margin:0;display:flex;align-items:center;gap:8px">
             Min risk:
@@ -656,6 +1776,25 @@
               <option value="3" selected>3</option>
               <option value="4">4</option>
               <option value="5">5</option>
+            </select>
+          </label>
+          <label class="mini" for="riskMaxFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Max risk:
+            <select id="riskMaxFilter" style="width:auto;min-width:120px">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5" selected>5</option>
+            </select>
+          </label>
+          <label class="mini" for="riskDecisionFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Decision:
+            <select id="riskDecisionFilter" style="width:auto;min-width:190px">
+              <option value="">Alla</option>
+              <option value="allow">allow</option>
+              <option value="review_required">review_required</option>
+              <option value="blocked">blocked</option>
             </select>
           </label>
           <label class="mini" for="riskOwnerDecisionFilter" style="margin:0;display:flex;align-items:center;gap:8px">
@@ -669,34 +1808,251 @@
               <option value="escalated">escalated</option>
             </select>
           </label>
+          <label class="mini" for="riskStateFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Status:
+            <select id="riskStateFilter" style="width:auto;min-width:140px">
+              <option value="">Alla</option>
+              <option value="open">open</option>
+              <option value="closed">closed</option>
+            </select>
+          </label>
+          <label class="mini" for="riskCategoryFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Category:
+            <select id="riskCategoryFilter" style="width:auto;min-width:180px">
+              <option value="">Alla</option>
+            </select>
+          </label>
+          <label class="mini" for="riskSinceDaysFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Datum:
+            <select id="riskSinceDaysFilter" style="width:auto;min-width:150px">
+              <option value="0">Alla</option>
+              <option value="1">Senaste 24h</option>
+              <option value="7">Senaste 7 dagar</option>
+              <option value="14" selected>Senaste 14 dagar</option>
+              <option value="30">Senaste 30 dagar</option>
+              <option value="90">Senaste 90 dagar</option>
+            </select>
+          </label>
+          <label class="mini" for="riskReasonFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Reason code:
+            <input id="riskReasonFilter" type="text" placeholder="Ex. policy_" style="min-width:180px;max-width:260px" />
+          </label>
+          <label class="mini" for="riskSearchFilter" style="margin:0;display:flex;align-items:center;gap:8px">
+            Sök:
+            <input id="riskSearchFilter" type="text" placeholder="evaluation/template/reason" style="min-width:220px;max-width:320px" />
+          </label>
           <button id="applyRiskFilterBtn" class="btn small">Applicera filter</button>
+          <button id="riskShowPendingBtn" class="btn small">Endast pending</button>
+          <button id="riskShowHighCriticalBtn" class="btn small">High/Critical</button>
+          <button id="riskClearFiltersBtn" class="btn small">Rensa filter</button>
         </div>
-        <div style="overflow:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Evaluation</th>
-                <th>Template</th>
-                <th>Risk</th>
-                <th>Decision</th>
-                <th>Owner</th>
-                <th>AI/Rule score</th>
-                <th>Policy</th>
-                <th>Reason Codes</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="riskTableBody"></tbody>
-          </table>
+        <div class="seg" style="margin-bottom:10px">
+          <label class="mini" for="riskBulkAction" style="margin:0;display:flex;align-items:center;gap:8px">
+            Bulk action:
+            <select id="riskBulkAction" style="width:auto;min-width:220px">
+              <option value="request_revision">request_revision</option>
+              <option value="approve_exception">approve_exception</option>
+              <option value="mark_false_positive">mark_false_positive</option>
+              <option value="escalate">escalate</option>
+            </select>
+          </label>
+          <input id="riskBulkNote" type="text" placeholder="Notering för bulk action (valfritt)" style="min-width:280px;max-width:420px" />
+          <button id="applyRiskBulkBtn" class="btn small">Applicera på valda</button>
+        </div>
+        <div id="riskActionStatus" class="status-line"></div>
+        <div class="grid" style="margin-top:8px">
+          <div id="reviewsQueueSection">
+            <h3>Reviews (L3) <span id="riskReviewsCount" class="mini muted"></span></h3>
+            <div id="riskReviewsWrap" style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>
+                      <input id="riskSelectAllReviews" type="checkbox" title="Välj alla reviews" />
+                    </th>
+                    <th>Evaluation</th>
+                    <th>Template</th>
+                    <th>Category</th>
+                    <th>Tid</th>
+                    <th>Risk</th>
+                    <th>Decision</th>
+                    <th>Owner</th>
+                    <th>AI/Rule</th>
+                    <th>Policy</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="riskReviewsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="incidentsQueueSection">
+            <h3>Incidents (L4-L5) <span id="riskIncidentsCount" class="mini muted"></span></h3>
+            <div id="riskIncidentsWrap" style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>
+                      <input id="riskSelectAllIncidents" type="checkbox" title="Välj alla incidents" />
+                    </th>
+                    <th>SLA</th>
+                    <th>Evaluation</th>
+                    <th>Template</th>
+                    <th>Category</th>
+                    <th>Tid</th>
+                    <th>Risk</th>
+                    <th>Decision</th>
+                    <th>Owner</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="riskIncidentsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <h3>Vald riskutvärdering</h3>
+          <div id="riskDetailMeta" class="mini muted" style="margin-bottom:8px">Ingen utvärdering vald.</div>
+          <div class="risk-detail-layout">
+            <article class="risk-detail-card">
+              <h4>Översikt</h4>
+              <div id="riskDetailSummary" class="mini muted">Ingen detaljerad riskdata ännu.</div>
+              <div id="riskDetailSla" class="mini muted" style="margin-top:8px">Ingen incident-SLA.</div>
+              <div id="riskDetailQuickActions" class="risk-detail-actions">
+                <input id="riskDetailNoteInput" type="text" placeholder="Notering för owner action (valfritt)" />
+                <button class="btn small" data-owner-action="request_revision">request_revision</button>
+                <button class="btn small" data-owner-action="approve_exception">approve_exception</button>
+                <button class="btn small" data-owner-action="mark_false_positive">mark_false_positive</button>
+                <button class="btn small" data-owner-action="escalate">escalate</button>
+              </div>
+            </article>
+            <article class="risk-detail-card">
+              <h4>Incident timeline</h4>
+              <ul id="riskDetailTimeline" class="risk-timeline">
+                <li class="muted mini">Ingen timeline ännu.</li>
+              </ul>
+            </article>
+          </div>
+          <details style="margin-top:10px">
+            <summary class="mini muted" style="cursor:pointer">Raw JSON</summary>
+            <div id="riskDetailBlock" class="code-block" style="margin-top:8px">Ingen detaljerad riskdata ännu.</div>
+          </details>
         </div>
       </section>
 
-      <section class="panel" style="margin-top:14px">
-        <h2>Senaste audit events</h2>
-        <ul id="auditList" class="list"></ul>
+      <section id="auditSection" class="panel" style="margin-top:14px">
+        <h2>Audit Explorer</h2>
+        <div class="muted" style="margin-bottom:10px">Filtrera på actor/action/datum/risk och öppna detaljer per händelse.</div>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="auditSearchInput">Sök (correlation/id/template/user)</label>
+            <input id="auditSearchInput" type="text" placeholder="Sök i action, target, actor, metadata..." />
+          </div>
+          <div>
+            <label for="auditActionFilter">Action</label>
+            <select id="auditActionFilter">
+              <option value="">Alla</option>
+            </select>
+          </div>
+          <div>
+            <label for="auditActorFilter">Actor userId (valfri)</label>
+            <input id="auditActorFilter" type="text" placeholder="Ex. 60035ab8..." />
+          </div>
+          <div>
+            <label for="auditTargetTypeFilter">Target type</label>
+            <select id="auditTargetTypeFilter">
+              <option value="">Alla</option>
+            </select>
+          </div>
+          <div>
+            <label for="auditOutcomeFilter">Outcome</label>
+            <select id="auditOutcomeFilter">
+              <option value="">Alla</option>
+              <option value="success">success</option>
+              <option value="error">error</option>
+            </select>
+          </div>
+          <div>
+            <label for="auditSeverityFilter">Risk severity</label>
+            <select id="auditSeverityFilter">
+              <option value="">Alla</option>
+              <option value="low">L1-L2 (low)</option>
+              <option value="moderate">L3 (review)</option>
+              <option value="high_critical">L4-L5 (incident)</option>
+              <option value="none">Ingen risknivå</option>
+            </select>
+          </div>
+          <div>
+            <label for="auditSinceDaysFilter">Senaste dagar</label>
+            <select id="auditSinceDaysFilter">
+              <option value="1">1 dag</option>
+              <option value="7">7 dagar</option>
+              <option value="14" selected>14 dagar</option>
+              <option value="30">30 dagar</option>
+              <option value="90">90 dagar</option>
+              <option value="0">Alla</option>
+            </select>
+          </div>
+          <div>
+            <label for="auditLimitFilter">API limit</label>
+            <select id="auditLimitFilter">
+              <option value="100">100</option>
+              <option value="200" selected>200</option>
+              <option value="300">300</option>
+              <option value="500">500</option>
+            </select>
+          </div>
+        </div>
+        <div class="seg" style="margin-top:10px">
+          <button id="applyAuditFilterBtn" class="btn small">Applicera audit-filter</button>
+          <button id="clearAuditFilterBtn" class="btn small">Rensa audit-filter</button>
+        </div>
+        <div id="auditSummary" class="audit-summary"></div>
+        <div class="audit-layout">
+          <ul id="auditTimeline" class="audit-timeline">
+            <li class="audit-timeline-item muted mini">Ingen audit-data ännu.</li>
+          </ul>
+          <div class="audit-detail">
+            <div id="auditDetailMeta" class="mini muted">Ingen audit-händelse vald.</div>
+            <ul id="auditDetailFacts" class="audit-facts">
+              <li>Välj en händelse i listan för detaljer.</li>
+            </ul>
+            <div id="auditDetailDiffMeta" class="mini muted" style="margin-top:10px">Ingen diff-data ännu.</div>
+            <div id="auditDetailDiff" class="audit-diff">
+              <div class="audit-diff-row muted mini">Välj en händelse för att se before/after.</div>
+            </div>
+            <details style="margin-top:10px">
+              <summary class="mini muted" style="cursor:pointer">Raw JSON</summary>
+              <div id="auditDetailRaw" class="code-block" style="margin-top:8px">Ingen audit-händelse vald.</div>
+            </details>
+          </div>
+        </div>
       </section>
     </section>
   </div>
+  <div id="appModalBackdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+    <div class="modal-dialog" id="appModalDialog">
+      <div class="modal-header">
+        <h3 id="appModalTitle" class="modal-title">Bekräfta</h3>
+        <button id="appModalCloseBtn" class="btn small" type="button" aria-label="Stäng dialog">✕</button>
+      </div>
+      <p id="appModalSubtitle" class="modal-subtitle">Är du säker?</p>
+      <div class="modal-body">
+        <label id="appModalInputLabel" class="modal-label hidden" for="appModalInput">Notering</label>
+        <input id="appModalInput" class="modal-input hidden" type="text" />
+        <textarea id="appModalTextarea" class="modal-input hidden" style="min-height:110px"></textarea>
+        <p id="appModalHint" class="modal-hint hidden"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="appModalCancelBtn" class="btn" type="button">Avbryt</button>
+        <button id="appModalConfirmBtn" class="btn primary" type="button">Bekräfta</button>
+      </div>
+    </div>
+  </div>
+  <div id="toastViewport" class="toast-viewport" aria-live="polite" aria-atomic="false"></div>
 
   <script src="/admin.js"></script>
 </body>

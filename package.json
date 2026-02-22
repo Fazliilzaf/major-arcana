@@ -20,6 +20,7 @@
     "mail:seeds:preview": "bash ./scripts/apply-mail-seeds.sh --preview",
     "mail:seeds:apply": "bash ./scripts/apply-mail-seeds.sh --apply",
     "mail:seeds:apply-activate": "node ./scripts/apply-activate-mail-seeds.js --all --limit 50",
+    "report:pilot": "bash ./scripts/save-pilot-report.sh",
     "git:check-large": "bash ./scripts/check-large-files.sh",
     "preflight:pilot": "bash ./scripts/pilot-preflight.sh",
     "ingest:hairtpclinic": "node scripts/ingest-site.js --base https://www.hairtpclinic.se --out ./knowledge/hair-tp-clinic/site --sitemap --maxPages 120",

@@ -368,6 +368,33 @@ function createTemplateRouter({
           outputEvaluation,
         });
 
+        const beforeSnapshot = {
+          title: currentVersion.title || null,
+          contentLength: String(currentVersion.content || '').length,
+          variablesCount: Array.isArray(currentVersion.variablesUsed)
+            ? currentVersion.variablesUsed.length
+            : 0,
+          decision: currentVersion?.risk?.decision || null,
+        };
+        const afterSnapshot = {
+          title: evaluated.title || null,
+          contentLength: String(evaluated.content || '').length,
+          variablesCount: Array.isArray(evaluated.variablesUsed)
+            ? evaluated.variablesUsed.length
+            : 0,
+          decision: evaluated?.risk?.decision || null,
+        };
+        const diff = [];
+        for (const field of Object.keys(beforeSnapshot)) {
+          if (JSON.stringify(beforeSnapshot[field]) !== JSON.stringify(afterSnapshot[field])) {
+            diff.push({
+              field,
+              before: beforeSnapshot[field],
+              after: afterSnapshot[field],
+            });
+          }
+        }
+
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
@@ -375,7 +402,13 @@ function createTemplateRouter({
           outcome: 'success',
           targetType: 'template_version',
           targetId: versionId,
-          metadata: { templateId, decision: evaluated.risk?.decision || null },
+          metadata: {
+            templateId,
+            decision: evaluated.risk?.decision || null,
+            before: beforeSnapshot,
+            after: afterSnapshot,
+            diff,
+          },
         });
 
         return res.json({
@@ -600,9 +633,21 @@ function createTemplateRouter({
   router.get('/risk/evaluations', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
     try {
       const minRiskLevel = parseIntSafe(req.query?.minRiskLevel, 0);
+      const maxRiskLevel = parseIntSafe(req.query?.maxRiskLevel, 5);
       const limit = parseIntSafe(req.query?.limit, 100);
       const ownerDecision =
         typeof req.query?.ownerDecision === 'string' ? req.query.ownerDecision : '';
+      const decision =
+        typeof req.query?.decision === 'string' ? req.query.decision : '';
+      const category =
+        typeof req.query?.category === 'string' ? req.query.category : '';
+      const reasonCode =
+        typeof req.query?.reasonCode === 'string' ? req.query.reasonCode : '';
+      const state =
+        typeof req.query?.state === 'string' ? req.query.state : '';
+      const sinceDays = parseIntSafe(req.query?.sinceDays, 0);
+      const search =
+        typeof req.query?.search === 'string' ? req.query.search : '';
       const templateId =
         typeof req.query?.templateId === 'string' ? req.query.templateId : '';
       const templateVersionId =
@@ -610,8 +655,15 @@ function createTemplateRouter({
       const evaluations = await templateStore.listEvaluations({
         tenantId: req.auth.tenantId,
         minRiskLevel,
+        maxRiskLevel,
         limit,
         ownerDecision,
+        decision,
+        category,
+        reasonCode,
+        state,
+        sinceDays,
+        search,
         templateId,
         templateVersionId,
       });
@@ -685,6 +737,14 @@ function createTemplateRouter({
           });
         }
 
+        const currentEvaluation = await templateStore.getEvaluation({
+          evaluationId,
+          tenantId: req.auth.tenantId,
+        });
+        if (!currentEvaluation) {
+          return res.status(404).json({ error: 'Riskutvärderingen hittades inte.' });
+        }
+
         const evaluation = await templateStore.addOwnerAction({
           evaluationId,
           tenantId: req.auth.tenantId,
@@ -702,6 +762,35 @@ function createTemplateRouter({
           targetId: evaluationId,
           metadata: {
             ownerAction: action,
+            note: note || '',
+            before: {
+              ownerDecision: currentEvaluation.ownerDecision || 'pending',
+              ownerActionCount: Array.isArray(currentEvaluation.ownerActions)
+                ? currentEvaluation.ownerActions.length
+                : 0,
+            },
+            after: {
+              ownerDecision: evaluation.ownerDecision || 'pending',
+              ownerActionCount: Array.isArray(evaluation.ownerActions)
+                ? evaluation.ownerActions.length
+                : 0,
+            },
+            diff: [
+              {
+                field: 'ownerDecision',
+                before: currentEvaluation.ownerDecision || 'pending',
+                after: evaluation.ownerDecision || 'pending',
+              },
+              {
+                field: 'ownerActionCount',
+                before: Array.isArray(currentEvaluation.ownerActions)
+                  ? currentEvaluation.ownerActions.length
+                  : 0,
+                after: Array.isArray(evaluation.ownerActions)
+                  ? evaluation.ownerActions.length
+                  : 0,
+              },
+            ],
           },
         });
 

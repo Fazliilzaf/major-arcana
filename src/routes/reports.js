@@ -29,6 +29,11 @@ function countBy(items, getKey) {
   return result;
 }
 
+function requiresOwnerAction(evaluation) {
+  const decision = String(evaluation?.decision || 'allow').toLowerCase();
+  return decision === 'review_required' || decision === 'blocked';
+}
+
 function createReportsRouter({
   templateStore,
   authStore,
@@ -66,7 +71,8 @@ function createReportsRouter({
       const highCriticalWindow = windowEvaluations.filter(
         (item) => Number(item.riskLevel || 0) >= 4
       );
-      const ownerPendingWindow = windowEvaluations.filter(
+      const ownerActionRequiredWindow = windowEvaluations.filter(requiresOwnerAction);
+      const ownerPendingWindow = ownerActionRequiredWindow.filter(
         (item) => String(item.ownerDecision || 'pending') === 'pending'
       );
 
@@ -77,12 +83,16 @@ function createReportsRouter({
         (item) => item?.membership?.role === 'STAFF' && item?.membership?.status === 'disabled'
       ).length;
 
+      const ownerActionResolved = Math.max(
+        0,
+        ownerActionRequiredWindow.length - ownerPendingWindow.length
+      );
       const ownerActionCoveragePct =
-        windowEvaluations.length > 0
+        ownerActionRequiredWindow.length > 0
           ? Number(
-              (((windowEvaluations.length - ownerPendingWindow.length) / windowEvaluations.length) * 100).toFixed(2)
+              ((ownerActionResolved / ownerActionRequiredWindow.length) * 100).toFixed(2)
             )
-          : 0;
+          : 100;
 
       const activationEvents = windowAuditEvents.filter(
         (item) => item.action === 'templates.activate_version'
@@ -115,6 +125,8 @@ function createReportsRouter({
           evaluationsTotal: windowEvaluations.length,
           highCriticalTotal: highCriticalWindow.length,
           ownerDecisionPending: ownerPendingWindow.length,
+          ownerActionRequired: ownerActionRequiredWindow.length,
+          ownerActionResolved,
           staffActive,
           staffDisabled,
           auditEventsCount: windowAuditEvents.length,
@@ -123,7 +135,7 @@ function createReportsRouter({
         risk: {
           byLevel: countBy(windowEvaluations, (item) => item.riskLevel),
           byDecision: countBy(windowEvaluations, (item) => item.decision),
-          byOwnerDecision: countBy(windowEvaluations, (item) => item.ownerDecision || 'pending'),
+          byOwnerDecision: countBy(ownerActionRequiredWindow, (item) => item.ownerDecision || 'pending'),
           highCriticalOpen: riskSummary?.highCriticalOpen || [],
         },
         quality: {

@@ -38,11 +38,31 @@ function createTenantConfigRouter({
 
   router.patch('/tenant-config', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     try {
+      const patchInput = req.body || {};
+      const changedFields = Object.keys(patchInput);
+      const previousConfig = await tenantConfigStore.getTenantConfig(req.auth.tenantId);
       const updated = await tenantConfigStore.updateTenantConfig({
         tenantId: req.auth.tenantId,
-        patch: req.body || {},
+        patch: patchInput,
         actorUserId: req.auth.userId,
       });
+
+      const before = {};
+      const after = {};
+      const diff = [];
+      for (const field of changedFields) {
+        const previousValue = previousConfig?.[field] ?? null;
+        const nextValue = updated?.[field] ?? null;
+        before[field] = previousValue;
+        after[field] = nextValue;
+        if (JSON.stringify(previousValue) !== JSON.stringify(nextValue)) {
+          diff.push({
+            field,
+            before: previousValue,
+            after: nextValue,
+          });
+        }
+      }
 
       await authStore.addAuditEvent({
         tenantId: req.auth.tenantId,
@@ -52,7 +72,10 @@ function createTenantConfigRouter({
         targetType: 'tenant_config',
         targetId: req.auth.tenantId,
         metadata: {
-          fields: Object.keys(req.body || {}),
+          fields: changedFields,
+          before,
+          after,
+          diff,
         },
       });
 

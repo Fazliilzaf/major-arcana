@@ -534,7 +534,7 @@ async function createAuthStore({
 
     if (typeof patch.role === 'string') {
       const nextRole = normalizeRole(patch.role);
-      if (isValidRole(nextRole) && membership.role !== ROLE_OWNER && membership.role !== nextRole) {
+      if (isValidRole(nextRole) && membership.role !== nextRole) {
         membership.role = nextRole;
         changed = true;
       }

@@ -5,6 +5,19 @@ BASE_URL="${BASE_URL:-}"
 EMAIL="${ARCANA_OWNER_EMAIL:-}"
 PASSWORD="${ARCANA_OWNER_PASSWORD:-}"
 TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
+SKIP_AUTH_RAW="${ARCANA_SMOKE_SKIP_AUTH:-false}"
+
+is_truthy() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|y|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+SKIP_AUTH="false"
+if is_truthy "$SKIP_AUTH_RAW"; then
+  SKIP_AUTH="true"
+fi
 
 if [[ -z "$BASE_URL" ]]; then
   echo "❌ Sätt BASE_URL först, t.ex.:"
@@ -45,13 +58,13 @@ process.exit(1);
 }
 
 if [[ -z "$EMAIL" ]]; then
-  EMAIL="$(dotenv_get ARCANA_OWNER_EMAIL)"
+  EMAIL="$(dotenv_get ARCANA_OWNER_EMAIL || true)"
 fi
 if [[ -z "$PASSWORD" ]]; then
-  PASSWORD="$(dotenv_get ARCANA_OWNER_PASSWORD)"
+  PASSWORD="$(dotenv_get ARCANA_OWNER_PASSWORD || true)"
 fi
 if [[ -z "${ARCANA_DEFAULT_TENANT:-}" ]]; then
-  DOTENV_TENANT="$(dotenv_get ARCANA_DEFAULT_TENANT)"
+  DOTENV_TENANT="$(dotenv_get ARCANA_DEFAULT_TENANT || true)"
   if [[ -n "$DOTENV_TENANT" ]]; then
     TENANT_ID="$DOTENV_TENANT"
   fi
@@ -105,6 +118,13 @@ if [[ "$EMBED_RESPONSE" == *"__ARCANA_EMBED__"* ]]; then
 else
   echo "❌ embed.js verkar inte vara Arcana-script"
   exit 1
+fi
+
+if [[ "$SKIP_AUTH" == "true" ]]; then
+  echo "ℹ️ Hoppar auth-smoke (ARCANA_SMOKE_SKIP_AUTH=true)"
+  echo
+  echo "🎯 Public smoke klart."
+  exit 0
 fi
 
 if [[ -z "$EMAIL" || -z "$PASSWORD" ]]; then

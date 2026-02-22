@@ -27,6 +27,21 @@ const TEMPLATE_SIGNATURE_CHANNELS = Object.freeze(['email', 'sms', 'internal']);
 const MAX_VARIABLES_PER_CATEGORY = 120;
 const MAX_SIGNATURE_LENGTH = 2000;
 const VARIABLE_NAME_REGEX = /^[a-z][a-z0-9_]{1,49}$/;
+const BRAND_COLOR_PALETTE_PRIMARY = Object.freeze([
+  '#1A73E8',
+  '#2B7FFF',
+  '#2563EB',
+  '#3B82F6',
+]);
+const BRAND_COLOR_PALETTE_ACCENT = Object.freeze([
+  '#A855F7',
+  '#9333EA',
+  '#8B5CF6',
+  '#C084FC',
+]);
+const DEFAULT_BRAND_PRIMARY_COLOR = '#1A73E8';
+const DEFAULT_BRAND_ACCENT_COLOR = '#A855F7';
+const MAX_BRAND_LOGO_URL_LENGTH = 500;
 
 function emptyState() {
   return { tenants: {} };
@@ -70,6 +85,37 @@ function normalizeVariableName(value) {
     throw new Error(
       `Ogiltigt variabelnamn "${value}". Tillåtet format: a-z, 0-9, underscore (2-50 tecken).`
     );
+  }
+  return normalized;
+}
+
+function normalizeBrandLogoUrl(value) {
+  const normalized = normalizeText(value);
+  if (!normalized) return '';
+  if (normalized.length > MAX_BRAND_LOGO_URL_LENGTH) {
+    throw new Error(`brandLogoUrl är för lång (max ${MAX_BRAND_LOGO_URL_LENGTH} tecken).`);
+  }
+  if (!/^https?:\/\//i.test(normalized) && !normalized.startsWith('/')) {
+    throw new Error('brandLogoUrl måste börja med http(s):// eller /.');
+  }
+  return normalized;
+}
+
+function normalizeBrandColor(value, {
+  fieldName,
+  palette,
+  fallback,
+  strict = true,
+} = {}) {
+  const normalized = normalizeText(value).toUpperCase();
+  if (!normalized) return fallback;
+  if (!Array.isArray(palette) || !palette.includes(normalized)) {
+    if (strict) {
+      throw new Error(
+        `${fieldName} måste vara en av: ${Array.isArray(palette) ? palette.join(', ') : ''}`
+      );
+    }
+    return fallback;
   }
   return normalized;
 }
@@ -200,6 +246,9 @@ function sanitizeTenantConfig(config) {
     assistantName: config.assistantName,
     toneStyle: config.toneStyle,
     brandProfile: config.brandProfile,
+    brandLogoUrl: config.brandLogoUrl || '',
+    brandPrimaryColor: config.brandPrimaryColor || DEFAULT_BRAND_PRIMARY_COLOR,
+    brandAccentColor: config.brandAccentColor || DEFAULT_BRAND_ACCENT_COLOR,
     riskSensitivityModifier: config.riskSensitivityModifier,
     templateVariableAllowlistByCategory: cloneCategoryMap(
       config.templateVariableAllowlistByCategory
@@ -224,6 +273,9 @@ function buildDefaultConfig({
     assistantName: 'Arcana',
     toneStyle: 'professional-warm',
     brandProfile: normalizeText(defaultBrand) || tenantId,
+    brandLogoUrl: '',
+    brandPrimaryColor: DEFAULT_BRAND_PRIMARY_COLOR,
+    brandAccentColor: DEFAULT_BRAND_ACCENT_COLOR,
     riskSensitivityModifier: 0,
     templateVariableAllowlistByCategory: buildDefaultTemplateVariableAllowlistByCategory(),
     templateRequiredVariablesByCategory: buildDefaultTemplateRequiredVariablesByCategory(),
@@ -245,6 +297,25 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
     assistantName: normalizeText(source.assistantName) || fallback.assistantName,
     toneStyle: normalizeText(source.toneStyle) || fallback.toneStyle,
     brandProfile: normalizeText(source.brandProfile) || fallback.brandProfile,
+    brandLogoUrl: (() => {
+      try {
+        return normalizeBrandLogoUrl(source.brandLogoUrl);
+      } catch {
+        return fallback.brandLogoUrl;
+      }
+    })(),
+    brandPrimaryColor: normalizeBrandColor(source.brandPrimaryColor, {
+      fieldName: 'brandPrimaryColor',
+      palette: BRAND_COLOR_PALETTE_PRIMARY,
+      fallback: fallback.brandPrimaryColor,
+      strict: false,
+    }),
+    brandAccentColor: normalizeBrandColor(source.brandAccentColor, {
+      fieldName: 'brandAccentColor',
+      palette: BRAND_COLOR_PALETTE_ACCENT,
+      fallback: fallback.brandAccentColor,
+      strict: false,
+    }),
     riskSensitivityModifier: normalizeRiskModifier(source.riskSensitivityModifier),
     templateVariableAllowlistByCategory: normalizeCategoryVariableMap(
       source.templateVariableAllowlistByCategory,
@@ -370,6 +441,40 @@ async function createTenantConfigStore({
       if (value.length > 120) throw new Error('brandProfile är för långt (max 120).');
       if (rawConfig.brandProfile !== value) {
         rawConfig.brandProfile = value;
+        changed = true;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, 'brandLogoUrl')) {
+      const value = normalizeBrandLogoUrl(patch.brandLogoUrl);
+      if (rawConfig.brandLogoUrl !== value) {
+        rawConfig.brandLogoUrl = value;
+        changed = true;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, 'brandPrimaryColor')) {
+      const value = normalizeBrandColor(patch.brandPrimaryColor, {
+        fieldName: 'brandPrimaryColor',
+        palette: BRAND_COLOR_PALETTE_PRIMARY,
+        fallback: DEFAULT_BRAND_PRIMARY_COLOR,
+        strict: true,
+      });
+      if (rawConfig.brandPrimaryColor !== value) {
+        rawConfig.brandPrimaryColor = value;
+        changed = true;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, 'brandAccentColor')) {
+      const value = normalizeBrandColor(patch.brandAccentColor, {
+        fieldName: 'brandAccentColor',
+        palette: BRAND_COLOR_PALETTE_ACCENT,
+        fallback: DEFAULT_BRAND_ACCENT_COLOR,
+        strict: true,
+      });
+      if (rawConfig.brandAccentColor !== value) {
+        rawConfig.brandAccentColor = value;
         changed = true;
       }
     }

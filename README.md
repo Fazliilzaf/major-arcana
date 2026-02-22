@@ -108,6 +108,8 @@ Snabbaste vägen (allt i ett):
 - `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public`
 - För auth-check i samma körning:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`
+- För endast reachability (utan login), t.ex. i låst CI-miljö:
+  - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_SMOKE_SKIP_AUTH=true npm run smoke:public`
 - `smoke:public` läser även owner-credentials från lokal `.env` om env-variabler inte skickas in.
 - Om login misslyckas i public smoke: synka owner-credentials i Render och kör igen.
 
@@ -115,6 +117,12 @@ Snabbaste vägen (allt i ett):
 - `npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`
 - `npm run mail:seeds:preview`
 - `npm run mail:seeds:apply`
+
+5) Spara pilotrapport automatiskt (utan att skapa otrackade filer i repo-root):
+- `npm run report:pilot`
+- Filen sparas i `data/reports/` (git-ignorerad), t.ex. `data/reports/Pilot_Baseline_14d_YYYYMMDD-HHMMSS.json`.
+- För publik miljö: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run report:pilot`
+- Valfritt: `npm run report:pilot -- --days 30`
 
 Tips:
 - Om `mail/insights` visar `ready:false` saknas ingestad maildata för tenant (det är okej tills ni kör ingest).
@@ -158,6 +166,7 @@ Owner action `action` (endast OWNER):
 - Staff management i UI:
   - skapa/uppdatera staff (`POST /api/v1/users/staff`)
   - enable/disable staff (`PATCH /api/v1/users/staff/:membershipId`)
+  - promote/demote role (`PATCH /api/v1/users/staff/:membershipId` med `role`)
 - Session management i UI:
   - lista sessioner (`GET /api/v1/auth/sessions`)
   - avsluta session (`POST /api/v1/auth/sessions/:sessionId/revoke`)
@@ -221,6 +230,15 @@ Owner action `action` (endast OWNER):
   - risk KPI
   - owner action coverage
   - operativa audit events
+
+## Steg 8: UI/UX Design Pack (Pilot 0.1)
+Designleverabler från UI/UX-specen finns i `docs/uiux/`:
+- `docs/uiux/sitemap.md` (navigation map)
+- `docs/uiux/wireframes.md` (låg-fidelitet skärmstrukturer)
+- `docs/uiux/component-library.md` (komponentkatalog)
+- `docs/uiux/design-tokens.json` + `docs/uiux/design-tokens.css` (design tokens)
+- `docs/uiux/user-journeys.md` (Owner/Staff-flöden)
+- `docs/uiux/interactions.md` (interaktionsregler)
 
 Tips vid route-fel (`Cannot GET ...`): stoppa alla gamla processer på port 3000 och starta om `npm run dev`.
 

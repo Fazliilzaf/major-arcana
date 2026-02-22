@@ -280,6 +280,82 @@ function createAuthRouter({
     }
   });
 
+  router.post('/auth/change-password', requireAuth, async (req, res) => {
+    try {
+      const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+      const revokeOtherSessions = parseBoolean(req.body?.revokeOtherSessions, true);
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'currentPassword och newPassword krävs.' });
+      }
+      if (newPassword.trim().length < 10) {
+        return res.status(400).json({ error: 'Nytt lösenord måste vara minst 10 tecken.' });
+      }
+      if (currentPassword === newPassword) {
+        return res.status(400).json({ error: 'Nytt lösenord måste skilja sig från nuvarande.' });
+      }
+
+      const verifiedUser = await authStore.authenticateUser({
+        email: req.currentUser?.email || '',
+        password: currentPassword,
+      });
+      if (!verifiedUser) {
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'auth.password.change',
+          outcome: 'denied',
+          targetType: 'user',
+          targetId: req.auth.userId,
+          metadata: { reason: 'invalid_current_password' },
+        });
+        return res.status(401).json({ error: 'Nuvarande lösenord är fel.' });
+      }
+
+      const updatedUser = await authStore.setUserPassword(req.auth.userId, newPassword);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'Användaren hittades inte.' });
+      }
+
+      let revokedSessions = 0;
+      if (revokeOtherSessions) {
+        const sessions = await authStore.listSessions({
+          tenantId: req.auth.tenantId,
+          userId: req.auth.userId,
+          includeRevoked: false,
+          limit: 500,
+        });
+        for (const session of sessions) {
+          if (!session?.id || session.id === req.auth.sessionId) continue;
+          const revoked = await authStore.revokeSession(session.id, {
+            reason: 'password_changed',
+          });
+          if (revoked) revokedSessions += 1;
+        }
+      }
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'auth.password.change',
+        outcome: 'success',
+        targetType: 'user',
+        targetId: req.auth.userId,
+        metadata: { revokeOtherSessions, revokedSessions },
+      });
+
+      return res.json({
+        ok: true,
+        revokedSessions,
+        user: updatedUser,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte byta lösenord.' });
+    }
+  });
+
   router.get('/auth/me', requireAuth, async (req, res) => {
     const memberships = await authStore.listMembershipsForUser(req.auth.userId, {
       includeDisabled: false,
@@ -476,21 +552,54 @@ function createAuthRouter({
       if (existing.tenantId !== req.auth.tenantId) {
         return res.status(403).json({ error: 'Du har inte åtkomst till detta medlemskap.' });
       }
-      if (existing.role === ROLE_OWNER) {
-        return res.status(400).json({ error: 'Owner-medlemskap kan inte ändras här.' });
-      }
+
+      const patch = {};
 
       const nextStatus = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : '';
-      if (!['active', 'disabled'].includes(nextStatus)) {
-        return res.status(400).json({ error: 'status måste vara active eller disabled.' });
+      if (nextStatus) {
+        if (!['active', 'disabled'].includes(nextStatus)) {
+          return res.status(400).json({ error: 'status måste vara active eller disabled.' });
+        }
+        patch.status = nextStatus;
       }
 
-      const updated = await authStore.updateMembership(membershipId, { status: nextStatus });
+      const nextRoleRaw = typeof req.body?.role === 'string' ? req.body.role.trim().toUpperCase() : '';
+      if (nextRoleRaw) {
+        if (![ROLE_STAFF, ROLE_OWNER].includes(nextRoleRaw)) {
+          return res.status(400).json({ error: 'role måste vara STAFF eller OWNER.' });
+        }
+        patch.role = nextRoleRaw;
+      }
+
+      if (!Object.keys(patch).length) {
+        return res.status(400).json({ error: 'Inget att uppdatera. Ange status och/eller role.' });
+      }
+
+      const effectiveRole = typeof patch.role === 'string' ? patch.role : existing.role;
+      const effectiveStatus = typeof patch.status === 'string' ? patch.status : existing.status;
+      const removesActiveOwner =
+        existing.role === ROLE_OWNER &&
+        existing.status === 'active' &&
+        (effectiveRole !== ROLE_OWNER || effectiveStatus !== 'active');
+
+      if (removesActiveOwner) {
+        const members = await authStore.listTenantMembers(req.auth.tenantId);
+        const otherActiveOwners = members.filter((item) => {
+          const membership = item?.membership;
+          if (!membership || membership.id === membershipId) return false;
+          return membership.role === ROLE_OWNER && membership.status === 'active';
+        }).length;
+        if (otherActiveOwners < 1) {
+          return res.status(400).json({ error: 'Minst en aktiv OWNER måste finnas i tenant.' });
+        }
+      }
+
+      const updated = await authStore.updateMembership(membershipId, patch);
       if (!updated) {
         return res.status(404).json({ error: 'Medlemskapet hittades inte.' });
       }
 
-      if (nextStatus === 'disabled') {
+      if (patch.status === 'disabled') {
         await authStore.revokeSessionsByMembership(membershipId, {
           reason: 'membership_disabled',
         });
@@ -503,7 +612,38 @@ function createAuthRouter({
         outcome: 'success',
         targetType: 'membership',
         targetId: membershipId,
-        metadata: { status: nextStatus },
+        metadata: {
+          patch,
+          revokedSessions: patch.status === 'disabled',
+          before: {
+            role: existing.role,
+            status: existing.status,
+          },
+          after: {
+            role: updated.role,
+            status: updated.status,
+          },
+          diff: [
+            ...(existing.role !== updated.role
+              ? [
+                  {
+                    field: 'role',
+                    before: existing.role,
+                    after: updated.role,
+                  },
+                ]
+              : []),
+            ...(existing.status !== updated.status
+              ? [
+                  {
+                    field: 'status',
+                    before: existing.status,
+                    after: updated.status,
+                  },
+                ]
+              : []),
+          ],
+        },
       });
 
       return res.json({ membership: updated });

@@ -1,0 +1,39 @@
+:root {
+  --arcana-color-primary: #1A73E8;
+  --arcana-color-primary-hover: #1557B0;
+  --arcana-color-accent: #A855F7;
+  --arcana-color-bg: #FFFFFF;
+  --arcana-color-surface: #F8FAFC;
+  --arcana-color-text: #0F172A;
+  --arcana-color-text-muted: #475569;
+  --arcana-color-border: #E2E8F0;
+
+  --arcana-risk-1: #34A853;
+  --arcana-risk-2: #4285F4;
+  --arcana-risk-3: #FBBC05;
+  --arcana-risk-4: #F97316;
+  --arcana-risk-5: #EA4335;
+
+  --arcana-font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --arcana-font-h1: 32px;
+  --arcana-font-h2: 24px;
+  --arcana-font-h3: 18px;
+  --arcana-font-body: 16px;
+  --arcana-font-caption: 14px;
+
+  --arcana-space-xs: 4px;
+  --arcana-space-s: 8px;
+  --arcana-space-m: 16px;
+  --arcana-space-l: 24px;
+  --arcana-space-xl: 32px;
+  --arcana-space-xxl: 48px;
+
+  --arcana-radius-small: 4px;
+  --arcana-radius-medium: 8px;
+  --arcana-radius-large: 12px;
+  --arcana-radius-pill: 999px;
+
+  --arcana-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --arcana-shadow-panel: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+

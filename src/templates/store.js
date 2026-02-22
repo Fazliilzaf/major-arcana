@@ -536,17 +536,33 @@ async function createTemplateStore({
   async function listEvaluations({
     tenantId,
     minRiskLevel = 0,
+    maxRiskLevel = 5,
     limit = 100,
     ownerDecision = '',
+    decision = '',
+    category = '',
+    reasonCode = '',
+    state = '',
+    sinceDays = 0,
+    search = '',
     templateId = '',
     templateVersionId = '',
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const minimum = Math.max(0, Number(minRiskLevel) || 0);
+    const maximum = Math.max(minimum, Math.min(5, Number(maxRiskLevel) || 5));
     const max = Math.max(1, Math.min(500, Number(limit) || 100));
     const normalizedOwnerDecision = normalizeText(ownerDecision).toLowerCase();
+    const normalizedDecision = normalizeText(decision).toLowerCase();
+    const normalizedCategory = normalizeCategory(category);
+    const normalizedReasonCode = normalizeText(reasonCode).toLowerCase();
+    const normalizedState = normalizeText(state).toLowerCase();
+    const normalizedSearch = normalizeText(search).toLowerCase();
     const normalizedTemplateId = normalizeText(templateId);
     const normalizedTemplateVersionId = normalizeText(templateVersionId);
+    const sinceWindowDays = Math.max(0, Math.min(365, Number(sinceDays) || 0));
+    const sinceWindowMs = sinceWindowDays > 0 ? Date.now() - sinceWindowDays * 24 * 60 * 60 * 1000 : null;
+    const openOwnerDecisions = new Set(['pending', 'revision_requested']);
 
     const items = state.evaluations
       .filter((evaluation) => {
@@ -555,15 +571,55 @@ async function createTemplateStore({
         if (
           normalizedTemplateVersionId &&
           evaluation.templateVersionId !== normalizedTemplateVersionId
-        ) {
+          ) {
           return false;
         }
-        if (Number(evaluation.riskLevel || 0) < minimum) return false;
+        const riskLevel = Number(evaluation.riskLevel || 0);
+        if (riskLevel < minimum || riskLevel > maximum) return false;
+        if (normalizedDecision && String(evaluation.decision || '').toLowerCase() !== normalizedDecision) {
+          return false;
+        }
+        if (normalizedCategory && normalizeCategory(evaluation.category) !== normalizedCategory) {
+          return false;
+        }
         if (
           normalizedOwnerDecision &&
           String(evaluation.ownerDecision || 'pending').toLowerCase() !== normalizedOwnerDecision
         ) {
           return false;
+        }
+        const ownerDecisionValue = String(evaluation.ownerDecision || 'pending').toLowerCase();
+        if (normalizedState === 'open' && !openOwnerDecisions.has(ownerDecisionValue)) {
+          return false;
+        }
+        if (normalizedState === 'closed' && openOwnerDecisions.has(ownerDecisionValue)) {
+          return false;
+        }
+        if (sinceWindowMs !== null) {
+          const ts = Date.parse(
+            String(evaluation.updatedAt || evaluation.evaluatedAt || evaluation.createdAt || '')
+          );
+          if (!Number.isFinite(ts) || ts < sinceWindowMs) return false;
+        }
+        if (normalizedReasonCode) {
+          const matchesReason = (Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : []).some(
+            (code) => String(code || '').toLowerCase().includes(normalizedReasonCode)
+          );
+          if (!matchesReason) return false;
+        }
+        if (normalizedSearch) {
+          const haystack = [
+            evaluation.id,
+            evaluation.templateId,
+            evaluation.templateVersionId,
+            evaluation.category,
+            evaluation.decision,
+            evaluation.ownerDecision,
+            ...(Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : []),
+          ]
+            .map((part) => String(part || '').toLowerCase())
+            .join(' ');
+          if (!haystack.includes(normalizedSearch)) return false;
         }
         return true;
       })

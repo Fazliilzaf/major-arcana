@@ -78,6 +78,8 @@ function createRiskRouter({
 
   router.patch('/risk/settings', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
     try {
+      const currentSettings = await readTenantConfigSafe(tenantConfigStore, req.auth.tenantId);
+      const beforeModifier = normalizeRiskModifier(currentSettings?.riskSensitivityModifier);
       const nextModifier = normalizeRiskModifier(req.body?.riskSensitivityModifier);
       const updated = await tenantConfigStore.updateTenantConfig({
         tenantId: req.auth.tenantId,
@@ -86,6 +88,7 @@ function createRiskRouter({
         },
         actorUserId: req.auth.userId,
       });
+      const afterModifier = normalizeRiskModifier(updated?.riskSensitivityModifier);
 
       await authStore.addAuditEvent({
         tenantId: req.auth.tenantId,
@@ -96,13 +99,26 @@ function createRiskRouter({
         targetId: req.auth.tenantId,
         metadata: {
           riskSensitivityModifier: nextModifier,
+          before: {
+            riskSensitivityModifier: beforeModifier,
+          },
+          after: {
+            riskSensitivityModifier: afterModifier,
+          },
+          diff: [
+            {
+              field: 'riskSensitivityModifier',
+              before: beforeModifier,
+              after: afterModifier,
+            },
+          ],
         },
       });
 
       return res.json({
         settings: {
           tenantId: req.auth.tenantId,
-          riskSensitivityModifier: normalizeRiskModifier(updated?.riskSensitivityModifier),
+          riskSensitivityModifier: afterModifier,
           allowedRange: {
             min: -10,
             max: 10,
@@ -268,6 +284,8 @@ function createRiskRouter({
     requireRole(ROLE_OWNER),
     async (req, res) => {
       try {
+        const currentSettings = await readTenantConfigSafe(tenantConfigStore, req.auth.tenantId);
+        const beforeModifier = normalizeRiskModifier(currentSettings?.riskSensitivityModifier);
         const nextModifier = normalizeRiskModifier(req.body?.suggestedModifier);
         const note = normalizeText(req.body?.note || '');
 
@@ -278,6 +296,7 @@ function createRiskRouter({
           },
           actorUserId: req.auth.userId,
         });
+        const afterModifier = normalizeRiskModifier(updated?.riskSensitivityModifier);
 
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
@@ -289,13 +308,26 @@ function createRiskRouter({
           metadata: {
             appliedModifier: nextModifier,
             note,
+            before: {
+              riskSensitivityModifier: beforeModifier,
+            },
+            after: {
+              riskSensitivityModifier: afterModifier,
+            },
+            diff: [
+              {
+                field: 'riskSensitivityModifier',
+                before: beforeModifier,
+                after: afterModifier,
+              },
+            ],
           },
         });
 
         return res.json({
           settings: {
             tenantId: req.auth.tenantId,
-            riskSensitivityModifier: normalizeRiskModifier(updated?.riskSensitivityModifier),
+            riskSensitivityModifier: afterModifier,
           },
         });
       } catch (error) {
