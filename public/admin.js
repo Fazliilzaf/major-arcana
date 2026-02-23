@@ -6,16 +6,19 @@
   const TEMPLATE_LIST_FILTERS_KEY = 'ARCANA_ADMIN_TEMPLATE_LIST_FILTERS';
   const LIST_SCROLL_STATE_KEY = 'ARCANA_ADMIN_LIST_SCROLL_STATE';
   const LANGUAGE_KEY = 'ARCANA_ADMIN_LANGUAGE';
+  const DENSITY_KEY = 'ARCANA_ADMIN_DENSITY';
   const TOAST_AUTO_DISMISS_MS = 6000;
-  const BRAND_PRIMARY_COLORS = Object.freeze(['#cabaae', '#d7c9be', '#bfaea1', '#a58f82']);
-  const BRAND_ACCENT_COLORS = Object.freeze(['#2f2c2a', '#3a3633', '#4b4541', '#6a625d']);
-  const DEFAULT_BRAND_PRIMARY_COLOR = '#cabaae';
-  const DEFAULT_BRAND_ACCENT_COLOR = '#2f2c2a';
+  const BRAND_PRIMARY_COLORS = Object.freeze(['#d8b38f', '#e6c6a5', '#c89f79', '#b78761']);
+  const BRAND_ACCENT_COLORS = Object.freeze(['#2e2016', '#3a2a1e', '#4c3a2c', '#6b5747']);
+  const DEFAULT_BRAND_PRIMARY_COLOR = '#d8b38f';
+  const DEFAULT_BRAND_ACCENT_COLOR = '#2e2016';
   const SUPPORTED_LANGUAGES = Object.freeze(['sv', 'en']);
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
       label_language: 'Språk',
+      density_compact: 'Kompakt vy',
+      density_regular: 'Standardvy',
       language_sv: 'Svenska',
       language_en: 'English',
       session_not_logged: 'Inte inloggad',
@@ -63,6 +66,8 @@
     en: {
       brand_title: 'Major Arcana',
       label_language: 'Language',
+      density_compact: 'Compact view',
+      density_regular: 'Standard view',
       language_sv: 'Swedish',
       language_en: 'English',
       session_not_logged: 'Not signed in',
@@ -114,6 +119,13 @@
       .trim()
       .toLowerCase();
     return SUPPORTED_LANGUAGES.includes(raw) ? raw : 'sv';
+  }
+
+  function loadDensityMode() {
+    const raw = String(localStorage.getItem(DENSITY_KEY) || 'regular')
+      .trim()
+      .toLowerCase();
+    return raw === 'compact' ? 'compact' : 'regular';
   }
 
   function parseStorageJson(key, fallback) {
@@ -197,6 +209,7 @@
   const state = {
     token: localStorage.getItem(TOKEN_KEY) || '',
     language: loadLanguage(),
+    densityMode: loadDensityMode(),
     role: '',
     tenantId: '',
     pendingLoginTicket: '',
@@ -266,6 +279,7 @@
     toastViewport: document.getElementById('toastViewport'),
     sessionMeta: document.getElementById('sessionMeta'),
     languageSelect: document.getElementById('languageSelect'),
+    densityToggleBtn: document.getElementById('densityToggleBtn'),
     tenantSwitchSelect: document.getElementById('tenantSwitchSelect'),
     switchTenantBtn: document.getElementById('switchTenantBtn'),
     refreshBtn: document.getElementById('refreshBtn'),
@@ -449,6 +463,27 @@
     templateEmailSignature: document.getElementById('templateEmailSignature'),
     templateAllowlistOverrides: document.getElementById('templateAllowlistOverrides'),
     templateRequiredOverrides: document.getElementById('templateRequiredOverrides'),
+    publicSiteClinicName: document.getElementById('publicSiteClinicName'),
+    publicSiteCity: document.getElementById('publicSiteCity'),
+    publicSiteTagline: document.getElementById('publicSiteTagline'),
+    publicSiteHeroTitle: document.getElementById('publicSiteHeroTitle'),
+    publicSiteHeroSubtitle: document.getElementById('publicSiteHeroSubtitle'),
+    publicSitePrimaryCtaLabel: document.getElementById('publicSitePrimaryCtaLabel'),
+    publicSitePrimaryCtaUrl: document.getElementById('publicSitePrimaryCtaUrl'),
+    publicSiteSecondaryCtaLabel: document.getElementById('publicSiteSecondaryCtaLabel'),
+    publicSiteSecondaryCtaUrl: document.getElementById('publicSiteSecondaryCtaUrl'),
+    publicSiteTrustRating: document.getElementById('publicSiteTrustRating'),
+    publicSiteTrustReviewCount: document.getElementById('publicSiteTrustReviewCount'),
+    publicSiteTrustSurgeons: document.getElementById('publicSiteTrustSurgeons'),
+    publicSiteContactPhone: document.getElementById('publicSiteContactPhone'),
+    publicSiteContactEmail: document.getElementById('publicSiteContactEmail'),
+    publicSiteContactAddress: document.getElementById('publicSiteContactAddress'),
+    publicSiteContactBookingUrl: document.getElementById('publicSiteContactBookingUrl'),
+    publicSiteThemeAccent: document.getElementById('publicSiteThemeAccent'),
+    publicSiteThemeAccentSoft: document.getElementById('publicSiteThemeAccentSoft'),
+    publicSiteThemeCanvasFrom: document.getElementById('publicSiteThemeCanvasFrom'),
+    publicSiteThemeCanvasTo: document.getElementById('publicSiteThemeCanvasTo'),
+    publicSiteServicesJson: document.getElementById('publicSiteServicesJson'),
     saveTenantConfigBtn: document.getElementById('saveTenantConfigBtn'),
     tenantConfigStatus: document.getElementById('tenantConfigStatus'),
     refreshTenantsBtn: document.getElementById('refreshTenantsBtn'),
@@ -510,6 +545,7 @@
   let activeModalResolver = null;
   let activeModalOptions = null;
   let activeModalFocusReturn = null;
+  let sectionMotionFrame = 0;
 
   function setText(el, value) {
     if (!el) return;
@@ -538,6 +574,7 @@
     });
     setSessionMeta();
     renderTenantSwitchOptions();
+    applyDensityMode();
   }
 
   function setLanguage(nextLanguage) {
@@ -547,6 +584,30 @@
     state.language = SUPPORTED_LANGUAGES.includes(normalized) ? normalized : 'sv';
     localStorage.setItem(LANGUAGE_KEY, state.language);
     applyLanguage();
+  }
+
+  function applyDensityMode() {
+    const compact = state.densityMode === 'compact';
+    document.body.classList.toggle('compact', compact);
+    if (!els.densityToggleBtn) return;
+    els.densityToggleBtn.classList.toggle('active', compact);
+    els.densityToggleBtn.setAttribute('aria-pressed', compact ? 'true' : 'false');
+    els.densityToggleBtn.textContent = compact
+      ? t('density_regular', 'Standardvy')
+      : t('density_compact', 'Kompakt vy');
+  }
+
+  function setDensityMode(nextMode) {
+    const normalized = String(nextMode || '')
+      .trim()
+      .toLowerCase();
+    state.densityMode = normalized === 'compact' ? 'compact' : 'regular';
+    localStorage.setItem(DENSITY_KEY, state.densityMode);
+    applyDensityMode();
+  }
+
+  function toggleDensityMode() {
+    setDensityMode(state.densityMode === 'compact' ? 'regular' : 'compact');
   }
 
   function isEnglishLanguage() {
@@ -1009,6 +1070,81 @@
     return parsed;
   }
 
+  function parseJsonArrayInput(rawValue, fieldName) {
+    const text = String(rawValue || '').trim();
+    if (!text) return [];
+
+    let normalized = text
+      .replace(/^\uFEFF/, '')
+      .replace(/[\u200B-\u200D\u2060]/g, '')
+      .replace(/\u00A0/g, ' ')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    normalized = normalized.replace(/\(\s*publicSite\.services[^)]*\)\s*$/i, '').trim();
+
+    const firstBracket = normalized.indexOf('[');
+    const lastBracket = normalized.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      const prefix = normalized.slice(0, firstBracket).trim();
+      const suffix = normalized.slice(lastBracket + 1).trim();
+      if (prefix || suffix) {
+        normalized = normalized.slice(firstBracket, lastBracket + 1).trim();
+      }
+    }
+
+    const candidates = [];
+    const seen = new Set();
+    const addCandidate = (value) => {
+      const next = String(value || '').trim();
+      if (!next || seen.has(next)) return;
+      seen.add(next);
+      candidates.push(next);
+    };
+    addCandidate(normalized);
+
+    const normalizeJsonLikeObject = (source) =>
+      String(source || '')
+        .replace(/,\s*([}\]])/g, '$1')
+        .replace(/"([^"]+)'(?=\s*:)/g, '"$1"')
+        .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)\s*:/g, '$1"$2":')
+        .replace(/([{,]\s*)'([^'\\]+?)'\s*:/g, '$1"$2":')
+        .replace(/:\s*'([^'\\]*)'/g, ': "$1"');
+
+    addCandidate(normalized.replace(/,\s*([}\]])/g, '$1'));
+    addCandidate(normalizeJsonLikeObject(normalized));
+    addCandidate(normalizeJsonLikeObject(normalized.replace(/,\s*([}\]])/g, '$1')));
+
+    let lastErrorMessage = '';
+    for (const candidate of candidates) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.services)) {
+            return parsed.services;
+          }
+          if (parsed.publicSite && typeof parsed.publicSite === 'object' && Array.isArray(parsed.publicSite.services)) {
+            return parsed.publicSite.services;
+          }
+        }
+
+        throw new Error(`${fieldName} måste vara en JSON-array.`);
+      } catch (error) {
+        lastErrorMessage = String(error?.message || '').trim();
+      }
+    }
+
+    const suffix = lastErrorMessage ? ` (${lastErrorMessage})` : '';
+    throw new Error(`${fieldName} måste vara giltig JSON-array${suffix}.`);
+  }
+
   function toPrettyJson(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return '{}';
     const compact = Object.entries(value).reduce((acc, [key, item]) => {
@@ -1017,6 +1153,12 @@
       return acc;
     }, {});
     return JSON.stringify(compact, null, 2);
+  }
+
+  function toPrettyJsonAny(value, fallback = '{}') {
+    if (Array.isArray(value)) return JSON.stringify(value, null, 2);
+    if (value && typeof value === 'object') return JSON.stringify(value, null, 2);
+    return fallback;
   }
 
   function inferToastTone(message, isError = false) {
@@ -3098,6 +3240,27 @@
     return normalized;
   }
 
+  function refreshSectionVisualState(groupId) {
+    const normalized = String(groupId || '').trim();
+    const sections = Array.from(document.querySelectorAll('[data-section-group]'));
+    sections.forEach((section) => {
+      const currentGroup = String(section.getAttribute('data-section-group') || '').trim();
+      const isActive = currentGroup === normalized;
+      section.classList.toggle('group-active', isActive);
+      section.classList.remove('section-motion-enter');
+    });
+
+    if (sectionMotionFrame) cancelAnimationFrame(sectionMotionFrame);
+    sectionMotionFrame = requestAnimationFrame(() => {
+      sections.forEach((section) => {
+        const currentGroup = String(section.getAttribute('data-section-group') || '').trim();
+        const isActive = currentGroup === normalized;
+        if (!isActive || section.classList.contains('hidden')) return;
+        section.classList.add('section-motion-enter');
+      });
+    });
+  }
+
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const groupId = resolveSectionGroupTarget(nextGroupId);
     state.activeSectionGroup = groupId;
@@ -3105,6 +3268,7 @@
       const currentGroup = String(section.getAttribute('data-section-group') || '').trim();
       section.classList.toggle('hidden', currentGroup !== groupId);
     });
+    refreshSectionVisualState(groupId);
 
     const targetId = String(options.targetId || resolveDefaultTargetForGroup(groupId)).trim();
     if (targetId) setActiveSectionNav(targetId);
@@ -3924,7 +4088,110 @@
     }
   }
 
+  function getPublicSiteConfigFromTenantConfig(config) {
+    const source = config?.publicSite && typeof config.publicSite === 'object'
+      ? config.publicSite
+      : {};
+    return {
+      clinicName: String(source.clinicName || ''),
+      city: String(source.city || ''),
+      tagline: String(source.tagline || ''),
+      heroTitle: String(source.heroTitle || ''),
+      heroSubtitle: String(source.heroSubtitle || ''),
+      primaryCtaLabel: String(source.primaryCtaLabel || ''),
+      primaryCtaUrl: String(source.primaryCtaUrl || ''),
+      secondaryCtaLabel: String(source.secondaryCtaLabel || ''),
+      secondaryCtaUrl: String(source.secondaryCtaUrl || ''),
+      trustRating: clampNumber(source.trustRating, 0, 5, 0),
+      trustReviewCount: Math.round(clampNumber(source.trustReviewCount, 0, 100000, 0)),
+      trustSurgeons: Math.round(clampNumber(source.trustSurgeons, 0, 100, 0)),
+      contactPhone: String(source.contactPhone || ''),
+      contactEmail: String(source.contactEmail || ''),
+      contactAddress: String(source.contactAddress || ''),
+      contactBookingUrl: String(source.contactBookingUrl || ''),
+      themeAccent: String(source.themeAccent || ''),
+      themeAccentSoft: String(source.themeAccentSoft || ''),
+      themeCanvasFrom: String(source.themeCanvasFrom || ''),
+      themeCanvasTo: String(source.themeCanvasTo || ''),
+      services: Array.isArray(source.services) ? source.services : [],
+    };
+  }
+
+  function fillPublicSiteConfigInputs(publicSite) {
+    if (els.publicSiteClinicName) els.publicSiteClinicName.value = publicSite.clinicName || '';
+    if (els.publicSiteCity) els.publicSiteCity.value = publicSite.city || '';
+    if (els.publicSiteTagline) els.publicSiteTagline.value = publicSite.tagline || '';
+    if (els.publicSiteHeroTitle) els.publicSiteHeroTitle.value = publicSite.heroTitle || '';
+    if (els.publicSiteHeroSubtitle) els.publicSiteHeroSubtitle.value = publicSite.heroSubtitle || '';
+    if (els.publicSitePrimaryCtaLabel) {
+      els.publicSitePrimaryCtaLabel.value = publicSite.primaryCtaLabel || '';
+    }
+    if (els.publicSitePrimaryCtaUrl) els.publicSitePrimaryCtaUrl.value = publicSite.primaryCtaUrl || '';
+    if (els.publicSiteSecondaryCtaLabel) {
+      els.publicSiteSecondaryCtaLabel.value = publicSite.secondaryCtaLabel || '';
+    }
+    if (els.publicSiteSecondaryCtaUrl) {
+      els.publicSiteSecondaryCtaUrl.value = publicSite.secondaryCtaUrl || '';
+    }
+    if (els.publicSiteTrustRating) {
+      els.publicSiteTrustRating.value = formatCompactNumber(publicSite.trustRating, 1);
+    }
+    if (els.publicSiteTrustReviewCount) {
+      els.publicSiteTrustReviewCount.value = String(publicSite.trustReviewCount || 0);
+    }
+    if (els.publicSiteTrustSurgeons) {
+      els.publicSiteTrustSurgeons.value = String(publicSite.trustSurgeons || 0);
+    }
+    if (els.publicSiteContactPhone) els.publicSiteContactPhone.value = publicSite.contactPhone || '';
+    if (els.publicSiteContactEmail) els.publicSiteContactEmail.value = publicSite.contactEmail || '';
+    if (els.publicSiteContactAddress) els.publicSiteContactAddress.value = publicSite.contactAddress || '';
+    if (els.publicSiteContactBookingUrl) {
+      els.publicSiteContactBookingUrl.value = publicSite.contactBookingUrl || '';
+    }
+    if (els.publicSiteThemeAccent) els.publicSiteThemeAccent.value = publicSite.themeAccent || '';
+    if (els.publicSiteThemeAccentSoft) {
+      els.publicSiteThemeAccentSoft.value = publicSite.themeAccentSoft || '';
+    }
+    if (els.publicSiteThemeCanvasFrom) {
+      els.publicSiteThemeCanvasFrom.value = publicSite.themeCanvasFrom || '';
+    }
+    if (els.publicSiteThemeCanvasTo) els.publicSiteThemeCanvasTo.value = publicSite.themeCanvasTo || '';
+    if (els.publicSiteServicesJson) {
+      els.publicSiteServicesJson.value = toPrettyJsonAny(publicSite.services, '[]');
+    }
+  }
+
+  function buildPublicSitePayloadFromInputs() {
+    return {
+      clinicName: String(els.publicSiteClinicName?.value || '').trim(),
+      city: String(els.publicSiteCity?.value || '').trim(),
+      tagline: String(els.publicSiteTagline?.value || '').trim(),
+      heroTitle: String(els.publicSiteHeroTitle?.value || '').trim(),
+      heroSubtitle: String(els.publicSiteHeroSubtitle?.value || '').trim(),
+      primaryCtaLabel: String(els.publicSitePrimaryCtaLabel?.value || '').trim(),
+      primaryCtaUrl: String(els.publicSitePrimaryCtaUrl?.value || '').trim(),
+      secondaryCtaLabel: String(els.publicSiteSecondaryCtaLabel?.value || '').trim(),
+      secondaryCtaUrl: String(els.publicSiteSecondaryCtaUrl?.value || '').trim(),
+      trustRating: clampNumber(els.publicSiteTrustRating?.value, 0, 5, 0),
+      trustReviewCount: Math.round(clampNumber(els.publicSiteTrustReviewCount?.value, 0, 100000, 0)),
+      trustSurgeons: Math.round(clampNumber(els.publicSiteTrustSurgeons?.value, 0, 100, 0)),
+      contactPhone: String(els.publicSiteContactPhone?.value || '').trim(),
+      contactEmail: String(els.publicSiteContactEmail?.value || '').trim(),
+      contactAddress: String(els.publicSiteContactAddress?.value || '').trim(),
+      contactBookingUrl: String(els.publicSiteContactBookingUrl?.value || '').trim(),
+      themeAccent: String(els.publicSiteThemeAccent?.value || '').trim(),
+      themeAccentSoft: String(els.publicSiteThemeAccentSoft?.value || '').trim(),
+      themeCanvasFrom: String(els.publicSiteThemeCanvasFrom?.value || '').trim(),
+      themeCanvasTo: String(els.publicSiteThemeCanvasTo?.value || '').trim(),
+      services: parseJsonArrayInput(
+        els.publicSiteServicesJson?.value,
+        'publicSite.services'
+      ),
+    };
+  }
+
   function fillTenantConfig(config) {
+    const publicSite = getPublicSiteConfigFromTenantConfig(config);
     els.assistantName.value = config.assistantName || '';
     els.toneStyle.value = config.toneStyle || '';
     els.brandProfile.value = config.brandProfile || '';
@@ -3965,6 +4232,7 @@
         config?.templateRequiredVariablesByCategory || {}
       );
     }
+    fillPublicSiteConfigInputs(publicSite);
 
     const canEdit = isOwner();
     [
@@ -3979,6 +4247,27 @@
       els.templateEmailSignature,
       els.templateAllowlistOverrides,
       els.templateRequiredOverrides,
+      els.publicSiteClinicName,
+      els.publicSiteCity,
+      els.publicSiteTagline,
+      els.publicSiteHeroTitle,
+      els.publicSiteHeroSubtitle,
+      els.publicSitePrimaryCtaLabel,
+      els.publicSitePrimaryCtaUrl,
+      els.publicSiteSecondaryCtaLabel,
+      els.publicSiteSecondaryCtaUrl,
+      els.publicSiteTrustRating,
+      els.publicSiteTrustReviewCount,
+      els.publicSiteTrustSurgeons,
+      els.publicSiteContactPhone,
+      els.publicSiteContactEmail,
+      els.publicSiteContactAddress,
+      els.publicSiteContactBookingUrl,
+      els.publicSiteThemeAccent,
+      els.publicSiteThemeAccentSoft,
+      els.publicSiteThemeCanvasFrom,
+      els.publicSiteThemeCanvasTo,
+      els.publicSiteServicesJson,
       els.saveTenantConfigBtn,
     ].forEach((el) => {
       if (!el) return;
@@ -5968,6 +6257,7 @@
         templateSignaturesByChannel: {
           email: String(els.templateEmailSignature?.value || '').trim(),
         },
+        publicSite: buildPublicSitePayloadFromInputs(),
       };
       await api('/tenant-config', {
         method: 'PATCH',
@@ -6120,6 +6410,27 @@
     if (els.templateEmailSignature) els.templateEmailSignature.value = '';
     if (els.templateAllowlistOverrides) els.templateAllowlistOverrides.value = '{}';
     if (els.templateRequiredOverrides) els.templateRequiredOverrides.value = '{}';
+    if (els.publicSiteClinicName) els.publicSiteClinicName.value = '';
+    if (els.publicSiteCity) els.publicSiteCity.value = '';
+    if (els.publicSiteTagline) els.publicSiteTagline.value = '';
+    if (els.publicSiteHeroTitle) els.publicSiteHeroTitle.value = '';
+    if (els.publicSiteHeroSubtitle) els.publicSiteHeroSubtitle.value = '';
+    if (els.publicSitePrimaryCtaLabel) els.publicSitePrimaryCtaLabel.value = '';
+    if (els.publicSitePrimaryCtaUrl) els.publicSitePrimaryCtaUrl.value = '';
+    if (els.publicSiteSecondaryCtaLabel) els.publicSiteSecondaryCtaLabel.value = '';
+    if (els.publicSiteSecondaryCtaUrl) els.publicSiteSecondaryCtaUrl.value = '';
+    if (els.publicSiteTrustRating) els.publicSiteTrustRating.value = '0';
+    if (els.publicSiteTrustReviewCount) els.publicSiteTrustReviewCount.value = '0';
+    if (els.publicSiteTrustSurgeons) els.publicSiteTrustSurgeons.value = '0';
+    if (els.publicSiteContactPhone) els.publicSiteContactPhone.value = '';
+    if (els.publicSiteContactEmail) els.publicSiteContactEmail.value = '';
+    if (els.publicSiteContactAddress) els.publicSiteContactAddress.value = '';
+    if (els.publicSiteContactBookingUrl) els.publicSiteContactBookingUrl.value = '';
+    if (els.publicSiteThemeAccent) els.publicSiteThemeAccent.value = '';
+    if (els.publicSiteThemeAccentSoft) els.publicSiteThemeAccentSoft.value = '';
+    if (els.publicSiteThemeCanvasFrom) els.publicSiteThemeCanvasFrom.value = '';
+    if (els.publicSiteThemeCanvasTo) els.publicSiteThemeCanvasTo.value = '';
+    if (els.publicSiteServicesJson) els.publicSiteServicesJson.value = '[]';
     if (els.templateResultsMeta) els.templateResultsMeta.textContent = '';
     if (els.templateSelectionMeta) els.templateSelectionMeta.textContent = '0 valda';
     if (els.templateBulkStatus) els.templateBulkStatus.textContent = '';
@@ -6198,6 +6509,9 @@
         setStatus(els.loginStatus, error.message || 'Kunde inte uppdatera språkvy.', true);
       });
     }
+  });
+  els.densityToggleBtn?.addEventListener('click', () => {
+    toggleDensityMode();
   });
   els.sectionNav?.addEventListener('click', (event) => {
     const button = event.target.closest('.sectionNavBtn');

@@ -1,24 +1,64 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="196" height="214" viewBox="0 0 196 214" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGradient" x1="32" y1="20" x2="220" y2="244" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#4A4643"/>
-      <stop offset="1" stop-color="#232220"/>
+    <linearGradient id="shieldBg" x1="32" y1="6" x2="168" y2="164" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F303D"/>
+      <stop offset="1" stop-color="#101923"/>
     </linearGradient>
-    <linearGradient id="glassSheen" x1="56" y1="34" x2="175" y2="141" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF" stop-opacity="0.38"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.02"/>
+    <radialGradient id="shieldDepth" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(84 46) rotate(58) scale(146 114)">
+      <stop stop-color="#2D4152" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#0E151D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="markStroke" x1="36" y1="16" x2="160" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EBCDAF"/>
+      <stop offset="1" stop-color="#C89C72"/>
     </linearGradient>
-    <filter id="softShadow" x="14" y="8" width="228" height="238" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.42"/>
+    <linearGradient id="maText" x1="76" y1="136" x2="120" y2="153" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2D7BD"/>
+      <stop offset="1" stop-color="#D0A57D"/>
+    </linearGradient>
+    <filter id="markShadow" x="4" y="-18" width="188" height="244" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="9" stdDeviation="14" flood-color="#000000" flood-opacity="0.46"/>
     </filter>
   </defs>
-  <g filter="url(#softShadow)">
-    <path d="M48 18H208V156C208 199.5 176.3 229.1 128 240C79.7 229.1 48 199.5 48 156V18Z" fill="url(#bgGradient)"/>
-    <path d="M56 26H200V153.4C200 192.3 171.8 218.4 128 228.6C84.2 218.4 56 192.3 56 153.4V26Z" stroke="#CABAAE" stroke-opacity="0.58" stroke-width="2"/>
-    <path d="M66 34H190V118C174.5 95.7 153.5 83.5 125.4 81.5C98.2 79.6 78.4 90.3 66 112.6V34Z" fill="url(#glassSheen)"/>
-    <circle cx="128" cy="126" r="56" stroke="#CABAAE" stroke-opacity="0.72" stroke-width="2"/>
-    <path d="M97 161V94H109.3L128 123.6L146.7 94H159V161H146.9V117L129.8 144.2H126.2L109.1 117V161H97Z" fill="#E9DFD7"/>
-    <path d="M118.2 161L145.8 94H158.8L131.1 161H118.2Z" fill="#CABAAE"/>
-    <circle cx="128" cy="198" r="2.4" fill="#CABAAE"/>
+
+  <g filter="url(#markShadow)">
+    <path d="M38 0H158V86.4C158 118 130.9 143.6 98 143.6C65.1 143.6 38 118 38 86.4V0Z" fill="url(#shieldBg)"/>
+    <path d="M38 0H158V86.4C158 118 130.9 143.6 98 143.6C65.1 143.6 38 118 38 86.4V0Z" fill="url(#shieldDepth)"/>
+    <path d="M42 4H154V86C154 114.8 129.4 138.1 98 138.1C66.6 138.1 42 114.8 42 86V4Z" stroke="#E8D5C2" stroke-opacity="0.55" stroke-width="1.4"/>
+
+    <g transform="translate(98 61) scale(0.54)" stroke="url(#markStroke)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <circle cx="0" cy="6" r="64"/>
+
+      <line x1="0" y1="-84" x2="0" y2="96"/>
+      <line x1="-82" y1="-28" x2="82" y2="-28"/>
+      <line x1="-82" y1="60" x2="82" y2="60"/>
+
+      <line x1="0" y1="-84" x2="-82" y2="60"/>
+      <line x1="0" y1="-84" x2="82" y2="60"/>
+      <line x1="0" y1="96" x2="-82" y2="-28"/>
+      <line x1="0" y1="96" x2="82" y2="-28"/>
+
+      <line x1="-82" y1="-28" x2="0" y2="6"/>
+      <line x1="82" y1="-28" x2="0" y2="6"/>
+      <line x1="-82" y1="60" x2="0" y2="6"/>
+      <line x1="82" y1="60" x2="0" y2="6"/>
+
+      <polygon points="0,-50 40,6 0,62 -40,6"/>
+      <polygon points="-40,6 0,-18 40,6 0,32"/>
+      <rect x="-28" y="6" width="56" height="56"/>
+
+      <circle cx="0" cy="6" r="12"/>
+      <circle cx="0" cy="-56" r="6.5"/>
+      <circle cx="0" cy="60" r="8"/>
+      <circle cx="-82" cy="-28" r="9"/>
+      <circle cx="82" cy="-28" r="9"/>
+      <circle cx="-82" cy="60" r="9"/>
+      <circle cx="82" cy="60" r="9"/>
+    </g>
+
+    <text x="98" y="129" text-anchor="middle" fill="url(#maText)" font-family="'Cormorant Garamond', Georgia, serif" font-weight="600" letter-spacing="0.02em">
+      <tspan font-size="48">M</tspan>
+      <tspan font-size="30" dx="1.5">A</tspan>
+    </text>
   </g>
 </svg>
