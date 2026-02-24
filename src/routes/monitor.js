@@ -488,6 +488,8 @@ function buildReadinessRemediation({
       evidence: normalizeText(trigger?.evidence) || null,
       required: true,
       relatedId: triggerId,
+      scoreImpactMax: 0,
+      gateImpact: 'go_no_go',
     });
   }
 
@@ -495,6 +497,8 @@ function buildReadinessRemediation({
     const categoryId = normalizeText(category?.id);
     const categoryLabel = normalizeText(category?.label) || categoryId || null;
     const checks = Array.isArray(category?.checks) ? category.checks : [];
+    const categoryWeight = Number(category?.weight || 0);
+    const checksCount = Math.max(1, checks.length);
     for (const check of checks) {
       const checkStatus = normalizeStatus(check?.status);
       if (checkStatus === 'green') continue;
@@ -506,6 +510,10 @@ function buildReadinessRemediation({
 
       const priority = remediationPriorityFromCheck(check);
       const guidance = REMEDIATION_GUIDANCE_BY_CHECK[checkId] || {};
+      const checkScore = Math.max(0, Math.min(100, Number(check?.score || 0)));
+      const scoreImpactMax = Number(
+        ((((100 - checkScore) / checksCount) * categoryWeight) / 100).toFixed(2)
+      );
       actions.push({
         id: actionId,
         priority,
@@ -521,6 +529,7 @@ function buildReadinessRemediation({
         relatedId: checkId,
         categoryId: categoryId || null,
         categoryLabel,
+        scoreImpactMax,
       });
     }
   }
@@ -530,16 +539,21 @@ function buildReadinessRemediation({
     if (byPriority !== 0) return byPriority;
     const byRequired = Number(Boolean(b.required)) - Number(Boolean(a.required));
     if (byRequired !== 0) return byRequired;
+    const byScoreImpact = Number(b.scoreImpactMax || 0) - Number(a.scoreImpactMax || 0);
+    if (byScoreImpact !== 0) return byScoreImpact;
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 
   const byPriority = { P0: 0, P1: 0, P2: 0, P3: 0 };
+  let potentialScoreGain = 0;
   for (const action of actions) {
     const key = normalizeText(action?.priority).toUpperCase();
     if (Object.prototype.hasOwnProperty.call(byPriority, key)) {
       byPriority[key] += 1;
     }
+    potentialScoreGain += Number(action?.scoreImpactMax || 0);
   }
+  potentialScoreGain = Number(potentialScoreGain.toFixed(2));
 
   return {
     generatedAt: nowIso,
@@ -550,6 +564,7 @@ function buildReadinessRemediation({
       total: actions.length,
       byPriority,
       criticalPath: byPriority.P0,
+      potentialScoreGain,
     },
     nextActions: actions.slice(0, 8),
     actions,
