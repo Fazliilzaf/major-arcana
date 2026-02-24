@@ -392,6 +392,17 @@ RISK_SETTINGS_RESPONSE="$(curl -s "$BASE_URL/api/v1/risk/settings" \
 RISK_MODIFIER="$(printf '%s' "$RISK_SETTINGS_RESPONSE" | json_get settings.riskSensitivityModifier)"
 echo "✅ risk/settings OK (modifier: ${RISK_MODIFIER})"
 
+RISK_PRECISION_RESPONSE="$(curl -s "$BASE_URL/api/v1/risk/precision/report" \
+  -H "Authorization: Bearer $TOKEN")"
+RISK_PRECISION_CASES="$(printf '%s' "$RISK_PRECISION_RESPONSE" | json_get report.totals.cases)"
+RISK_PRECISION_BAND_ACC="$(printf '%s' "$RISK_PRECISION_RESPONSE" | json_get report.totals.bandAccuracyPercent)"
+if [[ "${RISK_PRECISION_CASES}" -lt 150 ]]; then
+  echo "❌ risk/precision/report returnerade för få cases (${RISK_PRECISION_CASES})"
+  printf '%s\n' "$RISK_PRECISION_RESPONSE"
+  exit 1
+fi
+echo "✅ risk/precision/report OK (cases: ${RISK_PRECISION_CASES}, bandAccuracy: ${RISK_PRECISION_BAND_ACC}%)"
+
 POLICY_FLOOR_RESPONSE="$(curl -s "$BASE_URL/api/v1/policy/floor" \
   -H "Authorization: Bearer $TOKEN")"
 POLICY_RULE_COUNT="$(printf '%s' "$POLICY_FLOOR_RESPONSE" | json_get policyFloor.rules | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"

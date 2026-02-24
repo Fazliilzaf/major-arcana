@@ -236,6 +236,7 @@ Tips:
 - `GET /api/v1/risk/evaluations`
 - `GET /api/v1/risk/evaluations/:evaluationId`
 - `POST /api/v1/risk/evaluations/:evaluationId/owner-action` (OWNER)
+- `GET /api/v1/risk/precision/report` (OWNER/STAFF, gold-set confusion matrix)
 
 Owner action `action` (endast OWNER):
 - `approve_exception`
@@ -337,6 +338,17 @@ Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
 - Policy floor API:
   - `GET /api/v1/policy/floor` (OWNER/STAFF)
 - Tenantens `riskSensitivityModifier` appliceras nu i template-riskutvärdering (generate/update/evaluate).
+
+## Risk precision benchmark (Gold Set + confusion matrix)
+- Versionerat gold set finns i:
+  - `docs/risk/gold-set-v1.json` (150 fall: 50 safe, 50 borderline, 50 critical)
+- Generera/uppdatera gold set:
+  - `npm run risk:goldset:generate`
+- Kör rapport lokalt:
+  - `npm run risk:goldset:report`
+- API-rapport:
+  - `GET /api/v1/risk/precision/report`
+  - valfri query: `modifier` (override av tenantens risk modifier för rapportkörningen)
 
 ## Steg 5: Activation Gate (Owner-control)
 - Om riskbeslut = `review_required` eller `blocked` krävs owner-beslut före aktivering.

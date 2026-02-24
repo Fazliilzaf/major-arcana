@@ -1,7 +1,9 @@
+const path = require('node:path');
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
+const { evaluateGoldSetFile } = require('../risk/goldSet');
 const { isValidCategory, normalizeCategory } = require('../templates/constants');
 const { validateTemplateVariables } = require('../templates/variables');
 const { getPolicyFloorDefinition } = require('../policy/floor');
@@ -15,6 +17,8 @@ function normalizeRiskModifier(value) {
   if (!Number.isFinite(num)) return 0;
   return Math.max(-10, Math.min(10, Number(num.toFixed(2))));
 }
+
+const RISK_GOLD_SET_DEFAULT_PATH = path.join(process.cwd(), 'docs', 'risk', 'gold-set-v1.json');
 
 async function readTenantConfigSafe(tenantConfigStore, tenantId) {
   const config = await tenantConfigStore.getTenantConfig(tenantId);
@@ -191,6 +195,55 @@ function createRiskRouter({
       return res.status(500).json({ error: 'Kunde inte köra risk preview.' });
     }
   });
+
+  router.get(
+    '/risk/precision/report',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const settings = await readTenantConfigSafe(tenantConfigStore, req.auth.tenantId);
+        const hasModifierQuery = req.query?.modifier !== undefined;
+        const modifier = hasModifierQuery
+          ? normalizeRiskModifier(req.query?.modifier)
+          : settings.riskSensitivityModifier;
+        const inputFile = RISK_GOLD_SET_DEFAULT_PATH;
+        const evaluated = await evaluateGoldSetFile({
+          filePath: inputFile,
+          tenantRiskModifier: modifier,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'risk.precision.report.read',
+          outcome: 'success',
+          targetType: 'risk_precision_report',
+          targetId: req.auth.tenantId,
+          metadata: {
+            modifier,
+            inputFile,
+            datasetVersion: evaluated?.dataset?.version || 'unknown',
+            cases: Number(evaluated?.report?.totals?.cases || 0),
+            bandAccuracy: Number(evaluated?.report?.totals?.bandAccuracy || 0),
+            levelAccuracy: Number(evaluated?.report?.totals?.levelAccuracy || 0),
+          },
+        });
+
+        return res.json({
+          settings,
+          dataset: evaluated.dataset,
+          report: evaluated.report,
+        });
+      } catch (error) {
+        if (error?.message) {
+          return res.status(400).json({ error: error.message });
+        }
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa risk precision-rapport.' });
+      }
+    }
+  );
 
   router.get(
     '/risk/calibration/suggestion',
