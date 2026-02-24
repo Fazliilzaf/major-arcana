@@ -67,6 +67,7 @@ function createScheduler({
   config,
   authStore,
   templateStore,
+  alertNotifier = null,
   logger = console,
 } = {}) {
   if (!config) throw new Error('config saknas för scheduler.');
@@ -103,6 +104,56 @@ function createScheduler({
     } catch (error) {
       logger?.error?.('[scheduler] audit_event_failed', sanitizeError(error));
     }
+  }
+
+  function summarizeNotificationResult(result) {
+    return {
+      ok: Boolean(result?.ok),
+      skipped: Boolean(result?.skipped),
+      reason: result?.reason || null,
+      status: Number.isFinite(Number(result?.status)) ? Number(result.status) : null,
+      error: result?.error || null,
+    };
+  }
+
+  async function sendAlertNotification({
+    tenantId,
+    actorUserId = null,
+    eventType,
+    severity = 'warn',
+    payload = {},
+  } = {}) {
+    if (!alertNotifier || typeof alertNotifier.send !== 'function') {
+      return {
+        ok: false,
+        skipped: true,
+        reason: 'notifier_unavailable',
+      };
+    }
+
+    const result = await alertNotifier.send({
+      eventType,
+      tenantId,
+      severity,
+      payload,
+    });
+    const summary = summarizeNotificationResult(result);
+
+    await addAudit({
+      tenantId,
+      actorUserId,
+      action: 'alerts.webhook.send',
+      outcome: summary.ok ? 'success' : summary.skipped ? 'noop' : 'failure',
+      targetType: 'alert',
+      targetId: String(eventType || 'unknown'),
+      metadata: {
+        eventType: String(eventType || 'unknown'),
+        severity,
+        notification: summary,
+      },
+    });
+
+    return result;
   }
 
   async function runNightlyPilotReport({ tenantId }) {
@@ -221,6 +272,11 @@ function createScheduler({
       Math.min(500, Number(config.schedulerIncidentAutoAssignOwnerLimit) || 100)
     );
     let autoOwnerAssignment = null;
+    let autoOwnerAssignmentNotification = {
+      ok: false,
+      skipped: true,
+      reason: 'no_changes',
+    };
 
     if (
       autoOwnerAssignmentEnabled &&
@@ -263,6 +319,22 @@ function createScheduler({
             incidents: assignedIncidents,
           },
         });
+
+        autoOwnerAssignmentNotification = await sendAlertNotification({
+          tenantId,
+          actorUserId: effectiveActorUserId,
+          eventType: 'incidents.auto_assign_owner',
+          severity: 'warn',
+          payload: {
+            trigger,
+            sourceJob: 'alert_probe',
+            assignedOwnerUserId: fallbackOwnerUserId,
+            eligibleOpenUnowned: Number(autoOwnerAssignment?.eligibleOpenUnowned || 0),
+            autoAssignedCount: Number(autoOwnerAssignment?.assignedCount || 0),
+            truncated: Boolean(autoOwnerAssignment?.truncated),
+            incidents: assignedIncidents,
+          },
+        });
       }
     }
 
@@ -272,6 +344,11 @@ function createScheduler({
       Math.min(500, Number(config.schedulerIncidentAutoEscalationLimit) || 25)
     );
     let autoEscalation = null;
+    let autoEscalationNotification = {
+      ok: false,
+      skipped: true,
+      reason: 'no_changes',
+    };
 
     if (
       autoEscalationEnabled &&
@@ -311,6 +388,21 @@ function createScheduler({
             incidents: escalatedIncidents,
           },
         });
+
+        autoEscalationNotification = await sendAlertNotification({
+          tenantId,
+          actorUserId: effectiveActorUserId,
+          eventType: 'incidents.auto_escalate',
+          severity: 'critical',
+          payload: {
+            trigger,
+            sourceJob: 'alert_probe',
+            eligibleBreachedOpen: Number(autoEscalation?.eligibleBreachedOpen || 0),
+            autoEscalatedCount: Number(autoEscalation?.escalatedCount || 0),
+            truncated: Boolean(autoEscalation?.truncated),
+            incidents: escalatedIncidents,
+          },
+        });
       }
     }
 
@@ -342,6 +434,11 @@ function createScheduler({
       autoEscalationEnabled,
       autoEscalatedCount: Number(autoEscalation?.escalatedCount || 0),
       autoEscalationTruncated: Boolean(autoEscalation?.truncated),
+      notifications: {
+        webhookEnabled: Boolean(alertNotifier?.enabled),
+        autoAssignOwner: summarizeNotificationResult(autoOwnerAssignmentNotification),
+        autoEscalate: summarizeNotificationResult(autoEscalationNotification),
+      },
       topReasonCodes,
     };
   }

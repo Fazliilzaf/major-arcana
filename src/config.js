@@ -184,6 +184,9 @@ const config = {
     process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_LIMIT,
     100
   ),
+  alertWebhookUrl: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_URL),
+  alertWebhookSecret: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_SECRET),
+  alertWebhookTimeoutMs: asInt(process.env.ARCANA_ALERT_WEBHOOK_TIMEOUT_MS, 4000),
   schedulerStartupDelaySec: asInt(process.env.ARCANA_SCHEDULER_STARTUP_DELAY_SEC, 8),
   schedulerJitterSec: asInt(process.env.ARCANA_SCHEDULER_JITTER_SEC, 4),
   schedulerRunOnStartup: asBool(process.env.ARCANA_SCHEDULER_RUN_ON_STARTUP, false),

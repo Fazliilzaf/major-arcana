@@ -88,6 +88,9 @@ ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED=true
 ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_LIMIT=25
 ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_ENABLED=true
 ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_LIMIT=100
+ARCANA_ALERT_WEBHOOK_URL=
+ARCANA_ALERT_WEBHOOK_SECRET=
+ARCANA_ALERT_WEBHOOK_TIMEOUT_MS=4000
 ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
 ARCANA_SCHEDULER_JITTER_SEC=4
 ARCANA_SCHEDULER_RUN_ON_STARTUP=false
@@ -96,6 +99,8 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - Schedulern kör nightly rapport, backup+prune, restore-drill preview och alert-probe.
 - `alert_probe` auto-tilldelar owner på öppna oägda incidents (owner prioriteras, fallback staff).
 - `alert_probe` auto-eskalerar breachade öppna incidents (L4/L5) och skriver audit-event `incidents.auto_escalate`.
+- Om `ARCANA_ALERT_WEBHOOK_URL` är satt skickas webhook-notifieringar för `incidents.auto_assign_owner` och `incidents.auto_escalate`.
+- Sätt `ARCANA_ALERT_WEBHOOK_SECRET` för HMAC-signatur (`x-arcana-signature: sha256=...`).
 - Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
 
 `POST /api/v1/auth/change-password` har nu global invalidation som default:

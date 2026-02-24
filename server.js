@@ -39,6 +39,7 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createScheduler } = require('./src/ops/scheduler');
+const { createAlertNotifier } = require('./src/ops/alertNotifier');
 
 const runtimeState = {
   startedAt: new Date().toISOString(),
@@ -161,6 +162,12 @@ app.get('/readyz', (req, res) => {
     config,
     authStore,
     templateStore,
+    alertNotifier: createAlertNotifier({
+      webhookUrl: config.alertWebhookUrl,
+      webhookSecret: config.alertWebhookSecret,
+      webhookTimeoutMs: config.alertWebhookTimeoutMs,
+      logger: console,
+    }),
     logger: console,
   });
 
