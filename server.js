@@ -40,6 +40,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createScheduler } = require('./src/ops/scheduler');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
+const { createSecretRotationStore } = require('./src/ops/secretRotationStore');
 
 const runtimeState = {
   startedAt: new Date().toISOString(),
@@ -156,6 +157,10 @@ app.get('/readyz', (req, res) => {
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
+  });
+  const secretRotationStore = await createSecretRotationStore({
+    filePath: config.secretRotationStorePath,
+    config,
   });
 
   const scheduler = createScheduler({
@@ -399,6 +404,7 @@ app.get('/readyz', (req, res) => {
       templateStore,
       tenantConfigStore,
       authStore,
+      secretRotationStore,
       config,
       scheduler,
       requireAuth: auth.requireAuth,
@@ -424,6 +430,7 @@ app.get('/readyz', (req, res) => {
     createOpsRouter({
       config,
       authStore,
+      secretRotationStore,
       scheduler,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,

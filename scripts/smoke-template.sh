@@ -297,6 +297,40 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   OPS_MANIFEST_COUNT="$(printf '%s' "$OPS_MANIFEST_RESPONSE" | json_get stores | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
   echo "✅ ops/state/manifest OK (stores: ${OPS_MANIFEST_COUNT})"
 
+  OPS_SECRETS_STATUS_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/secrets/status" \
+    -H "Authorization: Bearer $TOKEN")"
+  OPS_SECRETS_TRACKED="$(printf '%s' "$OPS_SECRETS_STATUS_RESPONSE" | json_get totals.tracked)"
+  OPS_SECRETS_STALE_REQUIRED="$(printf '%s' "$OPS_SECRETS_STATUS_RESPONSE" | json_get totals.staleRequired)"
+  OPS_SECRETS_PENDING="$(printf '%s' "$OPS_SECRETS_STATUS_RESPONSE" | json_get totals.pendingRotation)"
+  if [[ "${OPS_SECRETS_TRACKED}" -lt 1 ]]; then
+    echo "❌ ops/secrets/status returnerade inga tracked secrets"
+    printf '%s\n' "$OPS_SECRETS_STATUS_RESPONSE"
+    exit 1
+  fi
+  echo "✅ ops/secrets/status OK (tracked: ${OPS_SECRETS_TRACKED}, staleRequired: ${OPS_SECRETS_STALE_REQUIRED}, pending: ${OPS_SECRETS_PENDING})"
+
+  OPS_SECRETS_SNAPSHOT_PREVIEW_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/secrets/snapshot" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"dryRun":true,"note":"Smoke preview snapshot"}')"
+  OPS_SECRETS_SNAPSHOT_DRYRUN="$(printf '%s' "$OPS_SECRETS_SNAPSHOT_PREVIEW_RESPONSE" | json_get dryRun)"
+  if [[ "$OPS_SECRETS_SNAPSHOT_DRYRUN" != "true" ]]; then
+    echo "❌ ops/secrets/snapshot preview saknar dryRun=true"
+    printf '%s\n' "$OPS_SECRETS_SNAPSHOT_PREVIEW_RESPONSE"
+    exit 1
+  fi
+  echo "✅ ops/secrets/snapshot preview OK"
+
+  OPS_SECRETS_HISTORY_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/secrets/history?limit=5" \
+    -H "Authorization: Bearer $TOKEN")"
+  OPS_SECRETS_HISTORY_COUNT="$(printf '%s' "$OPS_SECRETS_HISTORY_RESPONSE" | json_get count)"
+  if [[ "${OPS_SECRETS_HISTORY_COUNT}" -lt 1 ]]; then
+    echo "❌ ops/secrets/history returnerade tom historik"
+    printf '%s\n' "$OPS_SECRETS_HISTORY_RESPONSE"
+    exit 1
+  fi
+  echo "✅ ops/secrets/history OK (count: ${OPS_SECRETS_HISTORY_COUNT})"
+
   OPS_BACKUP_CREATE_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/state/backup" \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \

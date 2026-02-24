@@ -55,6 +55,7 @@ function getStateFileMap(config) {
     templates: config.templateStorePath,
     tenantConfig: config.tenantConfigStorePath,
     memory: config.memoryStorePath,
+    secretRotation: config.secretRotationStorePath,
   };
 }
 

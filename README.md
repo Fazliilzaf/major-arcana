@@ -101,6 +101,8 @@ ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_LIMIT=100
 ARCANA_ALERT_WEBHOOK_URL=
 ARCANA_ALERT_WEBHOOK_SECRET=
 ARCANA_ALERT_WEBHOOK_TIMEOUT_MS=4000
+ARCANA_SECRET_ROTATION_STORE_PATH=./data/secret-rotation.json
+ARCANA_SECRET_ROTATION_MAX_AGE_DAYS=90
 ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS=30
 ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
 ARCANA_SCHEDULER_JITTER_SEC=4
@@ -112,6 +114,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - `alert_probe` auto-eskalerar breachade öppna incidents (L4/L5) och skriver audit-event `incidents.auto_escalate`.
 - Om `ARCANA_ALERT_WEBHOOK_URL` är satt skickas webhook-notifieringar för `incidents.auto_assign_owner` och `incidents.auto_escalate`.
 - Sätt `ARCANA_ALERT_WEBHOOK_SECRET` för HMAC-signatur (`x-arcana-signature: sha256=...`).
+- Secret rotation metadata för provider/webhook-nycklar lagras i `ARCANA_SECRET_ROTATION_STORE_PATH` (fingerprints + versioner, aldrig råa hemligheter).
 - Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
 - `monitor/status` exponerar även `gates.restoreDrill` (`healthy`/`noGo`) baserat på senaste lyckade `restore_drill_preview` i audit-loggen (persist över restart) och max-age (`ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS`).
 
@@ -152,6 +155,9 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `POST /api/v1/ops/state/restore` (OWNER, dry-run + restore med confirmText)
 - `GET /api/v1/ops/scheduler/status` (OWNER)
 - `POST /api/v1/ops/scheduler/run` (OWNER, body: `{ "jobId": "alert_probe" }`)
+- `GET /api/v1/ops/secrets/status` (OWNER, rotation status/freshness)
+- `POST /api/v1/ops/secrets/snapshot` (OWNER, dry-run default)
+- `GET /api/v1/ops/secrets/history` (OWNER, query: `secretId`, `limit`)
 - `GET /api/v1/audit/events` (OWNER/STAFF)
 - `GET /api/v1/audit/integrity` (OWNER/STAFF, verifierar append-only checksumkedja)
 - `GET /api/v1/incidents` (OWNER/STAFF, query: `status`, `severity`, `sinceDays`, `ownerUserId`)
@@ -420,6 +426,15 @@ Backup inkluderar:
 - `TEMPLATE_STORE_PATH`
 - `TENANT_CONFIG_STORE_PATH`
 - `MEMORY_STORE_PATH`
+- `ARCANA_SECRET_ROTATION_STORE_PATH`
+
+## Drift: Secrets rotation runbook
+- Runbook: `docs/ops/secrets-rotation-runbook.md`
+- Basflöde:
+  1) Roterad nyckel i plattformens secret manager (t.ex. Render env).
+  2) Deploy/restart Arcana.
+  3) Kör `POST /api/v1/ops/secrets/snapshot` med `{"dryRun":false,"note":"rotation ticket ..."}`
+  4) Verifiera `GET /api/v1/ops/secrets/status` och att `staleRequired=0`.
 
 Katalog styrs av:
 - `ARCANA_BACKUP_DIR` (default: `./data/backups`)
