@@ -84,12 +84,15 @@ ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS=24
 ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS=24
 ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS=168
 ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES=15
+ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED=true
+ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_LIMIT=25
 ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
 ARCANA_SCHEDULER_JITTER_SEC=4
 ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 ```
 
 - Schedulern kör nightly rapport, backup+prune, restore-drill preview och alert-probe.
+- `alert_probe` auto-eskalerar breachade öppna incidents (L4/L5) och skriver audit-event `incidents.auto_escalate`.
 - Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
 
 `POST /api/v1/auth/change-password` har nu global invalidation som default:

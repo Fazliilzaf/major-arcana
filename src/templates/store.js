@@ -213,6 +213,8 @@ const OWNER_ACTIONS = Object.freeze({
 });
 
 const OWNER_DECISIONS_ALLOW_ACTIVATION = new Set(['approved_exception', 'false_positive']);
+const INCIDENT_OPEN_OWNER_DECISIONS = new Set(['pending', 'revision_requested']);
+const AUTO_ESCALATION_NOTE = 'Auto-eskalerad av scheduler: SLA överskriden.';
 
 function normalizeOwnerAction(action) {
   if (typeof action !== 'string') return '';
@@ -614,7 +616,6 @@ async function createTemplateStore({
     const normalizedTemplateVersionId = normalizeText(templateVersionId);
     const sinceWindowDays = Math.max(0, Math.min(365, Number(sinceDays) || 0));
     const sinceWindowMs = sinceWindowDays > 0 ? Date.now() - sinceWindowDays * 24 * 60 * 60 * 1000 : null;
-    const openOwnerDecisions = new Set(['pending', 'revision_requested']);
 
     const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
     const items = evaluations
@@ -642,10 +643,10 @@ async function createTemplateStore({
           return false;
         }
         const ownerDecisionValue = String(evaluation.ownerDecision || 'pending').toLowerCase();
-        if (normalizedState === 'open' && !openOwnerDecisions.has(ownerDecisionValue)) {
+        if (normalizedState === 'open' && !INCIDENT_OPEN_OWNER_DECISIONS.has(ownerDecisionValue)) {
           return false;
         }
-        if (normalizedState === 'closed' && openOwnerDecisions.has(ownerDecisionValue)) {
+        if (normalizedState === 'closed' && INCIDENT_OPEN_OWNER_DECISIONS.has(ownerDecisionValue)) {
           return false;
         }
         if (sinceWindowMs !== null) {
@@ -740,6 +741,88 @@ async function createTemplateStore({
     return toSafeEvaluation(evaluation);
   }
 
+  async function autoEscalateBreachedIncidents({
+    tenantId,
+    actorUserId = 'scheduler',
+    note = AUTO_ESCALATION_NOTE,
+    limit = 50,
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedActorUserId = normalizeText(actorUserId);
+    const normalizedNote = normalizeText(note) || AUTO_ESCALATION_NOTE;
+    const maxEscalations = Math.max(1, Math.min(500, Number(limit) || 50));
+
+    if (!Array.isArray(state.evaluations)) state.evaluations = [];
+
+    const candidates = [];
+    let scanned = 0;
+
+    for (const evaluation of state.evaluations) {
+      if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) continue;
+      scanned += 1;
+
+      const incident = buildIncidentFromEvaluation(evaluation);
+      if (!incident) continue;
+
+      const ownerDecision = String(evaluation.ownerDecision || 'pending').toLowerCase();
+      if (!INCIDENT_OPEN_OWNER_DECISIONS.has(ownerDecision)) continue;
+
+      const slaState = String(incident?.sla?.state || '').toLowerCase();
+      if (slaState !== 'breached') continue;
+
+      candidates.push({
+        evaluation,
+        incident,
+        ownerDecision,
+      });
+    }
+
+    candidates.sort((a, b) => compareIncidents(a.incident, b.incident));
+    const selected = candidates.slice(0, maxEscalations);
+    const escalated = [];
+
+    for (const candidate of selected) {
+      const { evaluation, incident, ownerDecision } = candidate;
+      const createdAt = nowIso();
+      const actionItem = {
+        id: crypto.randomUUID(),
+        action: OWNER_ACTIONS.ESCALATE,
+        note: normalizedNote,
+        actorUserId: normalizedActorUserId || null,
+        createdAt,
+      };
+
+      if (!Array.isArray(evaluation.ownerActions)) evaluation.ownerActions = [];
+      evaluation.ownerActions.push(actionItem);
+      evaluation.ownerDecision = mapOwnerActionToDecision(OWNER_ACTIONS.ESCALATE);
+      evaluation.updatedAt = createdAt;
+
+      escalated.push({
+        incidentId: String(incident.id || ''),
+        evaluationId: String(evaluation.id || ''),
+        severity: String(incident.severity || ''),
+        previousOwnerDecision: ownerDecision,
+        slaDeadline: incident?.sla?.deadline || null,
+        breachedByMs: Math.max(0, -Number(incident?.sla?.remainingMs || 0)),
+      });
+    }
+
+    if (escalated.length > 0) {
+      await save();
+    }
+
+    return {
+      tenantId: normalizedTenantId || null,
+      scanned,
+      eligibleBreachedOpen: candidates.length,
+      escalatedCount: escalated.length,
+      limit: maxEscalations,
+      truncated: candidates.length > selected.length,
+      escalated,
+      generatedAt: nowIso(),
+    };
+  }
+
   async function summarizeRisk({
     tenantId,
     minRiskLevel = 1,
@@ -784,8 +867,8 @@ async function createTemplateStore({
     const highCriticalOpen = filtered
       .filter((evaluation) => Number(evaluation.riskLevel || 0) >= 4)
       .filter((evaluation) => {
-        const ownerDecision = String(evaluation.ownerDecision || 'pending');
-        return ['pending', 'revision_requested'].includes(ownerDecision);
+        const ownerDecision = String(evaluation.ownerDecision || 'pending').toLowerCase();
+        return INCIDENT_OPEN_OWNER_DECISIONS.has(ownerDecision);
       })
       .sort((a, b) => String(b.evaluatedAt).localeCompare(String(a.evaluatedAt)))
       .slice(0, 20)
@@ -991,6 +1074,7 @@ async function createTemplateStore({
     listEvaluations,
     getEvaluation,
     addOwnerAction,
+    autoEscalateBreachedIncidents,
     summarizeRisk,
     listIncidents,
     getIncident,

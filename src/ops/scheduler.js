@@ -195,7 +195,55 @@ function createScheduler({
     };
   }
 
-  async function runAlertProbe({ tenantId }) {
+  async function runAlertProbe({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const autoEscalationEnabled = Boolean(config.schedulerIncidentAutoEscalationEnabled);
+    const autoEscalationLimit = Math.max(
+      1,
+      Math.min(500, Number(config.schedulerIncidentAutoEscalationLimit) || 25)
+    );
+    let autoEscalation = null;
+
+    if (
+      autoEscalationEnabled &&
+      typeof templateStore?.autoEscalateBreachedIncidents === 'function'
+    ) {
+      autoEscalation = await templateStore.autoEscalateBreachedIncidents({
+        tenantId,
+        actorUserId: actorUserId || 'scheduler',
+        limit: autoEscalationLimit,
+      });
+
+      if (Number(autoEscalation?.escalatedCount || 0) > 0) {
+        const escalatedIncidents = Array.isArray(autoEscalation?.escalated)
+          ? autoEscalation.escalated
+              .slice(0, 25)
+              .map((item) => ({
+                incidentId: item?.incidentId || null,
+                evaluationId: item?.evaluationId || null,
+                severity: item?.severity || null,
+                slaDeadline: item?.slaDeadline || null,
+              }))
+          : [];
+
+        await addAudit({
+          tenantId,
+          actorUserId: actorUserId || 'scheduler',
+          action: 'incidents.auto_escalate',
+          outcome: 'success',
+          targetType: 'incident_collection',
+          targetId: 'breached_open',
+          metadata: {
+            trigger,
+            sourceJob: 'alert_probe',
+            eligibleBreachedOpen: Number(autoEscalation?.eligibleBreachedOpen || 0),
+            autoEscalatedCount: Number(autoEscalation?.escalatedCount || 0),
+            truncated: Boolean(autoEscalation?.truncated),
+            incidents: escalatedIncidents,
+          },
+        });
+      }
+    }
+
     const riskSummary = await templateStore.summarizeRisk({
       tenantId,
       minRiskLevel: 4,
@@ -218,6 +266,9 @@ function createScheduler({
       hasOpenHighCritical: highCriticalOpen.length > 0,
       incidentsOpenCount: Number(incidentSummary?.totals?.openUnresolved || 0),
       incidentsBreachedOpenCount: Number(incidentSummary?.totals?.breachedOpen || 0),
+      autoEscalationEnabled,
+      autoEscalatedCount: Number(autoEscalation?.escalatedCount || 0),
+      autoEscalationTruncated: Boolean(autoEscalation?.truncated),
       topReasonCodes,
     };
   }
@@ -325,6 +376,7 @@ function createScheduler({
       const result = await job.run({
         tenantId: resolvedTenantId,
         trigger,
+        actorUserId,
       });
       const durationMs = Date.now() - startedAtMs;
       runtime.running = false;

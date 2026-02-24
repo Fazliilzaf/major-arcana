@@ -168,6 +168,14 @@ const config = {
     process.env.ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES,
     15
   ),
+  schedulerIncidentAutoEscalationEnabled: asBool(
+    process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED,
+    true
+  ),
+  schedulerIncidentAutoEscalationLimit: asInt(
+    process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_LIMIT,
+    25
+  ),
   schedulerStartupDelaySec: asInt(process.env.ARCANA_SCHEDULER_STARTUP_DELAY_SEC, 8),
   schedulerJitterSec: asInt(process.env.ARCANA_SCHEDULER_JITTER_SEC, 4),
   schedulerRunOnStartup: asBool(process.env.ARCANA_SCHEDULER_RUN_ON_STARTUP, false),
