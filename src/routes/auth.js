@@ -25,6 +25,12 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function normalizeSessionRotationScope(value, fallback = 'none') {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (normalized === 'tenant' || normalized === 'user' || normalized === 'none') return normalized;
+  return fallback;
+}
+
 function createAuthRouter({
   authStore,
   requireAuth,
@@ -32,12 +38,42 @@ function createAuthRouter({
   requireTenantScope,
   loginRateLimiter = null,
   selectTenantRateLimiter = null,
+  loginSessionRotationScope = 'none',
 }) {
   const router = express.Router();
 
   const applyLoginRateLimit = typeof loginRateLimiter === 'function' ? loginRateLimiter : (_req, _res, next) => next();
   const applySelectTenantRateLimit =
     typeof selectTenantRateLimiter === 'function' ? selectTenantRateLimiter : (_req, _res, next) => next();
+  const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
+
+  async function rotateSessionsAfterLogin({ userId, tenantId, currentSessionId }) {
+    if (!userId || !currentSessionId || rotationScope === 'none') return 0;
+    const tenantScope = rotationScope === 'tenant' ? tenantId : '';
+
+    if (typeof authStore.revokeSessionsByUser === 'function') {
+      const result = await authStore.revokeSessionsByUser(userId, {
+        tenantId: tenantScope,
+        excludeSessionId: currentSessionId,
+        reason: 'login_rotation',
+      });
+      return Number(result?.count || 0);
+    }
+
+    const sessions = await authStore.listSessions({
+      tenantId: tenantScope,
+      userId,
+      includeRevoked: false,
+      limit: 500,
+    });
+    let revokedSessions = 0;
+    for (const session of sessions) {
+      if (!session?.id || session.id === currentSessionId) continue;
+      const revoked = await authStore.revokeSession(session.id, { reason: 'login_rotation' });
+      if (revoked) revokedSessions += 1;
+    }
+    return revokedSessions;
+  }
 
   router.post('/auth/login', applyLoginRateLimit, async (req, res) => {
     try {
@@ -116,6 +152,11 @@ function createAuthRouter({
         userId: user.id,
         membershipId: selectedMembership.id,
       });
+      const rotatedSessions = await rotateSessionsAfterLogin({
+        userId: user.id,
+        tenantId: selectedMembership.tenantId,
+        currentSessionId: created.session.id,
+      });
 
       await authStore.addAuditEvent({
         tenantId: selectedMembership.tenantId,
@@ -124,7 +165,11 @@ function createAuthRouter({
         outcome: 'success',
         targetType: 'session',
         targetId: created.session.id,
-        metadata: { role: selectedMembership.role },
+        metadata: {
+          role: selectedMembership.role,
+          rotatedSessions,
+          rotationScope,
+        },
       });
 
       return res.json({
@@ -176,6 +221,11 @@ function createAuthRouter({
         userId: pending.userId,
         membershipId: membership.id,
       });
+      const rotatedSessions = await rotateSessionsAfterLogin({
+        userId: pending.userId,
+        tenantId: membership.tenantId,
+        currentSessionId: created.session.id,
+      });
 
       const user = await authStore.getUserById(pending.userId);
       await authStore.addAuditEvent({
@@ -185,6 +235,10 @@ function createAuthRouter({
         outcome: 'success',
         targetType: 'session',
         targetId: created.session.id,
+        metadata: {
+          rotatedSessions,
+          rotationScope,
+        },
       });
 
       return res.json({
@@ -285,6 +339,11 @@ function createAuthRouter({
       const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
       const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
       const revokeOtherSessions = parseBoolean(req.body?.revokeOtherSessions, true);
+      const revokeScopeRaw =
+        typeof req.body?.revokeScope === 'string' ? req.body.revokeScope.trim().toLowerCase() : '';
+      const revokeScope = revokeScopeRaw === 'tenant' ? 'tenant' : 'all';
+      const revokeAllSessions = parseBoolean(req.body?.revokeAllSessions, revokeScope !== 'tenant');
+      const revokeCurrentSession = parseBoolean(req.body?.revokeCurrentSession, true);
 
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: 'currentPassword och newPassword krävs.' });
@@ -319,19 +378,38 @@ function createAuthRouter({
       }
 
       let revokedSessions = 0;
+      let currentSessionRevoked = false;
       if (revokeOtherSessions) {
-        const sessions = await authStore.listSessions({
-          tenantId: req.auth.tenantId,
-          userId: req.auth.userId,
-          includeRevoked: false,
-          limit: 500,
-        });
-        for (const session of sessions) {
-          if (!session?.id || session.id === req.auth.sessionId) continue;
-          const revoked = await authStore.revokeSession(session.id, {
+        const tenantScope = revokeAllSessions ? '' : req.auth.tenantId;
+        const excludeSessionId = revokeCurrentSession && revokeAllSessions ? '' : req.auth.sessionId;
+
+        if (typeof authStore.revokeSessionsByUser === 'function') {
+          const revokeResult = await authStore.revokeSessionsByUser(req.auth.userId, {
+            tenantId: tenantScope,
+            excludeSessionId,
             reason: 'password_changed',
           });
-          if (revoked) revokedSessions += 1;
+          revokedSessions = Number(revokeResult?.count || 0);
+          if (Array.isArray(revokeResult?.revokedSessionIds)) {
+            currentSessionRevoked = revokeResult.revokedSessionIds.includes(req.auth.sessionId);
+          }
+        } else {
+          const sessions = await authStore.listSessions({
+            tenantId: tenantScope,
+            userId: req.auth.userId,
+            includeRevoked: false,
+            limit: 500,
+          });
+          for (const session of sessions) {
+            if (!session?.id || session.id === excludeSessionId) continue;
+            const revoked = await authStore.revokeSession(session.id, {
+              reason: 'password_changed',
+            });
+            if (revoked) {
+              revokedSessions += 1;
+              if (session.id === req.auth.sessionId) currentSessionRevoked = true;
+            }
+          }
         }
       }
 
@@ -342,12 +420,21 @@ function createAuthRouter({
         outcome: 'success',
         targetType: 'user',
         targetId: req.auth.userId,
-        metadata: { revokeOtherSessions, revokedSessions },
+        metadata: {
+          revokeOtherSessions,
+          revokeAllSessions,
+          revokeScope: revokeAllSessions ? 'all' : 'tenant',
+          revokeCurrentSession: revokeCurrentSession && revokeAllSessions,
+          revokedSessions,
+          currentSessionRevoked,
+        },
       });
 
       return res.json({
         ok: true,
         revokedSessions,
+        currentSessionRevoked,
+        requiresReauth: currentSessionRevoked,
         user: updatedUser,
       });
     } catch (error) {
@@ -652,6 +739,22 @@ function createAuthRouter({
       return res.status(500).json({ error: 'Kunde inte uppdatera staff-medlemskap.' });
     }
   });
+
+  router.get(
+    '/audit/integrity',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const maxIssues = parseLimit(req.query?.maxIssues, 25);
+        const report = await authStore.verifyAuditIntegrity({ maxIssues });
+        return res.json(report);
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte verifiera auditkedjan.' });
+      }
+    }
+  );
 
   router.get(
     '/audit/events',

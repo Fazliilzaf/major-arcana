@@ -8,10 +8,11 @@ const {
   getClientoConfigForBrand,
   getKnowledgeDirForBrand,
 } = require('./src/brand/runtimeConfig');
+const { createCorsPolicy } = require('./src/security/corsPolicy');
 
 const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
-app.use(cors());
+app.use(cors(createCorsPolicy(config)));
 app.use(express.json());
 app.use(express.static("public"));
 
@@ -35,6 +36,8 @@ const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
+const { createPublicClinicRouter } = require('./src/routes/publicClinic');
+const { createScheduler } = require('./src/ops/scheduler');
 
 const runtimeState = {
   startedAt: new Date().toISOString(),
@@ -77,8 +80,10 @@ app.get('/readyz', (req, res) => {
   const authStore = await createAuthStore({
     filePath: config.authStorePath,
     sessionTtlMs: config.authSessionTtlHours * 60 * 60 * 1000,
+    sessionIdleTtlMs: config.authSessionIdleMinutes * 60 * 1000,
     loginTicketTtlMs: config.authLoginTicketTtlMinutes * 60 * 1000,
     auditMaxEntries: config.authAuditMaxEntries,
+    auditAppendOnly: config.authAuditAppendOnly,
   });
 
   if (config.bootstrapOwnerEmail && config.bootstrapOwnerPassword) {
@@ -115,6 +120,31 @@ app.get('/readyz', (req, res) => {
     keyGenerator: (req) => String(req.ip || 'unknown-ip'),
     message: 'För många tenant-val. Vänta en stund och prova igen.',
   });
+  const apiReadRateLimiter = createRateLimiter({
+    windowMs: config.apiRateLimitWindowSec * 1000,
+    max: config.apiRateLimitReadMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många läs-anrop. Vänta en stund och försök igen.',
+  });
+  const apiWriteRateLimiter = createRateLimiter({
+    windowMs: config.apiRateLimitWindowSec * 1000,
+    max: config.apiRateLimitWriteMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många skriv-anrop. Vänta en stund och försök igen.',
+  });
+
+  app.use('/api/v1', (req, res, next) => {
+    const endpoint = String(req.path || '');
+    if (endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/select-tenant')) {
+      return next();
+    }
+    const method = String(req.method || 'GET').toUpperCase();
+    const isReadMethod = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+    if (isReadMethod) {
+      return apiReadRateLimiter(req, res, next);
+    }
+    return apiWriteRateLimiter(req, res, next);
+  });
 
   const templateStore = await createTemplateStore({
     filePath: config.templateStorePath,
@@ -124,6 +154,13 @@ app.get('/readyz', (req, res) => {
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
+  });
+
+  const scheduler = createScheduler({
+    config,
+    authStore,
+    templateStore,
+    logger: console,
   });
 
   const memoryStore = await createMemoryStore({
@@ -188,6 +225,14 @@ app.get('/readyz', (req, res) => {
     });
   });
 
+  app.use(
+    '/api',
+    createPublicClinicRouter({
+      tenantConfigStore,
+      config,
+    })
+  );
+
   app.get('/conversation/:id', async (req, res) => {
     try {
       const conversation = await memoryStore.getConversation(req.params.id);
@@ -251,6 +296,7 @@ app.get('/readyz', (req, res) => {
       requireTenantScope: auth.requireTenantScope,
       loginRateLimiter,
       selectTenantRateLimiter,
+      loginSessionRotationScope: config.authLoginSessionRotationScope,
     })
   );
 
@@ -336,6 +382,7 @@ app.get('/readyz', (req, res) => {
       tenantConfigStore,
       authStore,
       config,
+      scheduler,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       runtimeState,
@@ -359,6 +406,7 @@ app.get('/readyz', (req, res) => {
     createOpsRouter({
       config,
       authStore,
+      scheduler,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })
@@ -367,8 +415,41 @@ app.get('/readyz', (req, res) => {
   runtimeState.ready = true;
   runtimeState.lastError = null;
 
-  app.listen(config.port, () => {
+  const server = app.listen(config.port, () => {
     console.log(`Arcana kör på ${config.publicBaseUrl}`);
+  });
+
+  const schedulerStatus = await scheduler.start();
+  if (schedulerStatus?.enabled) {
+    console.log(
+      `[scheduler] aktiv (${schedulerStatus.jobs.filter((job) => job.enabled).length} jobb)`
+    );
+  } else {
+    console.log('[scheduler] inaktiv (ARCANA_SCHEDULER_ENABLED=false)');
+  }
+
+  let isShuttingDown = false;
+  async function shutdown(signal) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    runtimeState.ready = false;
+    runtimeState.lastError = `shutdown:${signal}`;
+    try {
+      await scheduler.stop();
+    } catch (error) {
+      console.error('[scheduler] stop failed', error?.message || error);
+    }
+    await new Promise((resolve) => {
+      server.close(() => resolve());
+    });
+    process.exit(0);
+  }
+
+  process.once('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
+  process.once('SIGTERM', () => {
+    void shutdown('SIGTERM');
   });
 })().catch((error) => {
   runtimeState.ready = false;

@@ -31,6 +31,80 @@ function createSessionToken() {
   return crypto.randomBytes(32).toString('base64url');
 }
 
+const AUDIT_CHAIN_VERSION = 1;
+
+function isSha256Hex(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
+}
+
+function normalizeJsonValue(value) {
+  if (value === null) return null;
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      const normalized = normalizeJsonValue(item);
+      return normalized === undefined ? null : normalized;
+    });
+  }
+  if (typeof value === 'object') {
+    const source = safeObject(value);
+    const out = {};
+    for (const key of Object.keys(source).sort()) {
+      const normalized = normalizeJsonValue(source[key]);
+      if (normalized !== undefined) out[key] = normalized;
+    }
+    return out;
+  }
+  if (['string', 'number', 'boolean'].includes(typeof value)) return value;
+  return undefined;
+}
+
+function stableJson(value) {
+  const normalized = normalizeJsonValue(value);
+  if (normalized === undefined) return 'null';
+  return JSON.stringify(normalized);
+}
+
+function toAuditEventPayload(event) {
+  return {
+    id: String(event?.id || ''),
+    ts: String(event?.ts || ''),
+    tenantId: event?.tenantId || null,
+    actorUserId: event?.actorUserId || null,
+    action: String(event?.action || 'unknown'),
+    outcome: String(event?.outcome || 'unknown'),
+    targetType: String(event?.targetType || ''),
+    targetId: String(event?.targetId || ''),
+    metadata: safeObject(event?.metadata),
+  };
+}
+
+function computeAuditEventHash({ seq, prevHash = null, event }) {
+  const payload = {
+    v: AUDIT_CHAIN_VERSION,
+    seq: Number(seq),
+    prevHash: prevHash || null,
+    event: toAuditEventPayload(event),
+  };
+  return crypto.createHash('sha256').update(stableJson(payload)).digest('hex');
+}
+
+function hasAuditChainFields(event) {
+  return (
+    Number.isInteger(event?.seq) &&
+    event.seq > 0 &&
+    (event.prevHash === null || isSha256Hex(event.prevHash)) &&
+    isSha256Hex(event.hash)
+  );
+}
+
+function toSafeAuditEvent(event) {
+  if (!event || typeof event !== 'object') return null;
+  return {
+    ...event,
+    metadata: safeObject(event.metadata),
+  };
+}
+
 function emptyState() {
   return {
     users: {},
@@ -103,8 +177,10 @@ function toSafeSession(session) {
 async function createAuthStore({
   filePath,
   sessionTtlMs,
+  sessionIdleTtlMs = 0,
   loginTicketTtlMs,
   auditMaxEntries = 5000,
+  auditAppendOnly = true,
 }) {
   const rawState = await readJson(filePath, emptyState());
   const state = {
@@ -115,13 +191,148 @@ async function createAuthStore({
     auditEvents: Array.isArray(rawState.auditEvents) ? rawState.auditEvents : [],
   };
 
+  function inspectAuditChain({ repairMissing = false, maxIssues = 25 } = {}) {
+    const clampedMaxIssues = Math.max(1, Math.min(500, Number(maxIssues) || 25));
+    const issues = [];
+    let changed = false;
+
+    function pushIssue(type, details = {}) {
+      if (issues.length >= clampedMaxIssues) return;
+      issues.push({ type, ...details });
+    }
+
+    let expectedPrevHash = null;
+    let expectedSeq = 0;
+    let head = null;
+    let tail = null;
+
+    for (let index = 0; index < state.auditEvents.length; index += 1) {
+      const event = state.auditEvents[index];
+      if (!event || typeof event !== 'object') {
+        pushIssue('invalid_event_shape', { index });
+        continue;
+      }
+
+      const nextExpectedSeq = expectedSeq + 1;
+      const expectedHash = computeAuditEventHash({
+        seq: nextExpectedSeq,
+        prevHash: expectedPrevHash,
+        event,
+      });
+      const hasChain = hasAuditChainFields(event);
+
+      if (!hasChain) {
+        if (repairMissing) {
+          event.seq = nextExpectedSeq;
+          event.prevHash = expectedPrevHash;
+          event.hash = expectedHash;
+          event.chainVersion = AUDIT_CHAIN_VERSION;
+          changed = true;
+        } else {
+          pushIssue('missing_chain_fields', {
+            index,
+            eventId: event.id || null,
+          });
+        }
+      } else {
+        if (event.chainVersion === undefined && repairMissing) {
+          event.chainVersion = AUDIT_CHAIN_VERSION;
+          changed = true;
+        } else if (event.chainVersion !== AUDIT_CHAIN_VERSION) {
+          pushIssue('chain_version_mismatch', {
+            index,
+            eventId: event.id || null,
+            expected: AUDIT_CHAIN_VERSION,
+            actual: event.chainVersion,
+          });
+        }
+        if (event.seq !== nextExpectedSeq) {
+          pushIssue('sequence_mismatch', {
+            index,
+            eventId: event.id || null,
+            expected: nextExpectedSeq,
+            actual: event.seq,
+          });
+        }
+        if ((event.prevHash || null) !== (expectedPrevHash || null)) {
+          pushIssue('prev_hash_mismatch', {
+            index,
+            eventId: event.id || null,
+            expected: expectedPrevHash || null,
+            actual: event.prevHash || null,
+          });
+        }
+        if (event.hash !== expectedHash) {
+          pushIssue('hash_mismatch', {
+            index,
+            eventId: event.id || null,
+            expected: expectedHash,
+            actual: event.hash || null,
+          });
+        }
+      }
+
+      const currentSeq = hasChain ? event.seq : nextExpectedSeq;
+      const currentHash = hasChain ? event.hash : expectedHash;
+      if (!head) {
+        head = {
+          id: event.id || null,
+          ts: event.ts || null,
+          seq: currentSeq,
+          hash: currentHash,
+        };
+      }
+      tail = {
+        id: event.id || null,
+        ts: event.ts || null,
+        seq: currentSeq,
+        hash: currentHash,
+      };
+
+      expectedSeq = currentSeq;
+      expectedPrevHash = currentHash;
+    }
+
+    return {
+      changed,
+      checkedEvents: state.auditEvents.length,
+      head,
+      tail,
+      issues,
+    };
+  }
+
+  const auditChainMigration = inspectAuditChain({ repairMissing: true, maxIssues: 50 });
+  if (auditChainMigration.issues.length > 0) {
+    console.warn(
+      `Audit chain warning: ${auditChainMigration.issues.length} issue(s) detected in ${filePath}.`
+    );
+  }
+
+  const idleTtlMs = Number.isFinite(Number(sessionIdleTtlMs))
+    ? Math.max(0, Number(sessionIdleTtlMs))
+    : 0;
+
+  function getSessionTiming(session, now = Date.now()) {
+    const expiresAt = Date.parse(session?.expiresAt || '');
+    const absoluteExpired = !Number.isFinite(expiresAt) || expiresAt <= now;
+
+    const lastSeenAt = Date.parse(session?.lastSeenAt || session?.createdAt || '');
+    const idleExpired = idleTtlMs > 0 && Number.isFinite(lastSeenAt) && lastSeenAt + idleTtlMs <= now;
+
+    return {
+      expired: absoluteExpired || idleExpired,
+      reason: idleExpired ? 'idle_timeout' : 'expired',
+    };
+  }
+
   function prune() {
     const now = Date.now();
 
     for (const [id, session] of Object.entries(state.sessions)) {
-      const expiresAt = Date.parse(session.expiresAt || '');
+      const timing = getSessionTiming(session, now);
       const revokedAt = Date.parse(session.revokedAt || '');
-      if (Number.isFinite(expiresAt) && expiresAt <= now) {
+      if (timing.expired) {
         delete state.sessions[id];
         continue;
       }
@@ -137,7 +348,7 @@ async function createAuthStore({
       }
     }
 
-    if (state.auditEvents.length > auditMaxEntries) {
+    if (!auditAppendOnly && auditMaxEntries > 0 && state.auditEvents.length > auditMaxEntries) {
       state.auditEvents = state.auditEvents.slice(-auditMaxEntries);
     }
   }
@@ -186,6 +397,41 @@ async function createAuthStore({
     return null;
   }
 
+  function getAuditTail() {
+    const total = state.auditEvents.length;
+    if (total === 0) {
+      return { seq: 0, hash: null };
+    }
+    const last = state.auditEvents[total - 1];
+    if (hasAuditChainFields(last)) {
+      return {
+        seq: last.seq,
+        hash: last.hash,
+      };
+    }
+    const seq = Number.isInteger(last?.seq) && last.seq > 0 ? last.seq : total;
+    const prevHash = last?.prevHash && isSha256Hex(last.prevHash) ? last.prevHash : null;
+    const hash = isSha256Hex(last?.hash)
+      ? last.hash
+      : computeAuditEventHash({ seq, prevHash, event: last });
+    return { seq, hash };
+  }
+
+  async function verifyAuditIntegrity({ maxIssues = 25 } = {}) {
+    const inspected = inspectAuditChain({ repairMissing: false, maxIssues });
+    return {
+      ok: inspected.issues.length === 0,
+      chainVersion: AUDIT_CHAIN_VERSION,
+      appendOnly: Boolean(auditAppendOnly),
+      totalEvents: state.auditEvents.length,
+      checkedEvents: inspected.checkedEvents,
+      head: inspected.head,
+      tail: inspected.tail,
+      issues: inspected.issues,
+      generatedAt: nowIso(),
+    };
+  }
+
   async function addAuditEvent({
     tenantId = null,
     actorUserId = null,
@@ -195,6 +441,9 @@ async function createAuthStore({
     targetId = '',
     metadata = {},
   }) {
+    const { seq: lastSeq, hash: lastHash } = getAuditTail();
+    const nextSeq = lastSeq + 1;
+    const metadataValue = metadata && typeof metadata === 'object' ? safeObject(metadata) : {};
     const event = {
       id: crypto.randomUUID(),
       ts: nowIso(),
@@ -204,11 +453,19 @@ async function createAuthStore({
       outcome: String(outcome || 'unknown'),
       targetType: String(targetType || ''),
       targetId: String(targetId || ''),
-      metadata: metadata && typeof metadata === 'object' ? metadata : {},
+      metadata: metadataValue,
+      chainVersion: AUDIT_CHAIN_VERSION,
+      seq: nextSeq,
+      prevHash: lastHash || null,
     };
+    event.hash = computeAuditEventHash({
+      seq: nextSeq,
+      prevHash: event.prevHash,
+      event,
+    });
     state.auditEvents.push(event);
     await save();
-    return event;
+    return toSafeAuditEvent(event);
   }
 
   async function createUser({ email, password, mfaRequired = false }) {
@@ -387,8 +644,15 @@ async function createAuthStore({
     const session = getRawSessionByToken(token);
     if (!session) return null;
     if (session.revokedAt) return null;
-    const expiresAt = Date.parse(session.expiresAt || '');
-    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+    const timing = getSessionTiming(session, Date.now());
+    if (timing.expired) {
+      if (!session.revokedAt) {
+        session.revokedAt = nowIso();
+        session.revokeReason = timing.reason;
+        await save();
+      }
+      return null;
+    }
 
     const user = state.users[session.userId];
     const membership = state.memberships[session.membershipId];
@@ -406,6 +670,13 @@ async function createAuthStore({
     const session = state.sessions[sessionId];
     if (!session) return null;
     if (session.revokedAt) return null;
+    const timing = getSessionTiming(session, Date.now());
+    if (timing.expired) {
+      session.revokedAt = nowIso();
+      session.revokeReason = timing.reason;
+      await save();
+      return null;
+    }
     session.lastSeenAt = nowIso();
     await save();
     return toSafeSession(session);
@@ -433,6 +704,38 @@ async function createAuthStore({
     }
     if (count > 0) await save();
     return count;
+  }
+
+  async function revokeSessionsByUser(
+    userId,
+    {
+      tenantId = '',
+      excludeSessionId = '',
+      reason = 'manual',
+    } = {}
+  ) {
+    const normalizedUserId = typeof userId === 'string' ? userId.trim() : '';
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedExcludeSessionId =
+      typeof excludeSessionId === 'string' ? excludeSessionId.trim() : '';
+
+    if (!normalizedUserId) return { count: 0, revokedSessionIds: [] };
+
+    let count = 0;
+    const revokedSessionIds = [];
+    for (const session of Object.values(state.sessions)) {
+      if (!session || session.userId !== normalizedUserId) continue;
+      if (normalizedTenantId && normalizeTenantId(session.tenantId) !== normalizedTenantId) continue;
+      if (normalizedExcludeSessionId && session.id === normalizedExcludeSessionId) continue;
+      if (session.revokedAt) continue;
+      session.revokedAt = nowIso();
+      session.revokeReason = String(reason || 'manual');
+      revokedSessionIds.push(session.id);
+      count += 1;
+    }
+
+    if (count > 0) await save();
+    return { count, revokedSessionIds };
   }
 
   async function getSessionById(sessionId) {
@@ -479,8 +782,8 @@ async function createAuthStore({
         if (!includeRevoked && session.revokedAt) {
           return false;
         }
-        const expiresAt = Date.parse(session.expiresAt || '');
-        if (Number.isFinite(expiresAt) && expiresAt <= now) {
+        const timing = getSessionTiming(session, now);
+        if (timing.expired) {
           return false;
         }
         return true;
@@ -672,7 +975,7 @@ async function createAuthStore({
     });
 
     filtered.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
-    return filtered.slice(0, clampedLimit);
+    return filtered.slice(0, clampedLimit).map(toSafeAuditEvent).filter(Boolean);
   }
 
   async function bootstrapOwner({ tenantId, email, password, forcePasswordReset = false }) {
@@ -747,12 +1050,14 @@ async function createAuthStore({
     touchSession,
     revokeSession,
     revokeSessionsByMembership,
+    revokeSessionsByUser,
     updateMembership,
     upsertStaffMember,
     upsertOwnerMember,
     listTenantMembers,
     addAuditEvent,
     listAuditEvents,
+    verifyAuditIntegrity,
     bootstrapOwner,
   };
 }

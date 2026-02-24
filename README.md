@@ -39,6 +39,64 @@ ARCANA_OWNER_PASSWORD=byt-till-starkt-losenord
 
 Vid uppstart bootstrapas första OWNER automatiskt om ovan variabler finns.
 
+### CORS (strict läge i produktion)
+`CORS_STRICT` defaultar nu till:
+- `true` i produktion (`NODE_ENV=production`)
+- `false` i lokal utveckling
+
+Rekommenderad production-konfiguration:
+
+```env
+CORS_STRICT=true
+CORS_ALLOWED_ORIGINS=https://arcana.hairtpclinic.se,https://hairtpclinic.se,https://www.hairtpclinic.se
+CORS_ALLOW_NO_ORIGIN=false
+CORS_ALLOW_CREDENTIALS=false
+```
+
+`CORS_ALLOWED_ORIGINS` kan anges som kommaseparerad lista eller JSON-array.
+Om `ARCANA_BRAND_BY_HOST` är satt läggs host-keys automatiskt till som `https://<host>` i strict allowlist.
+
+### Session idle-timeout + API rate limits
+Default-värden för hardening:
+
+```env
+AUTH_SESSION_TTL_HOURS=12
+AUTH_SESSION_IDLE_MINUTES=180
+AUTH_LOGIN_SESSION_ROTATION=tenant
+ARCANA_API_RATE_LIMIT_WINDOW_SEC=60
+ARCANA_API_RATE_LIMIT_READ_MAX=300
+ARCANA_API_RATE_LIMIT_WRITE_MAX=120
+```
+
+- `AUTH_SESSION_IDLE_MINUTES`: invalidates session efter inaktivitet (revoke reason: `idle_timeout`)
+- `AUTH_LOGIN_SESSION_ROTATION`: `none|tenant|user` (default `tenant`) roterar bort äldre sessioner vid login/select-tenant
+- `ARCANA_API_RATE_LIMIT_READ_MAX`: max read-anrop per IP inom fönstret
+- `ARCANA_API_RATE_LIMIT_WRITE_MAX`: max write-anrop per IP inom fönstret
+- `POST /api/v1/auth/login` och `POST /api/v1/auth/select-tenant` styrs fortsatt av dedikerade auth-limiters
+
+### Scheduler / Automation (Pilot driftstöd)
+
+```env
+ARCANA_REPORTS_DIR=./data/reports
+ARCANA_SCHEDULER_ENABLED=true
+ARCANA_SCHEDULER_REPORT_WINDOW_DAYS=14
+ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS=24
+ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS=24
+ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS=168
+ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES=15
+ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
+ARCANA_SCHEDULER_JITTER_SEC=4
+ARCANA_SCHEDULER_RUN_ON_STARTUP=false
+```
+
+- Schedulern kör nightly rapport, backup+prune, restore-drill preview och alert-probe.
+- Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
+
+`POST /api/v1/auth/change-password` har nu global invalidation som default:
+- revokerar alla user-sessioner (alla tenants) vid lösenordsbyte
+- revokerar även aktuell session som default (`requiresReauth=true` i svar)
+- kan overrideas via body-fält (`revokeAllSessions`, `revokeCurrentSession`, `revokeScope`)
+
 Om prod-inloggning fastnar på gammalt lösenord:
 1) Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=true`
 2) Deploy
@@ -54,6 +112,7 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `GET /api/v1/auth/me`
 - `GET /api/v1/auth/sessions` (OWNER/STAFF, scope=`me|tenant`, tenant-scope endast OWNER)
 - `POST /api/v1/auth/sessions/:sessionId/revoke` (OWNER/STAFF, OWNER kan revoka tenantens sessioner)
+- `POST /api/v1/auth/change-password` (OWNER/STAFF, global session invalidation by default)
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/tenants/my` (OWNER/STAFF, lista egna tenants)
 - `POST /api/v1/tenants/onboard` (OWNER, skapa/onboard tenant + owner)
@@ -67,7 +126,10 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `POST /api/v1/ops/state/backup` (OWNER)
 - `POST /api/v1/ops/state/backups/prune` (OWNER, dry-run eller apply)
 - `POST /api/v1/ops/state/restore` (OWNER, dry-run + restore med confirmText)
+- `GET /api/v1/ops/scheduler/status` (OWNER)
+- `POST /api/v1/ops/scheduler/run` (OWNER, body: `{ "jobId": "alert_probe" }`)
 - `GET /api/v1/audit/events` (OWNER/STAFF)
+- `GET /api/v1/audit/integrity` (OWNER/STAFF, verifierar append-only checksumkedja)
 
 ## Steg 2: Template Engine (Pilot 0.1)
 Template Engine finns nu i `/api/v1` med draft/active-workflow och riskutvärdering.
@@ -95,6 +157,10 @@ Kör detta i ordning:
 
 Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
+
+Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
+- `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
+- Lägg till mail-seeds i samma körning: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public -- --with-mail-seeds`
 
 1) Lokal kvalitet:
 - `npm run verify`
@@ -158,6 +224,7 @@ Owner action `action` (endast OWNER):
   - tenant-lista + onboarding-form (OWNER) använder `GET /api/v1/tenants/my` och `POST /api/v1/tenants/onboard`
 - Dashboard API: `GET /api/v1/dashboard/owner`
 - Tenant config: `GET /api/v1/tenant-config`, `PATCH /api/v1/tenant-config` (OWNER)
+- Public clinic payload (for external web): `GET /api/public/clinics/:clinicId`
 - Template lifecycle i UI:
   - create template
   - list templates/versions
@@ -180,7 +247,7 @@ Owner action `action` (endast OWNER):
   - restore preview + restore (`POST /api/v1/ops/state/restore`)
  - Mail insights-panel i UI:
    - läser anonymiserad mail-kunskap per tenant
-   - endpoint: `GET /api/v1/mail/insights`
+  - endpoint: `GET /api/v1/mail/insights`
    - seed preview och seed→draft:
      - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":true}`
      - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":false}` (OWNER)
@@ -190,6 +257,42 @@ Owner action `action` (endast OWNER):
    - hämta förslag och applicera owner-godkänt förslag
  - Pilot report-panel i UI:
    - generera KPI-rapport per tidsfönster
+
+### Public web payload (multi-clinic)
+- Endpoint: `GET /api/public/clinics/:clinicId`
+- Returnerar publik payload for kliniksajt (hero, services, trust, contact, theme, updatedAt).
+- `clinicId` kan mappas till tenant via env `ARCANA_PUBLIC_CLINIC_ALIASES`.
+- Alias `hair-to-clinic -> hair-tp-clinic` finns som default.
+
+Exempel:
+```bash
+curl http://localhost:3000/api/public/clinics/hair-to-clinic
+```
+
+Publika webbfalt kan styras via tenant-config med PATCH (OWNER):
+- Endpoint: `PATCH /api/v1/tenant-config`
+- Body-falt: `publicSite` (hela eller delar av objektet)
+- Exempel:
+
+```json
+{
+  "publicSite": {
+    "clinicName": "Hair TP Clinic",
+    "city": "Goteborg",
+    "heroTitle": "Hartransplantation med kliniskt fokus",
+    "contactPhone": "031 88 11 66",
+    "services": [
+      {
+        "id": "fue-core",
+        "title": "FUE Bas",
+        "description": "For vikande harfaste och mindre omraden.",
+        "durationMinutes": 300,
+        "fromPriceSek": 42000
+      }
+    ]
+  }
+}
+```
 
 ## Steg 4: Risk Calibration (tenant-styrd)
 - Risk settings API:
@@ -217,6 +320,10 @@ Owner action `action` (endast OWNER):
   - `POST /api/v1/orchestrator/admin-run`
 - Returnerar:
   - intent + confidence
+
+## Strategidokument (Phase 2)
+- Masterplan för hardening, incident/SLA, automation, riskprecision och Go/No-Go:
+  - `docs/strategy/arcana-phase-2-masterplan.md`
   - valda agenter
   - handlingsplan
   - föreslagna API-anrop
@@ -272,6 +379,14 @@ Katalog styrs av:
 - `ARCANA_BACKUP_DIR` (default: `./data/backups`)
 - `ARCANA_BACKUP_RETENTION_MAX_FILES` (default: `50`)
 - `ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS` (default: `30`)
+
+## Auditkedja (append-only + checksum)
+- `AUTH_AUDIT_APPEND_ONLY=true` (default) håller audit-loggen append-only och stoppar trunkering.
+- Sätt `AUTH_AUDIT_APPEND_ONLY=false` endast om du uttryckligen vill tillåta trunkering via `AUTH_AUDIT_MAX_ENTRIES`.
+- Verifiera kedjan via:
+  - `GET /api/v1/audit/integrity`
+  - Valfri query: `maxIssues` (1–500, default 25)
+- Smoke-test (`npm run smoke:local`) verifierar nu också `audit/integrity`.
 
 ## Lägg in Arcana på hemsidan (WordPress)
 Arcana behöver först köras på en publik **HTTPS**-adress (t.ex. `https://arcana.dindomän.se/`).

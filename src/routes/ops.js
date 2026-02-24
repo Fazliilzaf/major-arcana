@@ -33,10 +33,99 @@ function normalizeText(value) {
 function createOpsRouter({
   config,
   authStore,
+  scheduler = null,
   requireAuth,
   requireRole,
 }) {
   const router = express.Router();
+
+  router.get(
+    '/ops/scheduler/status',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!scheduler || typeof scheduler.getStatus !== 'function') {
+        return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
+      }
+      try {
+        const status = scheduler.getStatus();
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.scheduler.status.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'scheduler_status',
+          metadata: {
+            enabled: Boolean(status?.enabled),
+            started: Boolean(status?.started),
+            jobs: Array.isArray(status?.jobs) ? status.jobs.length : 0,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          scheduler: status,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa scheduler-status.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/scheduler/run',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!scheduler || typeof scheduler.runJob !== 'function') {
+        return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
+      }
+
+      const jobId = normalizeText(req.body?.jobId);
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      if (!jobId) {
+        return res.status(400).json({ error: 'jobId krävs.' });
+      }
+
+      try {
+        const result = await scheduler.runJob(jobId, {
+          trigger: 'manual_api',
+          actorUserId: req.auth.userId,
+          tenantId,
+        });
+
+        const success = result?.ok === true;
+        const errorCode = String(result?.error || '');
+        const statusCode =
+          success ? 200 : errorCode === 'job_running' || errorCode === 'disabled_job' ? 409 : 400;
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.scheduler.run',
+          outcome: success ? 'success' : 'failure',
+          targetType: 'scheduler_job',
+          targetId: jobId,
+          metadata: {
+            requestedTenantId: tenantId,
+            result,
+          },
+        });
+
+        return res.status(statusCode).json({
+          ok: success,
+          ...result,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte köra scheduler-jobb.' });
+      }
+    }
+  );
 
   router.get(
     '/ops/state/manifest',

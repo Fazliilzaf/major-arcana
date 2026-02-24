@@ -549,7 +549,7 @@ async function createTemplateStore({
     decision = '',
     category = '',
     reasonCode = '',
-    state = '',
+    state: reviewState = '',
     sinceDays = 0,
     search = '',
     templateId = '',
@@ -563,7 +563,7 @@ async function createTemplateStore({
     const normalizedDecision = normalizeText(decision).toLowerCase();
     const normalizedCategory = normalizeCategory(category);
     const normalizedReasonCode = normalizeText(reasonCode).toLowerCase();
-    const normalizedState = normalizeText(state).toLowerCase();
+    const normalizedState = normalizeText(reviewState).toLowerCase();
     const normalizedSearch = normalizeText(search).toLowerCase();
     const normalizedTemplateId = normalizeText(templateId);
     const normalizedTemplateVersionId = normalizeText(templateVersionId);

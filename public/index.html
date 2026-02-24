@@ -11,7 +11,7 @@
 </head>
 <body class="cliento-custom-theme min-h-screen text-[color:var(--arcana-text)]">
   <div class="mx-auto flex min-h-screen max-w-3xl flex-col">
-    <header class="sticky top-0 z-10 border-b border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-4 py-4 backdrop-blur">
+    <header class="glass-surface glass-header sticky top-0 z-10 border-b border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur">
       <div class="flex items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3">
           <img
@@ -45,12 +45,12 @@
     </header>
 
     <main class="flex-1 px-4 py-6">
-      <div class="panel p-4 sm:p-5">
+      <div class="panel glass-panel p-4 sm:p-5">
         <div id="messages" class="space-y-4"></div>
       </div>
     </main>
 
-    <footer class="sticky bottom-0 border-t border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-4 py-4 backdrop-blur">
+    <footer class="glass-surface glass-footer sticky bottom-0 border-t border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur">
       <div class="flex items-end gap-2">
         <textarea
           id="messageInput"
@@ -75,7 +75,7 @@
   <div id="bookingModal" class="fixed inset-0 z-50 hidden">
     <div id="bookingBackdrop" class="absolute inset-0 bg-black/70"></div>
     <div class="relative mx-auto flex h-full max-w-3xl flex-col p-4">
-      <div class="flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] bg-[color:var(--arcana-surface)] px-5 py-4 backdrop-blur sm:px-6">
+      <div class="glass-surface glass-modal-top flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] px-5 py-4 backdrop-blur sm:px-6">
         <div class="flex min-w-0 items-center gap-4">
           <img
             id="bookingBrandMark"
@@ -94,7 +94,7 @@
           Stäng
         </button>
       </div>
-      <div class="flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white text-slate-900">
+      <div class="glass-booking-body flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white text-slate-900">
         <div id="clientoMount" class="min-h-full p-2">
           <div class="p-4 text-sm text-slate-700">Laddar bokning…</div>
         </div>
@@ -112,6 +112,7 @@
       --arcana-primary: #cabaae;
       --arcana-primary-hover: #d7c9be;
       --arcana-primary-text: #303030;
+      --arcana-primary-rgb: 202, 186, 174;
 
       --arcana-bg: #303030;
       --arcana-surface: rgba(48, 48, 48, 0.72);
@@ -120,6 +121,11 @@
       --arcana-text-muted: rgba(246, 241, 238, 0.72);
       --arcana-border: rgba(246, 241, 238, 0.14);
       --arcana-glow: rgba(202, 186, 174, 0.22);
+      --arcana-glass-edge: rgba(246, 241, 238, 0.2);
+      --arcana-glass-highlight: rgba(255, 255, 255, 0.16);
+      --arcana-glass-layer-a: rgba(255, 255, 255, 0.12);
+      --arcana-glass-layer-b: rgba(255, 255, 255, 0.03);
+      --arcana-shadow-3d: 0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 
       --cb-color-primary: var(--arcana-primary);
       --cb-color-secondary: #0f172a; /* slate-900 */
@@ -144,34 +150,87 @@
 
     .panel {
       border: 1px solid var(--arcana-border);
-      background: var(--arcana-surface-solid);
+      background:
+        linear-gradient(160deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
+        var(--arcana-surface-solid);
       border-radius: 24px;
-      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+      box-shadow: var(--arcana-shadow-3d);
+      backdrop-filter: blur(14px) saturate(130%);
+      -webkit-backdrop-filter: blur(14px) saturate(130%);
+    }
+
+    .glass-surface {
+      background:
+        linear-gradient(155deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
+        var(--arcana-surface);
+      border-color: var(--arcana-glass-edge) !important;
+      box-shadow: var(--arcana-shadow-3d);
+      backdrop-filter: blur(14px) saturate(132%);
+      -webkit-backdrop-filter: blur(14px) saturate(132%);
+    }
+
+    .glass-header,
+    .glass-footer {
+      border-left: 1px solid transparent;
+      border-right: 1px solid transparent;
+    }
+
+    .glass-panel {
+      border-color: var(--arcana-glass-edge);
+    }
+
+    .glass-modal-top {
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--arcana-glass-highlight);
+    }
+
+    .glass-booking-body {
+      box-shadow: 0 22px 42px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .btn-primary {
-      background: var(--arcana-primary);
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
+      background: linear-gradient(
+        160deg,
+        rgba(var(--arcana-primary-rgb), 0.82),
+        rgba(var(--arcana-primary-rgb), 0.66)
+      );
       color: var(--arcana-primary-text);
-      transition: background-color 160ms ease, transform 160ms ease;
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+      backdrop-filter: blur(10px) saturate(138%);
+      -webkit-backdrop-filter: blur(10px) saturate(138%);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, filter 160ms ease;
     }
-    .btn-primary:hover { background: var(--arcana-primary-hover); }
-    .btn-primary:active { transform: translateY(0.5px); }
+    .btn-primary:hover {
+      border-color: rgba(var(--arcana-primary-rgb), 0.62);
+      filter: brightness(1.03);
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+    }
+    .btn-primary:active { transform: translateY(1px); }
 
     .btn-ghost {
-      border: 1px solid var(--arcana-border);
+      border: 1px solid var(--arcana-glass-edge);
       color: var(--arcana-text);
-      background: transparent;
-      transition: background-color 160ms ease, border-color 160ms ease;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--arcana-glass-highlight);
+      backdrop-filter: blur(10px) saturate(128%);
+      -webkit-backdrop-filter: blur(10px) saturate(128%);
+      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
     }
     .btn-ghost:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(246, 241, 238, 0.22);
+      transform: translateY(-1px);
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+      border-color: rgba(var(--arcana-primary-rgb), 0.4);
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
 
     .input {
-      border: 1px solid var(--arcana-border);
-      background: rgba(12, 10, 9, 0.55);
+      border: 1px solid var(--arcana-glass-edge);
+      background:
+        linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.52));
       color: var(--arcana-text);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px) saturate(128%);
+      -webkit-backdrop-filter: blur(10px) saturate(128%);
     }
     .input::placeholder {
       color: var(--arcana-text-muted);
@@ -184,31 +243,55 @@
     }
 
     .bubble-user {
-      background: var(--arcana-primary);
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.84), rgba(var(--arcana-primary-rgb), 0.64));
       color: var(--arcana-primary-text);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 
     .bubble-assistant {
-      border: 1px solid var(--arcana-border);
-      background: rgba(12, 10, 9, 0.55);
+      border: 1px solid var(--arcana-glass-edge);
+      background: linear-gradient(160deg, rgba(12, 10, 9, 0.72), rgba(12, 10, 9, 0.52));
       color: var(--arcana-text);
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px) saturate(122%);
+      -webkit-backdrop-filter: blur(8px) saturate(122%);
     }
 
     .link-brand { color: var(--arcana-primary); }
 
     .chip {
-      border: 1px solid var(--arcana-border);
+      border: 1px solid var(--arcana-glass-edge);
       color: var(--arcana-primary);
-      background: rgba(12, 10, 9, 0.35);
+      background: linear-gradient(160deg, rgba(12, 10, 9, 0.58), rgba(12, 10, 9, 0.34));
       padding: 6px 10px;
       border-radius: 9999px;
       font-size: 12px;
       line-height: 16px;
-      transition: background-color 160ms ease, border-color 160ms ease;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px) saturate(122%);
+      -webkit-backdrop-filter: blur(8px) saturate(122%);
+      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
     }
     .chip:hover {
-      background: rgba(12, 10, 9, 0.6);
-      border-color: var(--arcana-primary);
+      transform: translateY(-1px);
+      background: linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.44));
+      border-color: rgba(var(--arcana-primary-rgb), 0.5);
+      box-shadow: 0 14px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    #bookingBackdrop {
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(3px) saturate(118%);
+      -webkit-backdrop-filter: blur(3px) saturate(118%);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary,
+      .btn-ghost,
+      .chip {
+        transition: none;
+      }
     }
 
     /* Generic Cliento widget styling */

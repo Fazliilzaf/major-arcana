@@ -17,16 +17,14 @@
       <stop offset="1" stop-color="#D0A57D"/>
     </linearGradient>
     <filter id="markShadow" x="4" y="-18" width="188" height="244" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="9" stdDeviation="14" flood-color="#000000" flood-opacity="0.46"/>
+      <feDropShadow dx="0" dy="9" stdDeviation="14" flood-color="#000000" flood-opacity="0.38"/>
     </filter>
   </defs>
 
   <g filter="url(#markShadow)">
     <path d="M38 0H158V86.4C158 118 130.9 143.6 98 143.6C65.1 143.6 38 118 38 86.4V0Z" fill="url(#shieldBg)"/>
     <path d="M38 0H158V86.4C158 118 130.9 143.6 98 143.6C65.1 143.6 38 118 38 86.4V0Z" fill="url(#shieldDepth)"/>
-    <path d="M42 4H154V86C154 114.8 129.4 138.1 98 138.1C66.6 138.1 42 114.8 42 86V4Z" stroke="#E8D5C2" stroke-opacity="0.55" stroke-width="1.4"/>
-
-    <g transform="translate(98 61) scale(0.54)" stroke="url(#markStroke)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <g transform="translate(98 58) scale(0.58)" stroke="url(#markStroke)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none">
       <circle cx="0" cy="6" r="64"/>
 
       <line x1="0" y1="-84" x2="0" y2="96"/>
@@ -56,7 +54,7 @@
       <circle cx="82" cy="60" r="9"/>
     </g>
 
-    <text x="98" y="129" text-anchor="middle" fill="url(#maText)" font-family="'Cormorant Garamond', Georgia, serif" font-weight="600" letter-spacing="0.02em">
+    <text x="98" y="130" text-anchor="middle" fill="url(#maText)" font-family="'Cormorant Garamond', Georgia, serif" font-weight="600" letter-spacing="0.02em">
       <tspan font-size="48">M</tspan>
       <tspan font-size="30" dx="1.5">A</tspan>
     </text>

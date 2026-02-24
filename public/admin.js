@@ -276,6 +276,19 @@
     appModalCancelBtn: document.getElementById('appModalCancelBtn'),
     appModalConfirmBtn: document.getElementById('appModalConfirmBtn'),
     appModalCloseBtn: document.getElementById('appModalCloseBtn'),
+    drawerBackdrop: document.getElementById('drawerBackdrop'),
+    drawerReviews: document.getElementById('drawerReviews'),
+    drawerIncidents: document.getElementById('drawerIncidents'),
+    drawerAudit: document.getElementById('drawerAudit'),
+    drawerReviewsTitle: document.getElementById('drawerReviewsTitle'),
+    drawerReviewsMeta: document.getElementById('drawerReviewsMeta'),
+    drawerReviewsReasons: document.getElementById('drawerReviewsReasons'),
+    drawerIncidentsTitle: document.getElementById('drawerIncidentsTitle'),
+    drawerIncidentsMeta: document.getElementById('drawerIncidentsMeta'),
+    drawerIncidentsReasons: document.getElementById('drawerIncidentsReasons'),
+    drawerAuditTitle: document.getElementById('drawerAuditTitle'),
+    drawerAuditMeta: document.getElementById('drawerAuditMeta'),
+    drawerAuditCorrelation: document.getElementById('drawerAuditCorrelation'),
     toastViewport: document.getElementById('toastViewport'),
     sessionMeta: document.getElementById('sessionMeta'),
     languageSelect: document.getElementById('languageSelect'),
@@ -2831,6 +2844,130 @@
     tbody.appendChild(row);
   }
 
+  function closeAllDrawers() {
+    [els.drawerReviews, els.drawerIncidents, els.drawerAudit].forEach((drawer) => {
+      if (!drawer) return;
+      drawer.classList.remove('is-open');
+      drawer.setAttribute('aria-hidden', 'true');
+    });
+    if (els.drawerBackdrop) {
+      els.drawerBackdrop.classList.remove('is-open');
+      els.drawerBackdrop.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function renderDrawerReasons(targetEl, reasonCodes) {
+    if (!targetEl) return;
+    const codes = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean) : [];
+    if (!codes.length) {
+      targetEl.innerHTML = `<span class="muted">Inga triggers registrerade.</span>`;
+      return;
+    }
+    targetEl.innerHTML = codes
+      .map((item) => `<span class="badge" style="margin:4px 6px 0 0;"><span class="dot"></span>${escapeHtml(item)}</span>`)
+      .join('');
+  }
+
+  function openRiskDrawer(evaluation) {
+    if (!evaluation || typeof evaluation !== 'object') return;
+    const riskLevel = Number(evaluation.riskLevel || 0);
+    const isIncident = riskLevel >= 4;
+    const drawer = isIncident ? els.drawerIncidents : els.drawerReviews;
+    if (!drawer) return;
+
+    const title = String(evaluation.templateId || evaluation.id || 'Riskdetalj');
+    const categoryLabel = String(evaluation.category || '-');
+    const decisionLabel = formatDecisionLabel(evaluation.decision || '-');
+    const ownerLabel = formatOwnerDecisionLabel(evaluation.ownerDecision || 'pending');
+    const updatedAtLabel = formatDateTime(evaluation.updatedAt || evaluation.evaluatedAt || '');
+    const scoreLine = `Risk L${escapeHtml(riskLevel || '-')} • score ${escapeHtml(
+      Number(evaluation.riskScore || 0)
+    )}`;
+
+    if (isIncident) {
+      if (els.drawerIncidentsTitle) els.drawerIncidentsTitle.textContent = title;
+      if (els.drawerIncidentsMeta) {
+        els.drawerIncidentsMeta.innerHTML = `
+          <div class="mini"><span class="muted">Kategori:</span> <strong>${escapeHtml(categoryLabel)}</strong></div>
+          <div class="mini"><span class="muted">Beslut:</span> <strong>${escapeHtml(decisionLabel)}</strong></div>
+          <div class="mini"><span class="muted">Ägare:</span> <strong>${escapeHtml(ownerLabel)}</strong></div>
+          <div class="mini"><span class="muted">Uppdaterad:</span> <strong>${escapeHtml(updatedAtLabel)}</strong></div>
+          <div class="mini muted" style="margin-top:6px">${scoreLine}</div>
+        `;
+      }
+      renderDrawerReasons(els.drawerIncidentsReasons, evaluation.reasonCodes);
+    } else {
+      if (els.drawerReviewsTitle) els.drawerReviewsTitle.textContent = title;
+      if (els.drawerReviewsMeta) {
+        els.drawerReviewsMeta.innerHTML = `
+          <div class="mini"><span class="muted">Kategori:</span> <strong>${escapeHtml(categoryLabel)}</strong></div>
+          <div class="mini"><span class="muted">Beslut:</span> <strong>${escapeHtml(decisionLabel)}</strong></div>
+          <div class="mini"><span class="muted">Ägare:</span> <strong>${escapeHtml(ownerLabel)}</strong></div>
+          <div class="mini"><span class="muted">Uppdaterad:</span> <strong>${escapeHtml(updatedAtLabel)}</strong></div>
+          <div class="mini muted" style="margin-top:6px">${scoreLine}</div>
+        `;
+      }
+      renderDrawerReasons(els.drawerReviewsReasons, evaluation.reasonCodes);
+    }
+
+    closeAllDrawers();
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    if (els.drawerBackdrop) {
+      els.drawerBackdrop.classList.add('is-open');
+      els.drawerBackdrop.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function openAuditDrawer(event) {
+    if (!event || typeof event !== 'object' || !els.drawerAudit) return;
+
+    if (els.drawerAuditTitle) {
+      els.drawerAuditTitle.textContent = String(event.action || 'Revision');
+    }
+    if (els.drawerAuditMeta) {
+      const riskLevel = extractAuditRiskLevel(event);
+      const riskText = riskLevel === null ? '-' : `L${riskLevel}`;
+      els.drawerAuditMeta.innerHTML = `
+        <div class="mini"><span class="muted">Tid:</span> <strong>${escapeHtml(
+          formatEventTime(event.ts)
+        )}</strong></div>
+        <div class="mini"><span class="muted">Åtgärd:</span> <strong>${escapeHtml(
+          event.action || '-'
+        )}</strong></div>
+        <div class="mini"><span class="muted">Mål:</span> <strong>${escapeHtml(
+          event.targetType || '-'
+        )}:${escapeHtml(event.targetId || '-')}</strong></div>
+        <div class="mini"><span class="muted">Aktör:</span> <strong>${escapeHtml(
+          event.actorUserId || '-'
+        )}</strong></div>
+        <div class="mini"><span class="muted">Utfall:</span> <strong>${escapeHtml(
+          formatStatusLabel(event.outcome || '-')
+        )}</strong></div>
+        <div class="mini"><span class="muted">Risk:</span> <strong>${escapeHtml(riskText)}</strong></div>
+      `;
+    }
+    if (els.drawerAuditCorrelation) {
+      const correlationId =
+        String(event.correlationId || event.metadata?.correlationId || '').trim() || '-';
+      els.drawerAuditCorrelation.textContent = correlationId;
+    }
+
+    closeAllDrawers();
+    els.drawerAudit.classList.add('is-open');
+    els.drawerAudit.setAttribute('aria-hidden', 'false');
+    if (els.drawerBackdrop) {
+      els.drawerBackdrop.classList.add('is-open');
+      els.drawerBackdrop.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function getRiskEvaluationById(evaluationId) {
+    const normalized = String(evaluationId || '').trim();
+    if (!normalized) return null;
+    return state.riskEvaluations.find((item) => String(item.id || '') === normalized) || null;
+  }
+
   function syncSelectAllCheckbox(checkbox, visibleIds) {
     if (!checkbox) return;
     const selectedVisibleCount = visibleIds.filter((id) => state.selectedRiskIds.includes(id)).length;
@@ -2874,6 +3011,7 @@
           if (!evaluationId) return;
           await loadRiskEvaluationDetail(evaluationId);
           renderRiskTable(state.riskEvaluations);
+          openRiskDrawer(getRiskEvaluationById(evaluationId));
         });
       });
 
@@ -2908,6 +3046,36 @@
           } catch (error) {
             setStatus(els.riskActionStatus, error.message || 'Kunde inte spara ägaråtgärd.', true);
           }
+        });
+      });
+
+    document
+      .querySelectorAll(`${tableRoots[0]} tr[data-eid], ${tableRoots[1]} tr[data-eid]`)
+      .forEach((row) => {
+        row.classList.add('row-link');
+        row.setAttribute('tabindex', '0');
+        row.addEventListener('click', async (event) => {
+          if (
+            event.target.closest(
+              'button, input, select, textarea, a, summary, details, label, [data-owner-action]'
+            )
+          ) {
+            return;
+          }
+          const evaluationId = row.getAttribute('data-eid') || '';
+          if (!evaluationId) return;
+          await loadRiskEvaluationDetail(evaluationId);
+          renderRiskTable(state.riskEvaluations);
+          openRiskDrawer(getRiskEvaluationById(evaluationId));
+        });
+        row.addEventListener('keydown', async (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          const evaluationId = row.getAttribute('data-eid') || '';
+          if (!evaluationId) return;
+          await loadRiskEvaluationDetail(evaluationId);
+          renderRiskTable(state.riskEvaluations);
+          openRiskDrawer(getRiskEvaluationById(evaluationId));
         });
       });
   }
@@ -2946,7 +3114,9 @@
 
     for (const evaluation of reviews) {
       const tr = document.createElement('tr');
+      tr.classList.add('row-link');
       const evaluationId = String(evaluation.id || '');
+      tr.setAttribute('data-eid', evaluationId);
       if (evaluationId && evaluationId === state.selectedRiskEvaluationId) tr.classList.add('risk-row-selected');
       const reasonCodes = Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : [];
       const reasonCodesShort = reasonCodes.length ? reasonCodes.slice(0, 3).join(', ') : '';
@@ -3022,7 +3192,9 @@
 
     for (const evaluation of incidents) {
       const tr = document.createElement('tr');
+      tr.classList.add('row-link');
       const evaluationId = String(evaluation.id || '');
+      tr.setAttribute('data-eid', evaluationId);
       if (evaluationId && evaluationId === state.selectedRiskEvaluationId) tr.classList.add('risk-row-selected');
       const reasonCodes = Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : [];
       const reasonCodesShort = reasonCodes.length ? reasonCodes.slice(0, 3).join(', ') : '';
@@ -6830,6 +7002,9 @@
     if (!eventId) return;
     state.selectedAuditEventId = eventId;
     applyAuditFiltersAndRender();
+    const selectedEvent =
+      state.auditEvents.find((entry) => String(entry?.id || '') === eventId) || null;
+    openAuditDrawer(selectedEvent);
   });
   els.auditSearchInput?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -6847,6 +7022,13 @@
   });
   els.appModalCloseBtn?.addEventListener('click', () => {
     closeAppModal({ confirmed: false, value: '' });
+  });
+  els.drawerBackdrop?.addEventListener('click', () => {
+    closeAllDrawers();
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('[data-drawer-close]')) return;
+    closeAllDrawers();
   });
   els.appModalDialog?.addEventListener('animationend', (event) => {
     if (event.animationName !== 'modalNudge') return;
@@ -6878,6 +7060,16 @@
       event.preventDefault();
       handleAppModalConfirm();
     }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (isModalOpen()) return;
+    const hasOpenDrawer = [els.drawerReviews, els.drawerIncidents, els.drawerAudit].some((drawer) =>
+      drawer?.classList.contains('is-open')
+    );
+    if (!hasOpenDrawer) return;
+    event.preventDefault();
+    closeAllDrawers();
   });
 
   syncRiskFilterInputs();

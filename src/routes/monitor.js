@@ -38,6 +38,7 @@ function createMonitorRouter({
   templateStore,
   tenantConfigStore,
   config,
+  scheduler = null,
   requireAuth,
   requireRole,
   runtimeState,
@@ -80,6 +81,10 @@ function createMonitorRouter({
 
         const memoryUsage = process.memoryUsage();
         const activeTemplates = templates.filter((item) => item.currentActiveVersionId).length;
+        const schedulerStatus =
+          scheduler && typeof scheduler.getStatus === 'function'
+            ? scheduler.getStatus()
+            : null;
 
         await authStore.addAuditEvent({
           tenantId,
@@ -106,6 +111,43 @@ function createMonitorRouter({
               heapTotal: mb(memoryUsage.heapTotal),
               heapUsed: mb(memoryUsage.heapUsed),
               external: mb(memoryUsage.external),
+            },
+            scheduler: schedulerStatus
+              ? {
+                  enabled: Boolean(schedulerStatus.enabled),
+                  started: Boolean(schedulerStatus.started),
+                  startedAt: toIso(schedulerStatus.startedAt),
+                  jobsEnabled: Array.isArray(schedulerStatus.jobs)
+                    ? schedulerStatus.jobs.filter((item) => item?.enabled).length
+                    : 0,
+                }
+              : {
+                  enabled: false,
+                  started: false,
+                  startedAt: null,
+                  jobsEnabled: 0,
+                },
+          },
+          security: {
+            cors: {
+              strict: Boolean(config?.corsStrict),
+              allowNoOrigin: Boolean(config?.corsAllowNoOrigin),
+              allowCredentials: Boolean(config?.corsAllowCredentials),
+              allowedOrigins: Array.isArray(config?.corsAllowedOrigins)
+                ? config.corsAllowedOrigins
+                : [],
+            },
+            sessions: {
+              ttlHours: Number(config?.authSessionTtlHours || 0),
+              idleTimeoutMinutes: Number(config?.authSessionIdleMinutes || 0),
+              loginRotationScope: config?.authLoginSessionRotationScope || 'none',
+            },
+            rateLimits: {
+              loginMax: Number(config?.authLoginRateLimitMax || 0),
+              selectTenantMax: Number(config?.authSelectTenantRateLimitMax || 0),
+              apiReadMax: Number(config?.apiRateLimitReadMax || 0),
+              apiWriteMax: Number(config?.apiRateLimitWriteMax || 0),
+              windowSec: Number(config?.apiRateLimitWindowSec || 0),
             },
           },
           tenant: {

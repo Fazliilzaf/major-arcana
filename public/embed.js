@@ -29,6 +29,10 @@
         primaryHover: '#5a837b',
         primaryText: '#ffffff',
         panelBorder: 'rgba(242, 247, 246, 0.14)',
+        launcherBg: 'linear-gradient(160deg, rgba(78, 111, 104, 0.42), rgba(78, 111, 104, 0.22))',
+        launcherText: '#f2f7f6',
+        launcherBorder: 'rgba(242, 247, 246, 0.24)',
+        panelSurface: 'linear-gradient(165deg, rgba(6, 15, 16, 0.94), rgba(8, 24, 22, 0.78))',
       };
     }
     // Hair TP Clinic (default)
@@ -37,6 +41,10 @@
       primaryHover: '#d7c9be',
       primaryText: '#303030',
       panelBorder: 'rgba(246, 241, 238, 0.14)',
+      launcherBg: 'linear-gradient(160deg, rgba(202, 186, 174, 0.44), rgba(202, 186, 174, 0.24))',
+      launcherText: '#2f2b28',
+      launcherBorder: 'rgba(246, 241, 238, 0.28)',
+      panelSurface: 'linear-gradient(165deg, rgba(38, 38, 38, 0.95), rgba(30, 30, 30, 0.82))',
     };
   }
 
@@ -100,6 +108,18 @@
       '--arcana-embed-panel-border:' +
       theme.panelBorder +
       ';' +
+      '--arcana-embed-launcher-bg:' +
+      theme.launcherBg +
+      ';' +
+      '--arcana-embed-launcher-text:' +
+      theme.launcherText +
+      ';' +
+      '--arcana-embed-launcher-border:' +
+      theme.launcherBorder +
+      ';' +
+      '--arcana-embed-panel-surface:' +
+      theme.panelSurface +
+      ';' +
       '}' +
       '#arcana-embed-launcher{' +
       'position:fixed;bottom:18px;' +
@@ -108,14 +128,17 @@
       'display:flex;align-items:center;gap:10px;' +
       'border-radius:999px;' +
       'padding:12px 14px;' +
-      'background:var(--arcana-embed-primary);' +
-      'color:var(--arcana-embed-primary-text);' +
-      'border:1px solid rgba(0,0,0,0.08);' +
-      'box-shadow:0 16px 40px rgba(0,0,0,0.35);' +
+      'background:var(--arcana-embed-launcher-bg);' +
+      'color:var(--arcana-embed-launcher-text);' +
+      'border:1px solid var(--arcana-embed-launcher-border);' +
+      'box-shadow:0 16px 34px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.25);' +
+      'backdrop-filter:blur(12px) saturate(130%);' +
+      '-webkit-backdrop-filter:blur(12px) saturate(130%);' +
       'font:500 14px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;' +
       'cursor:pointer;' +
+      'transition:transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;' +
       '}' +
-      '#arcana-embed-launcher:hover{background:var(--arcana-embed-primary-hover);}' +
+      '#arcana-embed-launcher:hover{transform:translateY(-1px);filter:brightness(1.03);box-shadow:0 20px 38px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.34);}' +
       '#arcana-embed-launcher:focus{outline:2px solid rgba(255,255,255,0.65);outline-offset:2px;}' +
       '#arcana-embed-launcher img{width:22px;height:22px;display:block;}' +
       '#arcana-embed-backdrop{' +
@@ -130,17 +153,19 @@
       (position === 'left' ? 'left:18px;' : 'right:18px;') +
       'bottom:78px;' +
       'width:390px;height:640px;' +
-      '--arcana-embed-topbar:52px;' +
+      '--arcana-embed-topbar:0px;' +
       'box-sizing:border-box;' +
       'padding-top:var(--arcana-embed-topbar);' +
       'border-radius:22px;' +
       'overflow:hidden;' +
       'border:1px solid var(--arcana-embed-panel-border);' +
-      'box-shadow:0 28px 90px rgba(0,0,0,0.55);' +
+      'box-shadow:0 28px 90px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.16);' +
       'transform:translateY(10px);' +
       'opacity:0;pointer-events:none;' +
       'transition:opacity 160ms ease, transform 160ms ease;' +
-      'background:#111;' +
+      'background:var(--arcana-embed-panel-surface);' +
+      'backdrop-filter:blur(12px) saturate(125%);' +
+      '-webkit-backdrop-filter:blur(12px) saturate(125%);' +
       '}' +
       '#arcana-embed-panel[data-open=\"true\"]{opacity:1;pointer-events:auto;transform:translateY(0);}' +
       '#arcana-embed-backdrop[data-open=\"true\"]{opacity:1;pointer-events:auto;}' +
@@ -152,9 +177,9 @@
       '}' +
       '#arcana-embed-launcher{bottom:12px;' +
       (position === 'left' ? 'left:16px;' : 'right:16px;') +
-      'padding:10px 12px;' +
+      'padding:9px 12px;' +
       'gap:8px;' +
-      'font:500 12px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;' +
+      'font:500 11.5px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;' +
       'box-shadow:0 10px 26px rgba(0,0,0,0.3);' +
       '}' +
       '#arcana-embed-launcher img{width:18px;height:18px;}' +

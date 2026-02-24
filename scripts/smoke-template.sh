@@ -89,12 +89,22 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
     exit 1
   fi
 
-  SESSIONS_REVOKE_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/auth/sessions/$SECOND_SESSION_ID/revoke" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{"reason":"smoke_revoke_secondary_session"}')"
-  REVOKED_FLAG="$(printf '%s' "$SESSIONS_REVOKE_RESPONSE" | json_get revoked)"
-  echo "✅ auth/sessions revoke OK (revoked: ${REVOKED_FLAG})"
+  FIRST_ME_AFTER_SECOND_LOGIN="$(curl -s "$BASE_URL/api/v1/auth/me" \
+    -H "Authorization: Bearer $TOKEN")"
+  FIRST_SESSION_AFTER_SECOND_LOGIN="$(printf '%s' "$FIRST_ME_AFTER_SECOND_LOGIN" | json_get session.id 2>/dev/null || true)"
+
+  if [[ -n "$FIRST_SESSION_AFTER_SECOND_LOGIN" && "$FIRST_SESSION_AFTER_SECOND_LOGIN" != "$SECOND_SESSION_ID" ]]; then
+    SESSIONS_REVOKE_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/auth/sessions/$SECOND_SESSION_ID/revoke" \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"reason":"smoke_revoke_secondary_session"}')"
+    REVOKED_FLAG="$(printf '%s' "$SESSIONS_REVOKE_RESPONSE" | json_get revoked)"
+    echo "✅ auth/sessions revoke OK (revoked: ${REVOKED_FLAG})"
+  else
+    TOKEN="$SECOND_TOKEN"
+    CURRENT_SESSION_ID="$SECOND_SESSION_ID"
+    echo "ℹ️ auth/sessions revoke SKIP (login rotation invalidated första sessionen)"
+  fi
 fi
 
 TENANTS_MY_RESPONSE="$(curl -s "$BASE_URL/api/v1/tenants/my" \
@@ -159,6 +169,29 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
     -d "{\"fileName\":\"${OPS_BACKUP_FILE}\",\"dryRun\":true}")"
   OPS_RESTORE_PREVIEW_COUNT="$(printf '%s' "$OPS_RESTORE_PREVIEW_RESPONSE" | json_get preview.stores | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.filter((row)=>row&&row.willRestore).length:0));")"
   echo "✅ ops/state/restore preview OK (willRestore: ${OPS_RESTORE_PREVIEW_COUNT})"
+
+  OPS_SCHED_STATUS_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/scheduler/status" \
+    -H "Authorization: Bearer $TOKEN")"
+  OPS_SCHED_ENABLED="$(printf '%s' "$OPS_SCHED_STATUS_RESPONSE" | json_get scheduler.enabled)"
+  OPS_SCHED_JOB_COUNT="$(printf '%s' "$OPS_SCHED_STATUS_RESPONSE" | json_get scheduler.jobs | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
+  echo "✅ ops/scheduler/status OK (enabled: ${OPS_SCHED_ENABLED}, jobs: ${OPS_SCHED_JOB_COUNT})"
+
+  OPS_SCHED_RUN_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jobId":"alert_probe"}')"
+  OPS_SCHED_RUN_OK="$(printf '%s' "$OPS_SCHED_RUN_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_SCHED_RUN_ERROR="$(printf '%s' "$OPS_SCHED_RUN_RESPONSE" | json_get error 2>/dev/null || true)"
+  if [[ "$OPS_SCHED_RUN_OK" == "true" ]]; then
+    OPS_SCHED_RUN_JOB="$(printf '%s' "$OPS_SCHED_RUN_RESPONSE" | json_get jobId)"
+    echo "✅ ops/scheduler/run OK (job: ${OPS_SCHED_RUN_JOB})"
+  elif [[ "$OPS_SCHED_RUN_ERROR" == "disabled_job" || "$OPS_SCHED_RUN_ERROR" == "job_running" ]]; then
+    echo "ℹ️ ops/scheduler/run SKIP (${OPS_SCHED_RUN_ERROR})"
+  else
+    echo "❌ ops/scheduler/run misslyckades"
+    printf '%s\n' "$OPS_SCHED_RUN_RESPONSE"
+    exit 1
+  fi
 fi
 
 META_RESPONSE="$(curl -s "$BASE_URL/api/v1/templates/meta" \
@@ -314,5 +347,16 @@ SUMMARY_RESPONSE="$(curl -s "$BASE_URL/api/v1/risk/summary?minRiskLevel=1" \
   -H "Authorization: Bearer $TOKEN")"
 SUMMARY_TOTAL="$(printf '%s' "$SUMMARY_RESPONSE" | json_get totals.evaluations)"
 echo "✅ risk/summary OK (evaluations: ${SUMMARY_TOTAL})"
+
+AUDIT_INTEGRITY_RESPONSE="$(curl -s "$BASE_URL/api/v1/audit/integrity?maxIssues=25" \
+  -H "Authorization: Bearer $TOKEN")"
+AUDIT_CHAIN_OK="$(printf '%s' "$AUDIT_INTEGRITY_RESPONSE" | json_get ok)"
+AUDIT_CHAIN_ISSUES="$(printf '%s' "$AUDIT_INTEGRITY_RESPONSE" | json_get issues | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
+if [[ "$AUDIT_CHAIN_OK" != "true" ]]; then
+  echo "❌ audit/integrity misslyckades (issues: ${AUDIT_CHAIN_ISSUES})"
+  printf '%s\n' "$AUDIT_INTEGRITY_RESPONSE"
+  exit 1
+fi
+echo "✅ audit/integrity OK (issues: ${AUDIT_CHAIN_ISSUES})"
 echo
 echo "🎯 Smoke test klart."

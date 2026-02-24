@@ -2,6 +2,11 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { TEMPLATE_CATEGORIES, normalizeCategory, isValidCategory } = require('../templates/constants');
 const { VARIABLE_WHITELIST_BY_CATEGORY } = require('../templates/variables');
+const {
+  buildDefaultPublicSiteProfile,
+  clonePublicSiteProfile,
+  normalizePublicSiteProfile,
+} = require('./publicSiteProfile');
 
 function nowIso() {
   return new Date().toISOString();
@@ -257,6 +262,7 @@ function sanitizeTenantConfig(config) {
       config.templateRequiredVariablesByCategory
     ),
     templateSignaturesByChannel: cloneSignatures(config.templateSignaturesByChannel),
+    publicSite: clonePublicSiteProfile(config.publicSite),
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
     updatedBy: config.updatedBy || null,
@@ -280,6 +286,10 @@ function buildDefaultConfig({
     templateVariableAllowlistByCategory: buildDefaultTemplateVariableAllowlistByCategory(),
     templateRequiredVariablesByCategory: buildDefaultTemplateRequiredVariablesByCategory(),
     templateSignaturesByChannel: buildDefaultTemplateSignaturesByChannel(),
+    publicSite: buildDefaultPublicSiteProfile({
+      tenantId,
+      defaultBrand,
+    }),
     createdAt: ts,
     updatedAt: ts,
     updatedBy: null,
@@ -338,6 +348,10 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
       fallbackMap: fallback.templateSignaturesByChannel,
       strict: false,
     }),
+    publicSite: normalizePublicSiteProfile(source.publicSite, {
+      fallback: fallback.publicSite,
+      strict: false,
+    }),
     createdAt: normalizeText(source.createdAt) || fallback.createdAt,
     updatedAt: normalizeText(source.updatedAt) || fallback.updatedAt,
     updatedBy: source.updatedBy || null,
@@ -370,35 +384,41 @@ async function createTenantConfigStore({
     await writeJsonAtomic(filePath, state);
   }
 
-  async function getTenantConfig(tenantId) {
+  async function findTenantConfig(tenantId) {
     const normalizedTenantId = normalizeTenantId(tenantId);
-    if (!normalizedTenantId) throw new Error('tenantId saknas.');
+    if (!normalizedTenantId) return null;
 
-    let config = state.tenants[normalizedTenantId];
-    let changed = false;
-    if (!config) {
-      config = buildDefaultConfig({
-        tenantId: normalizedTenantId,
-        defaultBrand,
-      });
-      state.tenants[normalizedTenantId] = config;
-      changed = true;
-    } else {
-      const hydrated = hydrateTenantConfig(config, {
-        tenantId: normalizedTenantId,
-        defaultBrand,
-      });
-      if (JSON.stringify(config) !== JSON.stringify(hydrated)) {
-        state.tenants[normalizedTenantId] = hydrated;
-        config = hydrated;
-        changed = true;
-      }
-    }
-    if (changed) {
+    const existing = state.tenants[normalizedTenantId];
+    if (!existing) return null;
+
+    const hydrated = hydrateTenantConfig(existing, {
+      tenantId: normalizedTenantId,
+      defaultBrand,
+    });
+
+    if (JSON.stringify(existing) !== JSON.stringify(hydrated)) {
+      state.tenants[normalizedTenantId] = hydrated;
       await save();
     }
 
     return sanitizeTenantConfig(state.tenants[normalizedTenantId]);
+  }
+
+  async function getTenantConfig(tenantId) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    if (!normalizedTenantId) throw new Error('tenantId saknas.');
+
+    const existing = await findTenantConfig(normalizedTenantId);
+    if (existing) return existing;
+
+    const created = buildDefaultConfig({
+      tenantId: normalizedTenantId,
+      defaultBrand,
+    });
+    state.tenants[normalizedTenantId] = created;
+    await save();
+
+    return sanitizeTenantConfig(created);
   }
 
   async function updateTenantConfig({
@@ -529,6 +549,17 @@ async function createTenantConfigStore({
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(patch, 'publicSite')) {
+      const nextValue = normalizePublicSiteProfile(patch.publicSite, {
+        fallback: rawConfig.publicSite,
+        strict: true,
+      });
+      if (JSON.stringify(rawConfig.publicSite) !== JSON.stringify(nextValue)) {
+        rawConfig.publicSite = nextValue;
+        changed = true;
+      }
+    }
+
     validateRequiredVariablesAgainstAllowed({
       allowlistByCategory: rawConfig.templateVariableAllowlistByCategory,
       requiredByCategory: rawConfig.templateRequiredVariablesByCategory,
@@ -545,6 +576,7 @@ async function createTenantConfigStore({
 
   return {
     filePath,
+    findTenantConfig,
     getTenantConfig,
     updateTenantConfig,
   };

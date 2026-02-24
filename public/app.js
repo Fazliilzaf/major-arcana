@@ -72,6 +72,7 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-primary', '#cabaae');
     document.body.style.setProperty('--arcana-primary-hover', '#d7c9be');
     document.body.style.setProperty('--arcana-primary-text', '#303030');
+    document.body.style.setProperty('--arcana-primary-rgb', '202, 186, 174');
     document.body.style.setProperty('--cb-color-primary', '#cabaae');
 
     document.body.style.setProperty('--arcana-bg', '#303030');
@@ -81,10 +82,16 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-text-muted', 'rgba(246, 241, 238, 0.72)');
     document.body.style.setProperty('--arcana-border', 'rgba(246, 241, 238, 0.14)');
     document.body.style.setProperty('--arcana-glow', 'rgba(202, 186, 174, 0.22)');
+    document.body.style.setProperty('--arcana-glass-edge', 'rgba(246, 241, 238, 0.2)');
+    document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
+    document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(255, 255, 255, 0.12)');
+    document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(255, 255, 255, 0.03)');
+    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14)');
   } else if (brand === 'curatiio') {
     document.body.style.setProperty('--arcana-primary', '#4e6f68');
     document.body.style.setProperty('--arcana-primary-hover', '#5a837b');
     document.body.style.setProperty('--arcana-primary-text', '#ffffff');
+    document.body.style.setProperty('--arcana-primary-rgb', '78, 111, 104');
     document.body.style.setProperty('--cb-color-primary', '#4e6f68');
 
     document.body.style.setProperty('--arcana-bg', '#060f10');
@@ -94,10 +101,16 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-text-muted', 'rgba(242, 247, 246, 0.72)');
     document.body.style.setProperty('--arcana-border', 'rgba(242, 247, 246, 0.14)');
     document.body.style.setProperty('--arcana-glow', 'rgba(78, 111, 104, 0.24)');
+    document.body.style.setProperty('--arcana-glass-edge', 'rgba(242, 247, 246, 0.2)');
+    document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
+    document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(242, 247, 246, 0.11)');
+    document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(242, 247, 246, 0.03)');
+    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.48), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.13)');
   } else {
     document.body.style.removeProperty('--arcana-primary');
     document.body.style.removeProperty('--arcana-primary-hover');
     document.body.style.removeProperty('--arcana-primary-text');
+    document.body.style.removeProperty('--arcana-primary-rgb');
     document.body.style.removeProperty('--cb-color-primary');
 
     document.body.style.removeProperty('--arcana-bg');
@@ -107,6 +120,11 @@ function applyBrandTheme() {
     document.body.style.removeProperty('--arcana-text-muted');
     document.body.style.removeProperty('--arcana-border');
     document.body.style.removeProperty('--arcana-glow');
+    document.body.style.removeProperty('--arcana-glass-edge');
+    document.body.style.removeProperty('--arcana-glass-highlight');
+    document.body.style.removeProperty('--arcana-glass-layer-a');
+    document.body.style.removeProperty('--arcana-glass-layer-b');
+    document.body.style.removeProperty('--arcana-shadow-3d');
   }
 }
 
@@ -341,6 +359,10 @@ function installClientoOverridesStyle() {
       --cb-color-primary: var(--arcana-primary);
       --cb-color-primary-hover: var(--arcana-primary-hover);
       --cb-color-primary-text: var(--arcana-primary-text);
+      --arcana-cliento-card-border: rgba(31, 41, 55, 0.11);
+      --arcana-cliento-card-a: rgba(255, 255, 255, 0.94);
+      --arcana-cliento-card-b: rgba(247, 244, 241, 0.74);
+      --arcana-cliento-card-shadow: 0 14px 26px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
     }
 
     #cliento-booking,
@@ -360,17 +382,36 @@ function installClientoOverridesStyle() {
       color: #1f2937 !important;
     }
 
+    #cliento-booking :is(.cb-card, .cb-location, .cb-location-item, .cb-accordion-item, .cb-group, .cb-day, .cb-slot, li[class*="cb-"]) {
+      border: 1px solid var(--arcana-cliento-card-border) !important;
+      border-radius: 16px !important;
+      background: linear-gradient(160deg, var(--arcana-cliento-card-a), var(--arcana-cliento-card-b)) !important;
+      box-shadow: var(--arcana-cliento-card-shadow) !important;
+      backdrop-filter: blur(8px) saturate(122%) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(122%) !important;
+    }
+
+    #cliento-booking :is(.cb-card, .cb-location, .cb-location-item, .cb-accordion-item, .cb-group, .cb-day, .cb-slot, li[class*="cb-"]):hover {
+      border-color: rgba(var(--arcana-primary-rgb), 0.34) !important;
+      box-shadow: 0 18px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    }
+
     #cliento-booking a {
       color: var(--arcana-primary) !important;
     }
 
-    #cliento-booking :is(button, a[role="button"], .cb-button) {
-      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    #cliento-booking :is(button, a[role="button"], .cb-button, .arcana-cliento-action) {
+      transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
 
     #cliento-booking .cb-nav-item.active {
-      background: var(--arcana-primary) !important;
-      color: var(--arcana-primary-text) !important;
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.46) !important;
+      border-radius: 9999px !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.3), rgba(var(--arcana-primary-rgb), 0.16)) !important;
+      color: var(--arcana-primary) !important;
+      box-shadow: 0 12px 20px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+      backdrop-filter: blur(7px) saturate(122%) !important;
+      -webkit-backdrop-filter: blur(7px) saturate(122%) !important;
     }
 
     #cliento-booking .cb-day-header.today,
@@ -382,8 +423,8 @@ function installClientoOverridesStyle() {
     }
 
     #cliento-booking .cb-checkbox.checked {
-      background: var(--arcana-primary) !important;
-      border-color: var(--arcana-primary) !important;
+      background: rgba(var(--arcana-primary-rgb), 0.84) !important;
+      border-color: rgba(var(--arcana-primary-rgb), 0.9) !important;
     }
 
     #cliento-booking .cb-button,
@@ -391,10 +432,13 @@ function installClientoOverridesStyle() {
     #cliento-booking button[type="submit"].cb-button,
     #cliento-booking a.cb-button,
     #cliento-booking .arcana-cliento-action {
-      background: var(--arcana-primary) !important;
-      border-color: var(--arcana-primary) !important;
-      color: var(--arcana-primary-text) !important;
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.54) !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13)) !important;
+      color: var(--arcana-primary) !important;
       border-radius: 9999px !important;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+      backdrop-filter: blur(8px) saturate(128%) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(128%) !important;
     }
 
     #cliento-booking .cb-button:hover,
@@ -402,8 +446,19 @@ function installClientoOverridesStyle() {
     #cliento-booking button[type="submit"].cb-button:hover,
     #cliento-booking a.cb-button:hover,
     #cliento-booking .arcana-cliento-action:hover {
-      background: var(--arcana-primary-hover) !important;
-      border-color: var(--arcana-primary-hover) !important;
+      transform: translateY(-1px) !important;
+      border-color: rgba(var(--arcana-primary-rgb), 0.68) !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.36), rgba(var(--arcana-primary-rgb), 0.18)) !important;
+      box-shadow: 0 14px 24px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+    }
+
+    #cliento-booking :is(button, a):disabled,
+    #cliento-booking :is(.cb-button:disabled) {
+      background: linear-gradient(160deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.12)) !important;
+      border-color: rgba(148, 163, 184, 0.35) !important;
+      color: #64748b !important;
+      box-shadow: none !important;
+      transform: none !important;
     }
 
     #cliento-booking :is(button, a):focus-visible {
@@ -436,10 +491,14 @@ function isClientoActionLabel(label) {
 function forceBrandActionStyle(el) {
   if (!el) return;
   el.classList.add('arcana-cliento-action');
-  el.style.setProperty('background-color', 'var(--arcana-primary)', 'important');
-  el.style.setProperty('border-color', 'var(--arcana-primary)', 'important');
-  el.style.setProperty('color', 'var(--arcana-primary-text)', 'important');
+  el.style.setProperty('background', 'linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13))', 'important');
+  el.style.setProperty('border', '1px solid rgba(var(--arcana-primary-rgb), 0.54)', 'important');
+  el.style.setProperty('color', 'var(--arcana-primary)', 'important');
   el.style.setProperty('border-radius', '9999px', 'important');
+  el.style.setProperty('font-weight', '600', 'important');
+  el.style.setProperty('box-shadow', '0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)', 'important');
+  el.style.setProperty('backdrop-filter', 'blur(8px) saturate(128%)', 'important');
+  el.style.setProperty('-webkit-backdrop-filter', 'blur(8px) saturate(128%)', 'important');
 }
 
 function findClientoSectionRoot(el, root) {
@@ -457,6 +516,36 @@ function findClientoSectionRoot(el, root) {
     node = node.parentElement;
   }
   return el.closest('div, section, li') || el;
+}
+
+function hideDuplicateClientoCloseControls(root) {
+  if (!root) return;
+  const rootRect = root.getBoundingClientRect();
+  if (!rootRect.width || !rootRect.height) return;
+
+  const closeGlyphs = Array.from(root.querySelectorAll('button, a, span, div')).filter((el) => {
+    const text = String(el.textContent || '').trim();
+    if (!text) return false;
+    const normalized = normalizeUiText(text);
+    if (normalized !== '×' && normalized !== 'x' && normalized !== '✕' && normalized !== 'stäng') {
+      return false;
+    }
+    if (el.children && el.children.length > 0 && normalized !== 'stäng') return false;
+    return true;
+  });
+
+  for (const el of closeGlyphs) {
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) continue;
+    if (rect.width > 90 || rect.height > 90) continue;
+
+    const nearTop = rect.top - rootRect.top < 88;
+    const nearRight = rootRect.right - rect.right < 160;
+    if (!nearTop || !nearRight) continue;
+
+    el.dataset.arcanaHidden = 'true';
+    el.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function decorateClientoWidgetDom() {
@@ -478,6 +567,8 @@ function decorateClientoWidgetDom() {
       el.style.setProperty('font-weight', '500', 'important');
     }
   }
+
+  hideDuplicateClientoCloseControls(root);
 
   // Hide other company to avoid confusing customers.
   const brand = publicConfig?.brand;
