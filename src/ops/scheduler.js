@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { buildPilotReport } = require('../reports/pilotReport');
+const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const {
   getStateFileMap,
   createStateBackup,
@@ -196,6 +197,75 @@ function createScheduler({
   }
 
   async function runAlertProbe({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const resolveIncidentOwnerUserId = async () => {
+      if (typeof authStore?.listTenantMembers !== 'function') return '';
+      const members = await authStore.listTenantMembers(tenantId);
+      const activeMembers = Array.isArray(members)
+        ? members.filter((item) => item?.membership?.status === 'active')
+        : [];
+      const ownerEntry =
+        activeMembers.find((item) => item?.membership?.role === ROLE_OWNER) || null;
+      if (ownerEntry?.user?.id) return String(ownerEntry.user.id);
+      const staffEntry =
+        activeMembers.find((item) => item?.membership?.role === ROLE_STAFF) || null;
+      if (staffEntry?.user?.id) return String(staffEntry.user.id);
+      return '';
+    };
+
+    const fallbackOwnerUserId = await resolveIncidentOwnerUserId();
+    const effectiveActorUserId = actorUserId || fallbackOwnerUserId || 'scheduler';
+
+    const autoOwnerAssignmentEnabled = Boolean(config.schedulerIncidentAutoAssignOwnerEnabled);
+    const autoOwnerAssignmentLimit = Math.max(
+      1,
+      Math.min(500, Number(config.schedulerIncidentAutoAssignOwnerLimit) || 100)
+    );
+    let autoOwnerAssignment = null;
+
+    if (
+      autoOwnerAssignmentEnabled &&
+      fallbackOwnerUserId &&
+      typeof templateStore?.autoAssignOpenIncidentOwners === 'function'
+    ) {
+      autoOwnerAssignment = await templateStore.autoAssignOpenIncidentOwners({
+        tenantId,
+        ownerUserId: fallbackOwnerUserId,
+        actorUserId: effectiveActorUserId,
+        limit: autoOwnerAssignmentLimit,
+      });
+
+      if (Number(autoOwnerAssignment?.assignedCount || 0) > 0) {
+        const assignedIncidents = Array.isArray(autoOwnerAssignment?.assigned)
+          ? autoOwnerAssignment.assigned
+              .slice(0, 25)
+              .map((item) => ({
+                incidentId: item?.incidentId || null,
+                evaluationId: item?.evaluationId || null,
+                severity: item?.severity || null,
+                assignedOwnerUserId: item?.assignedOwnerUserId || null,
+              }))
+          : [];
+
+        await addAudit({
+          tenantId,
+          actorUserId: effectiveActorUserId,
+          action: 'incidents.auto_assign_owner',
+          outcome: 'success',
+          targetType: 'incident_collection',
+          targetId: 'open_unowned',
+          metadata: {
+            trigger,
+            sourceJob: 'alert_probe',
+            assignedOwnerUserId: fallbackOwnerUserId,
+            eligibleOpenUnowned: Number(autoOwnerAssignment?.eligibleOpenUnowned || 0),
+            autoAssignedCount: Number(autoOwnerAssignment?.assignedCount || 0),
+            truncated: Boolean(autoOwnerAssignment?.truncated),
+            incidents: assignedIncidents,
+          },
+        });
+      }
+    }
+
     const autoEscalationEnabled = Boolean(config.schedulerIncidentAutoEscalationEnabled);
     const autoEscalationLimit = Math.max(
       1,
@@ -209,7 +279,7 @@ function createScheduler({
     ) {
       autoEscalation = await templateStore.autoEscalateBreachedIncidents({
         tenantId,
-        actorUserId: actorUserId || 'scheduler',
+        actorUserId: effectiveActorUserId,
         limit: autoEscalationLimit,
       });
 
@@ -227,7 +297,7 @@ function createScheduler({
 
         await addAudit({
           tenantId,
-          actorUserId: actorUserId || 'scheduler',
+          actorUserId: effectiveActorUserId,
           action: 'incidents.auto_escalate',
           outcome: 'success',
           targetType: 'incident_collection',
@@ -266,6 +336,9 @@ function createScheduler({
       hasOpenHighCritical: highCriticalOpen.length > 0,
       incidentsOpenCount: Number(incidentSummary?.totals?.openUnresolved || 0),
       incidentsBreachedOpenCount: Number(incidentSummary?.totals?.breachedOpen || 0),
+      autoOwnerAssignmentEnabled,
+      autoAssignedOwnerCount: Number(autoOwnerAssignment?.assignedCount || 0),
+      autoOwnerAssignmentTruncated: Boolean(autoOwnerAssignment?.truncated),
       autoEscalationEnabled,
       autoEscalatedCount: Number(autoEscalation?.escalatedCount || 0),
       autoEscalationTruncated: Boolean(autoEscalation?.truncated),

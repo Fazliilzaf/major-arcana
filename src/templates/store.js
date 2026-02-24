@@ -215,6 +215,7 @@ const OWNER_ACTIONS = Object.freeze({
 const OWNER_DECISIONS_ALLOW_ACTIVATION = new Set(['approved_exception', 'false_positive']);
 const INCIDENT_OPEN_OWNER_DECISIONS = new Set(['pending', 'revision_requested']);
 const AUTO_ESCALATION_NOTE = 'Auto-eskalerad av scheduler: SLA överskriden.';
+const AUTO_ASSIGN_OWNER_NOTE = 'Auto-assigned owner av scheduler för incidenthantering.';
 
 function normalizeOwnerAction(action) {
   if (typeof action !== 'string') return '';
@@ -823,6 +824,100 @@ async function createTemplateStore({
     };
   }
 
+  async function autoAssignOpenIncidentOwners({
+    tenantId,
+    ownerUserId,
+    actorUserId = 'scheduler',
+    note = AUTO_ASSIGN_OWNER_NOTE,
+    limit = 100,
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedOwnerUserId = normalizeText(ownerUserId);
+    const normalizedActorUserId = normalizeText(actorUserId);
+    const normalizedNote = normalizeText(note) || AUTO_ASSIGN_OWNER_NOTE;
+    const maxAssignments = Math.max(1, Math.min(500, Number(limit) || 100));
+
+    if (!normalizedOwnerUserId) {
+      return {
+        tenantId: normalizedTenantId || null,
+        scanned: 0,
+        eligibleOpenUnowned: 0,
+        assignedCount: 0,
+        limit: maxAssignments,
+        truncated: false,
+        skipped: true,
+        reason: 'owner_user_id_missing',
+        assigned: [],
+        generatedAt: nowIso(),
+      };
+    }
+
+    if (!Array.isArray(state.evaluations)) state.evaluations = [];
+
+    const candidates = [];
+    let scanned = 0;
+
+    for (const evaluation of state.evaluations) {
+      if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) continue;
+      scanned += 1;
+
+      const incident = buildIncidentFromEvaluation(evaluation);
+      if (!incident) continue;
+      if (!isIncidentOpenStatus(incident.status)) continue;
+      if (normalizeText(incident?.owner?.userId)) continue;
+
+      candidates.push({
+        evaluation,
+        incident,
+      });
+    }
+
+    candidates.sort((a, b) => compareIncidents(a.incident, b.incident));
+    const selected = candidates.slice(0, maxAssignments);
+    const assigned = [];
+
+    for (const candidate of selected) {
+      const { evaluation, incident } = candidate;
+      const createdAt = nowIso();
+      const actionItem = {
+        id: crypto.randomUUID(),
+        action: 'assign_owner',
+        note: normalizedNote,
+        actorUserId: normalizedOwnerUserId,
+        createdAt,
+        metadata: {
+          assignedBy: normalizedActorUserId || 'scheduler',
+        },
+      };
+
+      if (!Array.isArray(evaluation.ownerActions)) evaluation.ownerActions = [];
+      evaluation.ownerActions.push(actionItem);
+      evaluation.updatedAt = createdAt;
+
+      assigned.push({
+        incidentId: String(incident.id || ''),
+        evaluationId: String(evaluation.id || ''),
+        severity: String(incident.severity || ''),
+        assignedOwnerUserId: normalizedOwnerUserId,
+      });
+    }
+
+    if (assigned.length > 0) {
+      await save();
+    }
+
+    return {
+      tenantId: normalizedTenantId || null,
+      scanned,
+      eligibleOpenUnowned: candidates.length,
+      assignedCount: assigned.length,
+      limit: maxAssignments,
+      truncated: candidates.length > selected.length,
+      assigned,
+      generatedAt: nowIso(),
+    };
+  }
+
   async function summarizeRisk({
     tenantId,
     minRiskLevel = 1,
@@ -1075,6 +1170,7 @@ async function createTemplateStore({
     getEvaluation,
     addOwnerAction,
     autoEscalateBreachedIncidents,
+    autoAssignOpenIncidentOwners,
     summarizeRisk,
     listIncidents,
     getIncident,
