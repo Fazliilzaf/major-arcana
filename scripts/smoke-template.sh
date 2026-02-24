@@ -279,6 +279,9 @@ MONITOR_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/status" \
 MONITOR_TEMPLATES="$(printf '%s' "$MONITOR_RESPONSE" | json_get kpis.templatesTotal)"
 MONITOR_RESTORE_DRILL_HEALTHY="$(printf '%s' "$MONITOR_RESPONSE" | json_get gates.restoreDrill.healthy 2>/dev/null || true)"
 MONITOR_RESTORE_DRILL_NOGO="$(printf '%s' "$MONITOR_RESPONSE" | json_get gates.restoreDrill.noGo 2>/dev/null || true)"
+MONITOR_RISK_LIMIT_MAX="$(printf '%s' "$MONITOR_RESPONSE" | json_get security.rateLimits.riskMax 2>/dev/null || true)"
+MONITOR_ORCHESTRATOR_LIMIT_MAX="$(printf '%s' "$MONITOR_RESPONSE" | json_get security.rateLimits.orchestratorMax 2>/dev/null || true)"
+MONITOR_PUBLIC_CHAT_LIMIT_MAX="$(printf '%s' "$MONITOR_RESPONSE" | json_get security.rateLimits.publicChatMax 2>/dev/null || true)"
 if [[ "$MONITOR_RESTORE_DRILL_HEALTHY" != "true" && "$MONITOR_RESTORE_DRILL_HEALTHY" != "false" ]]; then
   echo "❌ monitor/status saknar gates.restoreDrill.healthy"
   printf '%s\n' "$MONITOR_RESPONSE"
@@ -286,6 +289,11 @@ if [[ "$MONITOR_RESTORE_DRILL_HEALTHY" != "true" && "$MONITOR_RESTORE_DRILL_HEAL
 fi
 if [[ "$MONITOR_RESTORE_DRILL_NOGO" != "true" && "$MONITOR_RESTORE_DRILL_NOGO" != "false" ]]; then
   echo "❌ monitor/status saknar gates.restoreDrill.noGo"
+  printf '%s\n' "$MONITOR_RESPONSE"
+  exit 1
+fi
+if [[ -z "$MONITOR_RISK_LIMIT_MAX" || "$MONITOR_RISK_LIMIT_MAX" == "null" || -z "$MONITOR_ORCHESTRATOR_LIMIT_MAX" || "$MONITOR_ORCHESTRATOR_LIMIT_MAX" == "null" || -z "$MONITOR_PUBLIC_CHAT_LIMIT_MAX" || "$MONITOR_PUBLIC_CHAT_LIMIT_MAX" == "null" ]]; then
+  echo "❌ monitor/status saknar dedikerade rate limit-fält"
   printf '%s\n' "$MONITOR_RESPONSE"
   exit 1
 fi

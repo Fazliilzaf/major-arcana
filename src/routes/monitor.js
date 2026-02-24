@@ -221,6 +221,11 @@ function createMonitorRouter({
               apiReadMax: Number(config?.apiRateLimitReadMax || 0),
               apiWriteMax: Number(config?.apiRateLimitWriteMax || 0),
               windowSec: Number(config?.apiRateLimitWindowSec || 0),
+              riskMax: Number(config?.riskRateLimitMax || 0),
+              orchestratorMax: Number(config?.orchestratorRateLimitMax || 0),
+              publicWindowSec: Number(config?.publicRateLimitWindowSec || 0),
+              publicClinicMax: Number(config?.publicClinicRateLimitMax || 0),
+              publicChatMax: Number(config?.publicChatRateLimitMax || 0),
             },
             secrets: {
               trackingEnabled: Boolean(secretRotationStatus),

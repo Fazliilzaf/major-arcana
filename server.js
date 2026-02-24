@@ -135,6 +135,30 @@ app.get('/readyz', (req, res) => {
     keyGenerator: (req) => String(req.ip || 'unknown-ip'),
     message: 'För många skriv-anrop. Vänta en stund och försök igen.',
   });
+  const riskRateLimiter = createRateLimiter({
+    windowMs: config.apiRateLimitWindowSec * 1000,
+    max: config.riskRateLimitMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många risk-anrop. Vänta en stund och försök igen.',
+  });
+  const orchestratorRateLimiter = createRateLimiter({
+    windowMs: config.apiRateLimitWindowSec * 1000,
+    max: config.orchestratorRateLimitMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många orchestrator-anrop. Vänta en stund och försök igen.',
+  });
+  const publicClinicRateLimiter = createRateLimiter({
+    windowMs: config.publicRateLimitWindowSec * 1000,
+    max: config.publicClinicRateLimitMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många publika klinikanrop. Vänta en stund och försök igen.',
+  });
+  const publicChatRateLimiter = createRateLimiter({
+    windowMs: config.publicRateLimitWindowSec * 1000,
+    max: config.publicChatRateLimitMax,
+    keyGenerator: (req) => String(req.ip || 'unknown-ip'),
+    message: 'För många chat-anrop. Vänta en stund och försök igen.',
+  });
 
   app.use('/api/v1', (req, res, next) => {
     const endpoint = String(req.path || '');
@@ -148,6 +172,9 @@ app.get('/readyz', (req, res) => {
     }
     return apiWriteRateLimiter(req, res, next);
   });
+  app.use('/api/v1/risk', riskRateLimiter);
+  app.use('/api/v1/orchestrator', orchestratorRateLimiter);
+  app.use('/api/public', publicClinicRateLimiter);
 
   const templateStore = await createTemplateStore({
     filePath: config.templateStorePath,
@@ -290,6 +317,7 @@ app.get('/readyz', (req, res) => {
 
   app.post(
     '/chat',
+    publicChatRateLimiter,
     createChatHandler({
       openai,
       model: config.openaiModel,

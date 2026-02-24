@@ -66,12 +66,21 @@ AUTH_LOGIN_SESSION_ROTATION=tenant
 ARCANA_API_RATE_LIMIT_WINDOW_SEC=60
 ARCANA_API_RATE_LIMIT_READ_MAX=300
 ARCANA_API_RATE_LIMIT_WRITE_MAX=120
+ARCANA_RISK_RATE_LIMIT_MAX=120
+ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX=80
+ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC=60
+ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX=180
+ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX=90
 ```
 
 - `AUTH_SESSION_IDLE_MINUTES`: invalidates session efter inaktivitet (revoke reason: `idle_timeout`)
 - `AUTH_LOGIN_SESSION_ROTATION`: `none|tenant|user` (default `tenant`) roterar bort äldre sessioner vid login/select-tenant
 - `ARCANA_API_RATE_LIMIT_READ_MAX`: max read-anrop per IP inom fönstret
 - `ARCANA_API_RATE_LIMIT_WRITE_MAX`: max write-anrop per IP inom fönstret
+- `ARCANA_RISK_RATE_LIMIT_MAX`: dedikerad limiter för `/api/v1/risk/*`
+- `ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX`: dedikerad limiter för `/api/v1/orchestrator/*`
+- `ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX`: dedikerad limiter för `/api/public/clinics/*`
+- `ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX`: dedikerad limiter för `POST /chat`
 - `POST /api/v1/auth/login` och `POST /api/v1/auth/select-tenant` styrs fortsatt av dedikerade auth-limiters
 
 ### OWNER MFA (TOTP + recovery)
