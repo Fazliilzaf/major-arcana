@@ -978,6 +978,23 @@ async function createAuthStore({
     return filtered.slice(0, clampedLimit).map(toSafeAuditEvent).filter(Boolean);
   }
 
+  async function getLatestAuditEvent({ tenantId, action = '', outcome = '' } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedAction = typeof action === 'string' ? action.trim() : '';
+    const normalizedOutcome = typeof outcome === 'string' ? outcome.trim().toLowerCase() : '';
+
+    for (let index = state.auditEvents.length - 1; index >= 0; index -= 1) {
+      const event = state.auditEvents[index];
+      if (!event || typeof event !== 'object') continue;
+      if (normalizedTenantId && normalizeTenantId(event.tenantId) !== normalizedTenantId) continue;
+      if (normalizedAction && String(event.action || '') !== normalizedAction) continue;
+      if (normalizedOutcome && String(event.outcome || '').toLowerCase() !== normalizedOutcome) continue;
+      return toSafeAuditEvent(event);
+    }
+
+    return null;
+  }
+
   async function bootstrapOwner({ tenantId, email, password, forcePasswordReset = false }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const normalizedEmail = normalizeEmail(email);
@@ -1057,6 +1074,7 @@ async function createAuthStore({
     listTenantMembers,
     addAuditEvent,
     listAuditEvents,
+    getLatestAuditEvent,
     verifyAuditIntegrity,
     bootstrapOwner,
   };

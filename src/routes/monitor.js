@@ -67,6 +67,7 @@ function createMonitorRouter({
           incidentSummary,
           members,
           auditEvents,
+          latestRestoreDrillAudit,
           tenantConfig,
           authFile,
           templateFile,
@@ -80,6 +81,13 @@ function createMonitorRouter({
               : Promise.resolve(null),
             authStore.listTenantMembers(tenantId),
             authStore.listAuditEvents({ tenantId, limit: 300 }),
+            typeof authStore.getLatestAuditEvent === 'function'
+              ? authStore.getLatestAuditEvent({
+                  tenantId,
+                  action: 'scheduler.job.restore_drill_preview.run',
+                  outcome: 'success',
+                })
+              : Promise.resolve(null),
             tenantConfigStore.getTenantConfig(tenantId),
             readFileMeta(authStore.filePath),
             readFileMeta(templateStore.filePath),
@@ -109,7 +117,9 @@ function createMonitorRouter({
         const schedulerJobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
         const restoreDrillJob =
           schedulerJobs.find((item) => String(item?.id || '') === 'restore_drill_preview') || null;
-        const restoreDrillLastSuccessAt = toIso(restoreDrillJob?.lastSuccessAt);
+        const restoreDrillLastSuccessAt = toIso(
+          latestRestoreDrillAudit?.ts || restoreDrillJob?.lastSuccessAt
+        );
         const restoreDrillAgeDays = toAgeDaysSince(restoreDrillLastSuccessAt, now);
         const restoreDrillMaxAgeDays = Math.max(
           1,

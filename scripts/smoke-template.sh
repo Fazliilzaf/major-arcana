@@ -211,6 +211,34 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
     printf '%s\n' "$OPS_SCHED_RUN_RESPONSE"
     exit 1
   fi
+
+  OPS_SCHED_RESTORE_RUN_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jobId":"restore_drill_preview"}')"
+  OPS_SCHED_RESTORE_RUN_OK="$(printf '%s' "$OPS_SCHED_RESTORE_RUN_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_SCHED_RESTORE_RUN_ERROR="$(printf '%s' "$OPS_SCHED_RESTORE_RUN_RESPONSE" | json_get error 2>/dev/null || true)"
+  if [[ "$OPS_SCHED_RESTORE_RUN_OK" == "true" ]]; then
+    OPS_SCHED_RESTORE_RUN_JOB="$(printf '%s' "$OPS_SCHED_RESTORE_RUN_RESPONSE" | json_get jobId)"
+    echo "✅ ops/scheduler/run restore OK (job: ${OPS_SCHED_RESTORE_RUN_JOB})"
+
+    MONITOR_AFTER_RESTORE_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/status" \
+      -H "Authorization: Bearer $TOKEN")"
+    MONITOR_AFTER_RESTORE_HEALTHY="$(printf '%s' "$MONITOR_AFTER_RESTORE_RESPONSE" | json_get gates.restoreDrill.healthy 2>/dev/null || true)"
+    MONITOR_AFTER_RESTORE_NOGO="$(printf '%s' "$MONITOR_AFTER_RESTORE_RESPONSE" | json_get gates.restoreDrill.noGo 2>/dev/null || true)"
+    if [[ "$MONITOR_AFTER_RESTORE_HEALTHY" != "true" || "$MONITOR_AFTER_RESTORE_NOGO" != "false" ]]; then
+      echo "❌ monitor/status restore-drill gate uppdaterades inte efter restore_drill_preview"
+      printf '%s\n' "$MONITOR_AFTER_RESTORE_RESPONSE"
+      exit 1
+    fi
+    echo "✅ monitor/status restore gate OK efter restore_drill_preview"
+  elif [[ "$OPS_SCHED_RESTORE_RUN_ERROR" == "disabled_job" || "$OPS_SCHED_RESTORE_RUN_ERROR" == "job_running" ]]; then
+    echo "ℹ️ ops/scheduler/run restore SKIP (${OPS_SCHED_RESTORE_RUN_ERROR})"
+  else
+    echo "❌ ops/scheduler/run restore misslyckades"
+    printf '%s\n' "$OPS_SCHED_RESTORE_RUN_RESPONSE"
+    exit 1
+  fi
 fi
 
 META_RESPONSE="$(curl -s "$BASE_URL/api/v1/templates/meta" \
