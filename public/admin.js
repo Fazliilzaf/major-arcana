@@ -44,6 +44,7 @@
       nav_ops: 'Drift',
       kpi_templates: 'Mallar',
       kpi_owner_coverage: 'Ägaråtgärdstäckning',
+      kpi_readiness: 'Readiness',
       open_queue: 'Öppna kö',
       see_incidents: 'Se incidenter',
       overview_insights: 'Översiktsinsikter',
@@ -93,6 +94,7 @@
       nav_ops: 'Operations',
       kpi_templates: 'Templates',
       kpi_owner_coverage: 'Owner action coverage',
+      kpi_readiness: 'Readiness',
       open_queue: 'Open queue',
       see_incidents: 'View incidents',
       overview_insights: 'Overview insights',
@@ -316,6 +318,8 @@
     ownerCoverageMeta: document.getElementById('ownerCoverageMeta'),
     slaIndicatorValue: document.getElementById('slaIndicatorValue'),
     slaIndicatorMeta: document.getElementById('slaIndicatorMeta'),
+    readinessBandValue: document.getElementById('readinessBandValue'),
+    readinessBandMeta: document.getElementById('readinessBandMeta'),
     latestActivityList: document.getElementById('latestActivityList'),
     riskTrendBars: document.getElementById('riskTrendBars'),
     riskTrendMeta: document.getElementById('riskTrendMeta'),
@@ -2358,6 +2362,52 @@
       : `Brist:${buckets.breached} • Kritisk:${buckets.critical} • Varning:${buckets.warn}`;
     const tone = buckets.breached > 0 ? 'bad' : buckets.critical > 0 || buckets.warn > 0 ? 'warn' : 'ok';
     setKpiMeta(els.slaIndicatorMeta, text, tone);
+  }
+
+  function formatReadinessBandLabel(bandRaw) {
+    const band = String(bandRaw || '')
+      .trim()
+      .toLowerCase();
+    if (!band) return '-';
+    const map = {
+      no_go: isEnglishLanguage() ? 'No-go' : 'No-go',
+      limited_beta: isEnglishLanguage() ? 'Limited beta' : 'Begränsad beta',
+      controlled_go: isEnglishLanguage() ? 'Controlled go' : 'Kontrollerad go',
+    };
+    if (Object.prototype.hasOwnProperty.call(map, band)) return map[band];
+    return bandRaw || '-';
+  }
+
+  function renderReadinessKpi(readiness = null) {
+    if (!els.readinessBandValue || !els.readinessBandMeta) return;
+    if (!readiness || typeof readiness !== 'object') {
+      setText(els.readinessBandValue, '-');
+      setKpiMeta(
+        els.readinessBandMeta,
+        isEnglishLanguage() ? 'Waiting for monitor data.' : 'Väntar på monitor-data.'
+      );
+      return;
+    }
+
+    const score = Number(readiness?.score || 0);
+    const scoreRounded = Number.isFinite(score) ? Number(score.toFixed(2)) : 0;
+    const triggeredNoGo = Number(readiness?.goNoGo?.triggeredNoGoCount || 0);
+    const remediationSummary = readiness?.remediation?.summary || {};
+    const remediationTotal = Number(remediationSummary?.total || 0);
+    const remediationP0 = Number(remediationSummary?.byPriority?.P0 || 0);
+    const potentialGain = Number(remediationSummary?.potentialScoreGain || 0);
+    const goAllowed = readiness?.goNoGo?.allowed === true;
+
+    let tone = 'ok';
+    if (triggeredNoGo > 0 || remediationP0 > 0) tone = 'bad';
+    else if (!goAllowed || remediationTotal > 0) tone = 'warn';
+
+    setText(els.readinessBandValue, formatReadinessBandLabel(readiness?.band));
+    setKpiMeta(
+      els.readinessBandMeta,
+      `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • actions ${remediationTotal} • gain ${potentialGain}`,
+      tone
+    );
   }
 
   function toActionLabel(action) {
@@ -6134,6 +6184,7 @@
           2
         );
       }
+      renderReadinessKpi(readinessResponse);
       renderMonitorRemediation(readinessResponse);
       const templatesTotal = statusResponse?.kpis?.templatesTotal ?? 0;
       const evaluationsTotal = statusResponse?.kpis?.evaluationsTotal ?? 0;
@@ -6146,6 +6197,7 @@
         `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, remediation=${remediationTotal}, P0=${p0}`
       );
     } catch (error) {
+      renderReadinessKpi(null);
       if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
       if (els.monitorRemediationResult) {
         els.monitorRemediationResult.textContent = 'Readiness-remediation kunde inte laddas.';
@@ -6992,6 +7044,8 @@
     setText(els.slaIndicatorValue, '0');
     setKpiMeta(els.ownerCoverageMeta, 'Ingen riskhistorik ännu.');
     setKpiMeta(els.slaIndicatorMeta, 'Inga öppna incidents.');
+    setText(els.readinessBandValue, '-');
+    setKpiMeta(els.readinessBandMeta, 'Väntar på monitor-data.');
     if (els.riskQueueSummary) els.riskQueueSummary.innerHTML = '';
     renderRiskDetail(null);
     if (els.riskReviewsTableBody) els.riskReviewsTableBody.innerHTML = '';

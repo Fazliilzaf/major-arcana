@@ -12,6 +12,7 @@ DAYS="${ARCANA_PILOT_REPORT_DAYS:-14}"
 OUT_FILE="${ARCANA_PILOT_REPORT_OUT:-}"
 MFA_CODE="${ARCANA_OWNER_MFA_CODE:-}"
 MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}"
+READINESS_MODE="${ARCANA_PILOT_REPORT_READINESS_MODE:-full}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -47,9 +48,13 @@ while [[ $# -gt 0 ]]; do
       MFA_SECRET="${2:-}"
       shift 2
       ;;
+    --readiness-mode)
+      READINESS_MODE="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Okänd flagga: $1"
-      echo "Använd: [--base-url URL] [--email EMAIL] [--password PASSWORD] [--tenant TENANT] [--days 14] [--out FIL] [--mfa-code 123456] [--mfa-secret BASE32]"
+      echo "Använd: [--base-url URL] [--email EMAIL] [--password PASSWORD] [--tenant TENANT] [--days 14] [--out FIL] [--mfa-code 123456] [--mfa-secret BASE32] [--readiness-mode compact|full]"
       exit 1
       ;;
   esac
@@ -273,6 +278,12 @@ if (( DAYS < 1 || DAYS > 90 )); then
   exit 1
 fi
 
+READINESS_MODE="$(printf '%s' "$READINESS_MODE" | tr '[:upper:]' '[:lower:]')"
+if [[ "$READINESS_MODE" != "compact" && "$READINESS_MODE" != "full" ]]; then
+  echo "❌ --readiness-mode måste vara compact eller full."
+  exit 1
+fi
+
 if [[ -z "$OUT_FILE" ]]; then
   ts="$(date +%Y%m%d-%H%M%S)"
   OUT_FILE="data/reports/Pilot_Baseline_${DAYS}d_${ts}.json"
@@ -319,6 +330,7 @@ COMBINED_REPORT="$(node -e "
 const fs = require('fs');
 const reportPath = process.argv[1];
 const readinessPath = process.argv[2];
+const readinessMode = String(process.argv[3] || 'full').trim().toLowerCase();
 let report = {};
 let readiness = {};
 try {
@@ -334,16 +346,27 @@ try {
 const remediation = readiness?.remediation && typeof readiness.remediation === 'object'
   ? readiness.remediation
   : null;
-report.readinessSnapshot = {
+const remediationSummary =
+  remediation?.summary && typeof remediation.summary === 'object' ? remediation.summary : null;
+const remediationNextActions = Array.isArray(remediation?.nextActions)
+  ? remediation.nextActions
+  : [];
+const readinessSnapshot = {
   generatedAt: new Date().toISOString(),
+  detailMode: readinessMode === 'compact' ? 'compact' : 'full',
   score: Number(readiness?.score || 0),
   band: readiness?.band || null,
   goNoGo: readiness?.goNoGo || null,
-  noGoTriggers: Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : [],
-  remediation,
+  remediationSummary,
+  remediationNextActions,
 };
+if (readinessMode !== 'compact') {
+  readinessSnapshot.noGoTriggers = Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : [];
+  readinessSnapshot.remediation = remediation;
+}
+report.readinessSnapshot = readinessSnapshot;
 process.stdout.write(JSON.stringify(report, null, 2));
-" "$REPORT_TMP" "$READINESS_TMP")"
+" "$REPORT_TMP" "$READINESS_TMP" "$READINESS_MODE")"
 
 TENANT_FROM_REPORT="$(printf '%s' "$COMBINED_REPORT" | json_get tenantId || true)"
 if [[ -z "$TENANT_FROM_REPORT" ]]; then
@@ -358,8 +381,8 @@ TEMPLATES_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get kpis.templatesTotal
 EVALUATIONS_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get kpis.evaluationsTotal || echo 0)"
 HIGH_CRITICAL_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get kpis.highCriticalTotal || echo 0)"
 READINESS_BAND="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.band || echo '-')"
-READINESS_REMEDIATION_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.remediation.summary.total || echo 0)"
+READINESS_REMEDIATION_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.remediationSummary.total || echo 0)"
 
 echo "✅ Pilotrapport sparad: $OUT_FILE"
 echo "   tenant=$TENANT_FROM_REPORT templates=$TEMPLATES_TOTAL evaluations=$EVALUATIONS_TOTAL highCritical=$HIGH_CRITICAL_TOTAL"
-echo "   readinessScore=$READINESS_SCORE readinessBand=$READINESS_BAND remediationActions=$READINESS_REMEDIATION_TOTAL"
+echo "   readinessScore=$READINESS_SCORE readinessBand=$READINESS_BAND remediationActions=$READINESS_REMEDIATION_TOTAL readinessMode=$READINESS_MODE"
