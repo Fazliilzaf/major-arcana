@@ -26,6 +26,12 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function parseDays(value, fallback = 90) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(7, Math.min(3650, parsed));
+}
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -33,6 +39,7 @@ function normalizeText(value) {
 function createOpsRouter({
   config,
   authStore,
+  secretRotationStore = null,
   scheduler = null,
   requireAuth,
   requireRole,
@@ -123,6 +130,138 @@ function createOpsRouter({
       } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte köra scheduler-jobb.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/secrets/status',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!secretRotationStore || typeof secretRotationStore.getSecretsStatus !== 'function') {
+        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
+      }
+      try {
+        const maxAgeDays = parseDays(
+          req.query?.maxAgeDays,
+          parseDays(config?.secretRotationMaxAgeDays, 90)
+        );
+        const status = await secretRotationStore.getSecretsStatus({ maxAgeDays });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.secrets.status.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'secrets_status',
+          metadata: {
+            tracked: Number(status?.totals?.tracked || 0),
+            required: Number(status?.totals?.required || 0),
+            staleRequired: Number(status?.totals?.staleRequired || 0),
+            pendingRotation: Number(status?.totals?.pendingRotation || 0),
+            maxAgeDays,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          maxAgeDays,
+          ...status,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa secret-rotation status.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/secrets/snapshot',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!secretRotationStore || typeof secretRotationStore.captureSnapshot !== 'function') {
+        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
+      }
+      try {
+        const dryRun = parseBoolean(req.body?.dryRun, true);
+        const force = parseBoolean(req.body?.force, false);
+        const note = normalizeText(req.body?.note || '');
+        const source = dryRun ? 'ops_snapshot_preview' : 'ops_snapshot_commit';
+        const snapshot = await secretRotationStore.captureSnapshot({
+          actorUserId: req.auth.userId,
+          source,
+          note,
+          dryRun,
+          force,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: dryRun ? 'ops.secrets.snapshot.preview' : 'ops.secrets.snapshot.run',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'secrets_snapshot',
+          metadata: {
+            dryRun,
+            force,
+            changedCount: Number(snapshot?.totals?.changedCount || 0),
+            staleRequired: Number(snapshot?.totals?.staleRequired || 0),
+            pendingRotation: Number(snapshot?.totals?.pendingRotation || 0),
+          },
+        });
+
+        return res.json({
+          ok: true,
+          ...snapshot,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte skapa secret-rotation snapshot.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/secrets/history',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!secretRotationStore || typeof secretRotationStore.listSecretHistory !== 'function') {
+        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
+      }
+      try {
+        const secretId = normalizeText(req.query?.secretId || '');
+        const limit = parseLimit(req.query?.limit, 50);
+        const history = await secretRotationStore.listSecretHistory({
+          secretId,
+          limit,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.secrets.history.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: secretId || 'all',
+          metadata: {
+            limit,
+            count: Number(history?.count || 0),
+          },
+        });
+
+        return res.json({
+          secretId: secretId || null,
+          limit,
+          ...history,
+        });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa secret-rotation historik.' });
       }
     }
   );

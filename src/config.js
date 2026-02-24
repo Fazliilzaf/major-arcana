@@ -187,6 +187,11 @@ const config = {
   alertWebhookUrl: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_URL),
   alertWebhookSecret: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_SECRET),
   alertWebhookTimeoutMs: asInt(process.env.ARCANA_ALERT_WEBHOOK_TIMEOUT_MS, 4000),
+  secretRotationStorePath: asNonEmptyString(
+    process.env.ARCANA_SECRET_ROTATION_STORE_PATH,
+    path.join(process.cwd(), 'data', 'secret-rotation.json')
+  ),
+  secretRotationMaxAgeDays: asInt(process.env.ARCANA_SECRET_ROTATION_MAX_AGE_DAYS, 90),
   schedulerStartupDelaySec: asInt(process.env.ARCANA_SCHEDULER_STARTUP_DELAY_SEC, 8),
   schedulerJitterSec: asInt(process.env.ARCANA_SCHEDULER_JITTER_SEC, 4),
   schedulerRunOnStartup: asBool(process.env.ARCANA_SCHEDULER_RUN_ON_STARTUP, false),

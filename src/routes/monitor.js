@@ -40,10 +40,17 @@ function toAgeDaysSince(isoTs, nowMs = Date.now()) {
   return Number(((nowMs - ts) / (24 * 60 * 60 * 1000)).toFixed(2));
 }
 
+function parseDays(value, fallback = 90) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(7, Math.min(3650, parsed));
+}
+
 function createMonitorRouter({
   authStore,
   templateStore,
   tenantConfigStore,
+  secretRotationStore = null,
   config,
   scheduler = null,
   requireAuth,
@@ -72,6 +79,7 @@ function createMonitorRouter({
           authFile,
           templateFile,
           tenantFile,
+          secretRotationFile,
         ] =
           await Promise.all([
             templateStore.listTemplates({ tenantId }),
@@ -92,6 +100,7 @@ function createMonitorRouter({
             readFileMeta(authStore.filePath),
             readFileMeta(templateStore.filePath),
             readFileMeta(tenantConfigStore.filePath),
+            readFileMeta(config?.secretRotationStorePath),
           ]);
 
         const now = Date.now();
@@ -129,6 +138,12 @@ function createMonitorRouter({
           restoreDrillAgeDays !== null && restoreDrillAgeDays <= restoreDrillMaxAgeDays;
         const restoreDrillNoGo =
           !schedulerStatus?.enabled || !schedulerStatus?.started || !restoreDrillHealthy;
+        const secretRotationStatus =
+          secretRotationStore && typeof secretRotationStore.getSecretsStatus === 'function'
+            ? await secretRotationStore.getSecretsStatus({
+                maxAgeDays: parseDays(config?.secretRotationMaxAgeDays, 90),
+              })
+            : null;
 
         await authStore.addAuditEvent({
           tenantId,
@@ -207,6 +222,15 @@ function createMonitorRouter({
               apiWriteMax: Number(config?.apiRateLimitWriteMax || 0),
               windowSec: Number(config?.apiRateLimitWindowSec || 0),
             },
+            secrets: {
+              trackingEnabled: Boolean(secretRotationStatus),
+              maxAgeDays: parseDays(config?.secretRotationMaxAgeDays, 90),
+              tracked: Number(secretRotationStatus?.totals?.tracked || 0),
+              required: Number(secretRotationStatus?.totals?.required || 0),
+              present: Number(secretRotationStatus?.totals?.present || 0),
+              staleRequired: Number(secretRotationStatus?.totals?.staleRequired || 0),
+              pendingRotation: Number(secretRotationStatus?.totals?.pendingRotation || 0),
+            },
           },
           tenant: {
             tenantId,
@@ -225,6 +249,8 @@ function createMonitorRouter({
             incidentsBreachedOpen: Number(incidentSummary?.totals?.breachedOpen || 0),
             restoreDrillAgeDays,
             restoreDrillHealthy,
+            secretRotationStaleRequired: Number(secretRotationStatus?.totals?.staleRequired || 0),
+            secretRotationPending: Number(secretRotationStatus?.totals?.pendingRotation || 0),
             staffActive: activeStaff,
             staffDisabled: disabledStaff,
             auditEvents24h: recentAuditCount,
@@ -242,6 +268,7 @@ function createMonitorRouter({
             auth: authFile,
             templates: templateFile,
             tenantConfig: tenantFile,
+            secretRotation: secretRotationFile,
           },
         });
       } catch (error) {
