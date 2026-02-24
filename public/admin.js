@@ -2403,9 +2403,12 @@
     else if (!goAllowed || remediationTotal > 0) tone = 'warn';
 
     setText(els.readinessBandValue, formatReadinessBandLabel(readiness?.band));
+    const metaText = isEnglishLanguage()
+      ? `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • actions ${remediationTotal} • gain ${potentialGain}`
+      : `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • åtgärder ${remediationTotal} • potential ${potentialGain}`;
     setKpiMeta(
       els.readinessBandMeta,
-      `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • actions ${remediationTotal} • gain ${potentialGain}`,
+      metaText,
       tone
     );
   }
@@ -6120,7 +6123,9 @@
     const potentialGain = Number(summary?.potentialScoreGain || 0);
 
     if (els.monitorRemediationSummary) {
-      els.monitorRemediationSummary.textContent = `Actions=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | potentialGain=${potentialGain}`;
+      els.monitorRemediationSummary.textContent = isEnglishLanguage()
+        ? `Actions=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | potentialGain=${potentialGain}`
+        : `Åtgärder=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | potentialGain=${potentialGain}`;
     }
 
     if (!els.monitorRemediationResult) return;
@@ -6139,15 +6144,27 @@
       .slice(0, 8);
 
     if (nextActions.length === 0) {
-      els.monitorRemediationResult.textContent = 'Inga remediation-actions just nu.';
+      els.monitorRemediationResult.textContent = isEnglishLanguage()
+        ? 'No remediation actions right now.'
+        : 'Inga remediation-actions just nu.';
       return;
     }
 
+    const goAllowedLabel =
+      readiness?.goNoGo?.allowed === true
+        ? isEnglishLanguage()
+          ? 'yes'
+          : 'ja'
+        : isEnglishLanguage()
+          ? 'no'
+          : 'nej';
     const lines = [
-      `Readiness: score=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goAllowed=${readiness?.goNoGo?.allowed === true ? 'yes' : 'no'}`,
-      `Critical path (P0): ${p0}`,
+      isEnglishLanguage()
+        ? `Readiness: score=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goAllowed=${goAllowedLabel}`
+        : `Readiness: score=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goTillåten=${goAllowedLabel}`,
+      isEnglishLanguage() ? `Critical path (P0): ${p0}` : `Kritisk väg (P0): ${p0}`,
       '',
-      'Top actions:',
+      isEnglishLanguage() ? 'Top actions:' : 'Top åtgärder:',
     ];
 
     nextActions.forEach((action, index) => {
@@ -6157,10 +6174,16 @@
       const targetState = String(action?.targetState || '-');
       const impact = Number(action?.scoreImpactMax || 0);
       lines.push(
-        `${index + 1}. [${priority}] ${title} | owner=${owner} | target=${targetState} | impact<=${impact}`
+        isEnglishLanguage()
+          ? `${index + 1}. [${priority}] ${title} | owner=${owner} | target=${targetState} | impact<=${impact}`
+          : `${index + 1}. [${priority}] ${title} | ansvarig=${owner} | mål=${targetState} | impact<=${impact}`
       );
       if (action?.playbook) {
-        lines.push(`   playbook: ${String(action.playbook)}`);
+        lines.push(
+          isEnglishLanguage()
+            ? `   playbook: ${String(action.playbook)}`
+            : `   playbook: ${String(action.playbook)}`
+        );
       }
     });
 
@@ -6200,7 +6223,9 @@
       renderReadinessKpi(null);
       if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
       if (els.monitorRemediationResult) {
-        els.monitorRemediationResult.textContent = 'Readiness-remediation kunde inte laddas.';
+        els.monitorRemediationResult.textContent = isEnglishLanguage()
+          ? 'Readiness remediation could not be loaded.'
+          : 'Readiness-remediation kunde inte laddas.';
       }
       setStatus(els.monitorPanelStatus, error.message || 'Kunde inte läsa monitor-status.', true);
     }
