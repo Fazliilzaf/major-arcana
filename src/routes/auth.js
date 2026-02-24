@@ -777,6 +777,18 @@ function createAuthRouter({
     requireAuth,
     requireTenantScope({ paramKey: 'tenantId', optional: false }),
     async (req, res) => {
+      try {
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'tenants.access_check',
+          outcome: 'success',
+          targetType: 'tenant',
+          targetId: req.auth.tenantId,
+        });
+      } catch (error) {
+        console.error(error);
+      }
       return res.json({
         ok: true,
         tenantId: req.auth.tenantId,

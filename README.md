@@ -157,6 +157,7 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `POST /api/v1/users/staff` (OWNER)
 - `PATCH /api/v1/users/staff/:membershipId` (OWNER)
 - `GET /api/v1/monitor/status` (OWNER/STAFF)
+- `GET /api/v1/monitor/readiness` (OWNER/STAFF, Go/No-Go score + blocker-matris)
 - `GET /api/v1/ops/state/manifest` (OWNER)
 - `GET /api/v1/ops/state/backups` (OWNER)
 - `POST /api/v1/ops/state/backup` (OWNER)
@@ -282,6 +283,7 @@ Owner action `action` (endast OWNER):
   - avsluta session (`POST /api/v1/auth/sessions/:sessionId/revoke`)
 - Monitor-panel i UI:
   - driftstatus, minne, datastores och tenant-KPI (`GET /api/v1/monitor/status`)
+  - readiness/Go-No-Go matris (`GET /api/v1/monitor/readiness`)
 - Ops backup-panel i UI (OWNER):
   - state manifest (`GET /api/v1/ops/state/manifest`)
   - skapa backup (`POST /api/v1/ops/state/backup`)

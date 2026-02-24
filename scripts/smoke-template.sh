@@ -253,6 +253,16 @@ TENANTS_MY_RESPONSE="$(curl -s "$BASE_URL/api/v1/tenants/my" \
 TENANTS_MY_COUNT="$(printf '%s' "$TENANTS_MY_RESPONSE" | json_get count)"
 echo "✅ tenants/my OK (count: ${TENANTS_MY_COUNT})"
 
+TENANT_ACCESS_CHECK_RESPONSE="$(curl -s "$BASE_URL/api/v1/tenants/${CURRENT_TENANT}/access-check" \
+  -H "Authorization: Bearer $TOKEN")"
+TENANT_ACCESS_CHECK_OK="$(printf '%s' "$TENANT_ACCESS_CHECK_RESPONSE" | json_get ok 2>/dev/null || true)"
+if [[ "$TENANT_ACCESS_CHECK_OK" != "true" ]]; then
+  echo "❌ tenants/access-check misslyckades"
+  printf '%s\n' "$TENANT_ACCESS_CHECK_RESPONSE"
+  exit 1
+fi
+echo "✅ tenants/access-check OK (tenant: ${CURRENT_TENANT})"
+
 if [[ "${MEMBERSHIP_COUNT}" -gt 1 ]]; then
   ALT_TENANT_ID="$(printf '%s' "$ME_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const list=Array.isArray(d.memberships)?d.memberships:[]; const current=d?.membership?.tenantId||''; const alt=(list.find((item)=>item?.tenantId&&item.tenantId!==current)||{}).tenantId||''; process.stdout.write(String(alt));")"
   if [[ -n "${ALT_TENANT_ID}" ]]; then
@@ -298,6 +308,18 @@ if [[ -z "$MONITOR_RISK_LIMIT_MAX" || "$MONITOR_RISK_LIMIT_MAX" == "null" || -z 
   exit 1
 fi
 echo "✅ monitor/status OK (templates: ${MONITOR_TEMPLATES}, restoreDrillHealthy: ${MONITOR_RESTORE_DRILL_HEALTHY}, restoreDrillNoGo: ${MONITOR_RESTORE_DRILL_NOGO})"
+
+READINESS_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/readiness" \
+  -H "Authorization: Bearer $TOKEN")"
+READINESS_SCORE="$(printf '%s' "$READINESS_RESPONSE" | json_get score 2>/dev/null || true)"
+READINESS_BAND="$(printf '%s' "$READINESS_RESPONSE" | json_get band 2>/dev/null || true)"
+READINESS_CATEGORIES_COUNT="$(printf '%s' "$READINESS_RESPONSE" | json_get categories | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
+if [[ -z "$READINESS_SCORE" || "$READINESS_SCORE" == "null" || "$READINESS_CATEGORIES_COUNT" -lt 4 ]]; then
+  echo "❌ monitor/readiness saknar score eller kategorier"
+  printf '%s\n' "$READINESS_RESPONSE"
+  exit 1
+fi
+echo "✅ monitor/readiness OK (score: ${READINESS_SCORE}, band: ${READINESS_BAND}, categories: ${READINESS_CATEGORIES_COUNT})"
 
 if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   OPS_MANIFEST_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/state/manifest" \
