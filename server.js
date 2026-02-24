@@ -31,6 +31,7 @@ const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
 const { createTenantsRouter } = require('./src/routes/tenants');
 const { createDashboardRouter } = require('./src/routes/dashboard');
 const { createRiskRouter } = require('./src/routes/risk');
+const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
@@ -348,6 +349,16 @@ app.get('/readyz', (req, res) => {
     '/api/v1',
     createRiskRouter({
       tenantConfigStore,
+      templateStore,
+      authStore,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createIncidentsRouter({
       templateStore,
       authStore,
       requireAuth: auth.requireAuth,

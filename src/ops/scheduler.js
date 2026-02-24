@@ -196,18 +196,28 @@ function createScheduler({
   }
 
   async function runAlertProbe({ tenantId }) {
-    const summary = await templateStore.summarizeRisk({
+    const riskSummary = await templateStore.summarizeRisk({
       tenantId,
       minRiskLevel: 4,
     });
 
-    const highCriticalOpen = Array.isArray(summary?.highCriticalOpen) ? summary.highCriticalOpen : [];
-    const topReasonCodes = Array.isArray(summary?.topReasonCodes) ? summary.topReasonCodes.slice(0, 5) : [];
+    const highCriticalOpen = Array.isArray(riskSummary?.highCriticalOpen)
+      ? riskSummary.highCriticalOpen
+      : [];
+    const topReasonCodes = Array.isArray(riskSummary?.topReasonCodes)
+      ? riskSummary.topReasonCodes.slice(0, 5)
+      : [];
+    const incidentSummary =
+      typeof templateStore?.summarizeIncidents === 'function'
+        ? await templateStore.summarizeIncidents({ tenantId })
+        : null;
 
     return {
       tenantId,
       highCriticalOpenCount: highCriticalOpen.length,
       hasOpenHighCritical: highCriticalOpen.length > 0,
+      incidentsOpenCount: Number(incidentSummary?.totals?.openUnresolved || 0),
+      incidentsBreachedOpenCount: Number(incidentSummary?.totals?.breachedOpen || 0),
       topReasonCodes,
     };
   }

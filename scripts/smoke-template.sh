@@ -348,6 +348,27 @@ SUMMARY_RESPONSE="$(curl -s "$BASE_URL/api/v1/risk/summary?minRiskLevel=1" \
 SUMMARY_TOTAL="$(printf '%s' "$SUMMARY_RESPONSE" | json_get totals.evaluations)"
 echo "✅ risk/summary OK (evaluations: ${SUMMARY_TOTAL})"
 
+INCIDENT_SUMMARY_RESPONSE="$(curl -s "$BASE_URL/api/v1/incidents/summary" \
+  -H "Authorization: Bearer $TOKEN")"
+INCIDENTS_TOTAL="$(printf '%s' "$INCIDENT_SUMMARY_RESPONSE" | json_get totals.incidents)"
+INCIDENTS_OPEN="$(printf '%s' "$INCIDENT_SUMMARY_RESPONSE" | json_get totals.openUnresolved)"
+INCIDENTS_BREACHED="$(printf '%s' "$INCIDENT_SUMMARY_RESPONSE" | json_get totals.breachedOpen)"
+echo "✅ incidents/summary OK (all: ${INCIDENTS_TOTAL}, open: ${INCIDENTS_OPEN}, breached: ${INCIDENTS_BREACHED})"
+
+INCIDENT_LIST_RESPONSE="$(curl -s "$BASE_URL/api/v1/incidents?status=open&limit=5" \
+  -H "Authorization: Bearer $TOKEN")"
+INCIDENT_LIST_COUNT="$(printf '%s' "$INCIDENT_LIST_RESPONSE" | json_get count)"
+echo "✅ incidents list OK (open count: ${INCIDENT_LIST_COUNT})"
+
+if [[ "$INCIDENT_LIST_COUNT" -gt 0 ]]; then
+  INCIDENT_ID="$(printf '%s' "$INCIDENT_LIST_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(d?.incidents?.[0]?.id||''));")"
+  INCIDENT_DETAIL_RESPONSE="$(curl -s "$BASE_URL/api/v1/incidents/$INCIDENT_ID" \
+    -H "Authorization: Bearer $TOKEN")"
+  INCIDENT_DETAIL_STATUS="$(printf '%s' "$INCIDENT_DETAIL_RESPONSE" | json_get incident.status)"
+  INCIDENT_DETAIL_SEVERITY="$(printf '%s' "$INCIDENT_DETAIL_RESPONSE" | json_get incident.severity)"
+  echo "✅ incidents detail OK (${INCIDENT_ID}, status: ${INCIDENT_DETAIL_STATUS}, severity: ${INCIDENT_DETAIL_SEVERITY})"
+fi
+
 AUDIT_INTEGRITY_RESPONSE="$(curl -s "$BASE_URL/api/v1/audit/integrity?maxIssues=25" \
   -H "Authorization: Bearer $TOKEN")"
 AUDIT_CHAIN_OK="$(printf '%s' "$AUDIT_INTEGRITY_RESPONSE" | json_get ok)"

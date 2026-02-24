@@ -32,13 +32,23 @@ function createDashboardRouter({
         const minRiskLevel = parseIntSafe(req.query?.minRiskLevel, 1);
         const auditLimit = Math.max(1, Math.min(100, parseIntSafe(req.query?.auditLimit, 20)));
         const tenantId = req.auth.tenantId;
+        const supportsIncidents =
+          typeof templateStore?.summarizeIncidents === 'function' &&
+          typeof templateStore?.listIncidents === 'function';
 
-        const [tenantConfig, templates, riskSummary, recentAuditEvents] = await Promise.all([
-          tenantConfigStore.getTenantConfig(tenantId),
-          templateStore.listTemplates({ tenantId }),
-          templateStore.summarizeRisk({ tenantId, minRiskLevel }),
-          authStore.listAuditEvents({ tenantId, limit: auditLimit }),
-        ]);
+        const [tenantConfig, templates, riskSummary, recentAuditEvents, incidentSummary, incidentOpen] =
+          await Promise.all([
+            tenantConfigStore.getTenantConfig(tenantId),
+            templateStore.listTemplates({ tenantId }),
+            templateStore.summarizeRisk({ tenantId, minRiskLevel }),
+            authStore.listAuditEvents({ tenantId, limit: auditLimit }),
+            supportsIncidents
+              ? templateStore.summarizeIncidents({ tenantId })
+              : Promise.resolve(null),
+            supportsIncidents
+              ? templateStore.listIncidents({ tenantId, status: 'open', limit: 10 })
+              : Promise.resolve([]),
+          ]);
 
         const byCategory = buildCategoryCounter();
         let templatesWithActiveVersion = 0;
@@ -68,6 +78,22 @@ function createDashboardRouter({
             byCategory,
           },
           riskSummary,
+          incidents: {
+            summary: incidentSummary || {
+              tenantId,
+              totals: {
+                incidents: Number(riskSummary?.totals?.highCriticalOpen || 0),
+                openUnresolved: Number(riskSummary?.totals?.highCriticalOpen || 0),
+                breachedOpen: 0,
+              },
+              generatedAt: new Date().toISOString(),
+            },
+            open: Array.isArray(incidentOpen)
+              ? incidentOpen
+              : Array.isArray(incidentSummary?.openTop)
+                ? incidentSummary.openTop
+                : [],
+          },
           recentAuditEvents,
           generatedAt: new Date().toISOString(),
         });

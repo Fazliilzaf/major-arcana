@@ -130,6 +130,9 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `POST /api/v1/ops/scheduler/run` (OWNER, body: `{ "jobId": "alert_probe" }`)
 - `GET /api/v1/audit/events` (OWNER/STAFF)
 - `GET /api/v1/audit/integrity` (OWNER/STAFF, verifierar append-only checksumkedja)
+- `GET /api/v1/incidents` (OWNER/STAFF, query: `status`, `severity`, `sinceDays`, `ownerUserId`)
+- `GET /api/v1/incidents/summary` (OWNER/STAFF)
+- `GET /api/v1/incidents/:incidentId` (OWNER/STAFF)
 
 ## Steg 2: Template Engine (Pilot 0.1)
 Template Engine finns nu i `/api/v1` med draft/active-workflow och riskutvärdering.
@@ -255,6 +258,10 @@ Owner action `action` (endast OWNER):
    - kör intern orchestration och visa trace
  - Risk calibration-panel i UI:
    - hämta förslag och applicera owner-godkänt förslag
+ - Incident-panel i UI/API:
+   - lista incidents (`GET /api/v1/incidents`)
+   - incidentsammanfattning (`GET /api/v1/incidents/summary`)
+   - incidentdetalj (`GET /api/v1/incidents/:incidentId`)
  - Pilot report-panel i UI:
    - generera KPI-rapport per tidsfönster
 

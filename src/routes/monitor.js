@@ -52,11 +52,25 @@ function createMonitorRouter({
     async (req, res) => {
       try {
         const tenantId = req.auth.tenantId;
+        const supportsIncidents = typeof templateStore?.summarizeIncidents === 'function';
 
-        const [templates, summary, members, auditEvents, tenantConfig, authFile, templateFile, tenantFile] =
+        const [
+          templates,
+          summary,
+          incidentSummary,
+          members,
+          auditEvents,
+          tenantConfig,
+          authFile,
+          templateFile,
+          tenantFile,
+        ] =
           await Promise.all([
             templateStore.listTemplates({ tenantId }),
             templateStore.summarizeRisk({ tenantId, minRiskLevel: 1 }),
+            supportsIncidents
+              ? templateStore.summarizeIncidents({ tenantId })
+              : Promise.resolve(null),
             authStore.listTenantMembers(tenantId),
             authStore.listAuditEvents({ tenantId, limit: 300 }),
             tenantConfigStore.getTenantConfig(tenantId),
@@ -162,6 +176,9 @@ function createMonitorRouter({
             templatesActive: activeTemplates,
             evaluationsTotal: Number(summary?.totals?.evaluations || 0),
             highCriticalOpen: Number(summary?.totals?.highCriticalOpen || 0),
+            incidentsTotal: Number(incidentSummary?.totals?.incidents || 0),
+            incidentsOpen: Number(incidentSummary?.totals?.openUnresolved || 0),
+            incidentsBreachedOpen: Number(incidentSummary?.totals?.breachedOpen || 0),
             staffActive: activeStaff,
             staffDisabled: disabledStaff,
             auditEvents24h: recentAuditCount,

@@ -3,6 +3,13 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { isValidCategory, normalizeCategory } = require('./constants');
+const {
+  buildIncidentFromEvaluation,
+  compareIncidents,
+  isIncidentOpenStatus,
+  normalizeIncidentSeverity,
+  normalizeIncidentStatus,
+} = require('../incidents/fromEvaluation');
 
 function nowIso() {
   return new Date().toISOString();
@@ -94,6 +101,44 @@ function toSafeEvaluation(evaluation) {
       : [],
     evaluatedAt: evaluation.evaluatedAt,
     updatedAt: evaluation.updatedAt || evaluation.evaluatedAt,
+  };
+}
+
+function toSafeIncident(incident) {
+  if (!incident) return null;
+  return {
+    id: incident.id,
+    sourceEvaluationId: incident.sourceEvaluationId,
+    tenantId: incident.tenantId,
+    templateId: incident.templateId,
+    templateVersionId: incident.templateVersionId,
+    category: incident.category,
+    riskLevel: incident.riskLevel,
+    decision: incident.decision,
+    reasonCodes: Array.isArray(incident.reasonCodes) ? [...incident.reasonCodes] : [],
+    severity: incident.severity,
+    status: incident.status,
+    ownerDecision: incident.ownerDecision,
+    owner: incident.owner
+      ? {
+          userId: incident.owner.userId || null,
+        }
+      : null,
+    ownerActionsCount: Number(incident.ownerActionsCount || 0),
+    openedAt: incident.openedAt || null,
+    updatedAt: incident.updatedAt || null,
+    resolutionTs: incident.resolutionTs || null,
+    sla: incident.sla
+      ? {
+          targetMs: Number(incident.sla.targetMs || 0),
+          targetMinutes: Number(incident.sla.targetMinutes || 0),
+          deadline: incident.sla.deadline || null,
+          remainingMs: Number(incident.sla.remainingMs || 0),
+          elapsedMs: Number(incident.sla.elapsedMs || 0),
+          state: incident.sla.state || 'ok',
+          breached: Boolean(incident.sla.breached),
+        }
+      : null,
   };
 }
 
@@ -762,6 +807,161 @@ async function createTemplateStore({
     };
   }
 
+  async function listIncidents({
+    tenantId,
+    status = 'open',
+    severity = '',
+    limit = 100,
+    sinceDays = 0,
+    search = '',
+    ownerUserId = '',
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const normalizedStatus = normalizeIncidentStatus(status) || 'open';
+    const normalizedSeverity = normalizeIncidentSeverity(severity);
+    const normalizedSearch = normalizeText(search).toLowerCase();
+    const normalizedOwnerUserId = normalizeText(ownerUserId);
+    const max = Math.max(1, Math.min(500, Number(limit) || 100));
+    const sinceWindowDays = Math.max(0, Math.min(365, Number(sinceDays) || 0));
+    const sinceWindowMs =
+      sinceWindowDays > 0 ? Date.now() - sinceWindowDays * 24 * 60 * 60 * 1000 : null;
+
+    const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+    const incidents = [];
+
+    for (const evaluation of evaluations) {
+      if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) continue;
+      const incident = buildIncidentFromEvaluation(evaluation);
+      if (!incident) continue;
+
+      if (normalizedStatus !== 'all' && incident.status !== normalizedStatus) continue;
+      if (normalizedSeverity && incident.severity !== normalizedSeverity) continue;
+      if (normalizedOwnerUserId && String(incident?.owner?.userId || '') !== normalizedOwnerUserId) {
+        continue;
+      }
+      if (sinceWindowMs !== null) {
+        const ts = Date.parse(String(incident.updatedAt || incident.openedAt || ''));
+        if (!Number.isFinite(ts) || ts < sinceWindowMs) continue;
+      }
+      if (normalizedSearch) {
+        const haystack = [
+          incident.id,
+          incident.sourceEvaluationId,
+          incident.templateId,
+          incident.templateVersionId,
+          incident.category,
+          incident.status,
+          incident.severity,
+          incident.ownerDecision,
+          incident.owner?.userId,
+          ...(Array.isArray(incident.reasonCodes) ? incident.reasonCodes : []),
+        ]
+          .map((item) => String(item || '').toLowerCase())
+          .join(' ');
+        if (!haystack.includes(normalizedSearch)) continue;
+      }
+
+      incidents.push(incident);
+    }
+
+    incidents.sort(compareIncidents);
+    return incidents.slice(0, max).map((incident) => toSafeIncident(incident));
+  }
+
+  async function getIncident({
+    tenantId,
+    incidentId,
+  }) {
+    const normalizedIncidentId = normalizeText(incidentId);
+    if (!normalizedIncidentId) return null;
+    const incidents = await listIncidents({
+      tenantId,
+      status: 'all',
+      limit: 1000,
+    });
+    return incidents.find((incident) => incident.id === normalizedIncidentId) || null;
+  }
+
+  async function summarizeIncidents({
+    tenantId,
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const evaluations = Array.isArray(state.evaluations) ? state.evaluations : [];
+    const incidents = [];
+
+    for (const evaluation of evaluations) {
+      if (normalizedTenantId && evaluation.tenantId !== normalizedTenantId) continue;
+      const incident = buildIncidentFromEvaluation(evaluation);
+      if (!incident) continue;
+      incidents.push(incident);
+    }
+
+    incidents.sort(compareIncidents);
+
+    const bySeverity = {
+      L4: 0,
+      L5: 0,
+    };
+    const byStatus = {
+      open: 0,
+      escalated: 0,
+      resolved: 0,
+    };
+    const bySlaState = {
+      ok: 0,
+      warn: 0,
+      critical: 0,
+      breached: 0,
+      resolved: 0,
+    };
+
+    let openUnresolved = 0;
+    let breachedOpen = 0;
+
+    for (const incident of incidents) {
+      if (Object.prototype.hasOwnProperty.call(bySeverity, incident.severity)) {
+        bySeverity[incident.severity] += 1;
+      }
+      if (Object.prototype.hasOwnProperty.call(byStatus, incident.status)) {
+        byStatus[incident.status] += 1;
+      }
+
+      const slaState = String(incident?.sla?.state || '').toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(bySlaState, slaState)) {
+        bySlaState[slaState] += 1;
+      }
+
+      if (isIncidentOpenStatus(incident.status)) {
+        openUnresolved += 1;
+        if (slaState === 'breached') breachedOpen += 1;
+      }
+    }
+
+    const nextSlaDeadline = incidents
+      .filter((incident) => isIncidentOpenStatus(incident.status))
+      .map((incident) => incident?.sla?.deadline || null)
+      .filter((value) => Boolean(value))
+      .sort((a, b) => String(a).localeCompare(String(b)))[0] || null;
+
+    return {
+      tenantId: normalizedTenantId || null,
+      totals: {
+        incidents: incidents.length,
+        openUnresolved,
+        breachedOpen,
+      },
+      bySeverity,
+      byStatus,
+      bySlaState,
+      nextSlaDeadline,
+      openTop: incidents
+        .filter((incident) => isIncidentOpenStatus(incident.status))
+        .slice(0, 20)
+        .map((incident) => toSafeIncident(incident)),
+      generatedAt: nowIso(),
+    };
+  }
+
   async function ensureTemplateTenant(templateId, tenantId) {
     const template = getRawTemplate(templateId);
     if (!template) return { exists: false, allowed: false, template: null };
@@ -792,6 +992,9 @@ async function createTemplateStore({
     getEvaluation,
     addOwnerAction,
     summarizeRisk,
+    listIncidents,
+    getIncident,
+    summarizeIncidents,
     ensureTemplateTenant,
   };
 }

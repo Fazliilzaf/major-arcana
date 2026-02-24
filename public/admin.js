@@ -2771,6 +2771,72 @@
       return { label: '-', className: 'sla-ok', detail: 'Ingen incident-SLA för denna risknivå.' };
     }
 
+    const providedSla =
+      evaluation?.incidentSla && typeof evaluation.incidentSla === 'object'
+        ? evaluation.incidentSla
+        : evaluation?.sla && typeof evaluation.sla === 'object'
+        ? evaluation.sla
+        : null;
+
+    if (providedSla) {
+      const slaState = String(providedSla.state || '')
+        .trim()
+        .toLowerCase();
+      const remainingMs = Number(providedSla.remainingMs || 0);
+      const targetMinutes = Number(providedSla.targetMinutes || 0);
+      const targetMs = targetMinutes > 0 ? targetMinutes * 60 * 1000 : level >= 5 ? 30 * 60 * 1000 : 4 * 60 * 60 * 1000;
+      const deadlineLabel = formatDateTime(providedSla.deadline);
+      const targetLabel = formatDurationCompact(targetMs);
+
+      if (slaState === 'resolved') {
+        return {
+          label: isEnglishLanguage() ? 'Closed' : 'Stängd',
+          className: 'sla-ok',
+          detail: `${isEnglishLanguage() ? 'Resolved' : 'Löst'} • ${
+            isEnglishLanguage() ? 'Target' : 'Mål'
+          }: ${targetLabel}.`,
+        };
+      }
+      if (slaState === 'breached') {
+        return {
+          label: `${isEnglishLanguage() ? 'Breached' : 'Överskriden'} ${formatDurationCompact(
+            Math.abs(remainingMs)
+          )}`,
+          className: 'sla-breached',
+          detail: `${isEnglishLanguage() ? 'Deadline' : 'Deadline'}: ${deadlineLabel} • ${
+            isEnglishLanguage() ? 'Target' : 'Mål'
+          }: ${targetLabel}.`,
+        };
+      }
+      if (slaState === 'critical') {
+        return {
+          label: `${formatDurationCompact(Math.max(0, remainingMs))} kvar`,
+          className: 'sla-critical',
+          detail: `${isEnglishLanguage() ? 'Critical SLA window' : 'Kritiskt SLA-fönster'} • ${
+            isEnglishLanguage() ? 'Deadline' : 'Deadline'
+          }: ${deadlineLabel}.`,
+        };
+      }
+      if (slaState === 'warn') {
+        return {
+          label: `${formatDurationCompact(Math.max(0, remainingMs))} kvar`,
+          className: 'sla-warn',
+          detail: `${isEnglishLanguage() ? 'Warning SLA window' : 'Varningsfönster för SLA'} • ${
+            isEnglishLanguage() ? 'Deadline' : 'Deadline'
+          }: ${deadlineLabel}.`,
+        };
+      }
+      if (slaState === 'ok') {
+        return {
+          label: `${formatDurationCompact(Math.max(0, remainingMs))} kvar`,
+          className: 'sla-ok',
+          detail: `${isEnglishLanguage() ? 'Within SLA' : 'Inom SLA'} • ${
+            isEnglishLanguage() ? 'Deadline' : 'Deadline'
+          }: ${deadlineLabel}.`,
+        };
+      }
+    }
+
     const targetMs = level >= 5 ? 30 * 60 * 1000 : 4 * 60 * 60 * 1000;
     const ownerDecision = normalizeOwnerDecision(evaluation?.ownerDecision);
     const openedAtMs =
@@ -3080,15 +3146,16 @@
       });
   }
 
-  function renderRiskTable(evaluations) {
+  function renderRiskTable(evaluations, incidentRows = null) {
     saveListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
     saveListScrollPosition('riskIncidentsWrap', els.riskIncidentsWrap);
-    state.riskEvaluations = Array.isArray(evaluations) ? evaluations : [];
-    const displayEvaluations = state.riskEvaluations.filter(
-      (item) => Number(item?.riskLevel || 0) >= 3
-    );
-    const reviews = displayEvaluations.filter((item) => Number(item?.riskLevel || 0) === 3);
-    const incidents = displayEvaluations.filter((item) => Number(item?.riskLevel || 0) >= 4);
+    const sourceRows = Array.isArray(evaluations) ? evaluations : [];
+    const reviews = sourceRows.filter((item) => Number(item?.riskLevel || 0) === 3);
+    const incidents = Array.isArray(incidentRows)
+      ? incidentRows.filter((item) => Number(item?.riskLevel || 0) >= 4)
+      : sourceRows.filter((item) => Number(item?.riskLevel || 0) >= 4);
+    const displayEvaluations = [...reviews, ...incidents];
+    state.riskEvaluations = displayEvaluations;
     const visibleIds = displayEvaluations.map((item) => String(item.id || '')).filter(Boolean);
     state.selectedRiskIds = state.selectedRiskIds.filter((item) => visibleIds.includes(item));
     if (state.selectedRiskEvaluationId && !visibleIds.includes(state.selectedRiskEvaluationId)) {
@@ -3116,6 +3183,7 @@
       const tr = document.createElement('tr');
       tr.classList.add('row-link');
       const evaluationId = String(evaluation.id || '');
+      const incidentId = String(evaluation.incidentId || evaluationId);
       tr.setAttribute('data-eid', evaluationId);
       if (evaluationId && evaluationId === state.selectedRiskEvaluationId) tr.classList.add('risk-row-selected');
       const reasonCodes = Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : [];
@@ -3210,7 +3278,7 @@
       tr.innerHTML = `
         <td><input type="checkbox" class="riskSelectChk" data-eid="${evaluationId}" ${isChecked ? 'checked' : ''} /></td>
         <td><span class="badge sla-chip ${escapeHtml(sla.className)}" title="${escapeHtml(sla.detail)}">${escapeHtml(sla.label)}</span></td>
-        <td class="code">${escapeHtml(evaluation.id || '-')}</td>
+        <td class="code">${escapeHtml(incidentId || '-')}</td>
         <td class="code">${escapeHtml(evaluation.templateId || '-')}<br/>v:${escapeHtml(evaluation.templateVersionId || '-')}</td>
         <td><span class="chip">${escapeHtml(categoryLabel)}</span></td>
         <td class="mini">${escapeHtml(updatedAtLabel)}<br/><span class="muted">${escapeHtml(ageLabel)}</span></td>
@@ -6189,22 +6257,184 @@
     return params.toString();
   }
 
+  function getIncidentStatusHint(filters = {}) {
+    const ownerDecision = String(filters?.ownerDecision || '')
+      .trim()
+      .toLowerCase();
+    const stateFilter = String(filters?.state || '')
+      .trim()
+      .toLowerCase();
+
+    if (ownerDecision === 'pending' || ownerDecision === 'revision_requested') return 'open';
+    if (ownerDecision === 'escalated') return 'escalated';
+    if (ownerDecision === 'approved_exception' || ownerDecision === 'false_positive') return 'resolved';
+    if (stateFilter === 'open') return 'open';
+    return 'all';
+  }
+
+  function getIncidentSeverityHint(filters = {}) {
+    const minRiskLevel = Number(filters?.minRiskLevel || 1);
+    const maxRiskLevel = Number(filters?.maxRiskLevel || 5);
+
+    if (maxRiskLevel < 4) return 'none';
+    if (minRiskLevel >= 5) return 'L5';
+    if (maxRiskLevel <= 4) return 'L4';
+    return '';
+  }
+
+  function getIncidentFilterQuery(filters = {}) {
+    const params = new URLSearchParams();
+    params.set('limit', '200');
+    params.set('status', getIncidentStatusHint(filters));
+
+    const severity = getIncidentSeverityHint(filters);
+    if (severity === 'L4' || severity === 'L5') params.set('severity', severity);
+
+    if (Number.isFinite(filters?.sinceDays) && Number(filters.sinceDays) > 0) {
+      params.set('sinceDays', String(filters.sinceDays));
+    }
+    if (filters?.search) params.set('search', String(filters.search).trim());
+    return params.toString();
+  }
+
+  function toIncidentRiskRow(incident) {
+    if (!incident || typeof incident !== 'object') return null;
+    const sourceEvaluationId = String(incident.sourceEvaluationId || '').trim();
+    const incidentId = String(incident.id || '').trim();
+    const rowId = sourceEvaluationId || incidentId;
+    if (!rowId) return null;
+
+    const severity = String(incident.severity || '').trim().toUpperCase();
+    const riskLevel = Number(
+      incident.riskLevel !== undefined
+        ? incident.riskLevel
+        : severity === 'L5'
+        ? 5
+        : 4
+    );
+
+    return {
+      id: rowId,
+      incidentId: incidentId || rowId,
+      sourceEvaluationId: sourceEvaluationId || rowId,
+      templateId: incident.templateId || '',
+      templateVersionId: incident.templateVersionId || '',
+      category: incident.category || '',
+      riskLevel: Number.isFinite(riskLevel) ? riskLevel : 4,
+      decision: incident.decision || 'blocked',
+      ownerDecision: incident.ownerDecision || 'pending',
+      reasonCodes: Array.isArray(incident.reasonCodes) ? incident.reasonCodes : [],
+      ownerActions: [],
+      ownerActionsCount: Number(incident.ownerActionsCount || 0),
+      evaluatedAt: incident.openedAt || incident.updatedAt || null,
+      updatedAt: incident.updatedAt || incident.openedAt || null,
+      incidentStatus: incident.status || '',
+      incidentSeverity: severity || '',
+      incidentSla: incident.sla && typeof incident.sla === 'object' ? incident.sla : null,
+    };
+  }
+
+  function normalizeIncidentRowsForRiskTable(rawIncidents, filters = {}) {
+    const source = Array.isArray(rawIncidents) ? rawIncidents : [];
+    const minRiskLevel = Math.max(1, Math.min(5, Number(filters?.minRiskLevel || 1)));
+    const maxRiskLevel = Math.max(minRiskLevel, Math.min(5, Number(filters?.maxRiskLevel || 5)));
+    const ownerDecisionFilter = String(filters?.ownerDecision || '')
+      .trim()
+      .toLowerCase();
+    const decisionFilter = String(filters?.decision || '')
+      .trim()
+      .toLowerCase();
+    const categoryFilter = String(filters?.category || '')
+      .trim()
+      .toUpperCase();
+    const stateFilter = String(filters?.state || '')
+      .trim()
+      .toLowerCase();
+    const reasonCodeFilter = String(filters?.reasonCode || '')
+      .trim()
+      .toLowerCase();
+    const searchFilter = String(filters?.search || '')
+      .trim()
+      .toLowerCase();
+
+    const rows = [];
+    for (const incident of source) {
+      const row = toIncidentRiskRow(incident);
+      if (!row) continue;
+
+      if (row.riskLevel < 4) continue;
+      if (row.riskLevel < minRiskLevel || row.riskLevel > maxRiskLevel) continue;
+
+      const normalizedOwnerDecision = String(row.ownerDecision || '').trim().toLowerCase();
+      if (ownerDecisionFilter && normalizedOwnerDecision !== ownerDecisionFilter) continue;
+
+      const normalizedDecision = String(row.decision || '').trim().toLowerCase();
+      if (decisionFilter && normalizedDecision !== decisionFilter) continue;
+
+      const normalizedCategory = String(row.category || '').trim().toUpperCase();
+      if (categoryFilter && normalizedCategory !== categoryFilter) continue;
+
+      const normalizedIncidentStatus = String(row.incidentStatus || '').trim().toLowerCase();
+      if (stateFilter === 'open' && normalizedIncidentStatus !== 'open') continue;
+      if (stateFilter === 'closed' && normalizedIncidentStatus === 'open') continue;
+
+      if (reasonCodeFilter) {
+        const hasReasonCode = (Array.isArray(row.reasonCodes) ? row.reasonCodes : []).some((code) =>
+          String(code || '').toLowerCase().includes(reasonCodeFilter)
+        );
+        if (!hasReasonCode) continue;
+      }
+
+      if (searchFilter) {
+        const haystack = [
+          row.id,
+          row.incidentId,
+          row.sourceEvaluationId,
+          row.templateId,
+          row.templateVersionId,
+          row.category,
+          row.decision,
+          row.ownerDecision,
+          row.incidentStatus,
+          row.incidentSeverity,
+          ...(Array.isArray(row.reasonCodes) ? row.reasonCodes : []),
+        ]
+          .map((part) => String(part || '').toLowerCase())
+          .join(' ');
+        if (!haystack.includes(searchFilter)) continue;
+      }
+
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
   async function loadDashboard() {
     const riskQuery = getRiskFilterQuery();
-    const [dashboard, riskEvaluations, tenantConfig] = await Promise.all([
+    const incidentQuery = getIncidentFilterQuery(state.riskFilters);
+    const [dashboard, riskEvaluations, incidents, tenantConfig] = await Promise.all([
       api('/dashboard/owner?minRiskLevel=1&auditLimit=30'),
       api(`/risk/evaluations?${riskQuery}`),
+      api(`/incidents?${incidentQuery}`),
       api('/tenant-config'),
     ]);
 
     state.tenantId = dashboard.tenantId || state.tenantId;
+    const incidentSummary = dashboard?.incidents?.summary || null;
+    const incidentOpen = Array.isArray(dashboard?.incidents?.open)
+      ? dashboard.incidents.open
+      : [];
 
     setText(els.templatesTotal, dashboard?.templates?.total ?? 0);
     setText(els.templatesActive, dashboard?.templates?.withActiveVersion ?? 0);
     setText(els.riskTotal, dashboard?.riskSummary?.totals?.evaluations ?? 0);
-    setText(els.riskOpen, dashboard?.riskSummary?.totals?.highCriticalOpen ?? 0);
+    setText(
+      els.riskOpen,
+      incidentSummary?.totals?.openUnresolved ?? dashboard?.riskSummary?.totals?.highCriticalOpen ?? 0
+    );
     renderOwnerCoverageKpi(dashboard?.riskSummary || {});
-    renderSlaIndicatorKpi(dashboard?.riskSummary?.highCriticalOpen || []);
+    renderSlaIndicatorKpi(incidentOpen.length ? incidentOpen : dashboard?.riskSummary?.highCriticalOpen || []);
     renderLatestActivity(dashboard?.recentAuditEvents || []);
     renderRiskTrendBars(dashboard?.riskSummary || {});
     renderOverviewNotifications({
@@ -6227,7 +6457,10 @@
     }));
     renderBadges(els.riskBadges, riskBadges);
 
-    renderRiskTable(riskEvaluations?.evaluations || []);
+    const riskRows = Array.isArray(riskEvaluations?.evaluations) ? riskEvaluations.evaluations : [];
+    const reviewRows = riskRows.filter((item) => Number(item?.riskLevel || 0) === 3);
+    const incidentRows = normalizeIncidentRowsForRiskTable(incidents?.incidents || [], state.riskFilters);
+    renderRiskTable(reviewRows, incidentRows);
     fillTenantConfig(tenantConfig?.config || {});
     setStatus(els.tenantConfigStatus, '');
   }
