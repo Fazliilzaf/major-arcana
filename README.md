@@ -97,6 +97,8 @@ ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX=90
 
 ```env
 ARCANA_REPORTS_DIR=./data/reports
+ARCANA_REPORT_RETENTION_MAX_FILES=60
+ARCANA_REPORT_RETENTION_MAX_AGE_DAYS=45
 ARCANA_SCHEDULER_ENABLED=true
 ARCANA_SCHEDULER_REPORT_WINDOW_DAYS=14
 ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS=24
@@ -121,6 +123,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 ```
 
 - Schedulern kör nightly rapport, backup+prune, restore-drill preview och alert-probe.
+- Nightly rapporter (`Pilot_Scheduler_*.json`) prunas automatiskt enligt `ARCANA_REPORT_RETENTION_MAX_FILES`/`ARCANA_REPORT_RETENTION_MAX_AGE_DAYS`.
 - `alert_probe` auto-tilldelar owner på öppna oägda incidents (owner prioriteras, fallback staff).
 - `alert_probe` auto-eskalerar breachade öppna incidents (L4/L5) och skriver audit-event `incidents.auto_escalate`.
 - Om `ARCANA_ALERT_WEBHOOK_URL` är satt skickas webhook-notifieringar för `incidents.auto_assign_owner` och `incidents.auto_escalate`.
@@ -467,6 +470,9 @@ Katalog styrs av:
 - `ARCANA_BACKUP_DIR` (default: `./data/backups`)
 - `ARCANA_BACKUP_RETENTION_MAX_FILES` (default: `50`)
 - `ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS` (default: `30`)
+- `ARCANA_REPORTS_DIR` (default: `./data/reports`)
+- `ARCANA_REPORT_RETENTION_MAX_FILES` (default: `60`, scheduler-genererade rapporter)
+- `ARCANA_REPORT_RETENTION_MAX_AGE_DAYS` (default: `45`, scheduler-genererade rapporter)
 
 ## Auditkedja (append-only + checksum)
 - `AUTH_AUDIT_APPEND_ONLY=true` (default) håller audit-loggen append-only och stoppar trunkering.

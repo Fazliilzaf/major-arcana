@@ -38,6 +38,101 @@ function formatUtcStamp(date = new Date()) {
   ].join('');
 }
 
+function isSchedulerPilotReportFileName(fileName) {
+  return (
+    typeof fileName === 'string' &&
+    fileName.startsWith('Pilot_Scheduler_') &&
+    fileName.endsWith('.json')
+  );
+}
+
+async function pruneSchedulerPilotReports({
+  reportsDir,
+  maxFiles = 60,
+  maxAgeDays = 45,
+  dryRun = false,
+}) {
+  const maxFilesInt = Number.isFinite(Number(maxFiles))
+    ? Math.max(1, Math.min(10000, Number.parseInt(String(maxFiles), 10)))
+    : 60;
+  const maxAgeDaysInt = Number.isFinite(Number(maxAgeDays))
+    ? Math.max(0, Math.min(3650, Number.parseInt(String(maxAgeDays), 10)))
+    : 45;
+
+  await fs.mkdir(reportsDir, { recursive: true });
+  const entries = await fs.readdir(reportsDir, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && isSchedulerPilotReportFileName(entry.name))
+    .map((entry) => entry.name);
+
+  const withStats = [];
+  for (const fileName of files) {
+    const filePath = path.join(reportsDir, fileName);
+    const stat = await fs.stat(filePath);
+    withStats.push({
+      fileName,
+      filePath,
+      sizeBytes: stat.size,
+      mtimeMs: stat.mtimeMs,
+      mtime: stat.mtime.toISOString(),
+    });
+  }
+
+  withStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+  const now = Date.now();
+  const byName = new Map(withStats.map((item) => [item.fileName, item]));
+  const deleteReasonsByFile = new Map();
+
+  if (maxAgeDaysInt > 0) {
+    const maxAgeMs = maxAgeDaysInt * 24 * 60 * 60 * 1000;
+    for (const item of withStats) {
+      if (now - item.mtimeMs > maxAgeMs) {
+        deleteReasonsByFile.set(item.fileName, 'max_age_days');
+      }
+    }
+  }
+
+  const keptAfterAge = withStats.filter((item) => !deleteReasonsByFile.has(item.fileName));
+  if (keptAfterAge.length > maxFilesInt) {
+    const overflow = keptAfterAge.slice(maxFilesInt);
+    for (const item of overflow) {
+      if (!deleteReasonsByFile.has(item.fileName)) {
+        deleteReasonsByFile.set(item.fileName, 'max_files');
+      }
+    }
+  }
+
+  const deleted = [];
+  for (const [fileName, reason] of deleteReasonsByFile.entries()) {
+    const item = byName.get(fileName);
+    if (!item) continue;
+    if (!dryRun) {
+      await fs.unlink(item.filePath);
+    }
+    deleted.push({
+      fileName: item.fileName,
+      filePath: item.filePath,
+      sizeBytes: item.sizeBytes,
+      mtime: item.mtime,
+      reason,
+    });
+  }
+
+  deleted.sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)));
+  return {
+    dryRun: Boolean(dryRun),
+    scannedCount: withStats.length,
+    deletedCount: deleted.length,
+    keptCount: withStats.length - deleted.length,
+    settings: {
+      maxFiles: maxFilesInt,
+      maxAgeDays: maxAgeDaysInt,
+    },
+    deleted,
+  };
+}
+
 function sanitizeError(error) {
   if (!error) return 'unknown_error';
   if (typeof error === 'string') return error;
@@ -173,16 +268,30 @@ function createScheduler({
     const fileName = `Pilot_Scheduler_${report.windowDays}d_${formatUtcStamp()}.json`;
     const filePath = path.join(reportsDir, fileName);
     await fs.writeFile(filePath, JSON.stringify(report, null, 2), 'utf8');
+    const fileStat = await fs.stat(filePath);
+
+    const prune = await pruneSchedulerPilotReports({
+      reportsDir,
+      maxFiles: config.reportRetentionMaxFiles,
+      maxAgeDays: config.reportRetentionMaxAgeDays,
+      dryRun: false,
+    });
 
     return {
       tenantId: report.tenantId,
       fileName,
       filePath,
+      fileSizeBytes: fileStat.size,
       windowDays: report.windowDays,
       templatesTotal: Number(report?.kpis?.templatesTotal || 0),
       evaluationsTotal: Number(report?.kpis?.evaluationsTotal || 0),
       highCriticalTotal: Number(report?.kpis?.highCriticalTotal || 0),
       ownerDecisionPending: Number(report?.kpis?.ownerDecisionPending || 0),
+      pruneDeletedCount: Number(prune?.deletedCount || 0),
+      pruneKeptCount: Number(prune?.keptCount || 0),
+      pruneScannedCount: Number(prune?.scannedCount || 0),
+      retentionMaxFiles: Number(prune?.settings?.maxFiles || 0),
+      retentionMaxAgeDays: Number(prune?.settings?.maxAgeDays || 0),
     };
   }
 
