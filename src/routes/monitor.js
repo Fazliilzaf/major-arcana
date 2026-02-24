@@ -19,6 +19,128 @@ const READINESS_BANDS = Object.freeze({
 });
 const OWNER_DECISIONS_ALLOW_ACTIVATION = new Set(['approved_exception', 'false_positive']);
 const DECISIONS_REQUIRING_OWNER_OVERRIDE = new Set(['review_required', 'blocked']);
+const REMEDIATION_PRIORITY_ORDER = Object.freeze({
+  P0: 0,
+  P1: 1,
+  P2: 2,
+  P3: 3,
+});
+const REMEDIATION_GUIDANCE_BY_NOGO = Object.freeze({
+  output_without_risk_policy_gate: {
+    owner: 'release_owner',
+    playbook: 'Verifiera att alla aktiva versioner har output-risk + policy metadata före aktivering.',
+  },
+  policy_floor_bypass: {
+    owner: 'risk_owner',
+    playbook: 'Stoppa aktiveringar som bryter policy floor och kör om risk-evaluering.',
+  },
+  l5_without_manual_intervention: {
+    owner: 'owner',
+    playbook: 'Kräv owner action (approve_exception/mark_false_positive) innan L5 aktiveras.',
+  },
+  restore_drill_unverified_30d: {
+    owner: 'ops_owner',
+    playbook: 'Kör restore_drill_preview och verifiera success i scheduler + audit.',
+  },
+  audit_chain_not_immutable: {
+    owner: 'security_owner',
+    playbook: 'Aktivera append-only audit och fixa hash-chain integrity-fel.',
+  },
+  tenant_isolation_unverified: {
+    owner: 'security_owner',
+    playbook: 'Kör tenant access-check regelbundet och verifiera i audit-loggen.',
+  },
+});
+const REMEDIATION_GUIDANCE_BY_CHECK = Object.freeze({
+  owner_mfa_enforced: {
+    owner: 'security_owner',
+    playbook: 'Sätt MFA required/configured för samtliga aktiva OWNER-konton.',
+  },
+  cors_strict: {
+    owner: 'platform_owner',
+    playbook: 'Sätt strict CORS med explicit allowlist och blockera no-origin.',
+  },
+  rate_limits_configured: {
+    owner: 'platform_owner',
+    playbook: 'Sätt alla auth/api/risk/public rate limits till > 0 i config.',
+  },
+  audit_append_only: {
+    owner: 'security_owner',
+    playbook: 'Sätt AUTH_AUDIT_APPEND_ONLY=true i runtime-konfigurationen.',
+  },
+  audit_integrity: {
+    owner: 'security_owner',
+    playbook: 'Kör audit integrity-check och reparera kedjebrott innan go-live.',
+  },
+  secrets_rotation: {
+    owner: 'security_owner',
+    playbook: 'Rotera stale required secrets och ta ned pending rotation till 0.',
+  },
+  incident_model_available: {
+    owner: 'ops_owner',
+    playbook: 'Säkerställ incidents API/store är aktiverat för tenant.',
+  },
+  high_critical_incident_link: {
+    owner: 'risk_owner',
+    playbook: 'Skapa incidents för alla high/critical risk-fall.',
+  },
+  open_incidents_owned: {
+    owner: 'ops_owner',
+    playbook: 'Tilldela owner på samtliga öppna incidents.',
+  },
+  sla_breach_control: {
+    owner: 'ops_owner',
+    playbook: 'Minska breached incidents via prioriterad triage och eskalering.',
+  },
+  auto_escalation_evidence: {
+    owner: 'ops_owner',
+    playbook: 'Verifiera alert_probe/auto escalation senaste 30 dagar.',
+  },
+  auto_assignment_evidence: {
+    owner: 'ops_owner',
+    playbook: 'Verifiera alert_probe auto owner assignment senaste 30 dagar.',
+  },
+  scheduler_enabled_started: {
+    owner: 'ops_owner',
+    playbook: 'Starta scheduler och verifiera enabled=true + started=true.',
+  },
+  scheduler_required_jobs_enabled: {
+    owner: 'ops_owner',
+    playbook: 'Aktivera nightly_pilot_report, backup_prune, restore_drill_preview och alert_probe.',
+  },
+  scheduler_job_freshness: {
+    owner: 'ops_owner',
+    playbook: 'Kör/övervaka scheduler-jobb tills freshness är inom target.',
+  },
+  restore_drill_30d: {
+    owner: 'ops_owner',
+    playbook: 'Kör restore drill och säkerställ success <= 30 dagar.',
+  },
+  gold_set_coverage: {
+    owner: 'risk_owner',
+    playbook: 'Öka gold-set till minst 150 cases.',
+  },
+  band_accuracy: {
+    owner: 'risk_owner',
+    playbook: 'Kalibrera riskregler/modifier tills band accuracy >= 95%.',
+  },
+  level_accuracy: {
+    owner: 'risk_owner',
+    playbook: 'Kalibrera riskregler/modifier tills level accuracy >= 90%.',
+  },
+  threshold_versioning: {
+    owner: 'risk_owner',
+    playbook: 'Säkerställ threshold version/history är aktiv och spårbar.',
+  },
+  owner_governed_calibration: {
+    owner: 'risk_owner',
+    playbook: 'Kör owner-godkänd calibration update med actorUserId i audit.',
+  },
+  policy_floor_loaded: {
+    owner: 'risk_owner',
+    playbook: 'Ladda policy floor-definition med minst en aktiv regel.',
+  },
+});
 
 function toIso(value) {
   if (!value) return null;
@@ -315,6 +437,123 @@ function buildPolicyRuleFloorMap(policyRules = []) {
     map.set(id, floor);
   }
   return map;
+}
+
+function remediationPriorityRank(priority) {
+  const normalized = normalizeText(priority).toUpperCase();
+  if (Object.prototype.hasOwnProperty.call(REMEDIATION_PRIORITY_ORDER, normalized)) {
+    return REMEDIATION_PRIORITY_ORDER[normalized];
+  }
+  return 99;
+}
+
+function remediationPriorityFromCheck(check) {
+  const status = normalizeStatus(check?.status);
+  const required = Boolean(check?.required);
+  if (status === 'red') return required ? 'P1' : 'P2';
+  if (status === 'unknown') return required ? 'P1' : 'P2';
+  if (status === 'yellow') return required ? 'P2' : 'P3';
+  return 'P3';
+}
+
+function buildReadinessRemediation({
+  categories = [],
+  noGoTriggers = [],
+  score = 0,
+  band = '',
+  goAllowed = false,
+  nowIso = new Date().toISOString(),
+} = {}) {
+  const actions = [];
+  const seenIds = new Set();
+
+  for (const trigger of Array.isArray(noGoTriggers) ? noGoTriggers : []) {
+    if (normalizeText(trigger?.status).toLowerCase() !== 'triggered') continue;
+    const triggerId = normalizeText(trigger?.id);
+    if (!triggerId) continue;
+    const actionId = `nogo:${triggerId}`;
+    if (seenIds.has(actionId)) continue;
+    seenIds.add(actionId);
+
+    const guidance = REMEDIATION_GUIDANCE_BY_NOGO[triggerId] || {};
+    actions.push({
+      id: actionId,
+      priority: 'P0',
+      source: 'no_go_trigger',
+      owner: normalizeText(guidance.owner) || 'owner',
+      title: normalizeText(trigger?.label) || triggerId,
+      playbook: normalizeText(guidance.playbook) || null,
+      currentState: 'triggered',
+      targetState: 'clear',
+      evidence: normalizeText(trigger?.evidence) || null,
+      required: true,
+      relatedId: triggerId,
+    });
+  }
+
+  for (const category of Array.isArray(categories) ? categories : []) {
+    const categoryId = normalizeText(category?.id);
+    const categoryLabel = normalizeText(category?.label) || categoryId || null;
+    const checks = Array.isArray(category?.checks) ? category.checks : [];
+    for (const check of checks) {
+      const checkStatus = normalizeStatus(check?.status);
+      if (checkStatus === 'green') continue;
+      const checkId = normalizeText(check?.id);
+      if (!checkId) continue;
+      const actionId = `check:${categoryId}:${checkId}`;
+      if (seenIds.has(actionId)) continue;
+      seenIds.add(actionId);
+
+      const priority = remediationPriorityFromCheck(check);
+      const guidance = REMEDIATION_GUIDANCE_BY_CHECK[checkId] || {};
+      actions.push({
+        id: actionId,
+        priority,
+        source: 'category_check',
+        owner: normalizeText(guidance.owner) || 'owner',
+        title: normalizeText(check?.label) || checkId,
+        playbook: normalizeText(guidance.playbook) || null,
+        currentState: checkStatus,
+        targetState: 'green',
+        evidence: normalizeText(check?.evidence) || null,
+        target: normalizeText(check?.target) || null,
+        required: Boolean(check?.required),
+        relatedId: checkId,
+        categoryId: categoryId || null,
+        categoryLabel,
+      });
+    }
+  }
+
+  actions.sort((a, b) => {
+    const byPriority = remediationPriorityRank(a.priority) - remediationPriorityRank(b.priority);
+    if (byPriority !== 0) return byPriority;
+    const byRequired = Number(Boolean(b.required)) - Number(Boolean(a.required));
+    if (byRequired !== 0) return byRequired;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+
+  const byPriority = { P0: 0, P1: 0, P2: 0, P3: 0 };
+  for (const action of actions) {
+    const key = normalizeText(action?.priority).toUpperCase();
+    if (Object.prototype.hasOwnProperty.call(byPriority, key)) {
+      byPriority[key] += 1;
+    }
+  }
+
+  return {
+    generatedAt: nowIso,
+    readinessBand: normalizeText(band) || null,
+    readinessScore: Number(score || 0),
+    goAllowed: Boolean(goAllowed),
+    summary: {
+      total: actions.length,
+      byPriority,
+      criticalPath: byPriority.P0,
+    },
+    nextActions: actions.slice(0, 8),
+    actions,
+  };
 }
 
 function createMonitorRouter({
@@ -1424,6 +1663,13 @@ function createMonitorRouter({
         const triggeredNoGo = noGoTriggers.filter((item) => item.status === 'triggered');
         const goAllowed =
           band === 'controlled_go' && blockersAllGreen && triggeredNoGo.length === 0;
+        const remediation = buildReadinessRemediation({
+          categories,
+          noGoTriggers,
+          score,
+          band,
+          goAllowed,
+        });
 
         await authStore.addAuditEvent({
           tenantId,
@@ -1438,6 +1684,8 @@ function createMonitorRouter({
             goAllowed,
             blockersAllGreen,
             triggeredNoGo: triggeredNoGo.length,
+            remediationTotal: Number(remediation?.summary?.total || 0),
+            remediationP0: Number(remediation?.summary?.byPriority?.P0 || 0),
           },
         });
 
@@ -1460,6 +1708,7 @@ function createMonitorRouter({
           },
           categories,
           noGoTriggers,
+          remediation,
           evidence: {
             restoreDrill: {
               maxAgeDays: restoreDrillGate.maxAgeDays,

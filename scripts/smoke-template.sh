@@ -350,6 +350,10 @@ READINESS_BAND="$(printf '%s' "$READINESS_RESPONSE" | json_get band 2>/dev/null 
 READINESS_CATEGORIES_COUNT="$(printf '%s' "$READINESS_RESPONSE" | json_get categories | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
 READINESS_NOGO_COUNT="$(printf '%s' "$READINESS_RESPONSE" | json_get noGoTriggers | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
 READINESS_NOGO_UNKNOWN="$(printf '%s' "$READINESS_RESPONSE" | json_get noGoTriggers | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const c=Array.isArray(d)?d.filter((item)=>String(item?.status||'').toLowerCase()==='unknown').length:0; process.stdout.write(String(c));")"
+READINESS_TRIGGERED_NOGO_COUNT="$(printf '%s' "$READINESS_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const v=Number(d?.goNoGo?.triggeredNoGoCount||0); process.stdout.write(String(Number.isFinite(v)?Math.max(0,Math.trunc(v)):0));")"
+READINESS_REMEDIATION_TOTAL="$(printf '%s' "$READINESS_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const v=Number(d?.remediation?.summary?.total||0); process.stdout.write(String(Number.isFinite(v)?Math.max(0,Math.trunc(v)):0));")"
+READINESS_REMEDIATION_ACTIONS="$(printf '%s' "$READINESS_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d?.remediation?.actions)?d.remediation.actions.length:0));")"
+READINESS_REMEDIATION_P0="$(printf '%s' "$READINESS_RESPONSE" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const v=Number(d?.remediation?.summary?.byPriority?.P0||0); process.stdout.write(String(Number.isFinite(v)?Math.max(0,Math.trunc(v)):0));")"
 if [[ -z "$READINESS_SCORE" || "$READINESS_SCORE" == "null" || "$READINESS_CATEGORIES_COUNT" -lt 4 || "$READINESS_NOGO_COUNT" -lt 6 ]]; then
   echo "❌ monitor/readiness saknar score eller kategorier"
   printf '%s\n' "$READINESS_RESPONSE"
@@ -360,7 +364,24 @@ if [[ "$READINESS_NOGO_UNKNOWN" -ne 0 ]]; then
   printf '%s\n' "$READINESS_RESPONSE"
   exit 1
 fi
-echo "✅ monitor/readiness OK (score: ${READINESS_SCORE}, band: ${READINESS_BAND}, categories: ${READINESS_CATEGORIES_COUNT}, noGo: ${READINESS_NOGO_COUNT})"
+if [[ "$READINESS_REMEDIATION_ACTIONS" -lt "$READINESS_REMEDIATION_TOTAL" ]]; then
+  echo "❌ monitor/readiness remediation summary/actions är inkonsistenta"
+  printf '%s\n' "$READINESS_RESPONSE"
+  exit 1
+fi
+if [[ "$READINESS_BAND" != "controlled_go" || "$READINESS_TRIGGERED_NOGO_COUNT" -gt 0 ]]; then
+  if [[ "$READINESS_REMEDIATION_TOTAL" -lt 1 ]]; then
+    echo "❌ monitor/readiness saknar remediation-actions trots att readiness inte är green-go"
+    printf '%s\n' "$READINESS_RESPONSE"
+    exit 1
+  fi
+fi
+if [[ "$READINESS_TRIGGERED_NOGO_COUNT" -gt 0 && "$READINESS_REMEDIATION_P0" -lt 1 ]]; then
+  echo "❌ monitor/readiness saknar P0-remediation trots triggered no-go"
+  printf '%s\n' "$READINESS_RESPONSE"
+  exit 1
+fi
+echo "✅ monitor/readiness OK (score: ${READINESS_SCORE}, band: ${READINESS_BAND}, categories: ${READINESS_CATEGORIES_COUNT}, noGo: ${READINESS_NOGO_COUNT}, remediation: ${READINESS_REMEDIATION_TOTAL})"
 
 if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   OPS_MANIFEST_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/state/manifest" \
