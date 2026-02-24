@@ -355,6 +355,46 @@ async function createTemplateStore({
     return toSafeTemplate(template, { includeVersions });
   }
 
+  async function listActiveVersionSnapshots({
+    tenantId,
+  } = {}) {
+    const normalizedTenantId = normalizeTenantId(tenantId);
+    const items = [];
+
+    for (const template of Object.values(state.templates)) {
+      if (normalizedTenantId && template.tenantId !== normalizedTenantId) continue;
+
+      const versionsMap =
+        template && template.versions && typeof template.versions === 'object'
+          ? template.versions
+          : {};
+      const activeVersionId = normalizeText(template.currentActiveVersionId);
+      let activeVersion = activeVersionId ? versionsMap[activeVersionId] || null : null;
+
+      if (!activeVersion) {
+        activeVersion =
+          Object.values(versionsMap).find(
+            (version) => normalizeText(version?.state).toLowerCase() === 'active'
+          ) || null;
+      }
+      if (!activeVersion) continue;
+
+      items.push({
+        templateId: template.id,
+        templateName: template.name || null,
+        category: template.category || null,
+        versionId: activeVersion.id,
+        versionNo: Number(activeVersion.versionNo || 0),
+        risk: activeVersion.risk || null,
+        activatedAt: activeVersion.activatedAt || null,
+        updatedAt: activeVersion.updatedAt || null,
+      });
+    }
+
+    items.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+    return items;
+  }
+
   async function listTemplateVersions(templateId) {
     const template = getRawTemplate(templateId);
     if (!template) return null;
@@ -1158,6 +1198,7 @@ async function createTemplateStore({
     createTemplate,
     listTemplates,
     getTemplate,
+    listActiveVersionSnapshots,
     listTemplateVersions,
     getTemplateVersion,
     createDraftVersion,

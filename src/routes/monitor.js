@@ -751,6 +751,8 @@ function createMonitorRouter({
         const nowMs = Date.now();
         const supportsIncidents = typeof templateStore?.summarizeIncidents === 'function';
         const supportsListIncidents = typeof templateStore?.listIncidents === 'function';
+        const supportsActiveVersionSnapshots =
+          typeof templateStore?.listActiveVersionSnapshots === 'function';
         const schedulerStatus =
           scheduler && typeof scheduler.getStatus === 'function'
             ? scheduler.getStatus()
@@ -766,7 +768,7 @@ function createMonitorRouter({
           latestRestoreDrillAudit,
           tenantConfig,
           secretRotationStatus,
-          templatesWithVersions,
+          activeVersionSource,
         ] = await Promise.all([
           authStore.listTenantMembers(tenantId),
           authStore.listAuditEvents({ tenantId, limit: 500 }),
@@ -789,7 +791,9 @@ function createMonitorRouter({
                 maxAgeDays: parseDays(config?.secretRotationMaxAgeDays, 90),
               })
             : Promise.resolve(null),
-          templateStore.listTemplates({ tenantId, includeVersions: true }),
+          supportsActiveVersionSnapshots
+            ? templateStore.listActiveVersionSnapshots({ tenantId })
+            : templateStore.listTemplates({ tenantId, includeVersions: true }),
         ]);
 
         const restoreDrillGate = buildRestoreDrillGate({
@@ -884,7 +888,18 @@ function createMonitorRouter({
         const riskDatasetCases = Number(riskPrecision?.dataset?.count || 0);
         const bandAccuracyPercent = Number(riskPrecision?.report?.totals?.bandAccuracyPercent || 0);
         const levelAccuracyPercent = Number(riskPrecision?.report?.totals?.levelAccuracyPercent || 0);
-        const activeTemplateVersions = collectActiveTemplateVersions(templatesWithVersions);
+        const activeTemplateVersions = supportsActiveVersionSnapshots
+          ? (Array.isArray(activeVersionSource) ? activeVersionSource : []).map((item) => ({
+              templateId: normalizeText(item?.templateId),
+              templateName: normalizeText(item?.templateName) || null,
+              category: normalizeText(item?.category) || null,
+              versionId: normalizeText(item?.versionId),
+              versionNo: Number(item?.versionNo || 0),
+              risk: item?.risk || null,
+              activatedAt: toIso(item?.activatedAt),
+              updatedAt: toIso(item?.updatedAt),
+            }))
+          : collectActiveTemplateVersions(activeVersionSource);
         const policyRuleFloorMap = buildPolicyRuleFloorMap(policyRules);
 
         const outputGateViolations = [];
