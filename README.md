@@ -251,6 +251,9 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - För kompakt readiness i rapport: `npm run report:pilot -- --readiness-mode compact` (default: `full`).
 - Valfritt: `npm run report:pilot -- --days 30`
+- Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
+- Förhandsvisa report-prune: `npm run report:scheduler:prune`
+- Kör report-prune: `npm run report:scheduler:prune:apply`
 
 Tips:
 - Om `mail/insights` visar `ready:false` saknas ingestad maildata för tenant (det är okej tills ni kör ingest).
