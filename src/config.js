@@ -160,6 +160,8 @@ const config = {
     process.env.ARCANA_REPORTS_DIR,
     path.join(process.cwd(), 'data', 'reports')
   ),
+  reportRetentionMaxFiles: asInt(process.env.ARCANA_REPORT_RETENTION_MAX_FILES, 60),
+  reportRetentionMaxAgeDays: asInt(process.env.ARCANA_REPORT_RETENTION_MAX_AGE_DAYS, 45),
 
   schedulerEnabled: asBool(process.env.ARCANA_SCHEDULER_ENABLED, true),
   schedulerReportWindowDays: asInt(process.env.ARCANA_SCHEDULER_REPORT_WINDOW_DAYS, 14),

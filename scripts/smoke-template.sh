@@ -485,6 +485,30 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
     exit 1
   fi
 
+  OPS_SCHED_REPORT_RUN_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jobId":"nightly_pilot_report"}')"
+  OPS_SCHED_REPORT_RUN_OK="$(printf '%s' "$OPS_SCHED_REPORT_RUN_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_SCHED_REPORT_RUN_ERROR="$(printf '%s' "$OPS_SCHED_REPORT_RUN_RESPONSE" | json_get error 2>/dev/null || true)"
+  if [[ "$OPS_SCHED_REPORT_RUN_OK" == "true" ]]; then
+    OPS_SCHED_REPORT_RUN_JOB="$(printf '%s' "$OPS_SCHED_REPORT_RUN_RESPONSE" | json_get jobId)"
+    OPS_SCHED_REPORT_FILE="$(printf '%s' "$OPS_SCHED_REPORT_RUN_RESPONSE" | json_get result.fileName 2>/dev/null || true)"
+    OPS_SCHED_REPORT_PRUNE_DELETED="$(printf '%s' "$OPS_SCHED_REPORT_RUN_RESPONSE" | json_get result.pruneDeletedCount 2>/dev/null || true)"
+    if [[ -z "$OPS_SCHED_REPORT_FILE" || -z "$OPS_SCHED_REPORT_PRUNE_DELETED" ]]; then
+      echo "❌ ops/scheduler/run nightly_pilot_report saknar expected report/prune-fält"
+      printf '%s\n' "$OPS_SCHED_REPORT_RUN_RESPONSE"
+      exit 1
+    fi
+    echo "✅ ops/scheduler/run nightly_pilot_report OK (job: ${OPS_SCHED_REPORT_RUN_JOB}, file: ${OPS_SCHED_REPORT_FILE}, pruneDeleted: ${OPS_SCHED_REPORT_PRUNE_DELETED})"
+  elif [[ "$OPS_SCHED_REPORT_RUN_ERROR" == "disabled_job" || "$OPS_SCHED_REPORT_RUN_ERROR" == "job_running" ]]; then
+    echo "ℹ️ ops/scheduler/run nightly_pilot_report SKIP (${OPS_SCHED_REPORT_RUN_ERROR})"
+  else
+    echo "❌ ops/scheduler/run nightly_pilot_report misslyckades"
+    printf '%s\n' "$OPS_SCHED_REPORT_RUN_RESPONSE"
+    exit 1
+  fi
+
   OPS_SCHED_RESTORE_RUN_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
