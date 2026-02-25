@@ -274,7 +274,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - Guard kör även CORS runtime-probe när `cors_strict` är med i check-listan och `cors_strict=green` (tillåten origin måste få ACAO-header, otillåten origin måste blockeras utan ACAO-header).
   - Vid `owner_mfa_enforced` visar guard även vilka aktiva OWNER-konton som saknar `mfaRequired/mfaConfigured` (från `/api/v1/users/staff`).
   - Vid `cors_strict` visar guard även `corsStrictEnv` (rekommenderad env-rad för strict CORS).
-  - Guard kan skriva JSON-rapport för automation: `--report-file /tmp/readiness-guard.json` (eller `ARCANA_PREFLIGHT_READINESS_REPORT_FILE`).
+  - Guard kan skriva JSON-rapport för automation: `--report-file /tmp/readiness-guard.json` (eller `ARCANA_PREFLIGHT_READINESS_REPORT_FILE`), inkl. `recommendations.corsStrictEnv` när `cors_strict` blockerar.
   - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_USE_REQUIRED_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`, `ARCANA_PREFLIGHT_READINESS_CORS_RUNTIME_PROBE`, `ARCANA_PREFLIGHT_READINESS_CORS_PROBE_PATH`, `ARCANA_PREFLIGHT_READINESS_REPORT_FILE`
   - CLI-flaggor: `--use-required-checks`, `--no-use-required-checks`, `--cors-runtime-probe`, `--no-cors-runtime-probe`, `--cors-probe-path /healthz`, `--report-file /tmp/readiness-guard.json`
   - Styr OWNER-gap listing: `ARCANA_PREFLIGHT_READINESS_SHOW_OWNER_MFA_GAPS=true|false`

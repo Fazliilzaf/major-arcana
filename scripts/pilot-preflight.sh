@@ -46,6 +46,43 @@ process.exit(nonHealable.length === 0 ? 0 : 2);
 NODE
 }
 
+extract_guard_cors_env_recommendation() {
+  local report_file="$1"
+  node - "$report_file" <<'NODE'
+const fs = require('node:fs');
+const reportFile = process.argv[2];
+let payload = {};
+try {
+  payload = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+} catch {
+  process.exit(0);
+}
+const direct = String(payload?.recommendations?.corsStrictEnv || '').trim();
+if (direct) {
+  process.stdout.write(direct);
+  process.exit(0);
+}
+const failures = Array.isArray(payload?.failures) ? payload.failures : [];
+const corsFailure =
+  failures.find((item) => String(item?.checkId || '').trim() === 'cors_strict') || null;
+if (!corsFailure || typeof corsFailure.value !== 'object' || Array.isArray(corsFailure.value)) {
+  process.exit(0);
+}
+const origins = [];
+for (const origin of Array.isArray(corsFailure.value.effectiveOrigins)
+  ? corsFailure.value.effectiveOrigins
+  : []) {
+  const normalized = String(origin || '').trim().replace(/\/+$/, '').toLowerCase();
+  if (!normalized || origins.includes(normalized)) continue;
+  origins.push(normalized);
+}
+if (origins.length === 0) process.exit(0);
+process.stdout.write(
+  `CORS_STRICT=true CORS_ALLOW_NO_ORIGIN=false CORS_ALLOWED_ORIGINS=${origins.join(',')}`
+);
+NODE
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --public-url)
@@ -154,6 +191,10 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
         else
           echo "❌ Public readiness guard blocker innehåller ej-healbar check. Avbryter före ${OPS_STRICT_SCRIPT}."
           echo "   ${GUARD_CLASSIFICATION_OUTPUT}"
+          CORS_ENV_RECOMMENDATION="$(extract_guard_cors_env_recommendation "$GUARD_REPORT_FILE" || true)"
+          if [[ -n "$CORS_ENV_RECOMMENDATION" ]]; then
+            echo "   Rekommenderad CORS runtime-env: ${CORS_ENV_RECOMMENDATION}"
+          fi
           echo "   Sätt ARCANA_PREFLIGHT_FORCE_OPS_ON_GUARD_FAIL=true för att tvinga fortsatt körning."
           exit "$GUARD_EXIT_CODE"
         fi

@@ -726,6 +726,15 @@ async function main() {
     }
   }
 
+  const corsStrictFailure =
+    failures.find((item) => normalizeText(item?.checkId) === 'cors_strict') || null;
+  const corsStrictRecommendation = corsStrictFailure
+    ? buildCorsStrictEnvRecommendation({
+        baseUrl,
+        corsValue: corsStrictFailure.value,
+      })
+    : null;
+
   const goAllowed = readiness?.goNoGo?.allowed === true ? 'yes' : 'no';
   const band = normalizeText(readiness?.band) || '-';
   const score = Number(readiness?.score || 0);
@@ -752,6 +761,12 @@ async function main() {
     failedCheckIds: Array.from(failedCheckIds),
     corsRuntimeProbe,
     ownerMfaGapReport: ownerGapReport,
+    recommendations: {
+      corsStrictEnv: corsStrictRecommendation?.envLine || null,
+      corsStrictOrigins: Array.isArray(corsStrictRecommendation?.origins)
+        ? corsStrictRecommendation.origins
+        : [],
+    },
     outcome: failures.length > 0 ? 'blocked' : 'passed',
   };
   let reportFilePath = null;
