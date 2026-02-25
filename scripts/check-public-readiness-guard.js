@@ -44,6 +44,7 @@ function toValuePreview(value, maxLen = 220) {
 const CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: [
     'Kör owner-setup per konto: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup',
+    'Emergency fallback (disable icke-MFA OWNER där minst en compliant OWNER finns): BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply',
     'Verifiera sedan igen: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard',
   ],
   cors_strict: [

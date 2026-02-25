@@ -54,7 +54,7 @@ const BLOCKER_CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: {
     owner: 'security_owner',
     playbook:
-      'Run owner:mfa:setup for each active OWNER account and confirm check turns green.',
+      'Run owner:mfa:setup for each active OWNER account; fallback: owner:mfa:remediate -- --apply where at least one compliant OWNER remains.',
   },
   cors_strict: {
     owner: 'platform_owner',
