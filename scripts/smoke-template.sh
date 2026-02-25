@@ -537,6 +537,17 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   fi
   echo "✅ ops/reports/prune preview OK (deleted: ${OPS_REPORTS_PRUNE_PREVIEW_COUNT})"
 
+  MONITOR_AFTER_REPORT_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/status" \
+    -H "Authorization: Bearer $TOKEN")"
+  MONITOR_AFTER_REPORT_HEALTHY="$(printf '%s' "$MONITOR_AFTER_REPORT_RESPONSE" | json_get gates.pilotReport.healthy 2>/dev/null || true)"
+  MONITOR_AFTER_REPORT_NOGO="$(printf '%s' "$MONITOR_AFTER_REPORT_RESPONSE" | json_get gates.pilotReport.noGo 2>/dev/null || true)"
+  if [[ "$MONITOR_AFTER_REPORT_HEALTHY" != "true" || "$MONITOR_AFTER_REPORT_NOGO" != "false" ]]; then
+    echo "❌ monitor/status pilot-report gate uppdaterades inte efter nightly_pilot_report"
+    printf '%s\n' "$MONITOR_AFTER_REPORT_RESPONSE"
+    exit 1
+  fi
+  echo "✅ monitor/status pilot-report gate OK efter nightly_pilot_report"
+
   OPS_SCHED_RESTORE_RUN_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \

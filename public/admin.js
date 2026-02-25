@@ -6221,9 +6221,12 @@
       const band = readinessResponse?.band || '-';
       const remediationTotal = Number(readinessResponse?.remediation?.summary?.total || 0);
       const p0 = Number(readinessResponse?.remediation?.summary?.byPriority?.P0 || 0);
+      const pilotReportHealthy = statusResponse?.gates?.pilotReport?.healthy === true ? 'yes' : 'no';
+      const pilotReportAgeHours =
+        statusResponse?.gates?.pilotReport?.ageHours ?? statusResponse?.kpis?.pilotReportAgeHours ?? '-';
       setStatus(
         els.monitorPanelStatus,
-        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, remediation=${remediationTotal}, P0=${p0}`
+        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, remediation=${remediationTotal}, P0=${p0}, pilotReportHealthy=${pilotReportHealthy}, pilotReportAgeHours=${pilotReportAgeHours}`
       );
     } catch (error) {
       renderReadinessKpi(null);

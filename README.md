@@ -115,6 +115,7 @@ ARCANA_ALERT_WEBHOOK_TIMEOUT_MS=4000
 ARCANA_SECRET_ROTATION_STORE_PATH=./data/secret-rotation.json
 ARCANA_SECRET_ROTATION_MAX_AGE_DAYS=90
 ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS=30
+ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS=36
 ARCANA_METRICS_MAX_SAMPLES=5000
 ARCANA_METRICS_SLOW_REQUEST_MS=1500
 ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
@@ -131,6 +132,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - Secret rotation metadata för provider/webhook-nycklar lagras i `ARCANA_SECRET_ROTATION_STORE_PATH` (fingerprints + versioner, aldrig råa hemligheter).
 - Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
 - `monitor/status` exponerar även `gates.restoreDrill` (`healthy`/`noGo`) baserat på senaste lyckade `restore_drill_preview` i audit-loggen (persist över restart) och max-age (`ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS`).
+- `monitor/status` exponerar även `gates.pilotReport` (`healthy`/`noGo`) baserat på senaste lyckade `nightly_pilot_report` + senaste scheduler-rapportfil och max-age (`ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS`).
 
 `POST /api/v1/auth/change-password` har nu global invalidation som default:
 - revokerar alla user-sessioner (alla tenants) vid lösenordsbyte
@@ -168,9 +170,9 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `PATCH /api/v1/users/staff/:membershipId` (OWNER)
 - `GET /api/v1/monitor/status` (OWNER/STAFF)
 - `GET /api/v1/monitor/metrics` (OWNER/STAFF)
-- `GET /api/v1/monitor/slo` (OWNER/STAFF, availability + incident response + restore recency)
+- `GET /api/v1/monitor/slo` (OWNER/STAFF, availability + incident response + restore recency + pilot report recency)
 - `GET /api/v1/monitor/readiness` (OWNER/STAFF, Go/No-Go score + blocker-matris)
-  - inkluderar deterministiska no-go checks för output risk/policy-gate, policy-floor bypass och L5 manual intervention
+  - inkluderar deterministiska no-go checks för output risk/policy-gate, policy-floor bypass, L5 manual intervention, restore drill och nightly pilot report recency
   - inkluderar även `remediation` med prioriterad action-lista (P0-P3) och uppskattad score-impact för att nå `controlled_go`
 - `GET /api/v1/ops/state/manifest` (OWNER)
 - `GET /api/v1/ops/state/backups` (OWNER)
