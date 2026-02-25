@@ -147,6 +147,38 @@ function buildActions(report) {
       details: 'Använd endast när minst en compliant OWNER finns kvar.',
       source: 'guard',
     });
+    pushAction(actions, {
+      id: 'owner_mfa_bootstrap_recovery',
+      priority: 'P1',
+      title: 'Recovery: reset OWNER MFA via bootstrap',
+      command:
+        `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup -- --show-recovery-codes`,
+      details:
+        'Om du saknar MFA-kod/secret/recovery: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i runtime env, deploya en gång, kör kommandot ovan och sätt sedan tillbaka ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false.',
+      source: 'guard',
+    });
+  }
+
+  if (failedSet.has('auth_login')) {
+    pushAction(actions, {
+      id: 'public_auth_login_verify',
+      priority: 'P0',
+      title: 'Verifiera OWNER login för guard/ops',
+      command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`,
+      details:
+        'Synka credentials i runtime env och verifiera login-flödet (inkl. MFA) innan ny guard/ops-körning.',
+      source: 'guard',
+    });
+    pushAction(actions, {
+      id: 'owner_mfa_bootstrap_recovery',
+      priority: 'P1',
+      title: 'Recovery: reset OWNER MFA via bootstrap',
+      command:
+        `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup -- --show-recovery-codes`,
+      details:
+        'Om du saknar MFA-kod/secret/recovery: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i runtime env, deploya en gång, kör kommandot ovan och sätt sedan tillbaka ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false.',
+      source: 'guard',
+    });
   }
 
   if (exitReason === 'public_smoke_failed') {
@@ -164,6 +196,16 @@ function buildActions(report) {
       title: 'Kör OWNER MFA setup vid behov',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`,
       details: 'Använd när login fungerar men kontot kräver MFA-setup.',
+      source: 'preflight',
+    });
+    pushAction(actions, {
+      id: 'owner_mfa_bootstrap_recovery',
+      priority: 'P1',
+      title: 'Recovery: reset OWNER MFA via bootstrap',
+      command:
+        `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup -- --show-recovery-codes`,
+      details:
+        'Om du saknar MFA-kod/secret/recovery: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i runtime env, deploya en gång, kör kommandot ovan och sätt sedan tillbaka ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false.',
       source: 'preflight',
     });
   }

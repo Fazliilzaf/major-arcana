@@ -84,6 +84,7 @@ function toValuePreview(value, maxLen = 220) {
 const CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: [
     'Kör owner-setup per konto: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup',
+    'Om MFA-kod/secret/recovery saknas: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i runtime env, deploya en gång, kör owner:mfa:setup och sätt sedan tillbaka till false.',
     'Emergency fallback (disable icke-MFA OWNER där minst en compliant OWNER finns): BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply',
     'Verifiera sedan igen: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard',
   ],
@@ -489,7 +490,7 @@ async function resolveToken({
     const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
     if (!generatedCode) {
       throw new Error(
-        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret).'
+        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
       );
     }
     const mfaTicket = String(authStep?.mfaTicket || '').trim();
@@ -904,8 +905,48 @@ async function main() {
   process.stdout.write('✅ Readiness guard passed.\n');
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
+  const message = normalizeText(error?.message || error) || 'unknown_error';
+  let reportFilePath = '';
+  let reportWriteError = '';
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    const baseUrl = normalizeBaseUrl(args.baseUrl);
+    if (normalizeText(args.reportFile)) {
+      reportFilePath =
+        (await writeJsonReport(args.reportFile, {
+          generatedAt: new Date().toISOString(),
+          baseUrl,
+          auth: {
+            tenantId: normalizeText(args.tenantId) || null,
+          },
+          checks: {
+            requested: uniqueList(args.checks),
+            useRequiredChecks: args.useRequiredChecks === true,
+            failStatuses: uniqueList(args.failStatuses),
+          },
+          failures: [
+            {
+              checkId: 'auth_login',
+              status: 'error',
+              message,
+            },
+          ],
+          failedCheckIds: ['auth_login'],
+          outcome: 'error',
+          error: message,
+        })) || '';
+    }
+  } catch (reportError) {
+    reportWriteError = normalizeText(reportError?.message || reportError);
+  }
   console.error('❌ Could not run readiness guard');
-  console.error(error?.message || error);
+  console.error(message);
+  if (reportFilePath) {
+    console.error(`  reportFile=${reportFilePath}`);
+  }
+  if (reportWriteError) {
+    console.error(`  reportFileError=${reportWriteError}`);
+  }
   process.exit(1);
 });

@@ -104,11 +104,13 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       email: config.bootstrapOwnerEmail,
       password: config.bootstrapOwnerPassword,
       forcePasswordReset: config.bootstrapOwnerResetPassword,
+      forceMfaReset: config.bootstrapOwnerResetMfa,
     });
     if (bootstrap.bootstrapped) {
       const resetMarker = bootstrap.passwordReset ? ' password synced' : '';
+      const mfaResetMarker = bootstrap.mfaReset ? ' mfa reset' : '';
       console.log(
-        `Auth bootstrap klart för tenant "${config.defaultTenantId}" (${config.bootstrapOwnerEmail})${resetMarker}`
+        `Auth bootstrap klart för tenant "${config.defaultTenantId}" (${config.bootstrapOwnerEmail})${resetMarker}${mfaResetMarker}`
       );
     }
   } else {

@@ -32,6 +32,8 @@ Arcana har nu en intern API-bas på `/api/v1` för Pilot 0.1.
 ARCANA_DEFAULT_TENANT=hair-tp-clinic
 ARCANA_OWNER_EMAIL=owner@hairtpclinic.se
 ARCANA_OWNER_PASSWORD=byt-till-starkt-losenord
+ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=false
+ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false
 ```
 
 ### 2) Starta servern
@@ -145,6 +147,18 @@ Om prod-inloggning fastnar på gammalt lösenord:
 3) Verifiera login med `ARCANA_OWNER_EMAIL` / `ARCANA_OWNER_PASSWORD`
 4) Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=false` och deploy igen
 
+Om OWNER saknar både MFA-app och recovery-koder:
+1) Sätt i Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true`
+2) Deploy (kontrollerad recovery)
+3) Slutför MFA på nytt med samma konto:
+   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup -- --show-recovery-codes`
+4) Spara ny secret/recovery-koder säkert
+5) Sätt tillbaka `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false` och deploy igen
+
+Notera:
+- Recovery-reset revokerar aktiva sessioner för bootstrap-owner (`revokeReason=bootstrap_owner_mfa_reset`).
+- Lämna aldrig `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true` permanent i produktion.
+
 ### Correlation ID
 - Alla requests får/returnerar header `x-correlation-id`.
 - Om klienten skickar `x-correlation-id` återanvänds den, annars genereras en ny.
@@ -240,6 +254,8 @@ Snabbaste vägen (allt i ett):
 - För att tvinga fortsatt körning i heal-läge även med ej-healbara guard-blockers: `ARCANA_PREFLIGHT_FORCE_OPS_ON_GUARD_FAIL=true`.
 - Preflight-rapporten innehåller stegstatus/exit-kod, guard-diagnostik och ops-suite strict-diagnostik (`diagnostics.opsSuite.strict`), samt ev. `corsEnvRecommendation` när guard blockerar på `cors_strict`.
 - Om guard blockerar på `owner_mfa_enforced`: kör `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup` (per aktiv OWNER).
+- Om du saknar både MFA-kod och secret/recovery:
+  - Sätt temporärt `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true` i Render, deploya, kör `owner:mfa:setup`, sätt sedan tillbaka till `false` och deploya igen.
 - Emergency fallback för `owner_mfa_enforced` (disable non-compliant OWNER memberships om minst en compliant OWNER redan finns):
   - Preview: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate`
   - Apply: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply`
@@ -274,6 +290,8 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`
   - Visa recovery-koder explicit (för säker lagring): `npm run owner:mfa:setup -- --show-recovery-codes`
   - Observera: scriptet skriver ut setup-secret (känsligt) när setupRequired=true. Kör i säker terminal, inte i öppna CI-loggar.
+- Om du varken har MFA-kod, secret eller recovery-koder:
+  - Kör kontrollerad reset via Render env: `ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true` (deploy en gång), slutför `owner:mfa:setup`, sätt tillbaka till `false` och deploy igen.
 - För snabb OWNER remediation (disable av non-compliant owners):
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate`
   - Lägg till `-- --apply` för faktisk disable.

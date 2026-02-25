@@ -1341,7 +1341,13 @@ async function createAuthStore({
     return null;
   }
 
-  async function bootstrapOwner({ tenantId, email, password, forcePasswordReset = false }) {
+  async function bootstrapOwner({
+    tenantId,
+    email,
+    password,
+    forcePasswordReset = false,
+    forceMfaReset = false,
+  }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedTenantId || !normalizedEmail || typeof password !== 'string' || !password.trim()) {
@@ -1351,6 +1357,8 @@ async function createAuthStore({
     let rawUser = findRawUserByEmail(normalizedEmail);
     let createdUser = false;
     let passwordReset = false;
+    let mfaReset = false;
+    let revokedSessions = 0;
     if (!rawUser) {
       const created = await createUser({ email: normalizedEmail, password, mfaRequired: true });
       rawUser = state.users[created.id];
@@ -1360,6 +1368,31 @@ async function createAuthStore({
       await setUserPassword(rawUser.id, password);
       rawUser = state.users[rawUser.id] || rawUser;
       passwordReset = true;
+    }
+
+    if (!createdUser && forceMfaReset) {
+      const currentSecret = typeof rawUser.mfaSecret === 'string' ? rawUser.mfaSecret.trim() : '';
+      const currentRecoveryCodes = Array.isArray(rawUser.mfaRecoveryCodeHashes)
+        ? rawUser.mfaRecoveryCodeHashes
+        : [];
+      const shouldResetMfaState =
+        Boolean(currentSecret) || currentRecoveryCodes.length > 0 || rawUser.mfaRequired !== true;
+
+      if (shouldResetMfaState) {
+        rawUser.mfaSecret = '';
+        rawUser.mfaRecoveryCodeHashes = [];
+        rawUser.mfaRequired = true;
+        rawUser.updatedAt = nowIso();
+      }
+
+      const revokeResult = await revokeSessionsByUser(rawUser.id, {
+        reason: 'bootstrap_owner_mfa_reset',
+      });
+      revokedSessions = Number(revokeResult?.count || 0);
+      if (shouldResetMfaState && revokedSessions === 0) {
+        await save();
+      }
+      mfaReset = shouldResetMfaState || revokedSessions > 0;
     }
 
     const membership = await ensureMembership({
@@ -1376,13 +1409,22 @@ async function createAuthStore({
       outcome: 'success',
       targetType: 'membership',
       targetId: membership.id,
-      metadata: { createdUser, passwordReset, forcePasswordReset: Boolean(forcePasswordReset) },
+      metadata: {
+        createdUser,
+        passwordReset,
+        forcePasswordReset: Boolean(forcePasswordReset),
+        mfaReset,
+        forceMfaReset: Boolean(forceMfaReset),
+        revokedSessions,
+      },
     });
 
     return {
       bootstrapped: true,
       createdUser,
       passwordReset,
+      mfaReset,
+      revokedSessions,
       user: toSafeUser(rawUser),
       membership,
     };

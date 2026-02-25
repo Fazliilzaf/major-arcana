@@ -24,6 +24,10 @@ services:
         sync: false
       - key: ARCANA_OWNER_PASSWORD
         sync: false
+      - key: ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD
+        value: false
+      - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
+        value: false
       - key: PUBLIC_BASE_URL
         sync: false
       - key: CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC

@@ -218,7 +218,7 @@ async function resolveToken({
     const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
     if (!generatedCode) {
       throw new Error(
-        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret).'
+        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
       );
     }
     const mfaTicket = String(authStep?.mfaTicket || '').trim();

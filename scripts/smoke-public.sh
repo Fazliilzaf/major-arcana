@@ -297,6 +297,7 @@ if [[ -z "$TOKEN" ]]; then
   echo "Åtgärd:"
   echo "- Verifiera att ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD i Render är korrekt satta."
   echo "- Om MFA är aktivt: sätt ARCANA_OWNER_MFA_CODE eller ARCANA_OWNER_MFA_SECRET."
+  echo "- Om du saknar MFA-kod/secret/recovery: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i Render, deploya en gång, kör owner:mfa:setup och sätt sedan tillbaka till false."
   echo "- För setup av OWNER MFA med samma credentials:"
   echo "  BASE_URL=$BASE_URL ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup"
   echo "- Om användaren skapades med andra credentials i produktion: använd de credentials här."

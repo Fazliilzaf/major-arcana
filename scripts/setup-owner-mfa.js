@@ -227,7 +227,7 @@ async function completeMfaFlow({
 
   if (!resolvedCode) {
     throw new Error(
-      'MFA-kod kunde inte genereras. Ange --mfa-code eller --mfa-secret (eller AUTH_STORE_PATH med secret).'
+      'MFA-kod kunde inte genereras. Ange --mfa-code eller --mfa-secret (eller AUTH_STORE_PATH med secret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
     );
   }
 

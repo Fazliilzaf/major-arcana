@@ -61,7 +61,8 @@ const REMEDIATION_GUIDANCE_BY_NOGO = Object.freeze({
 const REMEDIATION_GUIDANCE_BY_CHECK = Object.freeze({
   owner_mfa_enforced: {
     owner: 'security_owner',
-    playbook: 'Sätt MFA required/configured för samtliga aktiva OWNER-konton.',
+    playbook:
+      'Sätt MFA required/configured för samtliga aktiva OWNER-konton. Om MFA-enhet/recovery saknas: kör en kontrollerad deploy med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true, slutför owner:mfa:setup och sätt tillbaka till false.',
   },
   cors_strict: {
     owner: 'platform_owner',

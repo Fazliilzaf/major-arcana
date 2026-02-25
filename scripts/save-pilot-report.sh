@@ -300,6 +300,7 @@ TOKEN="$(printf '%s' "$LOGIN_RESPONSE_FINAL" | json_get token || true)"
 
 if [[ -z "$TOKEN" ]]; then
   echo "❌ Login misslyckades (kontrollera lösenord + MFA-kod/secret)."
+  echo "   Saknas MFA-kod/secret/recovery helt: kör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i runtime env, deploya en gång, slutför owner:mfa:setup och sätt sedan tillbaka till false."
   printf '%s\n' "$LOGIN_RESPONSE_FINAL"
   exit 1
 fi

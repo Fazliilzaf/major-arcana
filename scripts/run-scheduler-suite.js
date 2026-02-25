@@ -94,7 +94,7 @@ const BLOCKER_CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: {
     owner: 'security_owner',
     playbook:
-      'Run owner:mfa:setup for each active OWNER account; fallback: owner:mfa:remediate -- --apply where at least one compliant OWNER remains.',
+      'Run owner:mfa:setup for each active OWNER account; if MFA device/recovery is lost use one controlled deploy with ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true, then disable it again; fallback: owner:mfa:remediate -- --apply where at least one compliant OWNER remains.',
   },
   cors_strict: {
     owner: 'platform_owner',
@@ -547,7 +547,7 @@ async function resolveToken({
     const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
     if (!generatedCode) {
       throw new Error(
-        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret).'
+        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
       );
     }
     const mfaTicket = String(authStep?.mfaTicket || '').trim();
