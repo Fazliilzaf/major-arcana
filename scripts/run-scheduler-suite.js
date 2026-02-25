@@ -663,6 +663,17 @@ async function main() {
   process.stdout.write(
     `   blockerChecks: count=${blockerCheckCount} top=${blockerCheckLabels}\n`
   );
+  if (blockerChecksTop.length > 0) {
+    for (const blocker of blockerChecksTop.slice(0, 3)) {
+      const detailParts = [];
+      if (blocker?.target) detailParts.push(`target=${blocker.target}`);
+      if (blocker?.valuePreview) detailParts.push(`value=${blocker.valuePreview}`);
+      const suffix = detailParts.length > 0 ? ` ${detailParts.join(' | ')}` : '';
+      process.stdout.write(
+        `   blockerDetail: ${blocker?.checkId || '-'} status=${blocker?.status || '-'}${suffix}\n`
+      );
+    }
+  }
   if (remediationRunEnabled) {
     process.stdout.write(
       `   remediationRun: candidates=${remediationRunCandidates} fixable=${remediationRunFixable} fixed=${remediationRunFixed} remaining=${remediationRunRemaining}\n`

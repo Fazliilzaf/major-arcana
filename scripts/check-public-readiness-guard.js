@@ -23,6 +23,24 @@ function normalizeBaseUrl(value) {
   return input.replace(/\/+$/, '');
 }
 
+function toValuePreview(value, maxLen = 220) {
+  if (value === undefined || value === null) return '';
+  let raw = '';
+  if (typeof value === 'string') raw = value;
+  else if (typeof value === 'number' || typeof value === 'boolean') raw = String(value);
+  else {
+    try {
+      raw = JSON.stringify(value);
+    } catch {
+      raw = '[unserializable]';
+    }
+  }
+  const trimmed = String(raw || '').trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen)}…`;
+}
+
 const CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: [
     'Kör owner-setup per konto: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup',
@@ -61,6 +79,10 @@ function parseArgs(argv) {
       ['red']
     ),
     allowMissing: parseBoolean(process.env.ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING, false),
+    showOwnerMfaGaps: parseBoolean(
+      process.env.ARCANA_PREFLIGHT_READINESS_SHOW_OWNER_MFA_GAPS,
+      true
+    ),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -116,6 +138,14 @@ function parseArgs(argv) {
     }
     if (item === '--no-allow-missing') {
       args.allowMissing = false;
+      continue;
+    }
+    if (item === '--show-owner-mfa-gaps') {
+      args.showOwnerMfaGaps = true;
+      continue;
+    }
+    if (item === '--no-show-owner-mfa-gaps') {
+      args.showOwnerMfaGaps = false;
       continue;
     }
   }
@@ -242,7 +272,7 @@ async function resolveToken({
     const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
     if (!generatedCode) {
       throw new Error(
-        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE.'
+        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret).'
       );
     }
     const mfaTicket = String(authStep?.mfaTicket || '').trim();
@@ -266,7 +296,56 @@ async function resolveToken({
     };
   }
 
+  if (authStep?.requiresTenantSelection === true) {
+    const loginTicket = String(authStep?.loginTicket || '').trim();
+    const tenants = Array.isArray(authStep?.tenants) ? authStep.tenants : [];
+    const selectedTenantId =
+      String(tenantId || '').trim() ||
+      String(tenants?.[0]?.tenantId || '').trim();
+    if (!loginTicket || !selectedTenantId) {
+      throw new Error('Tenant-val krävs men loginTicket/tenantId saknas.');
+    }
+    const tenantResponse = await fetchJson(baseUrl, '/api/v1/auth/select-tenant', {
+      method: 'POST',
+      body: {
+        loginTicket,
+        tenantId: selectedTenantId,
+      },
+    });
+    if (!tenantResponse?.token) {
+      throw new Error('Kunde inte hämta token efter tenant-val.');
+    }
+    return {
+      token: String(tenantResponse.token),
+      authTenantId: String(tenantResponse?.tenantId || selectedTenantId),
+    };
+  }
+
   throw new Error('Login gav ingen token.');
+}
+
+function extractOwnerMfaGapReport(membersPayload) {
+  const members = Array.isArray(membersPayload?.members) ? membersPayload.members : [];
+  const owners = members.filter((item) => {
+    const membershipRole = normalizeText(item?.membership?.role).toUpperCase();
+    const membershipStatus = normalizeText(item?.membership?.status).toLowerCase();
+    return membershipRole === 'OWNER' && membershipStatus === 'active';
+  });
+  const missing = owners
+    .filter((item) => !item?.user?.mfaRequired || !item?.user?.mfaConfigured)
+    .map((item) => ({
+      email: normalizeText(item?.user?.email) || '-',
+      mfaRequired: item?.user?.mfaRequired === true,
+      mfaConfigured: item?.user?.mfaConfigured === true,
+      membershipId: normalizeText(item?.membership?.id) || '-',
+    }))
+    .sort((a, b) => a.email.localeCompare(b.email));
+
+  return {
+    activeOwners: owners.length,
+    missingOwners: missing.length,
+    missing,
+  };
 }
 
 function collectChecksById(readiness) {
@@ -288,6 +367,7 @@ function collectChecksById(readiness) {
         required: check?.required === true,
         target: normalizeText(check?.target) || null,
         evidence: normalizeText(check?.evidence) || null,
+        value: check?.value ?? null,
       });
     }
   }
@@ -329,6 +409,7 @@ async function main() {
   );
   const failures = [];
   const summary = [];
+  const failedCheckIds = new Set();
 
   for (const checkId of args.checks) {
     const check = checksById.get(checkId);
@@ -351,9 +432,25 @@ async function main() {
         status: check.status,
         target: check.target || null,
         evidence: check.evidence || null,
+        valuePreview: toValuePreview(check.value),
         categoryId: check.categoryId,
         categoryLabel: check.categoryLabel,
       });
+      failedCheckIds.add(checkId);
+    }
+  }
+
+  let ownerGapReport = null;
+  if (args.showOwnerMfaGaps && failedCheckIds.has('owner_mfa_enforced')) {
+    try {
+      const membersPayload = await fetchJson(baseUrl, '/api/v1/users/staff', {
+        token: auth.token,
+      });
+      ownerGapReport = extractOwnerMfaGapReport(membersPayload);
+    } catch (error) {
+      ownerGapReport = {
+        error: normalizeText(error?.message || 'kunde inte läsa users/staff'),
+      };
     }
   }
 
@@ -375,10 +472,33 @@ async function main() {
       );
       if (item.target) process.stdout.write(`    target: ${item.target}\n`);
       if (item.evidence) process.stdout.write(`    evidence: ${item.evidence}\n`);
+      if (item.valuePreview) process.stdout.write(`    value: ${item.valuePreview}\n`);
       if (item.message) process.stdout.write(`    detail: ${item.message}\n`);
       const hints = Array.isArray(CHECK_HINTS[item.checkId]) ? CHECK_HINTS[item.checkId] : [];
       for (const hint of hints.slice(0, 3)) {
         process.stdout.write(`    hint: ${hint}\n`);
+      }
+      if (item.checkId === 'owner_mfa_enforced' && ownerGapReport) {
+        if (ownerGapReport?.error) {
+          process.stdout.write(`    ownerMfaGap: kunde inte hämta detaljer (${ownerGapReport.error})\n`);
+        } else {
+          process.stdout.write(
+            `    ownerMfaGap: activeOwners=${Number(ownerGapReport.activeOwners || 0)} missing=${Number(ownerGapReport.missingOwners || 0)}\n`
+          );
+          const preview = Array.isArray(ownerGapReport.missing)
+            ? ownerGapReport.missing.slice(0, 10)
+            : [];
+          for (const owner of preview) {
+            process.stdout.write(
+              `      - ${owner.email} required=${owner.mfaRequired ? 'yes' : 'no'} configured=${owner.mfaConfigured ? 'yes' : 'no'} membershipId=${owner.membershipId}\n`
+            );
+          }
+          if (Array.isArray(ownerGapReport.missing) && ownerGapReport.missing.length > preview.length) {
+            process.stdout.write(
+              `      ... +${ownerGapReport.missing.length - preview.length} fler konton\n`
+            );
+          }
+        }
       }
     }
     process.exitCode = 2;
