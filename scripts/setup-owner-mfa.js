@@ -336,6 +336,7 @@ async function main() {
     process.stdout.write('\n');
     process.stdout.write('⚠️ MFA secret/recovery genererades i denna körning.\n');
     process.stdout.write('   Spara dessa säkert och rensa terminalhistorik vid behov.\n');
+    process.stdout.write('   Kör inte detta i osäkra CI/logg-flöden utan sekretshantering.\n');
     if (secret) process.stdout.write(`   secret=${secret}\n`);
     if (otpauthUrl) process.stdout.write(`   otpauthUrl=${otpauthUrl}\n`);
     process.stdout.write(`   recoveryCodes=${recoveryCodes.length}\n`);
@@ -365,4 +366,3 @@ main().catch((error) => {
   console.error(error?.message || error);
   process.exit(1);
 });
-

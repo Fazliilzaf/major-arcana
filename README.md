@@ -249,6 +249,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - För att slutföra OWNER MFA setup med samma credentials:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`
   - Visa recovery-koder explicit (för säker lagring): `npm run owner:mfa:setup -- --show-recovery-codes`
+  - Observera: scriptet skriver ut setup-secret (känsligt) när setupRequired=true. Kör i säker terminal, inte i öppna CI-loggar.
 - När `cors_strict` blockerar:
   - sätt `CORS_STRICT=true`, `CORS_ALLOW_NO_ORIGIN=false`, `CORS_ALLOWED_ORIGINS=<origin1,origin2>` i runtime-env och deploya om.
 - Kör fail-fast readiness guard separat vid behov:
