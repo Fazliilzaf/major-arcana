@@ -253,6 +253,9 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - För kompakt readiness i rapport: `npm run report:pilot -- --readiness-mode compact` (default: `full`).
 - Valfritt: `npm run report:pilot -- --days 30`
+- Kör required scheduler-suite + monitor snapshot i en körning: `npm run ops:suite`
+- Publik variant: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite`
+- Om OWNER kräver MFA: lägg till `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
 - Förhandsvisa report-prune: `npm run report:scheduler:prune`
 - Kör report-prune: `npm run report:scheduler:prune:apply`
