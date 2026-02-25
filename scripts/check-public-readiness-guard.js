@@ -23,6 +23,25 @@ function normalizeBaseUrl(value) {
   return input.replace(/\/+$/, '');
 }
 
+function normalizeOrigin(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/\/+$/, '').toLowerCase();
+}
+
+function resolveOriginFromBaseUrl(baseUrl) {
+  try {
+    return normalizeOrigin(new URL(String(baseUrl || '').trim()).origin);
+  } catch {
+    return '';
+  }
+}
+
+function normalizeRoutePath(value, fallback = '/healthz') {
+  const input = normalizeText(value);
+  if (!input) return fallback;
+  return input.startsWith('/') ? input : `/${input}`;
+}
+
 function toValuePreview(value, maxLen = 220) {
   if (value === undefined || value === null) return '';
   let raw = '';
@@ -50,6 +69,10 @@ const CHECK_HINTS = Object.freeze({
   cors_strict: [
     'Sätt CORS_STRICT=true, CORS_ALLOW_NO_ORIGIN=false och säkerställ minst en effektiv origin via CORS_ALLOWED_ORIGINS eller PUBLIC_BASE_URL/ARCANA_BRAND_BY_HOST.',
     'Verifiera i readiness att effectiveAllowedOrigins > 0 och kör guard igen.',
+  ],
+  cors_runtime_probe: [
+    'Kör runtime-probe mot publik miljö för att verifiera att tillåten origin får ACAO-header och otillåten origin blockeras.',
+    'Om probe failar: verifiera CORS-middleware, reverse proxy och att requests går till rätt host/baseUrl.',
   ],
 });
 
@@ -83,6 +106,14 @@ function parseArgs(argv) {
     showOwnerMfaGaps: parseBoolean(
       process.env.ARCANA_PREFLIGHT_READINESS_SHOW_OWNER_MFA_GAPS,
       true
+    ),
+    corsRuntimeProbe: parseBoolean(
+      process.env.ARCANA_PREFLIGHT_READINESS_CORS_RUNTIME_PROBE,
+      true
+    ),
+    corsProbePath: normalizeRoutePath(
+      process.env.ARCANA_PREFLIGHT_READINESS_CORS_PROBE_PATH || '/healthz',
+      '/healthz'
     ),
   };
 
@@ -147,6 +178,19 @@ function parseArgs(argv) {
     }
     if (item === '--no-show-owner-mfa-gaps') {
       args.showOwnerMfaGaps = false;
+      continue;
+    }
+    if (item === '--cors-runtime-probe') {
+      args.corsRuntimeProbe = true;
+      continue;
+    }
+    if (item === '--no-cors-runtime-probe') {
+      args.corsRuntimeProbe = false;
+      continue;
+    }
+    if (item === '--cors-probe-path') {
+      args.corsProbePath = normalizeRoutePath(argv[index + 1], args.corsProbePath);
+      index += 1;
       continue;
     }
   }
@@ -216,6 +260,80 @@ async function fetchJson(baseUrl, routePath, { method = 'GET', token = '', body 
     throw error;
   }
   return data;
+}
+
+async function fetchCorsProbeHeaders(baseUrl, routePath, origin) {
+  const headers = {};
+  if (origin) headers.Origin = origin;
+  const response = await fetch(`${baseUrl}${routePath}`, {
+    method: 'GET',
+    headers,
+  });
+  return {
+    status: Number(response.status || 0),
+    accessControlAllowOrigin: normalizeText(response.headers.get('access-control-allow-origin')),
+    vary: normalizeText(response.headers.get('vary')),
+  };
+}
+
+async function runCorsRuntimeProbe({
+  baseUrl,
+  routePath = '/healthz',
+}) {
+  const allowedOrigin = resolveOriginFromBaseUrl(baseUrl);
+  const normalizedPath = normalizeRoutePath(routePath, '/healthz');
+  const deniedOrigin = `https://forbidden-${Date.now()}.arcana.invalid`;
+
+  if (!allowedOrigin) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: 'invalid_base_url_origin',
+      path: normalizedPath,
+      allowedOrigin: null,
+      deniedOrigin,
+      allowed: null,
+      denied: null,
+    };
+  }
+
+  try {
+    const [allowed, denied] = await Promise.all([
+      fetchCorsProbeHeaders(baseUrl, normalizedPath, allowedOrigin),
+      fetchCorsProbeHeaders(baseUrl, normalizedPath, deniedOrigin),
+    ]);
+
+    const allowedHeader = normalizeOrigin(allowed.accessControlAllowOrigin);
+    const deniedHeader = normalizeOrigin(denied.accessControlAllowOrigin);
+    const allowedOriginMatched = allowedHeader === allowedOrigin;
+    const deniedOriginBlocked = !deniedHeader;
+
+    return {
+      ok: allowedOriginMatched && deniedOriginBlocked,
+      skipped: false,
+      reason: null,
+      path: normalizedPath,
+      allowedOrigin,
+      deniedOrigin,
+      allowedOriginMatched,
+      deniedOriginBlocked,
+      allowed,
+      denied,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      skipped: false,
+      reason: normalizeText(error?.message || 'cors_runtime_probe_failed') || 'cors_runtime_probe_failed',
+      path: normalizedPath,
+      allowedOrigin,
+      deniedOrigin,
+      allowedOriginMatched: false,
+      deniedOriginBlocked: false,
+      allowed: null,
+      denied: null,
+    };
+  }
 }
 
 async function readMfaSecretFromStore({ email = '', authStorePath = './data/auth.json' } = {}) {
@@ -442,6 +560,34 @@ async function main() {
     }
   }
 
+  let corsRuntimeProbe = null;
+  if (args.corsRuntimeProbe && args.checks.includes('cors_strict')) {
+    const corsCheck = checksById.get('cors_strict') || null;
+    corsRuntimeProbe = await runCorsRuntimeProbe({
+      baseUrl,
+      routePath: args.corsProbePath,
+    });
+    const probeStatus = corsRuntimeProbe.skipped
+      ? 'unknown'
+      : corsRuntimeProbe.ok
+        ? 'green'
+        : 'red';
+    summary.push(`cors_runtime_probe=${probeStatus}`);
+    if (failStatuses.has(probeStatus)) {
+      failures.push({
+        checkId: 'cors_runtime_probe',
+        status: probeStatus,
+        target: 'Tillåten origin ska få ACAO-header, otillåten origin ska blockeras utan ACAO-header.',
+        evidence: corsRuntimeProbe?.reason || null,
+        valuePreview: toValuePreview(corsRuntimeProbe),
+        value: corsRuntimeProbe,
+        categoryId: corsCheck?.categoryId || null,
+        categoryLabel: corsCheck?.categoryLabel || null,
+      });
+      failedCheckIds.add('cors_runtime_probe');
+    }
+  }
+
   let ownerGapReport = null;
   if (args.showOwnerMfaGaps && failedCheckIds.has('owner_mfa_enforced')) {
     try {
@@ -463,6 +609,16 @@ async function main() {
   process.stdout.write(
     `  score=${Number(score.toFixed(2))} band=${band} goAllowed=${goAllowed} checks=${summary.join(', ')}\n`
   );
+  if (corsRuntimeProbe) {
+    const probeStatus = corsRuntimeProbe.skipped
+      ? 'unknown'
+      : corsRuntimeProbe.ok
+        ? 'green'
+        : 'red';
+    process.stdout.write(
+      `  corsProbe: status=${probeStatus} path=${corsRuntimeProbe.path || args.corsProbePath} allowedOrigin=${corsRuntimeProbe.allowedOrigin || '-'}\n`
+    );
+  }
 
   if (failures.length > 0) {
     process.stdout.write(
@@ -500,6 +656,26 @@ async function main() {
         );
         if (effectiveOrigins.length > 0) {
           process.stdout.write(`    corsStrictEffectiveOrigins: ${effectiveOrigins.join(', ')}\n`);
+        }
+      }
+      if (
+        item.checkId === 'cors_runtime_probe' &&
+        item.value &&
+        typeof item.value === 'object' &&
+        !Array.isArray(item.value)
+      ) {
+        process.stdout.write(
+          `    corsProbeDetail: path=${item.value?.path || '-'} allowedOrigin=${item.value?.allowedOrigin || '-'} deniedOrigin=${item.value?.deniedOrigin || '-'}\n`
+        );
+        process.stdout.write(
+          `    corsProbeMatch: allowedOriginMatched=${item.value?.allowedOriginMatched ? 'yes' : 'no'} deniedOriginBlocked=${item.value?.deniedOriginBlocked ? 'yes' : 'no'}\n`
+        );
+        const allowedHeader = normalizeText(item.value?.allowed?.accessControlAllowOrigin);
+        const deniedHeader = normalizeText(item.value?.denied?.accessControlAllowOrigin);
+        if (allowedHeader || deniedHeader) {
+          process.stdout.write(
+            `    corsProbeHeaders: allowed='${allowedHeader || '-'}' denied='${deniedHeader || '-'}'\n`
+          );
         }
       }
       if (item.checkId === 'owner_mfa_enforced' && ownerGapReport) {

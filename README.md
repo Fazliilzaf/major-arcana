@@ -267,8 +267,10 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Kör fail-fast readiness guard separat vid behov:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard`
   - Default checks: `owner_mfa_enforced,cors_strict` (fail på status `red`)
+  - Guard kör även CORS runtime-probe när `cors_strict` är med i check-listan (tillåten origin måste få ACAO-header, otillåten origin måste blockeras utan ACAO-header).
   - Vid `owner_mfa_enforced` visar guard även vilka aktiva OWNER-konton som saknar `mfaRequired/mfaConfigured` (från `/api/v1/users/staff`).
-  - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`
+  - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`, `ARCANA_PREFLIGHT_READINESS_CORS_RUNTIME_PROBE`, `ARCANA_PREFLIGHT_READINESS_CORS_PROBE_PATH`
+  - CLI-flaggor för probe: `--cors-runtime-probe`, `--no-cors-runtime-probe`, `--cors-probe-path /healthz`
   - Styr OWNER-gap listing: `ARCANA_PREFLIGHT_READINESS_SHOW_OWNER_MFA_GAPS=true|false`
 
 4) Mail-baserade mallutkast (när export finns):
