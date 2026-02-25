@@ -131,6 +131,44 @@ const BLOCKER_CHECK_HINTS = Object.freeze({
   },
 });
 
+const NOGO_TRIGGER_HINTS = Object.freeze({
+  output_without_risk_policy_gate: {
+    owner: 'release_owner',
+    playbook:
+      'Run output-gate remediation and verify active versions include output risk + policy metadata before activation.',
+  },
+  policy_floor_bypass: {
+    owner: 'risk_owner',
+    playbook:
+      'Stop activations violating policy floor, rerun risk evaluation, and reactivate only compliant versions.',
+  },
+  l5_without_manual_intervention: {
+    owner: 'owner',
+    playbook:
+      'Require OWNER action (approve_exception/mark_false_positive) before any L5 template version goes live.',
+  },
+  restore_drill_unverified_30d: {
+    owner: 'ops_owner',
+    playbook:
+      'Run restore_drill_preview and verify scheduler success + audit evidence within the 30-day window.',
+  },
+  nightly_pilot_report_unverified: {
+    owner: 'ops_owner',
+    playbook:
+      'Run nightly_pilot_report and verify fresh scheduler success and report artifact evidence.',
+  },
+  audit_chain_not_immutable: {
+    owner: 'security_owner',
+    playbook:
+      'Enable append-only audit mode and fix integrity/hash-chain issues before release.',
+  },
+  tenant_isolation_unverified: {
+    owner: 'security_owner',
+    playbook:
+      'Run tenant access-check and confirm fresh tenants.access_check audit evidence.',
+  },
+});
+
 function toStampUtc(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
   return [
@@ -809,6 +847,14 @@ async function main() {
       violations: Number(item?.value?.violations || 0),
       inferred: item?.inferred === true,
     }));
+  const triggeredNoGoWithGuidance = triggeredNoGo.map((item) => {
+    const hint = NOGO_TRIGGER_HINTS[normalizeText(item?.id)] || {};
+    return {
+      ...item,
+      owner: normalizeText(hint?.owner) || null,
+      playbook: normalizeText(hint?.playbook) || null,
+    };
+  });
   const remediationActions = Array.isArray(readiness?.remediation?.actions)
     ? readiness.remediation.actions
     : [];
@@ -1020,6 +1066,7 @@ async function main() {
           ? readiness.goNoGo.triggeredNoGoIds
           : [],
         triggeredNoGo,
+        triggeredNoGoWithGuidance,
         remediationSummary: readiness?.remediation?.summary || null,
         remediationTopP0,
         blockerChecks,
@@ -1165,6 +1212,15 @@ async function main() {
       'run with --remediate-owner-mfa-memberships to disable non-compliant OWNER memberships (requires at least one compliant OWNER)'
     );
   }
+  if (triggeredNoGoWithGuidance.length > 0) {
+    for (const item of triggeredNoGoWithGuidance.slice(0, 4)) {
+      if (item?.playbook) {
+        advisories.push(`no-go ${item.id}: ${item.playbook}`);
+      } else if (item?.evidence) {
+        advisories.push(`no-go ${item.id}: ${item.evidence}`);
+      }
+    }
+  }
   if (ownerMfaGapReport?.error) {
     advisories.push(`owner MFA gap details unavailable (${ownerMfaGapReport.error})`);
   } else if (ownerMfaGapReport && Number(ownerMfaGapReport.nonCompliantOwners || 0) > 0) {
@@ -1253,6 +1309,20 @@ async function main() {
   process.stdout.write(
     `   readinessNoGo: blockersGreen=${blockerCategoriesGreen ? 'yes' : 'no'} triggered=${triggeredNoGoCount} ids=${triggeredNoGoIds.slice(0, 6).join(',') || '-'}\n`
   );
+  if (triggeredNoGoWithGuidance.length > 0) {
+    for (const trigger of triggeredNoGoWithGuidance.slice(0, 4)) {
+      const detailParts = [];
+      if (trigger?.violations > 0) detailParts.push(`violations=${trigger.violations}`);
+      if (trigger?.owner) detailParts.push(`owner=${trigger.owner}`);
+      if (trigger?.inferred) detailParts.push('inferred=yes');
+      if (trigger?.evidence) detailParts.push(`evidence=${trigger.evidence}`);
+      const suffix = detailParts.length > 0 ? ` ${detailParts.join(' | ')}` : '';
+      process.stdout.write(`   readinessNoGoDetail: ${trigger?.id || '-'}${suffix}\n`);
+      if (trigger?.playbook) {
+        process.stdout.write(`   readinessNoGoPlaybook: ${trigger.playbook}\n`);
+      }
+    }
+  }
   process.stdout.write(
     `   remediation: total=${remediationTotal} p0=${remediationP0} top=${remediationTopLabel}\n`
   );

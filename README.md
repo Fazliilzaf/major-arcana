@@ -294,6 +294,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Ops-suite kör som standard en tenant access-check refresh (`tenants.access_check`) före readiness snapshot för färsk tenant-isolation-evidens.
 - Ops-suite kör även CORS runtime-probe som standard när `cors_strict` är grön (tillåten origin måste få ACAO-header, otillåten origin får inte få ACAO-header). Om `cors_strict` inte är grön markeras probe som `unknown/skipped` istället för separat blocker.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
+- Strict output visar även `readinessNoGoDetail` + `readinessNoGoPlaybook` med owner/playbook per trigger.
 - Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
 - Ops-suite visar även `categoryIssues` (icke-gröna readiness-kategorier) med top-checks för diagnos när blockerChecks är tom.
 - Vid `owner_mfa_enforced` visar ops-suite även `ownerMfaGap`/`ownerMfaGapPreview` (vilka OWNER-konton som saknar MFA).
