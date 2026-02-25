@@ -14,6 +14,8 @@ function parseArgs(argv) {
       normalizeText(process.env.ARCANA_PREFLIGHT_REPORT_FILE) ||
       path.join('data', 'reports', 'preflight-latest.json'),
     output: 'text',
+    top: 0,
+    minPriority: '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -25,6 +27,17 @@ function parseArgs(argv) {
     }
     if (item === '--json') {
       args.output = 'json';
+      continue;
+    }
+    if (item === '--top') {
+      const parsed = Number.parseInt(String(argv[index + 1] || ''), 10);
+      args.top = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      index += 1;
+      continue;
+    }
+    if (item === '--min-priority') {
+      args.minPriority = normalizeText(argv[index + 1]).toUpperCase();
+      index += 1;
       continue;
     }
   }
@@ -50,6 +63,7 @@ function pushAction(actions, action) {
     title: normalizeText(action?.title) || id,
     command: normalizeText(action?.command) || '',
     details: normalizeText(action?.details) || '',
+    source: normalizeText(action?.source) || '',
   });
 }
 
@@ -109,6 +123,7 @@ function buildActions(report) {
       title: 'Sätt strict CORS i runtime',
       command: envLine || 'CORS_STRICT=true CORS_ALLOW_NO_ORIGIN=false CORS_ALLOWED_ORIGINS=<origin1,origin2>',
       details: 'Deploya om efter env-ändring och kör preflight igen.',
+      source: 'guard',
     });
   }
 
@@ -120,6 +135,7 @@ function buildActions(report) {
       command:
         `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`,
       details: 'Kör per aktiv OWNER tills readiness-checken är grön.',
+      source: 'guard',
     });
     pushAction(actions, {
       id: 'owner_mfa_remediate_fallback',
@@ -128,6 +144,7 @@ function buildActions(report) {
       command:
         `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply`,
       details: 'Använd endast när minst en compliant OWNER finns kvar.',
+      source: 'guard',
     });
   }
 
@@ -139,6 +156,7 @@ function buildActions(report) {
       command:
         `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite:strict:heal:all`,
       details: 'Kör output-gate remediation + owner-MFA remediation i samma pass.',
+      source: 'strict',
     });
   } else if (hasOutputGateGap) {
     pushAction(actions, {
@@ -147,6 +165,7 @@ function buildActions(report) {
       title: 'Kör output-gate remediation',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite:strict:heal`,
       details: 'Auto-fixar output/policy metadata på aktiva versioner.',
+      source: 'strict',
     });
   }
 
@@ -157,6 +176,7 @@ function buildActions(report) {
       title: 'Kör required scheduler suite igen',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite`,
       details: 'Verifiera att required_suite går igenom innan strict-gate.',
+      source: 'strict',
     });
   }
 
@@ -170,6 +190,7 @@ function buildActions(report) {
       title: 'Uppdatera pilot report + restore drill evidens',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite`,
       details: 'required_suite kör nightly report och restore drill i samma körning.',
+      source: 'strict',
     });
   }
 
@@ -180,6 +201,7 @@ function buildActions(report) {
       title: 'Felsök tenant access-check refresh',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite -- --refresh-tenant-access-check`,
       details: 'Om endpoint saknas temporärt: kör med `--no-refresh-tenant-access-check` och uppgradera API-routes.',
+      source: 'strict',
     });
   }
 
@@ -190,6 +212,7 @@ function buildActions(report) {
       title: 'Kör readiness guard på required checks',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard -- --use-required-checks`,
       details: 'Identifiera blocker-checks innan ny strict-körning.',
+      source: 'strict',
     });
   }
 
@@ -200,15 +223,27 @@ function buildActions(report) {
       title: 'Verifiera CORS runtime-probe',
       command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite:strict`,
       details: 'Kontrollera reverse proxy/host-routing om allowed origin inte får ACAO eller denied origin läcker ACAO.',
+      source: 'strict',
     });
   }
 
+  const hasCorsRuntimeAction = actions.some((item) => item.id === 'cors_strict_runtime_env');
+  const hasOwnerMfaAction = actions.some((item) => item.id === 'owner_mfa_setup');
+  const hasOutputGateAction = actions.some(
+    (item) => item.id === 'ops_heal_output_gates' || item.id === 'ops_heal_all'
+  );
   for (const advisory of advisories.slice(0, 3)) {
+    const advisoryText = String(advisory || '');
+    const advisoryLower = advisoryText.toLowerCase();
+    if (hasCorsRuntimeAction && advisoryLower.includes('cors_strict')) continue;
+    if (hasOwnerMfaAction && advisoryLower.includes('owner-mfa')) continue;
+    if (hasOutputGateAction && advisoryLower.includes('output-gates')) continue;
     pushAction(actions, {
-      id: `advisory:${Buffer.from(String(advisory)).toString('base64').slice(0, 18)}`,
+      id: `advisory:${Buffer.from(advisoryText).toString('base64').slice(0, 18)}`,
       priority: 'P2',
       title: 'Ops advisory',
-      details: String(advisory),
+      details: advisoryText,
+      source: 'advisory',
     });
   }
 
@@ -219,6 +254,7 @@ function buildActions(report) {
       title: 'Verifiera igen med preflight-rapport',
       command: `npm run preflight:pilot:report -- --public-url ${publicUrl}`,
       details: 'Bekräfta att blocker checks och strict failures är lösta.',
+      source: 'meta',
     });
   }
 
@@ -234,6 +270,19 @@ function priorityRank(priority) {
   return 4;
 }
 
+function filterAndSortActions(actions, { minPriority = '', top = 0 } = {}) {
+  const minRank = priorityRank(minPriority || '');
+  const filtered = [...actions]
+    .filter((item) => priorityRank(item.priority) <= minRank || minRank === 4)
+    .sort((a, b) => {
+      const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
+      if (byPriority !== 0) return byPriority;
+      return a.title.localeCompare(b.title);
+    });
+  if (top > 0) return filtered.slice(0, top);
+  return filtered;
+}
+
 function toText(reportPath, report, actions) {
   const exitCode = Number(report?.exit?.code ?? -1);
   const exitReason = normalizeText(report?.exit?.reason) || '-';
@@ -245,12 +294,7 @@ function toText(reportPath, report, actions) {
     output += '✅ No suggested actions.\n';
     return output;
   }
-  const sorted = [...actions].sort((a, b) => {
-    const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
-    if (byPriority !== 0) return byPriority;
-    return a.title.localeCompare(b.title);
-  });
-  for (const action of sorted) {
+  for (const action of actions) {
     output += `- [${action.priority}] ${action.title}\n`;
     if (action.command) output += `  cmd: ${action.command}\n`;
     if (action.details) output += `  info: ${action.details}\n`;
@@ -264,13 +308,20 @@ function main() {
     throw new Error('Saknar rapportfil. Sätt --file <path> eller ARCANA_PREFLIGHT_REPORT_FILE.');
   }
   const loaded = readReport(args.file);
-  const actions = buildActions(loaded.payload);
+  const actions = filterAndSortActions(buildActions(loaded.payload), {
+    minPriority: args.minPriority,
+    top: args.top,
+  });
   if (args.output === 'json') {
     process.stdout.write(
       `${JSON.stringify(
         {
           reportPath: loaded.path,
           exit: loaded.payload?.exit || null,
+          filters: {
+            minPriority: args.minPriority || null,
+            top: args.top > 0 ? args.top : null,
+          },
           actions,
         },
         null,

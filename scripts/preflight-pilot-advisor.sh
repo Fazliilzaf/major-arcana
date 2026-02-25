@@ -6,6 +6,8 @@ cd "$ROOT_DIR"
 
 REPORT_FILE="${ARCANA_PREFLIGHT_REPORT_FILE:-./data/reports/preflight-latest.json}"
 ACTIONS_JSON=0
+ACTIONS_TOP=0
+ACTIONS_MIN_PRIORITY=""
 PREFLIGHT_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -17,6 +19,14 @@ while [[ $# -gt 0 ]]; do
     --actions-json)
       ACTIONS_JSON=1
       shift
+      ;;
+    --actions-top)
+      ACTIONS_TOP="${2:-0}"
+      shift 2
+      ;;
+    --actions-min-priority)
+      ACTIONS_MIN_PRIORITY="${2:-}"
+      shift 2
       ;;
     *)
       PREFLIGHT_ARGS+=("$1")
@@ -46,6 +56,12 @@ echo "== Preflight Action Plan =="
 ACTION_ARGS=(--file "$REPORT_FILE")
 if [[ "$ACTIONS_JSON" -eq 1 ]]; then
   ACTION_ARGS+=(--json)
+fi
+if [[ "${ACTIONS_TOP:-0}" != "0" ]]; then
+  ACTION_ARGS+=(--top "$ACTIONS_TOP")
+fi
+if [[ -n "$ACTIONS_MIN_PRIORITY" ]]; then
+  ACTION_ARGS+=(--min-priority "$ACTIONS_MIN_PRIORITY")
 fi
 
 set +e

@@ -46,6 +46,8 @@
     "preflight:pilot:advisor:heal": "ARCANA_PREFLIGHT_USE_HEAL=true bash ./scripts/preflight-pilot-advisor.sh",
     "preflight:pilot:advisor:heal:all": "ARCANA_PREFLIGHT_USE_HEAL_ALL=true bash ./scripts/preflight-pilot-advisor.sh",
     "preflight:report:actions": "node ./scripts/preflight-report-actions.js",
+    "preflight:report:actions:p0": "node ./scripts/preflight-report-actions.js --min-priority P0",
+    "preflight:report:actions:p1": "node ./scripts/preflight-report-actions.js --min-priority P1",
     "preflight:pilot:heal": "ARCANA_PREFLIGHT_USE_HEAL=true bash ./scripts/pilot-preflight.sh",
     "preflight:pilot:heal:all": "ARCANA_PREFLIGHT_USE_HEAL_ALL=true bash ./scripts/pilot-preflight.sh",
     "design:colors": "node ./scripts/generate-admin-color-docs.js",
