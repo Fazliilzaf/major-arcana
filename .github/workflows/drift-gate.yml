@@ -1,0 +1,82 @@
+name: arcana-drift-gate
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-drift-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_PREFLIGHT_REPORT_FILE: ./data/reports/preflight-latest.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in BASE_URL ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD ARCANA_OWNER_MFA_SECRET; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret/env: $name"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run preflight drift gate (public)
+        run: npm run preflight:pilot:report -- --public-url "$BASE_URL" --skip-local
+
+      - name: Show P0 actions on failure
+        if: failure()
+        run: npm run preflight:report:actions:p0 -- --file "$ARCANA_PREFLIGHT_REPORT_FILE" || true
+
+      - name: Upload preflight report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-report-${{ github.run_id }}
+          path: ./data/reports/preflight-latest.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Send fail alert webhook
+        if: failure()
+        env:
+          ARCANA_DRIFT_ALERT_WEBHOOK_URL: ${{ secrets.ARCANA_DRIFT_ALERT_WEBHOOK_URL }}
+        run: |
+          if [[ -z "${ARCANA_DRIFT_ALERT_WEBHOOK_URL:-}" ]]; then
+            echo "No ARCANA_DRIFT_ALERT_WEBHOOK_URL configured; skip webhook alert."
+            exit 0
+          fi
+          node <<'NODE' | curl -sS -X POST "$ARCANA_DRIFT_ALERT_WEBHOOK_URL" -H "content-type: application/json" --data-binary @-
+          const payload = {
+            text: [
+              "Arcana drift-gate FAILED",
+              `repo=${process.env.GITHUB_REPOSITORY}`,
+              `ref=${process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || "-"}`,
+              `run=${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+            ].join("\n"),
+          };
+          process.stdout.write(JSON.stringify(payload));
+          NODE

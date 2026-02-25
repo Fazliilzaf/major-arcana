@@ -146,6 +146,19 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - `monitor/status` exponerar även `gates.restoreDrill` (`healthy`/`noGo`) baserat på senaste lyckade `restore_drill_preview` i audit-loggen (persist över restart) och max-age (`ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS`).
 - `monitor/status` exponerar även `gates.pilotReport` (`healthy`/`noGo`) baserat på senaste lyckade `nightly_pilot_report` + senaste scheduler-rapportfil och max-age (`ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS`).
 
+### Schemalagd drift-gate (GitHub Actions)
+- Workflow: `.github/workflows/drift-gate.yml`
+- Kör var 6:e timme (och manuellt via `workflow_dispatch`) och kör `preflight:pilot:report` mot publik miljö (`--skip-local`).
+- Laddar alltid upp artifact: `data/reports/preflight-latest.json`.
+- Vid fail skickas valfri webhook-notis om `ARCANA_DRIFT_ALERT_WEBHOOK_URL` finns i GitHub Secrets.
+- Required GitHub Secrets:
+  - `ARCANA_PUBLIC_BASE_URL`
+  - `ARCANA_OWNER_EMAIL`
+  - `ARCANA_OWNER_PASSWORD`
+  - `ARCANA_OWNER_MFA_SECRET`
+- Optional GitHub Secret:
+  - `ARCANA_DRIFT_ALERT_WEBHOOK_URL`
+
 `POST /api/v1/auth/change-password` har nu global invalidation som default:
 - revokerar alla user-sessioner (alla tenants) vid lösenordsbyte
 - revokerar även aktuell session som default (`requiresReauth=true` i svar)
@@ -633,6 +646,8 @@ Tips:
 Fyll `knowledge/` med innehåll. För snabb import kan du testa:
 
 `npm run ingest:hairtpclinic`
+`npm run ingest:curatiio`
+`npm run ingest:gouraloto`
 
 Starta om servern efter import för att indexera nya filer.
 
