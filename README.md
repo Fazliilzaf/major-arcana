@@ -172,6 +172,7 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `GET /api/v1/monitor/metrics` (OWNER/STAFF)
 - `GET /api/v1/monitor/slo` (OWNER/STAFF, availability + incident response + restore recency + pilot report recency)
 - `GET /api/v1/monitor/readiness` (OWNER/STAFF, Go/No-Go score + blocker-matris)
+- `GET /api/v1/monitor/readiness/history` (OWNER/STAFF, readiness-trend från audit-events)
   - inkluderar deterministiska no-go checks för output risk/policy-gate, policy-floor bypass, L5 manual intervention, restore drill och nightly pilot report recency
   - inkluderar även `remediation` med prioriterad action-lista (P0-P3) och uppskattad score-impact för att nå `controlled_go`
 - `GET /api/v1/ops/state/manifest` (OWNER)
@@ -316,6 +317,7 @@ Owner action `action` (endast OWNER):
   - latency/fel-metrics (`GET /api/v1/monitor/metrics`)
   - SLO/SLI-status (`GET /api/v1/monitor/slo`)
   - readiness/Go-No-Go matris (`GET /api/v1/monitor/readiness`)
+  - readiness-historik och trend (`GET /api/v1/monitor/readiness/history`)
   - kör required scheduler-suite (`POST /api/v1/ops/scheduler/run` med `{"jobId":"required_suite"}`)
 - Ops backup-panel i UI (OWNER):
   - state manifest (`GET /api/v1/ops/state/manifest`)

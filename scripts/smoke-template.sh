@@ -407,6 +407,29 @@ if [[ "$READINESS_TRIGGERED_NOGO_COUNT" -gt 0 && "$READINESS_REMEDIATION_P0" -lt
 fi
 echo "✅ monitor/readiness OK (score: ${READINESS_SCORE}, band: ${READINESS_BAND}, categories: ${READINESS_CATEGORIES_COUNT}, noGo: ${READINESS_NOGO_COUNT}, remediation: ${READINESS_REMEDIATION_TOTAL}, potentialGain: ${READINESS_REMEDIATION_POTENTIAL})"
 
+READINESS_HISTORY_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/readiness/history?limit=5" \
+  -H "Authorization: Bearer $TOKEN")"
+READINESS_HISTORY_COUNT="$(printf '%s' "$READINESS_HISTORY_RESPONSE" | json_get count 2>/dev/null || true)"
+READINESS_HISTORY_ENTRIES_COUNT="$(printf '%s' "$READINESS_HISTORY_RESPONSE" | json_get entries | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"
+READINESS_HISTORY_LATEST_SCORE="$(printf '%s' "$READINESS_HISTORY_RESPONSE" | json_get entries.0.score 2>/dev/null || true)"
+READINESS_HISTORY_LATEST_GO_ALLOWED="$(printf '%s' "$READINESS_HISTORY_RESPONSE" | json_get entries.0.goAllowed 2>/dev/null || true)"
+if [[ -z "$READINESS_HISTORY_COUNT" || "$READINESS_HISTORY_COUNT" == "null" || "$READINESS_HISTORY_ENTRIES_COUNT" -lt 1 ]]; then
+  echo "❌ monitor/readiness/history saknar entries"
+  printf '%s\n' "$READINESS_HISTORY_RESPONSE"
+  exit 1
+fi
+if [[ -z "$READINESS_HISTORY_LATEST_SCORE" || "$READINESS_HISTORY_LATEST_SCORE" == "null" ]]; then
+  echo "❌ monitor/readiness/history saknar entries[0].score"
+  printf '%s\n' "$READINESS_HISTORY_RESPONSE"
+  exit 1
+fi
+if [[ "$READINESS_HISTORY_LATEST_GO_ALLOWED" != "true" && "$READINESS_HISTORY_LATEST_GO_ALLOWED" != "false" ]]; then
+  echo "❌ monitor/readiness/history saknar entries[0].goAllowed"
+  printf '%s\n' "$READINESS_HISTORY_RESPONSE"
+  exit 1
+fi
+echo "✅ monitor/readiness/history OK (count: ${READINESS_HISTORY_COUNT}, entries: ${READINESS_HISTORY_ENTRIES_COUNT}, latestScore: ${READINESS_HISTORY_LATEST_SCORE})"
+
 if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   OPS_MANIFEST_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/state/manifest" \
     -H "Authorization: Bearer $TOKEN")"

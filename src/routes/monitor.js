@@ -212,6 +212,12 @@ function parseDays(value, fallback = 90) {
   return Math.max(7, Math.min(3650, parsed));
 }
 
+function parseHistoryLimit(value, fallback = 30) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(200, parsed));
+}
+
 function statusScore(status) {
   switch (status) {
     case 'green':
@@ -1175,6 +1181,86 @@ function createMonitorRouter({
         }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa monitor SLO.' });
+      }
+    }
+  );
+
+  router.get(
+    '/monitor/readiness/history',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        const tenantId = req.auth.tenantId;
+        const limit = parseHistoryLimit(req.query?.limit, 30);
+        const scanLimit = Math.max(200, Math.min(500, limit * 8));
+        const auditEvents = await authStore.listAuditEvents({
+          tenantId,
+          limit: scanLimit,
+          outcome: 'success',
+        });
+
+        const entries = (Array.isArray(auditEvents) ? auditEvents : [])
+          .filter((item) => normalizeText(item?.action) === 'monitor.readiness.read')
+          .slice(0, limit)
+          .map((item) => {
+            const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+            return {
+              ts: toIso(item?.ts),
+              actorUserId: normalizeText(item?.actorUserId) || null,
+              score: Number(metadata?.score || 0),
+              band: normalizeText(metadata?.band) || null,
+              goAllowed: metadata?.goAllowed === true,
+              blockersAllGreen: metadata?.blockersAllGreen === true,
+              triggeredNoGo: Number(metadata?.triggeredNoGo || 0),
+              remediationTotal: Number(metadata?.remediationTotal || 0),
+              remediationP0: Number(metadata?.remediationP0 || 0),
+            };
+          });
+
+        const latest = entries[0] || null;
+        const previous = entries[1] || null;
+        const trend =
+          latest && previous
+            ? {
+                scoreDelta: Number((Number(latest.score || 0) - Number(previous.score || 0)).toFixed(2)),
+                triggeredNoGoDelta: Number(latest.triggeredNoGo || 0) - Number(previous.triggeredNoGo || 0),
+                remediationTotalDelta:
+                  Number(latest.remediationTotal || 0) - Number(previous.remediationTotal || 0),
+                remediationP0Delta: Number(latest.remediationP0 || 0) - Number(previous.remediationP0 || 0),
+              }
+            : null;
+
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'monitor.readiness.history.read',
+          outcome: 'success',
+          targetType: 'monitor_readiness_history',
+          targetId: tenantId,
+          metadata: {
+            limit,
+            count: entries.length,
+            latestScore: latest ? Number(latest.score || 0) : null,
+            latestBand: latest?.band || null,
+            latestGoAllowed: latest?.goAllowed === true,
+          },
+        });
+
+        return res.json({
+          generatedAt: new Date().toISOString(),
+          tenantId,
+          limit,
+          count: entries.length,
+          trend,
+          entries,
+        });
+      } catch (error) {
+        if (error?.message) {
+          return res.status(400).json({ error: error.message });
+        }
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa readiness-historik.' });
       }
     }
   );

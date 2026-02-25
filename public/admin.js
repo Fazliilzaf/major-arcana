@@ -47,6 +47,7 @@
       kpi_readiness: 'Readiness',
       kpi_pilot_report: 'Pilotrapport',
       monitor_scheduler_jobs: 'Schedulerjobb (krav)',
+      monitor_readiness_history: 'Readiness-historik',
       open_queue: 'Öppna kö',
       see_incidents: 'Se incidenter',
       overview_insights: 'Översiktsinsikter',
@@ -99,6 +100,7 @@
       kpi_readiness: 'Readiness',
       kpi_pilot_report: 'Pilot report',
       monitor_scheduler_jobs: 'Scheduler jobs (required)',
+      monitor_readiness_history: 'Readiness history',
       open_queue: 'Open queue',
       see_incidents: 'View incidents',
       overview_insights: 'Overview insights',
@@ -459,6 +461,8 @@
     monitorResult: document.getElementById('monitorResult'),
     monitorSchedulerSummary: document.getElementById('monitorSchedulerSummary'),
     monitorSchedulerResult: document.getElementById('monitorSchedulerResult'),
+    monitorReadinessHistorySummary: document.getElementById('monitorReadinessHistorySummary'),
+    monitorReadinessHistoryResult: document.getElementById('monitorReadinessHistoryResult'),
     monitorRemediationSummary: document.getElementById('monitorRemediationSummary'),
     monitorRemediationResult: document.getElementById('monitorRemediationResult'),
     loadStateManifestBtn: document.getElementById('loadStateManifestBtn'),
@@ -6214,6 +6218,50 @@
     els.monitorSchedulerResult.textContent = lines.join('\n');
   }
 
+  function renderReadinessHistory(historyResponse = null) {
+    if (!els.monitorReadinessHistorySummary || !els.monitorReadinessHistoryResult) return;
+    const entries = Array.isArray(historyResponse?.entries) ? historyResponse.entries : [];
+    const trend = historyResponse?.trend && typeof historyResponse.trend === 'object'
+      ? historyResponse.trend
+      : null;
+
+    if (entries.length === 0) {
+      els.monitorReadinessHistorySummary.textContent = '';
+      els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
+        ? 'No readiness history yet.'
+        : 'Ingen readiness-historik ännu.';
+      return;
+    }
+
+    const latest = entries[0] || {};
+    const latestScore = Number(latest?.score || 0);
+    const latestBand = String(latest?.band || '-');
+    const latestGoAllowed = latest?.goAllowed === true;
+    const latestNoGo = Number(latest?.triggeredNoGo || 0);
+    const latestRemediation = Number(latest?.remediationTotal || 0);
+    const scoreDelta = Number(trend?.scoreDelta || 0);
+    const scoreDeltaLabel = Number.isFinite(scoreDelta)
+      ? `${scoreDelta >= 0 ? '+' : ''}${Number(scoreDelta.toFixed(2))}`
+      : '-';
+
+    els.monitorReadinessHistorySummary.textContent = isEnglishLanguage()
+      ? `latest score=${Number(latestScore.toFixed(2))} (${scoreDeltaLabel}) band=${latestBand} goAllowed=${latestGoAllowed ? 'yes' : 'no'} noGo=${latestNoGo} remediation=${latestRemediation}`
+      : `senaste score=${Number(latestScore.toFixed(2))} (${scoreDeltaLabel}) band=${latestBand} goTillåten=${latestGoAllowed ? 'ja' : 'nej'} noGo=${latestNoGo} remediation=${latestRemediation}`;
+
+    const lines = entries.slice(0, 10).map((item) => {
+      const ts = formatDateTime(item?.ts);
+      const age = formatRelativeAge(item?.ts);
+      const score = Number(item?.score || 0);
+      const band = String(item?.band || '-');
+      const goAllowed = item?.goAllowed === true;
+      const triggeredNoGo = Number(item?.triggeredNoGo || 0);
+      const remediationTotal = Number(item?.remediationTotal || 0);
+      const remediationP0 = Number(item?.remediationP0 || 0);
+      return `${ts} (${age}) | score=${Number(score.toFixed(2))} | band=${band} | go=${goAllowed ? 'yes' : 'no'} | noGo=${triggeredNoGo} | remediation=${remediationTotal} (P0=${remediationP0})`;
+    });
+    els.monitorReadinessHistoryResult.textContent = lines.join('\n');
+  }
+
   function renderMonitorRemediation(readiness) {
     const remediation = readiness?.remediation || null;
     const summary = remediation?.summary || {};
@@ -6296,15 +6344,17 @@
   async function loadMonitorStatus() {
     try {
       setStatus(els.monitorPanelStatus, 'Laddar monitor-status...');
-      const [statusResponse, readinessResponse] = await Promise.all([
+      const [statusResponse, readinessResponse, readinessHistoryResponse] = await Promise.all([
         api('/monitor/status'),
         api('/monitor/readiness'),
+        api('/monitor/readiness/history?limit=30'),
       ]);
       if (els.monitorResult) {
         els.monitorResult.textContent = JSON.stringify(
           {
             status: statusResponse,
             readiness: readinessResponse,
+            readinessHistory: readinessHistoryResponse,
           },
           null,
           2
@@ -6313,6 +6363,7 @@
       renderReadinessKpi(readinessResponse);
       renderPilotReportKpi(statusResponse);
       renderMonitorScheduler(statusResponse);
+      renderReadinessHistory(readinessHistoryResponse);
       renderMonitorRemediation(readinessResponse);
       const templatesTotal = statusResponse?.kpis?.templatesTotal ?? 0;
       const evaluationsTotal = statusResponse?.kpis?.evaluationsTotal ?? 0;
@@ -6331,6 +6382,7 @@
       renderReadinessKpi(null);
       renderPilotReportKpi(null);
       renderMonitorScheduler(null);
+      renderReadinessHistory(null);
       if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
       if (els.monitorRemediationResult) {
         els.monitorRemediationResult.textContent = isEnglishLanguage()
@@ -7266,6 +7318,12 @@
     if (els.monitorSchedulerSummary) els.monitorSchedulerSummary.textContent = '';
     if (els.monitorSchedulerResult) {
       els.monitorSchedulerResult.textContent = 'Ingen scheduler-data ännu.';
+    }
+    if (els.monitorReadinessHistorySummary) els.monitorReadinessHistorySummary.textContent = '';
+    if (els.monitorReadinessHistoryResult) {
+      els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
+        ? 'No readiness history yet.'
+        : 'Ingen readiness-historik ännu.';
     }
     if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
     if (els.monitorRemediationResult) {
