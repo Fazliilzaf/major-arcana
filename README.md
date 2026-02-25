@@ -221,6 +221,7 @@ Kör detta i ordning:
 
 Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
+- Samma med autosparad rapport: `npm run preflight:pilot:report -- --public-url https://arcana.hairtpclinic.se`
 - Snabb heal-variant: `npm run preflight:pilot:heal -- --public-url https://arcana.hairtpclinic.se`
 - Snabb heal-all-variant: `npm run preflight:pilot:heal:all -- --public-url https://arcana.hairtpclinic.se`
 - Skriv preflight-rapport till fil: `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se --report-file ./data/reports/preflight-latest.json` (eller env `ARCANA_PREFLIGHT_REPORT_FILE`).
