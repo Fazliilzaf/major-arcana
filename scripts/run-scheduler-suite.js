@@ -930,6 +930,31 @@ async function main() {
     return String(a?.categoryId || '').localeCompare(String(b?.categoryId || ''));
   });
   const categoryIssuesTop = categoryIssues.slice(0, 6);
+  let ownerMfaGapReport = null;
+  if (blockerChecks.some((item) => item?.checkId === 'owner_mfa_enforced')) {
+    try {
+      const membersPayload = await fetchJson(baseUrl, '/api/v1/users/staff', {
+        token: auth.token,
+      });
+      const ownerMfaClassification = classifyOwnerMfaMembers(membersPayload);
+      ownerMfaGapReport = {
+        activeOwners: ownerMfaClassification.activeOwners.length,
+        compliantOwners: ownerMfaClassification.compliantOwners.length,
+        nonCompliantOwners: ownerMfaClassification.nonCompliantOwners.length,
+        canRemediateByDisable: ownerMfaClassification.canRemediateByDisable,
+        nonCompliantPreview: ownerMfaClassification.nonCompliantOwners.slice(0, 8).map((item) => ({
+          email: item.email,
+          membershipId: item.membershipId || null,
+          mfaRequired: item.mfaRequired === true,
+          mfaConfigured: item.mfaConfigured === true,
+        })),
+      };
+    } catch (error) {
+      ownerMfaGapReport = {
+        error: normalizeText(error?.message || 'could_not_read_users_staff') || 'could_not_read_users_staff',
+      };
+    }
+  }
 
   const artifact = {
     generatedAt: new Date().toISOString(),
@@ -953,6 +978,7 @@ async function main() {
       corsRuntimeProbe,
       readinessOutputGateRemediation,
       ownerMfaMembershipRemediation,
+      ownerMfaGapReport,
     },
     schedulerSuite: suiteResponse,
     monitor: {
@@ -1115,6 +1141,19 @@ async function main() {
       'run with --remediate-owner-mfa-memberships to disable non-compliant OWNER memberships (requires at least one compliant OWNER)'
     );
   }
+  if (ownerMfaGapReport?.error) {
+    advisories.push(`owner MFA gap details unavailable (${ownerMfaGapReport.error})`);
+  } else if (ownerMfaGapReport && Number(ownerMfaGapReport.nonCompliantOwners || 0) > 0) {
+    const previewEmails = Array.isArray(ownerMfaGapReport.nonCompliantPreview)
+      ? ownerMfaGapReport.nonCompliantPreview
+          .map((item) => normalizeText(item?.email))
+          .filter(Boolean)
+          .slice(0, 5)
+      : [];
+    if (previewEmails.length > 0) {
+      advisories.push(`owner MFA gaps: ${previewEmails.join(', ')}`);
+    }
+  }
   if (!corsRuntimeProbeEnabled) {
     advisories.push(
       'run with --cors-runtime-probe to verify live CORS behavior (allowed vs denied origin headers)'
@@ -1230,6 +1269,22 @@ async function main() {
     process.stdout.write(
       `   ownerMfaRemediation: disabled=${ownerMfaDisabled} skipped=${ownerMfaSkipped} remainingNonCompliant=${ownerMfaRemaining}\n`
     );
+  }
+  if (ownerMfaGapReport?.error) {
+    process.stdout.write(`   ownerMfaGap: error=${ownerMfaGapReport.error}\n`);
+  } else if (ownerMfaGapReport) {
+    process.stdout.write(
+      `   ownerMfaGap: active=${Number(ownerMfaGapReport.activeOwners || 0)} compliant=${Number(ownerMfaGapReport.compliantOwners || 0)} nonCompliant=${Number(ownerMfaGapReport.nonCompliantOwners || 0)} canDisable=${ownerMfaGapReport.canRemediateByDisable ? 'yes' : 'no'}\n`
+    );
+    const preview = Array.isArray(ownerMfaGapReport.nonCompliantPreview)
+      ? ownerMfaGapReport.nonCompliantPreview
+          .map((item) => normalizeText(item?.email))
+          .filter(Boolean)
+          .slice(0, 5)
+      : [];
+    if (preview.length > 0) {
+      process.stdout.write(`   ownerMfaGapPreview: ${preview.join(', ')}\n`);
+    }
   }
   process.stdout.write(
     `   corsRuntimeProbe: enabled=${corsRuntimeProbeEnabled ? 'yes' : 'no'} status=${corsRuntimeProbeStatus} path=${corsProbePath} allowedOrigin=${corsProbeAllowedOrigin} allowedHeader=${corsProbeAllowedHeader || '-'} deniedHeader=${corsProbeDeniedHeader || '-'}\n`
