@@ -25,6 +25,7 @@
     "ops:suite:heal": "node ./scripts/run-scheduler-suite.js --remediate-output-gates",
     "ops:suite:strict": "node ./scripts/run-scheduler-suite.js --fail-on-no-go",
     "ops:suite:strict:heal": "node ./scripts/run-scheduler-suite.js --fail-on-no-go --remediate-output-gates",
+    "owner:mfa:setup": "node ./scripts/setup-owner-mfa.js",
     "report:scheduler:list": "node ./scripts/list-scheduler-reports.js",
     "report:scheduler:prune": "node ./scripts/prune-scheduler-reports.js --dry-run",
     "report:scheduler:prune:apply": "node ./scripts/prune-scheduler-reports.js --apply",

@@ -222,6 +222,7 @@ Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
 - Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `preflight:readiness:guard` + `ops:suite:strict` mot publik miljö (fail-fast på kritiska blocker-checks + no-go fail).
 - Sätt `ARCANA_PREFLIGHT_USE_HEAL=true` för att köra `ops:suite:strict:heal` i sista steget.
+- Om guard blockerar på `owner_mfa_enforced`: kör `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup` (per aktiv OWNER).
 
 Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
@@ -245,6 +246,11 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_SMOKE_SKIP_AUTH=true npm run smoke:public`
 - `smoke:public` läser även owner-credentials från lokal `.env` om env-variabler inte skickas in.
 - Om login misslyckas i public smoke: synka owner-credentials i Render och kör igen.
+- För att slutföra OWNER MFA setup med samma credentials:
+  - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`
+  - Visa recovery-koder explicit (för säker lagring): `npm run owner:mfa:setup -- --show-recovery-codes`
+- När `cors_strict` blockerar:
+  - sätt `CORS_STRICT=true`, `CORS_ALLOW_NO_ORIGIN=false`, `CORS_ALLOWED_ORIGINS=<origin1,origin2>` i runtime-env och deploya om.
 - Kör fail-fast readiness guard separat vid behov:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard`
   - Default checks: `owner_mfa_enforced,cors_strict` (fail på status `red`)

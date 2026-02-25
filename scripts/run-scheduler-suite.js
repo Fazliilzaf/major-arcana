@@ -53,11 +53,13 @@ function toValuePreview(value, maxLen = 220) {
 const BLOCKER_CHECK_HINTS = Object.freeze({
   owner_mfa_enforced: {
     owner: 'security_owner',
-    playbook: 'Enforce MFA required/configured for all active OWNER accounts.',
+    playbook:
+      'Run owner:mfa:setup for each active OWNER account and confirm check turns green.',
   },
   cors_strict: {
     owner: 'platform_owner',
-    playbook: 'Set strict CORS allowlist and disable allowNoOrigin.',
+    playbook:
+      'Set CORS_STRICT=true, CORS_ALLOW_NO_ORIGIN=false and configure CORS_ALLOWED_ORIGINS.',
   },
   rate_limits_configured: {
     owner: 'platform_owner',

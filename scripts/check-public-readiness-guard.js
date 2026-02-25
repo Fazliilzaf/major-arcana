@@ -23,6 +23,17 @@ function normalizeBaseUrl(value) {
   return input.replace(/\/+$/, '');
 }
 
+const CHECK_HINTS = Object.freeze({
+  owner_mfa_enforced: [
+    'Kör owner-setup per konto: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup',
+    'Verifiera sedan igen: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard',
+  ],
+  cors_strict: [
+    'Sätt env: CORS_STRICT=true, CORS_ALLOW_NO_ORIGIN=false och CORS_ALLOWED_ORIGINS=<origin1,origin2>',
+    'Redeploy/restart och kör guard igen för att bekräfta green status.',
+  ],
+});
+
 function splitCsv(value, fallback = []) {
   const raw = normalizeText(value);
   if (!raw) return [...fallback];
@@ -365,6 +376,10 @@ async function main() {
       if (item.target) process.stdout.write(`    target: ${item.target}\n`);
       if (item.evidence) process.stdout.write(`    evidence: ${item.evidence}\n`);
       if (item.message) process.stdout.write(`    detail: ${item.message}\n`);
+      const hints = Array.isArray(CHECK_HINTS[item.checkId]) ? CHECK_HINTS[item.checkId] : [];
+      for (const hint of hints.slice(0, 3)) {
+        process.stdout.write(`    hint: ${hint}\n`);
+      }
     }
     process.exitCode = 2;
     return;
@@ -378,4 +393,3 @@ main().catch((error) => {
   console.error(error?.message || error);
   process.exit(1);
 });
-
