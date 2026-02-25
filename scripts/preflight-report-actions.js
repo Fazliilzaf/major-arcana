@@ -81,6 +81,7 @@ function includesText(items, needle) {
 function buildActions(report) {
   const actions = [];
   const exitCode = Number(report?.exit?.code ?? 0);
+  const exitReason = normalizeText(report?.exit?.reason);
   const options = report?.options && typeof report.options === 'object' ? report.options : {};
   const diagnostics =
     report?.diagnostics && typeof report.diagnostics === 'object' ? report.diagnostics : {};
@@ -145,6 +146,25 @@ function buildActions(report) {
         `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate -- --apply`,
       details: 'Använd endast när minst en compliant OWNER finns kvar.',
       source: 'guard',
+    });
+  }
+
+  if (exitReason === 'public_smoke_failed') {
+    pushAction(actions, {
+      id: 'public_smoke_credentials',
+      priority: 'P0',
+      title: 'Verifiera OWNER credentials för publik smoke',
+      command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`,
+      details: 'Om MFA krävs: sätt ARCANA_OWNER_MFA_CODE eller ARCANA_OWNER_MFA_SECRET och kör igen.',
+      source: 'preflight',
+    });
+    pushAction(actions, {
+      id: 'public_smoke_mfa_setup',
+      priority: 'P1',
+      title: 'Kör OWNER MFA setup vid behov',
+      command: `BASE_URL=${publicUrl} ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup`,
+      details: 'Använd när login fungerar men kontot kräver MFA-setup.',
+      source: 'preflight',
     });
   }
 
@@ -250,7 +270,7 @@ function buildActions(report) {
   if (actions.length > 0 || exitCode !== 0) {
     pushAction(actions, {
       id: 'rerun_preflight_report',
-      priority: 'P0',
+      priority: 'P3',
       title: 'Verifiera igen med preflight-rapport',
       command: `npm run preflight:pilot:report -- --public-url ${publicUrl}`,
       details: 'Bekräfta att blocker checks och strict failures är lösta.',
@@ -272,11 +292,20 @@ function priorityRank(priority) {
 
 function filterAndSortActions(actions, { minPriority = '', top = 0 } = {}) {
   const minRank = priorityRank(minPriority || '');
+  const sortRank = (item) => {
+    const id = normalizeText(item?.id);
+    const source = normalizeText(item?.source);
+    if (id === 'rerun_preflight_report') return 200;
+    if (source === 'advisory') return 100;
+    return 0;
+  };
   const filtered = [...actions]
     .filter((item) => priorityRank(item.priority) <= minRank || minRank === 4)
     .sort((a, b) => {
       const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
       if (byPriority !== 0) return byPriority;
+      const bySortRank = sortRank(a) - sortRank(b);
+      if (bySortRank !== 0) return bySortRank;
       return a.title.localeCompare(b.title);
     });
   if (top > 0) return filtered.slice(0, top);
