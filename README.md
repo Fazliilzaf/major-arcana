@@ -220,7 +220,8 @@ Kör detta i ordning:
 
 Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
-- Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `ops:suite:strict` mot publik miljö (no-go ger fail).
+- Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `preflight:readiness:guard` + `ops:suite:strict` mot publik miljö (fail-fast på kritiska blocker-checks + no-go fail).
+- Sätt `ARCANA_PREFLIGHT_USE_HEAL=true` för att köra `ops:suite:strict:heal` i sista steget.
 
 Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
@@ -242,6 +243,10 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_SMOKE_SKIP_AUTH=true npm run smoke:public`
 - `smoke:public` läser även owner-credentials från lokal `.env` om env-variabler inte skickas in.
 - Om login misslyckas i public smoke: synka owner-credentials i Render och kör igen.
+- Kör fail-fast readiness guard separat vid behov:
+  - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard`
+  - Default checks: `owner_mfa_enforced,cors_strict` (fail på status `red`)
+  - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`
 
 4) Mail-baserade mallutkast (när export finns):
 - `npm run ingest:mails -- --input ./mail-exports --brand hair-tp-clinic`

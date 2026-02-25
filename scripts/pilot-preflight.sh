@@ -55,16 +55,30 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
   echo
 
   if [[ -n "${ARCANA_OWNER_EMAIL:-}" && -n "${ARCANA_OWNER_PASSWORD:-}" ]]; then
-    echo "4) Public ops suite strict ($PUBLIC_URL)"
-    BASE_URL="$PUBLIC_URL" npm run ops:suite:strict
+    OPS_STRICT_SCRIPT="ops:suite:strict"
+    case "${ARCANA_PREFLIGHT_USE_HEAL:-false}" in
+      1|true|TRUE|yes|YES|on|ON)
+        OPS_STRICT_SCRIPT="ops:suite:strict:heal"
+        ;;
+    esac
+
+    echo "4) Public readiness guard ($PUBLIC_URL)"
+    BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard
+    echo
+
+    echo "5) Public ${OPS_STRICT_SCRIPT} ($PUBLIC_URL)"
+    BASE_URL="$PUBLIC_URL" npm run "$OPS_STRICT_SCRIPT"
     echo
   else
-    echo "4) Public ops suite strict SKIP (saknar ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD)"
+    echo "4) Public readiness guard SKIP (saknar ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD)"
+    echo
+    echo "5) Public ops suite strict SKIP (saknar ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD)"
     echo
   fi
 else
   echo "3) Public smoke SKIP"
-  echo "4) Public ops suite strict SKIP"
+  echo "4) Public readiness guard SKIP"
+  echo "5) Public ops suite strict SKIP"
   echo
 fi
 
