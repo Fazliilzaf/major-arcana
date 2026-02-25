@@ -19,6 +19,92 @@ function parsePositiveInt(value, fallback = 50, min = 1, max = 200) {
   return Math.max(min, Math.min(max, parsed));
 }
 
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function checkSeverityRank(status) {
+  const normalized = normalizeText(status).toLowerCase();
+  if (normalized === 'red') return 0;
+  if (normalized === 'unknown') return 1;
+  if (normalized === 'yellow') return 2;
+  if (normalized === 'green') return 3;
+  return 4;
+}
+
+function toValuePreview(value, maxLen = 220) {
+  if (value === undefined || value === null) return null;
+  let raw = '';
+  if (typeof value === 'string') raw = value;
+  else if (typeof value === 'number' || typeof value === 'boolean') raw = String(value);
+  else {
+    try {
+      raw = JSON.stringify(value);
+    } catch {
+      raw = '[unserializable]';
+    }
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen)}…`;
+}
+
+const BLOCKER_CHECK_HINTS = Object.freeze({
+  owner_mfa_enforced: {
+    owner: 'security_owner',
+    playbook: 'Enforce MFA required/configured for all active OWNER accounts.',
+  },
+  cors_strict: {
+    owner: 'platform_owner',
+    playbook: 'Set strict CORS allowlist and disable allowNoOrigin.',
+  },
+  rate_limits_configured: {
+    owner: 'platform_owner',
+    playbook: 'Set all auth/api/risk/public rate limits to values > 0.',
+  },
+  audit_append_only: {
+    owner: 'security_owner',
+    playbook: 'Set AUTH_AUDIT_APPEND_ONLY=true in runtime configuration.',
+  },
+  audit_integrity: {
+    owner: 'security_owner',
+    playbook: 'Run audit integrity verification and repair hash-chain issues.',
+  },
+  scheduler_enabled_started: {
+    owner: 'ops_owner',
+    playbook: 'Start scheduler and verify enabled=true and started=true.',
+  },
+  scheduler_required_jobs_enabled: {
+    owner: 'ops_owner',
+    playbook: 'Enable all required jobs: nightly report, backup, restore drill, alert probe.',
+  },
+  scheduler_job_freshness: {
+    owner: 'ops_owner',
+    playbook: 'Run and monitor required jobs until freshness status is green.',
+  },
+  restore_drill_30d: {
+    owner: 'ops_owner',
+    playbook: 'Run restore_drill_preview and verify successful audit event.',
+  },
+  nightly_pilot_report_freshness: {
+    owner: 'ops_owner',
+    playbook: 'Run nightly_pilot_report and verify report recency/freshness.',
+  },
+  gold_set_coverage: {
+    owner: 'risk_owner',
+    playbook: 'Increase and maintain a >=150-case calibrated gold set.',
+  },
+  band_accuracy: {
+    owner: 'risk_owner',
+    playbook: 'Tune rules/thresholds to restore band accuracy to target.',
+  },
+  level_accuracy: {
+    owner: 'risk_owner',
+    playbook: 'Tune rules/thresholds to restore level accuracy to target.',
+  },
+});
+
 function toStampUtc(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
   return [
@@ -390,6 +476,38 @@ async function main() {
       scoreImpactMax: Number(item?.scoreImpactMax || 0),
       playbook: String(item?.playbook || ''),
     }));
+  const readinessCategories = Array.isArray(readiness?.categories) ? readiness.categories : [];
+  const blockerChecks = [];
+  for (const category of readinessCategories) {
+    const categoryId = normalizeText(category?.id);
+    const categoryLabel = normalizeText(category?.label);
+    const checks = Array.isArray(category?.checks) ? category.checks : [];
+    for (const check of checks) {
+      if (check?.required !== true) continue;
+      const status = normalizeText(check?.status).toLowerCase() || 'unknown';
+      if (status === 'green') continue;
+      const checkId = normalizeText(check?.id);
+      const hint = BLOCKER_CHECK_HINTS[checkId] || {};
+      blockerChecks.push({
+        categoryId: categoryId || null,
+        categoryLabel: categoryLabel || null,
+        checkId: checkId || null,
+        label: normalizeText(check?.label) || null,
+        status,
+        target: normalizeText(check?.target) || null,
+        evidence: normalizeText(check?.evidence) || null,
+        valuePreview: toValuePreview(check?.value),
+        owner: normalizeText(hint?.owner) || null,
+        playbook: normalizeText(hint?.playbook) || null,
+      });
+    }
+  }
+  blockerChecks.sort((a, b) => {
+    const bySeverity = checkSeverityRank(a?.status) - checkSeverityRank(b?.status);
+    if (bySeverity !== 0) return bySeverity;
+    return String(a?.checkId || '').localeCompare(String(b?.checkId || ''));
+  });
+  const blockerChecksTop = blockerChecks.slice(0, 8);
 
   const artifact = {
     generatedAt: new Date().toISOString(),
@@ -424,6 +542,7 @@ async function main() {
         triggeredNoGo,
         remediationSummary: readiness?.remediation?.summary || null,
         remediationTopP0,
+        blockerChecks,
       },
       readinessHistory: {
         generatedAt: readinessHistory?.generatedAt || null,
@@ -477,6 +596,12 @@ async function main() {
   const remediationRunRemaining = Number(
     readinessOutputGateRemediation?.remainingFixableAfterApply || 0
   );
+  const blockerCheckCount = blockerChecks.length;
+  const blockerCheckLabels =
+    blockerChecksTop
+      .map((item) => `${item.checkId || '-'}(${item.status || '-'})`)
+      .filter(Boolean)
+      .join(', ') || '-';
   const failOnNoGo = Boolean(args.failOnNoGo);
   const strictFailures = [];
   const advisories = [];
@@ -486,7 +611,17 @@ async function main() {
       triggeredNoGoIds.length > 0 ? ` [${triggeredNoGoIds.slice(0, 6).join(', ')}]` : '';
     strictFailures.push(`readiness go/no-go is not allowed${triggerSuffix}`);
   }
-  if (!blockerCategoriesGreen) strictFailures.push('readiness blocker categories are not all green');
+  if (!blockerCategoriesGreen) {
+    const checksSuffix =
+      blockerChecksTop.length > 0
+        ? ` [checks: ${blockerChecksTop
+            .map((item) => item.checkId)
+            .filter(Boolean)
+            .slice(0, 6)
+            .join(', ')}]`
+        : '';
+    strictFailures.push(`readiness blocker categories are not all green${checksSuffix}`);
+  }
   if (monitorStatus?.gates?.pilotReport?.noGo === true) strictFailures.push('pilot report gate is no-go');
   if (monitorStatus?.gates?.restoreDrill?.noGo === true) strictFailures.push('restore drill gate is no-go');
   if (sloOverall === 'red' || sloOverall === 'unknown') {
@@ -499,6 +634,15 @@ async function main() {
     advisories.push(
       'run with --remediate-output-gates to auto-fix active-version output/policy metadata gaps'
     );
+  }
+  if (blockerChecksTop.length > 0) {
+    for (const blocker of blockerChecksTop.slice(0, 3)) {
+      if (blocker?.playbook) {
+        advisories.push(`${blocker.checkId}: ${blocker.playbook}`);
+      } else if (blocker?.target) {
+        advisories.push(`${blocker.checkId}: target=${blocker.target}`);
+      }
+    }
   }
 
   process.stdout.write(`✅ Scheduler suite körd: ${baseUrl}\n`);
@@ -513,6 +657,9 @@ async function main() {
   );
   process.stdout.write(
     `   remediation: total=${remediationTotal} p0=${remediationP0} top=${remediationTopLabel}\n`
+  );
+  process.stdout.write(
+    `   blockerChecks: count=${blockerCheckCount} top=${blockerCheckLabels}\n`
   );
   if (remediationRunEnabled) {
     process.stdout.write(

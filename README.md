@@ -262,6 +262,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
 - Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
+- Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
 - Heal mode (auto-fixa output-gate metadata på aktiva versioner innan gating): `npm run ops:suite:heal`
 - Strikt heal mode: `npm run ops:suite:strict:heal`
 - Flagga direkt: `npm run ops:suite -- --remediate-output-gates --remediation-limit 50`
