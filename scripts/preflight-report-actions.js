@@ -55,6 +55,7 @@ function pushAction(actions, action) {
 
 function buildActions(report) {
   const actions = [];
+  const exitCode = Number(report?.exit?.code ?? 0);
   const options = report?.options && typeof report.options === 'object' ? report.options : {};
   const diagnostics =
     report?.diagnostics && typeof report.diagnostics === 'object' ? report.diagnostics : {};
@@ -121,13 +122,15 @@ function buildActions(report) {
     });
   }
 
-  pushAction(actions, {
-    id: 'rerun_preflight_report',
-    priority: 'P0',
-    title: 'Verifiera igen med preflight-rapport',
-    command: `npm run preflight:pilot:report -- --public-url ${publicUrl}`,
-    details: 'Bekräfta att blocker checks och strict failures är lösta.',
-  });
+  if (actions.length > 0 || exitCode !== 0) {
+    pushAction(actions, {
+      id: 'rerun_preflight_report',
+      priority: 'P0',
+      title: 'Verifiera igen med preflight-rapport',
+      command: `npm run preflight:pilot:report -- --public-url ${publicUrl}`,
+      details: 'Bekräfta att blocker checks och strict failures är lösta.',
+    });
+  }
 
   return actions;
 }
