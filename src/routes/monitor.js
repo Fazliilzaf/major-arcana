@@ -5,6 +5,7 @@ const express = require('express');
 const { evaluateGoldSetFile } = require('../risk/goldSet');
 const { getPolicyFloorDefinition } = require('../policy/floor');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { listSchedulerPilotReports } = require('../ops/pilotReports');
 
 const RISK_GOLD_SET_DEFAULT_PATH = path.join(process.cwd(), 'docs', 'risk', 'gold-set-v1.json');
 const REQUIRED_SCHEDULER_JOBS = Object.freeze([
@@ -41,6 +42,11 @@ const REMEDIATION_GUIDANCE_BY_NOGO = Object.freeze({
   restore_drill_unverified_30d: {
     owner: 'ops_owner',
     playbook: 'Kör restore_drill_preview och verifiera success i scheduler + audit.',
+  },
+  nightly_pilot_report_unverified: {
+    owner: 'ops_owner',
+    playbook:
+      'Kör nightly_pilot_report och verifiera success i scheduler + rapportfil i /ops/reports.',
   },
   audit_chain_not_immutable: {
     owner: 'security_owner',
@@ -115,6 +121,10 @@ const REMEDIATION_GUIDANCE_BY_CHECK = Object.freeze({
   restore_drill_30d: {
     owner: 'ops_owner',
     playbook: 'Kör restore drill och säkerställ success <= 30 dagar.',
+  },
+  nightly_pilot_report_freshness: {
+    owner: 'ops_owner',
+    playbook: 'Kör nightly_pilot_report och säkerställ att senaste success-run är färsk.',
   },
   gold_set_coverage: {
     owner: 'risk_owner',
@@ -347,6 +357,65 @@ function buildRestoreDrillGate({
     noGo,
     healthy30d,
     restoreDrillJob,
+  };
+}
+
+function newestIsoTimestamp(values = []) {
+  let bestIso = null;
+  let bestMs = null;
+  for (const value of Array.isArray(values) ? values : []) {
+    const iso = toIso(value);
+    if (!iso) continue;
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) continue;
+    if (bestMs === null || ms > bestMs) {
+      bestMs = ms;
+      bestIso = iso;
+    }
+  }
+  return bestIso;
+}
+
+function buildNightlyPilotReportGate({
+  schedulerStatus = null,
+  latestNightlyReportAudit = null,
+  latestReportFile = null,
+  monitorPilotReportMaxAgeHours = 36,
+  nowMs = Date.now(),
+} = {}) {
+  const schedulerJobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
+  const nightlyReportJob =
+    schedulerJobs.find((item) => String(item?.id || '') === 'nightly_pilot_report') || null;
+  const maxAgeHours = Math.max(1, Math.min(720, Number(monitorPilotReportMaxAgeHours || 36)));
+  const latestReportUpdatedAt = toIso(latestReportFile?.mtime);
+  const lastSuccessAt = newestIsoTimestamp([
+    latestNightlyReportAudit?.ts,
+    nightlyReportJob?.lastSuccessAt,
+    latestReportUpdatedAt,
+  ]);
+  const ageHours = toAgeHoursSince(lastSuccessAt, nowMs);
+  const healthy = ageHours !== null && ageHours <= maxAgeHours;
+  const noGo = !schedulerStatus?.enabled || !schedulerStatus?.started || !healthy;
+  const healthy24h =
+    Boolean(schedulerStatus?.enabled) &&
+    Boolean(schedulerStatus?.started) &&
+    ageHours !== null &&
+    ageHours <= 24;
+  return {
+    maxAgeHours,
+    lastSuccessAt,
+    ageHours,
+    healthy,
+    healthy24h,
+    noGo,
+    nightlyReportJob,
+    latestReport: latestReportFile
+      ? {
+          fileName: normalizeText(latestReportFile?.fileName) || null,
+          updatedAt: latestReportUpdatedAt,
+          sizeBytes: Number(latestReportFile?.sizeBytes || 0),
+        }
+      : null,
   };
 }
 
@@ -601,6 +670,8 @@ function createMonitorRouter({
           members,
           auditEvents,
           latestRestoreDrillAudit,
+          latestNightlyReportAudit,
+          latestSchedulerReports,
           tenantConfig,
           authFile,
           templateFile,
@@ -622,6 +693,17 @@ function createMonitorRouter({
                   outcome: 'success',
                 })
               : Promise.resolve(null),
+            typeof authStore.getLatestAuditEvent === 'function'
+              ? authStore.getLatestAuditEvent({
+                  tenantId,
+                  action: 'scheduler.job.nightly_pilot_report.run',
+                  outcome: 'success',
+                })
+              : Promise.resolve(null),
+            listSchedulerPilotReports({
+              reportsDir: config?.reportsDir,
+              limit: 1,
+            }),
             tenantConfigStore.getTenantConfig(tenantId),
             readFileMeta(authStore.filePath),
             readFileMeta(templateStore.filePath),
@@ -657,6 +739,17 @@ function createMonitorRouter({
           schedulerStatus,
           latestRestoreDrillAudit,
           monitorRestoreDrillMaxAgeDays: config?.monitorRestoreDrillMaxAgeDays,
+          nowMs: now,
+        });
+        const latestSchedulerReport =
+          Array.isArray(latestSchedulerReports) && latestSchedulerReports.length > 0
+            ? latestSchedulerReports[0]
+            : null;
+        const pilotReportGate = buildNightlyPilotReportGate({
+          schedulerStatus,
+          latestNightlyReportAudit,
+          latestReportFile: latestSchedulerReport,
+          monitorPilotReportMaxAgeHours: config?.monitorPilotReportMaxAgeHours,
           nowMs: now,
         });
 
@@ -721,6 +814,14 @@ function createMonitorRouter({
                     healthy: restoreDrillGate.healthy,
                     noGo: restoreDrillGate.noGo,
                   },
+                  pilotReport: {
+                    maxAgeHours: pilotReportGate.maxAgeHours,
+                    lastSuccessAt: pilotReportGate.lastSuccessAt,
+                    ageHours: pilotReportGate.ageHours,
+                    healthy: pilotReportGate.healthy,
+                    noGo: pilotReportGate.noGo,
+                    latestReport: pilotReportGate.latestReport,
+                  },
                 }
               : {
                   enabled: false,
@@ -733,6 +834,14 @@ function createMonitorRouter({
                     ageDays: null,
                     healthy: false,
                     noGo: true,
+                  },
+                  pilotReport: {
+                    maxAgeHours: pilotReportGate.maxAgeHours,
+                    lastSuccessAt: null,
+                    ageHours: null,
+                    healthy: false,
+                    noGo: true,
+                    latestReport: pilotReportGate.latestReport,
                   },
                 },
           },
@@ -791,6 +900,8 @@ function createMonitorRouter({
             incidentsBreachedOpen: Number(incidentSummary?.totals?.breachedOpen || 0),
             restoreDrillAgeDays: restoreDrillGate.ageDays,
             restoreDrillHealthy: restoreDrillGate.healthy,
+            pilotReportAgeHours: pilotReportGate.ageHours,
+            pilotReportHealthy: pilotReportGate.healthy,
             secretRotationStaleRequired: Number(secretRotationStatus?.totals?.staleRequired || 0),
             secretRotationPending: Number(secretRotationStatus?.totals?.pendingRotation || 0),
             staffActive: activeStaff,
@@ -804,6 +915,14 @@ function createMonitorRouter({
               ageDays: restoreDrillGate.ageDays,
               healthy: restoreDrillGate.healthy,
               noGo: restoreDrillGate.noGo,
+            },
+            pilotReport: {
+              maxAgeHours: pilotReportGate.maxAgeHours,
+              lastSuccessAt: pilotReportGate.lastSuccessAt,
+              ageHours: pilotReportGate.ageHours,
+              healthy: pilotReportGate.healthy,
+              noGo: pilotReportGate.noGo,
+              latestReport: pilotReportGate.latestReport,
             },
           },
           stores: {
@@ -875,7 +994,8 @@ function createMonitorRouter({
           scheduler && typeof scheduler.getStatus === 'function'
             ? scheduler.getStatus()
             : null;
-        const [incidentSummary, latestRestoreDrillAudit] = await Promise.all([
+        const [incidentSummary, latestRestoreDrillAudit, latestNightlyReportAudit, latestSchedulerReports] =
+          await Promise.all([
           typeof templateStore?.summarizeIncidents === 'function'
             ? templateStore.summarizeIncidents({ tenantId })
             : Promise.resolve(null),
@@ -886,6 +1006,17 @@ function createMonitorRouter({
                 outcome: 'success',
               })
             : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.nightly_pilot_report.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          listSchedulerPilotReports({
+            reportsDir: config?.reportsDir,
+            limit: 1,
+          }),
         ]);
 
         const runtimeMetrics =
@@ -896,6 +1027,17 @@ function createMonitorRouter({
           schedulerStatus,
           latestRestoreDrillAudit,
           monitorRestoreDrillMaxAgeDays: config?.monitorRestoreDrillMaxAgeDays,
+          nowMs: Date.now(),
+        });
+        const latestSchedulerReport =
+          Array.isArray(latestSchedulerReports) && latestSchedulerReports.length > 0
+            ? latestSchedulerReports[0]
+            : null;
+        const pilotReportGate = buildNightlyPilotReportGate({
+          schedulerStatus,
+          latestNightlyReportAudit,
+          latestReportFile: latestSchedulerReport,
+          monitorPilotReportMaxAgeHours: config?.monitorPilotReportMaxAgeHours,
           nowMs: Date.now(),
         });
 
@@ -955,6 +1097,23 @@ function createMonitorRouter({
               schedulerStarted: Boolean(schedulerStatus?.started),
             },
           },
+          {
+            id: 'pilot_report_recency',
+            label: 'Nightly pilot report recency',
+            target: '<=24h',
+            sliHours: pilotReportGate.ageHours,
+            status: pilotReportGate.healthy24h
+              ? 'green'
+              : pilotReportGate.healthy
+                ? 'yellow'
+                : 'red',
+            evidence: {
+              lastSuccessAt: pilotReportGate.lastSuccessAt,
+              schedulerEnabled: Boolean(schedulerStatus?.enabled),
+              schedulerStarted: Boolean(schedulerStatus?.started),
+              latestReport: pilotReportGate.latestReport,
+            },
+          },
         ];
 
         const overallStatus = worstStatus(slos.map((item) => item.status));
@@ -971,6 +1130,7 @@ function createMonitorRouter({
             availabilityPct,
             incidentResponsePct,
             restoreDrillAgeDays: restoreGate.ageDays,
+            pilotReportAgeHours: pilotReportGate.ageHours,
           },
         });
 
@@ -1020,6 +1180,8 @@ function createMonitorRouter({
           incidentSummary,
           openIncidents,
           latestRestoreDrillAudit,
+          latestNightlyReportAudit,
+          latestSchedulerReports,
           tenantConfig,
           secretRotationStatus,
           activeVersionSource,
@@ -1039,6 +1201,17 @@ function createMonitorRouter({
                 outcome: 'success',
               })
             : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.nightly_pilot_report.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          listSchedulerPilotReports({
+            reportsDir: config?.reportsDir,
+            limit: 1,
+          }),
           tenantConfigStore.getTenantConfig(tenantId),
           secretRotationStore && typeof secretRotationStore.getSecretsStatus === 'function'
             ? secretRotationStore.getSecretsStatus({
@@ -1054,6 +1227,17 @@ function createMonitorRouter({
           schedulerStatus,
           latestRestoreDrillAudit,
           monitorRestoreDrillMaxAgeDays: config?.monitorRestoreDrillMaxAgeDays,
+          nowMs,
+        });
+        const latestSchedulerReport =
+          Array.isArray(latestSchedulerReports) && latestSchedulerReports.length > 0
+            ? latestSchedulerReports[0]
+            : null;
+        const pilotReportGate = buildNightlyPilotReportGate({
+          schedulerStatus,
+          latestNightlyReportAudit,
+          latestReportFile: latestSchedulerReport,
+          monitorPilotReportMaxAgeHours: config?.monitorPilotReportMaxAgeHours,
           nowMs,
         });
         const schedulerJobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
@@ -1483,6 +1667,28 @@ function createMonitorRouter({
                 healthy30d: restoreDrillGate.healthy30d,
               },
             }),
+            buildCheck({
+              id: 'nightly_pilot_report_freshness',
+              label: 'Nightly pilot report verifierad inom tidsfönster',
+              status:
+                !pilotReportGate.healthy
+                  ? 'red'
+                  : pilotReportGate.ageHours !== null &&
+                      pilotReportGate.ageHours > pilotReportGate.maxAgeHours * 0.7
+                    ? 'yellow'
+                    : 'green',
+              required: true,
+              target: `nightly_pilot_report success <= ${pilotReportGate.maxAgeHours}h`,
+              value: {
+                lastSuccessAt: pilotReportGate.lastSuccessAt,
+                ageHours: pilotReportGate.ageHours,
+                maxAgeHours: pilotReportGate.maxAgeHours,
+                latestReport: pilotReportGate.latestReport,
+              },
+              evidence: pilotReportGate.lastSuccessAt
+                ? ''
+                : 'Ingen lyckad nightly_pilot_report hittad.',
+            }),
           ],
         });
 
@@ -1653,6 +1859,20 @@ function createMonitorRouter({
               : 'Ingen lyckad restore_drill_preview hittad.',
           },
           {
+            id: 'nightly_pilot_report_unverified',
+            label: 'Nattlig pilotrapport ej verifierad inom tidsfönster',
+            status: pilotReportGate.healthy ? 'clear' : 'triggered',
+            inferred: false,
+            evidence: pilotReportGate.lastSuccessAt
+              ? `Senaste nightly_pilot_report success: ${pilotReportGate.lastSuccessAt}`
+              : 'Ingen lyckad nightly_pilot_report hittad.',
+            value: {
+              maxAgeHours: pilotReportGate.maxAgeHours,
+              ageHours: pilotReportGate.ageHours,
+              latestReport: pilotReportGate.latestReport,
+            },
+          },
+          {
             id: 'audit_chain_not_immutable',
             label: 'Auditkedjan är inte immutable',
             status:
@@ -1731,6 +1951,14 @@ function createMonitorRouter({
               ageDays: restoreDrillGate.ageDays,
               healthy: restoreDrillGate.healthy,
               healthy30d: restoreDrillGate.healthy30d,
+            },
+            pilotReport: {
+              maxAgeHours: pilotReportGate.maxAgeHours,
+              lastSuccessAt: pilotReportGate.lastSuccessAt,
+              ageHours: pilotReportGate.ageHours,
+              healthy: pilotReportGate.healthy,
+              healthy24h: pilotReportGate.healthy24h,
+              latestReport: pilotReportGate.latestReport,
             },
             incidents: {
               total: incidentsTotal,
