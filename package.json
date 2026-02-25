@@ -36,6 +36,8 @@
     "risk:goldset:generate": "node ./scripts/generate-risk-gold-set.js",
     "risk:goldset:report": "node ./scripts/risk-gold-set-report.js",
     "pilot:public": "bash ./scripts/public-pilot-run.sh",
+    "pilot:public:heal": "bash ./scripts/public-pilot-run.sh --preflight-heal",
+    "pilot:public:heal:all": "bash ./scripts/public-pilot-run.sh --preflight-heal-all",
     "git:check-large": "bash ./scripts/check-large-files.sh",
     "preflight:readiness:guard": "node ./scripts/check-public-readiness-guard.js",
     "preflight:pilot": "bash ./scripts/pilot-preflight.sh",

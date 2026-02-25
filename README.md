@@ -244,6 +244,10 @@ Snabbaste vägen (allt i ett):
 
 Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
+- `pilot:public` kör nu advisor-preflight först (default `--skip-local`) och stoppar vid blocker med action-plan.
+- Heal-varianter: `npm run pilot:public:heal` och `npm run pilot:public:heal:all`
+- Tvinga fortsatt preflight i heal-läge trots ej-healbar guard-blocker: `npm run pilot:public -- --preflight-force-on-guard-fail`
+- Kör full preflight inkl lokal verify: `npm run pilot:public -- --with-local-verify`
 - Lägg till mail-seeds i samma körning: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public -- --with-mail-seeds`
 - Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>` (scriptet försöker även läsa `AUTH_STORE_PATH`, default `./data/auth.json`).
 
