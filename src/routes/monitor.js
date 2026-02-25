@@ -1928,9 +1928,7 @@ function createMonitorRouter({
               status:
                 nonOwnerGovernedRiskChanges.length > 0
                   ? 'red'
-                  : riskChangeEvents.length > 0
-                    ? 'green'
-                    : 'yellow',
+                  : 'green',
               required: true,
               target: 'Ingen risk threshold-change utan actorUserId',
               value: {
