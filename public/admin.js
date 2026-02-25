@@ -6304,25 +6304,69 @@
     );
     const goAllowed = goNoGo?.allowed === true;
     const blockersGreen = goNoGo?.blockerCategoriesGreen === true;
+    const requiredBlockerCount = Number(goNoGo?.blockingRequiredChecksCount || 0);
+    const requiredBlockerIds = Array.isArray(goNoGo?.blockingRequiredCheckIds)
+      ? goNoGo.blockingRequiredCheckIds.map((item) => String(item || '')).filter(Boolean)
+      : [];
+    const requiredBlockerDetails = Array.isArray(readiness?.evidence?.blockingRequiredChecks?.checks)
+      ? readiness.evidence.blockingRequiredChecks.checks
+      : [];
     const ids = Array.isArray(goNoGo?.triggeredNoGoIds)
       ? goNoGo.triggeredNoGoIds.map((item) => String(item || '')).filter(Boolean)
       : triggers.map((item) => String(item?.id || '')).filter(Boolean);
 
     if (triggers.length === 0) {
       els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
-        ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} triggered=0`
-        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} triggered=0`;
-      els.monitorReadinessNoGoResult.textContent = isEnglishLanguage()
-        ? 'No active no-go blockers.'
-        : 'Inga aktiva No-Go blockeringar.';
+        ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} requiredBlockers=${requiredBlockerCount} triggered=0`
+        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} requiredBlockers=${requiredBlockerCount} triggered=0`;
+
+      const lines = [];
+      if (requiredBlockerCount > 0) {
+        lines.push(
+          isEnglishLanguage()
+            ? `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+            : `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+        );
+        requiredBlockerDetails.slice(0, 6).forEach((item) => {
+          lines.push(
+            `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} category=${String(item?.categoryId || '-')}`
+          );
+          if (item?.target) {
+            lines.push(`     target: ${String(item.target)}`);
+          }
+        });
+        if (requiredBlockerDetails.length > 6) {
+          lines.push(`   ... +${requiredBlockerDetails.length - 6} more required blockers`);
+        }
+      } else {
+        lines.push(
+          isEnglishLanguage()
+            ? 'No active no-go blockers.'
+            : 'Inga aktiva No-Go blockeringar.'
+        );
+      }
+      els.monitorReadinessNoGoResult.textContent = lines.join('\n');
       return;
     }
 
     els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
-      ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} triggered=${triggers.length} ids=${ids.join(',') || '-'}`
-      : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} triggered=${triggers.length} ids=${ids.join(',') || '-'}`;
+      ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} requiredBlockers=${requiredBlockerCount} triggered=${triggers.length} ids=${ids.join(',') || '-'}`
+      : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} requiredBlockers=${requiredBlockerCount} triggered=${triggers.length} ids=${ids.join(',') || '-'}`;
 
     const lines = [];
+    if (requiredBlockerCount > 0) {
+      lines.push(
+        isEnglishLanguage()
+          ? `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+          : `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+      );
+      requiredBlockerDetails.slice(0, 5).forEach((item) => {
+        lines.push(
+          `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} category=${String(item?.categoryId || '-')}`
+        );
+      });
+      lines.push('');
+    }
     triggers.forEach((trigger, index) => {
       const id = String(trigger?.id || '-');
       const label = String(trigger?.label || id);
@@ -6452,6 +6496,7 @@
       const highCriticalOpen = statusResponse?.kpis?.highCriticalOpen ?? 0;
       const band = readinessResponse?.band || '-';
       const goAllowed = readinessResponse?.goNoGo?.allowed === true ? 'yes' : 'no';
+      const requiredBlockers = Number(readinessResponse?.goNoGo?.blockingRequiredChecksCount || 0);
       const triggeredNoGoCount = Number(readinessResponse?.goNoGo?.triggeredNoGoCount || 0);
       const remediationTotal = Number(readinessResponse?.remediation?.summary?.total || 0);
       const p0 = Number(readinessResponse?.remediation?.summary?.byPriority?.P0 || 0);
@@ -6460,7 +6505,7 @@
         statusResponse?.gates?.pilotReport?.ageHours ?? statusResponse?.kpis?.pilotReportAgeHours ?? '-';
       setStatus(
         els.monitorPanelStatus,
-        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, goAllowed=${goAllowed}, noGo=${triggeredNoGoCount}, remediation=${remediationTotal}, P0=${p0}, pilotReportHealthy=${pilotReportHealthy}, pilotReportAgeHours=${pilotReportAgeHours}`
+        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, goAllowed=${goAllowed}, requiredBlockers=${requiredBlockers}, noGo=${triggeredNoGoCount}, remediation=${remediationTotal}, P0=${p0}, pilotReportHealthy=${pilotReportHealthy}, pilotReportAgeHours=${pilotReportAgeHours}`
       );
     } catch (error) {
       renderReadinessKpi(null);
