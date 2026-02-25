@@ -320,6 +320,9 @@ async function main() {
   const slo = await fetchJson(baseUrl, '/api/v1/monitor/slo', {
     token: auth.token,
   });
+  const readinessHistory = await fetchJson(baseUrl, '/api/v1/monitor/readiness/history?limit=14', {
+    token: auth.token,
+  });
 
   const artifact = {
     generatedAt: new Date().toISOString(),
@@ -342,6 +345,13 @@ async function main() {
         goNoGo: readiness?.goNoGo || null,
         remediationSummary: readiness?.remediation?.summary || null,
       },
+      readinessHistory: {
+        generatedAt: readinessHistory?.generatedAt || null,
+        count: Number(readinessHistory?.count || 0),
+        trend: readinessHistory?.trend || null,
+        latest: Array.isArray(readinessHistory?.entries) ? readinessHistory.entries[0] || null : null,
+        entries: Array.isArray(readinessHistory?.entries) ? readinessHistory.entries : [],
+      },
       slo: {
         generatedAt: slo?.generatedAt || null,
         summary: slo?.summary || {},
@@ -363,6 +373,12 @@ async function main() {
   const pilotHealthy = monitorStatus?.gates?.pilotReport?.healthy === true ? 'yes' : 'no';
   const restoreHealthy = monitorStatus?.gates?.restoreDrill?.healthy === true ? 'yes' : 'no';
   const sloOverall = String(slo?.summary?.overallStatus || '-');
+  const historyCount = Number(readinessHistory?.count || 0);
+  const historyScoreDelta = Number(readinessHistory?.trend?.scoreDelta || 0);
+  const historyNoGoDelta = Number(readinessHistory?.trend?.triggeredNoGoDelta || 0);
+  const historyLatestTs = Array.isArray(readinessHistory?.entries)
+    ? String(readinessHistory.entries?.[0]?.ts || '-')
+    : '-';
   const failOnNoGo = Boolean(args.failOnNoGo);
   const strictFailures = [];
   if (suiteResponse?.ok !== true) strictFailures.push('scheduler suite not fully successful');
@@ -382,6 +398,9 @@ async function main() {
   );
   process.stdout.write(
     `   gates: pilotReportHealthy=${pilotHealthy} restoreHealthy=${restoreHealthy} sloOverall=${sloOverall}\n`
+  );
+  process.stdout.write(
+    `   readinessHistory: count=${historyCount} scoreDelta=${Number(historyScoreDelta.toFixed(2))} noGoDelta=${historyNoGoDelta} latestTs=${historyLatestTs}\n`
   );
   process.stdout.write(
     `   strictMode: failOnNoGo=${failOnNoGo ? 'yes' : 'no'} failures=${strictFailures.length}\n`

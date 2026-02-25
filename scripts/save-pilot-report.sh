@@ -308,6 +308,8 @@ REPORT_RESPONSE="$(curl -sS "$BASE_URL/api/v1/reports/pilot?days=$DAYS" \
   -H "Authorization: Bearer $TOKEN")"
 READINESS_RESPONSE="$(curl -sS "$BASE_URL/api/v1/monitor/readiness" \
   -H "Authorization: Bearer $TOKEN")"
+READINESS_HISTORY_RESPONSE="$(curl -sS "$BASE_URL/api/v1/monitor/readiness/history?limit=14" \
+  -H "Authorization: Bearer $TOKEN")"
 
 READINESS_SCORE="$(printf '%s' "$READINESS_RESPONSE" | json_get score || true)"
 if [[ -z "$READINESS_SCORE" ]]; then
@@ -315,24 +317,34 @@ if [[ -z "$READINESS_SCORE" ]]; then
   printf '%s\n' "$READINESS_RESPONSE"
   exit 1
 fi
+READINESS_HISTORY_COUNT="$(printf '%s' "$READINESS_HISTORY_RESPONSE" | json_get count || true)"
+if [[ -z "$READINESS_HISTORY_COUNT" ]]; then
+  echo "❌ Kunde inte hämta readiness-historik."
+  printf '%s\n' "$READINESS_HISTORY_RESPONSE"
+  exit 1
+fi
 
 REPORT_TMP="$(mktemp)"
 READINESS_TMP="$(mktemp)"
+READINESS_HISTORY_TMP="$(mktemp)"
 cleanup_tmp() {
-  rm -f "$REPORT_TMP" "$READINESS_TMP"
+  rm -f "$REPORT_TMP" "$READINESS_TMP" "$READINESS_HISTORY_TMP"
 }
 trap cleanup_tmp EXIT
 
 printf '%s\n' "$REPORT_RESPONSE" > "$REPORT_TMP"
 printf '%s\n' "$READINESS_RESPONSE" > "$READINESS_TMP"
+printf '%s\n' "$READINESS_HISTORY_RESPONSE" > "$READINESS_HISTORY_TMP"
 
 COMBINED_REPORT="$(node -e "
 const fs = require('fs');
 const reportPath = process.argv[1];
 const readinessPath = process.argv[2];
-const readinessMode = String(process.argv[3] || 'full').trim().toLowerCase();
+const readinessHistoryPath = process.argv[3];
+const readinessMode = String(process.argv[4] || 'full').trim().toLowerCase();
 let report = {};
 let readiness = {};
+let readinessHistory = {};
 try {
   report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
 } catch {
@@ -343,6 +355,11 @@ try {
 } catch {
   process.exit(3);
 }
+try {
+  readinessHistory = JSON.parse(fs.readFileSync(readinessHistoryPath, 'utf8'));
+} catch {
+  process.exit(4);
+}
 const remediation = readiness?.remediation && typeof readiness.remediation === 'object'
   ? readiness.remediation
   : null;
@@ -351,6 +368,19 @@ const remediationSummary =
 const remediationNextActions = Array.isArray(remediation?.nextActions)
   ? remediation.nextActions
   : [];
+const readinessHistoryEntries = Array.isArray(readinessHistory?.entries) ? readinessHistory.entries : [];
+const readinessHistorySnapshot = {
+  generatedAt: readinessHistory?.generatedAt || new Date().toISOString(),
+  count: Number(readinessHistory?.count || readinessHistoryEntries.length || 0),
+  trend:
+    readinessHistory?.trend && typeof readinessHistory.trend === 'object'
+      ? readinessHistory.trend
+      : null,
+  latest: readinessHistoryEntries[0] || null,
+};
+if (readinessMode !== 'compact') {
+  readinessHistorySnapshot.entries = readinessHistoryEntries;
+}
 const readinessSnapshot = {
   generatedAt: new Date().toISOString(),
   detailMode: readinessMode === 'compact' ? 'compact' : 'full',
@@ -359,6 +389,7 @@ const readinessSnapshot = {
   goNoGo: readiness?.goNoGo || null,
   remediationSummary,
   remediationNextActions,
+  history: readinessHistorySnapshot,
 };
 if (readinessMode !== 'compact') {
   readinessSnapshot.noGoTriggers = Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : [];
@@ -366,7 +397,7 @@ if (readinessMode !== 'compact') {
 }
 report.readinessSnapshot = readinessSnapshot;
 process.stdout.write(JSON.stringify(report, null, 2));
-" "$REPORT_TMP" "$READINESS_TMP" "$READINESS_MODE")"
+" "$REPORT_TMP" "$READINESS_TMP" "$READINESS_HISTORY_TMP" "$READINESS_MODE")"
 
 TENANT_FROM_REPORT="$(printf '%s' "$COMBINED_REPORT" | json_get tenantId || true)"
 if [[ -z "$TENANT_FROM_REPORT" ]]; then
@@ -382,7 +413,8 @@ EVALUATIONS_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get kpis.evaluationsT
 HIGH_CRITICAL_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get kpis.highCriticalTotal || echo 0)"
 READINESS_BAND="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.band || echo '-')"
 READINESS_REMEDIATION_TOTAL="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.remediationSummary.total || echo 0)"
+READINESS_HISTORY_SCORE_DELTA="$(printf '%s' "$COMBINED_REPORT" | json_get readinessSnapshot.history.trend.scoreDelta || echo 0)"
 
 echo "✅ Pilotrapport sparad: $OUT_FILE"
 echo "   tenant=$TENANT_FROM_REPORT templates=$TEMPLATES_TOTAL evaluations=$EVALUATIONS_TOTAL highCritical=$HIGH_CRITICAL_TOTAL"
-echo "   readinessScore=$READINESS_SCORE readinessBand=$READINESS_BAND remediationActions=$READINESS_REMEDIATION_TOTAL readinessMode=$READINESS_MODE"
+echo "   readinessScore=$READINESS_SCORE readinessBand=$READINESS_BAND remediationActions=$READINESS_REMEDIATION_TOTAL historyCount=$READINESS_HISTORY_COUNT historyScoreDelta=$READINESS_HISTORY_SCORE_DELTA readinessMode=$READINESS_MODE"

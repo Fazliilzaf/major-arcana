@@ -250,7 +250,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 5) Spara pilotrapport automatiskt (utan att skapa otrackade filer i repo-root):
 - `npm run report:pilot`
 - Filen sparas i `data/reports/` (git-ignorerad), t.ex. `data/reports/Pilot_Baseline_14d_YYYYMMDD-HHMMSS.json`.
-- Rapportfilen inkluderar `readinessSnapshot` med Go/No-Go, no-go triggers och prioriterad remediation-lista.
+- Rapportfilen inkluderar `readinessSnapshot` med Go/No-Go, no-go triggers, prioriterad remediation-lista och readiness-historiktrend.
 - För publik miljö: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run report:pilot`
 - Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - För kompakt readiness i rapport: `npm run report:pilot -- --readiness-mode compact` (default: `full`).
@@ -259,6 +259,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Publik variant: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite`
 - Om OWNER kräver MFA: lägg till `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
+- Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
 - Strikt driftgate (exit code 2 vid no-go): `npm run ops:suite:strict`
 - Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
 - Förhandsvisa report-prune: `npm run report:scheduler:prune`
