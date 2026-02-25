@@ -225,6 +225,7 @@ Snabbaste vägen (allt i ett):
 - Snabb heal-variant: `npm run preflight:pilot:heal -- --public-url https://arcana.hairtpclinic.se`
 - Snabb heal-all-variant: `npm run preflight:pilot:heal:all -- --public-url https://arcana.hairtpclinic.se`
 - Skriv preflight-rapport till fil: `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se --report-file ./data/reports/preflight-latest.json` (eller env `ARCANA_PREFLIGHT_REPORT_FILE`).
+- Visa nästa åtgärder från rapporten: `npm run preflight:report:actions` (valfritt: `-- --file ./data/reports/preflight-latest.json`, `--json`).
 - Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `preflight:readiness:guard` + `ops:suite:strict` mot publik miljö (fail-fast på kritiska blocker-checks + no-go fail; blocker-kontroll baseras på required checks).
 - Efter `ops:suite:strict` kör preflight som default en guard-verifiering med `--use-required-checks` (kan stängas av med `ARCANA_PREFLIGHT_VERIFY_REQUIRED_CHECKS=false`).
 - Om `ops:suite:strict` failar kör preflight ändå verifierings-steget för diagnos och returnerar sedan samma fail-exit-kod.

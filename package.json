@@ -40,6 +40,7 @@
     "preflight:readiness:guard": "node ./scripts/check-public-readiness-guard.js",
     "preflight:pilot": "bash ./scripts/pilot-preflight.sh",
     "preflight:pilot:report": "ARCANA_PREFLIGHT_REPORT_FILE=./data/reports/preflight-latest.json bash ./scripts/pilot-preflight.sh",
+    "preflight:report:actions": "node ./scripts/preflight-report-actions.js",
     "preflight:pilot:heal": "ARCANA_PREFLIGHT_USE_HEAL=true bash ./scripts/pilot-preflight.sh",
     "preflight:pilot:heal:all": "ARCANA_PREFLIGHT_USE_HEAL_ALL=true bash ./scripts/pilot-preflight.sh",
     "design:colors": "node ./scripts/generate-admin-color-docs.js",
