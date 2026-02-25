@@ -52,5 +52,41 @@ services:
         value: 50
       - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
         value: 30
+      - key: ARCANA_SCHEDULER_ENABLED
+        value: true
+      - key: ARCANA_SCHEDULER_REPORT_WINDOW_DAYS
+        value: 14
+      - key: ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS
+        value: 24
+      - key: ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS
+        value: 24
+      - key: ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS
+        value: 168
+      - key: ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES
+        value: 15
+      - key: ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED
+        value: true
+      - key: ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_LIMIT
+        value: 25
+      - key: ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_ENABLED
+        value: true
+      - key: ARCANA_SCHEDULER_INCIDENT_AUTO_ASSIGN_OWNER_LIMIT
+        value: 100
+      - key: ARCANA_SCHEDULER_STARTUP_DELAY_SEC
+        value: 8
+      - key: ARCANA_SCHEDULER_JITTER_SEC
+        value: 4
+      - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
+        value: true
+      - key: ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS
+        value: 30
+      - key: ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS
+        value: 36
+      - key: ARCANA_ALERT_WEBHOOK_URL
+        sync: false
+      - key: ARCANA_ALERT_WEBHOOK_SECRET
+        sync: false
+      - key: ARCANA_ALERT_WEBHOOK_TIMEOUT_MS
+        value: 4000
       - key: TRUST_PROXY
         value: true
