@@ -5,6 +5,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
 function toStampUtc(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
   return [
@@ -27,6 +35,8 @@ function parseArgs(argv) {
     outFile: process.env.ARCANA_SCHEDULER_SUITE_OUT || '',
     mfaCode: process.env.ARCANA_OWNER_MFA_CODE || '',
     mfaSecret: process.env.ARCANA_OWNER_MFA_SECRET || '',
+    authStorePath: process.env.AUTH_STORE_PATH || './data/auth.json',
+    failOnNoGo: parseBoolean(process.env.ARCANA_OPS_SUITE_FAIL_ON_NO_GO, false),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -64,6 +74,19 @@ function parseArgs(argv) {
     if (item === '--mfa-secret') {
       args.mfaSecret = String(argv[index + 1] || '').trim();
       index += 1;
+      continue;
+    }
+    if (item === '--auth-store-path') {
+      args.authStorePath = String(argv[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (item === '--fail-on-no-go') {
+      args.failOnNoGo = true;
+      continue;
+    }
+    if (item === '--no-fail-on-no-go') {
+      args.failOnNoGo = false;
       continue;
     }
   }
@@ -141,6 +164,23 @@ async function fetchJson(baseUrl, routePath, { method = 'GET', token = '', body 
   return data;
 }
 
+async function readMfaSecretFromStore({ email = '', authStorePath = './data/auth.json' } = {}) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return '';
+  const filePath = path.resolve(String(authStorePath || './data/auth.json'));
+  try {
+    const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    const users = raw && raw.users && typeof raw.users === 'object' ? Object.values(raw.users) : [];
+    const user =
+      users.find(
+        (item) => String(item?.email || '').trim().toLowerCase() === normalizedEmail
+      ) || null;
+    return String(user?.mfaSecret || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function resolveToken({
   baseUrl,
   email,
@@ -148,6 +188,7 @@ async function resolveToken({
   tenantId = '',
   mfaCode = '',
   mfaSecret = '',
+  authStorePath = './data/auth.json',
 }) {
   const loginResponse = await fetchJson(baseUrl, '/api/v1/auth/login', {
     method: 'POST',
@@ -169,10 +210,17 @@ async function resolveToken({
   let authStep = loginResponse;
   if (authStep?.requiresMfa === true) {
     const providedCode = String(mfaCode || '').trim();
-    const generatedCode = providedCode || generateTotpCode(mfaSecret);
+    let resolvedMfaSecret = String(mfaSecret || '').trim();
+    if (!providedCode && !resolvedMfaSecret) {
+      resolvedMfaSecret = await readMfaSecretFromStore({
+        email,
+        authStorePath,
+      });
+    }
+    const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
     if (!generatedCode) {
       throw new Error(
-        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE.'
+        'MFA krävs men saknar kod. Sätt --mfa-code eller --mfa-secret / ARCANA_OWNER_MFA_CODE (eller AUTH_STORE_PATH med lokal mfaSecret).'
       );
     }
     const mfaTicket = String(authStep?.mfaTicket || '').trim();
@@ -252,6 +300,7 @@ async function main() {
     tenantId,
     mfaCode: args.mfaCode,
     mfaSecret: args.mfaSecret,
+    authStorePath: args.authStorePath,
   });
 
   const suiteResponse = await fetchJson(baseUrl, '/api/v1/ops/scheduler/run', {
@@ -314,6 +363,15 @@ async function main() {
   const pilotHealthy = monitorStatus?.gates?.pilotReport?.healthy === true ? 'yes' : 'no';
   const restoreHealthy = monitorStatus?.gates?.restoreDrill?.healthy === true ? 'yes' : 'no';
   const sloOverall = String(slo?.summary?.overallStatus || '-');
+  const failOnNoGo = Boolean(args.failOnNoGo);
+  const strictFailures = [];
+  if (suiteResponse?.ok !== true) strictFailures.push('scheduler suite not fully successful');
+  if (readiness?.goNoGo?.allowed !== true) strictFailures.push('readiness go/no-go is not allowed');
+  if (monitorStatus?.gates?.pilotReport?.noGo === true) strictFailures.push('pilot report gate is no-go');
+  if (monitorStatus?.gates?.restoreDrill?.noGo === true) strictFailures.push('restore drill gate is no-go');
+  if (sloOverall === 'red' || sloOverall === 'unknown') {
+    strictFailures.push(`slo overall status is ${sloOverall}`);
+  }
 
   process.stdout.write(`✅ Scheduler suite körd: ${baseUrl}\n`);
   process.stdout.write(
@@ -325,8 +383,20 @@ async function main() {
   process.stdout.write(
     `   gates: pilotReportHealthy=${pilotHealthy} restoreHealthy=${restoreHealthy} sloOverall=${sloOverall}\n`
   );
+  process.stdout.write(
+    `   strictMode: failOnNoGo=${failOnNoGo ? 'yes' : 'no'} failures=${strictFailures.length}\n`
+  );
+  if (strictFailures.length > 0) {
+    for (const reason of strictFailures) {
+      process.stdout.write(`   - ${reason}\n`);
+    }
+  }
   process.stdout.write(`   artifact: ${outAbs}\n`);
 
+  if (failOnNoGo && strictFailures.length > 0) {
+    process.exitCode = 2;
+    return;
+  }
   if (suiteResponse?.ok !== true) {
     process.exitCode = 1;
   }

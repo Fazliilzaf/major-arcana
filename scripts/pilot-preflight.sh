@@ -53,8 +53,18 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
   echo "3) Public smoke ($PUBLIC_URL)"
   BASE_URL="$PUBLIC_URL" npm run smoke:public
   echo
+
+  if [[ -n "${ARCANA_OWNER_EMAIL:-}" && -n "${ARCANA_OWNER_PASSWORD:-}" ]]; then
+    echo "4) Public ops suite strict ($PUBLIC_URL)"
+    BASE_URL="$PUBLIC_URL" npm run ops:suite:strict
+    echo
+  else
+    echo "4) Public ops suite strict SKIP (saknar ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD)"
+    echo
+  fi
 else
   echo "3) Public smoke SKIP"
+  echo "4) Public ops suite strict SKIP"
   echo
 fi
 
