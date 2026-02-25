@@ -320,6 +320,7 @@ Owner action `action` (endast OWNER):
   - SLO/SLI-status (`GET /api/v1/monitor/slo`)
   - readiness/Go-No-Go matris (`GET /api/v1/monitor/readiness`)
   - readiness-historik och trend (`GET /api/v1/monitor/readiness/history`)
+  - aktiva No-Go blockers med evidence/detaljer (från readiness-payload)
   - kör required scheduler-suite (`POST /api/v1/ops/scheduler/run` med `{"jobId":"required_suite"}`)
 - Ops backup-panel i UI (OWNER):
   - state manifest (`GET /api/v1/ops/state/manifest`)
