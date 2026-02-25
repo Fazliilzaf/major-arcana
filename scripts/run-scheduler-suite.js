@@ -136,6 +136,16 @@ function parseArgs(argv) {
       false
     ),
     remediationLimit: parsePositiveInt(process.env.ARCANA_OPS_SUITE_REMEDIATION_LIMIT, 50, 1, 200),
+    remediateOwnerMfaMemberships: parseBoolean(
+      process.env.ARCANA_OPS_SUITE_REMEDIATE_OWNER_MFA_MEMBERSHIPS,
+      false
+    ),
+    ownerMfaRemediationLimit: parsePositiveInt(
+      process.env.ARCANA_OPS_SUITE_OWNER_MFA_REMEDIATION_LIMIT,
+      50,
+      1,
+      200
+    ),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -198,6 +208,24 @@ function parseArgs(argv) {
     }
     if (item === '--remediation-limit') {
       args.remediationLimit = parsePositiveInt(argv[index + 1], args.remediationLimit, 1, 200);
+      index += 1;
+      continue;
+    }
+    if (item === '--remediate-owner-mfa-memberships') {
+      args.remediateOwnerMfaMemberships = true;
+      continue;
+    }
+    if (item === '--no-remediate-owner-mfa-memberships') {
+      args.remediateOwnerMfaMemberships = false;
+      continue;
+    }
+    if (item === '--owner-mfa-remediation-limit') {
+      args.ownerMfaRemediationLimit = parsePositiveInt(
+        argv[index + 1],
+        args.ownerMfaRemediationLimit,
+        1,
+        200
+      );
       index += 1;
       continue;
     }
@@ -386,6 +414,111 @@ async function resolveToken({
   throw new Error('Login gav ingen token.');
 }
 
+function classifyOwnerMfaMembers(membersPayload) {
+  const members = Array.isArray(membersPayload?.members) ? membersPayload.members : [];
+  const activeOwners = members
+    .filter((item) => {
+      const role = normalizeText(item?.membership?.role).toUpperCase();
+      const status = normalizeText(item?.membership?.status).toLowerCase();
+      return role === 'OWNER' && status === 'active';
+    })
+    .map((item) => ({
+      email: normalizeText(item?.user?.email) || '-',
+      membershipId: normalizeText(item?.membership?.id) || '',
+      mfaRequired: item?.user?.mfaRequired === true,
+      mfaConfigured: item?.user?.mfaConfigured === true,
+    }));
+
+  const compliantOwners = activeOwners.filter((item) => item.mfaRequired && item.mfaConfigured);
+  const nonCompliantOwners = activeOwners.filter((item) => !item.mfaRequired || !item.mfaConfigured);
+  const disableCandidates =
+    compliantOwners.length >= 1
+      ? nonCompliantOwners.filter((item) => item.membershipId)
+      : [];
+
+  return {
+    activeOwners,
+    compliantOwners,
+    nonCompliantOwners,
+    disableCandidates,
+    canRemediateByDisable: compliantOwners.length >= 1,
+  };
+}
+
+async function remediateOwnerMfaMemberships({
+  baseUrl,
+  token,
+  limit = 50,
+}) {
+  const membersBefore = await fetchJson(baseUrl, '/api/v1/users/staff', {
+    token,
+  });
+  const reportBefore = classifyOwnerMfaMembers(membersBefore);
+  const candidates = reportBefore.disableCandidates.slice(0, limit);
+
+  const disabled = [];
+  const skipped = [];
+  for (const candidate of candidates) {
+    if (!candidate.membershipId) {
+      skipped.push({
+        email: candidate.email,
+        membershipId: null,
+        reason: 'missing_membership_id',
+      });
+      continue;
+    }
+    try {
+      await fetchJson(baseUrl, `/api/v1/users/staff/${candidate.membershipId}`, {
+        method: 'PATCH',
+        token,
+        body: {
+          status: 'disabled',
+        },
+      });
+      disabled.push({
+        email: candidate.email,
+        membershipId: candidate.membershipId,
+      });
+    } catch (error) {
+      skipped.push({
+        email: candidate.email,
+        membershipId: candidate.membershipId,
+        reason: normalizeText(error?.message || 'patch_failed') || 'patch_failed',
+      });
+    }
+  }
+
+  const membersAfter = await fetchJson(baseUrl, '/api/v1/users/staff', {
+    token,
+  });
+  const reportAfter = classifyOwnerMfaMembers(membersAfter);
+
+  return {
+    attempted: candidates.length,
+    disabledCount: disabled.length,
+    skippedCount: skipped.length,
+    before: {
+      activeOwners: reportBefore.activeOwners.length,
+      compliantOwners: reportBefore.compliantOwners.length,
+      nonCompliantOwners: reportBefore.nonCompliantOwners.length,
+      canRemediateByDisable: reportBefore.canRemediateByDisable,
+    },
+    after: {
+      activeOwners: reportAfter.activeOwners.length,
+      compliantOwners: reportAfter.compliantOwners.length,
+      nonCompliantOwners: reportAfter.nonCompliantOwners.length,
+    },
+    candidatePreview: reportBefore.disableCandidates.slice(0, 5).map((item) => ({
+      email: item.email,
+      membershipId: item.membershipId || null,
+      mfaRequired: item.mfaRequired,
+      mfaConfigured: item.mfaConfigured,
+    })),
+    disabledPreview: disabled.slice(0, 5),
+    skippedPreview: skipped.slice(0, 5),
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const baseUrl = normalizeBaseUrl(args.baseUrl);
@@ -440,6 +573,14 @@ async function main() {
       }
     );
   }
+  let ownerMfaMembershipRemediation = null;
+  if (args.remediateOwnerMfaMemberships) {
+    ownerMfaMembershipRemediation = await remediateOwnerMfaMemberships({
+      baseUrl,
+      token: auth.token,
+      limit: parsePositiveInt(args.ownerMfaRemediationLimit, 50, 1, 200),
+    });
+  }
   const monitorStatus = await fetchJson(baseUrl, '/api/v1/monitor/status', {
     token: auth.token,
   });
@@ -479,11 +620,34 @@ async function main() {
       playbook: String(item?.playbook || ''),
     }));
   const readinessCategories = Array.isArray(readiness?.categories) ? readiness.categories : [];
+  const categoryIssues = [];
   const blockerChecks = [];
   for (const category of readinessCategories) {
     const categoryId = normalizeText(category?.id);
     const categoryLabel = normalizeText(category?.label);
+    const categoryStatus = normalizeText(category?.status).toLowerCase() || 'unknown';
+    const categoryScore = Number(category?.score || 0);
     const checks = Array.isArray(category?.checks) ? category.checks : [];
+    const nonGreenChecks = checks
+      .filter((check) => normalizeText(check?.status).toLowerCase() !== 'green')
+      .map((check) => ({
+        checkId: normalizeText(check?.id) || null,
+        label: normalizeText(check?.label) || null,
+        status: normalizeText(check?.status).toLowerCase() || 'unknown',
+        required: check?.required === true,
+        target: normalizeText(check?.target) || null,
+        valuePreview: toValuePreview(check?.value),
+      }));
+    if (categoryStatus !== 'green') {
+      categoryIssues.push({
+        categoryId: categoryId || null,
+        categoryLabel: categoryLabel || null,
+        status: categoryStatus,
+        score: Number(categoryScore.toFixed(2)),
+        nonGreenChecksCount: nonGreenChecks.length,
+        nonGreenChecks: nonGreenChecks.slice(0, 5),
+      });
+    }
     for (const check of checks) {
       if (check?.required !== true) continue;
       const status = normalizeText(check?.status).toLowerCase() || 'unknown';
@@ -510,6 +674,12 @@ async function main() {
     return String(a?.checkId || '').localeCompare(String(b?.checkId || ''));
   });
   const blockerChecksTop = blockerChecks.slice(0, 8);
+  categoryIssues.sort((a, b) => {
+    const bySeverity = checkSeverityRank(a?.status) - checkSeverityRank(b?.status);
+    if (bySeverity !== 0) return bySeverity;
+    return String(a?.categoryId || '').localeCompare(String(b?.categoryId || ''));
+  });
+  const categoryIssuesTop = categoryIssues.slice(0, 6);
 
   const artifact = {
     generatedAt: new Date().toISOString(),
@@ -518,6 +688,8 @@ async function main() {
       failOnNoGo: Boolean(args.failOnNoGo),
       remediateOutputGates: Boolean(args.remediateOutputGates),
       remediationLimit: parsePositiveInt(args.remediationLimit, 50, 1, 200),
+      remediateOwnerMfaMemberships: Boolean(args.remediateOwnerMfaMemberships),
+      ownerMfaRemediationLimit: parsePositiveInt(args.ownerMfaRemediationLimit, 50, 1, 200),
     },
     auth: {
       flow: auth.authFlow,
@@ -525,6 +697,7 @@ async function main() {
     },
     ops: {
       readinessOutputGateRemediation,
+      ownerMfaMembershipRemediation,
     },
     schedulerSuite: suiteResponse,
     monitor: {
@@ -545,6 +718,7 @@ async function main() {
         remediationSummary: readiness?.remediation?.summary || null,
         remediationTopP0,
         blockerChecks,
+        categoryIssues,
       },
       readinessHistory: {
         generatedAt: readinessHistory?.generatedAt || null,
@@ -598,10 +772,20 @@ async function main() {
   const remediationRunRemaining = Number(
     readinessOutputGateRemediation?.remainingFixableAfterApply || 0
   );
+  const ownerMfaRemediationEnabled = Boolean(args.remediateOwnerMfaMemberships);
+  const ownerMfaDisabled = Number(ownerMfaMembershipRemediation?.disabledCount || 0);
+  const ownerMfaSkipped = Number(ownerMfaMembershipRemediation?.skippedCount || 0);
+  const ownerMfaRemaining = Number(ownerMfaMembershipRemediation?.after?.nonCompliantOwners || 0);
   const blockerCheckCount = blockerChecks.length;
   const blockerCheckLabels =
     blockerChecksTop
       .map((item) => `${item.checkId || '-'}(${item.status || '-'})`)
+      .filter(Boolean)
+      .join(', ') || '-';
+  const categoryIssueCount = categoryIssues.length;
+  const categoryIssueLabels =
+    categoryIssuesTop
+      .map((item) => `${item.categoryId || '-'}(${item.status || '-'})`)
       .filter(Boolean)
       .join(', ') || '-';
   const failOnNoGo = Boolean(args.failOnNoGo);
@@ -621,7 +805,13 @@ async function main() {
             .filter(Boolean)
             .slice(0, 6)
             .join(', ')}]`
-        : '';
+        : categoryIssuesTop.length > 0
+          ? ` [categories: ${categoryIssuesTop
+              .map((item) => item.categoryId)
+              .filter(Boolean)
+              .slice(0, 6)
+              .join(', ')}]`
+          : '';
     strictFailures.push(`readiness blocker categories are not all green${checksSuffix}`);
   }
   if (monitorStatus?.gates?.pilotReport?.noGo === true) strictFailures.push('pilot report gate is no-go');
@@ -637,12 +827,35 @@ async function main() {
       'run with --remediate-output-gates to auto-fix active-version output/policy metadata gaps'
     );
   }
+  if (
+    !ownerMfaRemediationEnabled &&
+    blockerChecks.some((item) => item.checkId === 'owner_mfa_enforced')
+  ) {
+    advisories.push(
+      'run with --remediate-owner-mfa-memberships to disable non-compliant OWNER memberships (requires at least one compliant OWNER)'
+    );
+  }
   if (blockerChecksTop.length > 0) {
     for (const blocker of blockerChecksTop.slice(0, 3)) {
       if (blocker?.playbook) {
         advisories.push(`${blocker.checkId}: ${blocker.playbook}`);
       } else if (blocker?.target) {
         advisories.push(`${blocker.checkId}: target=${blocker.target}`);
+      }
+    }
+  } else if (categoryIssuesTop.length > 0) {
+    for (const category of categoryIssuesTop.slice(0, 2)) {
+      advisories.push(
+        `category ${category?.categoryId || '-'} status=${category?.status || '-'} score=${Number(category?.score || 0)}`
+      );
+      const checks = Array.isArray(category?.nonGreenChecks) ? category.nonGreenChecks : [];
+      for (const check of checks.slice(0, 2)) {
+        const hint = BLOCKER_CHECK_HINTS[normalizeText(check?.checkId)] || {};
+        if (hint?.playbook) {
+          advisories.push(`${check?.checkId || '-'}: ${hint.playbook}`);
+        } else if (check?.target) {
+          advisories.push(`${check?.checkId || '-'}: target=${check.target}`);
+        }
       }
     }
   }
@@ -663,6 +876,9 @@ async function main() {
   process.stdout.write(
     `   blockerChecks: count=${blockerCheckCount} top=${blockerCheckLabels}\n`
   );
+  process.stdout.write(
+    `   categoryIssues: count=${categoryIssueCount} top=${categoryIssueLabels}\n`
+  );
   if (blockerChecksTop.length > 0) {
     for (const blocker of blockerChecksTop.slice(0, 3)) {
       const detailParts = [];
@@ -674,9 +890,25 @@ async function main() {
       );
     }
   }
+  if (categoryIssuesTop.length > 0) {
+    for (const category of categoryIssuesTop.slice(0, 3)) {
+      const checksLabel = (Array.isArray(category?.nonGreenChecks) ? category.nonGreenChecks : [])
+        .slice(0, 3)
+        .map((item) => `${item.checkId || '-'}(${item.status || '-'})`)
+        .join(', ');
+      process.stdout.write(
+        `   categoryDetail: ${category?.categoryId || '-'} status=${category?.status || '-'} score=${Number(category?.score || 0)} checks=${checksLabel || '-'}\n`
+      );
+    }
+  }
   if (remediationRunEnabled) {
     process.stdout.write(
       `   remediationRun: candidates=${remediationRunCandidates} fixable=${remediationRunFixable} fixed=${remediationRunFixed} remaining=${remediationRunRemaining}\n`
+    );
+  }
+  if (ownerMfaRemediationEnabled) {
+    process.stdout.write(
+      `   ownerMfaRemediation: disabled=${ownerMfaDisabled} skipped=${ownerMfaSkipped} remainingNonCompliant=${ownerMfaRemaining}\n`
     );
   }
   process.stdout.write(

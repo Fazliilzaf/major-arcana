@@ -285,10 +285,15 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
 - Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
+- Ops-suite visar även `categoryIssues` (icke-gröna readiness-kategorier) med top-checks för diagnos när blockerChecks är tom.
 - Heal mode (auto-fixa output-gate metadata på aktiva versioner innan gating): `npm run ops:suite:heal`
+- Heal mode för OWNER MFA memberships (disable non-compliant där minst en compliant OWNER finns): `npm run ops:suite:heal:owners`
+- Heal mode (output-gates + OWNER MFA memberships): `npm run ops:suite:heal:all`
 - Strikt heal mode: `npm run ops:suite:strict:heal`
+- Strikt heal mode (alla remediation-flaggor): `npm run ops:suite:strict:heal:all`
 - Flagga direkt: `npm run ops:suite -- --remediate-output-gates --remediation-limit 50`
-- Motsvarande env vars: `ARCANA_OPS_SUITE_REMEDIATE_OUTPUT_GATES=true`, `ARCANA_OPS_SUITE_REMEDIATION_LIMIT=50`
+- Flagga direkt för OWNER MFA memberships: `npm run ops:suite -- --remediate-owner-mfa-memberships --owner-mfa-remediation-limit 50`
+- Motsvarande env vars: `ARCANA_OPS_SUITE_REMEDIATE_OUTPUT_GATES=true`, `ARCANA_OPS_SUITE_REMEDIATION_LIMIT=50`, `ARCANA_OPS_SUITE_REMEDIATE_OWNER_MFA_MEMBERSHIPS=true`, `ARCANA_OPS_SUITE_OWNER_MFA_REMEDIATION_LIMIT=50`
 - Strikt driftgate (exit code 2 vid no-go): `npm run ops:suite:strict`
 - Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
 - Förhandsvisa report-prune: `npm run report:scheduler:prune`
