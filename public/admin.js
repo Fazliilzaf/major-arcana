@@ -459,6 +459,8 @@
     mailInsightsResult: document.getElementById('mailInsightsResult'),
     refreshMonitorBtn: document.getElementById('refreshMonitorBtn'),
     runSchedulerSuiteBtn: document.getElementById('runSchedulerSuiteBtn'),
+    previewReadinessOutputGateRemediationBtn: document.getElementById('previewReadinessOutputGateRemediationBtn'),
+    runReadinessOutputGateRemediationBtn: document.getElementById('runReadinessOutputGateRemediationBtn'),
     monitorPanelStatus: document.getElementById('monitorPanelStatus'),
     monitorResult: document.getElementById('monitorResult'),
     monitorSchedulerSummary: document.getElementById('monitorSchedulerSummary'),
@@ -6508,6 +6510,50 @@
     }
   }
 
+  async function runReadinessOutputGateRemediation({ dryRun = true } = {}) {
+    if (!isOwner()) {
+      if (els.monitorResult) els.monitorResult.textContent = 'Endast OWNER.';
+      return;
+    }
+    try {
+      setStatus(
+        els.monitorPanelStatus,
+        dryRun
+          ? 'Preview: readiness remediation (output gate)...'
+          : 'Kör readiness remediation (output gate)...'
+      );
+      const response = await api('/ops/readiness/remediate-output-gates', {
+        method: 'POST',
+        body: {
+          dryRun,
+          limit: 50,
+          detailsLimit: 8,
+        },
+      });
+      if (els.monitorResult) {
+        els.monitorResult.textContent = JSON.stringify(response, null, 2);
+      }
+      const candidates = Number(response?.candidates || 0);
+      const fixable = Number(response?.fixableCandidates || 0);
+      const fixed = Number(response?.fixedCount || 0);
+      const remaining = Number(response?.remainingFixableAfterApply || 0);
+      setStatus(
+        els.monitorPanelStatus,
+        dryRun
+          ? `Preview klar: candidates=${candidates}, fixable=${fixable}`
+          : `Remediation klar: candidates=${candidates}, fixable=${fixable}, fixed=${fixed}, remaining=${remaining}`,
+        !dryRun && remaining > 0
+      );
+      await loadMonitorStatus();
+    } catch (error) {
+      setStatus(
+        els.monitorPanelStatus,
+        error.message || 'Kunde inte köra readiness remediation.',
+        true
+      );
+    }
+  }
+
   async function loadStateManifest() {
     if (!isOwner()) {
       if (els.opsResult) els.opsResult.textContent = 'Endast OWNER.';
@@ -7767,6 +7813,12 @@
   );
   els.refreshMonitorBtn?.addEventListener('click', loadMonitorStatus);
   els.runSchedulerSuiteBtn?.addEventListener('click', runSchedulerRequiredSuite);
+  els.previewReadinessOutputGateRemediationBtn?.addEventListener('click', () =>
+    runReadinessOutputGateRemediation({ dryRun: true })
+  );
+  els.runReadinessOutputGateRemediationBtn?.addEventListener('click', () =>
+    runReadinessOutputGateRemediation({ dryRun: false })
+  );
   els.loadStateManifestBtn?.addEventListener('click', loadStateManifest);
   els.createStateBackupBtn?.addEventListener('click', createStateBackup);
   els.listStateBackupsBtn?.addEventListener('click', listStateBackups);

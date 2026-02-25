@@ -184,6 +184,7 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `POST /api/v1/ops/state/restore` (OWNER, dry-run + restore med confirmText)
 - `GET /api/v1/ops/scheduler/status` (OWNER)
 - `POST /api/v1/ops/scheduler/run` (OWNER, body: `{ "jobId": "alert_probe" }` eller `{ "jobId": "required_suite" }`)
+- `POST /api/v1/ops/readiness/remediate-output-gates` (OWNER, preview/apply av active-version output gate remediation)
 - `GET /api/v1/ops/secrets/status` (OWNER, rotation status/freshness)
 - `POST /api/v1/ops/secrets/snapshot` (OWNER, dry-run default)
 - `GET /api/v1/ops/secrets/history` (OWNER, query: `secretId`, `limit`)
@@ -321,6 +322,7 @@ Owner action `action` (endast OWNER):
   - readiness/Go-No-Go matris (`GET /api/v1/monitor/readiness`)
   - readiness-historik och trend (`GET /api/v1/monitor/readiness/history`)
   - aktiva No-Go blockers med evidence/detaljer (från readiness-payload)
+  - output-gate remediation preview/apply (`POST /api/v1/ops/readiness/remediate-output-gates`)
   - kör required scheduler-suite (`POST /api/v1/ops/scheduler/run` med `{"jobId":"required_suite"}`)
 - Ops backup-panel i UI (OWNER):
   - state manifest (`GET /api/v1/ops/state/manifest`)

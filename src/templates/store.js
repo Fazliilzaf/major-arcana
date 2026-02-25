@@ -483,6 +483,8 @@ async function createTemplateStore({
     versionId,
     inputEvaluation = null,
     outputEvaluation = null,
+    persistEvaluation = true,
+    ownerDecisionOverride = '',
   }) {
     const template = getRawTemplate(templateId);
     if (!template) throw new Error('Mallen hittades inte.');
@@ -494,31 +496,44 @@ async function createTemplateStore({
       outputEvaluation,
     });
 
-    version.risk = combined;
+    const overrideOwnerDecision = normalizeText(ownerDecisionOverride).toLowerCase();
+    const preservedOwnerDecision =
+      overrideOwnerDecision ||
+      (normalizeText(version?.state).toLowerCase() === 'active'
+        ? normalizeText(version?.risk?.ownerDecision).toLowerCase()
+        : '');
+    version.risk = preservedOwnerDecision
+      ? {
+          ...combined,
+          ownerDecision: preservedOwnerDecision,
+        }
+      : combined;
     version.updatedAt = nowIso();
     template.updatedAt = nowIso();
 
-    if (!Array.isArray(state.evaluations)) {
-      state.evaluations = [];
+    if (persistEvaluation) {
+      if (!Array.isArray(state.evaluations)) {
+        state.evaluations = [];
+      }
+      state.evaluations.push({
+        id: crypto.randomUUID(),
+        templateId,
+        templateVersionId: versionId,
+        tenantId: template.tenantId,
+        category: template.category,
+        riskLevel: combined.riskLevel,
+        riskScore: combined.riskScore,
+        semanticScore: combined.semanticScore,
+        ruleScore: combined.ruleScore,
+        decision: combined.decision,
+        reasonCodes: combined.reasonCodes,
+        policyAdjustments: combined.policyAdjustments,
+        ownerDecision: preservedOwnerDecision || 'pending',
+        ownerActions: [],
+        evaluatedAt: combined.evaluatedAt,
+        updatedAt: combined.evaluatedAt,
+      });
     }
-    state.evaluations.push({
-      id: crypto.randomUUID(),
-      templateId,
-      templateVersionId: versionId,
-      tenantId: template.tenantId,
-      category: template.category,
-      riskLevel: combined.riskLevel,
-      riskScore: combined.riskScore,
-      semanticScore: combined.semanticScore,
-      ruleScore: combined.ruleScore,
-      decision: combined.decision,
-      reasonCodes: combined.reasonCodes,
-      policyAdjustments: combined.policyAdjustments,
-      ownerDecision: 'pending',
-      ownerActions: [],
-      evaluatedAt: combined.evaluatedAt,
-      updatedAt: combined.evaluatedAt,
-    });
 
     await save();
     return toSafeVersion(version);

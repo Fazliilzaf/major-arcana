@@ -431,6 +431,27 @@ fi
 echo "✅ monitor/readiness/history OK (count: ${READINESS_HISTORY_COUNT}, entries: ${READINESS_HISTORY_ENTRIES_COUNT}, latestScore: ${READINESS_HISTORY_LATEST_SCORE})"
 
 if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
+  OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/readiness/remediate-output-gates" \
+    -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"dryRun":true,"limit":20,"detailsLimit":3}')"
+  OPS_READINESS_REMEDIATION_PREVIEW_OK="$(printf '%s' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_READINESS_REMEDIATION_PREVIEW_DRY_RUN="$(printf '%s' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE" | json_get dryRun 2>/dev/null || true)"
+  OPS_READINESS_REMEDIATION_PREVIEW_CANDIDATES="$(printf '%s' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE" | json_get candidates 2>/dev/null || true)"
+  OPS_READINESS_REMEDIATION_PREVIEW_FIXABLE="$(printf '%s' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE" | json_get fixableCandidates 2>/dev/null || true)"
+  if [[ "$OPS_READINESS_REMEDIATION_PREVIEW_OK" != "true" || "$OPS_READINESS_REMEDIATION_PREVIEW_DRY_RUN" != "true" ]]; then
+    echo "❌ ops/readiness/remediate-output-gates preview misslyckades"
+    printf '%s\n' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE"
+    exit 1
+  fi
+  if [[ -z "$OPS_READINESS_REMEDIATION_PREVIEW_CANDIDATES" || "$OPS_READINESS_REMEDIATION_PREVIEW_CANDIDATES" == "null" || -z "$OPS_READINESS_REMEDIATION_PREVIEW_FIXABLE" || "$OPS_READINESS_REMEDIATION_PREVIEW_FIXABLE" == "null" ]]; then
+    echo "❌ ops/readiness/remediate-output-gates preview saknar candidates/fixable"
+    printf '%s\n' "$OPS_READINESS_REMEDIATION_PREVIEW_RESPONSE"
+    exit 1
+  fi
+  echo "✅ ops/readiness/remediate-output-gates preview OK (candidates: ${OPS_READINESS_REMEDIATION_PREVIEW_CANDIDATES}, fixable: ${OPS_READINESS_REMEDIATION_PREVIEW_FIXABLE})"
+
   OPS_MANIFEST_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/state/manifest" \
     -H "Authorization: Bearer $TOKEN")"
   OPS_MANIFEST_COUNT="$(printf '%s' "$OPS_MANIFEST_RESPONSE" | json_get stores | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"

@@ -15,6 +15,11 @@ const {
   listSchedulerPilotReports,
   pruneSchedulerPilotReports,
 } = require('../ops/pilotReports');
+const {
+  validateTemplateVariables,
+  applyChannelSignature,
+} = require('../templates/variables');
+const { evaluateTemplateRisk } = require('../risk/templateRisk');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -40,11 +45,79 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+async function getTenantTemplateRuntime(tenantConfigStore, tenantId) {
+  if (!tenantConfigStore || typeof tenantConfigStore.getTenantConfig !== 'function') {
+    return {
+      riskSensitivityModifier: 0,
+      templateVariableAllowlistByCategory: {},
+      templateRequiredVariablesByCategory: {},
+      templateSignaturesByChannel: {},
+    };
+  }
+  try {
+    const tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+    const modifier = Number(tenantConfig?.riskSensitivityModifier ?? 0);
+    return {
+      riskSensitivityModifier: Number.isFinite(modifier)
+        ? Math.max(-10, Math.min(10, modifier))
+        : 0,
+      templateVariableAllowlistByCategory:
+        tenantConfig?.templateVariableAllowlistByCategory || {},
+      templateRequiredVariablesByCategory:
+        tenantConfig?.templateRequiredVariablesByCategory || {},
+      templateSignaturesByChannel: tenantConfig?.templateSignaturesByChannel || {},
+    };
+  } catch {
+    return {
+      riskSensitivityModifier: 0,
+      templateVariableAllowlistByCategory: {},
+      templateRequiredVariablesByCategory: {},
+      templateSignaturesByChannel: {},
+    };
+  }
+}
+
+function analyzeOutputGate(snapshot = null) {
+  const risk = snapshot?.risk && typeof snapshot.risk === 'object' ? snapshot.risk : null;
+  const decision = normalizeText(risk?.decision).toLowerCase();
+  const ownerDecision = normalizeText(risk?.ownerDecision).toLowerCase();
+  const outputEvaluation =
+    risk?.output && typeof risk.output === 'object' ? risk.output : null;
+  const hasOutputEvaluation =
+    Boolean(outputEvaluation) &&
+    normalizeText(outputEvaluation?.scope).toLowerCase() === 'output';
+  const hasPolicyMetadata =
+    hasOutputEvaluation &&
+    Array.isArray(outputEvaluation?.policyHits) &&
+    Array.isArray(outputEvaluation?.policyAdjustments);
+  const requiresOwnerOverride = decision === 'review_required' || decision === 'blocked';
+  const hasOwnerOverride =
+    ownerDecision === 'approved_exception' || ownerDecision === 'false_positive';
+
+  const issues = [];
+  if (!risk) issues.push('risk_missing');
+  if (!hasOutputEvaluation) issues.push('output_evaluation_missing');
+  if (hasOutputEvaluation && !hasPolicyMetadata) issues.push('policy_metadata_missing');
+  if (!decision) issues.push('decision_missing');
+  if (requiresOwnerOverride && !hasOwnerOverride) issues.push('owner_override_missing');
+
+  return {
+    decision: decision || null,
+    ownerDecision: ownerDecision || null,
+    hasOutputEvaluation,
+    hasPolicyMetadata,
+    issues,
+    fixableIssues: issues.filter((item) => item !== 'owner_override_missing'),
+  };
+}
+
 function createOpsRouter({
   config,
   authStore,
   secretRotationStore = null,
   scheduler = null,
+  templateStore = null,
+  tenantConfigStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -218,6 +291,207 @@ function createOpsRouter({
       } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa secret-rotation status.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/readiness/remediate-output-gates',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (
+        !templateStore ||
+        typeof templateStore.listActiveVersionSnapshots !== 'function' ||
+        typeof templateStore.getTemplate !== 'function' ||
+        typeof templateStore.getTemplateVersion !== 'function' ||
+        typeof templateStore.evaluateVersion !== 'function'
+      ) {
+        return res.status(503).json({ error: 'Template store saknas för readiness-remediation.' });
+      }
+
+      try {
+        const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+        const dryRun = parseBoolean(req.body?.dryRun, true);
+        const limit = parseLimit(req.body?.limit, 50);
+        const detailsLimit = parseLimit(req.body?.detailsLimit, 3);
+
+        const activeVersions = await templateStore.listActiveVersionSnapshots({ tenantId });
+        const candidates = [];
+
+        for (const snapshot of Array.isArray(activeVersions) ? activeVersions : []) {
+          const analysis = analyzeOutputGate(snapshot);
+          if (analysis.issues.length === 0) continue;
+          candidates.push({
+            templateId: normalizeText(snapshot?.templateId),
+            templateName: normalizeText(snapshot?.templateName) || null,
+            category: normalizeText(snapshot?.category) || null,
+            versionId: normalizeText(snapshot?.versionId),
+            versionNo: Number(snapshot?.versionNo || 0),
+            activatedAt: normalizeText(snapshot?.activatedAt) || null,
+            updatedAt: normalizeText(snapshot?.updatedAt) || null,
+            ...analysis,
+          });
+        }
+
+        const limitedCandidates = candidates.slice(0, limit);
+        const fixableCandidates = limitedCandidates.filter((item) => item.fixableIssues.length > 0);
+        const manualCandidates = limitedCandidates.filter((item) => item.fixableIssues.length === 0);
+
+        const fixed = [];
+        const skipped = [];
+
+        if (!dryRun) {
+          const tenantRuntime = await getTenantTemplateRuntime(tenantConfigStore, tenantId);
+
+          for (const candidate of limitedCandidates) {
+            if (!candidate.templateId || !candidate.versionId) {
+              skipped.push({
+                templateId: candidate.templateId,
+                versionId: candidate.versionId,
+                reason: 'missing_template_or_version_id',
+              });
+              continue;
+            }
+            if (candidate.fixableIssues.length === 0) {
+              skipped.push({
+                templateId: candidate.templateId,
+                versionId: candidate.versionId,
+                reason: 'manual_owner_override_required',
+                issues: candidate.issues,
+              });
+              continue;
+            }
+
+            const template = await templateStore.getTemplate(candidate.templateId);
+            const version = await templateStore.getTemplateVersion(
+              candidate.templateId,
+              candidate.versionId
+            );
+            if (!template || !version) {
+              skipped.push({
+                templateId: candidate.templateId,
+                versionId: candidate.versionId,
+                reason: 'template_or_version_not_found',
+              });
+              continue;
+            }
+
+            const contentForEvaluation = applyChannelSignature({
+              content: version.content,
+              channel: template.channel,
+              signaturesByChannel: tenantRuntime.templateSignaturesByChannel,
+            });
+            const variableValidation = validateTemplateVariables({
+              category: template.category,
+              content: contentForEvaluation,
+              variables: version.variablesUsed,
+              allowlistOverridesByCategory:
+                tenantRuntime.templateVariableAllowlistByCategory,
+              requiredOverridesByCategory:
+                tenantRuntime.templateRequiredVariablesByCategory,
+            });
+            const inputEvaluation = evaluateTemplateRisk({
+              scope: 'input',
+              category: template.category,
+              content: contentForEvaluation,
+              tenantRiskModifier: tenantRuntime.riskSensitivityModifier,
+              variableValidation,
+            });
+            const outputEvaluation = evaluateTemplateRisk({
+              scope: 'output',
+              category: template.category,
+              content: contentForEvaluation,
+              tenantRiskModifier: tenantRuntime.riskSensitivityModifier,
+              variableValidation,
+            });
+
+            const repaired = await templateStore.evaluateVersion({
+              templateId: candidate.templateId,
+              versionId: candidate.versionId,
+              inputEvaluation,
+              outputEvaluation,
+              persistEvaluation: false,
+              ownerDecisionOverride: candidate.ownerDecision || '',
+            });
+            const postAnalysis = analyzeOutputGate({ risk: repaired?.risk });
+
+            fixed.push({
+              templateId: candidate.templateId,
+              versionId: candidate.versionId,
+              versionNo: candidate.versionNo,
+              beforeIssues: candidate.issues,
+              afterIssues: postAnalysis.issues,
+              beforeDecision: candidate.decision,
+              afterDecision: postAnalysis.decision,
+              beforeOwnerDecision: candidate.ownerDecision,
+              afterOwnerDecision: postAnalysis.ownerDecision,
+              unknownVariables: Number(variableValidation?.unknownVariables?.length || 0),
+              missingRequiredVariables: Number(
+                variableValidation?.missingRequiredVariables?.length || 0
+              ),
+            });
+          }
+        }
+
+        const remainingFixableAfterApply = dryRun
+          ? fixableCandidates.length
+          : fixed.filter((item) =>
+              (Array.isArray(item.afterIssues) ? item.afterIssues : []).some(
+                (issue) => issue !== 'owner_override_missing'
+              )
+            ).length;
+        const resolvedFixableCount = dryRun
+          ? 0
+          : fixed.length - remainingFixableAfterApply;
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: dryRun
+            ? 'ops.readiness.remediate_output_gates.preview'
+            : 'ops.readiness.remediate_output_gates.run',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: tenantId,
+          metadata: {
+            tenantId,
+            dryRun,
+            limit,
+            scanned: activeVersions.length,
+            candidates: candidates.length,
+            fixableCandidates: fixableCandidates.length,
+            manualCandidates: manualCandidates.length,
+            fixedCount: fixed.length,
+            resolvedFixableCount,
+            remainingFixableAfterApply,
+            skippedCount: skipped.length,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          tenantId,
+          dryRun,
+          limit,
+          scanned: activeVersions.length,
+          candidates: candidates.length,
+          fixableCandidates: fixableCandidates.length,
+          manualCandidates: manualCandidates.length,
+          fixedCount: fixed.length,
+          resolvedFixableCount,
+          remainingFixableAfterApply,
+          skippedCount: skipped.length,
+          candidatesPreview: limitedCandidates.slice(0, detailsLimit),
+          fixedPreview: fixed.slice(0, detailsLimit),
+          skippedPreview: skipped.slice(0, detailsLimit),
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error(error);
+        return res
+          .status(500)
+          .json({ error: 'Kunde inte köra readiness remediation för output gates.' });
       }
     }
   );

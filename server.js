@@ -470,6 +470,8 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       authStore,
       secretRotationStore,
       scheduler,
+      templateStore,
+      tenantConfigStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })
