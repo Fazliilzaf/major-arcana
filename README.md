@@ -223,6 +223,7 @@ Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
 - Snabb heal-variant: `npm run preflight:pilot:heal -- --public-url https://arcana.hairtpclinic.se`
 - Snabb heal-all-variant: `npm run preflight:pilot:heal:all -- --public-url https://arcana.hairtpclinic.se`
+- Skriv preflight-rapport till fil: `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se --report-file ./data/reports/preflight-latest.json` (eller env `ARCANA_PREFLIGHT_REPORT_FILE`).
 - Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `preflight:readiness:guard` + `ops:suite:strict` mot publik miljö (fail-fast på kritiska blocker-checks + no-go fail; blocker-kontroll baseras på required checks).
 - Efter `ops:suite:strict` kör preflight som default en guard-verifiering med `--use-required-checks` (kan stängas av med `ARCANA_PREFLIGHT_VERIFY_REQUIRED_CHECKS=false`).
 - Om `ops:suite:strict` failar kör preflight ändå verifierings-steget för diagnos och returnerar sedan samma fail-exit-kod.
@@ -230,6 +231,7 @@ Snabbaste vägen (allt i ett):
 - Sätt `ARCANA_PREFLIGHT_USE_HEAL_ALL=true` för att köra `ops:suite:strict:heal:all` (output-gates + owner-MFA-remediation) i sista steget.
 - När heal-läge är aktivt (`ARCANA_PREFLIGHT_USE_HEAL`/`ARCANA_PREFLIGHT_USE_HEAL_ALL`) fortsätter preflight efter readiness-guard `exit 2` endast om blocker-checkarna är healbara (default: `owner_mfa_enforced` via `ARCANA_PREFLIGHT_HEALABLE_GUARD_CHECKS`), kör heal-steget och verifierar guard igen efteråt.
 - För att tvinga fortsatt körning i heal-läge även med ej-healbara guard-blockers: `ARCANA_PREFLIGHT_FORCE_OPS_ON_GUARD_FAIL=true`.
+- Preflight-rapporten innehåller stegstatus/exit-kod och ev. `corsEnvRecommendation` när guard blockerar på `cors_strict`.
 - Om guard blockerar på `owner_mfa_enforced`: kör `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup` (per aktiv OWNER).
 - Emergency fallback för `owner_mfa_enforced` (disable non-compliant OWNER memberships om minst en compliant OWNER redan finns):
   - Preview: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate`
