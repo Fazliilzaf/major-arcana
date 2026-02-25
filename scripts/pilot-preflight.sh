@@ -70,6 +70,36 @@ exit_with_reason() {
   exit "$exit_code"
 }
 
+dotenv_get() {
+  local key="$1"
+  if [[ ! -f ".env" ]]; then
+    return 1
+  fi
+  node -e "
+const fs = require('node:fs');
+const key = process.argv[1];
+const raw = fs.readFileSync('.env', 'utf8');
+for (const lineRaw of raw.split(/\\r?\\n/)) {
+  const line = String(lineRaw || '').trim();
+  if (!line || line.startsWith('#')) continue;
+  const index = line.indexOf('=');
+  if (index === -1) continue;
+  const currentKey = line.slice(0, index).trim();
+  if (currentKey !== key) continue;
+  let value = line.slice(index + 1).trim();
+  if (
+    (value.startsWith('\"') && value.endsWith('\"')) ||
+    (value.startsWith(\"'\") && value.endsWith(\"'\"))
+  ) {
+    value = value.slice(1, -1);
+  }
+  process.stdout.write(value);
+  process.exit(0);
+}
+process.exit(1);
+" "$key" 2>/dev/null || true
+}
+
 write_preflight_report() {
   local exit_code="$1"
   local finished_at="$2"
@@ -437,6 +467,19 @@ else
 fi
 
 if [[ "$RUN_PUBLIC" -eq 1 ]]; then
+  if [[ -z "${ARCANA_OWNER_EMAIL:-}" ]]; then
+    ARCANA_OWNER_EMAIL="$(dotenv_get ARCANA_OWNER_EMAIL || true)"
+  fi
+  if [[ -z "${ARCANA_OWNER_PASSWORD:-}" ]]; then
+    ARCANA_OWNER_PASSWORD="$(dotenv_get ARCANA_OWNER_PASSWORD || true)"
+  fi
+  if [[ -z "${ARCANA_OWNER_MFA_CODE:-}" ]]; then
+    ARCANA_OWNER_MFA_CODE="$(dotenv_get ARCANA_OWNER_MFA_CODE || true)"
+  fi
+  if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" ]]; then
+    ARCANA_OWNER_MFA_SECRET="$(dotenv_get ARCANA_OWNER_MFA_SECRET || true)"
+  fi
+
   if [[ -z "$PUBLIC_URL" ]]; then
     echo "❌ Public smoke kräver BASE_URL eller --public-url."
     echo "Exempel: npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se"
@@ -444,7 +487,12 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
   fi
   echo "3) Public smoke ($PUBLIC_URL)"
   set +e
-  BASE_URL="$PUBLIC_URL" npm run smoke:public
+  BASE_URL="$PUBLIC_URL" \
+  ARCANA_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-}" \
+  ARCANA_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-}" \
+  ARCANA_OWNER_MFA_CODE="${ARCANA_OWNER_MFA_CODE:-}" \
+  ARCANA_OWNER_MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}" \
+  npm run smoke:public
   PUBLIC_SMOKE_EXIT_CODE=$?
   set -e
   if [[ "$PUBLIC_SMOKE_EXIT_CODE" -ne 0 ]]; then
@@ -496,7 +544,12 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
 
     echo "4) Public readiness guard ($PUBLIC_URL)"
     set +e
-    BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard -- --report-file "$GUARD_REPORT_FILE"
+    BASE_URL="$PUBLIC_URL" \
+    ARCANA_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-}" \
+    ARCANA_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-}" \
+    ARCANA_OWNER_MFA_CODE="${ARCANA_OWNER_MFA_CODE:-}" \
+    ARCANA_OWNER_MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}" \
+    npm run preflight:readiness:guard -- --report-file "$GUARD_REPORT_FILE"
     GUARD_EXIT_CODE=$?
     set -e
     STEP_PUBLIC_GUARD_EXIT="$GUARD_EXIT_CODE"
@@ -549,7 +602,13 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
 
     echo "5) Public ${OPS_STRICT_SCRIPT} ($PUBLIC_URL)"
     set +e
-    BASE_URL="$PUBLIC_URL" ARCANA_SCHEDULER_SUITE_OUT="$OPS_ARTIFACT_FILE" npm run "$OPS_STRICT_SCRIPT"
+    BASE_URL="$PUBLIC_URL" \
+    ARCANA_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-}" \
+    ARCANA_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-}" \
+    ARCANA_OWNER_MFA_CODE="${ARCANA_OWNER_MFA_CODE:-}" \
+    ARCANA_OWNER_MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}" \
+    ARCANA_SCHEDULER_SUITE_OUT="$OPS_ARTIFACT_FILE" \
+    npm run "$OPS_STRICT_SCRIPT"
     OPS_EXIT_CODE=$?
     set -e
     if [[ "$OPS_EXIT_CODE" -eq 0 ]]; then
@@ -591,7 +650,12 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
     if [[ "$RUN_POST_GUARD_VERIFY" -eq 1 ]]; then
       echo "${POST_GUARD_LABEL} ($PUBLIC_URL)"
       set +e
-      BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard -- --report-file "$POST_GUARD_REPORT_FILE" "${POST_GUARD_ARGS[@]}"
+      BASE_URL="$PUBLIC_URL" \
+      ARCANA_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-}" \
+      ARCANA_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-}" \
+      ARCANA_OWNER_MFA_CODE="${ARCANA_OWNER_MFA_CODE:-}" \
+      ARCANA_OWNER_MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}" \
+      npm run preflight:readiness:guard -- --report-file "$POST_GUARD_REPORT_FILE" "${POST_GUARD_ARGS[@]}"
       POST_GUARD_EXIT_CODE=$?
       set -e
       if [[ "$POST_GUARD_EXIT_CODE" -eq 0 ]]; then
