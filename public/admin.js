@@ -48,6 +48,7 @@
       kpi_pilot_report: 'Pilotrapport',
       monitor_scheduler_jobs: 'Schedulerjobb (krav)',
       monitor_readiness_history: 'Readiness-historik',
+      monitor_readiness_nogo: 'Readiness-blockeringar (No-Go)',
       open_queue: 'Öppna kö',
       see_incidents: 'Se incidenter',
       overview_insights: 'Översiktsinsikter',
@@ -101,6 +102,7 @@
       kpi_pilot_report: 'Pilot report',
       monitor_scheduler_jobs: 'Scheduler jobs (required)',
       monitor_readiness_history: 'Readiness history',
+      monitor_readiness_nogo: 'Readiness blockers (No-Go)',
       open_queue: 'Open queue',
       see_incidents: 'View incidents',
       overview_insights: 'Overview insights',
@@ -463,6 +465,8 @@
     monitorSchedulerResult: document.getElementById('monitorSchedulerResult'),
     monitorReadinessHistorySummary: document.getElementById('monitorReadinessHistorySummary'),
     monitorReadinessHistoryResult: document.getElementById('monitorReadinessHistoryResult'),
+    monitorReadinessNoGoSummary: document.getElementById('monitorReadinessNoGoSummary'),
+    monitorReadinessNoGoResult: document.getElementById('monitorReadinessNoGoResult'),
     monitorRemediationSummary: document.getElementById('monitorRemediationSummary'),
     monitorRemediationResult: document.getElementById('monitorRemediationResult'),
     loadStateManifestBtn: document.getElementById('loadStateManifestBtn'),
@@ -6262,6 +6266,81 @@
     els.monitorReadinessHistoryResult.textContent = lines.join('\n');
   }
 
+  function formatReadinessNoGoDetail(detail) {
+    if (!detail || typeof detail !== 'object') return String(detail ?? '-');
+    const fields = [
+      ['templateId', 'template'],
+      ['versionId', 'version'],
+      ['versionNo', 'vNo'],
+      ['category', 'category'],
+      ['reason', 'reason'],
+      ['policyRuleId', 'policyRule'],
+      ['riskLevel', 'risk'],
+      ['decision', 'decision'],
+      ['ownerDecision', 'ownerDecision'],
+      ['activatedAt', 'activatedAt'],
+    ];
+    const parts = [];
+    for (const [key, label] of fields) {
+      const value = detail?.[key];
+      if (value === undefined || value === null || value === '') continue;
+      parts.push(`${label}=${String(value)}`);
+    }
+    if (parts.length > 0) return parts.join(' ');
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return '[detail]';
+    }
+  }
+
+  function renderReadinessNoGo(readiness = null) {
+    if (!els.monitorReadinessNoGoSummary || !els.monitorReadinessNoGoResult) return;
+    const goNoGo = readiness?.goNoGo && typeof readiness.goNoGo === 'object' ? readiness.goNoGo : {};
+    const triggers = (Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : []).filter(
+      (item) => String(item?.status || '').toLowerCase() === 'triggered'
+    );
+    const goAllowed = goNoGo?.allowed === true;
+    const blockersGreen = goNoGo?.blockerCategoriesGreen === true;
+    const ids = Array.isArray(goNoGo?.triggeredNoGoIds)
+      ? goNoGo.triggeredNoGoIds.map((item) => String(item || '')).filter(Boolean)
+      : triggers.map((item) => String(item?.id || '')).filter(Boolean);
+
+    if (triggers.length === 0) {
+      els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
+        ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} triggered=0`
+        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} triggered=0`;
+      els.monitorReadinessNoGoResult.textContent = isEnglishLanguage()
+        ? 'No active no-go blockers.'
+        : 'Inga aktiva No-Go blockeringar.';
+      return;
+    }
+
+    els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
+      ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} triggered=${triggers.length} ids=${ids.join(',') || '-'}`
+      : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} triggered=${triggers.length} ids=${ids.join(',') || '-'}`;
+
+    const lines = [];
+    triggers.forEach((trigger, index) => {
+      const id = String(trigger?.id || '-');
+      const label = String(trigger?.label || id);
+      const evidence = String(trigger?.evidence || '-');
+      const violations = Number(trigger?.value?.violations || 0);
+      const details = Array.isArray(trigger?.value?.details) ? trigger.value.details : [];
+      lines.push(`[${id}] ${label}`);
+      lines.push(`   evidence: ${evidence}`);
+      if (violations > 0) lines.push(`   violations: ${violations}`);
+      details.slice(0, 3).forEach((detail, detailIndex) => {
+        lines.push(`   detail${detailIndex + 1}: ${formatReadinessNoGoDetail(detail)}`);
+      });
+      if (details.length > 3) {
+        lines.push(`   ... +${details.length - 3} more details`);
+      }
+      if (index < triggers.length - 1) lines.push('');
+    });
+    els.monitorReadinessNoGoResult.textContent = lines.join('\n');
+  }
+
   function renderMonitorRemediation(readiness) {
     const remediation = readiness?.remediation || null;
     const summary = remediation?.summary || {};
@@ -6364,11 +6443,14 @@
       renderPilotReportKpi(statusResponse);
       renderMonitorScheduler(statusResponse);
       renderReadinessHistory(readinessHistoryResponse);
+      renderReadinessNoGo(readinessResponse);
       renderMonitorRemediation(readinessResponse);
       const templatesTotal = statusResponse?.kpis?.templatesTotal ?? 0;
       const evaluationsTotal = statusResponse?.kpis?.evaluationsTotal ?? 0;
       const highCriticalOpen = statusResponse?.kpis?.highCriticalOpen ?? 0;
       const band = readinessResponse?.band || '-';
+      const goAllowed = readinessResponse?.goNoGo?.allowed === true ? 'yes' : 'no';
+      const triggeredNoGoCount = Number(readinessResponse?.goNoGo?.triggeredNoGoCount || 0);
       const remediationTotal = Number(readinessResponse?.remediation?.summary?.total || 0);
       const p0 = Number(readinessResponse?.remediation?.summary?.byPriority?.P0 || 0);
       const pilotReportHealthy = statusResponse?.gates?.pilotReport?.healthy === true ? 'yes' : 'no';
@@ -6376,13 +6458,14 @@
         statusResponse?.gates?.pilotReport?.ageHours ?? statusResponse?.kpis?.pilotReportAgeHours ?? '-';
       setStatus(
         els.monitorPanelStatus,
-        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, remediation=${remediationTotal}, P0=${p0}, pilotReportHealthy=${pilotReportHealthy}, pilotReportAgeHours=${pilotReportAgeHours}`
+        `Monitor uppdaterad: templates=${templatesTotal}, evaluations=${evaluationsTotal}, highCriticalOpen=${highCriticalOpen}, band=${band}, goAllowed=${goAllowed}, noGo=${triggeredNoGoCount}, remediation=${remediationTotal}, P0=${p0}, pilotReportHealthy=${pilotReportHealthy}, pilotReportAgeHours=${pilotReportAgeHours}`
       );
     } catch (error) {
       renderReadinessKpi(null);
       renderPilotReportKpi(null);
       renderMonitorScheduler(null);
       renderReadinessHistory(null);
+      renderReadinessNoGo(null);
       if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
       if (els.monitorRemediationResult) {
         els.monitorRemediationResult.textContent = isEnglishLanguage()
@@ -7324,6 +7407,12 @@
       els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
         ? 'No readiness history yet.'
         : 'Ingen readiness-historik ännu.';
+    }
+    if (els.monitorReadinessNoGoSummary) els.monitorReadinessNoGoSummary.textContent = '';
+    if (els.monitorReadinessNoGoResult) {
+      els.monitorReadinessNoGoResult.textContent = isEnglishLanguage()
+        ? 'No active no-go blockers.'
+        : 'Inga aktiva No-Go blockeringar.';
     }
     if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
     if (els.monitorRemediationResult) {
