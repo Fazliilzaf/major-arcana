@@ -43,6 +43,12 @@ if [[ "${READY}" -ne 1 ]]; then
 fi
 
 echo "✅ Server uppe. Kör smoke-test..."
+BASE_URL="http://localhost:${PORT}" \
+ARCANA_OWNER_EMAIL="${LOCAL_SMOKE_OWNER_EMAIL:-}" \
+ARCANA_OWNER_PASSWORD="${LOCAL_SMOKE_OWNER_PASSWORD:-}" \
+ARCANA_OWNER_MFA_SECRET="${LOCAL_SMOKE_OWNER_MFA_SECRET:-}" \
+ARCANA_OWNER_MFA_CODE="${LOCAL_SMOKE_OWNER_MFA_CODE:-}" \
+ARCANA_DEFAULT_TENANT="${LOCAL_SMOKE_TENANT_ID:-${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}}" \
 bash ./scripts/smoke-template.sh
 
 echo "✅ Klart."
