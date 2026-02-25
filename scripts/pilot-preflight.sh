@@ -55,6 +55,13 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
   echo
 
   if [[ -n "${ARCANA_OWNER_EMAIL:-}" && -n "${ARCANA_OWNER_PASSWORD:-}" ]]; then
+    VERIFY_REQUIRED_CHECKS=1
+    case "${ARCANA_PREFLIGHT_VERIFY_REQUIRED_CHECKS:-true}" in
+      0|false|FALSE|no|NO|off|OFF)
+        VERIFY_REQUIRED_CHECKS=0
+        ;;
+    esac
+
     OPS_STRICT_SCRIPT="ops:suite:strict"
     ALLOW_GUARD_FAIL_IN_HEAL_MODE=0
     case "${ARCANA_PREFLIGHT_USE_HEAL_ALL:-false}" in
@@ -91,9 +98,30 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
     BASE_URL="$PUBLIC_URL" npm run "$OPS_STRICT_SCRIPT"
     echo
 
+    RUN_POST_GUARD_VERIFY=0
+    POST_GUARD_ARGS=""
+    POST_GUARD_LABEL="6) Public readiness guard verify"
+    if [[ "$VERIFY_REQUIRED_CHECKS" -eq 1 ]]; then
+      RUN_POST_GUARD_VERIFY=1
+      POST_GUARD_ARGS="--use-required-checks"
+      POST_GUARD_LABEL="6) Public readiness guard verify (required checks)"
+    fi
     if [[ "$ALLOW_GUARD_FAIL_IN_HEAL_MODE" -eq 1 && "${GUARD_EXIT_CODE:-0}" -eq 2 ]]; then
-      echo "6) Public readiness guard verify after heal ($PUBLIC_URL)"
-      BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard
+      RUN_POST_GUARD_VERIFY=1
+      if [[ -z "$POST_GUARD_ARGS" ]]; then
+        POST_GUARD_LABEL="6) Public readiness guard verify after heal"
+      else
+        POST_GUARD_LABEL="6) Public readiness guard verify after heal (required checks)"
+      fi
+    fi
+
+    if [[ "$RUN_POST_GUARD_VERIFY" -eq 1 ]]; then
+      echo "${POST_GUARD_LABEL} ($PUBLIC_URL)"
+      if [[ -n "$POST_GUARD_ARGS" ]]; then
+        BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard -- $POST_GUARD_ARGS
+      else
+        BASE_URL="$PUBLIC_URL" npm run preflight:readiness:guard
+      fi
       echo
     fi
   else
