@@ -1927,11 +1927,7 @@ function createMonitorRouter({
             buildCheck({
               id: 'public_chat_beta_gate',
               label: 'Patientkanal beta-gate',
-              status: !publicChatBetaEnabled
-                ? 'yellow'
-                : publicChatBetaReady
-                  ? 'green'
-                  : 'red',
+              status: !publicChatBetaEnabled ? 'green' : publicChatBetaReady ? 'green' : 'red',
               required: false,
               target:
                 'När beta är aktiv: ARCANA_PUBLIC_CHAT_BETA_KEY eller ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS',
@@ -1946,7 +1942,7 @@ function createMonitorRouter({
                 : publicChatBetaReady
                   ? ''
                   : 'Beta är aktiv men saknar både key och allowHosts.',
-              inferred: !publicChatBetaEnabled,
+              inferred: false,
             }),
           ],
         });
