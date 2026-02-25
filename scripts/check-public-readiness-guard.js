@@ -478,6 +478,9 @@ async function resolveToken({
     const providedCode = String(mfaCode || '').trim();
     let resolvedMfaSecret = String(mfaSecret || '').trim();
     if (!providedCode && !resolvedMfaSecret) {
+      resolvedMfaSecret = normalizeText(authStep?.mfa?.secret) || '';
+    }
+    if (!providedCode && !resolvedMfaSecret) {
       resolvedMfaSecret = await readMfaSecretFromStore({
         email,
         authStorePath,
