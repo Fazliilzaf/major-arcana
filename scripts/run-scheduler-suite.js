@@ -1119,8 +1119,6 @@ async function main() {
   };
 
   const outAbs = path.resolve(outFile);
-  await fs.mkdir(path.dirname(outAbs), { recursive: true });
-  await fs.writeFile(outAbs, JSON.stringify(artifact, null, 2), 'utf8');
 
   const suiteTotal = Number(suiteResponse?.suite?.total || 0);
   const suiteFailed = Number(suiteResponse?.suite?.failed || 0);
@@ -1332,6 +1330,19 @@ async function main() {
     }
   }
 
+  const strictExitCode =
+    failOnNoGo && strictFailures.length > 0 ? 2 : suiteResponse?.ok !== true ? 1 : 0;
+  artifact.strict = {
+    failOnNoGo,
+    failureCount: strictFailures.length,
+    failures: strictFailures,
+    advisoryCount: advisories.length,
+    advisories,
+    exitCode: strictExitCode,
+  };
+  await fs.mkdir(path.dirname(outAbs), { recursive: true });
+  await fs.writeFile(outAbs, JSON.stringify(artifact, null, 2), 'utf8');
+
   process.stdout.write(`✅ Scheduler suite körd: ${baseUrl}\n`);
   process.stdout.write(
     `   suite: succeeded=${suiteSucceeded}/${suiteTotal} failed=${suiteFailed}\n`
@@ -1443,12 +1454,12 @@ async function main() {
   }
   process.stdout.write(`   artifact: ${outAbs}\n`);
 
-  if (failOnNoGo && strictFailures.length > 0) {
-    process.exitCode = 2;
+  if (strictExitCode === 2) {
+    process.exitCode = strictExitCode;
     return;
   }
-  if (suiteResponse?.ok !== true) {
-    process.exitCode = 1;
+  if (strictExitCode === 1) {
+    process.exitCode = strictExitCode;
   }
 }
 

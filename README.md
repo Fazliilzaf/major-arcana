@@ -232,7 +232,7 @@ Snabbaste vägen (allt i ett):
 - Sätt `ARCANA_PREFLIGHT_USE_HEAL_ALL=true` för att köra `ops:suite:strict:heal:all` (output-gates + owner-MFA-remediation) i sista steget.
 - När heal-läge är aktivt (`ARCANA_PREFLIGHT_USE_HEAL`/`ARCANA_PREFLIGHT_USE_HEAL_ALL`) fortsätter preflight efter readiness-guard `exit 2` endast om blocker-checkarna är healbara (default: `owner_mfa_enforced` via `ARCANA_PREFLIGHT_HEALABLE_GUARD_CHECKS`), kör heal-steget och verifierar guard igen efteråt.
 - För att tvinga fortsatt körning i heal-läge även med ej-healbara guard-blockers: `ARCANA_PREFLIGHT_FORCE_OPS_ON_GUARD_FAIL=true`.
-- Preflight-rapporten innehåller stegstatus/exit-kod och ev. `corsEnvRecommendation` när guard blockerar på `cors_strict`.
+- Preflight-rapporten innehåller stegstatus/exit-kod, guard-diagnostik och ops-suite strict-diagnostik (`diagnostics.opsSuite.strict`), samt ev. `corsEnvRecommendation` när guard blockerar på `cors_strict`.
 - Om guard blockerar på `owner_mfa_enforced`: kör `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup` (per aktiv OWNER).
 - Emergency fallback för `owner_mfa_enforced` (disable non-compliant OWNER memberships om minst en compliant OWNER redan finns):
   - Preview: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:remediate`
@@ -299,7 +299,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Publik variant: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run ops:suite`
 - Om OWNER kräver MFA: lägg till `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
-- Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
+- Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot, samt `strict`-sektion med failures/advisories/exitCode.
 - Ops-suite kör som standard en tenant access-check refresh (`tenants.access_check`) före readiness snapshot för färsk tenant-isolation-evidens.
 - Ops-suite kör även CORS runtime-probe som standard när `cors_strict` är grön (tillåten origin måste få ACAO-header, otillåten origin får inte få ACAO-header). Om `cors_strict` inte är grön markeras probe som `unknown/skipped` istället för separat blocker.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.

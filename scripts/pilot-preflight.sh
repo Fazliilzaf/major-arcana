@@ -13,6 +13,9 @@ HEALABLE_GUARD_CHECKS_SELECTED=""
 FORCE_OPS_ON_GUARD_FAIL_SELECTED=0
 GUARD_CLASSIFICATION_OUTPUT=""
 CORS_ENV_RECOMMENDATION=""
+GUARD_REPORT_FILE=""
+POST_GUARD_REPORT_FILE=""
+OPS_ARTIFACT_FILE=""
 TMP_FILES=()
 
 STEP_LOCAL_VERIFY_STATUS="not_run"
@@ -100,6 +103,9 @@ write_preflight_report() {
   STEP_PUBLIC_OPS_STRICT_EXIT="$STEP_PUBLIC_OPS_STRICT_EXIT" \
   STEP_PUBLIC_GUARD_VERIFY_STATUS="$STEP_PUBLIC_GUARD_VERIFY_STATUS" \
   STEP_PUBLIC_GUARD_VERIFY_EXIT="$STEP_PUBLIC_GUARD_VERIFY_EXIT" \
+  GUARD_REPORT_FILE="$GUARD_REPORT_FILE" \
+  POST_GUARD_REPORT_FILE="$POST_GUARD_REPORT_FILE" \
+  OPS_ARTIFACT_FILE="$OPS_ARTIFACT_FILE" \
   node - <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
@@ -118,8 +124,97 @@ function toIntOrNull(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function readJsonFile(filePathRaw) {
+  const filePath = String(filePathRaw || '').trim();
+  if (!filePath) return null;
+  const resolved = path.resolve(filePath);
+  try {
+    const payload = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+    return { path: resolved, payload };
+  } catch {
+    return { path: resolved, payload: null };
+  }
+}
+
+function summarizeGuardReport(raw) {
+  const payload = raw?.payload;
+  if (!payload || typeof payload !== 'object') {
+    return {
+      path: raw?.path || null,
+      available: false,
+    };
+  }
+  const failures = Array.isArray(payload?.failures) ? payload.failures : [];
+  const failedCheckIds = Array.isArray(payload?.failedCheckIds) ? payload.failedCheckIds : [];
+  return {
+    path: raw?.path || null,
+    available: true,
+    generatedAt: payload?.generatedAt || null,
+    outcome: payload?.outcome || null,
+    score: Number(payload?.readiness?.score || 0),
+    band: payload?.readiness?.band || null,
+    goAllowed: payload?.readiness?.goAllowed === true,
+    resolvedChecksCount: Array.isArray(payload?.checks?.resolved)
+      ? payload.checks.resolved.length
+      : 0,
+    failureCount: failures.length,
+    failedCheckIds,
+    topFailures: failures.slice(0, 5).map((item) => ({
+      checkId: item?.checkId || null,
+      status: item?.status || null,
+      categoryId: item?.categoryId || null,
+      evidence: item?.evidence || null,
+      target: item?.target || null,
+    })),
+    corsStrictEnv: payload?.recommendations?.corsStrictEnv || null,
+    corsStrictOrigins: Array.isArray(payload?.recommendations?.corsStrictOrigins)
+      ? payload.recommendations.corsStrictOrigins
+      : [],
+  };
+}
+
+function summarizeOpsArtifact(raw) {
+  const payload = raw?.payload;
+  if (!payload || typeof payload !== 'object') {
+    return {
+      path: raw?.path || null,
+      available: false,
+    };
+  }
+  const strict = payload?.strict && typeof payload.strict === 'object' ? payload.strict : {};
+  const readiness = payload?.monitor?.readiness && typeof payload.monitor.readiness === 'object'
+    ? payload.monitor.readiness
+    : {};
+  const blockers = Array.isArray(readiness?.blockerChecks) ? readiness.blockerChecks : [];
+  return {
+    path: raw?.path || null,
+    available: true,
+    generatedAt: payload?.generatedAt || null,
+    strict: {
+      failOnNoGo: strict?.failOnNoGo === true,
+      exitCode: Number(strict?.exitCode || 0),
+      failureCount: Number(strict?.failureCount || 0),
+      failures: Array.isArray(strict?.failures) ? strict.failures : [],
+      advisoryCount: Number(strict?.advisoryCount || 0),
+      advisories: Array.isArray(strict?.advisories) ? strict.advisories : [],
+    },
+    readiness: {
+      score: Number(readiness?.score || 0),
+      band: readiness?.band || null,
+      goAllowed: readiness?.goNoGo?.allowed === true,
+      blockerChecksCount: blockers.length,
+      blockerCheckIds: blockers.map((item) => item?.checkId).filter(Boolean).slice(0, 12),
+      corsStrictRecommendation: readiness?.corsStrictRecommendation?.envLine || null,
+    },
+  };
+}
+
 const reportPath = path.resolve(String(process.env.PREFLIGHT_REPORT_FILE || '').trim());
 if (!reportPath) process.exit(0);
+
+const guardReportRaw = readJsonFile(process.env.GUARD_REPORT_FILE);
+const postGuardReportRaw = readJsonFile(process.env.POST_GUARD_REPORT_FILE);
+const opsArtifactRaw = readJsonFile(process.env.OPS_ARTIFACT_FILE);
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -167,6 +262,16 @@ const report = {
       status: String(process.env.STEP_PUBLIC_GUARD_VERIFY_STATUS || 'not_run'),
       exitCode: toIntOrNull(process.env.STEP_PUBLIC_GUARD_VERIFY_EXIT),
     },
+  },
+  artifacts: {
+    readinessGuardReportPath: guardReportRaw?.path || null,
+    readinessGuardVerifyReportPath: postGuardReportRaw?.path || null,
+    opsSuiteArtifactPath: opsArtifactRaw?.path || null,
+  },
+  diagnostics: {
+    readinessGuard: summarizeGuardReport(guardReportRaw),
+    readinessGuardVerify: summarizeGuardReport(postGuardReportRaw),
+    opsSuite: summarizeOpsArtifact(opsArtifactRaw),
   },
 };
 
@@ -433,9 +538,18 @@ if [[ "$RUN_PUBLIC" -eq 1 ]]; then
     fi
     echo
 
+    if [[ -n "$PREFLIGHT_REPORT_FILE" ]]; then
+      REPORT_DIR="$(dirname "$PREFLIGHT_REPORT_FILE")"
+      mkdir -p "$REPORT_DIR"
+      OPS_ARTIFACT_FILE="${REPORT_DIR}/Ops_Suite_${PREFLIGHT_RUN_ID}.json"
+    else
+      OPS_ARTIFACT_FILE="$(mktemp)"
+      TMP_FILES+=("$OPS_ARTIFACT_FILE")
+    fi
+
     echo "5) Public ${OPS_STRICT_SCRIPT} ($PUBLIC_URL)"
     set +e
-    BASE_URL="$PUBLIC_URL" npm run "$OPS_STRICT_SCRIPT"
+    BASE_URL="$PUBLIC_URL" ARCANA_SCHEDULER_SUITE_OUT="$OPS_ARTIFACT_FILE" npm run "$OPS_STRICT_SCRIPT"
     OPS_EXIT_CODE=$?
     set -e
     if [[ "$OPS_EXIT_CODE" -eq 0 ]]; then
