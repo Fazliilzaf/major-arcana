@@ -23,6 +23,15 @@ I Render: välj **Blueprint** och fyll minst:
 - `ARCANA_OWNER_EMAIL`
 - `ARCANA_OWNER_PASSWORD`
 - `PUBLIC_BASE_URL` (t.ex. `https://arcana.hairtpclinic.se`)
+- `ARCANA_STATE_ROOT` (rekommenderat: `/var/data/arcana` på persistent disk)
+
+### Persistenta driftfiler (Render)
+För att auth/sessions/backups ska överleva restart/deploy:
+1) Lägg till en persistent disk i Render (mount path: `/var/data`).
+2) Sätt `ARCANA_STATE_ROOT=/var/data/arcana`.
+3) Deploya om tjänsten.
+
+Om `ARCANA_STATE_ROOT` inte sätts används `./data` (lokal utveckling).
 
 ## Steg 1: Foundation (Auth + RBAC + Tenant + Audit)
 Arcana har nu en intern API-bas på `/api/v1` för Pilot 0.1.
@@ -98,6 +107,7 @@ ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX=90
 ### Scheduler / Automation (Pilot driftstöd)
 
 ```env
+ARCANA_STATE_ROOT=./data
 ARCANA_REPORTS_DIR=./data/reports
 ARCANA_REPORT_RETENTION_MAX_FILES=60
 ARCANA_REPORT_RETENTION_MAX_AGE_DAYS=45
@@ -580,10 +590,11 @@ Backup inkluderar:
   4) Verifiera `GET /api/v1/ops/secrets/status` och att `staleRequired=0`.
 
 Katalog styrs av:
-- `ARCANA_BACKUP_DIR` (default: `./data/backups`)
+- `ARCANA_STATE_ROOT` (default: `./data`, rekommenderat i Render: `/var/data/arcana`)
+- `ARCANA_BACKUP_DIR` (default: `<ARCANA_STATE_ROOT>/backups`)
 - `ARCANA_BACKUP_RETENTION_MAX_FILES` (default: `50`)
 - `ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS` (default: `30`)
-- `ARCANA_REPORTS_DIR` (default: `./data/reports`)
+- `ARCANA_REPORTS_DIR` (default: `<ARCANA_STATE_ROOT>/reports`)
 - `ARCANA_REPORT_RETENTION_MAX_FILES` (default: `60`, scheduler-genererade rapporter)
 - `ARCANA_REPORT_RETENTION_MAX_AGE_DAYS` (default: `45`, scheduler-genererade rapporter)
 

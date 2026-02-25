@@ -3,6 +3,10 @@ services:
     name: arcana
     runtime: node
     plan: starter
+    disk:
+      name: arcana-state
+      mountPath: /var/data
+      sizeGB: 1
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /readyz
@@ -18,6 +22,8 @@ services:
         value: gpt-4o-mini
       - key: ARCANA_DEFAULT_TENANT
         value: hair-tp-clinic
+      - key: ARCANA_STATE_ROOT
+        value: /var/data/arcana
       - key: ARCANA_BRAND_BY_HOST
         sync: false
       - key: ARCANA_OWNER_EMAIL

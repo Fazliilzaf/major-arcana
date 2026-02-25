@@ -76,6 +76,19 @@ function normalizeSessionRotationScope(value, fallback = 'tenant') {
   return fallback;
 }
 
+function resolveDirectoryPath(value, fallbackPath) {
+  const resolved = asNonEmptyString(value, fallbackPath);
+  return path.resolve(resolved);
+}
+
+function resolveStatePath({ explicitPath, stateRoot, fileName }) {
+  const normalizedExplicitPath = asNonEmptyString(explicitPath);
+  if (normalizedExplicitPath) {
+    return path.resolve(normalizedExplicitPath);
+  }
+  return path.join(stateRoot, fileName);
+}
+
 const port = asInt(process.env.PORT, 3000);
 const publicBaseUrl = asNonEmptyString(
   process.env.PUBLIC_BASE_URL,
@@ -83,6 +96,10 @@ const publicBaseUrl = asNonEmptyString(
 );
 const nodeEnv = asNonEmptyString(process.env.NODE_ENV, 'development').toLowerCase();
 const isProduction = nodeEnv === 'production';
+const stateRoot = resolveDirectoryPath(
+  process.env.ARCANA_STATE_ROOT,
+  path.join(process.cwd(), 'data')
+);
 
 const brand = asNonEmptyString(process.env.ARCANA_BRAND, 'hair-tp-clinic');
 const brandByHost = asJsonObject(process.env.ARCANA_BRAND_BY_HOST, null);
@@ -105,16 +122,20 @@ const config = {
   openaiModel: asNonEmptyString(process.env.OPENAI_MODEL, 'gpt-4o-mini'),
   aiProvider: normalizeAiProvider(process.env.ARCANA_AI_PROVIDER, 'openai'),
 
-  memoryStorePath: asNonEmptyString(
-    process.env.MEMORY_STORE_PATH,
-    path.join(process.cwd(), 'data', 'memory.json')
-  ),
+  stateRoot,
+
+  memoryStorePath: resolveStatePath({
+    explicitPath: process.env.MEMORY_STORE_PATH,
+    stateRoot,
+    fileName: 'memory.json',
+  }),
   memoryTtlDays: asInt(process.env.MEMORY_TTL_DAYS, 30),
 
-  authStorePath: asNonEmptyString(
-    process.env.AUTH_STORE_PATH,
-    path.join(process.cwd(), 'data', 'auth.json')
-  ),
+  authStorePath: resolveStatePath({
+    explicitPath: process.env.AUTH_STORE_PATH,
+    stateRoot,
+    fileName: 'auth.json',
+  }),
   authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 12),
   authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 180),
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
@@ -141,26 +162,30 @@ const config = {
   bootstrapOwnerResetPassword: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD, false),
   bootstrapOwnerResetMfa: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_MFA, false),
 
-  templateStorePath: asNonEmptyString(
-    process.env.TEMPLATE_STORE_PATH,
-    path.join(process.cwd(), 'data', 'templates.json')
-  ),
+  templateStorePath: resolveStatePath({
+    explicitPath: process.env.TEMPLATE_STORE_PATH,
+    stateRoot,
+    fileName: 'templates.json',
+  }),
   templateEvalMaxEntries: asInt(process.env.TEMPLATE_EVAL_MAX_ENTRIES, 10000),
 
-  tenantConfigStorePath: asNonEmptyString(
-    process.env.TENANT_CONFIG_STORE_PATH,
-    path.join(process.cwd(), 'data', 'tenant-config.json')
-  ),
-  backupDir: asNonEmptyString(
-    process.env.ARCANA_BACKUP_DIR,
-    path.join(process.cwd(), 'data', 'backups')
-  ),
+  tenantConfigStorePath: resolveStatePath({
+    explicitPath: process.env.TENANT_CONFIG_STORE_PATH,
+    stateRoot,
+    fileName: 'tenant-config.json',
+  }),
+  backupDir: resolveStatePath({
+    explicitPath: process.env.ARCANA_BACKUP_DIR,
+    stateRoot,
+    fileName: 'backups',
+  }),
   backupRetentionMaxFiles: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_FILES, 50),
   backupRetentionMaxAgeDays: asInt(process.env.ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS, 30),
-  reportsDir: asNonEmptyString(
-    process.env.ARCANA_REPORTS_DIR,
-    path.join(process.cwd(), 'data', 'reports')
-  ),
+  reportsDir: resolveStatePath({
+    explicitPath: process.env.ARCANA_REPORTS_DIR,
+    stateRoot,
+    fileName: 'reports',
+  }),
   reportRetentionMaxFiles: asInt(process.env.ARCANA_REPORT_RETENTION_MAX_FILES, 60),
   reportRetentionMaxAgeDays: asInt(process.env.ARCANA_REPORT_RETENTION_MAX_AGE_DAYS, 45),
 
@@ -195,10 +220,11 @@ const config = {
   alertWebhookUrl: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_URL),
   alertWebhookSecret: asNonEmptyString(process.env.ARCANA_ALERT_WEBHOOK_SECRET),
   alertWebhookTimeoutMs: asInt(process.env.ARCANA_ALERT_WEBHOOK_TIMEOUT_MS, 4000),
-  secretRotationStorePath: asNonEmptyString(
-    process.env.ARCANA_SECRET_ROTATION_STORE_PATH,
-    path.join(process.cwd(), 'data', 'secret-rotation.json')
-  ),
+  secretRotationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_SECRET_ROTATION_STORE_PATH,
+    stateRoot,
+    fileName: 'secret-rotation.json',
+  }),
   secretRotationMaxAgeDays: asInt(process.env.ARCANA_SECRET_ROTATION_MAX_AGE_DAYS, 90),
   schedulerStartupDelaySec: asInt(process.env.ARCANA_SCHEDULER_STARTUP_DELAY_SEC, 8),
   schedulerJitterSec: asInt(process.env.ARCANA_SCHEDULER_JITTER_SEC, 4),
