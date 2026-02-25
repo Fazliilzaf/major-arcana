@@ -323,6 +323,32 @@ async function main() {
   const readinessHistory = await fetchJson(baseUrl, '/api/v1/monitor/readiness/history?limit=14', {
     token: auth.token,
   });
+  const readinessNoGoTriggers = Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : [];
+  const triggeredNoGo = readinessNoGoTriggers
+    .filter((item) => String(item?.status || '').toLowerCase() === 'triggered')
+    .map((item) => ({
+      id: String(item?.id || ''),
+      label: String(item?.label || ''),
+      evidence: String(item?.evidence || ''),
+      violations: Number(item?.value?.violations || 0),
+      inferred: item?.inferred === true,
+    }));
+  const remediationActions = Array.isArray(readiness?.remediation?.actions)
+    ? readiness.remediation.actions
+    : [];
+  const remediationTopP0 = remediationActions
+    .filter((item) => String(item?.priority || '').toUpperCase() === 'P0' || item?.required === true)
+    .slice(0, 5)
+    .map((item) => ({
+      id: String(item?.id || ''),
+      title: String(item?.title || item?.relatedId || ''),
+      priority: String(item?.priority || '').toUpperCase() || null,
+      owner: String(item?.owner || ''),
+      targetState: String(item?.targetState || ''),
+      required: item?.required === true,
+      scoreImpactMax: Number(item?.scoreImpactMax || 0),
+      playbook: String(item?.playbook || ''),
+    }));
 
   const artifact = {
     generatedAt: new Date().toISOString(),
@@ -343,7 +369,12 @@ async function main() {
         score: Number(readiness?.score || 0),
         band: readiness?.band || null,
         goNoGo: readiness?.goNoGo || null,
+        triggeredNoGoIds: Array.isArray(readiness?.goNoGo?.triggeredNoGoIds)
+          ? readiness.goNoGo.triggeredNoGoIds
+          : [],
+        triggeredNoGo,
         remediationSummary: readiness?.remediation?.summary || null,
+        remediationTopP0,
       },
       readinessHistory: {
         generatedAt: readinessHistory?.generatedAt || null,
@@ -373,16 +404,32 @@ async function main() {
   const pilotHealthy = monitorStatus?.gates?.pilotReport?.healthy === true ? 'yes' : 'no';
   const restoreHealthy = monitorStatus?.gates?.restoreDrill?.healthy === true ? 'yes' : 'no';
   const sloOverall = String(slo?.summary?.overallStatus || '-');
+  const blockerCategoriesGreen = readiness?.goNoGo?.blockerCategoriesGreen === true;
+  const triggeredNoGoCount = triggeredNoGo.length;
+  const triggeredNoGoIds = triggeredNoGo.map((item) => item.id).filter(Boolean);
   const historyCount = Number(readinessHistory?.count || 0);
   const historyScoreDelta = Number(readinessHistory?.trend?.scoreDelta || 0);
   const historyNoGoDelta = Number(readinessHistory?.trend?.triggeredNoGoDelta || 0);
   const historyLatestTs = Array.isArray(readinessHistory?.entries)
     ? String(readinessHistory.entries?.[0]?.ts || '-')
     : '-';
+  const remediationTotal = Number(readiness?.remediation?.summary?.total || 0);
+  const remediationP0 = Number(readiness?.remediation?.summary?.byPriority?.P0 || 0);
+  const remediationTopLabel =
+    remediationTopP0
+      .map((item) => item.id || item.title)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(', ') || '-';
   const failOnNoGo = Boolean(args.failOnNoGo);
   const strictFailures = [];
   if (suiteResponse?.ok !== true) strictFailures.push('scheduler suite not fully successful');
-  if (readiness?.goNoGo?.allowed !== true) strictFailures.push('readiness go/no-go is not allowed');
+  if (readiness?.goNoGo?.allowed !== true) {
+    const triggerSuffix =
+      triggeredNoGoIds.length > 0 ? ` [${triggeredNoGoIds.slice(0, 6).join(', ')}]` : '';
+    strictFailures.push(`readiness go/no-go is not allowed${triggerSuffix}`);
+  }
+  if (!blockerCategoriesGreen) strictFailures.push('readiness blocker categories are not all green');
   if (monitorStatus?.gates?.pilotReport?.noGo === true) strictFailures.push('pilot report gate is no-go');
   if (monitorStatus?.gates?.restoreDrill?.noGo === true) strictFailures.push('restore drill gate is no-go');
   if (sloOverall === 'red' || sloOverall === 'unknown') {
@@ -395,6 +442,12 @@ async function main() {
   );
   process.stdout.write(
     `   readiness: score=${Number(readinessScore.toFixed(2))} band=${readinessBand} goAllowed=${goAllowed}\n`
+  );
+  process.stdout.write(
+    `   readinessNoGo: blockersGreen=${blockerCategoriesGreen ? 'yes' : 'no'} triggered=${triggeredNoGoCount} ids=${triggeredNoGoIds.slice(0, 6).join(',') || '-'}\n`
+  );
+  process.stdout.write(
+    `   remediation: total=${remediationTotal} p0=${remediationP0} top=${remediationTopLabel}\n`
   );
   process.stdout.write(
     `   gates: pilotReportHealthy=${pilotHealthy} restoreHealthy=${restoreHealthy} sloOverall=${sloOverall}\n`

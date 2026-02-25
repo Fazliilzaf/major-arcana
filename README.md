@@ -260,6 +260,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Om OWNER kräver MFA: lägg till `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
 - Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
+- Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
 - Strikt driftgate (exit code 2 vid no-go): `npm run ops:suite:strict`
 - Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
 - Förhandsvisa report-prune: `npm run report:scheduler:prune`
