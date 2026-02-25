@@ -5,6 +5,7 @@ const express = require('express');
 const { evaluateGoldSetFile } = require('../risk/goldSet');
 const { getPolicyFloorDefinition } = require('../policy/floor');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { collectAllowedCorsOrigins } = require('../security/corsPolicy');
 const { listSchedulerPilotReports } = require('../ops/pilotReports');
 
 const RISK_GOLD_SET_DEFAULT_PATH = path.join(process.cwd(), 'docs', 'risk', 'gold-set-v1.json');
@@ -812,6 +813,10 @@ function createMonitorRouter({
                 maxAgeDays: parseDays(config?.secretRotationMaxAgeDays, 90),
               })
             : null;
+        const configuredCorsAllowedOrigins = Array.isArray(config?.corsAllowedOrigins)
+          ? config.corsAllowedOrigins
+          : [];
+        const effectiveCorsAllowedOrigins = collectAllowedCorsOrigins(config);
 
         await authStore.addAuditEvent({
           tenantId,
@@ -903,9 +908,8 @@ function createMonitorRouter({
               strict: Boolean(config?.corsStrict),
               allowNoOrigin: Boolean(config?.corsAllowNoOrigin),
               allowCredentials: Boolean(config?.corsAllowCredentials),
-              allowedOrigins: Array.isArray(config?.corsAllowedOrigins)
-                ? config.corsAllowedOrigins
-                : [],
+              allowedOrigins: configuredCorsAllowedOrigins,
+              effectiveAllowedOrigins: effectiveCorsAllowedOrigins,
             },
             sessions: {
               ttlHours: Number(config?.authSessionTtlHours || 0),
@@ -1425,6 +1429,10 @@ function createMonitorRouter({
           publicChatMax: Number(config?.publicChatRateLimitMax || 0),
         };
         const allRateLimitsConfigured = Object.values(rateLimitValues).every((value) => value > 0);
+        const configuredCorsAllowedOrigins = Array.isArray(config?.corsAllowedOrigins)
+          ? config.corsAllowedOrigins
+          : [];
+        const effectiveCorsAllowedOrigins = collectAllowedCorsOrigins(config);
 
         const openIncidentsList = Array.isArray(openIncidents) ? openIncidents : [];
         const unownedOpenIncidents = openIncidentsList.filter(
@@ -1601,20 +1609,19 @@ function createMonitorRouter({
               status:
                 config?.corsStrict &&
                 !config?.corsAllowNoOrigin &&
-                Array.isArray(config?.corsAllowedOrigins) &&
-                config.corsAllowedOrigins.length > 0
+                effectiveCorsAllowedOrigins.length > 0
                   ? 'green'
                   : config?.corsStrict
                     ? 'yellow'
                     : 'red',
               required: true,
-              target: 'strict=true, allowNoOrigin=false, minst en origin',
+              target: 'strict=true, allowNoOrigin=false, minst en effektiv origin',
               value: {
                 strict: Boolean(config?.corsStrict),
                 allowNoOrigin: Boolean(config?.corsAllowNoOrigin),
-                allowedOrigins: Array.isArray(config?.corsAllowedOrigins)
-                  ? config.corsAllowedOrigins.length
-                  : 0,
+                configuredAllowedOrigins: configuredCorsAllowedOrigins.length,
+                effectiveAllowedOrigins: effectiveCorsAllowedOrigins.length,
+                effectiveOrigins: effectiveCorsAllowedOrigins,
               },
             }),
             buildCheck({

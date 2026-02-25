@@ -221,6 +221,8 @@ Kör detta i ordning:
 
 Snabbaste vägen (allt i ett):
 - `npm run preflight:pilot -- --public-url https://arcana.hairtpclinic.se`
+- Snabb heal-variant: `npm run preflight:pilot:heal -- --public-url https://arcana.hairtpclinic.se`
+- Snabb heal-all-variant: `npm run preflight:pilot:heal:all -- --public-url https://arcana.hairtpclinic.se`
 - Om `ARCANA_OWNER_EMAIL` och `ARCANA_OWNER_PASSWORD` är satta kör preflight även `preflight:readiness:guard` + `ops:suite:strict` mot publik miljö (fail-fast på kritiska blocker-checks + no-go fail; blocker-kontroll baseras på required checks).
 - Sätt `ARCANA_PREFLIGHT_USE_HEAL=true` för att köra `ops:suite:strict:heal` i sista steget.
 - Sätt `ARCANA_PREFLIGHT_USE_HEAL_ALL=true` för att köra `ops:suite:strict:heal:all` (output-gates + owner-MFA-remediation) i sista steget.
@@ -261,6 +263,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - Lägg till `-- --apply` för faktisk disable.
 - När `cors_strict` blockerar:
   - sätt `CORS_STRICT=true`, `CORS_ALLOW_NO_ORIGIN=false`, `CORS_ALLOWED_ORIGINS=<origin1,origin2>` i runtime-env och deploya om.
+  - Notera: readiness räknar "effective origins" från `CORS_ALLOWED_ORIGINS` + `PUBLIC_BASE_URL` + hosts i `ARCANA_BRAND_BY_HOST`.
 - Kör fail-fast readiness guard separat vid behov:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard`
   - Default checks: `owner_mfa_enforced,cors_strict` (fail på status `red`)

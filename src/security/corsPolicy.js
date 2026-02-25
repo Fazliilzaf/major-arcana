@@ -33,18 +33,7 @@ function addHostOrigins(allowedOrigins, hostValue) {
   }
 }
 
-function createCorsPolicy(config) {
-  const strict = Boolean(config?.corsStrict);
-  const includeCredentials = Boolean(config?.corsAllowCredentials);
-  const allowNoOrigin = Boolean(config?.corsAllowNoOrigin);
-
-  if (!strict) {
-    return {
-      origin: true,
-      credentials: includeCredentials,
-    };
-  }
-
+function collectAllowedCorsOrigins(config) {
   const allowedOrigins = new Set();
   const fromEnv = Array.isArray(config?.corsAllowedOrigins)
     ? config.corsAllowedOrigins
@@ -64,6 +53,23 @@ function createCorsPolicy(config) {
     addHostOrigins(allowedOrigins, host);
   }
 
+  return Array.from(allowedOrigins.values());
+}
+
+function createCorsPolicy(config) {
+  const strict = Boolean(config?.corsStrict);
+  const includeCredentials = Boolean(config?.corsAllowCredentials);
+  const allowNoOrigin = Boolean(config?.corsAllowNoOrigin);
+
+  if (!strict) {
+    return {
+      origin: true,
+      credentials: includeCredentials,
+    };
+  }
+
+  const allowedOrigins = new Set(collectAllowedCorsOrigins(config));
+
   return {
     origin(origin, callback) {
       if (!origin) {
@@ -76,4 +82,7 @@ function createCorsPolicy(config) {
   };
 }
 
-module.exports = { createCorsPolicy };
+module.exports = {
+  createCorsPolicy,
+  collectAllowedCorsOrigins,
+};
