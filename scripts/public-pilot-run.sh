@@ -74,20 +74,6 @@ if [[ -z "$PASSWORD" ]]; then
   echo
 fi
 
-LOGIN_PAYLOAD="$(node -e 'const [email,password,tenant]=process.argv.slice(1); process.stdout.write(JSON.stringify({email,password,tenantId:tenant}));' "$EMAIL" "$PASSWORD" "$TENANT_ID")"
-LOGIN_RESPONSE="$(curl -sS -X POST "$BASE_URL/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  --data-raw "$LOGIN_PAYLOAD")"
-
-TOKEN="$(printf '%s' "$LOGIN_RESPONSE" | node -e 'try { const d = JSON.parse(require("fs").readFileSync(0, "utf8")); process.stdout.write(d.token || ""); } catch { process.stdout.write(""); }' || true)"
-if [[ -z "$TOKEN" ]]; then
-  echo "❌ Login verifiering misslyckades."
-  printf '%s\n' "$LOGIN_RESPONSE"
-  exit 1
-fi
-
-echo "✅ Login verifierad (token length: ${#TOKEN})"
-
 BASE_URL="$BASE_URL" ARCANA_OWNER_EMAIL="$EMAIL" ARCANA_OWNER_PASSWORD="$PASSWORD" ARCANA_DEFAULT_TENANT="$TENANT_ID" npm run smoke:public
 
 if [[ "$RUN_MAIL_SEEDS" == "true" ]]; then
@@ -100,5 +86,5 @@ if [[ -d "$ROOT_DIR/data/reports" ]]; then
   /bin/ls -lt "$ROOT_DIR/data/reports" | /usr/bin/head
 fi
 
-unset PASSWORD TOKEN LOGIN_RESPONSE LOGIN_PAYLOAD
+unset PASSWORD
 echo "✅ Klart."

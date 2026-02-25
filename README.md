@@ -226,6 +226,7 @@ Snabbaste vägen (allt i ett):
 Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public`
 - Lägg till mail-seeds i samma körning: `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com npm run pilot:public -- --with-mail-seeds`
+- Om OWNER kräver MFA: sätt `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>` (scriptet försöker även läsa `AUTH_STORE_PATH`, default `./data/auth.json`).
 
 1) Lokal kvalitet:
 - `npm run verify`
@@ -239,6 +240,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public`
 - För auth-check i samma körning:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run smoke:public`
+- Om OWNER kräver MFA: lägg till `ARCANA_OWNER_MFA_CODE=<6-siffrig-kod>` eller `ARCANA_OWNER_MFA_SECRET=<base32-secret>`.
 - För endast reachability (utan login), t.ex. i låst CI-miljö:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_SMOKE_SKIP_AUTH=true npm run smoke:public`
 - `smoke:public` läser även owner-credentials från lokal `.env` om env-variabler inte skickas in.
