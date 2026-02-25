@@ -2,7 +2,12 @@ const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { getPolicyFloorDefinition } = require('../policy/floor');
-const { AGENTS, INTENTS, runAdminOrchestration } = require('../orchestrator/adminOrchestrator');
+const {
+  AGENTS,
+  INTENTS,
+  getOrchestratorRoadmap,
+  runAdminOrchestration,
+} = require('../orchestrator/adminOrchestrator');
 
 function normalizeText(value) {
   if (typeof value !== 'string') return '';
@@ -26,6 +31,7 @@ function createOrchestratorRouter({
         agents: AGENTS,
         intents: INTENTS,
         policyFloor: getPolicyFloorDefinition(),
+        roadmap: getOrchestratorRoadmap(),
       });
     }
   );

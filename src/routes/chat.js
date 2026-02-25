@@ -3,6 +3,109 @@ const { maybeSummarizeConversation } = require('../memory/summarize');
 const { runChatWithTools } = require('../openai/runChatWithTools');
 const { redactForStorage } = require('../privacy/redact');
 
+function normalizeText(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+}
+
+function extractHost(value) {
+  const raw = normalizeText(value);
+  if (!raw) return '';
+  try {
+    if (raw.includes('://')) return normalizeText(new URL(raw).hostname).toLowerCase();
+    return normalizeText(new URL(`https://${raw}`).hostname).toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+function normalizeAllowedHosts(values = []) {
+  const set = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const raw = normalizeText(value).toLowerCase();
+    if (!raw) continue;
+    const asHost = extractHost(raw);
+    set.add(asHost || raw);
+  }
+  return Array.from(set);
+}
+
+function isLocalhostHost(host) {
+  const normalized = normalizeText(host).toLowerCase();
+  return ['localhost', '127.0.0.1', '::1'].includes(normalized) || normalized.endsWith('.local');
+}
+
+function matchesAllowedHost(candidateHost, allowedHost) {
+  const candidate = normalizeText(candidateHost).toLowerCase();
+  const allowed = normalizeText(allowedHost).toLowerCase();
+  if (!candidate || !allowed) return false;
+  if (candidate === allowed) return true;
+  if (allowed.startsWith('*.')) {
+    const suffix = allowed.slice(2);
+    return Boolean(suffix) && candidate.endsWith(`.${suffix}`);
+  }
+  return false;
+}
+
+function evaluatePublicChatBetaGate({
+  req,
+  sourceUrl = '',
+  betaGate = null,
+}) {
+  const enabled = Boolean(betaGate?.enabled);
+  if (!enabled) {
+    return {
+      allowed: true,
+      reason: 'disabled',
+    };
+  }
+
+  const headerName = normalizeText(betaGate?.headerName).toLowerCase() || 'x-arcana-beta-key';
+  const expectedKey = normalizeText(betaGate?.key);
+  const providedKey = normalizeText(req.get(headerName));
+
+  if (expectedKey && providedKey && providedKey === expectedKey) {
+    return {
+      allowed: true,
+      reason: 'header_key',
+    };
+  }
+
+  const allowedHosts = normalizeAllowedHosts(betaGate?.allowHosts);
+  const candidates = [
+    extractHost(sourceUrl),
+    extractHost(req.get('origin')),
+    extractHost(req.get('referer')),
+    normalizeText(req.hostname).toLowerCase(),
+  ].filter(Boolean);
+
+  if (Boolean(betaGate?.allowLocalhost) && candidates.some((host) => isLocalhostHost(host))) {
+    return {
+      allowed: true,
+      reason: 'localhost',
+    };
+  }
+
+  if (allowedHosts.length > 0) {
+    for (const host of candidates) {
+      if (allowedHosts.some((allowedHost) => matchesAllowedHost(host, allowedHost))) {
+        return {
+          allowed: true,
+          reason: 'allowed_host',
+        };
+      }
+    }
+  }
+
+  return {
+    allowed: false,
+    reason: 'blocked',
+    message:
+      normalizeText(betaGate?.denyMessage) ||
+      'Den här chatten är i begränsad beta. Kontakta kliniken för åtkomst.',
+  };
+}
+
 function buildHairTPFallbackReply({ brand, message }) {
   const normalizedBrand = typeof brand === 'string' ? brand.trim().toLowerCase() : '';
   if (normalizedBrand !== 'hair-tp-clinic') return '';
@@ -483,19 +586,33 @@ function createChatHandler({
   memoryStore,
   resolveBrand,
   getKnowledgeRetriever,
+  betaGate = null,
 }) {
   return async function chat(req, res) {
     try {
       const body = req.body || {};
+      const sourceUrl = typeof body.sourceUrl === 'string' ? body.sourceUrl : '';
       const message =
         typeof body.message === 'string' ? body.message.trim() : '';
       if (!message) {
         return res.status(400).json({ error: 'Meddelande saknas.' });
       }
 
+      const betaDecision = evaluatePublicChatBetaGate({
+        req,
+        sourceUrl,
+        betaGate,
+      });
+      if (!betaDecision.allowed) {
+        return res.status(403).json({
+          error: betaDecision.message,
+          code: 'chat_beta_gate_denied',
+        });
+      }
+
       const brand =
         typeof resolveBrand === 'function'
-          ? resolveBrand(req, typeof body.sourceUrl === 'string' ? body.sourceUrl : '')
+          ? resolveBrand(req, sourceUrl)
           : undefined;
 
       const incomingConversationId =

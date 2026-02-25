@@ -152,6 +152,16 @@ const REMEDIATION_GUIDANCE_BY_CHECK = Object.freeze({
     owner: 'risk_owner',
     playbook: 'Ladda policy floor-definition med minst en aktiv regel.',
   },
+  public_chat_beta_gate: {
+    owner: 'growth_owner',
+    playbook:
+      'När beta-läge är aktivt: sätt ARCANA_PUBLIC_CHAT_BETA_KEY eller ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS och verifiera gate via monitor/observability.',
+  },
+  observability_signals: {
+    owner: 'ops_owner',
+    playbook:
+      'Minska 5xx, p95 latency och slow requests tills monitor/observability är grön och alerts=0.',
+  },
 });
 
 function toIso(value) {
@@ -263,6 +273,131 @@ function buildCheck({
     value,
     evidence: normalizeText(evidence) || null,
     inferred: Boolean(inferred),
+  };
+}
+
+function toFiniteNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clampNumber(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function buildObservabilitySnapshot({
+  runtimeMetrics = null,
+  config = null,
+} = {}) {
+  const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
+  const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
+  const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
+  const slowRequestMs = Number(runtimeMetrics?.settings?.slowRequestMs || config?.metricsSlowRequestMs || 1500);
+  const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
+  const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
+  const errorRatePct =
+    sampledRequests > 0 ? Number(((serverErrors / sampledRequests) * 100).toFixed(3)) : 0;
+  const thresholds = {
+    maxErrorRatePct: clampNumber(config?.observabilityAlertMaxErrorRatePct, 0.01, 100, 2.5),
+    maxP95Ms: clampNumber(config?.observabilityAlertMaxP95Ms, 50, 120000, 1800),
+    maxSlowRequests: clampNumber(config?.observabilityAlertMaxSlowRequests, 1, 100000, 25),
+  };
+
+  const hasTraffic = sampledRequests > 0;
+  const errorRateStatus = hasTraffic
+    ? errorRatePct > thresholds.maxErrorRatePct
+      ? 'red'
+      : errorRatePct > thresholds.maxErrorRatePct * 0.7
+        ? 'yellow'
+        : 'green'
+    : 'unknown';
+  const latencyStatus = hasTraffic
+    ? p95Ms > thresholds.maxP95Ms
+      ? 'red'
+      : p95Ms > thresholds.maxP95Ms * 0.85
+        ? 'yellow'
+        : 'green'
+    : 'unknown';
+  const slowRequestsStatus = hasTraffic
+    ? slowRequests > thresholds.maxSlowRequests
+      ? 'red'
+      : slowRequests > thresholds.maxSlowRequests * 0.7
+        ? 'yellow'
+        : 'green'
+    : 'unknown';
+
+  const checks = [
+    buildCheck({
+      id: 'error_rate_5xx',
+      label: '5xx error-rate',
+      status: errorRateStatus,
+      required: true,
+      target: `<=${thresholds.maxErrorRatePct}%`,
+      value: {
+        sampledRequests,
+        serverErrors,
+        errorRatePct,
+      },
+      evidence: hasTraffic ? '' : 'Saknar trafik i metrics-fönstret.',
+    }),
+    buildCheck({
+      id: 'latency_p95',
+      label: 'Latency p95',
+      status: latencyStatus,
+      required: true,
+      target: `<=${thresholds.maxP95Ms}ms`,
+      value: {
+        p95Ms,
+        p99Ms,
+      },
+      evidence: hasTraffic ? '' : 'Saknar trafik i metrics-fönstret.',
+    }),
+    buildCheck({
+      id: 'slow_requests',
+      label: 'Slow requests',
+      status: slowRequestsStatus,
+      required: true,
+      target: `<=${thresholds.maxSlowRequests} (>=${slowRequestMs}ms)`,
+      value: {
+        slowRequests,
+        slowRequestMs,
+      },
+      evidence: hasTraffic ? '' : 'Saknar trafik i metrics-fönstret.',
+    }),
+  ];
+  const overallStatus = worstStatus(checks.map((item) => item.status));
+  const triggeredAlerts = checks
+    .filter((item) => item.status === 'red')
+    .map((item) => ({
+      id: item.id,
+      label: item.label,
+      status: item.status,
+      target: item.target,
+      value: item.value,
+    }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      overallStatus,
+      hasTraffic,
+      sampledRequests,
+      triggeredAlertsCount: triggeredAlerts.length,
+    },
+    thresholds,
+    metrics: {
+      sampledRequests,
+      serverErrors,
+      errorRatePct,
+      slowRequests,
+      slowRequestMs,
+      p95Ms: toFiniteNumber(p95Ms, 0),
+      p99Ms: toFiniteNumber(p99Ms, 0),
+    },
+    checks,
+    triggeredAlerts,
   };
 }
 
@@ -761,6 +896,10 @@ function createMonitorRouter({
           runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
             ? runtimeMetricsStore.getSnapshot({ areaLimit: 8 })
             : null;
+        const observability = buildObservabilitySnapshot({
+          runtimeMetrics,
+          config,
+        });
         const activeTemplates = templates.filter((item) => item.currentActiveVersionId).length;
         const schedulerStatus =
           scheduler && typeof scheduler.getStatus === 'function'
@@ -858,6 +997,11 @@ function createMonitorRouter({
                   sampledRequests: 0,
                   slowRequests: 0,
                 },
+            observability: {
+              overallStatus: observability?.summary?.overallStatus || 'unknown',
+              hasTraffic: observability?.summary?.hasTraffic === true,
+              triggeredAlertsCount: Number(observability?.summary?.triggeredAlertsCount || 0),
+            },
             scheduler: schedulerStatus
               ? {
                   enabled: Boolean(schedulerStatus.enabled),
@@ -938,6 +1082,15 @@ function createMonitorRouter({
               staleRequired: Number(secretRotationStatus?.totals?.staleRequired || 0),
               pendingRotation: Number(secretRotationStatus?.totals?.pendingRotation || 0),
             },
+            publicChatBeta: {
+              enabled: Boolean(config?.publicChatBetaEnabled),
+              headerName: normalizeText(config?.publicChatBetaHeader) || 'x-arcana-beta-key',
+              keyConfigured: Boolean(normalizeText(config?.publicChatBetaKey)),
+              allowHostsCount: Array.isArray(config?.publicChatBetaAllowHosts)
+                ? config.publicChatBetaAllowHosts.length
+                : 0,
+              allowLocalhost: Boolean(config?.publicChatBetaAllowLocalhost),
+            },
           },
           tenant: {
             tenantId,
@@ -960,12 +1113,15 @@ function createMonitorRouter({
             restoreDrillHealthy: restoreDrillGate.healthy,
             pilotReportAgeHours: pilotReportGate.ageHours,
             pilotReportHealthy: pilotReportGate.healthy,
+            observabilityStatus: observability?.summary?.overallStatus || 'unknown',
+            observabilityAlertCount: Number(observability?.summary?.triggeredAlertsCount || 0),
             secretRotationStaleRequired: Number(secretRotationStatus?.totals?.staleRequired || 0),
             secretRotationPending: Number(secretRotationStatus?.totals?.pendingRotation || 0),
             staffActive: activeStaff,
             staffDisabled: disabledStaff,
             auditEvents24h: recentAuditCount,
           },
+          observability,
           gates: {
             restoreDrill: {
               maxAgeDays: restoreDrillGate.maxAgeDays,
@@ -1042,6 +1198,52 @@ function createMonitorRouter({
   );
 
   router.get(
+    '/monitor/observability',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!runtimeMetricsStore || typeof runtimeMetricsStore.getSnapshot !== 'function') {
+        return res.status(503).json({ error: 'Runtime metrics är inte tillgängliga.' });
+      }
+      try {
+        const areaLimit = Math.max(
+          1,
+          Math.min(50, Number.parseInt(String(req.query?.areaLimit ?? ''), 10) || 12)
+        );
+        const runtimeMetrics = runtimeMetricsStore.getSnapshot({ areaLimit });
+        const observability = buildObservabilitySnapshot({
+          runtimeMetrics,
+          config,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'monitor.observability.read',
+          outcome: 'success',
+          targetType: 'monitor_observability',
+          targetId: req.auth.tenantId,
+          metadata: {
+            overallStatus: observability?.summary?.overallStatus || 'unknown',
+            triggeredAlertsCount: Number(observability?.summary?.triggeredAlertsCount || 0),
+            sampledRequests: Number(observability?.metrics?.sampledRequests || 0),
+            errorRatePct: Number(observability?.metrics?.errorRatePct || 0),
+            p95Ms: Number(observability?.metrics?.p95Ms || 0),
+          },
+        });
+
+        return res.json(observability);
+      } catch (error) {
+        if (error?.message) {
+          return res.status(400).json({ error: error.message });
+        }
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte läsa monitor observability.' });
+      }
+    }
+  );
+
+  router.get(
     '/monitor/slo',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
@@ -1101,10 +1303,25 @@ function createMonitorRouter({
 
         const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
         const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
+        const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
         const availabilityPct =
           sampledRequests > 0
             ? Number((((sampledRequests - serverErrors) / sampledRequests) * 100).toFixed(3))
             : 100;
+        const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
+        const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
+        const latencyTargetMs = Math.max(
+          50,
+          Number(config?.observabilityAlertMaxP95Ms || config?.metricsSlowRequestMs || 1500)
+        );
+        const latencyStatus =
+          sampledRequests === 0
+            ? 'unknown'
+            : p95Ms <= latencyTargetMs
+              ? 'green'
+              : p95Ms <= latencyTargetMs * 1.2
+                ? 'yellow'
+                : 'red';
 
         const openIncidents = Number(incidentSummary?.totals?.openUnresolved || 0);
         const breachedOpen = Number(incidentSummary?.totals?.breachedOpen || 0);
@@ -1125,6 +1342,18 @@ function createMonitorRouter({
             evidence: {
               sampledRequests,
               serverErrors,
+            },
+          },
+          {
+            id: 'latency_p95',
+            label: 'Latency p95',
+            target: `<=${latencyTargetMs}ms`,
+            sliMs: p95Ms,
+            status: latencyStatus,
+            evidence: {
+              sampledRequests,
+              slowRequests,
+              p99Ms,
             },
           },
           {
@@ -1395,6 +1624,14 @@ function createMonitorRouter({
         const schedulerFreshnessChecks = REQUIRED_SCHEDULER_JOBS.map((jobId) =>
           buildSchedulerFreshnessCheck(schedulerJobMap.get(jobId))
         );
+        const runtimeMetrics =
+          runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
+            ? runtimeMetricsStore.getSnapshot({ areaLimit: 10 })
+            : null;
+        const observability = buildObservabilitySnapshot({
+          runtimeMetrics,
+          config,
+        });
 
         const policyFloor = getPolicyFloorDefinition();
         const policyRules = Array.isArray(policyFloor?.rules) ? policyFloor.rules : [];
@@ -1434,6 +1671,15 @@ function createMonitorRouter({
           ? config.corsAllowedOrigins
           : [];
         const effectiveCorsAllowedOrigins = collectAllowedCorsOrigins(config);
+        const publicChatBetaEnabled = Boolean(config?.publicChatBetaEnabled);
+        const publicChatBetaKeyConfigured = Boolean(normalizeText(config?.publicChatBetaKey));
+        const publicChatBetaAllowHostsCount = Array.isArray(config?.publicChatBetaAllowHosts)
+          ? config.publicChatBetaAllowHosts.length
+          : 0;
+        const publicChatBetaReady =
+          !publicChatBetaEnabled ||
+          publicChatBetaKeyConfigured ||
+          publicChatBetaAllowHostsCount > 0;
 
         const openIncidentsList = Array.isArray(openIncidents) ? openIncidents : [];
         const unownedOpenIncidents = openIncidentsList.filter(
@@ -1678,6 +1924,30 @@ function createMonitorRouter({
               },
               evidence: !secretRotationStatus ? 'Secret rotation store saknas.' : '',
             }),
+            buildCheck({
+              id: 'public_chat_beta_gate',
+              label: 'Patientkanal beta-gate',
+              status: !publicChatBetaEnabled
+                ? 'yellow'
+                : publicChatBetaReady
+                  ? 'green'
+                  : 'red',
+              required: false,
+              target:
+                'När beta är aktiv: ARCANA_PUBLIC_CHAT_BETA_KEY eller ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS',
+              value: {
+                enabled: publicChatBetaEnabled,
+                keyConfigured: publicChatBetaKeyConfigured,
+                allowHostsCount: publicChatBetaAllowHostsCount,
+                allowLocalhost: Boolean(config?.publicChatBetaAllowLocalhost),
+              },
+              evidence: !publicChatBetaEnabled
+                ? 'Beta-gate ej aktiv.'
+                : publicChatBetaReady
+                  ? ''
+                  : 'Beta är aktiv men saknar både key och allowHosts.',
+              inferred: !publicChatBetaEnabled,
+            }),
           ],
         });
 
@@ -1849,6 +2119,25 @@ function createMonitorRouter({
               evidence: pilotReportGate.lastSuccessAt
                 ? ''
                 : 'Ingen lyckad nightly_pilot_report hittad.',
+            }),
+            buildCheck({
+              id: 'observability_signals',
+              label: 'Observability signaler inom trösklar',
+              status: normalizeStatus(observability?.summary?.overallStatus),
+              required: false,
+              target:
+                '5xx error-rate, p95 latency och slow requests inom observability-trösklar',
+              value: {
+                overallStatus: observability?.summary?.overallStatus || 'unknown',
+                sampledRequests: Number(observability?.metrics?.sampledRequests || 0),
+                triggeredAlertsCount: Number(observability?.summary?.triggeredAlertsCount || 0),
+                thresholds: observability?.thresholds || {},
+              },
+              evidence:
+                observability?.summary?.hasTraffic === true
+                  ? ''
+                  : 'Saknar trafik i metrics-fönstret för observability-check.',
+              inferred: observability?.summary?.hasTraffic !== true,
             }),
           ],
         });
@@ -2148,6 +2437,14 @@ function createMonitorRouter({
               integrityOk: Boolean(auditIntegrity?.ok),
               issues: Number(auditIntegrity?.issues?.length || 0),
               latestTenantAccessCheckAt: toIso(latestTenantAccessCheck?.ts),
+            },
+            observability: {
+              summary: observability?.summary || null,
+              thresholds: observability?.thresholds || null,
+              checks: Array.isArray(observability?.checks) ? observability.checks : [],
+              triggeredAlerts: Array.isArray(observability?.triggeredAlerts)
+                ? observability.triggeredAlerts
+                : [],
             },
             releaseGuards: {
               activeTemplateVersions: activeTemplateVersions.length,

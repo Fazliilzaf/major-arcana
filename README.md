@@ -82,6 +82,12 @@ ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX=80
 ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC=60
 ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX=180
 ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX=90
+ARCANA_PUBLIC_CHAT_BETA_ENABLED=false
+ARCANA_PUBLIC_CHAT_BETA_HEADER=x-arcana-beta-key
+ARCANA_PUBLIC_CHAT_BETA_KEY=
+ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS=
+ARCANA_PUBLIC_CHAT_BETA_ALLOW_LOCALHOST=true
+ARCANA_PUBLIC_CHAT_BETA_DENY_MESSAGE=Den här chatten är i begränsad beta. Kontakta kliniken för åtkomst.
 ```
 
 - `AUTH_SESSION_IDLE_MINUTES`: invalidates session efter inaktivitet (revoke reason: `idle_timeout`)
@@ -92,6 +98,7 @@ ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX=90
 - `ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX`: dedikerad limiter för `/api/v1/orchestrator/*`
 - `ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX`: dedikerad limiter för `/api/public/clinics/*`
 - `ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX`: dedikerad limiter för `POST /chat`
+- `ARCANA_PUBLIC_CHAT_BETA_*`: valfri beta-gate för `POST /chat` (header key + host allowlist)
 - `POST /api/v1/auth/login` och `POST /api/v1/auth/select-tenant` styrs fortsatt av dedikerade auth-limiters
 
 ### OWNER MFA (TOTP + recovery)
@@ -130,6 +137,9 @@ ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS=30
 ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS=36
 ARCANA_METRICS_MAX_SAMPLES=5000
 ARCANA_METRICS_SLOW_REQUEST_MS=1500
+ARCANA_OBSERVABILITY_ALERT_MAX_ERROR_RATE_PCT=2.5
+ARCANA_OBSERVABILITY_ALERT_MAX_P95_MS=1800
+ARCANA_OBSERVABILITY_ALERT_MAX_SLOW_REQUESTS=25
 ARCANA_SCHEDULER_STARTUP_DELAY_SEC=8
 ARCANA_SCHEDULER_JITTER_SEC=4
 ARCANA_SCHEDULER_RUN_ON_STARTUP=false
@@ -145,6 +155,7 @@ ARCANA_SCHEDULER_RUN_ON_STARTUP=false
 - Status syns i `GET /api/v1/monitor/status` under `runtime.scheduler`.
 - `monitor/status` exponerar även `gates.restoreDrill` (`healthy`/`noGo`) baserat på senaste lyckade `restore_drill_preview` i audit-loggen (persist över restart) och max-age (`ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS`).
 - `monitor/status` exponerar även `gates.pilotReport` (`healthy`/`noGo`) baserat på senaste lyckade `nightly_pilot_report` + senaste scheduler-rapportfil och max-age (`ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS`).
+- `monitor/status` exponerar även `observability` (5xx error-rate, latency p95/p99, slow requests) med alerts/trösklar från `ARCANA_OBSERVABILITY_ALERT_*`.
 
 ### Schemalagd drift-gate (GitHub Actions)
 - Workflow: `.github/workflows/drift-gate.yml`
@@ -207,7 +218,8 @@ Notera:
 - `PATCH /api/v1/users/staff/:membershipId` (OWNER)
 - `GET /api/v1/monitor/status` (OWNER/STAFF)
 - `GET /api/v1/monitor/metrics` (OWNER/STAFF)
-- `GET /api/v1/monitor/slo` (OWNER/STAFF, availability + incident response + restore recency + pilot report recency)
+- `GET /api/v1/monitor/observability` (OWNER/STAFF, 5xx error-rate + p95 latency + slow requests + alert-status)
+- `GET /api/v1/monitor/slo` (OWNER/STAFF, availability + latency p95 + incident response + restore recency + pilot report recency)
 - `GET /api/v1/monitor/readiness` (OWNER/STAFF, Go/No-Go score + blocker-matris)
 - `GET /api/v1/monitor/readiness/history` (OWNER/STAFF, readiness-trend från audit-events)
   - inkluderar deterministiska no-go checks för output risk/policy-gate, policy-floor bypass, L5 manual intervention, restore drill och nightly pilot report recency
@@ -429,6 +441,7 @@ Owner action `action` (endast OWNER):
 - Monitor-panel i UI:
   - driftstatus, minne, datastores och tenant-KPI (`GET /api/v1/monitor/status`)
   - latency/fel-metrics (`GET /api/v1/monitor/metrics`)
+  - observability-alerts/trösklar (`GET /api/v1/monitor/observability`)
   - SLO/SLI-status (`GET /api/v1/monitor/slo`)
   - readiness/Go-No-Go matris (`GET /api/v1/monitor/readiness`)
   - readiness-historik och trend (`GET /api/v1/monitor/readiness/history`)
@@ -451,6 +464,7 @@ Owner action `action` (endast OWNER):
      - `POST /api/v1/mail/template-seeds/apply` med `{"dryRun":false}` (OWNER)
  - Orchestrator-panel i UI:
    - kör intern orchestration och visa trace
+   - metadata (`GET /api/v1/orchestrator/meta`) inkluderar nu agent-roadmap och CFO-capability (`finance_governance`)
  - Risk calibration-panel i UI:
    - hämta förslag och applicera owner-godkänt förslag
  - Incident-panel i UI/API:

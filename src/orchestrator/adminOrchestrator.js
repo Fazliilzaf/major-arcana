@@ -6,6 +6,7 @@ const AGENTS = Object.freeze({
   CAO: 'CAO',
   CMO: 'CMO',
   COO: 'COO',
+  CFO: 'CFO',
   CLINICAL_GUARD: 'CLINICAL_GUARD',
 });
 
@@ -15,6 +16,7 @@ const INTENTS = Object.freeze({
   STAFF_ADMIN: 'staff_admin',
   TENANT_BRANDING: 'tenant_branding',
   AUDIT_REVIEW: 'audit_review',
+  FINANCE_GOVERNANCE: 'finance_governance',
   GENERAL_ADMIN: 'general_admin',
 });
 
@@ -59,6 +61,13 @@ function inferIntent(prompt) {
       reason: 'tenant_keywords',
     },
     {
+      intent: INTENTS.FINANCE_GOVERNANCE,
+      regex:
+        /\b(finans|budget|cost|kostnad|roi|lönsam|runway|marginal|revenue|intäkt|burn|forecast)\b/i,
+      confidence: 0.83,
+      reason: 'finance_keywords',
+    },
+    {
       intent: INTENTS.AUDIT_REVIEW,
       regex: /\b(audit|logg|historik|spårbar|report|rapport)\b/i,
       confidence: 0.77,
@@ -86,10 +95,11 @@ function inferIntent(prompt) {
 function selectAgents(intent) {
   const map = {
     [INTENTS.TEMPLATE_LIBRARY]: [AGENTS.ARCANA, AGENTS.CAO, AGENTS.CLINICAL_GUARD],
-    [INTENTS.RISK_REVIEW]: [AGENTS.ARCANA, AGENTS.CLINICAL_GUARD, AGENTS.COO],
+    [INTENTS.RISK_REVIEW]: [AGENTS.ARCANA, AGENTS.CLINICAL_GUARD, AGENTS.COO, AGENTS.CFO],
     [INTENTS.STAFF_ADMIN]: [AGENTS.ARCANA, AGENTS.COO],
     [INTENTS.TENANT_BRANDING]: [AGENTS.ARCANA, AGENTS.CMO, AGENTS.CAO],
-    [INTENTS.AUDIT_REVIEW]: [AGENTS.ARCANA, AGENTS.COO, AGENTS.CAO],
+    [INTENTS.AUDIT_REVIEW]: [AGENTS.ARCANA, AGENTS.COO, AGENTS.CAO, AGENTS.CFO],
+    [INTENTS.FINANCE_GOVERNANCE]: [AGENTS.ARCANA, AGENTS.CFO, AGENTS.COO],
     [INTENTS.GENERAL_ADMIN]: [AGENTS.ARCANA, AGENTS.CAO],
   };
   return map[intent] ? [...map[intent]] : [AGENTS.ARCANA];
@@ -123,6 +133,11 @@ function buildActionPlan({ intent, role }) {
       { step: 'load_recent_audit_events', owner: AGENTS.COO },
       { step: 'highlight_compliance_gaps', owner: AGENTS.ARCANA },
     ],
+    [INTENTS.FINANCE_GOVERNANCE]: [
+      { step: 'load_pilot_kpis', owner: AGENTS.CFO },
+      { step: 'estimate_incident_cost_exposure', owner: AGENTS.COO },
+      { step: 'propose_budget_and_priority_actions', owner: AGENTS.CFO },
+    ],
     [INTENTS.GENERAL_ADMIN]: [
       { step: 'classify_request', owner: AGENTS.ARCANA },
       { step: 'route_to_owner_panel_action', owner: AGENTS.CAO },
@@ -155,9 +170,54 @@ function buildSuggestedApiCalls(intent) {
     ],
     [INTENTS.TENANT_BRANDING]: ['GET /api/v1/tenant-config', 'PATCH /api/v1/tenant-config'],
     [INTENTS.AUDIT_REVIEW]: ['GET /api/v1/audit/events', 'GET /api/v1/dashboard/owner'],
+    [INTENTS.FINANCE_GOVERNANCE]: [
+      'GET /api/v1/reports/pilot?days=30',
+      'GET /api/v1/incidents/summary',
+      'GET /api/v1/monitor/readiness',
+      'GET /api/v1/monitor/slo',
+    ],
     [INTENTS.GENERAL_ADMIN]: ['GET /api/v1/dashboard/owner'],
   };
   return map[intent] ? [...map[intent]] : map[INTENTS.GENERAL_ADMIN];
+}
+
+function getOrchestratorRoadmap() {
+  return {
+    version: '2026-02-25',
+    phases: [
+      {
+        id: 'phase_now',
+        label: 'Current',
+        status: 'active',
+        agents: [AGENTS.ARCANA, AGENTS.CAO, AGENTS.CMO, AGENTS.COO, AGENTS.CLINICAL_GUARD],
+        capabilities: [
+          'template_library',
+          'risk_review',
+          'staff_admin',
+          'tenant_branding',
+          'audit_review',
+        ],
+      },
+      {
+        id: 'phase_next',
+        label: 'Next',
+        status: 'active',
+        agents: [AGENTS.CFO],
+        capabilities: ['finance_governance', 'ops_cost_visibility', 'priority_tradeoff_support'],
+      },
+      {
+        id: 'phase_later',
+        label: 'Planned',
+        status: 'planned',
+        agents: ['PATIENT_BETA_CHANNEL'],
+        capabilities: [
+          'patient_channel_beta_gate',
+          'limited_rollout_allowlist',
+          'conversion_signal_feedback_loop',
+        ],
+      },
+    ],
+  };
 }
 
 function composeDraftResponse({ intent, tenantConfig, role, prompt }) {
@@ -260,5 +320,6 @@ async function runAdminOrchestration({
 module.exports = {
   AGENTS,
   INTENTS,
+  getOrchestratorRoadmap,
   runAdminOrchestration,
 };
