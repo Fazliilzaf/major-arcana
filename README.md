@@ -262,6 +262,10 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
 - Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
+- Heal mode (auto-fixa output-gate metadata på aktiva versioner innan gating): `npm run ops:suite:heal`
+- Strikt heal mode: `npm run ops:suite:strict:heal`
+- Flagga direkt: `npm run ops:suite -- --remediate-output-gates --remediation-limit 50`
+- Motsvarande env vars: `ARCANA_OPS_SUITE_REMEDIATE_OUTPUT_GATES=true`, `ARCANA_OPS_SUITE_REMEDIATION_LIMIT=50`
 - Strikt driftgate (exit code 2 vid no-go): `npm run ops:suite:strict`
 - Lista scheduler-genererade rapporter: `npm run report:scheduler:list`
 - Förhandsvisa report-prune: `npm run report:scheduler:prune`

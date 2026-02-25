@@ -13,6 +13,12 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function parsePositiveInt(value, fallback = 50, min = 1, max = 200) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 function toStampUtc(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
   return [
@@ -37,6 +43,11 @@ function parseArgs(argv) {
     mfaSecret: process.env.ARCANA_OWNER_MFA_SECRET || '',
     authStorePath: process.env.AUTH_STORE_PATH || './data/auth.json',
     failOnNoGo: parseBoolean(process.env.ARCANA_OPS_SUITE_FAIL_ON_NO_GO, false),
+    remediateOutputGates: parseBoolean(
+      process.env.ARCANA_OPS_SUITE_REMEDIATE_OUTPUT_GATES,
+      false
+    ),
+    remediationLimit: parsePositiveInt(process.env.ARCANA_OPS_SUITE_REMEDIATION_LIMIT, 50, 1, 200),
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -87,6 +98,19 @@ function parseArgs(argv) {
     }
     if (item === '--no-fail-on-no-go') {
       args.failOnNoGo = false;
+      continue;
+    }
+    if (item === '--remediate-output-gates') {
+      args.remediateOutputGates = true;
+      continue;
+    }
+    if (item === '--no-remediate-output-gates') {
+      args.remediateOutputGates = false;
+      continue;
+    }
+    if (item === '--remediation-limit') {
+      args.remediationLimit = parsePositiveInt(argv[index + 1], args.remediationLimit, 1, 200);
+      index += 1;
       continue;
     }
   }
@@ -311,6 +335,23 @@ async function main() {
       tenantId: auth.authTenantId || tenantId || undefined,
     },
   });
+  let readinessOutputGateRemediation = null;
+  if (args.remediateOutputGates) {
+    readinessOutputGateRemediation = await fetchJson(
+      baseUrl,
+      '/api/v1/ops/readiness/remediate-output-gates',
+      {
+        method: 'POST',
+        token: auth.token,
+        body: {
+          dryRun: false,
+          tenantId: auth.authTenantId || tenantId || undefined,
+          limit: parsePositiveInt(args.remediationLimit, 50, 1, 200),
+          detailsLimit: 5,
+        },
+      }
+    );
+  }
   const monitorStatus = await fetchJson(baseUrl, '/api/v1/monitor/status', {
     token: auth.token,
   });
@@ -353,9 +394,17 @@ async function main() {
   const artifact = {
     generatedAt: new Date().toISOString(),
     baseUrl,
+    options: {
+      failOnNoGo: Boolean(args.failOnNoGo),
+      remediateOutputGates: Boolean(args.remediateOutputGates),
+      remediationLimit: parsePositiveInt(args.remediationLimit, 50, 1, 200),
+    },
     auth: {
       flow: auth.authFlow,
       tenantId: auth.authTenantId || tenantId || null,
+    },
+    ops: {
+      readinessOutputGateRemediation,
     },
     schedulerSuite: suiteResponse,
     monitor: {
@@ -421,8 +470,16 @@ async function main() {
       .filter(Boolean)
       .slice(0, 3)
       .join(', ') || '-';
+  const remediationRunEnabled = Boolean(args.remediateOutputGates);
+  const remediationRunCandidates = Number(readinessOutputGateRemediation?.candidates || 0);
+  const remediationRunFixable = Number(readinessOutputGateRemediation?.fixableCandidates || 0);
+  const remediationRunFixed = Number(readinessOutputGateRemediation?.fixedCount || 0);
+  const remediationRunRemaining = Number(
+    readinessOutputGateRemediation?.remainingFixableAfterApply || 0
+  );
   const failOnNoGo = Boolean(args.failOnNoGo);
   const strictFailures = [];
+  const advisories = [];
   if (suiteResponse?.ok !== true) strictFailures.push('scheduler suite not fully successful');
   if (readiness?.goNoGo?.allowed !== true) {
     const triggerSuffix =
@@ -434,6 +491,14 @@ async function main() {
   if (monitorStatus?.gates?.restoreDrill?.noGo === true) strictFailures.push('restore drill gate is no-go');
   if (sloOverall === 'red' || sloOverall === 'unknown') {
     strictFailures.push(`slo overall status is ${sloOverall}`);
+  }
+  if (
+    !remediationRunEnabled &&
+    triggeredNoGoIds.includes('output_without_risk_policy_gate')
+  ) {
+    advisories.push(
+      'run with --remediate-output-gates to auto-fix active-version output/policy metadata gaps'
+    );
   }
 
   process.stdout.write(`✅ Scheduler suite körd: ${baseUrl}\n`);
@@ -449,6 +514,11 @@ async function main() {
   process.stdout.write(
     `   remediation: total=${remediationTotal} p0=${remediationP0} top=${remediationTopLabel}\n`
   );
+  if (remediationRunEnabled) {
+    process.stdout.write(
+      `   remediationRun: candidates=${remediationRunCandidates} fixable=${remediationRunFixable} fixed=${remediationRunFixed} remaining=${remediationRunRemaining}\n`
+    );
+  }
   process.stdout.write(
     `   gates: pilotReportHealthy=${pilotHealthy} restoreHealthy=${restoreHealthy} sloOverall=${sloOverall}\n`
   );
@@ -461,6 +531,11 @@ async function main() {
   if (strictFailures.length > 0) {
     for (const reason of strictFailures) {
       process.stdout.write(`   - ${reason}\n`);
+    }
+  }
+  if (advisories.length > 0) {
+    for (const hint of advisories) {
+      process.stdout.write(`   hint: ${hint}\n`);
     }
   }
   process.stdout.write(`   artifact: ${outAbs}\n`);
