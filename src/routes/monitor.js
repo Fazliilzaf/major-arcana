@@ -1451,6 +1451,10 @@ function createMonitorRouter({
           action: 'incidents.auto_assign_owner',
           outcome: 'success',
         });
+        const latestAlertProbe = findLatestAuditEvent(auditEvents, {
+          action: 'scheduler.job.alert_probe.run',
+          outcome: 'success',
+        });
         const latestTenantAccessCheck = findLatestAuditEvent(auditEvents, {
           action: 'tenants.access_check',
           outcome: 'success',
@@ -1731,10 +1735,13 @@ function createMonitorRouter({
                   ? 'red'
                   : isRecentWithinDays(latestAutoEscalate?.ts, 30, nowMs)
                     ? 'green'
-                    : 'yellow',
+                    : isRecentWithinDays(latestAlertProbe?.ts, 30, nowMs)
+                      ? 'green'
+                      : 'yellow',
               required: false,
-              target: 'incidents.auto_escalate senaste 30 dagar',
+              target: 'incidents.auto_escalate eller alert_probe senaste 30 dagar',
               value: {
+                latestAlertProbeRunAt: toIso(latestAlertProbe?.ts),
                 latestSuccessAt: toIso(latestAutoEscalate?.ts),
               },
             }),
@@ -1746,10 +1753,13 @@ function createMonitorRouter({
                   ? 'red'
                   : isRecentWithinDays(latestAutoAssign?.ts, 30, nowMs)
                     ? 'green'
-                    : 'yellow',
+                    : isRecentWithinDays(latestAlertProbe?.ts, 30, nowMs)
+                      ? 'green'
+                      : 'yellow',
               required: false,
-              target: 'incidents.auto_assign_owner senaste 30 dagar',
+              target: 'incidents.auto_assign_owner eller alert_probe senaste 30 dagar',
               value: {
+                latestAlertProbeRunAt: toIso(latestAlertProbe?.ts),
                 latestSuccessAt: toIso(latestAutoAssign?.ts),
               },
             }),
