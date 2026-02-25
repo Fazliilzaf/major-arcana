@@ -48,8 +48,8 @@ const CHECK_HINTS = Object.freeze({
     'Verifiera sedan igen: BASE_URL=<url> ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard',
   ],
   cors_strict: [
-    'Sätt env: CORS_STRICT=true, CORS_ALLOW_NO_ORIGIN=false och CORS_ALLOWED_ORIGINS=<origin1,origin2>',
-    'Redeploy/restart och kör guard igen för att bekräfta green status.',
+    'Sätt CORS_STRICT=true, CORS_ALLOW_NO_ORIGIN=false och säkerställ minst en effektiv origin via CORS_ALLOWED_ORIGINS eller PUBLIC_BASE_URL/ARCANA_BRAND_BY_HOST.',
+    'Verifiera i readiness att effectiveAllowedOrigins > 0 och kör guard igen.',
   ],
 });
 
@@ -434,6 +434,7 @@ async function main() {
         target: check.target || null,
         evidence: check.evidence || null,
         valuePreview: toValuePreview(check.value),
+        value: check.value,
         categoryId: check.categoryId,
         categoryLabel: check.categoryLabel,
       });
@@ -478,6 +479,28 @@ async function main() {
       const hints = Array.isArray(CHECK_HINTS[item.checkId]) ? CHECK_HINTS[item.checkId] : [];
       for (const hint of hints.slice(0, 3)) {
         process.stdout.write(`    hint: ${hint}\n`);
+      }
+      if (
+        item.checkId === 'cors_strict' &&
+        item.value &&
+        typeof item.value === 'object' &&
+        !Array.isArray(item.value)
+      ) {
+        const configuredCount = Number(
+          item.value?.configuredAllowedOrigins ?? item.value?.allowedOrigins ?? 0
+        );
+        const effectiveCount = Number(
+          item.value?.effectiveAllowedOrigins ?? item.value?.allowedOrigins ?? 0
+        );
+        const effectiveOrigins = Array.isArray(item.value?.effectiveOrigins)
+          ? item.value.effectiveOrigins.slice(0, 5)
+          : [];
+        process.stdout.write(
+          `    corsStrictDetail: configuredAllowedOrigins=${configuredCount} effectiveAllowedOrigins=${effectiveCount}\n`
+        );
+        if (effectiveOrigins.length > 0) {
+          process.stdout.write(`    corsStrictEffectiveOrigins: ${effectiveOrigins.join(', ')}\n`);
+        }
       }
       if (item.checkId === 'owner_mfa_enforced' && ownerGapReport) {
         if (ownerGapReport?.error) {
