@@ -82,6 +82,26 @@ services:
         value: 30
       - key: ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS
         value: 36
+      - key: ARCANA_METRICS_MAX_SAMPLES
+        value: 5000
+      - key: ARCANA_METRICS_SLOW_REQUEST_MS
+        value: 1500
+      - key: ARCANA_OBSERVABILITY_ALERT_MAX_ERROR_RATE_PCT
+        value: 2.5
+      - key: ARCANA_OBSERVABILITY_ALERT_MAX_P95_MS
+        value: 1800
+      - key: ARCANA_OBSERVABILITY_ALERT_MAX_SLOW_REQUESTS
+        value: 25
+      - key: ARCANA_PUBLIC_CHAT_BETA_ENABLED
+        value: false
+      - key: ARCANA_PUBLIC_CHAT_BETA_HEADER
+        value: x-arcana-beta-key
+      - key: ARCANA_PUBLIC_CHAT_BETA_KEY
+        sync: false
+      - key: ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS
+        sync: false
+      - key: ARCANA_PUBLIC_CHAT_BETA_ALLOW_LOCALHOST
+        value: true
       - key: ARCANA_ALERT_WEBHOOK_URL
         sync: false
       - key: ARCANA_ALERT_WEBHOOK_SECRET

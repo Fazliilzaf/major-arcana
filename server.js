@@ -335,7 +335,14 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       memoryStore,
       resolveBrand,
       getKnowledgeRetriever,
-      publicBaseUrl: config.publicBaseUrl,
+      betaGate: {
+        enabled: config.publicChatBetaEnabled,
+        headerName: config.publicChatBetaHeader,
+        key: config.publicChatBetaKey,
+        allowHosts: config.publicChatBetaAllowHosts,
+        allowLocalhost: config.publicChatBetaAllowLocalhost,
+        denyMessage: config.publicChatBetaDenyMessage,
+      },
     })
   );
 

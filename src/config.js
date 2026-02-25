@@ -5,6 +5,11 @@ function asInt(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function asFloat(value, fallback) {
+  const parsed = Number.parseFloat(String(value ?? ''));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function asNonEmptyString(value, fallback = '') {
   if (typeof value !== 'string') return fallback;
   const trimmed = value.trim();
@@ -156,6 +161,18 @@ const config = {
   publicRateLimitWindowSec: asInt(process.env.ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC, 60),
   publicClinicRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX, 180),
   publicChatRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX, 90),
+  publicChatBetaEnabled: asBool(process.env.ARCANA_PUBLIC_CHAT_BETA_ENABLED, false),
+  publicChatBetaHeader: asNonEmptyString(
+    process.env.ARCANA_PUBLIC_CHAT_BETA_HEADER,
+    'x-arcana-beta-key'
+  ).toLowerCase(),
+  publicChatBetaKey: asNonEmptyString(process.env.ARCANA_PUBLIC_CHAT_BETA_KEY),
+  publicChatBetaAllowHosts: asStringArray(process.env.ARCANA_PUBLIC_CHAT_BETA_ALLOW_HOSTS),
+  publicChatBetaAllowLocalhost: asBool(process.env.ARCANA_PUBLIC_CHAT_BETA_ALLOW_LOCALHOST, true),
+  publicChatBetaDenyMessage: asNonEmptyString(
+    process.env.ARCANA_PUBLIC_CHAT_BETA_DENY_MESSAGE,
+    'Den här chatten är i begränsad beta. Kontakta kliniken för åtkomst.'
+  ),
   defaultTenantId: asNonEmptyString(process.env.ARCANA_DEFAULT_TENANT, brand),
   bootstrapOwnerEmail: asNonEmptyString(process.env.ARCANA_OWNER_EMAIL),
   bootstrapOwnerPassword: asNonEmptyString(process.env.ARCANA_OWNER_PASSWORD),
@@ -236,6 +253,15 @@ const config = {
   ),
   metricsMaxSamples: asInt(process.env.ARCANA_METRICS_MAX_SAMPLES, 5000),
   metricsSlowRequestMs: asInt(process.env.ARCANA_METRICS_SLOW_REQUEST_MS, 1500),
+  observabilityAlertMaxErrorRatePct: asFloat(
+    process.env.ARCANA_OBSERVABILITY_ALERT_MAX_ERROR_RATE_PCT,
+    2.5
+  ),
+  observabilityAlertMaxP95Ms: asInt(process.env.ARCANA_OBSERVABILITY_ALERT_MAX_P95_MS, 1800),
+  observabilityAlertMaxSlowRequests: asInt(
+    process.env.ARCANA_OBSERVABILITY_ALERT_MAX_SLOW_REQUESTS,
+    25
+  ),
 
   knowledgeDir: asNonEmptyString(
     process.env.KNOWLEDGE_DIR,
