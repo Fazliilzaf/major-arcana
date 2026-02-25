@@ -296,6 +296,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
 - Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
 - Ops-suite visar även `categoryIssues` (icke-gröna readiness-kategorier) med top-checks för diagnos när blockerChecks är tom.
+- Vid `owner_mfa_enforced` visar ops-suite även `ownerMfaGap`/`ownerMfaGapPreview` (vilka OWNER-konton som saknar MFA).
 - Readiness-checkarna `auto_escalation_evidence` och `auto_assignment_evidence` blir gröna även utan incidentåtgärd om `scheduler.job.alert_probe.run` har färsk success (<=30 dagar), så länge inga öppna breached/unowned incidents kräver faktisk action.
 - Heal mode (auto-fixa output-gate metadata på aktiva versioner innan gating): `npm run ops:suite:heal`
 - Heal mode för OWNER MFA memberships (disable non-compliant där minst en compliant OWNER finns): `npm run ops:suite:heal:owners`
