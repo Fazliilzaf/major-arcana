@@ -273,6 +273,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
   - För att köra på alla required checks i readiness: `npm run preflight:readiness:guard -- --use-required-checks` eller `--checks required`
   - Guard kör även CORS runtime-probe när `cors_strict` är med i check-listan och `cors_strict=green` (tillåten origin måste få ACAO-header, otillåten origin måste blockeras utan ACAO-header).
   - Vid `owner_mfa_enforced` visar guard även vilka aktiva OWNER-konton som saknar `mfaRequired/mfaConfigured` (från `/api/v1/users/staff`).
+  - Vid `cors_strict` visar guard även `corsStrictEnv` (rekommenderad env-rad för strict CORS).
   - Guard kan skriva JSON-rapport för automation: `--report-file /tmp/readiness-guard.json` (eller `ARCANA_PREFLIGHT_READINESS_REPORT_FILE`).
   - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_USE_REQUIRED_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`, `ARCANA_PREFLIGHT_READINESS_CORS_RUNTIME_PROBE`, `ARCANA_PREFLIGHT_READINESS_CORS_PROBE_PATH`, `ARCANA_PREFLIGHT_READINESS_REPORT_FILE`
   - CLI-flaggor: `--use-required-checks`, `--no-use-required-checks`, `--cors-runtime-probe`, `--no-cors-runtime-probe`, `--cors-probe-path /healthz`, `--report-file /tmp/readiness-guard.json`
@@ -301,6 +302,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
 - Strict output visar även `readinessNoGoDetail` + `readinessNoGoPlaybook` med owner/playbook per trigger.
 - Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
+- Vid blockerad `cors_strict` visar ops-suite även `corsStrictEnv` (rekommenderad runtime-env-rad).
 - Ops-suite visar även `categoryIssues` (icke-gröna readiness-kategorier) med top-checks för diagnos när blockerChecks är tom.
 - Vid `owner_mfa_enforced` visar ops-suite även `ownerMfaGap`/`ownerMfaGapPreview` (vilka OWNER-konton som saknar MFA).
 - Readiness-checkarna `auto_escalation_evidence` och `auto_assignment_evidence` blir gröna även utan incidentåtgärd om `scheduler.job.alert_probe.run` har färsk success (<=30 dagar), så länge inga öppna breached/unowned incidents kräver faktisk action.

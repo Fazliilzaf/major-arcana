@@ -42,6 +42,27 @@ function normalizeRoutePath(value, fallback = '/healthz') {
   return input.startsWith('/') ? input : `/${input}`;
 }
 
+function buildCorsStrictEnvRecommendation({ baseUrl, corsValue } = {}) {
+  const origins = [];
+  const pushOrigin = (value) => {
+    const origin = normalizeOrigin(value);
+    if (!origin || origins.includes(origin)) return;
+    origins.push(origin);
+  };
+  if (corsValue && typeof corsValue === 'object' && !Array.isArray(corsValue)) {
+    const effectiveOrigins = Array.isArray(corsValue.effectiveOrigins)
+      ? corsValue.effectiveOrigins
+      : [];
+    for (const origin of effectiveOrigins) pushOrigin(origin);
+  }
+  pushOrigin(resolveOriginFromBaseUrl(baseUrl));
+  if (origins.length === 0) return null;
+  return {
+    origins,
+    envLine: `CORS_STRICT=true CORS_ALLOW_NO_ORIGIN=false CORS_ALLOWED_ORIGINS=${origins.join(',')}`,
+  };
+}
+
 function toValuePreview(value, maxLen = 220) {
   if (value === undefined || value === null) return '';
   let raw = '';
@@ -803,6 +824,16 @@ async function main() {
         );
         if (effectiveOrigins.length > 0) {
           process.stdout.write(`    corsStrictEffectiveOrigins: ${effectiveOrigins.join(', ')}\n`);
+        }
+        const recommendation = buildCorsStrictEnvRecommendation({
+          baseUrl,
+          corsValue: item.value,
+        });
+        if (recommendation) {
+          process.stdout.write(
+            `    corsStrictRecommendedOrigins: ${recommendation.origins.join(', ')}\n`
+          );
+          process.stdout.write(`    corsStrictEnv: ${recommendation.envLine}\n`);
         }
       }
       if (

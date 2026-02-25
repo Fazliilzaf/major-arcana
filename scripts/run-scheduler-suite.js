@@ -42,6 +42,27 @@ function normalizeRoutePath(value, fallback = '/healthz') {
   return input.startsWith('/') ? input : `/${input}`;
 }
 
+function buildCorsStrictEnvRecommendation({ baseUrl, corsValue } = {}) {
+  const origins = [];
+  const pushOrigin = (value) => {
+    const origin = normalizeOrigin(value);
+    if (!origin || origins.includes(origin)) return;
+    origins.push(origin);
+  };
+  if (corsValue && typeof corsValue === 'object' && !Array.isArray(corsValue)) {
+    const effectiveOrigins = Array.isArray(corsValue.effectiveOrigins)
+      ? corsValue.effectiveOrigins
+      : [];
+    for (const origin of effectiveOrigins) pushOrigin(origin);
+  }
+  pushOrigin(resolveOriginFromBaseUrl(baseUrl));
+  if (origins.length === 0) return null;
+  return {
+    origins,
+    envLine: `CORS_STRICT=true CORS_ALLOW_NO_ORIGIN=false CORS_ALLOWED_ORIGINS=${origins.join(',')}`,
+  };
+}
+
 function checkSeverityRank(status) {
   const normalized = normalizeText(status).toLowerCase();
   if (normalized === 'red') return 0;
@@ -966,6 +987,7 @@ async function main() {
         status,
         target: normalizeText(check?.target) || null,
         evidence: normalizeText(check?.evidence) || null,
+        value: check?.value ?? null,
         valuePreview: toValuePreview(check?.value),
         owner: normalizeText(hint?.owner) || null,
         playbook: normalizeText(hint?.playbook) || null,
@@ -1000,6 +1022,13 @@ async function main() {
     return String(a?.categoryId || '').localeCompare(String(b?.categoryId || ''));
   });
   const categoryIssuesTop = categoryIssues.slice(0, 6);
+  const corsStrictBlocker = blockerChecks.find((item) => item?.checkId === 'cors_strict') || null;
+  const corsStrictRecommendation = corsStrictBlocker
+    ? buildCorsStrictEnvRecommendation({
+        baseUrl,
+        corsValue: corsStrictBlocker.value,
+      })
+    : null;
   let ownerMfaGapReport = null;
   if (blockerChecks.some((item) => item?.checkId === 'owner_mfa_enforced')) {
     try {
@@ -1072,6 +1101,7 @@ async function main() {
         blockerChecks,
         categoryIssues,
         corsRuntimeProbe,
+        corsStrictRecommendation,
       },
       readinessHistory: {
         generatedAt: readinessHistory?.generatedAt || null,
@@ -1282,6 +1312,9 @@ async function main() {
         advisories.push(`${blocker.checkId}: target=${blocker.target}`);
       }
     }
+    if (corsStrictRecommendation?.envLine) {
+      advisories.push(`cors_strict env: ${corsStrictRecommendation.envLine}`);
+    }
   } else if (categoryIssuesTop.length > 0) {
     for (const category of categoryIssuesTop.slice(0, 2)) {
       advisories.push(
@@ -1341,6 +1374,9 @@ async function main() {
       process.stdout.write(
         `   blockerDetail: ${blocker?.checkId || '-'} status=${blocker?.status || '-'}${suffix}\n`
       );
+    }
+    if (corsStrictRecommendation?.envLine) {
+      process.stdout.write(`   corsStrictEnv: ${corsStrictRecommendation.envLine}\n`);
     }
   }
   if (categoryIssuesTop.length > 0) {
