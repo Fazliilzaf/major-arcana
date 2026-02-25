@@ -267,7 +267,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Kör fail-fast readiness guard separat vid behov:
   - `BASE_URL=https://arcana.hairtpclinic.se ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run preflight:readiness:guard`
   - Default checks: `owner_mfa_enforced,cors_strict` (fail på status `red`)
-  - Guard kör även CORS runtime-probe när `cors_strict` är med i check-listan (tillåten origin måste få ACAO-header, otillåten origin måste blockeras utan ACAO-header).
+  - Guard kör även CORS runtime-probe när `cors_strict` är med i check-listan och `cors_strict=green` (tillåten origin måste få ACAO-header, otillåten origin måste blockeras utan ACAO-header).
   - Vid `owner_mfa_enforced` visar guard även vilka aktiva OWNER-konton som saknar `mfaRequired/mfaConfigured` (från `/api/v1/users/staff`).
   - Konfigurering: `ARCANA_PREFLIGHT_READINESS_CHECKS`, `ARCANA_PREFLIGHT_READINESS_FAIL_STATUSES`, `ARCANA_PREFLIGHT_READINESS_ALLOW_MISSING`, `ARCANA_PREFLIGHT_READINESS_CORS_RUNTIME_PROBE`, `ARCANA_PREFLIGHT_READINESS_CORS_PROBE_PATH`
   - CLI-flaggor för probe: `--cors-runtime-probe`, `--no-cors-runtime-probe`, `--cors-probe-path /healthz`
@@ -292,7 +292,7 @@ Enklaste publik-körning (interaktivt lösenord, minimerar copy/paste-fel):
 - Scriptet försöker även läsa `mfaSecret` från `AUTH_STORE_PATH` (default `./data/auth.json`) om MFA-kod/secret inte skickas.
 - Ops-suite-artifact inkluderar monitor status + readiness + readiness-historik + SLO-snapshot.
 - Ops-suite kör som standard en tenant access-check refresh (`tenants.access_check`) före readiness snapshot för färsk tenant-isolation-evidens.
-- Ops-suite kör även CORS runtime-probe som standard (tillåten origin måste få ACAO-header, otillåten origin får inte få ACAO-header).
+- Ops-suite kör även CORS runtime-probe som standard när `cors_strict` är grön (tillåten origin måste få ACAO-header, otillåten origin får inte få ACAO-header). Om `cors_strict` inte är grön markeras probe som `unknown/skipped` istället för separat blocker.
 - Strict output visar även blockerande `triggeredNoGo` IDs och topp-P0-remediation för snabb åtgärd.
 - Ops-suite visar även blocker-checks (`required` + ej green) med topplista och playbook-hints.
 - Ops-suite visar även `categoryIssues` (icke-gröna readiness-kategorier) med top-checks för diagnos när blockerChecks är tom.

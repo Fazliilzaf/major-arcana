@@ -563,10 +563,26 @@ async function main() {
   let corsRuntimeProbe = null;
   if (args.corsRuntimeProbe && args.checks.includes('cors_strict')) {
     const corsCheck = checksById.get('cors_strict') || null;
-    corsRuntimeProbe = await runCorsRuntimeProbe({
-      baseUrl,
-      routePath: args.corsProbePath,
-    });
+    const corsCheckStatus = normalizeText(corsCheck?.status).toLowerCase() || 'missing';
+    if (corsCheckStatus === 'green') {
+      corsRuntimeProbe = await runCorsRuntimeProbe({
+        baseUrl,
+        routePath: args.corsProbePath,
+      });
+    } else {
+      corsRuntimeProbe = {
+        ok: false,
+        skipped: true,
+        reason: `cors_strict_${corsCheckStatus}`,
+        path: normalizeRoutePath(args.corsProbePath, '/healthz'),
+        allowedOrigin: resolveOriginFromBaseUrl(baseUrl) || null,
+        deniedOrigin: null,
+        allowedOriginMatched: false,
+        deniedOriginBlocked: false,
+        allowed: null,
+        denied: null,
+      };
+    }
     const probeStatus = corsRuntimeProbe.skipped
       ? 'unknown'
       : corsRuntimeProbe.ok

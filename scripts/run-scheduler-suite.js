@@ -798,23 +798,7 @@ async function main() {
   const readinessHistory = await fetchJson(baseUrl, '/api/v1/monitor/readiness/history?limit=14', {
     token: auth.token,
   });
-  const corsRuntimeProbe = args.corsRuntimeProbe
-    ? await runCorsRuntimeProbe({
-        baseUrl,
-        routePath: args.corsProbePath,
-      })
-    : {
-        ok: false,
-        skipped: false,
-        reason: 'disabled',
-        path: normalizeRoutePath(args.corsProbePath, '/healthz'),
-        allowedOrigin: resolveOriginFromBaseUrl(baseUrl) || null,
-        deniedOrigin: null,
-        allowedOriginMatched: false,
-        deniedOriginBlocked: false,
-        allowed: null,
-        denied: null,
-      };
+  let corsRuntimeProbe = null;
   const readinessNoGoTriggers = Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : [];
   const triggeredNoGo = readinessNoGoTriggers
     .filter((item) => String(item?.status || '').toLowerCase() === 'triggered')
@@ -842,6 +826,46 @@ async function main() {
       playbook: String(item?.playbook || ''),
     }));
   const readinessCategories = Array.isArray(readiness?.categories) ? readiness.categories : [];
+  const corsStrictReadinessCheck = readinessCategories
+    .flatMap((category) => (Array.isArray(category?.checks) ? category.checks : []))
+    .find((check) => normalizeText(check?.id) === 'cors_strict') || null;
+  const corsStrictReadinessStatus =
+    normalizeText(corsStrictReadinessCheck?.status).toLowerCase() || 'missing';
+  if (!args.corsRuntimeProbe) {
+    corsRuntimeProbe = {
+      ok: false,
+      skipped: true,
+      reason: 'disabled',
+      path: normalizeRoutePath(args.corsProbePath, '/healthz'),
+      allowedOrigin: resolveOriginFromBaseUrl(baseUrl) || null,
+      deniedOrigin: null,
+      allowedOriginMatched: false,
+      deniedOriginBlocked: false,
+      allowed: null,
+      denied: null,
+      prerequisiteStatus: corsStrictReadinessStatus,
+    };
+  } else if (corsStrictReadinessStatus !== 'green') {
+    corsRuntimeProbe = {
+      ok: false,
+      skipped: true,
+      reason: `cors_strict_${corsStrictReadinessStatus}`,
+      path: normalizeRoutePath(args.corsProbePath, '/healthz'),
+      allowedOrigin: resolveOriginFromBaseUrl(baseUrl) || null,
+      deniedOrigin: null,
+      allowedOriginMatched: false,
+      deniedOriginBlocked: false,
+      allowed: null,
+      denied: null,
+      prerequisiteStatus: corsStrictReadinessStatus,
+    };
+  } else {
+    corsRuntimeProbe = await runCorsRuntimeProbe({
+      baseUrl,
+      routePath: args.corsProbePath,
+    });
+    corsRuntimeProbe.prerequisiteStatus = corsStrictReadinessStatus;
+  }
   const securityCategory = readinessCategories.find(
     (item) => normalizeText(item?.id).toUpperCase() === 'A'
   );
@@ -902,7 +926,7 @@ async function main() {
       });
     }
   }
-  if (corsRuntimeProbeEnabled && corsRuntimeProbeStatus !== 'green') {
+  if (corsRuntimeProbeEnabled && corsRuntimeProbeStatus === 'red') {
     const hint = BLOCKER_CHECK_HINTS.cors_runtime_probe || {};
     blockerChecks.push({
       categoryId: normalizeText(securityCategory?.id) || 'A',
