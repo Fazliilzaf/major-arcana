@@ -452,6 +452,27 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   fi
   echo "✅ ops/readiness/remediate-output-gates preview OK (candidates: ${OPS_READINESS_REMEDIATION_PREVIEW_CANDIDATES}, fixable: ${OPS_READINESS_REMEDIATION_PREVIEW_FIXABLE})"
 
+  OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/readiness/remediate-owner-mfa-memberships" \
+    -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"dryRun":true,"limit":20,"detailsLimit":3}')"
+  OPS_OWNER_MFA_REMEDIATION_PREVIEW_OK="$(printf '%s' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_OWNER_MFA_REMEDIATION_PREVIEW_DRY_RUN="$(printf '%s' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE" | json_get dryRun 2>/dev/null || true)"
+  OPS_OWNER_MFA_REMEDIATION_PREVIEW_CANDIDATES="$(printf '%s' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE" | json_get disableCandidates 2>/dev/null || true)"
+  OPS_OWNER_MFA_REMEDIATION_PREVIEW_NON_COMPLIANT="$(printf '%s' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE" | json_get nonCompliantOwners 2>/dev/null || true)"
+  if [[ "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_OK" != "true" || "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_DRY_RUN" != "true" ]]; then
+    echo "❌ ops/readiness/remediate-owner-mfa-memberships preview misslyckades"
+    printf '%s\n' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE"
+    exit 1
+  fi
+  if [[ -z "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_CANDIDATES" || "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_CANDIDATES" == "null" || -z "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_NON_COMPLIANT" || "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_NON_COMPLIANT" == "null" ]]; then
+    echo "❌ ops/readiness/remediate-owner-mfa-memberships preview saknar kandidater/nonCompliant"
+    printf '%s\n' "$OPS_OWNER_MFA_REMEDIATION_PREVIEW_RESPONSE"
+    exit 1
+  fi
+  echo "✅ ops/readiness/remediate-owner-mfa-memberships preview OK (disableCandidates: ${OPS_OWNER_MFA_REMEDIATION_PREVIEW_CANDIDATES}, nonCompliant: ${OPS_OWNER_MFA_REMEDIATION_PREVIEW_NON_COMPLIANT})"
+
   OPS_MANIFEST_RESPONSE="$(curl -s "$BASE_URL/api/v1/ops/state/manifest" \
     -H "Authorization: Bearer $TOKEN")"
   OPS_MANIFEST_COUNT="$(printf '%s' "$OPS_MANIFEST_RESPONSE" | json_get stores | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(Array.isArray(d)?d.length:0));")"

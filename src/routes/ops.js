@@ -111,6 +111,52 @@ function analyzeOutputGate(snapshot = null) {
   };
 }
 
+function classifyOwnerMfaMembers(members = [], { currentMembershipId = '' } = {}) {
+  const normalizedCurrentMembershipId = normalizeText(currentMembershipId);
+  const activeOwners = (Array.isArray(members) ? members : [])
+    .filter((item) => {
+      const role = normalizeText(item?.membership?.role).toUpperCase();
+      const status = normalizeText(item?.membership?.status).toLowerCase();
+      return role === 'OWNER' && status === 'active';
+    })
+    .map((item) => ({
+      email: normalizeText(item?.user?.email) || '-',
+      userId: normalizeText(item?.user?.id) || null,
+      membershipId: normalizeText(item?.membership?.id) || null,
+      mfaRequired: item?.user?.mfaRequired === true,
+      mfaConfigured: item?.user?.mfaConfigured === true,
+      status: normalizeText(item?.membership?.status).toLowerCase() || 'active',
+      role: normalizeText(item?.membership?.role).toUpperCase() || 'OWNER',
+    }))
+    .sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
+
+  const compliantOwners = activeOwners.filter((item) => item.mfaRequired && item.mfaConfigured);
+  const nonCompliantOwners = activeOwners.filter((item) => !item.mfaRequired || !item.mfaConfigured);
+  const canDisableNonCompliant = compliantOwners.length >= 1;
+  const protectedCurrentOwnerCandidates = [];
+  const disableCandidates = [];
+
+  if (canDisableNonCompliant) {
+    for (const item of nonCompliantOwners) {
+      if (!item.membershipId) continue;
+      if (normalizedCurrentMembershipId && item.membershipId === normalizedCurrentMembershipId) {
+        protectedCurrentOwnerCandidates.push(item);
+        continue;
+      }
+      disableCandidates.push(item);
+    }
+  }
+
+  return {
+    activeOwners,
+    compliantOwners,
+    nonCompliantOwners,
+    canDisableNonCompliant,
+    disableCandidates,
+    protectedCurrentOwnerCandidates,
+  };
+}
+
 function createOpsRouter({
   config,
   authStore,
@@ -492,6 +538,156 @@ function createOpsRouter({
         return res
           .status(500)
           .json({ error: 'Kunde inte köra readiness remediation för output gates.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/readiness/remediate-owner-mfa-memberships',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (
+        !authStore ||
+        typeof authStore.listTenantMembers !== 'function' ||
+        typeof authStore.updateMembership !== 'function' ||
+        typeof authStore.revokeSessionsByMembership !== 'function'
+      ) {
+        return res
+          .status(503)
+          .json({ error: 'Auth store saknas för OWNER MFA remediation.' });
+      }
+
+      try {
+        const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+        if (tenantId !== req.auth.tenantId) {
+          return res.status(403).json({ error: 'Du kan bara köra remediation i din tenant.' });
+        }
+        const dryRun = parseBoolean(req.body?.dryRun, true);
+        const limit = parseLimit(req.body?.limit, 50);
+        const detailsLimit = parseLimit(req.body?.detailsLimit, 5);
+
+        const membersBefore = await authStore.listTenantMembers(tenantId);
+        const reportBefore = classifyOwnerMfaMembers(membersBefore, {
+          currentMembershipId: req.auth.membershipId,
+        });
+        const candidatePool = reportBefore.disableCandidates.slice(0, limit);
+        const skipped = reportBefore.protectedCurrentOwnerCandidates.map((item) => ({
+          email: item.email,
+          membershipId: item.membershipId,
+          reason: 'current_actor_membership',
+        }));
+        const disabled = [];
+
+        if (!dryRun) {
+          for (const candidate of candidatePool) {
+            if (!candidate.membershipId) {
+              skipped.push({
+                email: candidate.email,
+                membershipId: candidate.membershipId,
+                reason: 'missing_membership_id',
+              });
+              continue;
+            }
+            const updated = await authStore.updateMembership(candidate.membershipId, {
+              status: 'disabled',
+            });
+            if (!updated) {
+              skipped.push({
+                email: candidate.email,
+                membershipId: candidate.membershipId,
+                reason: 'membership_not_found',
+              });
+              continue;
+            }
+            if (normalizeText(updated?.status).toLowerCase() !== 'disabled') {
+              skipped.push({
+                email: candidate.email,
+                membershipId: candidate.membershipId,
+                reason: 'membership_not_disabled',
+              });
+              continue;
+            }
+            const revokedSessions = await authStore.revokeSessionsByMembership(
+              candidate.membershipId,
+              { reason: 'membership_disabled' }
+            );
+            disabled.push({
+              email: candidate.email,
+              membershipId: candidate.membershipId,
+              revokedSessions: Number(revokedSessions || 0),
+            });
+          }
+        }
+
+        const membersAfter = dryRun
+          ? membersBefore
+          : await authStore.listTenantMembers(tenantId);
+        const reportAfter = classifyOwnerMfaMembers(membersAfter, {
+          currentMembershipId: req.auth.membershipId,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: dryRun
+            ? 'ops.readiness.remediate_owner_mfa_memberships.preview'
+            : 'ops.readiness.remediate_owner_mfa_memberships.run',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: tenantId,
+          metadata: {
+            tenantId,
+            dryRun,
+            limit,
+            activeOwnersBefore: reportBefore.activeOwners.length,
+            compliantOwnersBefore: reportBefore.compliantOwners.length,
+            nonCompliantOwnersBefore: reportBefore.nonCompliantOwners.length,
+            candidatePool: candidatePool.length,
+            disabledCount: disabled.length,
+            skippedCount: skipped.length,
+            activeOwnersAfter: reportAfter.activeOwners.length,
+            compliantOwnersAfter: reportAfter.compliantOwners.length,
+            nonCompliantOwnersAfter: reportAfter.nonCompliantOwners.length,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          tenantId,
+          dryRun,
+          limit,
+          attempted: candidatePool.length,
+          activeOwners: reportBefore.activeOwners.length,
+          compliantOwners: reportBefore.compliantOwners.length,
+          nonCompliantOwners: reportBefore.nonCompliantOwners.length,
+          canDisableNonCompliant: reportBefore.canDisableNonCompliant,
+          disableCandidates: reportBefore.disableCandidates.length,
+          attemptedCandidates: candidatePool.length,
+          disabledCount: disabled.length,
+          skippedCount: skipped.length,
+          remainingNonCompliantOwners: reportAfter.nonCompliantOwners.length,
+          before: {
+            activeOwners: reportBefore.activeOwners.length,
+            compliantOwners: reportBefore.compliantOwners.length,
+            nonCompliantOwners: reportBefore.nonCompliantOwners.length,
+            canDisableNonCompliant: reportBefore.canDisableNonCompliant,
+          },
+          after: {
+            activeOwners: reportAfter.activeOwners.length,
+            compliantOwners: reportAfter.compliantOwners.length,
+            nonCompliantOwners: reportAfter.nonCompliantOwners.length,
+          },
+          candidatesPreview: candidatePool.slice(0, detailsLimit),
+          disabledPreview: disabled.slice(0, detailsLimit),
+          skippedPreview: skipped.slice(0, detailsLimit),
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error(error);
+        return res
+          .status(500)
+          .json({ error: 'Kunde inte köra OWNER MFA remediation.' });
       }
     }
   );

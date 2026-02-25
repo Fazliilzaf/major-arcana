@@ -450,11 +450,28 @@ async function remediateOwnerMfaMemberships({
   token,
   limit = 50,
 }) {
+  const normalizedLimit = parsePositiveInt(limit, 50, 1, 200);
+  try {
+    return await fetchJson(baseUrl, '/api/v1/ops/readiness/remediate-owner-mfa-memberships', {
+      method: 'POST',
+      token,
+      body: {
+        dryRun: false,
+        limit: normalizedLimit,
+        detailsLimit: 5,
+      },
+    });
+  } catch (error) {
+    if (Number(error?.status || 0) !== 404) {
+      throw error;
+    }
+  }
+
   const membersBefore = await fetchJson(baseUrl, '/api/v1/users/staff', {
     token,
   });
   const reportBefore = classifyOwnerMfaMembers(membersBefore);
-  const candidates = reportBefore.disableCandidates.slice(0, limit);
+  const candidates = reportBefore.disableCandidates.slice(0, normalizedLimit);
 
   const disabled = [];
   const skipped = [];

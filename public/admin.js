@@ -461,6 +461,8 @@
     runSchedulerSuiteBtn: document.getElementById('runSchedulerSuiteBtn'),
     previewReadinessOutputGateRemediationBtn: document.getElementById('previewReadinessOutputGateRemediationBtn'),
     runReadinessOutputGateRemediationBtn: document.getElementById('runReadinessOutputGateRemediationBtn'),
+    previewReadinessOwnerMfaRemediationBtn: document.getElementById('previewReadinessOwnerMfaRemediationBtn'),
+    runReadinessOwnerMfaRemediationBtn: document.getElementById('runReadinessOwnerMfaRemediationBtn'),
     monitorPanelStatus: document.getElementById('monitorPanelStatus'),
     monitorResult: document.getElementById('monitorResult'),
     monitorSchedulerSummary: document.getElementById('monitorSchedulerSummary'),
@@ -6599,6 +6601,51 @@
     }
   }
 
+  async function runReadinessOwnerMfaRemediation({ dryRun = true } = {}) {
+    if (!isOwner()) {
+      if (els.monitorResult) els.monitorResult.textContent = 'Endast OWNER.';
+      return;
+    }
+    try {
+      setStatus(
+        els.monitorPanelStatus,
+        dryRun
+          ? 'Preview: readiness remediation (owner MFA memberships)...'
+          : 'Kör readiness remediation (owner MFA memberships)...'
+      );
+      const response = await api('/ops/readiness/remediate-owner-mfa-memberships', {
+        method: 'POST',
+        body: {
+          dryRun,
+          limit: 50,
+          detailsLimit: 8,
+        },
+      });
+      if (els.monitorResult) {
+        els.monitorResult.textContent = JSON.stringify(response, null, 2);
+      }
+      const candidates = Number(response?.disableCandidates || 0);
+      const attempted = Number(response?.attemptedCandidates || response?.attempted || 0);
+      const disabled = Number(response?.disabledCount || 0);
+      const skipped = Number(response?.skippedCount || 0);
+      const remaining = Number(response?.remainingNonCompliantOwners || 0);
+      setStatus(
+        els.monitorPanelStatus,
+        dryRun
+          ? `Preview klar: disableCandidates=${candidates}, attempted=${attempted}`
+          : `Remediation klar: attempted=${attempted}, disabled=${disabled}, skipped=${skipped}, remainingNonCompliant=${remaining}`,
+        !dryRun && remaining > 0
+      );
+      await loadMonitorStatus();
+    } catch (error) {
+      setStatus(
+        els.monitorPanelStatus,
+        error.message || 'Kunde inte köra OWNER MFA remediation.',
+        true
+      );
+    }
+  }
+
   async function loadStateManifest() {
     if (!isOwner()) {
       if (els.opsResult) els.opsResult.textContent = 'Endast OWNER.';
@@ -7863,6 +7910,12 @@
   );
   els.runReadinessOutputGateRemediationBtn?.addEventListener('click', () =>
     runReadinessOutputGateRemediation({ dryRun: false })
+  );
+  els.previewReadinessOwnerMfaRemediationBtn?.addEventListener('click', () =>
+    runReadinessOwnerMfaRemediation({ dryRun: true })
+  );
+  els.runReadinessOwnerMfaRemediationBtn?.addEventListener('click', () =>
+    runReadinessOwnerMfaRemediation({ dryRun: false })
   );
   els.loadStateManifestBtn?.addEventListener('click', loadStateManifest);
   els.createStateBackupBtn?.addEventListener('click', createStateBackup);

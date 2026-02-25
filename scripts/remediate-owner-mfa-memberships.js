@@ -319,6 +319,76 @@ function printOwnerList(title, owners, limit = 20) {
   }
 }
 
+function printOpsOwnerMfaRemediationResponse(response = {}, { baseUrl = '', apply = false } = {}) {
+  const dryRun = response?.dryRun !== false;
+  process.stdout.write(`OWNER MFA remediation: ${baseUrl}\n`);
+  process.stdout.write(
+    `  tenant=${response?.tenantId || '-'} apply=${!dryRun && apply ? 'yes' : 'no'}\n`
+  );
+  process.stdout.write(
+    `  activeOwners=${Number(response?.activeOwners || 0)} compliant=${Number(
+      response?.compliantOwners || 0
+    )} nonCompliant=${Number(response?.nonCompliantOwners || 0)} disableCandidates=${Number(
+      response?.disableCandidates || 0
+    )}\n`
+  );
+
+  const candidatesPreview = Array.isArray(response?.candidatesPreview)
+    ? response.candidatesPreview
+    : [];
+  if (candidatesPreview.length > 0) {
+    process.stdout.write('Non-compliant OWNER accounts:\n');
+    for (const item of candidatesPreview) {
+      process.stdout.write(
+        `  - ${String(item?.email || '-')} required=${item?.mfaRequired ? 'yes' : 'no'} configured=${
+          item?.mfaConfigured ? 'yes' : 'no'
+        } membershipId=${String(item?.membershipId || '-')}\n`
+      );
+    }
+  } else if (Number(response?.nonCompliantOwners || 0) === 0) {
+    process.stdout.write('No non-compliant OWNER accounts found.\n');
+  }
+
+  if (response?.canDisableNonCompliant === false && Number(response?.nonCompliantOwners || 0) > 0) {
+    process.stdout.write(
+      '⚠️ Ingen disable-remediation möjlig: minst en MFA-kompatibel aktiv OWNER krävs för säker fallback.\n'
+    );
+  }
+
+  if (dryRun) {
+    process.stdout.write('\n');
+    process.stdout.write('Preview mode only. Lägg till --apply för att disable candidates.\n');
+    return;
+  }
+
+  process.stdout.write('\n');
+  process.stdout.write(
+    `Applied: disabled=${Number(response?.disabledCount || 0)} skipped=${Number(
+      response?.skippedCount || 0
+    )} remainingNonCompliant=${Number(response?.remainingNonCompliantOwners || 0)}\n`
+  );
+  const disabledPreview = Array.isArray(response?.disabledPreview) ? response.disabledPreview : [];
+  if (disabledPreview.length > 0) {
+    process.stdout.write('Disabled OWNER memberships:\n');
+    for (const item of disabledPreview) {
+      process.stdout.write(
+        `  - ${String(item?.email || '-')} membershipId=${String(item?.membershipId || '-')}\n`
+      );
+    }
+  }
+  const skippedPreview = Array.isArray(response?.skippedPreview) ? response.skippedPreview : [];
+  if (skippedPreview.length > 0) {
+    process.stdout.write('Skipped:\n');
+    for (const item of skippedPreview) {
+      process.stdout.write(
+        `  - ${String(item?.email || '-')} membershipId=${String(
+          item?.membershipId || '-'
+        )} reason=${String(item?.reason || 'unknown')}\n`
+      );
+    }
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const baseUrl = normalizeBaseUrl(args.baseUrl);
@@ -341,6 +411,32 @@ async function main() {
     mfaSecret: args.mfaSecret,
     authStorePath: args.authStorePath,
   });
+
+  try {
+    const endpointResponse = await fetchJson(
+      baseUrl,
+      '/api/v1/ops/readiness/remediate-owner-mfa-memberships',
+      {
+        method: 'POST',
+        token: auth.token,
+        body: {
+          tenantId: auth.authTenantId || tenantId || undefined,
+          dryRun: !args.apply,
+          limit: 50,
+          detailsLimit: args.detailsLimit,
+        },
+      }
+    );
+    printOpsOwnerMfaRemediationResponse(endpointResponse, {
+      baseUrl,
+      apply: args.apply,
+    });
+    return;
+  } catch (error) {
+    if (Number(error?.status || 0) !== 404) {
+      throw error;
+    }
+  }
 
   const membersBefore = await fetchJson(baseUrl, '/api/v1/users/staff', {
     token: auth.token,
@@ -436,4 +532,3 @@ main().catch((error) => {
   console.error(error?.message || error);
   process.exit(1);
 });
-

@@ -185,6 +185,7 @@ Om prod-inloggning fastnar på gammalt lösenord:
 - `GET /api/v1/ops/scheduler/status` (OWNER)
 - `POST /api/v1/ops/scheduler/run` (OWNER, body: `{ "jobId": "alert_probe" }` eller `{ "jobId": "required_suite" }`)
 - `POST /api/v1/ops/readiness/remediate-output-gates` (OWNER, preview/apply av active-version output gate remediation)
+- `POST /api/v1/ops/readiness/remediate-owner-mfa-memberships` (OWNER, preview/apply av disable-remediation för non-compliant OWNER memberships)
 - `GET /api/v1/ops/secrets/status` (OWNER, rotation status/freshness)
 - `POST /api/v1/ops/secrets/snapshot` (OWNER, dry-run default)
 - `GET /api/v1/ops/secrets/history` (OWNER, query: `secretId`, `limit`)
