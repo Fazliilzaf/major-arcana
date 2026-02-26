@@ -1,8 +1,10 @@
+const crypto = require('node:crypto');
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 const { createCapabilityExecutor } = require('../capabilities/executionService');
+const { createMicrosoftGraphReadConnector } = require('../infra/microsoftGraphReadConnector');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -13,8 +15,22 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toBoolean(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (value === null || value === undefined) return fallback;
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return fallback;
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function pickErrorStatus(errorCode = '') {
@@ -83,6 +99,322 @@ function toIncidentSnapshot(incident = {}) {
   };
 }
 
+function toIso(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function toTimestampMs(value) {
+  const iso = toIso(value);
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function toIncidentSeverityWeight(incident = {}) {
+  const severity = normalizeText(incident?.severity).toUpperCase();
+  if (severity === 'L5') return 5;
+  if (severity === 'L4') return 4;
+  if (severity === 'L3') return 3;
+  const riskLevel = toNumber(incident?.riskLevel, 0);
+  if (riskLevel >= 5) return 5;
+  if (riskLevel >= 4) return 4;
+  if (riskLevel >= 3) return 3;
+  return 0;
+}
+
+function toIncidentWindowCounts(incidents = [], windowDays = 14) {
+  const safeWindowDays = Math.max(1, Math.min(90, toNumber(windowDays, 14)));
+  const thresholdMs = Date.now() - safeWindowDays * 24 * 60 * 60 * 1000;
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const windowItems = safeIncidents.filter((incident) => {
+    const tsMs = toTimestampMs(incident?.updatedAt || incident?.openedAt);
+    if (!Number.isFinite(tsMs)) return false;
+    return tsMs >= thresholdMs;
+  });
+
+  const breakdown = { L3: 0, L4: 0, L5: 0 };
+  let highRisk = 0;
+  let escalated = 0;
+  for (const incident of windowItems) {
+    const severityWeight = toIncidentSeverityWeight(incident);
+    if (severityWeight >= 5) breakdown.L5 += 1;
+    else if (severityWeight >= 4) breakdown.L4 += 1;
+    else if (severityWeight >= 3) breakdown.L3 += 1;
+    if (severityWeight >= 4) highRisk += 1;
+    const ownerDecision = normalizeText(incident?.ownerDecision).toLowerCase();
+    if (ownerDecision === 'escalate_to_owner' || ownerDecision === 'escalate_to_medical') {
+      escalated += 1;
+    }
+  }
+
+  return {
+    windowDays: safeWindowDays,
+    total: windowItems.length,
+    ...breakdown,
+    highRisk,
+    escalated,
+  };
+}
+
+function toReviewWindowCounts(openReviews = [], windowDays = 14) {
+  const safeWindowDays = Math.max(1, Math.min(90, toNumber(windowDays, 14)));
+  const thresholdMs = Date.now() - safeWindowDays * 24 * 60 * 60 * 1000;
+  const safeReviews = Array.isArray(openReviews) ? openReviews : [];
+  const windowItems = safeReviews.filter((review) => {
+    const tsMs = toTimestampMs(review?.evaluatedAt || review?.updatedAt);
+    if (!Number.isFinite(tsMs)) return false;
+    return tsMs >= thresholdMs;
+  });
+
+  let highCritical = 0;
+  let blocked = 0;
+  for (const review of windowItems) {
+    if (toNumber(review?.riskLevel, 0) >= 4) highCritical += 1;
+    if (normalizeText(review?.decision).toLowerCase() === 'blocked') blocked += 1;
+  }
+
+  return {
+    windowDays: safeWindowDays,
+    total: windowItems.length,
+    highCritical,
+    blocked,
+  };
+}
+
+function toIncidentAgeBuckets(incidents = []) {
+  const buckets = {
+    lt1d: 0,
+    d1to3: 0,
+    d4to7: 0,
+    gt7: 0,
+    unknown: 0,
+  };
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  for (const incident of safeIncidents) {
+    const tsMs = toTimestampMs(incident?.openedAt || incident?.updatedAt);
+    if (!Number.isFinite(tsMs)) {
+      buckets.unknown += 1;
+      continue;
+    }
+    const ageDays = (Date.now() - tsMs) / (24 * 60 * 60 * 1000);
+    if (ageDays < 1) buckets.lt1d += 1;
+    else if (ageDays < 4) buckets.d1to3 += 1;
+    else if (ageDays < 8) buckets.d4to7 += 1;
+    else buckets.gt7 += 1;
+  }
+  return buckets;
+}
+
+function toTemplateHistorySummary(latestTemplateChanges = []) {
+  const safeChanges = Array.isArray(latestTemplateChanges) ? latestTemplateChanges : [];
+  const byCategory = {};
+  let newestUpdatedAt = null;
+  let oldestUpdatedAt = null;
+  for (const change of safeChanges) {
+    const category = normalizeText(change?.category) || 'unknown';
+    byCategory[category] = (byCategory[category] || 0) + 1;
+    const updatedIso = toIso(change?.updatedAt);
+    if (!updatedIso) continue;
+    if (!newestUpdatedAt || Date.parse(updatedIso) > Date.parse(newestUpdatedAt)) {
+      newestUpdatedAt = updatedIso;
+    }
+    if (!oldestUpdatedAt || Date.parse(updatedIso) < Date.parse(oldestUpdatedAt)) {
+      oldestUpdatedAt = updatedIso;
+    }
+  }
+
+  return {
+    totalRecentChanges: safeChanges.length,
+    byCategory,
+    newestUpdatedAt,
+    oldestUpdatedAt,
+  };
+}
+
+function clampInteger(value, min, max, fallback) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
+
+function toGraphReadOptionsFromEnv() {
+  return {
+    days: clampInteger(process.env.ARCANA_GRAPH_WINDOW_DAYS, 1, 30, 14),
+    maxMessages: clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100),
+    includeRead: toBoolean(process.env.ARCANA_GRAPH_INCLUDE_READ, false),
+  };
+}
+
+function toSnapshotMessageCount(snapshot = {}) {
+  const conversations = asArray(snapshot.conversations);
+  return conversations.reduce((sum, conversation) => {
+    const count = asArray(conversation?.messages).length;
+    return sum + count;
+  }, 0);
+}
+
+async function writeMailboxReadAuditEvent({
+  authStore,
+  tenantId,
+  actorUserId = null,
+  action,
+  outcome = 'success',
+  mailboxReadId,
+  correlationId = null,
+  metadata = {},
+}) {
+  if (!authStore || typeof authStore.addAuditEvent !== 'function') return;
+  await authStore.addAuditEvent({
+    tenantId,
+    actorUserId,
+    action,
+    outcome,
+    targetType: 'mailbox_read',
+    targetId: normalizeText(mailboxReadId) || crypto.randomUUID(),
+    metadata: {
+      mailboxReadId: normalizeText(mailboxReadId) || null,
+      correlationId: normalizeText(correlationId) || null,
+      ...(metadata || {}),
+    },
+  });
+}
+
+async function hydrateAnalyzeInboxInput({
+  tenantId,
+  input = {},
+  systemStateSnapshot = {},
+  graphReadConnector = null,
+  authStore = null,
+  actorUserId = null,
+  correlationId = null,
+}) {
+  const safeInput = asObject(input);
+  const safeSnapshot = asObject(systemStateSnapshot);
+  const normalizedInput = {};
+
+  if (typeof safeInput.includeClosed === 'boolean') {
+    normalizedInput.includeClosed = safeInput.includeClosed;
+  }
+  if (Number.isFinite(Number(safeInput.maxDrafts))) {
+    normalizedInput.maxDrafts = clampInteger(safeInput.maxDrafts, 1, 5, 5);
+  }
+  if (safeInput.debug === true) {
+    normalizedInput.debug = true;
+  }
+
+  if (Array.isArray(safeSnapshot.conversations)) {
+    return {
+      input: normalizedInput,
+      systemStateSnapshot: safeSnapshot,
+    };
+  }
+
+  if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
+    return {
+      input: normalizedInput,
+      systemStateSnapshot: safeSnapshot,
+    };
+  }
+
+  const mailboxReadId = crypto.randomUUID();
+  const graphReadOptions = toGraphReadOptionsFromEnv();
+  const capturedAt = new Date().toISOString();
+
+  await writeMailboxReadAuditEvent({
+    authStore,
+    tenantId,
+    actorUserId,
+    action: 'mailbox.read.start',
+    outcome: 'success',
+    mailboxReadId,
+    correlationId,
+    metadata: {
+      source: 'microsoft_graph',
+      capabilityName: 'AnalyzeInbox',
+      windowDays: graphReadOptions.days,
+      maxMessages: graphReadOptions.maxMessages,
+      includeRead: graphReadOptions.includeRead,
+      capturedAt,
+    },
+  });
+
+  try {
+    const graphSnapshot = asObject(
+      await graphReadConnector.fetchInboxSnapshot(graphReadOptions)
+    );
+    const graphTimestamps = asObject(graphSnapshot.timestamps);
+    const mergedSnapshot = {
+      ...safeSnapshot,
+      ...graphSnapshot,
+      conversations: asArray(graphSnapshot.conversations),
+      timestamps: {
+        capturedAt: normalizeText(graphTimestamps.capturedAt) || capturedAt,
+        sourceGeneratedAt: normalizeText(graphTimestamps.sourceGeneratedAt) || null,
+      },
+      snapshotVersion:
+        normalizeText(graphSnapshot.snapshotVersion) ||
+        normalizeText(safeSnapshot.snapshotVersion) ||
+        'graph.inbox.snapshot.v1',
+    };
+
+    await writeMailboxReadAuditEvent({
+      authStore,
+      tenantId,
+      actorUserId,
+      action: 'mailbox.read.complete',
+      outcome: 'success',
+      mailboxReadId,
+      correlationId,
+      metadata: {
+        source: 'microsoft_graph',
+        capabilityName: 'AnalyzeInbox',
+        windowDays: graphReadOptions.days,
+        maxMessages: graphReadOptions.maxMessages,
+        includeRead: graphReadOptions.includeRead,
+        conversationCount: asArray(mergedSnapshot.conversations).length,
+        messageCount: toSnapshotMessageCount(mergedSnapshot),
+        snapshotVersion: normalizeText(mergedSnapshot.snapshotVersion) || null,
+        capturedAt: normalizeText(mergedSnapshot.timestamps?.capturedAt) || capturedAt,
+      },
+    });
+
+    return {
+      input: normalizedInput,
+      systemStateSnapshot: mergedSnapshot,
+    };
+  } catch (error) {
+    await writeMailboxReadAuditEvent({
+      authStore,
+      tenantId,
+      actorUserId,
+      action: 'mailbox.read.error',
+      outcome: 'error',
+      mailboxReadId,
+      correlationId,
+      metadata: {
+        source: 'microsoft_graph',
+        capabilityName: 'AnalyzeInbox',
+        windowDays: graphReadOptions.days,
+        maxMessages: graphReadOptions.maxMessages,
+        includeRead: graphReadOptions.includeRead,
+        errorMessage: normalizeText(error?.message) || 'graph_read_failed',
+      },
+    });
+    const wrappedError = new Error(
+      `AnalyzeInbox Graph read failed: ${
+        normalizeText(error?.message) || 'mailbox_source_unavailable'
+      }.`
+    );
+    wrappedError.code = 'CAPABILITY_INBOX_SOURCE_UNAVAILABLE';
+    throw wrappedError;
+  }
+}
+
 async function hydrateGenerateTaskPlanInput({
   tenantId,
   templateStore,
@@ -115,6 +447,9 @@ async function hydrateGenerateTaskPlanInput({
   }
   if (typeof safeInput.includeEvidence === 'boolean') {
     normalizedInput.includeEvidence = safeInput.includeEvidence;
+  }
+  if (safeInput.debug === true) {
+    normalizedInput.debug = true;
   }
 
   if (!templateStore) {
@@ -229,6 +564,7 @@ async function hydrateSummarizeIncidentsInput({
   const normalizedInput = {
     includeClosed: safeInput.includeClosed === true,
     timeframeDays: Math.max(1, Math.min(90, toNumber(safeInput.timeframeDays, 14))),
+    debug: safeInput.debug === true,
   };
 
   const snapshotIncidents = Array.isArray(safeSnapshot.incidents)
@@ -295,6 +631,10 @@ async function maybeHydrateCapabilityPayload({
   templateStore,
   input,
   systemStateSnapshot,
+  graphReadConnector,
+  authStore,
+  actorUserId = null,
+  correlationId = null,
 }) {
   const normalizedName = normalizeText(capabilityName).toLowerCase();
   if (normalizedName === 'generatetaskplan') {
@@ -313,6 +653,17 @@ async function maybeHydrateCapabilityPayload({
       systemStateSnapshot,
     });
   }
+  if (normalizedName === 'analyzeinbox') {
+    return hydrateAnalyzeInboxInput({
+      tenantId,
+      input,
+      systemStateSnapshot,
+      graphReadConnector,
+      authStore,
+      actorUserId,
+      correlationId,
+    });
+  }
   return {
     input: asObject(input),
     systemStateSnapshot: asObject(systemStateSnapshot),
@@ -326,6 +677,7 @@ async function maybeHydrateAgentPayload({
   input,
   systemStateSnapshot,
 }) {
+  const safeInput = asObject(input);
   const normalizedAgentName = normalizeText(agentName).toLowerCase();
   if (normalizedAgentName === 'coo') {
     const [incidentPayload, taskPlanPayload] = await Promise.all([
@@ -347,31 +699,60 @@ async function maybeHydrateAgentPayload({
     const taskPlanInput = asObject(taskPlanPayload.input);
     const incidentSnapshot = asObject(incidentPayload.systemStateSnapshot);
     const taskPlanSnapshot = asObject(taskPlanPayload.systemStateSnapshot);
+    const incidents = Array.isArray(incidentSnapshot.incidents) ? incidentSnapshot.incidents : [];
+    const openReviews = Array.isArray(taskPlanSnapshot.openReviews) ? taskPlanSnapshot.openReviews : [];
+    const latestTemplateChanges = Array.isArray(taskPlanSnapshot.latestTemplateChanges)
+      ? taskPlanSnapshot.latestTemplateChanges
+      : [];
+    const baseSnapshotVersion =
+      normalizeText(incidentSnapshot.snapshotVersion) ||
+      normalizeText(taskPlanSnapshot.snapshotVersion) ||
+      'coo.snapshot.v1';
+    const baseTimestamps =
+      incidentSnapshot.timestamps && typeof incidentSnapshot.timestamps === 'object'
+        ? incidentSnapshot.timestamps
+        : { capturedAt: new Date().toISOString() };
+    const timestamps = {
+      ...baseTimestamps,
+      capturedAt: normalizeText(baseTimestamps.capturedAt) || new Date().toISOString(),
+      sourceGeneratedAt: normalizeText(baseTimestamps.sourceGeneratedAt) || null,
+      version: normalizeText(baseTimestamps.version) || baseSnapshotVersion,
+    };
+    const effectiveTimeframeDays = Math.max(1, Math.min(90, toNumber(incidentInput.timeframeDays, 14)));
+    const incidentTrend7d = toIncidentWindowCounts(incidents, 7);
+    const incidentTrend14d = toIncidentWindowCounts(incidents, Math.max(14, effectiveTimeframeDays));
+    const riskTrend7d = toReviewWindowCounts(openReviews, 7);
+    const riskTrend14d = toReviewWindowCounts(openReviews, Math.max(14, effectiveTimeframeDays));
+    const incidentAgeBuckets = toIncidentAgeBuckets(incidents);
+    const templateHistory = toTemplateHistorySummary(latestTemplateChanges);
 
     return {
       input: {
         includeClosed: incidentInput.includeClosed === true,
-        timeframeDays: Math.max(1, Math.min(90, toNumber(incidentInput.timeframeDays, 14))),
+        timeframeDays: effectiveTimeframeDays,
         maxTasks: Math.max(1, Math.min(5, toNumber(taskPlanInput.maxTasks, 5))),
         includeEvidence: taskPlanInput.includeEvidence !== false,
+        debug: safeInput.debug === true || incidentInput.debug === true || taskPlanInput.debug === true,
       },
       systemStateSnapshot: {
-        incidents: Array.isArray(incidentSnapshot.incidents) ? incidentSnapshot.incidents : [],
+        incidents,
         slaStatus:
           incidentSnapshot.slaStatus && typeof incidentSnapshot.slaStatus === 'object'
             ? incidentSnapshot.slaStatus
             : {},
-        timestamps:
-          incidentSnapshot.timestamps && typeof incidentSnapshot.timestamps === 'object'
-            ? incidentSnapshot.timestamps
-            : { capturedAt: new Date().toISOString() },
-        openReviews: Array.isArray(taskPlanSnapshot.openReviews) ? taskPlanSnapshot.openReviews : [],
-        latestTemplateChanges: Array.isArray(taskPlanSnapshot.latestTemplateChanges)
-          ? taskPlanSnapshot.latestTemplateChanges
-          : [],
+        timestamps,
+        openReviews,
+        latestTemplateChanges,
         kpi: taskPlanSnapshot.kpi && typeof taskPlanSnapshot.kpi === 'object'
           ? taskPlanSnapshot.kpi
           : {},
+        incidentTrend7d,
+        incidentTrend14d,
+        riskTrend7d,
+        riskTrend14d,
+        incidentAgeBuckets,
+        templateHistory,
+        snapshotVersion: baseSnapshotVersion,
       },
     };
   }
@@ -403,6 +784,12 @@ function toIdempotencyKey(req) {
     normalizeText(req.body?.idempotencyKey) ||
     null
   );
+}
+
+function isDebugRequested(req) {
+  if (req?.body?.debug === true) return true;
+  if (req?.body?.input?.debug === true) return true;
+  return toBoolean(req?.query?.debug, false);
 }
 
 function toActor(req) {
@@ -541,23 +928,37 @@ async function runCapabilityHandler({
   executor,
   capabilityName,
   templateStore,
+  graphReadConnector,
+  authStore,
 }) {
+  const actor = toActor(req);
+  const correlationId = toCorrelationId(req);
   const payload = await maybeHydrateCapabilityPayload({
     capabilityName,
     tenantId: toTenantId(req),
     templateStore,
     input: req.body?.input,
     systemStateSnapshot: req.body?.systemStateSnapshot,
+    graphReadConnector,
+    authStore,
+    actorUserId: actor.id,
+    correlationId,
   });
+  if (isDebugRequested(req)) {
+    payload.input = {
+      ...asObject(payload.input),
+      debug: true,
+    };
+  }
 
   const result = await executor.runCapability({
     tenantId: toTenantId(req),
-    actor: toActor(req),
+    actor,
     channel: toChannel(req),
     capabilityName,
     input: payload.input,
     systemStateSnapshot: payload.systemStateSnapshot,
-    correlationId: toCorrelationId(req),
+    correlationId,
     idempotencyKey: toIdempotencyKey(req),
     requestMetadata: toRequestMetadata(req),
   });
@@ -582,6 +983,12 @@ async function runAgentHandler({
     input: req.body?.input,
     systemStateSnapshot: req.body?.systemStateSnapshot,
   });
+  if (isDebugRequested(req)) {
+    payload.input = {
+      ...asObject(payload.input),
+      debug: true,
+    };
+  }
 
   const result = await executor.runAgent({
     tenantId: toTenantId(req),
@@ -619,7 +1026,7 @@ function toMetaHandler({ executor }) {
   return async (_req, res) => res.json(toMetaPayload(executor));
 }
 
-function toCapabilityRunHandler({ executor, templateStore }) {
+function toCapabilityRunHandler({ executor, templateStore, graphReadConnector, authStore }) {
   return async (req, res) => {
     const capabilityName = toCapabilityName(req);
     if (!validateCapabilityName(capabilityName, res)) return;
@@ -630,6 +1037,8 @@ function toCapabilityRunHandler({ executor, templateStore }) {
         executor,
         capabilityName,
         templateStore,
+        graphReadConnector,
+        authStore,
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
@@ -674,6 +1083,8 @@ function createCapabilitiesRouter({
   executionGateway = null,
   capabilityAnalysisStore = null,
   templateStore = null,
+  graphReadConnector = null,
+  graphReadConnectorFactory = createMicrosoftGraphReadConnector,
 }) {
   const router = express.Router();
   const gateway =
@@ -681,6 +1092,36 @@ function createCapabilitiesRouter({
     createExecutionGateway({
       buildVersion: process.env.npm_package_version || 'dev',
     });
+  const shouldEnableGraphRead = toBoolean(process.env.ARCANA_GRAPH_READ_ENABLED, false);
+  const resolvedGraphReadConnector = (() => {
+    if (graphReadConnector && typeof graphReadConnector.fetchInboxSnapshot === 'function') {
+      return graphReadConnector;
+    }
+    if (!shouldEnableGraphRead) return null;
+    const tenantId = normalizeText(process.env.ARCANA_GRAPH_TENANT_ID);
+    const clientId = normalizeText(process.env.ARCANA_GRAPH_CLIENT_ID);
+    const clientSecret = normalizeText(process.env.ARCANA_GRAPH_CLIENT_SECRET);
+    const userId = normalizeText(process.env.ARCANA_GRAPH_USER_ID);
+    const missing = [];
+    if (!tenantId) missing.push('ARCANA_GRAPH_TENANT_ID');
+    if (!clientId) missing.push('ARCANA_GRAPH_CLIENT_ID');
+    if (!clientSecret) missing.push('ARCANA_GRAPH_CLIENT_SECRET');
+    if (!userId) missing.push('ARCANA_GRAPH_USER_ID');
+    if (missing.length > 0) {
+      throw new Error(
+        `ARCANA_GRAPH_READ_ENABLED=true requires: ${missing.join(', ')}.`
+      );
+    }
+    return graphReadConnectorFactory({
+      tenantId,
+      clientId,
+      clientSecret,
+      userId,
+      authorityHost: normalizeText(process.env.ARCANA_GRAPH_AUTHORITY_HOST) || undefined,
+      graphBaseUrl: normalizeText(process.env.ARCANA_GRAPH_BASE_URL) || undefined,
+      scope: normalizeText(process.env.ARCANA_GRAPH_SCOPE) || undefined,
+    });
+  })();
   const executor = createCapabilityExecutor({
     executionGateway: gateway,
     authStore,
@@ -721,7 +1162,14 @@ function createCapabilitiesRouter({
     '/capabilities/:capabilityName/run',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(toCapabilityRunHandler({ executor, templateStore }))
+    toRoleGuardedHandler(
+      toCapabilityRunHandler({
+        executor,
+        templateStore,
+        graphReadConnector: resolvedGraphReadConnector,
+        authStore,
+      })
+    )
   );
 
   router.post(

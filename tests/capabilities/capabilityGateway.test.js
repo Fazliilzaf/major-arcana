@@ -9,6 +9,7 @@ const { createCapabilitiesRouter } = require('../../src/routes/capabilities');
 const { createExecutionGateway } = require('../../src/gateway/executionGateway');
 const { createAuthStore } = require('../../src/security/authStore');
 const { createCapabilityAnalysisStore } = require('../../src/capabilities/analysisStore');
+const { AnalyzeInboxCapability } = require('../../src/capabilities/analyzeInbox');
 
 async function withServer(app, run) {
   const server = await new Promise((resolve) => {
@@ -263,6 +264,442 @@ test('SummarizeIncidents run goes through gateway and persists analysis only', a
     limit: 20,
   });
   assert.equal(otherEntries.length, 0);
+});
+
+test('AnalyzeInbox run goes through gateway, persists analysis only, and performs no mailbox writes', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-inbox-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const mailboxWriteCounters = {
+    sendReply: 0,
+    markAsRead: 0,
+    updateThread: 0,
+  };
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: {
+        async sendReply() {
+          mailboxWriteCounters.sendReply += 1;
+          throw new Error('sendReply should never be called by AnalyzeInbox');
+        },
+        async markAsRead() {
+          mailboxWriteCounters.markAsRead += 1;
+          throw new Error('markAsRead should never be called by AnalyzeInbox');
+        },
+        async updateThread() {
+          mailboxWriteCounters.updateThread += 1;
+          throw new Error('updateThread should never be called by AnalyzeInbox');
+        },
+      },
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': 'corr-capability-inbox-1',
+        'x-idempotency-key': 'idem-capability-inbox-1',
+      },
+      body: JSON.stringify({
+        channel: 'admin',
+        input: {
+          includeClosed: false,
+          maxDrafts: 5,
+        },
+        systemStateSnapshot: {
+          conversations: [
+            {
+              conversationId: 'conv-1',
+              subject: 'Symptom efter behandling',
+              status: 'open',
+              slaDeadlineAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+              messages: [
+                {
+                  messageId: 'msg-1',
+                  direction: 'inbound',
+                  sentAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+                  bodyPreview: 'Jag har smarta och feber. Kontakta mig pa 0701234567.',
+                },
+              ],
+            },
+          ],
+          timestamps: {
+            capturedAt: new Date().toISOString(),
+          },
+        },
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.capability.name, 'AnalyzeInbox');
+    assert.equal(payload.capability.persistStrategy, 'analysis');
+    assert.equal(payload.decision, 'allow');
+    assert.equal(Boolean(payload.riskSummary?.input), true);
+    assert.equal(Boolean(payload.riskSummary?.output), true);
+    assert.equal(payload.riskSummary?.output?.scope, 'output');
+    assert.equal(typeof payload.riskSummary?.output?.decision, 'string');
+    assert.equal(payload.policySummary?.blocked, false);
+    assert.equal(Array.isArray(payload.policySummary?.reasonCodes), true);
+    assert.equal(Array.isArray(payload.output?.data?.suggestedDrafts), true);
+    assert.equal(payload.output.data.suggestedDrafts.length <= 5, true);
+    assert.equal(payload.output?.metadata?.capability, 'AnalyzeInbox');
+  });
+
+  const entries = await analysisStore.list({
+    tenantId: 'tenant-a',
+    capabilityName: 'AnalyzeInbox',
+    limit: 20,
+  });
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].capability.name, 'AnalyzeInbox');
+  assert.equal(entries[0].capability.persistStrategy, 'analysis');
+  assert.equal(entries[0].policySummary?.blocked, false);
+  assert.equal(entries[0].riskSummary?.output?.scope, 'output');
+  assert.equal(Boolean(entries[0].riskSummary?.output?.decision), true);
+
+  assert.deepEqual(mailboxWriteCounters, {
+    sendReply: 0,
+    markAsRead: 0,
+    updateThread: 0,
+  });
+});
+
+test('AnalyzeInbox hydrates Graph snapshot and writes mailbox read start/complete audit events', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-inbox-graph-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const graphCalls = [];
+  const graphReadConnector = {
+    async fetchInboxSnapshot(options = {}) {
+      graphCalls.push({ ...options });
+      return {
+        snapshotVersion: 'graph.inbox.snapshot.v1',
+        timestamps: {
+          capturedAt: '2026-02-26T18:00:00.000Z',
+          sourceGeneratedAt: '2026-02-26T17:59:58.000Z',
+        },
+        conversations: [
+          {
+            conversationId: 'graph-conv-1',
+            subject: 'Fraga efter behandling',
+            status: 'open',
+            messages: [
+              {
+                messageId: 'graph-msg-1',
+                direction: 'inbound',
+                sentAt: '2026-02-26T17:00:00.000Z',
+                bodyPreview: 'Jag har symptom efter behandling och undrar om uppfoljning.',
+              },
+            ],
+            riskWords: ['symptom'],
+          },
+        ],
+      };
+    },
+  };
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+      graphReadConnector,
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': 'corr-capability-inbox-graph-1',
+      },
+      body: JSON.stringify({
+        channel: 'admin',
+        input: {
+          maxDrafts: 3,
+        },
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.capability.name, 'AnalyzeInbox');
+    assert.equal(payload.output?.metadata?.capability, 'AnalyzeInbox');
+    assert.equal(Array.isArray(payload.output?.data?.suggestedDrafts), true);
+    assert.equal(payload.output.data.suggestedDrafts.length >= 1, true);
+  });
+
+  assert.equal(graphCalls.length, 1);
+  assert.equal(graphCalls[0].days, 14);
+  assert.equal(graphCalls[0].maxMessages, 100);
+  assert.equal(graphCalls[0].includeRead, false);
+
+  const audits = await authStore.listAuditEvents({
+    tenantId: 'tenant-a',
+    limit: 300,
+  });
+  const mailboxAudits = audits.filter((item) => String(item.action || '').startsWith('mailbox.read.'));
+  const actions = new Set(mailboxAudits.map((item) => item.action));
+  assert.equal(actions.has('mailbox.read.start'), true);
+  assert.equal(actions.has('mailbox.read.complete'), true);
+  assert.equal(actions.has('mailbox.read.error'), false);
+
+  const completeEvent = mailboxAudits.find((item) => item.action === 'mailbox.read.complete');
+  assert.equal(completeEvent?.metadata?.messageCount, 1);
+  assert.equal(completeEvent?.metadata?.conversationCount, 1);
+
+  const entries = await analysisStore.list({
+    tenantId: 'tenant-a',
+    capabilityName: 'AnalyzeInbox',
+    limit: 20,
+  });
+  assert.equal(entries.length, 1);
+});
+
+test('AnalyzeInbox writes mailbox.read.error and returns 500 when Graph snapshot ingest fails', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-inbox-graph-error-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const graphReadConnector = {
+    async fetchInboxSnapshot() {
+      throw new Error('graph_api_unavailable');
+    },
+  };
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+      graphReadConnector,
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': 'corr-capability-inbox-graph-error-1',
+      },
+      body: JSON.stringify({
+        channel: 'admin',
+        input: {
+          maxDrafts: 1,
+        },
+      }),
+    });
+
+    assert.equal(response.status, 500);
+    const payload = await response.json();
+    assert.equal(payload.code, 'CAPABILITY_INBOX_SOURCE_UNAVAILABLE');
+  });
+
+  const audits = await authStore.listAuditEvents({
+    tenantId: 'tenant-a',
+    limit: 300,
+  });
+  const mailboxAudits = audits.filter((item) => String(item.action || '').startsWith('mailbox.read.'));
+  const actions = new Set(mailboxAudits.map((item) => item.action));
+  assert.equal(actions.has('mailbox.read.start'), true);
+  assert.equal(actions.has('mailbox.read.error'), true);
+
+  const entries = await analysisStore.list({
+    tenantId: 'tenant-a',
+    capabilityName: 'AnalyzeInbox',
+    limit: 20,
+  });
+  assert.equal(entries.length, 0);
+});
+
+test('AnalyzeInbox policy floor blocks forbidden draft language before persist', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-inbox-policy-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+    })
+  );
+
+  const originalExecute = AnalyzeInboxCapability.prototype.execute;
+  AnalyzeInboxCapability.prototype.execute = async function unsafeExecute(context) {
+    const base = await originalExecute.call(this, context);
+    base.data.suggestedDrafts = [
+      {
+        conversationId: 'conv-unsafe',
+        messageId: 'msg-unsafe',
+        subject: 'Unsafe',
+        proposedReply: 'Vi garanterar 100% resultat och detta ar en diagnos.',
+        confidenceLevel: 'High',
+      },
+    ];
+    base.data.executiveSummary = 'Unsafe policy content inserted for enforcement test.';
+    base.data.priorityLevel = 'High';
+    return base;
+  };
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-correlation-id': 'corr-capability-inbox-policy-1',
+        },
+        body: JSON.stringify({
+          channel: 'admin',
+          input: {
+            maxDrafts: 1,
+          },
+          systemStateSnapshot: {
+            conversations: [
+              {
+                conversationId: 'conv-1',
+                subject: 'Kontroll',
+                status: 'open',
+                messages: [
+                  {
+                    messageId: 'msg-1',
+                    direction: 'inbound',
+                    sentAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+                    bodyPreview: 'Hej, en vanlig fraga.',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      });
+
+      assert.equal(response.status, 403);
+      const payload = await response.json();
+      assert.equal(typeof payload.error, 'string');
+      assert.equal(payload.error.length > 0, true);
+    });
+  } finally {
+    AnalyzeInboxCapability.prototype.execute = originalExecute;
+  }
+
+  const entries = await analysisStore.list({
+    tenantId: 'tenant-a',
+    capabilityName: 'AnalyzeInbox',
+    limit: 20,
+  });
+  assert.equal(entries.length, 0);
 });
 
 test('GenerateTaskPlan enforces output risk + policy evaluation before response', async () => {
@@ -533,10 +970,18 @@ test('capability meta exposes registry + agent bundles', async () => {
       payload.capabilities.some((item) => item?.name === 'SummarizeIncidents'),
       true
     );
+    assert.equal(
+      payload.capabilities.some((item) => item?.name === 'AnalyzeInbox'),
+      true
+    );
     assert.equal(Array.isArray(payload.agentBundles), true);
     assert.equal(payload.agentBundles.some((item) => item?.role === 'COO'), true);
+    assert.equal(payload.agentBundles.some((item) => item?.role === 'CCO'), true);
     const coo = payload.agentBundles.find((item) => item?.role === 'COO');
     assert.equal(Array.isArray(coo?.capabilities), true);
     assert.equal(coo.capabilities.includes('SummarizeIncidents'), true);
+    const cco = payload.agentBundles.find((item) => item?.role === 'CCO');
+    assert.equal(Array.isArray(cco?.capabilities), true);
+    assert.equal(cco.capabilities.includes('AnalyzeInbox'), true);
   });
 });

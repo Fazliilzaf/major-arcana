@@ -66,6 +66,7 @@ Each event should include:
 - `correlationId`
 
 ## Current State
-- Connector implemented and unit-tested in isolation.
-- Not yet wired into route or scheduler execution path.
+- Connector implemented and wired for `POST /api/v1/capabilities/AnalyzeInbox/run`.
+- Snapshot hydrate path uses Graph read-only fetch when `systemStateSnapshot.conversations` is not provided.
+- `mailbox.read.start`, `mailbox.read.complete`, `mailbox.read.error` audit events are emitted.
 - No mailbox write path exists in this block.
