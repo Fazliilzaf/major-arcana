@@ -2452,7 +2452,7 @@
       <div class="row cols-2" data-section-group="settingsSection" style="margin-top:14px">
         <section class="panel">
           <h2 data-i18n="my_tenants">Mina kliniker</h2>
-          <div style="margin-top:8px" class="seg">
+          <div style="margin-top:8px" class="seg quick-actions glass-toolbar">
             <button id="refreshTenantsBtn" class="btn" data-i18n="refresh_tenants">Uppdatera kliniklista</button>
           </div>
           <div id="tenantCatalog" class="code-block" style="margin-top:10px">Ingen data ännu.</div>
@@ -2531,7 +2531,7 @@
                   <input id="staffPasswordInput" type="password" placeholder="Tomt = auto-generera" />
                 </div>
               </div>
-              <div style="margin-top:10px" class="seg">
+              <div style="margin-top:10px" class="seg quick-actions glass-toolbar">
                 <button id="createStaffBtn" class="btn primary">Skapa/Uppdatera medarbetare</button>
                 <button id="generateStaffPasswordBtn" class="btn">Generera lösenord</button>
                 <button id="copyInviteMessageBtn" class="btn">Kopiera inbjudningstext</button>
@@ -2577,7 +2577,7 @@
                   <input id="newPasswordInput" type="password" placeholder="Minst 10 tecken" />
                 </div>
               </div>
-              <div class="invite-preview-actions">
+              <div class="invite-preview-actions quick-actions glass-toolbar">
                 <button id="changeOwnPasswordBtn" class="btn">Byt mitt lösenord</button>
                 <button id="refreshProfileBtn" class="btn small">Uppdatera profil</button>
               </div>
@@ -2625,7 +2625,7 @@
             <h3>Vald användarprofil</h3>
             <div id="selectedStaffMeta" class="mini muted">Ingen medarbetare vald.</div>
             <div id="selectedStaffDetails" class="code-block" style="margin-top:8px">Välj en rad i tabellen för att se detaljer och nästa steg.</div>
-            <div class="invite-preview-actions">
+            <div class="invite-preview-actions quick-actions glass-toolbar">
               <button id="resetSelectedStaffPasswordBtn" class="btn small">Återställ lösenord</button>
               <button id="selectedStaffRoleBtn" class="btn small">Ändra roll</button>
               <button id="copySelectedStaffInviteBtn" class="btn small">Kopiera inbjudningstext</button>
@@ -2693,7 +2693,7 @@
               <input id="riskLabVariables" type="text" placeholder="first_name, clinic_name" />
             </div>
           </div>
-          <div class="seg glass-action-row" style="margin-top:10px">
+          <div class="seg glass-action-row quick-actions glass-toolbar" style="margin-top:10px">
             <button id="runRiskPreviewBtn" class="btn primary">Kör förhandsgranskning</button>
           </div>
           <div id="riskLabStatus" class="status-line"></div>
@@ -2708,7 +2708,7 @@
             <label for="orchestratorPromptInput">Intern uppgift</label>
             <textarea id="orchestratorPromptInput" style="min-height:120px" placeholder="Ex: Granska high/critical och föreslå owner actions för idag."></textarea>
           </div>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="runOrchestratorBtn" class="btn primary">Kör orkestrering</button>
           </div>
           <div id="orchestratorStatus" class="status-line"></div>
@@ -2761,7 +2761,7 @@
 
         <section class="panel">
           <h2>Riskkalibrering</h2>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="fetchCalibrationSuggestionBtn" class="btn">Hämta förslag</button>
             <button id="applyCalibrationSuggestionBtn" class="btn primary">Applicera förslag</button>
           </div>
@@ -2788,7 +2788,7 @@
 
         <section class="panel">
           <h2>Mailinsikter</h2>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="refreshMailInsightsBtn" class="btn">Ladda mail-insikter</button>
             <button id="previewMailSeedsBtn" class="btn">Förhandsvisa seeds → utkast</button>
             <button id="applyMailSeedsBtn" class="btn primary">Skapa utkast från seeds</button>
@@ -2823,7 +2823,7 @@
 
         <section class="panel">
           <h2>Driftstatus</h2>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="refreshMonitorBtn" class="btn">Uppdatera monitor</button>
             <button id="runSchedulerSuiteBtn" class="btn">Kör scheduler-suite</button>
             <button id="previewReadinessOutputGateRemediationBtn" class="btn">Preview output-gate remediation</button>
@@ -2872,14 +2872,14 @@
 
         <section class="panel">
           <h2>Driftbackup</h2>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="loadStateManifestBtn" class="btn">Läs state manifest</button>
             <button id="createStateBackupBtn" class="btn primary">Skapa backup</button>
             <button id="listStateBackupsBtn" class="btn">Lista säkerhetskopior</button>
             <button id="previewPruneBackupsBtn" class="btn">Förhandsvisa rensning</button>
             <button id="runPruneBackupsBtn" class="btn danger">Kör prune</button>
           </div>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="listSchedulerReportsBtn" class="btn">Lista scheduler-rapporter</button>
             <button id="previewPruneReportsBtn" class="btn">Förhandsvisa report-prune</button>
             <button id="runPruneReportsBtn" class="btn danger">Kör report-prune</button>
@@ -2888,7 +2888,7 @@
             <label for="restoreBackupFileInput">Backupfil (från listan)</label>
             <input id="restoreBackupFileInput" type="text" placeholder="arcana-state-YYYYMMDD-HHMMSS.json" />
           </div>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="previewStateRestoreBtn" class="btn">Förhandsvisa återställning</button>
             <button id="runStateRestoreBtn" class="btn danger">Kör restore</button>
           </div>
@@ -2926,7 +2926,7 @@
             <input id="templateLocaleInput" type="text" value="sv-SE" />
           </div>
         </div>
-        <div style="margin-top:12px" class="seg glass-action-row">
+        <div style="margin-top:12px" class="seg glass-action-row quick-actions glass-toolbar">
           <button id="createTemplateBtn" class="btn primary">Skapa mall</button>
         </div>
         <div class="grid form-block-grid">
@@ -3064,7 +3064,7 @@
               </div>
             </article>
           </div>
-          <div class="seg" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="generateDraftBtn" class="btn">Generera utkast (AI)</button>
             <button id="saveDraftBtn" class="btn">Spara draft</button>
             <button id="evaluateBtn" class="btn">Utvärdera</button>
