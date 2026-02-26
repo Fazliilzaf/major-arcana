@@ -1459,6 +1459,32 @@
       color: rgba(249, 226, 200, 0.9);
       line-height: 1.4;
     }
+    .header-menu-row {
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      border: 1px solid rgba(245, 214, 182, 0.34);
+      background:
+        linear-gradient(160deg, rgba(205, 184, 170, 0.22), rgba(194, 170, 156, 0.12)),
+        linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    .header-menu-row .btn:not(.danger) {
+      color: var(--accent-text);
+      border-color: rgba(235, 220, 207, 0.32);
+      background:
+        linear-gradient(150deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06) 42%, rgba(255,255,255,0)),
+        linear-gradient(160deg, rgba(205, 184, 170, 0.94), rgba(194, 170, 156, 0.84));
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.26);
+    }
+    .header-menu-row .btn:not(.danger):hover {
+      filter: brightness(1.05);
+    }
+    .header-menu-row select {
+      min-width: 180px;
+      background: linear-gradient(155deg, rgba(66, 57, 50, 0.84), rgba(46, 40, 35, 0.8));
+      border-color: rgba(235, 220, 207, 0.36);
+    }
     .section-nav {
       position: sticky;
       top: 8px;
@@ -1472,7 +1498,7 @@
       background:
         linear-gradient(155deg, rgba(var(--panel-soft-rgb), 0.82), rgba(var(--panel-rgb), 0.78)),
         linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.02)),
-        radial-gradient(120% 90% at 8% -12%, rgba(var(--accent-rgb), 0.12), transparent 72%);
+        radial-gradient(120% 90% at 8% -12%, rgba(214, 173, 132, 0.18), transparent 72%);
       box-shadow: 0 20px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.2);
       backdrop-filter: blur(10px) saturate(124%);
       -webkit-backdrop-filter: blur(10px) saturate(124%);
@@ -1480,18 +1506,18 @@
       animation: surfaceSheenDrift 18s ease-in-out infinite;
     }
     .section-nav .btn {
-      color: rgba(255, 244, 232, 0.98);
-      border-color: rgba(245, 214, 182, 0.44);
+      color: var(--accent-text);
+      border-color: rgba(235, 220, 207, 0.34);
       background:
-        linear-gradient(145deg, rgba(255,255,255,0.28), rgba(255,255,255,0.1) 36%, rgba(255,255,255,0.02)),
-        linear-gradient(155deg, rgba(74, 64, 57, 0.82), rgba(43, 37, 33, 0.74));
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.24);
+        linear-gradient(150deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06) 42%, rgba(255,255,255,0)),
+        linear-gradient(160deg, rgba(205, 184, 170, 0.9), rgba(194, 170, 156, 0.8));
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.24);
     }
     .section-nav .btn.active {
       color: var(--accent-text);
       background:
-        linear-gradient(145deg, rgba(255,255,255,0.32), rgba(255,255,255,0.07) 38%, rgba(255,255,255,0)),
-        linear-gradient(155deg, rgba(214, 173, 132, 0.72), rgba(214, 173, 132, 0.34));
+        linear-gradient(145deg, rgba(255,255,255,0.34), rgba(255,255,255,0.09) 38%, rgba(255,255,255,0)),
+        linear-gradient(155deg, rgba(214, 173, 132, 0.88), rgba(214, 173, 132, 0.56));
       border-color: rgba(214, 173, 132, 0.94);
       box-shadow: 0 0 0 1px rgba(214, 173, 132, 0.5), 0 0 30px rgba(235, 201, 165, 0.3), 0 16px 28px rgba(0, 0, 0, 0.33), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
@@ -2064,7 +2090,7 @@
           </select>
         </div>
         <div id="sessionMeta" class="muted" data-i18n="session_not_logged">Inte inloggad</div>
-        <div class="seg">
+        <div class="seg header-menu-row glass-toolbar">
           <button id="densityToggleBtn" class="btn" data-i18n="density_compact">Kompakt vy</button>
           <select id="tenantSwitchSelect" style="min-width:180px" data-i18n-default-option="tenant_option">
             <option value="" data-i18n="tenant_option">Klinik</option>
