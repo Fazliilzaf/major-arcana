@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { evaluatePolicyFloorText } = require('../policy/floor');
+const { maskInboxText } = require('../privacy/inboxMasking');
 const { validateJsonSchema } = require('./schemaValidator');
 const {
   getCapabilityByName,
@@ -31,6 +32,14 @@ function normalizeText(value) {
 function safeObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return JSON.parse(JSON.stringify(value));
+}
+
+function toStringArray(value, maxItems = 20) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => normalizeText(item))
+    .filter(Boolean)
+    .slice(0, maxItems);
 }
 
 function toIso(value) {
@@ -188,6 +197,14 @@ function bindGatewayRunCapability(executionGateway) {
       executionGateway.runCapability(capabilityName, { context, handlers });
   }
   throw new Error('Capability executor kräver executionGateway.runCapability eller executionGateway.run.');
+}
+
+function toCcoSendAllowlistSet(rawValue = '') {
+  const entries = String(rawValue || '')
+    .split(',')
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  return new Set(entries);
 }
 
 function createCapabilityExecutor({
@@ -557,6 +574,46 @@ function createCapabilityExecutor({
         completedAt: toIso(new Date()) || new Date().toISOString(),
       },
     });
+
+    if (CapabilityClass.name === 'CcoConversationAction') {
+      const actionType = normalizeText(
+        gatewayResult?.response_payload?.output?.data?.action
+      ).toLowerCase();
+      const targetConversationId = normalizeText(
+        gatewayResult?.response_payload?.output?.data?.conversationId
+      );
+      if (actionType === 'handled') {
+        await writeAudit({
+          tenantId: normalizedTenantId,
+          actorUserId: normalizedActor.id,
+          action: 'cco.reply.handled',
+          outcome: 'success',
+          targetType: 'cco_conversation',
+          targetId: targetConversationId || capabilityRunId,
+          metadata: {
+            capabilityRunId,
+            capabilityName: CapabilityClass.name,
+            gatewayRunId: gatewayResult?.run_id || null,
+            correlationId: normalizedCorrelationId,
+          },
+        });
+      } else if (actionType === 'flag_critical') {
+        await writeAudit({
+          tenantId: normalizedTenantId,
+          actorUserId: normalizedActor.id,
+          action: 'cco.reply.flagged_critical',
+          outcome: 'success',
+          targetType: 'cco_conversation',
+          targetId: targetConversationId || capabilityRunId,
+          metadata: {
+            capabilityRunId,
+            capabilityName: CapabilityClass.name,
+            gatewayRunId: gatewayResult?.run_id || null,
+            correlationId: normalizedCorrelationId,
+          },
+        });
+      }
+    }
 
     return {
       capabilityRunId,
@@ -965,11 +1022,357 @@ function createCapabilityExecutor({
     };
   }
 
+  async function runCcoSend({
+    tenantId,
+    actor = {},
+    channel = 'admin',
+    input = {},
+    correlationId = null,
+    idempotencyKey = null,
+    requestMetadata = {},
+    graphSendConnector = null,
+    graphSendEnabled = false,
+    graphSendAllowlist = '',
+  }) {
+    const normalizedTenantId = normalizeText(tenantId);
+    const normalizedActor = {
+      id: normalizeText(actor?.id) || null,
+      role: normalizeText(actor?.role || '').toUpperCase() || null,
+    };
+    const normalizedChannel = normalizeText(channel).toLowerCase() || 'admin';
+    const normalizedCorrelationId = normalizeText(correlationId) || null;
+    const normalizedIdempotencyKey = normalizeText(idempotencyKey) || null;
+    const normalizedInput = safeObject(input);
+    const ccoSendRunId = crypto.randomUUID();
+
+    if (!normalizedTenantId) {
+      throw makeCapabilityError('CAPABILITY_INVALID_TENANT', 'tenantId saknas for CCO send.');
+    }
+    if (!['OWNER', 'STAFF'].includes(normalizedActor.role || '')) {
+      throw makeCapabilityError('CAPABILITY_ROLE_DENIED', 'Role saknar access till CCO send.');
+    }
+    if (normalizedChannel !== 'admin') {
+      throw makeCapabilityError('CAPABILITY_CHANNEL_DENIED', 'CCO send tillater endast admin-channel.');
+    }
+
+    const mailboxId = normalizeText(normalizedInput.mailboxId || normalizedInput.mailbox_id);
+    const replyToMessageId = normalizeText(
+      normalizedInput.replyToMessageId || normalizedInput.reply_to_message_id
+    );
+    const conversationId = normalizeText(
+      normalizedInput.conversationId || normalizedInput.conversation_id
+    );
+    const subject = normalizeText(normalizedInput.subject);
+    const body = normalizeText(normalizedInput.body);
+    const to = toStringArray(normalizedInput.to, 20);
+
+    if (!mailboxId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'mailboxId kravs.');
+    }
+    if (!replyToMessageId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'replyToMessageId kravs.');
+    }
+    if (!conversationId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'conversationId kravs.');
+    }
+    if (!subject) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'subject kravs.');
+    }
+    if (!body) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'body kravs.');
+    }
+    if (!to.length) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'to[] kravs.');
+    }
+    if (!normalizedIdempotencyKey) {
+      throw makeCapabilityError(
+        'CCO_SEND_INPUT_INVALID',
+        'idempotencyKey kravs for CCO send.'
+      );
+    }
+
+    if (!graphSendEnabled) {
+      throw makeCapabilityError(
+        'CCO_SEND_DISABLED',
+        'CCO send ar avstangt (ARCANA_GRAPH_SEND_ENABLED=false).'
+      );
+    }
+    if (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function') {
+      throw makeCapabilityError(
+        'CCO_SEND_CONNECTOR_UNAVAILABLE',
+        'Microsoft Graph send connector saknas.'
+      );
+    }
+
+    const allowlistSet = toCcoSendAllowlistSet(graphSendAllowlist);
+    if (!allowlistSet.size) {
+      throw makeCapabilityError(
+        'CCO_SEND_ALLOWLIST_EMPTY',
+        'ARCANA_GRAPH_SEND_ALLOWLIST ar tom. Minst en mailbox kravs.'
+      );
+    }
+    const normalizedMailboxIdLower = mailboxId.toLowerCase();
+    if (!allowlistSet.has(normalizedMailboxIdLower)) {
+      throw makeCapabilityError(
+        'CCO_SEND_ALLOWLIST_BLOCKED',
+        `Mailbox ar inte allowlistad for send: ${mailboxId}.`
+      );
+    }
+
+    await writeAudit({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: 'cco.send.requested',
+      outcome: 'success',
+      targetType: 'cco_send',
+      targetId: ccoSendRunId,
+      metadata: {
+        ccoSendRunId,
+        mailboxId,
+        conversationId,
+        replyToMessageId,
+        to,
+        correlationId: normalizedCorrelationId,
+        channel: normalizedChannel,
+      },
+    });
+
+    let gatewayResult;
+    try {
+      gatewayResult = await runCapabilityThroughGateway({
+        capabilityName: 'CCO.SendReply',
+        context: {
+          tenant_id: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          intent: 'cco.send.reply',
+          payload: {
+            ccoSendRunId,
+            mailboxId,
+            replyToMessageId,
+            conversationId,
+            to,
+            subject,
+            body,
+          },
+          correlation_id: normalizedCorrelationId,
+          idempotency_key: normalizedIdempotencyKey,
+        },
+        handlers: {
+          audit: async (event) => {
+            await writeAudit({
+              tenantId: normalizedTenantId,
+              actorUserId: normalizedActor.id,
+              action: event.action,
+              outcome: event.outcome,
+              targetType: 'gateway_run',
+              targetId: String(event?.metadata?.runId || ''),
+              metadata: {
+                ...(event.metadata || {}),
+                ccoSendRunId,
+                capabilityName: 'CCO.SendReply',
+              },
+            });
+          },
+          inputRisk: async () =>
+            buildAllowRiskEvaluation({
+              scope: 'input',
+              buildVersion,
+            }),
+          agentRun: async () => ({
+            output: {
+              mailboxId,
+              replyToMessageId,
+              conversationId,
+              to,
+              subject,
+              body,
+              confidenceLevel: 'High',
+            },
+          }),
+          outputRisk: async ({ agentResult }) =>
+            evaluateTemplateRisk({
+              scope: 'output',
+              category: 'INTERNAL',
+              content: stringifyForRisk({
+                subject: agentResult?.output?.subject || '',
+                body: agentResult?.output?.body || '',
+              }),
+              tenantRiskModifier: 0,
+              riskThresholdVersion: 1,
+            }),
+          policyFloor: async ({ agentResult }) =>
+            evaluatePolicyFloorText({
+              text: stringifyForRisk({
+                subject: agentResult?.output?.subject || '',
+                body: agentResult?.output?.body || '',
+              }),
+              context: 'patient_response',
+            }),
+          persist: async ({ runId, decision, inputRisk, outputRisk, policy, agentResult }) => {
+            if (!['allow', 'allow_flag'].includes(String(decision || '').toLowerCase())) {
+              const decisionError = makeCapabilityError(
+                'CCO_SEND_REQUIRES_ALLOW',
+                'CCO send kraver allow eller allow_flag.'
+              );
+              decisionError.nonRetryable = true;
+              throw decisionError;
+            }
+
+            const sendResult = await graphSendConnector.sendReply({
+              mailboxId,
+              replyToMessageId,
+              body: String(agentResult?.output?.body || ''),
+              subject: String(agentResult?.output?.subject || ''),
+              to,
+            });
+
+            if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+              const storeError = makeCapabilityError(
+                'CAPABILITY_ANALYSIS_STORE_MISSING',
+                'Analysis store saknas for CCO send persist.'
+              );
+              storeError.nonRetryable = true;
+              throw storeError;
+            }
+
+            const analysisEntry = await capabilityAnalysisStore.append({
+              tenantId: normalizedTenantId,
+              capability: {
+                name: 'CCO.SendReply',
+                version: '1.0.0',
+                persistStrategy: 'analysis',
+              },
+              decision,
+              runId,
+              capabilityRunId: ccoSendRunId,
+              correlationId: normalizedCorrelationId,
+              actor: normalizedActor,
+              input: {
+                mailboxId,
+                replyToMessageId,
+                conversationId,
+                to,
+                subject: maskInboxText(subject, 180),
+                bodyPreview: maskInboxText(body, 360),
+              },
+              output: {
+                provider: sendResult.provider,
+                mailboxId: sendResult.mailboxId,
+                replyToMessageId: sendResult.replyToMessageId,
+                conversationId,
+                to: sendResult.to,
+                subject: maskInboxText(subject, 180),
+                bodyPreview: maskInboxText(body, 360),
+                sentAt: sendResult.sentAt,
+              },
+              riskSummary: {
+                input: inputRisk?.evaluation || null,
+                output: outputRisk?.evaluation || null,
+              },
+              policySummary: {
+                blocked: policy?.blocked === true,
+                reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [],
+              },
+              metadata: {
+                channel: normalizedChannel,
+                requestMetadata: safeObject(requestMetadata),
+                sendMode: 'manual',
+              },
+            });
+
+            return {
+              artifact_refs: {
+                analysis_id: analysisEntry.id,
+                send_provider: sendResult.provider,
+                cco_send_run_id: ccoSendRunId,
+              },
+            };
+          },
+          safeResponse: ({ decision }) => ({
+            error:
+              'Svar blockerades av risk/policy och skickades inte. Justera texten och forsok igen.',
+            decision,
+            ccoSendRunId,
+          }),
+          response: ({ runId, decision, inputRisk, outputRisk, policy, persisted, safeResponse }) => ({
+            send: {
+              ccoSendRunId,
+              gatewayRunId: runId,
+              mailboxId,
+              replyToMessageId,
+              conversationId,
+              decision,
+              mode: 'manual',
+            },
+            decision,
+            riskSummary: {
+              input: inputRisk?.evaluation || null,
+              output: outputRisk?.evaluation || null,
+            },
+            policySummary: {
+              blocked: policy?.blocked === true,
+              reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [],
+            },
+            artifactRefs: persisted?.artifact_refs || null,
+            safeResponse: safeResponse || null,
+          }),
+        },
+      });
+    } catch (error) {
+      await writeAudit({
+        tenantId: normalizedTenantId,
+        actorUserId: normalizedActor.id,
+        action: 'cco.send.error',
+        outcome: 'error',
+        targetType: 'cco_send',
+        targetId: ccoSendRunId,
+        metadata: {
+          ccoSendRunId,
+          mailboxId,
+          conversationId,
+          replyToMessageId,
+          correlationId: normalizedCorrelationId,
+          errorCode: error?.code || null,
+          errorMessage: normalizeText(error?.message) || 'cco_send_error',
+        },
+      });
+      throw error;
+    }
+
+    const blocked =
+      gatewayResult?.decision === 'blocked' ||
+      gatewayResult?.decision === 'critical_escalate';
+    await writeAudit({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: blocked ? 'cco.send.blocked' : 'cco.send.sent',
+      outcome: blocked ? 'blocked' : 'success',
+      targetType: 'cco_send',
+      targetId: ccoSendRunId,
+      metadata: {
+        ccoSendRunId,
+        mailboxId,
+        conversationId,
+        replyToMessageId,
+        correlationId: normalizedCorrelationId,
+        decision: gatewayResult?.decision || null,
+        gatewayRunId: gatewayResult?.run_id || null,
+      },
+    });
+
+    return {
+      ccoSendRunId,
+      gatewayResult,
+    };
+  }
+
   return {
     listCapabilities,
     listAgentBundles,
     runCapability,
     runAgent,
+    runCcoSend,
   };
 }
 

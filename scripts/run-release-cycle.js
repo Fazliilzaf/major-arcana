@@ -61,7 +61,7 @@ function buildFallbackEmail(localPart, tenantId) {
 function parseArgs(argv) {
   const baseUrl = normalizeText(process.env.BASE_URL || process.env.PUBLIC_BASE_URL || 'http://localhost:3000');
   const tenantId = normalizeText(process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic');
-  const ownerEmail = normalizeText(process.env.ARCANA_OWNER_EMAIL || 'owner@hairtpclinic.se');
+  const ownerEmail = normalizeText(process.env.ARCANA_OWNER_EMAIL || 'fazli@hairtpclinic.com');
   const ownerPassword = normalizeText(process.env.ARCANA_OWNER_PASSWORD || 'ArcanaPilot!2026');
 
   const args = {

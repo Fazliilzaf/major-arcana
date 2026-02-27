@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:3000}"
-EMAIL="${ARCANA_OWNER_EMAIL:-owner@hairtpclinic.se}"
+EMAIL="${ARCANA_OWNER_EMAIL:-fazli@hairtpclinic.com}"
 PASSWORD="${ARCANA_OWNER_PASSWORD:-ArcanaPilot!2026}"
 TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
 

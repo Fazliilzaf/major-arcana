@@ -153,7 +153,13 @@ test('CCO agent run uses Graph hydrate path, persists analysis only, and resolve
     assert.equal(payload.agent?.persistStrategy, 'analysis');
     assert.equal(payload.decision, 'allow');
     assert.equal(typeof payload.output?.data?.executiveSummary, 'string');
-    assert.equal(['Low', 'Medium', 'High'].includes(String(payload.output?.data?.priorityLevel || '')), true);
+    assert.equal(
+      ['Low', 'Medium', 'High', 'Critical'].includes(
+        String(payload.output?.data?.priorityLevel || '')
+      ),
+      true
+    );
+    assert.equal(Array.isArray(payload.output?.data?.conversationWorklist), true);
     assert.equal((payload.output?.data?.suggestedDrafts || []).length <= 5, true);
 
     const analysisResponse = await fetch(`${baseUrl}/api/v1/agents/analysis?agent=CCO&limit=1`);

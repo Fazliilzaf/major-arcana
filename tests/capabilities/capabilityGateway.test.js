@@ -642,6 +642,17 @@ test('AnalyzeInbox policy floor blocks forbidden draft language before persist',
       {
         conversationId: 'conv-unsafe',
         messageId: 'msg-unsafe',
+        mailboxId: 'owner@hairtpclinic.se',
+        sender: 'p***@example.com',
+        latestInboundPreview: 'Meddelandepreview',
+        hoursSinceInbound: 1,
+        slaStatus: 'ok',
+        intent: 'follow_up',
+        tone: 'neutral',
+        priorityLevel: 'High',
+        priorityScore: 66,
+        recommendedAction: 'Be om mer info',
+        escalationRequired: false,
         subject: 'Unsafe',
         proposedReply: 'Vi garanterar 100% resultat och detta ar en diagnos.',
         confidenceLevel: 'High',
@@ -993,9 +1004,13 @@ test('capabilities router fails fast when Graph read is enabled without required
     ARCANA_GRAPH_CLIENT_ID: process.env.ARCANA_GRAPH_CLIENT_ID,
     ARCANA_GRAPH_CLIENT_SECRET: process.env.ARCANA_GRAPH_CLIENT_SECRET,
     ARCANA_GRAPH_USER_ID: process.env.ARCANA_GRAPH_USER_ID,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
   };
 
   process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  delete process.env.ARCANA_GRAPH_FULL_TENANT;
+  delete process.env.ARCANA_GRAPH_USER_SCOPE;
   delete process.env.ARCANA_GRAPH_TENANT_ID;
   delete process.env.ARCANA_GRAPH_CLIENT_ID;
   delete process.env.ARCANA_GRAPH_CLIENT_SECRET;
@@ -1024,6 +1039,67 @@ test('capabilities router fails fast when Graph read is enabled without required
           templateStore: null,
         }),
       /ARCANA_GRAPH_READ_ENABLED=true requires: ARCANA_GRAPH_TENANT_ID, ARCANA_GRAPH_CLIENT_ID, ARCANA_GRAPH_CLIENT_SECRET, ARCANA_GRAPH_USER_ID\./
+    );
+  } finally {
+    Object.entries(previousEnv).forEach(([key, value]) => {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    });
+  }
+});
+
+test('capabilities router allows Graph full-tenant mode without ARCANA_GRAPH_USER_ID', () => {
+  const previousEnv = {
+    ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
+    ARCANA_GRAPH_TENANT_ID: process.env.ARCANA_GRAPH_TENANT_ID,
+    ARCANA_GRAPH_CLIENT_ID: process.env.ARCANA_GRAPH_CLIENT_ID,
+    ARCANA_GRAPH_CLIENT_SECRET: process.env.ARCANA_GRAPH_CLIENT_SECRET,
+    ARCANA_GRAPH_USER_ID: process.env.ARCANA_GRAPH_USER_ID,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
+  };
+
+  process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  process.env.ARCANA_GRAPH_TENANT_ID = 'tenant-id';
+  process.env.ARCANA_GRAPH_CLIENT_ID = 'client-id';
+  process.env.ARCANA_GRAPH_CLIENT_SECRET = 'client-secret';
+  process.env.ARCANA_GRAPH_FULL_TENANT = 'true';
+  process.env.ARCANA_GRAPH_USER_SCOPE = 'all';
+  delete process.env.ARCANA_GRAPH_USER_ID;
+
+  try {
+    assert.doesNotThrow(() =>
+      createCapabilitiesRouter({
+        authStore: {
+          async addAuditEvent() {},
+        },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth(_req, _res, next) {
+          next();
+        },
+        requireRole() {
+          return (_req, _res, next) => next();
+        },
+        executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+        capabilityAnalysisStore: null,
+        templateStore: null,
+        graphReadConnectorFactory() {
+          return {
+            async fetchInboxSnapshot() {
+              return {
+                snapshotVersion: 'graph.inbox.snapshot.v1',
+                conversations: [],
+                timestamps: { capturedAt: new Date().toISOString() },
+                metadata: {},
+              };
+            },
+          };
+        },
+      })
     );
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {

@@ -5,6 +5,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 const { createCapabilityExecutor } = require('../capabilities/executionService');
 const { createMicrosoftGraphReadConnector } = require('../infra/microsoftGraphReadConnector');
+const { createMicrosoftGraphSendConnector } = require('../infra/microsoftGraphSendConnector');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -22,6 +23,12 @@ function toBoolean(value, fallback = false) {
   if (!normalized) return fallback;
   if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeGraphUserScope(value, fallback = 'single') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'all' || normalized === 'single') return normalized;
   return fallback;
 }
 
@@ -48,6 +55,12 @@ function pickErrorStatus(errorCode = '') {
   }
   if (code === 'CAPABILITY_AGENT_NOT_IMPLEMENTED') return 400;
   if (code === 'CAPABILITY_INVALID_TENANT') return 400;
+  if (code === 'CCO_SEND_INPUT_INVALID') return 422;
+  if (code === 'CCO_SEND_REQUIRES_ALLOW') return 403;
+  if (code === 'CCO_SEND_ALLOWLIST_BLOCKED') return 403;
+  if (code === 'CCO_SEND_ALLOWLIST_EMPTY') return 503;
+  if (code === 'CCO_SEND_DISABLED') return 503;
+  if (code === 'CCO_SEND_CONNECTOR_UNAVAILABLE') return 503;
   return 500;
 }
 
@@ -243,10 +256,42 @@ function clampInteger(value, min, max, fallback) {
 }
 
 function toGraphReadOptionsFromEnv() {
+  const fullTenant = toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
+  const userScope = normalizeGraphUserScope(
+    process.env.ARCANA_GRAPH_USER_SCOPE,
+    fullTenant ? 'all' : 'single'
+  );
   return {
     days: clampInteger(process.env.ARCANA_GRAPH_WINDOW_DAYS, 1, 30, 14),
     maxMessages: clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100),
     includeRead: toBoolean(process.env.ARCANA_GRAPH_INCLUDE_READ, false),
+    fullTenant,
+    userScope,
+    maxUsers: clampInteger(process.env.ARCANA_GRAPH_MAX_USERS, 1, 200, 50),
+    maxMessagesPerUser: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_MESSAGES_PER_USER,
+      1,
+      200,
+      50
+    ),
+    mailboxTimeoutMs: clampInteger(
+      process.env.ARCANA_GRAPH_MAILBOX_TIMEOUT_MS,
+      1000,
+      15000,
+      5000
+    ),
+    runTimeoutMs: clampInteger(
+      process.env.ARCANA_GRAPH_RUN_TIMEOUT_MS,
+      5000,
+      120000,
+      30000
+    ),
+    maxMailboxErrors: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_MAILBOX_ERRORS,
+      1,
+      20,
+      5
+    ),
   };
 }
 
@@ -339,6 +384,13 @@ async function hydrateAnalyzeInboxInput({
       windowDays: graphReadOptions.days,
       maxMessages: graphReadOptions.maxMessages,
       includeRead: graphReadOptions.includeRead,
+      fullTenant: graphReadOptions.fullTenant,
+      userScope: graphReadOptions.userScope,
+      maxUsers: graphReadOptions.maxUsers,
+      maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+      mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
+      runTimeoutMs: graphReadOptions.runTimeoutMs,
+      maxMailboxErrors: graphReadOptions.maxMailboxErrors,
       capturedAt,
     },
   });
@@ -376,6 +428,15 @@ async function hydrateAnalyzeInboxInput({
         windowDays: graphReadOptions.days,
         maxMessages: graphReadOptions.maxMessages,
         includeRead: graphReadOptions.includeRead,
+        fullTenant: graphReadOptions.fullTenant,
+        userScope: graphReadOptions.userScope,
+        maxUsers: graphReadOptions.maxUsers,
+        maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+        mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
+        runTimeoutMs: graphReadOptions.runTimeoutMs,
+        maxMailboxErrors: graphReadOptions.maxMailboxErrors,
+        mailboxCount: toNumber(graphSnapshot?.metadata?.mailboxCount, 0),
+        mailboxErrors: toNumber(graphSnapshot?.metadata?.mailboxErrors, 0),
         conversationCount: asArray(mergedSnapshot.conversations).length,
         messageCount: toSnapshotMessageCount(mergedSnapshot),
         snapshotVersion: normalizeText(mergedSnapshot.snapshotVersion) || null,
@@ -402,6 +463,13 @@ async function hydrateAnalyzeInboxInput({
         windowDays: graphReadOptions.days,
         maxMessages: graphReadOptions.maxMessages,
         includeRead: graphReadOptions.includeRead,
+        fullTenant: graphReadOptions.fullTenant,
+        userScope: graphReadOptions.userScope,
+        maxUsers: graphReadOptions.maxUsers,
+        maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+        mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
+        runTimeoutMs: graphReadOptions.runTimeoutMs,
+        maxMailboxErrors: graphReadOptions.maxMailboxErrors,
         errorMessage: normalizeText(error?.message) || 'graph_read_failed',
       },
     });
@@ -1045,6 +1113,40 @@ async function runAgentHandler({
   return toCapabilityRunSuccess(res, result);
 }
 
+async function runCcoSendHandler({
+  req,
+  res,
+  executor,
+  graphSendConnector,
+  graphSendEnabled,
+  graphSendAllowlist,
+}) {
+  const actor = toActor(req);
+  const correlationId = toCorrelationId(req);
+  const rawPayload = asObject(req.body);
+  const input = asObject(rawPayload.input && typeof rawPayload.input === 'object'
+    ? rawPayload.input
+    : rawPayload);
+
+  const result = await executor.runCcoSend({
+    tenantId: toTenantId(req),
+    actor,
+    channel: toChannel(req),
+    input,
+    correlationId,
+    idempotencyKey: toIdempotencyKey(req),
+    requestMetadata: toRequestMetadata(req),
+    graphSendConnector,
+    graphSendEnabled,
+    graphSendAllowlist,
+  });
+
+  if (isBlockedDecision(result.gatewayResult || {})) {
+    return toCapabilityRunBlocked(res, result);
+  }
+  return toCapabilityRunSuccess(res, result);
+}
+
 async function readAnalysisHandler({ req, res, capabilityAnalysisStore }) {
   if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
     return toAnalysisUnavailable(res);
@@ -1114,6 +1216,28 @@ function toAnalysisHandler({ capabilityAnalysisStore }) {
   };
 }
 
+function toCcoSendHandler({
+  executor,
+  graphSendConnector,
+  graphSendEnabled,
+  graphSendAllowlist,
+}) {
+  return async (req, res) => {
+    try {
+      return await runCcoSendHandler({
+        req,
+        res,
+        executor,
+        graphSendConnector,
+        graphSendEnabled,
+        graphSendAllowlist,
+      });
+    } catch (error) {
+      return toCapabilityRunError(res, error);
+    }
+  };
+}
+
 function createCapabilitiesRouter({
   authStore,
   tenantConfigStore,
@@ -1124,6 +1248,8 @@ function createCapabilitiesRouter({
   templateStore = null,
   graphReadConnector = null,
   graphReadConnectorFactory = createMicrosoftGraphReadConnector,
+  graphSendConnector = null,
+  graphSendConnectorFactory = createMicrosoftGraphSendConnector,
 }) {
   const router = express.Router();
   const gateway =
@@ -1132,6 +1258,14 @@ function createCapabilitiesRouter({
       buildVersion: process.env.npm_package_version || 'dev',
     });
   const shouldEnableGraphRead = toBoolean(process.env.ARCANA_GRAPH_READ_ENABLED, false);
+  const graphReadFullTenant = toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
+  const graphReadUserScope = normalizeGraphUserScope(
+    process.env.ARCANA_GRAPH_USER_SCOPE,
+    graphReadFullTenant ? 'all' : 'single'
+  );
+  const graphReadRequiresUserId = !(graphReadFullTenant && graphReadUserScope === 'all');
+  const shouldEnableGraphSend = toBoolean(process.env.ARCANA_GRAPH_SEND_ENABLED, false);
+  const graphSendAllowlist = normalizeText(process.env.ARCANA_GRAPH_SEND_ALLOWLIST);
   const resolvedGraphReadConnector = (() => {
     if (graphReadConnector && typeof graphReadConnector.fetchInboxSnapshot === 'function') {
       return graphReadConnector;
@@ -1145,7 +1279,7 @@ function createCapabilitiesRouter({
     if (!tenantId) missing.push('ARCANA_GRAPH_TENANT_ID');
     if (!clientId) missing.push('ARCANA_GRAPH_CLIENT_ID');
     if (!clientSecret) missing.push('ARCANA_GRAPH_CLIENT_SECRET');
-    if (!userId) missing.push('ARCANA_GRAPH_USER_ID');
+    if (graphReadRequiresUserId && !userId) missing.push('ARCANA_GRAPH_USER_ID');
     if (missing.length > 0) {
       throw new Error(
         `ARCANA_GRAPH_READ_ENABLED=true requires: ${missing.join(', ')}.`
@@ -1156,9 +1290,44 @@ function createCapabilitiesRouter({
       clientId,
       clientSecret,
       userId,
+      fullTenant: graphReadFullTenant,
+      userScope: graphReadUserScope,
       authorityHost: normalizeText(process.env.ARCANA_GRAPH_AUTHORITY_HOST) || undefined,
       graphBaseUrl: normalizeText(process.env.ARCANA_GRAPH_BASE_URL) || undefined,
       scope: normalizeText(process.env.ARCANA_GRAPH_SCOPE) || undefined,
+    });
+  })();
+  const resolvedGraphSendConnector = (() => {
+    if (graphSendConnector && typeof graphSendConnector.sendReply === 'function') {
+      return graphSendConnector;
+    }
+    if (!shouldEnableGraphSend) return null;
+    const tenantId = normalizeText(process.env.ARCANA_GRAPH_TENANT_ID);
+    const clientId = normalizeText(process.env.ARCANA_GRAPH_CLIENT_ID);
+    const clientSecret = normalizeText(process.env.ARCANA_GRAPH_CLIENT_SECRET);
+    const missing = [];
+    if (!tenantId) missing.push('ARCANA_GRAPH_TENANT_ID');
+    if (!clientId) missing.push('ARCANA_GRAPH_CLIENT_ID');
+    if (!clientSecret) missing.push('ARCANA_GRAPH_CLIENT_SECRET');
+    if (!graphSendAllowlist) missing.push('ARCANA_GRAPH_SEND_ALLOWLIST');
+    if (missing.length > 0) {
+      throw new Error(
+        `ARCANA_GRAPH_SEND_ENABLED=true requires: ${missing.join(', ')}.`
+      );
+    }
+    return graphSendConnectorFactory({
+      tenantId,
+      clientId,
+      clientSecret,
+      authorityHost: normalizeText(process.env.ARCANA_GRAPH_AUTHORITY_HOST) || undefined,
+      graphBaseUrl: normalizeText(process.env.ARCANA_GRAPH_BASE_URL) || undefined,
+      scope: normalizeText(process.env.ARCANA_GRAPH_SCOPE) || undefined,
+      requestTimeoutMs: clampInteger(
+        process.env.ARCANA_GRAPH_SEND_TIMEOUT_MS,
+        1000,
+        60000,
+        8000
+      ),
     });
   })();
   const executor = createCapabilityExecutor({
@@ -1207,6 +1376,20 @@ function createCapabilitiesRouter({
         templateStore,
         graphReadConnector: resolvedGraphReadConnector,
         authStore,
+      })
+    )
+  );
+
+  router.post(
+    '/cco/send',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoSendHandler({
+        executor,
+        graphSendConnector: resolvedGraphSendConnector,
+        graphSendEnabled: shouldEnableGraphSend,
+        graphSendAllowlist,
       })
     )
   );

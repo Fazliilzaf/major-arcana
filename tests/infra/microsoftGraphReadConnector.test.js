@@ -151,3 +151,134 @@ test('MicrosoftGraphReadConnector supports custom window and includeRead=true fi
   assert.equal(snapshot.metadata.maxMessages, 5);
   assert.equal(snapshot.metadata.includeReadMessages, true);
 });
+
+test('MicrosoftGraphReadConnector full-tenant mode lists users and reads each inbox with limits', async () => {
+  const fixedNowMs = Date.parse('2026-02-26T18:00:00.000Z');
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-tenant',
+        },
+      });
+    }
+    if (String(url).includes('/users?')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            { id: 'user-1', mail: 'owner1@hairtpclinic.se', userPrincipalName: 'owner1@hairtpclinic.se' },
+            { id: 'user-2', mail: 'owner2@hairtpclinic.se', userPrincipalName: 'owner2@hairtpclinic.se' },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-1/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-u1',
+              conversationId: 'conv-u1',
+              subject: 'Hej owner1',
+              bodyPreview: 'Kontakta mig pa owner1@example.com',
+              receivedDateTime: '2026-02-26T12:00:00.000Z',
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-2/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-u2',
+              conversationId: 'conv-u2',
+              subject: 'Hej owner2',
+              bodyPreview: 'Mitt nummer ar 0701234567',
+              receivedDateTime: '2026-02-26T11:00:00.000Z',
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-3',
+    clientId: 'client-id-3',
+    clientSecret: 'client-secret-3',
+    fullTenant: true,
+    userScope: 'all',
+    fetchImpl,
+    now: () => fixedNowMs,
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot({
+    fullTenant: true,
+    userScope: 'all',
+    maxUsers: 2,
+    maxMessagesPerUser: 5,
+  });
+
+  assert.equal(calls.length, 4);
+  const usersRequest = calls[1];
+  assert.equal(String(usersRequest.url).includes('/users?'), true);
+
+  const mailboxRequest1 = new URL(calls[2].url);
+  const mailboxRequest2 = new URL(calls[3].url);
+  assert.equal(mailboxRequest1.searchParams.get('$top'), '5');
+  assert.equal(mailboxRequest2.searchParams.get('$top'), '5');
+
+  assert.equal(snapshot.metadata.fullTenantMode, true);
+  assert.equal(snapshot.metadata.userScope, 'all');
+  assert.equal(snapshot.metadata.maxUsers, 2);
+  assert.equal(snapshot.metadata.maxMessagesPerUser, 5);
+  assert.equal(snapshot.metadata.mailboxCount, 2);
+  assert.equal(snapshot.metadata.messageCount, 2);
+  assert.equal(snapshot.conversations.length, 2);
+});
+
+test('MicrosoftGraphReadConnector stops on pagination nextLink in full-tenant mode', async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-pagination',
+        },
+      });
+    }
+    if (String(url).includes('/users?')) {
+      return createJsonResponse({
+        body: {
+          value: [{ id: 'user-1', mail: 'owner1@hairtpclinic.se' }],
+          '@odata.nextLink': 'https://graph.microsoft.com/v1.0/users?$skiptoken=abc',
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-4',
+    clientId: 'client-id-4',
+    clientSecret: 'client-secret-4',
+    fullTenant: true,
+    userScope: 'all',
+    fetchImpl,
+  });
+
+  await assert.rejects(
+    () =>
+      connector.fetchInboxSnapshot({
+        fullTenant: true,
+        userScope: 'all',
+      }),
+    /pagination not implemented/i
+  );
+});
