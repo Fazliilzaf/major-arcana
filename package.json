@@ -39,6 +39,7 @@
     "finalization:sweep:guard": "node ./scripts/check-finalization-sweep.js",
     "report:closure-status": "node ./scripts/report-closure-status.js",
     "report:closure-status:strict": "node ./scripts/report-closure-status.js --strict",
+    "arcana:watch:once": "node ./scripts/arcana-watch-once.js",
     "closure:guard": "node ./scripts/check-closure-status.js",
     "closure:guard:done": "node ./scripts/check-closure-status.js --require-done",
     "release:cycle:auto": "node ./scripts/run-release-cycle.js",
