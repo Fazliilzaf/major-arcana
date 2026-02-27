@@ -2262,6 +2262,7 @@
                 <button id="runCcoInboxBtn" class="btn primary">Kör CCO Inbox Brief</button>
               </div>
               <div id="ccoInboxStatus" class="status-line"></div>
+              <div id="ccoInboxMailboxMeta" class="mini muted"></div>
               <div class="grid" style="margin-top:10px">
                 <div>
                   <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Prioritetsnivå</h3>
@@ -2277,16 +2278,61 @@
                 <div id="ccoInboxSummary" class="code-block">Ingen inbox brief än.</div>
               </div>
               <div style="margin-top:10px">
-                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Behöver svar idag</h3>
-                <ul id="ccoInboxNeedsReplyList" class="list">
+                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Reply Workstation · Konversationer</h3>
+                <ul id="ccoInboxWorklist" class="list">
                   <li class="muted mini">Inga konversationer i kö.</li>
                 </ul>
               </div>
               <div style="margin-top:10px">
-                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Föreslagna utkast</h3>
-                <ul id="ccoInboxDraftsList" class="list">
-                  <li class="muted mini">Inga utkast än.</li>
-                </ul>
+                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Detaljvy</h3>
+                <div id="ccoConversationMeta" class="mini muted">Ingen konversation vald.</div>
+                <div id="ccoConversationPreview" class="code-block" style="margin-top:8px">Ingen preview än.</div>
+                <div class="grid" style="margin-top:8px">
+                  <div>
+                    <label for="ccoDraftSubjectInput">Ämne</label>
+                    <input id="ccoDraftSubjectInput" type="text" readonly />
+                  </div>
+                  <div>
+                    <label for="ccoDraftToInput">Till (komma-separerat)</label>
+                    <input id="ccoDraftToInput" type="text" />
+                  </div>
+                </div>
+                <div class="grid" style="margin-top:8px">
+                  <div>
+                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Risk</h3>
+                    <div id="ccoDraftRiskIndicator" class="code-block">-</div>
+                  </div>
+                  <div>
+                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Policy</h3>
+                    <div id="ccoDraftPolicyIndicator" class="code-block">-</div>
+                  </div>
+                  <div>
+                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Confidence</h3>
+                    <div id="ccoDraftConfidence" class="code-block">-</div>
+                  </div>
+                  <div>
+                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Rekommenderad åtgärd</h3>
+                    <div id="ccoDraftRecommendedAction" class="code-block">-</div>
+                  </div>
+                </div>
+                <div style="margin-top:8px">
+                  <label for="ccoDraftBodyInput">Föreslaget svar (redigerbart)</label>
+                  <textarea id="ccoDraftBodyInput" style="min-height:150px" placeholder="Välj en konversation för att redigera svaret."></textarea>
+                </div>
+                <div class="seg" style="margin-top:8px;flex-wrap:wrap">
+                  <button id="ccoCopyReplyBtn" class="btn small">Kopiera svar</button>
+                  <button id="ccoMarkHandledBtn" class="btn small">Markera hanterad</button>
+                  <button id="ccoFlagCriticalBtn" class="btn small">Flagga Critical</button>
+                  <button id="ccoRefineImproveBtn" class="btn small">Förbättra svaret</button>
+                  <button id="ccoRefineShortenBtn" class="btn small">Förkorta</button>
+                  <button id="ccoRefineProfessionalBtn" class="btn small">Mer professionell ton</button>
+                  <button id="ccoSendBtn" class="btn primary">Skicka via Graph</button>
+                </div>
+                <div id="ccoSendStatus" class="status-line"></div>
+              </div>
+              <div style="display:none">
+                <ul id="ccoInboxNeedsReplyList" class="list"><li class="muted mini">-</li></ul>
+                <ul id="ccoInboxDraftsList" class="list"><li class="muted mini">-</li></ul>
               </div>
             </article>
             <article class="overview-card">
@@ -2936,6 +2982,7 @@
           <h2>Driftstatus</h2>
           <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
             <button id="refreshMonitorBtn" class="btn">Uppdatera monitor</button>
+            <button id="toggleMonitorDetailsBtn" class="btn" type="button" aria-expanded="false" aria-controls="monitorResult">Visa detaljer</button>
             <button id="runSchedulerSuiteBtn" class="btn">Kör scheduler-suite</button>
             <button id="previewReadinessOutputGateRemediationBtn" class="btn">Preview output-gate remediation</button>
             <button id="runReadinessOutputGateRemediationBtn" class="btn">Kör output-gate remediation</button>
@@ -2943,7 +2990,7 @@
             <button id="runReadinessOwnerMfaRemediationBtn" class="btn">Kör owner-MFA remediation</button>
           </div>
           <div id="monitorPanelStatus" class="status-line"></div>
-          <div id="monitorResult" class="code-block" style="margin-top:8px">Ingen driftdata ännu.</div>
+          <div id="monitorResult" class="code-block hidden" style="margin-top:8px">Ingen driftdata ännu.</div>
           <div style="margin-top:12px">
             <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Observability alerts</h3>
             <div id="monitorObservabilitySummary" class="status-line"></div>

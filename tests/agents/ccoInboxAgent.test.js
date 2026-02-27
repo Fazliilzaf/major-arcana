@@ -12,6 +12,17 @@ function makeDraft(index) {
   return {
     conversationId: `conv-${index}`,
     messageId: `msg-${index}`,
+    mailboxId: `mailbox-${index}@hairtpclinic.se`,
+    sender: `sender-${index}@example.com`,
+    latestInboundPreview: `Preview ${index}`,
+    hoursSinceInbound: index,
+    slaStatus: 'ok',
+    intent: 'follow_up',
+    tone: 'neutral',
+    priorityLevel: 'Medium',
+    priorityScore: 44,
+    recommendedAction: 'Be om mer info',
+    escalationRequired: false,
     subject: `Subject ${index}`,
     proposedReply: `Draft ${index}`,
     confidenceLevel: 'Medium',
@@ -23,12 +34,13 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
     inboxOutput: {
       data: {
         urgentConversations: [{ conversationId: 'conv-1', messageId: 'msg-1', reason: 'sla_breach' }],
-        needsReplyToday: [{ conversationId: 'conv-1', messageId: 'msg-1', subject: 'Need answer', hoursSinceInbound: 18 }],
+        needsReplyToday: [{ ...makeDraft(1), needsReplyStatus: 'needs_reply' }],
+        conversationWorklist: [{ ...makeDraft(1), lastInboundAt: new Date().toISOString(), needsReplyStatus: 'needs_reply' }],
         slaBreaches: [{ conversationId: 'conv-1', messageId: 'msg-1', overdueMinutes: 42 }],
         riskFlags: [{ conversationId: 'conv-1', messageId: 'msg-1', flagCode: 'MEDICAL_TOPIC' }],
         suggestedDrafts: [makeDraft(1), makeDraft(2)],
         executiveSummary: 'Inbox summary',
-        priorityLevel: 'High',
+        priorityLevel: 'Critical',
       },
       metadata: {
         capability: 'AnalyzeInbox',
@@ -49,7 +61,8 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
   assert.equal(validation.ok, true, JSON.stringify(validation.errors, null, 2));
   assert.equal(output.metadata.agent, CCO_AGENT_NAME);
   assert.equal(output.metadata.channel, 'admin');
-  assert.equal(output.data.priorityLevel, 'High');
+  assert.equal(output.data.priorityLevel, 'Critical');
+  assert.equal(Array.isArray(output.data.conversationWorklist), true);
 });
 
 test('CCO inbox analysis compose clamps draft list to max 5', () => {
@@ -58,6 +71,7 @@ test('CCO inbox analysis compose clamps draft list to max 5', () => {
       data: {
         urgentConversations: [],
         needsReplyToday: [],
+        conversationWorklist: [],
         slaBreaches: [],
         riskFlags: [],
         suggestedDrafts: [1, 2, 3, 4, 5, 6, 7].map((index) => makeDraft(index)),

@@ -49,7 +49,7 @@ Arcana har nu en intern API-bas på `/api/v1` för Pilot 0.1.
 ### 1) Sätt owner i `.env`
 ```env
 ARCANA_DEFAULT_TENANT=hair-tp-clinic
-ARCANA_OWNER_EMAIL=owner@hairtpclinic.se
+ARCANA_OWNER_EMAIL=fazli@hairtpclinic.com
 ARCANA_OWNER_PASSWORD=byt-till-starkt-losenord
 ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD=false
 ARCANA_BOOTSTRAP_RESET_OWNER_MFA=false
@@ -137,7 +137,7 @@ ARCANA_PATIENT_SIGNAL_FRESHNESS_HOURS=72
 - `ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX`: dedikerad limiter för `POST /chat`
 - `ARCANA_DISTRIBUTED_BACKEND=redis`: aktiverar distribuerad rate-limit + gateway-runtime (tenant lock + idempotency) via Redis
 - `ARCANA_REDIS_REQUIRED=true`: fail-fast i startup om Redis inte kan ansluta
-- `ARCANA_GRAPH_READ_ENABLED=true`: aktiverar Graph read-only ingest för `AnalyzeInbox` när snapshot saknas i request
+- `ARCANA_GRAPH_READ_ENABLED=true`: aktiverar Graph read-only ingest för `AnalyzeInbox` och `POST /api/v1/agents/CCO/run` när snapshot saknas i request
 - `ARCANA_GRAPH_TENANT_ID|ARCANA_GRAPH_CLIENT_ID|ARCANA_GRAPH_CLIENT_SECRET|ARCANA_GRAPH_USER_ID`: krävs när Graph read är aktiverad (fail-fast annars)
 - `ARCANA_GRAPH_WINDOW_DAYS` och `ARCANA_GRAPH_MAX_MESSAGES`: styr mailbox read-fönster (default 14 dagar, 100 meddelanden)
 - `ARCANA_GRAPH_INCLUDE_READ=true`: inkluderar även lästa inbox-meddelanden i Graph snapshot

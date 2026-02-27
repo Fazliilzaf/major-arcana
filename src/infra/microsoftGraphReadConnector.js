@@ -17,6 +17,22 @@ function clampInt(value, min, max, fallback) {
   return parsed;
 }
 
+function toBoolean(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (value === null || value === undefined) return fallback;
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return fallback;
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeUserScope(value, fallback = 'single') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'all' || normalized === 'single') return normalized;
+  return fallback;
+}
+
 function toIso(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -55,12 +71,69 @@ function parseGraphError(payload = {}, fallback = 'request_failed') {
   );
 }
 
+function createGraphError(message, { code = '', status = 0, retryAfterSeconds = null, details = null } = {}) {
+  const error = new Error(normalizeText(message) || 'graph_request_failed');
+  if (code) error.code = code;
+  if (Number.isFinite(Number(status)) && Number(status) > 0) error.status = Number(status);
+  if (Number.isFinite(Number(retryAfterSeconds)) && Number(retryAfterSeconds) >= 0) {
+    error.retryAfterSeconds = Number(retryAfterSeconds);
+  }
+  if (details && typeof details === 'object') error.details = details;
+  return error;
+}
+
+function parseRetryAfterSeconds(response) {
+  const raw =
+    normalizeText(response?.headers?.get?.('retry-after')) ||
+    normalizeText(response?.headers?.get?.('x-ms-retry-after-ms'));
+  if (!raw) return null;
+  const asNumber = Number(raw);
+  if (!Number.isFinite(asNumber) || asNumber < 0) return null;
+  if (String(raw).includes('.') || asNumber > 1000) {
+    return Math.round(asNumber / 1000);
+  }
+  return Math.round(asNumber);
+}
+
 async function parseJsonResponse(response, label = 'request') {
-  const payload = (await response.json()) || {};
+  let payload = {};
+  try {
+    payload = (await response.json()) || {};
+  } catch (_error) {
+    payload = {};
+  }
   if (response?.ok) return payload;
   const status = Number(response?.status || 0);
   const message = parseGraphError(payload, 'graph_request_failed');
-  throw new Error(`${label} failed (${status || 'n/a'}): ${message}`);
+  throw createGraphError(`${label} failed (${status || 'n/a'}): ${message}`, {
+    code: 'GRAPH_REQUEST_FAILED',
+    status,
+    details: payload,
+  });
+}
+
+async function fetchWithTimeout(fetchImpl, url, options = {}, timeoutMs = 5000) {
+  const safeTimeoutMs = clampInt(timeoutMs, 500, 120000, 5000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), safeTimeoutMs);
+  if (typeof timer?.unref === 'function') timer.unref();
+
+  try {
+    return await fetchImpl(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const isAbort = error?.name === 'AbortError';
+    if (isAbort) {
+      throw createGraphError(`Request timeout after ${safeTimeoutMs}ms`, {
+        code: 'GRAPH_TIMEOUT',
+      });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 const RISK_WORD_DEFS = Object.freeze([
@@ -83,13 +156,24 @@ function extractRiskWords(text = '') {
   return hits;
 }
 
-function toNormalizedMessage(raw = {}) {
+function toScopedConversationId(conversationId, mailboxKey) {
+  const normalizedConversationId = normalizeText(conversationId);
+  const normalizedMailboxKey = normalizeText(mailboxKey);
+  if (!normalizedConversationId) return '';
+  if (!normalizedMailboxKey) return normalizedConversationId;
+  return `${normalizedMailboxKey}:${normalizedConversationId}`;
+}
+
+function toNormalizedMessage(raw = {}, { mailboxId = '', mailboxKey = '' } = {}) {
   const messageId = normalizeText(raw.id);
   if (!messageId) return null;
-  const conversationId = normalizeText(raw.conversationId) || `message:${messageId}`;
+  const rawConversationId = normalizeText(raw.conversationId) || `message:${messageId}`;
+  const conversationId = toScopedConversationId(rawConversationId, mailboxKey) || rawConversationId;
   const subject = maskInboxText(raw.subject, 180) || '(utan amne)';
   const bodyPreview = maskInboxText(raw.bodyPreview, 360);
   const sentAt = toIso(raw.receivedDateTime || raw.sentDateTime) || null;
+  const senderEmail = normalizeText(raw?.from?.emailAddress?.address);
+  const senderName = normalizeText(raw?.from?.emailAddress?.name);
   const riskWords = extractRiskWords(`${subject}\n${bodyPreview}`);
 
   return {
@@ -98,7 +182,10 @@ function toNormalizedMessage(raw = {}) {
     subject,
     bodyPreview,
     sentAt,
+    senderEmail: senderEmail || null,
+    senderName: senderName || null,
     riskWords,
+    mailboxId: normalizeText(mailboxId) || null,
   };
 }
 
@@ -114,6 +201,7 @@ function toConversationSnapshots(messages = []) {
         lastInboundAt: message.sentAt || null,
         messages: [],
         riskWords: [],
+        mailboxId: normalizeText(message.mailboxId) || null,
       });
     }
     const entry = map.get(message.conversationId);
@@ -122,6 +210,7 @@ function toConversationSnapshots(messages = []) {
       direction: 'inbound',
       sentAt: message.sentAt,
       bodyPreview: message.bodyPreview,
+      mailboxId: normalizeText(message.mailboxId) || null,
     });
     if (message.sentAt && compareIsoDesc(entry.lastInboundAt, message.sentAt) > 0) {
       entry.lastInboundAt = message.sentAt;
@@ -149,11 +238,49 @@ function toConversationSnapshots(messages = []) {
   return conversations;
 }
 
+function toMailboxIdentity(user = {}, fallback = '') {
+  const safeUser = user && typeof user === 'object' ? user : {};
+  const id = normalizeText(safeUser.id) || normalizeText(fallback);
+  const mail = normalizeText(safeUser.mail);
+  const userPrincipalName = normalizeText(safeUser.userPrincipalName);
+  const mailboxId = mail || userPrincipalName || id;
+  const mailboxKey = normalizeText(mailboxId).replace(/[^a-zA-Z0-9._@-]/g, '_').slice(0, 120) || 'mailbox';
+  return {
+    id,
+    mailboxId,
+    mailboxKey,
+    mail,
+    userPrincipalName,
+  };
+}
+
+function toMessagesUrl({ graphBaseUrl, userId, maxMessages, receivedSinceIso, includeReadMessages }) {
+  const messagesUrl = new URL(
+    `${graphBaseUrl}/users/${encodeURIComponent(userId)}/mailFolders/inbox/messages`
+  );
+  messagesUrl.searchParams.set('$top', String(maxMessages));
+  messagesUrl.searchParams.set(
+    '$select',
+    'id,conversationId,subject,bodyPreview,receivedDateTime,sentDateTime,isRead,from'
+  );
+  messagesUrl.searchParams.set('$orderby', 'receivedDateTime desc');
+  const filterParts = [`receivedDateTime ge ${receivedSinceIso}`];
+  if (!includeReadMessages) filterParts.push('isRead eq false');
+  messagesUrl.searchParams.set('$filter', filterParts.join(' and '));
+  return messagesUrl;
+}
+
 function createMicrosoftGraphReadConnector(config = {}) {
   const tenantId = requiredConfig('tenantId', config.tenantId);
   const clientId = requiredConfig('clientId', config.clientId);
   const clientSecret = requiredConfig('clientSecret', config.clientSecret);
-  const userId = requiredConfig('userId', config.userId);
+  const configuredFullTenant = toBoolean(config.fullTenant, false);
+  const configuredUserScope = normalizeUserScope(config.userScope, configuredFullTenant ? 'all' : 'single');
+  const userId = normalizeText(config.userId);
+  if (!(configuredFullTenant && configuredUserScope === 'all')) {
+    requiredConfig('userId', userId);
+  }
+
   const fetchImpl = typeof config.fetchImpl === 'function' ? config.fetchImpl : global.fetch;
   if (typeof fetchImpl !== 'function') {
     throw new Error('MicrosoftGraphReadConnector requires fetch implementation.');
@@ -176,19 +303,56 @@ function createMicrosoftGraphReadConnector(config = {}) {
       scope,
       grant_type: 'client_credentials',
     });
-    const response = await fetchImpl(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
+    const response = await fetchWithTimeout(
+      fetchImpl,
+      tokenUrl,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+        },
+        body: body.toString(),
       },
-      body: body.toString(),
-    });
+      clampInt(config.tokenTimeoutMs, 1000, 30000, 5000)
+    );
     const payload = await parseJsonResponse(response, 'Microsoft Graph token request');
     const accessToken = normalizeText(payload.access_token);
     if (!accessToken) {
-      throw new Error('Microsoft Graph token request succeeded but access_token is missing.');
+      throw createGraphError('Microsoft Graph token request succeeded but access_token is missing.', {
+        code: 'GRAPH_TOKEN_MISSING',
+      });
     }
     return accessToken;
+  }
+
+  async function fetchGraphJson({ url, accessToken, label, timeoutMs }) {
+    const response = await fetchWithTimeout(
+      fetchImpl,
+      url,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      },
+      timeoutMs
+    );
+
+    if (Number(response?.status || 0) === 429) {
+      throw createGraphError(`${label} failed (429): rate_limit_hit`, {
+        code: 'GRAPH_RATE_LIMITED',
+        status: 429,
+        retryAfterSeconds: parseRetryAfterSeconds(response),
+      });
+    }
+
+    const payload = await parseJsonResponse(response, label);
+    if (normalizeText(payload?.['@odata.nextLink'])) {
+      throw createGraphError(`${label} returned @odata.nextLink; pagination not implemented.`, {
+        code: 'GRAPH_PAGINATION_UNSUPPORTED',
+      });
+    }
+    return payload;
   }
 
   async function fetchInboxSnapshot(options = {}) {
@@ -201,34 +365,142 @@ function createMicrosoftGraphReadConnector(config = {}) {
     const maxMessages = clampInt(options.maxMessages, 1, 200, 100);
     const includeReadMessages = options.includeRead === true;
     const receivedSinceIso = toIsoFromMs(nowMs - windowDays * 24 * 60 * 60 * 1000);
+
+    const fullTenant = toBoolean(options.fullTenant, configuredFullTenant);
+    const userScope = normalizeUserScope(options.userScope, configuredUserScope);
+    const fullTenantMode = fullTenant && userScope === 'all';
+    const maxUsers = clampInt(options.maxUsers, 1, 200, 50);
+    const maxMessagesPerUser = clampInt(options.maxMessagesPerUser, 1, 200, 50);
+    const mailboxTimeoutMs = clampInt(options.mailboxTimeoutMs, 1000, 15000, 5000);
+    const runTimeoutMs = clampInt(options.runTimeoutMs, 5000, 120000, 30000);
+    const maxMailboxErrors = clampInt(options.maxMailboxErrors, 1, 20, 5);
+
     const accessToken = await fetchAccessToken();
-
-    const messagesUrl = new URL(
-      `${graphBaseUrl}/users/${encodeURIComponent(userId)}/mailFolders/inbox/messages`
-    );
-    messagesUrl.searchParams.set('$top', String(maxMessages));
-    messagesUrl.searchParams.set(
-      '$select',
-      'id,conversationId,subject,bodyPreview,receivedDateTime,sentDateTime,isRead'
-    );
-    messagesUrl.searchParams.set('$orderby', 'receivedDateTime desc');
-    const filterParts = [`receivedDateTime ge ${receivedSinceIso}`];
-    if (!includeReadMessages) filterParts.push('isRead eq false');
-    messagesUrl.searchParams.set('$filter', filterParts.join(' and '));
-
-    const messagesResponse = await fetchImpl(messagesUrl.toString(), {
-      method: 'GET',
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
-    });
-    const payload = await parseJsonResponse(messagesResponse, 'Microsoft Graph inbox request');
-
-    const normalizedMessages = Array.isArray(payload.value)
-      ? payload.value.map(toNormalizedMessage).filter(Boolean)
-      : [];
-    const conversations = toConversationSnapshots(normalizedMessages);
     const capturedAt = toIsoFromMs(nowMs) || new Date(nowMs).toISOString();
+
+    let conversations = [];
+    let fetchedMessages = 0;
+    let mailboxCount = 0;
+    let mailboxErrors = 0;
+    const warnings = [];
+
+    if (!fullTenantMode) {
+      const identity = toMailboxIdentity({}, userId);
+      const messagesPayload = await fetchGraphJson({
+        url: toMessagesUrl({
+          graphBaseUrl,
+          userId: userId,
+          maxMessages,
+          receivedSinceIso,
+          includeReadMessages,
+        }).toString(),
+        accessToken,
+        label: 'Microsoft Graph inbox request',
+        timeoutMs: mailboxTimeoutMs,
+      });
+
+      const normalizedMessages = Array.isArray(messagesPayload.value)
+        ? messagesPayload.value
+            .map((raw) =>
+              toNormalizedMessage(raw, {
+                mailboxId: identity.mailboxId,
+                mailboxKey: '',
+              })
+            )
+            .filter(Boolean)
+        : [];
+
+      conversations = toConversationSnapshots(normalizedMessages);
+      fetchedMessages = normalizedMessages.length;
+      mailboxCount = 1;
+    } else {
+      const runStartedAt = Date.now();
+      const usersUrl = new URL(`${graphBaseUrl}/users`);
+      usersUrl.searchParams.set('$top', String(maxUsers));
+      usersUrl.searchParams.set('$select', 'id,mail,userPrincipalName');
+
+      const usersPayload = await fetchGraphJson({
+        url: usersUrl.toString(),
+        accessToken,
+        label: 'Microsoft Graph user listing request',
+        timeoutMs: mailboxTimeoutMs,
+      });
+
+      const users = Array.isArray(usersPayload.value)
+        ? usersPayload.value.map((rawUser) => toMailboxIdentity(rawUser)).filter((item) => item.id)
+        : [];
+      const selectedUsers = users.slice(0, maxUsers);
+
+      for (const user of selectedUsers) {
+        const elapsedMs = Date.now() - runStartedAt;
+        if (elapsedMs > runTimeoutMs) {
+          throw createGraphError(`Full-tenant ingest exceeded run timeout (${runTimeoutMs}ms).`, {
+            code: 'GRAPH_RUN_TIMEOUT',
+          });
+        }
+
+        try {
+          const messagesPayload = await fetchGraphJson({
+            url: toMessagesUrl({
+              graphBaseUrl,
+              userId: user.id,
+              maxMessages: maxMessagesPerUser,
+              receivedSinceIso,
+              includeReadMessages,
+            }).toString(),
+            accessToken,
+            label: `Microsoft Graph inbox request (${user.mailboxId || user.id})`,
+            timeoutMs: mailboxTimeoutMs,
+          });
+
+          const normalizedMessages = Array.isArray(messagesPayload.value)
+            ? messagesPayload.value
+                .map((raw) => toNormalizedMessage(raw, user))
+                .filter(Boolean)
+            : [];
+
+          fetchedMessages += normalizedMessages.length;
+          mailboxCount += 1;
+          conversations.push(...toConversationSnapshots(normalizedMessages));
+        } catch (error) {
+          mailboxErrors += 1;
+
+          if (
+            error?.code === 'GRAPH_PAGINATION_UNSUPPORTED' ||
+            error?.code === 'GRAPH_RATE_LIMITED' ||
+            error?.code === 'GRAPH_TIMEOUT' ||
+            error?.code === 'GRAPH_RUN_TIMEOUT'
+          ) {
+            throw error;
+          }
+
+          warnings.push(
+            `Mailbox ${normalizeText(user.mailboxId) || 'unknown'} kunde inte lasas (${normalizeText(
+              error?.message
+            ) || 'request_failed'}).`
+          );
+
+          if (mailboxErrors > maxMailboxErrors) {
+            throw createGraphError(
+              `Full-tenant ingest aborted: mailbox error budget exceeded (${mailboxErrors}/${maxMailboxErrors}).`,
+              {
+                code: 'GRAPH_MAILBOX_ERROR_BUDGET_EXCEEDED',
+              }
+            );
+          }
+        }
+      }
+
+      conversations.sort((a, b) => {
+        const lastInboundComparison = compareIsoDesc(a.lastInboundAt, b.lastInboundAt);
+        if (lastInboundComparison !== 0) return lastInboundComparison;
+        return String(a.conversationId || '').localeCompare(String(b.conversationId || ''));
+      });
+
+      if (selectedUsers.length === 0) {
+        warnings.push('Full-tenant ingest hittade inga mailbox-anvandare i user-listing.');
+      }
+    }
 
     const snapshot = {
       snapshotVersion: 'graph.inbox.snapshot.v1',
@@ -242,15 +514,23 @@ function createMicrosoftGraphReadConnector(config = {}) {
         connector: 'MicrosoftGraphReadConnector',
         windowDays,
         maxMessages,
+        maxMessagesPerUser,
         includeReadMessages,
-        fetchedMessages: normalizedMessages.length,
+        fullTenantMode,
+        userScope,
+        maxUsers,
+        mailboxTimeoutMs,
+        runTimeoutMs,
+        maxMailboxErrors,
+        mailboxErrors,
+        mailboxCount,
+        fetchedMessages,
+        messageCount: fetchedMessages,
       },
     };
 
-    if (normalizeText(payload['@odata.nextLink'])) {
-      snapshot.warnings = [
-        'Graph inbox payload truncated: nextLink present. Pagination support pending.',
-      ];
+    if (warnings.length > 0) {
+      snapshot.warnings = warnings.slice(0, 20);
     }
 
     return snapshot;

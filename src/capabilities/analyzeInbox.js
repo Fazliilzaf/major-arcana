@@ -56,6 +56,17 @@ function maskBodyPreview(value) {
   return maskInboxText(value, 360);
 }
 
+function maskSender(sender = '') {
+  const text = normalizeText(sender);
+  if (!text) return '';
+  const emailMatch = text.match(/^([^@\s]+)@([^@\s]+)$/);
+  if (!emailMatch) return capText(text, 80);
+  const local = emailMatch[1];
+  const domain = emailMatch[2];
+  const visible = local.slice(0, 1);
+  return `${visible}***@${domain}`;
+}
+
 function normalizeDirection(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (['inbound', 'incoming', 'in', 'user', 'patient', 'customer'].includes(normalized)) {
@@ -105,6 +116,77 @@ const RISK_PATTERNS = Object.freeze([
 const MEDICAL_TOPIC_PATTERN =
   /\b(symptom|behandling|operation|biverkning|lakemedel|infektion|feber|svullnad|smarta)\b/i;
 
+const INTENT_DEFS = Object.freeze([
+  {
+    id: 'booking_request',
+    patterns: [/\b(boka|bokning|boka tid|konsultation|appointment|reserv(er|ation)|tid hos)\b/i],
+    baseWeight: 22,
+  },
+  {
+    id: 'pricing_question',
+    patterns: [/\b(pris|priser|kostnad|erbjudande|finansiering|delbetalning|paket)\b/i],
+    baseWeight: 18,
+  },
+  {
+    id: 'anxiety_pre_op',
+    patterns: [/\b(radd|orolig|nervos|angest|inf(or|or) operation|fore operation)\b/i],
+    baseWeight: 20,
+  },
+  {
+    id: 'complaint',
+    patterns: [/\b(missnojd|klagomal|fel|dalig upplevelse|besviken|anmalan|ersattning)\b/i],
+    baseWeight: 24,
+  },
+  {
+    id: 'cancellation',
+    patterns: [/\b(avbok|ombok|stalla in|kan inte komma|cancel|reschedule)\b/i],
+    baseWeight: 15,
+  },
+  {
+    id: 'follow_up',
+    patterns: [/\b(folja upp|uppfoljning|status|aterkoppling|horde ni|vill bara kolla)\b/i],
+    baseWeight: 12,
+  },
+]);
+
+const TONE_DEFS = Object.freeze([
+  {
+    id: 'urgent',
+    patterns: [/\b(akut|snabbt|omedelbart|nu direkt|asap|sa fort som mojligt)\b/i, /!{2,}/],
+    baseWeight: 24,
+  },
+  {
+    id: 'frustrated',
+    patterns: [/\b(irriterad|besviken|arg|upprord|inte okej|varfor svarar ni inte)\b/i],
+    baseWeight: 20,
+  },
+  {
+    id: 'anxious',
+    patterns: [/\b(orolig|radd|angest|nervos|stressad over|hjalp mig snalla)\b/i],
+    baseWeight: 18,
+  },
+  {
+    id: 'stressed',
+    patterns: [/\b(stressad|pressad|svart att hantera|sover inte|kan inte vanta)\b/i],
+    baseWeight: 15,
+  },
+  {
+    id: 'positive',
+    patterns: [/\b(tack|uppskattar|fantastiskt|jattenojd|super|bra service)\b/i],
+    baseWeight: 8,
+  },
+]);
+
+const INTENT_ACTIONS = Object.freeze({
+  booking_request: 'Boka tid',
+  pricing_question: 'Skicka prisinformation',
+  anxiety_pre_op: 'Be om mer info',
+  complaint: 'Eskalera',
+  cancellation: 'Bekräfta ändring',
+  follow_up: 'Ge statusuppdatering',
+  unclear: 'Be om mer info',
+});
+
 function collectRiskFlags(text = '') {
   const source = normalizeText(text);
   if (!source) return [];
@@ -128,10 +210,10 @@ function severityWeight(severity = '') {
   return 0;
 }
 
-function pickPriorityLevel({ slaBreaches = 0, riskFlags = [] } = {}) {
-  if (Number(slaBreaches) > 0) return 'High';
-  if (asArray(riskFlags).some((item) => severityWeight(item?.severity) >= 3)) return 'High';
-  if (asArray(riskFlags).length > 0) return 'Medium';
+function pickPriorityLevel({ score = 0, hasCriticalSignal = false } = {}) {
+  if (hasCriticalSignal || score >= 85) return 'Critical';
+  if (score >= 60) return 'High';
+  if (score >= 30) return 'Medium';
   return 'Low';
 }
 
@@ -189,6 +271,15 @@ function toMessageSnapshot(message = {}) {
     normalizeText(message.text) ||
     normalizeText(message.content);
   const bodyMasked = maskBodyPreview(bodyRaw);
+  const senderEmail =
+    normalizeText(message.senderEmail) ||
+    normalizeText(message.fromEmail) ||
+    normalizeText(message?.from?.emailAddress?.address);
+  const senderName =
+    normalizeText(message.senderName) ||
+    normalizeText(message.fromName) ||
+    normalizeText(message?.from?.emailAddress?.name);
+  const senderRaw = senderName || senderEmail;
   return {
     messageId:
       normalizeText(message.messageId) ||
@@ -199,6 +290,7 @@ function toMessageSnapshot(message = {}) {
     bodyPreview: bodyMasked,
     masked: Boolean(bodyRaw && bodyRaw !== bodyMasked),
     mailboxId: normalizeText(message.mailboxId || message.mailbox || message.userId) || null,
+    sender: maskSender(senderRaw),
   };
 }
 
@@ -243,7 +335,164 @@ function toConversationSnapshot(input = {}) {
       normalizeText(source.mailboxId || source.mailbox || source.userId) ||
       normalizeText(lastInbound?.mailboxId) ||
       null,
+    sender:
+      maskSender(
+        normalizeText(source.sender) ||
+          normalizeText(source.senderEmail) ||
+          normalizeText(lastInbound?.sender)
+      ) || null,
   };
+}
+
+function scoreSemanticMatch(text = '', definition = {}) {
+  const source = normalizeText(text).toLowerCase();
+  if (!source) return 0;
+  const patterns = asArray(definition.patterns);
+  let score = Number(definition.baseWeight || 0);
+  let matches = 0;
+  for (const pattern of patterns) {
+    if (!(pattern instanceof RegExp)) continue;
+    if (!pattern.test(source)) continue;
+    matches += 1;
+    score += 6;
+  }
+  if (matches === 0) return 0;
+  return score;
+}
+
+function classifyIntent(text = '') {
+  let bestIntent = 'unclear';
+  let bestScore = 0;
+  for (const definition of INTENT_DEFS) {
+    const score = scoreSemanticMatch(text, definition);
+    if (score <= bestScore) continue;
+    bestIntent = definition.id;
+    bestScore = score;
+  }
+  return {
+    intent: bestIntent,
+    score: bestScore,
+  };
+}
+
+function detectTone(text = '') {
+  let bestTone = 'neutral';
+  let bestScore = 0;
+  for (const definition of TONE_DEFS) {
+    const score = scoreSemanticMatch(text, definition);
+    if (score <= bestScore) continue;
+    bestTone = definition.id;
+    bestScore = score;
+  }
+  return {
+    tone: bestTone,
+    score: bestScore,
+  };
+}
+
+function computeSlaStatus({ slaBreached = false, slaDeadlineMs = null, hoursSinceInbound = 0 } = {}) {
+  if (slaBreached) return 'breached';
+  if (Number.isFinite(slaDeadlineMs)) {
+    const msLeft = slaDeadlineMs - Date.now();
+    if (msLeft <= 24 * 60 * 60 * 1000) return 'due_24h';
+    if (msLeft <= 48 * 60 * 60 * 1000) return 'due_48h';
+  }
+  if (hoursSinceInbound >= 48) return 'aging_48h';
+  if (hoursSinceInbound >= 24) return 'aging_24h';
+  return 'ok';
+}
+
+function computePriorityScore({
+  hoursSinceInbound = 0,
+  tone = 'neutral',
+  intent = 'unclear',
+  previousInteractions = 0,
+  revenueSignal = false,
+  riskFlags = [],
+  slaBreached = false,
+  slaStatus = 'ok',
+} = {}) {
+  const safeHours = Math.max(0, Number(hoursSinceInbound) || 0);
+  const toneWeights = {
+    neutral: 0,
+    stressed: 12,
+    anxious: 18,
+    frustrated: 22,
+    urgent: 28,
+    positive: -6,
+  };
+  const intentWeights = {
+    booking_request: 12,
+    pricing_question: 8,
+    anxiety_pre_op: 16,
+    complaint: 24,
+    cancellation: 10,
+    follow_up: 6,
+    unclear: 4,
+  };
+
+  let score = 0;
+  score += Math.min(45, safeHours * 1.8);
+  score += Number(toneWeights[tone] || 0);
+  score += Number(intentWeights[intent] || 0);
+  score += Math.min(14, Math.max(0, Number(previousInteractions) || 0) * 2);
+  if (revenueSignal) score += 10;
+  if (slaStatus === 'due_24h') score += 14;
+  if (slaStatus === 'due_48h') score += 8;
+  if (slaStatus === 'aging_24h') score += 12;
+  if (slaStatus === 'aging_48h') score += 18;
+  if (slaBreached) score += 25;
+  score += asArray(riskFlags).reduce((sum, item) => sum + severityWeight(item?.severity) * 9, 0);
+
+  const hasCriticalSignal =
+    slaBreached ||
+    tone === 'urgent' ||
+    asArray(riskFlags).some((item) => severityWeight(item?.severity) >= 4);
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    level: pickPriorityLevel({ score, hasCriticalSignal }),
+  };
+}
+
+function buildTonePrefix({ tone = 'neutral', toneStyle = 'balanserad' } = {}) {
+  if (tone === 'urgent') {
+    return toneStyle === 'professionell'
+      ? 'Tack for ditt meddelande. Vi prioriterar detta omedelbart och aterkommer skyndsamt.'
+      : 'Tack for ditt meddelande. Vi ser allvarligt pa detta och foljer upp direkt.';
+  }
+  if (tone === 'anxious' || tone === 'stressed') {
+    return toneStyle === 'professionell'
+      ? 'Tack for att du delar detta. Vi forstar att situationen kan kanslas pressande.'
+      : 'Tack for att du hor av dig. Vi forstar att det kan kanslas oroligt och vill hjalpa dig tryggt vidare.';
+  }
+  if (tone === 'frustrated') {
+    return toneStyle === 'professionell'
+      ? 'Tack for din aterkoppling. Vi tar detta pa stort allvar och vill losa det skyndsamt.'
+      : 'Tack for att du beskriver detta tydligt. Vi tar det pa allvar och vill losa det snabbt.';
+  }
+  if (tone === 'positive') {
+    return 'Tack for ditt meddelande och fortroende.';
+  }
+  return toneStyle === 'professionell'
+    ? 'Tack for ditt meddelande. Vi har tagit emot din forfragan.'
+    : 'Tack for ditt meddelande. Vi har tagit emot din forfragan och foljer upp snarast.';
+}
+
+function buildCtaLine(intent = 'unclear') {
+  if (intent === 'booking_request') {
+    return 'Foreslaget nasta steg: boka en konsultationstid sa att vi kan hjalpa dig vidare direkt.';
+  }
+  if (intent === 'pricing_question') {
+    return 'Foreslaget nasta steg: vi skickar prisalternativ och hjalper dig valja ratt upplagg.';
+  }
+  if (intent === 'cancellation') {
+    return 'Foreslaget nasta steg: bekrafta onskad tid eller ombokning sa uppdaterar vi dig direkt.';
+  }
+  if (intent === 'complaint') {
+    return 'Foreslaget nasta steg: en ansvarig medarbetare granskar arendet och aterkommer personligen.';
+  }
+  return 'Foreslaget nasta steg: svara garna med mer detaljer sa att vi kan ge exakt hjalp.';
 }
 
 function buildDraftReply({
@@ -253,21 +502,19 @@ function buildDraftReply({
   isMedicalTopic = false,
   isAcute = false,
   slaBreached = false,
+  intent = 'unclear',
+  tone = 'neutral',
+  toneStyle = 'balanserad',
 }) {
   const lines = [];
   lines.push('Hej,');
   lines.push('');
+  lines.push(buildTonePrefix({ tone, toneStyle }));
 
   if (isAcute || slaBreached) {
-    lines.push(
-      'Tack for ditt meddelande. Vi prioriterar detta arende och en ansvarig medarbetare foljer upp skyndsamt.'
-    );
+    lines.push('Vi har markerat arendet for prioriterad uppfoljning av ansvarig medarbetare.');
   } else if (asArray(riskHits).some((item) => severityWeight(item?.severity) >= 3)) {
-    lines.push(
-      'Tack for ditt meddelande. Vi har markerat arendet for snabb uppfoljning av ansvarig medarbetare.'
-    );
-  } else {
-    lines.push('Tack for ditt meddelande. Vi har tagit emot din forfragan och aterkommer snarast.');
+    lines.push('Arendet ar markerat for snabb uppfoljning sa att du far tydlig aterkoppling.');
   }
 
   if (isMedicalTopic) {
@@ -277,17 +524,16 @@ function buildDraftReply({
   }
 
   if (isAcute) {
-    lines.push(
-      'Om du har akuta symtom ska du kontakta 112 eller narmaste akutmottagning direkt.'
-    );
+    lines.push('Om du har akuta symtom ska du ring 112 eller kontakta narmaste akutmottagning direkt.');
   }
 
   if (normalizeText(inboundPreview)) {
-    lines.push('Vi bekraftar att vi har noterat detaljerna i ditt meddelande.');
+    lines.push('Vi har noterat uppgifterna i ditt meddelande.');
   } else {
     lines.push('For att hjalpa dig snabbare, svara garna med de viktigaste detaljerna i arendet.');
   }
 
+  lines.push(buildCtaLine(intent));
   lines.push(`Arende: ${sanitizeSubject(subject)}`);
   lines.push('');
   lines.push('Med vanlig halsning,');
@@ -299,7 +545,7 @@ function buildDraftReply({
 class AnalyzeInboxCapability extends BaseCapability {
   static name = 'AnalyzeInbox';
   static capabilityName = 'AnalyzeInbox';
-  static version = '1.0.0';
+  static version = '2.0.0';
 
   static allowedRoles = [ROLE_OWNER, ROLE_STAFF];
   static allowedChannels = ['admin'];
@@ -331,6 +577,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         required: [
           'urgentConversations',
           'needsReplyToday',
+          'conversationWorklist',
           'slaBreaches',
           'riskFlags',
           'suggestedDrafts',
@@ -346,7 +593,16 @@ class AnalyzeInboxCapability extends BaseCapability {
             maxItems: 50,
             items: {
               type: 'object',
-              required: ['conversationId', 'messageId', 'subject', 'reason', 'hoursSinceInbound'],
+              required: [
+                'conversationId',
+                'messageId',
+                'subject',
+                'reason',
+                'hoursSinceInbound',
+                'intent',
+                'tone',
+                'priorityLevel',
+              ],
               additionalProperties: false,
               properties: {
                 conversationId: { type: 'string', minLength: 1, maxLength: 120 },
@@ -354,6 +610,23 @@ class AnalyzeInboxCapability extends BaseCapability {
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 reason: { type: 'string', minLength: 1, maxLength: 120 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
+                intent: {
+                  type: 'string',
+                  enum: [
+                    'booking_request',
+                    'pricing_question',
+                    'anxiety_pre_op',
+                    'complaint',
+                    'cancellation',
+                    'follow_up',
+                    'unclear',
+                  ],
+                },
+                tone: {
+                  type: 'string',
+                  enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
+                },
+                priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
               },
             },
           },
@@ -362,14 +635,113 @@ class AnalyzeInboxCapability extends BaseCapability {
             maxItems: 80,
             items: {
               type: 'object',
-              required: ['conversationId', 'messageId', 'subject', 'hoursSinceInbound'],
+              required: [
+                'conversationId',
+                'messageId',
+                'mailboxId',
+                'subject',
+                'sender',
+                'latestInboundPreview',
+                'hoursSinceInbound',
+                'slaStatus',
+                'intent',
+                'tone',
+                'priorityLevel',
+                'needsReplyStatus',
+              ],
               additionalProperties: false,
               properties: {
                 conversationId: { type: 'string', minLength: 1, maxLength: 120 },
                 messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
+                sender: { type: 'string', minLength: 1, maxLength: 120 },
+                latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
                 dueBy: { type: 'string', maxLength: 50 },
+                slaStatus: {
+                  type: 'string',
+                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
+                },
+                intent: {
+                  type: 'string',
+                  enum: [
+                    'booking_request',
+                    'pricing_question',
+                    'anxiety_pre_op',
+                    'complaint',
+                    'cancellation',
+                    'follow_up',
+                    'unclear',
+                  ],
+                },
+                tone: {
+                  type: 'string',
+                  enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
+                },
+                priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+                needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
+              },
+            },
+          },
+          conversationWorklist: {
+            type: 'array',
+            maxItems: 120,
+            items: {
+              type: 'object',
+              required: [
+                'conversationId',
+                'messageId',
+                'mailboxId',
+                'subject',
+                'sender',
+                'latestInboundPreview',
+                'hoursSinceInbound',
+                'lastInboundAt',
+                'slaStatus',
+                'intent',
+                'tone',
+                'priorityLevel',
+                'priorityScore',
+                'recommendedAction',
+                'escalationRequired',
+                'needsReplyStatus',
+              ],
+              additionalProperties: false,
+              properties: {
+                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
+                messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
+                subject: { type: 'string', minLength: 1, maxLength: 200 },
+                sender: { type: 'string', minLength: 1, maxLength: 120 },
+                latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
+                hoursSinceInbound: { type: 'number', minimum: 0 },
+                lastInboundAt: { type: 'string', minLength: 1, maxLength: 50 },
+                slaStatus: {
+                  type: 'string',
+                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
+                },
+                intent: {
+                  type: 'string',
+                  enum: [
+                    'booking_request',
+                    'pricing_question',
+                    'anxiety_pre_op',
+                    'complaint',
+                    'cancellation',
+                    'follow_up',
+                    'unclear',
+                  ],
+                },
+                tone: {
+                  type: 'string',
+                  enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
+                },
+                priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+                priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
+                escalationRequired: { type: 'boolean' },
+                needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
               },
             },
           },
@@ -413,7 +785,19 @@ class AnalyzeInboxCapability extends BaseCapability {
               required: [
                 'conversationId',
                 'messageId',
+                'mailboxId',
                 'subject',
+                'sender',
+                'latestInboundPreview',
+                'hoursSinceInbound',
+                'slaStatus',
+                'intent',
+                'tone',
+                'priorityLevel',
+                'priorityScore',
+                'recommendedAction',
+                'escalationRequired',
+                'suggestedReply',
                 'proposedReply',
                 'confidenceLevel',
               ],
@@ -421,14 +805,43 @@ class AnalyzeInboxCapability extends BaseCapability {
               properties: {
                 conversationId: { type: 'string', minLength: 1, maxLength: 120 },
                 messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
+                sender: { type: 'string', minLength: 1, maxLength: 120 },
+                latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
+                hoursSinceInbound: { type: 'number', minimum: 0 },
+                slaStatus: {
+                  type: 'string',
+                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
+                },
+                intent: {
+                  type: 'string',
+                  enum: [
+                    'booking_request',
+                    'pricing_question',
+                    'anxiety_pre_op',
+                    'complaint',
+                    'cancellation',
+                    'follow_up',
+                    'unclear',
+                  ],
+                },
+                tone: {
+                  type: 'string',
+                  enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
+                },
+                priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+                priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
+                escalationRequired: { type: 'boolean' },
+                suggestedReply: { type: 'string', minLength: 1, maxLength: 3000 },
                 proposedReply: { type: 'string', minLength: 1, maxLength: 3000 },
                 confidenceLevel: { type: 'string', enum: ['Low', 'Medium', 'High'] },
               },
             },
           },
           executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
-          priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+          priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
           mailboxCount: { type: 'number', minimum: 0 },
           messageCount: { type: 'number', minimum: 0 },
         },
@@ -461,11 +874,18 @@ class AnalyzeInboxCapability extends BaseCapability {
     const includeClosed = input.includeClosed === true;
     const maxDrafts = Math.max(1, Math.min(5, toNumber(input.maxDrafts, 5)));
     const snapshotSource = asObject(safeContext.systemStateSnapshot);
+    const snapshotMetadata = asObject(snapshotSource.metadata);
+    const tenantProfile = asObject(snapshotSource.tenantProfile);
+    const toneStyle =
+      normalizeText(snapshotMetadata.toneStyle) ||
+      normalizeText(tenantProfile.toneStyle) ||
+      'balanserad';
+
     const rawConversations = asArray(snapshotSource.conversations);
     const conversations = rawConversations
       .map(toConversationSnapshot)
       .filter((item) => item.conversationId);
-    const snapshotMetadata = asObject(snapshotSource.metadata);
+
     const mailboxCount = countMailboxesFromConversations(
       conversations,
       snapshotMetadata.mailboxCount
@@ -481,6 +901,7 @@ class AnalyzeInboxCapability extends BaseCapability {
     const needsReplyToday = [];
     const slaBreaches = [];
     const riskFlags = [];
+    const conversationWorklist = [];
     const warnings = [];
     let maskedPreviewCount = 0;
 
@@ -495,15 +916,27 @@ class AnalyzeInboxCapability extends BaseCapability {
       if (!unanswered) continue;
 
       const hoursSinceInbound =
-        inboundAtMs === null ? 0 : Math.max(0, Math.round(((Date.now() - inboundAtMs) / (60 * 60 * 1000)) * 10) / 10);
+        inboundAtMs === null
+          ? 0
+          : Math.max(0, Math.round(((Date.now() - inboundAtMs) / (60 * 60 * 1000)) * 10) / 10);
       const messageId =
         normalizeText(inbound.messageId) ||
         normalizeText(conversation.conversationId);
       const inboundPreview = normalizeText(inbound.bodyPreview);
       if (inbound.masked === true) maskedPreviewCount += 1;
 
-      const riskInput = `${conversation.rawSubject || conversation.subject}\n${inboundPreview}\n${conversation.rawRiskWords.join(' ')}`;
-      const flags = collectRiskFlags(riskInput);
+      const semanticInput = [
+        conversation.rawSubject || conversation.subject,
+        inboundPreview,
+        conversation.rawRiskWords.join(' '),
+      ].join('\n');
+
+      const intentResult = classifyIntent(semanticInput);
+      const toneResult = detectTone(semanticInput);
+      const intent = intentResult.intent;
+      const tone = toneResult.tone;
+
+      const flags = collectRiskFlags(semanticInput);
       for (const flag of flags) {
         riskFlags.push({
           conversationId: conversation.conversationId,
@@ -517,6 +950,11 @@ class AnalyzeInboxCapability extends BaseCapability {
       const slaDeadlineIso = toIso(conversation.slaDeadlineAt);
       const slaDeadlineMs = toTimestampMs(slaDeadlineIso);
       const isSlaBreached = slaDeadlineMs !== null && slaDeadlineMs < Date.now();
+      const slaStatus = computeSlaStatus({
+        slaBreached: isSlaBreached,
+        slaDeadlineMs,
+        hoursSinceInbound,
+      });
       if (isSlaBreached) {
         const overdueMinutes = Math.max(0, Math.round((Date.now() - slaDeadlineMs) / (60 * 1000)));
         slaBreaches.push({
@@ -529,48 +967,103 @@ class AnalyzeInboxCapability extends BaseCapability {
       }
 
       const dueSoon = slaDeadlineMs !== null && slaDeadlineMs <= Date.now() + 24 * 60 * 60 * 1000;
+      const messageThreadCount = asArray(conversation.messages).length;
+      const revenueSignal = intent === 'booking_request' || intent === 'pricing_question';
+      const priorityInfo = computePriorityScore({
+        hoursSinceInbound,
+        tone,
+        intent,
+        previousInteractions: messageThreadCount,
+        revenueSignal,
+        riskFlags: flags,
+        slaBreached: isSlaBreached,
+        slaStatus,
+      });
+      const escalationRequired =
+        priorityInfo.level === 'Critical' ||
+        intent === 'complaint' ||
+        flags.some((item) => severityWeight(item.severity) >= 4);
+      const recommendedAction = INTENT_ACTIONS[intent] || INTENT_ACTIONS.unclear;
+      const sender = normalizeText(conversation.sender || inbound.sender) || 'okand avsandare';
+
       if (dueSoon || hoursSinceInbound >= 6 || flags.length > 0) {
         needsReplyToday.push({
           conversationId: conversation.conversationId,
           messageId,
+          mailboxId: normalizeText(conversation.mailboxId) || 'unknown-mailbox',
           subject: conversation.subject,
+          sender,
+          latestInboundPreview: inboundPreview || 'Ingen preview tillganglig.',
           hoursSinceInbound,
           dueBy: slaDeadlineIso || '',
+          slaStatus,
+          intent,
+          tone,
+          priorityLevel: priorityInfo.level,
+          needsReplyStatus: 'needs_reply',
         });
       }
 
       const hasHighFlag = flags.some((item) => severityWeight(item.severity) >= 3);
-      if (isSlaBreached || hasHighFlag || hoursSinceInbound >= 24) {
+      if (isSlaBreached || hasHighFlag || hoursSinceInbound >= 24 || priorityInfo.level === 'Critical') {
         urgentConversations.push({
           conversationId: conversation.conversationId,
           messageId,
           subject: conversation.subject,
           reason: isSlaBreached ? 'sla_breach' : hasHighFlag ? 'risk_flag' : 'stale_unanswered',
           hoursSinceInbound,
+          intent,
+          tone,
+          priorityLevel: priorityInfo.level,
         });
       }
 
-      unresolved.push({
-        conversation,
+      const workItem = {
+        conversation: conversation,
+        conversationId: conversation.conversationId,
         messageId,
-        inboundPreview,
+        mailboxId: normalizeText(conversation.mailboxId) || 'unknown-mailbox',
+        sender,
+        latestInboundPreview: inboundPreview || 'Ingen preview tillganglig.',
         riskFlags: flags,
         hoursSinceInbound,
         slaBreached: isSlaBreached,
         slaDeadlineAt: slaDeadlineIso,
+        slaStatus,
+        intent,
+        tone,
+        priorityLevel: priorityInfo.level,
+        priorityScore: priorityInfo.score,
+        recommendedAction,
+        escalationRequired,
+        needsReplyStatus: 'needs_reply',
+      };
+
+      conversationWorklist.push({
+        conversationId: workItem.conversationId,
+        messageId: workItem.messageId,
+        mailboxId: workItem.mailboxId,
+        subject: conversation.subject,
+        sender: workItem.sender,
+        latestInboundPreview: workItem.latestInboundPreview,
+        hoursSinceInbound: workItem.hoursSinceInbound,
+        lastInboundAt: conversation.lastInboundAt || toIso(Date.now()) || new Date().toISOString(),
+        slaStatus: workItem.slaStatus,
+        intent: workItem.intent,
+        tone: workItem.tone,
+        priorityLevel: workItem.priorityLevel,
+        priorityScore: workItem.priorityScore,
+        recommendedAction: workItem.recommendedAction,
+        escalationRequired: workItem.escalationRequired,
+        needsReplyStatus: workItem.needsReplyStatus,
       });
+
+      unresolved.push(workItem);
     }
 
     unresolved.sort((a, b) => {
-      const scoreA =
-        (a.slaBreached ? 120 : 0) +
-        a.hoursSinceInbound * 1.5 +
-        a.riskFlags.reduce((sum, item) => sum + severityWeight(item.severity) * 8, 0);
-      const scoreB =
-        (b.slaBreached ? 120 : 0) +
-        b.hoursSinceInbound * 1.5 +
-        b.riskFlags.reduce((sum, item) => sum + severityWeight(item.severity) * 8, 0);
-      return scoreB - scoreA;
+      if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+      return b.hoursSinceInbound - a.hoursSinceInbound;
     });
 
     const suggestedDrafts = unresolved.slice(0, maxDrafts).map((item) => {
@@ -579,39 +1072,55 @@ class AnalyzeInboxCapability extends BaseCapability {
         0
       );
       const isMedicalTopic = MEDICAL_TOPIC_PATTERN.test(
-        `${item.conversation.subject}\n${item.inboundPreview}`
+        `${item.conversation.subject}\n${item.latestInboundPreview}`
       );
       const isAcute = item.riskFlags.some((flag) => flag.code === 'ACUTE_URGENT');
       const confidenceScore = Math.max(
         10,
         Math.min(
           95,
-          80 -
-            (item.slaBreached ? 15 : 0) -
-            Math.min(30, riskWeight) +
-            (normalizeText(item.inboundPreview) ? 10 : 0)
+          82 -
+            (item.slaBreached ? 14 : 0) -
+            Math.min(34, riskWeight) +
+            (normalizeText(item.latestInboundPreview) ? 8 : 0)
         )
       );
-      return {
-        conversationId: item.conversation.conversationId,
-        messageId: item.messageId,
+      const draftedReply = buildDraftReply({
         subject: item.conversation.subject,
-        proposedReply: buildDraftReply({
-          subject: item.conversation.subject,
-          inboundPreview: item.inboundPreview,
-          riskHits: item.riskFlags,
-          isMedicalTopic,
-          isAcute,
-          slaBreached: item.slaBreached,
-        }),
+        inboundPreview: item.latestInboundPreview,
+        riskHits: item.riskFlags,
+        isMedicalTopic,
+        isAcute,
+        slaBreached: item.slaBreached,
+        intent: item.intent,
+        tone: item.tone,
+        toneStyle,
+      });
+      return {
+        conversationId: item.conversationId,
+        messageId: item.messageId,
+        mailboxId: item.mailboxId,
+        subject: item.conversation.subject,
+        sender: item.sender,
+        latestInboundPreview: item.latestInboundPreview,
+        hoursSinceInbound: item.hoursSinceInbound,
+        slaStatus: item.slaStatus,
+        intent: item.intent,
+        tone: item.tone,
+        priorityLevel: item.priorityLevel,
+        priorityScore: item.priorityScore,
+        recommendedAction: item.recommendedAction,
+        escalationRequired: item.escalationRequired,
+        suggestedReply: draftedReply,
+        proposedReply: draftedReply,
         confidenceLevel: mapConfidence(confidenceScore),
       };
     });
 
-    const priorityLevel = pickPriorityLevel({
-      slaBreaches: slaBreaches.length,
-      riskFlags,
-    });
+    const overallPriority = unresolved.reduce((current, item) => {
+      const rank = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+      return rank[item.priorityLevel] > rank[current] ? item.priorityLevel : current;
+    }, 'Low');
 
     if (conversations.length === 0) {
       warnings.push('Inga konversationer hittades i systemStateSnapshot.');
@@ -629,18 +1138,19 @@ class AnalyzeInboxCapability extends BaseCapability {
       `${mailboxCount} mailboxar och ${messageCount} meddelanden analyserade.`,
       `${slaBreaches.length} SLA-brott och ${riskFlags.length} riskflaggor identifierade.`,
       `${suggestedDrafts.length} svarsutkast forberedda for manuell granskning.`,
-      `Prioritet: ${priorityLevel}.`,
+      `Prioritet: ${overallPriority}.`,
     ].join(' ');
 
     return {
       data: {
         urgentConversations: urgentConversations.slice(0, 25),
         needsReplyToday: needsReplyToday.slice(0, 50),
+        conversationWorklist: conversationWorklist.slice(0, 120),
         slaBreaches: slaBreaches.slice(0, 50),
         riskFlags: riskFlags.slice(0, 120),
         suggestedDrafts,
         executiveSummary,
-        priorityLevel,
+        priorityLevel: overallPriority,
         mailboxCount,
         messageCount,
       },
@@ -652,6 +1162,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         requestId: normalizeText(safeContext.requestId) || '',
         correlationId: normalizeText(safeContext.correlationId) || '',
         deliveryMode: 'manual_review_required',
+        toneStyleApplied: toneStyle,
         snapshotDebug: debugMode
           ? buildSnapshotDebugInfo(snapshotSource, {
               unresolvedConversations: unresolved.length,
