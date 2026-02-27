@@ -216,7 +216,7 @@
     var showIcon = String(script.getAttribute('data-icon') || '').toLowerCase() !== 'false';
     if (showIcon && baseOrigin && brand === 'hair-tp-clinic') {
       var icon = document.createElement('img');
-      icon.src = safeUrl('/assets/hairtpclinic-mark.svg', baseOrigin);
+      icon.src = safeUrl('/assets/major-arcana-mark-img0182-clean-v3.png', baseOrigin);
       icon.alt = '';
       icon.decoding = 'async';
       icon.loading = 'lazy';

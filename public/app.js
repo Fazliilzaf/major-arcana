@@ -31,6 +31,7 @@ function getSourceUrl() {
 
 const publicConfigPromise = loadPublicConfig();
 const clientoState = { loading: false, loaded: false };
+const BRAND_LOGO_PATH = '/assets/major-arcana-mark-img0182-clean-v3.png';
 
 function brandLabel() {
   const brand = publicConfig?.brand;
@@ -47,7 +48,7 @@ function applyBrandUi() {
 
   if (els.brandMark) {
     if (brand === 'hair-tp-clinic') {
-      els.brandMark.src = '/assets/hairtpclinic-mark.svg';
+      els.brandMark.src = BRAND_LOGO_PATH;
       els.brandMark.classList.remove('hidden');
     } else {
       els.brandMark.classList.add('hidden');
@@ -56,7 +57,7 @@ function applyBrandUi() {
 
   if (els.bookingBrandMark) {
     if (brand === 'hair-tp-clinic') {
-      els.bookingBrandMark.src = '/assets/hairtpclinic-mark.svg';
+      els.bookingBrandMark.src = BRAND_LOGO_PATH;
       els.bookingBrandMark.classList.remove('hidden');
     } else {
       els.bookingBrandMark.classList.add('hidden');
