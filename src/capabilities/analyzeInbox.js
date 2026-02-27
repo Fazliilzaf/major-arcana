@@ -278,7 +278,7 @@ function buildDraftReply({
 
   if (isAcute) {
     lines.push(
-      'Om du har akuta symtom ska du kontakta 112 eller narmaste akutmottagning direkt.'
+      'Om du har akuta symtom ska du ring 112 eller kontakta narmaste akutmottagning direkt.'
     );
   }
 

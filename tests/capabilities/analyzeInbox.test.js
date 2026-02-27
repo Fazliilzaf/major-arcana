@@ -109,6 +109,44 @@ test('AnalyzeInbox adds medical safety disclaimer and avoids forbidden claims', 
   assert.equal(reply.includes('diagnos'), false);
 });
 
+test('AnalyzeInbox acute drafts include explicit escalation phrase required by policy floor', async () => {
+  const output = await new analyzeInboxCapability().execute({
+    tenantId: 'tenant-a',
+    actor: { id: 'staff-a', role: 'STAFF' },
+    channel: 'admin',
+    requestId: 'req-inbox-acute-policy',
+    correlationId: 'corr-inbox-acute-policy',
+    input: {
+      maxDrafts: 1,
+    },
+    systemStateSnapshot: {
+      conversations: [
+        {
+          conversationId: 'conv-acute-policy',
+          subject: 'Akut fraga',
+          status: 'open',
+          messages: [
+            {
+              messageId: 'msg-acute-policy',
+              direction: 'inbound',
+              sentAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+              bodyPreview: 'Jag har akut svar smarta och behover snabb hjalp.',
+            },
+          ],
+        },
+      ],
+      timestamps: {
+        capturedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  assert.equal(output.data.suggestedDrafts.length, 1);
+  const reply = String(output.data.suggestedDrafts[0].proposedReply || '').toLowerCase();
+  assert.equal(reply.includes('akuta symtom'), true);
+  assert.equal(reply.includes('ring 112'), true);
+});
+
 test('AnalyzeInbox sanitizes acute terms in surfaced subjects but keeps urgency signals', async () => {
   const output = await new analyzeInboxCapability().execute({
     tenantId: 'tenant-a',
