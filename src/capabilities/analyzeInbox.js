@@ -632,6 +632,27 @@ class AnalyzeInboxCapability extends BaseCapability {
       `Prioritet: ${priorityLevel}.`,
     ].join(' ');
 
+    const metadata = {
+      capability: AnalyzeInboxCapability.name,
+      version: AnalyzeInboxCapability.version,
+      channel: normalizeText(safeContext.channel) || 'admin',
+    };
+    const tenantId = normalizeText(safeContext.tenantId);
+    const requestId = normalizeText(safeContext.requestId);
+    const correlationId = normalizeText(safeContext.correlationId);
+    if (tenantId) metadata.tenantId = tenantId;
+    if (requestId) metadata.requestId = requestId;
+    if (correlationId) metadata.correlationId = correlationId;
+    metadata.deliveryMode = 'manual_review_required';
+    if (debugMode) {
+      metadata.snapshotDebug = buildSnapshotDebugInfo(snapshotSource, {
+        unresolvedConversations: unresolved.length,
+        slaBreaches: slaBreaches.length,
+        riskFlags: riskFlags.length,
+        suggestedDrafts: suggestedDrafts.length,
+      });
+    }
+
     return {
       data: {
         urgentConversations: urgentConversations.slice(0, 25),
@@ -644,23 +665,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         mailboxCount,
         messageCount,
       },
-      metadata: {
-        capability: AnalyzeInboxCapability.name,
-        version: AnalyzeInboxCapability.version,
-        channel: normalizeText(safeContext.channel) || 'admin',
-        tenantId: normalizeText(safeContext.tenantId) || 'unknown',
-        requestId: normalizeText(safeContext.requestId) || '',
-        correlationId: normalizeText(safeContext.correlationId) || '',
-        deliveryMode: 'manual_review_required',
-        snapshotDebug: debugMode
-          ? buildSnapshotDebugInfo(snapshotSource, {
-              unresolvedConversations: unresolved.length,
-              slaBreaches: slaBreaches.length,
-              riskFlags: riskFlags.length,
-              suggestedDrafts: suggestedDrafts.length,
-            })
-          : undefined,
-      },
+      metadata,
       warnings: warnings.slice(0, 30),
     };
   }

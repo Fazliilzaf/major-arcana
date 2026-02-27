@@ -322,3 +322,29 @@ test('AnalyzeInbox debug mode exposes snapshot structure for conversations', asy
   assert.equal(snapshotDebug.snapshotVersion, 'inbox.snapshot.v1');
   assert.equal(snapshotDebug.timestamp, '2026-02-26T12:00:00.000Z');
 });
+
+test('AnalyzeInbox omits empty optional metadata fields', async () => {
+  const output = await new analyzeInboxCapability().execute({
+    tenantId: 'tenant-a',
+    actor: { id: 'owner-a', role: 'OWNER' },
+    channel: 'admin',
+    input: {
+      maxDrafts: 1,
+    },
+    systemStateSnapshot: {
+      conversations: [],
+      timestamps: {
+        capturedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  const validation = validateJsonSchema({
+    schema: analyzeInboxCapability.outputSchema,
+    value: output,
+    rootPath: 'capability.output',
+  });
+  assert.equal(validation.ok, true, `schema validation errors: ${JSON.stringify(validation.errors)}`);
+  assert.equal('requestId' in output.metadata, false);
+  assert.equal('correlationId' in output.metadata, false);
+});
