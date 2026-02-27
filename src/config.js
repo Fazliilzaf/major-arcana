@@ -227,6 +227,7 @@ const config = {
   authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 60),
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
+  authMfaEnabled: asBool(process.env.AUTH_MFA_ENABLED, false),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
     process.env.AUTH_LOGIN_SESSION_ROTATION,
     'tenant'
