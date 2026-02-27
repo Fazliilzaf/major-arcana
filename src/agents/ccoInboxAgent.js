@@ -99,7 +99,7 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
             additionalProperties: false,
             properties: {
               conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-              messageId: { type: 'string', minLength: 1, maxLength: 120 },
+              messageId: { type: 'string', minLength: 1, maxLength: 512 },
               subject: { type: 'string', minLength: 1, maxLength: 200 },
               proposedReply: { type: 'string', minLength: 1, maxLength: 3000 },
               confidenceLevel: { type: 'string', enum: ['Low', 'Medium', 'High'] },
@@ -139,8 +139,22 @@ function composeCcoInboxAnalysis({
 } = {}) {
   const normalizedOutput = asObject(inboxOutput);
   const data = asObject(normalizedOutput.data);
-  const metadata = asObject(normalizedOutput.metadata);
+  const sourceMetadata = asObject(normalizedOutput.metadata);
   const warnings = asArray(normalizedOutput.warnings);
+
+  const resultMetadata = {
+    agent: CCO_AGENT_NAME,
+    version: '1.0.0',
+    channel: normalizeText(channel) || 'admin',
+    sources: ['AnalyzeInbox'],
+    sourceCapabilityVersion: normalizeText(sourceMetadata.version) || null,
+    sourceSnapshotVersion: normalizeText(sourceMetadata?.snapshotDebug?.snapshotVersion) || null,
+    requestedMaxDrafts: clampInteger(sourceMetadata?.requestedMaxDrafts, 1, 5, null),
+  };
+  const normalizedTenantId = normalizeText(tenantId);
+  const normalizedCorrelationId = normalizeText(correlationId);
+  if (normalizedTenantId) resultMetadata.tenantId = normalizedTenantId;
+  if (normalizedCorrelationId) resultMetadata.correlationId = normalizedCorrelationId;
 
   return {
     data: {
@@ -165,17 +179,7 @@ function composeCcoInboxAnalysis({
       priorityLevel: normalizePriorityLevel(data.priorityLevel),
       generatedAt: new Date().toISOString(),
     },
-    metadata: {
-      agent: CCO_AGENT_NAME,
-      version: '1.0.0',
-      channel: normalizeText(channel) || 'admin',
-      tenantId: normalizeText(tenantId) || 'unknown',
-      correlationId: normalizeText(correlationId) || '',
-      sources: ['AnalyzeInbox'],
-      sourceCapabilityVersion: normalizeText(metadata.version) || null,
-      sourceSnapshotVersion: normalizeText(metadata?.snapshotDebug?.snapshotVersion) || null,
-      requestedMaxDrafts: clampInteger(metadata?.requestedMaxDrafts, 1, 5, null),
-    },
+    metadata: resultMetadata,
     warnings: Array.from(
       new Set(
         warnings

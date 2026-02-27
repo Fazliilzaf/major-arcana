@@ -72,3 +72,71 @@ test('CCO inbox analysis compose clamps draft list to max 5', () => {
   assert.equal(Array.isArray(output.data.suggestedDrafts), true);
   assert.equal(output.data.suggestedDrafts.length, 5);
 });
+
+test('CCO inbox analysis omits empty optional metadata fields', () => {
+  const output = composeCcoInboxAnalysis({
+    inboxOutput: {
+      data: {
+        urgentConversations: [],
+        needsReplyToday: [],
+        slaBreaches: [],
+        riskFlags: [],
+        suggestedDrafts: [makeDraft(1)],
+        executiveSummary: 'ok',
+        priorityLevel: 'Low',
+      },
+      metadata: {},
+      warnings: [],
+    },
+    channel: 'admin',
+    tenantId: '',
+    correlationId: '',
+  });
+
+  const validation = validateJsonSchema({
+    schema: ccoInboxAnalysisOutputSchema,
+    value: output,
+    rootPath: 'agent.output',
+  });
+  assert.equal(validation.ok, true, JSON.stringify(validation.errors, null, 2));
+  assert.equal('tenantId' in output.metadata, false);
+  assert.equal('correlationId' in output.metadata, false);
+});
+
+test('CCO inbox analysis accepts long provider message ids', () => {
+  const longMessageId = `graph-${'x'.repeat(260)}`;
+  const output = composeCcoInboxAnalysis({
+    inboxOutput: {
+      data: {
+        urgentConversations: [],
+        needsReplyToday: [],
+        slaBreaches: [],
+        riskFlags: [],
+        suggestedDrafts: [
+          {
+            conversationId: 'conv-long-id',
+            messageId: longMessageId,
+            subject: 'Subject',
+            proposedReply: 'Draft',
+            confidenceLevel: 'High',
+          },
+        ],
+        executiveSummary: 'ok',
+        priorityLevel: 'Low',
+      },
+      metadata: {},
+      warnings: [],
+    },
+    channel: 'admin',
+    tenantId: 'tenant-a',
+    correlationId: 'corr-cco-long',
+  });
+
+  const validation = validateJsonSchema({
+    schema: ccoInboxAnalysisOutputSchema,
+    value: output,
+    rootPath: 'agent.output',
+  });
+  assert.equal(validation.ok, true, JSON.stringify(validation.errors, null, 2));
+  assert.equal(String(output.data.suggestedDrafts[0].messageId).length > 120, true);
+});
