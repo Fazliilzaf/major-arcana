@@ -1112,7 +1112,8 @@ function createCapabilityExecutor({
       );
     }
     const normalizedMailboxIdLower = mailboxId.toLowerCase();
-    if (!allowlistSet.has(normalizedMailboxIdLower)) {
+    const wildcardAllowed = allowlistSet.has('*');
+    if (!wildcardAllowed && !allowlistSet.has(normalizedMailboxIdLower)) {
       throw makeCapabilityError(
         'CCO_SEND_ALLOWLIST_BLOCKED',
         `Mailbox ar inte allowlistad for send: ${mailboxId}.`
