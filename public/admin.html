@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Major Arcana · Admin</title>
+  <link rel="icon" type="image/png" href="/assets/major-arcana-mark-img0182-clean-v3.png" />
+  <link rel="apple-touch-icon" href="/assets/major-arcana-mark-img0182-clean-v3.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -255,7 +257,7 @@
       outline: none !important;
       box-shadow: none !important;
       background: transparent;
-      filter: saturate(102%) contrast(101%) brightness(0.97);
+      filter: saturate(102%) contrast(101%) brightness(0.97) drop-shadow(0 8px 14px rgba(0, 0, 0, 0.34));
       transform: translateZ(0);
     }
     @media (max-width: 980px) {
@@ -1315,6 +1317,24 @@
       color: var(--text);
       box-shadow: 0 18px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
+    .overview-card.overview-card--cco {
+      border-color: rgba(255, 233, 212, 0.52);
+      background:
+        linear-gradient(160deg, rgba(255, 233, 212, 0.11), rgba(255, 217, 184, 0.05)),
+        linear-gradient(160deg, rgba(54, 46, 40, 0.31), rgba(38, 33, 28, 0.27)),
+        radial-gradient(120% 90% at 8% -12%, rgba(255, 223, 190, 0.19) 0%, transparent 72%);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+    .overview-card.overview-card--cco .code-block {
+      border-color: rgba(255, 228, 198, 0.38);
+      background:
+        linear-gradient(160deg, rgba(255, 247, 237, 0.08), rgba(255, 233, 209, 0.04)),
+        linear-gradient(160deg, rgba(57, 49, 42, 0.3), rgba(43, 37, 32, 0.26));
+    }
+    .overview-card.overview-card--cco #runCcoInboxBtn {
+      color: var(--text);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    }
     .risk-trend-list {
       display: flex;
       flex-direction: column;
@@ -2094,7 +2114,7 @@
     <div class="header">
       <div class="brand-stack">
         <div class="admin-brand-mark-shell">
-          <img src="/assets/major-arcana-mark-img0182-clean-v3.png" class="admin-brand-mark" alt="Major Arcana logotyp" onerror="this.onerror=null;this.src='/assets/major-arcana-mark-fallback.png';" />
+          <img src="/assets/major-arcana-mark-img0182-clean-v3.png" class="admin-brand-mark" alt="Arcana logotyp" onerror="this.onerror=null;this.src='/assets/major-arcana-mark-fallback.png';" />
         </div>
         <h1 data-i18n="brand_title">Major Arcana</h1>
       </div>
@@ -2124,7 +2144,7 @@
       <div class="grid" style="margin-top:10px">
         <div>
           <label for="emailInput" data-i18n="label_email">E-post</label>
-          <input id="emailInput" type="email" value="owner@hairtpclinic.se" />
+          <input id="emailInput" type="email" value="fazli@hairtpclinic.com" />
         </div>
         <div>
           <label for="tenantInput" data-i18n="label_tenant_optional">Klinik (valfri)</label>
@@ -2218,6 +2238,47 @@
                 <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Topp-rekommendationer</h3>
                 <ul id="dailyBriefRecommendations" class="list">
                   <li class="muted mini">Inga rekommendationer än.</li>
+                </ul>
+              </div>
+            </article>
+            <article class="overview-card overview-card--cco">
+              <h3>Arcana Inbox Brief</h3>
+              <div class="seg" style="margin-top:10px;align-items:center;flex-wrap:wrap">
+                <label class="mini" for="ccoInboxMaxDrafts" style="margin:0;display:flex;align-items:center;gap:8px">
+                  Max utkast:
+                  <input id="ccoInboxMaxDrafts" type="number" value="5" min="1" max="5" style="width:68px" />
+                </label>
+                <label class="mini" for="ccoInboxIncludeClosed" style="margin:0;display:flex;align-items:center;gap:6px">
+                  <input id="ccoInboxIncludeClosed" type="checkbox" />
+                  Inkludera stängda
+                </label>
+                <button id="runCcoInboxBtn" class="btn primary">Kör CCO Inbox Brief</button>
+              </div>
+              <div id="ccoInboxStatus" class="status-line"></div>
+              <div class="grid" style="margin-top:10px">
+                <div>
+                  <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Prioritetsnivå</h3>
+                  <div id="ccoInboxPriority" class="code-block">-</div>
+                </div>
+                <div>
+                  <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">SLA-brott / Riskflaggor</h3>
+                  <div id="ccoInboxRiskFlags" class="code-block">0 / 0</div>
+                </div>
+              </div>
+              <div style="margin-top:10px">
+                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Executive summary</h3>
+                <div id="ccoInboxSummary" class="code-block">Ingen inbox brief än.</div>
+              </div>
+              <div style="margin-top:10px">
+                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Behöver svar idag</h3>
+                <ul id="ccoInboxNeedsReplyList" class="list">
+                  <li class="muted mini">Inga konversationer i kö.</li>
+                </ul>
+              </div>
+              <div style="margin-top:10px">
+                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Föreslagna utkast</h3>
+                <ul id="ccoInboxDraftsList" class="list">
+                  <li class="muted mini">Inga utkast än.</li>
                 </ul>
               </div>
             </article>

@@ -473,6 +473,15 @@
     dailyBriefSeverity: document.getElementById('dailyBriefSeverity'),
     dailyBriefSummary: document.getElementById('dailyBriefSummary'),
     dailyBriefRecommendations: document.getElementById('dailyBriefRecommendations'),
+    runCcoInboxBtn: document.getElementById('runCcoInboxBtn'),
+    ccoInboxMaxDrafts: document.getElementById('ccoInboxMaxDrafts'),
+    ccoInboxIncludeClosed: document.getElementById('ccoInboxIncludeClosed'),
+    ccoInboxStatus: document.getElementById('ccoInboxStatus'),
+    ccoInboxPriority: document.getElementById('ccoInboxPriority'),
+    ccoInboxRiskFlags: document.getElementById('ccoInboxRiskFlags'),
+    ccoInboxSummary: document.getElementById('ccoInboxSummary'),
+    ccoInboxNeedsReplyList: document.getElementById('ccoInboxNeedsReplyList'),
+    ccoInboxDraftsList: document.getElementById('ccoInboxDraftsList'),
     fetchCalibrationSuggestionBtn: document.getElementById('fetchCalibrationSuggestionBtn'),
     applyCalibrationSuggestionBtn: document.getElementById('applyCalibrationSuggestionBtn'),
     calibrationNoteInput: document.getElementById('calibrationNoteInput'),
@@ -6840,6 +6849,134 @@
     }
   }
 
+  function readCcoInboxOptions() {
+    const rawMaxDrafts = Number(els.ccoInboxMaxDrafts?.value || 5);
+    const maxDrafts = Number.isFinite(rawMaxDrafts) ? Math.max(1, Math.min(5, rawMaxDrafts)) : 5;
+    if (els.ccoInboxMaxDrafts) {
+      els.ccoInboxMaxDrafts.value = String(maxDrafts);
+    }
+    return {
+      includeClosed: Boolean(els.ccoInboxIncludeClosed?.checked),
+      maxDrafts,
+    };
+  }
+
+  function normalizeCcoInboxOutput(payload = null) {
+    if (!payload || typeof payload !== 'object') return null;
+    if (payload?.output?.data && typeof payload.output === 'object') return payload.output;
+    if (payload?.data && payload?.metadata) return payload;
+    if (payload?.entry?.output?.data) return payload.entry.output;
+    return null;
+  }
+
+  function toCcoNeedsReplyRows(rows = []) {
+    return (Array.isArray(rows) ? rows : []).slice(0, 5).map((item) => {
+      const subject = String(item?.subject || '(utan amne)').trim() || '(utan amne)';
+      const hours = Number(item?.hoursSinceInbound || 0);
+      return `${subject} · ${hours.toFixed(1)}h`;
+    });
+  }
+
+  function toCcoDraftRows(rows = []) {
+    return (Array.isArray(rows) ? rows : []).slice(0, 5).map((item) => {
+      const subject = String(item?.subject || '(utan amne)').trim() || '(utan amne)';
+      const confidence = String(item?.confidenceLevel || 'Low').trim() || 'Low';
+      return `${subject} · confidence ${confidence}`;
+    });
+  }
+
+  function renderCcoInbox(output = null) {
+    const normalized = normalizeCcoInboxOutput(output);
+    const data = normalized?.data && typeof normalized.data === 'object' ? normalized.data : null;
+    if (!data) {
+      if (els.ccoInboxPriority) els.ccoInboxPriority.textContent = '-';
+      if (els.ccoInboxRiskFlags) els.ccoInboxRiskFlags.textContent = '0 / 0';
+      if (els.ccoInboxSummary) els.ccoInboxSummary.textContent = 'Ingen inbox brief an.';
+      renderIncidentIntelligenceList(
+        els.ccoInboxNeedsReplyList,
+        [],
+        'Inga konversationer i ko.'
+      );
+      renderIncidentIntelligenceList(els.ccoInboxDraftsList, [], 'Inga utkast an.');
+      return;
+    }
+
+    const slaBreaches = Array.isArray(data.slaBreaches) ? data.slaBreaches.length : 0;
+    const riskFlags = Array.isArray(data.riskFlags) ? data.riskFlags.length : 0;
+
+    if (els.ccoInboxPriority) {
+      els.ccoInboxPriority.textContent = String(data.priorityLevel || 'Low');
+    }
+    if (els.ccoInboxRiskFlags) {
+      els.ccoInboxRiskFlags.textContent = `${slaBreaches} / ${riskFlags}`;
+    }
+    if (els.ccoInboxSummary) {
+      els.ccoInboxSummary.textContent = String(data.executiveSummary || 'Ingen sammanfattning.');
+    }
+    renderIncidentIntelligenceList(
+      els.ccoInboxNeedsReplyList,
+      toCcoNeedsReplyRows(data.needsReplyToday),
+      'Inga konversationer i ko.'
+    );
+    renderIncidentIntelligenceList(
+      els.ccoInboxDraftsList,
+      toCcoDraftRows(data.suggestedDrafts),
+      'Inga utkast an.'
+    );
+  }
+
+  async function loadCcoInboxBrief({ quiet = true } = {}) {
+    try {
+      const response = await api('/agents/analysis?agent=CCO&limit=1');
+      const entry = Array.isArray(response?.entries) && response.entries.length > 0
+        ? response.entries[0]
+        : null;
+      if (entry?.output) {
+        renderCcoInbox(entry.output);
+        if (!quiet) {
+          const generatedAt = String(entry?.output?.data?.generatedAt || entry?.createdAt || '').trim();
+          setStatus(
+            els.ccoInboxStatus,
+            generatedAt ? `CCO inbox brief laddad (${generatedAt}).` : 'CCO inbox brief laddad.'
+          );
+        }
+        return;
+      }
+      renderCcoInbox(null);
+      if (!quiet) setStatus(els.ccoInboxStatus, 'Ingen tidigare CCO inbox brief hittades.');
+    } catch (error) {
+      renderCcoInbox(null);
+      if (!quiet) {
+        setStatus(els.ccoInboxStatus, error.message || 'Kunde inte lasa CCO inbox brief.', true);
+      }
+    }
+  }
+
+  async function runCcoInboxBrief() {
+    try {
+      if (!canTemplateWrite()) throw new Error('Du saknar behorighet.');
+      const input = readCcoInboxOptions();
+      setStatus(els.ccoInboxStatus, 'Kor CCO Inbox Brief...');
+      const response = await api('/agents/CCO/run', {
+        method: 'POST',
+        body: {
+          channel: 'admin',
+          input,
+        },
+      });
+      renderCcoInbox(response?.output || null);
+      const generatedAt = String(response?.output?.data?.generatedAt || '').trim();
+      setStatus(
+        els.ccoInboxStatus,
+        generatedAt
+          ? `CCO inbox brief uppdaterad (${generatedAt}).`
+          : 'CCO inbox brief uppdaterad.'
+      );
+    } catch (error) {
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte kora CCO inbox brief.', true);
+    }
+  }
+
   async function fetchCalibrationSuggestion() {
     try {
       setStatus(els.calibrationStatus, 'Hämtar kalibreringsförslag...');
@@ -8294,6 +8431,7 @@
     await Promise.all([
       loadIncidentIntelligence({ quiet: true }),
       loadDailyBrief({ quiet: true }),
+      loadCcoInboxBrief({ quiet: true }),
     ]);
   }
 
@@ -8711,6 +8849,10 @@
     if (els.dailyBriefIncludeClosed) els.dailyBriefIncludeClosed.checked = false;
     renderDailyBrief(null);
     setStatus(els.dailyBriefStatus, '');
+    if (els.ccoInboxMaxDrafts) els.ccoInboxMaxDrafts.value = '5';
+    if (els.ccoInboxIncludeClosed) els.ccoInboxIncludeClosed.checked = false;
+    renderCcoInbox(null);
+    setStatus(els.ccoInboxStatus, '');
     if (els.latestActivityList) {
       els.latestActivityList.innerHTML = '<li class="muted mini">Ingen aktivitet ännu.</li>';
     }
@@ -9060,6 +9202,7 @@
   els.runOrchestratorBtn?.addEventListener('click', runOrchestrator);
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
+  els.runCcoInboxBtn?.addEventListener('click', runCcoInboxBrief);
   els.fetchCalibrationSuggestionBtn?.addEventListener('click', fetchCalibrationSuggestion);
   els.applyCalibrationSuggestionBtn?.addEventListener('click', applyCalibrationSuggestion);
   els.runPilotReportBtn?.addEventListener('click', runPilotReport);
