@@ -109,6 +109,46 @@ test('AnalyzeInbox adds medical safety disclaimer and avoids forbidden claims', 
   assert.equal(reply.includes('diagnos'), false);
 });
 
+test('AnalyzeInbox sanitizes acute terms in surfaced subjects but keeps urgency signals', async () => {
+  const output = await new analyzeInboxCapability().execute({
+    tenantId: 'tenant-a',
+    actor: { id: 'staff-a', role: 'STAFF' },
+    channel: 'admin',
+    requestId: 'req-inbox-acute-subject',
+    correlationId: 'corr-inbox-acute-subject',
+    input: {
+      maxDrafts: 2,
+    },
+    systemStateSnapshot: {
+      conversations: [
+        {
+          conversationId: 'conv-acute-subject',
+          subject: 'Akut fraga om eftervard',
+          status: 'open',
+          messages: [
+            {
+              messageId: 'msg-acute-subject',
+              direction: 'inbound',
+              sentAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+              bodyPreview: 'Hej, jag foljer upp mitt arende.',
+            },
+          ],
+        },
+      ],
+      timestamps: {
+        capturedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  const renderedSubject = String(output.data.needsReplyToday?.[0]?.subject || '');
+  assert.equal(renderedSubject.includes('Akut'), false);
+  assert.equal(renderedSubject.includes('[eskaleradfraga]'), true);
+
+  const riskFlagCodes = output.data.riskFlags.map((item) => item.flagCode);
+  assert.equal(riskFlagCodes.includes('ACUTE_URGENT'), true);
+});
+
 test('AnalyzeInbox classifies SLA edge windows (24h, 48h) and risk words', async () => {
   const hourMs = 60 * 60 * 1000;
   const fixedNowMs = Date.parse('2026-02-26T18:00:00.000Z');

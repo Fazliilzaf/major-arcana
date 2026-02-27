@@ -45,6 +45,10 @@ function sanitizeSubject(value) {
   if (!subject) subject = '(utan amne)';
   subject = subject.replace(/\b(diagnos|diagnostiser[a-z]*)\b/gi, '[medicinsk fraga]');
   subject = subject.replace(/\b(garanti|garanterar|100\s*%)\b/gi, '[resultatfraga]');
+  subject = subject.replace(
+    /\b(akut|svar\s*smarta|andningssvarigheter)\b/gi,
+    '[eskaleradfraga]'
+  );
   return subject;
 }
 
@@ -67,6 +71,27 @@ function mapConfidence(score = 0) {
   if (score >= 75) return 'High';
   if (score >= 45) return 'Medium';
   return 'Low';
+}
+
+function countMessagesFromConversations(conversations = []) {
+  return asArray(conversations).reduce((sum, conversation) => {
+    return sum + asArray(conversation?.messages).length;
+  }, 0);
+}
+
+function countMailboxesFromConversations(conversations = [], fallback = 0) {
+  const mailboxIds = new Set();
+  for (const conversation of asArray(conversations)) {
+    const conversationMailboxId = normalizeText(conversation?.mailboxId);
+    if (conversationMailboxId) mailboxIds.add(conversationMailboxId);
+    for (const message of asArray(conversation?.messages)) {
+      const messageMailboxId = normalizeText(message?.mailboxId);
+      if (messageMailboxId) mailboxIds.add(messageMailboxId);
+    }
+  }
+  const uniqueCount = mailboxIds.size;
+  const conversationFallback = asArray(conversations).length > 0 ? 1 : 0;
+  return Math.max(uniqueCount, toNumber(fallback, 0), conversationFallback);
 }
 
 const RISK_PATTERNS = Object.freeze([
@@ -173,6 +198,7 @@ function toMessageSnapshot(message = {}) {
     sentAt: toIso(message.sentAt || message.createdAt || message.ts) || null,
     bodyPreview: bodyMasked,
     masked: Boolean(bodyRaw && bodyRaw !== bodyMasked),
+    mailboxId: normalizeText(message.mailboxId || message.mailbox || message.userId) || null,
   };
 }
 
@@ -194,6 +220,7 @@ function toConversationSnapshot(input = {}) {
       normalizeText(source.threadId) ||
       normalizeText(source.id) ||
       null,
+    rawSubject: capText(source.subject || source.title, 180),
     subject: sanitizeSubject(source.subject || source.title),
     status: normalizeText(source.status || 'open').toLowerCase(),
     slaDeadlineAt: toIso(source.slaDeadlineAt || source?.sla?.deadline) || null,
@@ -212,6 +239,10 @@ function toConversationSnapshot(input = {}) {
       .map((item) => normalizeText(item))
       .filter(Boolean)
       .slice(0, 20),
+    mailboxId:
+      normalizeText(source.mailboxId || source.mailbox || source.userId) ||
+      normalizeText(lastInbound?.mailboxId) ||
+      null,
   };
 }
 
@@ -305,6 +336,8 @@ class AnalyzeInboxCapability extends BaseCapability {
           'suggestedDrafts',
           'executiveSummary',
           'priorityLevel',
+          'mailboxCount',
+          'messageCount',
         ],
         additionalProperties: false,
         properties: {
@@ -396,6 +429,8 @@ class AnalyzeInboxCapability extends BaseCapability {
           },
           executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
           priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+          mailboxCount: { type: 'number', minimum: 0 },
+          messageCount: { type: 'number', minimum: 0 },
         },
       },
       metadata: {
@@ -430,6 +465,16 @@ class AnalyzeInboxCapability extends BaseCapability {
     const conversations = rawConversations
       .map(toConversationSnapshot)
       .filter((item) => item.conversationId);
+    const snapshotMetadata = asObject(snapshotSource.metadata);
+    const mailboxCount = countMailboxesFromConversations(
+      conversations,
+      snapshotMetadata.mailboxCount
+    );
+    const messageCount = Math.max(
+      countMessagesFromConversations(conversations),
+      toNumber(snapshotMetadata.messageCount, 0),
+      toNumber(snapshotMetadata.fetchedMessages, 0)
+    );
 
     const unresolved = [];
     const urgentConversations = [];
@@ -457,7 +502,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       const inboundPreview = normalizeText(inbound.bodyPreview);
       if (inbound.masked === true) maskedPreviewCount += 1;
 
-      const riskInput = `${conversation.subject}\n${inboundPreview}\n${conversation.rawRiskWords.join(' ')}`;
+      const riskInput = `${conversation.rawSubject || conversation.subject}\n${inboundPreview}\n${conversation.rawRiskWords.join(' ')}`;
       const flags = collectRiskFlags(riskInput);
       for (const flag of flags) {
         riskFlags.push({
@@ -581,6 +626,7 @@ class AnalyzeInboxCapability extends BaseCapability {
 
     const executiveSummary = [
       `Inboxanalys klar: ${unresolved.length} obesvarade konversationer.`,
+      `${mailboxCount} mailboxar och ${messageCount} meddelanden analyserade.`,
       `${slaBreaches.length} SLA-brott och ${riskFlags.length} riskflaggor identifierade.`,
       `${suggestedDrafts.length} svarsutkast forberedda for manuell granskning.`,
       `Prioritet: ${priorityLevel}.`,
@@ -595,6 +641,8 @@ class AnalyzeInboxCapability extends BaseCapability {
         suggestedDrafts,
         executiveSummary,
         priorityLevel,
+        mailboxCount,
+        messageCount,
       },
       metadata: {
         capability: AnalyzeInboxCapability.name,
