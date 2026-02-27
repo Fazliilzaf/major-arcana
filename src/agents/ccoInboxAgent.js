@@ -182,6 +182,21 @@ function composeCcoInboxAnalysis({
   const metadata = asObject(normalizedOutput.metadata);
   const warnings = asArray(normalizedOutput.warnings);
 
+  const composedMetadata = {
+    agent: CCO_AGENT_NAME,
+    version: '2.0.0',
+    channel: normalizeText(channel) || 'admin',
+    tenantId: normalizeText(tenantId) || 'unknown',
+    sources: ['AnalyzeInbox'],
+    sourceCapabilityVersion: normalizeText(metadata.version) || null,
+    sourceSnapshotVersion: normalizeText(metadata?.snapshotDebug?.snapshotVersion) || null,
+    requestedMaxDrafts: clampInteger(metadata?.requestedMaxDrafts, 1, 5, null),
+  };
+  const safeCorrelationId = normalizeText(correlationId);
+  if (safeCorrelationId) {
+    composedMetadata.correlationId = safeCorrelationId;
+  }
+
   return {
     data: {
       urgentConversations: toStructuredRows(data.urgentConversations, 25),
@@ -200,17 +215,7 @@ function composeCcoInboxAnalysis({
       messageCount: toNonNegativeNumber(data.messageCount, 0),
       generatedAt: new Date().toISOString(),
     },
-    metadata: {
-      agent: CCO_AGENT_NAME,
-      version: '2.0.0',
-      channel: normalizeText(channel) || 'admin',
-      tenantId: normalizeText(tenantId) || 'unknown',
-      correlationId: normalizeText(correlationId) || '',
-      sources: ['AnalyzeInbox'],
-      sourceCapabilityVersion: normalizeText(metadata.version) || null,
-      sourceSnapshotVersion: normalizeText(metadata?.snapshotDebug?.snapshotVersion) || null,
-      requestedMaxDrafts: clampInteger(metadata?.requestedMaxDrafts, 1, 5, null),
-    },
+    metadata: composedMetadata,
     warnings: Array.from(
       new Set(
         warnings

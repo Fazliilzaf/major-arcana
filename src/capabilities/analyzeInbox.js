@@ -1,6 +1,7 @@
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { maskInboxText } = require('../privacy/inboxMasking');
+const crypto = require('node:crypto');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -38,6 +39,15 @@ function capText(value, maxLength = 240) {
   if (!text) return '';
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(1, maxLength - 3)).trim()}...`;
+}
+
+function normalizeIdentifier(value, maxLength = 120) {
+  const normalized = normalizeText(value);
+  if (!normalized) return '';
+  if (normalized.length <= maxLength) return normalized;
+  const digest = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+  const headLength = Math.max(1, maxLength - digest.length - 1);
+  return `${normalized.slice(0, headLength)}:${digest}`.slice(0, maxLength);
 }
 
 function sanitizeSubject(value) {
@@ -282,14 +292,15 @@ function toMessageSnapshot(message = {}) {
   const senderRaw = senderName || senderEmail;
   return {
     messageId:
-      normalizeText(message.messageId) ||
-      normalizeText(message.id) ||
+      normalizeIdentifier(message.messageId, 120) ||
+      normalizeIdentifier(message.id, 120) ||
       null,
     direction: normalizeDirection(message.direction || message.role || message.type),
     sentAt: toIso(message.sentAt || message.createdAt || message.ts) || null,
     bodyPreview: bodyMasked,
     masked: Boolean(bodyRaw && bodyRaw !== bodyMasked),
-    mailboxId: normalizeText(message.mailboxId || message.mailbox || message.userId) || null,
+    mailboxId:
+      normalizeIdentifier(message.mailboxId || message.mailbox || message.userId, 160) || null,
     sender: maskSender(senderRaw),
   };
 }
@@ -308,9 +319,9 @@ function toConversationSnapshot(input = {}) {
 
   return {
     conversationId:
-      normalizeText(source.conversationId) ||
-      normalizeText(source.threadId) ||
-      normalizeText(source.id) ||
+      normalizeIdentifier(source.conversationId, 120) ||
+      normalizeIdentifier(source.threadId, 120) ||
+      normalizeIdentifier(source.id, 120) ||
       null,
     rawSubject: capText(source.subject || source.title, 180),
     subject: sanitizeSubject(source.subject || source.title),
@@ -332,8 +343,8 @@ function toConversationSnapshot(input = {}) {
       .filter(Boolean)
       .slice(0, 20),
     mailboxId:
-      normalizeText(source.mailboxId || source.mailbox || source.userId) ||
-      normalizeText(lastInbound?.mailboxId) ||
+      normalizeIdentifier(source.mailboxId || source.mailbox || source.userId, 160) ||
+      normalizeIdentifier(lastInbound?.mailboxId, 160) ||
       null,
     sender:
       maskSender(
@@ -1141,6 +1152,28 @@ class AnalyzeInboxCapability extends BaseCapability {
       `Prioritet: ${overallPriority}.`,
     ].join(' ');
 
+    const metadata = {
+      capability: AnalyzeInboxCapability.name,
+      version: AnalyzeInboxCapability.version,
+      channel: normalizeText(safeContext.channel) || 'admin',
+      deliveryMode: 'manual_review_required',
+      toneStyleApplied: toneStyle,
+      snapshotDebug: debugMode
+        ? buildSnapshotDebugInfo(snapshotSource, {
+            unresolvedConversations: unresolved.length,
+            slaBreaches: slaBreaches.length,
+            riskFlags: riskFlags.length,
+            suggestedDrafts: suggestedDrafts.length,
+          })
+        : undefined,
+    };
+    const tenantId = normalizeIdentifier(safeContext.tenantId, 120);
+    if (tenantId) metadata.tenantId = tenantId;
+    const requestId = normalizeIdentifier(safeContext.requestId, 120);
+    if (requestId) metadata.requestId = requestId;
+    const correlationId = normalizeIdentifier(safeContext.correlationId, 120);
+    if (correlationId) metadata.correlationId = correlationId;
+
     return {
       data: {
         urgentConversations: urgentConversations.slice(0, 25),
@@ -1154,24 +1187,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         mailboxCount,
         messageCount,
       },
-      metadata: {
-        capability: AnalyzeInboxCapability.name,
-        version: AnalyzeInboxCapability.version,
-        channel: normalizeText(safeContext.channel) || 'admin',
-        tenantId: normalizeText(safeContext.tenantId) || 'unknown',
-        requestId: normalizeText(safeContext.requestId) || '',
-        correlationId: normalizeText(safeContext.correlationId) || '',
-        deliveryMode: 'manual_review_required',
-        toneStyleApplied: toneStyle,
-        snapshotDebug: debugMode
-          ? buildSnapshotDebugInfo(snapshotSource, {
-              unresolvedConversations: unresolved.length,
-              slaBreaches: slaBreaches.length,
-              riskFlags: riskFlags.length,
-              suggestedDrafts: suggestedDrafts.length,
-            })
-          : undefined,
-      },
+      metadata,
       warnings: warnings.slice(0, 30),
     };
   }
