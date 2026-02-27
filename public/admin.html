@@ -233,7 +233,7 @@
     }
     .admin-brand-mark-shell {
       position: relative;
-      width: 96px;
+      width: 192px;
       height: auto;
       border-radius: 0;
       overflow: visible;
@@ -258,16 +258,18 @@
       box-shadow: none !important;
       background: transparent;
       filter:
-        saturate(102%)
-        contrast(101%)
-        brightness(1.01)
-        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22))
-        drop-shadow(0 0 10px rgba(241, 213, 178, 0.16));
+        sepia(0.38)
+        saturate(0.82)
+        hue-rotate(-8deg)
+        contrast(1.07)
+        brightness(0.84)
+        drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))
+        drop-shadow(0 0 12px rgba(130, 96, 66, 0.2));
       transform: none;
     }
     @media (max-width: 980px) {
       .admin-brand-mark-shell {
-        width: 82px;
+        width: 140px;
       }
     }
     .lang-wrap {
