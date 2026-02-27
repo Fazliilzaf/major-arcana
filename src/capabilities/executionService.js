@@ -16,6 +16,13 @@ const {
   cooDailyBriefOutputSchema,
   composeCooDailyBrief,
 } = require('../agents/cooDailyBriefAgent');
+const {
+  CCO_AGENT_NAME,
+  CCO_INBOX_ANALYSIS_CAPABILITY_REF,
+  ccoInboxAnalysisInputSchema,
+  ccoInboxAnalysisOutputSchema,
+  composeCcoInboxAnalysis,
+} = require('../agents/ccoInboxAgent');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -600,9 +607,19 @@ function createCapabilityExecutor({
     const validatedInput = safeObject(input);
     const validatedSystemStateSnapshot = safeObject(systemStateSnapshot);
 
-    if (normalizeText(agentBundle.name).toUpperCase() === COO_AGENT_NAME) {
+    const normalizedAgentName = normalizeText(agentBundle.name).toUpperCase();
+
+    if (normalizedAgentName === COO_AGENT_NAME) {
       ensureSchemaValidity({
         schema: cooDailyBriefInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
+    } else if (normalizedAgentName === CCO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: ccoInboxAnalysisInputSchema,
         value: validatedInput,
         rootPath: 'agent.input',
         errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
@@ -634,79 +651,130 @@ function createCapabilityExecutor({
 
     let gatewayResult = null;
     let dependencyRuns = [];
+    let agentOutput = null;
+    let agentOutputSchema = null;
+    let agentCapabilityRef = '';
     try {
-      const summarizeRun = await runCapability({
-        tenantId: normalizedTenantId,
-        actor: normalizedActor,
-        channel: normalizedChannel,
-        capabilityName: 'SummarizeIncidents',
-        input: {
+      if (normalizedAgentName === COO_AGENT_NAME) {
+        const summarizeRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'SummarizeIncidents',
+          input: {
+            includeClosed: validatedInput.includeClosed === true,
+            timeframeDays: Number(validatedInput.timeframeDays || 14) || 14,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:summarize`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          summarizeRun?.gatewayResult?.decision === 'blocked' ||
+          summarizeRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'SummarizeIncidents blockerade agent-korning.'
+          );
+        }
+
+        const taskPlanRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateTaskPlan',
+          input: {
+            maxTasks: Number(validatedInput.maxTasks || 5) || 5,
+            includeEvidence: validatedInput.includeEvidence !== false,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:taskplan` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          taskPlanRun?.gatewayResult?.decision === 'blocked' ||
+          taskPlanRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'GenerateTaskPlan blockerade agent-korning.'
+          );
+        }
+
+        dependencyRuns = [toDependencyRunSummary(summarizeRun), toDependencyRunSummary(taskPlanRun)];
+        agentOutput = composeCooDailyBrief({
+          incidentOutput: toCapabilityResponseOutput(summarizeRun),
+          taskPlanOutput: toCapabilityResponseOutput(taskPlanRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = cooDailyBriefOutputSchema;
+        agentCapabilityRef = COO_DAILY_BRIEF_CAPABILITY_REF;
+      } else if (normalizedAgentName === CCO_AGENT_NAME) {
+        const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,
-          timeframeDays: Number(validatedInput.timeframeDays || 14) || 14,
-        },
-        systemStateSnapshot: validatedSystemStateSnapshot,
-        correlationId: normalizedCorrelationId,
-        idempotencyKey: normalizedIdempotencyKey
-          ? `${normalizedIdempotencyKey}:summarize`
-          : null,
-        requestMetadata: {
-          ...safeObject(requestMetadata),
-          parentAgentRunId: agentRunId,
-          parentAgentName: agentBundle.name,
-        },
-      });
+          maxDrafts: Number(validatedInput.maxDrafts || 5) || 5,
+        };
+        if (validatedInput.debug === true) {
+          analyzeInboxInput.debug = true;
+        }
+        const analyzeInboxRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'AnalyzeInbox',
+          input: analyzeInboxInput,
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:analyzeinbox`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
 
-      if (
-        summarizeRun?.gatewayResult?.decision === 'blocked' ||
-        summarizeRun?.gatewayResult?.decision === 'critical_escalate'
-      ) {
-        throw makeCapabilityError(
-          'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
-          'SummarizeIncidents blockerade agent-korning.'
-        );
+        if (
+          analyzeInboxRun?.gatewayResult?.decision === 'blocked' ||
+          analyzeInboxRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'AnalyzeInbox blockerade agent-korning.'
+          );
+        }
+
+        dependencyRuns = [toDependencyRunSummary(analyzeInboxRun)];
+        agentOutput = composeCcoInboxAnalysis({
+          inboxOutput: toCapabilityResponseOutput(analyzeInboxRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = ccoInboxAnalysisOutputSchema;
+        agentCapabilityRef = CCO_INBOX_ANALYSIS_CAPABILITY_REF;
       }
-
-      const taskPlanRun = await runCapability({
-        tenantId: normalizedTenantId,
-        actor: normalizedActor,
-        channel: normalizedChannel,
-        capabilityName: 'GenerateTaskPlan',
-        input: {
-          maxTasks: Number(validatedInput.maxTasks || 5) || 5,
-          includeEvidence: validatedInput.includeEvidence !== false,
-        },
-        systemStateSnapshot: validatedSystemStateSnapshot,
-        correlationId: normalizedCorrelationId,
-        idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:taskplan` : null,
-        requestMetadata: {
-          ...safeObject(requestMetadata),
-          parentAgentRunId: agentRunId,
-          parentAgentName: agentBundle.name,
-        },
-      });
-
-      if (
-        taskPlanRun?.gatewayResult?.decision === 'blocked' ||
-        taskPlanRun?.gatewayResult?.decision === 'critical_escalate'
-      ) {
-        throw makeCapabilityError(
-          'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
-          'GenerateTaskPlan blockerade agent-korning.'
-        );
-      }
-
-      dependencyRuns = [toDependencyRunSummary(summarizeRun), toDependencyRunSummary(taskPlanRun)];
-
-      const agentOutput = composeCooDailyBrief({
-        incidentOutput: toCapabilityResponseOutput(summarizeRun),
-        taskPlanOutput: toCapabilityResponseOutput(taskPlanRun),
-        channel: normalizedChannel,
-        tenantId: normalizedTenantId,
-        correlationId: normalizedCorrelationId,
-      });
 
       ensureSchemaValidity({
-        schema: cooDailyBriefOutputSchema,
+        schema: agentOutputSchema,
         value: agentOutput,
         rootPath: 'agent.output',
         errorCode: 'CAPABILITY_AGENT_OUTPUT_INVALID',
@@ -716,7 +784,7 @@ function createCapabilityExecutor({
       const tenantRuntime = await getTenantRuntimeConfig(tenantConfigStore, normalizedTenantId);
 
       gatewayResult = await runCapabilityThroughGateway({
-        capabilityName: COO_DAILY_BRIEF_CAPABILITY_REF,
+        capabilityName: agentCapabilityRef,
         context: {
           tenant_id: normalizedTenantId,
           actor: normalizedActor,
@@ -781,7 +849,7 @@ function createCapabilityExecutor({
             const entry = await capabilityAnalysisStore.append({
               tenantId: normalizedTenantId,
               capability: {
-                name: COO_DAILY_BRIEF_CAPABILITY_REF,
+                name: agentCapabilityRef,
                 version: agentBundle.version,
                 persistStrategy: 'analysis',
               },

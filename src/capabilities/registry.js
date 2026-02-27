@@ -4,6 +4,7 @@ const { SummarizeIncidentsCapability } = require('./summarizeIncidents');
 const { AnalyzeInboxCapability } = require('./analyzeInbox');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
+const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -47,7 +48,7 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     ]),
   }),
   Object.freeze({
-    name: 'CCO',
+    name: CCO_AGENT_NAME,
     version: '1.0.0',
     role: 'CCO',
     capabilities: Object.freeze(['AnalyzeInbox']),

@@ -678,6 +678,10 @@ async function maybeHydrateAgentPayload({
   templateStore,
   input,
   systemStateSnapshot,
+  graphReadConnector,
+  authStore,
+  actorUserId,
+  correlationId,
 }) {
   const safeInput = asObject(input);
   const normalizedAgentName = normalizeText(agentName).toLowerCase();
@@ -728,14 +732,18 @@ async function maybeHydrateAgentPayload({
     const incidentAgeBuckets = toIncidentAgeBuckets(incidents);
     const templateHistory = toTemplateHistorySummary(latestTemplateChanges);
 
+    const normalizedAgentInput = {
+      includeClosed: incidentInput.includeClosed === true,
+      timeframeDays: effectiveTimeframeDays,
+      maxTasks: Math.max(1, Math.min(5, toNumber(taskPlanInput.maxTasks, 5))),
+      includeEvidence: taskPlanInput.includeEvidence !== false,
+    };
+    if (safeInput.debug === true || incidentInput.debug === true || taskPlanInput.debug === true) {
+      normalizedAgentInput.debug = true;
+    }
+
     return {
-      input: {
-        includeClosed: incidentInput.includeClosed === true,
-        timeframeDays: effectiveTimeframeDays,
-        maxTasks: Math.max(1, Math.min(5, toNumber(taskPlanInput.maxTasks, 5))),
-        includeEvidence: taskPlanInput.includeEvidence !== false,
-        debug: safeInput.debug === true || incidentInput.debug === true || taskPlanInput.debug === true,
-      },
+      input: normalizedAgentInput,
       systemStateSnapshot: {
         incidents,
         slaStatus:
@@ -757,6 +765,18 @@ async function maybeHydrateAgentPayload({
         snapshotVersion: baseSnapshotVersion,
       },
     };
+  }
+
+  if (normalizedAgentName === 'cco') {
+    return hydrateAnalyzeInboxInput({
+      tenantId,
+      input,
+      systemStateSnapshot,
+      graphReadConnector,
+      authStore,
+      actorUserId,
+      correlationId,
+    });
   }
 
   return {
@@ -878,12 +898,19 @@ function toAnalysisQuery(req) {
   };
 }
 
+const AGENT_ANALYSIS_CAPABILITY_MAP = Object.freeze({
+  COO: 'COO.DailyBrief',
+  CCO: 'CCO.InboxAnalysis',
+});
+
 function resolveAnalysisCapabilityName(query = {}) {
   const capabilityName = normalizeText(query?.capabilityName);
   if (capabilityName) return capabilityName;
   const agentName = normalizeText(query?.agentName).toUpperCase();
   if (!agentName) return '';
-  if (agentName === 'COO') return 'COO.DailyBrief';
+  if (AGENT_ANALYSIS_CAPABILITY_MAP[agentName]) {
+    return AGENT_ANALYSIS_CAPABILITY_MAP[agentName];
+  }
   return `${agentName}.DailyBrief`;
 }
 
@@ -977,13 +1004,21 @@ async function runAgentHandler({
   executor,
   agentName,
   templateStore,
+  graphReadConnector,
+  authStore,
 }) {
+  const actor = toActor(req);
+  const correlationId = toCorrelationId(req);
   const payload = await maybeHydrateAgentPayload({
     agentName,
     tenantId: toTenantId(req),
     templateStore,
     input: req.body?.input,
     systemStateSnapshot: req.body?.systemStateSnapshot,
+    graphReadConnector,
+    authStore,
+    actorUserId: actor.id,
+    correlationId,
   });
   if (isDebugRequested(req)) {
     payload.input = {
@@ -994,12 +1029,12 @@ async function runAgentHandler({
 
   const result = await executor.runAgent({
     tenantId: toTenantId(req),
-    actor: toActor(req),
+    actor,
     channel: toChannel(req),
     agentName,
     input: payload.input,
     systemStateSnapshot: payload.systemStateSnapshot,
-    correlationId: toCorrelationId(req),
+    correlationId,
     idempotencyKey: toIdempotencyKey(req),
     requestMetadata: toRequestMetadata(req),
   });
@@ -1048,7 +1083,7 @@ function toCapabilityRunHandler({ executor, templateStore, graphReadConnector, a
   };
 }
 
-function toAgentRunHandler({ executor, templateStore }) {
+function toAgentRunHandler({ executor, templateStore, graphReadConnector, authStore }) {
   return async (req, res) => {
     const agentName = toAgentName(req);
     if (!validateAgentName(agentName, res)) return;
@@ -1059,6 +1094,8 @@ function toAgentRunHandler({ executor, templateStore }) {
         executor,
         agentName,
         templateStore,
+        graphReadConnector,
+        authStore,
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
@@ -1178,7 +1215,14 @@ function createCapabilitiesRouter({
     '/agents/:agentName/run',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(toAgentRunHandler({ executor, templateStore }))
+    toRoleGuardedHandler(
+      toAgentRunHandler({
+        executor,
+        templateStore,
+        graphReadConnector: resolvedGraphReadConnector,
+        authStore,
+      })
+    )
   );
 
   return router;
