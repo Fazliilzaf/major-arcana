@@ -50,6 +50,10 @@ function normalizeIdentifier(value, maxLength = 120) {
   return `${normalized.slice(0, headLength)}:${digest}`.slice(0, maxLength);
 }
 
+function normalizeOpaqueId(value) {
+  return normalizeText(value);
+}
+
 function sanitizeSubject(value) {
   let subject = capText(value, 180);
   if (!subject) subject = '(utan amne)';
@@ -292,15 +296,15 @@ function toMessageSnapshot(message = {}) {
   const senderRaw = senderName || senderEmail;
   return {
     messageId:
-      normalizeIdentifier(message.messageId, 120) ||
-      normalizeIdentifier(message.id, 120) ||
+      normalizeOpaqueId(message.messageId) ||
+      normalizeOpaqueId(message.id) ||
       null,
     direction: normalizeDirection(message.direction || message.role || message.type),
     sentAt: toIso(message.sentAt || message.createdAt || message.ts) || null,
     bodyPreview: bodyMasked,
     masked: Boolean(bodyRaw && bodyRaw !== bodyMasked),
     mailboxId:
-      normalizeIdentifier(message.mailboxId || message.mailbox || message.userId, 160) || null,
+      normalizeOpaqueId(message.mailboxId || message.mailbox || message.userId) || null,
     sender: maskSender(senderRaw),
   };
 }
@@ -319,9 +323,9 @@ function toConversationSnapshot(input = {}) {
 
   return {
     conversationId:
-      normalizeIdentifier(source.conversationId, 120) ||
-      normalizeIdentifier(source.threadId, 120) ||
-      normalizeIdentifier(source.id, 120) ||
+      normalizeOpaqueId(source.conversationId) ||
+      normalizeOpaqueId(source.threadId) ||
+      normalizeOpaqueId(source.id) ||
       null,
     rawSubject: capText(source.subject || source.title, 180),
     subject: sanitizeSubject(source.subject || source.title),
@@ -343,8 +347,8 @@ function toConversationSnapshot(input = {}) {
       .filter(Boolean)
       .slice(0, 20),
     mailboxId:
-      normalizeIdentifier(source.mailboxId || source.mailbox || source.userId, 160) ||
-      normalizeIdentifier(lastInbound?.mailboxId, 160) ||
+      normalizeOpaqueId(source.mailboxId || source.mailbox || source.userId) ||
+      normalizeOpaqueId(lastInbound?.mailboxId) ||
       null,
     sender:
       maskSender(
@@ -616,8 +620,8 @@ class AnalyzeInboxCapability extends BaseCapability {
               ],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 reason: { type: 'string', minLength: 1, maxLength: 120 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
@@ -662,9 +666,9 @@ class AnalyzeInboxCapability extends BaseCapability {
               ],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
-                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
@@ -720,9 +724,9 @@ class AnalyzeInboxCapability extends BaseCapability {
               ],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
-                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
@@ -764,8 +768,8 @@ class AnalyzeInboxCapability extends BaseCapability {
               required: ['conversationId', 'messageId', 'subject', 'slaDeadlineAt', 'overdueMinutes'],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 slaDeadlineAt: { type: 'string', minLength: 1, maxLength: 50 },
                 overdueMinutes: { type: 'number', minimum: 0 },
@@ -780,8 +784,8 @@ class AnalyzeInboxCapability extends BaseCapability {
               required: ['conversationId', 'messageId', 'flagCode', 'severity', 'reason'],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 flagCode: { type: 'string', minLength: 1, maxLength: 80 },
                 severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
                 reason: { type: 'string', minLength: 1, maxLength: 180 },
@@ -814,9 +818,9 @@ class AnalyzeInboxCapability extends BaseCapability {
               ],
               additionalProperties: false,
               properties: {
-                conversationId: { type: 'string', minLength: 1, maxLength: 120 },
-                messageId: { type: 'string', minLength: 1, maxLength: 120 },
-                mailboxId: { type: 'string', minLength: 1, maxLength: 160 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: 'string', minLength: 1, maxLength: 1024 },
+                mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
