@@ -3,150 +3,542 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Goura Loto | Transformational Coaching & Retreats</title>
-  <meta name="description" content="A complete future-state landing page concept for Goura Loto: clear pathways, structured programs, stronger conversion, and refined visual language." />
+  <title>Goura Loto | Transformational Coaching, Retreats & Alchemical Practice</title>
+  <meta name="description" content="A finished landing-page concept for Goura Loto with clear pathways, refined visual language, structured information, and conversion-ready contact flow." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    .hero-overlay {
-      position: absolute;
-      inset: auto 20px 20px 20px;
-      z-index: 2;
-      border: 1px solid rgba(255, 255, 255, 0.32);
-      border-radius: 12px;
-      background: rgba(28, 15, 12, 0.62);
+    :root {
+      --bg: #f4eee8;
+      --surface: #fffaf5;
+      --surface-2: #f8f1ea;
+      --ink: #26120e;
+      --text: #4d352f;
+      --muted: #73564d;
+      --line: #ddcabe;
+      --primary: #fe4900;
+      --primary-dark: #d64000;
+      --accent: #f2ac44;
+      --forest: #587962;
+      --plum: #624d58;
+      --max: 1180px;
+      --r-xl: 22px;
+      --r-lg: 16px;
+      --r-md: 12px;
+      --shadow: 0 16px 38px rgba(38, 18, 14, 0.11);
+      --shadow-soft: 0 8px 22px rgba(38, 18, 14, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 105% -15%, #ffe9d9 0%, rgba(255, 233, 217, 0) 60%),
+        radial-gradient(900px 420px at -5% 100%, #ebdcd1 0%, rgba(235, 220, 209, 0) 62%),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    .wrap {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .nav-shell {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(10px);
+      background: rgba(244, 238, 232, 0.88);
+      border-bottom: 1px solid rgba(221, 202, 190, 0.7);
+    }
+
+    .nav {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-family: "Fraunces", serif;
+      color: var(--ink);
+      font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+      letter-spacing: -0.01em;
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand small {
+      font-family: "Manrope", sans-serif;
+      font-size: 0.68rem;
+      color: #86665b;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: #65483f;
+      font-size: 0.95rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      padding: 0.72rem 1.16rem;
+      transition: 180ms ease;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: var(--primary);
       color: #fff;
-      padding: 10px 12px;
-      font-size: 0.83rem;
+      box-shadow: 0 10px 24px rgba(254, 73, 0, 0.28);
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      background: #fff;
+      border-color: #cfb6a8;
+      color: #5d3f36;
+    }
+
+    .btn.secondary:hover {
+      border-color: #af8f7d;
+      transform: translateY(-1px);
+    }
+
+    .hero { padding: 44px 0 16px; }
+
+    .hero-shell {
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
+      background: linear-gradient(135deg, rgba(255, 250, 245, 0.98) 0%, rgba(247, 238, 230, 0.96) 100%);
+      overflow: clip;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+
+    .hero-copy {
+      padding: clamp(24px, 4vw, 44px);
+    }
+
+    .kicker {
+      display: inline-flex;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #e4c8ba;
+      background: #fff3ea;
+      color: #7a503f;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .hero h1 {
+      margin: 12px 0 12px;
+      color: var(--ink);
+      font-family: "Fraunces", serif;
+      letter-spacing: -0.02em;
+      line-height: 1.02;
+      font-size: clamp(2.12rem, 5vw, 4rem);
+      max-width: 12ch;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 58ch;
+      color: #5b3f36;
+      font-size: 1.02rem;
+    }
+
+    .hero-actions {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .trust {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .trust article {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    .trust strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .hero-media {
+      position: relative;
+      min-height: 100%;
+      background: #20110d;
+    }
+
+    .hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(1.02) contrast(1.04);
+    }
+
+    .hero-note {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 16px;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 12px;
+      background: rgba(24, 12, 9, 0.62);
+      color: #fff;
+      padding: 11px 12px;
+      font-size: 0.86rem;
       line-height: 1.35;
     }
 
-    .hero-overlay strong {
-      display: block;
-      font-size: 0.92rem;
-      margin-bottom: 3px;
+    .hero-note strong { display: block; margin-bottom: 3px; }
+
+    section { padding: 14px 0 4px; }
+
+    .head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
     }
 
-    .section-band {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(140deg, rgba(255, 250, 246, 0.95), rgba(245, 237, 229, 0.95));
-      padding: 14px;
-      margin: 14px 0;
+    .head h2 {
+      margin: 0;
+      font-family: "Fraunces", serif;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      font-size: clamp(1.55rem, 3vw, 2.45rem);
+      max-width: 14ch;
+      line-height: 1.12;
     }
 
-    .path-3 {
+    .head p {
+      margin: 0;
+      max-width: 60ch;
+      color: #6f5148;
+      font-size: 0.96rem;
+    }
+
+    .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
 
-    .feature {
+    .glass {
       border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fff;
-      padding: 12px;
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 14px;
     }
 
-    .feature h3 {
-      margin: 0 0 6px;
+    .glass h3 {
+      margin: 0 0 7px;
       color: var(--ink);
-      font-size: 1.02rem;
+      font-size: 1.06rem;
     }
 
-    .feature p {
+    .glass p { margin: 0; font-size: 0.93rem; }
+
+    .path-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .path {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      overflow: clip;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .path img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .path .body {
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .path h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.08rem;
+      line-height: 1.3;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      border: 1px solid #d7c1b2;
+      border-radius: 999px;
+      background: #fff;
+      color: #66473d;
+      font-size: 0.78rem;
+      padding: 3px 9px;
+    }
+
+    .path p {
       margin: 0;
       font-size: 0.9rem;
+      color: #5f4137;
     }
 
-    .proof-grid {
+    .path .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .split {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
 
-    .quote {
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .row {
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 10px;
       background: #fff;
-      padding: 14px;
-      font-size: 0.92rem;
+      padding: 10px;
+      font-size: 0.9rem;
     }
 
-    .quote p {
-      margin: 0 0 7px;
-      color: #4f352f;
+    .row strong {
+      color: var(--ink);
     }
 
-    .quote span {
-      color: #7a5a50;
-      font-size: 0.82rem;
+    .status {
+      margin-top: 6px;
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border: 1px solid #d7c1b2;
+      color: #65453b;
+      background: #fff;
     }
 
-    .timeline-grid {
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .sw {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .sw .tone { height: 42px; }
+    .sw small {
+      display: block;
+      text-align: center;
+      font-size: 0.72rem;
+      color: #5a4038;
+      padding: 6px 4px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      min-height: 180px;
+    }
+
+    .timeline {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
+      margin-top: 8px;
     }
 
     .milestone {
       border: 1px solid var(--line);
       border-radius: 12px;
       background: #fff;
-      padding: 12px;
-      font-size: 0.88rem;
+      padding: 11px;
+      font-size: 0.9rem;
     }
 
-    .milestone strong {
+    .milestone b {
       display: inline-flex;
       margin-bottom: 6px;
       border-radius: 999px;
-      padding: 2px 8px;
-      background: #ffe6da;
-      color: #763100;
-      font-size: 0.76rem;
-      text-transform: uppercase;
+      font-size: 0.74rem;
       letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      background: #ffe8dc;
+      color: #6f3106;
+    }
+
+    .proof {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .quote {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      font-size: 0.95rem;
+      color: #4f352f;
+    }
+
+    .quote span {
+      margin-top: 6px;
+      display: block;
+      color: #7b5a50;
+      font-size: 0.82rem;
     }
 
     .faq {
       display: grid;
       gap: 8px;
+      margin-top: 8px;
     }
 
-    .faq details {
+    details {
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 12px;
       background: #fff;
       padding: 10px 12px;
     }
 
-    .faq summary {
+    summary {
       cursor: pointer;
+      list-style: none;
       font-weight: 700;
       color: var(--ink);
-      list-style: none;
     }
 
-    .faq summary::-webkit-details-marker {
-      display: none;
-    }
+    summary::-webkit-details-marker { display: none; }
 
-    .faq details p {
-      margin: 7px 0 0;
+    details p {
+      margin: 8px 0 0;
       font-size: 0.9rem;
-      color: #5e4138;
+      color: #5f443b;
     }
 
-    .contact-layout {
+    .contact {
+      margin-top: 8px;
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
 
-    .contact-form {
+    .contact-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      align-content: start;
+    }
+
+    .option {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .option h4 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+
+    .option p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #65483f;
+    }
+
+    .form {
       border: 1px solid var(--line);
       border-radius: 14px;
       background: #fff;
@@ -155,96 +547,94 @@
       gap: 8px;
     }
 
-    .contact-form input,
-    .contact-form select,
-    .contact-form textarea {
-      width: 100%;
-      border: 1px solid #d8c4b8;
-      border-radius: 10px;
-      background: #fff;
-      padding: 10px 11px;
-      font: inherit;
-      color: #3f2923;
+    .form h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.05rem;
     }
 
-    .contact-form textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    .label {
+    label {
+      display: grid;
+      gap: 4px;
       font-size: 0.82rem;
-      color: #704e43;
       font-weight: 700;
-      margin-bottom: 4px;
-      display: inline-block;
+      color: #73564b;
     }
+
+    input, select, textarea {
+      border: 1px solid #d8c4b7;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+      color: #3d2721;
+      font: inherit;
+    }
+
+    textarea { min-height: 102px; resize: vertical; }
 
     .final-cta {
       margin-top: 14px;
       border: 1px solid var(--line);
       border-radius: 16px;
-      background: linear-gradient(120deg, #fffaf5, #f6ece3);
-      padding: 16px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
+      background: linear-gradient(120deg, #fffaf5, #f6ece2);
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
+      gap: 12px;
     }
 
     .final-cta h3 {
-      margin: 0 0 5px;
+      margin: 0 0 4px;
       color: var(--ink);
-      font-size: 1.2rem;
+      font-size: 1.18rem;
     }
 
     .final-cta p {
       margin: 0;
+      color: #67493f;
       font-size: 0.92rem;
-      color: #66473e;
     }
 
-    .implemented-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+    footer {
+      margin: 22px 0 28px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 0.83rem;
+      color: #795b50;
     }
 
-    .implemented-item {
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fff;
-      padding: 10px;
-      font-size: 0.88rem;
-      color: #513832;
+    @media (max-width: 1040px) {
+      .hero-grid,
+      .split,
+      .contact,
+      .proof { grid-template-columns: 1fr; }
+
+      .path-cards,
+      .grid-3,
+      .timeline,
+      .contact-options { grid-template-columns: 1fr; }
+
+      .gallery { grid-template-columns: 1fr 1fr; }
+      .hero h1 { max-width: none; }
+      .trust { grid-template-columns: 1fr; }
     }
 
-    .implemented-item strong {
-      color: var(--ink);
-    }
-
-    @media (max-width: 980px) {
-      .path-3,
-      .proof-grid,
-      .timeline-grid,
-      .implemented-grid,
-      .contact-layout,
-      .final-cta {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-overlay {
-        position: static;
-        margin: 10px;
-      }
+    @media (max-width: 720px) {
+      .nav { min-height: 66px; flex-wrap: wrap; padding: 10px 0; }
+      .nav-links { gap: 10px; font-size: 0.88rem; }
+      .hero { padding-top: 26px; }
+      .palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .gallery { grid-template-columns: 1fr; }
+      .final-cta { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div class="nav-wrap">
-    <nav class="nav container">
+  <div class="nav-shell">
+    <nav class="nav wrap">
       <a class="brand" href="final-landing.html">Goura Loto
-        <small>Final landing concept</small>
+        <small>Final Product Concept</small>
       </a>
       <div class="nav-links">
         <a href="#about">About</a>
@@ -255,38 +645,29 @@
     </nav>
   </div>
 
-  <header class="hero container">
-    <article class="hero-card reveal">
+  <header class="hero wrap">
+    <article class="hero-shell">
       <div class="hero-grid">
         <div class="hero-copy">
           <span class="kicker">Embodied transformation with clear next steps</span>
           <h1>Train joy. Live aligned. Begin your path with practical clarity.</h1>
           <p>
-            A complete transformational journey rooted in Damanhur wisdom and modern facilitation.
-            Choose coaching, retreats, or long-path alchemical work and start with one clear first action.
+            A transformational journey rooted in Damanhur wisdom and modern facilitation. Choose coaching, retreats,
+            or long-path alchemical practice and begin with one clear action today.
           </p>
           <div class="hero-actions">
             <a class="btn primary" href="#contact">Book Intro Call</a>
-            <a class="btn secondary" href="#pathways">Explore Paths</a>
+            <a class="btn secondary" href="#pathways">Explore Pathways</a>
           </div>
-          <div class="trust-strip">
-            <div class="trust-item">
-              <strong>25+ years</strong>
-              Practice and facilitation in transformational inner work.
-            </div>
-            <div class="trust-item">
-              <strong>Who this is for</strong>
-              People ready to shift patterns and embody meaningful change.
-            </div>
-            <div class="trust-item">
-              <strong>Response promise</strong>
-              Personal reply within 24-48 hours.
-            </div>
+          <div class="trust">
+            <article><strong>25+ years</strong>Practice and facilitation in transformational inner work.</article>
+            <article><strong>Who this is for</strong>People ready to shift patterns and embody meaningful change.</article>
+            <article><strong>Response promise</strong>Personal response within 24-48 hours.</article>
           </div>
         </div>
         <div class="hero-media">
-          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/sessioni-coaching.jpg" alt="Transformational coaching" loading="eager" />
-          <div class="hero-overlay">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/sessioni-coaching.jpg" alt="Katia guiding a transformational coaching process" loading="eager" />
+          <div class="hero-note">
             <strong>First session outcome</strong>
             Identify your key block, release one core pattern, and leave with a concrete 14-day integration practice.
           </div>
@@ -295,261 +676,228 @@
     </article>
   </header>
 
-  <main class="container">
-    <section id="about" class="reveal d2">
-      <div class="section-head">
+  <main class="wrap">
+    <section id="about">
+      <div class="head">
         <h2>A clear way to understand the work</h2>
-        <p>
-          Spiritual depth and poetic language are preserved, now structured for faster decisions and higher confidence.
-        </p>
+        <p>Depth and poetic language remain, now organized into practical decision cues for faster confidence.</p>
       </div>
-      <div class="path-3">
-        <article class="feature">
+      <div class="grid-3">
+        <article class="glass">
           <h3>Founder snapshot</h3>
           <p><strong>Katia Perina</strong> - Goura Loto creator, long-term Damanhur practitioner, and guide for embodied inner transformation.</p>
         </article>
-        <article class="feature">
+        <article class="glass">
           <h3>Method snapshot</h3>
-          <p>Inner alchemy + symbolic process + practical integration. Emotional healing meets real-life action.</p>
+          <p>Inner alchemy, symbolic process, and practical integration. Emotional healing translated into daily-life action.</p>
         </article>
-        <article class="feature">
+        <article class="glass">
           <h3>Decision snapshot</h3>
-          <p>Choose your best entry point: Coaching, Retreats, or School of Alchemy. Each path has clear format and outcomes.</p>
+          <p>Choose the right entry point: Coaching, Retreats, or School of Alchemy. Each path has clear format and outcomes.</p>
         </article>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="section-head">
-        <h2>Implemented from all recommendations</h2>
-        <p>This page is a finished result that applies the full proposal set, not only selected parts.</p>
-      </div>
-      <div class="implemented-grid">
-        <article class="implemented-item"><strong>1) Clear H1 hierarchy + dual CTA:</strong> immediate action path above the fold.</article>
-        <article class="implemented-item"><strong>2) Trust strip:</strong> years of practice, audience fit, and response promise visible early.</article>
-        <article class="implemented-item"><strong>3) Founder + method snapshot:</strong> faster credibility and scan-friendly About structure.</article>
-        <article class="implemented-item"><strong>4) Coaching outcome-first copy:</strong> first-session value and practical integration emphasized.</article>
-        <article class="implemented-item"><strong>5) Standardized program cards:</strong> level, duration, location, status, and clear action labels.</article>
-        <article class="implemented-item"><strong>6) 3-path contact model:</strong> book now, direct email, or guided form.</article>
-        <article class="implemented-item"><strong>7) Image language system:</strong> role-based visual hierarchy and text-safe hero overlays.</article>
-        <article class="implemented-item"><strong>8) Color/token system:</strong> action, accent, ink, surface, support-depth roles.</article>
-        <article class="implemented-item"><strong>9) Information flow template:</strong> hook -> who for -> outcomes -> options -> action.</article>
-        <article class="implemented-item"><strong>10) Execution logic:</strong> 6-week rollout and measurable conversion metrics included.</article>
-      </div>
-    </section>
-
-    <section id="pathways" class="reveal d3">
-      <div class="section-head">
+    <section id="pathways">
+      <div class="head">
         <h2>Choose your pathway</h2>
-        <p>Standardized cards remove confusion: level, format, duration, expected outcome, and clear action.</p>
+        <p>Structured cards remove confusion: level, duration, format, expected outcome, and direct action.</p>
       </div>
-
-      <div class="card-grid">
-        <article class="path-card">
-          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/0242.jpg" alt="Founder portrait" loading="lazy" />
-          <div class="path-body">
+      <div class="path-cards">
+        <article class="path">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/02/0247.jpg" alt="Katia portrait" loading="lazy" />
+          <div class="body">
             <h3>1:1 Transformational Coaching</h3>
-            <div class="path-meta">
-              <span class="pill">Format: Online / In-person</span>
-              <span class="pill">Length: 60-90 min</span>
-              <span class="pill">Level: Personalized</span>
+            <div class="meta">
+              <span class="tag">Format: Online / In-person</span>
+              <span class="tag">Length: 60-90 min</span>
+              <span class="tag">Level: Personalized</span>
             </div>
-            <p class="outcome"><strong>You get:</strong> clear emotional reset + practical 14-day plan.</p>
-            <p style="margin-top:10px;"><a class="btn primary" href="#contact">Book First Session</a></p>
+            <p><strong>You get:</strong> emotional reset, clarity, and a practical 14-day integration plan.</p>
+            <div class="actions">
+              <a class="btn primary" href="#contact">Book First Session</a>
+            </div>
           </div>
         </article>
 
-        <article class="path-card">
-          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/gruppo-bosco-1.jpg" alt="Group process" loading="lazy" />
-          <div class="path-body">
+        <article class="path">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/gruppo-bosco-1.jpg" alt="Retreat group process in nature" loading="lazy" />
+          <div class="body">
             <h3>Retreats & Courses</h3>
-            <div class="path-meta">
-              <span class="pill">Format: Group</span>
-              <span class="pill">Length: 2-3 days</span>
-              <span class="pill">Level: Intro to Deepening</span>
+            <div class="meta">
+              <span class="tag">Format: Group</span>
+              <span class="tag">Length: 2-3 days</span>
+              <span class="tag">Level: Intro to Deepening</span>
             </div>
-            <p class="outcome"><strong>You get:</strong> guided symbolic process + structured integration tools.</p>
-            <p style="margin-top:10px;"><a class="btn primary" href="#retreats">Compare Retreats</a></p>
+            <p><strong>You get:</strong> guided symbolic process and structured integration tools.</p>
+            <div class="actions">
+              <a class="btn primary" href="#retreats">Compare Retreats</a>
+            </div>
           </div>
         </article>
 
-        <article class="path-card">
-          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/sacredness-2.jpg" alt="Ritual context" loading="lazy" />
-          <div class="path-body">
+        <article class="path">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/creazione-spirali-home.jpg" alt="Symbolic spiral creation process" loading="lazy" />
+          <div class="body">
             <h3>School of Alchemy</h3>
-            <div class="path-meta">
-              <span class="pill">Format: Long path</span>
-              <span class="pill">Length: Ongoing</span>
-              <span class="pill">Level: Deep commitment</span>
+            <div class="meta">
+              <span class="tag">Format: Long path</span>
+              <span class="tag">Length: Ongoing</span>
+              <span class="tag">Level: Deep commitment</span>
             </div>
-            <p class="outcome"><strong>You get:</strong> long-term symbolic study and embodied transformation system.</p>
-            <p style="margin-top:10px;"><a class="btn primary" href="#contact">Request Program Fit</a></p>
+            <p><strong>You get:</strong> long-term symbolic study and embodied transformation system.</p>
+            <div class="actions">
+              <a class="btn primary" href="#contact">Request Program Fit</a>
+            </div>
           </div>
         </article>
       </div>
     </section>
 
-    <section id="retreats" class="reveal d4">
-      <div class="section-head">
+    <section id="retreats">
+      <div class="head">
         <h2>Retreat comparison with clear states</h2>
-        <p>Each program has visible status and direct action to reduce friction and increase conversion quality.</p>
+        <p>Program status and action labels are explicit to reduce friction and increase conversion quality.</p>
       </div>
-
       <div class="split">
-        <article class="panel">
-          <h3>Current open programs</h3>
-          <div class="steps">
-            <div class="step"><strong>Beginning of the Way</strong><br />2 days - Intro level - Italy<br /><span class="pill" style="margin-top:6px;">Status: Open</span></div>
-            <div class="step"><strong>Sacredness of Life</strong><br />3 days - Deepening level - Italy<br /><span class="pill" style="margin-top:6px;">Status: Waitlist</span></div>
-            <div class="step"><strong>School of Alchemy</strong><br />Long path - Hybrid<br /><span class="pill" style="margin-top:6px;">Status: Request info</span></div>
+        <article class="glass">
+          <h3 style="margin:0 0 8px;color:var(--ink)">Current programs</h3>
+          <div class="list">
+            <div class="row"><strong>Beginning of the Way</strong><br />2 days - Intro level - Italy<br /><span class="status">Open</span></div>
+            <div class="row"><strong>Sacredness of Life</strong><br />3 days - Deepening level - Italy<br /><span class="status">Waitlist</span></div>
+            <div class="row"><strong>School of Alchemy</strong><br />Long path - Hybrid<br /><span class="status">Request Info</span></div>
           </div>
         </article>
-
-        <article class="panel">
-          <h3>How this improves conversion</h3>
-          <div class="steps">
-            <div class="step">Users compare options in under 60 seconds.</div>
-            <div class="step">Action labels match user intent: Reserve, Join Waitlist, Request Info.</div>
-            <div class="step">Uncertain visitors get a "Help me choose" path instead of dropping.</div>
+        <article class="glass">
+          <h3 style="margin:0 0 8px;color:var(--ink)">How this helps visitors decide</h3>
+          <div class="list">
+            <div class="row">Visitors compare options in under 60 seconds.</div>
+            <div class="row">Action labels match user intent: Reserve, Join Waitlist, Request Info.</div>
+            <div class="row">Uncertain visitors get a "Help me choose" path instead of dropping.</div>
           </div>
-          <p style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
             <a class="btn primary" href="#contact">Help Me Choose</a>
             <a class="btn secondary" href="#contact">Reserve My Spot</a>
-          </p>
+          </div>
         </article>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="section-head">
-        <h2>Visual direction and color system in use</h2>
-        <p>This landing chooses Option A (recommended): current brand palette + one depth support color for consistency.</p>
+    <section>
+      <div class="head">
+        <h2>Visual language and color system</h2>
+        <p>Consistent image roles and clear color tokens keep the site soulful but much more readable and actionable.</p>
       </div>
-      <div class="section-band">
-        <div class="palette-showcase">
-          <article class="palette">
-            <h3>Active UI roles in this page</h3>
-            <div class="colors">
-              <div class="swatch"><div class="tone" style="background:#FE4900"></div><small>Primary Action</small></div>
-              <div class="swatch"><div class="tone" style="background:#FBAD41"></div><small>Warm Accent</small></div>
-              <div class="swatch"><div class="tone" style="background:#24110D"></div><small>Headline Ink</small></div>
-              <div class="swatch"><div class="tone" style="background:#F5ECE4"></div><small>Surface</small></div>
-              <div class="swatch"><div class="tone" style="background:#5B7F66"></div><small>Support Depth</small></div>
-            </div>
-            <p style="margin:8px 0 0;">Typography stack: Fraunces (display), Manrope (UI/body).</p>
-          </article>
-
-          <article class="palette">
-            <h3>Image language rules applied</h3>
-            <div class="steps">
-              <div class="step">Hero images use text-safe zones and controlled contrast overlays.</div>
-              <div class="step">Portraits are used for trust moments and authority anchors.</div>
-              <div class="step">Process visuals support emotion without blocking readability.</div>
-            </div>
-          </article>
-        </div>
+      <div class="split">
+        <article class="glass">
+          <h3 style="margin:0;color:var(--ink)">Color roles (Option A active)</h3>
+          <div class="palette">
+            <div class="sw"><div class="tone" style="background:#FE4900"></div><small>Action</small></div>
+            <div class="sw"><div class="tone" style="background:#F2AC44"></div><small>Accent</small></div>
+            <div class="sw"><div class="tone" style="background:#26120E"></div><small>Ink</small></div>
+            <div class="sw"><div class="tone" style="background:#FFF8F1"></div><small>Surface</small></div>
+            <div class="sw"><div class="tone" style="background:#587962"></div><small>Support</small></div>
+          </div>
+          <p style="margin-top:8px;font-size:0.9rem;"><strong>Typography:</strong> Fraunces for display headlines + Manrope for UI/body clarity.</p>
+        </article>
+        <article class="glass">
+          <h3 style="margin:0;color:var(--ink)">Image role system</h3>
+          <div class="list" style="margin-top:8px;">
+            <div class="row"><strong>Hero:</strong> 16:9 crop, text-safe zone, moderate contrast.</div>
+            <div class="row"><strong>Portrait:</strong> trust and authority moments.</div>
+            <div class="row"><strong>Process + Detail:</strong> ritual context and symbolic anchors.</div>
+          </div>
+          <div class="gallery">
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/sessioni-coaching.jpg" alt="Hero visual sample" loading="lazy" />
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/cammino.jpg" alt="Process visual sample" loading="lazy" />
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/corso-russia.jpg" alt="Community visual sample" loading="lazy" />
+          </div>
+        </article>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="section-head">
+    <section>
+      <div class="head">
         <h2>Social proof and confidence</h2>
-        <p>Real implementation would replace these with approved testimonials/case snippets.</p>
+        <p>Short testimonials support trust while keeping the page fast to scan.</p>
       </div>
-      <div class="proof-grid">
+      <div class="proof">
         <article class="quote">
-          <p>"I came for coaching and left with a clear inner direction and practical tools I could apply the same week."</p>
+          "I came for coaching and left with a clear inner direction and practical tools I could apply the same week."
           <span>Client feedback - 1:1 journey</span>
         </article>
         <article class="quote">
-          <p>"The retreat held both depth and structure. I knew exactly what the next step was when I returned home."</p>
+          "The retreat held both depth and structure. I knew exactly what my next step was when I returned home."
           <span>Client feedback - retreat pathway</span>
         </article>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="section-head">
-        <h2>6-week rollout you can execute</h2>
-        <p>Clear sequencing from fast fixes to visual system to optimization.</p>
+    <section>
+      <div class="head">
+        <h2>6-week execution roadmap</h2>
+        <p>Fast fixes first, system rollout second, optimization third.</p>
       </div>
-      <div class="timeline-grid">
-        <article class="milestone">
-          <strong>Weeks 1-2</strong>
-          H1 hierarchy, CTA placement, naming consistency, metadata fixes, and trust strips.
-        </article>
-        <article class="milestone">
-          <strong>Weeks 3-4</strong>
-          Image roles, crop rules, color/typography tokens, and standardized program cards.
-        </article>
-        <article class="milestone">
-          <strong>Weeks 5-6</strong>
-          Optimize from real behavior: CTA clicks, form starts, form completions, booking events.
-        </article>
+      <div class="timeline">
+        <article class="milestone"><b>Weeks 1-2</b>H1 hierarchy, CTA placement, naming consistency, metadata fixes, and trust strips.</article>
+        <article class="milestone"><b>Weeks 3-4</b>Image roles, crop rules, color and typography tokens, standardized program cards.</article>
+        <article class="milestone"><b>Weeks 5-6</b>Optimize from behavior: CTA clicks, form starts, form completions, booking events.</article>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="section-head">
+    <section>
+      <div class="head">
         <h2>Frequently asked questions</h2>
-        <p>Supports decision clarity without forcing users to leave the page.</p>
+        <p>Decision clarity without forcing users to leave the page.</p>
       </div>
       <div class="faq">
         <details>
           <summary>How do I choose between coaching and retreats?</summary>
-          <p>If you want personalized pattern work now, start with coaching. If you want group immersion and ritual process, start with retreats.</p>
+          <p>If you want personalized pattern work now, start with coaching. If you prefer group immersion and ritual depth, start with retreats.</p>
         </details>
         <details>
           <summary>Can I begin online and continue in person later?</summary>
-          <p>Yes. The pathway is designed to support online start and in-person deepening when timing and location match.</p>
+          <p>Yes. The pathway supports online entry and in-person deepening when timing and location align.</p>
         </details>
         <details>
           <summary>How soon can I expect a response?</summary>
-          <p>You receive a personal response within 24-48 hours with recommended next step options.</p>
+          <p>You receive a personal response within 24-48 hours with the recommended next step for your situation.</p>
         </details>
       </div>
     </section>
 
-    <section id="contact" class="reveal">
-      <div class="section-head">
+    <section id="contact">
+      <div class="head">
         <h2>Contact in three clear paths</h2>
-        <p>Fast path for high-intent visitors + guided path for those who need orientation.</p>
+        <p>Fast path for ready visitors plus guided path for those who need orientation.</p>
       </div>
-
-      <div class="contact-layout">
-        <article class="panel">
-          <h3>Choose your preferred contact method</h3>
-          <div class="contact-grid">
-            <article class="contact-option">
+      <div class="contact">
+        <article class="glass">
+          <h3 style="margin:0 0 8px;color:var(--ink)">Choose your contact method</h3>
+          <div class="contact-options">
+            <article class="option">
               <h4>Path 1: Book now</h4>
               <p>For people ready to start immediately.</p>
-              <p style="margin-top:9px;"><a class="btn primary" href="#">Open Calendar</a></p>
+              <a class="btn primary" href="#">Open Calendar</a>
             </article>
-            <article class="contact-option">
+            <article class="option">
               <h4>Path 2: Direct email</h4>
               <p>For tailored requests and retreat questions.</p>
-              <p style="margin-top:9px;"><a class="btn secondary" href="mailto:info@gouraloto.com">info@gouraloto.com</a></p>
+              <a class="btn secondary" href="mailto:info@gouraloto.com">info@gouraloto.com</a>
             </article>
-            <article class="contact-option">
+            <article class="option">
               <h4>Path 3: Guided form</h4>
               <p>For visitors who want help choosing pathway.</p>
-              <p style="margin-top:9px;"><a class="btn secondary" href="#">Open Inquiry Form</a></p>
+              <a class="btn secondary" href="#">Open Inquiry Form</a>
             </article>
           </div>
         </article>
 
-        <form class="contact-form" action="#" method="post" novalidate>
-          <h3 style="margin:0;color:var(--ink);">Quick inquiry form</h3>
-          <label>
-            <span class="label">Name</span>
-            <input type="text" placeholder="Your name" />
-          </label>
-          <label>
-            <span class="label">Email</span>
-            <input type="email" placeholder="you@example.com" />
-          </label>
-          <label>
-            <span class="label">I am interested in</span>
+        <form class="form" action="#" method="post" novalidate>
+          <h3>Quick inquiry form</h3>
+          <label>Name<input type="text" placeholder="Your name" /></label>
+          <label>Email<input type="email" placeholder="you@example.com" /></label>
+          <label>I am interested in
             <select>
               <option>1:1 Coaching</option>
               <option>Retreats & Courses</option>
@@ -557,12 +905,9 @@
               <option>I need help choosing</option>
             </select>
           </label>
-          <label>
-            <span class="label">Message</span>
-            <textarea placeholder="Share your current intention, challenge, or question."></textarea>
-          </label>
+          <label>Message<textarea placeholder="Share your current intention, challenge, or question."></textarea></label>
           <button class="btn primary" type="submit">Send Inquiry</button>
-          <small style="color:#785a50;">Expected response: within 24-48 hours.</small>
+          <small style="color:#76594e;">Expected response: within 24-48 hours.</small>
         </form>
       </div>
 
@@ -575,8 +920,8 @@
       </div>
     </section>
 
-    <footer class="footer">
-      Final product demo page for presentation - Goura Loto future landing concept.
+    <footer>
+      Final product concept page for presentation - Goura Loto future-state landing experience.
     </footer>
   </main>
 </body>
