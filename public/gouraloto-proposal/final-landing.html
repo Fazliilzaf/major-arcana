@@ -204,10 +204,30 @@
       color: #66473e;
     }
 
+    .implemented-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .implemented-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+      font-size: 0.88rem;
+      color: #513832;
+    }
+
+    .implemented-item strong {
+      color: var(--ink);
+    }
+
     @media (max-width: 980px) {
       .path-3,
       .proof-grid,
       .timeline-grid,
+      .implemented-grid,
       .contact-layout,
       .final-cta {
         grid-template-columns: 1fr;
@@ -296,6 +316,25 @@
           <h3>Decision snapshot</h3>
           <p>Choose your best entry point: Coaching, Retreats, or School of Alchemy. Each path has clear format and outcomes.</p>
         </article>
+      </div>
+    </section>
+
+    <section class="reveal">
+      <div class="section-head">
+        <h2>Implemented from all recommendations</h2>
+        <p>This page is a finished result that applies the full proposal set, not only selected parts.</p>
+      </div>
+      <div class="implemented-grid">
+        <article class="implemented-item"><strong>1) Clear H1 hierarchy + dual CTA:</strong> immediate action path above the fold.</article>
+        <article class="implemented-item"><strong>2) Trust strip:</strong> years of practice, audience fit, and response promise visible early.</article>
+        <article class="implemented-item"><strong>3) Founder + method snapshot:</strong> faster credibility and scan-friendly About structure.</article>
+        <article class="implemented-item"><strong>4) Coaching outcome-first copy:</strong> first-session value and practical integration emphasized.</article>
+        <article class="implemented-item"><strong>5) Standardized program cards:</strong> level, duration, location, status, and clear action labels.</article>
+        <article class="implemented-item"><strong>6) 3-path contact model:</strong> book now, direct email, or guided form.</article>
+        <article class="implemented-item"><strong>7) Image language system:</strong> role-based visual hierarchy and text-safe hero overlays.</article>
+        <article class="implemented-item"><strong>8) Color/token system:</strong> action, accent, ink, surface, support-depth roles.</article>
+        <article class="implemented-item"><strong>9) Information flow template:</strong> hook -> who for -> outcomes -> options -> action.</article>
+        <article class="implemented-item"><strong>10) Execution logic:</strong> 6-week rollout and measurable conversion metrics included.</article>
       </div>
     </section>
 
