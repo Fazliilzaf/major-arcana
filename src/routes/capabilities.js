@@ -999,6 +999,340 @@ function toAnalysisError(res) {
   return res.status(500).json({ error: 'Kunde inte läsa capability analysis.' });
 }
 
+function toCcoSprintEventType(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'start' || normalized === 'cco.sprint.start') return 'start';
+  if (
+    normalized === 'item_completed' ||
+    normalized === 'item-completed' ||
+    normalized === 'itemcompleted' ||
+    normalized === 'cco.sprint.item_completed'
+  ) {
+    return 'item_completed';
+  }
+  if (normalized === 'complete' || normalized === 'cco.sprint.complete') return 'complete';
+  return '';
+}
+
+function toSinceWindow(rawValue) {
+  const fallback = { label: '7d', ms: 7 * 24 * 60 * 60 * 1000 };
+  const normalized = normalizeText(rawValue).toLowerCase();
+  if (!normalized) {
+    const startAtMs = Date.now() - fallback.ms;
+    return {
+      since: fallback.label,
+      durationMs: fallback.ms,
+      startAtMs,
+      startAt: new Date(startAtMs).toISOString(),
+    };
+  }
+
+  const match = normalized.match(/^(\d+)\s*([dh])$/);
+  if (!match) {
+    const startAtMs = Date.now() - fallback.ms;
+    return {
+      since: fallback.label,
+      durationMs: fallback.ms,
+      startAtMs,
+      startAt: new Date(startAtMs).toISOString(),
+    };
+  }
+
+  const amount = clampInteger(match[1], 1, match[2] === 'd' ? 90 : 24 * 30, 7);
+  const unit = match[2] === 'h' ? 'h' : 'd';
+  const durationMs = unit === 'h'
+    ? amount * 60 * 60 * 1000
+    : amount * 24 * 60 * 60 * 1000;
+  const startAtMs = Date.now() - durationMs;
+  return {
+    since: `${amount}${unit}`,
+    durationMs,
+    startAtMs,
+    startAt: new Date(startAtMs).toISOString(),
+  };
+}
+
+function toEventTimestampMs(event = {}) {
+  const iso = toIso(event?.ts || event?.metadata?.timestamp);
+  if (!iso) return null;
+  const parsed = Date.parse(iso);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toAverage(numbers = [], precision = 2) {
+  const list = (Array.isArray(numbers) ? numbers : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
+  if (!list.length) return 0;
+  const sum = list.reduce((acc, value) => acc + value, 0);
+  return Number((sum / list.length).toFixed(precision));
+}
+
+function toSprintSlaAgeHours(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return numeric;
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return null;
+  const match = normalized.match(/^(\d+(?:\.\d+)?)\s*h$/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toStressLevel(score = 0) {
+  const safeScore = Number.isFinite(Number(score)) ? Number(score) : 0;
+  if (safeScore <= 3) return 'Low';
+  if (safeScore <= 7) return 'Medium';
+  return 'High';
+}
+
+function toPriorityLevel(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'critical') return 'Critical';
+  if (normalized === 'high') return 'High';
+  if (normalized === 'medium') return 'Medium';
+  return 'Low';
+}
+
+function toNeedsReplyStatus(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  return normalized === 'handled' ? 'handled' : 'needs_reply';
+}
+
+function toSlaAgeHours(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric >= 0) return numeric;
+  return 0;
+}
+
+function buildLatestCcoSprintFeedback({ startEvents = [], completeEvents = [] } = {}) {
+  const latestComplete = (Array.isArray(completeEvents) ? completeEvents : [])
+    .slice()
+    .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] || null;
+  if (!latestComplete) return null;
+
+  const completeMeta = asObject(latestComplete.metadata);
+  const sprintId = normalizeText(completeMeta.sprintId || latestComplete.targetId);
+  const startBySprintId = new Map();
+  for (const event of Array.isArray(startEvents) ? startEvents : []) {
+    const eventMeta = asObject(event?.metadata);
+    const eventSprintId = normalizeText(eventMeta.sprintId || event?.targetId);
+    if (!eventSprintId) continue;
+    if (!startBySprintId.has(eventSprintId)) {
+      startBySprintId.set(eventSprintId, eventMeta);
+    }
+  }
+  const startMeta = asObject(startBySprintId.get(sprintId));
+  const startCritical = Math.max(0, toNumber(startMeta.criticalCount, 0));
+  const startHigh = Math.max(0, toNumber(startMeta.highCount, 0));
+  const remainingCritical = Math.max(0, toNumber(completeMeta.remainingCritical, 0));
+  const remainingHigh = Math.max(0, toNumber(completeMeta.remainingHigh, 0));
+  const resolvedCritical = Math.max(0, startCritical - remainingCritical);
+  const initialSlaLoad = startCritical + startHigh;
+  const remainingSlaLoad = remainingCritical + remainingHigh;
+
+  return {
+    sprintId: sprintId || null,
+    itemsCompleted: Math.max(0, toNumber(completeMeta.itemsCompleted, 0)),
+    resolvedCritical,
+    remainingCritical,
+    remainingHigh,
+    slaImproved: initialSlaLoad > 0 ? remainingSlaLoad < initialSlaLoad : false,
+    completedAt: normalizeText(latestComplete.ts) || normalizeText(completeMeta.timestamp) || null,
+  };
+}
+
+async function runCcoSprintEventHandler({ req, res, authStore }) {
+  if (!authStore || typeof authStore.addAuditEvent !== 'function') {
+    return res.status(503).json({ error: 'Auth store saknar audit writer.' });
+  }
+
+  const rawPayload = asObject(req.body);
+  const input = asObject(
+    rawPayload.input && typeof rawPayload.input === 'object'
+      ? rawPayload.input
+      : rawPayload
+  );
+  const eventType = toCcoSprintEventType(input.eventType || input.type || input.action);
+  if (!eventType) {
+    return res.status(422).json({ error: 'eventType måste vara start, item_completed eller complete.' });
+  }
+
+  const sprintId = normalizeText(input.sprintId);
+  if (!sprintId) {
+    return res.status(422).json({ error: 'sprintId krävs.' });
+  }
+
+  const actor = toActor(req);
+  const tenantId = toTenantId(req);
+  const correlationId = toCorrelationId(req);
+  const nowIso = new Date().toISOString();
+  const timestamp = toIso(input.timestamp) || nowIso;
+
+  let action = '';
+  let targetType = 'cco_sprint';
+  let targetId = sprintId;
+  let metadata = {
+    sprintId,
+    timestamp,
+    correlationId,
+  };
+
+  if (eventType === 'start') {
+    action = 'cco.sprint.start';
+    metadata = {
+      ...metadata,
+      queueSize: Math.max(0, clampInteger(input.queueSize, 0, 100, 0)),
+      criticalCount: Math.max(0, clampInteger(input.criticalCount, 0, 100, 0)),
+      highCount: Math.max(0, clampInteger(input.highCount, 0, 100, 0)),
+    };
+  } else if (eventType === 'item_completed') {
+    const conversationId = normalizeText(input.conversationId);
+    if (!conversationId) {
+      return res.status(422).json({ error: 'conversationId krävs för item_completed.' });
+    }
+    action = 'cco.sprint.item_completed';
+    targetType = 'cco_conversation';
+    targetId = conversationId;
+    metadata = {
+      ...metadata,
+      conversationId,
+      priorityLevel: toPriorityLevel(input.priorityLevel),
+      slaAge: normalizeText(input.slaAge),
+      slaAgeHours: Number.isFinite(Number(input.slaAgeHours))
+        ? Number(input.slaAgeHours)
+        : (toSprintSlaAgeHours(input.slaAge) ?? null),
+      handledAt: toIso(input.handledAt) || timestamp,
+    };
+  } else if (eventType === 'complete') {
+    action = 'cco.sprint.complete';
+    metadata = {
+      ...metadata,
+      durationMs: Math.max(0, toNumber(input.durationMs, 0)),
+      itemsCompleted: Math.max(0, clampInteger(input.itemsCompleted, 0, 100, 0)),
+      remainingHigh: Math.max(0, clampInteger(input.remainingHigh, 0, 100, 0)),
+      remainingCritical: Math.max(0, clampInteger(input.remainingCritical, 0, 100, 0)),
+    };
+  }
+
+  const event = await authStore.addAuditEvent({
+    tenantId,
+    actorUserId: actor.id,
+    action,
+    outcome: 'success',
+    targetType,
+    targetId,
+    metadata,
+  });
+
+  return res.json({
+    ok: true,
+    action,
+    sprintId,
+    auditRef: event?.id || null,
+    loggedAt: event?.ts || timestamp,
+  });
+}
+
+async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisStore }) {
+  if (!authStore || typeof authStore.listAuditEvents !== 'function') {
+    return res.status(503).json({ error: 'Auth store saknar audit reader.' });
+  }
+
+  const tenantId = toTenantId(req);
+  const window = toSinceWindow(req.query?.since);
+  const auditEvents = await authStore.listAuditEvents({
+    tenantId,
+    limit: 500,
+  });
+  const recentAuditEvents = asArray(auditEvents).filter((event) => {
+    const tsMs = toEventTimestampMs(event);
+    return Number.isFinite(tsMs) && tsMs >= window.startAtMs;
+  });
+
+  const sprintStartEvents = recentAuditEvents.filter(
+    (event) => normalizeText(event?.action) === 'cco.sprint.start'
+  );
+  const sprintItemCompletedEvents = recentAuditEvents.filter(
+    (event) => normalizeText(event?.action) === 'cco.sprint.item_completed'
+  );
+  const sprintCompleteEvents = recentAuditEvents.filter(
+    (event) => normalizeText(event?.action) === 'cco.sprint.complete'
+  );
+
+  const itemSlaAgeHours = sprintItemCompletedEvents
+    .map((event) => toSprintSlaAgeHours(event?.metadata?.slaAgeHours ?? event?.metadata?.slaAge))
+    .filter((value) => Number.isFinite(value));
+  const sprintDurationsMinutes = sprintCompleteEvents
+    .map((event) => Number(event?.metadata?.durationMs) / (60 * 1000))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  const sprintItemsCompleted = sprintCompleteEvents
+    .map((event) => Number(event?.metadata?.itemsCompleted))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+
+  let conversationWorklist = [];
+  if (capabilityAnalysisStore && typeof capabilityAnalysisStore.list === 'function') {
+    const analysisEntries = await capabilityAnalysisStore.list({
+      tenantId,
+      capabilityName: 'CCO.InboxAnalysis',
+      limit: 200,
+    });
+    const recentEntries = asArray(analysisEntries).filter((entry) => {
+      const tsMs = toEventTimestampMs(entry);
+      return Number.isFinite(tsMs) && tsMs >= window.startAtMs;
+    });
+    const sourceEntries = recentEntries.length > 0 ? recentEntries : asArray(analysisEntries);
+    const latestEntry = sourceEntries[0] || null;
+    conversationWorklist = asArray(latestEntry?.output?.data?.conversationWorklist);
+  }
+
+  const unresolved = conversationWorklist.filter(
+    (row) => toNeedsReplyStatus(row?.needsReplyStatus) !== 'handled'
+  );
+  const criticalOver48hCount = unresolved.filter((row) => {
+    return (
+      toPriorityLevel(row?.priorityLevel) === 'Critical' &&
+      toSlaAgeHours(row?.hoursSinceInbound) >= 48
+    );
+  }).length;
+  const highOver24hCount = unresolved.filter((row) => {
+    return (
+      toPriorityLevel(row?.priorityLevel) === 'High' &&
+      toSlaAgeHours(row?.hoursSinceInbound) >= 24
+    );
+  }).length;
+  const unansweredCount = unresolved.length;
+
+  const stressScore = criticalOver48hCount * 3 + highOver24hCount * 2 + unansweredCount;
+  const latestSprintFeedback = buildLatestCcoSprintFeedback({
+    startEvents: sprintStartEvents,
+    completeEvents: sprintCompleteEvents,
+  });
+
+  return res.json({
+    avgResponseTimeHours: toAverage(itemSlaAgeHours, 2),
+    criticalOver48hCount,
+    avgSprintDurationMinutes: toAverage(sprintDurationsMinutes, 2),
+    avgItemsPerSprint: toAverage(sprintItemsCompleted, 2),
+    sprintCompletionRate: sprintStartEvents.length
+      ? Number(((sprintCompleteEvents.length / sprintStartEvents.length) * 100).toFixed(1))
+      : 0,
+    stressProxyIndex: {
+      score: stressScore,
+      level: toStressLevel(stressScore),
+      factors: {
+        criticalOver48h: criticalOver48hCount,
+        highOver24h: highOver24hCount,
+        unansweredCount,
+      },
+    },
+    latestSprintFeedback,
+    since: window.since,
+    generatedAt: new Date().toISOString(),
+  });
+}
+
 function toCapabilityRunError(res, error) {
   const status = pickErrorStatus(error?.code);
   return res.status(status).json(toErrorPayload(error));
@@ -1238,6 +1572,32 @@ function toCcoSendHandler({
   };
 }
 
+function toCcoSprintEventHandler({ authStore }) {
+  return async (req, res) => {
+    try {
+      return await runCcoSprintEventHandler({ req, res, authStore });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte logga sprint-event.',
+        code: error?.code || 'CCO_SPRINT_EVENT_FAILED',
+      });
+    }
+  };
+}
+
+function toCcoMetricsHandler({ authStore, capabilityAnalysisStore }) {
+  return async (req, res) => {
+    try {
+      return await readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisStore });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte läsa CCO metrics.',
+        code: error?.code || 'CCO_METRICS_READ_FAILED',
+      });
+    }
+  };
+}
+
 function createCapabilitiesRouter({
   authStore,
   tenantConfigStore,
@@ -1377,6 +1737,22 @@ function createCapabilitiesRouter({
         graphReadConnector: resolvedGraphReadConnector,
         authStore,
       })
+    )
+  );
+
+  router.post(
+    '/cco/sprint/event',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(toCcoSprintEventHandler({ authStore }))
+  );
+
+  router.get(
+    '/cco/metrics',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoMetricsHandler({ authStore, capabilityAnalysisStore })
     )
   );
 

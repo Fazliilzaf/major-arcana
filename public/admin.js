@@ -16,6 +16,18 @@
   const DEFAULT_BRAND_PRIMARY_COLOR = '#d8b38f';
   const DEFAULT_BRAND_ACCENT_COLOR = '#2e2016';
   const SUPPORTED_LANGUAGES = Object.freeze(['sv', 'en']);
+  const SECTION_GROUP_HASH_MAP = Object.freeze({
+    overviewSection: '#overview',
+    ccoWorkspaceSection: '#cco',
+    templateLifecycleSection: '#templates',
+    reviewsIncidentsSection: '#reviews',
+    auditSection: '#audit',
+    teamSection: '#team',
+    settingsSection: '#settings',
+    opsSection: '#ops',
+  });
+  const ADMIN_PRIMARY_PATH = '/admin';
+  const CCO_PRIMARY_PATH = '/cco';
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -38,6 +50,7 @@
       label_multi_tenant: 'Flera kliniker hittades. Välj klinik:',
       continue: 'Fortsätt',
       nav_overview: 'Översikt',
+      nav_cco: 'CCO',
       nav_templates: 'Mallar',
       nav_reviews: 'Granskningar',
       nav_incidents: 'Incidenter',
@@ -92,6 +105,7 @@
       label_multi_tenant: 'Multiple clinics found. Select clinic:',
       continue: 'Continue',
       nav_overview: 'Overview',
+      nav_cco: 'CCO',
       nav_templates: 'Templates',
       nav_reviews: 'Reviews',
       nav_incidents: 'Incidents',
@@ -257,6 +271,15 @@
     ccoSelectedConversationId: '',
     ccoDraftOverrideByConversationId: {},
     ccoDraftEvaluationByConversationId: {},
+    ccoSprintActive: false,
+    ccoSprintQueueIds: [],
+    ccoSprintCompletedIds: [],
+    ccoSprintLabelByConversationId: {},
+    ccoSprintInitialTotal: 0,
+    ccoSprintId: '',
+    ccoSprintStartedAtMs: 0,
+    ccoSprintMetrics: null,
+    ccoSprintLatestFeedback: null,
     riskFilters: loadRiskFilters(),
     auditFilters: loadAuditFilters(),
     templateListFilters: loadTemplateListFilters(),
@@ -284,6 +307,7 @@
   };
 
   const els = {
+    adminHeader: document.getElementById('adminHeader'),
     loginPanel: document.getElementById('loginPanel'),
     dashboardPanel: document.getElementById('dashboardPanel'),
     emailInput: document.getElementById('emailInput'),
@@ -367,6 +391,11 @@
     opsSection: document.getElementById('opsSection'),
     settingsSection: document.getElementById('settingsSection'),
     overviewSection: document.getElementById('overviewSection'),
+    ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
+    ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
+    openCcoWorkspaceBtn: document.getElementById('openCcoWorkspaceBtn'),
+    ccoWorkspaceEntryStatus: document.getElementById('ccoWorkspaceEntryStatus'),
+    ccoOverviewSummaryList: document.getElementById('ccoOverviewSummaryList'),
     categoryBadges: document.getElementById('categoryBadges'),
     riskBadges: document.getElementById('riskBadges'),
     riskQueueSummary: document.getElementById('riskQueueSummary'),
@@ -506,6 +535,12 @@
     ccoSendStatus: document.getElementById('ccoSendStatus'),
     ccoInboxNeedsReplyList: document.getElementById('ccoInboxNeedsReplyList'),
     ccoInboxDraftsList: document.getElementById('ccoInboxDraftsList'),
+    ccoSprintStatusBar: document.getElementById('ccoSprintStatusBar'),
+    ccoSprintProgress: document.getElementById('ccoSprintProgress'),
+    ccoStartSprintBtn: document.getElementById('ccoStartSprintBtn'),
+    ccoSprintQueueList: document.getElementById('ccoSprintQueueList'),
+    ccoSprintStressMeta: document.getElementById('ccoSprintStressMeta'),
+    ccoSprintFeedback: document.getElementById('ccoSprintFeedback'),
     fetchCalibrationSuggestionBtn: document.getElementById('fetchCalibrationSuggestionBtn'),
     applyCalibrationSuggestionBtn: document.getElementById('applyCalibrationSuggestionBtn'),
     calibrationNoteInput: document.getElementById('calibrationNoteInput'),
@@ -682,6 +717,7 @@
   let activeModalOptions = null;
   let activeModalFocusReturn = null;
   let sectionMotionFrame = 0;
+  let modeTransitionTimer = 0;
 
   function setText(el, value) {
     if (!el) return;
@@ -2052,6 +2088,7 @@
       });
     }
     if (!isLoggedIn) {
+      syncWorkspaceTheme('');
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -3968,6 +4005,52 @@
     return group || normalized;
   }
 
+  function resolveSectionGroupFromHash(hashValue) {
+    const hash = String(hashValue || '')
+      .trim()
+      .toLowerCase();
+    if (!hash) return '';
+    if (hash === '#cco-workspace') return 'ccoWorkspaceSection';
+    const entry = Object.entries(SECTION_GROUP_HASH_MAP).find(
+      ([, hashTarget]) => String(hashTarget || '').trim().toLowerCase() === hash
+    );
+    return entry ? entry[0] : '';
+  }
+
+  function buildSectionCanonicalUrl(groupId) {
+    const normalized = String(groupId || '').trim();
+    if (!normalized) return '';
+    if (normalized === 'ccoWorkspaceSection') return CCO_PRIMARY_PATH;
+    const hash = SECTION_GROUP_HASH_MAP[normalized] || SECTION_GROUP_HASH_MAP.overviewSection;
+    return `${ADMIN_PRIMARY_PATH}${hash}`;
+  }
+
+  function syncSectionHash(groupId) {
+    const nextUrl = buildSectionCanonicalUrl(groupId);
+    if (!nextUrl) return;
+    const currentUrl = `${window.location.pathname}${window.location.hash}`;
+    if (String(currentUrl).trim().toLowerCase() === nextUrl.toLowerCase()) return;
+    window.history.replaceState(null, '', nextUrl);
+  }
+
+  function runModeTransition(previousGroupId, nextGroupId) {
+    const wasCco = String(previousGroupId || '').trim() === 'ccoWorkspaceSection';
+    const isCco = String(nextGroupId || '').trim() === 'ccoWorkspaceSection';
+    if (wasCco === isCco) return;
+    document.body.classList.add('mode-switching');
+    if (modeTransitionTimer) clearTimeout(modeTransitionTimer);
+    modeTransitionTimer = setTimeout(() => {
+      document.body.classList.remove('mode-switching');
+    }, 170);
+  }
+
+  function updateWorkspaceViewportMetrics() {
+    const headerHeight = Number(els.adminHeader?.offsetHeight || 0);
+    const navHeight = Number(els.sectionNav?.offsetHeight || 0);
+    const computed = Math.max(180, Math.round(headerHeight + navHeight + 58));
+    document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
+  }
+
   function resolveDefaultTargetForGroup(groupId) {
     const normalized = String(groupId || '').trim();
     if (!normalized) return 'overviewSection';
@@ -3998,9 +4081,17 @@
     });
   }
 
+  function syncWorkspaceTheme(groupId) {
+    const normalized = String(groupId || '').trim();
+    document.body.classList.toggle('cco-light-mode', normalized === 'ccoWorkspaceSection');
+  }
+
   function setActiveSectionGroup(nextGroupId, options = {}) {
+    const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
+    runModeTransition(previousGroupId, groupId);
     state.activeSectionGroup = groupId;
+    syncWorkspaceTheme(groupId);
     document.querySelectorAll('[data-section-group]').forEach((section) => {
       const currentGroup = String(section.getAttribute('data-section-group') || '').trim();
       section.classList.toggle('hidden', currentGroup !== groupId);
@@ -4009,6 +4100,8 @@
 
     const targetId = String(options.targetId || resolveDefaultTargetForGroup(groupId)).trim();
     if (targetId) setActiveSectionNav(targetId);
+    updateWorkspaceViewportMetrics();
+    if (options.syncHash !== false) syncSectionHash(groupId);
 
     if (options.scroll) {
       const focusEl =
@@ -4045,6 +4138,21 @@
       const currentTarget = String(button.getAttribute('data-target') || '').trim();
       button.classList.toggle('active', currentTarget && currentTarget === resolvedTargetId);
     });
+  }
+
+  function resolveInitialSectionGroup() {
+    const fromHash = resolveSectionGroupFromHash(window.location.hash || '');
+    if (fromHash) return fromHash;
+    const path = String(window.location.pathname || '').trim().toLowerCase();
+    if (
+      path.endsWith('/cco') ||
+      path.endsWith('/ccp') ||
+      path.endsWith('/agents/cco') ||
+      path.endsWith('/admin/cco')
+    ) {
+      return 'ccoWorkspaceSection';
+    }
+    return state.activeSectionGroup || 'overviewSection';
   }
 
   async function applyBulkOwnerAction() {
@@ -6894,6 +7002,92 @@
     return `${prefix}-${Date.now()}-${random}`;
   }
 
+  function createCcoSprintId() {
+    return generateClientIdempotencyKey('cco-sprint');
+  }
+
+  function toIsoOrNow(value) {
+    const parsed = Date.parse(String(value || ''));
+    if (Number.isFinite(parsed)) {
+      return new Date(parsed).toISOString();
+    }
+    return new Date().toISOString();
+  }
+
+  function toCcoTelemetryNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return parsed;
+  }
+
+  function toCcoSprintSlaAgeHours(value) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return null;
+    const match = normalized.match(/^(\d+(?:\.\d+)?)\s*h$/);
+    if (!match) return null;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function buildCcoOpenConversationRows(data = null) {
+    return getSortedCcoConversations(data).filter(
+      (row) => String(row?.needsReplyStatus || '').trim() !== 'handled'
+    );
+  }
+
+  function summarizeCcoPriorityCounts(rows = []) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    return safeRows.reduce(
+      (acc, row) => {
+        const priority = String(row?.priorityLevel || '').trim().toLowerCase();
+        if (priority === 'critical') acc.critical += 1;
+        if (priority === 'high') acc.high += 1;
+        return acc;
+      },
+      { critical: 0, high: 0 }
+    );
+  }
+
+  async function postCcoSprintEvent(eventType, metadata = {}) {
+    const sprintId = String(metadata?.sprintId || state.ccoSprintId || '').trim();
+    if (!sprintId) return null;
+    try {
+      return await api('/cco/sprint/event', {
+        method: 'POST',
+        headers: {
+          'x-idempotency-key': generateClientIdempotencyKey(`cco-sprint-${eventType}`),
+        },
+        body: {
+          channel: 'admin',
+          eventType,
+          sprintId,
+          ...metadata,
+        },
+      });
+    } catch (error) {
+      console.warn('CCO sprint telemetry failed', error);
+      return null;
+    }
+  }
+
+  async function loadCcoMetrics({ since = '7d' } = {}) {
+    try {
+      const response = await api(`/cco/metrics?since=${encodeURIComponent(String(since || '7d'))}`);
+      state.ccoSprintMetrics = response && typeof response === 'object' ? response : null;
+      state.ccoSprintLatestFeedback =
+        state.ccoSprintMetrics?.latestSprintFeedback &&
+        typeof state.ccoSprintMetrics.latestSprintFeedback === 'object'
+          ? state.ccoSprintMetrics.latestSprintFeedback
+          : null;
+      return state.ccoSprintMetrics;
+    } catch (error) {
+      console.warn('CCO metrics fetch failed', error);
+      return null;
+    }
+  }
+
   function normalizePriorityLevelForUi(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'critical') return 'Critical';
@@ -7004,12 +7198,356 @@
     return rows;
   }
 
+  function getCcoSprintSlotLabel(index) {
+    if (index === 0) return 'Critical';
+    if (index === 1) return 'High';
+    return 'Quick Win';
+  }
+
+  function buildCcoSprintQueueRows(openRows = []) {
+    const rows = Array.isArray(openRows) ? openRows : [];
+    const queue = [];
+    const used = new Set();
+    const pushMatch = (predicate, fallbackLabel) => {
+      const match = rows.find((row) => {
+        if (!row || used.has(row.conversationId)) return false;
+        return predicate(row);
+      });
+      if (!match) return;
+      used.add(match.conversationId);
+      queue.push({
+        ...match,
+        sprintLabel: fallbackLabel,
+      });
+    };
+
+    pushMatch((row) => safeLower(row.priorityLevel) === 'critical', 'Critical');
+    pushMatch((row) => safeLower(row.priorityLevel) === 'high', 'High');
+    pushMatch(
+      (row) => ['low', 'medium'].includes(safeLower(row.priorityLevel)),
+      'Quick Win'
+    );
+
+    for (const row of rows) {
+      if (!row || used.has(row.conversationId)) continue;
+      if (queue.length >= 3) break;
+      used.add(row.conversationId);
+      queue.push({
+        ...row,
+        sprintLabel: getCcoSprintSlotLabel(queue.length),
+      });
+    }
+
+    return queue.slice(0, 3);
+  }
+
+  function getCcoVisibleConversations(rows = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    if (!state.ccoSprintActive) return source;
+    const queueSet = new Set(
+      Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : []
+    );
+    return source.filter((row) => queueSet.has(String(row?.conversationId || '').trim()));
+  }
+
+  function syncCcoSprintState(openRows = [], plannedRows = []) {
+    const planned = Array.isArray(plannedRows) ? plannedRows.slice(0, 3) : [];
+    const plannedIds = planned.map((row) => String(row?.conversationId || '').trim()).filter(Boolean);
+    const plannedLabels = {};
+    for (const row of planned) {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId) continue;
+      plannedLabels[conversationId] = String(row?.sprintLabel || '').trim() || 'Quick Win';
+    }
+
+    if (!state.ccoSprintActive) {
+      state.ccoSprintQueueIds = plannedIds;
+      state.ccoSprintCompletedIds = [];
+      state.ccoSprintLabelByConversationId = plannedLabels;
+      state.ccoSprintInitialTotal = plannedIds.length;
+      return;
+    }
+
+    const previousQueue = Array.isArray(state.ccoSprintQueueIds)
+      ? state.ccoSprintQueueIds.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
+    const openSet = new Set(
+      (Array.isArray(openRows) ? openRows : [])
+        .map((row) => String(row?.conversationId || '').trim())
+        .filter(Boolean)
+    );
+    const completed = Array.isArray(state.ccoSprintCompletedIds)
+      ? state.ccoSprintCompletedIds.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
+
+    for (const conversationId of previousQueue) {
+      if (openSet.has(conversationId)) continue;
+      if (!completed.includes(conversationId)) completed.push(conversationId);
+    }
+
+    const nextQueue = previousQueue.filter((conversationId) => openSet.has(conversationId));
+    state.ccoSprintQueueIds = nextQueue;
+    state.ccoSprintCompletedIds = completed;
+
+    const nextLabels = {};
+    nextQueue.forEach((conversationId, index) => {
+      const fromState = String(state.ccoSprintLabelByConversationId?.[conversationId] || '').trim();
+      const fromPlanned = String(plannedLabels[conversationId] || '').trim();
+      nextLabels[conversationId] = fromState || fromPlanned || getCcoSprintSlotLabel(index);
+    });
+    state.ccoSprintLabelByConversationId = nextLabels;
+
+    const completionTotal = state.ccoSprintQueueIds.length + state.ccoSprintCompletedIds.length;
+    state.ccoSprintInitialTotal = Math.max(Number(state.ccoSprintInitialTotal || 0), completionTotal);
+  }
+
+  function renderCcoSprintPanel(openRows = [], plannedRows = []) {
+    const safeOpenRows = Array.isArray(openRows) ? openRows : [];
+    const safePlannedRows = Array.isArray(plannedRows) ? plannedRows.slice(0, 3) : [];
+    const hasCritical = safeOpenRows.some(
+      (row) => safeLower(row.priorityLevel) === 'critical' || row.escalationRequired === true
+    );
+    let statusText = 'All Clear';
+    let statusClass = 'status-all-clear';
+    if (hasCritical) {
+      statusText = 'Immediate Action';
+      statusClass = 'status-immediate';
+    } else if (safeOpenRows.length > 0) {
+      statusText = 'Attention Needed';
+      statusClass = 'status-attention';
+    }
+
+    if (els.ccoSprintStatusBar) {
+      els.ccoSprintStatusBar.textContent = statusText;
+      applyCcoIndicatorClass(
+        els.ccoSprintStatusBar,
+        ['status-all-clear', 'status-attention', 'status-immediate'],
+        statusClass
+      );
+    }
+
+    const openMap = new Map(
+      safeOpenRows.map((row) => [String(row?.conversationId || '').trim(), row])
+    );
+    const sprintRows = state.ccoSprintActive
+      ? state.ccoSprintQueueIds
+          .map((conversationId) => openMap.get(String(conversationId || '').trim()))
+          .filter(Boolean)
+      : safePlannedRows;
+
+    const isComplete =
+      state.ccoSprintActive &&
+      sprintRows.length === 0 &&
+      Number(state.ccoSprintInitialTotal || 0) > 0;
+    const sprintFeedback =
+      state.ccoSprintLatestFeedback && typeof state.ccoSprintLatestFeedback === 'object'
+        ? state.ccoSprintLatestFeedback
+        : null;
+    const stressIndex =
+      state.ccoSprintMetrics?.stressProxyIndex &&
+      typeof state.ccoSprintMetrics.stressProxyIndex === 'object'
+        ? state.ccoSprintMetrics.stressProxyIndex
+        : null;
+
+    if (els.ccoWorkspaceLayout) {
+      els.ccoWorkspaceLayout.classList.toggle('sprint-active', state.ccoSprintActive && !isComplete);
+    }
+
+    if (els.ccoStartSprintBtn) {
+      els.ccoStartSprintBtn.textContent = isComplete ? 'Start nästa sprint' : 'Start Sprint';
+      els.ccoStartSprintBtn.disabled = state.ccoSprintActive && !isComplete;
+    }
+
+    if (els.ccoSprintProgress) {
+      if (isComplete) {
+        els.ccoSprintProgress.textContent = 'Sprint Complete';
+      } else if (state.ccoSprintActive) {
+        const done = Number(state.ccoSprintCompletedIds.length || 0);
+        const total = Math.max(Number(state.ccoSprintInitialTotal || 0), done + sprintRows.length);
+        els.ccoSprintProgress.textContent = `Progress: ${done} av ${total} hanterade.`;
+      } else if (safePlannedRows.length) {
+        els.ccoSprintProgress.textContent = 'Tryck Start Sprint för fokuserat arbetsläge.';
+      } else {
+        els.ccoSprintProgress.textContent = 'Ingen sprintkö tillgänglig just nu.';
+      }
+    }
+
+    if (els.ccoSprintStressMeta) {
+      if (stressIndex) {
+        const score = Number(stressIndex.score || 0);
+        const level = String(stressIndex.level || 'Low').trim() || 'Low';
+        els.ccoSprintStressMeta.textContent = `Stressindex: ${score} (${level})`;
+      } else {
+        els.ccoSprintStressMeta.textContent = 'Stressindex: -';
+      }
+    }
+
+    if (els.ccoSprintFeedback) {
+      if (isComplete && sprintFeedback) {
+        const handled = Math.max(0, Number(sprintFeedback.itemsCompleted || 0));
+        const resolvedCritical = Math.max(0, Number(sprintFeedback.resolvedCritical || 0));
+        const slaLine = sprintFeedback.slaImproved ? '✓ SLA förbättrad' : '✓ SLA oförändrad';
+        const safeHandled = Number.isFinite(handled) ? handled : 0;
+        const safeCritical = Number.isFinite(resolvedCritical) ? resolvedCritical : 0;
+        els.ccoSprintFeedback.innerHTML = [
+          'Sprint Complete',
+          `✓ ${safeHandled} konversationer hanterade`,
+          `✓ ${safeCritical} kritisk löst`,
+          slaLine,
+        ]
+          .map((line) => `<div>${escapeHtml(line)}</div>`)
+          .join('');
+        els.ccoSprintFeedback.classList.add('visible');
+      } else {
+        els.ccoSprintFeedback.textContent = '';
+        els.ccoSprintFeedback.classList.remove('visible');
+      }
+    }
+
+    if (!els.ccoSprintQueueList) return;
+    if (isComplete) {
+      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Sprint Complete</li>';
+      return;
+    }
+    if (!sprintRows.length) {
+      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Ingen sprintkö ännu.</li>';
+      return;
+    }
+
+    els.ccoSprintQueueList.innerHTML = sprintRows
+      .slice(0, 3)
+      .map((row, index) => {
+        const conversationId = String(row?.conversationId || '').trim();
+        const sprintLabel =
+          String(state.ccoSprintLabelByConversationId?.[conversationId] || '').trim() ||
+          String(row?.sprintLabel || '').trim() ||
+          getCcoSprintSlotLabel(index);
+        return `
+          <li class="cco-sprint-item">
+            <div class="cco-sprint-item-label">${escapeHtml(sprintLabel)}</div>
+            <div class="cco-sprint-item-subject">${escapeHtml(row?.subject || '(utan ämne)')}</div>
+            <div class="cco-sprint-item-meta">${escapeHtml(row?.sender || 'okänd')} · ${escapeHtml(row?.priorityLevel || 'Low')}</div>
+          </li>
+        `;
+      })
+      .join('');
+  }
+
+  async function startCcoSprint() {
+    const data =
+      state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object'
+        ? state.ccoInboxData.data
+        : null;
+    if (!data) {
+      setStatus(els.ccoInboxStatus, 'Kör CCO Inbox Brief innan sprint startas.', true);
+      return;
+    }
+
+    const openRows = buildCcoOpenConversationRows(data);
+    const plannedRows = buildCcoSprintQueueRows(openRows);
+    if (!plannedRows.length) {
+      state.ccoSprintActive = false;
+      state.ccoSprintQueueIds = [];
+      state.ccoSprintCompletedIds = [];
+      state.ccoSprintLabelByConversationId = {};
+      state.ccoSprintInitialTotal = 0;
+      state.ccoSprintId = '';
+      state.ccoSprintStartedAtMs = 0;
+      state.ccoSprintLatestFeedback = null;
+      renderCcoInbox(state.ccoInboxData);
+      setStatus(els.ccoInboxStatus, 'All Clear: inga sprint-objekt att starta.');
+      return;
+    }
+
+    const sprintId = createCcoSprintId();
+    const startedAtMs = Date.now();
+    state.ccoSprintActive = true;
+    state.ccoSprintId = sprintId;
+    state.ccoSprintStartedAtMs = startedAtMs;
+    state.ccoSprintQueueIds = plannedRows
+      .map((row) => String(row?.conversationId || '').trim())
+      .filter(Boolean);
+    state.ccoSprintCompletedIds = [];
+    state.ccoSprintLabelByConversationId = {};
+    plannedRows.forEach((row, index) => {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId) return;
+      state.ccoSprintLabelByConversationId[conversationId] =
+        String(row?.sprintLabel || '').trim() || getCcoSprintSlotLabel(index);
+    });
+    state.ccoSprintInitialTotal = state.ccoSprintQueueIds.length;
+    state.ccoSprintLatestFeedback = null;
+    state.ccoSelectedConversationId = state.ccoSprintQueueIds[0] || '';
+    renderCcoInbox(state.ccoInboxData);
+    setStatus(els.ccoInboxStatus, 'Sprint startad. Fokusläge aktivt.');
+
+    const priorityCounts = summarizeCcoPriorityCounts(plannedRows);
+    await postCcoSprintEvent('start', {
+      sprintId,
+      queueSize: plannedRows.length,
+      criticalCount: priorityCounts.critical,
+      highCount: priorityCounts.high,
+      timestamp: toIsoOrNow(startedAtMs),
+    });
+    const metrics = await loadCcoMetrics({ since: '7d' });
+    if (metrics) renderCcoInbox(state.ccoInboxData);
+  }
+
+  async function markCcoSprintConversationCompleted(conversationId, conversationMeta = null) {
+    if (!state.ccoSprintActive) return;
+    const key = String(conversationId || '').trim();
+    if (!key) return;
+    if (!state.ccoSprintQueueIds.includes(key)) return;
+    const data =
+      state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object'
+        ? state.ccoInboxData.data
+        : null;
+    const openRows = buildCcoOpenConversationRows(data);
+    const row = openRows.find((item) => String(item?.conversationId || '').trim() === key) || null;
+    const fallbackMeta = conversationMeta && typeof conversationMeta === 'object' ? conversationMeta : {};
+    const priorityLevel = String(row?.priorityLevel || fallbackMeta.priorityLevel || 'Low').trim() || 'Low';
+    const slaAgeHours = toCcoTelemetryNumber(
+      row?.hoursSinceInbound ?? fallbackMeta.hoursSinceInbound,
+      0
+    );
+    state.ccoSprintQueueIds = state.ccoSprintQueueIds.filter((item) => item !== key);
+    if (!state.ccoSprintCompletedIds.includes(key)) {
+      state.ccoSprintCompletedIds.push(key);
+    }
+    delete state.ccoSprintLabelByConversationId[key];
+
+    await postCcoSprintEvent('item_completed', {
+      sprintId: state.ccoSprintId,
+      conversationId: key,
+      priorityLevel,
+      slaAge: `${slaAgeHours.toFixed(1)}h`,
+      slaAgeHours,
+      handledAt: new Date().toISOString(),
+    });
+
+    if (!state.ccoSprintQueueIds.length && Number(state.ccoSprintInitialTotal || 0) > 0) {
+      const remainingOpenRows = buildCcoOpenConversationRows(data);
+      const remainingPriority = summarizeCcoPriorityCounts(remainingOpenRows);
+      const durationMs = Math.max(0, Date.now() - Number(state.ccoSprintStartedAtMs || Date.now()));
+      await postCcoSprintEvent('complete', {
+        sprintId: state.ccoSprintId,
+        durationMs,
+        itemsCompleted: Number(state.ccoSprintCompletedIds.length || 0),
+        remainingHigh: remainingPriority.high,
+        remainingCritical: remainingPriority.critical,
+        timestamp: new Date().toISOString(),
+      });
+      const metrics = await loadCcoMetrics({ since: '7d' });
+      if (metrics) renderCcoInbox(state.ccoInboxData);
+    }
+  }
+
   function getCcoSelectedConversation() {
     const data = state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object'
       ? state.ccoInboxData.data
       : null;
     if (!data) return null;
-    const rows = getSortedCcoConversations(data);
+    const rows = getCcoVisibleConversations(getSortedCcoConversations(data));
     if (!rows.length) return null;
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     const selected = rows.find((row) => row.conversationId === selectedId);
@@ -7098,26 +7636,51 @@
     return conversation.escalationRequired ? 'Granska extra (eskalering)' : 'Ej utvärderad ännu';
   }
 
+  function getCcoPriorityBadgeClass(priorityLevel) {
+    const normalized = String(priorityLevel || '').trim().toLowerCase();
+    if (normalized === 'critical') return 'badge-critical';
+    if (normalized === 'high') return 'badge-high';
+    if (normalized === 'medium') return 'badge-medium';
+    return 'badge-low';
+  }
+
+  function applyCcoIndicatorClass(el, allowedClasses, activeClass) {
+    if (!el) return;
+    allowedClasses.forEach((name) => el.classList.remove(name));
+    if (activeClass) el.classList.add(activeClass);
+  }
+
   function renderCcoWorklist(data = null) {
     if (!els.ccoInboxWorklist) return;
-    const rows = getSortedCcoConversations(data);
+    const sortedRows = getSortedCcoConversations(data);
+    const rows = getCcoVisibleConversations(sortedRows);
     if (!rows.length) {
-      els.ccoInboxWorklist.innerHTML = '<li class="muted mini">Inga konversationer i kö.</li>';
+      const emptyText =
+        state.ccoSprintActive && Number(state.ccoSprintInitialTotal || 0) > 0
+          ? 'Sprint Complete'
+          : 'Inga konversationer i kö.';
+      els.ccoInboxWorklist.innerHTML = `<li class="muted mini" style="padding:12px 14px">${emptyText}</li>`;
       return;
     }
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     els.ccoInboxWorklist.innerHTML = rows
       .slice(0, 20)
       .map((row) => {
-        const active = row.conversationId === selectedId ? ' style="outline:1px solid var(--accent);"' : '';
+        const isActive = row.conversationId === selectedId;
         const status = row.needsReplyStatus === 'handled' ? 'Handled' : 'Needs reply';
-        const meta = `${escapeHtml(row.priorityLevel)} · SLA:${escapeHtml(row.slaStatus)} · ${escapeHtml(row.intent)} · ${escapeHtml(row.tone)} · ${Number(row.hoursSinceInbound || 0).toFixed(1)}h · ${escapeHtml(status)}`;
+        const safeHours = Number(row.hoursSinceInbound || 0);
+        const meta = `${safeHours.toFixed(1)}h sedan · SLA ${escapeHtml(row.slaStatus)}`;
+        const priorityClass = getCcoPriorityBadgeClass(row.priorityLevel);
         return `
-          <li${active}>
-            <button class="btn small ccoConversationSelectBtn" data-conversation-id="${escapeHtml(row.conversationId)}" style="width:100%;justify-content:flex-start">
-              <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-                <strong style="font-size:13px">${escapeHtml(row.subject)}</strong>
-                <span class="mini muted">${escapeHtml(row.sender)} · ${meta}</span>
+          <li class="cco-thread${isActive ? ' active' : ''} sprint-focus">
+            <button class="cco-thread-btn ccoConversationSelectBtn" data-conversation-id="${escapeHtml(row.conversationId)}">
+              <span class="cco-thread-subject">${escapeHtml(row.subject)}</span>
+              <span class="cco-thread-meta">${escapeHtml(row.sender)} · ${meta}</span>
+              <span class="cco-thread-tags">
+                <span class="cco-priority-badge ${priorityClass}">${escapeHtml(row.priorityLevel)}</span>
+                <span class="cco-thread-chip">${escapeHtml(row.intent)}</span>
+                <span class="cco-thread-chip">${escapeHtml(row.tone)}</span>
+                <span class="cco-thread-chip">${escapeHtml(status)}</span>
               </span>
             </button>
           </li>
@@ -7147,6 +7710,16 @@
       if (els.ccoDraftConfidence) els.ccoDraftConfidence.textContent = '-';
       if (els.ccoDraftRecommendedAction) els.ccoDraftRecommendedAction.textContent = '-';
       if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = '';
+      applyCcoIndicatorClass(
+        els.ccoDraftRiskIndicator,
+        ['risk-critical', 'risk-high', 'risk-medium', 'risk-low'],
+        ''
+      );
+      applyCcoIndicatorClass(
+        els.ccoDraftPolicyIndicator,
+        ['policy-blocked', 'policy-ok'],
+        ''
+      );
       return;
     }
 
@@ -7171,9 +7744,25 @@
     }
     if (els.ccoDraftRiskIndicator) {
       els.ccoDraftRiskIndicator.textContent = formatCcoRiskIndicator(conversation, evaluation);
+      const riskLevel = Number(evaluation?.riskSummary?.output?.riskLevel);
+      let riskClass = 'risk-low';
+      if (Number.isFinite(riskLevel) && riskLevel >= 5) riskClass = 'risk-critical';
+      else if (Number.isFinite(riskLevel) && riskLevel >= 4) riskClass = 'risk-high';
+      else if (Number.isFinite(riskLevel) && riskLevel >= 3) riskClass = 'risk-medium';
+      applyCcoIndicatorClass(
+        els.ccoDraftRiskIndicator,
+        ['risk-critical', 'risk-high', 'risk-medium', 'risk-low'],
+        riskClass
+      );
     }
     if (els.ccoDraftPolicyIndicator) {
       els.ccoDraftPolicyIndicator.textContent = formatCcoPolicyIndicator(conversation, evaluation);
+      const isBlocked = evaluation?.policySummary?.blocked === true;
+      applyCcoIndicatorClass(
+        els.ccoDraftPolicyIndicator,
+        ['policy-blocked', 'policy-ok'],
+        isBlocked ? 'policy-blocked' : 'policy-ok'
+      );
     }
     if (els.ccoDraftConfidence) {
       els.ccoDraftConfidence.textContent = String(conversation.confidenceLevel || 'Low');
@@ -7238,11 +7827,36 @@
     if (!data) {
       state.ccoSelectedConversationId = '';
       state.ccoDraftEvaluationByConversationId = {};
-      if (els.ccoInboxPriority) els.ccoInboxPriority.textContent = '-';
+      state.ccoSprintActive = false;
+      state.ccoSprintQueueIds = [];
+      state.ccoSprintCompletedIds = [];
+      state.ccoSprintLabelByConversationId = {};
+      state.ccoSprintInitialTotal = 0;
+      state.ccoSprintId = '';
+      state.ccoSprintStartedAtMs = 0;
+      state.ccoSprintMetrics = null;
+      state.ccoSprintLatestFeedback = null;
+      if (els.ccoInboxPriority) {
+        els.ccoInboxPriority.textContent = '-';
+        applyCcoIndicatorClass(
+          els.ccoInboxPriority,
+          ['badge-critical', 'badge-high', 'badge-medium', 'badge-low'],
+          'badge-low'
+        );
+      }
       if (els.ccoInboxRiskFlags) els.ccoInboxRiskFlags.textContent = '0 / 0';
       if (els.ccoInboxSummary) els.ccoInboxSummary.textContent = 'Ingen inbox brief an.';
       if (els.ccoInboxMailboxMeta) els.ccoInboxMailboxMeta.textContent = '';
+      if (els.ccoWorkspaceEntryStatus) {
+        els.ccoWorkspaceEntryStatus.textContent = 'Ingen inbox summary än.';
+      }
+      renderIncidentIntelligenceList(
+        els.ccoOverviewSummaryList,
+        [],
+        'Ingen CCO-data än.'
+      );
       if (els.ccoSendStatus) els.ccoSendStatus.textContent = '';
+      renderCcoSprintPanel([], []);
       renderCcoWorklist(null);
       renderCcoDetail(null);
       renderIncidentIntelligenceList(
@@ -7260,7 +7874,13 @@
     const messageCount = Number(data.messageCount || 0);
 
     if (els.ccoInboxPriority) {
-      els.ccoInboxPriority.textContent = String(normalizePriorityLevelForUi(data.priorityLevel));
+      const priorityLabel = String(normalizePriorityLevelForUi(data.priorityLevel));
+      els.ccoInboxPriority.textContent = priorityLabel;
+      applyCcoIndicatorClass(
+        els.ccoInboxPriority,
+        ['badge-critical', 'badge-high', 'badge-medium', 'badge-low'],
+        getCcoPriorityBadgeClass(priorityLabel)
+      );
     }
     if (els.ccoInboxRiskFlags) {
       els.ccoInboxRiskFlags.textContent = `${slaBreaches} / ${riskFlags}`;
@@ -7268,11 +7888,28 @@
     if (els.ccoInboxMailboxMeta) {
       els.ccoInboxMailboxMeta.textContent = `${mailboxCount} mailboxar · ${messageCount} meddelanden`;
     }
+    if (els.ccoWorkspaceEntryStatus) {
+      els.ccoWorkspaceEntryStatus.textContent =
+        `${mailboxCount} mailboxar · ${messageCount} meddelanden · ${normalizePriorityLevelForUi(data.priorityLevel)}`;
+    }
     if (els.ccoInboxSummary) {
       els.ccoInboxSummary.textContent = String(data.executiveSummary || 'Ingen sammanfattning.');
     }
 
     const sortedRows = getSortedCcoConversations(data);
+    const openRows = sortedRows.filter(
+      (row) => String(row?.needsReplyStatus || '').trim() !== 'handled'
+    );
+    const overviewSummaryRows = openRows
+      .slice(0, 3)
+      .map((item) => `${item.subject} · ${normalizePriorityLevelForUi(item.priorityLevel)} · ${item.intent || 'unclear'}`);
+    renderIncidentIntelligenceList(
+      els.ccoOverviewSummaryList,
+      overviewSummaryRows,
+      'Inga öppna CCO-konversationer.'
+    );
+    const plannedRows = buildCcoSprintQueueRows(openRows);
+    syncCcoSprintState(openRows, plannedRows);
     const validConversationIds = new Set(sortedRows.map((row) => String(row.conversationId || '').trim()));
     const nextEvaluations = {};
     for (const [conversationId, evaluation] of Object.entries(
@@ -7282,18 +7919,24 @@
       nextEvaluations[conversationId] = evaluation;
     }
     state.ccoDraftEvaluationByConversationId = nextEvaluations;
-    const selectedStillExists = sortedRows.some(
+    const visibleRows = getCcoVisibleConversations(sortedRows);
+    const selectedStillExists = visibleRows.some(
       (row) => row.conversationId === state.ccoSelectedConversationId
     );
-    if (!selectedStillExists && sortedRows.length) {
-      state.ccoSelectedConversationId = sortedRows[0].conversationId;
+    if (!selectedStillExists && visibleRows.length) {
+      state.ccoSelectedConversationId = visibleRows[0].conversationId;
     }
+    if (!visibleRows.length) {
+      state.ccoSelectedConversationId = '';
+    }
+    renderCcoSprintPanel(openRows, plannedRows);
     renderCcoWorklist(data);
     renderCcoDetail(data);
 
+    const visibleForContext = state.ccoSprintActive ? visibleRows : sortedRows;
     renderIncidentIntelligenceList(
       els.ccoInboxNeedsReplyList,
-      sortedRows
+      visibleForContext
         .filter((item) => item.needsReplyStatus !== 'handled')
         .slice(0, 5)
         .map((item) => `${item.subject} · ${item.priorityLevel} · ${item.intent}`),
@@ -7301,7 +7944,7 @@
     );
     renderIncidentIntelligenceList(
       els.ccoInboxDraftsList,
-      sortedRows
+      visibleForContext
         .slice(0, 5)
         .map((item) => `${item.subject} · confidence ${item.confidenceLevel || 'Low'}`),
       'Inga utkast an.'
@@ -7316,6 +7959,8 @@
         : null;
       if (entry?.output) {
         renderCcoInbox(entry.output);
+        await loadCcoMetrics({ since: '7d' });
+        renderCcoInbox(state.ccoInboxData);
         if (!quiet) {
           const generatedAt = String(entry?.output?.data?.generatedAt || entry?.createdAt || '').trim();
           setStatus(
@@ -7348,6 +7993,8 @@
         },
       });
       renderCcoInbox(response?.output || null);
+      await loadCcoMetrics({ since: '7d' });
+      renderCcoInbox(state.ccoInboxData);
       const generatedAt = String(response?.output?.data?.generatedAt || '').trim();
       setStatus(
         els.ccoInboxStatus,
@@ -7390,6 +8037,7 @@
       escalationRequired: action === 'flag_critical' ? true : row.escalationRequired,
     }));
     if (action === 'handled') {
+      await markCcoSprintConversationCompleted(conversation.conversationId, conversation);
       setStatus(els.ccoSendStatus, 'Konversation markerad som hanterad.');
     } else {
       setStatus(els.ccoSendStatus, 'Konversation flaggad som Critical.');
@@ -7458,6 +8106,7 @@
       ...row,
       needsReplyStatus: 'handled',
     }));
+    await markCcoSprintConversationCompleted(conversation.conversationId, conversation);
     setStatus(els.ccoSendStatus, 'E-post skickad via Graph (manual send).');
     renderCcoDetail(state.ccoInboxData?.data || null);
     renderCcoInbox(state.ccoInboxData);
@@ -9251,6 +9900,19 @@
     state.lastInviteMessage = '';
     state.profile = null;
     state.calibrationSuggestion = null;
+    state.ccoInboxData = null;
+    state.ccoSelectedConversationId = '';
+    state.ccoDraftOverrideByConversationId = {};
+    state.ccoDraftEvaluationByConversationId = {};
+    state.ccoSprintActive = false;
+    state.ccoSprintQueueIds = [];
+    state.ccoSprintCompletedIds = [];
+    state.ccoSprintLabelByConversationId = {};
+    state.ccoSprintInitialTotal = 0;
+    state.ccoSprintId = '';
+    state.ccoSprintStartedAtMs = 0;
+    state.ccoSprintMetrics = null;
+    state.ccoSprintLatestFeedback = null;
     state.riskEvaluations = [];
     state.selectedRiskEvaluationId = '';
     state.selectedRiskIds = [];
@@ -9507,6 +10169,11 @@
     event.preventDefault();
     scrollToSection(targetEl);
   });
+  els.openCcoWorkspaceBtn?.addEventListener('click', () => {
+    const target = els.ccoWorkspaceSection || document.getElementById('ccoWorkspaceSection');
+    if (!target) return;
+    scrollToSection(target);
+  });
 
   els.createTemplateBtn?.addEventListener('click', createTemplate);
   els.templateFilterSelect?.addEventListener('change', () => {
@@ -9688,6 +10355,11 @@
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
   els.runCcoInboxBtn?.addEventListener('click', runCcoInboxBrief);
+  els.ccoStartSprintBtn?.addEventListener('click', () => {
+    startCcoSprint().catch((error) => {
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta sprint.', true);
+    });
+  });
   els.ccoDraftBodyInput?.addEventListener('input', () => {
     const conversation = getCcoSelectedConversation();
     if (!conversation) return;
@@ -9964,12 +10636,16 @@
   window.addEventListener('beforeunload', () => {
     stopDashboardStream({ resetRetry: false });
   });
+  window.addEventListener('resize', () => {
+    updateWorkspaceViewportMetrics();
+  });
 
   syncRiskFilterInputs();
   syncAuditFilterInputs();
   syncTemplateFilterInputs();
   bindScrollableListPersistence();
   applyLanguage();
+  state.activeSectionGroup = resolveInitialSectionGroup();
   setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
     targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
     scroll: false,

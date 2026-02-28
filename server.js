@@ -75,6 +75,14 @@ app.get("/admin", (req, res) => {
   res.sendFile("admin.html", { root: __dirname + "/public" });
 });
 
+app.get('/cco', (req, res) => {
+  res.sendFile("admin.html", { root: __dirname + "/public" });
+});
+
+app.get(['/ccp', '/admin/cco'], (req, res) => {
+  res.redirect(302, '/cco');
+});
+
 app.get('/healthz', (req, res) => {
   return res.json({
     ok: true,

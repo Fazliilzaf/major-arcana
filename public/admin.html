@@ -107,6 +107,7 @@
       animation: bodyGlowDrift 24s ease-in-out infinite;
       color: var(--text);
       font-family: "Jost", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 150ms ease, background 150ms ease, color 150ms ease;
     }
     @keyframes bodyGlowDrift {
       0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0, 0 0; }
@@ -124,7 +125,14 @@
       0%, 100% { opacity: 0.82; }
       50% { opacity: 1; }
     }
-    .container { width: min(1200px, 94vw); margin: 24px auto 64px; }
+    .container {
+      width: min(1200px, 94vw);
+      margin: 24px auto 64px;
+      transition: opacity 150ms ease;
+    }
+    body.mode-switching .container {
+      opacity: 0.9;
+    }
     .row { display: grid; gap: 14px; }
     .row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .row.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -1275,6 +1283,9 @@
       gap: 14px;
       margin-bottom: 14px;
     }
+    .overview-layout > :only-child {
+      grid-column: 1 / -1;
+    }
     @media (max-width: 980px) {
       .overview-layout {
         grid-template-columns: 1fr;
@@ -1341,6 +1352,560 @@
     .overview-card.overview-card--cco #runCcoInboxBtn {
       color: var(--text);
       box-shadow: 0 16px 28px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    }
+    .overview-card.overview-card--cco-entry {
+      border-color: rgba(255, 233, 212, 0.52);
+      background:
+        linear-gradient(160deg, rgba(255, 233, 212, 0.11), rgba(255, 217, 184, 0.05)),
+        linear-gradient(160deg, rgba(54, 46, 40, 0.31), rgba(38, 33, 28, 0.27)),
+        radial-gradient(120% 90% at 8% -12%, rgba(255, 223, 190, 0.19) 0%, transparent 72%);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+    .cco-workspace-entry-meta {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .cco-workspace-entry-status {
+      margin-top: 10px;
+      min-height: 20px;
+    }
+    .cco-workspace {
+      --cco-bg: #FDF6F4;
+      --cco-panel: #FFFFFF;
+      --cco-border: #E8DDD5;
+      --cco-text: #1A1411;
+      --cco-muted: #6B625C;
+      --cco-accent: #C2AA9C;
+      --cco-critical: #B23A3A;
+      --cco-high: #D67A28;
+      --cco-medium: #8A7F78;
+      --cco-low: #9A958F;
+      --cco-chip-bg: #F7F1EE;
+      background: var(--cco-bg);
+      border: 1px solid var(--cco-border);
+      box-shadow: none;
+      color: var(--cco-text);
+      animation: none;
+      filter: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .cco-layout-root {
+      min-height: calc(100vh - var(--headerHeight, 220px));
+      height: calc(100vh - var(--headerHeight, 220px));
+      margin-bottom: 0;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+    }
+    .cco-workspace::before,
+    .cco-workspace::after {
+      content: none;
+    }
+    .cco-workspace h2,
+    .cco-workspace h3,
+    .cco-workspace label,
+    .cco-workspace .muted,
+    .cco-workspace .mini {
+      color: var(--cco-text);
+    }
+    .cco-workspace .status-line {
+      color: var(--cco-muted);
+    }
+    body.cco-light-mode {
+      background-color: #f8f1ed;
+      background:
+        radial-gradient(1200px 720px at 6% -12%, rgba(194, 170, 156, 0.12) 0%, transparent 58%),
+        radial-gradient(980px 560px at 88% 4%, rgba(194, 170, 156, 0.1) 0%, transparent 56%),
+        linear-gradient(180deg, #f9f4f1 0%, #f2e9e3 100%);
+      animation: none;
+      color: #1A1411;
+    }
+    body.cco-light-mode .header .admin-brand-mark {
+      filter: brightness(0.95) saturate(0.95);
+    }
+    body.cco-light-mode .section-nav {
+      opacity: 0.8;
+      transition: opacity 150ms ease, background 150ms ease;
+    }
+    body.cco-light-mode .section-nav:hover {
+      opacity: 0.92;
+    }
+    body.cco-light-mode .section-nav .sectionNavBtn {
+      color: rgba(26, 20, 17, 0.82);
+      border-color: rgba(194, 170, 156, 0.42);
+      background: linear-gradient(160deg, rgba(252, 248, 245, 0.9), rgba(235, 225, 218, 0.84));
+      text-shadow: none;
+    }
+    body.cco-light-mode .section-nav .sectionNavBtn.active {
+      opacity: 1;
+      color: #1A1411;
+      border-color: rgba(194, 170, 156, 0.8);
+      background: linear-gradient(160deg, rgba(237, 224, 214, 0.98), rgba(225, 208, 196, 0.94));
+      box-shadow: 0 10px 18px rgba(67, 49, 36, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+    }
+    .section-nav .sectionNavBtn[data-target="ccoWorkspaceSection"] {
+      position: relative;
+    }
+    body.cco-light-mode .section-nav .sectionNavBtn[data-target="ccoWorkspaceSection"].active::after {
+      content: "";
+      position: absolute;
+      left: 16%;
+      right: 16%;
+      bottom: -8px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--cco-accent);
+    }
+    .cco-workspace .code-block {
+      border: 1px solid var(--cco-border);
+      background: var(--cco-chip-bg);
+      color: var(--cco-text);
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      font-family: "Jost", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      white-space: pre-wrap;
+    }
+    .cco-workspace .list {
+      border: 1px solid var(--cco-border);
+      background: var(--cco-panel);
+      color: var(--cco-text);
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .cco-workspace .btn {
+      border: 1px solid var(--cco-border);
+      background: #F0E6E0;
+      color: var(--cco-text);
+      box-shadow: none;
+      text-shadow: none;
+      animation: none;
+    }
+    .cco-workspace .btn:hover {
+      border-color: #d4c4b8;
+      background: #eaded6;
+      transform: none;
+    }
+    .cco-workspace .btn.primary {
+      background: #1A1411;
+      border-color: #1A1411;
+      color: #fff;
+    }
+    .cco-workspace .btn.primary:hover {
+      background: #000;
+      border-color: #000;
+    }
+    .cco-workspace .btn.danger {
+      background: #4a2525;
+      border-color: #4a2525;
+      color: #fff;
+    }
+    .cco-workspace input,
+    .cco-workspace select,
+    .cco-workspace textarea {
+      border: 1px solid var(--cco-border);
+      background: #fff;
+      color: var(--cco-text);
+      box-shadow: none;
+    }
+    .cco-workspace input::placeholder,
+    .cco-workspace textarea::placeholder {
+      color: var(--cco-muted);
+    }
+    .cco-workspace .cco-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--cco-border);
+    }
+    .cco-workspace .cco-toolbar-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .cco-workspace .cco-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cco-sprint-shell {
+      margin-top: 8px;
+      border: 1px solid var(--cco-border);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cco-sprint-status {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .cco-sprint-status.status-all-clear {
+      background: #e9f6ef;
+      border-color: #c8e7d7;
+      color: #2f7b52;
+    }
+    .cco-sprint-status.status-attention {
+      background: #fff5e7;
+      border-color: #f0d8b6;
+      color: #9f5c20;
+    }
+    .cco-sprint-status.status-immediate {
+      background: #FCE8E8;
+      border-color: #F3C4C4;
+      color: #B23A3A;
+    }
+    .cco-sprint-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cco-sprint-meta-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cco-sprint-feedback {
+      border: 1px solid var(--cco-border);
+      border-radius: 10px;
+      background: #f7f1ee;
+      color: var(--cco-text);
+      padding: 10px 12px;
+      line-height: 1.45;
+      display: none;
+    }
+    .cco-sprint-feedback.visible {
+      display: block;
+    }
+    .cco-sprint-queue {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .cco-sprint-item {
+      border: 1px solid var(--cco-border);
+      border-radius: 10px;
+      padding: 10px;
+      background: #f7f1ee;
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cco-sprint-item-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #6b625c;
+    }
+    .cco-sprint-item-subject {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: #1A1411;
+      word-break: break-word;
+    }
+    .cco-sprint-item-meta {
+      font-size: 11px;
+      color: #6b625c;
+    }
+    .cco-sprint-item.done {
+      opacity: 0.6;
+      background: #f2ede9;
+    }
+    .cco-layout.sprint-active .cco-inbox {
+      opacity: 0.55;
+      transition: opacity var(--motion-fast);
+    }
+    .cco-layout.sprint-active .cco-thread.sprint-focus {
+      opacity: 1;
+    }
+    .cco-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr 420px;
+      gap: 0;
+      border: 1px solid var(--cco-border);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 620px;
+      height: calc(100vh - var(--headerHeight, 220px));
+      max-height: none;
+      background: var(--cco-panel);
+      transition: opacity 150ms ease;
+    }
+    .cco-inbox {
+      background: var(--cco-panel);
+      border-right: 1px solid var(--cco-border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .cco-conversation {
+      background: #fff;
+      border-right: 1px solid var(--cco-border);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cco-reply {
+      background: #fff;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cco-column-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .cco-column-title h3 {
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin: 0;
+      color: var(--cco-muted);
+    }
+    .cco-thread-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      max-height: none;
+      background: transparent;
+      overflow: visible;
+    }
+    .cco-thread {
+      border-bottom: 1px solid var(--cco-border);
+      padding: 0;
+      margin: 0;
+    }
+    .cco-thread.active {
+      background: #F4ECE8;
+      box-shadow: inset 4px 0 0 var(--cco-accent);
+    }
+    .cco-thread-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--cco-text);
+      text-align: left;
+      padding: 16px;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .cco-thread-btn:hover {
+      background: rgba(194, 170, 156, 0.12);
+      border: 0;
+      transform: none;
+    }
+    .cco-thread-subject {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--cco-text);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .cco-thread-meta {
+      font-size: 12px;
+      color: var(--cco-muted);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .cco-thread-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .cco-priority-badge,
+    .cco-thread-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      border: 1px solid transparent;
+    }
+    .cco-thread-chip {
+      background: #eee4de;
+      color: #6d635c;
+      border-color: #e2d6ce;
+    }
+    .cco-priority-badge.badge-critical { background:#B23A3A; color:#fff; }
+    .cco-priority-badge.badge-high { background:#D67A28; color:#fff; }
+    .cco-priority-badge.badge-medium { background:#C2AA9C; color:#1A1411; }
+    .cco-priority-badge.badge-low { background:#E8DDD5; color:#6B625C; }
+    .cco-message {
+      margin-bottom: 0;
+      padding: 16px;
+      background: #F7F1EE;
+      border-radius: 12px;
+      border: 1px solid #eaded7;
+      color: var(--cco-text);
+      line-height: 1.6;
+      font-size: 15px;
+      white-space: pre-wrap;
+    }
+    .cco-editor {
+      flex: 1;
+      border: 1px solid var(--cco-border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 220px;
+      resize: vertical;
+      font-family: "Jost", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .cco-send {
+      background: #1A1411 !important;
+      color: #fff !important;
+      border-color: #1A1411 !important;
+      padding: 14px 20px !important;
+      border-radius: 10px !important;
+      font-weight: 600 !important;
+      width: 100%;
+      justify-content: center;
+    }
+    .cco-send:hover {
+      background: #000 !important;
+      border-color: #000 !important;
+    }
+    .cco-risk-indicator {
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      background: #f6f1ed;
+      color: #6b625c;
+    }
+    .cco-risk-indicator.risk-critical {
+      background: #FCE8E8;
+      color: #B23A3A;
+      border-color: #F3C4C4;
+    }
+    .cco-risk-indicator.risk-high {
+      background: #fff1e6;
+      color: #B15E1D;
+      border-color: #f2d1b3;
+    }
+    .cco-risk-indicator.risk-medium {
+      background: #f4ece7;
+      color: #705f54;
+      border-color: #e4d6cb;
+    }
+    .cco-risk-indicator.risk-low {
+      background: #f5f3f1;
+      color: #7b736d;
+      border-color: #e4dfda;
+    }
+    .cco-risk-indicator.policy-blocked {
+      background: #FCE8E8;
+      color: #B23A3A;
+      border-color: #F3C4C4;
+    }
+    .cco-risk-indicator.policy-ok {
+      background: #e9f6ef;
+      color: #2f7b52;
+      border-color: #c8e7d7;
+    }
+    .cco-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .cco-actions .btn {
+      justify-content: center;
+    }
+    .cco-reply-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .cco-mini-list {
+      max-height: 170px;
+      overflow-y: auto;
+      border: 1px solid var(--cco-border);
+      border-radius: 10px;
+      background: #faf7f5;
+      padding: 8px;
+      margin: 0;
+      list-style: none;
+    }
+    .cco-mini-list li {
+      padding: 8px 6px;
+      border-bottom: 1px solid #ece4df;
+      color: var(--cco-text);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .cco-mini-list li:last-child {
+      border-bottom: 0;
+    }
+    @media (max-width: 1280px) {
+      .cco-layout {
+        grid-template-columns: 300px 1fr 360px;
+      }
+    }
+    @media (max-width: 1100px) {
+      .cco-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        max-height: none;
+      }
+      .cco-inbox,
+      .cco-conversation {
+        border-right: 0;
+        border-bottom: 1px solid var(--cco-border);
+      }
+      .cco-actions,
+      .cco-reply-meta-grid {
+        grid-template-columns: 1fr;
+      }
+      .cco-send {
+        width: 100%;
+      }
+      .cco-sprint-queue {
+        grid-template-columns: 1fr;
+      }
     }
     .risk-trend-list {
       display: flex;
@@ -1584,6 +2149,7 @@
     [data-section-group="teamSection"] { --section-tint: rgba(172, 146, 120, 0.23); }
     [data-section-group="settingsSection"] { --section-tint: rgba(185, 151, 118, 0.21); }
     [data-section-group="opsSection"] { --section-tint: rgba(210, 166, 121, 0.23); }
+    [data-section-group="ccoWorkspaceSection"] { --section-tint: rgba(194, 170, 156, 0.14); }
     #riskLabSection { --section-tint: rgba(187, 150, 116, 0.24); }
     #reviewsQueueSection { --section-tint: rgba(186, 150, 116, 0.24); }
     #incidentsQueueSection { --section-tint: rgba(172, 129, 103, 0.26); }
@@ -2118,7 +2684,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <div id="adminHeader" class="header">
       <div class="brand-stack">
         <div class="admin-brand-mark-shell">
           <img src="/assets/major-arcana-mark-final.png" class="admin-brand-mark" alt="Arcana logotyp" onerror="this.onerror=null;this.src='/assets/major-arcana-mark-fallback.png';" />
@@ -2203,6 +2769,7 @@
         <button class="btn small sectionNavBtn" data-target="teamSection" data-i18n="nav_team">Team</button>
         <button class="btn small sectionNavBtn" data-target="settingsSection" data-i18n="nav_settings">Inställningar</button>
         <button class="btn small sectionNavBtn" data-target="opsSection" data-i18n="nav_ops">Drift</button>
+        <button class="btn small sectionNavBtn" data-target="ccoWorkspaceSection" data-i18n="nav_cco">CCO</button>
       </nav>
 
       <div class="overview-layout" data-section-group="overviewSection">
@@ -2248,122 +2815,145 @@
                 </ul>
               </div>
             </article>
-            <article class="overview-card overview-card--cco">
-              <h3>Arcana Inbox Brief</h3>
-              <div class="seg" style="margin-top:10px;align-items:center;flex-wrap:wrap">
-                <label class="mini" for="ccoInboxMaxDrafts" style="margin:0;display:flex;align-items:center;gap:8px">
-                  Max utkast:
-                  <input id="ccoInboxMaxDrafts" type="number" value="5" min="1" max="5" style="width:68px" />
-                </label>
-                <label class="mini" for="ccoInboxIncludeClosed" style="margin:0;display:flex;align-items:center;gap:6px">
-                  <input id="ccoInboxIncludeClosed" type="checkbox" />
-                  Inkludera stängda
-                </label>
-                <button id="runCcoInboxBtn" class="btn primary">Kör CCO Inbox Brief</button>
+            <article class="overview-card overview-card--cco-entry">
+              <h3>CCO Inbox Summary</h3>
+              <div class="cco-workspace-entry-meta">
+                Senaste CCO-läge med fokus på obesvarade konversationer och högsta prioritet.
               </div>
-              <div id="ccoInboxStatus" class="status-line"></div>
-              <div id="ccoInboxMailboxMeta" class="mini muted"></div>
-              <div class="grid" style="margin-top:10px">
-                <div>
-                  <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Prioritetsnivå</h3>
-                  <div id="ccoInboxPriority" class="code-block">-</div>
-                </div>
-                <div>
-                  <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">SLA-brott / Riskflaggor</h3>
-                  <div id="ccoInboxRiskFlags" class="code-block">0 / 0</div>
-                </div>
-              </div>
-              <div style="margin-top:10px">
-                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Executive summary</h3>
-                <div id="ccoInboxSummary" class="code-block">Ingen inbox brief än.</div>
-              </div>
-              <div style="margin-top:10px">
-                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Reply Workstation · Konversationer</h3>
-                <ul id="ccoInboxWorklist" class="list">
-                  <li class="muted mini">Inga konversationer i kö.</li>
-                </ul>
-              </div>
-              <div style="margin-top:10px">
-                <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Detaljvy</h3>
-                <div id="ccoConversationMeta" class="mini muted">Ingen konversation vald.</div>
-                <div id="ccoConversationPreview" class="code-block" style="margin-top:8px">Ingen preview än.</div>
-                <div class="grid" style="margin-top:8px">
-                  <div>
-                    <label for="ccoDraftSubjectInput">Ämne</label>
-                    <input id="ccoDraftSubjectInput" type="text" readonly />
-                  </div>
-                  <div>
-                    <label for="ccoDraftToInput">Till (komma-separerat)</label>
-                    <input id="ccoDraftToInput" type="text" />
-                  </div>
-                </div>
-                <div class="grid" style="margin-top:8px">
-                  <div>
-                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Risk</h3>
-                    <div id="ccoDraftRiskIndicator" class="code-block">-</div>
-                  </div>
-                  <div>
-                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Policy</h3>
-                    <div id="ccoDraftPolicyIndicator" class="code-block">-</div>
-                  </div>
-                  <div>
-                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Confidence</h3>
-                    <div id="ccoDraftConfidence" class="code-block">-</div>
-                  </div>
-                  <div>
-                    <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Rekommenderad åtgärd</h3>
-                    <div id="ccoDraftRecommendedAction" class="code-block">-</div>
-                  </div>
-                </div>
-                <div style="margin-top:8px">
-                  <label for="ccoDraftBodyInput">Föreslaget svar (redigerbart)</label>
-                  <textarea id="ccoDraftBodyInput" style="min-height:150px" placeholder="Välj en konversation för att redigera svaret."></textarea>
-                </div>
-                <div class="seg" style="margin-top:8px;flex-wrap:wrap">
-                  <button id="ccoCopyReplyBtn" class="btn small">Kopiera svar</button>
-                  <button id="ccoMarkHandledBtn" class="btn small">Markera hanterad</button>
-                  <button id="ccoFlagCriticalBtn" class="btn small">Flagga Critical</button>
-                  <button id="ccoRefineImproveBtn" class="btn small">Förbättra svaret</button>
-                  <button id="ccoRefineShortenBtn" class="btn small">Förkorta</button>
-                  <button id="ccoRefineProfessionalBtn" class="btn small">Mer professionell ton</button>
-                  <button id="ccoSendBtn" class="btn primary">Skicka via Graph</button>
-                </div>
-                <div id="ccoSendStatus" class="status-line"></div>
-              </div>
-              <div style="display:none">
-                <ul id="ccoInboxNeedsReplyList" class="list"><li class="muted mini">-</li></ul>
-                <ul id="ccoInboxDraftsList" class="list"><li class="muted mini">-</li></ul>
-              </div>
-            </article>
-            <article class="overview-card">
-              <h3 data-i18n="latest_activity">Senaste aktivitet</h3>
-              <ul id="latestActivityList" class="list">
-                <li class="muted mini">Ingen aktivitet ännu.</li>
+              <div id="ccoWorkspaceEntryStatus" class="mini muted cco-workspace-entry-status">Ingen inbox summary än.</div>
+              <ul id="ccoOverviewSummaryList" class="list" style="margin-top:10px">
+                <li class="muted mini">Ingen CCO-data än.</li>
               </ul>
-            </article>
-            <article class="overview-card">
-              <h3 data-i18n="risk_trends">Risktrender (7 dagar)</h3>
-              <div id="riskTrendBars" class="risk-trend-list">
-                <div class="mini muted">Ingen riskhistorik ännu.</div>
-              </div>
-              <div id="riskTrendMeta" class="mini muted" style="margin-top:8px">Väntar på data.</div>
             </article>
           </div>
         </section>
-
-        <aside class="panel">
-          <h2 data-i18n="quick_actions">Snabbåtgärder</h2>
-          <div class="quick-actions glass-toolbar">
-            <button id="quickCreateTemplateBtn" class="btn primary" data-i18n="quick_create_template">Skapa mall</button>
-            <button id="quickGenerateDraftBtn" class="btn" data-i18n="quick_generate_draft">Skapa utkast med AI</button>
-            <button id="quickReviewFlaggedBtn" class="btn" data-i18n="quick_review_flagged">Granska flaggade utkast</button>
-          </div>
-          <h3 style="margin-top:16px" data-i18n="notifications">Notifieringar</h3>
-          <ul id="overviewNotificationsList" class="notification-list">
-            <li class="notification-item"><div class="notification-detail">Inga notifieringar ännu.</div></li>
-          </ul>
-        </aside>
       </div>
+
+      <section id="ccoWorkspaceSection" data-section-group="ccoWorkspaceSection" class="cco-workspace cco-layout-root">
+        <div class="cco-toolbar">
+          <div class="cco-toolbar-left">
+            <h2>CCO Inbox Workspace</h2>
+            <div id="ccoInboxMailboxMeta" class="mini muted">0 mailboxar · 0 meddelanden</div>
+          </div>
+          <div class="cco-toolbar-right">
+            <label class="mini" for="ccoInboxMaxDrafts" style="margin:0;display:flex;align-items:center;gap:8px">
+              Max utkast:
+              <input id="ccoInboxMaxDrafts" type="number" value="5" min="1" max="5" style="width:72px" />
+            </label>
+            <label class="mini" for="ccoInboxIncludeClosed" style="margin:0;display:flex;align-items:center;gap:6px">
+              <input id="ccoInboxIncludeClosed" type="checkbox" />
+              Inkludera stängda
+            </label>
+            <button id="runCcoInboxBtn" class="btn primary">Kör CCO Inbox Brief</button>
+          </div>
+        </div>
+        <div id="ccoInboxStatus" class="status-line"></div>
+        <div class="cco-sprint-shell">
+          <div id="ccoSprintStatusBar" class="cco-sprint-status status-attention">Attention Needed</div>
+          <div class="cco-sprint-controls">
+            <div>
+              <h3 style="margin:0">Dagens Fokus</h3>
+              <div id="ccoSprintProgress" class="mini muted">Sprint queue väntar.</div>
+            </div>
+            <button id="ccoStartSprintBtn" class="btn">Start Sprint</button>
+          </div>
+          <div class="cco-sprint-meta-line">
+            <div id="ccoSprintStressMeta" class="mini muted">Stressindex: -</div>
+          </div>
+          <div id="ccoSprintFeedback" class="cco-sprint-feedback mini"></div>
+          <ul id="ccoSprintQueueList" class="cco-sprint-queue">
+            <li class="mini muted">Ingen sprintkö ännu.</li>
+          </ul>
+        </div>
+        <div id="ccoWorkspaceLayout" class="cco-layout" style="margin-top:12px">
+          <aside class="cco-inbox">
+            <div class="cco-column-title" style="padding:14px 14px 10px">
+              <h3>Inbox</h3>
+              <div id="ccoInboxPriority" class="cco-priority-badge badge-low">Low</div>
+            </div>
+            <ul id="ccoInboxWorklist" class="cco-thread-list">
+              <li class="muted mini" style="padding:12px 14px">Inga konversationer i kö.</li>
+            </ul>
+          </aside>
+
+          <section class="cco-conversation">
+            <div class="cco-column-title">
+              <h3>Konversation</h3>
+              <div id="ccoConversationMeta" class="mini muted">Ingen konversation vald.</div>
+            </div>
+            <div id="ccoConversationPreview" class="cco-message">Ingen preview än.</div>
+
+            <div>
+              <h3 style="margin:0 0 6px 0">Executive summary</h3>
+              <div id="ccoInboxSummary" class="cco-message">Ingen inbox brief än.</div>
+            </div>
+            <div>
+              <h3 style="margin:0 0 6px 0">Behöver svar idag</h3>
+              <ul id="ccoInboxNeedsReplyList" class="cco-mini-list">
+                <li class="muted mini">Inga konversationer i kö.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="cco-reply">
+            <div class="cco-column-title">
+              <h3>Reply Studio</h3>
+              <div id="ccoInboxRiskFlags" class="mini muted">0 / 0</div>
+            </div>
+            <div class="grid" style="gap:8px">
+              <div>
+                <label for="ccoDraftSubjectInput">Ämne</label>
+                <input id="ccoDraftSubjectInput" type="text" readonly />
+              </div>
+              <div>
+                <label for="ccoDraftToInput">Till (komma-separerat)</label>
+                <input id="ccoDraftToInput" type="text" />
+              </div>
+            </div>
+
+            <div class="cco-reply-meta-grid">
+              <div>
+                <h3 style="margin:0 0 6px 0">Risk</h3>
+                <div id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</div>
+              </div>
+              <div>
+                <h3 style="margin:0 0 6px 0">Policy</h3>
+                <div id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</div>
+              </div>
+              <div>
+                <h3 style="margin:0 0 6px 0">Confidence</h3>
+                <div id="ccoDraftConfidence" class="cco-risk-indicator">-</div>
+              </div>
+              <div>
+                <h3 style="margin:0 0 6px 0">Rekommenderad åtgärd</h3>
+                <div id="ccoDraftRecommendedAction" class="cco-risk-indicator">-</div>
+              </div>
+            </div>
+
+            <div>
+              <label for="ccoDraftBodyInput">Föreslaget svar (redigerbart)</label>
+              <textarea id="ccoDraftBodyInput" class="cco-editor" placeholder="Välj en konversation för att redigera svaret."></textarea>
+            </div>
+            <div class="cco-actions">
+              <button id="ccoCopyReplyBtn" class="btn small">Kopiera svar</button>
+              <button id="ccoMarkHandledBtn" class="btn small">Markera hanterad</button>
+              <button id="ccoFlagCriticalBtn" class="btn small">Flagga Critical</button>
+              <button id="ccoRefineImproveBtn" class="btn small">Förbättra svaret</button>
+              <button id="ccoRefineShortenBtn" class="btn small">Förkorta</button>
+              <button id="ccoRefineProfessionalBtn" class="btn small">Mer professionell ton</button>
+            </div>
+            <button id="ccoSendBtn" class="btn primary cco-send">Skicka via Graph</button>
+            <div id="ccoSendStatus" class="status-line"></div>
+
+            <div>
+              <h3 style="margin:0 0 6px 0">Föreslagna utkast</h3>
+              <ul id="ccoInboxDraftsList" class="cco-mini-list">
+                <li class="muted mini">Inga utkast än.</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </section>
 
       <div id="overviewSection" data-section-group="overviewSection" class="row cols-6" style="margin-bottom:14px">
         <article class="panel">
