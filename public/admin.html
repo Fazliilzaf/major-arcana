@@ -1647,7 +1647,7 @@
     }
     .cco-layout {
       display: grid;
-      grid-template-columns: 320px 1fr 420px;
+      grid-template-columns: 320px 420px 1fr;
       gap: 0;
       border: 1px solid var(--cco-border);
       border-radius: 14px;
@@ -1667,7 +1667,7 @@
     }
     .cco-conversation {
       background: #fff;
-      border-right: 1px solid var(--cco-border);
+      border-right: 0;
       padding: 20px;
       overflow-y: auto;
       display: flex;
@@ -1676,6 +1676,7 @@
     }
     .cco-reply {
       background: #fff;
+      border-right: 1px solid var(--cco-border);
       padding: 20px;
       overflow-y: auto;
       display: flex;
@@ -1882,7 +1883,7 @@
     }
     @media (max-width: 1280px) {
       .cco-layout {
-        grid-template-columns: 300px 1fr 360px;
+        grid-template-columns: 300px 360px 1fr;
       }
     }
     @media (max-width: 1100px) {
@@ -1892,7 +1893,7 @@
         max-height: none;
       }
       .cco-inbox,
-      .cco-conversation {
+      .cco-reply {
         border-right: 0;
         border-bottom: 1px solid var(--cco-border);
       }
