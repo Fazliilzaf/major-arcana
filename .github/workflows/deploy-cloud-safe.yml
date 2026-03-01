@@ -1,0 +1,215 @@
+name: arcana-deploy-cloud-safe
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public Arcana URL (optional, defaults to secret ARCANA_PUBLIC_BASE_URL)"
+        required: false
+        type: string
+      skip_predeploy:
+        description: "Skip predeploy checks (only for urgent hotfix)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      wait_minutes:
+        description: "Max wait time for /readyz after deploy"
+        required: false
+        default: "12"
+        type: string
+      tenant_id:
+        description: "Tenant ID for auth checks"
+        required: false
+        default: "hair-tp-clinic"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  predeploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_URL_INPUT: ${{ inputs.base_url }}
+      BASE_URL_SECRET: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      SKIP_PREDEPLOY: ${{ inputs.skip_predeploy }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_DEFAULT_TENANT: ${{ inputs.tenant_id }}
+      ARCANA_READINESS_GUARD_REPORT_FILE: ./data/reports/readiness-guard-latest.json
+      ARCANA_STABILITY_WINDOW_OUT_FILE: ./data/reports/stability-window-latest.json
+    outputs:
+      base_url: ${{ steps.resolve_base_url.outputs.base_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Resolve base URL
+        id: resolve_base_url
+        run: |
+          BASE_URL="${BASE_URL_INPUT:-${BASE_URL_SECRET:-}}"
+          BASE_URL="${BASE_URL%/}"
+          if [[ -z "${BASE_URL}" ]]; then
+            echo "::error::Missing base URL. Set workflow input base_url or secret ARCANA_PUBLIC_BASE_URL."
+            exit 1
+          fi
+          if [[ ! "${BASE_URL}" =~ ^https?:// ]]; then
+            echo "::error::Invalid base URL: ${BASE_URL}"
+            exit 1
+          fi
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" && -z "${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" ]]; then
+            echo "::error::Set ARCANA_OWNER_MFA_SECRET or ARCANA_OWNER_MFA_RECOVERY_CODE."
+            missing=1
+          fi
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run public smoke
+        if: env.SKIP_PREDEPLOY != 'true'
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: npm run smoke:public
+
+      - name: Run readiness guard (required checks)
+        if: env.SKIP_PREDEPLOY != 'true'
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: |
+          npm run preflight:readiness:guard -- \
+            --base-url "$BASE_URL" \
+            --use-required-checks \
+            --report-file "$ARCANA_READINESS_GUARD_REPORT_FILE"
+
+      - name: Run stability window report
+        if: env.SKIP_PREDEPLOY != 'true'
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+          ARCANA_STABILITY_WINDOW_DAYS: 14
+        run: npm run report:stability-window
+
+      - name: Upload predeploy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-safe-predeploy-${{ github.run_id }}
+          path: |
+            ./data/reports/readiness-guard-latest.json
+            ./data/reports/stability-window-latest.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: predeploy
+    timeout-minutes: 10
+    env:
+      BASE_URL: ${{ needs.predeploy.outputs.base_url }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Validate deploy hook secret
+        run: |
+          if [[ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]]; then
+            echo "::error::Missing required secret: RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+
+      - name: Trigger Render deploy hook
+        run: |
+          echo "Triggering Render deploy hook for ${BASE_URL}"
+          RESPONSE="$(curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}")"
+          if [[ -n "${RESPONSE}" ]]; then
+            echo "${RESPONSE}"
+          fi
+          echo "Deploy hook triggered."
+
+  verify:
+    runs-on: ubuntu-latest
+    needs:
+      - predeploy
+      - deploy
+    timeout-minutes: 30
+    env:
+      BASE_URL: ${{ needs.predeploy.outputs.base_url }}
+      WAIT_MINUTES_RAW: ${{ inputs.wait_minutes }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_DEFAULT_TENANT: ${{ inputs.tenant_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Wait for readyz
+        run: |
+          wait_minutes="${WAIT_MINUTES_RAW:-12}"
+          if [[ ! "${wait_minutes}" =~ ^[0-9]+$ ]] || [[ "${wait_minutes}" -lt 1 ]]; then
+            wait_minutes=12
+          fi
+          if [[ "${wait_minutes}" -gt 30 ]]; then
+            wait_minutes=30
+          fi
+
+          interval_seconds=10
+          attempts=$(( (wait_minutes * 60) / interval_seconds ))
+          if [[ "${attempts}" -lt 1 ]]; then
+            attempts=1
+          fi
+
+          last_response=""
+          for i in $(seq 1 "${attempts}"); do
+            response="$(curl -sS "${BASE_URL}/readyz" || true)"
+            last_response="${response}"
+            if [[ "${response}" == *"\"ready\":true"* ]]; then
+              echo "readyz is green after ${i} checks."
+              exit 0
+            fi
+            echo "readyz not ready yet (${i}/${attempts}). Waiting ${interval_seconds}s..."
+            sleep "${interval_seconds}"
+          done
+
+          echo "::error::readyz did not become ready within ${wait_minutes} minutes."
+          if [[ -n "${last_response}" ]]; then
+            echo "Last readyz response:"
+            echo "${last_response}"
+          fi
+          exit 1
+
+      - name: Run public smoke
+        run: npm run smoke:public

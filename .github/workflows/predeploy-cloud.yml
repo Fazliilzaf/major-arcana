@@ -1,0 +1,92 @@
+name: arcana-predeploy-cloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public Arcana URL (optional, defaults to secret ARCANA_PUBLIC_BASE_URL)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  predeploy-cloud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE_URL_INPUT: ${{ inputs.base_url }}
+      BASE_URL_SECRET: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_PREFLIGHT_REPORT_FILE: ./data/reports/preflight-latest.json
+      ARCANA_STABILITY_WINDOW_OUT_FILE: ./data/reports/stability-window-latest.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Resolve base URL
+        id: resolve_base_url
+        run: |
+          BASE_URL="${BASE_URL_INPUT:-${BASE_URL_SECRET:-}}"
+          BASE_URL="${BASE_URL%/}"
+          if [[ -z "${BASE_URL}" ]]; then
+            echo "::error::Missing base URL. Set workflow input base_url or secret ARCANA_PUBLIC_BASE_URL."
+            exit 1
+          fi
+          if [[ ! "${BASE_URL}" =~ ^https?:// ]]; then
+            echo "::error::Invalid base URL: ${BASE_URL}"
+            exit 1
+          fi
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" && -z "${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" ]]; then
+            echo "::error::Set ARCANA_OWNER_MFA_SECRET or ARCANA_OWNER_MFA_RECOVERY_CODE."
+            missing=1
+          fi
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run public preflight
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: npm run preflight:pilot:report -- --public-url "$BASE_URL" --skip-local
+
+      - name: Run stability window report
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+          ARCANA_STABILITY_WINDOW_DAYS: 14
+        run: npm run report:stability-window
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: predeploy-cloud-${{ github.run_id }}
+          path: |
+            ./data/reports/preflight-latest.json
+            ./data/reports/stability-window-latest.json
+          if-no-files-found: warn
+          retention-days: 14
