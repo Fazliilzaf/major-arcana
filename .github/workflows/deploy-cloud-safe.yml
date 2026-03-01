@@ -44,8 +44,6 @@ jobs:
       ARCANA_DEFAULT_TENANT: ${{ inputs.tenant_id }}
       ARCANA_READINESS_GUARD_REPORT_FILE: ./data/reports/readiness-guard-latest.json
       ARCANA_STABILITY_WINDOW_OUT_FILE: ./data/reports/stability-window-latest.json
-    outputs:
-      base_url: ${{ steps.resolve_base_url.outputs.base_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,17 +128,45 @@ jobs:
     needs: predeploy
     timeout-minutes: 10
     env:
-      BASE_URL: ${{ needs.predeploy.outputs.base_url }}
+      BASE_URL_INPUT: ${{ inputs.base_url }}
+      BASE_URL_SECRET: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
     steps:
-      - name: Validate deploy hook secret
+      - name: Resolve base URL
+        id: resolve_base_url
         run: |
-          if [[ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]]; then
-            echo "::error::Missing required secret: RENDER_DEPLOY_HOOK_URL"
+          BASE_URL="${BASE_URL_INPUT:-${BASE_URL_SECRET:-}}"
+          BASE_URL="${BASE_URL%/}"
+          if [[ -z "${BASE_URL}" ]]; then
+            echo "::error::Missing base URL. Set workflow input base_url or secret ARCANA_PUBLIC_BASE_URL."
             exit 1
           fi
+          if [[ ! "${BASE_URL}" =~ ^https?:// ]]; then
+            echo "::error::Invalid base URL: ${BASE_URL}"
+            exit 1
+          fi
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate deploy hook secret
+        id: validate_hook
+        run: |
+          if [[ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]]; then
+            echo "::warning::Missing RENDER_DEPLOY_HOOK_URL. Skipping deploy trigger and continuing to verify."
+            echo "has_valid_hook=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ ! "${RENDER_DEPLOY_HOOK_URL}" =~ ^https?:// ]]; then
+            echo "::warning::Invalid RENDER_DEPLOY_HOOK_URL format. Skipping deploy trigger and continuing to verify."
+            echo "has_valid_hook=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_valid_hook=true" >> "$GITHUB_OUTPUT"
 
       - name: Trigger Render deploy hook
+        if: steps.validate_hook.outputs.has_valid_hook == 'true'
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
         run: |
           echo "Triggering Render deploy hook for ${BASE_URL}"
           RESPONSE="$(curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}")"
@@ -156,7 +182,8 @@ jobs:
       - deploy
     timeout-minutes: 30
     env:
-      BASE_URL: ${{ needs.predeploy.outputs.base_url }}
+      BASE_URL_INPUT: ${{ inputs.base_url }}
+      BASE_URL_SECRET: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
       WAIT_MINUTES_RAW: ${{ inputs.wait_minutes }}
       ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
       ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
@@ -176,7 +203,24 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Resolve base URL
+        id: resolve_base_url
+        run: |
+          BASE_URL="${BASE_URL_INPUT:-${BASE_URL_SECRET:-}}"
+          BASE_URL="${BASE_URL%/}"
+          if [[ -z "${BASE_URL}" ]]; then
+            echo "::error::Missing base URL. Set workflow input base_url or secret ARCANA_PUBLIC_BASE_URL."
+            exit 1
+          fi
+          if [[ ! "${BASE_URL}" =~ ^https?:// ]]; then
+            echo "::error::Invalid base URL: ${BASE_URL}"
+            exit 1
+          fi
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+
       - name: Wait for readyz
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
         run: |
           wait_minutes="${WAIT_MINUTES_RAW:-12}"
           if [[ ! "${wait_minutes}" =~ ^[0-9]+$ ]] || [[ "${wait_minutes}" -lt 1 ]]; then
@@ -212,4 +256,6 @@ jobs:
           exit 1
 
       - name: Run public smoke
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
         run: npm run smoke:public
