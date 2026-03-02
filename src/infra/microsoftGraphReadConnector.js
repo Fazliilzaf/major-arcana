@@ -534,17 +534,31 @@ function toMailboxIdentity(user = {}, fallback = '') {
 }
 
 function matchesMailboxIdFilter(user = {}, rawFilter = '') {
-  const filter = normalizeText(rawFilter).toLowerCase();
-  if (!filter) return false;
+  const filterAliases = new Set(
+    toEmailAliases(rawFilter).map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+  );
+  const normalizedFilter = normalizeText(rawFilter).toLowerCase();
+  if (normalizedFilter) filterAliases.add(normalizedFilter);
+  if (filterAliases.size === 0) return false;
+
   const candidates = [
     normalizeText(user?.id),
     normalizeText(user?.mail),
     normalizeText(user?.userPrincipalName),
     normalizeText(user?.mailboxId),
-  ]
-    .map((item) => item.toLowerCase())
-    .filter(Boolean);
-  return candidates.includes(filter);
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const candidateAliases = toEmailAliases(candidate)
+      .map((item) => normalizeText(item).toLowerCase())
+      .filter(Boolean);
+    const normalizedCandidate = normalizeText(candidate).toLowerCase();
+    if (normalizedCandidate) candidateAliases.push(normalizedCandidate);
+    if (candidateAliases.some((alias) => filterAliases.has(alias))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function toInboxMessagesUrl({
