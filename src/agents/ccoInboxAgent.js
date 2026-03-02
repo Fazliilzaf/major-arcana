@@ -453,17 +453,20 @@ function composeCcoInboxAnalysis({
     agent: CCO_AGENT_NAME,
     version: '2.0.0',
     channel: normalizeText(channel) || 'admin',
-    tenantId: normalizeText(tenantId) || 'okand',
     sources: ['AnalyzeInbox'],
-    sourceCapabilityVersion: normalizeText(metadata.version) || null,
-    sourceSnapshotVersion: normalizeText(metadata?.snapshotDebug?.snapshotVersion) || null,
-    requestedMaxDrafts: clampInteger(metadata?.requestedMaxDrafts, 1, 5, null),
-    debugMode: Boolean(metadata?.snapshotDebug && typeof metadata.snapshotDebug === 'object'),
+    sourceCapabilityVersion: normalizeText(sourceMetadata.version) || null,
+    sourceSnapshotVersion: normalizeText(sourceMetadata?.snapshotDebug?.snapshotVersion) || null,
+    requestedMaxDrafts: clampInteger(sourceMetadata?.requestedMaxDrafts, 1, 5, null),
+    debugMode: Boolean(sourceMetadata?.snapshotDebug && typeof sourceMetadata.snapshotDebug === 'object'),
     snapshotDebug:
-      metadata?.snapshotDebug && typeof metadata.snapshotDebug === 'object'
-        ? metadata.snapshotDebug
+      sourceMetadata?.snapshotDebug && typeof sourceMetadata.snapshotDebug === 'object'
+        ? sourceMetadata.snapshotDebug
         : undefined,
   };
+  const safeTenantId = normalizeText(tenantId);
+  if (safeTenantId) {
+    composedMetadata.tenantId = safeTenantId;
+  }
   const safeCorrelationId = normalizeText(correlationId);
   if (safeCorrelationId) {
     composedMetadata.correlationId = safeCorrelationId;

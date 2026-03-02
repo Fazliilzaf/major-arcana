@@ -506,7 +506,7 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       requireTenantScope: auth.requireTenantScope,
       loginRateLimiter,
       selectTenantRateLimiter,
-      mfaEnabled: config.authMfaEnabled,
+      ownerMfaBypassHosts: config.authOwnerMfaBypassHosts,
       loginSessionRotationScope: config.authLoginSessionRotationScope,
     })
   );

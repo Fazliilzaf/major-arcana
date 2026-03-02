@@ -227,7 +227,11 @@ const config = {
   authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 60),
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
-  authMfaEnabled: asBool(process.env.AUTH_MFA_ENABLED, false),
+  authOwnerMfaBypassHosts: (() => {
+    const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
+    if (configured.length > 0) return configured;
+    return ['arcana-staging.onrender.com'];
+  })(),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
     process.env.AUTH_LOGIN_SESSION_ROTATION,
     'tenant'
