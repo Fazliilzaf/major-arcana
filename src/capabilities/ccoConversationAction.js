@@ -107,7 +107,7 @@ class CcoConversationActionCapability extends BaseCapability {
     const input = safeContext.input && typeof safeContext.input === 'object' ? safeContext.input : {};
     const action = normalizeAction(input.action);
     const nowIso = new Date().toISOString();
-    const actionLabel = action === 'handled' ? 'Markera som hanterad' : 'Flagga som Critical';
+    const actionLabel = action === 'handled' ? 'Markera som hanterad' : 'Flagga som kritisk';
 
     return {
       data: {
@@ -115,7 +115,7 @@ class CcoConversationActionCapability extends BaseCapability {
         conversationId: normalizeText(input.conversationId),
         messageId: normalizeText(input.messageId),
         mailboxId: normalizeText(input.mailboxId),
-        subject: capText(input.subject, 220) || '(utan amne)',
+        subject: capText(input.subject, 220) || '(utan ämne)',
         status: 'ok',
         needsReplyStatus: action === 'handled' ? 'handled' : 'needs_reply',
         priorityLevel: action === 'flag_critical' ? 'Critical' : 'Low',
@@ -127,7 +127,7 @@ class CcoConversationActionCapability extends BaseCapability {
         capability: CcoConversationActionCapability.name,
         version: CcoConversationActionCapability.version,
         channel: normalizeText(safeContext.channel) || 'admin',
-        tenantId: normalizeText(safeContext.tenantId) || 'unknown',
+        tenantId: normalizeText(safeContext.tenantId) || 'okand',
         requestId: normalizeText(safeContext.requestId) || '',
         correlationId: normalizeText(safeContext.correlationId) || '',
       },

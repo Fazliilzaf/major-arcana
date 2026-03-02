@@ -207,6 +207,62 @@ function toCcoSendAllowlistSet(rawValue = '') {
   return new Set(entries);
 }
 
+const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
+const CCO_SIGNATURE_SPLIT_PATTERN =
+  /\n(?:Med vanliga halsningar,|Med vanlig halsning,|Basta halsningar,|Bästa hälsningar,)\n[\s\S]*$/i;
+const CCO_SIGNATURE_PROFILES = Object.freeze({
+  egzona: Object.freeze({
+    key: 'egzona',
+    fullName: 'Egzona Krasniqi',
+    title: 'Hårspecialist inom Hårtransplantationer',
+  }),
+  fazli: Object.freeze({
+    key: 'fazli',
+    fullName: 'Fazli Krasniqi',
+    title: 'Hårspecialist inom Hårtransplantationer',
+  }),
+});
+
+function resolveCcoSignatureProfile(rawProfile = '') {
+  const normalized = normalizeText(rawProfile).toLowerCase();
+  if (normalized === 'fazli') return CCO_SIGNATURE_PROFILES.fazli;
+  return CCO_SIGNATURE_PROFILES.egzona;
+}
+
+function removeCcoSignature(body = '') {
+  const normalizedBody = normalizeText(body);
+  if (!normalizedBody) return '';
+  return normalizedBody.replace(CCO_SIGNATURE_SPLIT_PATTERN, '').trimEnd();
+}
+
+function buildCcoSignature({
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const safeProfile =
+    profile && typeof profile === 'object' ? profile : CCO_SIGNATURE_PROFILES.egzona;
+  const safeSenderMailbox = normalizeText(senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  return [
+    'Bästa hälsningar,',
+    safeProfile.fullName,
+    safeProfile.title,
+    '031-881166',
+    safeSenderMailbox,
+    'Vasaplatsen 2, 411 34 Göteborg',
+  ].join('\n');
+}
+
+function applyCcoSignature({
+  body = '',
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const withoutSignature = removeCcoSignature(body);
+  const signature = buildCcoSignature({ profile, senderMailboxId });
+  if (!withoutSignature) return signature;
+  return `${withoutSignature}\n\n${signature}`;
+}
+
 function createCapabilityExecutor({
   executionGateway,
   authStore,
@@ -1055,7 +1111,17 @@ function createCapabilityExecutor({
       throw makeCapabilityError('CAPABILITY_CHANNEL_DENIED', 'CCO send tillater endast admin-channel.');
     }
 
-    const mailboxId = normalizeText(normalizedInput.mailboxId || normalizedInput.mailbox_id);
+    const sourceMailboxId = normalizeText(normalizedInput.mailboxId || normalizedInput.mailbox_id);
+    const senderMailboxId = normalizeText(
+      normalizedInput.senderMailboxId ||
+        normalizedInput.sender_mailbox_id ||
+        process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX ||
+        CCO_DEFAULT_SENDER_MAILBOX ||
+        sourceMailboxId
+    );
+    const signatureProfile = resolveCcoSignatureProfile(
+      normalizedInput.signatureProfile || normalizedInput.signature_profile
+    );
     const replyToMessageId = normalizeText(
       normalizedInput.replyToMessageId || normalizedInput.reply_to_message_id
     );
@@ -1064,10 +1130,18 @@ function createCapabilityExecutor({
     );
     const subject = normalizeText(normalizedInput.subject);
     const body = normalizeText(normalizedInput.body);
+    const bodyWithSignature = applyCcoSignature({
+      body,
+      profile: signatureProfile,
+      senderMailboxId,
+    });
     const to = toStringArray(normalizedInput.to, 20);
 
-    if (!mailboxId) {
+    if (!sourceMailboxId) {
       throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'mailboxId kravs.');
+    }
+    if (!senderMailboxId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'senderMailboxId kravs.');
     }
     if (!replyToMessageId) {
       throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'replyToMessageId kravs.');
@@ -1111,12 +1185,12 @@ function createCapabilityExecutor({
         'ARCANA_GRAPH_SEND_ALLOWLIST ar tom. Minst en mailbox kravs.'
       );
     }
-    const normalizedMailboxIdLower = mailboxId.toLowerCase();
+    const normalizedSenderMailboxLower = senderMailboxId.toLowerCase();
     const wildcardAllowed = allowlistSet.has('*');
-    if (!wildcardAllowed && !allowlistSet.has(normalizedMailboxIdLower)) {
+    if (!wildcardAllowed && !allowlistSet.has(normalizedSenderMailboxLower)) {
       throw makeCapabilityError(
         'CCO_SEND_ALLOWLIST_BLOCKED',
-        `Mailbox ar inte allowlistad for send: ${mailboxId}.`
+        `Mailbox ar inte allowlistad for send: ${senderMailboxId}.`
       );
     }
 
@@ -1129,7 +1203,9 @@ function createCapabilityExecutor({
       targetId: ccoSendRunId,
       metadata: {
         ccoSendRunId,
-        mailboxId,
+        sourceMailboxId,
+        senderMailboxId,
+        signatureProfile: signatureProfile.key,
         conversationId,
         replyToMessageId,
         to,
@@ -1149,12 +1225,14 @@ function createCapabilityExecutor({
           intent: 'cco.send.reply',
           payload: {
             ccoSendRunId,
-            mailboxId,
+            sourceMailboxId,
+            senderMailboxId,
             replyToMessageId,
             conversationId,
             to,
             subject,
-            body,
+            body: bodyWithSignature,
+            signatureProfile: signatureProfile.key,
           },
           correlation_id: normalizedCorrelationId,
           idempotency_key: normalizedIdempotencyKey,
@@ -1182,12 +1260,14 @@ function createCapabilityExecutor({
             }),
           agentRun: async () => ({
             output: {
-              mailboxId,
+              sourceMailboxId,
+              senderMailboxId,
               replyToMessageId,
               conversationId,
               to,
               subject,
-              body,
+              body: bodyWithSignature,
+              signatureProfile: signatureProfile.key,
               confidenceLevel: 'High',
             },
           }),
@@ -1221,7 +1301,8 @@ function createCapabilityExecutor({
             }
 
             const sendResult = await graphSendConnector.sendReply({
-              mailboxId,
+              mailboxId: senderMailboxId,
+              sourceMailboxId,
               replyToMessageId,
               body: String(agentResult?.output?.body || ''),
               subject: String(agentResult?.output?.subject || ''),
@@ -1250,22 +1331,26 @@ function createCapabilityExecutor({
               correlationId: normalizedCorrelationId,
               actor: normalizedActor,
               input: {
-                mailboxId,
+                sourceMailboxId,
+                senderMailboxId,
                 replyToMessageId,
                 conversationId,
                 to,
                 subject: maskInboxText(subject, 180),
-                bodyPreview: maskInboxText(body, 360),
+                bodyPreview: maskInboxText(bodyWithSignature, 360),
+                signatureProfile: signatureProfile.key,
               },
               output: {
                 provider: sendResult.provider,
-                mailboxId: sendResult.mailboxId,
+                sourceMailboxId,
+                senderMailboxId: sendResult.mailboxId,
                 replyToMessageId: sendResult.replyToMessageId,
                 conversationId,
                 to: sendResult.to,
                 subject: maskInboxText(subject, 180),
-                bodyPreview: maskInboxText(body, 360),
+                bodyPreview: maskInboxText(bodyWithSignature, 360),
                 sentAt: sendResult.sentAt,
+                sendMode: sendResult.sendMode || 'reply',
               },
               riskSummary: {
                 input: inputRisk?.evaluation || null,
@@ -1279,6 +1364,7 @@ function createCapabilityExecutor({
                 channel: normalizedChannel,
                 requestMetadata: safeObject(requestMetadata),
                 sendMode: 'manual',
+                signatureProfile: signatureProfile.key,
               },
             });
 
@@ -1300,11 +1386,13 @@ function createCapabilityExecutor({
             send: {
               ccoSendRunId,
               gatewayRunId: runId,
-              mailboxId,
+              sourceMailboxId,
+              senderMailboxId,
               replyToMessageId,
               conversationId,
               decision,
               mode: 'manual',
+              signatureProfile: signatureProfile.key,
             },
             decision,
             riskSummary: {
@@ -1330,7 +1418,9 @@ function createCapabilityExecutor({
         targetId: ccoSendRunId,
         metadata: {
           ccoSendRunId,
-          mailboxId,
+          sourceMailboxId,
+          senderMailboxId,
+          signatureProfile: signatureProfile.key,
           conversationId,
           replyToMessageId,
           correlationId: normalizedCorrelationId,
@@ -1353,7 +1443,9 @@ function createCapabilityExecutor({
       targetId: ccoSendRunId,
       metadata: {
         ccoSendRunId,
-        mailboxId,
+        sourceMailboxId,
+        senderMailboxId,
+        signatureProfile: signatureProfile.key,
         conversationId,
         replyToMessageId,
         correlationId: normalizedCorrelationId,

@@ -24,6 +24,18 @@ function toNonNegativeNumber(value, fallback = 0) {
   return parsed;
 }
 
+function toIntentConfidence(value, fallback = 0.3) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.min(1, parsed));
+}
+
+function toToneConfidence(value, fallback = 0.4) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.min(1, parsed));
+}
+
 function normalizePriorityLevel(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === 'critical') return 'Critical';
@@ -55,7 +67,51 @@ function normalizeTone(value = '') {
 function normalizeSlaStatus(value = '') {
   const allowed = new Set(['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached']);
   const normalized = normalizeText(value);
-  return allowed.has(normalized) ? normalized : 'ok';
+  if (normalized === 'safe' || normalized === 'warning' || normalized === 'breach') {
+    return normalized;
+  }
+  if (allowed.has(normalized)) {
+    if (normalized === 'ok') return 'safe';
+    if (normalized === 'breached') return 'breach';
+    return 'warning';
+  }
+  return 'safe';
+}
+
+function normalizePriorityReasons(value = []) {
+  return asArray(value)
+    .map((item) => normalizeText(item))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function normalizeDraftMode(value = '', fallback = 'professional') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (['short', 'warm', 'professional'].includes(normalized)) return normalized;
+  return ['short', 'warm', 'professional'].includes(fallback) ? fallback : 'professional';
+}
+
+function normalizeDraftModes(value = null, fallbackReply = '') {
+  const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const fallback = normalizeText(fallbackReply) || 'Hej,\n\nTack för ditt meddelande.';
+  return {
+    short: normalizeText(safeValue.short) || fallback,
+    warm: normalizeText(safeValue.warm) || fallback,
+    professional: normalizeText(safeValue.professional) || fallback,
+  };
+}
+
+function normalizeStructureUsed(value = null) {
+  const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return {
+    acknowledgement: normalizeText(safeValue.acknowledgement) || 'Tack för ditt meddelande.',
+    coreAnswer:
+      normalizeText(safeValue.coreAnswer) ||
+      'Vi har tagit emot ärendet och återkommer med tydlig återkoppling.',
+    cta:
+      normalizeText(safeValue.cta) ||
+      'Vänligen återkom med kompletterande information så hjälper vi dig vidare.',
+  };
 }
 
 function toStructuredRows(rows = [], maxItems = 50) {
@@ -136,19 +192,30 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
 function normalizeConversationWorkItem(item = {}) {
   const safe = asObject(item);
   return {
-    conversationId: normalizeText(safe.conversationId) || 'unknown',
-    messageId: normalizeText(safe.messageId) || 'unknown',
-    mailboxId: normalizeText(safe.mailboxId) || 'unknown-mailbox',
-    subject: normalizeText(safe.subject) || '(utan amne)',
-    sender: normalizeText(safe.sender) || 'okand avsandare',
-    latestInboundPreview: normalizeText(safe.latestInboundPreview) || 'Ingen preview tillganglig.',
+    conversationId: normalizeText(safe.conversationId) || 'okand',
+    messageId: normalizeText(safe.messageId) || 'okand',
+    mailboxId: normalizeText(safe.mailboxId) || 'okand-postlada',
+    subject: normalizeText(safe.subject) || '(utan ämne)',
+    sender: normalizeText(safe.sender) || 'okänd avsändare',
+    latestInboundPreview: normalizeText(safe.latestInboundPreview) || 'Ingen förhandsvisning tillgänglig.',
     hoursSinceInbound: toNonNegativeNumber(safe.hoursSinceInbound, 0),
     lastInboundAt: normalizeText(safe.lastInboundAt) || new Date().toISOString(),
+    lastOutboundAt: normalizeText(safe.lastOutboundAt) || null,
     slaStatus: normalizeSlaStatus(safe.slaStatus),
+    hoursRemaining: Number.isFinite(Number(safe.hoursRemaining))
+      ? Number(safe.hoursRemaining)
+      : 0,
+    slaThreshold: toNonNegativeNumber(safe.slaThreshold, 48),
+    stagnated: safe.stagnated === true,
+    stagnationHours: toNonNegativeNumber(safe.stagnationHours, 0),
+    followUpSuggested: safe.followUpSuggested === true,
     intent: normalizeIntent(safe.intent),
+    intentConfidence: toIntentConfidence(safe.intentConfidence, 0.3),
     tone: normalizeTone(safe.tone),
+    toneConfidence: toToneConfidence(safe.toneConfidence, 0.4),
     priorityLevel: normalizePriorityLevel(safe.priorityLevel),
     priorityScore: toNonNegativeNumber(safe.priorityScore, 0),
+    priorityReasons: normalizePriorityReasons(safe.priorityReasons),
     recommendedAction: normalizeText(safe.recommendedAction) || 'Be om mer info',
     escalationRequired: safe.escalationRequired === true,
     needsReplyStatus:
@@ -159,14 +226,23 @@ function normalizeConversationWorkItem(item = {}) {
 function normalizeSuggestedDraft(draft = {}) {
   const safe = normalizeConversationWorkItem(draft);
   const level = normalizeText(draft.confidenceLevel);
-  const replyText =
+  const fallbackReply =
     normalizeText(draft.suggestedReply) ||
     normalizeText(draft.proposedReply) ||
-    'Inget forslag tillgangligt.';
+    'Inget förslag tillgängligt.';
+  const draftModes = normalizeDraftModes(draft.draftModes, fallbackReply);
+  const recommendedMode = normalizeDraftMode(draft.recommendedMode, 'professional');
+  const recommendedReply =
+    normalizeText(draftModes[recommendedMode]) ||
+    normalizeText(draftModes.professional) ||
+    fallbackReply;
   return {
     ...safe,
-    suggestedReply: replyText,
-    proposedReply: replyText,
+    draftModes,
+    recommendedMode,
+    structureUsed: normalizeStructureUsed(draft.structureUsed),
+    suggestedReply: recommendedReply,
+    proposedReply: recommendedReply,
     confidenceLevel: level === 'High' || level === 'Medium' || level === 'Low' ? level : 'Low',
   };
 }
@@ -186,11 +262,16 @@ function composeCcoInboxAnalysis({
     agent: CCO_AGENT_NAME,
     version: '2.0.0',
     channel: normalizeText(channel) || 'admin',
-    tenantId: normalizeText(tenantId) || 'unknown',
+    tenantId: normalizeText(tenantId) || 'okand',
     sources: ['AnalyzeInbox'],
     sourceCapabilityVersion: normalizeText(metadata.version) || null,
     sourceSnapshotVersion: normalizeText(metadata?.snapshotDebug?.snapshotVersion) || null,
     requestedMaxDrafts: clampInteger(metadata?.requestedMaxDrafts, 1, 5, null),
+    debugMode: Boolean(metadata?.snapshotDebug && typeof metadata.snapshotDebug === 'object'),
+    snapshotDebug:
+      metadata?.snapshotDebug && typeof metadata.snapshotDebug === 'object'
+        ? metadata.snapshotDebug
+        : undefined,
   };
   const safeCorrelationId = normalizeText(correlationId);
   if (safeCorrelationId) {
@@ -209,7 +290,7 @@ function composeCcoInboxAnalysis({
       suggestedDrafts: toStructuredRows(data.suggestedDrafts, 5).map(normalizeSuggestedDraft),
       executiveSummary:
         normalizeText(data.executiveSummary) ||
-        'Inboxanalys klar. Ingen ytterligare sammanfattning tillganglig.',
+        'Inboxanalys klar. Ingen ytterligare sammanfattning tillgänglig.',
       priorityLevel: normalizePriorityLevel(data.priorityLevel),
       mailboxCount: toNonNegativeNumber(data.mailboxCount, 0),
       messageCount: toNonNegativeNumber(data.messageCount, 0),

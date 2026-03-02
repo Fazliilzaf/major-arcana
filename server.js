@@ -15,6 +15,28 @@ const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json());
+
+// Avoid stale admin/CCO UI assets between local/staging/prod deployments.
+app.use((req, res, next) => {
+  const path = String(req.path || '').trim().toLowerCase();
+  const disableCachePaths = new Set([
+    '/admin',
+    '/admin.html',
+    '/admin.js',
+    '/cco',
+    '/unanswered',
+    '/ccp',
+    '/admin/cco',
+    '/admin/unanswered',
+  ]);
+  if (disableCachePaths.has(path)) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  return next();
+});
 app.use(express.static("public"));
 app.use(requestContextMiddleware({ headerName: 'x-correlation-id' }));
 
@@ -79,8 +101,16 @@ app.get('/cco', (req, res) => {
   res.sendFile("admin.html", { root: __dirname + "/public" });
 });
 
+app.get('/unanswered', (req, res) => {
+  res.sendFile("admin.html", { root: __dirname + "/public" });
+});
+
 app.get(['/ccp', '/admin/cco'], (req, res) => {
   res.redirect(302, '/cco');
+});
+
+app.get('/admin/unanswered', (req, res) => {
+  res.redirect(302, '/unanswered');
 });
 
 app.get('/healthz', (req, res) => {

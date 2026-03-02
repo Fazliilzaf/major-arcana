@@ -28,6 +28,10 @@
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/cco';
+  const CCO_UNANSWERED_PRIMARY_PATH = '/unanswered';
+  const CCO_THREAD_QUERY_PARAM = 'thread';
+  const CCO_WORKSPACE_SESSION_KEY = 'ARCANA_CCO_WORKSPACE_STATE';
+  const CCO_LAST_SEEN_AT_KEY = 'ARCANA_CCO_LAST_SEEN_AT';
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -59,12 +63,13 @@
       nav_settings: 'Inställningar',
       nav_ops: 'Drift',
       kpi_templates: 'Mallar',
+      nav_unanswered: 'Obesvarade',
       kpi_owner_coverage: 'Ägaråtgärdstäckning',
-      kpi_readiness: 'Readiness',
+      kpi_readiness: 'Beredskap',
       kpi_pilot_report: 'Pilotrapport',
       monitor_scheduler_jobs: 'Schedulerjobb (krav)',
-      monitor_readiness_history: 'Readiness-historik',
-      monitor_readiness_nogo: 'Readiness-blockeringar (No-Go)',
+      monitor_readiness_history: 'Beredskapshistorik',
+      monitor_readiness_nogo: 'Beredskapsblockeringar (No-Go)',
       open_queue: 'Öppna kö',
       see_incidents: 'Se incidenter',
       overview_insights: 'Översiktsinsikter',
@@ -113,6 +118,7 @@
       nav_team: 'Team',
       nav_settings: 'Settings',
       nav_ops: 'Operations',
+      nav_unanswered: 'Unanswered',
       kpi_templates: 'Templates',
       kpi_owner_coverage: 'Owner action coverage',
       kpi_readiness: 'Readiness',
@@ -140,6 +146,186 @@
       onboard_tenant_btn: 'Add clinic',
     },
   });
+
+  function isCcoRoutePath(pathname = '') {
+    const normalized = String(pathname || '').trim().toLowerCase();
+    return (
+      normalized.endsWith('/cco') ||
+      normalized.endsWith('/unanswered') ||
+      normalized.endsWith('/ccp') ||
+      normalized.endsWith('/agents/cco') ||
+      normalized.endsWith('/admin/cco') ||
+      normalized.endsWith('/admin/unanswered')
+    );
+  }
+
+  function isUnansweredRoutePath(pathname = '') {
+    const normalized = String(pathname || '').trim().toLowerCase();
+    return normalized.endsWith('/unanswered') || normalized.endsWith('/admin/unanswered');
+  }
+
+  function readCcoViewModeFromLocation() {
+    return isUnansweredRoutePath(window.location.pathname || '') ? 'unanswered' : 'all';
+  }
+
+  function readCcoThreadFromLocation() {
+    if (!isCcoRoutePath(window.location.pathname || '')) return '';
+    const searchParams = new URLSearchParams(window.location.search || '');
+    return String(searchParams.get(CCO_THREAD_QUERY_PARAM) || '').trim();
+  }
+
+  function readCcoLastSeenAtMs() {
+    try {
+      const raw = String(localStorage.getItem(CCO_LAST_SEEN_AT_KEY) || '').trim();
+      if (!raw) {
+        const now = Date.now();
+        persistCcoLastSeenAtMs(now);
+        return now;
+      }
+      const parsed = Date.parse(raw);
+      if (Number.isFinite(parsed)) return parsed;
+      const now = Date.now();
+      persistCcoLastSeenAtMs(now);
+      return now;
+    } catch {
+      return Date.now();
+    }
+  }
+
+  function persistCcoLastSeenAtMs(value = Date.now()) {
+    const safeValue = Number(value);
+    const iso = Number.isFinite(safeValue) ? new Date(safeValue).toISOString() : new Date().toISOString();
+    try {
+      localStorage.setItem(CCO_LAST_SEEN_AT_KEY, iso);
+    } catch {
+      // ignore localStorage failures
+    }
+    return iso;
+  }
+
+  function readCcoWorkspaceSessionState() {
+    try {
+      const raw = sessionStorage.getItem(CCO_WORKSPACE_SESSION_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return parsed;
+    } catch {
+      return {};
+    }
+  }
+
+  const initialCcoWorkspaceSession = readCcoWorkspaceSessionState();
+
+  function sanitizeCcoDraftMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const entries = Object.entries(value)
+      .slice(0, 50)
+      .map(([conversationId, draft]) => [String(conversationId || '').trim(), String(draft || '')]);
+    const safe = {};
+    for (const [conversationId, draft] of entries) {
+      if (!conversationId || !draft.trim()) continue;
+      safe[conversationId] = draft.slice(0, 12000);
+    }
+    return safe;
+  }
+
+  function sanitizeCcoScrollMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const safe = {};
+    for (const [conversationId, scrollTopRaw] of Object.entries(value).slice(0, 50)) {
+      const conversationKey = String(conversationId || '').trim();
+      const scrollTop = Number(scrollTopRaw);
+      if (!conversationKey || !Number.isFinite(scrollTop) || scrollTop < 0) continue;
+      safe[conversationKey] = Math.round(scrollTop);
+    }
+    return safe;
+  }
+
+  function sanitizeCcoDraftModeMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const safe = {};
+    for (const [conversationIdRaw, modeRaw] of Object.entries(value).slice(0, 50)) {
+      const conversationId = String(conversationIdRaw || '').trim();
+      const mode = String(modeRaw || '').trim().toLowerCase();
+      if (!conversationId) continue;
+      if (!['short', 'warm', 'professional'].includes(mode)) continue;
+      safe[conversationId] = mode;
+    }
+    return safe;
+  }
+
+  function sanitizeCcoMailboxFilter(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized || normalized === 'all') return 'all';
+    return normalized.slice(0, 320);
+  }
+
+  function sanitizeCcoViewMode(value = '') {
+    return String(value || '').trim().toLowerCase() === 'unanswered' ? 'unanswered' : 'all';
+  }
+
+  function sanitizeCcoSlaFilter(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['all', 'breach', 'warning', 'safe', 'new', 'unanswered'].includes(normalized)) {
+      return normalized;
+    }
+    return 'all';
+  }
+
+  function sanitizeCcoLifecycleFilter(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (
+      [
+        'all',
+        'new',
+        'active_dialogue',
+        'awaiting_reply',
+        'follow_up_pending',
+        'dormant',
+        'handled',
+        'archived',
+      ].includes(normalized)
+    ) {
+      return normalized;
+    }
+    return 'all';
+  }
+
+  const CCO_DENSITY_MODES = Object.freeze(['focus', 'work', 'overview']);
+  const CCO_DEFAULT_DENSITY_MODE = 'work';
+  const CCO_VISUAL_LIMITS = Object.freeze({
+    sprint: 3,
+    high: 7,
+    needs: 12,
+    maxVisibleRows: 15,
+  });
+
+  function sanitizeCcoDensityMode(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (CCO_DENSITY_MODES.includes(normalized)) return normalized;
+    return CCO_DEFAULT_DENSITY_MODE;
+  }
+
+  function defaultCcoSectionExpandedState() {
+    return {
+      sprint: true,
+      high: true,
+      needs: true,
+      rest: false,
+    };
+  }
+
+  function sanitizeCcoSectionExpandedState(value = null) {
+    const fallback = defaultCcoSectionExpandedState();
+    const safe = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    return {
+      sprint: safe.sprint !== false,
+      high: safe.high !== false,
+      needs: safe.needs !== false,
+      rest: safe.rest === true,
+    };
+  }
 
   function loadLanguage() {
     const raw = String(localStorage.getItem(LANGUAGE_KEY) || 'sv')
@@ -268,9 +454,37 @@
     profile: null,
     calibrationSuggestion: null,
     ccoInboxData: null,
-    ccoSelectedConversationId: '',
-    ccoDraftOverrideByConversationId: {},
+    ccoInboxViewMode: sanitizeCcoViewMode(
+      readCcoViewModeFromLocation() || initialCcoWorkspaceSession.viewMode || 'all'
+    ),
+    ccoInboxMailboxFilter: sanitizeCcoMailboxFilter(initialCcoWorkspaceSession.mailboxFilter || 'all'),
+    ccoInboxSlaFilter: sanitizeCcoSlaFilter(initialCcoWorkspaceSession.slaFilter || 'all'),
+    ccoInboxLifecycleFilter: sanitizeCcoLifecycleFilter(
+      initialCcoWorkspaceSession.lifecycleFilter || 'all'
+    ),
+    ccoInboxDensityMode: sanitizeCcoDensityMode(
+      initialCcoWorkspaceSession.densityMode || CCO_DEFAULT_DENSITY_MODE
+    ),
+    ccoInboxSectionExpanded: sanitizeCcoSectionExpandedState(
+      initialCcoWorkspaceSession.sectionExpanded
+    ),
+    ccoSelectedConversationId:
+      readCcoThreadFromLocation() ||
+      String(initialCcoWorkspaceSession.selectedConversationId || '').trim(),
+    ccoDraftOverrideByConversationId: sanitizeCcoDraftMap(
+      initialCcoWorkspaceSession.draftsByConversationId
+    ),
+    ccoDraftModeByConversationId: sanitizeCcoDraftModeMap(
+      initialCcoWorkspaceSession.draftModeByConversationId
+    ),
     ccoDraftEvaluationByConversationId: {},
+    ccoSenderMailboxId: 'contact@hairtpclinic.com',
+    ccoSenderMailboxOptions: [],
+    ccoSignatureProfile: 'egzona',
+    ccoSignatureProfiles: [],
+    ccoConversationScrollTopByConversationId: sanitizeCcoScrollMap(
+      initialCcoWorkspaceSession.scrollTopByConversationId
+    ),
     ccoSprintActive: false,
     ccoSprintQueueIds: [],
     ccoSprintCompletedIds: [],
@@ -280,6 +494,18 @@
     ccoSprintStartedAtMs: 0,
     ccoSprintMetrics: null,
     ccoSprintLatestFeedback: null,
+    ccoUsageAnalytics: null,
+    ccoRedFlagState: null,
+    ccoAdaptiveFocusState: null,
+    ccoRecoveryState: null,
+    ccoAdaptiveFocusShowAll: false,
+    ccoFocusWorkloadMinutes: 0,
+    ccoCustomerSummaryExpanded: false,
+    ccoPendingSoftBreakConversationId: '',
+    ccoLastSeenAtMs: readCcoLastSeenAtMs(),
+    ccoSeenConversationIds: {},
+    writingIdentityProfiles: [],
+    selectedWritingIdentityMailbox: '',
     riskFilters: loadRiskFilters(),
     auditFilters: loadAuditFilters(),
     templateListFilters: loadTemplateListFilters(),
@@ -305,6 +531,10 @@
     dashboardRealtimeRefreshTimer: null,
     monitorDetailsVisible: false,
   };
+
+  if (state.ccoInboxViewMode === 'unanswered' && state.ccoInboxSlaFilter === 'all') {
+    state.ccoInboxSlaFilter = 'unanswered';
+  }
 
   const els = {
     adminHeader: document.getElementById('adminHeader'),
@@ -515,15 +745,62 @@
     ccoInboxPriority: document.getElementById('ccoInboxPriority'),
     ccoInboxRiskFlags: document.getElementById('ccoInboxRiskFlags'),
     ccoInboxSummary: document.getElementById('ccoInboxSummary'),
+    ccoUnansweredPanel: document.getElementById('ccoUnansweredPanel'),
+    ccoUnansweredCriticalCount: document.getElementById('ccoUnansweredCriticalCount'),
+    ccoUnansweredHighCount: document.getElementById('ccoUnansweredHighCount'),
+    ccoUnansweredMediumCount: document.getElementById('ccoUnansweredMediumCount'),
+    ccoInboxMailboxFilters: document.getElementById('ccoInboxMailboxFilters'),
+    ccoInboxSlaFilters: document.getElementById('ccoInboxSlaFilters'),
+    ccoInboxStateFilters: document.getElementById('ccoInboxStateFilters'),
+    ccoInboxDensityFilters: document.getElementById('ccoInboxDensityFilters'),
     ccoInboxWorklist: document.getElementById('ccoInboxWorklist'),
+    ccoSoftBreakPanel: document.getElementById('ccoSoftBreakPanel'),
+    ccoInboxGroupAcuteList: document.getElementById('ccoInboxGroupAcuteList'),
+    ccoInboxGroupTodayList: document.getElementById('ccoInboxGroupTodayList'),
+    ccoInboxGroupFollowupList: document.getElementById('ccoInboxGroupFollowupList'),
+    ccoInboxGroupOtherList: document.getElementById('ccoInboxGroupOtherList'),
+    ccoInboxGroupAcuteCount: document.getElementById('ccoInboxGroupAcuteCount'),
+    ccoInboxGroupTodayCount: document.getElementById('ccoInboxGroupTodayCount'),
+    ccoInboxGroupFollowupCount: document.getElementById('ccoInboxGroupFollowupCount'),
+    ccoInboxGroupOtherCount: document.getElementById('ccoInboxGroupOtherCount'),
+    ccoInboxGroupAcuteMeta: document.getElementById('ccoInboxGroupAcuteMeta'),
+    ccoInboxGroupTodayMeta: document.getElementById('ccoInboxGroupTodayMeta'),
+    ccoInboxGroupFollowupMeta: document.getElementById('ccoInboxGroupFollowupMeta'),
+    ccoInboxGroupOtherMeta: document.getElementById('ccoInboxGroupOtherMeta'),
+    ccoInboxGroupAcuteBlock: document.getElementById('ccoInboxGroupSprint'),
+    ccoInboxGroupTodayBlock: document.getElementById('ccoInboxGroupHigh'),
+    ccoInboxGroupFollowupBlock: document.getElementById('ccoInboxGroupNeeds'),
+    ccoInboxGroupOtherBlock: document.getElementById('ccoInboxGroupRest'),
+    ccoFocusShowAllBtn: document.getElementById('ccoFocusShowAllBtn'),
+    ccoStatusCounts: document.getElementById('ccoStatusCounts'),
+    ccoConversationColumn: document.getElementById('ccoConversationColumn'),
     ccoConversationMeta: document.getElementById('ccoConversationMeta'),
     ccoConversationPreview: document.getElementById('ccoConversationPreview'),
+    ccoCustomerSummaryPanel: document.getElementById('ccoCustomerSummaryPanel'),
+    ccoCustomerSummaryName: document.getElementById('ccoCustomerSummaryName'),
+    ccoCustomerSummarySub: document.getElementById('ccoCustomerSummarySub'),
+    ccoCustomerSummaryToggleBtn: document.getElementById('ccoCustomerSummaryToggleBtn'),
+    ccoCustomerLifecycleValue: document.getElementById('ccoCustomerLifecycleValue'),
+    ccoCustomerInteractionsValue: document.getElementById('ccoCustomerInteractionsValue'),
+    ccoCustomerLastInteractionValue: document.getElementById('ccoCustomerLastInteractionValue'),
+    ccoCustomerEngagementValue: document.getElementById('ccoCustomerEngagementValue'),
+    ccoCustomerTempoValue: document.getElementById('ccoCustomerTempoValue'),
+    ccoCustomerFollowupValue: document.getElementById('ccoCustomerFollowupValue'),
+    ccoCustomerLastCaseValue: document.getElementById('ccoCustomerLastCaseValue'),
+    ccoCustomerTimelineList: document.getElementById('ccoCustomerTimelineList'),
     ccoDraftSubjectInput: document.getElementById('ccoDraftSubjectInput'),
     ccoDraftToInput: document.getElementById('ccoDraftToInput'),
+    ccoSenderMailboxSelect: document.getElementById('ccoSenderMailboxSelect'),
+    ccoSignatureProfileSelect: document.getElementById('ccoSignatureProfileSelect'),
+    ccoSignaturePreview: document.getElementById('ccoSignaturePreview'),
     ccoDraftRiskIndicator: document.getElementById('ccoDraftRiskIndicator'),
     ccoDraftPolicyIndicator: document.getElementById('ccoDraftPolicyIndicator'),
     ccoDraftConfidence: document.getElementById('ccoDraftConfidence'),
     ccoDraftRecommendedAction: document.getElementById('ccoDraftRecommendedAction'),
+    ccoDraftModeHint: document.getElementById('ccoDraftModeHint'),
+    ccoDraftModeShortBtn: document.getElementById('ccoDraftModeShortBtn'),
+    ccoDraftModeWarmBtn: document.getElementById('ccoDraftModeWarmBtn'),
+    ccoDraftModeProfessionalBtn: document.getElementById('ccoDraftModeProfessionalBtn'),
     ccoDraftBodyInput: document.getElementById('ccoDraftBodyInput'),
     ccoCopyReplyBtn: document.getElementById('ccoCopyReplyBtn'),
     ccoMarkHandledBtn: document.getElementById('ccoMarkHandledBtn'),
@@ -536,11 +813,18 @@
     ccoInboxNeedsReplyList: document.getElementById('ccoInboxNeedsReplyList'),
     ccoInboxDraftsList: document.getElementById('ccoInboxDraftsList'),
     ccoSprintStatusBar: document.getElementById('ccoSprintStatusBar'),
+    ccoFocusHeading: document.getElementById('ccoFocusHeading'),
     ccoSprintProgress: document.getElementById('ccoSprintProgress'),
+    ccoFocusWorkload: document.getElementById('ccoFocusWorkload'),
+    ccoFocusWorkloadInfoBtn: document.getElementById('ccoFocusWorkloadInfoBtn'),
+    ccoFocusWorkloadBreakdown: document.getElementById('ccoFocusWorkloadBreakdown'),
+    ccoFocusScheduleStatus: document.getElementById('ccoFocusScheduleStatus'),
     ccoStartSprintBtn: document.getElementById('ccoStartSprintBtn'),
     ccoSprintQueueList: document.getElementById('ccoSprintQueueList'),
     ccoSprintStressMeta: document.getElementById('ccoSprintStressMeta'),
     ccoSprintFeedback: document.getElementById('ccoSprintFeedback'),
+    ccoRedFlagBanner: document.getElementById('ccoRedFlagBanner'),
+    ccoPerformancePanel: document.getElementById('ccoPerformancePanel'),
     fetchCalibrationSuggestionBtn: document.getElementById('fetchCalibrationSuggestionBtn'),
     applyCalibrationSuggestionBtn: document.getElementById('applyCalibrationSuggestionBtn'),
     calibrationNoteInput: document.getElementById('calibrationNoteInput'),
@@ -647,6 +931,25 @@
     publicSiteThemeCanvasTo: document.getElementById('publicSiteThemeCanvasTo'),
     publicSiteServicesJson: document.getElementById('publicSiteServicesJson'),
     saveTenantConfigBtn: document.getElementById('saveTenantConfigBtn'),
+    refreshWritingIdentityBtn: document.getElementById('refreshWritingIdentityBtn'),
+    autoExtractWritingIdentityBtn: document.getElementById('autoExtractWritingIdentityBtn'),
+    writingIdentitySampleSize: document.getElementById('writingIdentitySampleSize'),
+    writingIdentityStatus: document.getElementById('writingIdentityStatus'),
+    writingIdentityMailboxSelect: document.getElementById('writingIdentityMailboxSelect'),
+    writingIdentityMailboxFilter: document.getElementById('writingIdentityMailboxFilter'),
+    writingIdentityCount: document.getElementById('writingIdentityCount'),
+    writingIdentityTableBody: document.getElementById('writingIdentityTableBody'),
+    writingIdentityMailboxInput: document.getElementById('writingIdentityMailboxInput'),
+    writingIdentityGreeting: document.getElementById('writingIdentityGreeting'),
+    writingIdentityClosing: document.getElementById('writingIdentityClosing'),
+    writingIdentityFormality: document.getElementById('writingIdentityFormality'),
+    writingIdentityWarmth: document.getElementById('writingIdentityWarmth'),
+    writingIdentitySentenceLength: document.getElementById('writingIdentitySentenceLength'),
+    writingIdentityCtaStyle: document.getElementById('writingIdentityCtaStyle'),
+    writingIdentityEmojiUsage: document.getElementById('writingIdentityEmojiUsage'),
+    saveWritingIdentityBtn: document.getElementById('saveWritingIdentityBtn'),
+    writingIdentityEditStatus: document.getElementById('writingIdentityEditStatus'),
+    writingIdentityProfileMeta: document.getElementById('writingIdentityProfileMeta'),
     tenantConfigStatus: document.getElementById('tenantConfigStatus'),
     refreshTenantsBtn: document.getElementById('refreshTenantsBtn'),
     tenantCatalog: document.getElementById('tenantCatalog'),
@@ -734,9 +1037,11 @@
   }
 
   function applyLanguage() {
-    document.documentElement.lang = state.language === 'en' ? 'en' : 'sv';
-    if (els.languageSelect && els.languageSelect.value !== state.language) {
-      els.languageSelect.value = state.language;
+    const lang = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : 'sv';
+    state.language = lang;
+    document.documentElement.lang = lang;
+    if (els.languageSelect) {
+      els.languageSelect.value = lang;
     }
     document.querySelectorAll('[data-i18n]').forEach((element) => {
       const key = String(element.getAttribute('data-i18n') || '').trim();
@@ -751,9 +1056,7 @@
   }
 
   function setLanguage(nextLanguage) {
-    const normalized = String(nextLanguage || '')
-      .trim()
-      .toLowerCase();
+    const normalized = String(nextLanguage || '').trim().toLowerCase();
     state.language = SUPPORTED_LANGUAGES.includes(normalized) ? normalized : 'sv';
     localStorage.setItem(LANGUAGE_KEY, state.language);
     applyLanguage();
@@ -1463,6 +1766,258 @@
     maybeToastFromStatus(message, isError);
   }
 
+  function normalizeWritingMailbox(value = '') {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isValidWritingMailbox(value = '') {
+    const mailbox = normalizeWritingMailbox(value);
+    if (!mailbox || mailbox.length > 320) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailbox);
+  }
+
+  function toWritingIdentityProfile(source = {}) {
+    const safe = source && typeof source === 'object' && !Array.isArray(source) ? source : {};
+    const sentenceLength = String(safe.sentenceLength || '').trim().toLowerCase();
+    const ctaStyle = String(safe.ctaStyle || '').trim();
+    const greetingStyle = String(safe.greetingStyle || '').trim();
+    const closingStyle = String(safe.closingStyle || '').trim();
+    const formalityLevel = Number(safe.formalityLevel);
+    const warmthIndex = Number(safe.warmthIndex);
+    return {
+      greetingStyle: greetingStyle || 'Hej,',
+      closingStyle: closingStyle || 'Vänliga hälsningar',
+      formalityLevel: Number.isFinite(formalityLevel)
+        ? Math.max(0, Math.min(10, Math.round(formalityLevel)))
+        : 5,
+      ctaStyle: ctaStyle || 'balanced',
+      sentenceLength: ['short', 'medium', 'long'].includes(sentenceLength) ? sentenceLength : 'medium',
+      emojiUsage: safe.emojiUsage === true,
+      warmthIndex: Number.isFinite(warmthIndex) ? Math.max(0, Math.min(10, Math.round(warmthIndex))) : 5,
+    };
+  }
+
+  function getWritingProfileRecord(mailbox = '') {
+    const normalizedMailbox = normalizeWritingMailbox(mailbox);
+    if (!normalizedMailbox) return null;
+    return (
+      (Array.isArray(state.writingIdentityProfiles) ? state.writingIdentityProfiles : []).find(
+        (item) => normalizeWritingMailbox(item?.mailbox) === normalizedMailbox
+      ) || null
+    );
+  }
+
+  function fillWritingIdentityForm(record = null) {
+    const profile = toWritingIdentityProfile(record?.profile || {});
+    const mailbox = normalizeWritingMailbox(record?.mailbox || '');
+    if (els.writingIdentityMailboxInput) {
+      els.writingIdentityMailboxInput.value = mailbox;
+    }
+    if (els.writingIdentityGreeting) els.writingIdentityGreeting.value = profile.greetingStyle;
+    if (els.writingIdentityClosing) els.writingIdentityClosing.value = profile.closingStyle;
+    if (els.writingIdentityFormality) els.writingIdentityFormality.value = String(profile.formalityLevel);
+    if (els.writingIdentityWarmth) els.writingIdentityWarmth.value = String(profile.warmthIndex);
+    if (els.writingIdentitySentenceLength) els.writingIdentitySentenceLength.value = profile.sentenceLength;
+    if (els.writingIdentityCtaStyle) els.writingIdentityCtaStyle.value = profile.ctaStyle;
+    if (els.writingIdentityEmojiUsage) {
+      els.writingIdentityEmojiUsage.value = profile.emojiUsage ? 'true' : 'false';
+    }
+    if (els.writingIdentityProfileMeta) {
+      if (!record) {
+        els.writingIdentityProfileMeta.textContent = 'Ingen profil vald.';
+      } else {
+        const version = Number(record.version || 1);
+        const source = String(record.source || 'auto').trim() || 'auto';
+        const updatedAt = formatDateTime(record.updatedAt || record.createdAt || '', true);
+        els.writingIdentityProfileMeta.textContent = `Mailbox: ${mailbox} • v${version} • source=${source} • uppdaterad ${updatedAt}`;
+      }
+    }
+  }
+
+  function renderWritingIdentityProfiles() {
+    const profiles = Array.isArray(state.writingIdentityProfiles) ? state.writingIdentityProfiles : [];
+    if (els.writingIdentityCount) {
+      els.writingIdentityCount.textContent = `Profiler: ${profiles.length}`;
+    }
+
+    if (els.writingIdentityMailboxSelect) {
+      const current = normalizeWritingMailbox(state.selectedWritingIdentityMailbox);
+      els.writingIdentityMailboxSelect.innerHTML = '<option value="">Välj mailbox</option>';
+      for (const item of profiles) {
+        const mailbox = normalizeWritingMailbox(item?.mailbox);
+        if (!mailbox) continue;
+        const option = document.createElement('option');
+        option.value = mailbox;
+        option.textContent = mailbox;
+        els.writingIdentityMailboxSelect.appendChild(option);
+      }
+      els.writingIdentityMailboxSelect.value = current;
+    }
+
+    if (!els.writingIdentityTableBody) return;
+    els.writingIdentityTableBody.innerHTML = '';
+    if (!profiles.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="5" class="muted">Inga profiler laddade.</td>';
+      els.writingIdentityTableBody.appendChild(tr);
+      return;
+    }
+
+    const selectedMailbox = normalizeWritingMailbox(state.selectedWritingIdentityMailbox);
+    for (const item of profiles) {
+      const mailbox = normalizeWritingMailbox(item?.mailbox);
+      if (!mailbox) continue;
+      const tr = document.createElement('tr');
+      if (mailbox === selectedMailbox) tr.classList.add('staff-row-active');
+      const version = Number(item?.version || 1);
+      const source = String(item?.source || 'auto').trim() || 'auto';
+      const updatedAt = formatDateTime(item?.updatedAt || item?.createdAt || '', true);
+      tr.innerHTML = `
+        <td class="code">${escapeHtml(mailbox)}</td>
+        <td>${version}</td>
+        <td>${escapeHtml(source)}</td>
+        <td class="mini">${escapeHtml(updatedAt)}</td>
+        <td><button type="button" class="btn small writingIdentitySelectBtn" data-mailbox="${escapeHtml(mailbox)}">Välj</button></td>
+      `;
+      els.writingIdentityTableBody.appendChild(tr);
+    }
+
+    els.writingIdentityTableBody.querySelectorAll('.writingIdentitySelectBtn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const mailbox = normalizeWritingMailbox(button.getAttribute('data-mailbox') || '');
+        if (!mailbox) return;
+        state.selectedWritingIdentityMailbox = mailbox;
+        const record = getWritingProfileRecord(mailbox);
+        fillWritingIdentityForm(record);
+        renderWritingIdentityProfiles();
+      });
+    });
+  }
+
+  async function loadWritingIdentityProfiles({ quiet = false, mailbox = '' } = {}) {
+    try {
+      const mailboxFilter = normalizeWritingMailbox(mailbox);
+      const query = new URLSearchParams();
+      if (isValidWritingMailbox(mailboxFilter)) {
+        query.set('mailbox', mailboxFilter);
+      }
+      const path = query.toString()
+        ? `/cco/writing-identities?${query.toString()}`
+        : '/cco/writing-identities';
+      if (!quiet) setStatus(els.writingIdentityStatus, 'Laddar Writing Identity-profiler...');
+      const response = await api(path);
+      const profiles = Array.isArray(response?.profiles) ? response.profiles : [];
+      state.writingIdentityProfiles = profiles
+        .map((item) => ({
+          mailbox: normalizeWritingMailbox(item?.mailbox),
+          version: Number(item?.version || 1),
+          source: String(item?.source || 'auto').trim() || 'auto',
+          profile: toWritingIdentityProfile(item?.profile || {}),
+          createdAt: item?.createdAt || '',
+          updatedAt: item?.updatedAt || '',
+        }))
+        .filter((item) => isValidWritingMailbox(item.mailbox))
+        .sort((left, right) => String(left.mailbox).localeCompare(String(right.mailbox)));
+
+      const selectedMailbox = normalizeWritingMailbox(state.selectedWritingIdentityMailbox);
+      if (!selectedMailbox || !getWritingProfileRecord(selectedMailbox)) {
+        state.selectedWritingIdentityMailbox = state.writingIdentityProfiles[0]?.mailbox || '';
+      }
+      const selectedRecord = getWritingProfileRecord(state.selectedWritingIdentityMailbox);
+      fillWritingIdentityForm(selectedRecord);
+      renderWritingIdentityProfiles();
+      if (!quiet) {
+        setStatus(els.writingIdentityStatus, `Writing Identity-profiler laddade: ${state.writingIdentityProfiles.length}.`);
+      }
+    } catch (error) {
+      if (!quiet) {
+        setStatus(
+          els.writingIdentityStatus,
+          error.message || 'Kunde inte läsa Writing Identity-profiler.',
+          true
+        );
+      }
+    }
+  }
+
+  async function saveWritingIdentityProfile() {
+    try {
+      if (!isOwner()) throw new Error('Endast OWNER kan spara Writing Identity.');
+      const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxInput?.value || '');
+      if (!isValidWritingMailbox(mailbox)) {
+        throw new Error('Mailbox måste vara giltig email/UPN.');
+      }
+
+      const profile = toWritingIdentityProfile({
+        greetingStyle: els.writingIdentityGreeting?.value,
+        closingStyle: els.writingIdentityClosing?.value,
+        formalityLevel: els.writingIdentityFormality?.value,
+        ctaStyle: els.writingIdentityCtaStyle?.value,
+        sentenceLength: els.writingIdentitySentenceLength?.value,
+        emojiUsage: String(els.writingIdentityEmojiUsage?.value || '').trim() === 'true',
+        warmthIndex: els.writingIdentityWarmth?.value,
+      });
+
+      setStatus(els.writingIdentityEditStatus, `Sparar Writing Identity för ${mailbox}...`);
+      const response = await api(`/cco/writing-identities/${encodeURIComponent(mailbox)}`, {
+        method: 'PUT',
+        body: {
+          mailbox,
+          profile,
+        },
+      });
+
+      const savedMailbox = normalizeWritingMailbox(response?.profile?.mailbox || mailbox);
+      state.selectedWritingIdentityMailbox = savedMailbox;
+      await loadWritingIdentityProfiles({ quiet: true });
+      setStatus(
+        els.writingIdentityEditStatus,
+        `Writing Identity sparad för ${savedMailbox} (v${Number(response?.profile?.version || 1)}).`
+      );
+    } catch (error) {
+      setStatus(
+        els.writingIdentityEditStatus,
+        error.message || 'Kunde inte spara Writing Identity.',
+        true
+      );
+    }
+  }
+
+  async function autoExtractWritingIdentityProfiles() {
+    try {
+      if (!isOwner()) throw new Error('Endast OWNER kan köra auto-extraktion.');
+      const sampleSizeRaw = Number(els.writingIdentitySampleSize?.value || 40);
+      const sampleSize = Math.max(30, Math.min(50, Number.isFinite(sampleSizeRaw) ? Math.round(sampleSizeRaw) : 40));
+      if (els.writingIdentitySampleSize) {
+        els.writingIdentitySampleSize.value = String(sampleSize);
+      }
+      const mailboxFilter = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
+      const mailboxes = isValidWritingMailbox(mailboxFilter) ? [mailboxFilter] : [];
+
+      setStatus(els.writingIdentityStatus, 'Kör auto-extraktion av Writing Identity...');
+      const response = await api('/cco/writing-identities/auto-extract', {
+        method: 'POST',
+        body: {
+          sampleSize,
+          mailboxes,
+        },
+      });
+
+      const updatedProfiles = Array.isArray(response?.updatedProfiles) ? response.updatedProfiles : [];
+      await loadWritingIdentityProfiles({ quiet: true });
+      setStatus(
+        els.writingIdentityStatus,
+        `Auto-extraktion klar. Uppdaterade profiler: ${updatedProfiles.length}.`
+      );
+    } catch (error) {
+      setStatus(
+        els.writingIdentityStatus,
+        error.message || 'Kunde inte auto-extrahera Writing Identity.',
+        true
+      );
+    }
+  }
+
   function isModalOpen() {
     return Boolean(els.appModalBackdrop && !els.appModalBackdrop.classList.contains('hidden'));
   }
@@ -1829,10 +2384,10 @@
 
     if (els.tonePreviewMeta) {
       const prefix = modifier > 0 ? '+' : '';
-      els.tonePreviewMeta.textContent = `assistant=${assistant} • tone=${tone} • brand=${brand} • riskModifier=${prefix}${formatCompactNumber(
+      els.tonePreviewMeta.textContent = `assistent=${assistant} • ton=${tone} • varumärke=${brand} • riskmodifierare=${prefix}${formatCompactNumber(
         modifier,
         1
-      )} • primary=${primaryColor} • accent=${accentColor}`;
+      )} • primär=${primaryColor} • accent=${accentColor}`;
     }
     if (els.tonePreviewText) {
       els.tonePreviewText.textContent = buildTonePreviewText(tone, assistant, brand);
@@ -1840,7 +2395,7 @@
     if (els.tonePreviewLogo) {
       if (logoUrl) {
         els.tonePreviewLogo.src = logoUrl;
-        els.tonePreviewLogo.alt = `${brand} logo`;
+        els.tonePreviewLogo.alt = `${brand} logga`;
         els.tonePreviewLogo.onerror = () => {
           els.tonePreviewLogo.classList.add('hidden');
         };
@@ -2326,6 +2881,20 @@
     if (els.runSchedulerSuiteBtn) els.runSchedulerSuiteBtn.disabled = !owner;
     if (els.refreshTenantsBtn) els.refreshTenantsBtn.disabled = !writer;
     if (els.onboardTenantBtn) els.onboardTenantBtn.disabled = !owner;
+    if (els.refreshWritingIdentityBtn) els.refreshWritingIdentityBtn.disabled = !writer;
+    if (els.writingIdentityMailboxSelect) els.writingIdentityMailboxSelect.disabled = !writer;
+    if (els.writingIdentityMailboxFilter) els.writingIdentityMailboxFilter.disabled = !writer;
+    if (els.writingIdentitySampleSize) els.writingIdentitySampleSize.disabled = !owner;
+    if (els.autoExtractWritingIdentityBtn) els.autoExtractWritingIdentityBtn.disabled = !owner;
+    if (els.writingIdentityMailboxInput) els.writingIdentityMailboxInput.disabled = !owner;
+    if (els.writingIdentityGreeting) els.writingIdentityGreeting.disabled = !owner;
+    if (els.writingIdentityClosing) els.writingIdentityClosing.disabled = !owner;
+    if (els.writingIdentityFormality) els.writingIdentityFormality.disabled = !owner;
+    if (els.writingIdentityWarmth) els.writingIdentityWarmth.disabled = !owner;
+    if (els.writingIdentitySentenceLength) els.writingIdentitySentenceLength.disabled = !owner;
+    if (els.writingIdentityCtaStyle) els.writingIdentityCtaStyle.disabled = !owner;
+    if (els.writingIdentityEmojiUsage) els.writingIdentityEmojiUsage.disabled = !owner;
+    if (els.saveWritingIdentityBtn) els.saveWritingIdentityBtn.disabled = !owner;
     if (els.loadSessionsBtn) els.loadSessionsBtn.disabled = !writer;
     if (els.loadStateManifestBtn) els.loadStateManifestBtn.disabled = !owner;
     if (els.createStateBackupBtn) els.createStateBackupBtn.disabled = !owner;
@@ -2729,7 +3298,7 @@
     setText(els.slaIndicatorValue, incidents.length);
 
     if (!incidents.length) {
-      setKpiMeta(els.slaIndicatorMeta, 'Inga öppna incidents.', 'ok');
+      setKpiMeta(els.slaIndicatorMeta, 'Inga öppna incidenter.', 'ok');
       return;
     }
 
@@ -2796,7 +3365,7 @@
     setText(els.readinessBandValue, formatReadinessBandLabel(readiness?.band));
     const metaText = isEnglishLanguage()
       ? `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • actions ${remediationTotal} • gain ${potentialGain}`
-      : `Score ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • åtgärder ${remediationTotal} • potential ${potentialGain}`;
+      : `Poäng ${scoreRounded} • no-go ${triggeredNoGo} • P0 ${remediationP0} • åtgärder ${remediationTotal} • möjlig ökning ${potentialGain}`;
     setKpiMeta(
       els.readinessBandMeta,
       metaText,
@@ -4017,10 +4586,72 @@
     return entry ? entry[0] : '';
   }
 
+  function persistCcoWorkspaceSessionState() {
+    try {
+      const payload = {
+        selectedConversationId: String(state.ccoSelectedConversationId || '').trim(),
+        viewMode: sanitizeCcoViewMode(state.ccoInboxViewMode),
+        mailboxFilter: sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter),
+        slaFilter: sanitizeCcoSlaFilter(state.ccoInboxSlaFilter),
+        lifecycleFilter: sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter),
+        densityMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
+        sectionExpanded: sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded),
+        draftsByConversationId: sanitizeCcoDraftMap(state.ccoDraftOverrideByConversationId),
+        draftModeByConversationId: sanitizeCcoDraftModeMap(state.ccoDraftModeByConversationId),
+        scrollTopByConversationId: sanitizeCcoScrollMap(state.ccoConversationScrollTopByConversationId),
+      };
+      sessionStorage.setItem(CCO_WORKSPACE_SESSION_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignorera sessionStorage-fel (t.ex. privat läge)
+    }
+  }
+
+  function syncCcoThreadRouteState(conversationId = '') {
+    if (state.activeSectionGroup !== 'ccoWorkspaceSection') return;
+    const safeConversationId = String(conversationId || '').trim();
+    const ccoPath =
+      sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
+        ? CCO_UNANSWERED_PRIMARY_PATH
+        : CCO_PRIMARY_PATH;
+    const url = new URL(window.location.href);
+    url.pathname = ccoPath;
+    url.hash = '';
+    if (safeConversationId) {
+      url.searchParams.set(CCO_THREAD_QUERY_PARAM, safeConversationId);
+    } else {
+      url.searchParams.delete(CCO_THREAD_QUERY_PARAM);
+    }
+    const nextUrl = `${url.pathname}${url.search}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl === nextUrl) return;
+    window.history.replaceState(null, '', nextUrl);
+  }
+
+  function setSelectedCcoConversation(conversationId = '', { syncRoute = true } = {}) {
+    state.ccoSelectedConversationId = String(conversationId || '').trim();
+    if (state.ccoSelectedConversationId) {
+      state.ccoSeenConversationIds = {
+        ...state.ccoSeenConversationIds,
+        [state.ccoSelectedConversationId]: true,
+      };
+    }
+    if (syncRoute) syncCcoThreadRouteState(state.ccoSelectedConversationId);
+    persistCcoWorkspaceSessionState();
+  }
+
   function buildSectionCanonicalUrl(groupId) {
     const normalized = String(groupId || '').trim();
     if (!normalized) return '';
-    if (normalized === 'ccoWorkspaceSection') return CCO_PRIMARY_PATH;
+    if (normalized === 'ccoWorkspaceSection') {
+      const threadId = String(state.ccoSelectedConversationId || '').trim();
+      const basePath =
+        sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
+          ? CCO_UNANSWERED_PRIMARY_PATH
+          : CCO_PRIMARY_PATH;
+      return threadId
+        ? `${basePath}?${CCO_THREAD_QUERY_PARAM}=${encodeURIComponent(threadId)}`
+        : basePath;
+    }
     const hash = SECTION_GROUP_HASH_MAP[normalized] || SECTION_GROUP_HASH_MAP.overviewSection;
     return `${ADMIN_PRIMARY_PATH}${hash}`;
   }
@@ -4028,8 +4659,8 @@
   function syncSectionHash(groupId) {
     const nextUrl = buildSectionCanonicalUrl(groupId);
     if (!nextUrl) return;
-    const currentUrl = `${window.location.pathname}${window.location.hash}`;
-    if (String(currentUrl).trim().toLowerCase() === nextUrl.toLowerCase()) return;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (String(currentUrl).trim() === String(nextUrl).trim()) return;
     window.history.replaceState(null, '', nextUrl);
   }
 
@@ -4089,6 +4720,12 @@
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
+    const enteringCco =
+      String(groupId || '').trim() === 'ccoWorkspaceSection' &&
+      String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
+    const leavingCco =
+      String(groupId || '').trim() !== 'ccoWorkspaceSection' &&
+      String(previousGroupId || '').trim() === 'ccoWorkspaceSection';
     runModeTransition(previousGroupId, groupId);
     state.activeSectionGroup = groupId;
     syncWorkspaceTheme(groupId);
@@ -4108,6 +4745,25 @@
         (targetId && document.getElementById(targetId)) ||
         document.querySelector(`[data-section-group="${groupId}"]`);
       focusEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (enteringCco) {
+      state.ccoAdaptiveFocusShowAll = false;
+      state.ccoFocusWorkloadMinutes = 0;
+      hideCcoSoftBreakPanel();
+      postCcoUsageEvent('workspace_open', {
+        route:
+          sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
+            ? '/unanswered'
+            : '/cco',
+        workspaceId: 'cco',
+      });
+    }
+    if (leavingCco) {
+      state.ccoLastSeenAtMs = Date.now();
+      state.ccoSeenConversationIds = {};
+      persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
+      persistCcoWorkspaceSessionState();
     }
   }
 
@@ -4134,22 +4790,26 @@
   function setActiveSectionNav(targetId) {
     if (!els.sectionNav) return;
     const resolvedTargetId = resolveSectionNavTarget(targetId);
+    const ccoViewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
     els.sectionNav.querySelectorAll('.sectionNavBtn').forEach((button) => {
       const currentTarget = String(button.getAttribute('data-target') || '').trim();
-      button.classList.toggle('active', currentTarget && currentTarget === resolvedTargetId);
+      if (!currentTarget || currentTarget !== resolvedTargetId) {
+        button.classList.remove('active');
+        return;
+      }
+      if (currentTarget === 'ccoWorkspaceSection') {
+        const buttonView = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
+        button.classList.toggle('active', buttonView === ccoViewMode);
+        return;
+      }
+      button.classList.add('active');
     });
   }
 
   function resolveInitialSectionGroup() {
     const fromHash = resolveSectionGroupFromHash(window.location.hash || '');
     if (fromHash) return fromHash;
-    const path = String(window.location.pathname || '').trim().toLowerCase();
-    if (
-      path.endsWith('/cco') ||
-      path.endsWith('/ccp') ||
-      path.endsWith('/agents/cco') ||
-      path.endsWith('/admin/cco')
-    ) {
+    if (isCcoRoutePath(window.location.pathname || '')) {
       return 'ccoWorkspaceSection';
     }
     return state.activeSectionGroup || 'overviewSection';
@@ -6631,7 +7291,7 @@
       els.orchestratorMetaSummary.textContent = '';
       els.orchestratorMetaResult.textContent = isEnglishLanguage()
         ? 'No orchestrator roadmap data yet.'
-        : 'Ingen orchestrator-roadmap ännu.';
+        : 'Ingen orkestreringsfärdplan ännu.';
       return;
     }
 
@@ -6684,7 +7344,7 @@
       if (updateStatus) {
         setStatus(
           els.orchestratorStatus,
-          error.message || 'Kunde inte läsa orchestrator-roadmap.',
+          error.message || 'Kunde inte läsa orkestreringsfärdplan.',
           true
         );
       }
@@ -7002,6 +7662,207 @@
     return `${prefix}-${Date.now()}-${random}`;
   }
 
+  const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
+  const CCO_DEFAULT_SIGNATURE_PROFILE = 'egzona';
+  const CCO_SIGNATURE_SPLIT_PATTERN =
+    /\n(?:Med vanliga halsningar,|Med vanlig halsning,|Basta halsningar,)\n[\s\S]*$/i;
+
+  function normalizeCcoSignatureProfileKey(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'fazli') return 'fazli';
+    return 'egzona';
+  }
+
+  function resolveDefaultSignatureForSenderMailbox(mailboxId = '') {
+    const normalized = String(mailboxId || '').trim().toLowerCase();
+    if (normalized === 'fazli@hairtpclinic.com') return 'fazli';
+    return 'egzona';
+  }
+
+  function getCcoSignatureProfilesFromMetadata() {
+    const outputMeta =
+      state.ccoInboxData?.metadata && typeof state.ccoInboxData.metadata === 'object'
+        ? state.ccoInboxData.metadata
+        : {};
+    const rawProfiles = Array.isArray(outputMeta.ccoSignatureProfiles)
+      ? outputMeta.ccoSignatureProfiles
+      : [];
+    const normalizedProfiles = rawProfiles
+      .map((item) => {
+        const key = normalizeCcoSignatureProfileKey(item?.key);
+        const fullName = String(item?.fullName || '').trim();
+        const title = String(item?.title || '').trim();
+        const senderMailboxId = String(item?.senderMailboxId || '').trim();
+        if (!fullName || !title) return null;
+        return {
+          key,
+          fullName,
+          title,
+          senderMailboxId,
+        };
+      })
+      .filter(Boolean);
+    if (normalizedProfiles.length) return normalizedProfiles;
+    return [
+      {
+        key: 'egzona',
+        fullName: 'Egzona Krasniqi',
+        title: 'Hårspecialist inom Hårtransplantationer',
+        senderMailboxId: 'egzona@hairtpclinic.com',
+      },
+      {
+        key: 'fazli',
+        fullName: 'Fazli Krasniqi',
+        title: 'Hårspecialist inom Hårtransplantationer',
+        senderMailboxId: 'fazli@hairtpclinic.com',
+      },
+    ];
+  }
+
+  function getCcoSenderMailboxOptionsFromMetadata() {
+    const outputMeta =
+      state.ccoInboxData?.metadata && typeof state.ccoInboxData.metadata === 'object'
+        ? state.ccoInboxData.metadata
+        : {};
+    const fromMetadata = Array.isArray(outputMeta.ccoSenderMailboxOptions)
+      ? outputMeta.ccoSenderMailboxOptions
+          .map((item) => String(item || '').trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+    const set = new Set(fromMetadata);
+    if (!set.size) {
+      set.add(CCO_DEFAULT_SENDER_MAILBOX);
+      set.add('kons@hairtpclinic.com');
+      set.add('egzona@hairtpclinic.com');
+      set.add('fazli@hairtpclinic.com');
+    }
+    return Array.from(set);
+  }
+
+  function getCcoSelectedSignatureProfile() {
+    const profiles = Array.isArray(state.ccoSignatureProfiles) ? state.ccoSignatureProfiles : [];
+    const selectedKey = normalizeCcoSignatureProfileKey(state.ccoSignatureProfile);
+    const selected = profiles.find((item) => item.key === selectedKey);
+    if (selected) return selected;
+    return profiles[0] || {
+      key: 'egzona',
+      fullName: 'Egzona Krasniqi',
+      title: 'Hårspecialist inom Hårtransplantationer',
+      senderMailboxId: 'egzona@hairtpclinic.com',
+    };
+  }
+
+  function removeCcoSignatureFromDraft(text = '') {
+    const normalized = String(text || '').trim();
+    if (!normalized) return '';
+    return normalized.replace(CCO_SIGNATURE_SPLIT_PATTERN, '').trimEnd();
+  }
+
+  function buildCcoSignatureBlock({
+    profile = null,
+    senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+  } = {}) {
+    const resolvedProfile =
+      profile && typeof profile === 'object' ? profile : getCcoSelectedSignatureProfile();
+    const safeSenderMailbox =
+      String(senderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
+    return [
+      'Bästa hälsningar,',
+      resolvedProfile.fullName,
+      resolvedProfile.title,
+      '031-881166',
+      safeSenderMailbox,
+      'Vasaplatsen 2, 411 34 Göteborg',
+    ].join('\n');
+  }
+
+  function applyCcoSignatureToDraft({
+    body = '',
+    senderMailboxId = state.ccoSenderMailboxId,
+    signatureProfile = null,
+  } = {}) {
+    const baseBody = removeCcoSignatureFromDraft(body);
+    const signature = buildCcoSignatureBlock({
+      profile: signatureProfile || getCcoSelectedSignatureProfile(),
+      senderMailboxId,
+    });
+    if (!baseBody) return signature;
+    return `${baseBody}\n\n${signature}`;
+  }
+
+  function syncCcoSignatureSelectors() {
+    if (els.ccoSenderMailboxSelect) {
+      const senderOptions = Array.isArray(state.ccoSenderMailboxOptions)
+        ? state.ccoSenderMailboxOptions
+        : [];
+      const desiredValue =
+        String(state.ccoSenderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
+      if (senderOptions.length) {
+        const optionsHtml = senderOptions
+          .map((mailboxId) => {
+            const selected = mailboxId === desiredValue ? ' selected' : '';
+            const suffix = mailboxId === CCO_DEFAULT_SENDER_MAILBOX ? ' (standard)' : '';
+            return `<option value="${escapeHtml(mailboxId)}"${selected}>${escapeHtml(
+              mailboxId
+            )}${suffix}</option>`;
+          })
+          .join('');
+        els.ccoSenderMailboxSelect.innerHTML = optionsHtml;
+      }
+      if (!senderOptions.includes(desiredValue) && senderOptions.length) {
+        state.ccoSenderMailboxId = senderOptions[0];
+      } else {
+        state.ccoSenderMailboxId = desiredValue;
+      }
+      els.ccoSenderMailboxSelect.value = state.ccoSenderMailboxId;
+    }
+
+    if (els.ccoSignatureProfileSelect) {
+      const profiles = Array.isArray(state.ccoSignatureProfiles) ? state.ccoSignatureProfiles : [];
+      const selectedKey = normalizeCcoSignatureProfileKey(state.ccoSignatureProfile);
+      const optionsHtml = profiles
+        .map((profile) => {
+          const selected = profile.key === selectedKey ? ' selected' : '';
+          return `<option value="${escapeHtml(profile.key)}"${selected}>${escapeHtml(
+            profile.fullName
+          )}</option>`;
+        })
+        .join('');
+      if (optionsHtml) els.ccoSignatureProfileSelect.innerHTML = optionsHtml;
+      const hasSelected = profiles.some((item) => item.key === selectedKey);
+      state.ccoSignatureProfile = hasSelected
+        ? selectedKey
+        : normalizeCcoSignatureProfileKey(profiles[0]?.key || CCO_DEFAULT_SIGNATURE_PROFILE);
+      els.ccoSignatureProfileSelect.value = state.ccoSignatureProfile;
+    }
+  }
+
+  function renderCcoSignaturePreview() {
+    if (!els.ccoSignaturePreview) return;
+    const preview = buildCcoSignatureBlock({
+      profile: getCcoSelectedSignatureProfile(),
+      senderMailboxId: state.ccoSenderMailboxId,
+    });
+    els.ccoSignaturePreview.textContent = preview;
+  }
+
+  function applyCurrentCcoSignatureToEditor() {
+    if (!els.ccoDraftBodyInput) return;
+    const current = String(els.ccoDraftBodyInput.value || '').trim();
+    if (!current) {
+      els.ccoDraftBodyInput.value = buildCcoSignatureBlock({
+        profile: getCcoSelectedSignatureProfile(),
+        senderMailboxId: state.ccoSenderMailboxId,
+      });
+      return;
+    }
+    els.ccoDraftBodyInput.value = applyCcoSignatureToDraft({
+      body: current,
+      senderMailboxId: state.ccoSenderMailboxId,
+      signatureProfile: getCcoSelectedSignatureProfile(),
+    });
+  }
+
   function createCcoSprintId() {
     return generateClientIdempotencyKey('cco-sprint');
   }
@@ -7067,13 +7928,36 @@
         },
       });
     } catch (error) {
-      console.warn('CCO sprint telemetry failed', error);
+      console.warn('CCO sprint-telemetri misslyckades', error);
+      return null;
+    }
+  }
+
+  async function postCcoUsageEvent(eventType, metadata = {}) {
+    const safeEventType = String(eventType || '').trim();
+    if (!safeEventType) return null;
+    try {
+      return await api('/cco/usage/event', {
+        method: 'POST',
+        headers: {
+          'x-idempotency-key': generateClientIdempotencyKey(`cco-usage-${safeEventType}`),
+        },
+        body: {
+          channel: 'admin',
+          eventType: safeEventType,
+          timestamp: new Date().toISOString(),
+          ...metadata,
+        },
+      });
+    } catch (error) {
+      console.warn('CCO usage-telemetri misslyckades', error);
       return null;
     }
   }
 
   async function loadCcoMetrics({ since = '7d' } = {}) {
     try {
+      const previousFocusActive = state.ccoAdaptiveFocusState?.isActive === true;
       const response = await api(`/cco/metrics?since=${encodeURIComponent(String(since || '7d'))}`);
       state.ccoSprintMetrics = response && typeof response === 'object' ? response : null;
       state.ccoSprintLatestFeedback =
@@ -7081,9 +7965,41 @@
         typeof state.ccoSprintMetrics.latestSprintFeedback === 'object'
           ? state.ccoSprintMetrics.latestSprintFeedback
           : null;
+      state.ccoUsageAnalytics =
+        state.ccoSprintMetrics?.usageAnalytics &&
+        typeof state.ccoSprintMetrics.usageAnalytics === 'object'
+          ? state.ccoSprintMetrics.usageAnalytics
+          : null;
+      state.ccoRedFlagState =
+        state.ccoSprintMetrics?.redFlagState &&
+        typeof state.ccoSprintMetrics.redFlagState === 'object'
+          ? state.ccoSprintMetrics.redFlagState
+          : null;
+      state.ccoAdaptiveFocusState =
+        state.ccoSprintMetrics?.adaptiveFocusState &&
+        typeof state.ccoSprintMetrics.adaptiveFocusState === 'object'
+          ? state.ccoSprintMetrics.adaptiveFocusState
+          : null;
+      state.ccoRecoveryState =
+        state.ccoSprintMetrics?.recoveryState &&
+        typeof state.ccoSprintMetrics.recoveryState === 'object'
+          ? state.ccoSprintMetrics.recoveryState
+          : null;
+      const currentFocusActive = state.ccoAdaptiveFocusState?.isActive === true;
+      if (!currentFocusActive) {
+        state.ccoAdaptiveFocusShowAll = false;
+        state.ccoFocusWorkloadMinutes = 0;
+      }
+      if (previousFocusActive !== currentFocusActive) {
+        postCcoUsageEvent('focus_mode_toggled', {
+          isActive: currentFocusActive,
+          source: 'system',
+          workspaceId: 'cco',
+        });
+      }
       return state.ccoSprintMetrics;
     } catch (error) {
-      console.warn('CCO metrics fetch failed', error);
+      console.warn('CCO metrics-hämtning misslyckades', error);
       return null;
     }
   }
@@ -7096,12 +8012,715 @@
     return 'Low';
   }
 
-  function normalizeCcoSlaStatus(value = '') {
+  function formatCcoPriorityLabel(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
-    if (['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'].includes(normalized)) {
+    if (normalized === 'critical' || normalized === 'kritisk') return 'Kritisk';
+    if (normalized === 'high' || normalized === 'hög' || normalized === 'hog') return 'Hög';
+    if (normalized === 'medium' || normalized === 'medel') return 'Medel';
+    return 'Låg';
+  }
+
+  function formatCcoConfidenceLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'high' || normalized === 'hög' || normalized === 'hog') return 'Hög';
+    if (normalized === 'medium' || normalized === 'medel') return 'Medel';
+    return 'Låg';
+  }
+
+  function formatCcoIntentLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      booking_request: 'Bokningsförfrågan',
+      pricing_question: 'Prisfråga',
+      anxiety_pre_op: 'Oro inför behandling',
+      complaint: 'Klagomål',
+      cancellation: 'Avbokning',
+      follow_up: 'Uppföljning',
+      unclear: 'Oklart',
+    };
+    return map[normalized] || (String(value || '').trim() || 'Oklart');
+  }
+
+  function formatCcoIntentIcon(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      booking_request: '📅',
+      follow_up: '💬',
+      pricing_question: '💰',
+      complaint: '⚠',
+      anxiety_pre_op: '😟',
+      cancellation: '🗓',
+      unclear: '❔',
+    };
+    return map[normalized] || '❔';
+  }
+
+  function formatCcoIntentChip(value = '') {
+    return `${formatCcoIntentIcon(value)} ${formatCcoIntentLabel(value)}`;
+  }
+
+  function formatCcoToneLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      neutral: 'Neutral',
+      stressed: 'Stressad',
+      anxious: 'Orolig',
+      frustrated: 'Frustrerad',
+      urgent: 'Brådskande',
+      positive: 'Positiv',
+    };
+    return map[normalized] || (String(value || '').trim() || 'Neutral');
+  }
+
+  function formatCcoToneIcon(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      anxious: '😟',
+      frustrated: '😡',
+      urgent: '⏰',
+      stressed: '😵',
+      positive: '🙂',
+      neutral: '😐',
+    };
+    return map[normalized] || '😐';
+  }
+
+  function formatCcoToneChip(value = '') {
+    return `${formatCcoToneIcon(value)} ${formatCcoToneLabel(value)}`;
+  }
+
+  function normalizeCcoLifecycleStatus(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (
+      [
+        'new',
+        'active_dialogue',
+        'awaiting_reply',
+        'follow_up_pending',
+        'dormant',
+        'handled',
+        'archived',
+      ].includes(normalized)
+    ) {
       return normalized;
     }
-    return 'ok';
+    if (normalized === 'new_lead') return 'new';
+    if (normalized === 'waiting' || normalized === 'waiting_on_customer') return 'awaiting_reply';
+    if (normalized === 'follow_up_scheduled') return 'follow_up_pending';
+    if (normalized === 'closed' || normalized === 'resolved') return 'handled';
+    return 'new';
+  }
+
+  function formatCcoLifecycleLabel(value = '') {
+    const normalized = normalizeCcoLifecycleStatus(value);
+    const map = {
+      new: 'Ny',
+      active_dialogue: 'Aktiv dialog',
+      awaiting_reply: 'Väntar svar',
+      follow_up_pending: 'Uppföljning väntar',
+      dormant: 'Vilande',
+      handled: 'Hanterad',
+      archived: 'Arkiverad',
+    };
+    return map[normalized] || 'Ny';
+  }
+
+  function formatCcoCaseStatusLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'open') return 'Öppen';
+    if (normalized === 'waiting') return 'Väntar på kund';
+    if (normalized === 'closed') return 'Stängd';
+    if (normalized === 'follow_up_scheduled') return 'Uppföljning planerad';
+    return 'Öppen';
+  }
+
+  function formatCcoTempoLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      responsive: 'Responsiv',
+      reflective: 'Reflekterande',
+      hesitant: 'Tveksam',
+      low_engagement: 'Lågt engagemang',
+    };
+    return map[normalized] || 'Reflekterande';
+  }
+
+  function formatCcoDateTimeValue(value = '') {
+    const ms = Date.parse(String(value || '').trim());
+    if (!Number.isFinite(ms)) return '-';
+    return new Date(ms).toLocaleString('sv-SE', { hour12: false });
+  }
+
+  function formatCcoTimingReasonLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      booking_next_weekday: 'Bokning nästa vardag',
+      weekday_window: 'Optimalt vardagsfönster',
+      pricing_2_3_days: 'Prisfråga 2–3 dagar',
+      complaint_same_day: 'Klagomål samma dag',
+      anxiety_evening_window: 'Oro: kvällsfönster',
+      same_day_complaint_window: 'Snabbt klagomålsfönster',
+      sunday_blocked: 'Söndag blockerad',
+      tempo_responsive: 'Responsiv kundtempo',
+      tempo_hesitant: 'Tveksam kundtempo',
+      tempo_low_engagement: 'Lågt engagemang',
+    };
+    return map[normalized] || normalized || 'Standardfönster';
+  }
+
+  function normalizeCcoCustomerSummary(value = null, fallback = {}) {
+    const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const timelineRaw = Array.isArray(safeValue.timeline) ? safeValue.timeline : [];
+    const timeline = timelineRaw
+      .map((entry) => ({
+        conversationId: String(entry?.conversationId || '').trim(),
+        subject: String(entry?.subject || '(utan ämne)').trim() || '(utan ämne)',
+        status: String(entry?.status || 'open').trim() || 'open',
+        occurredAt: String(entry?.occurredAt || '').trim() || null,
+      }))
+      .filter((entry) => entry.conversationId)
+      .slice(0, 6);
+
+    const safeFallback = fallback && typeof fallback === 'object' ? fallback : {};
+    const interactionCount = Number(safeValue.interactionCount);
+    const caseCount = Number(safeValue.caseCount);
+    const engagementScore = Number(safeValue.engagementScore);
+    const daysSinceLastInteraction = Number(safeValue.daysSinceLastInteraction);
+    const daysSinceLastClosedCase = Number(safeValue.daysSinceLastClosedCase);
+    return {
+      customerKey:
+        String(safeValue.customerKey || safeFallback.customerKey || '').trim() || 'unknown-customer',
+      customerName:
+        String(safeValue.customerName || safeFallback.customerName || 'Okänd kund').trim() ||
+        'Okänd kund',
+      lifecycleStatus: normalizeCcoLifecycleStatus(
+        safeValue.lifecycleStatus || safeFallback.lifecycleStatus
+      ),
+      lifecycleSource:
+        String(safeValue.lifecycleSource || safeFallback.lifecycleSource || 'auto').trim() || 'auto',
+      interactionCount: Number.isFinite(interactionCount)
+        ? Math.max(0, Math.round(interactionCount))
+        : 0,
+      caseCount: Number.isFinite(caseCount) ? Math.max(0, Math.round(caseCount)) : 0,
+      lastInteractionAt: String(
+        safeValue.lastInteractionAt || safeFallback.lastInteractionAt || ''
+      ).trim() || null,
+      daysSinceLastInteraction: Number.isFinite(daysSinceLastInteraction)
+        ? Math.max(0, Math.round(daysSinceLastInteraction))
+        : null,
+      engagementScore: Number.isFinite(engagementScore)
+        ? Math.max(0, Math.min(1, engagementScore))
+        : 0,
+      lastCaseSummary:
+        String(safeValue.lastCaseSummary || safeFallback.lastCaseSummary || '').trim() || '-',
+      daysSinceLastClosedCase: Number.isFinite(daysSinceLastClosedCase)
+        ? Math.max(0, Math.round(daysSinceLastClosedCase))
+        : null,
+      timeline,
+    };
+  }
+
+  function formatCcoSlaStatusLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const map = {
+      safe: 'säker',
+      warning: 'varning',
+      breach: 'överskriden',
+    };
+    return map[normalized] || 'säker';
+  }
+
+  function formatCcoSlaStatusChip(value = '') {
+    const normalized = normalizeCcoSlaStatus(value);
+    if (normalized === 'breach') return '🔴 SLA brott';
+    if (normalized === 'warning') return '🟠 SLA varning';
+    return '🟢 SLA säker';
+  }
+
+  function getCcoSlaChipClass(value = '') {
+    const normalized = normalizeCcoSlaStatus(value);
+    if (normalized === 'breach') return 'sla-breach';
+    if (normalized === 'warning') return 'sla-warning';
+    return 'sla-safe';
+  }
+
+  function getCcoSlaSortRank(value = '') {
+    const normalized = normalizeCcoSlaStatus(value);
+    if (normalized === 'breach') return 3;
+    if (normalized === 'warning') return 2;
+    return 1;
+  }
+
+  function getCcoLifecycleSortRank(value = '') {
+    const normalized = normalizeCcoLifecycleStatus(value);
+    const map = {
+      follow_up_pending: 1,
+      active_dialogue: 2,
+      new: 3,
+      awaiting_reply: 4,
+      dormant: 5,
+      handled: 6,
+      archived: 7,
+    };
+    return Number(map[normalized] || 6);
+  }
+
+  function formatCcoSlaCountdown(hoursRemaining, slaStatus = '') {
+    const normalized = normalizeCcoSlaStatus(slaStatus);
+    const remaining = Number(hoursRemaining);
+    if (normalized === 'breach') return 'SLA passerad';
+    if (!Number.isFinite(remaining)) return 'SLA-tid okänd';
+    const rounded = Math.max(0, Math.round(remaining * 10) / 10);
+    return `${rounded}h kvar till SLA-breach`;
+  }
+
+  function getCcoClinicWindowByDay(dayIndex = 0) {
+    if (dayIndex >= 1 && dayIndex <= 5) {
+      return { startMinutes: 8 * 60, endMinutes: 20 * 60 };
+    }
+    if (dayIndex === 6) {
+      return { startMinutes: 8 * 60, endMinutes: 18 * 60 };
+    }
+    return null;
+  }
+
+  function formatCcoWeekdaySv(dayIndex = 0) {
+    const weekdays = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
+    return weekdays[dayIndex] || 'vardag';
+  }
+
+  function formatCcoClock(date = new Date()) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  function getCcoClinicScheduleStatus(now = new Date()) {
+    const current = now instanceof Date ? new Date(now.getTime()) : new Date();
+    const currentDay = current.getDay();
+    const currentMinutes = current.getHours() * 60 + current.getMinutes();
+    const todayWindow = getCcoClinicWindowByDay(currentDay);
+    if (
+      todayWindow &&
+      currentMinutes >= todayWindow.startMinutes &&
+      currentMinutes < todayWindow.endMinutes
+    ) {
+      return {
+        isOpen: true,
+        message: '',
+        nextOpenAt: null,
+      };
+    }
+
+    for (let offset = 0; offset < 8; offset += 1) {
+      const probe = new Date(current.getTime());
+      probe.setSeconds(0, 0);
+      probe.setDate(current.getDate() + offset);
+      const window = getCcoClinicWindowByDay(probe.getDay());
+      if (!window) continue;
+      if (offset === 0 && currentMinutes < window.startMinutes) {
+        probe.setHours(Math.floor(window.startMinutes / 60), window.startMinutes % 60, 0, 0);
+        return {
+          isOpen: false,
+          message: `Kliniken är stängd. Nästa arbetspass: ${formatCcoClock(probe)}.`,
+          nextOpenAt: probe,
+        };
+      }
+      if (offset > 0) {
+        probe.setHours(Math.floor(window.startMinutes / 60), window.startMinutes % 60, 0, 0);
+        return {
+          isOpen: false,
+          message: `Kliniken är stängd. Nästa arbetspass: ${formatCcoWeekdaySv(
+            probe.getDay()
+          )} ${formatCcoClock(probe)}.`,
+          nextOpenAt: probe,
+        };
+      }
+    }
+
+    return {
+      isOpen: false,
+      message: 'Kliniken är stängd.',
+      nextOpenAt: null,
+    };
+  }
+
+  function formatCcoFocusCountdown(row = null, scheduleState = null) {
+    if (!row || typeof row !== 'object') return 'Paus';
+    const schedule = scheduleState && typeof scheduleState === 'object' ? scheduleState : null;
+    if (schedule && schedule.isOpen === false) return 'Paus';
+    const normalized = normalizeCcoSlaStatus(row?.slaStatus);
+    const remaining = Number(row?.hoursRemaining);
+    if (normalized === 'breach') return 'SLA passerad';
+    if (!Number.isFinite(remaining)) return 'SLA okänd';
+    const rounded = Math.max(0, Math.round(remaining * 10) / 10);
+    return `${rounded}h kvar`;
+  }
+
+  function buildCcoWorkloadBreakdownSummary(rows = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    const total = source.reduce(
+      (sum, row) => sum + clampCcoWorkloadMinutes(row?.estimatedWorkMinutes, 4),
+      0
+    );
+    const aggregate = {
+      base: 0,
+      toneAdjustment: 0,
+      priorityAdjustment: 0,
+      warmthAdjustment: 0,
+      lengthAdjustment: 0,
+    };
+    source.forEach((row) => {
+      const breakdown = normalizeCcoWorkloadBreakdown(row?.workloadBreakdown, 4);
+      aggregate.base += breakdown.base;
+      aggregate.toneAdjustment += breakdown.toneAdjustment;
+      aggregate.priorityAdjustment += breakdown.priorityAdjustment;
+      aggregate.warmthAdjustment += breakdown.warmthAdjustment;
+      aggregate.lengthAdjustment += breakdown.lengthAdjustment;
+    });
+    return { total, aggregate };
+  }
+
+  function formatCcoNeedsReplyLabel(value = '') {
+    return String(value || '').trim().toLowerCase() === 'handled' ? 'Hanterad' : 'Behöver svar';
+  }
+
+  function formatCcoRecommendedAction(value = '') {
+    const raw = String(value || '').trim();
+    const normalized = raw.toLowerCase();
+    const map = {
+      'ask for more info': 'Be om mer info',
+      'be om mer info': 'Be om mer info',
+      escalate: 'Eskalera',
+      'book appointment': 'Boka tid',
+      'boka tid': 'Boka tid',
+      'follow up': 'Följ upp',
+      'följ upp': 'Följ upp',
+      'provide reassurance': 'Ge lugnande återkoppling',
+      'svara med prisinformation': 'Svara med prisinformation',
+    };
+    return map[normalized] || raw || 'Be om mer info';
+  }
+
+  function formatCcoSprintStatusLabel(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'all clear') return 'Allt klart';
+    if (normalized === 'immediate action') return 'Omedelbar åtgärd';
+    if (normalized === 'attention needed') return 'Behöver uppmärksamhet';
+    if (normalized === 'sprint complete') return 'Sprint klar';
+    if (normalized === 'quick win') return 'Snabb vinst';
+    return String(value || '').trim() || 'Behöver uppmärksamhet';
+  }
+
+  function normalizeCcoSlaStatus(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['safe', 'warning', 'breach'].includes(normalized)) return normalized;
+    if (normalized === 'ok') return 'safe';
+    if (normalized === 'breached') return 'breach';
+    if (['due_48h', 'due_24h', 'aging_24h', 'aging_48h'].includes(normalized)) return 'warning';
+    return 'safe';
+  }
+
+  function normalizeCcoMailboxKey(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized || '';
+  }
+
+  function resolveCcoMailboxLabel(row = null) {
+    if (!row || typeof row !== 'object') return '';
+    const candidates = [
+      row.mailboxAddress,
+      row.userPrincipalName,
+      row.mailboxId,
+    ];
+    for (const candidate of candidates) {
+      const normalized = normalizeCcoMailboxKey(candidate);
+      if (normalized) return normalized;
+    }
+    return 'okand-postlada';
+  }
+
+  function resolveCcoUnansweredThresholdHours(intent = '') {
+    const normalizedIntent = String(intent || '').trim().toLowerCase();
+    if (normalizedIntent === 'complaint') return 6;
+    if (normalizedIntent === 'booking_request') return 12;
+    if (normalizedIntent === 'pricing_question') return 24;
+    return 24;
+  }
+
+  function isCcoConversationUnanswered(row = null) {
+    if (!row || typeof row !== 'object') return false;
+    if (String(row.needsReplyStatus || '').trim().toLowerCase() === 'handled') return false;
+    if (typeof row.isUnanswered === 'boolean') return row.isUnanswered === true;
+    const threshold =
+      Number.isFinite(Number(row.unansweredThresholdHours)) && Number(row.unansweredThresholdHours) > 0
+        ? Number(row.unansweredThresholdHours)
+        : resolveCcoUnansweredThresholdHours(row.intent);
+    const hoursSinceInbound = Number(row.hoursSinceInbound || 0);
+    if (!Number.isFinite(hoursSinceInbound)) return false;
+    return hoursSinceInbound >= threshold;
+  }
+
+  function isCcoConversationNewSinceLastVisit(row = null) {
+    if (!row || typeof row !== 'object') return false;
+    const conversationId = String(row.conversationId || '').trim();
+    if (!conversationId) return false;
+    if (state.ccoSeenConversationIds?.[conversationId] === true) return false;
+    const lastInboundMs = Date.parse(String(row.lastInboundAt || ''));
+    if (!Number.isFinite(lastInboundMs)) return false;
+    return lastInboundMs > Number(state.ccoLastSeenAtMs || 0);
+  }
+
+  function classifyCcoRelationshipStatus(row = null) {
+    if (!row || typeof row !== 'object') return 'new';
+    const summary = row.customerSummary && typeof row.customerSummary === 'object'
+      ? row.customerSummary
+      : {};
+    const lifecycleStatus = String(summary.lifecycleStatus || '').trim().toLowerCase();
+    const interactionCount = Number(summary.interactionCount || 0);
+    if (lifecycleStatus === 'dormant') return 'dormant';
+    if (interactionCount >= 6 || lifecycleStatus === 'handled') return 'loyal';
+    if (
+      ['active_dialogue', 'awaiting_reply', 'follow_up_pending'].includes(lifecycleStatus) ||
+      interactionCount >= 3
+    ) {
+      return 'returning';
+    }
+    return 'new';
+  }
+
+  function formatCcoRelationshipChip(status = 'new') {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'dormant') return '💤 Dormant';
+    if (normalized === 'loyal') return '⭐ Loyal';
+    if (normalized === 'returning') return '🔁 Returning';
+    return '🆕 New';
+  }
+
+  function formatCcoRelationshipShortLabel(status = 'new') {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'dormant') return 'Dormant';
+    if (normalized === 'loyal') return 'Loyal';
+    if (normalized === 'returning') return 'Returning';
+    return 'New';
+  }
+
+  function getCcoSlaToneClass(row = null) {
+    const status = normalizeCcoSlaStatus(row?.slaStatus);
+    if (status === 'breach') return 'sla-tone-breach';
+    if (status === 'warning') return 'sla-tone-warning';
+    return '';
+  }
+
+  function enrichCcoConversationRow(row = null) {
+    if (!row || typeof row !== 'object') return row;
+    const relationshipStatus = classifyCcoRelationshipStatus(row);
+    const lifecycleStatus = normalizeCcoLifecycleStatus(row?.customerSummary?.lifecycleStatus);
+    return {
+      ...row,
+      mailboxLabel: resolveCcoMailboxLabel(row),
+      lifecycleStatus,
+      relationshipStatus,
+      relationshipLabel: formatCcoRelationshipChip(relationshipStatus),
+      isUnanswered: isCcoConversationUnanswered(row),
+      isNewSinceLastVisit: isCcoConversationNewSinceLastVisit(row),
+    };
+  }
+
+  function getCcoFilteredConversations(rows = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    let filtered = source.map((row) => enrichCcoConversationRow(row));
+
+    const viewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
+    if (viewMode === 'unanswered') {
+      filtered = filtered.filter((row) => row.isUnanswered === true);
+    }
+
+    const mailboxFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
+    if (mailboxFilter !== 'all') {
+      filtered = filtered.filter(
+        (row) => normalizeCcoMailboxKey(row.mailboxLabel) === mailboxFilter
+      );
+    }
+
+    const slaFilter = sanitizeCcoSlaFilter(state.ccoInboxSlaFilter);
+    if (slaFilter === 'unanswered') {
+      filtered = filtered.filter((row) => row.isUnanswered === true);
+    } else if (slaFilter === 'new') {
+      filtered = filtered.filter((row) => row.isNewSinceLastVisit === true);
+    } else if (['breach', 'warning', 'safe'].includes(slaFilter)) {
+      filtered = filtered.filter((row) => normalizeCcoSlaStatus(row.slaStatus) === slaFilter);
+    }
+
+    const lifecycleFilter = sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter);
+    if (lifecycleFilter !== 'all') {
+      filtered = filtered.filter(
+        (row) => normalizeCcoLifecycleStatus(row.lifecycleStatus) === lifecycleFilter
+      );
+    }
+
+    return filtered;
+  }
+
+  function normalizeCcoPriorityReasons(value = []) {
+    const source = Array.isArray(value) ? value : [];
+    return source
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  function normalizeCcoDraftMode(value = '', fallback = 'professional') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['short', 'warm', 'professional'].includes(normalized)) return normalized;
+    if (fallback === '') return '';
+    return ['short', 'warm', 'professional'].includes(fallback) ? fallback : 'professional';
+  }
+
+  function normalizeCcoDraftModes(value = null, fallbackReply = '') {
+    const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fallbackText =
+      String(fallbackReply || '').trim() ||
+      'Hej,\n\nTack för ditt meddelande.\n\nVänligen återkom med mer information så hjälper vi dig vidare.';
+    return {
+      short: String(safeValue.short || '').trim() || fallbackText,
+      warm: String(safeValue.warm || '').trim() || fallbackText,
+      professional: String(safeValue.professional || '').trim() || fallbackText,
+    };
+  }
+
+  function normalizeCcoDraftStructure(value = null) {
+    const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    return {
+      acknowledgement:
+        String(safeValue.acknowledgement || '').trim() || 'Tack för ditt meddelande.',
+      coreAnswer:
+        String(safeValue.coreAnswer || '').trim() ||
+        'Vi har tagit emot ditt ärende och återkommer med tydlig återkoppling.',
+      cta:
+        String(safeValue.cta || '').trim() ||
+        'Vänligen återkom med kompletterande information så hjälper vi dig vidare.',
+    };
+  }
+
+  function clampCcoWorkloadMinutes(value, fallback = 4) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return Math.max(2, Math.min(25, Math.round(fallback)));
+    return Math.max(2, Math.min(25, Math.round(parsed)));
+  }
+
+  function normalizeCcoWorkloadBreakdown(value = null, fallbackMinutes = 4) {
+    const safe = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const numeric = (key, fallback = 0) => {
+      const parsed = Number(safe[key]);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+    const base = numeric('base', fallbackMinutes);
+    const toneAdjustment = numeric('toneAdjustment', 0);
+    const priorityAdjustment = numeric('priorityAdjustment', 0);
+    const warmthAdjustment = numeric('warmthAdjustment', 0);
+    const lengthAdjustment = numeric('lengthAdjustment', 0);
+    return {
+      base,
+      toneAdjustment,
+      priorityAdjustment,
+      warmthAdjustment,
+      lengthAdjustment,
+    };
+  }
+
+  function resolveCcoWorkloadWarmth(row = null) {
+    const summary = row?.customerSummary && typeof row.customerSummary === 'object'
+      ? row.customerSummary
+      : {};
+    const lifecycle = String(summary.lifecycleStatus || '').trim().toLowerCase();
+    const interactionCount = Number(summary.interactionCount || 0);
+    if (lifecycle === 'dormant') return 'dormant';
+    if (interactionCount >= 6 || lifecycle === 'handled') return 'loyal';
+    if (
+      ['active_dialogue', 'awaiting_reply', 'follow_up_pending'].includes(lifecycle) ||
+      interactionCount >= 3
+    ) {
+      return 'returning';
+    }
+    return 'new';
+  }
+
+  function estimateCcoFallbackWorkload(row = null) {
+    const intent = String(row?.intent || '').trim().toLowerCase();
+    const tone = String(row?.tone || '').trim().toLowerCase();
+    const priority = normalizePriorityLevelForUi(row?.priorityLevel);
+    const warmth = resolveCcoWorkloadWarmth(row);
+    const previewLength = String(row?.latestInboundPreview || '').trim().length;
+    const baseByIntent = {
+      complaint: 8,
+      booking_request: 5,
+      pricing_question: 4,
+      follow_up: 3,
+      cancellation: 3,
+    };
+    const toneAdjustments = {
+      frustrated: 3,
+      anxious: 2,
+      urgent: 2,
+      stressed: 1,
+      positive: -1,
+    };
+    const priorityAdjustments = {
+      Critical: 3,
+      High: 2,
+      Medium: 1,
+      Low: 0,
+    };
+    const warmthAdjustments = {
+      new: 1,
+      returning: 0,
+      loyal: -1,
+      dormant: 1,
+    };
+    const lengthAdjustment = previewLength >= 1200 ? 3 : previewLength >= 800 ? 2 : 0;
+    const breakdown = {
+      base: Number.isFinite(baseByIntent[intent]) ? baseByIntent[intent] : 4,
+      toneAdjustment: Number.isFinite(toneAdjustments[tone]) ? toneAdjustments[tone] : 0,
+      priorityAdjustment: Number.isFinite(priorityAdjustments[priority]) ? priorityAdjustments[priority] : 0,
+      warmthAdjustment: Number.isFinite(warmthAdjustments[warmth]) ? warmthAdjustments[warmth] : 0,
+      lengthAdjustment,
+    };
+    const total = clampCcoWorkloadMinutes(
+      breakdown.base +
+        breakdown.toneAdjustment +
+        breakdown.priorityAdjustment +
+        breakdown.warmthAdjustment +
+        breakdown.lengthAdjustment,
+      4
+    );
+    return {
+      estimatedWorkMinutes: total,
+      workloadBreakdown: breakdown,
+    };
+  }
+
+  function resolveCcoWorkload(row = null) {
+    const estimatedMinutes = Number(row?.estimatedWorkMinutes);
+    const fallback = estimateCcoFallbackWorkload(row);
+    const estimatedWorkMinutes = Number.isFinite(estimatedMinutes)
+      ? clampCcoWorkloadMinutes(estimatedMinutes, fallback.estimatedWorkMinutes)
+      : fallback.estimatedWorkMinutes;
+    const workloadBreakdown = normalizeCcoWorkloadBreakdown(
+      row?.workloadBreakdown,
+      fallback.workloadBreakdown.base
+    );
+    return {
+      estimatedWorkMinutes,
+      workloadBreakdown,
+    };
+  }
+
+  function formatCcoDraftModeLabel(value = '') {
+    const normalized = normalizeCcoDraftMode(value, 'professional');
+    if (normalized === 'short') return 'Kort';
+    if (normalized === 'warm') return 'Varm';
+    return 'Professionell';
   }
 
   function normalizeCcoInboxOutput(payload = null) {
@@ -7119,30 +8738,88 @@
       ? safeData.conversationWorklist
       : [];
     const drafts = Array.isArray(safeData.suggestedDrafts) ? safeData.suggestedDrafts : [];
+    const customerSummaries = Array.isArray(safeData.customerSummaries)
+      ? safeData.customerSummaries
+      : [];
+    const customerSummaryByKey = new Map();
+    for (const summary of customerSummaries) {
+      const normalized = normalizeCcoCustomerSummary(summary);
+      if (!normalized.customerKey) continue;
+      customerSummaryByKey.set(normalized.customerKey, normalized);
+    }
 
     for (const row of worklist) {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId) continue;
+      const customerKey = String(row?.customerKey || '').trim();
+      const fallbackCustomer = {
+        customerKey,
+        customerName: String(row?.sender || 'Okänd kund').trim() || 'Okänd kund',
+      };
+      const customerSummary = normalizeCcoCustomerSummary(
+        row?.customerSummary,
+        customerSummaryByKey.get(customerKey) || fallbackCustomer
+      );
       map.set(conversationId, {
         conversationId,
         messageId: String(row?.messageId || '').trim(),
         mailboxId: String(row?.mailboxId || '').trim(),
-        subject: String(row?.subject || '(utan amne)').trim() || '(utan amne)',
+        mailboxAddress: String(row?.mailboxAddress || '').trim(),
+        userPrincipalName: String(row?.userPrincipalName || '').trim(),
+        subject: String(row?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(row?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
         latestInboundPreview: String(row?.latestInboundPreview || '').trim(),
         hoursSinceInbound: Number(row?.hoursSinceInbound || 0),
         lastInboundAt: String(row?.lastInboundAt || '').trim(),
+        lastOutboundAt: String(row?.lastOutboundAt || '').trim(),
         slaStatus: normalizeCcoSlaStatus(row?.slaStatus),
+        hoursRemaining: Number.isFinite(Number(row?.hoursRemaining))
+          ? Number(row?.hoursRemaining)
+          : 0,
+        slaThreshold: Number.isFinite(Number(row?.slaThreshold))
+          ? Math.max(1, Number(row?.slaThreshold))
+          : 48,
+        isUnanswered: row?.isUnanswered === true,
+        unansweredThresholdHours: Number.isFinite(Number(row?.unansweredThresholdHours))
+          ? Math.max(1, Number(row?.unansweredThresholdHours))
+          : resolveCcoUnansweredThresholdHours(row?.intent),
+        stagnated: row?.stagnated === true,
+        stagnationHours: Number.isFinite(Number(row?.stagnationHours))
+          ? Math.max(0, Number(row?.stagnationHours))
+          : 0,
+        followUpSuggested: row?.followUpSuggested === true,
         intent: String(row?.intent || 'unclear').trim() || 'unclear',
+        intentConfidence: Number(row?.intentConfidence || 0.3),
         tone: String(row?.tone || 'neutral').trim() || 'neutral',
+        toneConfidence: Number(row?.toneConfidence || 0.4),
         priorityLevel: normalizePriorityLevelForUi(row?.priorityLevel),
         priorityScore: Number(row?.priorityScore || 0),
+        priorityReasons: normalizeCcoPriorityReasons(row?.priorityReasons),
+        customerKey: customerSummary.customerKey,
+        customerSummary,
+        lifecycleStatus: normalizeCcoLifecycleStatus(customerSummary.lifecycleStatus),
+        tempoProfile: String(row?.tempoProfile || 'reflective').trim() || 'reflective',
+        recommendedFollowUpDelayDays: Number.isFinite(Number(row?.recommendedFollowUpDelayDays))
+          ? Math.max(0, Number(row?.recommendedFollowUpDelayDays))
+          : 5,
+        ctaIntensity: String(row?.ctaIntensity || 'normal').trim() || 'normal',
+        followUpSuggestedAt: String(row?.followUpSuggestedAt || '').trim() || null,
+        followUpTimingReason: Array.isArray(row?.followUpTimingReason)
+          ? row.followUpTimingReason.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 6)
+          : [],
+        followUpUrgencyLevel: String(row?.followUpUrgencyLevel || 'normal').trim() || 'normal',
+        followUpManualApprovalRequired: row?.followUpManualApprovalRequired !== false,
+        estimatedWorkMinutes: clampCcoWorkloadMinutes(row?.estimatedWorkMinutes, 4),
+        workloadBreakdown: normalizeCcoWorkloadBreakdown(row?.workloadBreakdown, 4),
         recommendedAction: String(row?.recommendedAction || 'Be om mer info').trim() || 'Be om mer info',
         escalationRequired: Boolean(row?.escalationRequired),
         needsReplyStatus: String(row?.needsReplyStatus || 'needs_reply').trim() === 'handled'
           ? 'handled'
           : 'needs_reply',
         confidenceLevel: 'Low',
+        draftModes: normalizeCcoDraftModes(row?.draftModes, ''),
+        recommendedMode: normalizeCcoDraftMode(row?.recommendedMode, 'professional'),
+        structureUsed: normalizeCcoDraftStructure(row?.structureUsed),
         proposedReply: '',
       });
     }
@@ -7150,34 +8827,187 @@
     for (const draft of drafts) {
       const conversationId = String(draft?.conversationId || '').trim();
       if (!conversationId) continue;
+      const customerKey = String(draft?.customerKey || '').trim();
+      const fallbackCustomer = {
+        customerKey,
+        customerName: String(draft?.sender || 'Okänd kund').trim() || 'Okänd kund',
+      };
+      const customerSummary = normalizeCcoCustomerSummary(
+        draft?.customerSummary,
+        customerSummaryByKey.get(customerKey) || fallbackCustomer
+      );
       const current = map.get(conversationId) || {
         conversationId,
         messageId: String(draft?.messageId || '').trim(),
         mailboxId: String(draft?.mailboxId || '').trim(),
-        subject: String(draft?.subject || '(utan amne)').trim() || '(utan amne)',
+        mailboxAddress: String(draft?.mailboxAddress || '').trim(),
+        userPrincipalName: String(draft?.userPrincipalName || '').trim(),
+        subject: String(draft?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(draft?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
         latestInboundPreview: String(draft?.latestInboundPreview || '').trim(),
         hoursSinceInbound: Number(draft?.hoursSinceInbound || 0),
         lastInboundAt: '',
+        lastOutboundAt: String(draft?.lastOutboundAt || '').trim(),
         slaStatus: normalizeCcoSlaStatus(draft?.slaStatus),
+        hoursRemaining: Number.isFinite(Number(draft?.hoursRemaining))
+          ? Number(draft?.hoursRemaining)
+          : 0,
+        slaThreshold: Number.isFinite(Number(draft?.slaThreshold))
+          ? Math.max(1, Number(draft?.slaThreshold))
+          : 48,
+        isUnanswered: draft?.isUnanswered === true,
+        unansweredThresholdHours: Number.isFinite(Number(draft?.unansweredThresholdHours))
+          ? Math.max(1, Number(draft?.unansweredThresholdHours))
+          : resolveCcoUnansweredThresholdHours(draft?.intent),
+        stagnated: draft?.stagnated === true,
+        stagnationHours: Number.isFinite(Number(draft?.stagnationHours))
+          ? Math.max(0, Number(draft?.stagnationHours))
+          : 0,
+        followUpSuggested: draft?.followUpSuggested === true,
         intent: String(draft?.intent || 'unclear').trim() || 'unclear',
+        intentConfidence: Number(draft?.intentConfidence || 0.3),
         tone: String(draft?.tone || 'neutral').trim() || 'neutral',
+        toneConfidence: Number(draft?.toneConfidence || 0.4),
         priorityLevel: normalizePriorityLevelForUi(draft?.priorityLevel),
         priorityScore: Number(draft?.priorityScore || 0),
+        priorityReasons: normalizeCcoPriorityReasons(draft?.priorityReasons),
+        customerKey: customerSummary.customerKey,
+        customerSummary,
+        lifecycleStatus: normalizeCcoLifecycleStatus(customerSummary.lifecycleStatus),
+        tempoProfile: String(draft?.tempoProfile || 'reflective').trim() || 'reflective',
+        recommendedFollowUpDelayDays: Number.isFinite(Number(draft?.recommendedFollowUpDelayDays))
+          ? Math.max(0, Number(draft?.recommendedFollowUpDelayDays))
+          : 5,
+        ctaIntensity: String(draft?.ctaIntensity || 'normal').trim() || 'normal',
+        followUpSuggestedAt: String(draft?.followUpSuggestedAt || '').trim() || null,
+        followUpTimingReason: Array.isArray(draft?.followUpTimingReason)
+          ? draft.followUpTimingReason.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 6)
+          : [],
+        followUpUrgencyLevel: String(draft?.followUpUrgencyLevel || 'normal').trim() || 'normal',
+        followUpManualApprovalRequired: draft?.followUpManualApprovalRequired !== false,
+        estimatedWorkMinutes: clampCcoWorkloadMinutes(draft?.estimatedWorkMinutes, 4),
+        workloadBreakdown: normalizeCcoWorkloadBreakdown(draft?.workloadBreakdown, 4),
         recommendedAction: String(draft?.recommendedAction || 'Be om mer info').trim() || 'Be om mer info',
         escalationRequired: Boolean(draft?.escalationRequired),
         needsReplyStatus: 'needs_reply',
         confidenceLevel: 'Low',
+        draftModes: normalizeCcoDraftModes(null, ''),
+        recommendedMode: 'professional',
+        structureUsed: normalizeCcoDraftStructure(null),
         proposedReply: '',
       };
+      const nextPriorityReasons = normalizeCcoPriorityReasons(draft?.priorityReasons);
+      if ((!current.priorityReasons || !current.priorityReasons.length) && nextPriorityReasons.length) {
+        current.priorityReasons = nextPriorityReasons;
+      }
+      if (!current.customerKey && customerSummary.customerKey) {
+        current.customerKey = customerSummary.customerKey;
+      }
+      current.customerSummary = normalizeCcoCustomerSummary(
+        draft?.customerSummary,
+        current.customerSummary || customerSummary
+      );
+      current.tempoProfile = String(draft?.tempoProfile || current.tempoProfile || 'reflective')
+        .trim()
+        .toLowerCase();
+      const nextDelayDays = Number(draft?.recommendedFollowUpDelayDays);
+      if (Number.isFinite(nextDelayDays) && nextDelayDays >= 0) {
+        current.recommendedFollowUpDelayDays = nextDelayDays;
+      }
+      if (String(draft?.ctaIntensity || '').trim()) {
+        current.ctaIntensity = String(draft?.ctaIntensity).trim().toLowerCase();
+      }
+      if (draft?.followUpSuggestedAt) {
+        current.followUpSuggestedAt = String(draft.followUpSuggestedAt).trim() || null;
+      }
+      if (Array.isArray(draft?.followUpTimingReason)) {
+        current.followUpTimingReason = draft.followUpTimingReason
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .slice(0, 6);
+      }
+      if (String(draft?.followUpUrgencyLevel || '').trim()) {
+        current.followUpUrgencyLevel = String(draft.followUpUrgencyLevel).trim().toLowerCase();
+      }
+      if (typeof draft?.followUpManualApprovalRequired === 'boolean') {
+        current.followUpManualApprovalRequired = draft.followUpManualApprovalRequired;
+      }
+      const nextEstimatedWorkMinutes = Number(draft?.estimatedWorkMinutes);
+      if (Number.isFinite(nextEstimatedWorkMinutes)) {
+        current.estimatedWorkMinutes = clampCcoWorkloadMinutes(nextEstimatedWorkMinutes, 4);
+      }
+      if (draft?.workloadBreakdown && typeof draft.workloadBreakdown === 'object') {
+        current.workloadBreakdown = normalizeCcoWorkloadBreakdown(
+          draft.workloadBreakdown,
+          current.estimatedWorkMinutes || 4
+        );
+      }
       current.confidenceLevel = String(draft?.confidenceLevel || current.confidenceLevel || 'Low').trim() || 'Low';
-      current.proposedReply = String(
+      const nextIntentConfidence = Number(draft?.intentConfidence);
+      if (Number.isFinite(nextIntentConfidence)) {
+        current.intentConfidence = Math.max(0, Math.min(1, nextIntentConfidence));
+      }
+      const nextToneConfidence = Number(draft?.toneConfidence);
+      if (Number.isFinite(nextToneConfidence)) {
+        current.toneConfidence = Math.max(0, Math.min(1, nextToneConfidence));
+      }
+      const nextHoursRemaining = Number(draft?.hoursRemaining);
+      if (Number.isFinite(nextHoursRemaining)) {
+        current.hoursRemaining = nextHoursRemaining;
+      }
+      const nextSlaThreshold = Number(draft?.slaThreshold);
+      if (Number.isFinite(nextSlaThreshold) && nextSlaThreshold > 0) {
+        current.slaThreshold = nextSlaThreshold;
+      }
+      if (typeof draft?.stagnated === 'boolean') {
+        current.stagnated = draft.stagnated;
+      }
+      const nextStagnationHours = Number(draft?.stagnationHours);
+      if (Number.isFinite(nextStagnationHours) && nextStagnationHours >= 0) {
+        current.stagnationHours = nextStagnationHours;
+      }
+      if (typeof draft?.followUpSuggested === 'boolean') {
+        current.followUpSuggested = draft.followUpSuggested;
+      }
+      const fallbackDraftText = String(
         draft?.suggestedReply || draft?.proposedReply || current.proposedReply || ''
       ).trim();
-      if (!current.subject) current.subject = String(draft?.subject || '(utan amne)').trim() || '(utan amne)';
+      current.draftModes = normalizeCcoDraftModes(draft?.draftModes, fallbackDraftText);
+      current.recommendedMode = normalizeCcoDraftMode(
+        draft?.recommendedMode,
+        current.recommendedMode || 'professional'
+      );
+      current.structureUsed = normalizeCcoDraftStructure(draft?.structureUsed);
+      current.proposedReply = String(
+        current.draftModes[current.recommendedMode] ||
+          current.draftModes.professional ||
+          fallbackDraftText
+      ).trim();
+      if (!current.subject) {
+        current.subject = String(draft?.subject || '(utan ämne)').trim() || '(utan ämne)';
+      }
       if (!current.mailboxId) current.mailboxId = String(draft?.mailboxId || '').trim();
+      if (!current.mailboxAddress) {
+        current.mailboxAddress = String(draft?.mailboxAddress || '').trim();
+      }
+      if (!current.userPrincipalName) {
+        current.userPrincipalName = String(draft?.userPrincipalName || '').trim();
+      }
       if (!current.messageId) current.messageId = String(draft?.messageId || '').trim();
+      if (typeof draft?.isUnanswered === 'boolean') {
+        current.isUnanswered = draft.isUnanswered;
+      }
+      const nextUnansweredThresholdHours = Number(draft?.unansweredThresholdHours);
+      if (Number.isFinite(nextUnansweredThresholdHours) && nextUnansweredThresholdHours > 0) {
+        current.unansweredThresholdHours = Math.max(1, nextUnansweredThresholdHours);
+      }
       map.set(conversationId, current);
+    }
+
+    for (const row of map.values()) {
+      const workload = resolveCcoWorkload(row);
+      row.estimatedWorkMinutes = workload.estimatedWorkMinutes;
+      row.workloadBreakdown = workload.workloadBreakdown;
     }
 
     return map;
@@ -7186,10 +9016,16 @@
   function getSortedCcoConversations(data = null) {
     const rows = Array.from(buildCcoConversationMap(data).values());
     rows.sort((a, b) => {
-      const priorityRank = { Critical: 4, High: 3, Medium: 2, Low: 1 };
-      const leftRank = priorityRank[a.priorityLevel] || 1;
-      const rightRank = priorityRank[b.priorityLevel] || 1;
-      if (rightRank !== leftRank) return rightRank - leftRank;
+      const lifecycleRankDiff =
+        getCcoLifecycleSortRank(
+          a?.lifecycleStatus || a?.customerSummary?.lifecycleStatus
+        ) -
+        getCcoLifecycleSortRank(
+          b?.lifecycleStatus || b?.customerSummary?.lifecycleStatus
+        );
+      if (lifecycleRankDiff !== 0) return lifecycleRankDiff;
+      const slaRankDiff = getCcoSlaSortRank(b.slaStatus) - getCcoSlaSortRank(a.slaStatus);
+      if (slaRankDiff !== 0) return slaRankDiff;
       if (Number(b.priorityScore || 0) !== Number(a.priorityScore || 0)) {
         return Number(b.priorityScore || 0) - Number(a.priorityScore || 0);
       }
@@ -7198,56 +9034,91 @@
     return rows;
   }
 
+  function isCcoDebugMode() {
+    const metadata =
+      state.ccoInboxData?.metadata && typeof state.ccoInboxData.metadata === 'object'
+        ? state.ccoInboxData.metadata
+        : {};
+    if (metadata.debugMode === true) return true;
+    return Boolean(metadata.snapshotDebug && typeof metadata.snapshotDebug === 'object');
+  }
+
   function getCcoSprintSlotLabel(index) {
-    if (index === 0) return 'Critical';
-    if (index === 1) return 'High';
-    return 'Quick Win';
+    if (index === 0) return 'Kritisk';
+    if (index === 1) return 'Hög';
+    return 'Snabb vinst';
+  }
+
+  function isCcoCriticalToneForFocus(row = null) {
+    const tone = String(row?.tone || '').trim().toLowerCase();
+    return ['frustrated', 'urgent', 'anxious'].includes(tone);
   }
 
   function buildCcoSprintQueueRows(openRows = []) {
-    const rows = Array.isArray(openRows) ? openRows : [];
-    const queue = [];
-    const used = new Set();
-    const pushMatch = (predicate, fallbackLabel) => {
-      const match = rows.find((row) => {
-        if (!row || used.has(row.conversationId)) return false;
-        return predicate(row);
-      });
-      if (!match) return;
-      used.add(match.conversationId);
-      queue.push({
-        ...match,
-        sprintLabel: fallbackLabel,
-      });
+    const rows = Array.isArray(openRows) ? openRows.filter(Boolean) : [];
+    const byRank = (left, right) => {
+      const leftBreach = normalizeCcoSlaStatus(left?.slaStatus) === 'breach' ? 1 : 0;
+      const rightBreach = normalizeCcoSlaStatus(right?.slaStatus) === 'breach' ? 1 : 0;
+      if (leftBreach !== rightBreach) return rightBreach - leftBreach;
+      const leftComplaint = String(left?.intent || '').trim().toLowerCase() === 'complaint' ? 1 : 0;
+      const rightComplaint = String(right?.intent || '').trim().toLowerCase() === 'complaint' ? 1 : 0;
+      if (leftComplaint !== rightComplaint) return rightComplaint - leftComplaint;
+      const leftCriticalTone = isCcoCriticalToneForFocus(left) ? 1 : 0;
+      const rightCriticalTone = isCcoCriticalToneForFocus(right) ? 1 : 0;
+      if (leftCriticalTone !== rightCriticalTone) return rightCriticalTone - leftCriticalTone;
+      const leftScore = Number(left?.priorityScore || 0);
+      const rightScore = Number(right?.priorityScore || 0);
+      if (leftScore !== rightScore) return rightScore - leftScore;
+      return Number(right?.hoursSinceInbound || 0) - Number(left?.hoursSinceInbound || 0);
     };
-
-    pushMatch((row) => safeLower(row.priorityLevel) === 'critical', 'Critical');
-    pushMatch((row) => safeLower(row.priorityLevel) === 'high', 'High');
-    pushMatch(
-      (row) => ['low', 'medium'].includes(safeLower(row.priorityLevel)),
-      'Quick Win'
+    const mandatory = rows
+      .filter((row) => {
+        const isCritical = safeLower(row?.priorityLevel || '') === 'critical';
+        const isBreach = normalizeCcoSlaStatus(row?.slaStatus) === 'breach';
+        return isCritical || isBreach;
+      })
+      .sort(byRank);
+    const mandatoryIds = new Set(
+      mandatory.map((row) => String(row?.conversationId || '').trim()).filter(Boolean)
     );
-
-    for (const row of rows) {
-      if (!row || used.has(row.conversationId)) continue;
-      if (queue.length >= 3) break;
-      used.add(row.conversationId);
-      queue.push({
+    const remaining = rows.filter(
+      (row) => !mandatoryIds.has(String(row?.conversationId || '').trim())
+    );
+    const queueBase = [...mandatory, ...remaining].sort(byRank).slice(0, 3);
+    return queueBase.map((row, index) => {
+      let sprintLabel = getCcoSprintSlotLabel(index);
+      if (normalizeCcoSlaStatus(row?.slaStatus) === 'breach') sprintLabel = 'SLA-brott';
+      else if (safeLower(row?.priorityLevel || '') === 'critical') sprintLabel = 'Kritisk';
+      else if (safeLower(row?.priorityLevel || '') === 'high') sprintLabel = 'Hög';
+      return {
         ...row,
-        sprintLabel: getCcoSprintSlotLabel(queue.length),
-      });
-    }
-
-    return queue.slice(0, 3);
+        sprintLabel,
+      };
+    });
   }
 
   function getCcoVisibleConversations(rows = []) {
     const source = Array.isArray(rows) ? rows : [];
-    if (!state.ccoSprintActive) return source;
-    const queueSet = new Set(
-      Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : []
-    );
-    return source.filter((row) => queueSet.has(String(row?.conversationId || '').trim()));
+    const enriched = source.map((row) => enrichCcoConversationRow(row));
+    if (state.ccoSprintActive) {
+      const queueSet = new Set(
+        Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds.slice(0, 3) : []
+      );
+      return enriched.filter((row) => queueSet.has(String(row?.conversationId || '').trim()));
+    }
+
+    const adaptiveFocusActive = state.ccoAdaptiveFocusState?.isActive === true;
+    if (adaptiveFocusActive && state.ccoAdaptiveFocusShowAll !== true) {
+      const focused = enriched.filter((row) => {
+        const priority = safeLower(row?.priorityLevel || '');
+        if (priority === 'critical' || priority === 'high') return true;
+        return normalizeCcoSlaStatus(row?.slaStatus) === 'breach';
+      });
+      if (focused.length) return getCcoFilteredConversations(focused.slice(0, 3));
+      return getCcoFilteredConversations(enriched.slice(0, 3));
+    }
+
+    return getCcoFilteredConversations(enriched);
   }
 
   function syncCcoSprintState(openRows = [], plannedRows = []) {
@@ -7257,7 +9128,7 @@
     for (const row of planned) {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId) continue;
-      plannedLabels[conversationId] = String(row?.sprintLabel || '').trim() || 'Quick Win';
+      plannedLabels[conversationId] = String(row?.sprintLabel || '').trim() || 'Snabb vinst';
     }
 
     if (!state.ccoSprintActive) {
@@ -7304,16 +9175,51 @@
   function renderCcoSprintPanel(openRows = [], plannedRows = []) {
     const safeOpenRows = Array.isArray(openRows) ? openRows : [];
     const safePlannedRows = Array.isArray(plannedRows) ? plannedRows.slice(0, 3) : [];
-    const hasCritical = safeOpenRows.some(
-      (row) => safeLower(row.priorityLevel) === 'critical' || row.escalationRequired === true
+    const usageAnalytics =
+      state.ccoUsageAnalytics && typeof state.ccoUsageAnalytics === 'object'
+        ? state.ccoUsageAnalytics
+        : null;
+    const redFlagState =
+      state.ccoRedFlagState && typeof state.ccoRedFlagState === 'object'
+        ? state.ccoRedFlagState
+        : null;
+    const adaptiveFocusState =
+      state.ccoAdaptiveFocusState && typeof state.ccoAdaptiveFocusState === 'object'
+        ? state.ccoAdaptiveFocusState
+        : null;
+    const recoveryState =
+      state.ccoRecoveryState && typeof state.ccoRecoveryState === 'object'
+        ? state.ccoRecoveryState
+        : null;
+    const adaptiveFocusActive = adaptiveFocusState?.isActive === true;
+    const openMap = new Map(
+      safeOpenRows.map((row) => [String(row?.conversationId || '').trim(), row])
     );
-    let statusText = 'All Clear';
+    const sprintRows = state.ccoSprintActive
+      ? state.ccoSprintQueueIds
+          .map((conversationId) => openMap.get(String(conversationId || '').trim()))
+          .filter(Boolean)
+      : safePlannedRows;
+    const focusRows = sprintRows.slice(0, 3);
+    const focusCount = focusRows.length;
+    const totalOpenCount = safeOpenRows.length;
+    const workloadSummary = buildCcoWorkloadBreakdownSummary(focusRows);
+    const scheduleState = getCcoClinicScheduleStatus(new Date());
+
+    const priorityCounts = summarizeCcoPriorityCounts(safeOpenRows);
+    const hasCritical = safeOpenRows.some(
+      (row) =>
+        safeLower(row.priorityLevel) === 'critical' ||
+        row.escalationRequired === true ||
+        normalizeCcoSlaStatus(row.slaStatus) === 'breach'
+    );
+    let statusText = 'Allt klart';
     let statusClass = 'status-all-clear';
     if (hasCritical) {
-      statusText = 'Immediate Action';
+      statusText = 'Omedelbar åtgärd';
       statusClass = 'status-immediate';
     } else if (safeOpenRows.length > 0) {
-      statusText = 'Attention Needed';
+      statusText = 'Behöver uppmärksamhet';
       statusClass = 'status-attention';
     }
 
@@ -7325,15 +9231,133 @@
         statusClass
       );
     }
+    if (els.ccoStatusCounts) {
+      els.ccoStatusCounts.textContent = `${priorityCounts.critical} kritiska | ${priorityCounts.high} höga | ${safeOpenRows.length} öppna`;
+    }
+    if (els.ccoFocusHeading) {
+      els.ccoFocusHeading.textContent = `IDAG – FOKUS (${focusCount} av ${totalOpenCount})`;
+    }
+    if (els.ccoFocusWorkload) {
+      const nextMinutes = Math.max(0, Number(workloadSummary.total || 0));
+      const previousMinutes = Number(state.ccoFocusWorkloadMinutes || 0);
+      els.ccoFocusWorkload.textContent = `≈ ${Math.round(nextMinutes)} min arbete`;
+      if (previousMinutes !== nextMinutes) {
+        els.ccoFocusWorkload.classList.remove('is-updated');
+        // Force reflow so transition restarts when value changes.
+        void els.ccoFocusWorkload.offsetWidth;
+        els.ccoFocusWorkload.classList.add('is-updated');
+      }
+      state.ccoFocusWorkloadMinutes = nextMinutes;
+    }
+    if (els.ccoFocusWorkloadBreakdown) {
+      const aggregate = workloadSummary.aggregate;
+      els.ccoFocusWorkloadBreakdown.innerHTML = [
+        `Bas: ${Math.round(aggregate.base)} min`,
+        `Ton: ${aggregate.toneAdjustment >= 0 ? '+' : ''}${Math.round(aggregate.toneAdjustment)}`,
+        `Prioritet: ${aggregate.priorityAdjustment >= 0 ? '+' : ''}${Math.round(
+          aggregate.priorityAdjustment
+        )}`,
+        `Relation: ${aggregate.warmthAdjustment >= 0 ? '+' : ''}${Math.round(
+          aggregate.warmthAdjustment
+        )}`,
+        `Längd: ${aggregate.lengthAdjustment >= 0 ? '+' : ''}${Math.round(aggregate.lengthAdjustment)}`,
+        `Totalt: ${Math.round(workloadSummary.total)} min`,
+      ]
+        .map((line) => `<div>${escapeHtml(line)}</div>`)
+        .join('');
+    }
+    if (els.ccoFocusWorkloadInfoBtn) {
+      els.ccoFocusWorkloadInfoBtn.disabled = focusCount === 0;
+      if (focusCount === 0 && els.ccoFocusWorkloadBreakdown) {
+        els.ccoFocusWorkloadBreakdown.classList.remove('visible');
+        els.ccoFocusWorkloadInfoBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if (els.ccoFocusScheduleStatus) {
+      if (!focusCount) {
+        els.ccoFocusScheduleStatus.textContent = 'Allt under kontroll. Inga ärenden kräver svar just nu.';
+      } else if (scheduleState.isOpen === false) {
+        els.ccoFocusScheduleStatus.textContent = `${scheduleState.message} Du har ${Math.round(
+          workloadSummary.total
+        )} min planerat arbete.`;
+      } else {
+        els.ccoFocusScheduleStatus.textContent = '';
+      }
+    }
 
-    const openMap = new Map(
-      safeOpenRows.map((row) => [String(row?.conversationId || '').trim(), row])
-    );
-    const sprintRows = state.ccoSprintActive
-      ? state.ccoSprintQueueIds
-          .map((conversationId) => openMap.get(String(conversationId || '').trim()))
-          .filter(Boolean)
-      : safePlannedRows;
+    document.body.classList.toggle('cco-focus-mode', adaptiveFocusActive);
+
+    if (els.ccoFocusShowAllBtn) {
+      els.ccoFocusShowAllBtn.textContent =
+        state.ccoAdaptiveFocusShowAll === true ? 'Visa fokus' : 'Visa alla';
+      els.ccoFocusShowAllBtn.setAttribute(
+        'aria-pressed',
+        state.ccoAdaptiveFocusShowAll === true ? 'true' : 'false'
+      );
+    }
+
+    if (els.ccoRedFlagBanner) {
+      const drivers = Array.isArray(redFlagState?.primaryDrivers)
+        ? redFlagState.primaryDrivers
+            .map((driver) => String(driver || '').trim().replace(/_/g, ' '))
+            .filter(Boolean)
+            .slice(0, 3)
+        : [];
+      if (redFlagState?.isActive === true) {
+        const delta = Number(redFlagState.delta || 0);
+        const deltaLabel = Number.isFinite(delta)
+          ? `${delta > 0 ? '+' : ''}${Math.round(delta)}`
+          : '-';
+        const driversLabel = drivers.length ? drivers.join(' + ') : 'okänd drivare';
+        const actionLabel = String(redFlagState.recommendedAction || '').trim();
+        els.ccoRedFlagBanner.innerHTML = `
+          <div style="font-weight:600">⚠ Operativ avvikelse upptäckt</div>
+          <div>Health Score ${escapeHtml(deltaLabel)} på 48h · Primär orsak: ${escapeHtml(driversLabel)}</div>
+          <div>${escapeHtml(actionLabel || 'Rekommendation: prioritera high-risk ärenden kommande 48h.')}</div>
+        `;
+        els.ccoRedFlagBanner.classList.add('visible');
+      } else if (recoveryState?.recovered === true) {
+        els.ccoRedFlagBanner.innerHTML =
+          '<div style="font-weight:600">✔ Stabilisering uppnådd</div><div>Fokusläge avslutat. Systemet är tillbaka i normal drift.</div>';
+        els.ccoRedFlagBanner.classList.add('visible');
+      } else {
+        els.ccoRedFlagBanner.textContent = '';
+        els.ccoRedFlagBanner.classList.remove('visible');
+      }
+    }
+
+    if (els.ccoPerformancePanel) {
+      if (usageAnalytics) {
+        const usagePct = Math.round(Math.max(0, Math.min(1, Number(usageAnalytics.ccoUsageRate || 0))) * 100);
+        const avgResponse = Number(usageAnalytics.avgResponseTimeHours || 0);
+        const followPct = Math.round(
+          Math.max(0, Math.min(1, Number(usageAnalytics.systemRecommendationFollowRate || 0))) * 100
+        );
+        const stressDelta = String(usageAnalytics.slaBreachTrend || '').trim() || '0%';
+        els.ccoPerformancePanel.innerHTML = `
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Använder du CCO</span>
+            <span class="cco-performance-item-value">${escapeHtml(`${usagePct}%`)}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Snitt-svarstid</span>
+            <span class="cco-performance-item-value">${escapeHtml(`${avgResponse.toFixed(1)}h`)}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Följer rekommendation</span>
+            <span class="cco-performance-item-value">${escapeHtml(`${followPct}%`)}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">SLA-breach trend</span>
+            <span class="cco-performance-item-value">${escapeHtml(stressDelta)}</span>
+          </div>
+        `;
+        els.ccoPerformancePanel.classList.add('visible');
+      } else {
+        els.ccoPerformancePanel.innerHTML = '';
+        els.ccoPerformancePanel.classList.remove('visible');
+      }
+    }
 
     const isComplete =
       state.ccoSprintActive &&
@@ -7354,28 +9378,35 @@
     }
 
     if (els.ccoStartSprintBtn) {
-      els.ccoStartSprintBtn.textContent = isComplete ? 'Start nästa sprint' : 'Start Sprint';
-      els.ccoStartSprintBtn.disabled = state.ccoSprintActive && !isComplete;
+      if (isComplete) {
+        els.ccoStartSprintBtn.textContent = 'Starta nästa sprint';
+      } else if (state.ccoSprintActive) {
+        els.ccoStartSprintBtn.textContent = 'Avsluta sprint';
+      } else {
+        els.ccoStartSprintBtn.textContent = 'Starta sprint';
+      }
+      els.ccoStartSprintBtn.disabled = false;
     }
 
     if (els.ccoSprintProgress) {
       if (isComplete) {
-        els.ccoSprintProgress.textContent = 'Sprint Complete';
+        els.ccoSprintProgress.textContent = 'Sprint klar';
       } else if (state.ccoSprintActive) {
         const done = Number(state.ccoSprintCompletedIds.length || 0);
         const total = Math.max(Number(state.ccoSprintInitialTotal || 0), done + sprintRows.length);
-        els.ccoSprintProgress.textContent = `Progress: ${done} av ${total} hanterade.`;
-      } else if (safePlannedRows.length) {
-        els.ccoSprintProgress.textContent = 'Tryck Start Sprint för fokuserat arbetsläge.';
+        els.ccoSprintProgress.textContent = `Progress: ${done}/${total}`;
+      } else if (focusCount > 0) {
+        const showAllHint = totalOpenCount > focusCount ? ' · Visa alla' : '';
+        els.ccoSprintProgress.textContent = `${focusCount} av ${totalOpenCount}${showAllHint}`;
       } else {
-        els.ccoSprintProgress.textContent = 'Ingen sprintkö tillgänglig just nu.';
+        els.ccoSprintProgress.textContent = '🟢 Allt under kontroll. Inga ärenden kräver svar just nu.';
       }
     }
 
     if (els.ccoSprintStressMeta) {
       if (stressIndex) {
         const score = Number(stressIndex.score || 0);
-        const level = String(stressIndex.level || 'Low').trim() || 'Low';
+        const level = formatCcoPriorityLabel(String(stressIndex.level || 'Low').trim() || 'Low');
         els.ccoSprintStressMeta.textContent = `Stressindex: ${score} (${level})`;
       } else {
         els.ccoSprintStressMeta.textContent = 'Stressindex: -';
@@ -7383,17 +9414,21 @@
     }
 
     if (els.ccoSprintFeedback) {
-      if (isComplete && sprintFeedback) {
-        const handled = Math.max(0, Number(sprintFeedback.itemsCompleted || 0));
-        const resolvedCritical = Math.max(0, Number(sprintFeedback.resolvedCritical || 0));
-        const slaLine = sprintFeedback.slaImproved ? '✓ SLA förbättrad' : '✓ SLA oförändrad';
+      if (isComplete) {
+        const handled = Math.max(
+          0,
+          Number((sprintFeedback?.itemsCompleted ?? state.ccoSprintCompletedIds.length) || 0)
+        );
+        const resolvedCritical = Math.max(0, Number(sprintFeedback?.resolvedCritical || 0));
+        const slaLine = sprintFeedback?.slaImproved ? '✓ SLA förbättrad' : '✓ SLA oförändrad';
         const safeHandled = Number.isFinite(handled) ? handled : 0;
         const safeCritical = Number.isFinite(resolvedCritical) ? resolvedCritical : 0;
         els.ccoSprintFeedback.innerHTML = [
-          'Sprint Complete',
+          'Sprint klar',
           `✓ ${safeHandled} konversationer hanterade`,
-          `✓ ${safeCritical} kritisk löst`,
+          `✓ ${safeCritical} kritiska lösta`,
           slaLine,
+          '✓ Föreslagen paus: 2 minuter',
         ]
           .map((line) => `<div>${escapeHtml(line)}</div>`)
           .join('');
@@ -7406,11 +9441,12 @@
 
     if (!els.ccoSprintQueueList) return;
     if (isComplete) {
-      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Sprint Complete</li>';
+      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Sprint klar</li>';
       return;
     }
     if (!sprintRows.length) {
-      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Ingen sprintkö ännu.</li>';
+      els.ccoSprintQueueList.innerHTML =
+        '<li class="mini muted">🟢 Allt under kontroll. Inga ärenden kräver svar just nu.</li>';
       return;
     }
 
@@ -7422,24 +9458,86 @@
           String(state.ccoSprintLabelByConversationId?.[conversationId] || '').trim() ||
           String(row?.sprintLabel || '').trim() ||
           getCcoSprintSlotLabel(index);
+        const normalizedPriority = safeLower(row?.priorityLevel || 'low');
+        const priorityClass = ['critical', 'high', 'medium', 'low'].includes(normalizedPriority)
+          ? `priority-${normalizedPriority}`
+          : 'priority-low';
+        const relationshipStatus = String(row?.relationshipStatus || classifyCcoRelationshipStatus(row))
+          .trim()
+          .toLowerCase();
+        const relationshipLabel = formatCcoRelationshipShortLabel(relationshipStatus);
+        const countdownLabel = formatCcoFocusCountdown(row, scheduleState);
+        const intentLabel = formatCcoIntentLabel(row?.intent || 'unclear');
+        const actionLabel = formatCcoRecommendedAction(row?.recommendedAction || '');
+        const ctaLabel =
+          String(row?.intent || '').trim().toLowerCase() === 'complaint'
+            ? 'Svara nu'
+            : String(row?.intent || '').trim().toLowerCase() === 'booking_request'
+            ? 'Skicka förslag'
+            : String(row?.intent || '').trim().toLowerCase() === 'follow_up'
+            ? 'Uppföljning'
+            : actionLabel || 'Svara nu';
+        const focusSeverityIcon =
+          normalizeCcoSlaStatus(row?.slaStatus) === 'breach' || normalizedPriority === 'critical'
+            ? '🔴'
+            : normalizedPriority === 'high'
+            ? '🟡'
+            : '🟢';
+        const workload = clampCcoWorkloadMinutes(row?.estimatedWorkMinutes, 4);
         return `
-          <li class="cco-sprint-item">
+          <li class="cco-sprint-item ${priorityClass}">
             <div class="cco-sprint-item-label">${escapeHtml(sprintLabel)}</div>
-            <div class="cco-sprint-item-subject">${escapeHtml(row?.subject || '(utan ämne)')}</div>
-            <div class="cco-sprint-item-meta">${escapeHtml(row?.sender || 'okänd')} · ${escapeHtml(row?.priorityLevel || 'Low')}</div>
+            <button class="cco-sprint-item-btn ccoSprintSelectBtn" data-conversation-id="${escapeHtml(
+              conversationId
+            )}">
+              <div class="cco-sprint-item-subject">[ ${focusSeverityIcon} ${escapeHtml(intentLabel)} - ${escapeHtml(
+                relationshipLabel
+              )} - ${escapeHtml(countdownLabel)} ]</div>
+              <div class="cco-sprint-item-meta">Rekommendation: ${escapeHtml(actionLabel)}</div>
+              <div class="cco-sprint-item-action">CTA: ${escapeHtml(ctaLabel)} · ≈ ${escapeHtml(
+                `${workload} min`
+              )}</div>
+            </button>
           </li>
         `;
       })
       .join('');
+
+    els.ccoSprintQueueList.querySelectorAll('.ccoSprintSelectBtn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const conversationId = String(button.getAttribute('data-conversation-id') || '').trim();
+        if (!conversationId) return;
+        setSelectedCcoConversation(conversationId);
+        renderCcoInbox(state.ccoInboxData);
+      });
+    });
+  }
+
+  function stopCcoSprint({ message = 'Sprint avslutad. Full inkorg visas igen.' } = {}) {
+    state.ccoSprintActive = false;
+    state.ccoSprintQueueIds = [];
+    state.ccoSprintCompletedIds = [];
+    state.ccoSprintLabelByConversationId = {};
+    state.ccoSprintInitialTotal = 0;
+    state.ccoSprintId = '';
+    state.ccoSprintStartedAtMs = 0;
+    state.ccoSprintLatestFeedback = null;
+    hideCcoSoftBreakPanel();
+    renderCcoInbox(state.ccoInboxData);
+    setStatus(els.ccoInboxStatus, message);
   }
 
   async function startCcoSprint() {
+    if (state.ccoSprintActive && state.ccoSprintQueueIds.length) {
+      stopCcoSprint();
+      return;
+    }
     const data =
       state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object'
         ? state.ccoInboxData.data
         : null;
     if (!data) {
-      setStatus(els.ccoInboxStatus, 'Kör CCO Inbox Brief innan sprint startas.', true);
+      setStatus(els.ccoInboxStatus, 'Kör CCO inkorgsbrief innan sprint startas.', true);
       return;
     }
 
@@ -7455,7 +9553,7 @@
       state.ccoSprintStartedAtMs = 0;
       state.ccoSprintLatestFeedback = null;
       renderCcoInbox(state.ccoInboxData);
-      setStatus(els.ccoInboxStatus, 'All Clear: inga sprint-objekt att starta.');
+      setStatus(els.ccoInboxStatus, 'Allt klart: inga sprintobjekt att starta.');
       return;
     }
 
@@ -7477,7 +9575,7 @@
     });
     state.ccoSprintInitialTotal = state.ccoSprintQueueIds.length;
     state.ccoSprintLatestFeedback = null;
-    state.ccoSelectedConversationId = state.ccoSprintQueueIds[0] || '';
+    setSelectedCcoConversation(state.ccoSprintQueueIds[0] || '');
     renderCcoInbox(state.ccoInboxData);
     setStatus(els.ccoInboxStatus, 'Sprint startad. Fokusläge aktivt.');
 
@@ -7547,7 +9645,11 @@
       ? state.ccoInboxData.data
       : null;
     if (!data) return null;
-    const rows = getCcoVisibleConversations(getSortedCcoConversations(data));
+    const rows = getCcoFilteredConversations(
+      getSortedCcoConversations(data).filter(
+        (row) => String(row?.needsReplyStatus || '').trim().toLowerCase() !== 'handled'
+      )
+    );
     if (!rows.length) return null;
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     const selected = rows.find((row) => row.conversationId === selectedId);
@@ -7560,7 +9662,113 @@
     const conversationId = String(conversation.conversationId || '').trim();
     const override = state.ccoDraftOverrideByConversationId?.[conversationId];
     if (typeof override === 'string' && override.trim()) return override;
+    const selectedMode = getCcoSelectedDraftMode(conversation);
+    const byMode = getCcoDraftBodyByMode(conversation, selectedMode);
+    if (byMode) return byMode;
     return String(conversation.proposedReply || '').trim();
+  }
+
+  function getCcoDraftBodyByMode(conversation = null, mode = 'professional') {
+    if (!conversation || typeof conversation !== 'object') return '';
+    const draftModes =
+      conversation.draftModes && typeof conversation.draftModes === 'object'
+        ? conversation.draftModes
+        : null;
+    if (!draftModes) return '';
+    const normalizedMode = normalizeCcoDraftMode(mode, 'professional');
+    return String(draftModes[normalizedMode] || '').trim();
+  }
+
+  function getCcoRecommendedDraftMode(conversation = null) {
+    const mode = normalizeCcoDraftMode(conversation?.recommendedMode, 'professional');
+    return mode;
+  }
+
+  function getCcoSelectedDraftMode(conversation = null) {
+    if (!conversation || typeof conversation !== 'object') return 'professional';
+    const conversationId = String(conversation.conversationId || '').trim();
+    const stateMode = String(state.ccoDraftModeByConversationId?.[conversationId] || '')
+      .trim()
+      .toLowerCase();
+    if (['short', 'warm', 'professional'].includes(stateMode)) return stateMode;
+    return getCcoRecommendedDraftMode(conversation);
+  }
+
+  function setCcoDraftModeForConversation(conversationId, mode = 'professional') {
+    const key = String(conversationId || '').trim();
+    if (!key) return;
+    const normalizedMode = normalizeCcoDraftMode(mode, 'professional');
+    state.ccoDraftModeByConversationId = {
+      ...state.ccoDraftModeByConversationId,
+      [key]: normalizedMode,
+    };
+    persistCcoWorkspaceSessionState();
+  }
+
+  function renderCcoDraftModeControls(conversation = null) {
+    const controls = [
+      { mode: 'short', el: els.ccoDraftModeShortBtn },
+      { mode: 'warm', el: els.ccoDraftModeWarmBtn },
+      { mode: 'professional', el: els.ccoDraftModeProfessionalBtn },
+    ];
+    if (!conversation) {
+      controls.forEach(({ el }) => {
+        if (!el) return;
+        el.disabled = true;
+        el.classList.remove('is-active', 'is-recommended');
+      });
+      if (els.ccoDraftModeHint) {
+        els.ccoDraftModeHint.textContent = 'Rekommenderat läge: -';
+      }
+      return;
+    }
+
+    const selectedMode = getCcoSelectedDraftMode(conversation);
+    const recommendedMode = getCcoRecommendedDraftMode(conversation);
+    controls.forEach(({ mode, el }) => {
+      if (!el) return;
+      el.disabled = false;
+      el.classList.toggle('is-active', mode === selectedMode);
+      el.classList.toggle('is-recommended', mode === recommendedMode);
+    });
+
+    if (els.ccoDraftModeHint) {
+      els.ccoDraftModeHint.textContent = `Rekommenderat läge: ${formatCcoDraftModeLabel(
+        recommendedMode
+      )}`;
+    }
+  }
+
+  function applyCcoDraftModeSelection(mode = 'professional') {
+    const conversation = getCcoSelectedConversation();
+    if (!conversation) return;
+    const recommendedMode = getCcoRecommendedDraftMode(conversation);
+    const selectedMode = normalizeCcoDraftMode(mode, getCcoRecommendedDraftMode(conversation));
+    setCcoDraftModeForConversation(conversation.conversationId, selectedMode);
+    const modeDraft =
+      getCcoDraftBodyByMode(conversation, selectedMode) ||
+      String(conversation.proposedReply || '').trim();
+    const signedReply = applyCcoSignatureToDraft({
+      body: modeDraft,
+      senderMailboxId: state.ccoSenderMailboxId,
+      signatureProfile: getCcoSelectedSignatureProfile(),
+    });
+    if (els.ccoDraftBodyInput) {
+      els.ccoDraftBodyInput.value = signedReply;
+    }
+    setCcoDraftBodyForConversation(conversation.conversationId, signedReply);
+    renderCcoDraftModeControls(conversation);
+    postCcoUsageEvent('draft_mode_selected', {
+      conversationId: String(conversation.conversationId || '').trim(),
+      selectedMode,
+      recommendedMode,
+      ignoredRecommended: selectedMode !== recommendedMode,
+      workspaceId: 'cco',
+    });
+    setStatus(
+      els.ccoSendStatus,
+      `Svarsläge bytt till ${formatCcoDraftModeLabel(selectedMode).toLowerCase()}.`
+    );
   }
 
   function setCcoDraftBodyForConversation(conversationId, value) {
@@ -7570,6 +9778,29 @@
       ...state.ccoDraftOverrideByConversationId,
       [key]: String(value || ''),
     };
+    persistCcoWorkspaceSessionState();
+  }
+
+  function rememberCcoConversationScroll(conversationId, scrollTopRaw) {
+    const key = String(conversationId || '').trim();
+    const scrollTop = Number(scrollTopRaw);
+    if (!key || !Number.isFinite(scrollTop) || scrollTop < 0) return;
+    state.ccoConversationScrollTopByConversationId = {
+      ...state.ccoConversationScrollTopByConversationId,
+      [key]: Math.round(scrollTop),
+    };
+    persistCcoWorkspaceSessionState();
+  }
+
+  function restoreCcoConversationScroll(conversationId) {
+    const key = String(conversationId || '').trim();
+    if (!key || !els.ccoConversationColumn) return;
+    const savedScrollTop = Number(state.ccoConversationScrollTopByConversationId?.[key] || 0);
+    if (!Number.isFinite(savedScrollTop)) return;
+    requestAnimationFrame(() => {
+      if (!els.ccoConversationColumn) return;
+      els.ccoConversationColumn.scrollTop = Math.max(0, Math.round(savedScrollTop));
+    });
   }
 
   function setCcoDraftEvaluationForConversation(conversationId, payload = {}) {
@@ -7607,10 +9838,10 @@
       const levelLabel = Number.isFinite(riskLevel) ? `L${Math.max(0, Math.round(riskLevel))}` : 'L-';
       const scoreLabel = Number.isFinite(riskScore) ? `${Math.max(0, Math.round(riskScore))}` : '-';
       const riskDecision = formatDecisionLabel(String(outputRisk.decision || '-'));
-      return `${levelLabel} · ${riskDecision} · score ${scoreLabel}`;
+      return `${levelLabel} · ${riskDecision} · poäng ${scoreLabel}`;
     }
     if (!conversation) return '-';
-    return `${conversation.priorityLevel} (${Math.round(Number(conversation.priorityScore || 0))}/100)`;
+    return `${formatCcoPriorityLabel(conversation.priorityLevel)} (${Math.round(Number(conversation.priorityScore || 0))}/100)`;
   }
 
   function formatCcoPolicyIndicator(conversation = null, evaluation = null) {
@@ -7638,9 +9869,9 @@
 
   function getCcoPriorityBadgeClass(priorityLevel) {
     const normalized = String(priorityLevel || '').trim().toLowerCase();
-    if (normalized === 'critical') return 'badge-critical';
-    if (normalized === 'high') return 'badge-high';
-    if (normalized === 'medium') return 'badge-medium';
+    if (normalized === 'critical' || normalized === 'kritisk') return 'badge-critical';
+    if (normalized === 'high' || normalized === 'hög' || normalized === 'hog') return 'badge-high';
+    if (normalized === 'medium' || normalized === 'medel') return 'badge-medium';
     return 'badge-low';
   }
 
@@ -7650,59 +9881,734 @@
     if (activeClass) el.classList.add(activeClass);
   }
 
-  function renderCcoWorklist(data = null) {
-    if (!els.ccoInboxWorklist) return;
-    const sortedRows = getSortedCcoConversations(data);
-    const rows = getCcoVisibleConversations(sortedRows);
-    if (!rows.length) {
-      const emptyText =
-        state.ccoSprintActive && Number(state.ccoSprintInitialTotal || 0) > 0
-          ? 'Sprint Complete'
-          : 'Inga konversationer i kö.';
-      els.ccoInboxWorklist.innerHTML = `<li class="muted mini" style="padding:12px 14px">${emptyText}</li>`;
+  function classifyCcoInboxSection(row = null) {
+    if (!row || typeof row !== 'object') return 'other';
+    const slaStatus = normalizeCcoSlaStatus(row.slaStatus);
+    const priority = String(row.priorityLevel || '').trim().toLowerCase();
+    const intent = String(row.intent || '').trim().toLowerCase();
+    if (slaStatus === 'breach' || priority === 'critical' || row.escalationRequired) {
+      return 'acute';
+    }
+    if (slaStatus === 'warning' || priority === 'high' || priority === 'hög' || priority === 'hog') {
+      return 'today';
+    }
+    if (row.followUpSuggested || row.stagnated || intent === 'follow_up') {
+      return 'followup';
+    }
+    return 'other';
+  }
+
+  function inferCcoDominantRisk(row = null) {
+    if (!row || typeof row !== 'object') return 'neutral';
+    const slaStatus = normalizeCcoSlaStatus(row?.slaStatus);
+    if (slaStatus === 'breach') return 'miss';
+    if (row.isUnanswered === true) return 'miss';
+    const tone = String(row?.tone || '').trim().toLowerCase();
+    if (['frustrated', 'anxious', 'urgent', 'stressed'].includes(tone)) return 'tone';
+    if (row.followUpSuggested === true || row.stagnated === true) return 'follow_up';
+    const relationship = String(row?.relationshipStatus || '').trim().toLowerCase();
+    if (['loyal', 'returning'].includes(relationship)) return 'relationship';
+    return 'neutral';
+  }
+
+  function formatCcoRecommendedActionForThread(row = null) {
+    const action = String(row?.recommendedAction || '').trim();
+    if (action) return action;
+    const dominantRisk = inferCcoDominantRisk(row);
+    if (dominantRisk === 'miss') return 'Svara inom 1h';
+    if (dominantRisk === 'tone') return 'Svara lugnande och tydligt';
+    if (dominantRisk === 'follow_up') return 'Skicka mjuk uppföljning idag';
+    if (dominantRisk === 'relationship') return 'Svara personligt för att stärka relationen';
+    return 'Be om mer info';
+  }
+
+  function buildCcoThreadMarkup(row = null, selectedId = '', debugMode = false) {
+    if (!row || typeof row !== 'object') return '';
+    const isActive = row.conversationId === selectedId;
+    const status = formatCcoNeedsReplyLabel(row.needsReplyStatus);
+    const safeHours = Number(row.hoursSinceInbound || 0);
+    const meta = `${safeHours.toFixed(1)}h sedan`;
+    const mailboxLabel = row.mailboxLabel || resolveCcoMailboxLabel(row);
+    const relationshipStatus = String(row.relationshipStatus || classifyCcoRelationshipStatus(row))
+      .trim()
+      .toLowerCase();
+    const relationshipClass = ['new', 'returning', 'loyal', 'dormant'].includes(relationshipStatus)
+      ? `relationship-${relationshipStatus}`
+      : 'relationship-new';
+    const relationshipLabel = row.relationshipLabel || formatCcoRelationshipChip(relationshipStatus);
+    const lifecycleLabel = formatCcoLifecycleLabel(row.lifecycleStatus || row?.customerSummary?.lifecycleStatus);
+    const priorityClass = getCcoPriorityBadgeClass(row.priorityLevel);
+    const slaChipClass = getCcoSlaChipClass(row.slaStatus);
+    const slaToneClass = getCcoSlaToneClass(row);
+    const isNew = row.isNewSinceLastVisit === true;
+    const dominantRisk = inferCcoDominantRisk(row);
+    const highRisk = ['critical', 'high'].includes(safeLower(row.priorityLevel || ''));
+    const unansweredChip = row.isUnanswered === true
+      ? `<span class="cco-thread-chip">Obesvarad ≥ ${Math.max(1, Number(row.unansweredThresholdHours || 24))}h</span>`
+      : '';
+    const scoreChip = debugMode
+      ? `<span class="cco-thread-chip">Poäng ${Math.round(Number(row.priorityScore || 0))}</span>`
+      : '';
+    const followUpChip = row.followUpSuggested
+      ? '<span class="cco-thread-chip">🔁 Följ upp</span>'
+      : '';
+    const preview = String(row.latestInboundPreview || '').trim();
+    const previewText = preview ? escapeHtml(preview.slice(0, 120)) : 'Ingen förhandsvisning tillgänglig.';
+    const actionLabel = formatCcoRecommendedActionForThread(row);
+    return `
+      <li class="cco-thread${isActive ? ' active' : ''}${slaToneClass ? ` ${slaToneClass}` : ''}${isNew ? ' thread-new' : ''} sprint-focus" data-dominant-risk="${escapeHtml(
+        dominantRisk
+      )}" data-high-risk="${highRisk ? 'true' : 'false'}">
+        <button class="cco-thread-btn ccoConversationSelectBtn" data-conversation-id="${escapeHtml(row.conversationId)}">
+          <span class="cco-thread-subject">${escapeHtml(row.subject)}</span>
+          <span class="cco-thread-meta">${escapeHtml(row.sender)} · ${escapeHtml(mailboxLabel)} · ${meta}</span>
+          <span class="cco-thread-preview">${previewText}</span>
+          <span class="cco-thread-action">🎯 ${escapeHtml(actionLabel)}</span>
+          <span class="cco-thread-tags">
+            <span class="cco-priority-badge ${priorityClass}">${escapeHtml(formatCcoPriorityLabel(row.priorityLevel))}</span>
+            <span class="cco-thread-chip ${slaChipClass}">${escapeHtml(formatCcoSlaStatusChip(row.slaStatus))}</span>
+            ${scoreChip}
+            <span class="cco-thread-chip">${escapeHtml(formatCcoIntentChip(row.intent))}</span>
+            <span class="cco-thread-chip">${escapeHtml(formatCcoToneChip(row.tone))}</span>
+            <span class="cco-thread-chip">${escapeHtml(lifecycleLabel)}</span>
+            <span class="cco-thread-chip ${relationshipClass}">${escapeHtml(relationshipLabel)}</span>
+            <span class="cco-thread-chip">${escapeHtml(status)}</span>
+            ${unansweredChip}
+            ${followUpChip}
+          </span>
+        </button>
+      </li>
+    `;
+  }
+
+  function renderCcoSectionRows(listEl, rows = [], selectedId = '', debugMode = false, emptyText = 'Inga konversationer i kö.') {
+    if (!listEl) return;
+    if (!Array.isArray(rows) || !rows.length) {
+      listEl.innerHTML = `<li class="muted mini" style="padding:12px 14px">${escapeHtml(emptyText)}</li>`;
       return;
     }
-    const selectedId = String(state.ccoSelectedConversationId || '').trim();
-    els.ccoInboxWorklist.innerHTML = rows
-      .slice(0, 20)
-      .map((row) => {
-        const isActive = row.conversationId === selectedId;
-        const status = row.needsReplyStatus === 'handled' ? 'Handled' : 'Needs reply';
-        const safeHours = Number(row.hoursSinceInbound || 0);
-        const meta = `${safeHours.toFixed(1)}h sedan · SLA ${escapeHtml(row.slaStatus)}`;
-        const priorityClass = getCcoPriorityBadgeClass(row.priorityLevel);
-        return `
-          <li class="cco-thread${isActive ? ' active' : ''} sprint-focus">
-            <button class="cco-thread-btn ccoConversationSelectBtn" data-conversation-id="${escapeHtml(row.conversationId)}">
-              <span class="cco-thread-subject">${escapeHtml(row.subject)}</span>
-              <span class="cco-thread-meta">${escapeHtml(row.sender)} · ${meta}</span>
-              <span class="cco-thread-tags">
-                <span class="cco-priority-badge ${priorityClass}">${escapeHtml(row.priorityLevel)}</span>
-                <span class="cco-thread-chip">${escapeHtml(row.intent)}</span>
-                <span class="cco-thread-chip">${escapeHtml(row.tone)}</span>
-                <span class="cco-thread-chip">${escapeHtml(status)}</span>
-              </span>
-            </button>
-          </li>
-        `;
+    listEl.innerHTML = rows
+      .map((row) => buildCcoThreadMarkup(row, selectedId, debugMode))
+      .filter(Boolean)
+      .join('');
+  }
+
+  function renderCcoMailboxFilterRow(rows = []) {
+    if (!els.ccoInboxMailboxFilters) return;
+    const uniqueMailboxLabels = Array.from(
+      new Set(
+        (Array.isArray(rows) ? rows : [])
+          .map((row) => resolveCcoMailboxLabel(row))
+          .filter(Boolean)
+      )
+    )
+      .sort((left, right) => left.localeCompare(right))
+      .slice(0, 20);
+
+    const activeFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
+    const hasActiveFilter = activeFilter === 'all' || uniqueMailboxLabels.includes(activeFilter);
+    if (!hasActiveFilter) {
+      state.ccoInboxMailboxFilter = 'all';
+    }
+    const buttons = [
+      {
+        label: 'Alla',
+        value: 'all',
+      },
+      ...uniqueMailboxLabels.map((mailbox) => ({
+        label: mailbox,
+        value: mailbox,
+      })),
+    ];
+    els.ccoInboxMailboxFilters.innerHTML = buttons
+      .map((entry) => {
+        const value = normalizeCcoMailboxKey(entry.value);
+        const isActive = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === sanitizeCcoMailboxFilter(value);
+        return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-mailbox-filter="${escapeHtml(
+          value || 'all'
+        )}">${escapeHtml(entry.label)}</button>`;
       })
       .join('');
+  }
+
+  function renderCcoSlaFilterRow() {
+    if (!els.ccoInboxSlaFilters) return;
+    const activeFilter = sanitizeCcoSlaFilter(state.ccoInboxSlaFilter);
+    const options = [
+      { value: 'all', label: 'Alla' },
+      { value: 'breach', label: '🔴 Breach' },
+      { value: 'warning', label: '🟡 Warning' },
+      { value: 'safe', label: '🟢 Safe' },
+      { value: 'new', label: '🆕 Nya' },
+    ];
+    els.ccoInboxSlaFilters.innerHTML = options
+      .map((entry) => {
+        const isActive = activeFilter === entry.value;
+        return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-sla-filter="${escapeHtml(
+          entry.value
+        )}">${escapeHtml(entry.label)}</button>`;
+      })
+      .join('');
+  }
+
+  function renderCcoLifecycleFilterRow() {
+    if (!els.ccoInboxStateFilters) return;
+    const activeFilter = sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter);
+    const options = [
+      { value: 'all', label: 'Alla states' },
+      { value: 'follow_up_pending', label: 'Follow-up pending' },
+      { value: 'active_dialogue', label: 'Active dialogue' },
+      { value: 'new', label: 'New' },
+      { value: 'awaiting_reply', label: 'Awaiting reply' },
+      { value: 'dormant', label: 'Dormant' },
+      { value: 'handled', label: 'Handled' },
+      { value: 'archived', label: 'Archived' },
+    ];
+    els.ccoInboxStateFilters.innerHTML = options
+      .map((entry) => {
+        const isActive = activeFilter === entry.value;
+        return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-state-filter="${escapeHtml(
+          entry.value
+        )}">${escapeHtml(entry.label)}</button>`;
+      })
+      .join('');
+  }
+
+  function renderCcoUnansweredPanel(unansweredRows = []) {
+    const rows = Array.isArray(unansweredRows) ? unansweredRows : [];
+    const critical = rows.filter((row) => safeLower(row?.priorityLevel || '') === 'critical').length;
+    const high = rows.filter((row) => safeLower(row?.priorityLevel || '') === 'high').length;
+    const medium = rows.filter((row) => safeLower(row?.priorityLevel || '') === 'medium').length;
+    if (els.ccoUnansweredCriticalCount) els.ccoUnansweredCriticalCount.textContent = String(critical);
+    if (els.ccoUnansweredHighCount) els.ccoUnansweredHighCount.textContent = String(high);
+    if (els.ccoUnansweredMediumCount) els.ccoUnansweredMediumCount.textContent = String(medium);
+    if (!els.ccoUnansweredPanel) return;
+    els.ccoUnansweredPanel.classList.toggle('is-empty', rows.length === 0);
+  }
+
+  function renderCcoDensityFilterRow() {
+    if (!els.ccoInboxDensityFilters) return;
+    const activeMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
+    const options = [
+      { value: 'focus', label: 'Fokus' },
+      { value: 'work', label: 'Arbete' },
+      { value: 'overview', label: 'Översikt' },
+    ];
+    els.ccoInboxDensityFilters.innerHTML = options
+      .map((entry) => {
+        const isActive = entry.value === activeMode;
+        return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-density-mode="${escapeHtml(
+          entry.value
+        )}">${escapeHtml(entry.label)}</button>`;
+      })
+      .join('');
+  }
+
+  function showCcoSoftBreakPanel(conversationId = '') {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId || !els.ccoSoftBreakPanel) return false;
+    state.ccoPendingSoftBreakConversationId = safeConversationId;
+    els.ccoSoftBreakPanel.classList.add('visible');
+    return true;
+  }
+
+  function hideCcoSoftBreakPanel() {
+    state.ccoPendingSoftBreakConversationId = '';
+    if (!els.ccoSoftBreakPanel) return;
+    els.ccoSoftBreakPanel.classList.remove('visible');
+  }
+
+  function getCcoDensityVisibility(mode = CCO_DEFAULT_DENSITY_MODE) {
+    const normalized = sanitizeCcoDensityMode(mode);
+    if (normalized === 'focus') {
+      return { sprint: true, high: false, needs: false, rest: false };
+    }
+    if (normalized === 'overview') {
+      return { sprint: true, high: true, needs: true, rest: true };
+    }
+    return { sprint: true, high: true, needs: false, rest: false };
+  }
+
+  function getCcoSectionRenderOrder(sectionTotals = {}) {
+    const hasHigh = Number(sectionTotals.high || 0) > 0;
+    return hasHigh
+      ? ['sprint', 'high', 'needs', 'rest']
+      : ['sprint', 'needs', 'high', 'rest'];
+  }
+
+  function applyCcoSectionDomOrder(order = []) {
+    if (!els.ccoInboxWorklist) return;
+    const lookup = {
+      sprint: els.ccoInboxGroupAcuteBlock,
+      high: els.ccoInboxGroupTodayBlock,
+      needs: els.ccoInboxGroupFollowupBlock,
+      rest: els.ccoInboxGroupOtherBlock,
+    };
+    for (const sectionKey of order) {
+      const node = lookup[sectionKey];
+      if (!node) continue;
+      els.ccoInboxWorklist.appendChild(node);
+    }
+  }
+
+  function capCcoSectionRows(rows = [], limit = 0, selectedId = '') {
+    const source = Array.isArray(rows) ? rows.filter(Boolean) : [];
+    const total = source.length;
+    const safeLimit = Math.max(0, Math.floor(Number(limit) || 0));
+    let visible = safeLimit > 0 ? source.slice(0, safeLimit) : [];
+    if (!selectedId) {
+      return {
+        visibleRows: visible,
+        shown: visible.length,
+        total,
+      };
+    }
+    const selectedIndex = source.findIndex((row) => String(row?.conversationId || '').trim() === selectedId);
+    if (selectedIndex === -1) {
+      return {
+        visibleRows: visible,
+        shown: visible.length,
+        total,
+      };
+    }
+    const alreadyVisible = visible.some((row) => String(row?.conversationId || '').trim() === selectedId);
+    if (alreadyVisible || safeLimit <= 0) {
+      return {
+        visibleRows: visible,
+        shown: visible.length,
+        total,
+      };
+    }
+    const selectedRow = source[selectedIndex];
+    if (!selectedRow) {
+      return {
+        visibleRows: visible,
+        shown: visible.length,
+        total,
+      };
+    }
+    if (visible.length < safeLimit) {
+      visible = [...visible, selectedRow];
+    } else if (visible.length > 0) {
+      visible = [selectedRow, ...visible.slice(0, Math.max(0, safeLimit - 1))];
+    }
+    const deduped = [];
+    const seen = new Set();
+    for (const row of visible) {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId || seen.has(conversationId)) continue;
+      seen.add(conversationId);
+      deduped.push(row);
+    }
+    return {
+      visibleRows: deduped.slice(0, safeLimit),
+      shown: deduped.slice(0, safeLimit).length,
+      total,
+    };
+  }
+
+  function setCcoSectionSummary({
+    section = 'sprint',
+    shown = 0,
+    total = 0,
+    indicator = '',
+    cta = '',
+    hiddenByDensity = false,
+  } = {}) {
+    const countEls = {
+      sprint: els.ccoInboxGroupAcuteCount,
+      high: els.ccoInboxGroupTodayCount,
+      needs: els.ccoInboxGroupFollowupCount,
+      rest: els.ccoInboxGroupOtherCount,
+    };
+    const metaEls = {
+      sprint: els.ccoInboxGroupAcuteMeta,
+      high: els.ccoInboxGroupTodayMeta,
+      needs: els.ccoInboxGroupFollowupMeta,
+      rest: els.ccoInboxGroupOtherMeta,
+    };
+    const countEl = countEls[section];
+    const metaEl = metaEls[section];
+    if (countEl) {
+      countEl.textContent = shown < total ? `${shown}/${total}` : String(total);
+    }
+    if (!metaEl) return;
+    const parts = [];
+    if (hiddenByDensity && total > 0) {
+      parts.push('Dolt i valt läge');
+    }
+    if (shown < total) {
+      parts.push(`${shown} av ${total} visas`);
+    }
+    if (indicator) parts.push(indicator);
+    if (cta) parts.push(cta);
+    metaEl.textContent = parts.join(' · ');
+  }
+
+  function renderCcoWorklist(data = null) {
+    if (!els.ccoInboxWorklist) return;
+    const sortedRows = getSortedCcoConversations(data).map((row) => enrichCcoConversationRow(row));
+    const openRows = sortedRows.filter(
+      (row) => String(row?.needsReplyStatus || '').trim().toLowerCase() !== 'handled'
+    );
+    const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
+    const filteredRows = getCcoFilteredConversations(openRows);
+    const selectedId = String(state.ccoSelectedConversationId || '').trim();
+    const debugMode = isCcoDebugMode();
+    const densityMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
+    const sectionExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
+    state.ccoInboxSectionExpanded = sectionExpanded;
+
+    if (state.ccoSprintActive !== true) {
+      hideCcoSoftBreakPanel();
+    }
+
+    renderCcoMailboxFilterRow(sortedRows);
+    renderCcoSlaFilterRow();
+    renderCcoLifecycleFilterRow();
+    renderCcoDensityFilterRow();
+    renderCcoUnansweredPanel(unansweredRows);
+
+    const sprintSeedRows = buildCcoSprintQueueRows(unansweredRows);
+    const sprintRows = state.ccoSprintActive
+      ? state.ccoSprintQueueIds
+          .map((conversationId) =>
+            filteredRows.find((row) => String(row?.conversationId || '').trim() === String(conversationId || '').trim())
+          )
+          .filter(Boolean)
+      : sprintSeedRows
+          .map((seed) =>
+            filteredRows.find(
+              (row) => String(row?.conversationId || '').trim() === String(seed?.conversationId || '').trim()
+            )
+          )
+          .filter(Boolean);
+    const sprintIdSet = new Set(sprintRows.map((row) => String(row?.conversationId || '').trim()));
+
+    const highRows = filteredRows.filter((row) => {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId || sprintIdSet.has(conversationId)) return false;
+      const priority = safeLower(row?.priorityLevel || '');
+      return priority === 'critical' || priority === 'high' || normalizeCcoSlaStatus(row?.slaStatus) === 'breach';
+    });
+    const highIdSet = new Set(highRows.map((row) => String(row?.conversationId || '').trim()));
+
+    const needsRows = filteredRows.filter((row) => {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId || sprintIdSet.has(conversationId) || highIdSet.has(conversationId)) return false;
+      return row.isUnanswered === true || row.followUpSuggested === true || row.stagnated === true;
+    });
+    const needsIdSet = new Set(needsRows.map((row) => String(row?.conversationId || '').trim()));
+
+    const restRows = filteredRows.filter((row) => {
+      const conversationId = String(row?.conversationId || '').trim();
+      return (
+        conversationId &&
+        !sprintIdSet.has(conversationId) &&
+        !highIdSet.has(conversationId) &&
+        !needsIdSet.has(conversationId)
+      );
+    });
+
+    const sectionTotals = {
+      sprint: sprintRows.length,
+      high: highRows.length,
+      needs: needsRows.length,
+      rest: restRows.length,
+    };
+    const sectionOrder = getCcoSectionRenderOrder(sectionTotals);
+    applyCcoSectionDomOrder(sectionOrder);
+
+    if (
+      state.ccoPendingSoftBreakConversationId &&
+      !filteredRows.some(
+        (row) => String(row?.conversationId || '').trim() === state.ccoPendingSoftBreakConversationId
+      )
+    ) {
+      hideCcoSoftBreakPanel();
+    }
+
+    const densityVisibility = getCcoDensityVisibility(densityMode);
+    const sectionInputs = {
+      sprint: sprintRows,
+      high: highRows,
+      needs: needsRows,
+      rest: restRows,
+    };
+    const sectionCaps = {
+      sprint: CCO_VISUAL_LIMITS.sprint,
+      high: CCO_VISUAL_LIMITS.high,
+      needs: CCO_VISUAL_LIMITS.needs,
+      rest: Number.MAX_SAFE_INTEGER,
+    };
+    const sectionOutputs = {
+      sprint: { visibleRows: [], shown: 0, total: sprintRows.length },
+      high: { visibleRows: [], shown: 0, total: highRows.length },
+      needs: { visibleRows: [], shown: 0, total: needsRows.length },
+      rest: { visibleRows: [], shown: 0, total: restRows.length },
+    };
+
+    let remainingVisibleBudget = CCO_VISUAL_LIMITS.maxVisibleRows;
+    for (const section of ['sprint', 'high', 'needs', 'rest']) {
+      const total = sectionTotals[section];
+      const isVisibleByMode = densityVisibility[section] === true;
+      const isExpanded = sectionExpanded[section] === true;
+      if (!isVisibleByMode || !isExpanded || total === 0) {
+        sectionOutputs[section] = { visibleRows: [], shown: 0, total };
+        continue;
+      }
+      const baseCap = sectionCaps[section];
+      const capWithBudget = Math.max(0, Math.min(baseCap, remainingVisibleBudget));
+      const capped = capCcoSectionRows(sectionInputs[section], capWithBudget, selectedId);
+      sectionOutputs[section] = capped;
+      remainingVisibleBudget = Math.max(0, remainingVisibleBudget - capped.shown);
+    }
+
+    const selectedRow = filteredRows.find((row) => String(row?.conversationId || '').trim() === selectedId);
+    if (!selectedRow && filteredRows.length === 0) {
+      setSelectedCcoConversation('');
+    }
+
+    setCcoSectionSummary({
+      section: 'sprint',
+      shown: sectionOutputs.sprint.shown,
+      total: sectionOutputs.sprint.total,
+      indicator: sectionTotals.sprint > 0 ? '🎯 Fokus nu' : '',
+      cta: sectionTotals.sprint > sectionOutputs.sprint.shown ? 'Expandera sektion' : '',
+      hiddenByDensity: densityVisibility.sprint !== true,
+    });
+    const highCriticalCount = highRows.filter(
+      (row) =>
+        normalizeCcoSlaStatus(row?.slaStatus) === 'breach' || safeLower(row?.priorityLevel || '') === 'critical'
+    ).length;
+    setCcoSectionSummary({
+      section: 'high',
+      shown: sectionOutputs.high.shown,
+      total: sectionOutputs.high.total,
+      indicator: highCriticalCount > 0 ? `🔥 ${highCriticalCount} kritiska` : '',
+      cta: sectionTotals.high > 0 ? 'Prioritera nu' : '',
+      hiddenByDensity: densityVisibility.high !== true,
+    });
+    setCcoSectionSummary({
+      section: 'needs',
+      shown: sectionOutputs.needs.shown,
+      total: sectionOutputs.needs.total,
+      indicator: sectionTotals.needs > 5 ? '⚠ Kräver fokus' : '',
+      cta: sectionTotals.needs > 0 ? 'Planera idag' : '',
+      hiddenByDensity: densityVisibility.needs !== true,
+    });
+    setCcoSectionSummary({
+      section: 'rest',
+      shown: sectionOutputs.rest.shown,
+      total: sectionOutputs.rest.total,
+      indicator: '',
+      cta:
+        sectionOutputs.rest.total > sectionOutputs.rest.shown
+          ? `Visa ${sectionOutputs.rest.total - sectionOutputs.rest.shown} till`
+          : '',
+      hiddenByDensity: densityVisibility.rest !== true,
+    });
+
+    const emptyText =
+      state.ccoSprintActive && Number(state.ccoSprintInitialTotal || 0) > 0
+        ? 'Sprint klar'
+        : sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered' ||
+          sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'unanswered'
+        ? 'Inga obesvarade konversationer i kö.'
+        : sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'new'
+        ? 'Inga nya konversationer sedan senaste besök.'
+        : 'Inga konversationer i kö.';
+
+    renderCcoSectionRows(
+      els.ccoInboxGroupAcuteList,
+      sectionOutputs.sprint.visibleRows,
+      selectedId,
+      debugMode,
+      densityVisibility.sprint ? 'Ingen sprint i kö.' : 'Dolt i valt läge.'
+    );
+    renderCcoSectionRows(
+      els.ccoInboxGroupTodayList,
+      sectionOutputs.high.visibleRows,
+      selectedId,
+      debugMode,
+      densityVisibility.high ? 'Ingen high/critical i kö.' : 'Dolt i valt läge.'
+    );
+    renderCcoSectionRows(
+      els.ccoInboxGroupFollowupList,
+      sectionOutputs.needs.visibleRows,
+      selectedId,
+      debugMode,
+      densityVisibility.needs ? 'Inget som kräver svar idag.' : 'Dolt i valt läge.'
+    );
+    renderCcoSectionRows(
+      els.ccoInboxGroupOtherList,
+      sectionOutputs.rest.visibleRows,
+      selectedId,
+      debugMode,
+      densityVisibility.rest ? 'Inga övriga konversationer.' : emptyText
+    );
+
+    // Keep details open/closed state explicit so density mode is a pure view layer.
+    const blockBySection = {
+      sprint: els.ccoInboxGroupAcuteBlock,
+      high: els.ccoInboxGroupTodayBlock,
+      needs: els.ccoInboxGroupFollowupBlock,
+      rest: els.ccoInboxGroupOtherBlock,
+    };
+    for (const section of ['sprint', 'high', 'needs', 'rest']) {
+      const block = blockBySection[section];
+      if (!block) continue;
+      block.open = densityVisibility[section] === true && sectionExpanded[section] === true;
+      block.classList.toggle('cco-density-hidden', densityVisibility[section] !== true);
+    }
 
     els.ccoInboxWorklist.querySelectorAll('.ccoConversationSelectBtn').forEach((button) => {
       button.addEventListener('click', () => {
         const conversationId = String(button.dataset.conversationId || '').trim();
         if (!conversationId) return;
-        state.ccoSelectedConversationId = conversationId;
+        if (state.ccoSprintActive === true) {
+          const sprintSet = new Set(
+            (Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : [])
+              .map((value) => String(value || '').trim())
+              .filter(Boolean)
+          );
+          if (!sprintSet.has(conversationId)) {
+            const shown = showCcoSoftBreakPanel(conversationId);
+            if (shown) {
+              setStatus(
+                els.ccoInboxStatus,
+                'Du lämnar sprinten. Välj: pausa, byt ut tråd eller avbryt sprint.'
+              );
+              return;
+            }
+          }
+        }
+        hideCcoSoftBreakPanel();
+        setSelectedCcoConversation(conversationId);
         renderCcoInbox(state.ccoInboxData);
       });
     });
+  }
+
+  function formatCcoLifecycleSourceLabel(value = '') {
+    return String(value || '').trim().toLowerCase() === 'manual' ? 'Manual' : 'Auto';
+  }
+
+  function formatCcoFollowUpSummary(conversation = null) {
+    if (!conversation || typeof conversation !== 'object') return '-';
+    const suggestedAt = String(conversation.followUpSuggestedAt || '').trim();
+    if (suggestedAt) {
+      const reason =
+        Array.isArray(conversation.followUpTimingReason) && conversation.followUpTimingReason.length
+          ? ` · ${formatCcoTimingReasonLabel(conversation.followUpTimingReason[0])}`
+          : '';
+      return `${formatCcoDateTimeValue(suggestedAt)}${reason}`;
+    }
+    if (conversation.followUpSuggested) {
+      const delay = Number(conversation.recommendedFollowUpDelayDays || 0);
+      const urgency = String(conversation.followUpUrgencyLevel || 'normal').trim();
+      return `${delay} dagar · ${urgency}`;
+    }
+    return 'Ingen trigger';
+  }
+
+  function renderCcoCustomerSummary(conversation = null) {
+    const panel = els.ccoCustomerSummaryPanel;
+    if (!panel) return;
+    panel.classList.toggle('is-expanded', state.ccoCustomerSummaryExpanded === true);
+    if (els.ccoCustomerSummaryToggleBtn) {
+      els.ccoCustomerSummaryToggleBtn.textContent = state.ccoCustomerSummaryExpanded
+        ? 'Visa mindre'
+        : 'Visa mer';
+    }
+
+    if (!conversation || typeof conversation !== 'object') {
+      if (els.ccoCustomerSummaryName) els.ccoCustomerSummaryName.textContent = 'Ingen kund vald.';
+      if (els.ccoCustomerSummarySub) {
+        els.ccoCustomerSummarySub.textContent = 'Välj en konversation för kundöversikt.';
+      }
+      if (els.ccoCustomerLifecycleValue) els.ccoCustomerLifecycleValue.textContent = '-';
+      if (els.ccoCustomerInteractionsValue) els.ccoCustomerInteractionsValue.textContent = '-';
+      if (els.ccoCustomerLastInteractionValue) els.ccoCustomerLastInteractionValue.textContent = '-';
+      if (els.ccoCustomerEngagementValue) els.ccoCustomerEngagementValue.textContent = '-';
+      if (els.ccoCustomerTempoValue) els.ccoCustomerTempoValue.textContent = '-';
+      if (els.ccoCustomerFollowupValue) els.ccoCustomerFollowupValue.textContent = '-';
+      if (els.ccoCustomerLastCaseValue) els.ccoCustomerLastCaseValue.textContent = '-';
+      if (els.ccoCustomerTimelineList) {
+        els.ccoCustomerTimelineList.innerHTML = '<li>Ingen tidslinje ännu.</li>';
+      }
+      return;
+    }
+
+    const summary = normalizeCcoCustomerSummary(conversation.customerSummary, {
+      customerKey: conversation.customerKey,
+      customerName: conversation.sender,
+    });
+    if (els.ccoCustomerSummaryName) {
+      els.ccoCustomerSummaryName.textContent = summary.customerName || 'Okänd kund';
+    }
+    if (els.ccoCustomerSummarySub) {
+      const daysText =
+        Number.isFinite(summary.daysSinceLastInteraction) && summary.daysSinceLastInteraction >= 0
+          ? `${summary.daysSinceLastInteraction} dagar sedan`
+          : 'okänd tid';
+      els.ccoCustomerSummarySub.textContent = `${formatCcoLifecycleLabel(summary.lifecycleStatus)} · ${summary.caseCount} ärenden · Senast ${daysText}`;
+    }
+    if (els.ccoCustomerLifecycleValue) {
+      els.ccoCustomerLifecycleValue.textContent = `${formatCcoLifecycleLabel(
+        summary.lifecycleStatus
+      )} (${formatCcoLifecycleSourceLabel(summary.lifecycleSource)})`;
+    }
+    if (els.ccoCustomerInteractionsValue) {
+      els.ccoCustomerInteractionsValue.textContent = String(summary.interactionCount || 0);
+    }
+    if (els.ccoCustomerLastInteractionValue) {
+      els.ccoCustomerLastInteractionValue.textContent = summary.lastInteractionAt
+        ? formatCcoDateTimeValue(summary.lastInteractionAt)
+        : '-';
+    }
+    if (els.ccoCustomerEngagementValue) {
+      const engagementPercent = Math.round(Number(summary.engagementScore || 0) * 100);
+      els.ccoCustomerEngagementValue.textContent = `${engagementPercent}%`;
+    }
+    if (els.ccoCustomerTempoValue) {
+      const cta = String(conversation.ctaIntensity || 'normal').trim();
+      const delayDays = Number(conversation.recommendedFollowUpDelayDays || 0);
+      els.ccoCustomerTempoValue.textContent = `${formatCcoTempoLabel(
+        conversation.tempoProfile
+      )} · ${delayDays}d · ${cta}`;
+    }
+    if (els.ccoCustomerFollowupValue) {
+      const manualText = conversation.followUpManualApprovalRequired === false ? '' : ' · manuell';
+      els.ccoCustomerFollowupValue.textContent = `${formatCcoFollowUpSummary(
+        conversation
+      )}${manualText}`;
+    }
+    if (els.ccoCustomerLastCaseValue) {
+      els.ccoCustomerLastCaseValue.textContent = summary.lastCaseSummary || '-';
+    }
+    if (els.ccoCustomerTimelineList) {
+      if (!summary.timeline.length) {
+        els.ccoCustomerTimelineList.innerHTML = '<li>Ingen tidslinje ännu.</li>';
+      } else {
+        els.ccoCustomerTimelineList.innerHTML = summary.timeline
+          .map((entry) => {
+            const when = entry.occurredAt ? formatCcoDateTimeValue(entry.occurredAt) : '-';
+            const status = formatCcoCaseStatusLabel(entry.status);
+            return `<li>${escapeHtml(when)} · ${escapeHtml(entry.subject)} · ${escapeHtml(
+              status
+            )}</li>`;
+          })
+          .join('');
+      }
+    }
   }
 
   function renderCcoDetail(data = null) {
     const conversation = getCcoSelectedConversation();
     if (!conversation) {
       if (els.ccoConversationMeta) els.ccoConversationMeta.textContent = 'Ingen konversation vald.';
-      if (els.ccoConversationPreview) els.ccoConversationPreview.textContent = 'Ingen preview än.';
+      if (els.ccoConversationPreview) els.ccoConversationPreview.textContent = 'Ingen förhandsvisning än.';
       if (els.ccoDraftSubjectInput) els.ccoDraftSubjectInput.value = '';
       if (els.ccoDraftToInput) els.ccoDraftToInput.value = '';
       if (els.ccoDraftRiskIndicator) els.ccoDraftRiskIndicator.textContent = '-';
@@ -7710,6 +10616,7 @@
       if (els.ccoDraftConfidence) els.ccoDraftConfidence.textContent = '-';
       if (els.ccoDraftRecommendedAction) els.ccoDraftRecommendedAction.textContent = '-';
       if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = '';
+      renderCcoDraftModeControls(null);
       applyCcoIndicatorClass(
         els.ccoDraftRiskIndicator,
         ['risk-critical', 'risk-high', 'risk-medium', 'risk-low'],
@@ -7720,19 +10627,36 @@
         ['policy-blocked', 'policy-ok'],
         ''
       );
+      syncCcoSignatureSelectors();
+      renderCcoSignaturePreview();
+      renderCcoCustomerSummary(null);
       return;
     }
 
-    state.ccoSelectedConversationId = conversation.conversationId;
+    setSelectedCcoConversation(conversation.conversationId);
     const evaluation = getCcoDraftEvaluationForConversation(conversation.conversationId);
     const previewText = String(conversation.latestInboundPreview || '').trim();
     if (els.ccoConversationMeta) {
+      const toneConfidenceRaw = Number(conversation.toneConfidence || 0.4);
+      const toneConfidencePct = Number.isFinite(toneConfidenceRaw)
+        ? `${Math.round(Math.max(0, Math.min(1, toneConfidenceRaw)) * 100)}%`
+        : '-';
+      const slaCountdown = formatCcoSlaCountdown(
+        conversation.hoursRemaining,
+        conversation.slaStatus
+      );
+      const lastInboundLabel = conversation.lastInboundAt
+        ? formatCcoDateTimeValue(conversation.lastInboundAt)
+        : '-';
+      const lastOutboundLabel = conversation.lastOutboundAt
+        ? formatCcoDateTimeValue(conversation.lastOutboundAt)
+        : '-';
       els.ccoConversationMeta.textContent =
-        `${conversation.sender} · ${conversation.intent} · ${conversation.tone} · SLA:${conversation.slaStatus} · ${conversation.priorityLevel} · ` +
-        `${conversation.escalationRequired ? 'Escalering krävs' : 'Standard'}`;
+        `${conversation.sender} · ${formatCcoIntentLabel(conversation.intent)} · Ton: ${formatCcoToneLabel(conversation.tone)} (${toneConfidencePct}) · SLA: ${formatCcoSlaStatusLabel(conversation.slaStatus)} · ${slaCountdown} · ${formatCcoPriorityLabel(conversation.priorityLevel)} · ` +
+        `${conversation.escalationRequired ? 'Eskalering krävs' : 'Normal'} · Senast inkommet: ${lastInboundLabel} · Senast svarat: ${lastOutboundLabel}`;
     }
     if (els.ccoConversationPreview) {
-      els.ccoConversationPreview.textContent = previewText || 'Ingen preview tillgänglig.';
+      els.ccoConversationPreview.textContent = previewText || 'Ingen förhandsvisning tillgänglig.';
     }
     if (els.ccoDraftSubjectInput) {
       els.ccoDraftSubjectInput.value = conversation.subject;
@@ -7765,14 +10689,23 @@
       );
     }
     if (els.ccoDraftConfidence) {
-      els.ccoDraftConfidence.textContent = String(conversation.confidenceLevel || 'Low');
+      els.ccoDraftConfidence.textContent = formatCcoConfidenceLabel(String(conversation.confidenceLevel || 'Low'));
     }
     if (els.ccoDraftRecommendedAction) {
-      els.ccoDraftRecommendedAction.textContent = `${conversation.recommendedAction}${previewText ? ' · Preview maskerad' : ''}`;
+      els.ccoDraftRecommendedAction.textContent = `${formatCcoRecommendedAction(conversation.recommendedAction)}${previewText ? ' · Förhandsvisning maskerad' : ''}`;
     }
+    renderCcoDraftModeControls(conversation);
+    syncCcoSignatureSelectors();
+    renderCcoSignaturePreview();
     if (els.ccoDraftBodyInput) {
-      els.ccoDraftBodyInput.value = getCcoDraftBody(conversation);
+      els.ccoDraftBodyInput.value = applyCcoSignatureToDraft({
+        body: getCcoDraftBody(conversation),
+        senderMailboxId: state.ccoSenderMailboxId,
+        signatureProfile: getCcoSelectedSignatureProfile(),
+      });
     }
+    renderCcoCustomerSummary(conversation);
+    restoreCcoConversationScroll(conversation.conversationId);
   }
 
   function applyCcoConversationMutation(conversationId, mutate) {
@@ -7800,6 +10733,14 @@
     if (!conversation) throw new Error('Välj en konversation först.');
     const draftBody = String(els.ccoDraftBodyInput?.value || '').trim();
     if (!draftBody) throw new Error('Svarsutkast saknas.');
+    const senderMailboxId =
+      String(state.ccoSenderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
+    const signatureProfile = normalizeCcoSignatureProfileKey(state.ccoSignatureProfile);
+    const finalBody = applyCcoSignatureToDraft({
+      body: draftBody,
+      senderMailboxId,
+      signatureProfile: getCcoSelectedSignatureProfile(),
+    });
     const toRaw = String(els.ccoDraftToInput?.value || '').trim();
     const to = toRaw
       .split(',')
@@ -7810,11 +10751,13 @@
       conversation,
       payload: {
         mailboxId: String(conversation.mailboxId || '').trim(),
+        senderMailboxId,
+        signatureProfile,
         replyToMessageId: String(conversation.messageId || '').trim(),
         conversationId: String(conversation.conversationId || '').trim(),
         to,
         subject: String(els.ccoDraftSubjectInput?.value || conversation.subject || '').trim(),
-        body: draftBody,
+        body: finalBody,
         idempotencyKey: generateClientIdempotencyKey('cco-send'),
       },
     };
@@ -7823,9 +10766,29 @@
   function renderCcoInbox(output = null) {
     const normalized = normalizeCcoInboxOutput(output);
     const data = normalized?.data && typeof normalized.data === 'object' ? normalized.data : null;
+    const metadata =
+      normalized?.metadata && typeof normalized.metadata === 'object'
+        ? normalized.metadata
+        : {};
     state.ccoInboxData = normalized;
+    state.ccoSignatureProfiles = getCcoSignatureProfilesFromMetadata();
+    state.ccoSenderMailboxOptions = getCcoSenderMailboxOptionsFromMetadata();
+    if (!String(state.ccoSenderMailboxId || '').trim()) {
+      state.ccoSenderMailboxId = String(
+        metadata.ccoDefaultSenderMailbox || CCO_DEFAULT_SENDER_MAILBOX
+      )
+        .trim()
+        .toLowerCase();
+    }
+    if (!String(state.ccoSignatureProfile || '').trim()) {
+      state.ccoSignatureProfile = normalizeCcoSignatureProfileKey(
+        metadata.ccoDefaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
+      );
+    }
+    syncCcoSignatureSelectors();
+    renderCcoSignaturePreview();
     if (!data) {
-      state.ccoSelectedConversationId = '';
+      setSelectedCcoConversation('');
       state.ccoDraftEvaluationByConversationId = {};
       state.ccoSprintActive = false;
       state.ccoSprintQueueIds = [];
@@ -7836,6 +10799,12 @@
       state.ccoSprintStartedAtMs = 0;
       state.ccoSprintMetrics = null;
       state.ccoSprintLatestFeedback = null;
+      state.ccoUsageAnalytics = null;
+      state.ccoRedFlagState = null;
+      state.ccoAdaptiveFocusState = null;
+      state.ccoRecoveryState = null;
+      state.ccoAdaptiveFocusShowAll = false;
+      state.ccoFocusWorkloadMinutes = 0;
       if (els.ccoInboxPriority) {
         els.ccoInboxPriority.textContent = '-';
         applyCcoIndicatorClass(
@@ -7845,10 +10814,27 @@
         );
       }
       if (els.ccoInboxRiskFlags) els.ccoInboxRiskFlags.textContent = '0 / 0';
-      if (els.ccoInboxSummary) els.ccoInboxSummary.textContent = 'Ingen inbox brief an.';
+      if (els.ccoInboxSummary) els.ccoInboxSummary.textContent = 'Ingen inkorgsbrief än.';
       if (els.ccoInboxMailboxMeta) els.ccoInboxMailboxMeta.textContent = '';
       if (els.ccoWorkspaceEntryStatus) {
-        els.ccoWorkspaceEntryStatus.textContent = 'Ingen inbox summary än.';
+        els.ccoWorkspaceEntryStatus.textContent = 'Ingen inkorgssammanfattning än.';
+      }
+      if (els.ccoFocusHeading) {
+        els.ccoFocusHeading.textContent = 'IDAG – FOKUS (0 av 0)';
+      }
+      if (els.ccoFocusWorkload) {
+        els.ccoFocusWorkload.textContent = '≈ 0 min arbete';
+        els.ccoFocusWorkload.classList.remove('is-updated');
+      }
+      if (els.ccoFocusWorkloadBreakdown) {
+        els.ccoFocusWorkloadBreakdown.innerHTML = '';
+        els.ccoFocusWorkloadBreakdown.classList.remove('visible');
+      }
+      if (els.ccoFocusWorkloadInfoBtn) {
+        els.ccoFocusWorkloadInfoBtn.setAttribute('aria-expanded', 'false');
+      }
+      if (els.ccoFocusScheduleStatus) {
+        els.ccoFocusScheduleStatus.textContent = '';
       }
       renderIncidentIntelligenceList(
         els.ccoOverviewSummaryList,
@@ -7862,9 +10848,15 @@
       renderIncidentIntelligenceList(
         els.ccoInboxNeedsReplyList,
         [],
-        'Inga konversationer i ko.'
+        'Inga konversationer i kö.'
       );
-      renderIncidentIntelligenceList(els.ccoInboxDraftsList, [], 'Inga utkast an.');
+      renderIncidentIntelligenceList(els.ccoInboxDraftsList, [], 'Inga utkast än.');
+      if (els.ccoDraftBodyInput) {
+        els.ccoDraftBodyInput.value = buildCcoSignatureBlock({
+          profile: getCcoSelectedSignatureProfile(),
+          senderMailboxId: state.ccoSenderMailboxId,
+        });
+      }
       return;
     }
 
@@ -7875,7 +10867,7 @@
 
     if (els.ccoInboxPriority) {
       const priorityLabel = String(normalizePriorityLevelForUi(data.priorityLevel));
-      els.ccoInboxPriority.textContent = priorityLabel;
+      els.ccoInboxPriority.textContent = formatCcoPriorityLabel(priorityLabel);
       applyCcoIndicatorClass(
         els.ccoInboxPriority,
         ['badge-critical', 'badge-high', 'badge-medium', 'badge-low'],
@@ -7886,30 +10878,43 @@
       els.ccoInboxRiskFlags.textContent = `${slaBreaches} / ${riskFlags}`;
     }
     if (els.ccoInboxMailboxMeta) {
-      els.ccoInboxMailboxMeta.textContent = `${mailboxCount} mailboxar · ${messageCount} meddelanden`;
+      const sourceMailboxIds = Array.isArray(metadata.sourceMailboxIds)
+        ? metadata.sourceMailboxIds
+            .map((item) => String(item || '').trim())
+            .filter(Boolean)
+            .slice(0, 8)
+        : [];
+      const suffix = sourceMailboxIds.length
+        ? ` · ${sourceMailboxIds.join(', ')}`
+        : '';
+      els.ccoInboxMailboxMeta.textContent = `${mailboxCount} postlådor · ${messageCount} meddelanden${suffix}`;
     }
     if (els.ccoWorkspaceEntryStatus) {
       els.ccoWorkspaceEntryStatus.textContent =
-        `${mailboxCount} mailboxar · ${messageCount} meddelanden · ${normalizePriorityLevelForUi(data.priorityLevel)}`;
+        `${mailboxCount} postlådor · ${messageCount} meddelanden · ${formatCcoPriorityLabel(normalizePriorityLevelForUi(data.priorityLevel))}`;
     }
     if (els.ccoInboxSummary) {
       els.ccoInboxSummary.textContent = String(data.executiveSummary || 'Ingen sammanfattning.');
     }
 
-    const sortedRows = getSortedCcoConversations(data);
+    const sortedRows = getSortedCcoConversations(data).map((row) => enrichCcoConversationRow(row));
     const openRows = sortedRows.filter(
       (row) => String(row?.needsReplyStatus || '').trim() !== 'handled'
     );
+    const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
     const overviewSummaryRows = openRows
       .slice(0, 3)
-      .map((item) => `${item.subject} · ${normalizePriorityLevelForUi(item.priorityLevel)} · ${item.intent || 'unclear'}`);
+      .map(
+        (item) =>
+          `${item.subject} · ${formatCcoPriorityLabel(normalizePriorityLevelForUi(item.priorityLevel))} · ${formatCcoIntentLabel(item.intent || 'unclear')}`
+      );
     renderIncidentIntelligenceList(
       els.ccoOverviewSummaryList,
       overviewSummaryRows,
       'Inga öppna CCO-konversationer.'
     );
-    const plannedRows = buildCcoSprintQueueRows(openRows);
-    syncCcoSprintState(openRows, plannedRows);
+    const plannedRows = buildCcoSprintQueueRows(unansweredRows);
+    syncCcoSprintState(unansweredRows, plannedRows);
     const validConversationIds = new Set(sortedRows.map((row) => String(row.conversationId || '').trim()));
     const nextEvaluations = {};
     for (const [conversationId, evaluation] of Object.entries(
@@ -7919,35 +10924,64 @@
       nextEvaluations[conversationId] = evaluation;
     }
     state.ccoDraftEvaluationByConversationId = nextEvaluations;
-    const visibleRows = getCcoVisibleConversations(sortedRows);
-    const selectedStillExists = visibleRows.some(
+    const nextDraftOverrides = {};
+    for (const [conversationId, draft] of Object.entries(state.ccoDraftOverrideByConversationId || {})) {
+      if (!validConversationIds.has(String(conversationId || '').trim())) continue;
+      nextDraftOverrides[conversationId] = String(draft || '');
+    }
+    state.ccoDraftOverrideByConversationId = nextDraftOverrides;
+    const nextDraftModes = {};
+    for (const [conversationId, mode] of Object.entries(state.ccoDraftModeByConversationId || {})) {
+      const key = String(conversationId || '').trim();
+      if (!validConversationIds.has(key)) continue;
+      const normalizedMode = normalizeCcoDraftMode(mode, '');
+      if (!['short', 'warm', 'professional'].includes(normalizedMode)) continue;
+      nextDraftModes[key] = normalizedMode;
+    }
+    state.ccoDraftModeByConversationId = nextDraftModes;
+    const nextConversationScroll = {};
+    for (const [conversationId, scrollTop] of Object.entries(
+      state.ccoConversationScrollTopByConversationId || {}
+    )) {
+      if (!validConversationIds.has(String(conversationId || '').trim())) continue;
+      const safeScrollTop = Number(scrollTop);
+      if (!Number.isFinite(safeScrollTop) || safeScrollTop < 0) continue;
+      nextConversationScroll[conversationId] = Math.round(safeScrollTop);
+    }
+    state.ccoConversationScrollTopByConversationId = nextConversationScroll;
+    const selectableRows = getCcoFilteredConversations(openRows);
+    const selectedStillExists = selectableRows.some(
       (row) => row.conversationId === state.ccoSelectedConversationId
     );
-    if (!selectedStillExists && visibleRows.length) {
-      state.ccoSelectedConversationId = visibleRows[0].conversationId;
+    if (!selectedStillExists && selectableRows.length) {
+      setSelectedCcoConversation(selectableRows[0].conversationId);
     }
-    if (!visibleRows.length) {
-      state.ccoSelectedConversationId = '';
+    if (!selectableRows.length) {
+      setSelectedCcoConversation('');
     }
-    renderCcoSprintPanel(openRows, plannedRows);
+    persistCcoWorkspaceSessionState();
+    renderCcoSprintPanel(unansweredRows, plannedRows);
     renderCcoWorklist(data);
     renderCcoDetail(data);
 
-    const visibleForContext = state.ccoSprintActive ? visibleRows : sortedRows;
+    const visibleForContext = selectableRows;
     renderIncidentIntelligenceList(
       els.ccoInboxNeedsReplyList,
       visibleForContext
         .filter((item) => item.needsReplyStatus !== 'handled')
         .slice(0, 5)
-        .map((item) => `${item.subject} · ${item.priorityLevel} · ${item.intent}`),
-      'Inga konversationer i ko.'
+        .map(
+          (item) =>
+            `${item.subject} · ${formatCcoPriorityLabel(item.priorityLevel)} · ${formatCcoIntentLabel(item.intent)}`
+        ),
+      'Inga konversationer i kö.'
     );
     renderIncidentIntelligenceList(
       els.ccoInboxDraftsList,
       visibleForContext
         .slice(0, 5)
-        .map((item) => `${item.subject} · confidence ${item.confidenceLevel || 'Low'}`),
-      'Inga utkast an.'
+        .map((item) => `${item.subject} · konfidens ${formatCcoConfidenceLabel(item.confidenceLevel || 'Low')}`),
+      'Inga utkast än.'
     );
   }
 
@@ -7965,17 +10999,17 @@
           const generatedAt = String(entry?.output?.data?.generatedAt || entry?.createdAt || '').trim();
           setStatus(
             els.ccoInboxStatus,
-            generatedAt ? `CCO inbox brief laddad (${generatedAt}).` : 'CCO inbox brief laddad.'
+            generatedAt ? `CCO inkorgsbrief laddad (${generatedAt}).` : 'CCO inkorgsbrief laddad.'
           );
         }
         return;
       }
       renderCcoInbox(null);
-      if (!quiet) setStatus(els.ccoInboxStatus, 'Ingen tidigare CCO inbox brief hittades.');
+      if (!quiet) setStatus(els.ccoInboxStatus, 'Ingen tidigare CCO inkorgsbrief hittades.');
     } catch (error) {
       renderCcoInbox(null);
       if (!quiet) {
-        setStatus(els.ccoInboxStatus, error.message || 'Kunde inte lasa CCO inbox brief.', true);
+        setStatus(els.ccoInboxStatus, error.message || 'Kunde inte läsa CCO inkorgsbrief.', true);
       }
     }
   }
@@ -7984,7 +11018,7 @@
     try {
       if (!canTemplateWrite()) throw new Error('Du saknar behorighet.');
       const input = readCcoInboxOptions();
-      setStatus(els.ccoInboxStatus, 'Kor CCO Inbox Brief...');
+      setStatus(els.ccoInboxStatus, 'Kör CCO inkorgsbrief...');
       const response = await api('/agents/CCO/run', {
         method: 'POST',
         body: {
@@ -7999,11 +11033,11 @@
       setStatus(
         els.ccoInboxStatus,
         generatedAt
-          ? `CCO inbox brief uppdaterad (${generatedAt}).`
-          : 'CCO inbox brief uppdaterad.'
+          ? `CCO inkorgsbrief uppdaterad (${generatedAt}).`
+          : 'CCO inkorgsbrief uppdaterad.'
       );
     } catch (error) {
-      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte kora CCO inbox brief.', true);
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte köra CCO inkorgsbrief.', true);
     }
   }
 
@@ -8040,7 +11074,7 @@
       await markCcoSprintConversationCompleted(conversation.conversationId, conversation);
       setStatus(els.ccoSendStatus, 'Konversation markerad som hanterad.');
     } else {
-      setStatus(els.ccoSendStatus, 'Konversation flaggad som Critical.');
+      setStatus(els.ccoSendStatus, 'Konversation flaggad som kritisk.');
     }
     renderCcoInbox(state.ccoInboxData);
   }
@@ -8072,9 +11106,14 @@
     });
     const refinedReply = String(response?.output?.data?.refinedReply || '').trim();
     if (!refinedReply) throw new Error('Förfining returnerade tomt svar.');
-    setCcoDraftBodyForConversation(conversation.conversationId, refinedReply);
+    const signedReply = applyCcoSignatureToDraft({
+      body: refinedReply,
+      senderMailboxId: state.ccoSenderMailboxId,
+      signatureProfile: getCcoSelectedSignatureProfile(),
+    });
+    setCcoDraftBodyForConversation(conversation.conversationId, signedReply);
     setCcoDraftEvaluationForConversation(conversation.conversationId, response);
-    if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = refinedReply;
+    if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = signedReply;
     renderCcoDetail(state.ccoInboxData?.data || null);
     setStatus(els.ccoSendStatus, 'Svar förfinat och risk/policy-kontrollerat.');
   }
@@ -8086,7 +11125,7 @@
       setStatus(els.ccoSendStatus, 'Skick avbröts.');
       return;
     }
-    setStatus(els.ccoSendStatus, 'Skickar via Graph (manual trigger)...');
+    setStatus(els.ccoSendStatus, 'Skickar via Graph (manuell trigger)...');
     const response = await api('/cco/send', {
       method: 'POST',
       headers: {
@@ -8100,14 +11139,17 @@
     const decision = String(response?.decision || '').trim().toLowerCase();
     setCcoDraftEvaluationForConversation(conversation.conversationId, response);
     if (decision && decision !== 'allow' && decision !== 'allow_flag') {
-      throw new Error('Send blockerades av risk/policy.');
+      throw new Error('Skick blockerades av risk/policy.');
     }
     applyCcoConversationMutation(conversation.conversationId, (row) => ({
       ...row,
       needsReplyStatus: 'handled',
     }));
     await markCcoSprintConversationCompleted(conversation.conversationId, conversation);
-    setStatus(els.ccoSendStatus, 'E-post skickad via Graph (manual send).');
+    setStatus(
+      els.ccoSendStatus,
+      `E-post skickad via Graph från ${state.ccoSenderMailboxId || CCO_DEFAULT_SENDER_MAILBOX}.`
+    );
     renderCcoDetail(state.ccoInboxData?.data || null);
     renderCcoInbox(state.ccoInboxData);
   }
@@ -8203,18 +11245,18 @@
 
     const counts = data?.report?.counts || {};
     const lines = [
-      `Tenant: ${data?.tenantId || '-'}`,
-      `Brand: ${data?.brand || '-'}`,
-      `Mail-dir: ${data?.paths?.mailDir || '-'}`,
+      `Klinik: ${data?.tenantId || '-'}`,
+      `Varumärke: ${data?.brand || '-'}`,
+      `E-postmapp: ${data?.paths?.mailDir || '-'}`,
       '',
       `Meddelanden använda: ${counts.messagesUsed ?? 0}`,
       `Trådar: ${counts.threads ?? 0}`,
-      `Inbound: ${counts.inbound ?? 0}`,
-      `Outbound: ${counts.outbound ?? 0}`,
+      `Inkommande: ${counts.inbound ?? 0}`,
+      `Utgående: ${counts.outbound ?? 0}`,
       `QA-par: ${counts.qaPairs ?? 0}`,
-      `Template seeds: ${counts.templateSeeds ?? 0}`,
+      `Mallfrön: ${counts.templateSeeds ?? 0}`,
       '',
-      'Summary (preview):',
+      'Sammanfattning (förhandsvisning):',
       (data?.previews?.summary || '').slice(0, 500) || '(saknas)',
     ];
 
@@ -8246,11 +11288,11 @@
       const missing = Array.isArray(item?.missingRequiredVariables)
         ? item.missingRequiredVariables.length
         : 0;
-      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • unknownVars=${unknown} • missingRequired=${missing}`;
+      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • okändaVariabler=${unknown} • saknadeObligatoriska=${missing}`;
     });
     const lines = [
       `Seed-förhandsvisning: valda=${response?.selected ?? 0}`,
-      `Tenant: ${response?.tenantId || '-'}`,
+      `Klinik: ${response?.tenantId || '-'}`,
       '',
       ...(rows.length ? rows : ['(inga förhandsrader)']),
     ];
@@ -8261,11 +11303,11 @@
     if (!els.mailInsightsResult) return;
     const templates = Array.isArray(response?.templates) ? response.templates : [];
     const rows = templates.map((item, index) => {
-      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • decision=${item?.decision || '-'} • risk=L${item?.riskLevel ?? '-'}`;
+      return `${index + 1}. ${item?.templateName || '-'} [${item?.category || '-'}] • beslut=${item?.decision || '-'} • risk=L${item?.riskLevel ?? '-'}`;
     });
     const lines = [
-      `Seed apply: created=${response?.created ?? 0} av selected=${response?.selected ?? 0}`,
-      `Tenant: ${response?.tenantId || '-'}`,
+      `Mallfröimport: skapade=${response?.created ?? 0} av valda=${response?.selected ?? 0}`,
+      `Klinik: ${response?.tenantId || '-'}`,
       '',
       ...(rows.length ? rows : ['(inga skapade mallar)']),
     ];
@@ -8278,7 +11320,7 @@
       const payload = getMailSeedApplyPayload({ forceDryRun: dryRun });
       setStatus(
         els.mailInsightsStatus,
-        dryRun ? 'Kör seed-förhandsvisning...' : 'Skapar utkast från seeds...'
+        dryRun ? 'Kör mallfrö-förhandsvisning...' : 'Skapar utkast från mallfrön...'
       );
 
       const response = await api('/mail/template-seeds/apply', {
@@ -8290,7 +11332,7 @@
         renderMailSeedPreview(response);
         setStatus(
           els.mailInsightsStatus,
-          `Preview klar: ${response?.selected ?? 0} seeds valda.`
+          `Förhandsvisning klar: ${response?.selected ?? 0} mallfrön valda.`
         );
         return;
       }
@@ -8298,7 +11340,7 @@
       renderMailSeedApplyResult(response);
       setStatus(
         els.mailInsightsStatus,
-        `Klart: ${response?.created ?? 0} drafts skapade från seeds.`
+        `Klart: ${response?.created ?? 0} utkast skapade från mallfrön.`
       );
       await loadDashboard();
       await loadTemplates({ preserveSelection: false });
@@ -8306,7 +11348,7 @@
     } catch (error) {
       setStatus(
         els.mailInsightsStatus,
-        error.message || 'Kunde inte köra seed → draft.',
+        error.message || 'Kunde inte köra mallfrön → utkast.',
         true
       );
     }
@@ -8348,7 +11390,7 @@
       els.monitorObservabilitySummary.textContent = '';
       els.monitorObservabilityResult.textContent = isEnglishLanguage()
         ? 'No observability data yet.'
-        : 'Ingen observability-data ännu.';
+        : 'Ingen observabilitetsdata ännu.';
       return;
     }
 
@@ -8370,35 +11412,35 @@
 
     els.monitorObservabilitySummary.textContent = isEnglishLanguage()
       ? `status=${status} alerts=${alerts} hasTraffic=${hasTraffic ? 'yes' : 'no'} sampled=${sampledRequests}`
-      : `status=${status} alerts=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} sampled=${sampledRequests}`;
+      : `status=${status} varningar=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} urval=${sampledRequests}`;
 
     const lines = [];
     lines.push(
-      `metrics: errorRatePct=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} slowRequests=${Number(metrics?.slowRequests || 0)}`
+      `mätvärden: felgradProcent=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} långsammaAnrop=${Number(metrics?.slowRequests || 0)}`
     );
     lines.push(
-      `thresholds: maxErrorRatePct=${Number(thresholds?.maxErrorRatePct || 0)} maxP95Ms=${Number(thresholds?.maxP95Ms || 0)} maxSlowRequests=${Number(thresholds?.maxSlowRequests || 0)}`
+      `gränsvärden: maxFelgradProcent=${Number(thresholds?.maxErrorRatePct || 0)} maxP95Ms=${Number(thresholds?.maxP95Ms || 0)} maxLångsammaAnrop=${Number(thresholds?.maxSlowRequests || 0)}`
     );
-    lines.push(`generatedAt: ${formatDateTime(observabilityResponse?.generatedAt)}`);
+    lines.push(`skapad: ${formatDateTime(observabilityResponse?.generatedAt)}`);
     lines.push('');
     lines.push(
       isEnglishLanguage()
         ? `checks (${checks.length}):`
-        : `checks (${checks.length}):`
+        : `kontroller (${checks.length}):`
     );
     checks.forEach((check) => {
       lines.push(
-        `- ${String(check?.id || '-')} status=${String(check?.status || '-')} required=${check?.required === true ? 'yes' : 'no'} target=${String(check?.target || '-')}`
+        `- ${String(check?.id || '-')} status=${String(check?.status || '-')} krävs=${check?.required === true ? 'ja' : 'nej'} mål=${String(check?.target || '-')}`
       );
     });
     lines.push('');
     if (triggeredAlerts.length === 0) {
       lines.push(
-        isEnglishLanguage() ? 'No triggered alerts.' : 'Inga aktiva alerts.'
+        isEnglishLanguage() ? 'No triggered alerts.' : 'Inga aktiva varningar.'
       );
     } else {
       lines.push(
-        isEnglishLanguage() ? 'Triggered alerts:' : 'Aktiva alerts:'
+        isEnglishLanguage() ? 'Triggered alerts:' : 'Aktiva varningar:'
       );
       triggeredAlerts.forEach((alert) => {
         lines.push(
@@ -8416,7 +11458,7 @@
       els.monitorPublicChatBetaSummary.textContent = '';
       els.monitorPublicChatBetaResult.textContent = isEnglishLanguage()
         ? 'No patient beta gate data yet.'
-        : 'Ingen patient beta gate-data ännu.';
+        : 'Ingen patient-beta-gate-data ännu.';
       return;
     }
 
@@ -8429,13 +11471,13 @@
 
     els.monitorPublicChatBetaSummary.textContent = isEnglishLanguage()
       ? `enabled=${enabled ? 'yes' : 'no'} ready=${ready ? 'yes' : 'no'} key=${keyConfigured ? 'yes' : 'no'} allowHosts=${allowHostsCount}`
-      : `enabled=${enabled ? 'ja' : 'nej'} ready=${ready ? 'ja' : 'nej'} nyckel=${keyConfigured ? 'ja' : 'nej'} allowHosts=${allowHostsCount}`;
+      : `aktiverad=${enabled ? 'ja' : 'nej'} redo=${ready ? 'ja' : 'nej'} nyckel=${keyConfigured ? 'ja' : 'nej'} tillåtnaVärdar=${allowHostsCount}`;
 
     const lines = [
-      `headerName=${headerName}`,
-      `allowLocalhost=${allowLocalhost ? 'yes' : 'no'}`,
-      `keyConfigured=${keyConfigured ? 'yes' : 'no'}`,
-      `allowHostsCount=${allowHostsCount}`,
+      `rubrikNamn=${headerName}`,
+      `tillåtLokalhost=${allowLocalhost ? 'ja' : 'nej'}`,
+      `nyckelKonfigurerad=${keyConfigured ? 'ja' : 'nej'}`,
+      `antalTillåtnaVärdar=${allowHostsCount}`,
     ];
     if (enabled && !ready) {
       lines.push(
@@ -8447,13 +11489,13 @@
       lines.push(
         isEnglishLanguage()
           ? 'Patient beta gate is active and configured.'
-          : 'Patient beta gate är aktiv och konfigurerad.'
+          : 'Patient-beta-gate är aktiv och konfigurerad.'
       );
     } else {
       lines.push(
         isEnglishLanguage()
           ? 'Patient beta gate is disabled (open access mode).'
-          : 'Patient beta gate är avstängd (öppet läge).'
+          : 'Patient-beta-gate är avstängd (öppet läge).'
       );
     }
     els.monitorPublicChatBetaResult.textContent = lines.join('\n');
@@ -8466,7 +11508,7 @@
       els.monitorPatientConversionSummary.textContent = '';
       els.monitorPatientConversionResult.textContent = isEnglishLanguage()
         ? 'No patient conversion signal data yet.'
-        : 'Ingen patient conversion-signaldata ännu.';
+        : 'Ingen patientkonverteringssignaldata ännu.';
       return;
     }
 
@@ -8487,13 +11529,13 @@
 
     els.monitorPatientConversionSummary.textContent = isEnglishLanguage()
       ? `status=${status} healthy=${feedbackHealthy ? 'yes' : 'no'} requests=${totalRequests} deniedRate=${deniedRatePct}% conversionRate=${conversionRatePct}%`
-      : `status=${status} healthy=${feedbackHealthy ? 'ja' : 'nej'} requests=${totalRequests} deniedRate=${deniedRatePct}% conversionRate=${conversionRatePct}%`;
+      : `status=${status} frisk=${feedbackHealthy ? 'ja' : 'nej'} förfrågningar=${totalRequests} nekadAndel=${deniedRatePct}% konverteringsgrad=${conversionRatePct}%`;
 
     const lines = [
-      `windowDays=${windowDays}`,
-      `latestEvent=${formatDateTime(latestEventAt)} (${formatRelativeAge(latestEventAt)})`,
-      `ageHoursSinceLatest=${ageHoursSinceLatest !== null ? ageHoursSinceLatest : '-'}`,
-      `feedbackHealthy=${feedbackHealthy ? 'yes' : 'no'}`,
+      `fönsterDagar=${windowDays}`,
+      `senasteHändelse=${formatDateTime(latestEventAt)} (${formatRelativeAge(latestEventAt)})`,
+      `ålderTimmarSedanSenaste=${ageHoursSinceLatest !== null ? ageHoursSinceLatest : '-'}`,
+      `feedbackFrisk=${feedbackHealthy ? 'ja' : 'nej'}`,
     ];
     if (check?.evidence) {
       lines.push(`evidence: ${String(check.evidence)}`);
@@ -8504,7 +11546,7 @@
     const daily = Array.isArray(summary?.daily) ? summary.daily : [];
 
     lines.push('');
-    lines.push(isEnglishLanguage() ? 'Top denied hosts:' : 'Top denied hosts:');
+	      lines.push(isEnglishLanguage() ? 'Top denied hosts:' : 'Topp nekade värdar:');
     if (topDeniedHosts.length === 0) {
       lines.push(isEnglishLanguage() ? '- none' : '- inga');
     } else {
@@ -8514,7 +11556,7 @@
     }
 
     lines.push('');
-    lines.push(isEnglishLanguage() ? 'Top intent signals:' : 'Top intent-signaler:');
+	    lines.push(isEnglishLanguage() ? 'Top intent signals:' : 'Topp intentsignaler:');
     if (topSignals.length === 0) {
       lines.push(isEnglishLanguage() ? '- none' : '- inga');
     } else {
@@ -8530,7 +11572,7 @@
     } else {
       daily.slice(-7).forEach((item) => {
         lines.push(
-          `${String(item?.date || '-')} requests=${Number(item?.totalRequests || 0)} denied=${Number(item?.deniedRequests || 0)} conversionSignals=${Number(item?.conversionIntentRequests || 0)}`
+	          `${String(item?.date || '-')} förfrågningar=${Number(item?.totalRequests || 0)} nekade=${Number(item?.deniedRequests || 0)} konverteringssignaler=${Number(item?.conversionIntentRequests || 0)}`
         );
       });
     }
@@ -8565,10 +11607,10 @@
     if (jobs.length === 0) {
       els.monitorSchedulerSummary.textContent = isEnglishLanguage()
         ? 'Required jobs missing in monitor status.'
-        : 'Required-jobs saknas i monitor-status.';
+	        : 'Obligatoriska jobb saknas i monitor-status.';
       els.monitorSchedulerResult.textContent = isEnglishLanguage()
         ? 'No scheduler job details available.'
-        : 'Ingen scheduler-jobbdetalj tillgänglig.';
+	        : 'Ingen scheduler-jobbdetalj tillgänglig.';
       return;
     }
 
@@ -8577,7 +11619,7 @@
     const running = jobs.filter((job) => job?.running === true).length;
     els.monitorSchedulerSummary.textContent = isEnglishLanguage()
       ? `required=${jobs.length} stale=${stale} warn=${warn} running=${running}`
-      : `krav=${jobs.length} stale=${stale} varning=${warn} kör=${running}`;
+	      : `krav=${jobs.length} inaktuella=${stale} varning=${warn} kör=${running}`;
 
     const lines = jobs.map((job) => {
       const id = String(job?.id || '-');
@@ -8587,7 +11629,7 @@
       const lastSuccessAge = formatRelativeAge(job?.lastSuccessAt);
       const nextRun = formatDateTime(job?.nextRunAt);
       const lastStatus = String(job?.lastStatus || '-');
-      return `${id} | enabled=${enabled} | freshness=${freshness} | lastSuccess=${lastSuccess} (${lastSuccessAge}) | nextRun=${nextRun} | status=${lastStatus}`;
+	      return `${id} | aktiverad=${enabled} | färskhet=${freshness} | senasteLyckad=${lastSuccess} (${lastSuccessAge}) | nästaKörning=${nextRun} | status=${lastStatus}`;
     });
     els.monitorSchedulerResult.textContent = lines.join('\n');
   }
@@ -8603,7 +11645,7 @@
       els.monitorReadinessHistorySummary.textContent = '';
       els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
         ? 'No readiness history yet.'
-        : 'Ingen readiness-historik ännu.';
+	        : 'Ingen beredskapshistorik ännu.';
       return;
     }
 
@@ -8625,7 +11667,7 @@
 
     els.monitorReadinessHistorySummary.textContent = isEnglishLanguage()
       ? `latest score=${Number(latestScore.toFixed(2))} (${scoreDeltaLabel}) band=${latestBand} goAllowed=${latestGoAllowed ? 'yes' : 'no'} required=${latestRequiredBlockers} (${requiredDeltaLabel}) noGo=${latestNoGo} remediation=${latestRemediation}`
-      : `senaste score=${Number(latestScore.toFixed(2))} (${scoreDeltaLabel}) band=${latestBand} goTillåten=${latestGoAllowed ? 'ja' : 'nej'} required=${latestRequiredBlockers} (${requiredDeltaLabel}) noGo=${latestNoGo} remediation=${latestRemediation}`;
+	      : `senaste poäng=${Number(latestScore.toFixed(2))} (${scoreDeltaLabel}) band=${latestBand} goTillåten=${latestGoAllowed ? 'ja' : 'nej'} obligatoriska=${latestRequiredBlockers} (${requiredDeltaLabel}) noGo=${latestNoGo} åtgärder=${latestRemediation}`;
 
     const lines = entries.slice(0, 10).map((item) => {
       const ts = formatDateTime(item?.ts);
@@ -8637,7 +11679,7 @@
       const triggeredNoGo = Number(item?.triggeredNoGo || 0);
       const remediationTotal = Number(item?.remediationTotal || 0);
       const remediationP0 = Number(item?.remediationP0 || 0);
-      return `${ts} (${age}) | score=${Number(score.toFixed(2))} | band=${band} | go=${goAllowed ? 'yes' : 'no'} | required=${requiredBlockers} | noGo=${triggeredNoGo} | remediation=${remediationTotal} (P0=${remediationP0})`;
+	      return `${ts} (${age}) | poäng=${Number(score.toFixed(2))} | band=${band} | go=${goAllowed ? 'ja' : 'nej'} | obligatoriska=${requiredBlockers} | noGo=${triggeredNoGo} | åtgärder=${remediationTotal} (P0=${remediationP0})`;
     });
     els.monitorReadinessHistoryResult.textContent = lines.join('\n');
   }
@@ -8692,25 +11734,25 @@
     if (triggers.length === 0) {
       els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
         ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} requiredBlockers=${requiredBlockerCount} triggered=0`
-        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} requiredBlockers=${requiredBlockerCount} triggered=0`;
+	        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockeringarGröna=${blockersGreen ? 'ja' : 'nej'} obligatoriskaBlockeringar=${requiredBlockerCount} utlösta=0`;
 
       const lines = [];
       if (requiredBlockerCount > 0) {
         lines.push(
           isEnglishLanguage()
             ? `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
-            : `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+	            : `Obligatoriska blockeringar (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
         );
         requiredBlockerDetails.slice(0, 6).forEach((item) => {
           lines.push(
-            `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} category=${String(item?.categoryId || '-')}`
+	            `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} kategori=${String(item?.categoryId || '-')}`
           );
           if (item?.target) {
-            lines.push(`     target: ${String(item.target)}`);
+	            lines.push(`     mål: ${String(item.target)}`);
           }
         });
         if (requiredBlockerDetails.length > 6) {
-          lines.push(`   ... +${requiredBlockerDetails.length - 6} more required blockers`);
+	          lines.push(`   ... +${requiredBlockerDetails.length - 6} fler obligatoriska blockeringar`);
         }
       } else {
         lines.push(
@@ -8723,20 +11765,20 @@
       return;
     }
 
-    els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
+      els.monitorReadinessNoGoSummary.textContent = isEnglishLanguage()
       ? `goAllowed=${goAllowed ? 'yes' : 'no'} blockersGreen=${blockersGreen ? 'yes' : 'no'} requiredBlockers=${requiredBlockerCount} triggered=${triggers.length} ids=${ids.join(',') || '-'}`
-      : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockersGreen=${blockersGreen ? 'ja' : 'nej'} requiredBlockers=${requiredBlockerCount} triggered=${triggers.length} ids=${ids.join(',') || '-'}`;
+	        : `goTillåten=${goAllowed ? 'ja' : 'nej'} blockeringarGröna=${blockersGreen ? 'ja' : 'nej'} obligatoriskaBlockeringar=${requiredBlockerCount} utlösta=${triggers.length} id=${ids.join(',') || '-'}`;
 
     const lines = [];
     if (requiredBlockerCount > 0) {
       lines.push(
         isEnglishLanguage()
           ? `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
-          : `Required blockers (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
+	          : `Obligatoriska blockeringar (${requiredBlockerCount}): ${requiredBlockerIds.join(',') || '-'}`
       );
       requiredBlockerDetails.slice(0, 5).forEach((item) => {
         lines.push(
-          `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} category=${String(item?.categoryId || '-')}`
+	          `   - ${String(item?.checkId || '-')} status=${String(item?.status || '-')} kategori=${String(item?.categoryId || '-')}`
         );
       });
       lines.push('');
@@ -8748,13 +11790,13 @@
       const violations = Number(trigger?.value?.violations || 0);
       const details = Array.isArray(trigger?.value?.details) ? trigger.value.details : [];
       lines.push(`[${id}] ${label}`);
-      lines.push(`   evidence: ${evidence}`);
-      if (violations > 0) lines.push(`   violations: ${violations}`);
+	      lines.push(`   underlag: ${evidence}`);
+	      if (violations > 0) lines.push(`   överträdelser: ${violations}`);
       details.slice(0, 3).forEach((detail, detailIndex) => {
-        lines.push(`   detail${detailIndex + 1}: ${formatReadinessNoGoDetail(detail)}`);
+	        lines.push(`   detalj${detailIndex + 1}: ${formatReadinessNoGoDetail(detail)}`);
       });
       if (details.length > 3) {
-        lines.push(`   ... +${details.length - 3} more details`);
+	        lines.push(`   ... +${details.length - 3} fler detaljer`);
       }
       if (index < triggers.length - 1) lines.push('');
     });
@@ -8775,7 +11817,7 @@
     if (els.monitorRemediationSummary) {
       els.monitorRemediationSummary.textContent = isEnglishLanguage()
         ? `Actions=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | potentialGain=${potentialGain}`
-        : `Åtgärder=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | potentialGain=${potentialGain}`;
+	        : `Åtgärder=${total} (P0=${p0}, P1=${p1}, P2=${p2}, P3=${p3}) | möjligPoängökning=${potentialGain}`;
     }
 
     if (!els.monitorRemediationResult) return;
@@ -8796,7 +11838,7 @@
     if (nextActions.length === 0) {
       els.monitorRemediationResult.textContent = isEnglishLanguage()
         ? 'No remediation actions right now.'
-        : 'Inga remediation-actions just nu.';
+	        : 'Inga åtgärder just nu.';
       return;
     }
 
@@ -8811,10 +11853,10 @@
     const lines = [
       isEnglishLanguage()
         ? `Readiness: score=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goAllowed=${goAllowedLabel}`
-        : `Readiness: score=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goTillåten=${goAllowedLabel}`,
+	        : `Beredskap: poäng=${readiness?.score ?? '-'} band=${readiness?.band || '-'} goTillåten=${goAllowedLabel}`,
       isEnglishLanguage() ? `Critical path (P0): ${p0}` : `Kritisk väg (P0): ${p0}`,
       '',
-      isEnglishLanguage() ? 'Top actions:' : 'Top åtgärder:',
+	      isEnglishLanguage() ? 'Top actions:' : 'Toppåtgärder:',
     ];
 
     nextActions.forEach((action, index) => {
@@ -8826,13 +11868,13 @@
       lines.push(
         isEnglishLanguage()
           ? `${index + 1}. [${priority}] ${title} | owner=${owner} | target=${targetState} | impact<=${impact}`
-          : `${index + 1}. [${priority}] ${title} | ansvarig=${owner} | mål=${targetState} | impact<=${impact}`
+	          : `${index + 1}. [${priority}] ${title} | ansvarig=${owner} | mål=${targetState} | påverkan<=${impact}`
       );
       if (action?.playbook) {
         lines.push(
           isEnglishLanguage()
             ? `   playbook: ${String(action.playbook)}`
-            : `   playbook: ${String(action.playbook)}`
+	            : `   körplan: ${String(action.playbook)}`
         );
       }
     });
@@ -8891,7 +11933,7 @@
       const triggeredNoGoCount = Number(readinessResponse?.goNoGo?.triggeredNoGoCount || 0);
       setStatus(
         els.monitorPanelStatus,
-        `Monitor uppdaterad. Band=${band}, blockers=${requiredBlockers}, noGo=${triggeredNoGoCount}.`
+        `Monitor uppdaterad. Band=${band}, blockeringar=${requiredBlockers}, noGo=${triggeredNoGoCount}.`
       );
     } catch (error) {
       renderReadinessKpi(null);
@@ -8906,7 +11948,7 @@
       if (els.monitorRemediationResult) {
         els.monitorRemediationResult.textContent = isEnglishLanguage()
           ? 'Readiness remediation could not be loaded.'
-          : 'Readiness-remediation kunde inte laddas.';
+          : 'Beredskapsåtgärd kunde inte laddas.';
       }
       setStatus(els.monitorPanelStatus, error.message || 'Kunde inte läsa monitor-status.', true);
     }
@@ -8953,8 +11995,8 @@
       setStatus(
         els.monitorPanelStatus,
         dryRun
-          ? 'Preview: readiness remediation (output gate)...'
-          : 'Kör readiness remediation (output gate)...'
+          ? 'Förhandsvisning: beredskapsåtgärd (output gate)...'
+          : 'Kör beredskapsåtgärd (output gate)...'
       );
       const response = await api('/ops/readiness/remediate-output-gates', {
         method: 'POST',
@@ -8974,15 +12016,15 @@
       setStatus(
         els.monitorPanelStatus,
         dryRun
-          ? `Preview klar: candidates=${candidates}, fixable=${fixable}`
-          : `Remediation klar: candidates=${candidates}, fixable=${fixable}, fixed=${fixed}, remaining=${remaining}`,
+          ? `Förhandsvisning klar: kandidater=${candidates}, åtgärdbara=${fixable}`
+          : `Åtgärd klar: kandidater=${candidates}, åtgärdbara=${fixable}, åtgärdade=${fixed}, kvar=${remaining}`,
         !dryRun && remaining > 0
       );
       await loadMonitorStatus();
     } catch (error) {
       setStatus(
         els.monitorPanelStatus,
-        error.message || 'Kunde inte köra readiness remediation.',
+        error.message || 'Kunde inte köra beredskapsåtgärd.',
         true
       );
     }
@@ -8997,8 +12039,8 @@
       setStatus(
         els.monitorPanelStatus,
         dryRun
-          ? 'Preview: readiness remediation (owner MFA memberships)...'
-          : 'Kör readiness remediation (owner MFA memberships)...'
+          ? 'Förhandsvisning: beredskapsåtgärd (owner MFA-medlemskap)...'
+          : 'Kör beredskapsåtgärd (owner MFA-medlemskap)...'
       );
       const response = await api('/ops/readiness/remediate-owner-mfa-memberships', {
         method: 'POST',
@@ -9019,15 +12061,15 @@
       setStatus(
         els.monitorPanelStatus,
         dryRun
-          ? `Preview klar: disableCandidates=${candidates}, attempted=${attempted}`
-          : `Remediation klar: attempted=${attempted}, disabled=${disabled}, skipped=${skipped}, remainingNonCompliant=${remaining}`,
+          ? `Förhandsvisning klar: kandidater_att_inaktivera=${candidates}, försökta=${attempted}`
+          : `Åtgärd klar: försökta=${attempted}, inaktiverade=${disabled}, hoppade_över=${skipped}, kvar_icke_följsamma=${remaining}`,
         !dryRun && remaining > 0
       );
       await loadMonitorStatus();
     } catch (error) {
       setStatus(
         els.monitorPanelStatus,
-        error.message || 'Kunde inte köra OWNER MFA remediation.',
+        error.message || 'Kunde inte köra owner-MFA-åtgärd.',
         true
       );
     }
@@ -9130,17 +12172,17 @@
     }
     try {
       const confirmResult = await openAppModal({
-        title: 'Prune backups',
-        message: 'Kör prune på backup-katalogen enligt retention-reglerna?',
-        confirmLabel: 'Kör prune',
+        title: 'Rensa säkerhetskopior',
+        message: 'Kör rensning på backup-katalogen enligt retention-reglerna?',
+        confirmLabel: 'Kör rensning',
         cancelLabel: 'Avbryt',
         confirmTone: 'danger',
       });
       if (!confirmResult.confirmed) {
-        setStatus(els.opsStatus, 'Prune avbruten.');
+        setStatus(els.opsStatus, 'Rensning avbruten.');
         return;
       }
-      setStatus(els.opsStatus, 'Kör prune...');
+      setStatus(els.opsStatus, 'Kör rensning...');
       const response = await api('/ops/state/backups/prune', {
         method: 'POST',
         body: { dryRun: false },
@@ -9150,7 +12192,7 @@
       }
       setStatus(
         els.opsStatus,
-        `Prune klar: ${response?.deletedCount ?? 0} filer borttagna.`
+        `Rensning klar: ${response?.deletedCount ?? 0} filer borttagna.`
       );
     } catch (error) {
       setStatus(els.opsStatus, error.message || 'Kunde inte pruna backups.', true);
@@ -9180,7 +12222,7 @@
       return;
     }
     try {
-      setStatus(els.opsStatus, 'Kör förhandsvisning av report-prune...');
+      setStatus(els.opsStatus, 'Kör förhandsvisning av rapport-rensning...');
       const response = await api('/ops/reports/prune', {
         method: 'POST',
         body: { dryRun: true },
@@ -9190,10 +12232,10 @@
       }
       setStatus(
         els.opsStatus,
-        `Report-prune preview klar: ${response?.deletedCount ?? 0} filer skulle tas bort.`
+        `Förhandsvisning av rapport-rensning klar: ${response?.deletedCount ?? 0} filer skulle tas bort.`
       );
     } catch (error) {
-      setStatus(els.opsStatus, error.message || 'Kunde inte köra report-prune preview.', true);
+      setStatus(els.opsStatus, error.message || 'Kunde inte köra förhandsvisning av rapport-rensning.', true);
     }
   }
 
@@ -9204,17 +12246,17 @@
     }
     try {
       const confirmResult = await openAppModal({
-        title: 'Prune scheduler reports',
-        message: 'Kör prune på scheduler-genererade pilotrapporter enligt retention-reglerna?',
-        confirmLabel: 'Kör prune',
+        title: 'Rensa scheduler-rapporter',
+        message: 'Kör rensning på scheduler-genererade pilotrapporter enligt retention-reglerna?',
+        confirmLabel: 'Kör rensning',
         cancelLabel: 'Avbryt',
         confirmTone: 'danger',
       });
       if (!confirmResult.confirmed) {
-        setStatus(els.opsStatus, 'Report-prune avbruten.');
+        setStatus(els.opsStatus, 'Rapport-rensning avbruten.');
         return;
       }
-      setStatus(els.opsStatus, 'Kör report-prune...');
+      setStatus(els.opsStatus, 'Kör rapport-rensning...');
       const response = await api('/ops/reports/prune', {
         method: 'POST',
         body: { dryRun: false },
@@ -9224,10 +12266,10 @@
       }
       setStatus(
         els.opsStatus,
-        `Report-prune klar: ${response?.deletedCount ?? 0} filer borttagna.`
+        `Rapport-rensning klar: ${response?.deletedCount ?? 0} filer borttagna.`
       );
     } catch (error) {
-      setStatus(els.opsStatus, error.message || 'Kunde inte köra report-prune.', true);
+      setStatus(els.opsStatus, error.message || 'Kunde inte köra rapport-rensning.', true);
     }
   }
 
@@ -9565,12 +12607,22 @@
       loadIncidentIntelligence({ quiet: true }),
       loadDailyBrief({ quiet: true }),
       loadCcoInboxBrief({ quiet: true }),
+      loadWritingIdentityProfiles({ quiet: true }),
     ]);
   }
 
-  async function refreshAll() {
+  function resolveRefreshScope() {
+    return state.activeSectionGroup === 'ccoWorkspaceSection' ? 'cco' : 'all';
+  }
+
+  async function refreshAll({ scope = 'all' } = {}) {
+    const normalizedScope = String(scope || '').trim().toLowerCase() === 'cco' ? 'cco' : 'all';
     await loadSessionProfile();
     await loadTenants();
+    if (normalizedScope === 'cco') {
+      await loadCcoInboxBrief({ quiet: true });
+      return;
+    }
     await loadDashboard();
     await loadOrchestratorMeta();
     await loadStaffMembers();
@@ -9649,7 +12701,7 @@
 
       setStatus(els.loginStatus, 'Inloggad.');
       setAuthVisible(true);
-      await refreshAll();
+      await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Inloggning misslyckades.', true);
     }
@@ -9694,7 +12746,7 @@
       clearPendingMfa();
       setStatus(els.loginStatus, 'Inloggad.');
       setAuthVisible(true);
-      await refreshAll();
+      await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'MFA-verifiering misslyckades.', true);
     }
@@ -9723,7 +12775,7 @@
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       setStatus(els.loginStatus, 'Inloggad.');
       setAuthVisible(true);
-      await refreshAll();
+      await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Tenant-val misslyckades.', true);
     }
@@ -9756,7 +12808,7 @@
             : []),
       });
       setStatus(els.loginStatus, `Bytte tenant till ${state.tenantId}.`);
-      await refreshAll();
+      await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Kunde inte byta tenant.', true);
       renderTenantSwitchOptions();
@@ -9768,6 +12820,10 @@
       stopDashboardStream();
       setAuthVisible(false);
       state.availableTenants = [];
+      state.writingIdentityProfiles = [];
+      state.selectedWritingIdentityMailbox = '';
+      fillWritingIdentityForm(null);
+      renderWritingIdentityProfiles();
       renderTenantSwitchOptions();
       setSessionMeta();
       updateLifecyclePermissions();
@@ -9780,7 +12836,7 @@
         memberships: me?.memberships || (me?.membership ? [me.membership] : []),
       });
       setAuthVisible(true);
-      await refreshAll();
+      await refreshAll({ scope: resolveRefreshScope() });
     } catch {
       stopDashboardStream();
       localStorage.removeItem(TOKEN_KEY);
@@ -9788,6 +12844,10 @@
       state.role = '';
       state.tenantId = '';
       state.availableTenants = [];
+      state.writingIdentityProfiles = [];
+      state.selectedWritingIdentityMailbox = '';
+      fillWritingIdentityForm(null);
+      renderWritingIdentityProfiles();
       setAuthVisible(false);
       renderTenantSwitchOptions();
       setSessionMeta();
@@ -9881,6 +12941,8 @@
 
   function logout() {
     stopDashboardStream();
+    state.ccoLastSeenAtMs = Date.now();
+    persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
     localStorage.removeItem(TOKEN_KEY);
     state.token = '';
     state.role = '';
@@ -9901,9 +12963,15 @@
     state.profile = null;
     state.calibrationSuggestion = null;
     state.ccoInboxData = null;
+    state.ccoInboxViewMode = 'all';
+    state.ccoInboxMailboxFilter = 'all';
+    state.ccoInboxSlaFilter = 'all';
+    state.ccoInboxLifecycleFilter = 'all';
     state.ccoSelectedConversationId = '';
     state.ccoDraftOverrideByConversationId = {};
+    state.ccoDraftModeByConversationId = {};
     state.ccoDraftEvaluationByConversationId = {};
+    state.ccoConversationScrollTopByConversationId = {};
     state.ccoSprintActive = false;
     state.ccoSprintQueueIds = [];
     state.ccoSprintCompletedIds = [];
@@ -9913,6 +12981,8 @@
     state.ccoSprintStartedAtMs = 0;
     state.ccoSprintMetrics = null;
     state.ccoSprintLatestFeedback = null;
+    state.ccoCustomerSummaryExpanded = false;
+    state.ccoSeenConversationIds = {};
     state.riskEvaluations = [];
     state.selectedRiskEvaluationId = '';
     state.selectedRiskIds = [];
@@ -9924,6 +12994,11 @@
     state.riskFilters = loadRiskFilters();
     state.auditFilters = loadAuditFilters();
     state.templateListFilters = loadTemplateListFilters();
+    try {
+      sessionStorage.removeItem(CCO_WORKSPACE_SESSION_KEY);
+    } catch {
+      // Ignorera sessionStorage-fel
+    }
     syncRiskFilterInputs();
     setAuthVisible(false);
     setStatus(els.loginStatus, '');
@@ -9947,7 +13022,7 @@
     if (els.orchestratorMetaResult) {
       els.orchestratorMetaResult.textContent = isEnglishLanguage()
         ? 'No orchestrator roadmap data yet.'
-        : 'Ingen orchestrator-roadmap ännu.';
+        : 'Ingen orkestreringsfärdplan ännu.';
     }
     if (els.calibrationResult) els.calibrationResult.textContent = 'Inget kalibreringsförslag ännu.';
     if (els.pilotReportResult) els.pilotReportResult.textContent = 'Ingen rapport körd ännu.';
@@ -9958,13 +13033,13 @@
     if (els.monitorObservabilityResult) {
       els.monitorObservabilityResult.textContent = isEnglishLanguage()
         ? 'No observability data yet.'
-        : 'Ingen observability-data ännu.';
+        : 'Ingen observabilitetsdata ännu.';
     }
     if (els.monitorPublicChatBetaSummary) els.monitorPublicChatBetaSummary.textContent = '';
     if (els.monitorPublicChatBetaResult) {
       els.monitorPublicChatBetaResult.textContent = isEnglishLanguage()
         ? 'No patient beta gate data yet.'
-        : 'Ingen patient beta gate-data ännu.';
+        : 'Ingen patient-beta-gate-data ännu.';
     }
     if (els.monitorSchedulerSummary) els.monitorSchedulerSummary.textContent = '';
     if (els.monitorSchedulerResult) {
@@ -9974,7 +13049,7 @@
     if (els.monitorReadinessHistoryResult) {
       els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
         ? 'No readiness history yet.'
-        : 'Ingen readiness-historik ännu.';
+        : 'Ingen beredskapshistorik ännu.';
     }
     if (els.monitorReadinessNoGoSummary) els.monitorReadinessNoGoSummary.textContent = '';
     if (els.monitorReadinessNoGoResult) {
@@ -9984,7 +13059,7 @@
     }
     if (els.monitorRemediationSummary) els.monitorRemediationSummary.textContent = '';
     if (els.monitorRemediationResult) {
-      els.monitorRemediationResult.textContent = 'Ingen readiness-remediation ännu.';
+      els.monitorRemediationResult.textContent = 'Ingen beredskapsåtgärd ännu.';
     }
     if (els.opsResult) els.opsResult.textContent = 'Ingen ops-data ännu.';
     if (els.incidentIntelTimeframeDays) els.incidentIntelTimeframeDays.value = '14';
@@ -10016,7 +13091,7 @@
     setText(els.ownerCoverageValue, '0%');
     setText(els.slaIndicatorValue, '0');
     setKpiMeta(els.ownerCoverageMeta, 'Ingen riskhistorik ännu.');
-    setKpiMeta(els.slaIndicatorMeta, 'Inga öppna incidents.');
+    setKpiMeta(els.slaIndicatorMeta, 'Inga öppna incidenter.');
     setText(els.readinessBandValue, '-');
     setKpiMeta(els.readinessBandMeta, 'Väntar på monitor-data.');
     setText(els.pilotReportValue, '-');
@@ -10106,9 +13181,44 @@
   });
   els.completeTenantSelectionBtn?.addEventListener('click', completeTenantSelection);
   els.switchTenantBtn?.addEventListener('click', switchTenant);
-  els.refreshBtn?.addEventListener('click', () => refreshAll().catch((error) => alert(error.message || 'Kunde inte uppdatera.')));
+  els.refreshBtn?.addEventListener('click', () =>
+    refreshAll({ scope: resolveRefreshScope() }).catch((error) =>
+      alert(error.message || 'Kunde inte uppdatera.')
+    )
+  );
   els.logoutBtn?.addEventListener('click', logout);
   els.saveTenantConfigBtn?.addEventListener('click', saveTenantConfig);
+  els.refreshWritingIdentityBtn?.addEventListener('click', () => {
+    const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
+    loadWritingIdentityProfiles({ mailbox }).catch((error) => {
+      setStatus(
+        els.writingIdentityStatus,
+        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        true
+      );
+    });
+  });
+  els.autoExtractWritingIdentityBtn?.addEventListener('click', autoExtractWritingIdentityProfiles);
+  els.saveWritingIdentityBtn?.addEventListener('click', saveWritingIdentityProfile);
+  els.writingIdentityMailboxSelect?.addEventListener('change', () => {
+    const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxSelect?.value || '');
+    state.selectedWritingIdentityMailbox = mailbox;
+    const record = getWritingProfileRecord(mailbox);
+    fillWritingIdentityForm(record);
+    renderWritingIdentityProfiles();
+  });
+  els.writingIdentityMailboxFilter?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
+    loadWritingIdentityProfiles({ mailbox }).catch((error) => {
+      setStatus(
+        els.writingIdentityStatus,
+        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        true
+      );
+    });
+  });
   [
     els.assistantName,
     els.toneStyle,
@@ -10151,7 +13261,7 @@
     const nextLanguage = String(event?.target?.value || '').trim().toLowerCase();
     setLanguage(nextLanguage);
     if (state.token) {
-      refreshAll().catch((error) => {
+      refreshAll({ scope: resolveRefreshScope() }).catch((error) => {
         setStatus(els.loginStatus, error.message || 'Kunde inte uppdatera språkvy.', true);
       });
     }
@@ -10166,6 +13276,17 @@
     if (!targetId) return;
     const targetEl = document.getElementById(targetId);
     if (!targetEl) return;
+    if (targetId === 'ccoWorkspaceSection') {
+      state.ccoInboxViewMode = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
+      if (state.ccoInboxViewMode === 'unanswered') {
+        state.ccoInboxSlaFilter = 'unanswered';
+      } else if (state.ccoInboxSlaFilter === 'unanswered') {
+        state.ccoInboxSlaFilter = 'all';
+      }
+      persistCcoWorkspaceSessionState();
+      setActiveSectionNav(targetId);
+      renderCcoInbox(state.ccoInboxData);
+    }
     event.preventDefault();
     scrollToSection(targetEl);
   });
@@ -10360,10 +13481,164 @@
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta sprint.', true);
     });
   });
+  els.ccoFocusShowAllBtn?.addEventListener('click', () => {
+    if (state.ccoAdaptiveFocusState?.isActive !== true) return;
+    state.ccoAdaptiveFocusShowAll = state.ccoAdaptiveFocusShowAll !== true;
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoFocusWorkloadInfoBtn?.addEventListener('click', () => {
+    if (!els.ccoFocusWorkloadBreakdown) return;
+    const isVisible = els.ccoFocusWorkloadBreakdown.classList.toggle('visible');
+    els.ccoFocusWorkloadInfoBtn?.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+  });
+  els.ccoSoftBreakPanel?.addEventListener('click', (event) => {
+    const actionButton = event.target.closest('button[data-cco-soft-break-action]');
+    if (!actionButton) return;
+    const action = String(actionButton.getAttribute('data-cco-soft-break-action') || '').trim();
+    if (action === 'cancel') {
+      hideCcoSoftBreakPanel();
+      setStatus(els.ccoInboxStatus, 'Sprint fortsätter.');
+      return;
+    }
+    const pendingConversationId = String(state.ccoPendingSoftBreakConversationId || '').trim();
+    if (!pendingConversationId) {
+      hideCcoSoftBreakPanel();
+      return;
+    }
+    if (action === 'pause') {
+      state.ccoSprintActive = false;
+      setStatus(els.ccoInboxStatus, 'Sprint pausad. Full inkorg visas igen.');
+    } else if (action === 'replace') {
+      const queue = (Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+        .filter((value) => value !== pendingConversationId);
+      while (queue.length > 2) queue.pop();
+      queue.push(pendingConversationId);
+      state.ccoSprintQueueIds = queue.slice(0, 3);
+      state.ccoSprintActive = true;
+      setStatus(els.ccoInboxStatus, 'Sprint uppdaterad med vald tråd.');
+    } else if (action === 'abort') {
+      stopCcoSprint({ message: 'Sprint avbruten. Full inkorg visas igen.' });
+    }
+    hideCcoSoftBreakPanel();
+    setSelectedCcoConversation(pendingConversationId);
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxMailboxFilters?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-cco-mailbox-filter]');
+    if (!button) return;
+    const nextFilter = sanitizeCcoMailboxFilter(button.getAttribute('data-cco-mailbox-filter') || 'all');
+    if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
+    state.ccoInboxMailboxFilter = nextFilter;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxSlaFilters?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-cco-sla-filter]');
+    if (!button) return;
+    const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-sla-filter') || 'all');
+    state.ccoInboxSlaFilter = nextFilter;
+    if (nextFilter === 'unanswered') {
+      state.ccoInboxViewMode = 'unanswered';
+    } else if (state.ccoInboxViewMode === 'unanswered') {
+      state.ccoInboxViewMode = 'all';
+    }
+    setActiveSectionNav('ccoWorkspaceSection');
+    syncCcoThreadRouteState(state.ccoSelectedConversationId);
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxStateFilters?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-cco-state-filter]');
+    if (!button) return;
+    const nextFilter = sanitizeCcoLifecycleFilter(
+      button.getAttribute('data-cco-state-filter') || 'all'
+    );
+    state.ccoInboxLifecycleFilter = nextFilter;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxDensityFilters?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-cco-density-mode]');
+    if (!button) return;
+    const nextMode = sanitizeCcoDensityMode(button.getAttribute('data-cco-density-mode') || 'work');
+    if (nextMode === sanitizeCcoDensityMode(state.ccoInboxDensityMode)) return;
+    state.ccoInboxDensityMode = nextMode;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxWorklist?.addEventListener('toggle', (event) => {
+    const details = event.target instanceof HTMLElement ? event.target.closest('details') : null;
+    if (!details) return;
+    const sectionKey =
+      String(details.getAttribute('data-cco-section') || '').trim().toLowerCase() || 'rest';
+    if (!['sprint', 'high', 'needs', 'rest'].includes(sectionKey)) return;
+    const nextExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
+    nextExpanded[sectionKey] = details.open === true;
+    state.ccoInboxSectionExpanded = nextExpanded;
+    persistCcoWorkspaceSessionState();
+  });
+  els.ccoUnansweredPanel?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-cco-set-filter]');
+    if (!button) return;
+    const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-set-filter') || 'unanswered');
+    state.ccoInboxViewMode = 'unanswered';
+    state.ccoInboxSlaFilter = nextFilter === 'unanswered' ? 'unanswered' : nextFilter;
+    setActiveSectionNav('ccoWorkspaceSection');
+    syncCcoThreadRouteState(state.ccoSelectedConversationId);
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoCustomerSummaryToggleBtn?.addEventListener('click', () => {
+    state.ccoCustomerSummaryExpanded = state.ccoCustomerSummaryExpanded !== true;
+    renderCcoCustomerSummary(getCcoSelectedConversation());
+  });
   els.ccoDraftBodyInput?.addEventListener('input', () => {
     const conversation = getCcoSelectedConversation();
     if (!conversation) return;
     setCcoDraftBodyForConversation(conversation.conversationId, els.ccoDraftBodyInput.value);
+  });
+  els.ccoDraftModeShortBtn?.addEventListener('click', () => {
+    applyCcoDraftModeSelection('short');
+  });
+  els.ccoDraftModeWarmBtn?.addEventListener('click', () => {
+    applyCcoDraftModeSelection('warm');
+  });
+  els.ccoDraftModeProfessionalBtn?.addEventListener('click', () => {
+    applyCcoDraftModeSelection('professional');
+  });
+  els.ccoConversationColumn?.addEventListener('scroll', () => {
+    const conversationId = String(state.ccoSelectedConversationId || '').trim();
+    if (!conversationId) return;
+    rememberCcoConversationScroll(conversationId, Number(els.ccoConversationColumn?.scrollTop || 0));
+  });
+  els.ccoSenderMailboxSelect?.addEventListener('change', () => {
+    const selectedMailboxId = String(els.ccoSenderMailboxSelect?.value || '')
+      .trim()
+      .toLowerCase();
+    if (!selectedMailboxId) return;
+    state.ccoSenderMailboxId = selectedMailboxId;
+    state.ccoSignatureProfile = resolveDefaultSignatureForSenderMailbox(selectedMailboxId);
+    syncCcoSignatureSelectors();
+    applyCurrentCcoSignatureToEditor();
+    renderCcoSignaturePreview();
+    const conversation = getCcoSelectedConversation();
+    if (conversation) {
+      setCcoDraftBodyForConversation(conversation.conversationId, els.ccoDraftBodyInput?.value || '');
+    }
+  });
+  els.ccoSignatureProfileSelect?.addEventListener('change', () => {
+    state.ccoSignatureProfile = normalizeCcoSignatureProfileKey(
+      String(els.ccoSignatureProfileSelect?.value || '').trim()
+    );
+    syncCcoSignatureSelectors();
+    applyCurrentCcoSignatureToEditor();
+    renderCcoSignaturePreview();
+    const conversation = getCcoSelectedConversation();
+    if (conversation) {
+      setCcoDraftBodyForConversation(conversation.conversationId, els.ccoDraftBodyInput?.value || '');
+    }
   });
   els.ccoCopyReplyBtn?.addEventListener('click', () => {
     const text = String(els.ccoDraftBodyInput?.value || '').trim();
@@ -10382,7 +13657,7 @@
   });
   els.ccoFlagCriticalBtn?.addEventListener('click', () => {
     runCcoConversationAction('flag_critical').catch((error) => {
-      setStatus(els.ccoSendStatus, error.message || 'Kunde inte flagga critical.', true);
+      setStatus(els.ccoSendStatus, error.message || 'Kunde inte flagga som kritisk.', true);
     });
   });
   els.ccoRefineImproveBtn?.addEventListener('click', () => {
@@ -10483,7 +13758,7 @@
   });
   els.riskShowHighCriticalBtn?.addEventListener('click', () => {
     openIncidentsQueue().catch((error) => {
-      setStatus(els.riskActionStatus, error.message || 'Kunde inte applicera high/critical-filter.', true);
+      setStatus(els.riskActionStatus, error.message || 'Kunde inte applicera högt/kritiskt filter.', true);
     });
   });
   els.riskClearFiltersBtn?.addEventListener('click', () => {
@@ -10634,6 +13909,10 @@
     closeAllDrawers();
   });
   window.addEventListener('beforeunload', () => {
+    if (state.activeSectionGroup === 'ccoWorkspaceSection') {
+      state.ccoLastSeenAtMs = Date.now();
+      persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
+    }
     stopDashboardStream({ resetRetry: false });
   });
   window.addEventListener('resize', () => {
@@ -10652,6 +13931,8 @@
   });
   renderTonePreview();
   renderTeamSummary([]);
+  fillWritingIdentityForm(null);
+  renderWritingIdentityProfiles();
 
   updateLifecyclePermissions();
   restoreSession();

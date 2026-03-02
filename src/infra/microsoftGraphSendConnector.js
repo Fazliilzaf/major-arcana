@@ -94,6 +94,54 @@ async function parseJsonResponse(response, label = 'request') {
   });
 }
 
+async function postGraphJson({
+  fetchImpl,
+  url,
+  accessToken,
+  payload = null,
+  timeoutMs = 5000,
+  label = 'request',
+}) {
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    url,
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        'content-type': 'application/json',
+      },
+      body: payload === null ? null : JSON.stringify(payload),
+    },
+    timeoutMs
+  );
+
+  if (Number(response?.status || 0) === 429) {
+    throw createGraphError(`${label} failed (429): rate_limit_hit`, {
+      code: 'GRAPH_RATE_LIMITED',
+      status: 429,
+      retryAfterSeconds: parseRetryAfterSeconds(response),
+    });
+  }
+
+  if (!response?.ok) {
+    await parseJsonResponse(response, label);
+  }
+  return response;
+}
+
+function toRecipients(to = []) {
+  return (Array.isArray(to) ? to : [])
+    .map((item) => normalizeText(item))
+    .filter(Boolean)
+    .slice(0, 20)
+    .map((address) => ({
+      emailAddress: {
+        address,
+      },
+    }));
+}
+
 function createMicrosoftGraphSendConnector(config = {}) {
   const tenantId = requiredConfig('tenantId', config.tenantId);
   const clientId = requiredConfig('clientId', config.clientId);
@@ -145,57 +193,78 @@ function createMicrosoftGraphSendConnector(config = {}) {
 
   async function sendReply({
     mailboxId,
+    sourceMailboxId = '',
     replyToMessageId,
     body = '',
     subject = '',
     to = [],
     timeoutMs = requestTimeoutMs,
   } = {}) {
-    const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
+    const normalizedSenderMailboxId = requiredConfig('mailboxId', mailboxId);
+    const normalizedSourceMailboxId =
+      normalizeText(sourceMailboxId) || normalizedSenderMailboxId;
     const normalizedMessageId = requiredConfig('replyToMessageId', replyToMessageId);
     const normalizedBody = normalizeText(body);
+    const normalizedSubject = normalizeText(subject);
+    const normalizedRecipients = toRecipients(to);
     if (!normalizedBody) {
       throw new Error('MicrosoftGraphSendConnector sendReply requires body.');
     }
-    const accessToken = await fetchAccessToken();
-    const replyUrl = `${graphBaseUrl}/users/${encodeURIComponent(
-      normalizedMailboxId
-    )}/messages/${encodeURIComponent(normalizedMessageId)}/reply`;
-    const response = await fetchWithTimeout(
-      fetchImpl,
-      replyUrl,
-      {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${accessToken}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          comment: normalizedBody,
-        }),
-      },
-      timeoutMs
-    );
-
-    if (Number(response?.status || 0) === 429) {
-      throw createGraphError('Microsoft Graph reply failed (429): rate_limit_hit', {
-        code: 'GRAPH_RATE_LIMITED',
-        status: 429,
-        retryAfterSeconds: parseRetryAfterSeconds(response),
-      });
+    if (!normalizedRecipients.length) {
+      throw new Error('MicrosoftGraphSendConnector sendReply requires to[].');
     }
-
-    if (!response?.ok) {
-      await parseJsonResponse(response, 'Microsoft Graph reply');
+    const accessToken = await fetchAccessToken();
+    const shouldReplyInThread = normalizedSenderMailboxId === normalizedSourceMailboxId;
+    let sendMode = 'send_mail';
+    if (shouldReplyInThread) {
+      const replyUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+        normalizedSenderMailboxId
+      )}/messages/${encodeURIComponent(normalizedMessageId)}/reply`;
+      await postGraphJson({
+        fetchImpl,
+        url: replyUrl,
+        accessToken,
+        payload: {
+          comment: normalizedBody,
+        },
+        timeoutMs,
+        label: 'Microsoft Graph reply',
+      });
+      sendMode = 'reply';
+    } else {
+      const sendMailUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+        normalizedSenderMailboxId
+      )}/sendMail`;
+      await postGraphJson({
+        fetchImpl,
+        url: sendMailUrl,
+        accessToken,
+        payload: {
+          message: {
+            subject: normalizedSubject || 'Uppfoljning fran Hair TP Clinic',
+            body: {
+              contentType: 'Text',
+              content: normalizedBody,
+            },
+            toRecipients: normalizedRecipients,
+          },
+          saveToSentItems: true,
+        },
+        timeoutMs,
+        label: 'Microsoft Graph sendMail',
+      });
+      sendMode = 'send_mail';
     }
 
     return {
       provider: 'microsoft_graph',
-      mailboxId: normalizedMailboxId,
+      mailboxId: normalizedSenderMailboxId,
+      sourceMailboxId: normalizedSourceMailboxId,
       replyToMessageId: normalizedMessageId,
-      subject: normalizeText(subject) || null,
-      to: Array.isArray(to) ? to.map((item) => normalizeText(item)).filter(Boolean).slice(0, 20) : [],
+      subject: normalizedSubject || null,
+      to: normalizedRecipients.map((item) => item.emailAddress.address),
       sentAt: new Date().toISOString(),
+      sendMode,
     };
   }
 

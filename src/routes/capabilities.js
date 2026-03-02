@@ -6,6 +6,37 @@ const { createExecutionGateway } = require('../gateway/executionGateway');
 const { createCapabilityExecutor } = require('../capabilities/executionService');
 const { createMicrosoftGraphReadConnector } = require('../infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('../infra/microsoftGraphSendConnector');
+const {
+  isValidEmail,
+  normalizeMailboxAddress,
+  toWritingProfile,
+} = require('../intelligence/writingIdentityRegistry');
+const {
+  listWritingIdentityProfiles,
+  upsertWritingIdentityProfile,
+} = require('../intelligence/writingIdentityStore');
+const {
+  extractAndPersistWritingIdentityProfiles,
+} = require('../intelligence/writingProfileExtractor');
+const {
+  computeUsageAnalytics,
+  computeWorklistSnapshotMetrics,
+  computeHealthScore,
+} = require('../intelligence/usageAnalyticsEngine');
+const { evaluateRedFlag } = require('../intelligence/redFlagEngine');
+const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusController');
+const { evaluateRecovery } = require('../intelligence/recoveryEngine');
+
+const CCO_LIFECYCLE_AUDIT_STATES = new Set([
+  'NEW',
+  'ACTIVE_DIALOGUE',
+  'AWAITING_REPLY',
+  'FOLLOW_UP_PENDING',
+  'DORMANT',
+  'HANDLED',
+  'ARCHIVED',
+]);
+const ccoLifecycleTrackerByTenant = new Map();
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -38,6 +69,109 @@ function asObject(value) {
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeLifecycleAuditState(value = '') {
+  const normalized = normalizeText(value).toUpperCase();
+  if (CCO_LIFECYCLE_AUDIT_STATES.has(normalized)) return normalized;
+  if (normalized === 'NEW_LEAD') return 'NEW';
+  if (normalized === 'WAITING' || normalized === 'WAITING_ON_CUSTOMER') return 'AWAITING_REPLY';
+  if (normalized === 'FOLLOW_UP_SCHEDULED') return 'FOLLOW_UP_PENDING';
+  if (normalized === 'CLOSED' || normalized === 'RESOLVED') return 'HANDLED';
+  return '';
+}
+
+function extractCcoWorklistRowsFromResult(result = {}) {
+  const payload = asObject(result?.gatewayResult?.response_payload);
+  const output = asObject(payload.output);
+  const directData = asObject(payload.data);
+  const outputData = asObject(output.data);
+  const fallbackData = asObject(payload);
+  const candidates = [outputData, directData, fallbackData];
+  for (const candidate of candidates) {
+    const rows = asArray(candidate.conversationWorklist);
+    if (rows.length > 0) return rows;
+  }
+  return [];
+}
+
+async function maybeWriteCcoLifecycleAuditEvents({
+  authStore,
+  tenantId = '',
+  actorUserId = '',
+  correlationId = '',
+  result = {},
+} = {}) {
+  if (!authStore || typeof authStore.addAuditEvent !== 'function') return;
+  const safeTenantId = normalizeText(tenantId);
+  if (!safeTenantId) return;
+  const rows = extractCcoWorklistRowsFromResult(result);
+  if (!rows.length) return;
+
+  const tracker = ccoLifecycleTrackerByTenant.get(safeTenantId) || new Map();
+  const safeActorUserId = normalizeText(actorUserId) || 'system';
+  const safeCorrelationId = normalizeText(correlationId) || null;
+
+  for (const row of rows.slice(0, 500)) {
+    const conversationId = normalizeText(row?.conversationId);
+    if (!conversationId) continue;
+    const state = normalizeLifecycleAuditState(
+      row?.lifecycleStatus || row?.customerSummary?.lifecycleStatus
+    );
+    if (!state) continue;
+    const previousState = normalizeLifecycleAuditState(tracker.get(conversationId));
+    const metadata = {
+      correlationId: safeCorrelationId,
+      conversationId,
+      lifecycleState: state,
+      lastInboundAt: toIso(row?.lastInboundAt),
+      lastOutboundAt: toIso(row?.lastOutboundAt),
+    };
+
+    if (!previousState) {
+      await authStore.addAuditEvent({
+        tenantId: safeTenantId,
+        actorUserId: safeActorUserId,
+        action: 'cco.lifecycle.enter',
+        outcome: 'success',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata,
+      });
+      tracker.set(conversationId, state);
+      continue;
+    }
+
+    if (previousState === state) continue;
+    await authStore.addAuditEvent({
+      tenantId: safeTenantId,
+      actorUserId: safeActorUserId,
+      action: 'cco.lifecycle.exit',
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        ...metadata,
+        lifecycleState: previousState,
+        nextLifecycleState: state,
+      },
+    });
+    await authStore.addAuditEvent({
+      tenantId: safeTenantId,
+      actorUserId: safeActorUserId,
+      action: 'cco.lifecycle.enter',
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        ...metadata,
+        previousLifecycleState: previousState,
+      },
+    });
+    tracker.set(conversationId, state);
+  }
+
+  ccoLifecycleTrackerByTenant.set(safeTenantId, tracker);
 }
 
 function pickErrorStatus(errorCode = '') {
@@ -255,24 +389,154 @@ function clampInteger(value, min, max, fallback) {
   return parsed;
 }
 
+function toWritingIdentityProfilesMap(source = null) {
+  const map = {};
+  if (!source || typeof source !== 'object') return map;
+  const profileMap =
+    source.profilesByMailbox && typeof source.profilesByMailbox === 'object'
+      ? source.profilesByMailbox
+      : source;
+  if (!profileMap || typeof profileMap !== 'object') return map;
+  for (const [rawMailbox, rawProfile] of Object.entries(profileMap)) {
+    const mailbox = normalizeMailboxAddress(rawMailbox);
+    if (!isValidEmail(mailbox)) continue;
+    if (!rawProfile || typeof rawProfile !== 'object' || Array.isArray(rawProfile)) continue;
+    map[mailbox] = toWritingProfile(rawProfile.profile || rawProfile);
+  }
+  return map;
+}
+
+function mergeWritingIdentityProfiles({
+  storedProfiles = {},
+  inputProfiles = {},
+}) {
+  const merged = {
+    ...toWritingIdentityProfilesMap(storedProfiles),
+    ...toWritingIdentityProfilesMap(inputProfiles),
+  };
+  if (!Object.keys(merged).length) return null;
+  return { profilesByMailbox: merged };
+}
+
+function toMailboxAddress(value = '') {
+  const mailbox = normalizeMailboxAddress(value);
+  return isValidEmail(mailbox) ? mailbox : '';
+}
+
+function parseMailboxList(raw = null) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => toMailboxAddress(item))
+    .filter(Boolean);
+}
+
+function parseMailboxIndexes(rawValue = '', maxItems = 200) {
+  const tokens = String(rawValue || '')
+    .split(/[,\s]+/)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+  const seen = new Set();
+  const indexes = [];
+  for (const token of tokens) {
+    const parsed = Number.parseInt(token, 10);
+    if (!Number.isFinite(parsed)) continue;
+    if (parsed < 1 || parsed > maxItems) continue;
+    if (seen.has(parsed)) continue;
+    seen.add(parsed);
+    indexes.push(parsed);
+  }
+  return indexes;
+}
+
+function parseMailboxIds(rawValue = '', maxItems = 200) {
+  const tokens = String(rawValue || '')
+    .split(/[,\s]+/)
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  const seen = new Set();
+  const mailboxIds = [];
+  for (const token of tokens) {
+    if (seen.has(token)) continue;
+    if (mailboxIds.length >= maxItems) break;
+    seen.add(token);
+    mailboxIds.push(token);
+  }
+  return mailboxIds;
+}
+
+function mergeUniqueMailboxIds(...collections) {
+  const merged = [];
+  const seen = new Set();
+  for (const collection of collections) {
+    const source = Array.isArray(collection) ? collection : [];
+    for (const rawValue of source) {
+      const value = normalizeText(rawValue).toLowerCase();
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      merged.push(value);
+    }
+  }
+  return merged;
+}
+
 function toGraphReadOptionsFromEnv() {
-  const fullTenant = toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
-  const userScope = normalizeGraphUserScope(
-    process.env.ARCANA_GRAPH_USER_SCOPE,
-    fullTenant ? 'all' : 'single'
+  const allowlistMailboxIds = parseMailboxIds(process.env.ARCANA_MAILBOX_ALLOWLIST, 500);
+  const allowlistMode = allowlistMailboxIds.length > 0;
+  const fullTenant = allowlistMode
+    ? true
+    : toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
+  const userScope = allowlistMode
+    ? 'all'
+    : normalizeGraphUserScope(
+        process.env.ARCANA_GRAPH_USER_SCOPE,
+        fullTenant ? 'all' : 'single'
+      );
+  const configuredMailboxIds = parseMailboxIds(process.env.ARCANA_GRAPH_MAILBOX_IDS);
+  const mailboxIds = mergeUniqueMailboxIds(allowlistMailboxIds, configuredMailboxIds);
+  const defaultMailboxIndexes =
+    allowlistMode ? '' : (fullTenant && userScope === 'all' ? '1,2,3,5,8' : '');
+  const maxMessages = clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100);
+  const maxMessagesPerUser = clampInteger(
+    process.env.ARCANA_GRAPH_MAX_MESSAGES_PER_USER,
+    1,
+    200,
+    50
   );
+  const splitWindow = Math.max(1, Math.floor(maxMessages / 2));
+  const splitWindowPerUser = Math.max(1, Math.floor(maxMessagesPerUser / 2));
   return {
     days: clampInteger(process.env.ARCANA_GRAPH_WINDOW_DAYS, 1, 30, 14),
-    maxMessages: clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100),
-    includeRead: toBoolean(process.env.ARCANA_GRAPH_INCLUDE_READ, false),
-    fullTenant,
-    userScope,
-    maxUsers: clampInteger(process.env.ARCANA_GRAPH_MAX_USERS, 1, 200, 50),
-    maxMessagesPerUser: clampInteger(
-      process.env.ARCANA_GRAPH_MAX_MESSAGES_PER_USER,
+    maxMessages,
+    maxInboxMessages: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_INBOX_MESSAGES,
       1,
       200,
-      50
+      Math.max(1, maxMessages - splitWindow)
+    ),
+    maxSentMessages: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_SENT_MESSAGES,
+      1,
+      200,
+      splitWindow
+    ),
+    includeRead: toBoolean(process.env.ARCANA_GRAPH_INCLUDE_READ, false),
+    fullTenant,
+    allowlistMode,
+    allowlistMailboxIds,
+    userScope,
+    maxUsers: clampInteger(process.env.ARCANA_GRAPH_MAX_USERS, 1, 200, 50),
+    maxMessagesPerUser,
+    maxInboxMessagesPerUser: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_INBOX_MESSAGES_PER_USER,
+      1,
+      200,
+      Math.max(1, maxMessagesPerUser - splitWindowPerUser)
+    ),
+    maxSentMessagesPerUser: clampInteger(
+      process.env.ARCANA_GRAPH_MAX_SENT_MESSAGES_PER_USER,
+      1,
+      200,
+      splitWindowPerUser
     ),
     mailboxTimeoutMs: clampInteger(
       process.env.ARCANA_GRAPH_MAILBOX_TIMEOUT_MS,
@@ -292,6 +556,34 @@ function toGraphReadOptionsFromEnv() {
       20,
       5
     ),
+    requestMaxRetries: clampInteger(
+      process.env.ARCANA_GRAPH_REQUEST_MAX_RETRIES,
+      0,
+      6,
+      2
+    ),
+    retryBaseDelayMs: clampInteger(
+      process.env.ARCANA_GRAPH_RETRY_BASE_DELAY_MS,
+      100,
+      10000,
+      500
+    ),
+    retryMaxDelayMs: clampInteger(
+      process.env.ARCANA_GRAPH_RETRY_MAX_DELAY_MS,
+      200,
+      30000,
+      5000
+    ),
+    maxPagesPerCollection: clampInteger(
+      process.env.ARCANA_GRAPH_PAGINATION_MAX_PAGES,
+      1,
+      2000,
+      200
+    ),
+    mailboxIndexes: allowlistMode
+      ? []
+      : parseMailboxIndexes(process.env.ARCANA_GRAPH_MAILBOX_INDEXES || defaultMailboxIndexes),
+    mailboxIds,
   };
 }
 
@@ -334,6 +626,7 @@ async function hydrateAnalyzeInboxInput({
   input = {},
   systemStateSnapshot = {},
   graphReadConnector = null,
+  capabilityAnalysisStore = null,
   authStore = null,
   actorUserId = null,
   correlationId = null,
@@ -352,6 +645,27 @@ async function hydrateAnalyzeInboxInput({
     normalizedInput.debug = true;
   }
 
+  const storedWritingProfiles = capabilityAnalysisStore
+    ? await listWritingIdentityProfiles({
+        analysisStore: capabilityAnalysisStore,
+        tenantId,
+        limit: 500,
+      })
+    : [];
+  const storedWritingProfilesMap = {};
+  for (const record of asArray(storedWritingProfiles)) {
+    const mailbox = toMailboxAddress(record?.mailbox);
+    if (!mailbox) continue;
+    storedWritingProfilesMap[mailbox] = toWritingProfile(record?.profile || {});
+  }
+  const mergedWritingProfiles = mergeWritingIdentityProfiles({
+    storedProfiles: { profilesByMailbox: storedWritingProfilesMap },
+    inputProfiles: safeInput.writingIdentityProfiles,
+  });
+  if (mergedWritingProfiles) {
+    normalizedInput.writingIdentityProfiles = mergedWritingProfiles;
+  }
+
   if (Array.isArray(safeSnapshot.conversations)) {
     return {
       input: normalizedInput,
@@ -367,6 +681,7 @@ async function hydrateAnalyzeInboxInput({
   }
 
   const mailboxReadId = crypto.randomUUID();
+  const mailboxSentReadId = crypto.randomUUID();
   const graphReadOptions = toGraphReadOptionsFromEnv();
   const capturedAt = new Date().toISOString();
 
@@ -383,14 +698,57 @@ async function hydrateAnalyzeInboxInput({
       capabilityName: 'AnalyzeInbox',
       windowDays: graphReadOptions.days,
       maxMessages: graphReadOptions.maxMessages,
+      maxInboxMessages: graphReadOptions.maxInboxMessages,
+      maxSentMessages: graphReadOptions.maxSentMessages,
       includeRead: graphReadOptions.includeRead,
       fullTenant: graphReadOptions.fullTenant,
+      allowlistMode: graphReadOptions.allowlistMode === true,
+      allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
       userScope: graphReadOptions.userScope,
       maxUsers: graphReadOptions.maxUsers,
       maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+      maxInboxMessagesPerUser: graphReadOptions.maxInboxMessagesPerUser,
+      maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
       mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
       runTimeoutMs: graphReadOptions.runTimeoutMs,
       maxMailboxErrors: graphReadOptions.maxMailboxErrors,
+      requestMaxRetries: graphReadOptions.requestMaxRetries,
+      retryBaseDelayMs: graphReadOptions.retryBaseDelayMs,
+      retryMaxDelayMs: graphReadOptions.retryMaxDelayMs,
+      maxPagesPerCollection: graphReadOptions.maxPagesPerCollection,
+      mailboxIndexes: graphReadOptions.mailboxIndexes,
+      mailboxIds: graphReadOptions.mailboxIds,
+      capturedAt,
+    },
+  });
+
+  await writeMailboxReadAuditEvent({
+    authStore,
+    tenantId,
+    actorUserId,
+    action: 'mailbox.sent.read.start',
+    outcome: 'success',
+    mailboxReadId: mailboxSentReadId,
+    correlationId,
+    metadata: {
+      source: 'microsoft_graph',
+      capabilityName: 'AnalyzeInbox',
+      windowDays: graphReadOptions.days,
+      maxSentMessages: graphReadOptions.maxSentMessages,
+      maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
+      fullTenant: graphReadOptions.fullTenant,
+      allowlistMode: graphReadOptions.allowlistMode === true,
+      allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
+      userScope: graphReadOptions.userScope,
+      maxUsers: graphReadOptions.maxUsers,
+      mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
+      runTimeoutMs: graphReadOptions.runTimeoutMs,
+      requestMaxRetries: graphReadOptions.requestMaxRetries,
+      retryBaseDelayMs: graphReadOptions.retryBaseDelayMs,
+      retryMaxDelayMs: graphReadOptions.retryMaxDelayMs,
+      maxPagesPerCollection: graphReadOptions.maxPagesPerCollection,
+      mailboxIndexes: graphReadOptions.mailboxIndexes,
+      mailboxIds: graphReadOptions.mailboxIds,
       capturedAt,
     },
   });
@@ -427,22 +785,95 @@ async function hydrateAnalyzeInboxInput({
         capabilityName: 'AnalyzeInbox',
         windowDays: graphReadOptions.days,
         maxMessages: graphReadOptions.maxMessages,
+        maxInboxMessages: graphReadOptions.maxInboxMessages,
+        maxSentMessages: graphReadOptions.maxSentMessages,
         includeRead: graphReadOptions.includeRead,
         fullTenant: graphReadOptions.fullTenant,
+        allowlistMode: graphReadOptions.allowlistMode === true,
+        allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
         userScope: graphReadOptions.userScope,
         maxUsers: graphReadOptions.maxUsers,
         maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+        maxInboxMessagesPerUser: graphReadOptions.maxInboxMessagesPerUser,
+        maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
         mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
         runTimeoutMs: graphReadOptions.runTimeoutMs,
         maxMailboxErrors: graphReadOptions.maxMailboxErrors,
+        requestMaxRetries: graphReadOptions.requestMaxRetries,
+        retryBaseDelayMs: graphReadOptions.retryBaseDelayMs,
+        retryMaxDelayMs: graphReadOptions.retryMaxDelayMs,
+        maxPagesPerCollection: graphReadOptions.maxPagesPerCollection,
+        mailboxIndexes: graphReadOptions.mailboxIndexes,
+        mailboxIds: graphReadOptions.mailboxIds,
         mailboxCount: toNumber(graphSnapshot?.metadata?.mailboxCount, 0),
         mailboxErrors: toNumber(graphSnapshot?.metadata?.mailboxErrors, 0),
         conversationCount: asArray(mergedSnapshot.conversations).length,
         messageCount: toSnapshotMessageCount(mergedSnapshot),
+        inboundMessageCount: toNumber(graphSnapshot?.metadata?.inboundMessageCount, 0),
+        outboundMessageCount: toNumber(graphSnapshot?.metadata?.outboundMessageCount, 0),
         snapshotVersion: normalizeText(mergedSnapshot.snapshotVersion) || null,
         capturedAt: normalizeText(mergedSnapshot.timestamps?.capturedAt) || capturedAt,
       },
     });
+
+    await writeMailboxReadAuditEvent({
+      authStore,
+      tenantId,
+      actorUserId,
+      action: 'mailbox.sent.read.complete',
+      outcome: 'success',
+      mailboxReadId: mailboxSentReadId,
+      correlationId,
+      metadata: {
+        source: 'microsoft_graph',
+        capabilityName: 'AnalyzeInbox',
+        windowDays: graphReadOptions.days,
+        maxSentMessages: graphReadOptions.maxSentMessages,
+        maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
+        fullTenant: graphReadOptions.fullTenant,
+        allowlistMode: graphReadOptions.allowlistMode === true,
+        allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
+        userScope: graphReadOptions.userScope,
+        maxUsers: graphReadOptions.maxUsers,
+        mailboxCount: toNumber(graphSnapshot?.metadata?.mailboxCount, 0),
+        outboundMessageCount: toNumber(graphSnapshot?.metadata?.outboundMessageCount, 0),
+        snapshotVersion: normalizeText(mergedSnapshot.snapshotVersion) || null,
+        capturedAt: normalizeText(mergedSnapshot.timestamps?.capturedAt) || capturedAt,
+      },
+    });
+
+    if (authStore && typeof authStore.addAuditEvent === 'function') {
+      const answeredConversations = asArray(mergedSnapshot.conversations).filter((conversation) => {
+        const inboundAt = toIso(conversation?.lastInboundAt);
+        const outboundAt = toIso(conversation?.lastOutboundAt);
+        if (!inboundAt || !outboundAt) return false;
+        return Date.parse(outboundAt) >= Date.parse(inboundAt);
+      });
+      for (const conversation of answeredConversations.slice(0, 200)) {
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId,
+          action: 'cco.conversation.answered.detected',
+          outcome: 'success',
+          targetType: 'cco_conversation',
+          targetId:
+            normalizeText(conversation?.conversationId) ||
+            normalizeText(conversation?.customerEmail) ||
+            crypto.randomUUID(),
+          metadata: {
+            correlationId: normalizeText(correlationId) || null,
+            conversationId: normalizeText(conversation?.conversationId) || null,
+            customerId:
+              normalizeText(conversation?.customerId) ||
+              normalizeText(conversation?.customerEmail) ||
+              null,
+            customerEmail: normalizeText(conversation?.customerEmail) || null,
+            lastInboundAt: toIso(conversation?.lastInboundAt) || null,
+            lastOutboundAt: toIso(conversation?.lastOutboundAt) || null,
+          },
+        });
+      }
+    }
 
     return {
       input: normalizedInput,
@@ -462,15 +893,51 @@ async function hydrateAnalyzeInboxInput({
         capabilityName: 'AnalyzeInbox',
         windowDays: graphReadOptions.days,
         maxMessages: graphReadOptions.maxMessages,
+        maxInboxMessages: graphReadOptions.maxInboxMessages,
+        maxSentMessages: graphReadOptions.maxSentMessages,
         includeRead: graphReadOptions.includeRead,
         fullTenant: graphReadOptions.fullTenant,
+        allowlistMode: graphReadOptions.allowlistMode === true,
+        allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
         userScope: graphReadOptions.userScope,
         maxUsers: graphReadOptions.maxUsers,
         maxMessagesPerUser: graphReadOptions.maxMessagesPerUser,
+        maxInboxMessagesPerUser: graphReadOptions.maxInboxMessagesPerUser,
+        maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
         mailboxTimeoutMs: graphReadOptions.mailboxTimeoutMs,
         runTimeoutMs: graphReadOptions.runTimeoutMs,
         maxMailboxErrors: graphReadOptions.maxMailboxErrors,
+        requestMaxRetries: graphReadOptions.requestMaxRetries,
+        retryBaseDelayMs: graphReadOptions.retryBaseDelayMs,
+        retryMaxDelayMs: graphReadOptions.retryMaxDelayMs,
+        maxPagesPerCollection: graphReadOptions.maxPagesPerCollection,
+        mailboxIndexes: graphReadOptions.mailboxIndexes,
+        mailboxIds: graphReadOptions.mailboxIds,
         errorMessage: normalizeText(error?.message) || 'graph_read_failed',
+      },
+    });
+    await writeMailboxReadAuditEvent({
+      authStore,
+      tenantId,
+      actorUserId,
+      action: 'mailbox.sent.read.error',
+      outcome: 'error',
+      mailboxReadId: mailboxSentReadId,
+      correlationId,
+      metadata: {
+        source: 'microsoft_graph',
+        capabilityName: 'AnalyzeInbox',
+        windowDays: graphReadOptions.days,
+        maxSentMessages: graphReadOptions.maxSentMessages,
+        maxSentMessagesPerUser: graphReadOptions.maxSentMessagesPerUser,
+        fullTenant: graphReadOptions.fullTenant,
+        allowlistMode: graphReadOptions.allowlistMode === true,
+        allowlistMailboxIds: graphReadOptions.allowlistMailboxIds,
+        userScope: graphReadOptions.userScope,
+        maxUsers: graphReadOptions.maxUsers,
+        mailboxIndexes: graphReadOptions.mailboxIndexes,
+        mailboxIds: graphReadOptions.mailboxIds,
+        errorMessage: normalizeText(error?.message) || 'graph_sent_read_failed',
       },
     });
     const wrappedError = new Error(
@@ -702,6 +1169,7 @@ async function maybeHydrateCapabilityPayload({
   input,
   systemStateSnapshot,
   graphReadConnector,
+  capabilityAnalysisStore,
   authStore,
   actorUserId = null,
   correlationId = null,
@@ -729,6 +1197,7 @@ async function maybeHydrateCapabilityPayload({
       input,
       systemStateSnapshot,
       graphReadConnector,
+      capabilityAnalysisStore,
       authStore,
       actorUserId,
       correlationId,
@@ -747,6 +1216,7 @@ async function maybeHydrateAgentPayload({
   input,
   systemStateSnapshot,
   graphReadConnector,
+  capabilityAnalysisStore,
   authStore,
   actorUserId,
   correlationId,
@@ -841,6 +1311,7 @@ async function maybeHydrateAgentPayload({
       input,
       systemStateSnapshot,
       graphReadConnector,
+      capabilityAnalysisStore,
       authStore,
       actorUserId,
       correlationId,
@@ -1012,6 +1483,21 @@ function toCcoSprintEventType(value = '') {
     return 'item_completed';
   }
   if (normalized === 'complete' || normalized === 'cco.sprint.complete') return 'complete';
+  return '';
+}
+
+function toCcoUsageEventType(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'workspace_open' || normalized === 'cco.workspace.open') {
+    return 'workspace_open';
+  }
+  if (normalized === 'draft_mode_selected' || normalized === 'cco.draft.mode_selected') {
+    return 'draft_mode_selected';
+  }
+  if (normalized === 'focus_mode_toggled' || normalized === 'cco.focus.toggled') {
+    return 'focus_mode_toggled';
+  }
   return '';
 }
 
@@ -1235,6 +1721,95 @@ async function runCcoSprintEventHandler({ req, res, authStore }) {
   });
 }
 
+async function runCcoUsageEventHandler({ req, res, authStore }) {
+  if (!authStore || typeof authStore.addAuditEvent !== 'function') {
+    return res.status(503).json({ error: 'Auth store saknar audit writer.' });
+  }
+
+  const rawPayload = asObject(req.body);
+  const input = asObject(
+    rawPayload.input && typeof rawPayload.input === 'object'
+      ? rawPayload.input
+      : rawPayload
+  );
+  const eventType = toCcoUsageEventType(input.eventType || input.type || input.action);
+  if (!eventType) {
+    return res.status(422).json({
+      error: 'eventType måste vara workspace_open, draft_mode_selected eller focus_mode_toggled.',
+    });
+  }
+
+  const actor = toActor(req);
+  const tenantId = toTenantId(req);
+  const correlationId = toCorrelationId(req);
+  const nowIso = new Date().toISOString();
+  const timestamp = toIso(input.timestamp) || nowIso;
+  const conversationId = normalizeText(input.conversationId);
+  const selectedMode = normalizeText(input.selectedMode).toLowerCase();
+  const recommendedMode = normalizeText(input.recommendedMode).toLowerCase();
+  const ignoredRecommended =
+    input.ignoredRecommended === true ||
+    (selectedMode &&
+      recommendedMode &&
+      ['short', 'warm', 'professional'].includes(selectedMode) &&
+      ['short', 'warm', 'professional'].includes(recommendedMode) &&
+      selectedMode !== recommendedMode);
+
+  let action = '';
+  let targetType = 'cco_workspace';
+  let targetId = normalizeText(input.workspaceId) || 'cco';
+  let metadata = {
+    timestamp,
+    correlationId,
+  };
+
+  if (eventType === 'workspace_open') {
+    action = 'cco.workspace.open';
+    metadata = {
+      ...metadata,
+      route: normalizeText(input.route) || '/cco',
+    };
+  } else if (eventType === 'draft_mode_selected') {
+    action = 'cco.draft.mode_selected';
+    targetType = 'cco_conversation';
+    targetId = conversationId || targetId;
+    metadata = {
+      ...metadata,
+      conversationId: conversationId || null,
+      selectedMode: ['short', 'warm', 'professional'].includes(selectedMode) ? selectedMode : null,
+      recommendedMode: ['short', 'warm', 'professional'].includes(recommendedMode)
+        ? recommendedMode
+        : null,
+      ignoredRecommended,
+    };
+  } else if (eventType === 'focus_mode_toggled') {
+    action = 'cco.focus.toggled';
+    metadata = {
+      ...metadata,
+      isActive: input.isActive === true,
+      source: normalizeText(input.source) || 'ui',
+    };
+  }
+
+  const event = await authStore.addAuditEvent({
+    tenantId,
+    actorUserId: actor.id,
+    action,
+    outcome: 'success',
+    targetType,
+    targetId,
+    metadata,
+  });
+
+  return res.json({
+    ok: true,
+    action,
+    eventType,
+    auditRef: event?.id || null,
+    loggedAt: event?.ts || timestamp,
+  });
+}
+
 async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisStore }) {
   if (!authStore || typeof authStore.listAuditEvents !== 'function') {
     return res.status(503).json({ error: 'Auth store saknar audit reader.' });
@@ -1271,20 +1846,34 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     .map((event) => Number(event?.metadata?.itemsCompleted))
     .filter((value) => Number.isFinite(value) && value >= 0);
 
+  let analysisEntries = [];
+  let recentEntries = [];
+  let previousEntry = null;
   let conversationWorklist = [];
+  let previousConversationWorklist = [];
   if (capabilityAnalysisStore && typeof capabilityAnalysisStore.list === 'function') {
-    const analysisEntries = await capabilityAnalysisStore.list({
+    analysisEntries = await capabilityAnalysisStore.list({
       tenantId,
       capabilityName: 'CCO.InboxAnalysis',
-      limit: 200,
+      limit: 400,
     });
-    const recentEntries = asArray(analysisEntries).filter((entry) => {
+    recentEntries = asArray(analysisEntries).filter((entry) => {
       const tsMs = toEventTimestampMs(entry);
       return Number.isFinite(tsMs) && tsMs >= window.startAtMs;
     });
     const sourceEntries = recentEntries.length > 0 ? recentEntries : asArray(analysisEntries);
     const latestEntry = sourceEntries[0] || null;
     conversationWorklist = asArray(latestEntry?.output?.data?.conversationWorklist);
+    previousEntry =
+      asArray(analysisEntries)
+        .filter((entry) => {
+          const tsMs = toEventTimestampMs(entry);
+          return Number.isFinite(tsMs) && tsMs < window.startAtMs;
+        })
+        .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] ||
+      sourceEntries[1] ||
+      null;
+    previousConversationWorklist = asArray(previousEntry?.output?.data?.conversationWorklist);
   }
 
   const unresolved = conversationWorklist.filter(
@@ -1309,15 +1898,123 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     startEvents: sprintStartEvents,
     completeEvents: sprintCompleteEvents,
   });
+  const avgResponseTimeHours = toAverage(itemSlaAgeHours, 2);
+  const avgSprintDurationMinutes = toAverage(sprintDurationsMinutes, 2);
+  const avgItemsPerSprint = toAverage(sprintItemsCompleted, 2);
+  const sprintCompletionRate = sprintStartEvents.length
+    ? Number(((sprintCompleteEvents.length / sprintStartEvents.length) * 100).toFixed(1))
+    : 0;
+
+  const windowDays = Math.max(1, Math.round(window.durationMs / (24 * 60 * 60 * 1000)));
+  const followRateSeed = (() => {
+    const modeEvents = recentAuditEvents.filter(
+      (event) => normalizeText(event?.action).toLowerCase() === 'cco.draft.mode_selected'
+    );
+    if (!modeEvents.length) return 0;
+    const followed = modeEvents.filter((event) => event?.metadata?.ignoredRecommended !== true).length;
+    return clampInteger((followed / modeEvents.length) * 100, 0, 100, 0) / 100;
+  })();
+  const activeDaySeed = new Set();
+  recentAuditEvents.forEach((event) => {
+    const action = normalizeText(event?.action).toLowerCase();
+    if (!action.startsWith('cco.')) return;
+    const tsMs = toEventTimestampMs(event);
+    if (!Number.isFinite(tsMs)) return;
+    activeDaySeed.add(new Date(tsMs).toISOString().slice(0, 10));
+  });
+  recentEntries.forEach((entry) => {
+    const tsMs = toEventTimestampMs(entry);
+    if (!Number.isFinite(tsMs)) return;
+    activeDaySeed.add(new Date(tsMs).toISOString().slice(0, 10));
+  });
+  const ccoUsageRateSeed = Math.max(0, Math.min(1, activeDaySeed.size / windowDays));
+  const sprintCompletionRateSeed = sprintCompletionRate / 100;
+  const sortedAnalysisEntries = asArray(analysisEntries)
+    .slice()
+    .sort((left, right) => String(left?.ts || '').localeCompare(String(right?.ts || '')));
+  const healthHistory = sortedAnalysisEntries
+    .map((entry) => {
+      const ts = toIso(entry?.ts);
+      if (!ts) return null;
+      const snapshotMetrics = computeWorklistSnapshotMetrics(
+        asArray(entry?.output?.data?.conversationWorklist)
+      );
+      const score = computeHealthScore({
+        snapshotMetrics,
+        avgResponseTimeHours,
+        recommendationFollowRate: followRateSeed,
+        ccoUsageRate: ccoUsageRateSeed,
+        sprintCompletionRate: sprintCompletionRateSeed,
+      });
+      return {
+        ts,
+        score,
+        slaBreachRate: snapshotMetrics.slaBreachRate,
+      };
+    })
+    .filter(Boolean)
+    .slice(-30);
+
+  const usageAnalytics = computeUsageAnalytics({
+    windowDays,
+    auditEvents: recentAuditEvents,
+    analysisEntries: recentEntries,
+    currentConversationWorklist: conversationWorklist,
+    previousConversationWorklist,
+    healthHistory,
+  });
+
+  const clusterSignals = {
+    slaBreachRateUp: usageAnalytics.slaBreachTrendPercent > 0,
+    complaintSpike: usageAnalytics.complaintTrendPercent > 0,
+    conversionDrop: usageAnalytics.conversionTrendPercent < 0,
+    volatilityIndex: usageAnalytics.volatilityIndex,
+  };
+  const redFlagState = evaluateRedFlag({
+    healthHistory,
+    currentHealthScore: usageAnalytics.healthScore,
+    clusterSignals,
+    usageMetrics: usageAnalytics,
+  });
+  const volatilityHistory = healthHistory.map((point, index, list) => {
+    if (index === 0) return { ts: point.ts, index: 0 };
+    const previous = list[index - 1];
+    const delta = Math.abs(toNumber(point.score, 0) - toNumber(previous?.score, 0));
+    return {
+      ts: point.ts,
+      index: Number((Math.min(1, delta / 20)).toFixed(3)),
+    };
+  });
+  const recoveryState = evaluateRecovery({
+    redFlagState,
+    healthHistory,
+    slaBreachHistory: healthHistory.map((point) => ({
+      ts: point.ts,
+      rate: point.slaBreachRate,
+    })),
+    volatilityHistory,
+    driverDeltas: {
+      health_drop: redFlagState.delta,
+      sla_breach: usageAnalytics.slaBreachTrendPercent,
+      complaint_spike: usageAnalytics.complaintTrendPercent,
+      conversion_drop: usageAnalytics.conversionTrendPercent,
+      volatility: usageAnalytics.volatilityIndex - 0.6,
+      health_threshold: usageAnalytics.healthScore - 60,
+    },
+  });
+  const adaptiveFocusState = resolveAdaptiveFocusState({
+    redFlagState,
+    recoveryState,
+    nowMs: Date.now(),
+    durationHours: 48,
+  });
 
   return res.json({
-    avgResponseTimeHours: toAverage(itemSlaAgeHours, 2),
+    avgResponseTimeHours,
     criticalOver48hCount,
-    avgSprintDurationMinutes: toAverage(sprintDurationsMinutes, 2),
-    avgItemsPerSprint: toAverage(sprintItemsCompleted, 2),
-    sprintCompletionRate: sprintStartEvents.length
-      ? Number(((sprintCompleteEvents.length / sprintStartEvents.length) * 100).toFixed(1))
-      : 0,
+    avgSprintDurationMinutes,
+    avgItemsPerSprint,
+    sprintCompletionRate,
     stressProxyIndex: {
       score: stressScore,
       level: toStressLevel(stressScore),
@@ -1327,6 +2024,11 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
         unansweredCount,
       },
     },
+    usageAnalytics,
+    redFlagState,
+    adaptiveFocusState,
+    recoveryState,
+    healthScore: usageAnalytics.healthScore,
     latestSprintFeedback,
     since: window.since,
     generatedAt: new Date().toISOString(),
@@ -1360,6 +2062,7 @@ async function runCapabilityHandler({
   capabilityName,
   templateStore,
   graphReadConnector,
+  capabilityAnalysisStore,
   authStore,
 }) {
   const actor = toActor(req);
@@ -1368,12 +2071,13 @@ async function runCapabilityHandler({
     capabilityName,
     tenantId: toTenantId(req),
     templateStore,
-    input: req.body?.input,
-    systemStateSnapshot: req.body?.systemStateSnapshot,
-    graphReadConnector,
-    authStore,
-    actorUserId: actor.id,
-    correlationId,
+      input: req.body?.input,
+      systemStateSnapshot: req.body?.systemStateSnapshot,
+      graphReadConnector,
+      capabilityAnalysisStore,
+      authStore,
+      actorUserId: actor.id,
+      correlationId,
   });
   if (isDebugRequested(req)) {
     payload.input = {
@@ -1397,6 +2101,13 @@ async function runCapabilityHandler({
   if (isBlockedDecision(result.gatewayResult || {})) {
     return toCapabilityRunBlocked(res, result);
   }
+  await maybeWriteCcoLifecycleAuditEvents({
+    authStore,
+    tenantId: toTenantId(req),
+    actorUserId: actor.id,
+    correlationId,
+    result,
+  });
   return toCapabilityRunSuccess(res, result);
 }
 
@@ -1407,6 +2118,7 @@ async function runAgentHandler({
   agentName,
   templateStore,
   graphReadConnector,
+  capabilityAnalysisStore,
   authStore,
 }) {
   const actor = toActor(req);
@@ -1415,12 +2127,13 @@ async function runAgentHandler({
     agentName,
     tenantId: toTenantId(req),
     templateStore,
-    input: req.body?.input,
-    systemStateSnapshot: req.body?.systemStateSnapshot,
-    graphReadConnector,
-    authStore,
-    actorUserId: actor.id,
-    correlationId,
+      input: req.body?.input,
+      systemStateSnapshot: req.body?.systemStateSnapshot,
+      graphReadConnector,
+      capabilityAnalysisStore,
+      authStore,
+      actorUserId: actor.id,
+      correlationId,
   });
   if (isDebugRequested(req)) {
     payload.input = {
@@ -1444,6 +2157,13 @@ async function runAgentHandler({
   if (isBlockedDecision(result.gatewayResult || {})) {
     return toCapabilityRunBlocked(res, result);
   }
+  await maybeWriteCcoLifecycleAuditEvents({
+    authStore,
+    tenantId: toTenantId(req),
+    actorUserId: actor.id,
+    correlationId,
+    result,
+  });
   return toCapabilityRunSuccess(res, result);
 }
 
@@ -1495,11 +2215,140 @@ async function readAnalysisHandler({ req, res, capabilityAnalysisStore }) {
   return res.json(toAnalysisPayload(entries, resolvedCapabilityName, query.agentName));
 }
 
+async function readWritingIdentitiesHandler({ req, res, capabilityAnalysisStore }) {
+  if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
+    return res.status(503).json({ error: 'Capability analysis store är inte konfigurerad.' });
+  }
+  const tenantId = toTenantId(req);
+  const queryMailbox = toMailboxAddress(req.query?.mailbox);
+  const records = await listWritingIdentityProfiles({
+    analysisStore: capabilityAnalysisStore,
+    tenantId,
+    limit: 500,
+  });
+  const filtered = queryMailbox
+    ? records.filter((record) => toMailboxAddress(record?.mailbox) === queryMailbox)
+    : records;
+  return res.json({
+    count: filtered.length,
+    profiles: filtered.map((record) => ({
+      mailbox: toMailboxAddress(record?.mailbox),
+      version: Number(record?.version || 1),
+      profile: toWritingProfile(record?.profile || {}),
+      source: normalizeText(record?.source) || 'auto',
+      createdAt: toIso(record?.createdAt) || null,
+      updatedAt: toIso(record?.updatedAt) || null,
+    })),
+    generatedAt: new Date().toISOString(),
+  });
+}
+
+async function saveWritingIdentityProfileHandler({
+  req,
+  res,
+  capabilityAnalysisStore,
+  authStore,
+}) {
+  if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+    return res.status(503).json({ error: 'Capability analysis store är inte konfigurerad.' });
+  }
+  const tenantId = toTenantId(req);
+  const actor = toActor(req);
+  const correlationId = toCorrelationId(req);
+  const mailbox =
+    toMailboxAddress(req.params?.mailbox) ||
+    toMailboxAddress(req.body?.mailbox) ||
+    toMailboxAddress(req.body?.input?.mailbox);
+  if (!mailbox) {
+    return res.status(422).json({ error: 'mailbox måste vara en giltig email/UPN.' });
+  }
+  const sourceProfile = asObject(
+    req.body?.profile && typeof req.body.profile === 'object'
+      ? req.body.profile
+      : req.body?.input?.profile && typeof req.body.input.profile === 'object'
+      ? req.body.input.profile
+      : req.body
+  );
+  const profile = toWritingProfile(sourceProfile);
+  const record = await upsertWritingIdentityProfile({
+    analysisStore: capabilityAnalysisStore,
+    authStore,
+    tenantId,
+    actorUserId: actor.id,
+    mailboxAddress: mailbox,
+    profile,
+    source: 'manual',
+    correlationId,
+  });
+  return res.json({
+    ok: true,
+    mailbox,
+    profile: {
+      mailbox: record.mailbox,
+      version: record.version,
+      profile: record.profile,
+      source: record.source,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    },
+  });
+}
+
+async function autoExtractWritingIdentityProfilesHandler({
+  req,
+  res,
+  capabilityAnalysisStore,
+  authStore,
+}) {
+  if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
+    return res.status(503).json({ error: 'Capability analysis store är inte konfigurerad.' });
+  }
+  const tenantId = toTenantId(req);
+  const actor = toActor(req);
+  const correlationId = toCorrelationId(req);
+  const payload = asObject(req.body);
+  const input = asObject(
+    payload.input && typeof payload.input === 'object' ? payload.input : payload
+  );
+  const sampleSize = clampInteger(input.sampleSize, 30, 50, 40);
+  const mailboxes = parseMailboxList(input.mailboxes);
+  const result = await extractAndPersistWritingIdentityProfiles({
+    analysisStore: capabilityAnalysisStore,
+    authStore,
+    tenantId,
+    mailboxes,
+    actorUserId: actor.id,
+    correlationId,
+    sampleSize,
+  });
+  return res.json({
+    ok: true,
+    sampleSize: result.sampleSize,
+    requestedMailboxes: result.requestedMailboxes,
+    updatedProfiles: result.updatedProfiles.map((item) => ({
+      mailbox: item.mailbox,
+      sampleCount: item.sampleCount,
+      version: Number(item?.record?.version || 1),
+      source: normalizeText(item?.record?.source) || 'auto',
+      profile: toWritingProfile(item?.profile || {}),
+      updatedAt: toIso(item?.record?.updatedAt) || null,
+    })),
+    skipped: asArray(result.skipped),
+    generatedAt: new Date().toISOString(),
+  });
+}
+
 function toMetaHandler({ executor }) {
   return async (_req, res) => res.json(toMetaPayload(executor));
 }
 
-function toCapabilityRunHandler({ executor, templateStore, graphReadConnector, authStore }) {
+function toCapabilityRunHandler({
+  executor,
+  templateStore,
+  graphReadConnector,
+  capabilityAnalysisStore,
+  authStore,
+}) {
   return async (req, res) => {
     const capabilityName = toCapabilityName(req);
     if (!validateCapabilityName(capabilityName, res)) return;
@@ -1511,6 +2360,7 @@ function toCapabilityRunHandler({ executor, templateStore, graphReadConnector, a
         capabilityName,
         templateStore,
         graphReadConnector,
+        capabilityAnalysisStore,
         authStore,
       });
     } catch (error) {
@@ -1519,7 +2369,13 @@ function toCapabilityRunHandler({ executor, templateStore, graphReadConnector, a
   };
 }
 
-function toAgentRunHandler({ executor, templateStore, graphReadConnector, authStore }) {
+function toAgentRunHandler({
+  executor,
+  templateStore,
+  graphReadConnector,
+  capabilityAnalysisStore,
+  authStore,
+}) {
   return async (req, res) => {
     const agentName = toAgentName(req);
     if (!validateAgentName(agentName, res)) return;
@@ -1531,6 +2387,7 @@ function toAgentRunHandler({ executor, templateStore, graphReadConnector, authSt
         agentName,
         templateStore,
         graphReadConnector,
+        capabilityAnalysisStore,
         authStore,
       });
     } catch (error) {
@@ -1585,6 +2442,19 @@ function toCcoSprintEventHandler({ authStore }) {
   };
 }
 
+function toCcoUsageEventHandler({ authStore }) {
+  return async (req, res) => {
+    try {
+      return await runCcoUsageEventHandler({ req, res, authStore });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte logga usage-event.',
+        code: error?.code || 'CCO_USAGE_EVENT_FAILED',
+      });
+    }
+  };
+}
+
 function toCcoMetricsHandler({ authStore, capabilityAnalysisStore }) {
   return async (req, res) => {
     try {
@@ -1593,6 +2463,55 @@ function toCcoMetricsHandler({ authStore, capabilityAnalysisStore }) {
       return res.status(500).json({
         error: error?.message || 'Kunde inte läsa CCO metrics.',
         code: error?.code || 'CCO_METRICS_READ_FAILED',
+      });
+    }
+  };
+}
+
+function toWritingIdentitiesReadHandler({ capabilityAnalysisStore }) {
+  return async (req, res) => {
+    try {
+      return await readWritingIdentitiesHandler({ req, res, capabilityAnalysisStore });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte läsa Writing Identity-profiler.',
+        code: error?.code || 'CCO_WRITING_PROFILE_READ_FAILED',
+      });
+    }
+  };
+}
+
+function toWritingIdentitySaveHandler({ capabilityAnalysisStore, authStore }) {
+  return async (req, res) => {
+    try {
+      return await saveWritingIdentityProfileHandler({
+        req,
+        res,
+        capabilityAnalysisStore,
+        authStore,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte spara Writing Identity-profil.',
+        code: error?.code || 'CCO_WRITING_PROFILE_SAVE_FAILED',
+      });
+    }
+  };
+}
+
+function toWritingIdentityAutoExtractHandler({ capabilityAnalysisStore, authStore }) {
+  return async (req, res) => {
+    try {
+      return await autoExtractWritingIdentityProfilesHandler({
+        req,
+        res,
+        capabilityAnalysisStore,
+        authStore,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte auto-extrahera Writing Identity-profiler.',
+        code: error?.code || 'CCO_WRITING_PROFILE_AUTO_EXTRACT_FAILED',
       });
     }
   };
@@ -1618,11 +2537,17 @@ function createCapabilitiesRouter({
       buildVersion: process.env.npm_package_version || 'dev',
     });
   const shouldEnableGraphRead = toBoolean(process.env.ARCANA_GRAPH_READ_ENABLED, false);
-  const graphReadFullTenant = toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
-  const graphReadUserScope = normalizeGraphUserScope(
-    process.env.ARCANA_GRAPH_USER_SCOPE,
-    graphReadFullTenant ? 'all' : 'single'
-  );
+  const graphReadAllowlist = parseMailboxIds(process.env.ARCANA_MAILBOX_ALLOWLIST, 500);
+  const graphReadAllowlistMode = graphReadAllowlist.length > 0;
+  const graphReadFullTenant = graphReadAllowlistMode
+    ? true
+    : toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
+  const graphReadUserScope = graphReadAllowlistMode
+    ? 'all'
+    : normalizeGraphUserScope(
+        process.env.ARCANA_GRAPH_USER_SCOPE,
+        graphReadFullTenant ? 'all' : 'single'
+      );
   const graphReadRequiresUserId = !(graphReadFullTenant && graphReadUserScope === 'all');
   const shouldEnableGraphSend = toBoolean(process.env.ARCANA_GRAPH_SEND_ENABLED, false);
   const graphSendAllowlist = normalizeText(process.env.ARCANA_GRAPH_SEND_ALLOWLIST);
@@ -1735,6 +2660,7 @@ function createCapabilitiesRouter({
         executor,
         templateStore,
         graphReadConnector: resolvedGraphReadConnector,
+        capabilityAnalysisStore,
         authStore,
       })
     )
@@ -1747,12 +2673,46 @@ function createCapabilitiesRouter({
     toRoleGuardedHandler(toCcoSprintEventHandler({ authStore }))
   );
 
+  router.post(
+    '/cco/usage/event',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(toCcoUsageEventHandler({ authStore }))
+  );
+
   router.get(
     '/cco/metrics',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     toRoleGuardedHandler(
       toCcoMetricsHandler({ authStore, capabilityAnalysisStore })
+    )
+  );
+
+  router.get(
+    '/cco/writing-identities',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toWritingIdentitiesReadHandler({ capabilityAnalysisStore })
+    )
+  );
+
+  router.post(
+    '/cco/writing-identities/auto-extract',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toWritingIdentityAutoExtractHandler({ capabilityAnalysisStore, authStore })
+    )
+  );
+
+  router.put(
+    '/cco/writing-identities/:mailbox',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toWritingIdentitySaveHandler({ capabilityAnalysisStore, authStore })
     )
   );
 
@@ -1779,6 +2739,7 @@ function createCapabilitiesRouter({
         executor,
         templateStore,
         graphReadConnector: resolvedGraphReadConnector,
+        capabilityAnalysisStore,
         authStore,
       })
     )
