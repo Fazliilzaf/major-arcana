@@ -7752,12 +7752,11 @@
           .filter(Boolean)
       : [];
     const set = new Set(fromMetadata);
+    for (const mailbox of CCO_LOCKED_MAILBOX_ALLOWLIST) {
+      set.add(mailbox);
+    }
     if (!set.size) {
       set.add(CCO_DEFAULT_SENDER_MAILBOX);
-      set.add('kons@hairtpclinic.com');
-      set.add('marknad@hairtpclinic.com');
-      set.add('egzona@hairtpclinic.com');
-      set.add('fazli@hairtpclinic.com');
     }
     return Array.from(set);
   }
@@ -10102,17 +10101,7 @@
 
   function renderCcoMailboxFilterRow(rows = []) {
     if (!els.ccoInboxMailboxFilters) return;
-    const presentMailboxLabels = new Set(
-      (Array.isArray(rows) ? rows : [])
-        .map((row) => resolveCcoMailboxLabel(row))
-        .filter((mailbox) => isCcoAllowedMailbox(mailbox))
-    );
-    const uniqueMailboxLabels = CCO_LOCKED_MAILBOX_ALLOWLIST.filter((mailbox) =>
-      presentMailboxLabels.has(mailbox)
-    );
-    const filterOptions = uniqueMailboxLabels.length
-      ? uniqueMailboxLabels
-      : CCO_LOCKED_MAILBOX_ALLOWLIST;
+    const filterOptions = CCO_LOCKED_MAILBOX_ALLOWLIST;
 
     const activeFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
     const hasActiveFilter = activeFilter === 'all' || filterOptions.includes(activeFilter);
