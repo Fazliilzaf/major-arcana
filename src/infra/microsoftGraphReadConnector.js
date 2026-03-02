@@ -719,8 +719,6 @@ function toInboxMessagesUrl({
       'from',
       'toRecipients',
       'replyTo',
-      'inReplyTo',
-      'references',
       'internetMessageId',
       'internetMessageHeaders',
     ].join(',')
@@ -749,8 +747,6 @@ function toSentMessagesUrl({ graphBaseUrl, userId, maxMessages, sentSinceIso }) 
       'from',
       'toRecipients',
       'replyTo',
-      'inReplyTo',
-      'references',
       'internetMessageId',
       'internetMessageHeaders',
     ].join(',')

@@ -186,6 +186,51 @@ test('MicrosoftGraphReadConnector supports custom window and includeRead=true fi
   assert.equal(snapshot.metadata.includeReadMessages, true);
 });
 
+test('MicrosoftGraphReadConnector omits unsupported inReplyTo/references select fields', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-select-fields',
+        },
+      });
+    }
+    return createJsonResponse({
+      body: {
+        value: [],
+      },
+    });
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-select',
+    clientId: 'client-id-select',
+    clientSecret: 'client-secret-select',
+    userId: 'mailbox@hairtpclinic.se',
+    fetchImpl,
+  });
+
+  await connector.fetchInboxSnapshot({
+    includeRead: true,
+  });
+
+  const inboxRequest = calls.find((item) => String(item.url).includes('/mailFolders/inbox/messages'));
+  const sentRequest = calls.find((item) => String(item.url).includes('/mailFolders/SentItems/messages'));
+  assert.equal(Boolean(inboxRequest), true);
+  assert.equal(Boolean(sentRequest), true);
+
+  const inboxSelect = new URL(String(inboxRequest.url)).searchParams.get('$select') || '';
+  const sentSelect = new URL(String(sentRequest.url)).searchParams.get('$select') || '';
+  assert.equal(inboxSelect.includes('inReplyTo'), false);
+  assert.equal(inboxSelect.includes('references'), false);
+  assert.equal(sentSelect.includes('inReplyTo'), false);
+  assert.equal(sentSelect.includes('references'), false);
+  assert.equal(inboxSelect.includes('internetMessageHeaders'), true);
+  assert.equal(sentSelect.includes('internetMessageHeaders'), true);
+});
+
 test('MicrosoftGraphReadConnector merges inbox + sent items and marks lastOutboundAt', async () => {
   const fixedNowMs = Date.parse('2026-02-26T18:00:00.000Z');
   const fetchImpl = async (url) => {
