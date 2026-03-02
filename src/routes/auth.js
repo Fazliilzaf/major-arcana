@@ -31,6 +31,16 @@ function normalizeSessionRotationScope(value, fallback = 'none') {
   return fallback;
 }
 
+function normalizeHost(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return '';
+  const withoutScheme = trimmed.replace(/^https?:\/\//, '');
+  const first = withoutScheme.split('/')[0] || '';
+  const host = first.split(':')[0] || '';
+  return host.trim();
+}
+
 function createAuthRouter({
   authStore,
   requireAuth,
@@ -47,6 +57,24 @@ function createAuthRouter({
   const applySelectTenantRateLimit =
     typeof selectTenantRateLimiter === 'function' ? selectTenantRateLimiter : (_req, _res, next) => next();
   const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
+  const ownerMfaBypassHostSet = new Set(
+    (Array.isArray(ownerMfaBypassHosts) ? ownerMfaBypassHosts : [])
+      .map((item) => normalizeHost(item))
+      .filter(Boolean)
+  );
+
+  function isOwnerMfaBypassed(req) {
+    if (ownerMfaBypassHostSet.size === 0) return false;
+    const headerHostsRaw =
+      (typeof req.get === 'function' && (req.get('x-forwarded-host') || req.get('host'))) || '';
+    const headerHosts = String(headerHostsRaw)
+      .split(',')
+      .map((item) => normalizeHost(item))
+      .filter(Boolean);
+    const requestHost = normalizeHost(req?.hostname);
+    const candidates = requestHost ? [requestHost, ...headerHosts] : headerHosts;
+    return candidates.some((item) => ownerMfaBypassHostSet.has(item));
+  }
 
   async function rotateSessionsAfterLogin({ userId, tenantId, currentSessionId }) {
     if (!userId || !currentSessionId || rotationScope === 'none') return 0;
@@ -167,6 +195,7 @@ function createAuthRouter({
             tenantRequested: tenantId || null,
             setupRequired: Boolean(pendingMfa.setupRequired),
             tenantCount: memberships.length,
+            ownerMfaBypassed: false,
           },
         });
 
@@ -225,6 +254,7 @@ function createAuthRouter({
           role: selectedMembership.role,
           rotatedSessions,
           rotationScope,
+          ownerMfaBypassed,
         },
       });
 

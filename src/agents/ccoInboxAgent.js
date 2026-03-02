@@ -446,7 +446,7 @@ function composeCcoInboxAnalysis({
 } = {}) {
   const normalizedOutput = asObject(inboxOutput);
   const data = asObject(normalizedOutput.data);
-  const metadata = asObject(normalizedOutput.metadata);
+  const sourceMetadata = asObject(normalizedOutput.metadata);
   const warnings = asArray(normalizedOutput.warnings);
 
   const composedMetadata = {
