@@ -282,25 +282,27 @@ function buildCcoSignatureHtml({
   const websiteUrl = 'https://hairtpclinic.se';
   const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
   const facebookUrl = 'https://www.facebook.com/hairtpclinic';
-  const logoUrl = 'https://arcana-staging.onrender.com/assets/hair-tp-clinic/hairtpclinic-mark.svg';
+  const publicBaseUrl = normalizeText(process.env.PUBLIC_BASE_URL).replace(/\/+$/, '');
+  const logoBaseUrl = publicBaseUrl || 'https://arcana-staging.onrender.com';
+  const logoUrl = `${logoBaseUrl}/assets/hair-tp-clinic/hairtpclinic-mark.svg`;
 
   return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-family:Arial,sans-serif;color:#2f2f33;">
   <tr>
     <td style="vertical-align:top;padding-right:18px;">
-      <img src="${escapeHtml(logoUrl)}" alt="Hair TP Clinic" width="110" style="display:block;border:0;outline:none;text-decoration:none;" />
+      <img src="${escapeHtml(logoUrl)}" alt="Hair TP Clinic" width="122" style="display:block;border:0;outline:none;text-decoration:none;" />
     </td>
     <td style="vertical-align:top;border-left:4px solid #d8d0c8;padding-left:18px;">
-      <div style="font-size:30px;line-height:1;color:#2f2f33;">Bästa hälsningar,</div>
-      <div style="margin-top:8px;font-size:32px;line-height:1.05;color:#b9a89d;font-weight:700;">${escapeHtml(safeName)}</div>
-      <div style="margin-top:8px;font-size:24px;line-height:1.2;color:#2f2f33;font-weight:700;">${escapeHtml(safeTitle)}</div>
-      <div style="margin-top:8px;font-size:22px;line-height:1.25;color:#2f2f33;">031-88 11 66</div>
-      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">${escapeHtml(safeSenderMailbox)}</div>
-      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">Vasaplatsen 2, 411 34 Göteborg</div>
-      <div style="margin-top:12px;">
-        <a href="${escapeHtml(websiteUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Webb</a>
-        <a href="${escapeHtml(instagramUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Instagram</a>
-        <a href="${escapeHtml(facebookUrl)}" style="display:inline-block;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Facebook</a>
+      <div style="font-size:13px;line-height:1.35;color:#4a4540;">Bästa hälsningar,</div>
+      <div style="margin-top:6px;font-size:22px;line-height:1.15;color:#b9a89d;font-weight:700;">${escapeHtml(safeName)}</div>
+      <div style="margin-top:6px;font-size:18px;line-height:1.25;color:#2f2f33;font-weight:700;">${escapeHtml(safeTitle)}</div>
+      <div style="margin-top:6px;font-size:14px;line-height:1.3;color:#2f2f33;">031-88 11 66</div>
+      <div style="font-size:14px;line-height:1.3;color:#2f2f33;">${escapeHtml(safeSenderMailbox)}</div>
+      <div style="font-size:14px;line-height:1.3;color:#2f2f33;">Vasaplatsen 2, 411 34 Göteborg</div>
+      <div style="margin-top:10px;">
+        <a href="${escapeHtml(websiteUrl)}" title="Webb" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-right:6px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">W</a>
+        <a href="${escapeHtml(instagramUrl)}" title="Instagram" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-right:6px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">IG</a>
+        <a href="${escapeHtml(facebookUrl)}" title="Facebook" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">f</a>
       </div>
     </td>
   </tr>

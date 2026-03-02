@@ -41,6 +41,10 @@ function normalizeHost(value) {
   return host.trim();
 }
 
+function safeEqualText(a, b) {
+  return String(a || '') === String(b || '');
+}
+
 function createAuthRouter({
   authStore,
   requireAuth,
@@ -50,6 +54,10 @@ function createAuthRouter({
   selectTenantRateLimiter = null,
   ownerMfaBypassHosts = [],
   loginSessionRotationScope = 'none',
+  bootstrapOwnerEmail = '',
+  bootstrapOwnerPassword = '',
+  bootstrapOwnerTenantId = '',
+  ownerCredentialSelfHeal = true,
 }) {
   const router = express.Router();
 
@@ -62,6 +70,9 @@ function createAuthRouter({
       .map((item) => normalizeHost(item))
       .filter(Boolean)
   );
+  const normalizedBootstrapOwnerEmail = normalizeEmail(bootstrapOwnerEmail);
+  const normalizedBootstrapOwnerTenantId = normalizeTenantId(bootstrapOwnerTenantId);
+  const selfHealEnabled = ownerCredentialSelfHeal !== false;
 
   function isOwnerMfaBypassed(req) {
     if (ownerMfaBypassHostSet.size === 0) return false;
@@ -123,7 +134,38 @@ function createAuthRouter({
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
       }
 
-      const user = await authStore.authenticateUser({ email, password });
+      let user = await authStore.authenticateUser({ email, password });
+      let ownerCredentialSelfHealed = false;
+      if (
+        !user &&
+        selfHealEnabled &&
+        normalizedBootstrapOwnerEmail &&
+        typeof bootstrapOwnerPassword === 'string' &&
+        typeof authStore.bootstrapOwner === 'function' &&
+        email === normalizedBootstrapOwnerEmail &&
+        safeEqualText(password, bootstrapOwnerPassword)
+      ) {
+        try {
+          await authStore.bootstrapOwner({
+            tenantId: normalizedBootstrapOwnerTenantId || tenantId || 'hair-tp-clinic',
+            email: normalizedBootstrapOwnerEmail,
+            password: bootstrapOwnerPassword,
+            forcePasswordReset: true,
+            forceMfaReset: false,
+          });
+          user = await authStore.authenticateUser({ email, password });
+          ownerCredentialSelfHealed = Boolean(user);
+        } catch (selfHealError) {
+          await authStore.addAuditEvent({
+            action: 'auth.login.owner_self_heal',
+            outcome: 'error',
+            metadata: {
+              email,
+              reason: String(selfHealError?.message || 'unknown'),
+            },
+          });
+        }
+      }
       if (!user) {
         await authStore.addAuditEvent({
           action: 'auth.login',
@@ -255,6 +297,7 @@ function createAuthRouter({
           rotatedSessions,
           rotationScope,
           ownerMfaBypassed,
+          ownerCredentialSelfHealed,
         },
       });
 

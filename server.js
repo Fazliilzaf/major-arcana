@@ -507,6 +507,10 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       loginRateLimiter,
       selectTenantRateLimiter,
       ownerMfaBypassHosts: config.authOwnerMfaBypassHosts,
+      bootstrapOwnerEmail: config.bootstrapOwnerEmail,
+      bootstrapOwnerPassword: config.bootstrapOwnerPassword,
+      bootstrapOwnerTenantId: config.defaultTenantId,
+      ownerCredentialSelfHeal: config.authOwnerCredentialSelfHeal,
       loginSessionRotationScope: config.authLoginSessionRotationScope,
     })
   );
