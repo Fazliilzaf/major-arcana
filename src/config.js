@@ -232,6 +232,7 @@ const config = {
     if (configured.length > 0) return configured;
     return ['arcana-staging.onrender.com'];
   })(),
+  authOwnerCredentialSelfHeal: asBool(process.env.AUTH_OWNER_CREDENTIAL_SELF_HEAL, true),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
     process.env.AUTH_LOGIN_SESSION_ROTATION,
     'tenant'

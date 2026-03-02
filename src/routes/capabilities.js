@@ -507,13 +507,15 @@ function toGraphReadOptionsFromEnv() {
     ? true
     : toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
   const userScope = allowlistMode
-    ? 'all'
-    : normalizeGraphUserScope(
-        process.env.ARCANA_GRAPH_USER_SCOPE,
-        fullTenant ? 'all' : 'single'
-      );
+      ? 'all'
+      : normalizeGraphUserScope(
+          process.env.ARCANA_GRAPH_USER_SCOPE,
+          fullTenant ? 'all' : 'single'
+        );
   const configuredMailboxIds = parseMailboxIds(process.env.ARCANA_GRAPH_MAILBOX_IDS);
-  const mailboxIds = mergeUniqueMailboxIds(allowlistMailboxIds, configuredMailboxIds);
+  const mailboxIds = allowlistMode
+    ? allowlistMailboxIds.slice()
+    : mergeUniqueMailboxIds(allowlistMailboxIds, configuredMailboxIds);
   const defaultMailboxIndexes =
     allowlistMode ? '' : (fullTenant && userScope === 'all' ? '1,2,3,5,8' : '');
   const maxMessages = clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100);

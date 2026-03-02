@@ -7791,7 +7791,7 @@
     const safeTitle =
       String(resolvedProfile.title || '').trim() ||
       'Hårspecialist I Hårtransplantationer & PRP-injektioner';
-    const logoUrl = 'https://arcana-staging.onrender.com/assets/hair-tp-clinic/hairtpclinic-mark.svg';
+    const logoUrl = `${window.location.origin}/assets/hair-tp-clinic/hairtpclinic-mark.svg`;
     const websiteUrl = 'https://hairtpclinic.se';
     const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
     const facebookUrl = 'https://www.facebook.com/hairtpclinic';
@@ -7807,9 +7807,9 @@
           <div class="cco-signature-rich-line">${escapeHtml(safeSenderMailbox)}</div>
           <div class="cco-signature-rich-line">Vasaplatsen 2, 411 34 Göteborg</div>
           <div class="cco-signature-rich-links">
-            <a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noreferrer">Webb</a>
-            <a href="${escapeHtml(instagramUrl)}" target="_blank" rel="noreferrer">Instagram</a>
-            <a href="${escapeHtml(facebookUrl)}" target="_blank" rel="noreferrer">Facebook</a>
+            <a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noreferrer" aria-label="Webb">W</a>
+            <a href="${escapeHtml(instagramUrl)}" target="_blank" rel="noreferrer" aria-label="Instagram">IG</a>
+            <a href="${escapeHtml(facebookUrl)}" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
           </div>
         </div>
       </div>
