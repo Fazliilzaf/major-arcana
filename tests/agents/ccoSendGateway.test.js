@@ -53,7 +53,8 @@ async function withSendEnv(run) {
   const prevEnabled = process.env.ARCANA_GRAPH_SEND_ENABLED;
   const prevAllowlist = process.env.ARCANA_GRAPH_SEND_ALLOWLIST;
   process.env.ARCANA_GRAPH_SEND_ENABLED = 'true';
-  process.env.ARCANA_GRAPH_SEND_ALLOWLIST = 'owner@hairtpclinic.se';
+  process.env.ARCANA_GRAPH_SEND_ALLOWLIST =
+    'contact@hairtpclinic.com,owner@hairtpclinic.se,egzona@hairtpclinic.com,fazli@hairtpclinic.com';
   try {
     await run();
   } finally {
@@ -83,12 +84,13 @@ test('CCO send route uses gateway enforcement, writes audit, and idempotency pre
   let sendCalls = 0;
   let lastSendArgs = null;
   const graphSendConnector = {
-    async sendReply({ mailboxId, replyToMessageId, body, subject, to }) {
+    async sendReply({ mailboxId, sourceMailboxId, replyToMessageId, body, subject, to }) {
       sendCalls += 1;
-      lastSendArgs = { mailboxId, replyToMessageId, body, subject, to };
+      lastSendArgs = { mailboxId, sourceMailboxId, replyToMessageId, body, subject, to };
       return {
         provider: 'microsoft_graph',
         mailboxId,
+        sourceMailboxId,
         replyToMessageId,
         subject,
         to,
@@ -165,7 +167,12 @@ test('CCO send route uses gateway enforcement, writes audit, and idempotency pre
   });
 
   assert.equal(sendCalls, 1);
+  assert.equal(lastSendArgs.mailboxId, 'contact@hairtpclinic.com');
+  assert.equal(lastSendArgs.sourceMailboxId, 'owner@hairtpclinic.se');
   assert.equal(lastSendArgs.replyToMessageId, longReplyToMessageId);
+  assert.equal(String(lastSendArgs.body || '').includes('Bästa hälsningar,'), true);
+  assert.equal(String(lastSendArgs.body || '').includes('Egzona Krasniqi'), true);
+  assert.equal(String(lastSendArgs.body || '').includes('contact@hairtpclinic.com'), true);
 
   const entries = await analysisStore.list({
     tenantId: 'tenant-a',
@@ -245,6 +252,7 @@ test('CCO send route blocks when mailbox is not in allowlist and does not call G
       body: JSON.stringify({
         channel: 'admin',
         mailboxId: 'not-allowed@hairtpclinic.se',
+        senderMailboxId: 'not-allowed@hairtpclinic.se',
         replyToMessageId: 'msg-1',
         conversationId: 'conv-1',
         to: ['patient@example.com'],

@@ -23,7 +23,7 @@ function splitSentences(value = '') {
 
 function ensureGreeting(text = '') {
   const normalized = normalizeText(text);
-  if (!normalized) return 'Hej, tack for ditt meddelande.';
+  if (!normalized) return 'Hej, tack för ditt meddelande.';
   if (/^hej[,!]?/i.test(normalized)) return normalized;
   return `Hej, ${normalized}`;
 }
@@ -141,8 +141,8 @@ class RefineReplyDraftCapability extends BaseCapability {
       data: {
         conversationId: normalizeText(input.conversationId),
         messageId: normalizeText(input.messageId),
-        mailboxId: normalizeText(input.mailboxId) || 'unknown-mailbox',
-        subject: capText(input.subject, 220) || '(utan amne)',
+        mailboxId: normalizeText(input.mailboxId) || 'okand-postlada',
+        subject: capText(input.subject, 220) || '(utan ämne)',
         instruction: normalizeText(input.instruction).toLowerCase(),
         refinedReply,
         appliedAt: new Date().toISOString(),
@@ -151,7 +151,7 @@ class RefineReplyDraftCapability extends BaseCapability {
         capability: RefineReplyDraftCapability.name,
         version: RefineReplyDraftCapability.version,
         channel: normalizeText(safeContext.channel) || 'admin',
-        tenantId: normalizeText(safeContext.tenantId) || 'unknown',
+        tenantId: normalizeText(safeContext.tenantId) || 'okand',
         requestId: normalizeText(safeContext.requestId) || '',
         correlationId: normalizeText(safeContext.correlationId) || '',
       },

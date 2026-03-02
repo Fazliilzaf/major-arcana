@@ -19,10 +19,22 @@ function makeDraft(index) {
     slaStatus: 'ok',
     intent: 'follow_up',
     tone: 'neutral',
+    toneConfidence: 0.44,
     priorityLevel: 'Medium',
     priorityScore: 44,
     recommendedAction: 'Be om mer info',
     escalationRequired: false,
+    draftModes: {
+      short: `Kort ${index}`,
+      warm: `Varm ${index}`,
+      professional: `Professionell ${index}`,
+    },
+    recommendedMode: 'warm',
+    structureUsed: {
+      acknowledgement: 'Tack för ditt meddelande.',
+      coreAnswer: 'Vi har tagit emot ditt ärende.',
+      cta: 'Svara med detaljer så återkommer vi.',
+    },
     subject: `Subject ${index}`,
     proposedReply: `Draft ${index}`,
     confidenceLevel: 'Medium',
@@ -63,6 +75,10 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
   assert.equal(output.metadata.channel, 'admin');
   assert.equal(output.data.priorityLevel, 'Critical');
   assert.equal(Array.isArray(output.data.conversationWorklist), true);
+  assert.equal(typeof output.data.conversationWorklist?.[0]?.toneConfidence, 'number');
+  assert.equal(output.data.suggestedDrafts?.[0]?.recommendedMode, 'warm');
+  assert.equal(typeof output.data.suggestedDrafts?.[0]?.draftModes?.short, 'string');
+  assert.equal(typeof output.data.suggestedDrafts?.[0]?.structureUsed?.cta, 'string');
 });
 
 test('CCO inbox analysis compose clamps draft list to max 5', () => {

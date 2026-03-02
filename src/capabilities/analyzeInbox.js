@@ -1,6 +1,22 @@
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { maskInboxText } = require('../privacy/inboxMasking');
+const { classifyIntent } = require('../intelligence/intentClassifier');
+const { detectTone } = require('../intelligence/toneDetector');
+const { resolveWritingIdentityProfile } = require('../intelligence/writingIdentityRegistry');
+const {
+  computePriorityScore: computeWeightedPriorityScore,
+} = require('../intelligence/priorityScoreEngine');
+const { composeContextAwareDraft } = require('../intelligence/draftComposer');
+const { evaluateSlaMonitor } = require('../intelligence/slaMonitor');
+const {
+  evaluateLifecycleStatus,
+  toLifecycleSortRank,
+} = require('../intelligence/lifecycleEngine');
+const { evaluateCustomerTemperature } = require('../intelligence/customerTemperatureEngine');
+const { evaluateTempoProfile } = require('../intelligence/tempoEngine');
+const { suggestFollowUpTiming } = require('../intelligence/timingEngine');
+const { estimateConversationWorkload } = require('../intelligence/workloadEngine');
 const crypto = require('node:crypto');
 
 function normalizeText(value) {
@@ -34,8 +50,39 @@ function toTimestampMs(value) {
   return Number.isFinite(ms) ? ms : null;
 }
 
+function clamp(value, min, max, fallback = min) {
+  const numeric = toNumber(value, fallback);
+  return Math.max(min, Math.min(max, numeric));
+}
+
+function isValidEmail(value = '') {
+  const email = normalizeText(value).toLowerCase();
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function normalizeEmail(value = '') {
+  const email = normalizeText(value).toLowerCase();
+  return isValidEmail(email) ? email : '';
+}
+
+function toDayDiff(fromIso = '', nowMs = Date.now()) {
+  const fromMs = toTimestampMs(fromIso);
+  if (!Number.isFinite(fromMs)) return null;
+  const safeNowMs = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+  if (safeNowMs < fromMs) return 0;
+  return Math.floor((safeNowMs - fromMs) / (24 * 60 * 60 * 1000));
+}
+
 function capText(value, maxLength = 240) {
   const text = normalizeText(value).replace(/\s+/g, ' ');
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(1, maxLength - 3)).trim()}...`;
+}
+
+function clampTextLength(value, maxLength = 3000) {
+  const text = normalizeText(value);
   if (!text) return '';
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(1, maxLength - 3)).trim()}...`;
@@ -56,7 +103,7 @@ function normalizeOpaqueId(value) {
 
 function sanitizeSubject(value) {
   let subject = capText(value, 180);
-  if (!subject) subject = '(utan amne)';
+  if (!subject) subject = '(utan ämne)';
   subject = subject.replace(/\b(diagnos|diagnostiser[a-z]*)\b/gi, '[medicinsk fraga]');
   subject = subject.replace(/\b(garanti|garanterar|100\s*%)\b/gi, '[resultatfraga]');
   subject = subject.replace(
@@ -98,6 +145,14 @@ function mapConfidence(score = 0) {
   return 'Low';
 }
 
+function formatPriorityLevelSv(level = 'Low') {
+  const normalized = normalizeText(level).toLowerCase();
+  if (normalized === 'critical') return 'Kritisk';
+  if (normalized === 'high') return 'Hög';
+  if (normalized === 'medium') return 'Medel';
+  return 'Låg';
+}
+
 function countMessagesFromConversations(conversations = []) {
   return asArray(conversations).reduce((sum, conversation) => {
     return sum + asArray(conversation?.messages).length;
@@ -130,67 +185,6 @@ const RISK_PATTERNS = Object.freeze([
 const MEDICAL_TOPIC_PATTERN =
   /\b(symptom|behandling|operation|biverkning|lakemedel|infektion|feber|svullnad|smarta)\b/i;
 
-const INTENT_DEFS = Object.freeze([
-  {
-    id: 'booking_request',
-    patterns: [/\b(boka|bokning|boka tid|konsultation|appointment|reserv(er|ation)|tid hos)\b/i],
-    baseWeight: 22,
-  },
-  {
-    id: 'pricing_question',
-    patterns: [/\b(pris|priser|kostnad|erbjudande|finansiering|delbetalning|paket)\b/i],
-    baseWeight: 18,
-  },
-  {
-    id: 'anxiety_pre_op',
-    patterns: [/\b(radd|orolig|nervos|angest|inf(or|or) operation|fore operation)\b/i],
-    baseWeight: 20,
-  },
-  {
-    id: 'complaint',
-    patterns: [/\b(missnojd|klagomal|fel|dalig upplevelse|besviken|anmalan|ersattning)\b/i],
-    baseWeight: 24,
-  },
-  {
-    id: 'cancellation',
-    patterns: [/\b(avbok|ombok|stalla in|kan inte komma|cancel|reschedule)\b/i],
-    baseWeight: 15,
-  },
-  {
-    id: 'follow_up',
-    patterns: [/\b(folja upp|uppfoljning|status|aterkoppling|horde ni|vill bara kolla)\b/i],
-    baseWeight: 12,
-  },
-]);
-
-const TONE_DEFS = Object.freeze([
-  {
-    id: 'urgent',
-    patterns: [/\b(akut|snabbt|omedelbart|nu direkt|asap|sa fort som mojligt)\b/i, /!{2,}/],
-    baseWeight: 24,
-  },
-  {
-    id: 'frustrated',
-    patterns: [/\b(irriterad|besviken|arg|upprord|inte okej|varfor svarar ni inte)\b/i],
-    baseWeight: 20,
-  },
-  {
-    id: 'anxious',
-    patterns: [/\b(orolig|radd|angest|nervos|stressad over|hjalp mig snalla)\b/i],
-    baseWeight: 18,
-  },
-  {
-    id: 'stressed',
-    patterns: [/\b(stressad|pressad|svart att hantera|sover inte|kan inte vanta)\b/i],
-    baseWeight: 15,
-  },
-  {
-    id: 'positive',
-    patterns: [/\b(tack|uppskattar|fantastiskt|jattenojd|super|bra service)\b/i],
-    baseWeight: 8,
-  },
-]);
-
 const INTENT_ACTIONS = Object.freeze({
   booking_request: 'Boka tid',
   pricing_question: 'Skicka prisinformation',
@@ -200,6 +194,22 @@ const INTENT_ACTIONS = Object.freeze({
   follow_up: 'Ge statusuppdatering',
   unclear: 'Be om mer info',
 });
+
+const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
+const CCO_SIGNATURE_PROFILES = Object.freeze([
+  Object.freeze({
+    key: 'egzona',
+    fullName: 'Egzona Krasniqi',
+    title: 'Hårspecialist inom Hårtransplantationer',
+    senderMailboxId: 'egzona@hairtpclinic.com',
+  }),
+  Object.freeze({
+    key: 'fazli',
+    fullName: 'Fazli Krasniqi',
+    title: 'Hårspecialist inom Hårtransplantationer',
+    senderMailboxId: 'fazli@hairtpclinic.com',
+  }),
+]);
 
 function collectRiskFlags(text = '') {
   const source = normalizeText(text);
@@ -222,13 +232,6 @@ function severityWeight(severity = '') {
   if (normalized === 'medium') return 2;
   if (normalized === 'low') return 1;
   return 0;
-}
-
-function pickPriorityLevel({ score = 0, hasCriticalSignal = false } = {}) {
-  if (hasCriticalSignal || score >= 85) return 'Critical';
-  if (score >= 60) return 'High';
-  if (score >= 30) return 'Medium';
-  return 'Low';
 }
 
 function countByField(snapshot = {}) {
@@ -294,6 +297,7 @@ function toMessageSnapshot(message = {}) {
     normalizeText(message.fromName) ||
     normalizeText(message?.from?.emailAddress?.name);
   const senderRaw = senderName || senderEmail;
+  const normalizedSenderEmail = normalizeEmail(senderEmail);
   return {
     messageId:
       normalizeOpaqueId(message.messageId) ||
@@ -302,9 +306,15 @@ function toMessageSnapshot(message = {}) {
     direction: normalizeDirection(message.direction || message.role || message.type),
     sentAt: toIso(message.sentAt || message.createdAt || message.ts) || null,
     bodyPreview: bodyMasked,
+    bodyLength: Math.max(0, Math.min(8000, bodyRaw.length)),
     masked: Boolean(bodyRaw && bodyRaw !== bodyMasked),
     mailboxId:
       normalizeOpaqueId(message.mailboxId || message.mailbox || message.userId) || null,
+    mailboxAddress:
+      normalizeText(message.mailboxAddress || message.mailboxEmail || message.mailAddress) || null,
+    userPrincipalName: normalizeText(message.userPrincipalName || message.upn) || null,
+    senderEmail: normalizedSenderEmail || null,
+    senderName: normalizeText(senderName) || null,
     sender: maskSender(senderRaw),
   };
 }
@@ -350,6 +360,29 @@ function toConversationSnapshot(input = {}) {
       normalizeOpaqueId(source.mailboxId || source.mailbox || source.userId) ||
       normalizeOpaqueId(lastInbound?.mailboxId) ||
       null,
+    mailboxAddress:
+      normalizeText(
+        source.mailboxAddress || source.mailboxEmail || source.mailAddress || lastInbound?.mailboxAddress
+      ) || null,
+    userPrincipalName:
+      normalizeText(source.userPrincipalName || source.upn || lastInbound?.userPrincipalName) || null,
+    customerContext: {
+      openCommitments:
+        source.openCommitments ??
+        source?.customerContext?.openCommitments ??
+        source?.customer?.openCommitments ??
+        null,
+      repeatCustomer:
+        source.repeatCustomer ??
+        source?.customerContext?.repeatCustomer ??
+        source?.customer?.repeatCustomer ??
+        null,
+      estimatedRevenueBand:
+        source.estimatedRevenueBand ||
+        source?.customerContext?.estimatedRevenueBand ||
+        source?.customer?.estimatedRevenueBand ||
+        '',
+    },
     sender:
       maskSender(
         normalizeText(source.sender) ||
@@ -359,202 +392,315 @@ function toConversationSnapshot(input = {}) {
   };
 }
 
-function scoreSemanticMatch(text = '', definition = {}) {
-  const source = normalizeText(text).toLowerCase();
-  if (!source) return 0;
-  const patterns = asArray(definition.patterns);
-  let score = Number(definition.baseWeight || 0);
-  let matches = 0;
-  for (const pattern of patterns) {
-    if (!(pattern instanceof RegExp)) continue;
-    if (!pattern.test(source)) continue;
-    matches += 1;
-    score += 6;
-  }
-  if (matches === 0) return 0;
-  return score;
+function toSlaStatusRank(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'breach') return 3;
+  if (normalized === 'warning') return 2;
+  return 1;
 }
 
-function classifyIntent(text = '') {
-  let bestIntent = 'unclear';
-  let bestScore = 0;
-  for (const definition of INTENT_DEFS) {
-    const score = scoreSemanticMatch(text, definition);
-    if (score <= bestScore) continue;
-    bestIntent = definition.id;
-    bestScore = score;
-  }
+function compareWorkItemsBySlaAndPriority(left = {}, right = {}) {
+  const slaRankDiff =
+    toSlaStatusRank(right.slaStatus) - toSlaStatusRank(left.slaStatus);
+  if (slaRankDiff !== 0) return slaRankDiff;
+
+  const lifecycleRankDiff =
+    toLifecycleSortRank(left?.customerSummary?.lifecycleStatus || left?.lifecycleStatus) -
+    toLifecycleSortRank(right?.customerSummary?.lifecycleStatus || right?.lifecycleStatus);
+  if (lifecycleRankDiff !== 0) return lifecycleRankDiff;
+
+  const priorityDiff =
+    toNumber(right.priorityScore, 0) - toNumber(left.priorityScore, 0);
+  if (priorityDiff !== 0) return priorityDiff;
+
+  return toNumber(right.hoursSinceInbound, 0) - toNumber(left.hoursSinceInbound, 0);
+}
+
+function resolveCaseStatus({ status = '', inboundAtMs = null, outboundAtMs = null } = {}) {
+  const normalizedStatus = normalizeText(status).toLowerCase();
+  if (normalizedStatus === 'closed' || normalizedStatus === 'resolved') return 'closed';
+  if (normalizedStatus === 'follow_up_scheduled') return 'follow_up_scheduled';
+  if (normalizedStatus === 'open' || normalizedStatus === 'needs_reply') return 'open';
+  if (normalizedStatus === 'waiting' || normalizedStatus === 'waiting_on_customer') return 'waiting';
+  const unanswered =
+    Number.isFinite(inboundAtMs) &&
+    (!Number.isFinite(outboundAtMs) || outboundAtMs < inboundAtMs);
+  return unanswered ? 'open' : 'waiting';
+}
+
+function resolveCustomerIdentity(conversation = {}) {
+  const inbound = asObject(conversation.latestInboundMessage);
+  const outbound = asObject(conversation.latestOutboundMessage);
+  const candidateEmail = normalizeEmail(
+    inbound.senderEmail ||
+      outbound.senderEmail ||
+      conversation.customerEmail ||
+      conversation.senderEmail ||
+      ''
+  );
+  const candidateName =
+    normalizeText(inbound.senderName) ||
+    normalizeText(outbound.senderName) ||
+    normalizeText(conversation.customerName);
+  const senderLabel =
+    candidateName ||
+    maskSender(candidateEmail) ||
+    normalizeText(conversation.sender) ||
+    'Okänd kund';
+  const customerKey = normalizeIdentifier(
+    candidateEmail ||
+      `customer:${normalizeText(conversation.conversationId) || normalizeText(senderLabel)}`,
+    120
+  );
   return {
-    intent: bestIntent,
-    score: bestScore,
+    customerKey,
+    customerEmail: candidateEmail || null,
+    customerName: senderLabel,
   };
 }
 
-function detectTone(text = '') {
-  let bestTone = 'neutral';
-  let bestScore = 0;
-  for (const definition of TONE_DEFS) {
-    const score = scoreSemanticMatch(text, definition);
-    if (score <= bestScore) continue;
-    bestTone = definition.id;
-    bestScore = score;
+function computeCustomerEngagementScore(bucket = {}, nowMs = Date.now()) {
+  const caseCount = Math.max(0, toNumber(bucket.caseCount, 0));
+  const openCaseCount = Math.max(0, toNumber(bucket.openCaseCount, 0));
+  const recencyDays = toDayDiff(bucket.lastInteractionAt, nowMs);
+  let score = 0.1;
+  score += Math.min(0.32, caseCount * 0.07);
+  if (openCaseCount > 0) score += 0.18;
+  if (recencyDays !== null && recencyDays <= 3) score += 0.24;
+  else if (recencyDays !== null && recencyDays <= 7) score += 0.16;
+  else if (recencyDays !== null && recencyDays <= 30) score += 0.08;
+  return Math.round(clamp(score, 0, 1, 0.1) * 100) / 100;
+}
+
+function summarizeCaseStatusSv(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'open') return 'Öppen';
+  if (normalized === 'waiting') return 'Väntar på kund';
+  if (normalized === 'closed') return 'Stängd';
+  if (normalized === 'follow_up_scheduled') return 'Uppföljning planerad';
+  return 'Öppen';
+}
+
+function resolveWorkloadWarmth(summary = {}) {
+  const safeSummary = asObject(summary);
+  const lifecycleStatus = normalizeText(safeSummary.lifecycleStatus).toUpperCase();
+  const interactionCount = Math.max(0, toNumber(safeSummary.interactionCount, 0));
+  if (lifecycleStatus === 'DORMANT') return 'dormant';
+  if (interactionCount >= 6 || lifecycleStatus === 'HANDLED') return 'loyal';
+  if (
+    lifecycleStatus === 'ACTIVE_DIALOGUE' ||
+    lifecycleStatus === 'AWAITING_REPLY' ||
+    lifecycleStatus === 'FOLLOW_UP_PENDING' ||
+    interactionCount >= 3
+  ) {
+    return 'returning';
   }
+  return 'new';
+}
+
+function buildCustomerIndex(conversations = [], nowMs = Date.now()) {
+  const index = new Map();
+  for (const conversation of asArray(conversations)) {
+    const identity = resolveCustomerIdentity(conversation);
+    const key = normalizeText(identity.customerKey);
+    if (!key) continue;
+    const inboundAtMs = toTimestampMs(conversation.lastInboundAt || conversation?.latestInboundMessage?.sentAt);
+    const outboundAtMs = toTimestampMs(
+      conversation.lastOutboundAt || conversation?.latestOutboundMessage?.sentAt
+    );
+    const caseStatus = resolveCaseStatus({
+      status: conversation.status,
+      inboundAtMs,
+      outboundAtMs,
+    });
+    const lastInteractionAt =
+      toIso(conversation.lastInboundAt) ||
+      toIso(conversation.lastOutboundAt) ||
+      toIso(conversation?.latestInboundMessage?.sentAt) ||
+      toIso(conversation?.latestOutboundMessage?.sentAt) ||
+      null;
+    const interactionCount = Math.max(1, asArray(conversation.messages).length);
+    const timelineEntry = {
+      conversationId: normalizeText(conversation.conversationId) || '',
+      subject: sanitizeSubject(conversation.rawSubject || conversation.subject),
+      status: caseStatus,
+      occurredAt: lastInteractionAt,
+    };
+
+    const current = index.get(key) || {
+      customerKey: key,
+      customerEmail: identity.customerEmail,
+      customerName: identity.customerName,
+      caseCount: 0,
+      interactionCount: 0,
+      openCaseCount: 0,
+      closedCaseCount: 0,
+      lastInteractionAt: null,
+      lastClosedAt: null,
+      timeline: [],
+    };
+
+    current.caseCount += 1;
+    current.interactionCount += interactionCount;
+    if (caseStatus === 'closed') {
+      current.closedCaseCount += 1;
+      const closedAtMs = toTimestampMs(lastInteractionAt);
+      const currentClosedAtMs = toTimestampMs(current.lastClosedAt);
+      if (Number.isFinite(closedAtMs) && (!Number.isFinite(currentClosedAtMs) || closedAtMs > currentClosedAtMs)) {
+        current.lastClosedAt = lastInteractionAt;
+      }
+    } else {
+      current.openCaseCount += 1;
+    }
+    const lastInteractionMs = toTimestampMs(lastInteractionAt);
+    const currentLastMs = toTimestampMs(current.lastInteractionAt);
+    if (Number.isFinite(lastInteractionMs) && (!Number.isFinite(currentLastMs) || lastInteractionMs > currentLastMs)) {
+      current.lastInteractionAt = lastInteractionAt;
+    }
+
+    if (timelineEntry.conversationId) current.timeline.push(timelineEntry);
+    index.set(key, current);
+  }
+
+  for (const bucket of index.values()) {
+    bucket.timeline.sort((left, right) => {
+      const leftMs = toTimestampMs(left?.occurredAt) || 0;
+      const rightMs = toTimestampMs(right?.occurredAt) || 0;
+      return rightMs - leftMs;
+    });
+    bucket.timeline = bucket.timeline.slice(0, 12);
+    bucket.daysSinceLastInteraction = toDayDiff(bucket.lastInteractionAt, nowMs);
+    bucket.daysSinceLastClosedCase = toDayDiff(bucket.lastClosedAt, nowMs);
+    bucket.engagementScore = computeCustomerEngagementScore(bucket, nowMs);
+    const reactivated =
+      bucket.openCaseCount > 0 &&
+      Number.isFinite(bucket.daysSinceLastClosedCase) &&
+      bucket.daysSinceLastClosedCase >= 30;
+    const lifecycle = evaluateLifecycleStatus({
+      interactionCount: bucket.interactionCount,
+      lastInteractionDate: bucket.lastInteractionAt,
+      lastInboundAt: bucket.lastInteractionAt,
+      lastOutboundAt: bucket.lastInteractionAt,
+      openStatus: bucket.openCaseCount > 0 ? 'open' : 'closed',
+      status: bucket.openCaseCount > 0 ? 'open' : 'handled',
+      needsReplyStatus: bucket.openCaseCount > 0 ? 'needs_reply' : 'handled',
+      dormantDaysThreshold: 30,
+      archiveDaysThreshold: 90,
+      reactivated,
+    });
+    bucket.lifecycleStatus = lifecycle.lifecycleStatus;
+    bucket.lifecycleSource = lifecycle.source;
+    const latestCase = bucket.timeline[0];
+    if (latestCase) {
+      const closedText =
+        Number.isFinite(bucket.daysSinceLastClosedCase) && bucket.daysSinceLastClosedCase >= 0
+          ? ` (avslutat för ${bucket.daysSinceLastClosedCase} dagar sedan)`
+          : '';
+      bucket.lastCaseSummary = `${latestCase.subject} (${summarizeCaseStatusSv(latestCase.status)})${closedText}`;
+    } else {
+      bucket.lastCaseSummary = 'Ingen tidigare ärendehistorik.';
+    }
+  }
+  return index;
+}
+
+function buildCustomerSummaryView(bucket = {}) {
+  const timeline = asArray(bucket.timeline).slice(0, 6).map((entry) => ({
+    conversationId: normalizeText(entry.conversationId),
+    subject: sanitizeSubject(entry.subject),
+    status: resolveCaseStatus({ status: entry.status }),
+    occurredAt: toIso(entry.occurredAt) || null,
+  }));
   return {
-    tone: bestTone,
-    score: bestScore,
+    customerKey: normalizeText(bucket.customerKey),
+    customerName: capText(normalizeText(bucket.customerName) || 'Okänd kund', 120),
+    lifecycleStatus: normalizeText(bucket.lifecycleStatus) || 'NEW',
+    lifecycleSource: normalizeText(bucket.lifecycleSource) || 'auto',
+    interactionCount: Math.max(0, toNumber(bucket.interactionCount, 0)),
+    caseCount: Math.max(0, toNumber(bucket.caseCount, 0)),
+    lastInteractionAt: toIso(bucket.lastInteractionAt) || null,
+    daysSinceLastInteraction:
+      Number.isFinite(toNumber(bucket.daysSinceLastInteraction, NaN))
+        ? toNumber(bucket.daysSinceLastInteraction, 0)
+        : null,
+    engagementScore: clamp(bucket.engagementScore, 0, 1, 0),
+    lastCaseSummary: capText(bucket.lastCaseSummary || 'Ingen tidigare ärendehistorik.', 220),
+    daysSinceLastClosedCase:
+      Number.isFinite(toNumber(bucket.daysSinceLastClosedCase, NaN))
+        ? toNumber(bucket.daysSinceLastClosedCase, 0)
+        : null,
+    timeline,
   };
 }
 
-function computeSlaStatus({ slaBreached = false, slaDeadlineMs = null, hoursSinceInbound = 0 } = {}) {
-  if (slaBreached) return 'breached';
-  if (Number.isFinite(slaDeadlineMs)) {
-    const msLeft = slaDeadlineMs - Date.now();
-    if (msLeft <= 24 * 60 * 60 * 1000) return 'due_24h';
-    if (msLeft <= 48 * 60 * 60 * 1000) return 'due_48h';
+function computeReplyLatencyHours(inboundAtIso = '', outboundAtIso = '') {
+  const inboundMs = toTimestampMs(inboundAtIso);
+  const outboundMs = toTimestampMs(outboundAtIso);
+  if (!Number.isFinite(inboundMs) || !Number.isFinite(outboundMs) || outboundMs <= inboundMs) {
+    return null;
   }
-  if (hoursSinceInbound >= 48) return 'aging_48h';
-  if (hoursSinceInbound >= 24) return 'aging_24h';
-  return 'ok';
+  return Math.round(((outboundMs - inboundMs) / (60 * 60 * 1000)) * 10) / 10;
 }
 
-function computePriorityScore({
-  hoursSinceInbound = 0,
-  tone = 'neutral',
-  intent = 'unclear',
-  previousInteractions = 0,
-  revenueSignal = false,
-  riskFlags = [],
-  slaBreached = false,
-  slaStatus = 'ok',
-} = {}) {
-  const safeHours = Math.max(0, Number(hoursSinceInbound) || 0);
-  const toneWeights = {
-    neutral: 0,
-    stressed: 12,
-    anxious: 18,
-    frustrated: 22,
-    urgent: 28,
-    positive: -6,
-  };
-  const intentWeights = {
-    booking_request: 12,
-    pricing_question: 8,
-    anxiety_pre_op: 16,
-    complaint: 24,
-    cancellation: 10,
-    follow_up: 6,
-    unclear: 4,
-  };
-
-  let score = 0;
-  score += Math.min(45, safeHours * 1.8);
-  score += Number(toneWeights[tone] || 0);
-  score += Number(intentWeights[intent] || 0);
-  score += Math.min(14, Math.max(0, Number(previousInteractions) || 0) * 2);
-  if (revenueSignal) score += 10;
-  if (slaStatus === 'due_24h') score += 14;
-  if (slaStatus === 'due_48h') score += 8;
-  if (slaStatus === 'aging_24h') score += 12;
-  if (slaStatus === 'aging_48h') score += 18;
-  if (slaBreached) score += 25;
-  score += asArray(riskFlags).reduce((sum, item) => sum + severityWeight(item?.severity) * 9, 0);
-
-  const hasCriticalSignal =
-    slaBreached ||
-    tone === 'urgent' ||
-    asArray(riskFlags).some((item) => severityWeight(item?.severity) >= 4);
-
-  return {
-    score: Math.max(0, Math.min(100, Math.round(score))),
-    level: pickPriorityLevel({ score, hasCriticalSignal }),
-  };
-}
-
-function buildTonePrefix({ tone = 'neutral', toneStyle = 'balanserad' } = {}) {
-  if (tone === 'urgent') {
-    return toneStyle === 'professionell'
-      ? 'Tack for ditt meddelande. Vi prioriterar detta omedelbart och aterkommer skyndsamt.'
-      : 'Tack for ditt meddelande. Vi ser allvarligt pa detta och foljer upp direkt.';
-  }
-  if (tone === 'anxious' || tone === 'stressed') {
-    return toneStyle === 'professionell'
-      ? 'Tack for att du delar detta. Vi forstar att situationen kan kanslas pressande.'
-      : 'Tack for att du hor av dig. Vi forstar att det kan kanslas oroligt och vill hjalpa dig tryggt vidare.';
-  }
-  if (tone === 'frustrated') {
-    return toneStyle === 'professionell'
-      ? 'Tack for din aterkoppling. Vi tar detta pa stort allvar och vill losa det skyndsamt.'
-      : 'Tack for att du beskriver detta tydligt. Vi tar det pa allvar och vill losa det snabbt.';
-  }
-  if (tone === 'positive') {
-    return 'Tack for ditt meddelande och fortroende.';
-  }
-  return toneStyle === 'professionell'
-    ? 'Tack for ditt meddelande. Vi har tagit emot din forfragan.'
-    : 'Tack for ditt meddelande. Vi har tagit emot din forfragan och foljer upp snarast.';
-}
-
-function buildCtaLine(intent = 'unclear') {
-  if (intent === 'booking_request') {
-    return 'Foreslaget nasta steg: boka en konsultationstid sa att vi kan hjalpa dig vidare direkt.';
-  }
-  if (intent === 'pricing_question') {
-    return 'Foreslaget nasta steg: vi skickar prisalternativ och hjalper dig valja ratt upplagg.';
-  }
-  if (intent === 'cancellation') {
-    return 'Foreslaget nasta steg: bekrafta onskad tid eller ombokning sa uppdaterar vi dig direkt.';
-  }
-  if (intent === 'complaint') {
-    return 'Foreslaget nasta steg: en ansvarig medarbetare granskar arendet och aterkommer personligen.';
-  }
-  return 'Foreslaget nasta steg: svara garna med mer detaljer sa att vi kan ge exakt hjalp.';
-}
-
-function buildDraftReply({
+async function buildDraftReply({
   subject = '',
   inboundPreview = '',
-  riskHits = [],
+  priorityLevel = 'Low',
   isMedicalTopic = false,
   isAcute = false,
-  slaBreached = false,
   intent = 'unclear',
   tone = 'neutral',
   toneStyle = 'balanserad',
+  customerProfile = null,
+  writingProfile = null,
 }) {
-  const lines = [];
-  lines.push('Hej,');
-  lines.push('');
-  lines.push(buildTonePrefix({ tone, toneStyle }));
+  const originalMessage = [sanitizeSubject(subject), normalizeText(inboundPreview)]
+    .filter(Boolean)
+    .join('\n');
+  const composed = await composeContextAwareDraft({
+    intent,
+    tone,
+    priorityLevel,
+    tenantToneStyle: toneStyle,
+    writingProfile,
+    originalMessage,
+    customerProfile: asObject(customerProfile),
+    isMedicalTopic,
+    isAcute,
+  });
+  const recommendedMode = normalizeText(composed?.recommendedMode) || 'professional';
+  const draftModes = asObject(composed?.draftModes);
+  const fallbackReply =
+    normalizeText(draftModes[recommendedMode]) ||
+    normalizeText(draftModes.professional) ||
+    normalizeText(draftModes.warm) ||
+    normalizeText(draftModes.short) ||
+    'Hej,\n\nTack för ditt meddelande. Vi har tagit emot ärendet.\n\nVänligen återkom med mer information så hjälper vi dig vidare.';
+  const structureUsed = asObject(composed?.structureUsed);
+  const acknowledgement =
+    capText(normalizeText(structureUsed.acknowledgement), 600) || 'Tack för ditt meddelande.';
+  const coreAnswer =
+    capText(normalizeText(structureUsed.coreAnswer), 2000) ||
+    'Vi har tagit emot ärendet och återkommer med tydlig återkoppling.';
+  const cta =
+    capText(normalizeText(structureUsed.cta), 600) ||
+    'Vänligen återkom med kompletterande information så hjälper vi dig vidare.';
 
-  if (isAcute || slaBreached) {
-    lines.push('Vi har markerat arendet for prioriterad uppfoljning av ansvarig medarbetare.');
-  } else if (asArray(riskHits).some((item) => severityWeight(item?.severity) >= 3)) {
-    lines.push('Arendet ar markerat for snabb uppfoljning sa att du far tydlig aterkoppling.');
-  }
-
-  if (isMedicalTopic) {
-    lines.push(
-      'Vi kan inte ge individuell medicinsk bedomning via meddelande. En legitimerad kliniker behover gora en personlig genomgang innan nasta steg.'
-    );
-  }
-
-  if (isAcute) {
-    lines.push('Om du har akuta symtom ska du ring 112 eller kontakta narmaste akutmottagning direkt.');
-  }
-
-  if (normalizeText(inboundPreview)) {
-    lines.push('Vi har noterat uppgifterna i ditt meddelande.');
-  } else {
-    lines.push('For att hjalpa dig snabbare, svara garna med de viktigaste detaljerna i arendet.');
-  }
-
-  lines.push(buildCtaLine(intent));
-  lines.push(`Arende: ${sanitizeSubject(subject)}`);
-  lines.push('');
-  lines.push('Med vanlig halsning,');
-  lines.push('Hair TP Clinic');
-
-  return lines.join('\n');
+  return {
+    draftModes: {
+      short: clampTextLength(normalizeText(draftModes.short) || fallbackReply, 3000),
+      warm: clampTextLength(normalizeText(draftModes.warm) || fallbackReply, 3000),
+      professional: clampTextLength(normalizeText(draftModes.professional) || fallbackReply, 3000),
+    },
+    recommendedMode:
+      ['short', 'warm', 'professional'].includes(recommendedMode) ? recommendedMode : 'professional',
+    structureUsed: {
+      acknowledgement,
+      coreAnswer,
+      cta,
+    },
+    proposedReply: clampTextLength(fallbackReply, 3000),
+  };
 }
 
 class AnalyzeInboxCapability extends BaseCapability {
@@ -579,6 +725,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       includeClosed: { type: 'boolean' },
       maxDrafts: { type: 'integer', minimum: 1, maximum: 5 },
       debug: { type: 'boolean' },
+      writingIdentityProfiles: { type: 'object', additionalProperties: true },
     },
   };
 
@@ -596,6 +743,7 @@ class AnalyzeInboxCapability extends BaseCapability {
           'slaBreaches',
           'riskFlags',
           'suggestedDrafts',
+          'customerSummaries',
           'executiveSummary',
           'priorityLevel',
           'mailboxCount',
@@ -614,9 +762,19 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'subject',
                 'reason',
                 'hoursSinceInbound',
+                'slaStatus',
+                'hoursRemaining',
+                'slaThreshold',
+                'stagnated',
+                'stagnationHours',
+                'followUpSuggested',
                 'intent',
+                'intentConfidence',
                 'tone',
+                'toneConfidence',
                 'priorityLevel',
+                'priorityScore',
+                'priorityReasons',
               ],
               additionalProperties: false,
               properties: {
@@ -625,6 +783,12 @@ class AnalyzeInboxCapability extends BaseCapability {
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 reason: { type: 'string', minLength: 1, maxLength: 120 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
+                slaStatus: { type: 'string', enum: ['safe', 'warning', 'breach'] },
+                hoursRemaining: { type: 'number' },
+                slaThreshold: { type: 'number', minimum: 1 },
+                stagnated: { type: 'boolean' },
+                stagnationHours: { type: 'number', minimum: 0 },
+                followUpSuggested: { type: 'boolean' },
                 intent: {
                   type: 'string',
                   enum: [
@@ -637,11 +801,19 @@ class AnalyzeInboxCapability extends BaseCapability {
                     'unclear',
                   ],
                 },
+                intentConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 tone: {
                   type: 'string',
                   enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
                 },
+                toneConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+                priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                priorityReasons: {
+                  type: 'array',
+                  maxItems: 12,
+                  items: { type: 'string', minLength: 1, maxLength: 80 },
+                },
               },
             },
           },
@@ -659,9 +831,18 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'latestInboundPreview',
                 'hoursSinceInbound',
                 'slaStatus',
+                'hoursRemaining',
+                'slaThreshold',
+                'stagnated',
+                'stagnationHours',
+                'followUpSuggested',
                 'intent',
+                'intentConfidence',
                 'tone',
+                'toneConfidence',
                 'priorityLevel',
+                'priorityScore',
+                'priorityReasons',
                 'needsReplyStatus',
               ],
               additionalProperties: false,
@@ -669,15 +850,21 @@ class AnalyzeInboxCapability extends BaseCapability {
                 conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
                 messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
+                mailboxAddress: { type: ['string', 'null'], maxLength: 320 },
+                userPrincipalName: { type: ['string', 'null'], maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
                 dueBy: { type: 'string', maxLength: 50 },
-                slaStatus: {
-                  type: 'string',
-                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
-                },
+                slaStatus: { type: 'string', enum: ['safe', 'warning', 'breach'] },
+                hoursRemaining: { type: 'number' },
+                slaThreshold: { type: 'number', minimum: 1 },
+                isUnanswered: { type: 'boolean' },
+                unansweredThresholdHours: { type: 'number', minimum: 1 },
+                stagnated: { type: 'boolean' },
+                stagnationHours: { type: 'number', minimum: 0 },
+                followUpSuggested: { type: 'boolean' },
                 intent: {
                   type: 'string',
                   enum: [
@@ -690,11 +877,19 @@ class AnalyzeInboxCapability extends BaseCapability {
                     'unclear',
                   ],
                 },
+                intentConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 tone: {
                   type: 'string',
                   enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
                 },
+                toneConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+                priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                priorityReasons: {
+                  type: 'array',
+                  maxItems: 12,
+                  items: { type: 'string', minLength: 1, maxLength: 80 },
+                },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
               },
             },
@@ -713,11 +908,31 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'latestInboundPreview',
                 'hoursSinceInbound',
                 'lastInboundAt',
+                'lastOutboundAt',
                 'slaStatus',
+                'hoursRemaining',
+                'slaThreshold',
+                'stagnated',
+                'stagnationHours',
+                'followUpSuggested',
                 'intent',
+                'intentConfidence',
                 'tone',
+                'toneConfidence',
                 'priorityLevel',
                 'priorityScore',
+                'priorityReasons',
+                'customerKey',
+                'customerSummary',
+                'tempoProfile',
+                'recommendedFollowUpDelayDays',
+                'ctaIntensity',
+                'followUpSuggestedAt',
+                'followUpTimingReason',
+                'followUpUrgencyLevel',
+                'followUpManualApprovalRequired',
+                'estimatedWorkMinutes',
+                'workloadBreakdown',
                 'recommendedAction',
                 'escalationRequired',
                 'needsReplyStatus',
@@ -727,15 +942,22 @@ class AnalyzeInboxCapability extends BaseCapability {
                 conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
                 messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
+                mailboxAddress: { type: ['string', 'null'], maxLength: 320 },
+                userPrincipalName: { type: ['string', 'null'], maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
                 lastInboundAt: { type: 'string', minLength: 1, maxLength: 50 },
-                slaStatus: {
-                  type: 'string',
-                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
-                },
+                lastOutboundAt: { type: ['string', 'null'], maxLength: 50 },
+                slaStatus: { type: 'string', enum: ['safe', 'warning', 'breach'] },
+                hoursRemaining: { type: 'number' },
+                slaThreshold: { type: 'number', minimum: 1 },
+                isUnanswered: { type: 'boolean' },
+                unansweredThresholdHours: { type: 'number', minimum: 1 },
+                stagnated: { type: 'boolean' },
+                stagnationHours: { type: 'number', minimum: 0 },
+                followUpSuggested: { type: 'boolean' },
                 intent: {
                   type: 'string',
                   enum: [
@@ -748,12 +970,110 @@ class AnalyzeInboxCapability extends BaseCapability {
                     'unclear',
                   ],
                 },
+                intentConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 tone: {
                   type: 'string',
                   enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
                 },
+                toneConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
                 priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                priorityReasons: {
+                  type: 'array',
+                  maxItems: 12,
+                  items: { type: 'string', minLength: 1, maxLength: 80 },
+                },
+                customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                customerSummary: {
+                  type: 'object',
+                  required: [
+                    'customerKey',
+                    'customerName',
+                    'lifecycleStatus',
+                    'lifecycleSource',
+                    'interactionCount',
+                    'caseCount',
+                    'engagementScore',
+                    'lastCaseSummary',
+                    'timeline',
+                  ],
+                  additionalProperties: false,
+                  properties: {
+                    customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                    customerName: { type: 'string', minLength: 1, maxLength: 120 },
+                    lifecycleStatus: {
+                      type: 'string',
+                      enum: [
+                        'NEW',
+                        'ACTIVE_DIALOGUE',
+                        'AWAITING_REPLY',
+                        'FOLLOW_UP_PENDING',
+                        'DORMANT',
+                        'HANDLED',
+                        'ARCHIVED',
+                      ],
+                    },
+                    lifecycleSource: { type: 'string', enum: ['auto', 'manual'] },
+                    interactionCount: { type: 'number', minimum: 0 },
+                    caseCount: { type: 'number', minimum: 0 },
+                    lastInteractionAt: { type: ['string', 'null'], maxLength: 50 },
+                    daysSinceLastInteraction: { type: ['number', 'null'], minimum: 0 },
+                    engagementScore: { type: 'number', minimum: 0, maximum: 1 },
+                    lastCaseSummary: { type: 'string', minLength: 1, maxLength: 240 },
+                    daysSinceLastClosedCase: { type: ['number', 'null'], minimum: 0 },
+                    timeline: {
+                      type: 'array',
+                      maxItems: 6,
+                      items: {
+                        type: 'object',
+                        required: ['conversationId', 'subject', 'status', 'occurredAt'],
+                        additionalProperties: false,
+                        properties: {
+                          conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                          subject: { type: 'string', minLength: 1, maxLength: 200 },
+                          status: {
+                            type: 'string',
+                            enum: ['open', 'waiting', 'closed', 'follow_up_scheduled'],
+                          },
+                          occurredAt: { type: ['string', 'null'], maxLength: 50 },
+                        },
+                      },
+                    },
+                  },
+                },
+                tempoProfile: {
+                  type: 'string',
+                  enum: ['responsive', 'reflective', 'hesitant', 'low_engagement'],
+                },
+                recommendedFollowUpDelayDays: { type: 'number', minimum: 0, maximum: 30 },
+                ctaIntensity: { type: 'string', enum: ['soft', 'normal', 'direct'] },
+                followUpSuggestedAt: { type: ['string', 'null'], maxLength: 50 },
+                followUpTimingReason: {
+                  type: 'array',
+                  maxItems: 6,
+                  items: { type: 'string', minLength: 1, maxLength: 64 },
+                },
+                followUpUrgencyLevel: { type: 'string', enum: ['low', 'normal', 'high'] },
+                followUpManualApprovalRequired: { type: 'boolean' },
+                estimatedWorkMinutes: { type: 'number', minimum: 2, maximum: 25 },
+                workloadBreakdown: {
+                  type: 'object',
+                  required: [
+                    'base',
+                    'toneAdjustment',
+                    'priorityAdjustment',
+                    'warmthAdjustment',
+                    'lengthAdjustment',
+                  ],
+                  additionalProperties: false,
+                  properties: {
+                    base: { type: 'number' },
+                    toneAdjustment: { type: 'number' },
+                    priorityAdjustment: { type: 'number' },
+                    warmthAdjustment: { type: 'number' },
+                    lengthAdjustment: { type: 'number' },
+                  },
+                },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
@@ -806,12 +1126,34 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'latestInboundPreview',
                 'hoursSinceInbound',
                 'slaStatus',
+                'hoursRemaining',
+                'slaThreshold',
+                'stagnated',
+                'stagnationHours',
+                'followUpSuggested',
                 'intent',
+                'intentConfidence',
                 'tone',
+                'toneConfidence',
                 'priorityLevel',
                 'priorityScore',
+                'priorityReasons',
+                'customerKey',
+                'customerSummary',
+                'tempoProfile',
+                'recommendedFollowUpDelayDays',
+                'ctaIntensity',
+                'followUpSuggestedAt',
+                'followUpTimingReason',
+                'followUpUrgencyLevel',
+                'followUpManualApprovalRequired',
+                'estimatedWorkMinutes',
+                'workloadBreakdown',
                 'recommendedAction',
                 'escalationRequired',
+                'draftModes',
+                'recommendedMode',
+                'structureUsed',
                 'suggestedReply',
                 'proposedReply',
                 'confidenceLevel',
@@ -821,14 +1163,20 @@ class AnalyzeInboxCapability extends BaseCapability {
                 conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
                 messageId: { type: 'string', minLength: 1, maxLength: 1024 },
                 mailboxId: { type: 'string', minLength: 1, maxLength: 320 },
+                mailboxAddress: { type: ['string', 'null'], maxLength: 320 },
+                userPrincipalName: { type: ['string', 'null'], maxLength: 320 },
                 subject: { type: 'string', minLength: 1, maxLength: 200 },
                 sender: { type: 'string', minLength: 1, maxLength: 120 },
                 latestInboundPreview: { type: 'string', minLength: 1, maxLength: 360 },
                 hoursSinceInbound: { type: 'number', minimum: 0 },
-                slaStatus: {
-                  type: 'string',
-                  enum: ['ok', 'due_48h', 'due_24h', 'aging_24h', 'aging_48h', 'breached'],
-                },
+                slaStatus: { type: 'string', enum: ['safe', 'warning', 'breach'] },
+                hoursRemaining: { type: 'number' },
+                slaThreshold: { type: 'number', minimum: 1 },
+                isUnanswered: { type: 'boolean' },
+                unansweredThresholdHours: { type: 'number', minimum: 1 },
+                stagnated: { type: 'boolean' },
+                stagnationHours: { type: 'number', minimum: 0 },
+                followUpSuggested: { type: 'boolean' },
                 intent: {
                   type: 'string',
                   enum: [
@@ -841,17 +1189,197 @@ class AnalyzeInboxCapability extends BaseCapability {
                     'unclear',
                   ],
                 },
+                intentConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 tone: {
                   type: 'string',
                   enum: ['neutral', 'stressed', 'anxious', 'frustrated', 'urgent', 'positive'],
                 },
+                toneConfidence: { type: 'number', minimum: 0, maximum: 1 },
                 priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
                 priorityScore: { type: 'number', minimum: 0, maximum: 100 },
+                priorityReasons: {
+                  type: 'array',
+                  maxItems: 12,
+                  items: { type: 'string', minLength: 1, maxLength: 80 },
+                },
+                customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                customerSummary: {
+                  type: 'object',
+                  required: [
+                    'customerKey',
+                    'customerName',
+                    'lifecycleStatus',
+                    'lifecycleSource',
+                    'interactionCount',
+                    'caseCount',
+                    'engagementScore',
+                    'lastCaseSummary',
+                    'timeline',
+                  ],
+                  additionalProperties: false,
+                  properties: {
+                    customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                    customerName: { type: 'string', minLength: 1, maxLength: 120 },
+                    lifecycleStatus: {
+                      type: 'string',
+                      enum: [
+                        'NEW',
+                        'ACTIVE_DIALOGUE',
+                        'AWAITING_REPLY',
+                        'FOLLOW_UP_PENDING',
+                        'DORMANT',
+                        'HANDLED',
+                        'ARCHIVED',
+                      ],
+                    },
+                    lifecycleSource: { type: 'string', enum: ['auto', 'manual'] },
+                    interactionCount: { type: 'number', minimum: 0 },
+                    caseCount: { type: 'number', minimum: 0 },
+                    lastInteractionAt: { type: ['string', 'null'], maxLength: 50 },
+                    daysSinceLastInteraction: { type: ['number', 'null'], minimum: 0 },
+                    engagementScore: { type: 'number', minimum: 0, maximum: 1 },
+                    lastCaseSummary: { type: 'string', minLength: 1, maxLength: 240 },
+                    daysSinceLastClosedCase: { type: ['number', 'null'], minimum: 0 },
+                    timeline: {
+                      type: 'array',
+                      maxItems: 6,
+                      items: {
+                        type: 'object',
+                        required: ['conversationId', 'subject', 'status', 'occurredAt'],
+                        additionalProperties: false,
+                        properties: {
+                          conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                          subject: { type: 'string', minLength: 1, maxLength: 200 },
+                          status: {
+                            type: 'string',
+                            enum: ['open', 'waiting', 'closed', 'follow_up_scheduled'],
+                          },
+                          occurredAt: { type: ['string', 'null'], maxLength: 50 },
+                        },
+                      },
+                    },
+                  },
+                },
+                tempoProfile: {
+                  type: 'string',
+                  enum: ['responsive', 'reflective', 'hesitant', 'low_engagement'],
+                },
+                recommendedFollowUpDelayDays: { type: 'number', minimum: 0, maximum: 30 },
+                ctaIntensity: { type: 'string', enum: ['soft', 'normal', 'direct'] },
+                followUpSuggestedAt: { type: ['string', 'null'], maxLength: 50 },
+                followUpTimingReason: {
+                  type: 'array',
+                  maxItems: 6,
+                  items: { type: 'string', minLength: 1, maxLength: 64 },
+                },
+                followUpUrgencyLevel: { type: 'string', enum: ['low', 'normal', 'high'] },
+                followUpManualApprovalRequired: { type: 'boolean' },
+                estimatedWorkMinutes: { type: 'number', minimum: 2, maximum: 25 },
+                workloadBreakdown: {
+                  type: 'object',
+                  required: [
+                    'base',
+                    'toneAdjustment',
+                    'priorityAdjustment',
+                    'warmthAdjustment',
+                    'lengthAdjustment',
+                  ],
+                  additionalProperties: false,
+                  properties: {
+                    base: { type: 'number' },
+                    toneAdjustment: { type: 'number' },
+                    priorityAdjustment: { type: 'number' },
+                    warmthAdjustment: { type: 'number' },
+                    lengthAdjustment: { type: 'number' },
+                  },
+                },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
+                draftModes: {
+                  type: 'object',
+                  required: ['short', 'warm', 'professional'],
+                  additionalProperties: false,
+                  properties: {
+                    short: { type: 'string', minLength: 1, maxLength: 3000 },
+                    warm: { type: 'string', minLength: 1, maxLength: 3000 },
+                    professional: { type: 'string', minLength: 1, maxLength: 3000 },
+                  },
+                },
+                recommendedMode: { type: 'string', enum: ['short', 'warm', 'professional'] },
+                structureUsed: {
+                  type: 'object',
+                  required: ['acknowledgement', 'coreAnswer', 'cta'],
+                  additionalProperties: false,
+                  properties: {
+                    acknowledgement: { type: 'string', minLength: 1, maxLength: 600 },
+                    coreAnswer: { type: 'string', minLength: 1, maxLength: 2000 },
+                    cta: { type: 'string', minLength: 1, maxLength: 600 },
+                  },
+                },
                 suggestedReply: { type: 'string', minLength: 1, maxLength: 3000 },
                 proposedReply: { type: 'string', minLength: 1, maxLength: 3000 },
                 confidenceLevel: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+              },
+            },
+          },
+          customerSummaries: {
+            type: 'array',
+            maxItems: 120,
+            items: {
+              type: 'object',
+              required: [
+                'customerKey',
+                'customerName',
+                'lifecycleStatus',
+                'lifecycleSource',
+                'interactionCount',
+                'caseCount',
+                'engagementScore',
+                'lastCaseSummary',
+                'timeline',
+              ],
+              additionalProperties: false,
+              properties: {
+                customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                customerName: { type: 'string', minLength: 1, maxLength: 120 },
+                lifecycleStatus: {
+                  type: 'string',
+                  enum: [
+                    'NEW',
+                    'ACTIVE_DIALOGUE',
+                    'AWAITING_REPLY',
+                    'FOLLOW_UP_PENDING',
+                    'DORMANT',
+                    'HANDLED',
+                    'ARCHIVED',
+                  ],
+                },
+                lifecycleSource: { type: 'string', enum: ['auto', 'manual'] },
+                interactionCount: { type: 'number', minimum: 0 },
+                caseCount: { type: 'number', minimum: 0 },
+                lastInteractionAt: { type: ['string', 'null'], maxLength: 50 },
+                daysSinceLastInteraction: { type: ['number', 'null'], minimum: 0 },
+                engagementScore: { type: 'number', minimum: 0, maximum: 1 },
+                lastCaseSummary: { type: 'string', minLength: 1, maxLength: 240 },
+                daysSinceLastClosedCase: { type: ['number', 'null'], minimum: 0 },
+                timeline: {
+                  type: 'array',
+                  maxItems: 6,
+                  items: {
+                    type: 'object',
+                    required: ['conversationId', 'subject', 'status', 'occurredAt'],
+                    additionalProperties: false,
+                    properties: {
+                      conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                      subject: { type: 'string', minLength: 1, maxLength: 200 },
+                      status: {
+                        type: 'string',
+                        enum: ['open', 'waiting', 'closed', 'follow_up_scheduled'],
+                      },
+                      occurredAt: { type: ['string', 'null'], maxLength: 50 },
+                    },
+                  },
+                },
               },
             },
           },
@@ -885,11 +1413,14 @@ class AnalyzeInboxCapability extends BaseCapability {
   async execute(context = {}) {
     const safeContext = asObject(context);
     const input = asObject(safeContext.input);
+    const writingIdentityOverrides = asObject(input.writingIdentityProfiles);
     const debugMode = input.debug === true;
     const includeClosed = input.includeClosed === true;
     const maxDrafts = Math.max(1, Math.min(5, toNumber(input.maxDrafts, 5)));
     const snapshotSource = asObject(safeContext.systemStateSnapshot);
     const snapshotMetadata = asObject(snapshotSource.metadata);
+    const tenantBusinessHours = asObject(snapshotMetadata.tenantBusinessHours);
+    const useOpeningHours = Object.keys(tenantBusinessHours).length > 0;
     const tenantProfile = asObject(snapshotSource.tenantProfile);
     const toneStyle =
       normalizeText(snapshotMetadata.toneStyle) ||
@@ -917,8 +1448,16 @@ class AnalyzeInboxCapability extends BaseCapability {
     const slaBreaches = [];
     const riskFlags = [];
     const conversationWorklist = [];
+    const customerSummariesByKey = new Map();
     const warnings = [];
     let maskedPreviewCount = 0;
+    const nowMs = Date.now();
+    const customerIndex = buildCustomerIndex(conversations, nowMs);
+    for (const bucket of customerIndex.values()) {
+      const summary = buildCustomerSummaryView(bucket);
+      if (!summary.customerKey) continue;
+      customerSummariesByKey.set(summary.customerKey, summary);
+    }
 
     for (const conversation of conversations) {
       if (!includeClosed && normalizeText(conversation.status) === 'closed') continue;
@@ -928,9 +1467,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       const outboundAtMs = toTimestampMs(conversation.lastOutboundAt || outbound.sentAt);
       const unanswered =
         inboundAtMs !== null && (outboundAtMs === null || outboundAtMs < inboundAtMs);
-      if (!unanswered) continue;
-
-      const hoursSinceInbound =
+      const wallHoursSinceInbound =
         inboundAtMs === null
           ? 0
           : Math.max(0, Math.round(((Date.now() - inboundAtMs) / (60 * 60 * 1000)) * 10) / 10);
@@ -946,10 +1483,48 @@ class AnalyzeInboxCapability extends BaseCapability {
         conversation.rawRiskWords.join(' '),
       ].join('\n');
 
-      const intentResult = classifyIntent(semanticInput);
-      const toneResult = detectTone(semanticInput);
+      const intentResult = await classifyIntent(semanticInput);
+      const resolvedMailboxId =
+        normalizeText(conversation.mailboxId) ||
+        normalizeText(conversation.mailboxAddress) ||
+        normalizeText(conversation.userPrincipalName) ||
+        normalizeText(inbound.mailboxId) ||
+        normalizeText(inbound.mailboxAddress) ||
+        normalizeText(inbound.userPrincipalName) ||
+        'okand-postlada';
+      const writingProfile = resolveWritingIdentityProfile(
+        {
+          mailboxAddress: normalizeText(conversation.mailboxAddress) || normalizeText(inbound.mailboxAddress),
+          userPrincipalName:
+            normalizeText(conversation.userPrincipalName) || normalizeText(inbound.userPrincipalName),
+          mailboxId: normalizeText(conversation.mailboxId) || normalizeText(inbound.mailboxId),
+        },
+        {
+          overrides: writingIdentityOverrides,
+          fallbackToTenantToneStyle: false,
+        }
+      );
+      const toneResult = await detectTone(semanticInput, { writingProfile });
       const intent = intentResult.intent;
-      const tone = toneResult.tone;
+      const intentConfidence = toNumber(intentResult.confidence, 0.3);
+      const tone = normalizeText(toneResult.tone) || 'neutral';
+      const toneConfidence = Math.max(0, Math.min(1, toNumber(toneResult.toneConfidence, 0.4)));
+      const customerIdentity = resolveCustomerIdentity(conversation);
+      const customerBucket =
+        customerIndex.get(customerIdentity.customerKey) || {
+          customerKey: customerIdentity.customerKey,
+          customerName: customerIdentity.customerName,
+          caseCount: 1,
+          interactionCount: Math.max(1, asArray(conversation.messages).length),
+          lastInteractionAt: toIso(conversation.lastInboundAt || inbound.sentAt) || null,
+          daysSinceLastInteraction: 0,
+          engagementScore: 0.35,
+          lifecycleStatus: 'NEW',
+          lifecycleSource: 'auto',
+          lastCaseSummary: `${conversation.subject} (Öppen)`,
+          daysSinceLastClosedCase: null,
+          timeline: [],
+        };
 
       const flags = collectRiskFlags(semanticInput);
       for (const flag of flags) {
@@ -962,74 +1537,218 @@ class AnalyzeInboxCapability extends BaseCapability {
         });
       }
 
-      const slaDeadlineIso = toIso(conversation.slaDeadlineAt);
-      const slaDeadlineMs = toTimestampMs(slaDeadlineIso);
-      const isSlaBreached = slaDeadlineMs !== null && slaDeadlineMs < Date.now();
-      const slaStatus = computeSlaStatus({
-        slaBreached: isSlaBreached,
-        slaDeadlineMs,
-        hoursSinceInbound,
+      const priorityInfo = computeWeightedPriorityScore({
+        hoursSinceInbound: wallHoursSinceInbound,
+        intent,
+        tone,
+        customerContext: conversation.customerContext,
       });
+      const priorityReasons = asArray(priorityInfo.priorityReasons)
+        .map((item) => normalizeText(item))
+        .filter(Boolean)
+        .slice(0, 12);
+      const escalationRequired =
+        priorityInfo.priorityLevel === 'Critical' ||
+        intent === 'complaint' ||
+        flags.some((item) => severityWeight(item.severity) >= 4);
+      const recommendedAction = INTENT_ACTIONS[intent] || INTENT_ACTIONS.unclear;
+      const sender = normalizeText(conversation.sender || inbound.sender) || 'okänd avsändare';
+      const lastInboundAtIso = toIso(conversation.lastInboundAt || inbound.sentAt);
+      const lastOutboundAtIso = toIso(conversation.lastOutboundAt || outbound.sentAt);
+      const needsReplyStatus =
+        normalizeText(conversation.status).toLowerCase() === 'handled'
+          ? 'handled'
+          : 'needs_reply';
+      const slaMonitor = evaluateSlaMonitor({
+        hoursSinceInbound: wallHoursSinceInbound,
+        lastInboundAt: lastInboundAtIso,
+        lastOutboundAt: lastOutboundAtIso,
+        priorityLevel: priorityInfo.priorityLevel,
+        intent,
+        tone,
+        needsReplyStatus,
+        nowMs,
+        openingHours: useOpeningHours ? tenantBusinessHours : null,
+        respectOpeningHours: useOpeningHours,
+      });
+      const hoursSinceInbound = Math.max(0, toNumber(slaMonitor.hoursSinceInbound, wallHoursSinceInbound));
+      const slaStatus = normalizeText(slaMonitor.slaStatus) || 'safe';
+      const hoursRemaining = toNumber(slaMonitor.hoursRemaining, 0);
+      const slaThreshold = Math.max(1, toNumber(slaMonitor.slaThreshold, 48));
+      const unansweredThresholdHours = Math.max(
+        1,
+        toNumber(slaMonitor.unansweredThresholdHours, 24)
+      );
+      const isUnanswered = unanswered;
+      const stagnated = slaMonitor.stagnated === true;
+      const stagnationHours = Math.max(0, toNumber(slaMonitor.stagnationHours, 0));
+      const followUpSuggested = slaMonitor.followUpSuggested === true;
+      const lifecycleInfo = evaluateLifecycleStatus({
+        interactionCount: Math.max(1, asArray(conversation.messages).length),
+        lastInteractionDate: customerBucket.lastInteractionAt,
+        lastInboundAt: lastInboundAtIso,
+        lastOutboundAt: lastOutboundAtIso,
+        hoursSinceInbound,
+        openStatus: unanswered ? 'open' : 'waiting',
+        status: normalizeText(conversation.status) || 'open',
+        intent,
+        slaStatus,
+        followUpSuggested,
+        needsReplyStatus,
+        dormantDaysThreshold: 30,
+        archiveDaysThreshold: 90,
+        microThreadWindowMinutes: 20,
+        nowMs,
+      });
+      const customerTemperature = evaluateCustomerTemperature({
+        lifecycleStatus: lifecycleInfo.lifecycleStatus,
+        toneHistory: [tone],
+        slaStatus,
+        complaintCount: intent === 'complaint' ? 1 : 0,
+        engagementScore: customerBucket.engagementScore,
+        recencyDays: customerBucket.daysSinceLastInteraction,
+      });
+      const replyLatencyHours = computeReplyLatencyHours(lastInboundAtIso, lastOutboundAtIso);
+      const tempoInfo = evaluateTempoProfile({
+        replyLatencyHours:
+          replyLatencyHours === null ? Math.max(6, hoursSinceInbound) : replyLatencyHours,
+        responseCount: customerBucket.interactionCount,
+        interactionDensity:
+          customerBucket.daysSinceLastInteraction === null
+            ? customerBucket.caseCount
+            : customerBucket.caseCount /
+              Math.max(1, Number(customerBucket.daysSinceLastInteraction) + 1),
+        toneTrend: tone,
+        warmthScore: customerBucket.engagementScore,
+      });
+      const timingSuggestion = followUpSuggested
+        ? suggestFollowUpTiming({
+            currentTimestamp: nowMs,
+            intent,
+            tone,
+            tempoProfile: tempoInfo.tempoProfile,
+            warmthScore: customerBucket.engagementScore,
+            lifecycleStatus: lifecycleInfo.lifecycleStatus,
+            recommendedFollowUpDelayDays: tempoInfo.recommendedFollowUpDelayDays,
+            tenantBusinessHours: asObject(snapshotMetadata.tenantBusinessHours),
+            timezone:
+              normalizeText(snapshotMetadata.timezone) ||
+              normalizeText(tenantProfile.timezone) ||
+              'Europe/Stockholm',
+          })
+        : {
+            suggestedDateTime: null,
+            urgencyLevel: 'normal',
+            reasoning: [],
+            manualApprovalRequired: true,
+          };
+      if (customerTemperature.temperature === 'at_risk') {
+        timingSuggestion.urgencyLevel = 'high';
+      }
+      const customerSummary = buildCustomerSummaryView({
+        ...customerBucket,
+        lifecycleStatus: lifecycleInfo.lifecycleStatus,
+        lifecycleSource: lifecycleInfo.source,
+      });
+      customerSummariesByKey.set(customerSummary.customerKey, customerSummary);
+      const workloadWarmth = resolveWorkloadWarmth(customerSummary);
+      const messageLength = Math.max(
+        0,
+        toNumber(inbound.bodyLength, normalizeText(inboundPreview).length)
+      );
+      const workload = estimateConversationWorkload({
+        intent,
+        tone,
+        priorityLevel: priorityInfo.priorityLevel,
+        warmth: workloadWarmth,
+        messageLength,
+      });
+      const isSlaBreached = slaStatus === 'breach';
+      const lastInboundMs = toTimestampMs(lastInboundAtIso);
+      const slaDeadlineIso =
+        lastInboundMs !== null
+          ? new Date(lastInboundMs + slaThreshold * 60 * 60 * 1000).toISOString()
+          : '';
       if (isSlaBreached) {
-        const overdueMinutes = Math.max(0, Math.round((Date.now() - slaDeadlineMs) / (60 * 1000)));
+        const overdueMinutes = Math.max(
+          0,
+          Math.round((hoursSinceInbound - slaThreshold) * 60)
+        );
         slaBreaches.push({
           conversationId: conversation.conversationId,
           messageId,
           subject: conversation.subject,
-          slaDeadlineAt: slaDeadlineIso,
+          slaDeadlineAt: slaDeadlineIso || toIso(conversation.slaDeadlineAt) || '',
           overdueMinutes,
         });
       }
 
-      const dueSoon = slaDeadlineMs !== null && slaDeadlineMs <= Date.now() + 24 * 60 * 60 * 1000;
-      const messageThreadCount = asArray(conversation.messages).length;
-      const revenueSignal = intent === 'booking_request' || intent === 'pricing_question';
-      const priorityInfo = computePriorityScore({
-        hoursSinceInbound,
-        tone,
-        intent,
-        previousInteractions: messageThreadCount,
-        revenueSignal,
-        riskFlags: flags,
-        slaBreached: isSlaBreached,
-        slaStatus,
-      });
-      const escalationRequired =
-        priorityInfo.level === 'Critical' ||
-        intent === 'complaint' ||
-        flags.some((item) => severityWeight(item.severity) >= 4);
-      const recommendedAction = INTENT_ACTIONS[intent] || INTENT_ACTIONS.unclear;
-      const sender = normalizeText(conversation.sender || inbound.sender) || 'okand avsandare';
+      const dueSoon = slaStatus === 'warning' || slaStatus === 'breach';
+      const isActionableLifecycle = ['NEW', 'ACTIVE_DIALOGUE', 'FOLLOW_UP_PENDING'].includes(
+        lifecycleInfo.lifecycleStatus
+      );
 
-      if (dueSoon || hoursSinceInbound >= 6 || flags.length > 0) {
+      if (
+        isActionableLifecycle &&
+        (dueSoon || followUpSuggested || hoursSinceInbound >= 6 || flags.length > 0)
+      ) {
         needsReplyToday.push({
           conversationId: conversation.conversationId,
           messageId,
-          mailboxId: normalizeText(conversation.mailboxId) || 'unknown-mailbox',
+          mailboxId: resolvedMailboxId,
+          mailboxAddress: normalizeText(conversation.mailboxAddress) || normalizeText(inbound.mailboxAddress) || null,
+          userPrincipalName:
+            normalizeText(conversation.userPrincipalName) || normalizeText(inbound.userPrincipalName) || null,
           subject: conversation.subject,
           sender,
-          latestInboundPreview: inboundPreview || 'Ingen preview tillganglig.',
+          latestInboundPreview: inboundPreview || 'Ingen förhandsvisning tillgänglig.',
           hoursSinceInbound,
           dueBy: slaDeadlineIso || '',
           slaStatus,
+          hoursRemaining,
+          slaThreshold,
+          isUnanswered,
+          unansweredThresholdHours,
+          stagnated,
+          stagnationHours,
+          followUpSuggested,
           intent,
+          intentConfidence,
           tone,
-          priorityLevel: priorityInfo.level,
-          needsReplyStatus: 'needs_reply',
+          toneConfidence,
+          priorityLevel: priorityInfo.priorityLevel,
+          priorityScore: priorityInfo.priorityScore,
+          priorityReasons,
+          needsReplyStatus,
         });
       }
 
       const hasHighFlag = flags.some((item) => severityWeight(item.severity) >= 3);
-      if (isSlaBreached || hasHighFlag || hoursSinceInbound >= 24 || priorityInfo.level === 'Critical') {
+      if (
+        isSlaBreached ||
+        hasHighFlag ||
+        hoursSinceInbound >= 24 ||
+        priorityInfo.priorityLevel === 'Critical'
+      ) {
         urgentConversations.push({
           conversationId: conversation.conversationId,
           messageId,
           subject: conversation.subject,
           reason: isSlaBreached ? 'sla_breach' : hasHighFlag ? 'risk_flag' : 'stale_unanswered',
           hoursSinceInbound,
+          slaStatus,
+          hoursRemaining,
+          slaThreshold,
+          stagnated,
+          stagnationHours,
+          followUpSuggested,
           intent,
+          intentConfidence,
           tone,
-          priorityLevel: priorityInfo.level,
+          toneConfidence,
+          priorityLevel: priorityInfo.priorityLevel,
+          priorityScore: priorityInfo.priorityScore,
+          priorityReasons,
         });
       }
 
@@ -1037,51 +1756,108 @@ class AnalyzeInboxCapability extends BaseCapability {
         conversation: conversation,
         conversationId: conversation.conversationId,
         messageId,
-        mailboxId: normalizeText(conversation.mailboxId) || 'unknown-mailbox',
+        mailboxId: resolvedMailboxId,
+        mailboxAddress: normalizeText(conversation.mailboxAddress) || normalizeText(inbound.mailboxAddress),
+        userPrincipalName:
+          normalizeText(conversation.userPrincipalName) || normalizeText(inbound.userPrincipalName),
+        writingProfile,
         sender,
-        latestInboundPreview: inboundPreview || 'Ingen preview tillganglig.',
+        latestInboundPreview: inboundPreview || 'Ingen förhandsvisning tillgänglig.',
         riskFlags: flags,
         hoursSinceInbound,
+        lastInboundAt: lastInboundAtIso || toIso(Date.now()) || new Date().toISOString(),
+        lastOutboundAt: lastOutboundAtIso || null,
         slaBreached: isSlaBreached,
         slaDeadlineAt: slaDeadlineIso,
         slaStatus,
+        hoursRemaining,
+        slaThreshold,
+        isUnanswered,
+        unansweredThresholdHours,
+        stagnated,
+        stagnationHours,
+        followUpSuggested,
         intent,
+        intentConfidence,
         tone,
-        priorityLevel: priorityInfo.level,
-        priorityScore: priorityInfo.score,
+        toneConfidence,
+        priorityLevel: priorityInfo.priorityLevel,
+        priorityScore: priorityInfo.priorityScore,
+        priorityReasons,
+        customerKey: customerSummary.customerKey,
+        customerSummary,
+        tempoProfile: tempoInfo.tempoProfile,
+        recommendedFollowUpDelayDays: tempoInfo.recommendedFollowUpDelayDays,
+        ctaIntensity: tempoInfo.ctaIntensity,
+        followUpSuggestedAt: timingSuggestion.suggestedDateTime,
+        followUpTimingReason: asArray(timingSuggestion.reasoning)
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .slice(0, 6),
+        followUpUrgencyLevel: (() => {
+          const urgency = normalizeText(timingSuggestion.urgencyLevel).toLowerCase();
+          return ['low', 'normal', 'high'].includes(urgency) ? urgency : 'normal';
+        })(),
+        followUpManualApprovalRequired: timingSuggestion.manualApprovalRequired !== false,
+        estimatedWorkMinutes: workload.estimatedMinutes,
+        workloadBreakdown: asObject(workload.breakdown),
         recommendedAction,
         escalationRequired,
-        needsReplyStatus: 'needs_reply',
+        needsReplyStatus,
       };
 
-      conversationWorklist.push({
-        conversationId: workItem.conversationId,
-        messageId: workItem.messageId,
-        mailboxId: workItem.mailboxId,
-        subject: conversation.subject,
-        sender: workItem.sender,
-        latestInboundPreview: workItem.latestInboundPreview,
-        hoursSinceInbound: workItem.hoursSinceInbound,
-        lastInboundAt: conversation.lastInboundAt || toIso(Date.now()) || new Date().toISOString(),
-        slaStatus: workItem.slaStatus,
-        intent: workItem.intent,
-        tone: workItem.tone,
-        priorityLevel: workItem.priorityLevel,
-        priorityScore: workItem.priorityScore,
-        recommendedAction: workItem.recommendedAction,
-        escalationRequired: workItem.escalationRequired,
-        needsReplyStatus: workItem.needsReplyStatus,
-      });
-
-      unresolved.push(workItem);
+      if (unanswered) {
+        conversationWorklist.push({
+          conversationId: workItem.conversationId,
+          messageId: workItem.messageId,
+          mailboxId: workItem.mailboxId,
+          mailboxAddress: workItem.mailboxAddress || null,
+          userPrincipalName: workItem.userPrincipalName || null,
+          subject: conversation.subject,
+          sender: workItem.sender,
+          latestInboundPreview: workItem.latestInboundPreview,
+          hoursSinceInbound: workItem.hoursSinceInbound,
+          lastInboundAt: workItem.lastInboundAt,
+          lastOutboundAt: workItem.lastOutboundAt,
+          slaStatus: workItem.slaStatus,
+          hoursRemaining: workItem.hoursRemaining,
+          slaThreshold: workItem.slaThreshold,
+          isUnanswered: workItem.isUnanswered,
+          unansweredThresholdHours: workItem.unansweredThresholdHours,
+          stagnated: workItem.stagnated,
+          stagnationHours: workItem.stagnationHours,
+          followUpSuggested: workItem.followUpSuggested,
+          intent: workItem.intent,
+          intentConfidence: workItem.intentConfidence,
+          tone: workItem.tone,
+          toneConfidence: workItem.toneConfidence,
+          priorityLevel: workItem.priorityLevel,
+          priorityScore: workItem.priorityScore,
+          priorityReasons: workItem.priorityReasons,
+          customerKey: workItem.customerKey,
+          customerSummary: workItem.customerSummary,
+          tempoProfile: workItem.tempoProfile,
+          recommendedFollowUpDelayDays: workItem.recommendedFollowUpDelayDays,
+          ctaIntensity: workItem.ctaIntensity,
+          followUpSuggestedAt: workItem.followUpSuggestedAt,
+          followUpTimingReason: workItem.followUpTimingReason,
+          followUpUrgencyLevel: workItem.followUpUrgencyLevel,
+          followUpManualApprovalRequired: workItem.followUpManualApprovalRequired,
+          estimatedWorkMinutes: workItem.estimatedWorkMinutes,
+          workloadBreakdown: workItem.workloadBreakdown,
+          recommendedAction: workItem.recommendedAction,
+          escalationRequired: workItem.escalationRequired,
+          needsReplyStatus: workItem.needsReplyStatus,
+        });
+        unresolved.push(workItem);
+      }
     }
 
-    unresolved.sort((a, b) => {
-      if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
-      return b.hoursSinceInbound - a.hoursSinceInbound;
-    });
+    unresolved.sort(compareWorkItemsBySlaAndPriority);
+    conversationWorklist.sort(compareWorkItemsBySlaAndPriority);
 
-    const suggestedDrafts = unresolved.slice(0, maxDrafts).map((item) => {
+    const suggestedDrafts = [];
+    for (const item of unresolved.slice(0, maxDrafts)) {
       const riskWeight = item.riskFlags.reduce(
         (sum, flag) => sum + severityWeight(flag.severity) * 10,
         0
@@ -1100,37 +1876,64 @@ class AnalyzeInboxCapability extends BaseCapability {
             (normalizeText(item.latestInboundPreview) ? 8 : 0)
         )
       );
-      const draftedReply = buildDraftReply({
+      const draftComposition = await buildDraftReply({
         subject: item.conversation.subject,
         inboundPreview: item.latestInboundPreview,
-        riskHits: item.riskFlags,
+        priorityLevel: item.priorityLevel,
         isMedicalTopic,
         isAcute,
-        slaBreached: item.slaBreached,
         intent: item.intent,
         tone: item.tone,
         toneStyle,
+        customerProfile: item.conversation.customerContext,
+        writingProfile: item.writingProfile,
       });
-      return {
+      suggestedDrafts.push({
         conversationId: item.conversationId,
         messageId: item.messageId,
         mailboxId: item.mailboxId,
+        mailboxAddress: item.mailboxAddress || null,
+        userPrincipalName: item.userPrincipalName || null,
         subject: item.conversation.subject,
         sender: item.sender,
         latestInboundPreview: item.latestInboundPreview,
         hoursSinceInbound: item.hoursSinceInbound,
         slaStatus: item.slaStatus,
+        hoursRemaining: item.hoursRemaining,
+        slaThreshold: item.slaThreshold,
+        isUnanswered: item.isUnanswered,
+        unansweredThresholdHours: item.unansweredThresholdHours,
+        stagnated: item.stagnated,
+        stagnationHours: item.stagnationHours,
+        followUpSuggested: item.followUpSuggested,
         intent: item.intent,
+        intentConfidence: item.intentConfidence,
         tone: item.tone,
+        toneConfidence: item.toneConfidence,
         priorityLevel: item.priorityLevel,
         priorityScore: item.priorityScore,
+        priorityReasons: item.priorityReasons,
+        customerKey: item.customerKey,
+        customerSummary: item.customerSummary,
+        tempoProfile: item.tempoProfile,
+        recommendedFollowUpDelayDays: item.recommendedFollowUpDelayDays,
+        ctaIntensity: item.ctaIntensity,
+        followUpSuggestedAt: item.followUpSuggestedAt,
+        followUpTimingReason: item.followUpTimingReason,
+        followUpUrgencyLevel: item.followUpUrgencyLevel,
+        followUpManualApprovalRequired: item.followUpManualApprovalRequired,
+        estimatedWorkMinutes: item.estimatedWorkMinutes,
+        workloadBreakdown: item.workloadBreakdown,
         recommendedAction: item.recommendedAction,
         escalationRequired: item.escalationRequired,
-        suggestedReply: draftedReply,
-        proposedReply: draftedReply,
+        draftModes: draftComposition.draftModes,
+        recommendedMode: draftComposition.recommendedMode,
+        structureUsed: draftComposition.structureUsed,
+        suggestedReply: draftComposition.proposedReply,
+        proposedReply: draftComposition.proposedReply,
         confidenceLevel: mapConfidence(confidenceScore),
-      };
-    });
+      });
+    }
 
     const overallPriority = unresolved.reduce((current, item) => {
       const rank = { Low: 1, Medium: 2, High: 3, Critical: 4 };
@@ -1141,20 +1944,41 @@ class AnalyzeInboxCapability extends BaseCapability {
       warnings.push('Inga konversationer hittades i systemStateSnapshot.');
     }
     if (maskedPreviewCount > 0) {
-      warnings.push(`Maskerade ${maskedPreviewCount} bodyPreview-falt i inkommande underlag.`);
+      warnings.push(`Maskerade ${maskedPreviewCount} bodyPreview-fält i inkommande underlag.`);
     }
-    warnings.push('Suggested drafts ar endast forslag och kraver manuell granskning fore eventuell skickning.');
+    warnings.push('Föreslagna utkast är endast förslag och kräver manuell granskning före eventuell skickning.');
     if (!toIso(snapshotSource?.timestamps?.capturedAt)) {
-      warnings.push('systemStateSnapshot saknar tydlig capturedAt timestamp.');
+      warnings.push('systemStateSnapshot saknar tydlig capturedAt-tidsstämpel.');
     }
 
     const executiveSummary = [
       `Inboxanalys klar: ${unresolved.length} obesvarade konversationer.`,
-      `${mailboxCount} mailboxar och ${messageCount} meddelanden analyserade.`,
+      `${mailboxCount} postlådor och ${messageCount} meddelanden analyserade.`,
       `${slaBreaches.length} SLA-brott och ${riskFlags.length} riskflaggor identifierade.`,
-      `${suggestedDrafts.length} svarsutkast forberedda for manuell granskning.`,
-      `Prioritet: ${overallPriority}.`,
+      `${suggestedDrafts.length} svarsutkast förberedda för manuell granskning.`,
+      `Prioritet: ${formatPriorityLevelSv(overallPriority)}.`,
     ].join(' ');
+
+    const sourceMailboxIds = (() => {
+      const fromMetadata = asArray(snapshotMetadata.mailboxIds)
+        .map((item) => normalizeText(item))
+        .filter(Boolean);
+      if (fromMetadata.length > 0) return fromMetadata.slice(0, 50);
+      return Array.from(
+        new Set(
+          conversations
+            .map((item) => normalizeText(item?.mailboxId) || normalizeText(item?.mailboxAddress))
+            .filter(Boolean)
+        )
+      ).slice(0, 50);
+    })();
+    const customerSummaries = Array.from(customerSummariesByKey.values())
+      .sort((left, right) => {
+        const leftMs = toTimestampMs(left?.lastInteractionAt) || 0;
+        const rightMs = toTimestampMs(right?.lastInteractionAt) || 0;
+        return rightMs - leftMs;
+      })
+      .slice(0, 120);
 
     const metadata = {
       capability: AnalyzeInboxCapability.name,
@@ -1162,6 +1986,19 @@ class AnalyzeInboxCapability extends BaseCapability {
       channel: normalizeText(safeContext.channel) || 'admin',
       deliveryMode: 'manual_review_required',
       toneStyleApplied: toneStyle,
+      ccoDefaultSenderMailbox: CCO_DEFAULT_SENDER_MAILBOX,
+      ccoSenderMailboxOptions: [
+        CCO_DEFAULT_SENDER_MAILBOX,
+        ...CCO_SIGNATURE_PROFILES.map((item) => item.senderMailboxId),
+      ],
+      ccoDefaultSignatureProfile: 'egzona',
+      ccoSignatureProfiles: CCO_SIGNATURE_PROFILES.map((item) => ({
+        key: item.key,
+        fullName: item.fullName,
+        title: item.title,
+        senderMailboxId: item.senderMailboxId,
+      })),
+      sourceMailboxIds,
       snapshotDebug: debugMode
         ? buildSnapshotDebugInfo(snapshotSource, {
             unresolvedConversations: unresolved.length,
@@ -1186,6 +2023,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         slaBreaches: slaBreaches.slice(0, 50),
         riskFlags: riskFlags.slice(0, 120),
         suggestedDrafts,
+        customerSummaries,
         executiveSummary,
         priorityLevel: overallPriority,
         mailboxCount,
