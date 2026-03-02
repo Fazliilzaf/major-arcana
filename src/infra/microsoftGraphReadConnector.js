@@ -146,6 +146,45 @@ function toReferenceIds(rawValue = '') {
     .slice(0, 30);
 }
 
+function normalizeEmailAddress(value = '') {
+  const raw = normalizeText(value);
+  if (!raw) return '';
+  const bracketMatch = raw.match(/<([^>]+)>/);
+  const candidate = normalizeText((bracketMatch ? bracketMatch[1] : raw).replace(/^mailto:/i, ''));
+  if (!candidate) return '';
+  const parts = candidate.split('@');
+  if (parts.length !== 2) return '';
+  const localPart = normalizeText(parts[0]).toLowerCase();
+  const domainPart = normalizeText(parts[1]).toLowerCase();
+  if (!localPart || !domainPart) return '';
+  return `${localPart}@${domainPart}`;
+}
+
+function toEmailAliases(value = '') {
+  const normalized = normalizeEmailAddress(value);
+  if (!normalized) return [];
+  const [localPart = '', domainPart = ''] = normalized.split('@');
+  const aliases = new Set([normalized]);
+  const plusNormalized = localPart.replace(/\+.*/, '');
+  if (plusNormalized && plusNormalized !== localPart) {
+    aliases.add(`${plusNormalized}@${domainPart}`);
+  }
+  const separatorless = plusNormalized.replace(/[._-]/g, '');
+  if (separatorless && separatorless !== plusNormalized) {
+    aliases.add(`${separatorless}@${domainPart}`);
+  }
+  const domainRootMatch = domainPart.match(/^([a-z0-9.-]+)\.(com|se)$/i);
+  if (domainRootMatch) {
+    const domainRoot = normalizeText(domainRootMatch[1]).toLowerCase();
+    const tld = normalizeText(domainRootMatch[2]).toLowerCase();
+    if (domainRoot) {
+      aliases.add(`${plusNormalized}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
+      if (separatorless) aliases.add(`${separatorless}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
+    }
+  }
+  return Array.from(aliases);
+}
+
 function inferCounterpartyEmail({ direction = 'inbound', senderEmail = '', recipients = [] } = {}) {
   if (direction === 'inbound') return normalizeText(senderEmail).toLowerCase() || '';
   const safeRecipients = Array.isArray(recipients) ? recipients : [];
