@@ -41,10 +41,7 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'egzona@hairtpclinic.com',
   'contact@hairtpclinic.com',
   'fazli@hairtpclinic.com',
-  'kvitto@hairtpclinic.com',
   'info@hairtpclinic.com',
-  'faktura@hairtpclinic.com',
-  'jobb@hairtpclinic.com',
   'kons@hairtpclinic.com',
 ]);
 const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(CCO_GRAPH_READ_DEFAULT_ALLOWLIST);
