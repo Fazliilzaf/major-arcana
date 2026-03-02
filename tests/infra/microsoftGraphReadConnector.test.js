@@ -641,6 +641,84 @@ test('MicrosoftGraphReadConnector full-tenant mode supports explicit mailbox id 
   );
 });
 
+test('MicrosoftGraphReadConnector mailbox id filter matches com/se aliases in full-tenant mode', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-id-filter-alias',
+        },
+      });
+    }
+    if (String(url).includes('/users?')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            { id: 'user-1', mail: 'u1@hairtpclinic.se' },
+            { id: 'user-2', mail: 'kons@hairtpclinic.se' },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-2/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'm2',
+              conversationId: 'c2',
+              subject: 'Hej alias',
+              bodyPreview: 'Preview alias',
+              receivedDateTime: '2026-02-26T11:30:00.000Z',
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-2/mailFolders/SentItems/messages')) {
+      return createJsonResponse({ body: { value: [] } });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-6b',
+    clientId: 'client-id-6b',
+    clientSecret: 'client-secret-6b',
+    fullTenant: true,
+    userScope: 'all',
+    fetchImpl,
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot({
+    fullTenant: true,
+    userScope: 'all',
+    maxUsers: 4,
+    mailboxIds: ['kons@hairtpclinic.com'],
+    maxMessagesPerUser: 5,
+  });
+
+  assert.equal(
+    calls.some((item) => String(item.url).includes('/users/user-2/mailFolders/inbox/messages')),
+    true
+  );
+  assert.equal(
+    calls.some((item) => String(item.url).includes('/users/user-1/mailFolders/inbox/messages')),
+    false
+  );
+  assert.equal(snapshot.metadata.mailboxCount, 1);
+  assert.deepEqual(snapshot.metadata.mailboxIds, ['kons@hairtpclinic.se']);
+  assert.deepEqual(snapshot.metadata.mailboxIdFilter, ['kons@hairtpclinic.com']);
+  const warnings = Array.isArray(snapshot.warnings) ? snapshot.warnings : [];
+  assert.equal(
+    warnings.some((item) => String(item).includes('Mailbox-idfilter matchade 0 av')),
+    false
+  );
+});
+
 test('MicrosoftGraphReadConnector full-tenant mode paginates users and mailbox messages', async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
