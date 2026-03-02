@@ -7,7 +7,7 @@ function normalizeEmail(value) {
 }
 
 function normalizeTenantId(value) {
-  return typeof value === 'string' ? value.trim() : '';
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
 function parseLimit(value, fallback = 100) {
@@ -127,14 +127,26 @@ function createAuthRouter({
   router.post('/auth/login', applyLoginRateLimit, async (req, res) => {
     try {
       const email = normalizeEmail(req.body?.email);
-      const password = typeof req.body?.password === 'string' ? req.body.password : '';
+      const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
       const tenantId = normalizeTenantId(req.body?.tenantId);
 
-      if (!email || !password) {
+      if (!email || !rawPassword) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
       }
 
-      let user = await authStore.authenticateUser({ email, password });
+      const passwordCandidates = [rawPassword];
+      const trimmedPassword = rawPassword.trim();
+      if (trimmedPassword && trimmedPassword !== rawPassword) {
+        passwordCandidates.push(trimmedPassword);
+      }
+
+      let user = null;
+      for (const candidate of passwordCandidates) {
+        user = await authStore.authenticateUser({ email, password: candidate });
+        if (user) {
+          break;
+        }
+      }
       let ownerCredentialSelfHealed = false;
       if (
         !user &&
@@ -143,7 +155,7 @@ function createAuthRouter({
         typeof bootstrapOwnerPassword === 'string' &&
         typeof authStore.bootstrapOwner === 'function' &&
         email === normalizedBootstrapOwnerEmail &&
-        safeEqualText(password, bootstrapOwnerPassword)
+        passwordCandidates.some((candidate) => safeEqualText(candidate, bootstrapOwnerPassword))
       ) {
         try {
           await authStore.bootstrapOwner({
@@ -153,7 +165,7 @@ function createAuthRouter({
             forcePasswordReset: true,
             forceMfaReset: false,
           });
-          user = await authStore.authenticateUser({ email, password });
+          user = await authStore.authenticateUser({ email, password: bootstrapOwnerPassword });
           ownerCredentialSelfHealed = Boolean(user);
         } catch (selfHealError) {
           await authStore.addAuditEvent({

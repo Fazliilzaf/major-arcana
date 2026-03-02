@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
@@ -15,6 +17,28 @@ const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json());
+
+const ADMIN_HTML_PATH = path.join(__dirname, 'public', 'admin.html');
+const rawAdminHtmlTemplate = fs.readFileSync(ADMIN_HTML_PATH, 'utf8');
+const uiBuildId = String(
+  process.env.ARCANA_UI_BUILD_ID ||
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.npm_package_version ||
+    Date.now()
+).trim();
+
+function renderAdminHtml() {
+  return rawAdminHtmlTemplate.replace(/__ARCANA_UI_BUILD__/g, uiBuildId);
+}
+
+function sendAdminHtml(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('X-Arcana-UI-Build', uiBuildId);
+  res.type('html').send(renderAdminHtml());
+}
 
 // Avoid stale admin/CCO UI assets between local/staging/prod deployments.
 app.use((req, res, next) => {
@@ -37,6 +61,8 @@ app.use((req, res, next) => {
   }
   return next();
 });
+
+app.get('/admin.html', (_req, res) => sendAdminHtml(res));
 app.use(express.static("public"));
 app.use(requestContextMiddleware({ headerName: 'x-correlation-id' }));
 
@@ -94,15 +120,15 @@ app.get("/", (req, res) => {
 });
 
 app.get("/admin", (req, res) => {
-  res.sendFile("admin.html", { root: __dirname + "/public" });
+  sendAdminHtml(res);
 });
 
 app.get('/cco', (req, res) => {
-  res.sendFile("admin.html", { root: __dirname + "/public" });
+  sendAdminHtml(res);
 });
 
 app.get('/unanswered', (req, res) => {
-  res.sendFile("admin.html", { root: __dirname + "/public" });
+  sendAdminHtml(res);
 });
 
 app.get(['/ccp', '/admin/cco'], (req, res) => {
