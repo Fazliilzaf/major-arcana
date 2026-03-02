@@ -48,7 +48,7 @@ function createAuthRouter({
   requireTenantScope,
   loginRateLimiter = null,
   selectTenantRateLimiter = null,
-  ownerMfaBypassHosts = [],
+  mfaEnabled = false,
   loginSessionRotationScope = 'none',
 }) {
   const router = express.Router();
@@ -166,10 +166,7 @@ function createAuthRouter({
       const hasOwnerMembership = memberships.some(
         (membership) => String(membership?.role || '').toUpperCase() === ROLE_OWNER
       );
-      const ownerMfaBypassed = hasOwnerMembership && isOwnerMfaBypassed(req);
-      const requiresMfa = ownerMfaBypassed
-        ? false
-        : hasOwnerMembership || Boolean(user?.mfaRequired);
+      const requiresMfa = Boolean(mfaEnabled) && (hasOwnerMembership || Boolean(user?.mfaRequired));
 
       if (requiresMfa) {
         const pendingMfa =

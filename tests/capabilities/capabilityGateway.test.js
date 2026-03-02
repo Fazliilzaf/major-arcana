@@ -642,6 +642,17 @@ test('AnalyzeInbox policy floor blocks forbidden draft language before persist',
       {
         conversationId: 'conv-unsafe',
         messageId: 'msg-unsafe',
+        mailboxId: 'owner@hairtpclinic.se',
+        sender: 'p***@example.com',
+        latestInboundPreview: 'Meddelandepreview',
+        hoursSinceInbound: 1,
+        slaStatus: 'ok',
+        intent: 'follow_up',
+        tone: 'neutral',
+        priorityLevel: 'High',
+        priorityScore: 66,
+        recommendedAction: 'Be om mer info',
+        escalationRequired: false,
         subject: 'Unsafe',
         proposedReply: 'Vi garanterar 100% resultat och detta ar en diagnos.',
         confidenceLevel: 'High',
@@ -993,9 +1004,13 @@ test('capabilities router fails fast when Graph read is enabled without required
     ARCANA_GRAPH_CLIENT_ID: process.env.ARCANA_GRAPH_CLIENT_ID,
     ARCANA_GRAPH_CLIENT_SECRET: process.env.ARCANA_GRAPH_CLIENT_SECRET,
     ARCANA_GRAPH_USER_ID: process.env.ARCANA_GRAPH_USER_ID,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
   };
 
   process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  delete process.env.ARCANA_GRAPH_FULL_TENANT;
+  delete process.env.ARCANA_GRAPH_USER_SCOPE;
   delete process.env.ARCANA_GRAPH_TENANT_ID;
   delete process.env.ARCANA_GRAPH_CLIENT_ID;
   delete process.env.ARCANA_GRAPH_CLIENT_SECRET;
@@ -1023,8 +1038,327 @@ test('capabilities router fails fast when Graph read is enabled without required
           capabilityAnalysisStore: null,
           templateStore: null,
         }),
-      /ARCANA_GRAPH_READ_ENABLED=true requires: ARCANA_GRAPH_TENANT_ID, ARCANA_GRAPH_CLIENT_ID, ARCANA_GRAPH_CLIENT_SECRET, ARCANA_GRAPH_USER_ID\./
+      /ARCANA_GRAPH_READ_ENABLED=true requires: ARCANA_GRAPH_TENANT_ID, ARCANA_GRAPH_CLIENT_ID, ARCANA_GRAPH_CLIENT_SECRET\./
     );
+  } finally {
+    Object.entries(previousEnv).forEach(([key, value]) => {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    });
+  }
+});
+
+test('capabilities router allows Graph full-tenant mode without ARCANA_GRAPH_USER_ID', () => {
+  const previousEnv = {
+    ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
+    ARCANA_GRAPH_TENANT_ID: process.env.ARCANA_GRAPH_TENANT_ID,
+    ARCANA_GRAPH_CLIENT_ID: process.env.ARCANA_GRAPH_CLIENT_ID,
+    ARCANA_GRAPH_CLIENT_SECRET: process.env.ARCANA_GRAPH_CLIENT_SECRET,
+    ARCANA_GRAPH_USER_ID: process.env.ARCANA_GRAPH_USER_ID,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
+  };
+
+  process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  process.env.ARCANA_GRAPH_TENANT_ID = 'tenant-id';
+  process.env.ARCANA_GRAPH_CLIENT_ID = 'client-id';
+  process.env.ARCANA_GRAPH_CLIENT_SECRET = 'client-secret';
+  process.env.ARCANA_GRAPH_FULL_TENANT = 'true';
+  process.env.ARCANA_GRAPH_USER_SCOPE = 'all';
+  delete process.env.ARCANA_GRAPH_USER_ID;
+
+  try {
+    assert.doesNotThrow(() =>
+      createCapabilitiesRouter({
+        authStore: {
+          async addAuditEvent() {},
+        },
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth(_req, _res, next) {
+          next();
+        },
+        requireRole() {
+          return (_req, _res, next) => next();
+        },
+        executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+        capabilityAnalysisStore: null,
+        templateStore: null,
+        graphReadConnectorFactory() {
+          return {
+            async fetchInboxSnapshot() {
+              return {
+                snapshotVersion: 'graph.inbox.snapshot.v1',
+                conversations: [],
+                timestamps: { capturedAt: new Date().toISOString() },
+                metadata: {},
+              };
+            },
+          };
+        },
+      })
+    );
+  } finally {
+    Object.entries(previousEnv).forEach(([key, value]) => {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    });
+  }
+});
+
+test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_ALLOWLIST is missing', async () => {
+  const previousEnv = {
+    ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
+    ARCANA_GRAPH_MAILBOX_IDS: process.env.ARCANA_GRAPH_MAILBOX_IDS,
+    ARCANA_MAILBOX_ALLOWLIST: process.env.ARCANA_MAILBOX_ALLOWLIST,
+    ARCANA_GRAPH_SEND_ALLOWLIST: process.env.ARCANA_GRAPH_SEND_ALLOWLIST,
+  };
+
+  process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  process.env.ARCANA_GRAPH_FULL_TENANT = 'false';
+  process.env.ARCANA_GRAPH_USER_SCOPE = 'single';
+  delete process.env.ARCANA_GRAPH_MAILBOX_IDS;
+  delete process.env.ARCANA_MAILBOX_ALLOWLIST;
+  process.env.ARCANA_GRAPH_SEND_ALLOWLIST =
+    'contact@hairtpclinic.com; info@hairtpclinic.com';
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-fallback-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const graphCalls = [];
+  const graphReadConnector = {
+    async fetchInboxSnapshot(options = {}) {
+      graphCalls.push({ ...options });
+      return {
+        snapshotVersion: 'graph.inbox.snapshot.v1',
+        timestamps: {
+          capturedAt: '2026-03-02T10:00:00.000Z',
+        },
+        conversations: [],
+      };
+    },
+  };
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+      graphReadConnector,
+    })
+  );
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-correlation-id': 'corr-allowlist-fallback-1',
+        },
+        body: JSON.stringify({
+          channel: 'admin',
+          input: {
+            maxDrafts: 1,
+          },
+        }),
+      });
+      assert.equal(response.status, 200);
+    });
+
+    assert.equal(graphCalls.length, 1);
+    assert.equal(graphCalls[0].allowlistMode, true);
+    assert.equal(graphCalls[0].fullTenant, true);
+    assert.equal(graphCalls[0].userScope, 'all');
+    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
+    assert.deepEqual(graphCalls[0].mailboxIndexes, []);
+
+    const audits = await authStore.listAuditEvents({
+      tenantId: 'tenant-a',
+      limit: 200,
+    });
+    const readStartEvent = audits.find((event) => event.action === 'mailbox.read.start');
+    assert.equal(Boolean(readStartEvent), true);
+    assert.equal(readStartEvent.metadata.allowlistMode, true);
+    assert.deepEqual(readStartEvent.metadata.allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
+  } finally {
+    Object.entries(previousEnv).forEach(([key, value]) => {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    });
+  }
+});
+
+test('AnalyzeInbox still uses locked default Graph read allowlist when send allowlist is wildcard-only', async () => {
+  const previousEnv = {
+    ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
+    ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
+    ARCANA_GRAPH_USER_SCOPE: process.env.ARCANA_GRAPH_USER_SCOPE,
+    ARCANA_GRAPH_MAILBOX_IDS: process.env.ARCANA_GRAPH_MAILBOX_IDS,
+    ARCANA_MAILBOX_ALLOWLIST: process.env.ARCANA_MAILBOX_ALLOWLIST,
+    ARCANA_GRAPH_SEND_ALLOWLIST: process.env.ARCANA_GRAPH_SEND_ALLOWLIST,
+  };
+
+  process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
+  process.env.ARCANA_GRAPH_FULL_TENANT = 'false';
+  process.env.ARCANA_GRAPH_USER_SCOPE = 'single';
+  delete process.env.ARCANA_GRAPH_MAILBOX_IDS;
+  delete process.env.ARCANA_MAILBOX_ALLOWLIST;
+  process.env.ARCANA_GRAPH_SEND_ALLOWLIST = '*';
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-wildcard-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+
+  const graphCalls = [];
+  const graphReadConnector = {
+    async fetchInboxSnapshot(options = {}) {
+      graphCalls.push({ ...options });
+      return {
+        snapshotVersion: 'graph.inbox.snapshot.v1',
+        timestamps: {
+          capturedAt: '2026-03-02T10:00:00.000Z',
+        },
+        conversations: [],
+      };
+    },
+  };
+
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: {
+        async getTenantConfig() {
+          return {
+            riskSensitivityModifier: 0,
+            riskThresholdVersion: 1,
+          };
+        },
+      },
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+      graphReadConnector,
+    })
+  );
+
+  try {
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/capabilities/AnalyzeInbox/run`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-correlation-id': 'corr-allowlist-wildcard-1',
+        },
+        body: JSON.stringify({
+          channel: 'admin',
+          input: {
+            maxDrafts: 1,
+          },
+        }),
+      });
+      assert.equal(response.status, 200);
+    });
+
+    assert.equal(graphCalls.length, 1);
+    assert.equal(graphCalls[0].allowlistMode, true);
+    assert.equal(graphCalls[0].fullTenant, true);
+    assert.equal(graphCalls[0].userScope, 'all');
+    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
       if (value === undefined) delete process.env[key];

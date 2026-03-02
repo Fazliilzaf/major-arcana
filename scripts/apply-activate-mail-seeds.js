@@ -142,7 +142,7 @@ async function ensureEvaluationForVersion({ baseUrl, token, templateId, versionI
 async function main() {
   const args = process.argv.slice(2);
   const baseUrl = String(process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-  const email = String(process.env.ARCANA_OWNER_EMAIL || 'owner@hairtpclinic.se');
+  const email = String(process.env.ARCANA_OWNER_EMAIL || 'fazli@hairtpclinic.com');
   const password = String(process.env.ARCANA_OWNER_PASSWORD || 'ArcanaPilot!2026');
   const tenantId = String(process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic');
 

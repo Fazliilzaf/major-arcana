@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { evaluatePolicyFloorText } = require('../policy/floor');
+const { maskInboxText } = require('../privacy/inboxMasking');
 const { validateJsonSchema } = require('./schemaValidator');
 const {
   getCapabilityByName,
@@ -31,6 +32,14 @@ function normalizeText(value) {
 function safeObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return JSON.parse(JSON.stringify(value));
+}
+
+function toStringArray(value, maxItems = 20) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => normalizeText(item))
+    .filter(Boolean)
+    .slice(0, maxItems);
 }
 
 function toIso(value) {
@@ -188,6 +197,137 @@ function bindGatewayRunCapability(executionGateway) {
       executionGateway.runCapability(capabilityName, { context, handlers });
   }
   throw new Error('Capability executor kräver executionGateway.runCapability eller executionGateway.run.');
+}
+
+function toCcoSendAllowlistSet(rawValue = '') {
+  const entries = String(rawValue || '')
+    .split(',')
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  return new Set(entries);
+}
+
+const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
+const CCO_SIGNATURE_SPLIT_PATTERN =
+  /\n(?:Med vanliga halsningar,|Med vanlig halsning,|Basta halsningar,|Bästa hälsningar,)\n[\s\S]*$/i;
+const CCO_SIGNATURE_PROFILES = Object.freeze({
+  egzona: Object.freeze({
+    key: 'egzona',
+    fullName: 'Egzona Krasniqi',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
+  }),
+  fazli: Object.freeze({
+    key: 'fazli',
+    fullName: 'Fazli Krasniqi',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
+  }),
+});
+
+function resolveCcoSignatureProfile(rawProfile = '') {
+  const normalized = normalizeText(rawProfile).toLowerCase();
+  if (normalized === 'fazli') return CCO_SIGNATURE_PROFILES.fazli;
+  return CCO_SIGNATURE_PROFILES.egzona;
+}
+
+function removeCcoSignature(body = '') {
+  const normalizedBody = normalizeText(body);
+  if (!normalizedBody) return '';
+  return normalizedBody.replace(CCO_SIGNATURE_SPLIT_PATTERN, '').trimEnd();
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatTextAsHtml(value = '') {
+  const escaped = escapeHtml(value || '');
+  if (!escaped) return '';
+  return escaped.replace(/\r?\n/g, '<br />');
+}
+
+function buildCcoSignature({
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const safeProfile =
+    profile && typeof profile === 'object' ? profile : CCO_SIGNATURE_PROFILES.egzona;
+  const safeSenderMailbox = normalizeText(senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  const safeTitle =
+    normalizeText(safeProfile.title) || 'Hårspecialist I Hårtransplantationer & PRP-injektioner';
+  return [
+    'Bästa hälsningar,',
+    safeProfile.fullName,
+    safeTitle,
+    '031-88 11 66',
+    safeSenderMailbox,
+    'Vasaplatsen 2, 411 34 Göteborg',
+  ].join('\n');
+}
+
+function buildCcoSignatureHtml({
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const safeProfile =
+    profile && typeof profile === 'object' ? profile : CCO_SIGNATURE_PROFILES.egzona;
+  const safeSenderMailbox = normalizeText(senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  const safeTitle =
+    normalizeText(safeProfile.title) || 'Hårspecialist I Hårtransplantationer & PRP-injektioner';
+  const safeName = normalizeText(safeProfile.fullName) || 'Hair TP Clinic';
+  const websiteUrl = 'https://hairtpclinic.se';
+  const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
+  const facebookUrl = 'https://www.facebook.com/hairtpclinic';
+  const logoUrl = 'https://arcana-staging.onrender.com/assets/hair-tp-clinic/hairtpclinic-mark.svg';
+
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-family:Arial,sans-serif;color:#2f2f33;">
+  <tr>
+    <td style="vertical-align:top;padding-right:18px;">
+      <img src="${escapeHtml(logoUrl)}" alt="Hair TP Clinic" width="110" style="display:block;border:0;outline:none;text-decoration:none;" />
+    </td>
+    <td style="vertical-align:top;border-left:4px solid #d8d0c8;padding-left:18px;">
+      <div style="font-size:30px;line-height:1;color:#2f2f33;">Bästa hälsningar,</div>
+      <div style="margin-top:8px;font-size:32px;line-height:1.05;color:#b9a89d;font-weight:700;">${escapeHtml(safeName)}</div>
+      <div style="margin-top:8px;font-size:24px;line-height:1.2;color:#2f2f33;font-weight:700;">${escapeHtml(safeTitle)}</div>
+      <div style="margin-top:8px;font-size:22px;line-height:1.25;color:#2f2f33;">031-88 11 66</div>
+      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">${escapeHtml(safeSenderMailbox)}</div>
+      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">Vasaplatsen 2, 411 34 Göteborg</div>
+      <div style="margin-top:12px;">
+        <a href="${escapeHtml(websiteUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Webb</a>
+        <a href="${escapeHtml(instagramUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Instagram</a>
+        <a href="${escapeHtml(facebookUrl)}" style="display:inline-block;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Facebook</a>
+      </div>
+    </td>
+  </tr>
+</table>`.trim();
+}
+
+function applyCcoSignature({
+  body = '',
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const withoutSignature = removeCcoSignature(body);
+  const signature = buildCcoSignature({ profile, senderMailboxId });
+  if (!withoutSignature) return signature;
+  return `${withoutSignature}\n\n${signature}`;
+}
+
+function applyCcoSignatureHtml({
+  body = '',
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const withoutSignature = removeCcoSignature(body);
+  const signatureHtml = buildCcoSignatureHtml({ profile, senderMailboxId });
+  const bodyHtml = formatTextAsHtml(withoutSignature);
+  if (!bodyHtml) return signatureHtml;
+  return `${bodyHtml}<br /><br />${signatureHtml}`;
 }
 
 function createCapabilityExecutor({
@@ -557,6 +697,46 @@ function createCapabilityExecutor({
         completedAt: toIso(new Date()) || new Date().toISOString(),
       },
     });
+
+    if (CapabilityClass.name === 'CcoConversationAction') {
+      const actionType = normalizeText(
+        gatewayResult?.response_payload?.output?.data?.action
+      ).toLowerCase();
+      const targetConversationId = normalizeText(
+        gatewayResult?.response_payload?.output?.data?.conversationId
+      );
+      if (actionType === 'handled') {
+        await writeAudit({
+          tenantId: normalizedTenantId,
+          actorUserId: normalizedActor.id,
+          action: 'cco.reply.handled',
+          outcome: 'success',
+          targetType: 'cco_conversation',
+          targetId: targetConversationId || capabilityRunId,
+          metadata: {
+            capabilityRunId,
+            capabilityName: CapabilityClass.name,
+            gatewayRunId: gatewayResult?.run_id || null,
+            correlationId: normalizedCorrelationId,
+          },
+        });
+      } else if (actionType === 'flag_critical') {
+        await writeAudit({
+          tenantId: normalizedTenantId,
+          actorUserId: normalizedActor.id,
+          action: 'cco.reply.flagged_critical',
+          outcome: 'success',
+          targetType: 'cco_conversation',
+          targetId: targetConversationId || capabilityRunId,
+          metadata: {
+            capabilityRunId,
+            capabilityName: CapabilityClass.name,
+            gatewayRunId: gatewayResult?.run_id || null,
+            correlationId: normalizedCorrelationId,
+          },
+        });
+      }
+    }
 
     return {
       capabilityRunId,
@@ -965,11 +1145,402 @@ function createCapabilityExecutor({
     };
   }
 
+  async function runCcoSend({
+    tenantId,
+    actor = {},
+    channel = 'admin',
+    input = {},
+    correlationId = null,
+    idempotencyKey = null,
+    requestMetadata = {},
+    graphSendConnector = null,
+    graphSendEnabled = false,
+    graphSendAllowlist = '',
+  }) {
+    const normalizedTenantId = normalizeText(tenantId);
+    const normalizedActor = {
+      id: normalizeText(actor?.id) || null,
+      role: normalizeText(actor?.role || '').toUpperCase() || null,
+    };
+    const normalizedChannel = normalizeText(channel).toLowerCase() || 'admin';
+    const normalizedCorrelationId = normalizeText(correlationId) || null;
+    const normalizedIdempotencyKey = normalizeText(idempotencyKey) || null;
+    const normalizedInput = safeObject(input);
+    const ccoSendRunId = crypto.randomUUID();
+
+    if (!normalizedTenantId) {
+      throw makeCapabilityError('CAPABILITY_INVALID_TENANT', 'tenantId saknas for CCO send.');
+    }
+    if (!['OWNER', 'STAFF'].includes(normalizedActor.role || '')) {
+      throw makeCapabilityError('CAPABILITY_ROLE_DENIED', 'Role saknar access till CCO send.');
+    }
+    if (normalizedChannel !== 'admin') {
+      throw makeCapabilityError('CAPABILITY_CHANNEL_DENIED', 'CCO send tillater endast admin-channel.');
+    }
+
+    const sourceMailboxId = normalizeText(normalizedInput.mailboxId || normalizedInput.mailbox_id);
+    const senderMailboxId = normalizeText(
+      normalizedInput.senderMailboxId ||
+        normalizedInput.sender_mailbox_id ||
+        process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX ||
+        CCO_DEFAULT_SENDER_MAILBOX ||
+        sourceMailboxId
+    );
+    const signatureProfile = resolveCcoSignatureProfile(
+      normalizedInput.signatureProfile || normalizedInput.signature_profile
+    );
+    const replyToMessageId = normalizeText(
+      normalizedInput.replyToMessageId || normalizedInput.reply_to_message_id
+    );
+    const conversationId = normalizeText(
+      normalizedInput.conversationId || normalizedInput.conversation_id
+    );
+    const subject = normalizeText(normalizedInput.subject);
+    const body = normalizeText(normalizedInput.body);
+    const bodyWithSignature = applyCcoSignature({
+      body,
+      profile: signatureProfile,
+      senderMailboxId,
+    });
+    const bodyWithSignatureHtml = applyCcoSignatureHtml({
+      body,
+      profile: signatureProfile,
+      senderMailboxId,
+    });
+    const to = toStringArray(normalizedInput.to, 20);
+
+    if (!sourceMailboxId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'mailboxId kravs.');
+    }
+    if (!senderMailboxId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'senderMailboxId kravs.');
+    }
+    if (!replyToMessageId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'replyToMessageId kravs.');
+    }
+    if (!conversationId) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'conversationId kravs.');
+    }
+    if (!subject) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'subject kravs.');
+    }
+    if (!body) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'body kravs.');
+    }
+    if (!to.length) {
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'to[] kravs.');
+    }
+    if (!normalizedIdempotencyKey) {
+      throw makeCapabilityError(
+        'CCO_SEND_INPUT_INVALID',
+        'idempotencyKey kravs for CCO send.'
+      );
+    }
+
+    if (!graphSendEnabled) {
+      throw makeCapabilityError(
+        'CCO_SEND_DISABLED',
+        'CCO send ar avstangt (ARCANA_GRAPH_SEND_ENABLED=false).'
+      );
+    }
+    if (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function') {
+      throw makeCapabilityError(
+        'CCO_SEND_CONNECTOR_UNAVAILABLE',
+        'Microsoft Graph send connector saknas.'
+      );
+    }
+
+    const allowlistSet = toCcoSendAllowlistSet(graphSendAllowlist);
+    if (!allowlistSet.size) {
+      throw makeCapabilityError(
+        'CCO_SEND_ALLOWLIST_EMPTY',
+        'ARCANA_GRAPH_SEND_ALLOWLIST ar tom. Minst en mailbox kravs.'
+      );
+    }
+    const normalizedSenderMailboxLower = senderMailboxId.toLowerCase();
+    const wildcardAllowed = allowlistSet.has('*');
+    if (!wildcardAllowed && !allowlistSet.has(normalizedSenderMailboxLower)) {
+      throw makeCapabilityError(
+        'CCO_SEND_ALLOWLIST_BLOCKED',
+        `Mailbox ar inte allowlistad for send: ${senderMailboxId}.`
+      );
+    }
+
+    await writeAudit({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: 'cco.send.requested',
+      outcome: 'success',
+      targetType: 'cco_send',
+      targetId: ccoSendRunId,
+      metadata: {
+        ccoSendRunId,
+        sourceMailboxId,
+        senderMailboxId,
+        signatureProfile: signatureProfile.key,
+        conversationId,
+        replyToMessageId,
+        to,
+        correlationId: normalizedCorrelationId,
+        channel: normalizedChannel,
+      },
+    });
+
+    let gatewayResult;
+    try {
+      gatewayResult = await runCapabilityThroughGateway({
+        capabilityName: 'CCO.SendReply',
+        context: {
+          tenant_id: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          intent: 'cco.send.reply',
+          payload: {
+            ccoSendRunId,
+            sourceMailboxId,
+            senderMailboxId,
+            replyToMessageId,
+            conversationId,
+            to,
+            subject,
+            body: bodyWithSignature,
+            signatureProfile: signatureProfile.key,
+          },
+          correlation_id: normalizedCorrelationId,
+          idempotency_key: normalizedIdempotencyKey,
+        },
+        handlers: {
+          audit: async (event) => {
+            await writeAudit({
+              tenantId: normalizedTenantId,
+              actorUserId: normalizedActor.id,
+              action: event.action,
+              outcome: event.outcome,
+              targetType: 'gateway_run',
+              targetId: String(event?.metadata?.runId || ''),
+              metadata: {
+                ...(event.metadata || {}),
+                ccoSendRunId,
+                capabilityName: 'CCO.SendReply',
+              },
+            });
+          },
+          inputRisk: async () =>
+            buildAllowRiskEvaluation({
+              scope: 'input',
+              buildVersion,
+            }),
+          agentRun: async () => ({
+            output: {
+              sourceMailboxId,
+              senderMailboxId,
+              replyToMessageId,
+              conversationId,
+              to,
+              subject,
+              body: bodyWithSignature,
+              bodyHtml: bodyWithSignatureHtml,
+              signatureProfile: signatureProfile.key,
+              confidenceLevel: 'High',
+            },
+          }),
+          outputRisk: async ({ agentResult }) =>
+            evaluateTemplateRisk({
+              scope: 'output',
+              category: 'INTERNAL',
+              content: stringifyForRisk({
+                subject: agentResult?.output?.subject || '',
+                body: agentResult?.output?.body || '',
+              }),
+              tenantRiskModifier: 0,
+              riskThresholdVersion: 1,
+            }),
+          policyFloor: async ({ agentResult }) =>
+            evaluatePolicyFloorText({
+              text: stringifyForRisk({
+                subject: agentResult?.output?.subject || '',
+                body: agentResult?.output?.body || '',
+              }),
+              context: 'patient_response',
+            }),
+          persist: async ({ runId, decision, inputRisk, outputRisk, policy, agentResult }) => {
+            if (!['allow', 'allow_flag'].includes(String(decision || '').toLowerCase())) {
+              const decisionError = makeCapabilityError(
+                'CCO_SEND_REQUIRES_ALLOW',
+                'CCO send kraver allow eller allow_flag.'
+              );
+              decisionError.nonRetryable = true;
+              throw decisionError;
+            }
+
+            const sendResult = await graphSendConnector.sendReply({
+              mailboxId: senderMailboxId,
+              sourceMailboxId,
+              replyToMessageId,
+              body: String(agentResult?.output?.body || ''),
+              bodyHtml: String(agentResult?.output?.bodyHtml || ''),
+              subject: String(agentResult?.output?.subject || ''),
+              to,
+            });
+
+            if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+              const storeError = makeCapabilityError(
+                'CAPABILITY_ANALYSIS_STORE_MISSING',
+                'Analysis store saknas for CCO send persist.'
+              );
+              storeError.nonRetryable = true;
+              throw storeError;
+            }
+
+            const analysisEntry = await capabilityAnalysisStore.append({
+              tenantId: normalizedTenantId,
+              capability: {
+                name: 'CCO.SendReply',
+                version: '1.0.0',
+                persistStrategy: 'analysis',
+              },
+              decision,
+              runId,
+              capabilityRunId: ccoSendRunId,
+              correlationId: normalizedCorrelationId,
+              actor: normalizedActor,
+              input: {
+                sourceMailboxId,
+                senderMailboxId,
+                replyToMessageId,
+                conversationId,
+                to,
+                subject: maskInboxText(subject, 180),
+                bodyPreview: maskInboxText(bodyWithSignature, 360),
+                bodyHtmlPreview: maskInboxText(bodyWithSignatureHtml, 360),
+                signatureProfile: signatureProfile.key,
+              },
+              output: {
+                provider: sendResult.provider,
+                sourceMailboxId,
+                senderMailboxId: sendResult.mailboxId,
+                replyToMessageId: sendResult.replyToMessageId,
+                conversationId,
+                to: sendResult.to,
+                subject: maskInboxText(subject, 180),
+                bodyPreview: maskInboxText(bodyWithSignature, 360),
+                sentAt: sendResult.sentAt,
+                sendMode: sendResult.sendMode || 'reply',
+              },
+              riskSummary: {
+                input: inputRisk?.evaluation || null,
+                output: outputRisk?.evaluation || null,
+              },
+              policySummary: {
+                blocked: policy?.blocked === true,
+                reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [],
+              },
+              metadata: {
+                channel: normalizedChannel,
+                requestMetadata: safeObject(requestMetadata),
+                sendMode: 'manual',
+                signatureProfile: signatureProfile.key,
+              },
+            });
+
+            return {
+              artifact_refs: {
+                analysis_id: analysisEntry.id,
+                send_provider: sendResult.provider,
+                cco_send_run_id: ccoSendRunId,
+              },
+            };
+          },
+          safeResponse: ({ decision }) => ({
+            error:
+              'Svar blockerades av risk/policy och skickades inte. Justera texten och forsok igen.',
+            decision,
+            ccoSendRunId,
+          }),
+          response: ({ runId, decision, inputRisk, outputRisk, policy, persisted, safeResponse }) => ({
+            send: {
+              ccoSendRunId,
+              gatewayRunId: runId,
+              sourceMailboxId,
+              senderMailboxId,
+              replyToMessageId,
+              conversationId,
+              decision,
+              mode: 'manual',
+              signatureProfile: signatureProfile.key,
+            },
+            decision,
+            riskSummary: {
+              input: inputRisk?.evaluation || null,
+              output: outputRisk?.evaluation || null,
+            },
+            policySummary: {
+              blocked: policy?.blocked === true,
+              reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [],
+            },
+            artifactRefs: persisted?.artifact_refs || null,
+            safeResponse: safeResponse || null,
+          }),
+        },
+      });
+    } catch (error) {
+      await writeAudit({
+        tenantId: normalizedTenantId,
+        actorUserId: normalizedActor.id,
+        action: 'cco.send.error',
+        outcome: 'error',
+        targetType: 'cco_send',
+        targetId: ccoSendRunId,
+        metadata: {
+          ccoSendRunId,
+          sourceMailboxId,
+          senderMailboxId,
+          signatureProfile: signatureProfile.key,
+          conversationId,
+          replyToMessageId,
+          correlationId: normalizedCorrelationId,
+          errorCode: error?.code || null,
+          errorMessage: normalizeText(error?.message) || 'cco_send_error',
+        },
+      });
+      throw error;
+    }
+
+    const blocked =
+      gatewayResult?.decision === 'blocked' ||
+      gatewayResult?.decision === 'critical_escalate';
+    await writeAudit({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: blocked ? 'cco.send.blocked' : 'cco.send.sent',
+      outcome: blocked ? 'blocked' : 'success',
+      targetType: 'cco_send',
+      targetId: ccoSendRunId,
+      metadata: {
+        ccoSendRunId,
+        sourceMailboxId,
+        senderMailboxId,
+        signatureProfile: signatureProfile.key,
+        conversationId,
+        replyToMessageId,
+        correlationId: normalizedCorrelationId,
+        decision: gatewayResult?.decision || null,
+        gatewayRunId: gatewayResult?.run_id || null,
+      },
+    });
+
+    return {
+      ccoSendRunId,
+      gatewayResult,
+    };
+  }
+
   return {
     listCapabilities,
     listAgentBundles,
     runCapability,
     runAgent,
+    runCcoSend,
   };
 }
 
