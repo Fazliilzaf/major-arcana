@@ -282,9 +282,11 @@ function buildCcoSignatureHtml({
   const websiteUrl = 'https://hairtpclinic.se';
   const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
   const facebookUrl = 'https://www.facebook.com/hairtpclinic';
-  const publicBaseUrl = normalizeText(process.env.PUBLIC_BASE_URL).replace(/\/+$/, '');
-  const logoBaseUrl = publicBaseUrl || 'https://arcana-staging.onrender.com';
-  const logoUrl = `${logoBaseUrl}/assets/hair-tp-clinic/hairtpclinic-mark.svg`;
+  const publicBaseUrl = normalizeText(
+    process.env.PUBLIC_BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL
+  ).replace(/\/+$/, '');
+  const logoBaseUrl = publicBaseUrl || 'https://arcana.hairtpclinic.se';
+  const logoUrl = `${logoBaseUrl}/assets/hair-tp-clinic/hairtpclinic-mark-light.svg`;
 
   return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-family:Arial,sans-serif;color:#2f2f33;">

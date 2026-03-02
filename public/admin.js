@@ -255,9 +255,24 @@
     return safe;
   }
 
+  const CCO_LOCKED_MAILBOX_ALLOWLIST = Object.freeze([
+    'egzona@hairtpclinic.com',
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'kvitto@hairtpclinic.com',
+    'info@hairtpclinic.com',
+    'faktura@hairtpclinic.com',
+    'jobb@hairtpclinic.com',
+    'kons@hairtpclinic.com',
+  ]);
+  const CCO_LOCKED_MAILBOX_ALLOWLIST_SET = new Set(
+    CCO_LOCKED_MAILBOX_ALLOWLIST.map((item) => String(item || '').trim().toLowerCase()).filter(Boolean)
+  );
+
   function sanitizeCcoMailboxFilter(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     if (!normalized || normalized === 'all') return 'all';
+    if (!CCO_LOCKED_MAILBOX_ALLOWLIST_SET.has(normalized)) return 'all';
     return normalized.slice(0, 320);
   }
 
@@ -1697,6 +1712,15 @@
 
     const toastTone = ['success', 'warn', 'error'].includes(tone) ? tone : 'success';
     const toastTitle = title || inferToastTitle(toastTone);
+    const duplicate = Array.from(els.toastViewport.querySelectorAll('.toast')).find((toastNode) => {
+      const nodeTone = String(toastNode.className || '').toLowerCase();
+      const nodeTitle = String(toastNode.querySelector('.toast-title')?.textContent || '').trim();
+      const nodeMessage = String(toastNode.querySelector('.toast-message')?.textContent || '').trim();
+      return nodeTone.includes(` ${toastTone}`) && nodeTitle === toastTitle && nodeMessage === text;
+    });
+    if (duplicate) {
+      removeToast(duplicate);
+    }
     const ttl = Number.isFinite(Number(durationMs)) ? Math.max(1800, Number(durationMs)) : TOAST_AUTO_DISMISS_MS;
     const toastId = `toast-${Date.now()}-${++state.toastSequence}`;
 
@@ -7779,6 +7803,16 @@
     ].join('\n');
   }
 
+  function getCcoSignatureSocialIconSvg(type = 'web') {
+    if (type === 'instagram') {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5a4.5 4.5 0 1 1 0 9a4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5Zm5.25-2.75a1.25 1.25 0 1 1 0 2.5a1.25 1.25 0 0 1 0-2.5Z"/></svg>';
+    }
+    if (type === 'facebook') {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.6 1.6-1.6h1.7V4.8c-.3 0-1.3-.1-2.4-.1c-2.4 0-4 1.4-4 4.1V11H8v3h2.9v8h2.6Z"/></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm7.9 9h-3.2a15 15 0 0 0-1.1-5A8 8 0 0 1 19.9 11ZM12 4.1c1.1 1.2 2 3.7 2.4 6.9H9.6c.4-3.2 1.3-5.7 2.4-6.9ZM4.1 13h3.2a15 15 0 0 0 1.1 5A8 8 0 0 1 4.1 13Zm0-2A8 8 0 0 1 8.4 6c-.5 1.3-.9 3-1.1 5H4.1Zm7.9 8a9 9 0 0 1-2.4-6h4.8a9 9 0 0 1-2.4 6Zm3.6-1c.5-1.3.9-3 1.1-5h3.2a8 8 0 0 1-4.3 5Z"/></svg>';
+  }
+
   function buildCcoSignaturePreviewHtml({
     profile = null,
     senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
@@ -7791,7 +7825,7 @@
     const safeTitle =
       String(resolvedProfile.title || '').trim() ||
       'Hårspecialist I Hårtransplantationer & PRP-injektioner';
-    const logoUrl = `${window.location.origin}/assets/hair-tp-clinic/hairtpclinic-mark.svg`;
+    const logoUrl = `${window.location.origin}/assets/hair-tp-clinic/hairtpclinic-mark-light.svg`;
     const websiteUrl = 'https://hairtpclinic.se';
     const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
     const facebookUrl = 'https://www.facebook.com/hairtpclinic';
@@ -7807,9 +7841,15 @@
           <div class="cco-signature-rich-line">${escapeHtml(safeSenderMailbox)}</div>
           <div class="cco-signature-rich-line">Vasaplatsen 2, 411 34 Göteborg</div>
           <div class="cco-signature-rich-links">
-            <a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noreferrer" aria-label="Webb">W</a>
-            <a href="${escapeHtml(instagramUrl)}" target="_blank" rel="noreferrer" aria-label="Instagram">IG</a>
-            <a href="${escapeHtml(facebookUrl)}" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
+            <a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noreferrer" aria-label="Webb">${getCcoSignatureSocialIconSvg(
+              'web'
+            )}</a>
+            <a href="${escapeHtml(instagramUrl)}" target="_blank" rel="noreferrer" aria-label="Instagram">${getCcoSignatureSocialIconSvg(
+              'instagram'
+            )}</a>
+            <a href="${escapeHtml(facebookUrl)}" target="_blank" rel="noreferrer" aria-label="Facebook">${getCcoSignatureSocialIconSvg(
+              'facebook'
+            )}</a>
           </div>
         </div>
       </div>
@@ -8466,18 +8506,36 @@
     return normalized || '';
   }
 
-  function resolveCcoMailboxLabel(row = null) {
-    if (!row || typeof row !== 'object') return '';
+  function isCcoAllowedMailbox(value = '') {
+    const normalized = normalizeCcoMailboxKey(value);
+    return normalized ? CCO_LOCKED_MAILBOX_ALLOWLIST_SET.has(normalized) : false;
+  }
+
+  function resolveCcoMailboxCandidates(row = null) {
+    if (!row || typeof row !== 'object') return [];
     const candidates = [
       row.mailboxAddress,
       row.userPrincipalName,
       row.mailboxId,
-    ];
+    ]
+      .map((item) => normalizeCcoMailboxKey(item))
+      .filter(Boolean);
+    return Array.from(new Set(candidates));
+  }
+
+  function resolveCcoMailboxLabel(row = null) {
+    const candidates = resolveCcoMailboxCandidates(row);
+    if (!candidates.length) return '';
     for (const candidate of candidates) {
-      const normalized = normalizeCcoMailboxKey(candidate);
-      if (normalized) return normalized;
+      if (isCcoAllowedMailbox(candidate)) return candidate;
     }
-    return 'okand-postlada';
+    return candidates[0];
+  }
+
+  function isCcoAllowedMailboxRow(row = null) {
+    const candidates = resolveCcoMailboxCandidates(row);
+    if (!candidates.length) return false;
+    return candidates.some((candidate) => isCcoAllowedMailbox(candidate));
   }
 
   function resolveCcoUnansweredThresholdHours(intent = '') {
@@ -8569,7 +8627,9 @@
 
   function getCcoFilteredConversations(rows = []) {
     const source = Array.isArray(rows) ? rows : [];
-    let filtered = source.map((row) => enrichCcoConversationRow(row));
+    let filtered = source
+      .map((row) => enrichCcoConversationRow(row))
+      .filter((row) => isCcoAllowedMailboxRow(row));
 
     const viewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
     if (viewMode === 'unanswered') {
@@ -8791,6 +8851,8 @@
     for (const row of worklist) {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId) continue;
+      const mailboxLabel = resolveCcoMailboxLabel(row);
+      if (!isCcoAllowedMailbox(mailboxLabel)) continue;
       const customerKey = String(row?.customerKey || '').trim();
       const fallbackCustomer = {
         customerKey,
@@ -8804,8 +8866,8 @@
         conversationId,
         messageId: String(row?.messageId || '').trim(),
         mailboxId: String(row?.mailboxId || '').trim(),
-        mailboxAddress: String(row?.mailboxAddress || '').trim(),
-        userPrincipalName: String(row?.userPrincipalName || '').trim(),
+        mailboxAddress: mailboxLabel,
+        userPrincipalName: mailboxLabel,
         subject: String(row?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(row?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
         latestInboundPreview: String(row?.latestInboundPreview || '').trim(),
@@ -8867,6 +8929,8 @@
     for (const draft of drafts) {
       const conversationId = String(draft?.conversationId || '').trim();
       if (!conversationId) continue;
+      const mailboxLabel = resolveCcoMailboxLabel(draft);
+      if (!isCcoAllowedMailbox(mailboxLabel)) continue;
       const customerKey = String(draft?.customerKey || '').trim();
       const fallbackCustomer = {
         customerKey,
@@ -8880,8 +8944,8 @@
         conversationId,
         messageId: String(draft?.messageId || '').trim(),
         mailboxId: String(draft?.mailboxId || '').trim(),
-        mailboxAddress: String(draft?.mailboxAddress || '').trim(),
-        userPrincipalName: String(draft?.userPrincipalName || '').trim(),
+        mailboxAddress: mailboxLabel,
+        userPrincipalName: mailboxLabel,
         subject: String(draft?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(draft?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
         latestInboundPreview: String(draft?.latestInboundPreview || '').trim(),
@@ -10039,18 +10103,20 @@
 
   function renderCcoMailboxFilterRow(rows = []) {
     if (!els.ccoInboxMailboxFilters) return;
-    const uniqueMailboxLabels = Array.from(
-      new Set(
-        (Array.isArray(rows) ? rows : [])
-          .map((row) => resolveCcoMailboxLabel(row))
-          .filter(Boolean)
-      )
-    )
-      .sort((left, right) => left.localeCompare(right))
-      .slice(0, 20);
+    const presentMailboxLabels = new Set(
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => resolveCcoMailboxLabel(row))
+        .filter((mailbox) => isCcoAllowedMailbox(mailbox))
+    );
+    const uniqueMailboxLabels = CCO_LOCKED_MAILBOX_ALLOWLIST.filter((mailbox) =>
+      presentMailboxLabels.has(mailbox)
+    );
+    const filterOptions = uniqueMailboxLabels.length
+      ? uniqueMailboxLabels
+      : CCO_LOCKED_MAILBOX_ALLOWLIST;
 
     const activeFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
-    const hasActiveFilter = activeFilter === 'all' || uniqueMailboxLabels.includes(activeFilter);
+    const hasActiveFilter = activeFilter === 'all' || filterOptions.includes(activeFilter);
     if (!hasActiveFilter) {
       state.ccoInboxMailboxFilter = 'all';
     }
@@ -10059,7 +10125,7 @@
         label: 'Alla',
         value: 'all',
       },
-      ...uniqueMailboxLabels.map((mailbox) => ({
+      ...filterOptions.map((mailbox) => ({
         label: mailbox,
         value: mailbox,
       })),
@@ -10906,8 +10972,14 @@
 
     const slaBreaches = Array.isArray(data.slaBreaches) ? data.slaBreaches.length : 0;
     const riskFlags = Array.isArray(data.riskFlags) ? data.riskFlags.length : 0;
-    const mailboxCount = Number(data.mailboxCount || 0);
-    const messageCount = Number(data.messageCount || 0);
+    const sortedRows = getSortedCcoConversations(data)
+      .map((row) => enrichCcoConversationRow(row))
+      .filter((row) => isCcoAllowedMailboxRow(row));
+    const sourceMailboxIds = Array.from(
+      new Set(sortedRows.map((row) => resolveCcoMailboxLabel(row)).filter((mailbox) => isCcoAllowedMailbox(mailbox)))
+    ).slice(0, 8);
+    const mailboxCount = sourceMailboxIds.length;
+    const messageCount = sortedRows.length;
 
     if (els.ccoInboxPriority) {
       const priorityLabel = String(normalizePriorityLevelForUi(data.priorityLevel));
@@ -10922,12 +10994,6 @@
       els.ccoInboxRiskFlags.textContent = `${slaBreaches} / ${riskFlags}`;
     }
     if (els.ccoInboxMailboxMeta) {
-      const sourceMailboxIds = Array.isArray(metadata.sourceMailboxIds)
-        ? metadata.sourceMailboxIds
-            .map((item) => String(item || '').trim())
-            .filter(Boolean)
-            .slice(0, 8)
-        : [];
       const suffix = sourceMailboxIds.length
         ? ` · ${sourceMailboxIds.join(', ')}`
         : '';
@@ -10941,7 +11007,6 @@
       els.ccoInboxSummary.textContent = String(data.executiveSummary || 'Ingen sammanfattning.');
     }
 
-    const sortedRows = getSortedCcoConversations(data).map((row) => enrichCcoConversationRow(row));
     const openRows = sortedRows.filter(
       (row) => String(row?.needsReplyStatus || '').trim() !== 'handled'
     );
