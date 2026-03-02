@@ -6,6 +6,21 @@ function trimTrailingSlash(value = '') {
   return String(value || '').replace(/\/+$/, '');
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatPlainTextAsHtml(value = '') {
+  const escaped = escapeHtml(value);
+  if (!escaped) return '';
+  return escaped.replace(/\r?\n/g, '<br />');
+}
+
 function requiredConfig(name, value) {
   const normalized = normalizeText(value);
   if (!normalized) {
@@ -196,6 +211,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
     sourceMailboxId = '',
     replyToMessageId,
     body = '',
+    bodyHtml = '',
     subject = '',
     to = [],
     timeoutMs = requestTimeoutMs,
@@ -205,6 +221,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
       normalizeText(sourceMailboxId) || normalizedSenderMailboxId;
     const normalizedMessageId = requiredConfig('replyToMessageId', replyToMessageId);
     const normalizedBody = normalizeText(body);
+    const normalizedBodyHtml = normalizeText(bodyHtml);
     const normalizedSubject = normalizeText(subject);
     const normalizedRecipients = toRecipients(to);
     if (!normalizedBody) {
@@ -243,8 +260,8 @@ function createMicrosoftGraphSendConnector(config = {}) {
           message: {
             subject: normalizedSubject || 'Uppfoljning fran Hair TP Clinic',
             body: {
-              contentType: 'Text',
-              content: normalizedBody,
+              contentType: 'HTML',
+              content: normalizedBodyHtml || formatPlainTextAsHtml(normalizedBody),
             },
             toRecipients: normalizedRecipients,
           },

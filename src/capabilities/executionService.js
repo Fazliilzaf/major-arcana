@@ -214,12 +214,12 @@ const CCO_SIGNATURE_PROFILES = Object.freeze({
   egzona: Object.freeze({
     key: 'egzona',
     fullName: 'Egzona Krasniqi',
-    title: 'Hårspecialist inom Hårtransplantationer',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
   }),
   fazli: Object.freeze({
     key: 'fazli',
     fullName: 'Fazli Krasniqi',
-    title: 'Hårspecialist inom Hårtransplantationer',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
   }),
 });
 
@@ -235,6 +235,21 @@ function removeCcoSignature(body = '') {
   return normalizedBody.replace(CCO_SIGNATURE_SPLIT_PATTERN, '').trimEnd();
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatTextAsHtml(value = '') {
+  const escaped = escapeHtml(value || '');
+  if (!escaped) return '';
+  return escaped.replace(/\r?\n/g, '<br />');
+}
+
 function buildCcoSignature({
   profile = CCO_SIGNATURE_PROFILES.egzona,
   senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
@@ -242,14 +257,54 @@ function buildCcoSignature({
   const safeProfile =
     profile && typeof profile === 'object' ? profile : CCO_SIGNATURE_PROFILES.egzona;
   const safeSenderMailbox = normalizeText(senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  const safeTitle =
+    normalizeText(safeProfile.title) || 'Hårspecialist I Hårtransplantationer & PRP-injektioner';
   return [
     'Bästa hälsningar,',
     safeProfile.fullName,
-    safeProfile.title,
-    '031-881166',
+    safeTitle,
+    '031-88 11 66',
     safeSenderMailbox,
     'Vasaplatsen 2, 411 34 Göteborg',
   ].join('\n');
+}
+
+function buildCcoSignatureHtml({
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const safeProfile =
+    profile && typeof profile === 'object' ? profile : CCO_SIGNATURE_PROFILES.egzona;
+  const safeSenderMailbox = normalizeText(senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX;
+  const safeTitle =
+    normalizeText(safeProfile.title) || 'Hårspecialist I Hårtransplantationer & PRP-injektioner';
+  const safeName = normalizeText(safeProfile.fullName) || 'Hair TP Clinic';
+  const websiteUrl = 'https://hairtpclinic.se';
+  const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
+  const facebookUrl = 'https://www.facebook.com/hairtpclinic';
+  const logoUrl = 'https://arcana-staging.onrender.com/assets/hair-tp-clinic/hairtpclinic-mark.svg';
+
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-family:Arial,sans-serif;color:#2f2f33;">
+  <tr>
+    <td style="vertical-align:top;padding-right:18px;">
+      <img src="${escapeHtml(logoUrl)}" alt="Hair TP Clinic" width="110" style="display:block;border:0;outline:none;text-decoration:none;" />
+    </td>
+    <td style="vertical-align:top;border-left:4px solid #d8d0c8;padding-left:18px;">
+      <div style="font-size:30px;line-height:1;color:#2f2f33;">Bästa hälsningar,</div>
+      <div style="margin-top:8px;font-size:32px;line-height:1.05;color:#b9a89d;font-weight:700;">${escapeHtml(safeName)}</div>
+      <div style="margin-top:8px;font-size:24px;line-height:1.2;color:#2f2f33;font-weight:700;">${escapeHtml(safeTitle)}</div>
+      <div style="margin-top:8px;font-size:22px;line-height:1.25;color:#2f2f33;">031-88 11 66</div>
+      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">${escapeHtml(safeSenderMailbox)}</div>
+      <div style="font-size:22px;line-height:1.25;color:#2f2f33;">Vasaplatsen 2, 411 34 Göteborg</div>
+      <div style="margin-top:12px;">
+        <a href="${escapeHtml(websiteUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Webb</a>
+        <a href="${escapeHtml(instagramUrl)}" style="display:inline-block;margin-right:6px;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Instagram</a>
+        <a href="${escapeHtml(facebookUrl)}" style="display:inline-block;padding:6px 10px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:12px;">Facebook</a>
+      </div>
+    </td>
+  </tr>
+</table>`.trim();
 }
 
 function applyCcoSignature({
@@ -261,6 +316,18 @@ function applyCcoSignature({
   const signature = buildCcoSignature({ profile, senderMailboxId });
   if (!withoutSignature) return signature;
   return `${withoutSignature}\n\n${signature}`;
+}
+
+function applyCcoSignatureHtml({
+  body = '',
+  profile = CCO_SIGNATURE_PROFILES.egzona,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+}) {
+  const withoutSignature = removeCcoSignature(body);
+  const signatureHtml = buildCcoSignatureHtml({ profile, senderMailboxId });
+  const bodyHtml = formatTextAsHtml(withoutSignature);
+  if (!bodyHtml) return signatureHtml;
+  return `${bodyHtml}<br /><br />${signatureHtml}`;
 }
 
 function createCapabilityExecutor({
@@ -1135,6 +1202,11 @@ function createCapabilityExecutor({
       profile: signatureProfile,
       senderMailboxId,
     });
+    const bodyWithSignatureHtml = applyCcoSignatureHtml({
+      body,
+      profile: signatureProfile,
+      senderMailboxId,
+    });
     const to = toStringArray(normalizedInput.to, 20);
 
     if (!sourceMailboxId) {
@@ -1267,6 +1339,7 @@ function createCapabilityExecutor({
               to,
               subject,
               body: bodyWithSignature,
+              bodyHtml: bodyWithSignatureHtml,
               signatureProfile: signatureProfile.key,
               confidenceLevel: 'High',
             },
@@ -1305,6 +1378,7 @@ function createCapabilityExecutor({
               sourceMailboxId,
               replyToMessageId,
               body: String(agentResult?.output?.body || ''),
+              bodyHtml: String(agentResult?.output?.bodyHtml || ''),
               subject: String(agentResult?.output?.subject || ''),
               to,
             });
@@ -1338,6 +1412,7 @@ function createCapabilityExecutor({
                 to,
                 subject: maskInboxText(subject, 180),
                 bodyPreview: maskInboxText(bodyWithSignature, 360),
+                bodyHtmlPreview: maskInboxText(bodyWithSignatureHtml, 360),
                 signatureProfile: signatureProfile.key,
               },
               output: {

@@ -7707,13 +7707,13 @@
       {
         key: 'egzona',
         fullName: 'Egzona Krasniqi',
-        title: 'Hårspecialist inom Hårtransplantationer',
+        title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
         senderMailboxId: 'egzona@hairtpclinic.com',
       },
       {
         key: 'fazli',
         fullName: 'Fazli Krasniqi',
-        title: 'Hårspecialist inom Hårtransplantationer',
+        title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
         senderMailboxId: 'fazli@hairtpclinic.com',
       },
     ];
@@ -7747,7 +7747,7 @@
     return profiles[0] || {
       key: 'egzona',
       fullName: 'Egzona Krasniqi',
-      title: 'Hårspecialist inom Hårtransplantationer',
+      title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
       senderMailboxId: 'egzona@hairtpclinic.com',
     };
   }
@@ -7766,14 +7766,54 @@
       profile && typeof profile === 'object' ? profile : getCcoSelectedSignatureProfile();
     const safeSenderMailbox =
       String(senderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
+    const safeTitle =
+      String(resolvedProfile.title || '').trim() ||
+      'Hårspecialist I Hårtransplantationer & PRP-injektioner';
     return [
       'Bästa hälsningar,',
       resolvedProfile.fullName,
-      resolvedProfile.title,
-      '031-881166',
+      safeTitle,
+      '031-88 11 66',
       safeSenderMailbox,
       'Vasaplatsen 2, 411 34 Göteborg',
     ].join('\n');
+  }
+
+  function buildCcoSignaturePreviewHtml({
+    profile = null,
+    senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX,
+  } = {}) {
+    const resolvedProfile =
+      profile && typeof profile === 'object' ? profile : getCcoSelectedSignatureProfile();
+    const safeSenderMailbox =
+      String(senderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
+    const safeName = String(resolvedProfile.fullName || '').trim() || 'Hair TP Clinic';
+    const safeTitle =
+      String(resolvedProfile.title || '').trim() ||
+      'Hårspecialist I Hårtransplantationer & PRP-injektioner';
+    const logoUrl = 'https://arcana-staging.onrender.com/assets/hair-tp-clinic/hairtpclinic-mark.svg';
+    const websiteUrl = 'https://hairtpclinic.se';
+    const instagramUrl = 'https://www.instagram.com/hairtpclinic/';
+    const facebookUrl = 'https://www.facebook.com/hairtpclinic';
+
+    return `
+      <div class="cco-signature-rich">
+        <img class="cco-signature-rich-logo" src="${escapeHtml(logoUrl)}" alt="Hair TP Clinic" />
+        <div class="cco-signature-rich-content">
+          <div class="cco-signature-rich-greeting">Bästa hälsningar,</div>
+          <div class="cco-signature-rich-name">${escapeHtml(safeName)}</div>
+          <div class="cco-signature-rich-title">${escapeHtml(safeTitle)}</div>
+          <div class="cco-signature-rich-line">031-88 11 66</div>
+          <div class="cco-signature-rich-line">${escapeHtml(safeSenderMailbox)}</div>
+          <div class="cco-signature-rich-line">Vasaplatsen 2, 411 34 Göteborg</div>
+          <div class="cco-signature-rich-links">
+            <a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noreferrer">Webb</a>
+            <a href="${escapeHtml(instagramUrl)}" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="${escapeHtml(facebookUrl)}" target="_blank" rel="noreferrer">Facebook</a>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function applyCcoSignatureToDraft({
@@ -7839,11 +7879,11 @@
 
   function renderCcoSignaturePreview() {
     if (!els.ccoSignaturePreview) return;
-    const preview = buildCcoSignatureBlock({
+    const previewHtml = buildCcoSignaturePreviewHtml({
       profile: getCcoSelectedSignatureProfile(),
       senderMailboxId: state.ccoSenderMailboxId,
     });
-    els.ccoSignaturePreview.textContent = preview;
+    els.ccoSignaturePreview.innerHTML = previewHtml;
   }
 
   function applyCurrentCcoSignatureToEditor() {
@@ -9900,6 +9940,10 @@
 
   function inferCcoDominantRisk(row = null) {
     if (!row || typeof row !== 'object') return 'neutral';
+    const explicitRisk = String(row?.dominantRisk || '').trim().toLowerCase();
+    if (['miss', 'tone', 'follow_up', 'relationship', 'neutral'].includes(explicitRisk)) {
+      return explicitRisk;
+    }
     const slaStatus = normalizeCcoSlaStatus(row?.slaStatus);
     if (slaStatus === 'breach') return 'miss';
     if (row.isUnanswered === true) return 'miss';

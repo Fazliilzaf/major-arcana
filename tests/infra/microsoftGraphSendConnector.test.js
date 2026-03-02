@@ -90,6 +90,7 @@ test('MicrosoftGraphSendConnector falls back to sendMail when sender mailbox dif
     sourceMailboxId: 'owner@hairtpclinic.se',
     replyToMessageId: 'msg-2',
     body: 'Hej! Detta skickas fran contact.',
+    bodyHtml: '<p>Hej! Detta skickas fran <strong>contact</strong>.</p>',
     subject: 'Re: Inkommande fraga',
     to: ['patient@example.com'],
   });
@@ -98,6 +99,8 @@ test('MicrosoftGraphSendConnector falls back to sendMail when sender mailbox dif
   assert.equal(String(calls[1].url).includes('/users/contact%40hairtpclinic.com/sendMail'), true);
   const payload = JSON.parse(String(calls[1].options?.body || '{}'));
   assert.equal(payload?.message?.subject, 'Re: Inkommande fraga');
+  assert.equal(payload?.message?.body?.contentType, 'HTML');
+  assert.equal(payload?.message?.body?.content.includes('<strong>contact</strong>'), true);
   assert.equal(payload?.message?.toRecipients?.[0]?.emailAddress?.address, 'patient@example.com');
   assert.equal(response.sendMode, 'send_mail');
   assert.equal(response.mailboxId, 'contact@hairtpclinic.com');

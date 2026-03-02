@@ -2381,8 +2381,65 @@
       background: #faf7f5;
       padding: 10px 12px;
       color: #5c5450;
-      white-space: pre-wrap;
+      white-space: normal;
       line-height: 1.45;
+    }
+    .cco-signature-rich {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .cco-signature-rich-logo {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: #f7f1ec;
+      border: 1px solid #e6ddd7;
+      padding: 6px;
+    }
+    .cco-signature-rich-content {
+      border-left: 3px solid #d9cec6;
+      padding-left: 12px;
+      display: grid;
+      gap: 3px;
+    }
+    .cco-signature-rich-greeting {
+      font-size: 13px;
+      color: #5f5650;
+    }
+    .cco-signature-rich-name {
+      font-size: 18px;
+      line-height: 1.15;
+      font-weight: 700;
+      color: #b5a395;
+    }
+    .cco-signature-rich-title {
+      font-size: 14px;
+      line-height: 1.2;
+      color: #2f2b28;
+      font-weight: 600;
+    }
+    .cco-signature-rich-line {
+      font-size: 13px;
+      line-height: 1.25;
+      color: #2f2b28;
+    }
+    .cco-signature-rich-links {
+      margin-top: 6px;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cco-signature-rich-links a {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      text-decoration: none;
+      background: #2f2f33;
+      color: #fff;
+      border: 1px solid #2f2f33;
     }
     .cco-draft-modes {
       display: grid;

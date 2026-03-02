@@ -98,6 +98,14 @@ test('AnalyzeInbox returns schema-valid output with max 5 suggested drafts', asy
   assert.equal(typeof output.data.conversationWorklist?.[0]?.followUpManualApprovalRequired, 'boolean');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.estimatedWorkMinutes, 'number');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.workloadBreakdown?.base, 'number');
+  assert.equal(
+    ['miss', 'tone', 'follow_up', 'relationship', 'neutral'].includes(
+      output.data.conversationWorklist?.[0]?.dominantRisk
+    ),
+    true
+  );
+  assert.equal(typeof output.data.conversationWorklist?.[0]?.riskStackScore, 'number');
+  assert.equal(typeof output.data.conversationWorklist?.[0]?.riskStackExplanation, 'string');
   assert.equal(Array.isArray(output.data.customerSummaries), true);
   const firstDraft = output.data.suggestedDrafts?.[0] || {};
   assert.equal(typeof firstDraft?.draftModes?.short, 'string');
@@ -107,6 +115,12 @@ test('AnalyzeInbox returns schema-valid output with max 5 suggested drafts', asy
   assert.equal(typeof firstDraft?.structureUsed?.acknowledgement, 'string');
   assert.equal(typeof firstDraft?.structureUsed?.coreAnswer, 'string');
   assert.equal(typeof firstDraft?.structureUsed?.cta, 'string');
+  assert.equal(
+    ['miss', 'tone', 'follow_up', 'relationship', 'neutral'].includes(firstDraft?.dominantRisk),
+    true
+  );
+  assert.equal(typeof firstDraft?.riskStackScore, 'number');
+  assert.equal(typeof firstDraft?.riskStackExplanation, 'string');
   assert.equal(output.metadata.capability, 'AnalyzeInbox');
 });
 
@@ -324,6 +338,7 @@ test('AnalyzeInbox enriches SLA monitor statuses and keeps risk-word urgency sig
     assert.equal(needsReplyTodayIds.has('conv-sla-safe'), true);
     assert.equal(needsReplyTodayIds.has('conv-riskword'), true);
     assert.equal(worklistByConversationId.get('conv-sla-breach')?.slaStatus, 'breach');
+    assert.equal(worklistByConversationId.get('conv-sla-breach')?.dominantRisk, 'miss');
     assert.equal(worklistByConversationId.get('conv-sla-warning')?.slaStatus, 'warning');
     assert.equal(worklistByConversationId.get('conv-sla-safe')?.slaStatus, 'safe');
 

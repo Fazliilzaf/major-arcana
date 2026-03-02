@@ -17,6 +17,7 @@ const { evaluateCustomerTemperature } = require('../intelligence/customerTempera
 const { evaluateTempoProfile } = require('../intelligence/tempoEngine');
 const { suggestFollowUpTiming } = require('../intelligence/timingEngine');
 const { estimateConversationWorkload } = require('../intelligence/workloadEngine');
+const { evaluateRiskStack } = require('../intelligence/riskStackEngine');
 const crypto = require('node:crypto');
 
 function normalizeText(value) {
@@ -200,13 +201,13 @@ const CCO_SIGNATURE_PROFILES = Object.freeze([
   Object.freeze({
     key: 'egzona',
     fullName: 'Egzona Krasniqi',
-    title: 'Hårspecialist inom Hårtransplantationer',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
     senderMailboxId: 'egzona@hairtpclinic.com',
   }),
   Object.freeze({
     key: 'fazli',
     fullName: 'Fazli Krasniqi',
-    title: 'Hårspecialist inom Hårtransplantationer',
+    title: 'Hårspecialist I Hårtransplantationer & PRP-injektioner',
     senderMailboxId: 'fazli@hairtpclinic.com',
   }),
 ]);
@@ -933,6 +934,9 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'followUpManualApprovalRequired',
                 'estimatedWorkMinutes',
                 'workloadBreakdown',
+                'dominantRisk',
+                'riskStackScore',
+                'riskStackExplanation',
                 'recommendedAction',
                 'escalationRequired',
                 'needsReplyStatus',
@@ -1074,6 +1078,12 @@ class AnalyzeInboxCapability extends BaseCapability {
                     lengthAdjustment: { type: 'number' },
                   },
                 },
+                dominantRisk: {
+                  type: 'string',
+                  enum: ['miss', 'tone', 'follow_up', 'relationship', 'neutral'],
+                },
+                riskStackScore: { type: 'number', minimum: 0, maximum: 1 },
+                riskStackExplanation: { type: 'string', minLength: 1, maxLength: 200 },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
@@ -1149,6 +1159,9 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'followUpManualApprovalRequired',
                 'estimatedWorkMinutes',
                 'workloadBreakdown',
+                'dominantRisk',
+                'riskStackScore',
+                'riskStackExplanation',
                 'recommendedAction',
                 'escalationRequired',
                 'draftModes',
@@ -1293,6 +1306,12 @@ class AnalyzeInboxCapability extends BaseCapability {
                     lengthAdjustment: { type: 'number' },
                   },
                 },
+                dominantRisk: {
+                  type: 'string',
+                  enum: ['miss', 'tone', 'follow_up', 'relationship', 'neutral'],
+                },
+                riskStackScore: { type: 'number', minimum: 0, maximum: 1 },
+                riskStackExplanation: { type: 'string', minLength: 1, maxLength: 200 },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
                 draftModes: {
@@ -1551,7 +1570,6 @@ class AnalyzeInboxCapability extends BaseCapability {
         priorityInfo.priorityLevel === 'Critical' ||
         intent === 'complaint' ||
         flags.some((item) => severityWeight(item.severity) >= 4);
-      const recommendedAction = INTENT_ACTIONS[intent] || INTENT_ACTIONS.unclear;
       const sender = normalizeText(conversation.sender || inbound.sender) || 'okänd avsändare';
       const lastInboundAtIso = toIso(conversation.lastInboundAt || inbound.sentAt);
       const lastOutboundAtIso = toIso(conversation.lastOutboundAt || outbound.sentAt);
@@ -1652,6 +1670,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       });
       customerSummariesByKey.set(customerSummary.customerKey, customerSummary);
       const workloadWarmth = resolveWorkloadWarmth(customerSummary);
+      const relationshipStatus = workloadWarmth;
       const messageLength = Math.max(
         0,
         toNumber(inbound.bodyLength, normalizeText(inboundPreview).length)
@@ -1663,6 +1682,28 @@ class AnalyzeInboxCapability extends BaseCapability {
         warmth: workloadWarmth,
         messageLength,
       });
+      const riskStack = evaluateRiskStack({
+        isUnanswered,
+        slaStatus,
+        hoursSinceInbound,
+        unansweredThresholdHours,
+        tone,
+        toneConfidence,
+        followUpSuggested,
+        stagnated,
+        lifecycleState: lifecycleInfo.lifecycleStatus,
+        relationshipStatus,
+        interactionCount: customerSummary.interactionCount,
+        intent,
+      });
+      const dominantRisk = normalizeText(riskStack.dominantRisk) || 'neutral';
+      const riskStackScore = clamp(toNumber(riskStack.weightedScore, 0), 0, 1, 0);
+      const riskStackExplanation =
+        normalizeText(riskStack.explanation) || 'Ingen dominant förhöjd risk identifierad.';
+      const recommendedAction =
+        normalizeText(riskStack.recommendedAction) ||
+        INTENT_ACTIONS[intent] ||
+        INTENT_ACTIONS.unclear;
       const isSlaBreached = slaStatus === 'breach';
       const lastInboundMs = toTimestampMs(lastInboundAtIso);
       const slaDeadlineIso =
@@ -1801,6 +1842,9 @@ class AnalyzeInboxCapability extends BaseCapability {
         followUpManualApprovalRequired: timingSuggestion.manualApprovalRequired !== false,
         estimatedWorkMinutes: workload.estimatedMinutes,
         workloadBreakdown: asObject(workload.breakdown),
+        dominantRisk,
+        riskStackScore,
+        riskStackExplanation,
         recommendedAction,
         escalationRequired,
         needsReplyStatus,
@@ -1845,6 +1889,9 @@ class AnalyzeInboxCapability extends BaseCapability {
           followUpManualApprovalRequired: workItem.followUpManualApprovalRequired,
           estimatedWorkMinutes: workItem.estimatedWorkMinutes,
           workloadBreakdown: workItem.workloadBreakdown,
+          dominantRisk: workItem.dominantRisk,
+          riskStackScore: workItem.riskStackScore,
+          riskStackExplanation: workItem.riskStackExplanation,
           recommendedAction: workItem.recommendedAction,
           escalationRequired: workItem.escalationRequired,
           needsReplyStatus: workItem.needsReplyStatus,
@@ -1924,6 +1971,9 @@ class AnalyzeInboxCapability extends BaseCapability {
         followUpManualApprovalRequired: item.followUpManualApprovalRequired,
         estimatedWorkMinutes: item.estimatedWorkMinutes,
         workloadBreakdown: item.workloadBreakdown,
+        dominantRisk: item.dominantRisk,
+        riskStackScore: item.riskStackScore,
+        riskStackExplanation: item.riskStackExplanation,
         recommendedAction: item.recommendedAction,
         escalationRequired: item.escalationRequired,
         draftModes: draftComposition.draftModes,

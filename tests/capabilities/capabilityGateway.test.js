@@ -1038,7 +1038,7 @@ test('capabilities router fails fast when Graph read is enabled without required
           capabilityAnalysisStore: null,
           templateStore: null,
         }),
-      /ARCANA_GRAPH_READ_ENABLED=true requires: ARCANA_GRAPH_TENANT_ID, ARCANA_GRAPH_CLIENT_ID, ARCANA_GRAPH_CLIENT_SECRET, ARCANA_GRAPH_USER_ID\./
+      /ARCANA_GRAPH_READ_ENABLED=true requires: ARCANA_GRAPH_TENANT_ID, ARCANA_GRAPH_CLIENT_ID, ARCANA_GRAPH_CLIENT_SECRET\./
     );
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
@@ -1109,7 +1109,7 @@ test('capabilities router allows Graph full-tenant mode without ARCANA_GRAPH_USE
   }
 });
 
-test('AnalyzeInbox uses ARCANA_GRAPH_SEND_ALLOWLIST as Graph read allowlist fallback', async () => {
+test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_ALLOWLIST is missing', async () => {
   const previousEnv = {
     ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
     ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
@@ -1202,12 +1202,24 @@ test('AnalyzeInbox uses ARCANA_GRAPH_SEND_ALLOWLIST as Graph read allowlist fall
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
     assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
     ]);
     assert.deepEqual(graphCalls[0].mailboxIds, [
+      'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
     ]);
     assert.deepEqual(graphCalls[0].mailboxIndexes, []);
 
@@ -1219,8 +1231,14 @@ test('AnalyzeInbox uses ARCANA_GRAPH_SEND_ALLOWLIST as Graph read allowlist fall
     assert.equal(Boolean(readStartEvent), true);
     assert.equal(readStartEvent.metadata.allowlistMode, true);
     assert.deepEqual(readStartEvent.metadata.allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
     ]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
@@ -1230,7 +1248,7 @@ test('AnalyzeInbox uses ARCANA_GRAPH_SEND_ALLOWLIST as Graph read allowlist fall
   }
 });
 
-test('AnalyzeInbox ignores wildcard-only ARCANA_GRAPH_SEND_ALLOWLIST for Graph read fallback', async () => {
+test('AnalyzeInbox still uses locked default Graph read allowlist when send allowlist is wildcard-only', async () => {
   const previousEnv = {
     ARCANA_GRAPH_READ_ENABLED: process.env.ARCANA_GRAPH_READ_ENABLED,
     ARCANA_GRAPH_FULL_TENANT: process.env.ARCANA_GRAPH_FULL_TENANT,
@@ -1318,11 +1336,29 @@ test('AnalyzeInbox ignores wildcard-only ARCANA_GRAPH_SEND_ALLOWLIST for Graph r
     });
 
     assert.equal(graphCalls.length, 1);
-    assert.equal(graphCalls[0].allowlistMode, false);
-    assert.equal(graphCalls[0].fullTenant, false);
-    assert.equal(graphCalls[0].userScope, 'single');
-    assert.deepEqual(graphCalls[0].allowlistMailboxIds, []);
-    assert.deepEqual(graphCalls[0].mailboxIds, []);
+    assert.equal(graphCalls[0].allowlistMode, true);
+    assert.equal(graphCalls[0].fullTenant, true);
+    assert.equal(graphCalls[0].userScope, 'all');
+    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [
+      'egzona@hairtpclinic.com',
+      'contact@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'kvitto@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'faktura@hairtpclinic.com',
+      'jobb@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+    ]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
       if (value === undefined) delete process.env[key];

@@ -98,6 +98,14 @@ function normalizeFollowUpUrgencyLevel(value = '') {
   return 'normal';
 }
 
+function normalizeDominantRisk(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (['miss', 'tone', 'follow_up', 'relationship', 'neutral'].includes(normalized)) {
+    return normalized;
+  }
+  return 'neutral';
+}
+
 function normalizeOptionalNumber(value, fallback = 0) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -378,6 +386,16 @@ function normalizeConversationWorkItem(item = {}) {
   }
   if (safe.workloadBreakdown && typeof safe.workloadBreakdown === 'object' && !Array.isArray(safe.workloadBreakdown)) {
     normalized.workloadBreakdown = normalizeWorkloadBreakdown(safe.workloadBreakdown);
+  }
+  if (safe.dominantRisk !== undefined) {
+    normalized.dominantRisk = normalizeDominantRisk(safe.dominantRisk);
+  }
+  if (safe.riskStackScore !== undefined) {
+    normalized.riskStackScore = toIntentConfidence(safe.riskStackScore, 0);
+  }
+  const riskStackExplanation = normalizeText(safe.riskStackExplanation);
+  if (riskStackExplanation) {
+    normalized.riskStackExplanation = riskStackExplanation;
   }
 
   const relationshipStatus = normalizeText(safe.relationshipStatus);

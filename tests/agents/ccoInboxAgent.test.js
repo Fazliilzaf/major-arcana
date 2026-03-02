@@ -65,6 +65,9 @@ function makeDraft(index) {
       warmthAdjustment: 0,
       lengthAdjustment: 1,
     },
+    dominantRisk: 'tone',
+    riskStackScore: 0.74,
+    riskStackExplanation: 'Kundtonen är anxious och kräver anpassat bemötande.',
     recommendedAction: 'Be om mer info',
     escalationRequired: false,
     draftModes: {
@@ -125,11 +128,15 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
   assert.equal(output.data.conversationWorklist?.[0]?.tempoProfile, 'responsive');
   assert.equal(output.data.conversationWorklist?.[0]?.ctaIntensity, 'direct');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.workloadBreakdown?.base, 'number');
+  assert.equal(output.data.conversationWorklist?.[0]?.dominantRisk, 'tone');
+  assert.equal(output.data.conversationWorklist?.[0]?.riskStackScore, 0.74);
+  assert.equal(typeof output.data.conversationWorklist?.[0]?.riskStackExplanation, 'string');
   assert.equal(output.data.suggestedDrafts?.[0]?.recommendedMode, 'warm');
   assert.equal(typeof output.data.suggestedDrafts?.[0]?.draftModes?.short, 'string');
   assert.equal(typeof output.data.suggestedDrafts?.[0]?.structureUsed?.cta, 'string');
   assert.equal(typeof output.data.suggestedDrafts?.[0]?.customerSummary?.customerName, 'string');
   assert.equal(output.data.suggestedDrafts?.[0]?.tempoProfile, 'responsive');
+  assert.equal(output.data.suggestedDrafts?.[0]?.dominantRisk, 'tone');
 });
 
 test('CCO inbox analysis compose clamps draft list to max 5', () => {

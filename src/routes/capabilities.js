@@ -37,6 +37,16 @@ const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'ARCHIVED',
 ]);
 const ccoLifecycleTrackerByTenant = new Map();
+const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
+  'egzona@hairtpclinic.com',
+  'contact@hairtpclinic.com',
+  'fazli@hairtpclinic.com',
+  'kvitto@hairtpclinic.com',
+  'info@hairtpclinic.com',
+  'faktura@hairtpclinic.com',
+  'jobb@hairtpclinic.com',
+  'kons@hairtpclinic.com',
+]);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -467,11 +477,12 @@ function parseMailboxIds(rawValue = '', maxItems = 200) {
 function resolveGraphReadAllowlistMailboxIds(maxItems = 500) {
   const explicitAllowlist = parseMailboxIds(process.env.ARCANA_MAILBOX_ALLOWLIST, maxItems);
   if (explicitAllowlist.length > 0) return explicitAllowlist;
-  // Fallback: when read allowlist is not set, reuse Graph send allowlist as safe mailbox scope.
-  const sendAllowlist = parseMailboxIds(process.env.ARCANA_GRAPH_SEND_ALLOWLIST, maxItems).filter(
-    (mailboxId) => mailboxId.includes('@')
+  const configuredDefaultAllowlist = parseMailboxIds(
+    process.env.ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST,
+    maxItems
   );
-  return sendAllowlist;
+  if (configuredDefaultAllowlist.length > 0) return configuredDefaultAllowlist;
+  return CCO_GRAPH_READ_DEFAULT_ALLOWLIST.slice(0, maxItems);
 }
 
 function mergeUniqueMailboxIds(...collections) {
