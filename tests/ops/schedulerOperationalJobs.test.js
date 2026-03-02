@@ -25,6 +25,9 @@ function buildBaseConfig(tmpDir) {
     schedulerSecretRotationDryRun: true,
     schedulerSecretRotationNote: 'Scheduled secret rotation snapshot',
     schedulerAlertProbeIntervalMinutes: 15,
+    schedulerStrategicWeeklyIntervalHours: 168,
+    schedulerStrategicMonthlyIntervalHours: 720,
+    schedulerStrategicForwardIntervalHours: 24,
     schedulerIncidentAutoAssignOwnerEnabled: true,
     schedulerIncidentAutoAssignOwnerLimit: 50,
     schedulerIncidentAutoEscalationEnabled: true,
@@ -648,6 +651,110 @@ test('scheduler release_governance_review alerts on enforced post-launch stabili
           'release.governance.post_launch_stabilization_incomplete'
       )
     );
+  } finally {
+    if (scheduler && typeof scheduler.stop === 'function') {
+      await scheduler.stop();
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('scheduler strategic snapshot jobs persist weekly/monthly/forward intelligence snapshots', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-strategic-scheduler-jobs-'));
+  let scheduler = null;
+
+  try {
+    const config = buildBaseConfig(tmpDir);
+    const appendedEntries = [];
+    const capabilityAnalysisStore = {
+      async list({ capabilityName }) {
+        if (String(capabilityName || '') !== 'CCO.InboxAnalysis') return [];
+        return [
+          {
+            id: 'cco-analysis-1',
+            capabilityRunId: 'cap-run-1',
+            output: {
+              data: {
+                conversationWorklist: [
+                  {
+                    conversationId: 'conv-1',
+                    priorityLevel: 'High',
+                    intent: 'booking_request',
+                    tone: 'anxious',
+                    needsReplyStatus: 'needs_reply',
+                    hoursSinceInbound: 9,
+                    engagementScore: 0.66,
+                    lastInboundAt: '2026-03-01T08:00:00.000Z',
+                    lastOutboundAt: null,
+                    riskWords: ['oro'],
+                  },
+                ],
+                usageAnalytics: {
+                  avgResponseTimeHours: 8.2,
+                  ccoUsageRate: 0.81,
+                  systemRecommendationFollowRate: 0.64,
+                },
+                focusContext: {
+                  isActive: false,
+                  primaryDrivers: [],
+                  severity: 'low',
+                },
+                strategicFlags: [],
+              },
+            },
+          },
+        ];
+      },
+      async append(entry) {
+        appendedEntries.push(entry);
+        return { id: `snapshot-${appendedEntries.length}` };
+      },
+    };
+
+    scheduler = createScheduler({
+      config,
+      authStore: createBaseAuthStore(),
+      templateStore: createBaseTemplateStore(),
+      capabilityAnalysisStore,
+      logger: {
+        log() {},
+        error() {},
+      },
+    });
+
+    const weeklyRun = await scheduler.runJob('strategic_weekly_brief', {
+      trigger: 'manual',
+      tenantId: 'tenant-a',
+      actorUserId: 'owner-1',
+    });
+    const monthlyRun = await scheduler.runJob('strategic_monthly_risk', {
+      trigger: 'manual',
+      tenantId: 'tenant-a',
+      actorUserId: 'owner-1',
+    });
+    const forwardRun = await scheduler.runJob('strategic_forward_outlook', {
+      trigger: 'manual',
+      tenantId: 'tenant-a',
+      actorUserId: 'owner-1',
+    });
+
+    assert.equal(weeklyRun.ok, true);
+    assert.equal(monthlyRun.ok, true);
+    assert.equal(forwardRun.ok, true);
+    assert.equal(weeklyRun.result.skipped, false);
+    assert.equal(monthlyRun.result.skipped, false);
+    assert.equal(forwardRun.result.skipped, false);
+    assert.equal(appendedEntries.length, 3);
+    const modes = appendedEntries.map((entry) => String(entry?.metadata?.mode || '').trim());
+    assert.deepEqual(modes, ['weekly', 'monthly', 'forward']);
+    appendedEntries.forEach((entry) => {
+      assert.equal(entry?.capability?.name, 'Strategic.IntelligenceSnapshot');
+      assert.equal(typeof entry?.output?.data?.weeklyBrief, 'object');
+      assert.equal(typeof entry?.output?.data?.monthlyRisk, 'object');
+      assert.equal(typeof entry?.output?.data?.scenarioSimulation, 'object');
+      assert.equal(typeof entry?.output?.data?.businessThreats, 'object');
+      assert.equal(typeof entry?.output?.data?.forwardOutlook, 'object');
+    });
   } finally {
     if (scheduler && typeof scheduler.stop === 'function') {
       await scheduler.stop();

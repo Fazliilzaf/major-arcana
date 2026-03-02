@@ -511,6 +511,11 @@
     ccoRedFlagState: null,
     ccoAdaptiveFocusState: null,
     ccoRecoveryState: null,
+    ccoWeeklyBrief: null,
+    ccoMonthlyRisk: null,
+    ccoScenarioSimulation: null,
+    ccoBusinessThreats: null,
+    ccoForwardOutlook: null,
     ccoAdaptiveFocusShowAll: false,
     ccoFocusWorkloadMinutes: 0,
     ccoCustomerSummaryExpanded: false,
@@ -543,6 +548,7 @@
     dashboardStreamRunId: 0,
     dashboardRealtimeRefreshTimer: null,
     monitorDetailsVisible: false,
+    authActionInFlight: false,
   };
 
   if (state.ccoInboxViewMode === 'unanswered' && state.ccoInboxSlaFilter === 'all') {
@@ -639,6 +645,7 @@
     openCcoWorkspaceBtn: document.getElementById('openCcoWorkspaceBtn'),
     ccoWorkspaceEntryStatus: document.getElementById('ccoWorkspaceEntryStatus'),
     ccoOverviewSummaryList: document.getElementById('ccoOverviewSummaryList'),
+    ccoOverviewStrategicList: document.getElementById('ccoOverviewStrategicList'),
     categoryBadges: document.getElementById('categoryBadges'),
     riskBadges: document.getElementById('riskBadges'),
     riskQueueSummary: document.getElementById('riskQueueSummary'),
@@ -838,6 +845,7 @@
     ccoSprintFeedback: document.getElementById('ccoSprintFeedback'),
     ccoRedFlagBanner: document.getElementById('ccoRedFlagBanner'),
     ccoPerformancePanel: document.getElementById('ccoPerformancePanel'),
+    ccoStrategicPanel: document.getElementById('ccoStrategicPanel'),
     fetchCalibrationSuggestionBtn: document.getElementById('fetchCalibrationSuggestionBtn'),
     applyCalibrationSuggestionBtn: document.getElementById('applyCalibrationSuggestionBtn'),
     calibrationNoteInput: document.getElementById('calibrationNoteInput'),
@@ -8063,6 +8071,36 @@
         typeof state.ccoSprintMetrics.recoveryState === 'object'
           ? state.ccoSprintMetrics.recoveryState
           : null;
+      state.ccoWeeklyBrief =
+        state.ccoSprintMetrics?.weeklyBrief &&
+        typeof state.ccoSprintMetrics.weeklyBrief === 'object' &&
+        !Array.isArray(state.ccoSprintMetrics.weeklyBrief)
+          ? state.ccoSprintMetrics.weeklyBrief
+          : null;
+      state.ccoMonthlyRisk =
+        state.ccoSprintMetrics?.monthlyRisk &&
+        typeof state.ccoSprintMetrics.monthlyRisk === 'object' &&
+        !Array.isArray(state.ccoSprintMetrics.monthlyRisk)
+          ? state.ccoSprintMetrics.monthlyRisk
+          : null;
+      state.ccoScenarioSimulation =
+        state.ccoSprintMetrics?.scenarioSimulation &&
+        typeof state.ccoSprintMetrics.scenarioSimulation === 'object' &&
+        !Array.isArray(state.ccoSprintMetrics.scenarioSimulation)
+          ? state.ccoSprintMetrics.scenarioSimulation
+          : null;
+      state.ccoBusinessThreats =
+        state.ccoSprintMetrics?.businessThreats &&
+        typeof state.ccoSprintMetrics.businessThreats === 'object' &&
+        !Array.isArray(state.ccoSprintMetrics.businessThreats)
+          ? state.ccoSprintMetrics.businessThreats
+          : null;
+      state.ccoForwardOutlook =
+        state.ccoSprintMetrics?.forwardOutlook &&
+        typeof state.ccoSprintMetrics.forwardOutlook === 'object' &&
+        !Array.isArray(state.ccoSprintMetrics.forwardOutlook)
+          ? state.ccoSprintMetrics.forwardOutlook
+          : null;
       const currentFocusActive = state.ccoAdaptiveFocusState?.isActive === true;
       if (!currentFocusActive) {
         state.ccoAdaptiveFocusShowAll = false;
@@ -9293,6 +9331,26 @@
       state.ccoRecoveryState && typeof state.ccoRecoveryState === 'object'
         ? state.ccoRecoveryState
         : null;
+    const weeklyBrief =
+      state.ccoWeeklyBrief && typeof state.ccoWeeklyBrief === 'object'
+        ? state.ccoWeeklyBrief
+        : null;
+    const monthlyRisk =
+      state.ccoMonthlyRisk && typeof state.ccoMonthlyRisk === 'object'
+        ? state.ccoMonthlyRisk
+        : null;
+    const scenarioSimulation =
+      state.ccoScenarioSimulation && typeof state.ccoScenarioSimulation === 'object'
+        ? state.ccoScenarioSimulation
+        : null;
+    const businessThreats =
+      state.ccoBusinessThreats && typeof state.ccoBusinessThreats === 'object'
+        ? state.ccoBusinessThreats
+        : null;
+    const forwardOutlook =
+      state.ccoForwardOutlook && typeof state.ccoForwardOutlook === 'object'
+        ? state.ccoForwardOutlook
+        : null;
     const adaptiveFocusActive = adaptiveFocusState?.isActive === true;
     const openMap = new Map(
       safeOpenRows.map((row) => [String(row?.conversationId || '').trim(), row])
@@ -9458,6 +9516,85 @@
       } else {
         els.ccoPerformancePanel.innerHTML = '';
         els.ccoPerformancePanel.classList.remove('visible');
+      }
+    }
+
+    if (els.ccoStrategicPanel) {
+      const cards = [];
+
+      if (weeklyBrief) {
+        const modeLabel = String(weeklyBrief.mode || '').trim().toLowerCase() === 'focus' ? 'Focus Weekly' : 'Weekly';
+        const headline = String(weeklyBrief.headline || '').trim() || 'Ingen veckosammanfattning tillgänglig.';
+        cards.push(`
+          <article class="cco-strategic-card">
+            <div class="cco-strategic-card-title">${escapeHtml(modeLabel)}</div>
+            <div class="cco-strategic-card-value">${escapeHtml(headline)}</div>
+            <div class="cco-strategic-card-sub">${escapeHtml(
+              (Array.isArray(weeklyBrief.recommendations) ? weeklyBrief.recommendations[0] : '') || 'Ingen rekommendation.'
+            )}</div>
+          </article>
+        `);
+      }
+
+      if (monthlyRisk) {
+        const riskBand = String(monthlyRisk.riskBand || 'low').trim().toUpperCase();
+        const riskIndex = Number(monthlyRisk.riskIndex || 0);
+        cards.push(`
+          <article class="cco-strategic-card">
+            <div class="cco-strategic-card-title">Månadsrisk</div>
+            <div class="cco-strategic-card-value">${escapeHtml(riskBand)} (${escapeHtml(riskIndex.toFixed(2))})</div>
+            <div class="cco-strategic-card-sub">${escapeHtml(
+              (Array.isArray(monthlyRisk.dominantDrivers) ? monthlyRisk.dominantDrivers.join(', ') : '') || 'Inga dominerande drivare.'
+            )}</div>
+          </article>
+        `);
+      }
+
+      if (scenarioSimulation) {
+        const worstCase = scenarioSimulation.worstCase || null;
+        const scenarioLabel = String(worstCase?.label || '').trim() || 'Ingen scenarioavvikelse.';
+        const healthDelta = Number(worstCase?.delta?.healthScore || 0);
+        cards.push(`
+          <article class="cco-strategic-card">
+            <div class="cco-strategic-card-title">Scenario</div>
+            <div class="cco-strategic-card-value">${escapeHtml(scenarioLabel)}</div>
+            <div class="cco-strategic-card-sub">${escapeHtml(`Health delta: ${healthDelta > 0 ? '+' : ''}${healthDelta}`)}</div>
+          </article>
+        `);
+      }
+
+      if (businessThreats) {
+        const topThreat = Array.isArray(businessThreats.threats) ? businessThreats.threats[0] : null;
+        const title = String(topThreat?.title || '').trim() || 'Inga affärshot identifierade.';
+        const severity = String(topThreat?.severity || 'none').trim().toLowerCase();
+        cards.push(`
+          <article class="cco-strategic-card">
+            <div class="cco-strategic-card-title">Strategisk signal</div>
+            <div class="cco-strategic-card-value">${escapeHtml(title)}</div>
+            <div class="cco-strategic-card-sub">${escapeHtml(`Allvarlighetsgrad: ${severity || 'none'}`)}</div>
+          </article>
+        `);
+      }
+
+      if (forwardOutlook) {
+        const riskSummary = String(forwardOutlook?.riskForecast?.summary || '').trim();
+        const volatility = Number(forwardOutlook?.volatilityIndex || 0);
+        const confidence = Number(forwardOutlook?.confidenceScore || 0);
+        cards.push(`
+          <article class="cco-strategic-card">
+            <div class="cco-strategic-card-title">7-dagars outlook</div>
+            <div class="cco-strategic-card-value">${escapeHtml(riskSummary || 'Ingen prognos tillgänglig.')}</div>
+            <div class="cco-strategic-card-sub">${escapeHtml(`Volatilitet ${volatility.toFixed(2)} · Confidence ${Math.round(confidence * 100)}%`)}</div>
+          </article>
+        `);
+      }
+
+      if (cards.length) {
+        els.ccoStrategicPanel.innerHTML = cards.join('');
+        els.ccoStrategicPanel.classList.add('visible');
+      } else {
+        els.ccoStrategicPanel.innerHTML = '';
+        els.ccoStrategicPanel.classList.remove('visible');
       }
     }
 
@@ -10901,6 +11038,11 @@
       state.ccoRedFlagState = null;
       state.ccoAdaptiveFocusState = null;
       state.ccoRecoveryState = null;
+      state.ccoWeeklyBrief = null;
+      state.ccoMonthlyRisk = null;
+      state.ccoScenarioSimulation = null;
+      state.ccoBusinessThreats = null;
+      state.ccoForwardOutlook = null;
       state.ccoAdaptiveFocusShowAll = false;
       state.ccoFocusWorkloadMinutes = 0;
       if (els.ccoInboxPriority) {
@@ -10938,6 +11080,11 @@
         els.ccoOverviewSummaryList,
         [],
         'Ingen CCO-data än.'
+      );
+      renderIncidentIntelligenceList(
+        els.ccoOverviewStrategicList,
+        [],
+        'Ingen strategisk snapshot än.'
       );
       if (els.ccoSendStatus) els.ccoSendStatus.textContent = '';
       renderCcoSprintPanel([], []);
@@ -11009,6 +11156,98 @@
       els.ccoOverviewSummaryList,
       overviewSummaryRows,
       'Inga öppna CCO-konversationer.'
+    );
+    const weeklyBriefData =
+      state.ccoWeeklyBrief && typeof state.ccoWeeklyBrief === 'object' && !Array.isArray(state.ccoWeeklyBrief)
+        ? state.ccoWeeklyBrief
+        : data.weeklyBrief && typeof data.weeklyBrief === 'object' && !Array.isArray(data.weeklyBrief)
+          ? data.weeklyBrief
+          : null;
+    const monthlyRiskData =
+      state.ccoMonthlyRisk && typeof state.ccoMonthlyRisk === 'object' && !Array.isArray(state.ccoMonthlyRisk)
+        ? state.ccoMonthlyRisk
+        : data.monthlyRisk && typeof data.monthlyRisk === 'object' && !Array.isArray(data.monthlyRisk)
+          ? data.monthlyRisk
+          : null;
+    const scenarioSimulationData =
+      state.ccoScenarioSimulation &&
+      typeof state.ccoScenarioSimulation === 'object' &&
+      !Array.isArray(state.ccoScenarioSimulation)
+        ? state.ccoScenarioSimulation
+        : data.scenarioSimulation &&
+            typeof data.scenarioSimulation === 'object' &&
+            !Array.isArray(data.scenarioSimulation)
+          ? data.scenarioSimulation
+          : null;
+    const businessThreatsData =
+      state.ccoBusinessThreats &&
+      typeof state.ccoBusinessThreats === 'object' &&
+      !Array.isArray(state.ccoBusinessThreats)
+        ? state.ccoBusinessThreats
+        : data.businessThreats &&
+            typeof data.businessThreats === 'object' &&
+            !Array.isArray(data.businessThreats)
+          ? data.businessThreats
+          : null;
+    const forwardOutlookData =
+      state.ccoForwardOutlook &&
+      typeof state.ccoForwardOutlook === 'object' &&
+      !Array.isArray(state.ccoForwardOutlook)
+        ? state.ccoForwardOutlook
+        : data.forwardOutlook &&
+            typeof data.forwardOutlook === 'object' &&
+            !Array.isArray(data.forwardOutlook)
+          ? data.forwardOutlook
+          : null;
+    const strategicSummaryRows = [];
+    if (weeklyBriefData) {
+      const modeLabel =
+        String(weeklyBriefData.mode || '').trim().toLowerCase() === 'focus' ? 'Focus Weekly' : 'Weekly';
+      const headline = String(weeklyBriefData.headline || '').trim() || 'Ingen veckosammanfattning.';
+      strategicSummaryRows.push(`${modeLabel} · ${headline}`);
+    }
+    if (monthlyRiskData) {
+      const riskBand = String(monthlyRiskData.riskBand || 'low').trim().toUpperCase();
+      const riskIndex = Number(monthlyRiskData.riskIndex || 0);
+      const normalizedRiskIndex = Number.isFinite(riskIndex) ? Math.round(riskIndex * 100) / 100 : 0;
+      strategicSummaryRows.push(`Månadsrisk · ${riskBand} · index ${normalizedRiskIndex}`);
+    }
+    if (scenarioSimulationData) {
+      const worstCase =
+        scenarioSimulationData.worstCase && typeof scenarioSimulationData.worstCase === 'object'
+          ? scenarioSimulationData.worstCase
+          : null;
+      if (worstCase) {
+        const scenarioLabel = String(worstCase.label || worstCase.id || 'Scenario').trim();
+        const delta = Number(worstCase.predictedHealthDelta || 0);
+        const safeDelta = Number.isFinite(delta) ? Math.round(delta * 10) / 10 : 0;
+        strategicSummaryRows.push(`Scenario · ${scenarioLabel} · Δ ${safeDelta}`);
+      }
+    }
+    if (businessThreatsData) {
+      const topThreat = Array.isArray(businessThreatsData.threats) ? businessThreatsData.threats[0] : null;
+      if (topThreat && typeof topThreat === 'object') {
+        const title = String(topThreat.title || '').trim() || 'Inget dominerande hot';
+        const severity = String(topThreat.severity || businessThreatsData.highestSeverity || 'none')
+          .trim()
+          .toLowerCase();
+        strategicSummaryRows.push(`Threat · ${title} · ${severity}`);
+      }
+    }
+    if (forwardOutlookData) {
+      const riskSummary = String(forwardOutlookData?.riskForecast?.summary || '').trim();
+      const volatility = Number(forwardOutlookData?.volatilityIndex || 0);
+      const confidence = Number(forwardOutlookData?.confidenceScore || 0);
+      const safeVolatility = Number.isFinite(volatility) ? Math.round(volatility * 100) / 100 : 0;
+      const safeConfidence = Number.isFinite(confidence) ? Math.round(confidence * 100) / 100 : 0;
+      strategicSummaryRows.push(
+        `Forward 7d · ${riskSummary || 'Ingen riskprognos'} · vol ${safeVolatility} · conf ${safeConfidence}`
+      );
+    }
+    renderIncidentIntelligenceList(
+      els.ccoOverviewStrategicList,
+      strategicSummaryRows.slice(0, 5),
+      'Ingen strategisk snapshot än.'
     );
     const plannedRows = buildCcoSprintQueueRows(unansweredRows);
     syncCcoSprintState(unansweredRows, plannedRows);
@@ -12754,6 +12993,11 @@
   }
 
   async function handleLogin() {
+    if (state.authActionInFlight) return;
+    state.authActionInFlight = true;
+    if (els.loginBtn) els.loginBtn.disabled = true;
+    if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = true;
+    if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = true;
     try {
       setStatus(els.loginStatus, 'Loggar in...');
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
@@ -12801,10 +13045,20 @@
       await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Inloggning misslyckades.', true);
+    } finally {
+      state.authActionInFlight = false;
+      if (els.loginBtn) els.loginBtn.disabled = false;
+      if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = false;
+      if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = false;
     }
   }
 
   async function verifyMfa() {
+    if (state.authActionInFlight) return;
+    state.authActionInFlight = true;
+    if (els.loginBtn) els.loginBtn.disabled = true;
+    if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = true;
+    if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = true;
     try {
       const mfaTicket = String(state.pendingMfaTicket || '').trim();
       const code = String(els.mfaCodeInput?.value || '').trim();
@@ -12846,10 +13100,20 @@
       await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'MFA-verifiering misslyckades.', true);
+    } finally {
+      state.authActionInFlight = false;
+      if (els.loginBtn) els.loginBtn.disabled = false;
+      if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = false;
+      if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = false;
     }
   }
 
   async function completeTenantSelection() {
+    if (state.authActionInFlight) return;
+    state.authActionInFlight = true;
+    if (els.loginBtn) els.loginBtn.disabled = true;
+    if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = true;
+    if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = true;
     try {
       const loginTicket = String(state.pendingLoginTicket || '').trim();
       const tenantId = String(els.tenantSelectionSelect?.value || '').trim();
@@ -12875,6 +13139,11 @@
       await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
       setStatus(els.loginStatus, error.message || 'Tenant-val misslyckades.', true);
+    } finally {
+      state.authActionInFlight = false;
+      if (els.loginBtn) els.loginBtn.disabled = false;
+      if (els.mfaVerifyBtn) els.mfaVerifyBtn.disabled = false;
+      if (els.completeTenantSelectionBtn) els.completeTenantSelectionBtn.disabled = false;
     }
   }
 
@@ -13078,6 +13347,15 @@
     state.ccoSprintStartedAtMs = 0;
     state.ccoSprintMetrics = null;
     state.ccoSprintLatestFeedback = null;
+    state.ccoUsageAnalytics = null;
+    state.ccoRedFlagState = null;
+    state.ccoAdaptiveFocusState = null;
+    state.ccoRecoveryState = null;
+    state.ccoWeeklyBrief = null;
+    state.ccoMonthlyRisk = null;
+    state.ccoScenarioSimulation = null;
+    state.ccoBusinessThreats = null;
+    state.ccoForwardOutlook = null;
     state.ccoCustomerSummaryExpanded = false;
     state.ccoSeenConversationIds = {};
     state.riskEvaluations = [];

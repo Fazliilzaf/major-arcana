@@ -18,6 +18,11 @@ const { evaluateTempoProfile } = require('../intelligence/tempoEngine');
 const { suggestFollowUpTiming } = require('../intelligence/timingEngine');
 const { estimateConversationWorkload } = require('../intelligence/workloadEngine');
 const { evaluateRiskStack } = require('../intelligence/riskStackEngine');
+const { composeWeeklyBrief } = require('../intelligence/weeklyBriefComposer');
+const { analyzeMonthlyRisk } = require('../intelligence/monthlyRiskAnalyzer');
+const { simulateScenarios } = require('../intelligence/scenarioEngine');
+const { analyzeBusinessThreats } = require('../intelligence/businessThreatAnalyzer');
+const { computeForwardOutlook } = require('../intelligence/forwardOutlookEngine');
 const crypto = require('node:crypto');
 
 function normalizeText(value) {
@@ -54,6 +59,16 @@ function toTimestampMs(value) {
 function clamp(value, min, max, fallback = min) {
   const numeric = toNumber(value, fallback);
   return Math.max(min, Math.min(max, numeric));
+}
+
+function averageNumber(values = [], fallback = 0, precision = 3) {
+  const safeValues = asArray(values)
+    .map((value) => toNumber(value, Number.NaN))
+    .filter((value) => Number.isFinite(value));
+  if (!safeValues.length) return toNumber(fallback, 0);
+  const factor = 10 ** Math.max(0, toNumber(precision, 3));
+  const avg = safeValues.reduce((sum, value) => sum + value, 0) / safeValues.length;
+  return Math.round(avg * factor) / factor;
 }
 
 function isValidEmail(value = '') {
@@ -195,6 +210,174 @@ const INTENT_ACTIONS = Object.freeze({
   follow_up: 'Ge statusuppdatering',
   unclear: 'Be om mer info',
 });
+
+function toStrategicUsageMetrics({
+  conversationWorklist = [],
+  unresolvedCount = 0,
+  slaBreachCount = 0,
+} = {}) {
+  const rows = asArray(conversationWorklist);
+  const safeUnresolvedCount = Math.max(0, toNumber(unresolvedCount, rows.length));
+  const safeSlaBreachCount = Math.max(0, toNumber(slaBreachCount, 0));
+  const total = Math.max(1, rows.length);
+  const complaintRows = rows.filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'complaint'
+  );
+  const bookingRows = rows.filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+  );
+  const followUpRows = rows.filter((row) => row?.followUpSuggested === true);
+  const avgResponseTimeHours = averageNumber(rows.map((row) => row?.hoursSinceInbound), 0, 2);
+  const avgPriorityScore = averageNumber(rows.map((row) => row?.priorityScore), 0, 2);
+  const avgRiskStackScore = averageNumber(rows.map((row) => row?.riskStackScore), 0, 3);
+  const complaintRate = complaintRows.length / total;
+  const slaBreachRate = safeSlaBreachCount / total;
+  const bookingPressure = bookingRows.length / total;
+  const recommendationFollowRate = clamp(
+    1 - followUpRows.length / total * 0.2,
+    0,
+    1,
+    0.7
+  );
+  const ccoUsageRate = clamp(safeUnresolvedCount > 0 ? 1 : 0.35, 0, 1, 0.35);
+  const conversionSignal = clamp(bookingPressure - followUpRows.length / total * 0.2 + 0.45, 0, 1, 0.45);
+  const volatilityIndex = clamp(avgRiskStackScore + slaBreachRate * 0.2, 0, 1, 0);
+  const healthScore = clamp(
+    100 - slaBreachRate * 45 - complaintRate * 25 - Math.max(0, avgResponseTimeHours - 6) * 1.8,
+    0,
+    100,
+    100
+  );
+  const conversionTrendPercent = roundToTwoDecimals((conversionSignal - 0.5) * 100);
+  const complaintTrendPercent = roundToTwoDecimals(complaintRate * 100);
+  const slaBreachTrendPercent = roundToTwoDecimals(slaBreachRate * 100);
+  return {
+    ccoUsageRate: roundToTwoDecimals(ccoUsageRate),
+    avgResponseTimeHours: roundToTwoDecimals(avgResponseTimeHours),
+    systemRecommendationFollowRate: roundToTwoDecimals(recommendationFollowRate),
+    slaBreachTrendPercent,
+    complaintTrendPercent,
+    conversionTrendPercent,
+    volatilityIndex: roundToTwoDecimals(volatilityIndex),
+    healthScore: roundToTwoDecimals(healthScore),
+    conversionSignal: roundToTwoDecimals(conversionSignal),
+    avgPriorityScore: roundToTwoDecimals(avgPriorityScore),
+  };
+}
+
+function roundToTwoDecimals(value = 0) {
+  return Math.round(toNumber(value, 0) * 100) / 100;
+}
+
+function toDerivedDailySignals({
+  conversationWorklist = [],
+  usageMetrics = {},
+  nowMs = Date.now(),
+  days = 14,
+} = {}) {
+  const safeDays = Math.max(7, Math.min(30, Math.round(toNumber(days, 14))));
+  const rows = asArray(conversationWorklist);
+  const complaintRate = clamp(toNumber(usageMetrics.complaintTrendPercent, 0) / 100, 0, 1, 0);
+  const slaBreachRate = clamp(toNumber(usageMetrics.slaBreachTrendPercent, 0) / 100, 0, 1, 0);
+  const conversionSignal = clamp(toNumber(usageMetrics.conversionSignal, 0.5), 0, 1, 0.5);
+  const healthScore = clamp(toNumber(usageMetrics.healthScore, 100), 0, 100, 100);
+  const volatilityIndex = clamp(toNumber(usageMetrics.volatilityIndex, 0), 0, 1, 0);
+  const unresolvedCount = Math.max(1, rows.length);
+  const bookingCount = rows.filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+  ).length;
+
+  const signals = [];
+  for (let offset = safeDays - 1; offset >= 0; offset -= 1) {
+    const tsMs = nowMs - offset * 24 * 60 * 60 * 1000;
+    const curve = safeDays <= 1 ? 0 : offset / (safeDays - 1);
+    signals.push({
+      ts: new Date(tsMs).toISOString(),
+      complaintRate: clamp(complaintRate * (0.9 + (1 - curve) * 0.2), 0, 1, complaintRate),
+      bookingPressure: clamp(
+        (bookingCount / unresolvedCount) * (0.92 + (1 - curve) * 0.16),
+        0,
+        1,
+        0
+      ),
+      slaBreachRate: clamp(slaBreachRate * (0.88 + (1 - curve) * 0.24), 0, 1, slaBreachRate),
+      conversionSignal: clamp(conversionSignal * (1 - (1 - curve) * 0.08), 0, 1, conversionSignal),
+      healthScore: clamp(healthScore * (1 - (1 - curve) * 0.04), 0, 100, healthScore),
+      volatilityIndex: clamp(volatilityIndex * (0.9 + (1 - curve) * 0.15), 0, 1, volatilityIndex),
+      unresolvedCount,
+      complaintCount: Math.max(0, Math.round(complaintRate * unresolvedCount)),
+      bookingCount,
+    });
+  }
+  return signals;
+}
+
+function normalizeStrategicDailySignals(values = [], fallbackSignals = []) {
+  const source = asArray(values);
+  if (!source.length) return fallbackSignals;
+  const normalized = source
+    .map((item) => asObject(item))
+    .map((item) => {
+      const ts = toIso(item.ts || item.date || item.generatedAt);
+      if (!ts) return null;
+      return {
+        ts,
+        complaintRate: clamp(item.complaintRate, 0, 1, 0),
+        bookingPressure: clamp(item.bookingPressure, 0, 1, 0),
+        slaBreachRate: clamp(item.slaBreachRate, 0, 1, 0),
+        conversionSignal: clamp(item.conversionSignal, 0, 1, 0.5),
+        healthScore: clamp(item.healthScore, 0, 100, 100),
+        volatilityIndex: clamp(item.volatilityIndex, 0, 1, 0),
+        unresolvedCount: Math.max(0, toNumber(item.unresolvedCount, 0)),
+        complaintCount: Math.max(0, toNumber(item.complaintCount, 0)),
+        bookingCount: Math.max(0, toNumber(item.bookingCount, 0)),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => String(left.ts || '').localeCompare(String(right.ts || '')));
+  return normalized.length ? normalized : fallbackSignals;
+}
+
+function toDerivedFocusContext({
+  source = {},
+  usageMetrics = {},
+  slaBreachCount = 0,
+  complaintCount = 0,
+} = {}) {
+  const safeSource = asObject(source);
+  const providedDrivers = asArray(safeSource.primaryDrivers)
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  const derivedDrivers = [];
+  if (toNumber(slaBreachCount, 0) > 0 || toNumber(usageMetrics.slaBreachTrendPercent, 0) > 0) {
+    derivedDrivers.push('sla_breach');
+  }
+  if (toNumber(complaintCount, 0) > 0 || toNumber(usageMetrics.complaintTrendPercent, 0) > 0) {
+    derivedDrivers.push('complaint_spike');
+  }
+  if (toNumber(usageMetrics.conversionTrendPercent, 0) < 0) {
+    derivedDrivers.push('conversion_drop');
+  }
+  if (toNumber(usageMetrics.volatilityIndex, 0) > 0.6) {
+    derivedDrivers.push('volatility');
+  }
+  if (toNumber(usageMetrics.healthScore, 100) < 60) {
+    derivedDrivers.push('health_drop');
+  }
+  const primaryDrivers = Array.from(new Set([...providedDrivers, ...derivedDrivers])).slice(0, 5);
+  const isActive =
+    safeSource.isActive === true ||
+    primaryDrivers.includes('sla_breach') ||
+    primaryDrivers.includes('health_drop');
+  const severity =
+    normalizeText(safeSource.severity).toLowerCase() ||
+    (isActive ? (toNumber(usageMetrics.healthScore, 100) < 55 ? 'high' : 'medium') : 'none');
+  return {
+    isActive,
+    primaryDrivers,
+    severity,
+  };
+}
 
 const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
 const CCO_SIGNATURE_PROFILES = Object.freeze([
@@ -745,6 +928,11 @@ class AnalyzeInboxCapability extends BaseCapability {
           'riskFlags',
           'suggestedDrafts',
           'customerSummaries',
+          'weeklyBrief',
+          'monthlyRisk',
+          'scenarioSimulation',
+          'businessThreats',
+          'forwardOutlook',
           'executiveSummary',
           'priorityLevel',
           'mailboxCount',
@@ -1402,6 +1590,87 @@ class AnalyzeInboxCapability extends BaseCapability {
               },
             },
           },
+          weeklyBrief: {
+            type: 'object',
+            required: ['mode', 'headline', 'sections', 'recommendations', 'generatedAt'],
+            additionalProperties: true,
+            properties: {
+              mode: { type: 'string', enum: ['focus', 'normal'] },
+              headline: { type: 'string', minLength: 1, maxLength: 240 },
+              sections: { type: 'array', maxItems: 8, items: { type: 'object' } },
+              recommendations: {
+                type: 'array',
+                maxItems: 5,
+                items: { type: 'string', minLength: 1, maxLength: 220 },
+              },
+              generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
+            },
+          },
+          monthlyRisk: {
+            type: 'object',
+            required: ['riskBand', 'riskIndex', 'dominantDrivers', 'recommendations', 'generatedAt'],
+            additionalProperties: true,
+            properties: {
+              riskBand: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+              riskIndex: { type: 'number', minimum: 0, maximum: 1 },
+              dominantDrivers: {
+                type: 'array',
+                maxItems: 4,
+                items: { type: 'string', minLength: 1, maxLength: 80 },
+              },
+              recommendations: {
+                type: 'array',
+                maxItems: 5,
+                items: { type: 'string', minLength: 1, maxLength: 220 },
+              },
+              generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
+            },
+          },
+          scenarioSimulation: {
+            type: 'object',
+            required: ['baseline', 'scenarios', 'generatedAt'],
+            additionalProperties: true,
+            properties: {
+              baseline: { type: 'object', additionalProperties: true },
+              scenarios: { type: 'array', maxItems: 8, items: { type: 'object' } },
+              generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
+            },
+          },
+          businessThreats: {
+            type: 'object',
+            required: ['threats', 'threatCount', 'highestSeverity', 'generatedAt'],
+            additionalProperties: true,
+            properties: {
+              threats: { type: 'array', maxItems: 12, items: { type: 'object' } },
+              threatCount: { type: 'number', minimum: 0 },
+              highestSeverity: { type: 'string', minLength: 1, maxLength: 20 },
+              generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
+            },
+          },
+          forwardOutlook: {
+            type: 'object',
+            required: [
+              'riskForecast',
+              'capacityForecast',
+              'recommendedPreparation',
+              'volatilityIndex',
+              'confidenceScore',
+              'generatedAt',
+            ],
+            additionalProperties: true,
+            properties: {
+              riskForecast: { type: 'object', additionalProperties: true },
+              capacityForecast: { type: 'object', additionalProperties: true },
+              recommendedPreparation: {
+                type: 'array',
+                maxItems: 6,
+                items: { type: 'string', minLength: 1, maxLength: 220 },
+              },
+              volatilityIndex: { type: 'number', minimum: 0, maximum: 1 },
+              confidenceScore: { type: 'number', minimum: 0, maximum: 1 },
+              generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
+            },
+          },
           executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
           priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
           mailboxCount: { type: 'number', minimum: 0 },
@@ -2029,6 +2298,212 @@ class AnalyzeInboxCapability extends BaseCapability {
         return rightMs - leftMs;
       })
       .slice(0, 120);
+    const strategicGeneratedAt = toIso(snapshotSource?.timestamps?.capturedAt) || new Date().toISOString();
+    const strategicUsageMetrics = toStrategicUsageMetrics({
+      conversationWorklist,
+      unresolvedCount: unresolved.length,
+      slaBreachCount: slaBreaches.length,
+    });
+    const complaintCount = conversationWorklist.filter(
+      (row) => normalizeText(row?.intent).toLowerCase() === 'complaint'
+    ).length;
+    const fallbackDailySignals = toDerivedDailySignals({
+      conversationWorklist,
+      usageMetrics: strategicUsageMetrics,
+      nowMs: Date.now(),
+      days: 14,
+    });
+    const strategicDailySignals = normalizeStrategicDailySignals(
+      asArray(snapshotSource?.dailySignals).length
+        ? snapshotSource?.dailySignals
+        : asArray(input.dailySignals),
+      fallbackDailySignals
+    );
+    const fallbackFocusContext = toDerivedFocusContext({
+      source: asObject(snapshotSource?.focusContext || input.focusContext),
+      usageMetrics: strategicUsageMetrics,
+      slaBreachCount: slaBreaches.length,
+      complaintCount,
+    });
+    const fallbackMonthlyRisk = {
+      windowDays: 30,
+      sampleSize: 0,
+      riskBand: 'low',
+      riskIndex: 0,
+      dominantDrivers: [],
+      recommendations: ['Ingen data tillganglig for manadsanalys.'],
+      generatedAt: strategicGeneratedAt,
+    };
+    const fallbackScenarioSimulation = {
+      baseline: {
+        healthScore: clamp(strategicUsageMetrics.healthScore, 0, 100, 100),
+        slaBreachRate: clamp(
+          conversationWorklist.length > 0 ? slaBreaches.length / conversationWorklist.length : 0,
+          0,
+          1,
+          0
+        ),
+        complaintRate: clamp(
+          conversationWorklist.length > 0 ? complaintCount / conversationWorklist.length : 0,
+          0,
+          1,
+          0
+        ),
+        conversionSignal: clamp(strategicUsageMetrics.conversionSignal, 0, 1, 0),
+        workloadMinutes: unresolved
+          .slice(0, 3)
+          .reduce((sum, row) => sum + Math.max(0, toNumber(row?.estimatedWorkMinutes, 0)), 0),
+        volatilityIndex: clamp(strategicUsageMetrics.volatilityIndex, 0, 1, 0),
+      },
+      scenarios: [],
+      generatedAt: strategicGeneratedAt,
+    };
+    const fallbackBusinessThreats = {
+      threats: [],
+      threatCount: 0,
+      highestSeverity: 'none',
+      generatedAt: strategicGeneratedAt,
+    };
+    const fallbackForwardOutlook = {
+      riskForecast: {
+        type: 'stable',
+        probability: 0,
+        summary: 'Otillracklig data for riskprognos.',
+      },
+      capacityForecast: {
+        level: 'stable',
+        projectedBookingPressure: 0,
+        summary: 'Otillracklig data for kapacitetsprognos.',
+      },
+      recommendedPreparation: ['Samla minst 7 dagars signaldata for att aktivera prognos.'],
+      volatilityIndex: clamp(strategicUsageMetrics.volatilityIndex, 0, 1, 0),
+      confidenceScore: 0,
+      generatedAt: strategicGeneratedAt,
+    };
+    const fallbackWeeklyBrief = {
+      mode: 'normal',
+      headline: 'Weekly Brief: begransad data',
+      sections: [
+        {
+          key: 'strategic_signals',
+          title: 'Strategiska signaler',
+          content: 'Otillracklig data for full weekly-analys.',
+        },
+      ],
+      recommendations: ['Samla mer signaldata for veckovis styrning.'],
+      generatedAt: strategicGeneratedAt,
+    };
+    let monthlyRisk = fallbackMonthlyRisk;
+    let scenarioSimulation = fallbackScenarioSimulation;
+    let businessThreats = fallbackBusinessThreats;
+    let forwardOutlook = fallbackForwardOutlook;
+    let weeklyBrief = fallbackWeeklyBrief;
+    try {
+      monthlyRisk = analyzeMonthlyRisk({
+        dailySnapshots: strategicDailySignals,
+        windowDays: 30,
+        nowIso: strategicGeneratedAt,
+      });
+      const strategicFlags = [];
+      if (slaBreaches.length >= 2 || strategicUsageMetrics.slaBreachTrendPercent > 15) {
+        strategicFlags.push({
+          isActive: true,
+          code: 'sla_cluster',
+          title: 'SLA-mönster upptäckt',
+          triggerType: 'cluster',
+          severity: slaBreaches.length >= 4 ? 'high' : 'medium',
+          confidence: 0.72,
+          impactScope: 'operations',
+          drivers: ['sla_breach'],
+          recommendedAction: 'Prioritera SLA-breach före sekundara arenden kommande 48h.',
+        });
+      }
+      if (complaintCount >= 3 || strategicUsageMetrics.complaintTrendPercent > 10) {
+        strategicFlags.push({
+          isActive: true,
+          code: 'complaint_cluster',
+          title: 'Complaint-kluster upptäckt',
+          triggerType: 'escalation',
+          severity: complaintCount >= 5 ? 'high' : 'medium',
+          confidence: 0.7,
+          impactScope: 'customer_experience',
+          drivers: ['complaint_spike'],
+          recommendedAction: 'Sakra personliga complaint-svar inom samma arbetsdag.',
+        });
+      }
+      if (
+        normalizeText(monthlyRisk?.riskBand).toLowerCase() === 'critical' ||
+        normalizeText(monthlyRisk?.riskBand).toLowerCase() === 'high'
+      ) {
+        strategicFlags.push({
+          isActive: true,
+          code: 'monthly_risk',
+          title: 'Manadsrisk över tröskel',
+          triggerType: 'volatility',
+          severity: normalizeText(monthlyRisk?.riskBand).toLowerCase(),
+          confidence: 0.68,
+          impactScope: 'strategic',
+          drivers: asArray(monthlyRisk?.dominantDrivers).slice(0, 3),
+          recommendedAction:
+            asArray(monthlyRisk?.recommendations)[0] ||
+            'Skifta till stabiliseringsfokus tills riskindex minskar.',
+        });
+      }
+
+      scenarioSimulation = simulateScenarios({
+        baseline: fallbackScenarioSimulation.baseline,
+        scenarios: asArray(input.scenarios),
+        nowIso: strategicGeneratedAt,
+      });
+      businessThreats = analyzeBusinessThreats({
+        conversationWorklist,
+        usageMetrics: strategicUsageMetrics,
+        strategicFlags: strategicFlags.slice(0, 4),
+        monthlyRisk,
+        nowIso: strategicGeneratedAt,
+      });
+      forwardOutlook = computeForwardOutlook({
+        dailySignals: strategicDailySignals,
+        windowDays: 14,
+        forecastDays: 7,
+        nowIso: strategicGeneratedAt,
+      });
+      weeklyBrief = composeWeeklyBrief({
+        focusContext: fallbackFocusContext,
+        usageMetrics: strategicUsageMetrics,
+        strategicFlags: strategicFlags.slice(0, 4),
+        systemImprovementProposal:
+          asArray(businessThreats?.threats).length > 0
+            ? {
+                proposalTitle: normalizeText(businessThreats?.threats?.[0]?.title),
+                rootCauseHypothesis:
+                  normalizeText(asArray(businessThreats?.threats?.[0]?.evidence)[0]) ||
+                  'Ingen hypotes tillgänglig.',
+                recommendedActions: [normalizeText(businessThreats?.threats?.[0]?.recommendedAction)]
+                  .filter(Boolean)
+                  .slice(0, 3),
+                confidenceScore: clamp(
+                  businessThreats?.threats?.[0]?.confidence,
+                  0,
+                  1,
+                  0.6
+                ),
+              }
+            : null,
+        initiativeSummaries: asArray(snapshotSource?.initiativeSummaries || input.initiativeSummaries),
+        windowDays: 7,
+        nowIso: strategicGeneratedAt,
+      });
+    } catch (error) {
+      warnings.push(
+        `Strategic intelligence fallback aktiverad (${normalizeText(error?.message) || 'unknown_error'}).`
+      );
+      monthlyRisk = fallbackMonthlyRisk;
+      scenarioSimulation = fallbackScenarioSimulation;
+      businessThreats = fallbackBusinessThreats;
+      forwardOutlook = fallbackForwardOutlook;
+      weeklyBrief = fallbackWeeklyBrief;
+    }
 
     const metadata = {
       capability: AnalyzeInboxCapability.name,
@@ -2074,6 +2549,11 @@ class AnalyzeInboxCapability extends BaseCapability {
         riskFlags: riskFlags.slice(0, 120),
         suggestedDrafts,
         customerSummaries,
+        weeklyBrief,
+        monthlyRisk,
+        scenarioSimulation,
+        businessThreats,
+        forwardOutlook,
         executiveSummary,
         priorityLevel: overallPriority,
         mailboxCount,

@@ -347,11 +347,16 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
     filePath: config.releaseGovernanceStorePath,
     maxCycles: config.releaseGovernanceMaxCycles,
   });
+  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
+    filePath: config.capabilityAnalysisStorePath,
+    maxEntries: config.capabilityAnalysisMaxEntries,
+  });
 
   const scheduler = createScheduler({
     config,
     authStore,
     templateStore,
+    capabilityAnalysisStore,
     runtimeMetricsStore,
     secretRotationStore,
     sloTicketStore,
@@ -373,10 +378,6 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
     filePath: config.patientSignalStorePath,
     maxEvents: config.patientSignalMaxEvents,
     retentionDays: config.patientSignalRetentionDays,
-  });
-  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
-    filePath: config.capabilityAnalysisStorePath,
-    maxEntries: config.capabilityAnalysisMaxEntries,
   });
   const executionGateway = createExecutionGateway({
     buildVersion: process.env.npm_package_version || 'dev',

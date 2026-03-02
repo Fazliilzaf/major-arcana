@@ -169,9 +169,30 @@ function toEmailAliases(value = '') {
   if (plusNormalized && plusNormalized !== localPart) {
     aliases.add(`${plusNormalized}@${domainPart}`);
   }
+  const separatorless = plusNormalized.replace(/[._-]/g, '');
+  if (separatorless && separatorless !== plusNormalized) {
+    aliases.add(`${separatorless}@${domainPart}`);
+  }
+  const alnumOnly = plusNormalized.replace(/[^a-z0-9]/gi, '');
+  if (alnumOnly && alnumOnly !== separatorless && alnumOnly !== plusNormalized) {
+    aliases.add(`${alnumOnly}@${domainPart}`);
+  }
   if (domainPart === 'gmail.com' || domainPart === 'googlemail.com') {
     const dotless = plusNormalized.replace(/\./g, '');
     if (dotless) aliases.add(`${dotless}@${domainPart}`);
+  }
+  const domainRootMatch = domainPart.match(/^([a-z0-9.-]+)\.(com|se|net|org)$/i);
+  if (domainRootMatch) {
+    const domainRoot = normalizeText(domainRootMatch[1]).toLowerCase();
+    const tld = normalizeText(domainRootMatch[2]).toLowerCase();
+    if (domainRoot) {
+      if (tld === 'com' || tld === 'se') {
+        aliases.add(`${plusNormalized}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
+        if (separatorless) {
+          aliases.add(`${separatorless}@${domainRoot}.${tld === 'com' ? 'se' : 'com'}`);
+        }
+      }
+    }
   }
   return Array.from(aliases);
 }
@@ -455,7 +476,8 @@ function toConversationSnapshots(messages = []) {
   const resolveFallbackKeys = (message = {}) => {
     const subject = normalizeText(message.normalizedSubject);
     const mailbox = normalizeText(message.mailboxId).toLowerCase();
-    if (!subject || !mailbox) return [];
+    if (!subject) return [];
+    const compactSubject = subject.replace(/[^a-z0-9]/gi, '');
     const emailCandidates = [
       ...asArray(message.counterpartyEmails),
       normalizeText(message.counterpartyEmail),
@@ -464,7 +486,16 @@ function toConversationSnapshots(messages = []) {
       .filter(Boolean);
     const uniqueEmails = Array.from(new Set(emailCandidates));
     if (uniqueEmails.length === 0) return [];
-    return uniqueEmails.map((email) => `${mailbox}|${email}|${subject}`);
+    const keys = [];
+    uniqueEmails.forEach((email) => {
+      if (mailbox) keys.push(`${mailbox}|${email}|${subject}`);
+      keys.push(`global|${email}|${subject}`);
+      if (compactSubject) {
+        if (mailbox) keys.push(`${mailbox}|${email}|${compactSubject}`);
+        keys.push(`global|${email}|${compactSubject}`);
+      }
+    });
+    return keys;
   };
 
   const sortedMessages = asArray(messages)
@@ -515,6 +546,7 @@ function toConversationSnapshots(messages = []) {
         mailboxAddress: normalizeText(message.mailboxAddress) || null,
         userPrincipalName: normalizeText(message.userPrincipalName) || null,
         customerEmails: new Set(),
+        customerEmailSources: new Set(),
       });
     }
     const entry = map.get(clusterId);
@@ -551,13 +583,23 @@ function toConversationSnapshots(messages = []) {
       if (message.sentAt && compareIsoDesc(entry.lastInboundAt, message.sentAt) > 0) {
         entry.lastInboundAt = message.sentAt;
       }
+      const normalizedSenderEmail = normalizeEmailAddress(message.senderEmail);
+      if (normalizedSenderEmail) entry.customerEmailSources.add(normalizedSenderEmail);
       for (const alias of toEmailAliases(message.senderEmail)) entry.customerEmails.add(alias);
       for (const replyToAddress of asArray(message.replyTo)) {
+        const normalizedReplyTo = normalizeEmailAddress(replyToAddress);
+        if (normalizedReplyTo) entry.customerEmailSources.add(normalizedReplyTo);
         for (const alias of toEmailAliases(replyToAddress)) entry.customerEmails.add(alias);
       }
     } else {
       if (message.sentAt && compareIsoDesc(entry.lastOutboundAt, message.sentAt) > 0) {
         entry.lastOutboundAt = message.sentAt;
+      }
+      const normalizedRecipients = asArray(message.recipients)
+        .map((item) => normalizeEmailAddress(item))
+        .filter(Boolean);
+      for (const recipient of normalizedRecipients) {
+        entry.customerEmailSources.add(recipient);
       }
       const recipients = asArray(message.recipients)
         .flatMap((item) => toEmailAliases(item));
@@ -565,6 +607,8 @@ function toConversationSnapshots(messages = []) {
         entry.customerEmails.add(recipient);
       }
       for (const replyToAddress of asArray(message.replyTo)) {
+        const normalizedReplyTo = normalizeEmailAddress(replyToAddress);
+        if (normalizedReplyTo) entry.customerEmailSources.add(normalizedReplyTo);
         for (const alias of toEmailAliases(replyToAddress)) entry.customerEmails.add(alias);
       }
     }
@@ -586,11 +630,14 @@ function toConversationSnapshots(messages = []) {
       Array.from(conversation.conversationIds.values())[0] ||
       normalizeText(conversation.clusterId);
     conversation.conversationId = preferredConversationId || `conversation:${crypto.randomUUID()}`;
-    conversation.customerEmail = selectPrimaryCustomerEmail(Array.from(conversation.customerEmails.values()));
+    conversation.customerEmail =
+      selectPrimaryCustomerEmail(Array.from(conversation.customerEmailSources.values())) ||
+      selectPrimaryCustomerEmail(Array.from(conversation.customerEmails.values()));
     delete conversation.clusterId;
     delete conversation.primaryConversationId;
     delete conversation.conversationIds;
     delete conversation.customerEmails;
+    delete conversation.customerEmailSources;
     conversation.messages.sort((a, b) => compareIsoDesc(a.sentAt, b.sentAt));
   }
   conversations.sort((a, b) => {

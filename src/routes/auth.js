@@ -6,6 +6,17 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function toEmailAliasCandidates(value = '') {
+  const normalized = normalizeEmail(value);
+  if (!normalized || !normalized.includes('@')) return [];
+  const [localPart, domainPart] = normalized.split('@');
+  if (!localPart || !domainPart) return [];
+  const candidates = new Set([normalized]);
+  if (domainPart === 'hairtpclinic.com') candidates.add(`${localPart}@hairtpclinic.se`);
+  if (domainPart === 'hairtpclinic.se') candidates.add(`${localPart}@hairtpclinic.com`);
+  return Array.from(candidates);
+}
+
 function normalizeTenantId(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
@@ -139,13 +150,21 @@ function createAuthRouter({
       if (trimmedPassword && trimmedPassword !== rawPassword) {
         passwordCandidates.push(trimmedPassword);
       }
+      const emailCandidates = toEmailAliasCandidates(email);
+      if (!emailCandidates.length) {
+        return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
+      }
 
       let user = null;
-      for (const candidate of passwordCandidates) {
-        user = await authStore.authenticateUser({ email, password: candidate });
-        if (user) {
-          break;
+      for (const emailCandidate of emailCandidates) {
+        for (const passwordCandidate of passwordCandidates) {
+          user = await authStore.authenticateUser({
+            email: emailCandidate,
+            password: passwordCandidate,
+          });
+          if (user) break;
         }
+        if (user) break;
       }
       let ownerCredentialSelfHealed = false;
       if (
@@ -154,7 +173,7 @@ function createAuthRouter({
         normalizedBootstrapOwnerEmail &&
         typeof bootstrapOwnerPassword === 'string' &&
         typeof authStore.bootstrapOwner === 'function' &&
-        email === normalizedBootstrapOwnerEmail &&
+        emailCandidates.includes(normalizedBootstrapOwnerEmail) &&
         passwordCandidates.some((candidate) => safeEqualText(candidate, bootstrapOwnerPassword))
       ) {
         try {

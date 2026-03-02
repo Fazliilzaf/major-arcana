@@ -233,6 +233,12 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
         'slaBreaches',
         'riskFlags',
         'suggestedDrafts',
+        'customerSummaries',
+        'weeklyBrief',
+        'monthlyRisk',
+        'scenarioSimulation',
+        'businessThreats',
+        'forwardOutlook',
         'executiveSummary',
         'priorityLevel',
         'mailboxCount',
@@ -247,6 +253,12 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
         slaBreaches: { type: 'array', maxItems: 50, items: { type: 'object' } },
         riskFlags: { type: 'array', maxItems: 120, items: { type: 'object' } },
         suggestedDrafts: { type: 'array', maxItems: 5, items: { type: 'object' } },
+        customerSummaries: { type: 'array', maxItems: 120, items: { type: 'object' } },
+        weeklyBrief: { type: 'object', additionalProperties: true },
+        monthlyRisk: { type: 'object', additionalProperties: true },
+        scenarioSimulation: { type: 'object', additionalProperties: true },
+        businessThreats: { type: 'object', additionalProperties: true },
+        forwardOutlook: { type: 'object', additionalProperties: true },
         executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
         priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
         mailboxCount: { type: 'number', minimum: 0 },
@@ -448,6 +460,60 @@ function composeCcoInboxAnalysis({
   const data = asObject(normalizedOutput.data);
   const sourceMetadata = asObject(normalizedOutput.metadata);
   const warnings = asArray(normalizedOutput.warnings);
+  const weeklyBrief =
+    data.weeklyBrief && typeof data.weeklyBrief === 'object' && !Array.isArray(data.weeklyBrief)
+      ? data.weeklyBrief
+      : {
+          mode: 'normal',
+          headline: 'Weekly Brief saknas',
+          sections: [],
+          recommendations: [],
+          generatedAt: new Date().toISOString(),
+        };
+  const monthlyRisk =
+    data.monthlyRisk && typeof data.monthlyRisk === 'object' && !Array.isArray(data.monthlyRisk)
+      ? data.monthlyRisk
+      : {
+          riskBand: 'low',
+          riskIndex: 0,
+          dominantDrivers: [],
+          recommendations: [],
+          generatedAt: new Date().toISOString(),
+        };
+  const scenarioSimulation =
+    data.scenarioSimulation &&
+    typeof data.scenarioSimulation === 'object' &&
+    !Array.isArray(data.scenarioSimulation)
+      ? data.scenarioSimulation
+      : {
+          baseline: {},
+          scenarios: [],
+          generatedAt: new Date().toISOString(),
+        };
+  const businessThreats =
+    data.businessThreats &&
+    typeof data.businessThreats === 'object' &&
+    !Array.isArray(data.businessThreats)
+      ? data.businessThreats
+      : {
+          threats: [],
+          threatCount: 0,
+          highestSeverity: 'none',
+          generatedAt: new Date().toISOString(),
+        };
+  const forwardOutlook =
+    data.forwardOutlook &&
+    typeof data.forwardOutlook === 'object' &&
+    !Array.isArray(data.forwardOutlook)
+      ? data.forwardOutlook
+      : {
+          riskForecast: {},
+          capacityForecast: {},
+          recommendedPreparation: [],
+          volatilityIndex: 0,
+          confidenceScore: 0,
+          generatedAt: new Date().toISOString(),
+        };
 
   const composedMetadata = {
     agent: CCO_AGENT_NAME,
@@ -482,6 +548,12 @@ function composeCcoInboxAnalysis({
       slaBreaches: toStructuredRows(data.slaBreaches, 50),
       riskFlags: toStructuredRows(data.riskFlags, 120),
       suggestedDrafts: toStructuredRows(data.suggestedDrafts, 5).map(normalizeSuggestedDraft),
+      customerSummaries: toStructuredRows(data.customerSummaries, 120),
+      weeklyBrief,
+      monthlyRisk,
+      scenarioSimulation,
+      businessThreats,
+      forwardOutlook,
       executiveSummary:
         normalizeText(data.executiveSummary) ||
         'Inboxanalys klar. Ingen ytterligare sammanfattning tillgänglig.',

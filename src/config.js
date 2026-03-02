@@ -230,7 +230,7 @@ const config = {
   authOwnerMfaBypassHosts: (() => {
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
     if (configured.length > 0) return configured;
-    return ['arcana-staging.onrender.com'];
+    return ['arcana-staging.onrender.com', 'arcana.hairtpclinic.se'];
   })(),
   authOwnerCredentialSelfHeal: asBool(process.env.AUTH_OWNER_CREDENTIAL_SELF_HEAL, true),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
@@ -358,6 +358,18 @@ const config = {
   schedulerAlertProbeIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_ALERT_PROBE_INTERVAL_MINUTES,
     15
+  ),
+  schedulerStrategicWeeklyIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_STRATEGIC_WEEKLY_INTERVAL_HOURS,
+    168
+  ),
+  schedulerStrategicMonthlyIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_STRATEGIC_MONTHLY_INTERVAL_HOURS,
+    720
+  ),
+  schedulerStrategicForwardIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_STRATEGIC_FORWARD_INTERVAL_HOURS,
+    24
   ),
   schedulerIncidentAutoEscalationEnabled: asBool(
     process.env.ARCANA_SCHEDULER_INCIDENT_AUTO_ESCALATION_ENABLED,

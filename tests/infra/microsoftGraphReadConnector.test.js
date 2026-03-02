@@ -415,6 +415,80 @@ test('MicrosoftGraphReadConnector merges by reply-to alias when conversationId a
   assert.equal(conversation.customerEmail, 'patient@example.com');
 });
 
+test('MicrosoftGraphReadConnector applies deeper fuzzy alias matching for local separators and domain variants', async () => {
+  const fixedNowMs = Date.parse('2026-02-26T18:00:00.000Z');
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-fuzzy-alias',
+        },
+      });
+    }
+    if (String(url).includes('/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-fuzzy-in',
+              conversationId: 'conv-fuzzy-a',
+              subject: 'Prisfraga konsultation',
+              bodyPreview: 'Hej, vad kostar en konsultation?',
+              receivedDateTime: '2026-02-26T11:20:00.000Z',
+              from: {
+                emailAddress: {
+                  address: 'anna.karlsson+lead@hairtpclinic.se',
+                  name: 'Anna Karlsson',
+                },
+              },
+              toRecipients: [{ emailAddress: { address: 'info@hairtpclinic.com' } }],
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/mailFolders/SentItems/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-fuzzy-out',
+              conversationId: 'conv-fuzzy-b',
+              subject: 'Re: Prisfraga konsultation',
+              bodyPreview: 'Tack! Vi skickar prisinfo och nasta steg.',
+              sentDateTime: '2026-02-26T12:05:00.000Z',
+              from: {
+                emailAddress: {
+                  address: 'info@hairtpclinic.com',
+                  name: 'Hair TP Clinic',
+                },
+              },
+              toRecipients: [{ emailAddress: { address: 'annakarlsson@hairtpclinic.com' } }],
+            },
+          ],
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-fuzzy',
+    clientId: 'client-id-fuzzy',
+    clientSecret: 'client-secret-fuzzy',
+    userId: 'info@hairtpclinic.com',
+    fetchImpl,
+    now: () => fixedNowMs,
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot();
+  assert.equal(snapshot.conversations.length, 1);
+  const conversation = snapshot.conversations[0];
+  assert.equal(conversation.messages.length, 2);
+  assert.equal(conversation.lastOutboundAt, '2026-02-26T12:05:00.000Z');
+});
+
 test('MicrosoftGraphReadConnector full-tenant mode lists users and reads each inbox with limits', async () => {
   const fixedNowMs = Date.parse('2026-02-26T18:00:00.000Z');
   const calls = [];

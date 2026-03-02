@@ -26,6 +26,11 @@ const {
 const { evaluateRedFlag } = require('../intelligence/redFlagEngine');
 const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusController');
 const { evaluateRecovery } = require('../intelligence/recoveryEngine');
+const { composeWeeklyBrief } = require('../intelligence/weeklyBriefComposer');
+const { analyzeMonthlyRisk } = require('../intelligence/monthlyRiskAnalyzer');
+const { simulateScenarios } = require('../intelligence/scenarioEngine');
+const { analyzeBusinessThreats } = require('../intelligence/businessThreatAnalyzer');
+const { computeForwardOutlook } = require('../intelligence/forwardOutlookEngine');
 
 const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'NEW',
@@ -1653,6 +1658,172 @@ function buildLatestCcoSprintFeedback({ startEvents = [], completeEvents = [] } 
   };
 }
 
+function toStrategicUsageMetricsFromUsageAnalytics(usageAnalytics = {}, conversationWorklist = []) {
+  const openCount = Math.max(1, asArray(conversationWorklist).length);
+  const bookingCount = asArray(conversationWorklist).filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+  ).length;
+  const conversionSignalFallback = Math.max(
+    0,
+    Math.min(1, bookingCount / openCount - toNumber(usageAnalytics.complaintRate, 0) * 0.2 + 0.45)
+  );
+  return {
+    ccoUsageRate: Math.max(0, Math.min(1, toNumber(usageAnalytics.ccoUsageRate, 0))),
+    avgResponseTimeHours: toNumber(usageAnalytics.avgResponseTimeHours, 0),
+    systemRecommendationFollowRate: Math.max(
+      0,
+      Math.min(1, toNumber(usageAnalytics.systemRecommendationFollowRate, 0))
+    ),
+    slaBreachTrendPercent: toNumber(usageAnalytics.slaBreachTrendPercent, 0),
+    complaintTrendPercent: toNumber(usageAnalytics.complaintTrendPercent, 0),
+    conversionTrendPercent: toNumber(usageAnalytics.conversionTrendPercent, 0),
+    volatilityIndex: Math.max(0, Math.min(1, toNumber(usageAnalytics.volatilityIndex, 0))),
+    healthScore: Math.max(0, Math.min(100, toNumber(usageAnalytics.healthScore, 100))),
+    conversionSignal: Math.max(
+      0,
+      Math.min(1, toNumber(usageAnalytics.conversionSignal, conversionSignalFallback))
+    ),
+  };
+}
+
+function toStrategicDailySignalsFromEntries(entries = [], nowMs = Date.now(), days = 14) {
+  const safeDays = Math.max(7, Math.min(30, clampInteger(days, 7, 30, 14)));
+  const thresholdMs = nowMs - safeDays * 24 * 60 * 60 * 1000;
+  const sorted = asArray(entries)
+    .map((entry) => {
+      const ts = toIso(entry?.ts);
+      if (!ts) return null;
+      const tsMs = Date.parse(ts);
+      if (!Number.isFinite(tsMs)) return null;
+      return {
+        ts,
+        tsMs,
+        rows: asArray(entry?.output?.data?.conversationWorklist),
+      };
+    })
+    .filter(Boolean)
+    .filter((entry) => entry.tsMs >= thresholdMs && entry.tsMs <= nowMs)
+    .sort((left, right) => left.ts.localeCompare(right.ts));
+
+  if (!sorted.length) return [];
+
+  return sorted.map((entry) => {
+    const rows = entry.rows;
+    const unresolvedRows = rows.filter(
+      (row) => normalizeText(row?.needsReplyStatus).toLowerCase() !== 'handled'
+    );
+    const unresolvedCount = Math.max(1, unresolvedRows.length);
+    const complaintCount = unresolvedRows.filter(
+      (row) => normalizeText(row?.intent).toLowerCase() === 'complaint'
+    ).length;
+    const bookingCount = unresolvedRows.filter(
+      (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+    ).length;
+    const slaBreachCount = unresolvedRows.filter(
+      (row) => normalizeText(row?.slaStatus).toLowerCase() === 'breach'
+    ).length;
+    const avgHoursSinceInbound = toAverage(
+      unresolvedRows.map((row) => toSlaAgeHours(row?.hoursSinceInbound)),
+      2
+    );
+    const complaintRate = complaintCount / unresolvedCount;
+    const bookingPressure = bookingCount / unresolvedCount;
+    const slaBreachRate = slaBreachCount / unresolvedCount;
+    const conversionSignal = Math.max(0, Math.min(1, bookingPressure - complaintRate * 0.2 + 0.45));
+    const avgRiskStack = toAverage(
+      unresolvedRows.map((row) => toNumber(row?.riskStackScore, 0)),
+      3
+    );
+    const healthScore = Math.max(
+      0,
+      Math.min(100, 100 - slaBreachRate * 45 - complaintRate * 25 - Math.max(0, avgHoursSinceInbound - 6) * 1.8)
+    );
+
+    return {
+      ts: entry.ts,
+      complaintRate: Number(complaintRate.toFixed(4)),
+      bookingPressure: Number(bookingPressure.toFixed(4)),
+      slaBreachRate: Number(slaBreachRate.toFixed(4)),
+      conversionSignal: Number(conversionSignal.toFixed(4)),
+      healthScore: Number(healthScore.toFixed(2)),
+      volatilityIndex: Number(Math.max(0, Math.min(1, avgRiskStack + slaBreachRate * 0.2)).toFixed(4)),
+      unresolvedCount: unresolvedRows.length,
+      complaintCount,
+      bookingCount,
+    };
+  });
+}
+
+function toStrategicFocusContext({ redFlagState = {}, adaptiveFocusState = {}, usageMetrics = {} } = {}) {
+  const drivers = asArray(redFlagState?.primaryDrivers)
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  const fallbackDrivers = [];
+  if (toNumber(usageMetrics.slaBreachTrendPercent, 0) > 0) fallbackDrivers.push('sla_breach');
+  if (toNumber(usageMetrics.complaintTrendPercent, 0) > 0) fallbackDrivers.push('complaint_spike');
+  if (toNumber(usageMetrics.conversionTrendPercent, 0) < 0) fallbackDrivers.push('conversion_drop');
+  if (toNumber(usageMetrics.volatilityIndex, 0) > 0.6) fallbackDrivers.push('volatility');
+  if (toNumber(usageMetrics.healthScore, 100) < 60) fallbackDrivers.push('health_drop');
+  const primaryDrivers = Array.from(new Set([...drivers, ...fallbackDrivers])).slice(0, 5);
+  const isActive = adaptiveFocusState?.isActive === true || redFlagState?.isActive === true;
+  const severity =
+    normalizeText(redFlagState?.severity).toLowerCase() ||
+    (isActive ? (toNumber(usageMetrics.healthScore, 100) < 55 ? 'high' : 'medium') : 'none');
+  return {
+    isActive,
+    primaryDrivers,
+    severity,
+  };
+}
+
+function buildStrategicFlagsFromState({ redFlagState = {}, usageMetrics = {}, monthlyRisk = {} } = {}) {
+  const flags = [];
+  if (redFlagState?.isActive === true) {
+    flags.push({
+      isActive: true,
+      code: normalizeText(redFlagState?.triggerType) || 'red_flag',
+      title: 'Operativ avvikelse upptäckt',
+      triggerType: normalizeText(redFlagState?.triggerType) || 'cluster',
+      severity: normalizeText(redFlagState?.severity) || 'high',
+      confidence: Math.max(0, Math.min(1, toNumber(redFlagState?.confidence, 0.72))),
+      impactScope: 'operations',
+      drivers: asArray(redFlagState?.primaryDrivers).slice(0, 4),
+      recommendedAction:
+        normalizeText(redFlagState?.recommendedAction) ||
+        'Prioritera High/Critical i 48h med fokus på SLA-disciplin.',
+    });
+  }
+  if (toNumber(usageMetrics.complaintTrendPercent, 0) > 10) {
+    flags.push({
+      isActive: true,
+      code: 'complaint_cluster',
+      title: 'Complaint-trend ökar',
+      triggerType: 'cluster',
+      severity: 'medium',
+      confidence: 0.68,
+      impactScope: 'customer_experience',
+      drivers: ['complaint_spike'],
+      recommendedAction: 'Använd lugn ton och säkra uppföljning inom arbetsdagen.',
+    });
+  }
+  if (['high', 'critical'].includes(normalizeText(monthlyRisk?.riskBand).toLowerCase())) {
+    flags.push({
+      isActive: true,
+      code: 'monthly_risk',
+      title: 'Förhöjd månadsrisk',
+      triggerType: 'drift',
+      severity: normalizeText(monthlyRisk?.riskBand).toLowerCase(),
+      confidence: 0.65,
+      impactScope: 'strategic',
+      drivers: asArray(monthlyRisk?.dominantDrivers).slice(0, 3),
+      recommendedAction:
+        asArray(monthlyRisk?.recommendations)[0] ||
+        'Skifta till stabiliseringsplan tills riskindex normaliseras.',
+    });
+  }
+  return flags.slice(0, 4);
+}
+
 async function runCcoSprintEventHandler({ req, res, authStore }) {
   if (!authStore || typeof authStore.addAuditEvent !== 'function') {
     return res.status(503).json({ error: 'Auth store saknar audit writer.' });
@@ -1873,6 +2044,9 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
   let analysisEntries = [];
   let recentEntries = [];
   let previousEntry = null;
+  let latestEntry = null;
+  let strategicEntries = [];
+  let latestStrategicEntry = null;
   let conversationWorklist = [];
   let previousConversationWorklist = [];
   if (capabilityAnalysisStore && typeof capabilityAnalysisStore.list === 'function') {
@@ -1881,12 +2055,18 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
       capabilityName: 'CCO.InboxAnalysis',
       limit: 400,
     });
+    strategicEntries = await capabilityAnalysisStore.list({
+      tenantId,
+      capabilityName: 'Strategic.IntelligenceSnapshot',
+      limit: 120,
+    });
+    latestStrategicEntry = strategicEntries[0] || null;
     recentEntries = asArray(analysisEntries).filter((entry) => {
       const tsMs = toEventTimestampMs(entry);
       return Number.isFinite(tsMs) && tsMs >= window.startAtMs;
     });
     const sourceEntries = recentEntries.length > 0 ? recentEntries : asArray(analysisEntries);
-    const latestEntry = sourceEntries[0] || null;
+    latestEntry = sourceEntries[0] || null;
     conversationWorklist = asArray(latestEntry?.output?.data?.conversationWorklist);
     previousEntry =
       asArray(analysisEntries)
@@ -2032,6 +2212,140 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     nowMs: Date.now(),
     durationHours: 48,
   });
+  const strategicUsageMetrics = toStrategicUsageMetricsFromUsageAnalytics(
+    usageAnalytics,
+    conversationWorklist
+  );
+  const fallbackStrategicSignals = toStrategicDailySignalsFromEntries(
+    analysisEntries,
+    Date.now(),
+    14
+  );
+  const strategicDailySignals = fallbackStrategicSignals.length
+    ? fallbackStrategicSignals
+    : toStrategicDailySignalsFromEntries(recentEntries, Date.now(), 14);
+  const strategicGeneratedAt = new Date().toISOString();
+  const strategicFocusContext = toStrategicFocusContext({
+    redFlagState,
+    adaptiveFocusState,
+    usageMetrics: strategicUsageMetrics,
+  });
+  const strategicBaseline = {
+    healthScore: Math.max(0, Math.min(100, toNumber(strategicUsageMetrics.healthScore, 100))),
+    slaBreachRate: Math.max(
+      0,
+      Math.min(
+        1,
+        toNumber(
+          usageAnalytics?.slaBreachRate,
+          conversationWorklist.length > 0
+            ? conversationWorklist.filter(
+                (row) => normalizeText(row?.slaStatus).toLowerCase() === 'breach'
+              ).length / Math.max(1, conversationWorklist.length)
+            : 0
+        )
+      )
+    ),
+    complaintRate: Math.max(0, Math.min(1, toNumber(usageAnalytics?.complaintRate, 0))),
+    conversionSignal: Math.max(0, Math.min(1, toNumber(strategicUsageMetrics.conversionSignal, 0.5))),
+    workloadMinutes: Math.max(
+      0,
+      Math.round(
+        conversationWorklist
+          .slice(0, 3)
+          .reduce((sum, row) => sum + Math.max(0, toNumber(row?.estimatedWorkMinutes, 0)), 0)
+      )
+    ),
+    volatilityIndex: Math.max(0, Math.min(1, toNumber(strategicUsageMetrics.volatilityIndex, 0))),
+  };
+  const latestStrategicData = {
+    ...asObject(latestEntry?.output?.data),
+    ...asObject(latestStrategicEntry?.output?.data),
+  };
+  const monthlyRiskFallback = analyzeMonthlyRisk({
+    dailySnapshots: strategicDailySignals,
+    windowDays: 30,
+    nowIso: strategicGeneratedAt,
+  });
+  const strategicFlagsFallback = buildStrategicFlagsFromState({
+    redFlagState,
+    usageMetrics: strategicUsageMetrics,
+    monthlyRisk: monthlyRiskFallback,
+  });
+  const businessThreatsFallback = analyzeBusinessThreats({
+    conversationWorklist,
+    usageMetrics: strategicUsageMetrics,
+    strategicFlags: strategicFlagsFallback,
+    monthlyRisk: monthlyRiskFallback,
+    nowIso: strategicGeneratedAt,
+  });
+  const weeklyBriefFallback = composeWeeklyBrief({
+    focusContext: strategicFocusContext,
+    usageMetrics: strategicUsageMetrics,
+    strategicFlags: strategicFlagsFallback,
+    systemImprovementProposal:
+      asArray(businessThreatsFallback?.threats).length > 0
+        ? {
+            proposalTitle: normalizeText(businessThreatsFallback?.threats?.[0]?.title),
+            rootCauseHypothesis:
+              normalizeText(asArray(businessThreatsFallback?.threats?.[0]?.evidence)[0]) ||
+              'Ingen hypotes tillgänglig.',
+            recommendedActions: [normalizeText(businessThreatsFallback?.threats?.[0]?.recommendedAction)]
+              .filter(Boolean)
+              .slice(0, 3),
+            confidenceScore: Math.max(
+              0,
+              Math.min(1, toNumber(businessThreatsFallback?.threats?.[0]?.confidence, 0.6))
+            ),
+          }
+        : null,
+    initiativeSummaries: asArray(latestStrategicData?.initiativeSummaries),
+    windowDays: 7,
+    nowIso: strategicGeneratedAt,
+  });
+  const scenarioSimulationFallback = simulateScenarios({
+    baseline: strategicBaseline,
+    scenarios: asArray(latestStrategicData?.scenarioSimulation?.scenarios)
+      .map((item) => normalizeText(item?.id))
+      .filter(Boolean),
+    nowIso: strategicGeneratedAt,
+  });
+  const forwardOutlookFallback = computeForwardOutlook({
+    dailySignals: strategicDailySignals,
+    windowDays: 14,
+    forecastDays: 7,
+    nowIso: strategicGeneratedAt,
+  });
+  const weeklyBrief =
+    latestStrategicData?.weeklyBrief &&
+    typeof latestStrategicData.weeklyBrief === 'object' &&
+    !Array.isArray(latestStrategicData.weeklyBrief)
+      ? latestStrategicData.weeklyBrief
+      : weeklyBriefFallback;
+  const monthlyRisk =
+    latestStrategicData?.monthlyRisk &&
+    typeof latestStrategicData.monthlyRisk === 'object' &&
+    !Array.isArray(latestStrategicData.monthlyRisk)
+      ? latestStrategicData.monthlyRisk
+      : monthlyRiskFallback;
+  const scenarioSimulation =
+    latestStrategicData?.scenarioSimulation &&
+    typeof latestStrategicData.scenarioSimulation === 'object' &&
+    !Array.isArray(latestStrategicData.scenarioSimulation)
+      ? latestStrategicData.scenarioSimulation
+      : scenarioSimulationFallback;
+  const businessThreats =
+    latestStrategicData?.businessThreats &&
+    typeof latestStrategicData.businessThreats === 'object' &&
+    !Array.isArray(latestStrategicData.businessThreats)
+      ? latestStrategicData.businessThreats
+      : businessThreatsFallback;
+  const forwardOutlook =
+    latestStrategicData?.forwardOutlook &&
+    typeof latestStrategicData.forwardOutlook === 'object' &&
+    !Array.isArray(latestStrategicData.forwardOutlook)
+      ? latestStrategicData.forwardOutlook
+      : forwardOutlookFallback;
 
   return res.json({
     avgResponseTimeHours,
@@ -2052,6 +2366,11 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     redFlagState,
     adaptiveFocusState,
     recoveryState,
+    weeklyBrief,
+    monthlyRisk,
+    scenarioSimulation,
+    businessThreats,
+    forwardOutlook,
     healthScore: usageAnalytics.healthScore,
     latestSprintFeedback,
     since: window.since,

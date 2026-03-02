@@ -151,6 +151,36 @@ test('SLA monitor marks complaint unanswered after 6h', () => {
   assert.equal(result.isUnanswered, true);
 });
 
+test('SLA monitor applies built-in Swedish holidays when no explicit list is provided', () => {
+  const result = evaluateSlaMonitor({
+    priorityLevel: 'High',
+    lastInboundAt: '2026-04-30T19:00:00.000Z',
+    nowMs: Date.parse('2026-05-01T10:00:00.000Z'),
+  });
+
+  // 1h Thursday evening only; May 1st is treated as closed holiday.
+  assert.equal(result.hoursSinceInbound, 1);
+  assert.equal(result.withinOpeningHours, false);
+  assert.equal(result.slaStatus, 'safe');
+});
+
+test('SLA monitor can disable built-in holiday calendar explicitly', () => {
+  const result = evaluateSlaMonitor({
+    priorityLevel: 'High',
+    lastInboundAt: '2026-04-30T19:00:00.000Z',
+    nowMs: Date.parse('2026-05-01T10:00:00.000Z'),
+    openingHours: {
+      includeDefaultHolidays: false,
+      holidayRegion: 'SE',
+    },
+  });
+
+  // 1h Thursday evening + 2h Friday morning.
+  assert.equal(result.hoursSinceInbound, 3);
+  assert.equal(result.withinOpeningHours, true);
+  assert.equal(result.slaStatus, 'safe');
+});
+
 test('SLA monitor keeps booking request below unanswered threshold', () => {
   const result = evaluateSlaMonitor({
     priorityLevel: 'High',

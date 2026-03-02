@@ -3,6 +3,11 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { buildPilotReport } = require('../reports/pilotReport');
+const { composeWeeklyBrief } = require('../intelligence/weeklyBriefComposer');
+const { analyzeMonthlyRisk } = require('../intelligence/monthlyRiskAnalyzer');
+const { simulateScenarios } = require('../intelligence/scenarioEngine');
+const { analyzeBusinessThreats } = require('../intelligence/businessThreatAnalyzer');
+const { computeForwardOutlook } = require('../intelligence/forwardOutlookEngine');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 const {
@@ -54,6 +59,15 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function safeObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function safeInteger(value, fallback = 0) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   if (!Number.isFinite(parsed)) return fallback;
@@ -92,10 +106,118 @@ function toUtcDateKey(value = null) {
   return new Date(ts).toISOString().slice(0, 10);
 }
 
+function clamp(value, min, max, fallback = min) {
+  const parsed = Number(value);
+  const numeric = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(min, Math.min(max, numeric));
+}
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function round(value, precision = 2) {
+  const factor = 10 ** Math.max(0, toNumber(precision, 2));
+  return Math.round(toNumber(value, 0) * factor) / factor;
+}
+
+function buildStrategicDailySignals(entries = [], nowIsoValue = null, windowDays = 60) {
+  const resolvedNowIso = normalizeText(nowIsoValue) || nowIso();
+  const nowMs = Date.parse(String(resolvedNowIso || '')) || Date.now();
+  const fromMs = nowMs - Math.max(7, Math.min(180, Number(windowDays) || 60)) * 24 * 60 * 60 * 1000;
+  const byDay = new Map();
+  const sorted = asArray(entries)
+    .slice()
+    .sort((left, right) => String(left?.ts || '').localeCompare(String(right?.ts || '')));
+
+  for (const entry of sorted) {
+    const ts = String(entry?.ts || '');
+    const tsMs = Date.parse(ts);
+    if (!Number.isFinite(tsMs) || tsMs < fromMs) continue;
+    const data = safeObject(entry?.output?.data);
+    const worklist = asArray(data.conversationWorklist);
+    const unresolved = worklist.filter(
+      (row) => normalizeText(row?.needsReplyStatus).toLowerCase() !== 'handled'
+    );
+    const complaintCount = unresolved.filter(
+      (row) => normalizeText(row?.intent).toLowerCase() === 'complaint'
+    ).length;
+    const bookingCount = unresolved.filter(
+      (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+    ).length;
+    const slaBreachCount = unresolved.filter(
+      (row) => normalizeText(row?.slaStatus).toLowerCase() === 'breach'
+    ).length;
+    const unresolvedCount = Math.max(1, unresolved.length);
+    const usageAnalytics = safeObject(data.usageAnalytics);
+    const key = toUtcDateKey(ts);
+    if (!key) continue;
+    byDay.set(key, {
+      ts: new Date(tsMs).toISOString(),
+      complaintCount,
+      bookingCount,
+      unresolvedCount,
+      complaintRate: round(complaintCount / unresolvedCount, 4),
+      bookingPressure: round(bookingCount / unresolvedCount, 4),
+      slaBreachRate: round(slaBreachCount / unresolvedCount, 4),
+      healthScore: clamp(usageAnalytics.healthScore, 0, 100, 100),
+      volatilityIndex: clamp(usageAnalytics.volatilityIndex, 0, 1, 0),
+    });
+  }
+
+  return Array.from(byDay.values()).sort((left, right) => String(left.ts).localeCompare(String(right.ts)));
+}
+
+function buildStrategicBaseline({ latestData = {}, conversationWorklist = [] } = {}) {
+  const usage = safeObject(latestData.usageAnalytics);
+  const unresolved = asArray(conversationWorklist).filter(
+    (row) => normalizeText(row?.needsReplyStatus).toLowerCase() !== 'handled'
+  );
+  const breachCount = unresolved.filter(
+    (row) => normalizeText(row?.slaStatus).toLowerCase() === 'breach'
+  ).length;
+  const complaintCount = unresolved.filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'complaint'
+  ).length;
+  const bookingCount = unresolved.filter(
+    (row) => normalizeText(row?.intent).toLowerCase() === 'booking_request'
+  ).length;
+  const unresolvedCount = Math.max(1, unresolved.length);
+
+  return {
+    healthScore: clamp(usage.healthScore, 0, 100, 100),
+    slaBreachRate: clamp(
+      usage.slaBreachRate !== undefined ? usage.slaBreachRate : breachCount / unresolvedCount,
+      0,
+      1,
+      0
+    ),
+    complaintRate: clamp(
+      usage.complaintRate !== undefined ? usage.complaintRate : complaintCount / unresolvedCount,
+      0,
+      1,
+      0
+    ),
+    conversionSignal: clamp(usage.conversionSignal, 0, 1, 0.5),
+    workloadMinutes: Math.max(
+      0,
+      Math.round(
+        unresolved
+          .slice(0, 3)
+          .reduce((sum, row) => sum + Math.max(0, toNumber(row?.estimatedWorkMinutes, 0)), 0)
+      )
+    ),
+    volatilityIndex: clamp(usage.volatilityIndex, 0, 1, 0),
+    bookingPressure: round(bookingCount / unresolvedCount, 4),
+  };
+}
+
 function createScheduler({
   config,
   authStore,
   templateStore,
+  capabilityAnalysisStore = null,
   runtimeMetricsStore = null,
   secretRotationStore = null,
   sloTicketStore = null,
@@ -1301,6 +1423,147 @@ function createScheduler({
     };
   }
 
+  async function runStrategicIntelligenceSnapshot({
+    tenantId,
+    trigger = 'scheduled',
+    mode = 'weekly',
+    actorUserId = null,
+  }) {
+    if (
+      !capabilityAnalysisStore ||
+      typeof capabilityAnalysisStore.list !== 'function' ||
+      typeof capabilityAnalysisStore.append !== 'function'
+    ) {
+      return {
+        tenantId,
+        mode,
+        skipped: true,
+        reason: 'analysis_store_unavailable',
+      };
+    }
+
+    const ccoEntries = await capabilityAnalysisStore.list({
+      tenantId,
+      capabilityName: 'CCO.InboxAnalysis',
+      limit: 240,
+    });
+    const latestCcoEntry = asArray(ccoEntries)[0] || null;
+    if (!latestCcoEntry) {
+      return {
+        tenantId,
+        mode,
+        skipped: true,
+        reason: 'cco_inbox_analysis_missing',
+      };
+    }
+
+    const latestData = safeObject(latestCcoEntry?.output?.data);
+    const conversationWorklist = asArray(latestData.conversationWorklist);
+    const strategicGeneratedAt = nowIso();
+    const dailySignals = buildStrategicDailySignals(ccoEntries, strategicGeneratedAt, 60);
+    const baseline = buildStrategicBaseline({
+      latestData,
+      conversationWorklist,
+    });
+    const monthlyRisk = analyzeMonthlyRisk({
+      dailySnapshots: dailySignals,
+      windowDays: 30,
+      nowIso: strategicGeneratedAt,
+    });
+    const strategicFlags = asArray(latestData.strategicFlags).slice(0, 8);
+    const businessThreats = analyzeBusinessThreats({
+      conversationWorklist,
+      usageMetrics: safeObject(latestData.usageAnalytics),
+      strategicFlags,
+      monthlyRisk,
+      nowIso: strategicGeneratedAt,
+    });
+    const scenarioSimulation = simulateScenarios({
+      baseline,
+      scenarios: asArray(safeObject(latestData.scenarioSimulation).scenarios)
+        .map((item) => normalizeText(item?.id))
+        .filter(Boolean),
+      nowIso: strategicGeneratedAt,
+    });
+    const forwardOutlook = computeForwardOutlook({
+      dailySignals,
+      windowDays: 14,
+      forecastDays: 7,
+      nowIso: strategicGeneratedAt,
+    });
+    const weeklyBrief = composeWeeklyBrief({
+      focusContext: safeObject(latestData.focusContext),
+      usageMetrics: safeObject(latestData.usageAnalytics),
+      strategicFlags,
+      systemImprovementProposal: safeObject(latestData.systemImprovementProposal),
+      initiativeSummaries: asArray(latestData.initiativeSummaries),
+      windowDays: 7,
+      nowIso: strategicGeneratedAt,
+    });
+
+    const strategicOutput = {
+      mode: normalizeText(mode) || 'weekly',
+      weeklyBrief,
+      monthlyRisk,
+      scenarioSimulation,
+      businessThreats,
+      forwardOutlook,
+      dailySignals: dailySignals.slice(-30),
+      sourceCapabilityRunId: normalizeText(latestCcoEntry?.capabilityRunId) || null,
+      generatedAt: strategicGeneratedAt,
+    };
+
+    const persisted = await capabilityAnalysisStore.append({
+      tenantId,
+      capability: {
+        name: 'Strategic.IntelligenceSnapshot',
+        version: '1.0.0',
+        persistStrategy: 'snapshot',
+      },
+      decision: 'allow',
+      runId: `scheduler-strategic-${normalizeText(mode) || 'weekly'}-${Date.now()}`,
+      capabilityRunId: normalizeText(latestCcoEntry?.capabilityRunId) || null,
+      actor: {
+        id: actorUserId || 'scheduler',
+        role: ROLE_OWNER,
+      },
+      input: {
+        trigger,
+        mode,
+        sourceCapability: 'CCO.InboxAnalysis',
+      },
+      output: {
+        metadata: {
+          source: 'scheduler',
+          mode,
+          generatedAt: strategicGeneratedAt,
+          sourceCapabilityRunId: normalizeText(latestCcoEntry?.capabilityRunId) || null,
+        },
+        data: strategicOutput,
+      },
+      metadata: {
+        source: 'scheduler',
+        trigger,
+        mode,
+        snapshotWindowDays: 60,
+      },
+    });
+
+    return {
+      tenantId,
+      mode,
+      generatedAt: strategicGeneratedAt,
+      sourceCapabilityRunId: normalizeText(latestCcoEntry?.capabilityRunId) || null,
+      entryId: normalizeText(persisted?.id) || null,
+      dailySignalPoints: dailySignals.length,
+      monthlyRiskBand: normalizeText(monthlyRisk?.riskBand) || 'low',
+      topThreatSeverity: normalizeText(businessThreats?.highestSeverity) || 'none',
+      forwardConfidence: toNumber(forwardOutlook?.confidenceScore, 0),
+      weeklyMode: normalizeText(weeklyBrief?.mode) || 'normal',
+      skipped: false,
+    };
+  }
+
   const jobDefinitions = [
     {
       id: 'nightly_pilot_report',
@@ -1349,6 +1612,42 @@ function createScheduler({
       name: 'High/Critical alert probe',
       intervalMs: toMinutesMs(config.schedulerAlertProbeIntervalMinutes, 15),
       run: runAlertProbe,
+    },
+    {
+      id: 'strategic_weekly_brief',
+      name: 'Strategic weekly brief snapshot',
+      intervalMs: toHoursMs(config.schedulerStrategicWeeklyIntervalHours, 168),
+      run: async ({ tenantId, trigger, actorUserId }) =>
+        runStrategicIntelligenceSnapshot({
+          tenantId,
+          trigger,
+          actorUserId,
+          mode: 'weekly',
+        }),
+    },
+    {
+      id: 'strategic_monthly_risk',
+      name: 'Strategic monthly risk snapshot',
+      intervalMs: toHoursMs(config.schedulerStrategicMonthlyIntervalHours, 720),
+      run: async ({ tenantId, trigger, actorUserId }) =>
+        runStrategicIntelligenceSnapshot({
+          tenantId,
+          trigger,
+          actorUserId,
+          mode: 'monthly',
+        }),
+    },
+    {
+      id: 'strategic_forward_outlook',
+      name: 'Strategic forward outlook snapshot',
+      intervalMs: toHoursMs(config.schedulerStrategicForwardIntervalHours, 24),
+      run: async ({ tenantId, trigger, actorUserId }) =>
+        runStrategicIntelligenceSnapshot({
+          tenantId,
+          trigger,
+          actorUserId,
+          mode: 'forward',
+        }),
     },
   ];
 
