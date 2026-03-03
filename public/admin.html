@@ -1451,6 +1451,9 @@
     .section-nav .sectionNavBtn[data-target="ccoWorkspaceSection"] {
       position: relative;
     }
+    .section-nav .sectionNavBtn[data-target="ccoWorkspaceSection"][data-cco-view="unanswered"] {
+      display: none !important;
+    }
     body.cco-light-mode .section-nav .sectionNavBtn[data-target="ccoWorkspaceSection"].active::after {
       content: "";
       position: absolute;

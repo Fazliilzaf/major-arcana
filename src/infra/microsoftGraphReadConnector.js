@@ -973,6 +973,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     let mailboxCount = 0;
     let mailboxErrors = 0;
     const warnings = [];
+    const processedMailboxIds = new Set();
 
     if (!fullTenantMode) {
       const identity = toMailboxIdentity({}, userId);
@@ -1038,6 +1039,14 @@ function createMicrosoftGraphReadConnector(config = {}) {
         : [];
 
       const normalizedMessages = [...normalizedInboundMessages, ...normalizedOutboundMessages];
+      [
+        normalizeText(identity.mailboxId),
+        normalizeText(identity.mail),
+        normalizeText(identity.userPrincipalName),
+        normalizeText(userId),
+      ]
+        .filter(Boolean)
+        .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
 
       conversations = toConversationSnapshots(normalizedMessages);
       fetchedMessages = normalizedMessages.length;
@@ -1090,6 +1099,11 @@ function createMicrosoftGraphReadConnector(config = {}) {
         }
         return selected;
       })();
+      selectedUsers.forEach((user) => {
+        [normalizeText(user.mailboxId), normalizeText(user.mail), normalizeText(user.userPrincipalName)]
+          .filter(Boolean)
+          .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
+      });
 
       for (const user of selectedUsers) {
         const elapsedMs = Date.now() - runStartedAt;
@@ -1157,6 +1171,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
                 .filter(Boolean)
             : [];
           const normalizedMessages = [...normalizedInboundMessages, ...normalizedOutboundMessages];
+          [normalizeText(user.mailboxId), normalizeText(user.mail), normalizeText(user.userPrincipalName)]
+            .filter(Boolean)
+            .forEach((mailboxId) => processedMailboxIds.add(mailboxId));
 
           fetchedMessages += normalizedMessages.length;
           inboundMessageCount += normalizedInboundMessages.length;
@@ -1246,15 +1263,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
         mailboxIndexes,
         mailboxIdFilter,
         mailboxIds:
-          fullTenantMode && Array.isArray(conversations)
-            ? Array.from(
-                new Set(
-                  conversations
-                    .map((item) => normalizeText(item?.mailboxId))
-                    .filter(Boolean)
-                )
-              )
-            : [normalizeText(userId)].filter(Boolean),
+          (() => {
+            const fromConversations = Array.isArray(conversations)
+              ? conversations.map((item) => normalizeText(item?.mailboxId)).filter(Boolean)
+              : [];
+            return Array.from(new Set([...processedMailboxIds, ...fromConversations]));
+          })(),
         mailboxErrors,
         mailboxCount,
         fetchedMessages,

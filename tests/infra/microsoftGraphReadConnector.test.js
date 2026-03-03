@@ -1097,3 +1097,84 @@ test('MicrosoftGraphReadConnector fails closed on pagination loop detection', as
     /pagination loop detected/i
   );
 });
+
+test('MicrosoftGraphReadConnector metadata.mailboxIds includes selected mailboxes even when no messages are returned', async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-mailboxes',
+        },
+      });
+    }
+    if (String(url).includes('/users?')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            { id: 'user-1', mail: 'info@hairtpclinic.com', userPrincipalName: 'info@hairtpclinic.com' },
+            { id: 'user-2', mail: 'kons@hairtpclinic.com', userPrincipalName: 'kons@hairtpclinic.com' },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-1/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'msg-u1-in',
+              conversationId: 'conv-u1',
+              subject: 'Hej',
+              bodyPreview: 'Hej från kund',
+              receivedDateTime: '2026-02-26T11:00:00.000Z',
+              from: { emailAddress: { address: 'patient@example.com' } },
+              toRecipients: [{ emailAddress: { address: 'info@hairtpclinic.com' } }],
+            },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-1/mailFolders/SentItems/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-2/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-2/mailFolders/SentItems/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [],
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-mailboxes',
+    clientId: 'client-id-mailboxes',
+    clientSecret: 'client-secret-mailboxes',
+    fullTenant: true,
+    userScope: 'all',
+    fetchImpl,
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot({
+    fullTenant: true,
+    userScope: 'all',
+    maxUsers: 2,
+    maxMessagesPerUser: 10,
+  });
+
+  assert.equal(Array.isArray(snapshot.metadata.mailboxIds), true);
+  assert.equal(snapshot.metadata.mailboxIds.includes('info@hairtpclinic.com'), true);
+  assert.equal(snapshot.metadata.mailboxIds.includes('kons@hairtpclinic.com'), true);
+});

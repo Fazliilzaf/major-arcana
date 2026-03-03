@@ -26,3 +26,10 @@ test('maskInboxText normalizes whitespace and caps long text', () => {
   assert.equal(output.length <= 80, true);
   assert.equal(output.endsWith('...'), true);
 });
+
+test('maskInboxText strips css-like leakage from previews', () => {
+  const output = maskInboxText('.cco-message.outbound { background: #EFEAE6; } Hej patient@example.com');
+  assert.equal(output.includes('.cco-message.outbound'), false);
+  assert.equal(output.includes('background:'), false);
+  assert.equal(output.includes('[email]'), true);
+});

@@ -4810,8 +4810,19 @@
     return normalized;
   }
 
+  function pruneLegacyCcoUnansweredNavButtons() {
+    if (!els.sectionNav) return;
+    const legacyButtons = Array.from(
+      els.sectionNav.querySelectorAll(
+        '.sectionNavBtn[data-target="ccoWorkspaceSection"][data-cco-view="unanswered"]'
+      )
+    );
+    legacyButtons.forEach((button) => button.remove());
+  }
+
   function setActiveSectionNav(targetId) {
     if (!els.sectionNav) return;
+    pruneLegacyCcoUnansweredNavButtons();
     const resolvedTargetId = resolveSectionNavTarget(targetId);
     const ccoViewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
     els.sectionNav.querySelectorAll('.sectionNavBtn').forEach((button) => {

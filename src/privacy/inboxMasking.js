@@ -9,8 +9,33 @@ function capText(value, maxLength = 360) {
   return `${text.slice(0, Math.max(1, maxLength - 3)).trim()}...`;
 }
 
+function stripCssNoise(value = '') {
+  let text = String(value || '');
+  if (!text) return '';
+  text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/(^|\s)(?:[#.][^{}]{0,120})\{[^{}]{0,300}\}/gi, ' ');
+  text = text.replace(/\b[a-z-]+\s*:\s*#[0-9a-f]{3,8}\s*;/gi, ' ');
+  text = text.replace(/\b[a-z-]+\s*:\s*[^;]{1,80};/gi, (match) => {
+    const normalized = String(match || '').toLowerCase();
+    if (
+      normalized.includes('background') ||
+      normalized.includes('font-') ||
+      normalized.includes('color') ||
+      normalized.includes('border') ||
+      normalized.includes('padding') ||
+      normalized.includes('margin') ||
+      normalized.includes('display') ||
+      normalized.includes('line-height')
+    ) {
+      return ' ';
+    }
+    return match;
+  });
+  return text;
+}
+
 function maskInboxText(value, maxLength = 360) {
-  let text = normalizeText(value);
+  let text = normalizeText(stripCssNoise(value));
   if (!text) return '';
   text = text.replace(/https?:\/\/\S+/gi, '[lank]');
   text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]');

@@ -287,6 +287,12 @@ function buildCcoSignatureHtml({
   ).replace(/\/+$/, '');
   const logoBaseUrl = publicBaseUrl || 'https://arcana.hairtpclinic.se';
   const logoUrl = `${logoBaseUrl}/assets/hair-tp-clinic/hairtpclinic-mark-light.svg`;
+  const iconBaseStyle =
+    'display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;margin-right:6px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;';
+  const iconSvgStyle = 'display:block;width:18px;height:18px;fill:currentColor;';
+  const webIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" style="${iconSvgStyle}"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm7.9 9h-3.2a15 15 0 0 0-1.1-5A8 8 0 0 1 19.9 11ZM12 4.1c1.1 1.2 2 3.7 2.4 6.9H9.6c.4-3.2 1.3-5.7 2.4-6.9ZM4.1 13h3.2a15 15 0 0 0 1.1 5A8 8 0 0 1 4.1 13Zm0-2A8 8 0 0 1 8.4 6c-.5 1.3-.9 3-1.1 5H4.1Zm7.9 8a9 9 0 0 1-2.4-6h4.8a9 9 0 0 1-2.4 6Zm3.6-1c.5-1.3.9-3 1.1-5h3.2a8 8 0 0 1-4.3 5Z"/></svg>`;
+  const instagramIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" style="${iconSvgStyle}"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5a4.5 4.5 0 1 1 0 9a4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5Zm5.25-2.75a1.25 1.25 0 1 1 0 2.5a1.25 1.25 0 0 1 0-2.5Z"/></svg>`;
+  const facebookIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" style="${iconSvgStyle}"><path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.6 1.6-1.6h1.7V4.8c-.3 0-1.3-.1-2.4-.1c-2.4 0-4 1.4-4 4.1V11H8v3h2.9v8h2.6Z"/></svg>`;
 
   return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-family:Arial,sans-serif;color:#2f2f33;">
@@ -302,9 +308,9 @@ function buildCcoSignatureHtml({
       <div style="font-size:14px;line-height:1.3;color:#2f2f33;">${escapeHtml(safeSenderMailbox)}</div>
       <div style="font-size:14px;line-height:1.3;color:#2f2f33;">Vasaplatsen 2, 411 34 Göteborg</div>
       <div style="margin-top:10px;">
-        <a href="${escapeHtml(websiteUrl)}" title="Webb" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-right:6px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">W</a>
-        <a href="${escapeHtml(instagramUrl)}" title="Instagram" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-right:6px;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">IG</a>
-        <a href="${escapeHtml(facebookUrl)}" title="Facebook" style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:999px;background:#2f2f33;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">f</a>
+        <a href="${escapeHtml(websiteUrl)}" title="Webb" style="${iconBaseStyle}">${webIcon}</a>
+        <a href="${escapeHtml(instagramUrl)}" title="Instagram" style="${iconBaseStyle}">${instagramIcon}</a>
+        <a href="${escapeHtml(facebookUrl)}" title="Facebook" style="${iconBaseStyle.replace('margin-right:6px;', '')}">${facebookIcon}</a>
       </div>
     </td>
   </tr>
