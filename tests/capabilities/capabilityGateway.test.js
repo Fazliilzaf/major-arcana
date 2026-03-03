@@ -1205,21 +1205,17 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
     assert.deepEqual(graphCalls[0].mailboxIds, [
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
     assert.deepEqual(graphCalls[0].mailboxIndexes, []);
 
@@ -1234,11 +1230,9 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
@@ -1343,21 +1337,17 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
     assert.deepEqual(graphCalls[0].mailboxIds, [
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
@@ -1462,11 +1452,9 @@ test('AnalyzeInbox ignores ARCANA_GRAPH_MAILBOX_IDS outside locked allowlist', a
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
       'fazli@hairtpclinic.com',
-      'kvitto@hairtpclinic.com',
       'info@hairtpclinic.com',
-      'faktura@hairtpclinic.com',
-      'jobb@hairtpclinic.com',
       'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
     ]);
     assert.equal(graphCalls[0].mailboxIds.includes('arya@hairtpclinic.com'), false);
     assert.equal(graphCalls[0].mailboxIds.includes('clara@hairtpclinic.com'), false);

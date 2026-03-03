@@ -41,11 +41,9 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'egzona@hairtpclinic.com',
   'contact@hairtpclinic.com',
   'fazli@hairtpclinic.com',
-  'kvitto@hairtpclinic.com',
   'info@hairtpclinic.com',
-  'faktura@hairtpclinic.com',
-  'jobb@hairtpclinic.com',
   'kons@hairtpclinic.com',
+  'marknad@hairtpclinic.com',
 ]);
 
 function normalizeText(value) {

@@ -6,6 +6,23 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function toEmailLoginCandidates(value) {
+  const normalized = normalizeEmail(value);
+  if (!normalized) return [];
+  const candidates = new Set([normalized]);
+  const parts = normalized.split('@');
+  if (parts.length === 2) {
+    const local = parts[0];
+    const domain = parts[1];
+    if (domain === 'hairtpclinic.com') {
+      candidates.add(`${local}@hairtpclinic.se`);
+    } else if (domain === 'hairtpclinic.se') {
+      candidates.add(`${local}@hairtpclinic.com`);
+    }
+  }
+  return Array.from(candidates);
+}
+
 function normalizeTenantId(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
@@ -127,10 +144,11 @@ function createAuthRouter({
   router.post('/auth/login', applyLoginRateLimit, async (req, res) => {
     try {
       const email = normalizeEmail(req.body?.email);
+      const emailCandidates = toEmailLoginCandidates(req.body?.email);
       const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
       const tenantId = normalizeTenantId(req.body?.tenantId);
 
-      if (!email || !rawPassword) {
+      if (!emailCandidates.length || !rawPassword) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
       }
 
@@ -141,11 +159,12 @@ function createAuthRouter({
       }
 
       let user = null;
-      for (const candidate of passwordCandidates) {
-        user = await authStore.authenticateUser({ email, password: candidate });
-        if (user) {
-          break;
+      for (const loginEmail of emailCandidates) {
+        for (const candidate of passwordCandidates) {
+          user = await authStore.authenticateUser({ email: loginEmail, password: candidate });
+          if (user) break;
         }
+        if (user) break;
       }
       let ownerCredentialSelfHealed = false;
       if (
@@ -154,7 +173,7 @@ function createAuthRouter({
         normalizedBootstrapOwnerEmail &&
         typeof bootstrapOwnerPassword === 'string' &&
         typeof authStore.bootstrapOwner === 'function' &&
-        email === normalizedBootstrapOwnerEmail &&
+        emailCandidates.includes(normalizedBootstrapOwnerEmail) &&
         passwordCandidates.some((candidate) => safeEqualText(candidate, bootstrapOwnerPassword))
       ) {
         try {
@@ -165,7 +184,10 @@ function createAuthRouter({
             forcePasswordReset: true,
             forceMfaReset: false,
           });
-          user = await authStore.authenticateUser({ email, password: bootstrapOwnerPassword });
+          user = await authStore.authenticateUser({
+            email: normalizedBootstrapOwnerEmail,
+            password: bootstrapOwnerPassword,
+          });
           ownerCredentialSelfHealed = Boolean(user);
         } catch (selfHealError) {
           await authStore.addAuditEvent({

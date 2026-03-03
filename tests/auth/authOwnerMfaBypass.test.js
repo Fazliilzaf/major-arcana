@@ -93,3 +93,58 @@ test('owner login bypasses MFA only on configured staging host', async () => {
     assert.equal(prodPayload.mfaTicket.length > 0, true);
   });
 });
+
+test('login accepts hairtpclinic.com/.se alias for same mailbox identity', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-email-alias-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+
+  await authStore.bootstrapOwner({
+    tenantId: 'tenant-a',
+    email: 'fazli@hairtpclinic.se',
+    password: 'secret12345',
+    forcePasswordReset: true,
+    forceMfaReset: true,
+  });
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createAuthRouter({
+      authStore,
+      requireAuth: (_req, _res, next) => next(),
+      requireRole: () => (_req, _res, next) => next(),
+      requireTenantScope: () => (_req, _res, next) => next(),
+      ownerMfaBypassHosts: ['arcana.hairtpclinic.se'],
+      loginSessionRotationScope: 'none',
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-host': 'arcana.hairtpclinic.se',
+      },
+      body: JSON.stringify({
+        email: 'fazli@hairtpclinic.com',
+        password: 'secret12345',
+        tenantId: 'tenant-a',
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(typeof payload.token, 'string');
+    assert.equal(payload.token.length > 0, true);
+    assert.equal(payload.requiresMfa, undefined);
+  });
+});
