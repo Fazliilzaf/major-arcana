@@ -330,6 +330,10 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
     filePath: config.templateStorePath,
     maxEvaluations: config.templateEvalMaxEntries,
   });
+  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
+    filePath: config.capabilityAnalysisStorePath,
+    maxEntries: config.capabilityAnalysisMaxEntries,
+  });
 
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
@@ -352,6 +356,7 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
     config,
     authStore,
     templateStore,
+    capabilityAnalysisStore,
     runtimeMetricsStore,
     secretRotationStore,
     sloTicketStore,
@@ -373,10 +378,6 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
     filePath: config.patientSignalStorePath,
     maxEvents: config.patientSignalMaxEvents,
     retentionDays: config.patientSignalRetentionDays,
-  });
-  const capabilityAnalysisStore = await createCapabilityAnalysisStore({
-    filePath: config.capabilityAnalysisStorePath,
-    maxEntries: config.capabilityAnalysisMaxEntries,
   });
   const executionGateway = createExecutionGateway({
     buildVersion: process.env.npm_package_version || 'dev',

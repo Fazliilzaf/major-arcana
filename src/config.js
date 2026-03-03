@@ -230,7 +230,7 @@ const config = {
   authOwnerMfaBypassHosts: (() => {
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
     if (configured.length > 0) return configured;
-    return ['arcana-staging.onrender.com'];
+    return ['arcana-staging.onrender.com', 'arcana.hairtpclinic.se', 'arcana.hairtpclinic.com'];
   })(),
   authOwnerCredentialSelfHeal: asBool(process.env.AUTH_OWNER_CREDENTIAL_SELF_HEAL, true),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
@@ -321,6 +321,18 @@ const config = {
 
   schedulerEnabled: asBool(process.env.ARCANA_SCHEDULER_ENABLED, true),
   schedulerReportWindowDays: asInt(process.env.ARCANA_SCHEDULER_REPORT_WINDOW_DAYS, 14),
+  schedulerCcoWeeklyBriefIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_WEEKLY_BRIEF_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoMonthlyRiskIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MONTHLY_RISK_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoForwardOutlookIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FORWARD_OUTLOOK_INTERVAL_HOURS,
+    6
+  ),
   schedulerReportIntervalHours: asInt(process.env.ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS, 24),
   schedulerBackupIntervalHours: asInt(process.env.ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS, 24),
   schedulerRestoreDrillIntervalHours: asInt(

@@ -185,10 +185,54 @@ function toEmailAliases(value = '') {
   return Array.from(aliases);
 }
 
-function inferCounterpartyEmail({ direction = 'inbound', senderEmail = '', recipients = [] } = {}) {
-  if (direction === 'inbound') return normalizeText(senderEmail).toLowerCase() || '';
+function inferCounterpartyEmail({
+  direction = 'inbound',
+  senderEmail = '',
+  recipients = [],
+  replyToRecipients = [],
+} = {}) {
+  const safeReplyTo = Array.isArray(replyToRecipients) ? replyToRecipients : [];
+  if (direction === 'inbound') {
+    const replyTo = normalizeText(safeReplyTo[0]).toLowerCase();
+    if (replyTo) return replyTo;
+    return normalizeText(senderEmail).toLowerCase() || '';
+  }
   const safeRecipients = Array.isArray(recipients) ? recipients : [];
-  return normalizeText(safeRecipients[0]).toLowerCase() || '';
+  const recipient = normalizeText(safeRecipients[0]).toLowerCase();
+  if (recipient) return recipient;
+  return normalizeText(safeReplyTo[0]).toLowerCase() || '';
+}
+
+function toReplyToList(value = []) {
+  const source = Array.isArray(value) ? value : [];
+  return source
+    .map((item) => normalizeText(item?.emailAddress?.address))
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function isSubjectFuzzyMatch(left = '', right = '') {
+  const a = normalizeSubjectForCorrelation(left);
+  const b = normalizeSubjectForCorrelation(right);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length >= 12 && b.includes(a)) return true;
+  if (b.length >= 12 && a.includes(b)) return true;
+  return false;
+}
+
+function toEmailAliasCandidates(values = []) {
+  const aliases = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    for (const alias of toEmailAliases(value)) {
+      const normalizedAlias = normalizeText(alias).toLowerCase();
+      if (!normalizedAlias) continue;
+      aliases.add(normalizedAlias);
+    }
+    const normalizedValue = normalizeEmailAddress(value);
+    if (normalizedValue) aliases.add(normalizedValue);
+  }
+  return Array.from(aliases);
 }
 
 function requiredConfig(name, value) {
@@ -367,6 +411,7 @@ function toNormalizedMessage(
   const senderEmail = normalizeText(raw?.from?.emailAddress?.address);
   const senderName = normalizeText(raw?.from?.emailAddress?.name);
   const recipients = toRecipientList(raw?.toRecipients);
+  const replyToRecipients = toReplyToList(raw?.replyTo);
   const internetHeaders = Array.isArray(raw?.internetMessageHeaders) ? raw.internetMessageHeaders : [];
   const inReplyTo =
     normalizeHeaderMessageId(raw?.inReplyTo) ||
@@ -384,6 +429,7 @@ function toNormalizedMessage(
     direction: normalizedDirection,
     senderEmail,
     recipients,
+    replyToRecipients,
   });
 
   return {
@@ -397,6 +443,7 @@ function toNormalizedMessage(
     senderEmail: senderEmail || null,
     senderName: senderName || null,
     recipients,
+    replyToRecipients,
     counterpartyEmail: counterpartyEmail || null,
     internetMessageId,
     inReplyTo,
@@ -413,14 +460,15 @@ function toConversationSnapshots(messages = []) {
   const conversationAlias = new Map();
   const messageIdAlias = new Map();
   const fallbackAlias = new Map();
+  const emailAlias = new Map();
   let syntheticCounter = 0;
 
   const resolveFallbackKey = (message = {}) => {
     const subject = normalizeText(message.normalizedSubject);
     const counterpartyEmail = normalizeText(message.counterpartyEmail).toLowerCase();
-    const mailbox = normalizeText(message.mailboxId).toLowerCase();
-    if (!subject || !counterpartyEmail || !mailbox) return '';
-    return `${mailbox}|${counterpartyEmail}|${subject}`;
+    const activityMonth = normalizeText(message.sentAt).slice(0, 7);
+    if (!subject || !counterpartyEmail) return '';
+    return `${counterpartyEmail}|${subject}|${activityMonth || 'unknown-month'}`;
   };
 
   const sortedMessages = asArray(messages)
@@ -432,9 +480,16 @@ function toConversationSnapshots(messages = []) {
     const rawConversationId = normalizeText(message.conversationId);
     const fallbackKey = resolveFallbackKey(message);
     const linkedMessageIds = [
+      normalizeHeaderMessageId(message.internetMessageId),
       normalizeHeaderMessageId(message.inReplyTo),
       ...asArray(message.references).map((item) => normalizeHeaderMessageId(item)),
     ].filter(Boolean);
+    const aliasCandidates = toEmailAliasCandidates([
+      message.counterpartyEmail,
+      message.senderEmail,
+      ...(Array.isArray(message.recipients) ? message.recipients : []),
+      ...(Array.isArray(message.replyToRecipients) ? message.replyToRecipients : []),
+    ]);
 
     let clusterId = '';
     if (rawConversationId && conversationAlias.has(rawConversationId)) {
@@ -446,6 +501,15 @@ function toConversationSnapshots(messages = []) {
     }
     if (!clusterId && fallbackKey && fallbackAlias.has(fallbackKey)) {
       clusterId = fallbackAlias.get(fallbackKey);
+    }
+    if (!clusterId && aliasCandidates.length > 0) {
+      const matchedAlias = aliasCandidates.find((alias) => {
+        const candidateClusterId = emailAlias.get(alias);
+        if (!candidateClusterId || !map.has(candidateClusterId)) return false;
+        const candidate = map.get(candidateClusterId);
+        return isSubjectFuzzyMatch(candidate?.subject, message.subject);
+      });
+      if (matchedAlias) clusterId = emailAlias.get(matchedAlias);
     }
     if (!clusterId && rawConversationId) {
       clusterId = rawConversationId;
@@ -482,6 +546,9 @@ function toConversationSnapshots(messages = []) {
     if (message.internetMessageId) {
       messageIdAlias.set(message.internetMessageId, clusterId);
     }
+    for (const aliasCandidate of aliasCandidates) {
+      emailAlias.set(aliasCandidate, clusterId);
+    }
 
     const messageDirection = message.direction === 'outbound' ? 'outbound' : 'inbound';
     entry.messages.push({
@@ -495,6 +562,7 @@ function toConversationSnapshots(messages = []) {
       senderEmail: normalizeText(message.senderEmail).toLowerCase() || null,
       senderName: normalizeText(message.senderName) || null,
       recipients: asArray(message.recipients).slice(0, 20),
+      replyToRecipients: asArray(message.replyToRecipients).slice(0, 20),
       internetMessageId: normalizeHeaderMessageId(message.internetMessageId) || null,
       inReplyTo: normalizeHeaderMessageId(message.inReplyTo) || null,
       references: asArray(message.references).map((item) => normalizeHeaderMessageId(item)).filter(Boolean),

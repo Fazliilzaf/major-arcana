@@ -42,6 +42,8 @@ const DEFAULT_UNANSWERED_THRESHOLDS_HOURS = Object.freeze({
 
 const DEFAULT_OPENING_HOURS = Object.freeze({
   timezone: 'Europe/Stockholm',
+  autoHolidayCalendar: true,
+  holidayDates: Object.freeze([]),
   windows: Object.freeze({
     0: null,
     1: Object.freeze({ startMinutes: 8 * 60, endMinutes: 20 * 60 }),
@@ -52,6 +54,8 @@ const DEFAULT_OPENING_HOURS = Object.freeze({
     6: Object.freeze({ startMinutes: 8 * 60, endMinutes: 18 * 60 }),
   }),
 });
+
+const SWEDISH_HOLIDAY_CACHE = new Map();
 
 function normalizePriorityLevel(value = '') {
   const normalized = normalizeText(value).toLowerCase();
@@ -90,10 +94,144 @@ function dayWindowOrNull(value = null) {
   };
 }
 
+function padDatePart(value) {
+  return String(Math.max(0, Number(value) || 0)).padStart(2, '0');
+}
+
+function toDateKeyFromUtcMs(timestampMs) {
+  const date = new Date(timestampMs);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(
+    date.getUTCDate()
+  )}`;
+}
+
+function toDateFromUtcMs(timestampMs) {
+  const date = new Date(timestampMs);
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function toDateKeyFromParts(year, month, day) {
+  return `${String(year)}-${padDatePart(month)}-${padDatePart(day)}`;
+}
+
+function addDaysUtc(timestampMs, days = 0) {
+  return timestampMs + Math.round(toNumber(days, 0)) * 24 * 60 * 60 * 1000;
+}
+
+function easterSundayUtcMs(year) {
+  const y = Math.max(1900, Math.min(2500, Number(year) || 2000));
+  const a = y % 19;
+  const b = Math.floor(y / 100);
+  const c = y % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return Date.UTC(y, month - 1, day);
+}
+
+function saturdayBetweenUtc(year, month, startDay, endDay) {
+  for (let day = startDay; day <= endDay; day += 1) {
+    const ts = Date.UTC(year, month - 1, day);
+    if (new Date(ts).getUTCDay() === 6) {
+      return ts;
+    }
+  }
+  return null;
+}
+
+function buildSwedishHolidayDateSet(year) {
+  const safeYear = Math.max(1900, Math.min(2500, Number(year) || 2000));
+  if (SWEDISH_HOLIDAY_CACHE.has(safeYear)) {
+    return SWEDISH_HOLIDAY_CACHE.get(safeYear);
+  }
+
+  const holidays = new Set([
+    toDateKeyFromParts(safeYear, 1, 1),
+    toDateKeyFromParts(safeYear, 1, 6),
+    toDateKeyFromParts(safeYear, 5, 1),
+    toDateKeyFromParts(safeYear, 6, 6),
+    toDateKeyFromParts(safeYear, 12, 24),
+    toDateKeyFromParts(safeYear, 12, 25),
+    toDateKeyFromParts(safeYear, 12, 26),
+    toDateKeyFromParts(safeYear, 12, 31),
+  ]);
+
+  const easterSunday = easterSundayUtcMs(safeYear);
+  const easterMonday = addDaysUtc(easterSunday, 1);
+  const goodFriday = addDaysUtc(easterSunday, -2);
+  const ascensionDay = addDaysUtc(easterSunday, 39);
+  const pentecostDay = addDaysUtc(easterSunday, 49);
+
+  holidays.add(toDateKeyFromUtcMs(goodFriday));
+  holidays.add(toDateKeyFromUtcMs(easterSunday));
+  holidays.add(toDateKeyFromUtcMs(easterMonday));
+  holidays.add(toDateKeyFromUtcMs(ascensionDay));
+  holidays.add(toDateKeyFromUtcMs(pentecostDay));
+
+  const midsummerDay = saturdayBetweenUtc(safeYear, 6, 20, 26);
+  if (Number.isFinite(midsummerDay)) {
+    holidays.add(toDateKeyFromUtcMs(midsummerDay));
+    holidays.add(toDateKeyFromUtcMs(addDaysUtc(midsummerDay, -1)));
+  }
+
+  const allSaintsDay = saturdayBetweenUtc(safeYear, 10, 31, 31) ||
+    saturdayBetweenUtc(safeYear, 11, 1, 6);
+  if (Number.isFinite(allSaintsDay)) {
+    holidays.add(toDateKeyFromUtcMs(allSaintsDay));
+  }
+
+  SWEDISH_HOLIDAY_CACHE.set(safeYear, holidays);
+  return holidays;
+}
+
+function normalizeHolidayDates(value = null) {
+  const source = Array.isArray(value) ? value : [];
+  const normalized = new Set();
+  for (const rawValue of source) {
+    const raw = normalizeText(rawValue);
+    if (!raw) continue;
+    const iso = toIso(raw);
+    if (!iso) continue;
+    normalized.add(iso.slice(0, 10));
+  }
+  return Array.from(normalized);
+}
+
+function createHolidayLookup(openingHours) {
+  const safeOpeningHours = normalizeOpeningHours(openingHours);
+  const configuredDates = new Set(
+    normalizeHolidayDates(safeOpeningHours.holidayDates).map((item) => normalizeText(item))
+  );
+  const autoCalendarEnabled = safeOpeningHours.autoHolidayCalendar !== false;
+
+  return function isHoliday(timestampMs) {
+    if (!Number.isFinite(timestampMs)) return false;
+    const key = toDateKeyFromUtcMs(timestampMs);
+    if (configuredDates.has(key)) return true;
+    if (!autoCalendarEnabled) return false;
+    const { year } = toDateFromUtcMs(timestampMs);
+    return buildSwedishHolidayDateSet(year).has(key);
+  };
+}
+
 function normalizeOpeningHours(value = null) {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const timezone =
     normalizeText(source.timezone || source.tz) || DEFAULT_OPENING_HOURS.timezone;
+  const autoHolidayCalendar = source.autoHolidayCalendar !== false;
+  const holidayDates = normalizeHolidayDates(source.holidayDates || source.holidays);
   const windowsSource =
     source.windows && typeof source.windows === 'object' && !Array.isArray(source.windows)
       ? source.windows
@@ -135,6 +273,8 @@ function normalizeOpeningHours(value = null) {
 
   return {
     timezone,
+    autoHolidayCalendar,
+    holidayDates,
     windows,
   };
 }
@@ -173,6 +313,7 @@ function startOfUtcDayMs(timestampMs) {
 function computeOpenDurationMsBetween(startMs, endMs, openingHours) {
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return 0;
   const safeOpeningHours = normalizeOpeningHours(openingHours);
+  const isHoliday = createHolidayLookup(safeOpeningHours);
   let total = 0;
   let dayCursorMs = startOfUtcDayMs(startMs);
   const oneDayMs = 24 * 60 * 60 * 1000;
@@ -183,6 +324,10 @@ function computeOpenDurationMsBetween(startMs, endMs, openingHours) {
     const intervalEnd = Math.min(endMs, dayEndMs);
     if (intervalEnd > intervalStart) {
       const dayIndex = new Date(dayCursorMs).getUTCDay();
+      if (isHoliday(dayCursorMs)) {
+        dayCursorMs = dayEndMs;
+        continue;
+      }
       const window = safeOpeningHours.windows[dayIndex];
       if (window) {
         const windowStartMs = dayCursorMs + window.startMinutes * 60 * 1000;
@@ -203,8 +348,10 @@ function computeOpenDurationMsBetween(startMs, endMs, openingHours) {
 function isWithinOpeningHoursAt(timestampMs, openingHours) {
   if (!Number.isFinite(timestampMs)) return false;
   const safeOpeningHours = normalizeOpeningHours(openingHours);
+  const isHoliday = createHolidayLookup(safeOpeningHours);
   const date = new Date(timestampMs);
   const dayIndex = date.getUTCDay();
+  if (isHoliday(timestampMs)) return false;
   const window = safeOpeningHours.windows[dayIndex];
   if (!window) return false;
   const minutes = date.getUTCHours() * 60 + date.getUTCMinutes();
@@ -397,7 +544,9 @@ module.exports = {
   DEFAULT_OPENING_HOURS,
   DEFAULT_SLA_THRESHOLDS_HOURS,
   DEFAULT_UNANSWERED_THRESHOLDS_HOURS,
+  buildSwedishHolidayDateSet,
   computeBusinessHoursBetween,
+  createHolidayLookup,
   evaluateSlaMonitor,
   evaluateSlaStatus,
   evaluateStagnation,

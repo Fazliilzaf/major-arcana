@@ -511,6 +511,7 @@
     ccoRedFlagState: null,
     ccoAdaptiveFocusState: null,
     ccoRecoveryState: null,
+    ccoStrategicInsights: null,
     ccoAdaptiveFocusShowAll: false,
     ccoFocusWorkloadMinutes: 0,
     ccoCustomerSummaryExpanded: false,
@@ -8064,6 +8065,11 @@
         typeof state.ccoSprintMetrics.recoveryState === 'object'
           ? state.ccoSprintMetrics.recoveryState
           : null;
+      state.ccoStrategicInsights =
+        state.ccoSprintMetrics?.strategicInsights &&
+        typeof state.ccoSprintMetrics.strategicInsights === 'object'
+          ? state.ccoSprintMetrics.strategicInsights
+          : null;
       const currentFocusActive = state.ccoAdaptiveFocusState?.isActive === true;
       if (!currentFocusActive) {
         state.ccoAdaptiveFocusShowAll = false;
@@ -9437,6 +9443,36 @@
           Math.max(0, Math.min(1, Number(usageAnalytics.systemRecommendationFollowRate || 0))) * 100
         );
         const stressDelta = String(usageAnalytics.slaBreachTrend || '').trim() || '0%';
+        const strategic = state.ccoStrategicInsights && typeof state.ccoStrategicInsights === 'object'
+          ? state.ccoStrategicInsights
+          : null;
+        const weeklyBrief = strategic?.weeklyBrief && typeof strategic.weeklyBrief === 'object'
+          ? strategic.weeklyBrief
+          : null;
+        const monthlyRisk = strategic?.monthlyRisk && typeof strategic.monthlyRisk === 'object'
+          ? strategic.monthlyRisk
+          : null;
+        const scenarioAnalysis =
+          strategic?.scenarioAnalysis && typeof strategic.scenarioAnalysis === 'object'
+            ? strategic.scenarioAnalysis
+            : null;
+        const businessThreats =
+          strategic?.businessThreats && typeof strategic.businessThreats === 'object'
+            ? strategic.businessThreats
+            : null;
+        const forwardOutlook =
+          strategic?.forwardOutlook && typeof strategic.forwardOutlook === 'object'
+            ? strategic.forwardOutlook
+            : null;
+        const weeklyMode = String(weeklyBrief?.mode || 'normal').trim();
+        const monthlyLevel = String(monthlyRisk?.riskLevel || 'low').trim();
+        const threatCount = Array.isArray(businessThreats?.threats) ? businessThreats.threats.length : 0;
+        const recommendedScenario = String(scenarioAnalysis?.recommendedScenario?.title || '').trim();
+        const volatilityIndex = Number(forwardOutlook?.volatilityIndex || 0);
+        const confidence = Number(forwardOutlook?.confidence || 0);
+        const topRecommendation = Array.isArray(weeklyBrief?.recommendations)
+          ? String(weeklyBrief.recommendations[0] || '').trim()
+          : '';
         els.ccoPerformancePanel.innerHTML = `
           <div class="cco-performance-item">
             <span class="cco-performance-item-label">Använder du CCO</span>
@@ -9453,6 +9489,42 @@
           <div class="cco-performance-item">
             <span class="cco-performance-item-label">SLA-breach trend</span>
             <span class="cco-performance-item-value">${escapeHtml(stressDelta)}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Weekly Brief</span>
+            <span class="cco-performance-item-value">${escapeHtml(
+              weeklyMode === 'focus' ? 'Focus-läge' : 'Normal'
+            )}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Monthly Risk</span>
+            <span class="cco-performance-item-value">${escapeHtml(monthlyLevel)}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Strategiska hot</span>
+            <span class="cco-performance-item-value">${escapeHtml(String(threatCount))}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Forward Outlook</span>
+            <span class="cco-performance-item-value">${escapeHtml(
+              `${Math.round(Math.max(0, Math.min(1, volatilityIndex)) * 100)}% vol`
+            )}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Scenario</span>
+            <span class="cco-performance-item-value">${escapeHtml(recommendedScenario || '-')}</span>
+          </div>
+          <div class="cco-performance-item">
+            <span class="cco-performance-item-label">Prognos-konfidens</span>
+            <span class="cco-performance-item-value">${escapeHtml(
+              `${Math.round(Math.max(0, Math.min(1, confidence)) * 100)}%`
+            )}</span>
+          </div>
+          <div class="cco-performance-item" style="grid-column: 1 / -1;">
+            <span class="cco-performance-item-label">Topprekommendation</span>
+            <span class="cco-performance-item-value" style="font-size:13px;font-weight:500">${escapeHtml(
+              topRecommendation || 'Ingen rekommendation ännu.'
+            )}</span>
           </div>
         `;
         els.ccoPerformancePanel.classList.add('visible');
@@ -10107,12 +10179,9 @@
         .map((row) => resolveCcoMailboxLabel(row))
         .filter((mailbox) => isCcoAllowedMailbox(mailbox))
     );
-    const uniqueMailboxLabels = CCO_LOCKED_MAILBOX_ALLOWLIST.filter((mailbox) =>
-      presentMailboxLabels.has(mailbox)
-    );
-    const filterOptions = uniqueMailboxLabels.length
-      ? uniqueMailboxLabels
-      : CCO_LOCKED_MAILBOX_ALLOWLIST;
+    // Always show the full locked mailbox allowlist so operators can
+    // switch to any approved mailbox even when there are no messages yet.
+    const filterOptions = CCO_LOCKED_MAILBOX_ALLOWLIST.slice();
 
     const activeFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
     const hasActiveFilter = activeFilter === 'all' || filterOptions.includes(activeFilter);
@@ -10133,9 +10202,10 @@
       .map((entry) => {
         const value = normalizeCcoMailboxKey(entry.value);
         const isActive = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === sanitizeCcoMailboxFilter(value);
+        const hasMessages = value === 'all' || presentMailboxLabels.has(value);
         return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-mailbox-filter="${escapeHtml(
           value || 'all'
-        )}">${escapeHtml(entry.label)}</button>`;
+        )}"${hasMessages ? '' : ' data-empty="true"'}>${escapeHtml(entry.label)}</button>`;
       })
       .join('');
   }
@@ -10912,6 +10982,7 @@
       state.ccoRedFlagState = null;
       state.ccoAdaptiveFocusState = null;
       state.ccoRecoveryState = null;
+      state.ccoStrategicInsights = null;
       state.ccoAdaptiveFocusShowAll = false;
       state.ccoFocusWorkloadMinutes = 0;
       if (els.ccoInboxPriority) {

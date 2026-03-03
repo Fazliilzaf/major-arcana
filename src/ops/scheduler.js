@@ -13,6 +13,15 @@ const {
   inspectBackupRestore,
   restoreFromBackup,
 } = require('./stateBackup');
+const {
+  computeUsageAnalytics,
+  computeWorklistSnapshotMetrics,
+  computeHealthScore,
+} = require('../intelligence/usageAnalyticsEngine');
+const { evaluateRedFlag } = require('../intelligence/redFlagEngine');
+const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusController');
+const { evaluateRecovery } = require('../intelligence/recoveryEngine');
+const { evaluateStrategicInsights } = require('../intelligence/strategicInsightsEngine');
 
 function nowIso() {
   return new Date().toISOString();
@@ -60,6 +69,11 @@ function safeInteger(value, fallback = 0) {
   return parsed;
 }
 
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function toHoursMs(value, fallbackHours) {
   const hours = safeInteger(value, fallbackHours);
   if (hours <= 0) return 0;
@@ -96,6 +110,7 @@ function createScheduler({
   config,
   authStore,
   templateStore,
+  capabilityAnalysisStore = null,
   runtimeMetricsStore = null,
   secretRotationStore = null,
   sloTicketStore = null,
@@ -1301,7 +1316,415 @@ function createScheduler({
     };
   }
 
+  function toIso(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString();
+  }
+
+  function toEventTimestampMs(event = {}) {
+    const candidates = [event?.ts, event?.createdAt, event?.metadata?.timestamp];
+    for (const candidate of candidates) {
+      const iso = toIso(candidate);
+      if (!iso) continue;
+      const parsed = Date.parse(iso);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+  }
+
+  function toSprintSlaAgeHours(value) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+    const normalized = normalizeText(value).toLowerCase();
+    if (!normalized) return null;
+    const match = normalized.match(/^(\d+(?:\.\d+)?)\s*h$/);
+    if (!match) return null;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function toAverage(values = [], precision = 2) {
+    const list = (Array.isArray(values) ? values : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value));
+    if (!list.length) return 0;
+    const sum = list.reduce((acc, value) => acc + value, 0);
+    const factor = 10 ** Math.max(0, Number(precision) || 0);
+    return Math.round((sum / list.length) * factor) / factor;
+  }
+
+  async function buildCcoStrategicPayload({
+    tenantId,
+    windowDays = 14,
+  } = {}) {
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
+      return {
+        skipped: true,
+        reason: 'capability_analysis_store_unavailable',
+      };
+    }
+
+    const safeWindowDays = Math.max(1, Math.min(90, Number(windowDays) || 14));
+    const windowStartMs = Date.now() - safeWindowDays * 24 * 60 * 60 * 1000;
+
+    const analysisEntries = await capabilityAnalysisStore.list({
+      tenantId,
+      capabilityName: 'CCO.InboxAnalysis',
+      limit: 450,
+    });
+    if (!Array.isArray(analysisEntries) || analysisEntries.length === 0) {
+      return {
+        skipped: true,
+        reason: 'no_cco_analysis_entries',
+      };
+    }
+
+    const recentEntries = analysisEntries.filter((entry) => {
+      const tsMs = toEventTimestampMs(entry);
+      return Number.isFinite(tsMs) && tsMs >= windowStartMs;
+    });
+
+    const sourceEntries = recentEntries.length > 0 ? recentEntries : analysisEntries;
+    const latestEntry = sourceEntries[0] || null;
+    const conversationWorklist = Array.isArray(latestEntry?.output?.data?.conversationWorklist)
+      ? latestEntry.output.data.conversationWorklist
+      : [];
+    const previousEntry =
+      analysisEntries
+        .filter((entry) => {
+          const tsMs = toEventTimestampMs(entry);
+          return Number.isFinite(tsMs) && tsMs < windowStartMs;
+        })
+        .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] ||
+      sourceEntries[1] ||
+      null;
+    const previousConversationWorklist = Array.isArray(previousEntry?.output?.data?.conversationWorklist)
+      ? previousEntry.output.data.conversationWorklist
+      : [];
+
+    const auditEvents =
+      authStore && typeof authStore.listAuditEvents === 'function'
+        ? await authStore.listAuditEvents({ tenantId, limit: 1000 })
+        : [];
+    const recentAuditEvents = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => {
+      const tsMs = toEventTimestampMs(event);
+      return Number.isFinite(tsMs) && tsMs >= windowStartMs;
+    });
+
+    const sprintStartEvents = recentAuditEvents.filter(
+      (event) => normalizeText(event?.action) === 'cco.sprint.start'
+    );
+    const sprintItemCompletedEvents = recentAuditEvents.filter(
+      (event) => normalizeText(event?.action) === 'cco.sprint.item_completed'
+    );
+    const sprintCompleteEvents = recentAuditEvents.filter(
+      (event) => normalizeText(event?.action) === 'cco.sprint.complete'
+    );
+    const itemSlaAgeHours = sprintItemCompletedEvents
+      .map((event) => toSprintSlaAgeHours(event?.metadata?.slaAgeHours ?? event?.metadata?.slaAge))
+      .filter((value) => Number.isFinite(value));
+    const avgResponseTimeHours = toAverage(itemSlaAgeHours, 2);
+    const sprintCompletionRate = sprintStartEvents.length
+      ? Number(((sprintCompleteEvents.length / sprintStartEvents.length) * 100).toFixed(1))
+      : 0;
+
+    const followRateSeed = (() => {
+      const modeEvents = recentAuditEvents.filter(
+        (event) => normalizeText(event?.action).toLowerCase() === 'cco.draft.mode_selected'
+      );
+      if (!modeEvents.length) return 0;
+      const followed = modeEvents.filter((event) => event?.metadata?.ignoredRecommended !== true).length;
+      return Math.max(0, Math.min(1, followed / modeEvents.length));
+    })();
+
+    const activeDaySeed = new Set();
+    recentAuditEvents.forEach((event) => {
+      const action = normalizeText(event?.action).toLowerCase();
+      if (!action.startsWith('cco.')) return;
+      const tsMs = toEventTimestampMs(event);
+      if (!Number.isFinite(tsMs)) return;
+      activeDaySeed.add(new Date(tsMs).toISOString().slice(0, 10));
+    });
+    recentEntries.forEach((entry) => {
+      const tsMs = toEventTimestampMs(entry);
+      if (!Number.isFinite(tsMs)) return;
+      activeDaySeed.add(new Date(tsMs).toISOString().slice(0, 10));
+    });
+    const ccoUsageRateSeed = Math.max(0, Math.min(1, activeDaySeed.size / safeWindowDays));
+    const sprintCompletionRateSeed = sprintCompletionRate / 100;
+
+    const sortedAnalysisEntries = analysisEntries
+      .slice()
+      .sort((left, right) => String(left?.ts || '').localeCompare(String(right?.ts || '')));
+    const healthHistory = sortedAnalysisEntries
+      .map((entry) => {
+        const ts = toIso(entry?.ts);
+        if (!ts) return null;
+        const snapshotMetrics = computeWorklistSnapshotMetrics(
+          Array.isArray(entry?.output?.data?.conversationWorklist)
+            ? entry.output.data.conversationWorklist
+            : []
+        );
+        const score = computeHealthScore({
+          snapshotMetrics,
+          avgResponseTimeHours,
+          recommendationFollowRate: followRateSeed,
+          ccoUsageRate: ccoUsageRateSeed,
+          sprintCompletionRate: sprintCompletionRateSeed,
+        });
+        return {
+          ts,
+          score,
+          slaBreachRate: snapshotMetrics.slaBreachRate,
+        };
+      })
+      .filter(Boolean)
+      .slice(-30);
+
+    const usageAnalytics = computeUsageAnalytics({
+      windowDays: safeWindowDays,
+      auditEvents: recentAuditEvents,
+      analysisEntries: recentEntries,
+      currentConversationWorklist: conversationWorklist,
+      previousConversationWorklist,
+      healthHistory,
+    });
+    const clusterSignals = {
+      slaBreachRateUp: usageAnalytics.slaBreachTrendPercent > 0,
+      complaintSpike: usageAnalytics.complaintTrendPercent > 0,
+      conversionDrop: usageAnalytics.conversionTrendPercent < 0,
+      volatilityIndex: usageAnalytics.volatilityIndex,
+    };
+    const redFlagState = evaluateRedFlag({
+      healthHistory,
+      currentHealthScore: usageAnalytics.healthScore,
+      clusterSignals,
+      usageMetrics: usageAnalytics,
+    });
+    const volatilityHistory = healthHistory.map((point, index, list) => {
+      if (index === 0) return { ts: point.ts, index: 0 };
+      const previous = list[index - 1];
+      const delta = Math.abs(toNumber(point.score, 0) - toNumber(previous?.score, 0));
+      return {
+        ts: point.ts,
+        index: Number((Math.min(1, delta / 20)).toFixed(3)),
+      };
+    });
+    const recoveryState = evaluateRecovery({
+      redFlagState,
+      healthHistory,
+      slaBreachHistory: healthHistory.map((point) => ({
+        ts: point.ts,
+        rate: point.slaBreachRate,
+      })),
+      volatilityHistory,
+      driverDeltas: {
+        health_drop: redFlagState.delta,
+        sla_breach: usageAnalytics.slaBreachTrendPercent,
+        complaint_spike: usageAnalytics.complaintTrendPercent,
+        conversion_drop: usageAnalytics.conversionTrendPercent,
+        volatility: usageAnalytics.volatilityIndex - 0.6,
+        health_threshold: usageAnalytics.healthScore - 60,
+      },
+    });
+    const adaptiveFocusState = resolveAdaptiveFocusState({
+      redFlagState,
+      recoveryState,
+      nowMs: Date.now(),
+      durationHours: 48,
+    });
+    const generatedAt = new Date().toISOString();
+    const strategicInsights = evaluateStrategicInsights({
+      analysisEntries,
+      usageAnalytics,
+      redFlagState,
+      adaptiveFocusState,
+      recoveryState,
+      generatedAt,
+    });
+
+    return {
+      skipped: false,
+      generatedAt,
+      usageAnalytics,
+      redFlagState,
+      adaptiveFocusState,
+      recoveryState,
+      strategicInsights,
+      analysisEntryCount: analysisEntries.length,
+      recentEntryCount: recentEntries.length,
+      worklistCount: conversationWorklist.length,
+      healthHistoryPoints: healthHistory.length,
+    };
+  }
+
+  async function appendStrategicAnalysisEntry({
+    tenantId,
+    actorUserId,
+    capabilityName,
+    outputData,
+    metadata = {},
+  } = {}) {
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') return null;
+    if (!normalizeText(capabilityName)) return null;
+    return capabilityAnalysisStore.append({
+      tenantId,
+      capabilityName,
+      capabilityVersion: 'v1',
+      persistStrategy: 'analysis_only',
+      decision: 'allow',
+      actor: {
+        id: normalizeText(actorUserId) || 'scheduler',
+        role: 'SYSTEM',
+      },
+      input: {},
+      output: {
+        data: outputData && typeof outputData === 'object' ? outputData : {},
+      },
+      metadata,
+      riskSummary: {},
+      policySummary: {},
+    });
+  }
+
+  async function runCcoWeeklyBrief({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const payload = await buildCcoStrategicPayload({ tenantId, windowDays: 14 });
+    if (payload.skipped) return payload;
+
+    const outputData = {
+      weeklyBrief: payload.strategicInsights.weeklyBrief,
+      healthScore: payload.usageAnalytics.healthScore,
+      redFlagState: payload.redFlagState,
+      adaptiveFocusState: payload.adaptiveFocusState,
+    };
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.WeeklyBriefComposer',
+      outputData,
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+
+    return {
+      tenantId,
+      generatedAt: payload.generatedAt,
+      mode: payload.strategicInsights.weeklyBrief?.mode || 'normal',
+      recommendations: Array.isArray(payload.strategicInsights.weeklyBrief?.recommendations)
+        ? payload.strategicInsights.weeklyBrief.recommendations.slice(0, 3)
+        : [],
+    };
+  }
+
+  async function runCcoMonthlyRisk({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const payload = await buildCcoStrategicPayload({ tenantId, windowDays: 35 });
+    if (payload.skipped) return payload;
+
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.MonthlyRiskAnalyzer',
+      outputData: {
+        monthlyRisk: payload.strategicInsights.monthlyRisk,
+      },
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.BusinessThreatAnalyzer',
+      outputData: {
+        businessThreats: payload.strategicInsights.businessThreats,
+      },
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+
+    return {
+      tenantId,
+      generatedAt: payload.generatedAt,
+      riskLevel: payload.strategicInsights.monthlyRisk?.riskLevel || 'low',
+      strategicFlag: payload.strategicInsights.businessThreats?.strategicFlag === true,
+    };
+  }
+
+  async function runCcoForwardOutlook({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const payload = await buildCcoStrategicPayload({ tenantId, windowDays: 21 });
+    if (payload.skipped) return payload;
+
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.ForwardOutlookEngine',
+      outputData: {
+        forwardOutlook: payload.strategicInsights.forwardOutlook,
+      },
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.ScenarioEngine',
+      outputData: {
+        scenarioAnalysis: payload.strategicInsights.scenarioAnalysis,
+      },
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'CCO.StrategicInsights',
+      outputData: payload.strategicInsights,
+      metadata: {
+        trigger,
+        generatedAt: payload.generatedAt,
+      },
+    });
+
+    return {
+      tenantId,
+      generatedAt: payload.generatedAt,
+      volatilityIndex: payload.strategicInsights.forwardOutlook?.volatilityIndex ?? 0,
+      confidence: payload.strategicInsights.forwardOutlook?.confidence ?? 0,
+      recommendedScenario:
+        payload.strategicInsights.scenarioAnalysis?.recommendedScenario?.id || null,
+    };
+  }
+
   const jobDefinitions = [
+    {
+      id: 'cco_weekly_brief',
+      name: 'CCO weekly brief snapshot',
+      intervalMs: toHoursMs(config.schedulerCcoWeeklyBriefIntervalHours, 24),
+      run: runCcoWeeklyBrief,
+    },
+    {
+      id: 'cco_monthly_risk',
+      name: 'CCO monthly risk + threats snapshot',
+      intervalMs: toHoursMs(config.schedulerCcoMonthlyRiskIntervalHours, 24),
+      run: runCcoMonthlyRisk,
+    },
+    {
+      id: 'cco_forward_outlook',
+      name: 'CCO forward outlook + scenario snapshot',
+      intervalMs: toHoursMs(config.schedulerCcoForwardOutlookIntervalHours, 6),
+      run: runCcoForwardOutlook,
+    },
     {
       id: 'nightly_pilot_report',
       name: 'Nightly pilot report',

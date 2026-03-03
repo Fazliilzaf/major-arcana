@@ -26,6 +26,7 @@ const {
 const { evaluateRedFlag } = require('../intelligence/redFlagEngine');
 const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusController');
 const { evaluateRecovery } = require('../intelligence/recoveryEngine');
+const { evaluateStrategicInsights } = require('../intelligence/strategicInsightsEngine');
 
 const CCO_LIFECYCLE_AUDIT_STATES = new Set([
   'NEW',
@@ -2038,6 +2039,15 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     nowMs: Date.now(),
     durationHours: 48,
   });
+  const generatedAt = new Date().toISOString();
+  const strategicInsights = evaluateStrategicInsights({
+    analysisEntries,
+    usageAnalytics,
+    redFlagState,
+    adaptiveFocusState,
+    recoveryState,
+    generatedAt,
+  });
 
   return res.json({
     avgResponseTimeHours,
@@ -2058,10 +2068,11 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     redFlagState,
     adaptiveFocusState,
     recoveryState,
+    strategicInsights,
     healthScore: usageAnalytics.healthScore,
     latestSprintFeedback,
     since: window.since,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
   });
 }
 

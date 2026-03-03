@@ -145,3 +145,30 @@ test('SLA monitor treats handled conversation as not unanswered', () => {
   assert.equal(result.unansweredThresholdHours, 24);
   assert.equal(result.isUnanswered, false);
 });
+
+test('SLA monitor skips Swedish public holidays in business-hour calculation', () => {
+  const result = evaluateSlaMonitor({
+    priorityLevel: 'High',
+    lastInboundAt: '2026-01-05T19:00:00.000Z',
+    nowMs: Date.parse('2026-01-07T09:00:00.000Z'),
+  });
+
+  // Jan 6 (Trettondedag jul) should be treated as closed day.
+  // 1h on Jan 5 evening + 1h on Jan 7 morning.
+  assert.equal(result.hoursSinceInbound, 2);
+  assert.equal(result.slaStatus, 'safe');
+});
+
+test('SLA monitor respects custom holiday dates override', () => {
+  const result = evaluateSlaMonitor({
+    priorityLevel: 'High',
+    lastInboundAt: '2026-03-02T10:00:00.000Z',
+    nowMs: Date.parse('2026-03-03T10:00:00.000Z'),
+    openingHours: {
+      holidayDates: ['2026-03-03'],
+    },
+  });
+
+  // Mar 3 is configured as holiday, only previous day business hours should count.
+  assert.equal(result.hoursSinceInbound, 10);
+});
