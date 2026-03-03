@@ -8387,7 +8387,7 @@
     if (normalized === 'breach') return 'SLA passerad';
     if (!Number.isFinite(remaining)) return 'SLA-tid okänd';
     const rounded = Math.max(0, Math.round(remaining * 10) / 10);
-    return `${rounded}h kvar till SLA-breach`;
+    return `${rounded}h kvar till SLA-brist`;
   }
 
   function getCcoClinicWindowByDay(dayIndex = 0) {
@@ -9569,6 +9569,14 @@
             : null;
         const weeklyMode = String(weeklyBrief?.mode || 'normal').trim();
         const monthlyLevel = String(monthlyRisk?.riskLevel || 'low').trim();
+        const monthlyLevelLabel = (() => {
+          const normalized = monthlyLevel.toLowerCase();
+          if (normalized === 'critical' || normalized === 'kritisk') return 'Kritisk';
+          if (normalized === 'high' || normalized === 'hög') return 'Hög';
+          if (normalized === 'medium' || normalized === 'medel') return 'Medel';
+          if (normalized === 'low' || normalized === 'låg') return 'Låg';
+          return monthlyLevel || '-';
+        })();
         const threatCount = Array.isArray(businessThreats?.threats) ? businessThreats.threats.length : 0;
         const recommendedScenario = String(scenarioAnalysis?.recommendedScenario?.title || '').trim();
         const volatilityIndex = Number(forwardOutlook?.volatilityIndex || 0);
@@ -9590,18 +9598,18 @@
             <span class="cco-performance-item-value">${escapeHtml(`${followPct}%`)}</span>
           </div>
           <div class="cco-performance-item">
-            <span class="cco-performance-item-label">SLA-breach trend</span>
+            <span class="cco-performance-item-label">SLA-brist trend</span>
             <span class="cco-performance-item-value">${escapeHtml(stressDelta)}</span>
           </div>
           <div class="cco-performance-item">
-            <span class="cco-performance-item-label">Weekly Brief</span>
+            <span class="cco-performance-item-label">Veckobrief</span>
             <span class="cco-performance-item-value">${escapeHtml(
-              weeklyMode === 'focus' ? 'Focus-läge' : 'Normal'
+              weeklyMode === 'focus' ? 'Fokusläge' : 'Normal'
             )}</span>
           </div>
           <div class="cco-performance-item">
-            <span class="cco-performance-item-label">Monthly Risk</span>
-            <span class="cco-performance-item-value">${escapeHtml(monthlyLevel)}</span>
+            <span class="cco-performance-item-label">Månadsrisk</span>
+            <span class="cco-performance-item-value">${escapeHtml(monthlyLevelLabel)}</span>
           </div>
           <div class="cco-performance-item">
             <span class="cco-performance-item-label">Strategiska hot</span>
