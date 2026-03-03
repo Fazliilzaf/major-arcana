@@ -172,3 +172,16 @@ test('SLA monitor respects custom holiday dates override', () => {
   // Mar 3 is configured as holiday, only previous day business hours should count.
   assert.equal(result.hoursSinceInbound, 10);
 });
+
+test('SLA monitor skips Christmas holiday window automatically', () => {
+  const result = evaluateSlaMonitor({
+    priorityLevel: 'High',
+    lastInboundAt: '2026-12-24T19:00:00.000Z',
+    nowMs: Date.parse('2026-12-26T09:00:00.000Z'),
+  });
+
+  // Dec 24-26 are holiday/closed in Swedish calendar. No open business hours should accrue.
+  assert.equal(result.hoursSinceInbound, 0);
+  assert.equal(result.slaStatus, 'safe');
+  assert.equal(result.hoursRemaining, 12);
+});

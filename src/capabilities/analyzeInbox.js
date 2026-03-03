@@ -196,6 +196,32 @@ const INTENT_ACTIONS = Object.freeze({
   unclear: 'Be om mer info',
 });
 
+const SYSTEM_MAIL_PATTERNS = Object.freeze([
+  'no-reply@',
+  'noreply@',
+  'do-not-reply',
+  'unsubscribe',
+  'newsletter',
+  'kampanj',
+  'campaign',
+  'verify your email',
+  'bekräfta din e-post',
+  'bekrafta din e-post',
+  'orderbekräftelse',
+  'orderbekraftelse',
+  'beställningsbekräftelse',
+  'bestallningsbekraftelse',
+  'kvitto',
+  'receipt',
+  'faktura',
+  'invoice',
+  'microsoft 365',
+  'du får inte ofta e-post',
+  'du far inte ofta e-post',
+  'power up your productivity with microsoft 365',
+  'get more done with apps like word',
+]);
+
 const CCO_DEFAULT_SENDER_MAILBOX = 'contact@hairtpclinic.com';
 const CCO_SIGNATURE_PROFILES = Object.freeze([
   Object.freeze({
@@ -497,6 +523,41 @@ function resolveWorkloadWarmth(summary = {}) {
     return 'returning';
   }
   return 'new';
+}
+
+function normalizeMessageClassification(value = '') {
+  return normalizeText(value).toLowerCase() === 'system_mail'
+    ? 'system_mail'
+    : 'actionable';
+}
+
+function classifyConversationMessage({
+  subject = '',
+  inboundPreview = '',
+  sender = '',
+  intent = 'unclear',
+  priorityLevel = 'Low',
+} = {}) {
+  const haystack = [subject, inboundPreview, sender]
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean)
+    .join(' ');
+  if (!haystack) return 'actionable';
+  const looksLikeSystemMail = SYSTEM_MAIL_PATTERNS.some((pattern) => haystack.includes(pattern));
+  if (!looksLikeSystemMail) return 'actionable';
+
+  const normalizedIntent = normalizeText(intent).toLowerCase();
+  const normalizedPriority = normalizeText(priorityLevel).toLowerCase();
+  const highPriority = ['critical', 'high'].includes(normalizedPriority);
+  const actionIntents = new Set([
+    'booking_request',
+    'pricing_question',
+    'anxiety_pre_op',
+    'complaint',
+    'cancellation',
+  ]);
+  if (highPriority || actionIntents.has(normalizedIntent)) return 'actionable';
+  return 'system_mail';
 }
 
 function buildCustomerIndex(conversations = [], nowMs = Date.now()) {
@@ -844,6 +905,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'priorityLevel',
                 'priorityScore',
                 'priorityReasons',
+                'messageClassification',
                 'needsReplyStatus',
               ],
               additionalProperties: false,
@@ -891,6 +953,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                   maxItems: 12,
                   items: { type: 'string', minLength: 1, maxLength: 80 },
                 },
+                messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
               },
             },
@@ -939,6 +1002,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'riskStackExplanation',
                 'recommendedAction',
                 'escalationRequired',
+                'messageClassification',
                 'needsReplyStatus',
               ],
               additionalProperties: false,
@@ -1086,6 +1150,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                 riskStackExplanation: { type: 'string', minLength: 1, maxLength: 200 },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
+                messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
               },
             },
@@ -1164,6 +1229,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'riskStackExplanation',
                 'recommendedAction',
                 'escalationRequired',
+                'messageClassification',
                 'draftModes',
                 'recommendedMode',
                 'structureUsed',
@@ -1314,6 +1380,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                 riskStackExplanation: { type: 'string', minLength: 1, maxLength: 200 },
                 recommendedAction: { type: 'string', minLength: 1, maxLength: 120 },
                 escalationRequired: { type: 'boolean' },
+                messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 draftModes: {
                   type: 'object',
                   required: ['short', 'warm', 'professional'],
@@ -1545,17 +1612,6 @@ class AnalyzeInboxCapability extends BaseCapability {
           timeline: [],
         };
 
-      const flags = collectRiskFlags(semanticInput);
-      for (const flag of flags) {
-        riskFlags.push({
-          conversationId: conversation.conversationId,
-          messageId,
-          flagCode: flag.code,
-          severity: flag.severity,
-          reason: `Risk flag ${flag.code} upptackt i inkommande meddelande.`,
-        });
-      }
-
       const priorityInfo = computeWeightedPriorityScore({
         hoursSinceInbound: wallHoursSinceInbound,
         intent,
@@ -1569,8 +1625,27 @@ class AnalyzeInboxCapability extends BaseCapability {
       const escalationRequired =
         priorityInfo.priorityLevel === 'Critical' ||
         intent === 'complaint' ||
-        flags.some((item) => severityWeight(item.severity) >= 4);
+        collectRiskFlags(semanticInput).some((item) => severityWeight(item.severity) >= 4);
       const sender = normalizeText(conversation.sender || inbound.sender) || 'okänd avsändare';
+      const messageClassification = classifyConversationMessage({
+        subject: conversation.rawSubject || conversation.subject,
+        inboundPreview,
+        sender,
+        intent,
+        priorityLevel: priorityInfo.priorityLevel,
+      });
+      const flags = collectRiskFlags(semanticInput);
+      if (messageClassification !== 'system_mail') {
+        for (const flag of flags) {
+          riskFlags.push({
+            conversationId: conversation.conversationId,
+            messageId,
+            flagCode: flag.code,
+            severity: flag.severity,
+            reason: `Risk flag ${flag.code} upptackt i inkommande meddelande.`,
+          });
+        }
+      }
       const lastInboundAtIso = toIso(conversation.lastInboundAt || inbound.sentAt);
       const lastOutboundAtIso = toIso(conversation.lastOutboundAt || outbound.sentAt);
       const needsReplyStatus =
@@ -1710,7 +1785,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         lastInboundMs !== null
           ? new Date(lastInboundMs + slaThreshold * 60 * 60 * 1000).toISOString()
           : '';
-      if (isSlaBreached) {
+      if (isSlaBreached && messageClassification !== 'system_mail') {
         const overdueMinutes = Math.max(
           0,
           Math.round((hoursSinceInbound - slaThreshold) * 60)
@@ -1730,6 +1805,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       );
 
       if (
+        messageClassification !== 'system_mail' &&
         isActionableLifecycle &&
         (dueSoon || followUpSuggested || hoursSinceInbound >= 6 || flags.length > 0)
       ) {
@@ -1760,16 +1836,18 @@ class AnalyzeInboxCapability extends BaseCapability {
           priorityLevel: priorityInfo.priorityLevel,
           priorityScore: priorityInfo.priorityScore,
           priorityReasons,
+          messageClassification,
           needsReplyStatus,
         });
       }
 
       const hasHighFlag = flags.some((item) => severityWeight(item.severity) >= 3);
       if (
-        isSlaBreached ||
-        hasHighFlag ||
-        hoursSinceInbound >= 24 ||
-        priorityInfo.priorityLevel === 'Critical'
+        messageClassification !== 'system_mail' &&
+        (isSlaBreached ||
+          hasHighFlag ||
+          hoursSinceInbound >= 24 ||
+          priorityInfo.priorityLevel === 'Critical')
       ) {
         urgentConversations.push({
           conversationId: conversation.conversationId,
@@ -1847,6 +1925,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         riskStackExplanation,
         recommendedAction,
         escalationRequired,
+        messageClassification,
         needsReplyStatus,
       };
 
@@ -1878,6 +1957,7 @@ class AnalyzeInboxCapability extends BaseCapability {
           priorityLevel: workItem.priorityLevel,
           priorityScore: workItem.priorityScore,
           priorityReasons: workItem.priorityReasons,
+          messageClassification: workItem.messageClassification,
           customerKey: workItem.customerKey,
           customerSummary: workItem.customerSummary,
           tempoProfile: workItem.tempoProfile,
@@ -1896,7 +1976,9 @@ class AnalyzeInboxCapability extends BaseCapability {
           escalationRequired: workItem.escalationRequired,
           needsReplyStatus: workItem.needsReplyStatus,
         });
-        unresolved.push(workItem);
+        if (workItem.messageClassification !== 'system_mail') {
+          unresolved.push(workItem);
+        }
       }
     }
 
@@ -1976,6 +2058,7 @@ class AnalyzeInboxCapability extends BaseCapability {
         riskStackExplanation: item.riskStackExplanation,
         recommendedAction: item.recommendedAction,
         escalationRequired: item.escalationRequired,
+        messageClassification: item.messageClassification,
         draftModes: draftComposition.draftModes,
         recommendedMode: draftComposition.recommendedMode,
         structureUsed: draftComposition.structureUsed,

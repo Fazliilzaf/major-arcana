@@ -106,3 +106,61 @@ test('MicrosoftGraphSendConnector falls back to sendMail when sender mailbox dif
   assert.equal(response.mailboxId, 'contact@hairtpclinic.com');
   assert.equal(response.sourceMailboxId, 'owner@hairtpclinic.se');
 });
+
+test('MicrosoftGraphSendConnector moves message to Deleted Items for safe delete', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-delete-1',
+        },
+      });
+    }
+    if (
+      String(url).includes(
+        '/users/contact%40hairtpclinic.com/messages/msg-delete-1/move'
+      )
+    ) {
+      return createJsonResponse({
+        status: 201,
+        body: {
+          id: 'msg-delete-1-moved',
+          conversationId: 'conv-delete-1',
+          parentFolderId: 'deleteditems',
+        },
+      });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphSendConnector({
+    tenantId: 'tenant-id-delete-1',
+    clientId: 'client-id-delete-1',
+    clientSecret: 'client-secret-delete-1',
+    fetchImpl,
+  });
+
+  const response = await connector.moveMessageToDeletedItems({
+    mailboxId: 'contact@hairtpclinic.com',
+    messageId: 'msg-delete-1',
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].options.method, 'POST');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.equal(
+    String(calls[1].url).includes(
+      '/users/contact%40hairtpclinic.com/messages/msg-delete-1/move'
+    ),
+    true
+  );
+  const payload = JSON.parse(String(calls[1].options?.body || '{}'));
+  assert.equal(payload.destinationId, 'deleteditems');
+  assert.equal(response.provider, 'microsoft_graph');
+  assert.equal(response.mailboxId, 'contact@hairtpclinic.com');
+  assert.equal(response.messageId, 'msg-delete-1');
+  assert.equal(response.movedMessageId, 'msg-delete-1-moved');
+  assert.equal(response.deleteMode, 'soft_delete');
+});

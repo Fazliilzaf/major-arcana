@@ -218,7 +218,68 @@ function isSubjectFuzzyMatch(left = '', right = '') {
   if (a === b) return true;
   if (a.length >= 12 && b.includes(a)) return true;
   if (b.length >= 12 && a.includes(b)) return true;
-  return false;
+  if (Math.abs(a.length - b.length) > 3) return false;
+  const distance = computeLevenshteinDistance(a, b, 2);
+  return Number.isFinite(distance) && distance <= 2;
+}
+
+function computeLevenshteinDistance(left = '', right = '', maxDistance = 2) {
+  const a = String(left || '');
+  const b = String(right || '');
+  if (!a) return b.length;
+  if (!b) return a.length;
+  const max = Math.max(0, Number(maxDistance || 0));
+  if (Math.abs(a.length - b.length) > max) return Number.POSITIVE_INFINITY;
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    let minInRow = current[0];
+    for (let j = 1; j <= b.length; j += 1) {
+      const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const value = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + substitutionCost
+      );
+      current.push(value);
+      if (value < minInRow) minInRow = value;
+    }
+    if (minInRow > max) return Number.POSITIVE_INFINITY;
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+function toEmailAliasFingerprint(value = '') {
+  const email = normalizeEmailAddress(value);
+  if (!email) return null;
+  const [rawLocal = '', rawDomain = ''] = email.split('@');
+  const local = normalizeText(rawLocal)
+    .toLowerCase()
+    .replace(/\+.*/, '')
+    .replace(/[._-]/g, '');
+  if (!local) return null;
+  const domain = normalizeText(rawDomain).toLowerCase();
+  if (!domain) return null;
+  const domainMatch = domain.match(/^([a-z0-9.-]+)\.(com|se)$/i);
+  const domainKey = domainMatch ? normalizeText(domainMatch[1]).toLowerCase() : domain;
+  return {
+    local,
+    domainKey,
+  };
+}
+
+function isEmailAliasFuzzyMatch(left = '', right = '') {
+  const a = toEmailAliasFingerprint(left);
+  const b = toEmailAliasFingerprint(right);
+  if (!a || !b) return false;
+  if (a.domainKey !== b.domainKey) return false;
+  if (a.local === b.local) return true;
+  const lengthGap = Math.abs(a.local.length - b.local.length);
+  if (lengthGap > 2) return false;
+  const maxDistance = Math.max(1, Math.min(2, Math.floor(Math.max(a.local.length, b.local.length) / 6)));
+  const distance = computeLevenshteinDistance(a.local, b.local, maxDistance);
+  return Number.isFinite(distance) && distance <= maxDistance;
 }
 
 function toEmailAliasCandidates(values = []) {
@@ -503,12 +564,25 @@ function toConversationSnapshots(messages = []) {
       clusterId = fallbackAlias.get(fallbackKey);
     }
     if (!clusterId && aliasCandidates.length > 0) {
-      const matchedAlias = aliasCandidates.find((alias) => {
+      let matchedAlias = aliasCandidates.find((alias) => {
         const candidateClusterId = emailAlias.get(alias);
         if (!candidateClusterId || !map.has(candidateClusterId)) return false;
         const candidate = map.get(candidateClusterId);
         return isSubjectFuzzyMatch(candidate?.subject, message.subject);
       });
+      if (!matchedAlias) {
+        for (const [knownAlias, candidateClusterId] of emailAlias.entries()) {
+          if (!candidateClusterId || !map.has(candidateClusterId)) continue;
+          const candidate = map.get(candidateClusterId);
+          if (!isSubjectFuzzyMatch(candidate?.subject, message.subject)) continue;
+          const fuzzyHit = aliasCandidates.some((alias) =>
+            isEmailAliasFuzzyMatch(alias, knownAlias)
+          );
+          if (!fuzzyHit) continue;
+          matchedAlias = knownAlias;
+          break;
+        }
+      }
       if (matchedAlias) clusterId = emailAlias.get(matchedAlias);
     }
     if (!clusterId && rawConversationId) {

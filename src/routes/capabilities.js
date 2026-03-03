@@ -209,6 +209,10 @@ function pickErrorStatus(errorCode = '') {
   if (code === 'CCO_SEND_CONNECTOR_UNAVAILABLE') return 503;
   if (code === 'CCO_DELETE_INPUT_INVALID') return 422;
   if (code === 'CCO_DELETE_NOT_ENABLED') return 503;
+  if (code === 'CCO_DELETE_CONNECTOR_UNAVAILABLE') return 503;
+  if (code === 'CCO_DELETE_ALLOWLIST_EMPTY') return 503;
+  if (code === 'CCO_DELETE_ALLOWLIST_BLOCKED') return 403;
+  if (code === 'CCO_DELETE_GRAPH_ERROR') return 502;
   return 500;
 }
 
@@ -476,6 +480,25 @@ function parseMailboxIds(rawValue = '', maxItems = 200) {
     mailboxIds.push(token);
   }
   return mailboxIds;
+}
+
+function toMailboxAllowlistSet(rawValue = '') {
+  const tokens = String(rawValue || '')
+    .split(/[,\s;]+/)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+  const allowlist = new Set();
+  for (const token of tokens) {
+    const lowered = token.toLowerCase();
+    if (lowered === '*') {
+      allowlist.add('*');
+      continue;
+    }
+    const mailbox = toMailboxAddress(lowered);
+    if (!mailbox) continue;
+    allowlist.add(mailbox.toLowerCase());
+  }
+  return allowlist;
 }
 
 function resolveGraphReadAllowlistMailboxIds(maxItems = 500) {
@@ -2244,12 +2267,22 @@ async function runCcoSendHandler({
   return toCapabilityRunSuccess(res, result);
 }
 
-async function runCcoDeleteHandler({ req, res }) {
+async function runCcoDeleteHandler({
+  req,
+  res,
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+  authStore,
+}) {
+  const actor = toActor(req);
+  const tenantId = toTenantId(req);
+  const correlationId = toCorrelationId(req);
   const payload = asObject(req.body);
   const input = asObject(
     payload.input && typeof payload.input === 'object' ? payload.input : payload
   );
-  const mailboxId = normalizeText(input.mailboxId);
+  const mailboxId = toMailboxAddress(input.mailboxId);
   const messageId = normalizeText(input.messageId);
   const conversationId = normalizeText(input.conversationId);
   const softDelete = toBoolean(input.softDelete, true);
@@ -2259,21 +2292,156 @@ async function runCcoDeleteHandler({ req, res }) {
       code: 'CCO_DELETE_INPUT_INVALID',
     });
   }
-  const enabled = toBoolean(process.env.ARCANA_CCO_DELETE_ENABLED, false);
-  if (!enabled) {
+  if (!graphDeleteEnabled) {
     return res.status(503).json({
       error: 'Radera mail är inte aktiverat i denna miljö.',
       code: 'CCO_DELETE_NOT_ENABLED',
     });
   }
+  if (!graphSendConnector || typeof graphSendConnector.moveMessageToDeletedItems !== 'function') {
+    return res.status(503).json({
+      error: 'Microsoft Graph delete-connector saknas.',
+      code: 'CCO_DELETE_CONNECTOR_UNAVAILABLE',
+    });
+  }
+  const allowlist = toMailboxAllowlistSet(graphDeleteAllowlist);
+  if (!allowlist.size) {
+    return res.status(503).json({
+      error: 'CCO delete-allowlist är tom.',
+      code: 'CCO_DELETE_ALLOWLIST_EMPTY',
+    });
+  }
+  const mailboxLower = mailboxId.toLowerCase();
+  if (!allowlist.has('*') && !allowlist.has(mailboxLower)) {
+    return res.status(403).json({
+      error: `Mailbox är inte allowlistad för delete: ${mailboxId}.`,
+      code: 'CCO_DELETE_ALLOWLIST_BLOCKED',
+    });
+  }
+
+  if (authStore && typeof authStore.addAuditEvent === 'function') {
+    await authStore.addAuditEvent({
+      tenantId,
+      actorUserId: actor.id,
+      action: 'cco.delete.requested',
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        correlationId,
+        mailboxId,
+        messageId,
+        conversationId,
+        softDelete,
+      },
+    });
+  }
+
+  try {
+    const deleteResult = await graphSendConnector.moveMessageToDeletedItems({
+      mailboxId,
+      messageId,
+    });
+    if (authStore && typeof authStore.addAuditEvent === 'function') {
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: actor.id,
+        action: 'cco.delete.completed',
+        outcome: 'success',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata: {
+          correlationId,
+          mailboxId,
+          messageId,
+          conversationId,
+          softDelete,
+          movedMessageId: normalizeText(deleteResult?.movedMessageId) || null,
+          destinationFolderId: normalizeText(deleteResult?.destinationFolderId) || 'deleteditems',
+        },
+      });
+    }
+    return res.json({
+      ok: true,
+      mode: 'soft_delete',
+      softDelete,
+      mailboxId,
+      messageId,
+      conversationId,
+      deleteResult: {
+        provider: normalizeText(deleteResult?.provider) || 'microsoft_graph',
+        movedMessageId: normalizeText(deleteResult?.movedMessageId) || messageId,
+        destinationFolderId: normalizeText(deleteResult?.destinationFolderId) || 'deleteditems',
+        deletedAt: normalizeText(deleteResult?.deletedAt) || new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    if (authStore && typeof authStore.addAuditEvent === 'function') {
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: actor.id,
+        action: 'cco.delete.completed',
+        outcome: 'error',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata: {
+          correlationId,
+          mailboxId,
+          messageId,
+          conversationId,
+          softDelete,
+          graphCode: normalizeText(error?.code) || null,
+          graphStatus: Number.isFinite(Number(error?.status)) ? Number(error.status) : null,
+          retryAfterSeconds:
+            Number.isFinite(Number(error?.retryAfterSeconds)) &&
+            Number(error.retryAfterSeconds) >= 0
+              ? Number(error.retryAfterSeconds)
+              : null,
+          error: normalizeText(error?.message) || 'graph_delete_failed',
+        },
+      });
+    }
+    const wrappedError = new Error(error?.message || 'Microsoft Graph delete misslyckades.');
+    wrappedError.code = 'CCO_DELETE_GRAPH_ERROR';
+    throw wrappedError;
+  }
+}
+
+async function runCcoDeleteStatusHandler({
+  req,
+  res,
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+}) {
+  const allowlist = toMailboxAllowlistSet(graphDeleteAllowlist);
+  const hasConnector =
+    !!graphSendConnector && typeof graphSendConnector.moveMessageToDeletedItems === 'function';
+  let deleteEnabled = true;
+  let reasonCode = '';
+  let reason = '';
+
+  if (!graphDeleteEnabled) {
+    deleteEnabled = false;
+    reasonCode = 'CCO_DELETE_NOT_ENABLED';
+    reason = 'Radera mail är inte aktiverat i denna miljö.';
+  } else if (!hasConnector) {
+    deleteEnabled = false;
+    reasonCode = 'CCO_DELETE_CONNECTOR_UNAVAILABLE';
+    reason = 'Microsoft Graph delete-connector saknas.';
+  } else if (!allowlist.size) {
+    deleteEnabled = false;
+    reasonCode = 'CCO_DELETE_ALLOWLIST_EMPTY';
+    reason = 'CCO delete-allowlist är tom.';
+  }
+
   return res.json({
     ok: true,
-    mode: 'stub',
-    softDelete,
-    mailboxId,
-    messageId,
-    conversationId,
-    deletedAt: new Date().toISOString(),
+    deleteEnabled,
+    reasonCode: reasonCode || null,
+    reason: reason || null,
+    allowlist: Array.from(allowlist),
+    connectorReady: hasConnector,
   });
 }
 
@@ -2505,14 +2673,49 @@ function toCcoSendHandler({
   };
 }
 
-function toCcoDeleteHandler() {
+function toCcoDeleteHandler({
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+  authStore,
+}) {
   return async (req, res) => {
     try {
-      return await runCcoDeleteHandler({ req, res });
+      return await runCcoDeleteHandler({
+        req,
+        res,
+        graphSendConnector,
+        graphDeleteEnabled,
+        graphDeleteAllowlist,
+        authStore,
+      });
     } catch (error) {
       return res.status(pickErrorStatus(error?.code)).json({
         error: error?.message || 'Kunde inte radera mail.',
         code: error?.code || 'CCO_DELETE_FAILED',
+      });
+    }
+  };
+}
+
+function toCcoDeleteStatusHandler({
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+}) {
+  return async (req, res) => {
+    try {
+      return await runCcoDeleteStatusHandler({
+        req,
+        res,
+        graphSendConnector,
+        graphDeleteEnabled,
+        graphDeleteAllowlist,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: error?.message || 'Kunde inte läsa delete-status.',
+        code: error?.code || 'CCO_DELETE_STATUS_FAILED',
       });
     }
   };
@@ -2639,7 +2842,11 @@ function createCapabilitiesRouter({
       );
   const graphReadRequiresUserId = !(graphReadFullTenant && graphReadUserScope === 'all');
   const shouldEnableGraphSend = toBoolean(process.env.ARCANA_GRAPH_SEND_ENABLED, false);
+  const shouldEnableGraphDelete = toBoolean(process.env.ARCANA_CCO_DELETE_ENABLED, false);
   const graphSendAllowlist = normalizeText(process.env.ARCANA_GRAPH_SEND_ALLOWLIST);
+  const graphDeleteAllowlist = normalizeText(
+    process.env.ARCANA_CCO_DELETE_ALLOWLIST || graphSendAllowlist
+  );
   const resolvedGraphReadConnector = (() => {
     if (graphReadConnector && typeof graphReadConnector.fetchInboxSnapshot === 'function') {
       return graphReadConnector;
@@ -2675,7 +2882,7 @@ function createCapabilitiesRouter({
     if (graphSendConnector && typeof graphSendConnector.sendReply === 'function') {
       return graphSendConnector;
     }
-    if (!shouldEnableGraphSend) return null;
+    if (!shouldEnableGraphSend && !shouldEnableGraphDelete) return null;
     const tenantId = normalizeText(process.env.ARCANA_GRAPH_TENANT_ID);
     const clientId = normalizeText(process.env.ARCANA_GRAPH_CLIENT_ID);
     const clientSecret = normalizeText(process.env.ARCANA_GRAPH_CLIENT_SECRET);
@@ -2683,7 +2890,12 @@ function createCapabilitiesRouter({
     if (!tenantId) missing.push('ARCANA_GRAPH_TENANT_ID');
     if (!clientId) missing.push('ARCANA_GRAPH_CLIENT_ID');
     if (!clientSecret) missing.push('ARCANA_GRAPH_CLIENT_SECRET');
-    if (!graphSendAllowlist) missing.push('ARCANA_GRAPH_SEND_ALLOWLIST');
+    if (shouldEnableGraphSend && !graphSendAllowlist) {
+      missing.push('ARCANA_GRAPH_SEND_ALLOWLIST');
+    }
+    if (shouldEnableGraphDelete && !graphDeleteAllowlist) {
+      missing.push('ARCANA_CCO_DELETE_ALLOWLIST|ARCANA_GRAPH_SEND_ALLOWLIST');
+    }
     if (missing.length > 0) {
       throw new Error(
         `ARCANA_GRAPH_SEND_ENABLED=true requires: ${missing.join(', ')}.`
@@ -2823,7 +3035,27 @@ function createCapabilitiesRouter({
     '/cco/delete',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(toCcoDeleteHandler())
+    toRoleGuardedHandler(
+      toCcoDeleteHandler({
+        graphSendConnector: resolvedGraphSendConnector,
+        graphDeleteEnabled: shouldEnableGraphDelete,
+        graphDeleteAllowlist,
+        authStore,
+      })
+    )
+  );
+
+  router.get(
+    '/cco/delete/status',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoDeleteStatusHandler({
+        graphSendConnector: resolvedGraphSendConnector,
+        graphDeleteEnabled: shouldEnableGraphDelete,
+        graphDeleteAllowlist,
+      })
+    )
   );
 
   router.post(

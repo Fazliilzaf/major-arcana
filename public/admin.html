@@ -1834,7 +1834,7 @@
     }
     .cco-layout {
       display: grid;
-      grid-template-columns: minmax(250px, 0.9fr) minmax(440px, 1.35fr) minmax(340px, 1fr);
+      grid-template-columns: minmax(230px, 0.84fr) minmax(380px, 1.25fr) minmax(300px, 0.95fr);
       grid-template-areas: "inbox center reply";
       gap: 0;
       position: relative;
@@ -2765,10 +2765,10 @@
     }
     @media (max-width: 1650px) {
       .cco-layout {
-        grid-template-columns: minmax(220px, 0.82fr) minmax(380px, 1.25fr) minmax(300px, 1fr);
+        grid-template-columns: minmax(210px, 0.76fr) minmax(360px, 1.2fr) minmax(280px, 0.9fr);
       }
     }
-    @media (max-width: 1500px) {
+    @media (max-width: 1360px) {
       .cco-layout {
         grid-template-columns: 300px minmax(0, 1fr);
         grid-template-areas:
@@ -3783,14 +3783,14 @@
           <div class="cco-sprint-controls">
             <div>
               <h3 id="ccoFocusHeading" style="margin:0">IDAG – FOKUS (0 av 0)</h3>
-              <div id="ccoSprintProgress" class="mini muted">Sprintkö väntar.</div>
+              <div id="ccoSprintProgress" class="mini muted">Fokuskö väntar.</div>
               <div class="cco-workload-row">
                 <div id="ccoFocusWorkload" class="mini muted">≈ 0 min arbete</div>
                 <button id="ccoFocusWorkloadInfoBtn" class="cco-workload-info-btn" type="button" aria-expanded="false">i</button>
               </div>
               <div id="ccoFocusWorkloadBreakdown" class="cco-workload-breakdown mini"></div>
             </div>
-            <button id="ccoStartSprintBtn" class="btn">Starta sprint</button>
+            <button id="ccoStartSprintBtn" class="btn">Starta fokus</button>
           </div>
           <div id="ccoRedFlagBanner" class="cco-red-flag-banner"></div>
           <div id="ccoPerformancePanel" class="cco-performance-panel"></div>
@@ -3801,7 +3801,7 @@
           </div>
           <div id="ccoSprintFeedback" class="cco-sprint-feedback mini"></div>
           <ul id="ccoSprintQueueList" class="cco-sprint-queue">
-            <li class="mini muted">Ingen sprintkö ännu.</li>
+            <li class="mini muted">Ingen fokuskö ännu.</li>
           </ul>
         </div>
         <div id="ccoWorkspaceLayout" class="cco-layout" style="margin-top:12px">
@@ -3865,9 +3865,9 @@
               <div class="cco-soft-break-title">Du lämnar sprintläge</div>
               <div class="cco-soft-break-text">Välj hur sprinten ska hanteras innan du öppnar tråden.</div>
               <div class="cco-soft-break-actions">
-                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="pause">Pausa sprinten</button>
-                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="replace">Byt ut sprint-tråd</button>
-                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="abort">Avbryt sprint</button>
+                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="pause">Pausa fokus</button>
+                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="replace">Byt ut fokus-tråd</button>
+                <button type="button" class="cco-filter-btn" data-cco-soft-break-action="abort">Avbryt fokus</button>
                 <button type="button" class="cco-filter-btn" data-cco-soft-break-action="cancel">Stäng</button>
               </div>
             </div>
@@ -3887,7 +3887,7 @@
               <details id="ccoInboxGroupSprint" data-cco-section="sprint" class="cco-inbox-group section-acute" open>
                 <summary>
                   <span class="cco-group-title-wrap">
-                    <span>SPRINTLÄGE</span>
+                    <span>FOKUSKÖ</span>
                     <span id="ccoInboxGroupAcuteMeta" class="cco-group-meta"></span>
                   </span>
                   <span id="ccoInboxGroupAcuteCount" class="cco-group-count">0</span>
@@ -3956,7 +3956,7 @@
                 </div>
                 <div class="cco-customer-summary-grid">
                   <div class="cco-summary-item">
-                    <div class="cco-summary-label">Lifecycle</div>
+                    <div class="cco-summary-label">Livscykel</div>
                     <div id="ccoCustomerLifecycleValue" class="cco-summary-value">-</div>
                   </div>
                   <div class="cco-summary-item">
@@ -3968,7 +3968,7 @@
                     <div id="ccoCustomerLastInteractionValue" class="cco-summary-value">-</div>
                   </div>
                   <div class="cco-summary-item">
-                    <div class="cco-summary-label">Engagement</div>
+                    <div class="cco-summary-label">Engagemang</div>
                     <div id="ccoCustomerEngagementValue" class="cco-summary-value">-</div>
                   </div>
                   <div class="cco-summary-item">
@@ -4076,6 +4076,7 @@
                   <button id="ccoMarkHandledBtn" class="btn small">Markera hanterad</button>
                   <button id="ccoFlagCriticalBtn" class="btn small">Flagga kritisk</button>
                   <button id="ccoMarkSystemMailBtn" class="btn small">Markera som systemmail</button>
+                  <button id="ccoHidePatternBtn" class="btn small">Dölj avsändare/pattern</button>
                   <button id="ccoDeleteMailBtn" class="btn small">Radera mail</button>
                 </div>
               </div>
@@ -4085,17 +4086,17 @@
                   <button id="ccoSnoozeBtn" class="btn small">Återkom senare</button>
                 </div>
               </div>
-              <button id="ccoSendBtn" class="btn primary cco-send">Skicka via Graph</button>
+              <button id="ccoSendBtn" class="btn primary cco-send">Skicka</button>
               <div id="ccoSendStatus" class="status-line"></div>
             </section>
             <section class="cco-reply-block">
               <div class="cco-reply-meta-grid">
                 <div>
-                  <h3 style="margin:0 0 6px 0">Risk</h3>
+                  <h3 style="margin:0 0 6px 0">Riskbedömning</h3>
                   <div id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</div>
                 </div>
                 <div>
-                  <h3 style="margin:0 0 6px 0">Policy</h3>
+                  <h3 style="margin:0 0 6px 0">Policykontroll</h3>
                   <div id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</div>
                 </div>
                 <div>

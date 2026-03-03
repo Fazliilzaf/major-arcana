@@ -318,6 +318,32 @@
     return safe;
   }
 
+  function sanitizeCcoSystemPatternList(value = []) {
+    const source = Array.isArray(value) ? value : [];
+    const dedupe = new Set();
+    const safe = [];
+    for (const entry of source.slice(0, 200)) {
+      const normalized = String(entry || '').trim().toLowerCase();
+      if (!normalized || normalized.length < 2) continue;
+      if (dedupe.has(normalized)) continue;
+      dedupe.add(normalized);
+      safe.push(normalized.slice(0, 240));
+    }
+    return safe;
+  }
+
+  function sanitizeCcoDeleteCapabilityStatus(value = null) {
+    const source = value && typeof value === 'object' ? value : {};
+    const deleteEnabled = source.deleteEnabled === true;
+    const reason = String(source.reason || '').trim();
+    const reasonCode = String(source.reasonCode || '').trim();
+    return {
+      deleteEnabled,
+      reason: reason || '',
+      reasonCode: reasonCode || '',
+    };
+  }
+
   const CCO_LOCKED_MAILBOX_ALLOWLIST = Object.freeze([
     'egzona@hairtpclinic.com',
     'contact@hairtpclinic.com',
@@ -392,13 +418,13 @@
     needs: 12,
     maxVisibleRows: 15,
   });
-  const CCO_COLUMN_RESIZE_BREAKPOINT = 1500;
+  const CCO_COLUMN_RESIZE_BREAKPOINT = 1360;
   const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
     leftMin: 220,
     leftMax: 520,
-    rightMin: 300,
+    rightMin: 280,
     rightMax: 620,
-    centerMin: 380,
+    centerMin: 340,
   });
 
   function sanitizeCcoDensityMode(value = '') {
@@ -595,6 +621,13 @@
     ccoSystemMessageByConversationId: sanitizeCcoSystemFlagMap(
       initialCcoWorkspaceSession.systemMessageByConversationId
     ),
+    ccoSystemMessageSenderPatterns: sanitizeCcoSystemPatternList(
+      initialCcoWorkspaceSession.systemMessageSenderPatterns
+    ),
+    ccoSystemMessageSubjectPatterns: sanitizeCcoSystemPatternList(
+      initialCcoWorkspaceSession.systemMessageSubjectPatterns
+    ),
+    ccoDeleteCapability: sanitizeCcoDeleteCapabilityStatus(),
     ccoSelectedMessageContextByConversationId: {},
     ccoDraftEvaluationByConversationId: {},
     ccoSenderMailboxId: 'contact@hairtpclinic.com',
@@ -937,6 +970,7 @@
     ccoMarkHandledBtn: document.getElementById('ccoMarkHandledBtn'),
     ccoFlagCriticalBtn: document.getElementById('ccoFlagCriticalBtn'),
     ccoMarkSystemMailBtn: document.getElementById('ccoMarkSystemMailBtn'),
+    ccoHidePatternBtn: document.getElementById('ccoHidePatternBtn'),
     ccoDeleteMailBtn: document.getElementById('ccoDeleteMailBtn'),
     ccoSnoozeBtn: document.getElementById('ccoSnoozeBtn'),
     ccoRefineImproveBtn: document.getElementById('ccoRefineImproveBtn'),
@@ -4748,6 +4782,12 @@
         systemMessageByConversationId: sanitizeCcoSystemFlagMap(
           state.ccoSystemMessageByConversationId
         ),
+        systemMessageSenderPatterns: sanitizeCcoSystemPatternList(
+          state.ccoSystemMessageSenderPatterns
+        ),
+        systemMessageSubjectPatterns: sanitizeCcoSystemPatternList(
+          state.ccoSystemMessageSubjectPatterns
+        ),
         scrollTopByConversationId: sanitizeCcoScrollMap(state.ccoConversationScrollTopByConversationId),
       };
       sessionStorage.setItem(CCO_WORKSPACE_SESSION_KEY, JSON.stringify(payload));
@@ -8532,6 +8572,12 @@
     return `${formatCcoToneIcon(value)} ${formatCcoToneLabel(value)}`;
   }
 
+  function normalizeCcoMessageClassification(value = '') {
+    return String(value || '').trim().toLowerCase() === 'system_mail'
+      ? 'system_mail'
+      : 'actionable';
+  }
+
   function normalizeCcoLifecycleStatus(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     if (
@@ -8850,7 +8896,7 @@
     if (normalized === 'all clear') return 'Allt klart';
     if (normalized === 'immediate action') return 'Omedelbar åtgärd';
     if (normalized === 'attention needed') return 'Behöver uppmärksamhet';
-    if (normalized === 'sprint complete') return 'Sprint klar';
+    if (normalized === 'sprint complete') return 'Fokuskö klar';
     if (normalized === 'quick win') return 'Snabb vinst';
     return String(value || '').trim() || 'Behöver uppmärksamhet';
   }
@@ -8996,10 +9042,20 @@
       if (manualFlag === true) return true;
       if (manualFlag === false) return false;
     }
+    if (normalizeCcoMessageClassification(row.messageClassification) === 'system_mail') return true;
     const subject = safeLower(row.subject || '');
     const preview = safeLower(row.latestInboundPreview || '');
     const sender = safeLower(row.sender || '');
     const haystack = `${subject} ${preview} ${sender}`;
+    const senderPatterns = sanitizeCcoSystemPatternList(state.ccoSystemMessageSenderPatterns);
+    if (senderPatterns.some((pattern) => pattern && sender.includes(pattern))) {
+      return true;
+    }
+    const subjectPatterns = sanitizeCcoSystemPatternList(state.ccoSystemMessageSubjectPatterns);
+    const subjectHaystack = `${subject} ${preview}`;
+    if (subjectPatterns.some((pattern) => pattern && subjectHaystack.includes(pattern))) {
+      return true;
+    }
     const knownNoisePatterns = [
       'power up your productivity with microsoft 365',
       'verify your email',
@@ -9010,6 +9066,18 @@
       'no-reply@',
       'do-not-reply',
       'unsubscribe',
+      'orderbekräftelse',
+      'orderbekraftelse',
+      'beställningsbekräftelse',
+      'bestallningsbekraftelse',
+      'kvitto',
+      'receipt',
+      'faktura',
+      'invoice',
+      'kampanj',
+      'newsletter',
+      'bekräfta din e-post',
+      'bekrafta din e-post',
     ];
     const matchesNoise = knownNoisePatterns.some((pattern) => haystack.includes(pattern));
     if (!matchesNoise) return false;
@@ -9017,6 +9085,17 @@
     const priority = safeLower(row.priorityLevel || '');
     const highPriority = ['critical', 'high', 'kritisk', 'hög', 'hog'].includes(priority);
     return !highPriority && ['unclear', 'follow_up'].includes(intent);
+  }
+
+  function extractEmailFromText(text = '') {
+    const source = String(text || '').trim().toLowerCase();
+    if (!source) return '';
+    const match = source.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+    return String(match?.[0] || '').trim().toLowerCase();
+  }
+
+  function isCcoSystemMessageRow(row = null) {
+    return isLikelyCcoSystemMessage(row);
   }
 
   function enrichCcoConversationRow(row = null) {
@@ -9367,6 +9446,7 @@
         workloadBreakdown: normalizeCcoWorkloadBreakdown(row?.workloadBreakdown, 4),
         recommendedAction: String(row?.recommendedAction || 'Be om mer info').trim() || 'Be om mer info',
         escalationRequired: Boolean(row?.escalationRequired),
+        messageClassification: normalizeCcoMessageClassification(row?.messageClassification),
         needsReplyStatus: String(row?.needsReplyStatus || 'needs_reply').trim() === 'handled'
           ? 'handled'
           : 'needs_reply',
@@ -9445,6 +9525,7 @@
         workloadBreakdown: normalizeCcoWorkloadBreakdown(draft?.workloadBreakdown, 4),
         recommendedAction: String(draft?.recommendedAction || 'Be om mer info').trim() || 'Be om mer info',
         escalationRequired: Boolean(draft?.escalationRequired),
+        messageClassification: normalizeCcoMessageClassification(draft?.messageClassification),
         needsReplyStatus: 'needs_reply',
         confidenceLevel: 'Low',
         draftModes: normalizeCcoDraftModes(null, ''),
@@ -9553,6 +9634,9 @@
       if (typeof draft?.isUnanswered === 'boolean') {
         current.isUnanswered = draft.isUnanswered;
       }
+      current.messageClassification = normalizeCcoMessageClassification(
+        draft?.messageClassification || current.messageClassification
+      );
       const nextUnansweredThresholdHours = Number(draft?.unansweredThresholdHours);
       if (Number.isFinite(nextUnansweredThresholdHours) && nextUnansweredThresholdHours > 0) {
         current.unansweredThresholdHours = Math.max(1, nextUnansweredThresholdHours);
@@ -9868,8 +9952,8 @@
         const actionLabel = String(redFlagState.recommendedAction || '').trim();
         els.ccoRedFlagBanner.innerHTML = `
           <div style="font-weight:600">⚠ Operativ avvikelse upptäckt</div>
-          <div>Health Score ${escapeHtml(deltaLabel)} på 48h · Primär orsak: ${escapeHtml(driversLabel)}</div>
-          <div>${escapeHtml(actionLabel || 'Rekommendation: prioritera high-risk ärenden kommande 48h.')}</div>
+          <div>Hälsopoäng ${escapeHtml(deltaLabel)} på 48h · Primär orsak: ${escapeHtml(driversLabel)}</div>
+          <div>${escapeHtml(actionLabel || 'Rekommendation: prioritera högrisk-ärenden kommande 48h.')}</div>
         `;
         els.ccoRedFlagBanner.classList.add('visible');
       } else if (recoveryState?.recovered === true) {
@@ -9966,7 +10050,7 @@
             )}</span>
           </div>
           <div class="cco-performance-item">
-            <span class="cco-performance-item-label">Scenario</span>
+            <span class="cco-performance-item-label">Scenarioläge</span>
             <span class="cco-performance-item-value">${escapeHtml(recommendedScenario || '-')}</span>
           </div>
           <div class="cco-performance-item">
@@ -10009,22 +10093,22 @@
 
     if (els.ccoStartSprintBtn) {
       if (isComplete) {
-        els.ccoStartSprintBtn.textContent = 'Starta nästa sprint';
+        els.ccoStartSprintBtn.textContent = 'Starta nästa fokus';
       } else if (state.ccoSprintActive) {
-        els.ccoStartSprintBtn.textContent = 'Avsluta sprint';
+        els.ccoStartSprintBtn.textContent = 'Avsluta fokus';
       } else {
-        els.ccoStartSprintBtn.textContent = 'Starta sprint';
+        els.ccoStartSprintBtn.textContent = 'Starta fokus';
       }
       els.ccoStartSprintBtn.disabled = false;
     }
 
     if (els.ccoSprintProgress) {
       if (isComplete) {
-        els.ccoSprintProgress.textContent = 'Sprint klar';
+        els.ccoSprintProgress.textContent = 'Fokuskö klar';
       } else if (state.ccoSprintActive) {
         const done = Number(state.ccoSprintCompletedIds.length || 0);
         const total = Math.max(Number(state.ccoSprintInitialTotal || 0), done + sprintRows.length);
-        els.ccoSprintProgress.textContent = `Progress: ${done}/${total}`;
+        els.ccoSprintProgress.textContent = `Framsteg: ${done}/${total}`;
       } else if (focusCount > 0) {
         const showAllHint = totalOpenCount > focusCount ? ' · Visa alla' : '';
         els.ccoSprintProgress.textContent = `${focusCount} av ${totalOpenCount}${showAllHint}`;
@@ -10054,7 +10138,7 @@
         const safeHandled = Number.isFinite(handled) ? handled : 0;
         const safeCritical = Number.isFinite(resolvedCritical) ? resolvedCritical : 0;
         els.ccoSprintFeedback.innerHTML = [
-          'Sprint klar',
+          'Fokuskö klar',
           `✓ ${safeHandled} konversationer hanterade`,
           `✓ ${safeCritical} kritiska lösta`,
           slaLine,
@@ -10071,7 +10155,7 @@
 
     if (!els.ccoSprintQueueList) return;
     if (isComplete) {
-      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Sprint klar</li>';
+      els.ccoSprintQueueList.innerHTML = '<li class="mini muted">Fokuskö klar</li>';
       return;
     }
     if (!sprintRows.length) {
@@ -10143,7 +10227,7 @@
     });
   }
 
-  function stopCcoSprint({ message = 'Sprint avslutad. Full inkorg visas igen.' } = {}) {
+  function stopCcoSprint({ message = 'Fokus avslutad. Full inkorg visas igen.' } = {}) {
     state.ccoSprintActive = false;
     state.ccoSprintQueueIds = [];
     state.ccoSprintCompletedIds = [];
@@ -10167,7 +10251,7 @@
         ? state.ccoInboxData.data
         : null;
     if (!data) {
-      setStatus(els.ccoInboxStatus, 'Kör CCO inkorgsbrief innan sprint startas.', true);
+      setStatus(els.ccoInboxStatus, 'Kör CCO inkorgsbrief innan fokus startas.', true);
       return;
     }
 
@@ -10183,7 +10267,7 @@
       state.ccoSprintStartedAtMs = 0;
       state.ccoSprintLatestFeedback = null;
       renderCcoInbox(state.ccoInboxData);
-      setStatus(els.ccoInboxStatus, 'Allt klart: inga sprintobjekt att starta.');
+      setStatus(els.ccoInboxStatus, 'Allt klart: inga fokusobjekt att starta.');
       return;
     }
 
@@ -10207,7 +10291,7 @@
     state.ccoSprintLatestFeedback = null;
     setSelectedCcoConversation(state.ccoSprintQueueIds[0] || '');
     renderCcoInbox(state.ccoInboxData);
-    setStatus(els.ccoInboxStatus, 'Sprint startad. Fokusläge aktivt.');
+    setStatus(els.ccoInboxStatus, 'Fokus startad. Fokusläge aktivt.');
 
     const priorityCounts = summarizeCcoPriorityCounts(plannedRows);
     await postCcoSprintEvent('start', {
@@ -10949,12 +11033,14 @@
     renderCcoDensityFilterRow();
     renderCcoUnansweredPanel(unansweredRows);
 
-    const sprintSeedRows = buildCcoSprintQueueRows(unansweredRows);
+    const actionableUnansweredRows = unansweredRows.filter((row) => !isCcoSystemMessageRow(row));
+    const sprintSeedRows = buildCcoSprintQueueRows(actionableUnansweredRows);
     const sprintRows = state.ccoSprintActive
       ? state.ccoSprintQueueIds
           .map((conversationId) =>
             filteredRows.find((row) => String(row?.conversationId || '').trim() === String(conversationId || '').trim())
           )
+          .filter((row) => !isCcoSystemMessageRow(row))
           .filter(Boolean)
       : sprintSeedRows
           .map((seed) =>
@@ -10968,6 +11054,7 @@
     const highRows = filteredRows.filter((row) => {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId || sprintIdSet.has(conversationId)) return false;
+      if (isCcoSystemMessageRow(row)) return false;
       const priority = safeLower(row?.priorityLevel || '');
       return priority === 'critical' || priority === 'high' || normalizeCcoSlaStatus(row?.slaStatus) === 'breach';
     });
@@ -10976,6 +11063,7 @@
     const needsRows = filteredRows.filter((row) => {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId || sprintIdSet.has(conversationId) || highIdSet.has(conversationId)) return false;
+      if (isCcoSystemMessageRow(row)) return false;
       return row.isUnanswered === true || row.followUpSuggested === true || row.stagnated === true;
     });
     const needsIdSet = new Set(needsRows.map((row) => String(row?.conversationId || '').trim()));
@@ -11091,7 +11179,7 @@
 
     const emptyText =
       state.ccoSprintActive && Number(state.ccoSprintInitialTotal || 0) > 0
-        ? 'Sprint klar'
+        ? 'Fokuskö klar'
         : sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'new'
         ? 'Inga nya konversationer sedan senaste besök.'
         : 'Inga konversationer i kö.';
@@ -11101,14 +11189,14 @@
       sectionOutputs.sprint.visibleRows,
       selectedId,
       debugMode,
-      densityVisibility.sprint ? 'Ingen sprint i kö.' : 'Dolt i valt läge.'
+      densityVisibility.sprint ? 'Ingen fokuskö i kö.' : 'Dolt i valt läge.'
     );
     renderCcoSectionRows(
       els.ccoInboxGroupTodayList,
       sectionOutputs.high.visibleRows,
       selectedId,
       debugMode,
-      densityVisibility.high ? 'Ingen high/critical i kö.' : 'Dolt i valt läge.'
+      densityVisibility.high ? 'Ingen hög/kritisk i kö.' : 'Dolt i valt läge.'
     );
     renderCcoSectionRows(
       els.ccoInboxGroupFollowupList,
@@ -11154,7 +11242,7 @@
             if (shown) {
               setStatus(
                 els.ccoInboxStatus,
-                'Du lämnar sprinten. Välj: pausa, byt ut tråd eller avbryt sprint.'
+                'Du lämnar fokuskön. Välj: pausa, byt ut tråd eller avbryt fokus.'
               );
               return;
             }
@@ -11168,7 +11256,7 @@
   }
 
   function formatCcoLifecycleSourceLabel(value = '') {
-    return String(value || '').trim().toLowerCase() === 'manual' ? 'Manual' : 'Auto';
+    return String(value || '').trim().toLowerCase() === 'manual' ? 'Manuell' : 'Automatisk';
   }
 
   function formatCcoFollowUpSummary(conversation = null) {
@@ -11337,6 +11425,11 @@
       if (els.ccoMarkSystemMailBtn) {
         els.ccoMarkSystemMailBtn.textContent = 'Markera som systemmail';
       }
+      if (els.ccoHidePatternBtn) {
+        els.ccoHidePatternBtn.disabled = true;
+        els.ccoHidePatternBtn.title = 'Välj en konversation först.';
+      }
+      applyCcoDeleteButtonState();
       return;
     }
     const conversationId = String(conversation.conversationId || '').trim();
@@ -11356,6 +11449,30 @@
         ? 'Avmarkera systemmail'
         : 'Markera som systemmail';
     }
+    if (els.ccoHidePatternBtn) {
+      els.ccoHidePatternBtn.disabled = false;
+      els.ccoHidePatternBtn.title = 'Dölj avsändare eller ämnesmönster från fokusköer.';
+    }
+    applyCcoDeleteButtonState();
+  }
+
+  function applyCcoDeleteButtonState() {
+    if (!els.ccoDeleteMailBtn) return;
+    const capability = sanitizeCcoDeleteCapabilityStatus(state.ccoDeleteCapability);
+    const hasConversation = !!getCcoSelectedConversation();
+    const enabledByBackend = capability.deleteEnabled === true;
+    const disabled = !hasConversation || !enabledByBackend;
+    els.ccoDeleteMailBtn.disabled = disabled;
+    if (!enabledByBackend) {
+      els.ccoDeleteMailBtn.title =
+        capability.reason || 'Radera mail är inte aktiverat i denna miljö.';
+      return;
+    }
+    if (!hasConversation) {
+      els.ccoDeleteMailBtn.title = 'Välj en konversation först.';
+      return;
+    }
+    els.ccoDeleteMailBtn.title = 'Flyttar valt mail till papperskorg (Deleted Items).';
   }
 
   function renderCcoConversationHistory(conversation = null) {
@@ -11792,6 +11909,7 @@
 
   async function loadCcoInboxBrief({ quiet = true } = {}) {
     try {
+      await loadCcoDeleteCapabilityStatus({ quiet: true });
       const response = await api('/agents/analysis?agent=CCO&limit=1');
       const entry = Array.isArray(response?.entries) && response.entries.length > 0
         ? response.entries[0]
@@ -11819,9 +11937,35 @@
     }
   }
 
+  async function loadCcoDeleteCapabilityStatus({ quiet = true } = {}) {
+    try {
+      const response = await api('/cco/delete/status');
+      state.ccoDeleteCapability = sanitizeCcoDeleteCapabilityStatus({
+        deleteEnabled: response?.deleteEnabled === true,
+        reason: response?.reason || '',
+        reasonCode: response?.reasonCode || '',
+      });
+    } catch (error) {
+      state.ccoDeleteCapability = sanitizeCcoDeleteCapabilityStatus({
+        deleteEnabled: false,
+        reason: error?.message || 'Kunde inte läsa delete-status.',
+        reasonCode: 'CCO_DELETE_STATUS_FETCH_FAILED',
+      });
+      if (!quiet) {
+        setStatus(
+          els.ccoInboxStatus,
+          state.ccoDeleteCapability.reason || 'Kunde inte läsa delete-status.',
+          true
+        );
+      }
+    }
+    applyCcoDeleteButtonState();
+  }
+
   async function runCcoInboxBrief() {
     try {
       if (!canTemplateWrite()) throw new Error('Du saknar behorighet.');
+      await loadCcoDeleteCapabilityStatus({ quiet: true });
       const input = readCcoInboxOptions();
       setStatus(els.ccoInboxStatus, 'Kör CCO inkorgsbrief...');
       const response = await api('/agents/CCO/run', {
@@ -11905,6 +12049,57 @@
     );
   }
 
+  async function hideCcoSenderOrPatternForSelectedConversation() {
+    const conversation = getCcoSelectedConversation();
+    if (!conversation) throw new Error('Välj en konversation först.');
+    const senderPattern = extractEmailFromText(conversation.sender || '');
+    const subjectSnippet = String(conversation.subject || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .slice(0, 80);
+    const defaultPattern = senderPattern || subjectSnippet || '';
+    const input = window.prompt(
+      'Dölj avsändare/pattern (e-post för avsändare eller textmönster för ämne).',
+      defaultPattern
+    );
+    if (input === null) {
+      setStatus(els.ccoSendStatus, 'Ingen pattern sparad.');
+      return;
+    }
+    const normalized = String(input || '').trim().toLowerCase();
+    if (!normalized) {
+      throw new Error('Ange en avsändare eller ett ämnesmönster.');
+    }
+    const looksLikeEmail = normalized.includes('@');
+    if (looksLikeEmail) {
+      const nextSenderPatterns = sanitizeCcoSystemPatternList([
+        ...(Array.isArray(state.ccoSystemMessageSenderPatterns) ? state.ccoSystemMessageSenderPatterns : []),
+        normalized,
+      ]);
+      state.ccoSystemMessageSenderPatterns = nextSenderPatterns;
+    } else {
+      const nextSubjectPatterns = sanitizeCcoSystemPatternList([
+        ...(Array.isArray(state.ccoSystemMessageSubjectPatterns) ? state.ccoSystemMessageSubjectPatterns : []),
+        normalized,
+      ]);
+      state.ccoSystemMessageSubjectPatterns = nextSubjectPatterns;
+    }
+    state.ccoSystemMessageByConversationId = {
+      ...(state.ccoSystemMessageByConversationId || {}),
+      [String(conversation.conversationId || '').trim()]: true,
+    };
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+    renderCcoDetail(state.ccoInboxData?.data || null);
+    setStatus(
+      els.ccoSendStatus,
+      looksLikeEmail
+        ? `Döljer framtida mail från ${normalized}.`
+        : `Döljer framtida mail med mönstret "${normalized}".`
+    );
+  }
+
   async function snoozeSelectedCcoConversation() {
     const conversation = getCcoSelectedConversation();
     if (!conversation) throw new Error('Välj en konversation först.');
@@ -11942,6 +12137,10 @@
   async function deleteSelectedCcoConversation() {
     const conversation = getCcoSelectedConversation();
     if (!conversation) throw new Error('Välj en konversation först.');
+    const capability = sanitizeCcoDeleteCapabilityStatus(state.ccoDeleteCapability);
+    if (capability.deleteEnabled !== true) {
+      throw new Error(capability.reason || 'Radera mail är inte aktiverat i denna miljö.');
+    }
     const confirmed = window.confirm(
       'Radera mail? Rekommenderat beteende är mjuk radering (papperskorg).'
     );
@@ -11949,30 +12148,19 @@
       setStatus(els.ccoSendStatus, 'Radering avbruten.');
       return;
     }
-    let backendDeleted = false;
-    try {
-      await api('/cco/delete', {
-        method: 'POST',
-        headers: {
-          'x-idempotency-key': generateClientIdempotencyKey('cco-delete'),
-        },
-        body: {
-          channel: 'admin',
-          mailboxId: String(conversation.mailboxId || '').trim(),
-          messageId: String(conversation.messageId || '').trim(),
-          conversationId: String(conversation.conversationId || '').trim(),
-          softDelete: true,
-        },
-      });
-      backendDeleted = true;
-    } catch (error) {
-      const fallbackAllowed =
-        String(error?.message || '').toLowerCase().includes('inte aktiverat') ||
-        String(error?.message || '').toLowerCase().includes('not enabled');
-      if (!fallbackAllowed) {
-        throw error;
-      }
-    }
+    await api('/cco/delete', {
+      method: 'POST',
+      headers: {
+        'x-idempotency-key': generateClientIdempotencyKey('cco-delete'),
+      },
+      body: {
+        channel: 'admin',
+        mailboxId: String(conversation.mailboxId || '').trim(),
+        messageId: String(conversation.messageId || '').trim(),
+        conversationId: String(conversation.conversationId || '').trim(),
+        softDelete: true,
+      },
+    });
 
     applyCcoConversationMutation(conversation.conversationId, (row) => ({
       ...row,
@@ -11981,12 +12169,7 @@
     }));
     await markCcoSprintConversationCompleted(conversation.conversationId, conversation);
     renderCcoInbox(state.ccoInboxData);
-    setStatus(
-      els.ccoSendStatus,
-      backendDeleted
-        ? 'Mail flyttat till papperskorg.'
-        : 'Mail dolt från arbetskön (backend-radering ej aktiverad).'
-    );
+    setStatus(els.ccoSendStatus, 'Mail flyttat till papperskorg.');
   }
 
   async function runCcoRefineDraft(instruction = 'improve') {
@@ -14393,7 +14576,7 @@
   els.runCcoInboxBtn?.addEventListener('click', runCcoInboxBrief);
   els.ccoStartSprintBtn?.addEventListener('click', () => {
     startCcoSprint().catch((error) => {
-      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta sprint.', true);
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta fokus.', true);
     });
   });
   els.ccoFocusShowAllBtn?.addEventListener('click', () => {
@@ -14412,7 +14595,7 @@
     const action = String(actionButton.getAttribute('data-cco-soft-break-action') || '').trim();
     if (action === 'cancel') {
       hideCcoSoftBreakPanel();
-      setStatus(els.ccoInboxStatus, 'Sprint fortsätter.');
+      setStatus(els.ccoInboxStatus, 'Fokus fortsätter.');
       return;
     }
     const pendingConversationId = String(state.ccoPendingSoftBreakConversationId || '').trim();
@@ -14422,7 +14605,7 @@
     }
     if (action === 'pause') {
       state.ccoSprintActive = false;
-      setStatus(els.ccoInboxStatus, 'Sprint pausad. Full inkorg visas igen.');
+      setStatus(els.ccoInboxStatus, 'Fokus pausad. Full inkorg visas igen.');
     } else if (action === 'replace') {
       const queue = (Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : [])
         .map((value) => String(value || '').trim())
@@ -14432,9 +14615,9 @@
       queue.push(pendingConversationId);
       state.ccoSprintQueueIds = queue.slice(0, 3);
       state.ccoSprintActive = true;
-      setStatus(els.ccoInboxStatus, 'Sprint uppdaterad med vald tråd.');
+      setStatus(els.ccoInboxStatus, 'Fokus uppdaterad med vald tråd.');
     } else if (action === 'abort') {
-      stopCcoSprint({ message: 'Sprint avbruten. Full inkorg visas igen.' });
+      stopCcoSprint({ message: 'Fokus avbruten. Full inkorg visas igen.' });
     }
     hideCcoSoftBreakPanel();
     setSelectedCcoConversation(pendingConversationId);
@@ -14607,6 +14790,11 @@
   els.ccoMarkSystemMailBtn?.addEventListener('click', () => {
     toggleCcoSystemMailForSelectedConversation().catch((error) => {
       setStatus(els.ccoSendStatus, error.message || 'Kunde inte uppdatera systemmail-status.', true);
+    });
+  });
+  els.ccoHidePatternBtn?.addEventListener('click', () => {
+    hideCcoSenderOrPatternForSelectedConversation().catch((error) => {
+      setStatus(els.ccoSendStatus, error.message || 'Kunde inte spara pattern.', true);
     });
   });
   els.ccoDeleteMailBtn?.addEventListener('click', () => {

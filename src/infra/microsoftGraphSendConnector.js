@@ -285,8 +285,43 @@ function createMicrosoftGraphSendConnector(config = {}) {
     };
   }
 
+  async function moveMessageToDeletedItems({
+    mailboxId,
+    messageId,
+    timeoutMs = requestTimeoutMs,
+  } = {}) {
+    const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
+    const normalizedMessageId = requiredConfig('messageId', messageId);
+    const accessToken = await fetchAccessToken();
+    const moveUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+      normalizedMailboxId
+    )}/messages/${encodeURIComponent(normalizedMessageId)}/move`;
+    const response = await postGraphJson({
+      fetchImpl,
+      url: moveUrl,
+      accessToken,
+      payload: {
+        destinationId: 'deleteditems',
+      },
+      timeoutMs,
+      label: 'Microsoft Graph moveToDeletedItems',
+    });
+    const payload = await parseJsonResponse(response, 'Microsoft Graph moveToDeletedItems response');
+    return {
+      provider: 'microsoft_graph',
+      mailboxId: normalizedMailboxId,
+      messageId: normalizedMessageId,
+      movedMessageId: normalizeText(payload?.id) || normalizedMessageId,
+      conversationId: normalizeText(payload?.conversationId) || null,
+      destinationFolderId: normalizeText(payload?.parentFolderId) || 'deleteditems',
+      deletedAt: new Date().toISOString(),
+      deleteMode: 'soft_delete',
+    };
+  }
+
   return {
     sendReply,
+    moveMessageToDeletedItems,
   };
 }
 

@@ -350,6 +350,85 @@ test('AnalyzeInbox enriches SLA monitor statuses and keeps risk-word urgency sig
   }
 });
 
+test('AnalyzeInbox classifies systemmail and excludes it from sprint-driving buckets', async () => {
+  const fixedNowMs = Date.parse('2026-03-03T12:00:00.000Z');
+  const originalNow = Date.now;
+  const hourMs = 60 * 60 * 1000;
+  const isoAtOffset = (offsetMs) => new Date(fixedNowMs + offsetMs).toISOString();
+
+  Date.now = () => fixedNowMs;
+  try {
+    const output = await new analyzeInboxCapability().execute({
+      tenantId: 'tenant-a',
+      actor: { id: 'owner-a', role: 'OWNER' },
+      channel: 'admin',
+      requestId: 'req-inbox-systemmail',
+      correlationId: 'corr-inbox-systemmail',
+      input: {
+        maxDrafts: 5,
+      },
+      systemStateSnapshot: {
+        conversations: [
+          {
+            conversationId: 'conv-system-mail',
+            subject: 'Orderbekräftelse 12345',
+            status: 'open',
+            messages: [
+              {
+                messageId: 'msg-system-mail',
+                direction: 'inbound',
+                sentAt: isoAtOffset(-30 * hourMs),
+                senderEmail: 'noreply@booking.example.com',
+                bodyPreview: 'Detta är ett automatiskt kvitto. Do-not-reply.',
+              },
+            ],
+          },
+          {
+            conversationId: 'conv-actionable-mail',
+            subject: 'Klagomål efter behandling',
+            status: 'open',
+            messages: [
+              {
+                messageId: 'msg-actionable-mail',
+                direction: 'inbound',
+                sentAt: isoAtOffset(-8 * hourMs),
+                senderEmail: 'patient@example.com',
+                bodyPreview: 'Jag är missnöjd och vill ha återkoppling.',
+              },
+            ],
+          },
+        ],
+        timestamps: {
+          capturedAt: isoAtOffset(0),
+        },
+      },
+    });
+
+    const byConversation = new Map(
+      output.data.conversationWorklist.map((item) => [item.conversationId, item])
+    );
+    assert.equal(byConversation.has('conv-system-mail'), true);
+    assert.equal(byConversation.get('conv-system-mail')?.messageClassification, 'system_mail');
+    assert.equal(byConversation.get('conv-actionable-mail')?.messageClassification, 'actionable');
+
+    const needsReplyIds = new Set(output.data.needsReplyToday.map((item) => item.conversationId));
+    assert.equal(needsReplyIds.has('conv-system-mail'), false);
+    assert.equal(needsReplyIds.has('conv-actionable-mail'), true);
+
+    const urgentIds = new Set(output.data.urgentConversations.map((item) => item.conversationId));
+    assert.equal(urgentIds.has('conv-system-mail'), false);
+
+    const draftIds = new Set(output.data.suggestedDrafts.map((item) => item.conversationId));
+    assert.equal(draftIds.has('conv-system-mail'), false);
+    assert.equal(draftIds.has('conv-actionable-mail'), true);
+
+    const slaBreachIds = new Set(output.data.slaBreaches.map((item) => item.conversationId));
+    assert.equal(slaBreachIds.has('conv-system-mail'), false);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
 test('AnalyzeInbox applies mailbox-specific writing identity overrides to drafts', async () => {
   const baseSentAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const output = await new analyzeInboxCapability().execute({
