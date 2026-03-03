@@ -392,6 +392,14 @@
     needs: 12,
     maxVisibleRows: 15,
   });
+  const CCO_COLUMN_RESIZE_BREAKPOINT = 1500;
+  const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
+    leftMin: 220,
+    leftMax: 520,
+    rightMin: 300,
+    rightMax: 620,
+    centerMin: 380,
+  });
 
   function sanitizeCcoDensityMode(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
@@ -416,6 +424,16 @@
       high: safe.high !== false,
       needs: safe.needs !== false,
       rest: safe.rest === true,
+    };
+  }
+
+  function sanitizeCcoColumnLayout(value = null) {
+    const safe = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const left = Number(safe.left);
+    const right = Number(safe.right);
+    return {
+      left: Number.isFinite(left) ? Math.round(left) : null,
+      right: Number.isFinite(right) ? Math.round(right) : null,
     };
   }
 
@@ -561,6 +579,7 @@
     ccoInboxDensityMode: sanitizeCcoDensityMode(
       initialCcoWorkspaceSession.densityMode || CCO_DEFAULT_DENSITY_MODE
     ),
+    ccoColumnLayout: sanitizeCcoColumnLayout(initialCcoWorkspaceSession.columnLayout),
     ccoInboxSectionExpanded: sanitizeCcoSectionExpandedState(
       initialCcoWorkspaceSession.sectionExpanded
     ),
@@ -724,6 +743,11 @@
     overviewSection: document.getElementById('overviewSection'),
     ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
     ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
+    ccoInboxControlsColumn: document.getElementById('ccoInboxControlsColumn'),
+    ccoCenterColumn: document.getElementById('ccoCenterColumn'),
+    ccoReplyColumn: document.getElementById('ccoReplyColumn'),
+    ccoResizeHandleLeft: document.getElementById('ccoResizeHandleLeft'),
+    ccoResizeHandleRight: document.getElementById('ccoResizeHandleRight'),
     openCcoWorkspaceBtn: document.getElementById('openCcoWorkspaceBtn'),
     ccoWorkspaceEntryStatus: document.getElementById('ccoWorkspaceEntryStatus'),
     ccoOverviewSummaryList: document.getElementById('ccoOverviewSummaryList'),
@@ -1131,6 +1155,7 @@
   let activeModalFocusReturn = null;
   let sectionMotionFrame = 0;
   let modeTransitionTimer = 0;
+  let ccoColumnResizeState = null;
 
   function setText(el, value) {
     if (!el) return;
@@ -4716,6 +4741,7 @@
         searchQuery: sanitizeCcoSearchQuery(state.ccoInboxSearchQuery),
         showSystemMessages: sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages),
         densityMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
+        columnLayout: sanitizeCcoColumnLayout(state.ccoColumnLayout),
         sectionExpanded: sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded),
         draftsByConversationId: sanitizeCcoDraftMap(state.ccoDraftOverrideByConversationId),
         draftModeByConversationId: sanitizeCcoDraftModeMap(state.ccoDraftModeByConversationId),
@@ -4792,11 +4818,234 @@
     }, 170);
   }
 
+  function isCcoColumnResizeViewport() {
+    return window.innerWidth > CCO_COLUMN_RESIZE_BREAKPOINT;
+  }
+
+  function clampNumber(value, min, max) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return min;
+    if (numeric < min) return min;
+    if (numeric > max) return max;
+    return numeric;
+  }
+
+  function readCcoColumnWidthsFromGrid() {
+    const layoutEl = els.ccoWorkspaceLayout;
+    if (!layoutEl) return { left: null, right: null };
+    const computed = window.getComputedStyle(layoutEl).gridTemplateColumns || '';
+    const parts = computed
+      .split(/\s+/)
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+    if (parts.length < 3) return { left: null, right: null };
+    const left = Number.parseFloat(parts[0]);
+    const right = Number.parseFloat(parts[parts.length - 1]);
+    return {
+      left: Number.isFinite(left) ? Math.round(left) : null,
+      right: Number.isFinite(right) ? Math.round(right) : null,
+    };
+  }
+
+  function normalizeCcoColumnLayoutForWidth(layoutWidth, input = {}, preferredSide = '') {
+    const width = Number(layoutWidth);
+    if (!Number.isFinite(width) || width <= 0) return { left: null, right: null };
+    const limits = CCO_COLUMN_WIDTH_LIMITS;
+    const fallbackLeft = Math.round(width * 0.23);
+    const fallbackRight = Math.round(width * 0.30);
+    const rawLeft = Number(input?.left);
+    const rawRight = Number(input?.right);
+    const hasLeft = Number.isFinite(rawLeft) && rawLeft > 0;
+    const hasRight = Number.isFinite(rawRight) && rawRight > 0;
+    let left = clampNumber(
+      hasLeft ? rawLeft : fallbackLeft,
+      limits.leftMin,
+      Math.min(limits.leftMax, width - limits.rightMin - limits.centerMin)
+    );
+    let right = clampNumber(
+      hasRight ? rawRight : fallbackRight,
+      limits.rightMin,
+      Math.min(limits.rightMax, width - limits.leftMin - limits.centerMin)
+    );
+
+    let center = width - left - right;
+    if (center < limits.centerMin) {
+      let shortage = limits.centerMin - center;
+      if (preferredSide === 'left') {
+        const reducibleLeft = Math.max(0, left - limits.leftMin);
+        const reduceBy = Math.min(reducibleLeft, shortage);
+        left -= reduceBy;
+        shortage -= reduceBy;
+      } else if (preferredSide === 'right') {
+        const reducibleRight = Math.max(0, right - limits.rightMin);
+        const reduceBy = Math.min(reducibleRight, shortage);
+        right -= reduceBy;
+        shortage -= reduceBy;
+      }
+      if (shortage > 0) {
+        const reducibleLeft = Math.max(0, left - limits.leftMin);
+        const reduceLeft = Math.min(reducibleLeft, Math.ceil(shortage / 2));
+        left -= reduceLeft;
+        shortage -= reduceLeft;
+      }
+      if (shortage > 0) {
+        const reducibleRight = Math.max(0, right - limits.rightMin);
+        const reduceRight = Math.min(reducibleRight, shortage);
+        right -= reduceRight;
+        shortage -= reduceRight;
+      }
+      center = width - left - right;
+      if (center < limits.centerMin) {
+        const fallbackMaxLeft = Math.max(limits.leftMin, width - right - limits.centerMin);
+        left = clampNumber(left, limits.leftMin, fallbackMaxLeft);
+        const fallbackMaxRight = Math.max(limits.rightMin, width - left - limits.centerMin);
+        right = clampNumber(right, limits.rightMin, fallbackMaxRight);
+      }
+    }
+    return { left: Math.round(left), right: Math.round(right) };
+  }
+
+  function updateCcoResizeHandlePositions() {
+    const layoutEl = els.ccoWorkspaceLayout;
+    if (!layoutEl || !els.ccoResizeHandleLeft || !els.ccoResizeHandleRight) return;
+    if (layoutEl.getAttribute('data-resize-enabled') !== 'true') return;
+    const rect = layoutEl.getBoundingClientRect();
+    const width = Math.round(rect.width || 0);
+    if (width <= 0) return;
+    const columnLayout = normalizeCcoColumnLayoutForWidth(width, state.ccoColumnLayout || {});
+    if (!Number.isFinite(columnLayout.left) || !Number.isFinite(columnLayout.right)) return;
+    els.ccoResizeHandleLeft.style.left = `${columnLayout.left}px`;
+    els.ccoResizeHandleRight.style.left = `${width - columnLayout.right}px`;
+  }
+
+  function applyCcoColumnLayout({ persist = false, preferredSide = '' } = {}) {
+    const layoutEl = els.ccoWorkspaceLayout;
+    if (!layoutEl) return;
+    if (!isCcoColumnResizeViewport()) {
+      layoutEl.removeAttribute('data-resize-enabled');
+      layoutEl.style.removeProperty('grid-template-columns');
+      if (els.ccoResizeHandleLeft) els.ccoResizeHandleLeft.style.left = '';
+      if (els.ccoResizeHandleRight) els.ccoResizeHandleRight.style.left = '';
+      return;
+    }
+    const rect = layoutEl.getBoundingClientRect();
+    const width = Math.round(rect.width || 0);
+    if (width <= 0) return;
+    const base =
+      state.ccoColumnLayout?.left || state.ccoColumnLayout?.right
+        ? state.ccoColumnLayout
+        : readCcoColumnWidthsFromGrid();
+    const normalized = normalizeCcoColumnLayoutForWidth(width, base, preferredSide);
+    if (!Number.isFinite(normalized.left) || !Number.isFinite(normalized.right)) return;
+    state.ccoColumnLayout = normalized;
+    layoutEl.setAttribute('data-resize-enabled', 'true');
+    layoutEl.style.gridTemplateColumns = `${normalized.left}px minmax(${CCO_COLUMN_WIDTH_LIMITS.centerMin}px, 1fr) ${normalized.right}px`;
+    updateCcoResizeHandlePositions();
+    if (persist) persistCcoWorkspaceSessionState();
+  }
+
+  function startCcoColumnResize(side = 'left', event) {
+    if (!event || event.button !== 0) return;
+    if (!isCcoColumnResizeViewport()) return;
+    const layoutEl = els.ccoWorkspaceLayout;
+    if (!layoutEl) return;
+    const rect = layoutEl.getBoundingClientRect();
+    const width = Math.round(rect.width || 0);
+    if (width <= 0) return;
+    const current = normalizeCcoColumnLayoutForWidth(width, state.ccoColumnLayout || {}, side);
+    ccoColumnResizeState = {
+      side,
+      pointerId: event.pointerId,
+      startX: Number(event.clientX || 0),
+      startLeft: current.left,
+      startRight: current.right,
+    };
+    const handle = side === 'right' ? els.ccoResizeHandleRight : els.ccoResizeHandleLeft;
+    if (handle?.setPointerCapture) {
+      try {
+        handle.setPointerCapture(event.pointerId);
+      } catch {
+        // ignore capture failures
+      }
+    }
+    handle?.classList.add('is-dragging');
+    document.body.classList.add('cco-col-resizing');
+    event.preventDefault();
+  }
+
+  function moveCcoColumnResize(side = 'left', event) {
+    const active = ccoColumnResizeState;
+    if (!active || active.side !== side) return;
+    if (active.pointerId !== undefined && event.pointerId !== active.pointerId) return;
+    const deltaX = Number(event.clientX || 0) - Number(active.startX || 0);
+    if (!Number.isFinite(deltaX)) return;
+    const nextLayout =
+      side === 'left'
+        ? { left: active.startLeft + deltaX, right: active.startRight }
+        : { left: active.startLeft, right: active.startRight - deltaX };
+    state.ccoColumnLayout = nextLayout;
+    applyCcoColumnLayout({ persist: false, preferredSide: side });
+    event.preventDefault();
+  }
+
+  function stopCcoColumnResize(side = 'left', event) {
+    const active = ccoColumnResizeState;
+    if (!active || active.side !== side) return;
+    if (active.pointerId !== undefined && event.pointerId !== active.pointerId) return;
+    const handle = side === 'right' ? els.ccoResizeHandleRight : els.ccoResizeHandleLeft;
+    if (handle?.releasePointerCapture) {
+      try {
+        handle.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore release failures
+      }
+    }
+    handle?.classList.remove('is-dragging');
+    document.body.classList.remove('cco-col-resizing');
+    ccoColumnResizeState = null;
+    applyCcoColumnLayout({ persist: true });
+  }
+
+  function initCcoColumnResizers() {
+    if (els.ccoResizeHandleLeft && !els.ccoResizeHandleLeft.dataset.bound) {
+      els.ccoResizeHandleLeft.addEventListener('pointerdown', (event) => {
+        startCcoColumnResize('left', event);
+      });
+      els.ccoResizeHandleLeft.addEventListener('pointermove', (event) => {
+        moveCcoColumnResize('left', event);
+      });
+      els.ccoResizeHandleLeft.addEventListener('pointerup', (event) => {
+        stopCcoColumnResize('left', event);
+      });
+      els.ccoResizeHandleLeft.addEventListener('pointercancel', (event) => {
+        stopCcoColumnResize('left', event);
+      });
+      els.ccoResizeHandleLeft.dataset.bound = '1';
+    }
+    if (els.ccoResizeHandleRight && !els.ccoResizeHandleRight.dataset.bound) {
+      els.ccoResizeHandleRight.addEventListener('pointerdown', (event) => {
+        startCcoColumnResize('right', event);
+      });
+      els.ccoResizeHandleRight.addEventListener('pointermove', (event) => {
+        moveCcoColumnResize('right', event);
+      });
+      els.ccoResizeHandleRight.addEventListener('pointerup', (event) => {
+        stopCcoColumnResize('right', event);
+      });
+      els.ccoResizeHandleRight.addEventListener('pointercancel', (event) => {
+        stopCcoColumnResize('right', event);
+      });
+      els.ccoResizeHandleRight.dataset.bound = '1';
+    }
+    applyCcoColumnLayout({ persist: false });
+  }
+
   function updateWorkspaceViewportMetrics() {
     const headerHeight = Number(els.adminHeader?.offsetHeight || 0);
     const navHeight = Number(els.sectionNav?.offsetHeight || 0);
     const computed = Math.max(180, Math.round(headerHeight + navHeight + 58));
     document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
+    applyCcoColumnLayout({ persist: false });
   }
 
   function resolveDefaultTargetForGroup(groupId) {
@@ -14634,6 +14883,7 @@
   syncTemplateFilterInputs();
   bindScrollableListPersistence();
   applyLanguage();
+  initCcoColumnResizers();
   state.activeSectionGroup = resolveInitialSectionGroup();
   setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
     targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),

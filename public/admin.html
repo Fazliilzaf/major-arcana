@@ -1837,6 +1837,7 @@
       grid-template-columns: minmax(250px, 0.9fr) minmax(440px, 1.35fr) minmax(340px, 1fr);
       grid-template-areas: "inbox center reply";
       gap: 0;
+      position: relative;
       border: 1px solid var(--cco-border);
       border-radius: 0;
       overflow: hidden;
@@ -1899,6 +1900,46 @@
       flex-direction: column;
       gap: 12px;
       min-width: 0;
+    }
+    .cco-column-resizer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 14px;
+      margin-left: -7px;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 9;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    .cco-layout[data-resize-enabled="true"] .cco-column-resizer {
+      display: flex;
+    }
+    .cco-column-resizer::before {
+      content: "";
+      width: 3px;
+      height: 44px;
+      border-radius: 999px;
+      background: rgba(194, 170, 156, 0.32);
+      border: 1px solid rgba(194, 170, 156, 0.45);
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+    .cco-column-resizer:hover::before,
+    .cco-column-resizer.is-dragging::before {
+      background: rgba(194, 170, 156, 0.52);
+      border-color: rgba(194, 170, 156, 0.68);
+      transform: scaleY(1.08);
+    }
+    body.cco-col-resizing {
+      cursor: col-resize;
+      user-select: none;
+    }
+    body.cco-col-resizing * {
+      cursor: col-resize !important;
+      user-select: none !important;
     }
     .cco-reply-block {
       border: 1px solid #E8DDD5;
@@ -2747,6 +2788,9 @@
         border-left: 0;
         border-top: 1px solid var(--cco-border);
         box-shadow: none;
+      }
+      .cco-column-resizer {
+        display: none !important;
       }
     }
     @media (max-width: 1100px) {
@@ -3761,7 +3805,7 @@
           </ul>
         </div>
         <div id="ccoWorkspaceLayout" class="cco-layout" style="margin-top:12px">
-          <aside class="cco-inbox cco-inbox-controls">
+          <aside id="ccoInboxControlsColumn" class="cco-inbox cco-inbox-controls">
             <div class="cco-column-title" style="padding:14px 4px 0">
               <h3>Inkorgskontroller</h3>
               <div class="cco-column-title-actions">
@@ -3829,7 +3873,7 @@
             </div>
           </aside>
 
-          <section class="cco-center">
+          <section id="ccoCenterColumn" class="cco-center">
             <div class="cco-column-title cco-center-title">
               <h3>Arbetskö och konversation</h3>
               <div id="ccoInboxRiskFlags" class="mini muted">0 / 0</div>
@@ -3962,7 +4006,7 @@
             </section>
           </section>
 
-          <section class="cco-reply">
+          <section id="ccoReplyColumn" class="cco-reply">
             <div class="cco-column-title">
               <h3>Svarsstudio</h3>
             </div>
@@ -3998,7 +4042,6 @@
                   </select>
                 </div>
               </div>
-              <div id="ccoSignaturePreview" class="cco-signature-preview mini"></div>
             </section>
             <section class="cco-reply-block">
               <div class="cco-draft-modes">
@@ -4014,26 +4057,8 @@
                 <label for="ccoDraftBodyInput">Föreslaget svar (redigerbart)</label>
                 <textarea id="ccoDraftBodyInput" class="cco-editor" placeholder="Välj en konversation för att redigera svaret."></textarea>
               </div>
-            </section>
-            <section class="cco-reply-block">
-              <div class="cco-reply-meta-grid">
-                <div>
-                  <h3 style="margin:0 0 6px 0">Risk</h3>
-                  <div id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</div>
-                </div>
-                <div>
-                  <h3 style="margin:0 0 6px 0">Policy</h3>
-                  <div id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</div>
-                </div>
-                <div>
-                  <h3 style="margin:0 0 6px 0">Konfidens</h3>
-                  <div id="ccoDraftConfidence" class="cco-risk-indicator">-</div>
-                </div>
-                <div>
-                  <h3 style="margin:0 0 6px 0">Rekommenderad åtgärd</h3>
-                  <div id="ccoDraftRecommendedAction" class="cco-risk-indicator">-</div>
-                </div>
-              </div>
+              <div class="mini muted">Signatur i föreslaget svar</div>
+              <div id="ccoSignaturePreview" class="cco-signature-preview mini"></div>
             </section>
             <section class="cco-reply-block">
               <div class="cco-action-group">
@@ -4064,12 +4089,34 @@
               <div id="ccoSendStatus" class="status-line"></div>
             </section>
             <section class="cco-reply-block">
+              <div class="cco-reply-meta-grid">
+                <div>
+                  <h3 style="margin:0 0 6px 0">Risk</h3>
+                  <div id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</div>
+                </div>
+                <div>
+                  <h3 style="margin:0 0 6px 0">Policy</h3>
+                  <div id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</div>
+                </div>
+                <div>
+                  <h3 style="margin:0 0 6px 0">Konfidens</h3>
+                  <div id="ccoDraftConfidence" class="cco-risk-indicator">-</div>
+                </div>
+                <div>
+                  <h3 style="margin:0 0 6px 0">Rekommenderad åtgärd</h3>
+                  <div id="ccoDraftRecommendedAction" class="cco-risk-indicator">-</div>
+                </div>
+              </div>
+            </section>
+            <section class="cco-reply-block">
               <h3 style="margin:0 0 6px 0">Föreslagna utkast</h3>
               <ul id="ccoInboxDraftsList" class="cco-mini-list">
                 <li class="muted mini">Inga utkast än.</li>
               </ul>
             </section>
           </section>
+          <div id="ccoResizeHandleLeft" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd vänster" aria-orientation="vertical"></div>
+          <div id="ccoResizeHandleRight" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd höger" aria-orientation="vertical"></div>
         </div>
       </section>
 
