@@ -1830,7 +1830,8 @@
     }
     .cco-layout {
       display: grid;
-      grid-template-columns: 300px minmax(560px, 1fr) 460px;
+      grid-template-columns: minmax(250px, 0.9fr) minmax(440px, 1.35fr) minmax(340px, 1fr);
+      grid-template-areas: "inbox center reply";
       gap: 0;
       border: 1px solid var(--cco-border);
       border-radius: 0;
@@ -1842,6 +1843,7 @@
       transition: opacity 150ms ease;
     }
     .cco-inbox {
+      grid-area: inbox;
       background: #FFFFFF;
       border-right: 1px solid var(--cco-border);
       box-shadow: 2px 0 6px rgba(0, 0, 0, 0.03);
@@ -1855,6 +1857,7 @@
       min-width: 280px;
     }
     .cco-center {
+      grid-area: center;
       background: #FCF9F7;
       border-right: 1px solid var(--cco-border);
       overflow-y: auto;
@@ -1880,6 +1883,7 @@
       gap: 12px;
     }
     .cco-reply {
+      grid-area: reply;
       background: #F8F3F0;
       border-left: 1px solid var(--cco-border);
       box-shadow: -2px 0 6px rgba(0, 0, 0, 0.03);
@@ -2043,6 +2047,20 @@
     }
     .cco-filter-row-sla {
       margin-bottom: 2px;
+    }
+    .cco-center-density-row {
+      margin: 0 0 6px;
+      padding: 8px;
+      border: 1px solid #E6DBD3;
+      border-radius: 10px;
+      background: #FFFFFF;
+      position: sticky;
+      top: 0;
+      z-index: 4;
+    }
+    .cco-center-density-row .cco-filter-btn {
+      font-size: 12px;
+      padding: 6px 12px;
     }
     .cco-filter-btn {
       border: 1px solid #E2D8D1;
@@ -2697,14 +2715,40 @@
       color: #6A5D52;
       border-color: #E3D8CF;
     }
-    @media (max-width: 1280px) {
+    @media (max-width: 1520px) {
       .cco-layout {
-        grid-template-columns: 280px minmax(520px, 1fr) 420px;
+        grid-template-columns: minmax(240px, 0.9fr) minmax(420px, 1.3fr) minmax(320px, 1fr);
+      }
+    }
+    @media (max-width: 1400px) {
+      .cco-layout {
+        grid-template-columns: 300px minmax(0, 1fr);
+        grid-template-areas:
+          "inbox center"
+          "reply reply";
+        height: auto;
+        max-height: none;
+      }
+      .cco-inbox {
+        border-right: 1px solid var(--cco-border);
+        border-bottom: 0;
+      }
+      .cco-center {
+        border-right: 0;
+      }
+      .cco-reply {
+        border-left: 0;
+        border-top: 1px solid var(--cco-border);
+        box-shadow: none;
       }
     }
     @media (max-width: 1100px) {
       .cco-layout {
         grid-template-columns: 1fr;
+        grid-template-areas:
+          "inbox"
+          "center"
+          "reply";
         height: auto;
         max-height: none;
       }
@@ -3766,11 +3810,6 @@
               <button type="button" class="cco-filter-btn" data-cco-state-filter="handled">Hanterad</button>
               <button type="button" class="cco-filter-btn" data-cco-state-filter="archived">Arkiverad</button>
             </div>
-            <div id="ccoInboxDensityFilters" class="cco-filter-row">
-              <button type="button" class="cco-filter-btn" data-cco-density-mode="focus">Fokus</button>
-              <button type="button" class="cco-filter-btn is-active" data-cco-density-mode="work">Arbete</button>
-              <button type="button" class="cco-filter-btn" data-cco-density-mode="overview">Översikt</button>
-            </div>
             <div id="ccoSoftBreakPanel" class="cco-soft-break-panel">
               <div class="cco-soft-break-title">Du lämnar sprintläge</div>
               <div class="cco-soft-break-text">Välj hur sprinten ska hanteras innan du öppnar tråden.</div>
@@ -3787,6 +3826,11 @@
             <div class="cco-column-title cco-center-title">
               <h3>Arbetskö och konversation</h3>
               <div id="ccoInboxRiskFlags" class="mini muted">0 / 0</div>
+            </div>
+            <div id="ccoInboxDensityFilters" class="cco-filter-row cco-center-density-row">
+              <button type="button" class="cco-filter-btn" data-cco-density-mode="focus">Fokus</button>
+              <button type="button" class="cco-filter-btn is-active" data-cco-density-mode="work">Arbete</button>
+              <button type="button" class="cco-filter-btn" data-cco-density-mode="overview">Översikt</button>
             </div>
             <div id="ccoInboxWorklist" class="cco-inbox-sections cco-center-worklist">
               <details id="ccoInboxGroupSprint" data-cco-section="sprint" class="cco-inbox-group section-acute" open>
