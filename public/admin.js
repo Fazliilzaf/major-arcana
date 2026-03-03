@@ -213,6 +213,54 @@
     }
   }
 
+  function readArcanaUiBuildMarker() {
+    const fromMeta = document
+      .querySelector('meta[name="arcana-ui-build"]')
+      ?.getAttribute('content');
+    const safeMeta = String(fromMeta || '').trim();
+    if (safeMeta) return safeMeta;
+    const script = document.querySelector('script[src*="/admin.js"]');
+    const src = String(script?.getAttribute('src') || '').trim();
+    if (!src) return '';
+    try {
+      const url = new URL(src, window.location.origin);
+      return String(url.searchParams.get('v') || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function maybeResetArcanaUiClientState() {
+    const params = new URLSearchParams(window.location.search || '');
+    const shouldReset = params.get('arcana_reset') === '1';
+    const buildKey = 'ARCANA_UI_BUILD';
+    const build = readArcanaUiBuildMarker();
+    try {
+      const previousBuild = String(localStorage.getItem(buildKey) || '').trim();
+      if (build && build !== previousBuild) {
+        localStorage.setItem(buildKey, build);
+      }
+      if (!shouldReset) return false;
+      sessionStorage.removeItem(CCO_WORKSPACE_SESSION_KEY);
+      localStorage.removeItem(CCO_LAST_SEEN_AT_KEY);
+      localStorage.removeItem(RISK_FILTERS_KEY);
+      localStorage.removeItem(AUDIT_FILTERS_KEY);
+      localStorage.removeItem(TEMPLATE_LIST_FILTERS_KEY);
+      localStorage.removeItem(LIST_SCROLL_STATE_KEY);
+      localStorage.removeItem(DENSITY_KEY);
+      localStorage.removeItem(LANGUAGE_KEY);
+    } catch {
+      // Ignore storage failures (private mode etc).
+    }
+    params.delete('arcana_reset');
+    const search = params.toString();
+    const nextUrl = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash || ''}`;
+    window.location.replace(nextUrl);
+    return true;
+  }
+
+  if (maybeResetArcanaUiClientState()) return;
+
   const initialCcoWorkspaceSession = readCcoWorkspaceSessionState();
 
   function sanitizeCcoDraftMap(value) {
@@ -9616,7 +9664,7 @@
             <span class="cco-performance-item-value">${escapeHtml(String(threatCount))}</span>
           </div>
           <div class="cco-performance-item">
-            <span class="cco-performance-item-label">Forward Outlook</span>
+            <span class="cco-performance-item-label">Framåtblick</span>
             <span class="cco-performance-item-value">${escapeHtml(
               `${Math.round(Math.max(0, Math.min(1, volatilityIndex)) * 100)}% vol`
             )}</span>
