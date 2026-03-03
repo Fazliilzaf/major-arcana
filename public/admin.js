@@ -151,21 +151,19 @@
     const normalized = String(pathname || '').trim().toLowerCase();
     return (
       normalized.endsWith('/cco') ||
-      normalized.endsWith('/unanswered') ||
       normalized.endsWith('/ccp') ||
       normalized.endsWith('/agents/cco') ||
-      normalized.endsWith('/admin/cco') ||
-      normalized.endsWith('/admin/unanswered')
+      normalized.endsWith('/admin/cco')
     );
   }
 
   function isUnansweredRoutePath(pathname = '') {
-    const normalized = String(pathname || '').trim().toLowerCase();
-    return normalized.endsWith('/unanswered') || normalized.endsWith('/admin/unanswered');
+    void pathname;
+    return false;
   }
 
   function readCcoViewModeFromLocation() {
-    return isUnansweredRoutePath(window.location.pathname || '') ? 'unanswered' : 'all';
+    return 'all';
   }
 
   function readCcoThreadFromLocation() {
@@ -275,12 +273,13 @@
   }
 
   function sanitizeCcoViewMode(value = '') {
-    return String(value || '').trim().toLowerCase() === 'unanswered' ? 'unanswered' : 'all';
+    void value;
+    return 'all';
   }
 
   function sanitizeCcoSlaFilter(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
-    if (['all', 'breach', 'warning', 'safe', 'new', 'unanswered'].includes(normalized)) {
+    if (['all', 'breach', 'warning', 'safe', 'new'].includes(normalized)) {
       return normalized;
     }
     return 'all';
@@ -546,8 +545,8 @@
     monitorDetailsVisible: false,
   };
 
-  if (state.ccoInboxViewMode === 'unanswered' && state.ccoInboxSlaFilter === 'all') {
-    state.ccoInboxSlaFilter = 'unanswered';
+  if (state.ccoInboxSlaFilter === 'unanswered') {
+    state.ccoInboxSlaFilter = 'all';
   }
 
   const els = {
@@ -4632,12 +4631,8 @@
   function syncCcoThreadRouteState(conversationId = '') {
     if (state.activeSectionGroup !== 'ccoWorkspaceSection') return;
     const safeConversationId = String(conversationId || '').trim();
-    const ccoPath =
-      sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
-        ? CCO_UNANSWERED_PRIMARY_PATH
-        : CCO_PRIMARY_PATH;
     const url = new URL(window.location.href);
-    url.pathname = ccoPath;
+    url.pathname = CCO_PRIMARY_PATH;
     url.hash = '';
     if (safeConversationId) {
       url.searchParams.set(CCO_THREAD_QUERY_PARAM, safeConversationId);
@@ -4667,10 +4662,7 @@
     if (!normalized) return '';
     if (normalized === 'ccoWorkspaceSection') {
       const threadId = String(state.ccoSelectedConversationId || '').trim();
-      const basePath =
-        sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
-          ? CCO_UNANSWERED_PRIMARY_PATH
-          : CCO_PRIMARY_PATH;
+      const basePath = CCO_PRIMARY_PATH;
       return threadId
         ? `${basePath}?${CCO_THREAD_QUERY_PARAM}=${encodeURIComponent(threadId)}`
         : basePath;
@@ -4775,10 +4767,7 @@
       state.ccoFocusWorkloadMinutes = 0;
       hideCcoSoftBreakPanel();
       postCcoUsageEvent('workspace_open', {
-        route:
-          sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered'
-            ? '/unanswered'
-            : '/cco',
+        route: '/cco',
         workspaceId: 'cco',
       });
     }
@@ -4814,10 +4803,17 @@
     if (!els.sectionNav) return;
     const legacyButtons = Array.from(
       els.sectionNav.querySelectorAll(
-        '.sectionNavBtn[data-target="ccoWorkspaceSection"][data-cco-view="unanswered"]'
+        '.sectionNavBtn[data-target="ccoWorkspaceSection"][data-cco-view="unanswered"], .sectionNavBtn[data-target="ccoWorkspaceSection"][data-i18n="nav_unanswered"]'
       )
     );
-    legacyButtons.forEach((button) => button.remove());
+    const fallbackByLabel = Array.from(
+      els.sectionNav.querySelectorAll('.sectionNavBtn[data-target="ccoWorkspaceSection"]')
+    ).filter((button) => {
+      const label = String(button.textContent || '').trim().toLowerCase();
+      return label === 'obesvarade' || label === 'unanswered';
+    });
+    const allLegacyButtons = [...legacyButtons, ...fallbackByLabel];
+    allLegacyButtons.forEach((button) => button.remove());
   }
 
   function setActiveSectionNav(targetId) {
@@ -8626,12 +8622,51 @@
     return '';
   }
 
+  function sanitizeCcoPreviewText(value = '') {
+    let text = String(value || '');
+    if (!text) return '';
+    text = text
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/\.cco-[\w-]+\s*\{[^}]*\}/gi, ' ')
+      .replace(/\.signature-[\w-]+\s*\{[^}]*\}/gi, ' ')
+      .replace(/(^|\s)([.#][\w-]+)\s*\{[^}]*\}/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    return text;
+  }
+
+  function isLikelyCcoSystemMessage(row = null) {
+    if (!row || typeof row !== 'object') return false;
+    const subject = safeLower(row.subject || '');
+    const preview = safeLower(row.latestInboundPreview || '');
+    const sender = safeLower(row.sender || '');
+    const haystack = `${subject} ${preview} ${sender}`;
+    const knownNoisePatterns = [
+      'power up your productivity with microsoft 365',
+      'verify your email',
+      'du får inte ofta e-post',
+      'get more done with apps like word',
+      'microsoft 365',
+      'noreply@',
+      'no-reply@',
+      'do-not-reply',
+      'unsubscribe',
+    ];
+    const matchesNoise = knownNoisePatterns.some((pattern) => haystack.includes(pattern));
+    if (!matchesNoise) return false;
+    const intent = safeLower(row.intent || 'unclear');
+    const priority = safeLower(row.priorityLevel || '');
+    const highPriority = ['critical', 'high', 'kritisk', 'hög', 'hog'].includes(priority);
+    return !highPriority && ['unclear', 'follow_up'].includes(intent);
+  }
+
   function enrichCcoConversationRow(row = null) {
     if (!row || typeof row !== 'object') return row;
     const relationshipStatus = classifyCcoRelationshipStatus(row);
     const lifecycleStatus = normalizeCcoLifecycleStatus(row?.customerSummary?.lifecycleStatus);
     return {
       ...row,
+      latestInboundPreview: sanitizeCcoPreviewText(row.latestInboundPreview || ''),
       mailboxLabel: resolveCcoMailboxLabel(row),
       lifecycleStatus,
       relationshipStatus,
@@ -8647,10 +8682,7 @@
       .map((row) => enrichCcoConversationRow(row))
       .filter((row) => isCcoAllowedMailboxRow(row));
 
-    const viewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
-    if (viewMode === 'unanswered') {
-      filtered = filtered.filter((row) => row.isUnanswered === true);
-    }
+    filtered = filtered.filter((row) => !isLikelyCcoSystemMessage(row));
 
     const mailboxFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
     if (mailboxFilter !== 'all') {
@@ -8660,9 +8692,7 @@
     }
 
     const slaFilter = sanitizeCcoSlaFilter(state.ccoInboxSlaFilter);
-    if (slaFilter === 'unanswered') {
-      filtered = filtered.filter((row) => row.isUnanswered === true);
-    } else if (slaFilter === 'new') {
+    if (slaFilter === 'new') {
       filtered = filtered.filter((row) => row.isNewSinceLastVisit === true);
     } else if (['breach', 'warning', 'safe'].includes(slaFilter)) {
       filtered = filtered.filter((row) => normalizeCcoSlaStatus(row.slaStatus) === slaFilter);
@@ -8886,7 +8916,7 @@
         userPrincipalName: mailboxLabel,
         subject: String(row?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(row?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
-        latestInboundPreview: String(row?.latestInboundPreview || '').trim(),
+        latestInboundPreview: sanitizeCcoPreviewText(row?.latestInboundPreview || ''),
         hoursSinceInbound: Number(row?.hoursSinceInbound || 0),
         lastInboundAt: String(row?.lastInboundAt || '').trim(),
         lastOutboundAt: String(row?.lastOutboundAt || '').trim(),
@@ -8964,7 +8994,7 @@
         userPrincipalName: mailboxLabel,
         subject: String(draft?.subject || '(utan ämne)').trim() || '(utan ämne)',
         sender: String(draft?.sender || 'okänd avsändare').trim() || 'okänd avsändare',
-        latestInboundPreview: String(draft?.latestInboundPreview || '').trim(),
+        latestInboundPreview: sanitizeCcoPreviewText(draft?.latestInboundPreview || ''),
         hoursSinceInbound: Number(draft?.hoursSinceInbound || 0),
         lastInboundAt: '',
         lastOutboundAt: String(draft?.lastOutboundAt || '').trim(),
@@ -10602,9 +10632,6 @@
     const emptyText =
       state.ccoSprintActive && Number(state.ccoSprintInitialTotal || 0) > 0
         ? 'Sprint klar'
-        : sanitizeCcoViewMode(state.ccoInboxViewMode) === 'unanswered' ||
-          sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'unanswered'
-        ? 'Inga obesvarade konversationer i kö.'
         : sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'new'
         ? 'Inga nya konversationer sedan senaste besök.'
         : 'Inga konversationer i kö.';
@@ -10825,7 +10852,7 @@
 
     setSelectedCcoConversation(conversation.conversationId);
     const evaluation = getCcoDraftEvaluationForConversation(conversation.conversationId);
-    const previewText = String(conversation.latestInboundPreview || '').trim();
+    const previewText = sanitizeCcoPreviewText(conversation.latestInboundPreview || '');
     if (els.ccoConversationMeta) {
       const toneConfidenceRaw = Number(conversation.toneConfidence || 0.4);
       const toneConfidencePct = Number.isFinite(toneConfidenceRaw)
@@ -13468,9 +13495,7 @@
     if (!targetEl) return;
     if (targetId === 'ccoWorkspaceSection') {
       state.ccoInboxViewMode = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
-      if (state.ccoInboxViewMode === 'unanswered') {
-        state.ccoInboxSlaFilter = 'unanswered';
-      } else if (state.ccoInboxSlaFilter === 'unanswered') {
+      if (state.ccoInboxSlaFilter === 'unanswered') {
         state.ccoInboxSlaFilter = 'all';
       }
       persistCcoWorkspaceSessionState();
@@ -13729,11 +13754,7 @@
     if (!button) return;
     const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-sla-filter') || 'all');
     state.ccoInboxSlaFilter = nextFilter;
-    if (nextFilter === 'unanswered') {
-      state.ccoInboxViewMode = 'unanswered';
-    } else if (state.ccoInboxViewMode === 'unanswered') {
-      state.ccoInboxViewMode = 'all';
-    }
+    state.ccoInboxViewMode = 'all';
     setActiveSectionNav('ccoWorkspaceSection');
     syncCcoThreadRouteState(state.ccoSelectedConversationId);
     persistCcoWorkspaceSessionState();
@@ -13772,9 +13793,9 @@
   els.ccoUnansweredPanel?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-cco-set-filter]');
     if (!button) return;
-    const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-set-filter') || 'unanswered');
-    state.ccoInboxViewMode = 'unanswered';
-    state.ccoInboxSlaFilter = nextFilter === 'unanswered' ? 'unanswered' : nextFilter;
+    const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-set-filter') || 'breach');
+    state.ccoInboxViewMode = 'all';
+    state.ccoInboxSlaFilter = nextFilter;
     setActiveSectionNav('ccoWorkspaceSection');
     syncCcoThreadRouteState(state.ccoSelectedConversationId);
     persistCcoWorkspaceSessionState();
