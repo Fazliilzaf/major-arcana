@@ -207,6 +207,8 @@ function pickErrorStatus(errorCode = '') {
   if (code === 'CCO_SEND_ALLOWLIST_EMPTY') return 503;
   if (code === 'CCO_SEND_DISABLED') return 503;
   if (code === 'CCO_SEND_CONNECTOR_UNAVAILABLE') return 503;
+  if (code === 'CCO_DELETE_INPUT_INVALID') return 422;
+  if (code === 'CCO_DELETE_NOT_ENABLED') return 503;
   return 500;
 }
 
@@ -2242,6 +2244,39 @@ async function runCcoSendHandler({
   return toCapabilityRunSuccess(res, result);
 }
 
+async function runCcoDeleteHandler({ req, res }) {
+  const payload = asObject(req.body);
+  const input = asObject(
+    payload.input && typeof payload.input === 'object' ? payload.input : payload
+  );
+  const mailboxId = normalizeText(input.mailboxId);
+  const messageId = normalizeText(input.messageId);
+  const conversationId = normalizeText(input.conversationId);
+  const softDelete = toBoolean(input.softDelete, true);
+  if (!mailboxId || !messageId || !conversationId) {
+    return res.status(422).json({
+      error: 'mailboxId, messageId och conversationId krävs.',
+      code: 'CCO_DELETE_INPUT_INVALID',
+    });
+  }
+  const enabled = toBoolean(process.env.ARCANA_CCO_DELETE_ENABLED, false);
+  if (!enabled) {
+    return res.status(503).json({
+      error: 'Radera mail är inte aktiverat i denna miljö.',
+      code: 'CCO_DELETE_NOT_ENABLED',
+    });
+  }
+  return res.json({
+    ok: true,
+    mode: 'stub',
+    softDelete,
+    mailboxId,
+    messageId,
+    conversationId,
+    deletedAt: new Date().toISOString(),
+  });
+}
+
 async function readAnalysisHandler({ req, res, capabilityAnalysisStore }) {
   if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
     return toAnalysisUnavailable(res);
@@ -2466,6 +2501,19 @@ function toCcoSendHandler({
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
+    }
+  };
+}
+
+function toCcoDeleteHandler() {
+  return async (req, res) => {
+    try {
+      return await runCcoDeleteHandler({ req, res });
+    } catch (error) {
+      return res.status(pickErrorStatus(error?.code)).json({
+        error: error?.message || 'Kunde inte radera mail.',
+        code: error?.code || 'CCO_DELETE_FAILED',
+      });
     }
   };
 }
@@ -2769,6 +2817,13 @@ function createCapabilitiesRouter({
         graphSendAllowlist,
       })
     )
+  );
+
+  router.post(
+    '/cco/delete',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(toCcoDeleteHandler())
   );
 
   router.post(
