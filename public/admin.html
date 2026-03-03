@@ -1426,6 +1426,10 @@
       animation: none;
       color: #1A1411;
     }
+    body.cco-light-mode .container {
+      width: min(1760px, 98vw);
+      margin: 16px auto 24px;
+    }
     body.cco-light-mode .header .admin-brand-mark {
       filter: brightness(0.95) saturate(0.95);
     }
@@ -1852,6 +1856,7 @@
       flex-direction: column;
       gap: 10px;
       padding: 10px;
+      min-width: 0;
     }
     .cco-inbox-controls {
       min-width: 280px;
@@ -1865,6 +1870,7 @@
       flex-direction: column;
       gap: 12px;
       padding: 16px;
+      min-width: 0;
     }
     .cco-center-title {
       margin-bottom: 0;
@@ -1892,6 +1898,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-width: 0;
     }
     .cco-reply-block {
       border: 1px solid #E8DDD5;
@@ -2715,12 +2722,12 @@
       color: #6A5D52;
       border-color: #E3D8CF;
     }
-    @media (max-width: 1520px) {
+    @media (max-width: 1650px) {
       .cco-layout {
-        grid-template-columns: minmax(240px, 0.9fr) minmax(420px, 1.3fr) minmax(320px, 1fr);
+        grid-template-columns: minmax(220px, 0.82fr) minmax(380px, 1.25fr) minmax(300px, 1fr);
       }
     }
-    @media (max-width: 1400px) {
+    @media (max-width: 1500px) {
       .cco-layout {
         grid-template-columns: 300px minmax(0, 1fr);
         grid-template-areas:
