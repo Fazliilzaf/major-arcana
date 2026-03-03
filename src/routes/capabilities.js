@@ -45,6 +45,9 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
 ]);
+const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(
+  CCO_GRAPH_READ_DEFAULT_ALLOWLIST.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -474,12 +477,18 @@ function parseMailboxIds(rawValue = '', maxItems = 200) {
 
 function resolveGraphReadAllowlistMailboxIds(maxItems = 500) {
   const explicitAllowlist = parseMailboxIds(process.env.ARCANA_MAILBOX_ALLOWLIST, maxItems);
-  if (explicitAllowlist.length > 0) return explicitAllowlist;
+  if (explicitAllowlist.length > 0) {
+    const sanitized = explicitAllowlist.filter((item) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item));
+    return mergeUniqueMailboxIds(sanitized, CCO_GRAPH_READ_DEFAULT_ALLOWLIST).slice(0, maxItems);
+  }
   const configuredDefaultAllowlist = parseMailboxIds(
     process.env.ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST,
     maxItems
   );
-  if (configuredDefaultAllowlist.length > 0) return configuredDefaultAllowlist;
+  if (configuredDefaultAllowlist.length > 0) {
+    const sanitized = configuredDefaultAllowlist.filter((item) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item));
+    return mergeUniqueMailboxIds(sanitized, CCO_GRAPH_READ_DEFAULT_ALLOWLIST).slice(0, maxItems);
+  }
   return CCO_GRAPH_READ_DEFAULT_ALLOWLIST.slice(0, maxItems);
 }
 
