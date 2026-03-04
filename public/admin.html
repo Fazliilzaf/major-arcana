@@ -1530,7 +1530,7 @@
       align-items: center;
       justify-content: space-between;
       margin-bottom: 0;
-      padding: 8px 12px 7px;
+      padding: 6px 12px;
       border-bottom: 1px solid var(--cco-border);
       background: var(--cco-surface);
     }
@@ -1542,7 +1542,7 @@
     }
     .cco-workspace .cco-toolbar-left h2 {
       margin: 0;
-      font-size: 17px;
+      font-size: 16px;
       line-height: 1.2;
     }
     .cco-workspace .cco-toolbar-right {
@@ -1558,7 +1558,7 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      padding: 7px 12px;
+      padding: 4px 12px;
       border-bottom: 1px solid var(--cco-border);
       background: var(--cco-surface);
     }
@@ -1569,7 +1569,7 @@
     }
     .cco-status-heading {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       letter-spacing: 0.01em;
       color: var(--cco-text);
@@ -1592,14 +1592,18 @@
       margin-top: 0;
       border-bottom: 1px solid var(--cco-border);
       background: var(--cco-surface);
-      padding: 7px 12px 8px;
+      padding: 4px 12px 6px;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
+    .cco-sprint-shell.is-collapsed {
+      display: none;
+    }
     .cco-sprint-shell.is-collapsed .cco-red-flag-banner,
     .cco-sprint-shell.is-collapsed .cco-performance-panel,
     .cco-sprint-shell.is-collapsed .cco-focus-mode-note,
+    .cco-sprint-shell.is-collapsed #ccoSprintProgress,
     .cco-sprint-shell.is-collapsed .cco-workload-row,
     .cco-sprint-shell.is-collapsed .cco-workload-breakdown,
     .cco-sprint-shell.is-collapsed .cco-sprint-meta-line,
@@ -1871,8 +1875,8 @@
       border: 1px solid var(--cco-border);
       border-radius: 0;
       overflow: hidden;
-      min-height: 620px;
-      height: calc(100vh - var(--headerHeight, 220px));
+      min-height: 560px;
+      height: calc(100vh - var(--headerHeight, 188px));
       max-height: none;
       background: linear-gradient(180deg, #f6efea 0%, #f3ebe6 100%);
       transition: opacity 150ms ease;
@@ -1886,7 +1890,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 10px;
+      padding: 12px;
       min-width: 0;
     }
     .cco-inbox-controls {
@@ -1900,7 +1904,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 10px;
+      padding: 12px;
       min-width: 0;
     }
     .cco-center-title {
@@ -1913,12 +1917,12 @@
       background: #fff;
       border: 1px solid #E6DCD5;
       border-radius: 12px;
-      padding: 12px;
+      padding: 14px;
       overflow: visible;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 14px rgba(76, 54, 36, 0.06);
+      gap: 12px;
+      box-shadow: 0 6px 18px rgba(76, 54, 36, 0.06);
     }
     .cco-center-empty-state {
       display: none;
@@ -1943,7 +1947,7 @@
       background: linear-gradient(180deg, #fdf8f5 0%, #f8f2ee 100%);
       border-left: 1px solid var(--cco-border);
       box-shadow: inset 1px 0 0 rgba(226, 216, 209, 0.7);
-      padding: 10px;
+      padding: 12px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -1958,10 +1962,10 @@
       border: 1px solid #e7ddd6;
       border-radius: 12px;
       background: #fff;
-      padding: 8px;
-      box-shadow: 0 3px 10px rgba(76, 54, 36, 0.04);
+      padding: 12px;
+      box-shadow: 0 5px 14px rgba(76, 54, 36, 0.05);
       display: grid;
-      gap: 8px;
+      gap: 10px;
     }
     .cco-nav-block-tools {
       gap: 10px;
@@ -1971,8 +1975,8 @@
       border: 1px solid #e7ddd6;
       border-radius: 12px;
       background: #fff;
-      box-shadow: 0 4px 14px rgba(76, 54, 36, 0.05);
-      padding: 10px;
+      box-shadow: 0 6px 16px rgba(76, 54, 36, 0.06);
+      padding: 12px;
     }
     .cco-center-block-worklist {
       display: grid;
@@ -2022,11 +2026,11 @@
       border: 1px solid #E8DDD5;
       border-radius: 12px;
       background: #fff;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 2px 7px rgba(0, 0, 0, 0.03);
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     }
     .cco-reply-empty-state {
       border: 1px solid #E8DDD5;
@@ -2070,7 +2074,7 @@
     .cco-compose-header-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px 10px;
+      gap: 8px 12px;
       align-items: end;
     }
     .cco-compose-header-grid > div {
@@ -2086,7 +2090,7 @@
       font-weight: 600;
     }
     .cco-editor-block {
-      min-height: 360px;
+      min-height: 420px;
       gap: 10px;
     }
     .cco-column-title {
@@ -2177,7 +2181,7 @@
       background: transparent;
       padding: 0;
       box-shadow: none;
-      gap: 5px;
+      gap: 8px;
     }
     .cco-nav-block-filters .cco-filter-block + .cco-filter-block {
       border-top: 1px solid #efe5de;
@@ -2284,6 +2288,26 @@
       gap: 6px;
       max-width: 100%;
       white-space: nowrap;
+    }
+    #ccoInboxMailboxFilters .cco-filter-btn[data-cco-mailbox-filter]:not([data-cco-mailbox-filter="all"]) {
+      position: relative;
+    }
+    #ccoInboxMailboxFilters .cco-filter-btn[data-cco-mailbox-filter]:not([data-cco-mailbox-filter="all"]):hover::after {
+      content: attr(title);
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 6px);
+      transform: translateX(-50%);
+      background: #1f1814;
+      color: #fff;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: nowrap;
+      z-index: 40;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+      pointer-events: none;
     }
     .cco-filter-btn-mailbox-label {
       display: inline-block;
@@ -4511,11 +4535,11 @@
                 <summary>Visa risk, policy och konfidens</summary>
                 <div class="cco-safety-chip-row">
                   <span class="cco-safety-chip">
-                    <span class="cco-safety-chip-label">Risk</span>
+                    <span class="cco-safety-chip-label">Riskbedömning</span>
                     <span id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</span>
                   </span>
                   <span class="cco-safety-chip">
-                    <span class="cco-safety-chip-label">Policy</span>
+                    <span class="cco-safety-chip-label">Policykontroll</span>
                     <span id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</span>
                   </span>
                   <span class="cco-safety-chip">
