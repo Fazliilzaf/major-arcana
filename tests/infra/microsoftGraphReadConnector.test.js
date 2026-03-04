@@ -834,6 +834,81 @@ test('MicrosoftGraphReadConnector full-tenant mode supports explicit mailbox id 
   );
 });
 
+test('MicrosoftGraphReadConnector mailbox id filtering can match users outside first maxUsers window', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/oauth2/v2.0/token')) {
+      return createJsonResponse({
+        body: {
+          access_token: 'token-id-filter-window',
+        },
+      });
+    }
+    if (String(url).includes('/users?')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            { id: 'user-1', mail: 'u1@hairtpclinic.se' },
+            { id: 'user-2', mail: 'u2@hairtpclinic.se' },
+            { id: 'user-3', mail: 'u3@hairtpclinic.se' },
+            { id: 'user-4', mail: 'u4@hairtpclinic.se' },
+            { id: 'user-5', mail: 'u5@hairtpclinic.se' },
+            { id: 'user-6', mail: 'u6@hairtpclinic.se' },
+            { id: 'user-7', mail: 'u7@hairtpclinic.se' },
+            { id: 'user-8', mail: 'kons@hairtpclinic.com' },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-8/mailFolders/inbox/messages')) {
+      return createJsonResponse({
+        body: {
+          value: [
+            {
+              id: 'm8',
+              conversationId: 'c8',
+              subject: 'Hej 8',
+              bodyPreview: 'Preview 8',
+              receivedDateTime: '2026-02-26T11:00:00.000Z',
+              isRead: false,
+            },
+          ],
+        },
+      });
+    }
+    if (String(url).includes('/users/user-8/mailFolders/SentItems/messages')) {
+      return createJsonResponse({ body: { value: [] } });
+    }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+
+  const connector = createMicrosoftGraphReadConnector({
+    tenantId: 'tenant-id-6c',
+    clientId: 'client-id-6c',
+    clientSecret: 'client-secret-6c',
+    fullTenant: true,
+    userScope: 'all',
+    fetchImpl,
+  });
+
+  const snapshot = await connector.fetchInboxSnapshot({
+    fullTenant: true,
+    userScope: 'all',
+    maxUsers: 3,
+    mailboxIds: ['kons@hairtpclinic.com'],
+    maxMessagesPerUser: 5,
+  });
+
+  assert.equal(
+    calls.some((item) => String(item.url).includes('/users/user-8/mailFolders/inbox/messages')),
+    true
+  );
+  assert.equal(snapshot.metadata.mailboxCount, 1);
+  assert.deepEqual(snapshot.metadata.mailboxIdFilter, ['kons@hairtpclinic.com']);
+  assert.deepEqual(snapshot.metadata.mailboxIds, ['kons@hairtpclinic.com']);
+});
+
 test('MicrosoftGraphReadConnector mailbox id filter matches com/se aliases in full-tenant mode', async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {

@@ -1129,8 +1129,12 @@ function createMicrosoftGraphReadConnector(config = {}) {
       mailboxCount = 1;
     } else {
       const runStartedAt = Date.now();
+      const mailboxIdFilterActive = mailboxIdFilter.length > 0;
+      const usersListingTop = mailboxIdFilterActive ? Math.max(200, maxUsers) : maxUsers;
+      const usersListingMaxItems = mailboxIdFilterActive ? Math.max(500, usersListingTop) : maxUsers;
+
       const usersUrl = new URL(`${graphBaseUrl}/users`);
-      usersUrl.searchParams.set('$top', String(maxUsers));
+      usersUrl.searchParams.set('$top', String(Math.min(999, usersListingTop)));
       usersUrl.searchParams.set('$select', 'id,mail,userPrincipalName');
 
       const usersPayload = await fetchGraphCollection({
@@ -1138,7 +1142,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
         accessToken,
         label: 'Microsoft Graph user listing request',
         timeoutMs: mailboxTimeoutMs,
-        maxItems: maxUsers,
+        maxItems: usersListingMaxItems,
         maxPages: maxPagesPerCollection,
         requestMaxRetries,
         retryBaseDelayMs,
@@ -1166,8 +1170,9 @@ function createMicrosoftGraphReadConnector(config = {}) {
             .forEach(includeUser);
         }
         if (mailboxIdFilter.length > 0) {
+          const mailboxMatchPool = users.length > 0 ? users : limitedUsers;
           mailboxIdFilter.forEach((mailboxId) => {
-            const matched = limitedUsers.find((user) => matchesMailboxIdFilter(user, mailboxId));
+            const matched = mailboxMatchPool.find((user) => matchesMailboxIdFilter(user, mailboxId));
             if (matched) includeUser(matched);
           });
         }
