@@ -375,6 +375,22 @@
     return true;
   }
 
+  function sanitizeCcoWorkspaceCompact(value = true) {
+    if (value === false || value === 0) return false;
+    if (value === true || value === 1) return true;
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    if (normalized === 'false' || normalized === '0') return false;
+    return true;
+  }
+
+  function sanitizeCcoCenterReadTab(value = 'conversation') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'customer') return 'customer';
+    return 'conversation';
+  }
+
   const CCO_LOCKED_MAILBOX_ALLOWLIST = Object.freeze([
     'egzona@hairtpclinic.com',
     'contact@hairtpclinic.com',
@@ -639,6 +655,8 @@
     ccoMailboxFiltersExpanded: sanitizeCcoMailboxFiltersExpanded(
       initialCcoWorkspaceSession.mailboxFiltersExpanded
     ),
+    ccoWorkspaceCompact: sanitizeCcoWorkspaceCompact(initialCcoWorkspaceSession.workspaceCompact),
+    ccoCenterReadTab: sanitizeCcoCenterReadTab(initialCcoWorkspaceSession.centerReadTab),
     ccoColumnLayout: sanitizeCcoColumnLayout(initialCcoWorkspaceSession.columnLayout),
     ccoInboxSectionExpanded: sanitizeCcoSectionExpandedState(
       initialCcoWorkspaceSession.sectionExpanded
@@ -959,6 +977,8 @@
     ccoMailboxFiltersBlock: document.getElementById('ccoMailboxFiltersBlock'),
     ccoMailboxFiltersToggleBtn: document.getElementById('ccoMailboxFiltersToggleBtn'),
     ccoMailboxFiltersChevron: document.getElementById('ccoMailboxFiltersChevron'),
+    ccoWorkspaceCompactToggleBtn: document.getElementById('ccoWorkspaceCompactToggleBtn'),
+    ccoSprintShell: document.getElementById('ccoSprintShell'),
     ccoInboxDensityFilters: document.getElementById('ccoInboxDensityFilters'),
     ccoInboxWorklist: document.getElementById('ccoInboxWorklist'),
     ccoSoftBreakPanel: document.getElementById('ccoSoftBreakPanel'),
@@ -989,6 +1009,10 @@
     ccoConversationMeta: document.getElementById('ccoConversationMeta'),
     ccoConversationPreview: document.getElementById('ccoConversationPreview'),
     ccoConversationHistoryList: document.getElementById('ccoConversationHistoryList'),
+    ccoCenterTabConversationBtn: document.getElementById('ccoCenterTabConversationBtn'),
+    ccoCenterTabCustomerBtn: document.getElementById('ccoCenterTabCustomerBtn'),
+    ccoReadTabConversation: document.getElementById('ccoReadTabConversation'),
+    ccoReadTabCustomer: document.getElementById('ccoReadTabCustomer'),
     ccoCustomerSummaryPanel: document.getElementById('ccoCustomerSummaryPanel'),
     ccoCustomerSummaryName: document.getElementById('ccoCustomerSummaryName'),
     ccoCustomerSummarySub: document.getElementById('ccoCustomerSummarySub'),
@@ -4908,6 +4932,8 @@
         showSystemMessages: sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages),
         densityMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
         mailboxFiltersExpanded: sanitizeCcoMailboxFiltersExpanded(state.ccoMailboxFiltersExpanded),
+        workspaceCompact: sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact),
+        centerReadTab: sanitizeCcoCenterReadTab(state.ccoCenterReadTab),
         columnLayout: sanitizeCcoColumnLayout(state.ccoColumnLayout),
         sectionExpanded: sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded),
         includeSignature: sanitizeCcoIncludeSignature(state.ccoIncludeSignature),
@@ -10958,6 +10984,47 @@
     }
   }
 
+  function renderCcoWorkspaceCompactState() {
+    const compact = sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact);
+    state.ccoWorkspaceCompact = compact;
+    if (els.ccoSprintShell) {
+      els.ccoSprintShell.classList.toggle('is-collapsed', compact);
+    }
+    if (els.ccoWorkspaceCompactToggleBtn) {
+      els.ccoWorkspaceCompactToggleBtn.textContent = compact
+        ? 'Visa fokusdetaljer'
+        : 'Dölj fokusdetaljer';
+      els.ccoWorkspaceCompactToggleBtn.setAttribute('aria-expanded', compact ? 'false' : 'true');
+      els.ccoWorkspaceCompactToggleBtn.setAttribute('aria-pressed', compact ? 'false' : 'true');
+    }
+  }
+
+  function renderCcoCenterReadTab() {
+    const tab = sanitizeCcoCenterReadTab(state.ccoCenterReadTab);
+    state.ccoCenterReadTab = tab;
+    const isConversationTab = tab === 'conversation';
+    if (els.ccoCenterTabConversationBtn) {
+      els.ccoCenterTabConversationBtn.classList.toggle('is-active', isConversationTab);
+      els.ccoCenterTabConversationBtn.setAttribute('aria-selected', isConversationTab ? 'true' : 'false');
+    }
+    if (els.ccoCenterTabCustomerBtn) {
+      els.ccoCenterTabCustomerBtn.classList.toggle('is-active', !isConversationTab);
+      els.ccoCenterTabCustomerBtn.setAttribute('aria-selected', !isConversationTab ? 'true' : 'false');
+    }
+    if (els.ccoReadTabConversation) {
+      els.ccoReadTabConversation.classList.toggle('is-active', isConversationTab);
+    }
+    if (els.ccoReadTabCustomer) {
+      els.ccoReadTabCustomer.classList.toggle('is-active', !isConversationTab);
+    }
+  }
+
+  function setCcoCenterReadTab(tab = 'conversation', { persist = true } = {}) {
+    state.ccoCenterReadTab = sanitizeCcoCenterReadTab(tab);
+    renderCcoCenterReadTab();
+    if (persist) persistCcoWorkspaceSessionState();
+  }
+
   function renderCcoSearchMeta(meta = null) {
     if (!els.ccoInboxSearchMeta) return;
     const safeMeta = meta && typeof meta === 'object' ? meta : {};
@@ -11237,6 +11304,8 @@
     renderCcoSearchControls();
     renderCcoSearchMeta(filteredResult.meta);
     renderCcoDensityFilterRow();
+    renderCcoWorkspaceCompactState();
+    renderCcoCenterReadTab();
     renderCcoUnansweredPanel(unansweredRows);
 
     const actionableUnansweredRows = unansweredRows.filter((row) => !isCcoSystemMessageRow(row));
@@ -12087,8 +12156,11 @@
       els.ccoInboxRiskFlags.textContent = `${slaBreaches} / ${riskFlags}`;
     }
     if (els.ccoInboxMailboxMeta) {
-      const suffix = sourceMailboxIds.length
-        ? ` · ${sourceMailboxIds.join(', ')}`
+      const sourceMailboxShortLabels = sourceMailboxIds
+        .map((mailbox) => formatCcoMailboxShortLabel(mailbox))
+        .filter(Boolean);
+      const suffix = sourceMailboxShortLabels.length
+        ? ` · ${sourceMailboxShortLabels.join(', ')}`
         : '';
       els.ccoInboxMailboxMeta.textContent = `${mailboxCount} postlådor · ${messageCount} meddelanden${suffix}`;
     }
@@ -14359,6 +14431,8 @@
     state.ccoInboxSearchQuery = '';
     state.ccoInboxShowSystemMessages = false;
     state.ccoMailboxFiltersExpanded = true;
+    state.ccoWorkspaceCompact = true;
+    state.ccoCenterReadTab = 'conversation';
     state.ccoSelectedConversationId = '';
     state.ccoDraftOverrideByConversationId = {};
     state.ccoDraftModeByConversationId = {};
@@ -14956,6 +15030,11 @@
     persistCcoWorkspaceSessionState();
     renderCcoMailboxFiltersVisibility();
   });
+  els.ccoWorkspaceCompactToggleBtn?.addEventListener('click', () => {
+    state.ccoWorkspaceCompact = !sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact);
+    persistCcoWorkspaceSessionState();
+    renderCcoWorkspaceCompactState();
+  });
   els.ccoInboxSlaFilters?.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-cco-sla-filter]');
     if (!button) return;
@@ -15070,6 +15149,12 @@
       },
     };
     renderCcoDetail(state.ccoInboxData?.data || null);
+  });
+  els.ccoCenterTabConversationBtn?.addEventListener('click', () => {
+    setCcoCenterReadTab('conversation');
+  });
+  els.ccoCenterTabCustomerBtn?.addEventListener('click', () => {
+    setCcoCenterReadTab('customer');
   });
   els.ccoSenderMailboxSelect?.addEventListener('change', () => {
     const selectedMailboxId = String(els.ccoSenderMailboxSelect?.value || '')
@@ -15442,6 +15527,8 @@
     targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
     scroll: false,
   });
+  renderCcoWorkspaceCompactState();
+  renderCcoCenterReadTab();
   renderTonePreview();
   renderTeamSummary([]);
   fillWritingIdentityForm(null);
