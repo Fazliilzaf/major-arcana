@@ -560,6 +560,13 @@ function toGraphReadOptionsFromEnv() {
   );
   const splitWindow = Math.max(1, Math.floor(maxMessages / 2));
   const splitWindowPerUser = Math.max(1, Math.floor(maxMessagesPerUser / 2));
+  const configuredMaxUsers = clampInteger(process.env.ARCANA_GRAPH_MAX_USERS, 1, 200, 50);
+  const minimumAllowlistUsers = allowlistMode
+    ? Math.max(1, mailboxIds.length || allowlistMailboxIds.length || 1)
+    : 1;
+  const maxUsers = allowlistMode
+    ? Math.max(configuredMaxUsers, minimumAllowlistUsers)
+    : configuredMaxUsers;
   return {
     days: clampInteger(process.env.ARCANA_GRAPH_WINDOW_DAYS, 1, 30, 14),
     maxMessages,
@@ -580,7 +587,7 @@ function toGraphReadOptionsFromEnv() {
     allowlistMode,
     allowlistMailboxIds,
     userScope,
-    maxUsers: clampInteger(process.env.ARCANA_GRAPH_MAX_USERS, 1, 200, 50),
+    maxUsers,
     maxMessagesPerUser,
     maxInboxMessagesPerUser: clampInteger(
       process.env.ARCANA_GRAPH_MAX_INBOX_MESSAGES_PER_USER,
