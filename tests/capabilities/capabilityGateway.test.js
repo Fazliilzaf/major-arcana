@@ -1117,6 +1117,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
     ARCANA_GRAPH_MAILBOX_IDS: process.env.ARCANA_GRAPH_MAILBOX_IDS,
     ARCANA_MAILBOX_ALLOWLIST: process.env.ARCANA_MAILBOX_ALLOWLIST,
     ARCANA_GRAPH_SEND_ALLOWLIST: process.env.ARCANA_GRAPH_SEND_ALLOWLIST,
+    ARCANA_GRAPH_MAX_USERS: process.env.ARCANA_GRAPH_MAX_USERS,
   };
 
   process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
@@ -1126,6 +1127,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
   delete process.env.ARCANA_MAILBOX_ALLOWLIST;
   process.env.ARCANA_GRAPH_SEND_ALLOWLIST =
     'contact@hairtpclinic.com; info@hairtpclinic.com';
+  process.env.ARCANA_GRAPH_MAX_USERS = '4';
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-fallback-'));
   const authStore = await createAuthStore({
@@ -1201,6 +1203,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
+    assert.equal(graphCalls[0].maxUsers, 6);
     assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
@@ -1250,6 +1253,7 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
     ARCANA_GRAPH_MAILBOX_IDS: process.env.ARCANA_GRAPH_MAILBOX_IDS,
     ARCANA_MAILBOX_ALLOWLIST: process.env.ARCANA_MAILBOX_ALLOWLIST,
     ARCANA_GRAPH_SEND_ALLOWLIST: process.env.ARCANA_GRAPH_SEND_ALLOWLIST,
+    ARCANA_GRAPH_MAX_USERS: process.env.ARCANA_GRAPH_MAX_USERS,
   };
 
   process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
@@ -1258,6 +1262,7 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
   delete process.env.ARCANA_GRAPH_MAILBOX_IDS;
   delete process.env.ARCANA_MAILBOX_ALLOWLIST;
   process.env.ARCANA_GRAPH_SEND_ALLOWLIST = '*';
+  process.env.ARCANA_GRAPH_MAX_USERS = '3';
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-capability-allowlist-wildcard-'));
   const authStore = await createAuthStore({
@@ -1333,6 +1338,7 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
+    assert.equal(graphCalls[0].maxUsers, 6);
     assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
       'egzona@hairtpclinic.com',
       'contact@hairtpclinic.com',
