@@ -35,6 +35,7 @@
   const CCO_THREAD_QUERY_PARAM = 'thread';
   const CCO_WORKSPACE_SESSION_KEY = 'ARCANA_CCO_WORKSPACE_STATE';
   const CCO_LAST_SEEN_AT_KEY = 'ARCANA_CCO_LAST_SEEN_AT';
+  const CCO_EVIDENCE_QUERY_PARAM = 'evidence';
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -173,6 +174,11 @@
     if (!isCcoRoutePath(window.location.pathname || '')) return '';
     const searchParams = new URLSearchParams(window.location.search || '');
     return String(searchParams.get(CCO_THREAD_QUERY_PARAM) || '').trim();
+  }
+
+  function isCcoEvidenceModeEnabled() {
+    const searchParams = new URLSearchParams(window.location.search || '');
+    return searchParams.get(CCO_EVIDENCE_QUERY_PARAM) === '1';
   }
 
   function readCcoLastSeenAtMs() {
@@ -807,6 +813,7 @@
     ccoInboxLoading: false,
     ccoInboxLastSyncAt: '',
     monitorDetailsVisible: false,
+    ccoEvidenceMode: isCcoEvidenceModeEnabled(),
   };
 
   if (state.ccoInboxSlaFilter === 'unanswered') {
@@ -12965,6 +12972,21 @@
       renderCcoSearchMeta();
     }
     try {
+      if (state.ccoEvidenceMode === true) {
+        state.ccoDeleteCapability = sanitizeCcoDeleteCapabilityStatus({
+          deleteEnabled: false,
+          reason: 'Evidensläge är skrivskyddat.',
+          reasonCode: 'CCO_EVIDENCE_READ_ONLY',
+        });
+        renderCcoInbox(createCcoEvidenceInboxOutput());
+        if (!quiet) {
+          setStatus(
+            els.ccoInboxStatus,
+            'Evidensläge aktivt: maskad dummydata laddad (5 trådar, 10 inkomna, 10 skickat).'
+          );
+        }
+        return;
+      }
       if (!canTemplateWrite()) throw new Error('Du saknar behorighet.');
       await loadCcoDeleteCapabilityStatus({ quiet: true });
       const input = readCcoInboxOptions();
@@ -14719,6 +14741,165 @@
     return state.activeSectionGroup === 'ccoWorkspaceSection' ? 'cco' : 'all';
   }
 
+  function createCcoEvidenceInboxOutput() {
+    const now = Date.now();
+    const mailboxes = [
+      'contact@hairtpclinic.com',
+      'egzona@hairtpclinic.com',
+      'fazli@hairtpclinic.com',
+      'info@hairtpclinic.com',
+      'kons@hairtpclinic.com',
+      'marknad@hairtpclinic.com',
+    ];
+    const indicatorStates = ['critical', 'high', 'medium', 'new', 'handled'];
+    const conversationWorklist = Array.from({ length: 5 }, (_unused, index) => {
+      const mailbox = mailboxes[index % mailboxes.length];
+      const conversationId = `evidence-conv-${index + 1}`;
+      const inboundAt = new Date(now - (index + 1) * 60 * 60 * 1000).toISOString();
+      const outboundAt =
+        index % 2 === 0
+          ? new Date(now - (index + 2) * 60 * 60 * 1000).toISOString()
+          : '';
+      const priorityByIndex = ['Critical', 'High', 'Medium', 'Low', 'Low'];
+      const slaByIndex = ['breach', 'warning', 'warning', 'safe', 'safe'];
+      const needsReplyByIndex = ['awaiting_reply', 'awaiting_reply', 'follow_up_pending', 'new', 'handled'];
+      const dominantRiskByIndex = ['miss', 'tone', 'follow_up', 'relationship', 'neutral'];
+      return {
+        conversationId,
+        messageId: `evidence-message-${index + 1}`,
+        mailboxId: mailbox,
+        mailboxAddress: mailbox,
+        userPrincipalName: mailbox,
+        subject: `Evidensrad ${index + 1} · Maskerad tråd`,
+        sender: `Kund ${index + 1}`,
+        senderEmail: `kund${index + 1}@example.invalid`,
+        latestInboundPreview: `Detta är maskad dummytext för evidensläge (${index + 1}/5).`,
+        hoursSinceInbound: index + 1,
+        lastInboundAt: inboundAt,
+        lastOutboundAt: outboundAt,
+        slaStatus: slaByIndex[index],
+        hoursRemaining: index === 0 ? -2 : Math.max(1, 12 - index * 2),
+        slaThreshold: index === 0 ? 6 : 24,
+        isUnanswered: index !== 4,
+        stagnated: index === 2,
+        followUpSuggested: index === 2 || index === 3,
+        intent: ['complaint', 'booking_request', 'follow_up', 'pricing_question', 'follow_up'][index],
+        intentConfidence: 0.88 - index * 0.05,
+        tone: ['frustrated', 'anxious', 'neutral', 'positive', 'neutral'][index],
+        toneConfidence: 0.77 - index * 0.04,
+        priorityLevel: priorityByIndex[index],
+        priorityScore: 95 - index * 12,
+        priorityReasons: ['Evidensläge: maskad prioriteringssignal'],
+        customerKey: `evidence-customer-${index + 1}`,
+        customerSummary: {
+          customerKey: `evidence-customer-${index + 1}`,
+          customerName: `Kund ${index + 1}`,
+          lifecycleStatus: ['new', 'returning', 'active_dialogue', 'returning', 'active_dialogue'][index],
+          lifecycleSource: 'auto',
+          interactionCount: 1 + index,
+          engagementScore: Math.max(0.1, 0.75 - index * 0.1),
+          caseCount: 1 + index,
+          daysSinceLastInteraction: index,
+          lastInteractionAt: inboundAt,
+          lastCaseSummary: `Maskerad sammanfattning ${index + 1}`,
+          timeline: [
+            {
+              occurredAt: inboundAt,
+              subject: `Evidenshistorik ${index + 1}`,
+              status: 'active_dialogue',
+            },
+          ],
+        },
+        lifecycleStatus: ['new', 'returning', 'active_dialogue', 'returning', 'active_dialogue'][index],
+        tempoProfile: ['steady', 'rapid', 'reflective', 'steady', 'reflective'][index],
+        recommendedFollowUpDelayDays: [0, 1, 2, 3, 5][index],
+        ctaIntensity: ['high', 'normal', 'normal', 'low', 'low'][index],
+        followUpSuggestedAt:
+          index === 2 ? new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString() : '',
+        followUpTimingReason: index === 2 ? ['follow_up_due'] : [],
+        confidenceLevel: ['High', 'High', 'Medium', 'Medium', 'Low'][index],
+        recommendedAction: [
+          'Svara direkt – risk för missat ärende',
+          'Svara lugnande inom 1h',
+          'Skicka mjuk uppföljning idag',
+          'Svara personligt för att stärka relationen',
+          'Markera som hanterad',
+        ][index],
+        needsReplyStatus: needsReplyByIndex[index],
+        dominantRisk: dominantRiskByIndex[index],
+        relationshipStatus: ['new', 'returning', 'active', 'returning', 'active'][index],
+        indicatorState: indicatorStates[index],
+        isNewSinceLastVisit: index === 3,
+        hasNewInboundSinceHandled: index === 3,
+        escalationRequired: index === 0,
+      };
+    });
+
+    const inboundFeed = Array.from({ length: 10 }, (_unused, index) => {
+      const mailbox = mailboxes[index % mailboxes.length];
+      const conversationId = `evidence-conv-${(index % 5) + 1}`;
+      return {
+        feedId: `evidence-inbound-${index + 1}`,
+        conversationId,
+        messageId: `evidence-inbound-message-${index + 1}`,
+        direction: 'inbound',
+        subject: `Inkommande ${index + 1} · Maskerad`,
+        counterpart: `avsändare${index + 1}@example.invalid`,
+        mailboxAddress: mailbox,
+        sentAt: new Date(now - (index + 1) * 35 * 60 * 1000).toISOString(),
+        preview: `Maskad inbound preview ${index + 1}.`,
+      };
+    });
+
+    const outboundFeed = Array.from({ length: 10 }, (_unused, index) => {
+      const mailbox = mailboxes[index % mailboxes.length];
+      const conversationId = `evidence-conv-${(index % 5) + 1}`;
+      return {
+        feedId: `evidence-outbound-${index + 1}`,
+        conversationId,
+        messageId: `evidence-outbound-message-${index + 1}`,
+        direction: 'outbound',
+        subject: `Skickat ${index + 1} · Maskerad`,
+        counterpart: `Till mottagare${index + 1}@example.invalid`,
+        mailboxAddress: mailbox,
+        sentAt: new Date(now - (index + 1) * 28 * 60 * 1000).toISOString(),
+        preview: `Maskad outbound preview ${index + 1}.`,
+      };
+    });
+
+    return {
+      data: {
+        generatedAt: new Date(now).toISOString(),
+        priorityLevel: 'High',
+        slaBreaches: conversationWorklist.filter((row) => row.slaStatus === 'breach'),
+        riskFlags: conversationWorklist.slice(0, 3).map((row) => ({
+          conversationId: row.conversationId,
+          reason: 'Evidensläge',
+        })),
+        conversationWorklist,
+        needsReplyToday: conversationWorklist.filter((row) => row.isUnanswered === true),
+        suggestedDrafts: conversationWorklist.slice(0, 3),
+        customerSummaries: conversationWorklist.map((row) => row.customerSummary),
+        inboxSummary:
+          'Evidensläge aktivt: maskad data för UI-verifiering (5 trådar, 10 inkomna, 10 skickat).',
+        inboxStatus: 'Behöver uppmärksamhet',
+        inboundFeed,
+        outboundFeed,
+        metadata: {
+          evidenceMode: true,
+        },
+      },
+      metadata: {
+        generatedAt: new Date(now).toISOString(),
+        ccoDefaultSenderMailbox: 'contact@hairtpclinic.com',
+        ccoDefaultSignatureProfile: 'egzona',
+        sourceMailboxIds: mailboxes,
+        mailboxCount: mailboxes.length,
+        messageCount: conversationWorklist.length,
+      },
+    };
+  }
+
   async function refreshAll({ scope = 'all' } = {}) {
     const normalizedScope = String(scope || '').trim().toLowerCase() === 'cco' ? 'cco' : 'all';
     await loadSessionProfile();
@@ -14920,6 +15101,29 @@
   }
 
   async function restoreSession() {
+    if (state.ccoEvidenceMode === true) {
+      stopDashboardStream();
+      clearCcoAutoRefreshTimer();
+      state.token = '';
+      state.role = 'OWNER';
+      state.tenantId = 'hair-tp-clinic';
+      state.availableTenants = [
+        {
+          tenantId: 'hair-tp-clinic',
+          role: 'OWNER',
+          config: {
+            assistantName: 'Arcana (Evidensläge)',
+          },
+        },
+      ];
+      renderTenantSwitchOptions();
+      setSessionMeta();
+      updateLifecyclePermissions();
+      setAuthVisible(true);
+      setStatus(els.loginStatus, 'Evidensläge aktivt (ingen inloggning krävs).');
+      await runCcoInboxBrief({ quiet: true });
+      return;
+    }
     if (!state.token) {
       stopDashboardStream();
       setAuthVisible(false);
