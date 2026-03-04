@@ -171,6 +171,46 @@
     return false;
   }
 
+  function getEventTargetElement(event = null) {
+    if (!event) return null;
+    const target = event.target;
+    if (target instanceof Element) return target;
+    if (target && target.parentElement instanceof Element) return target.parentElement;
+    return null;
+  }
+
+  function closestFromEventTarget(event = null, selector = '') {
+    const safeSelector = String(selector || '').trim();
+    if (!safeSelector) return null;
+    const targetEl = getEventTargetElement(event);
+    if (!targetEl) return null;
+    return targetEl.closest(safeSelector);
+  }
+
+  function asArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function isCcoInteractionDebugEnabled() {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('cco_debug_clicks') === '1') return true;
+    try {
+      return localStorage.getItem('ARCANA_CCO_DEBUG_CLICKS') === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function logCcoInteraction(eventName = '', payload = {}) {
+    if (!isCcoInteractionDebugEnabled()) return;
+    try {
+      const stamp = new Date().toISOString();
+      console.info(`[CCO click-debug] ${stamp} ${String(eventName || '').trim()}`, payload);
+    } catch {
+      // Ignore console failures.
+    }
+  }
+
   function readCcoViewModeFromLocation() {
     return 'all';
   }
@@ -4648,7 +4688,8 @@
         row.setAttribute('tabindex', '0');
         row.addEventListener('click', async (event) => {
           if (
-            event.target.closest(
+            closestFromEventTarget(
+              event,
               'button, input, select, textarea, a, summary, details, label, [data-owner-action]'
             )
           ) {
@@ -5073,6 +5114,10 @@
 
   function setSelectedCcoConversation(conversationId = '', { syncRoute = true } = {}) {
     state.ccoSelectedConversationId = String(conversationId || '').trim();
+    logCcoInteraction('set-selected-conversation', {
+      conversationId: state.ccoSelectedConversationId || null,
+      syncRoute: syncRoute === true,
+    });
     if (state.ccoSelectedConversationId) {
       state.ccoSeenConversationIds = {
         ...state.ccoSeenConversationIds,
@@ -12102,45 +12147,6 @@
       block.classList.toggle('cco-density-hidden', densityVisibility[section] !== true);
     }
 
-    els.ccoInboxWorklist.querySelectorAll('.ccoConversationSelectBtn').forEach((button) => {
-      button.addEventListener('click', () => {
-        const conversationId = String(button.dataset.conversationId || '').trim();
-        if (!conversationId) return;
-        if (state.ccoSprintActive === true) {
-          const sprintSet = new Set(
-            (Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : [])
-              .map((value) => String(value || '').trim())
-              .filter(Boolean)
-          );
-          if (!sprintSet.has(conversationId)) {
-            const shown = showCcoSoftBreakPanel(conversationId);
-            if (shown) {
-              setStatus(
-                els.ccoInboxStatus,
-                'Du lämnar fokuskön. Välj: pausa, byt ut tråd eller avbryt fokus.'
-              );
-              return;
-            }
-          }
-        }
-        hideCcoSoftBreakPanel();
-        setSelectedCcoConversation(conversationId);
-        renderCcoInbox(state.ccoInboxData);
-      });
-    });
-    els.ccoInboxWorklist.querySelectorAll('.cco-thread, .cco-thread-indicator').forEach((node) => {
-      node.addEventListener('contextmenu', (event) => {
-        const scope = event.target.closest('[data-cco-conversation-id]');
-        const conversationId = String(scope?.getAttribute('data-cco-conversation-id') || '').trim();
-        if (!conversationId) return;
-        event.preventDefault();
-        openCcoIndicatorContextMenu({
-          conversationId,
-          clientX: event.clientX,
-          clientY: event.clientY,
-        });
-      });
-    });
   }
 
   function formatCcoLifecycleSourceLabel(value = '') {
@@ -15580,7 +15586,7 @@
     renderTonePreview();
   });
   els.tonePresetButtons?.addEventListener('click', (event) => {
-    const button = event.target.closest('.tonePresetBtn');
+    const button = closestFromEventTarget(event, '.tonePresetBtn');
     if (!button || button.disabled) return;
     const tone = String(button.getAttribute('data-tone') || '').trim();
     if (!tone || !els.toneStyle) return;
@@ -15606,7 +15612,7 @@
     toggleDensityMode();
   });
   els.sectionNav?.addEventListener('click', (event) => {
-    const button = event.target.closest('.sectionNavBtn');
+    const button = closestFromEventTarget(event, '.sectionNavBtn');
     if (!button) return;
     const targetId = String(button.getAttribute('data-target') || '').trim();
     if (!targetId) return;
@@ -15637,7 +15643,7 @@
     });
   });
   els.templateCategoryChips?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-template-category-chip]');
+    const button = closestFromEventTarget(event, 'button[data-template-category-chip]');
     if (!button) return;
     const category = String(button.getAttribute('data-template-category-chip') || '').trim();
     if (els.templateFilterSelect) {
@@ -15695,7 +15701,7 @@
     renderTemplateEditorAssist();
   });
   els.templateVariablePicker?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-template-var]');
+    const button = closestFromEventTarget(event, 'button[data-template-var]');
     if (!button) return;
     insertTemplateVariable(button.getAttribute('data-template-var'));
   });
@@ -15809,7 +15815,12 @@
   els.runOrchestratorBtn?.addEventListener('click', runOrchestrator);
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
-  els.runCcoInboxBtn?.addEventListener('click', runCcoInboxBrief);
+  els.runCcoInboxBtn?.addEventListener('click', () => {
+    logCcoInteraction('run-cco-inbox-brief-click', {
+      source: 'runCcoInboxBtn',
+    });
+    runCcoInboxBrief();
+  });
   els.ccoReplyRefreshBtn?.addEventListener('click', () => {
     runCcoInboxBrief().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
@@ -15844,7 +15855,7 @@
     els.ccoFocusWorkloadInfoBtn?.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
   });
   els.ccoSoftBreakPanel?.addEventListener('click', (event) => {
-    const actionButton = event.target.closest('button[data-cco-soft-break-action]');
+    const actionButton = closestFromEventTarget(event, 'button[data-cco-soft-break-action]');
     if (!actionButton) return;
     const action = String(actionButton.getAttribute('data-cco-soft-break-action') || '').trim();
     if (action === 'cancel') {
@@ -15878,7 +15889,7 @@
     renderCcoInbox(state.ccoInboxData);
   });
   els.ccoInboxMailboxFilters?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-mailbox-filter]');
+    const button = closestFromEventTarget(event, 'button[data-cco-mailbox-filter]');
     if (!button) return;
     const nextFilter = sanitizeCcoMailboxFilter(button.getAttribute('data-cco-mailbox-filter') || 'all');
     if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
@@ -15902,7 +15913,7 @@
     renderCcoWorkspaceCompactState();
   });
   els.ccoInboxSlaFilters?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-sla-filter]');
+    const button = closestFromEventTarget(event, 'button[data-cco-sla-filter]');
     if (!button) return;
     const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-sla-filter') || 'all');
     state.ccoInboxSlaFilter = nextFilter;
@@ -15913,7 +15924,7 @@
     renderCcoInbox(state.ccoInboxData);
   });
   els.ccoInboxStateFilters?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-state-filter]');
+    const button = closestFromEventTarget(event, 'button[data-cco-state-filter]');
     if (!button) return;
     const nextFilter = sanitizeCcoLifecycleFilter(
       button.getAttribute('data-cco-state-filter') || 'all'
@@ -15942,10 +15953,14 @@
     renderCcoInbox(state.ccoInboxData);
   });
   els.ccoInboxModeToggle?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-mail-view]');
+    const button = closestFromEventTarget(event, 'button[data-cco-mail-view]');
     if (!button) return;
     const nextMode = sanitizeCcoMailViewMode(button.getAttribute('data-cco-mail-view') || 'queue');
     if (nextMode === sanitizeCcoMailViewMode(state.ccoMailViewMode)) return;
+    logCcoInteraction('mail-view-toggle', {
+      previousMode: sanitizeCcoMailViewMode(state.ccoMailViewMode),
+      nextMode,
+    });
     state.ccoMailViewMode = nextMode;
     state.ccoSelectedFeedMessageId = '';
     closeCcoIndicatorContextMenu();
@@ -15953,27 +15968,90 @@
     renderCcoInbox(state.ccoInboxData);
   });
   els.ccoInboxDensityFilters?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-density-mode]');
+    const button = closestFromEventTarget(event, 'button[data-cco-density-mode]');
     if (!button) return;
     const nextMode = sanitizeCcoDensityMode(button.getAttribute('data-cco-density-mode') || 'work');
     if (nextMode === sanitizeCcoDensityMode(state.ccoInboxDensityMode)) return;
+    logCcoInteraction('density-mode-toggle', {
+      previousMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
+      nextMode,
+    });
     state.ccoInboxDensityMode = nextMode;
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
+  els.ccoInboxWorklist?.addEventListener('click', (event) => {
+    const button = closestFromEventTarget(event, '.ccoConversationSelectBtn');
+    if (!button) return;
+    const conversationId = String(button.getAttribute('data-conversation-id') || '').trim();
+    const clickedEl = getEventTargetElement(event);
+    const topElementAtPoint =
+      Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+        ? document.elementFromPoint(event.clientX, event.clientY)
+        : null;
+    logCcoInteraction('worklist-row-click', {
+      conversationId,
+      sprintActive: state.ccoSprintActive === true,
+      mode: sanitizeCcoMailViewMode(state.ccoMailViewMode),
+      clickedTag: clickedEl?.tagName || null,
+      topElementTag: topElementAtPoint?.tagName || null,
+      topElementClass: topElementAtPoint?.className || null,
+    });
+    if (!conversationId) return;
+    if (state.ccoSprintActive === true) {
+      const sprintSet = new Set(
+        (Array.isArray(state.ccoSprintQueueIds) ? state.ccoSprintQueueIds : [])
+          .map((value) => String(value || '').trim())
+          .filter(Boolean)
+      );
+      if (!sprintSet.has(conversationId)) {
+        const shown = showCcoSoftBreakPanel(conversationId);
+        if (shown) {
+          setStatus(
+            els.ccoInboxStatus,
+            'Du lämnar fokuskön. Välj: pausa, byt ut tråd eller avbryt fokus.'
+          );
+          return;
+        }
+      }
+    }
+    hideCcoSoftBreakPanel();
+    setSelectedCcoConversation(conversationId);
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxWorklist?.addEventListener('contextmenu', (event) => {
+    const scope = closestFromEventTarget(event, '[data-cco-conversation-id]');
+    const conversationId = String(scope?.getAttribute('data-cco-conversation-id') || '').trim();
+    if (!conversationId) return;
+    event.preventDefault();
+    logCcoInteraction('worklist-row-context-menu', {
+      conversationId,
+      clientX: Number(event.clientX || 0),
+      clientY: Number(event.clientY || 0),
+    });
+    openCcoIndicatorContextMenu({
+      conversationId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+  });
   els.ccoInboxWorklist?.addEventListener('toggle', (event) => {
-    const details = event.target instanceof HTMLElement ? event.target.closest('details') : null;
+    const details = closestFromEventTarget(event, 'details');
     if (!details) return;
     const sectionKey =
       String(details.getAttribute('data-cco-section') || '').trim().toLowerCase() || 'rest';
     if (!['sprint', 'high', 'needs', 'rest'].includes(sectionKey)) return;
+    logCcoInteraction('worklist-section-toggle', {
+      section: sectionKey,
+      open: details.open === true,
+    });
     const nextExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
     nextExpanded[sectionKey] = details.open === true;
     state.ccoInboxSectionExpanded = nextExpanded;
     persistCcoWorkspaceSessionState();
   });
   els.ccoIndicatorContextMenu?.addEventListener('click', async (event) => {
-    const button = event.target.closest('button[data-cco-indicator-override]');
+    const button = closestFromEventTarget(event, 'button[data-cco-indicator-override]');
     if (!button) return;
     const action = String(button.getAttribute('data-cco-indicator-override') || '').trim();
     const conversationId = String(state.ccoIndicatorContextConversationId || '').trim();
@@ -15992,7 +16070,7 @@
     renderCcoInbox(state.ccoInboxData);
   });
   els.ccoUnansweredPanel?.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-cco-set-filter]');
+    const button = closestFromEventTarget(event, '[data-cco-set-filter]');
     if (!button) return;
     const nextFilter = sanitizeCcoSlaFilter(button.getAttribute('data-cco-set-filter') || 'breach');
     state.ccoInboxViewMode = 'all';
@@ -16026,7 +16104,7 @@
     rememberCcoConversationScroll(conversationId, Number(els.ccoConversationColumn?.scrollTop || 0));
   });
   els.ccoConversationHistoryList?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-cco-history-entry-id]');
+    const button = closestFromEventTarget(event, 'button[data-cco-history-entry-id]');
     if (!button) return;
     const conversation = getCcoSelectedConversation();
     if (!conversation) return;
@@ -16054,13 +16132,13 @@
   });
   document.addEventListener('click', (event) => {
     if (!els.ccoIndicatorContextMenu?.classList.contains('visible')) return;
-    const withinMenu = event.target.closest('#ccoIndicatorContextMenu');
+    const withinMenu = closestFromEventTarget(event, '#ccoIndicatorContextMenu');
     if (withinMenu) return;
     closeCcoIndicatorContextMenu();
   });
   document.addEventListener('contextmenu', (event) => {
     if (!els.ccoIndicatorContextMenu?.classList.contains('visible')) return;
-    const withinMenu = event.target.closest('#ccoIndicatorContextMenu');
+    const withinMenu = closestFromEventTarget(event, '#ccoIndicatorContextMenu');
     if (withinMenu) return;
     closeCcoIndicatorContextMenu();
   });
@@ -16248,7 +16326,7 @@
   });
   els.applyRiskBulkBtn?.addEventListener('click', applyBulkOwnerAction);
   els.riskDetailQuickActions?.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-owner-action]');
+    const button = closestFromEventTarget(event, 'button[data-owner-action]');
     if (!button) return;
     applyRiskDetailOwnerAction(button);
   });
@@ -16334,7 +16412,7 @@
     });
   });
   els.auditTimeline?.addEventListener('click', (event) => {
-    const item = event.target.closest('[data-aid]');
+    const item = closestFromEventTarget(event, '[data-aid]');
     if (!item) return;
     const eventId = String(item.getAttribute('data-aid') || '').trim();
     if (!eventId) return;
@@ -16365,7 +16443,7 @@
     closeAllDrawers();
   });
   document.addEventListener('click', (event) => {
-    if (!event.target.closest('[data-drawer-close]')) return;
+    if (!closestFromEventTarget(event, '[data-drawer-close]')) return;
     closeAllDrawers();
   });
   els.appModalDialog?.addEventListener('animationend', (event) => {
