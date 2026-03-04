@@ -36,6 +36,11 @@
   const CCO_WORKSPACE_SESSION_KEY = 'ARCANA_CCO_WORKSPACE_STATE';
   const CCO_LAST_SEEN_AT_KEY = 'ARCANA_CCO_LAST_SEEN_AT';
   const CCO_EVIDENCE_QUERY_PARAM = 'evidence';
+  const CCO_EVIDENCE_ALLOWED_HOSTS = Object.freeze([
+    'arcana-staging.onrender.com',
+    'localhost',
+    '127.0.0.1',
+  ]);
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -178,7 +183,10 @@
 
   function isCcoEvidenceModeEnabled() {
     const searchParams = new URLSearchParams(window.location.search || '');
-    return searchParams.get(CCO_EVIDENCE_QUERY_PARAM) === '1';
+    const requested = searchParams.get(CCO_EVIDENCE_QUERY_PARAM) === '1';
+    if (!requested) return false;
+    const host = String(window.location.hostname || '').trim().toLowerCase();
+    return CCO_EVIDENCE_ALLOWED_HOSTS.includes(host);
   }
 
   function readCcoLastSeenAtMs() {
