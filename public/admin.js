@@ -344,6 +344,24 @@
     };
   }
 
+  function sanitizeCcoSignaturePreviewExpanded(value = false) {
+    if (value === true || value === 1) return true;
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    return normalized === 'true' || normalized === '1';
+  }
+
+  function sanitizeCcoIncludeSignature(value = true) {
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0) return false;
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    if (normalized === 'false' || normalized === '0') return false;
+    return true;
+  }
+
   const CCO_LOCKED_MAILBOX_ALLOWLIST = Object.freeze([
     'egzona@hairtpclinic.com',
     'contact@hairtpclinic.com',
@@ -634,6 +652,12 @@
     ccoSenderMailboxOptions: [],
     ccoSignatureProfile: 'egzona',
     ccoSignatureProfiles: [],
+    ccoIncludeSignature: sanitizeCcoIncludeSignature(
+      initialCcoWorkspaceSession.includeSignature
+    ),
+    ccoSignaturePreviewExpanded: sanitizeCcoSignaturePreviewExpanded(
+      initialCcoWorkspaceSession.signaturePreviewExpanded
+    ),
     ccoConversationScrollTopByConversationId: sanitizeCcoScrollMap(
       initialCcoWorkspaceSession.scrollTopByConversationId
     ),
@@ -934,6 +958,11 @@
     ccoInboxGroupOtherBlock: document.getElementById('ccoInboxGroupRest'),
     ccoFocusShowAllBtn: document.getElementById('ccoFocusShowAllBtn'),
     ccoStatusCounts: document.getElementById('ccoStatusCounts'),
+    ccoCenterColumn: document.getElementById('ccoCenterColumn'),
+    ccoCenterEmptyState: document.getElementById('ccoCenterEmptyState'),
+    ccoCenterEmptyStateMeta: document.getElementById('ccoCenterEmptyStateMeta'),
+    ccoClearFiltersBtn: document.getElementById('ccoClearFiltersBtn'),
+    ccoShowSystemMailsBtn: document.getElementById('ccoShowSystemMailsBtn'),
     ccoConversationColumn: document.getElementById('ccoConversationColumn'),
     ccoConversationMeta: document.getElementById('ccoConversationMeta'),
     ccoConversationPreview: document.getElementById('ccoConversationPreview'),
@@ -950,11 +979,19 @@
     ccoCustomerFollowupValue: document.getElementById('ccoCustomerFollowupValue'),
     ccoCustomerLastCaseValue: document.getElementById('ccoCustomerLastCaseValue'),
     ccoCustomerTimelineList: document.getElementById('ccoCustomerTimelineList'),
+    ccoReplyColumn: document.getElementById('ccoReplyColumn'),
     ccoDraftSubjectInput: document.getElementById('ccoDraftSubjectInput'),
     ccoDraftToInput: document.getElementById('ccoDraftToInput'),
     ccoSenderMailboxSelect: document.getElementById('ccoSenderMailboxSelect'),
     ccoSignatureProfileSelect: document.getElementById('ccoSignatureProfileSelect'),
+    ccoInsertSignatureToggle: document.getElementById('ccoInsertSignatureToggle'),
+    ccoToggleSignaturePreviewBtn: document.getElementById('ccoToggleSignaturePreviewBtn'),
+    ccoSignaturePreviewLabel: document.getElementById('ccoSignaturePreviewLabel'),
     ccoSignaturePreview: document.getElementById('ccoSignaturePreview'),
+    ccoReplyEmptyState: document.getElementById('ccoReplyEmptyState'),
+    ccoReplyMainBlocks: document.getElementById('ccoReplyMainBlocks'),
+    ccoReplyRefreshBtn: document.getElementById('ccoReplyRefreshBtn'),
+    ccoReplyShowSystemToggle: document.getElementById('ccoReplyShowSystemToggle'),
     ccoDraftRiskIndicator: document.getElementById('ccoDraftRiskIndicator'),
     ccoDraftPolicyIndicator: document.getElementById('ccoDraftPolicyIndicator'),
     ccoDraftConfidence: document.getElementById('ccoDraftConfidence'),
@@ -4777,6 +4814,10 @@
         densityMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
         columnLayout: sanitizeCcoColumnLayout(state.ccoColumnLayout),
         sectionExpanded: sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded),
+        includeSignature: sanitizeCcoIncludeSignature(state.ccoIncludeSignature),
+        signaturePreviewExpanded: sanitizeCcoSignaturePreviewExpanded(
+          state.ccoSignaturePreviewExpanded
+        ),
         draftsByConversationId: sanitizeCcoDraftMap(state.ccoDraftOverrideByConversationId),
         draftModeByConversationId: sanitizeCcoDraftModeMap(state.ccoDraftModeByConversationId),
         systemMessageByConversationId: sanitizeCcoSystemFlagMap(
@@ -5083,7 +5124,7 @@
   function updateWorkspaceViewportMetrics() {
     const headerHeight = Number(els.adminHeader?.offsetHeight || 0);
     const navHeight = Number(els.sectionNav?.offsetHeight || 0);
-    const computed = Math.max(180, Math.round(headerHeight + navHeight + 58));
+    const computed = Math.max(150, Math.round(headerHeight + navHeight + 34));
     document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
     applyCcoColumnLayout({ persist: false });
   }
@@ -8153,6 +8194,7 @@
     const set = new Set(fromMetadata);
     if (!set.size) {
       set.add(CCO_DEFAULT_SENDER_MAILBOX);
+      set.add('info@hairtpclinic.com');
       set.add('kons@hairtpclinic.com');
       set.add('marknad@hairtpclinic.com');
       set.add('egzona@hairtpclinic.com');
@@ -8279,10 +8321,11 @@
         const optionsHtml = senderOptions
           .map((mailboxId) => {
             const selected = mailboxId === desiredValue ? ' selected' : '';
-            const suffix = mailboxId === CCO_DEFAULT_SENDER_MAILBOX ? ' (standard)' : '';
-            return `<option value="${escapeHtml(mailboxId)}"${selected}>${escapeHtml(
+            const suffix = mailboxId === CCO_DEFAULT_SENDER_MAILBOX ? ' · standard' : '';
+            const shortLabel = formatCcoMailboxShortLabel(mailboxId) || mailboxId;
+            return `<option value="${escapeHtml(mailboxId)}"${selected} title="${escapeHtml(
               mailboxId
-            )}${suffix}</option>`;
+            )}">${escapeHtml(shortLabel)}${suffix}</option>`;
           })
           .join('');
         els.ccoSenderMailboxSelect.innerHTML = optionsHtml;
@@ -8313,32 +8356,38 @@
         : normalizeCcoSignatureProfileKey(profiles[0]?.key || CCO_DEFAULT_SIGNATURE_PROFILE);
       els.ccoSignatureProfileSelect.value = state.ccoSignatureProfile;
     }
+
+    if (els.ccoInsertSignatureToggle) {
+      els.ccoInsertSignatureToggle.checked = sanitizeCcoIncludeSignature(state.ccoIncludeSignature);
+    }
   }
 
   function renderCcoSignaturePreview() {
     if (!els.ccoSignaturePreview) return;
+    const profile = getCcoSelectedSignatureProfile();
+    const safeName = String(profile?.fullName || '').trim() || 'Hair TP Clinic';
     const previewHtml = buildCcoSignaturePreviewHtml({
-      profile: getCcoSelectedSignatureProfile(),
+      profile,
       senderMailboxId: state.ccoSenderMailboxId,
     });
+    if (els.ccoSignaturePreviewLabel) {
+      els.ccoSignaturePreviewLabel.textContent = `Signatur: ${safeName}`;
+    }
+    const expanded = sanitizeCcoSignaturePreviewExpanded(state.ccoSignaturePreviewExpanded);
+    if (els.ccoToggleSignaturePreviewBtn) {
+      els.ccoToggleSignaturePreviewBtn.textContent = expanded ? 'Dölj' : 'Visa';
+      els.ccoToggleSignaturePreviewBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+    els.ccoSignaturePreview.classList.toggle('is-collapsed', !expanded);
     els.ccoSignaturePreview.innerHTML = previewHtml;
   }
 
-  function applyCurrentCcoSignatureToEditor() {
-    if (!els.ccoDraftBodyInput) return;
-    const current = String(els.ccoDraftBodyInput.value || '').trim();
-    if (!current) {
-      els.ccoDraftBodyInput.value = buildCcoSignatureBlock({
-        profile: getCcoSelectedSignatureProfile(),
-        senderMailboxId: state.ccoSenderMailboxId,
-      });
-      return;
-    }
-    els.ccoDraftBodyInput.value = applyCcoSignatureToDraft({
-      body: current,
-      senderMailboxId: state.ccoSenderMailboxId,
-      signatureProfile: getCcoSelectedSignatureProfile(),
-    });
+  function toggleCcoSignaturePreview() {
+    state.ccoSignaturePreviewExpanded = !sanitizeCcoSignaturePreviewExpanded(
+      state.ccoSignaturePreviewExpanded
+    );
+    persistCcoWorkspaceSessionState();
+    renderCcoSignaturePreview();
   }
 
   function createCcoSprintId() {
@@ -8939,6 +8988,14 @@
       if (isCcoAllowedMailbox(candidate)) return candidate;
     }
     return candidates[0];
+  }
+
+  function formatCcoMailboxShortLabel(value = '') {
+    const mailbox = normalizeCcoMailboxKey(value);
+    if (!mailbox) return '';
+    const localPart = mailbox.includes('@') ? mailbox.split('@')[0] : mailbox;
+    if (!localPart) return mailbox;
+    return `${localPart} — Hair TP Clinic`;
   }
 
   function isCcoAllowedMailboxRow(row = null) {
@@ -10462,15 +10519,11 @@
     const modeDraft =
       getCcoDraftBodyByMode(conversation, selectedMode) ||
       String(conversation.proposedReply || '').trim();
-    const signedReply = applyCcoSignatureToDraft({
-      body: modeDraft,
-      senderMailboxId: state.ccoSenderMailboxId,
-      signatureProfile: getCcoSelectedSignatureProfile(),
-    });
+    const nextDraft = removeCcoSignatureFromDraft(modeDraft);
     if (els.ccoDraftBodyInput) {
-      els.ccoDraftBodyInput.value = signedReply;
+      els.ccoDraftBodyInput.value = nextDraft;
     }
-    setCcoDraftBodyForConversation(conversation.conversationId, signedReply);
+    setCcoDraftBodyForConversation(conversation.conversationId, nextDraft);
     renderCcoDraftModeControls(conversation);
     postCcoUsageEvent('draft_mode_selected', {
       conversationId: String(conversation.conversationId || '').trim(),
@@ -10647,6 +10700,7 @@
     const safeHours = Number(row.hoursSinceInbound || 0);
     const meta = `${safeHours.toFixed(1)}h sedan`;
     const mailboxLabel = row.mailboxLabel || resolveCcoMailboxLabel(row);
+    const mailboxShortLabel = formatCcoMailboxShortLabel(mailboxLabel) || mailboxLabel;
     const relationshipStatus = String(row.relationshipStatus || classifyCcoRelationshipStatus(row))
       .trim()
       .toLowerCase();
@@ -10682,7 +10736,7 @@
       )}" data-high-risk="${highRisk ? 'true' : 'false'}">
         <button class="cco-thread-btn ccoConversationSelectBtn" data-conversation-id="${escapeHtml(row.conversationId)}">
           <span class="cco-thread-subject">${escapeHtml(row.subject)}</span>
-          <span class="cco-thread-meta">${escapeHtml(row.sender)} · ${escapeHtml(mailboxLabel)} · ${meta}</span>
+          <span class="cco-thread-meta">${escapeHtml(row.sender)} · <span title="${escapeHtml(mailboxLabel)}">${escapeHtml(mailboxShortLabel)}</span> · ${meta}</span>
           <span class="cco-thread-preview">${previewText}</span>
           <span class="cco-thread-action">🎯 ${escapeHtml(actionLabel)}</span>
           <span class="cco-thread-tags">
@@ -10717,11 +10771,16 @@
 
   function renderCcoMailboxFilterRow(rows = []) {
     if (!els.ccoInboxMailboxFilters) return;
+    const safeRows = Array.isArray(rows) ? rows : [];
     const presentMailboxLabels = new Set(
-      (Array.isArray(rows) ? rows : [])
-        .map((row) => resolveCcoMailboxLabel(row))
-        .filter((mailbox) => isCcoAllowedMailbox(mailbox))
+      safeRows.map((row) => resolveCcoMailboxLabel(row)).filter((mailbox) => isCcoAllowedMailbox(mailbox))
     );
+    const mailboxCounts = safeRows.reduce((acc, row) => {
+      const mailbox = resolveCcoMailboxLabel(row);
+      if (!isCcoAllowedMailbox(mailbox)) return acc;
+      acc[mailbox] = Number(acc[mailbox] || 0) + 1;
+      return acc;
+    }, {});
     // Always show the full locked mailbox allowlist so operators can
     // switch to any approved mailbox even when there are no messages yet.
     const filterOptions = CCO_LOCKED_MAILBOX_ALLOWLIST.slice();
@@ -10735,10 +10794,13 @@
       {
         label: 'Alla',
         value: 'all',
+        count: safeRows.length,
       },
       ...filterOptions.map((mailbox) => ({
-        label: mailbox,
+        label: formatCcoMailboxShortLabel(mailbox),
+        title: mailbox,
         value: mailbox,
+        count: Number(mailboxCounts[mailbox] || 0),
       })),
     ];
     els.ccoInboxMailboxFilters.innerHTML = buttons
@@ -10746,9 +10808,19 @@
         const value = normalizeCcoMailboxKey(entry.value);
         const isActive = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === sanitizeCcoMailboxFilter(value);
         const hasMessages = value === 'all' || presentMailboxLabels.has(value);
+        const labelHtml = value === 'all'
+          ? `<span>${escapeHtml(entry.label)}</span>`
+          : `<span class="cco-filter-btn-mailbox-label">${escapeHtml(entry.label)}</span>`;
+        const countHtml = Number(entry.count || 0) > 0
+          ? `<span class="cco-filter-btn-mailbox-count">${Number(entry.count || 0)}</span>`
+          : '';
+        const title = entry.title
+          ? ` title="${escapeHtml(entry.title)}"`
+          : '';
+        const innerClass = value === 'all' ? '' : ' class="cco-filter-btn-mailbox"';
         return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-mailbox-filter="${escapeHtml(
           value || 'all'
-        )}"${hasMessages ? '' : ' data-empty="true"'}>${escapeHtml(entry.label)}</button>`;
+        )}"${hasMessages ? '' : ' data-empty="true"'}${title}><span${innerClass}>${labelHtml}${countHtml}</span></button>`;
       })
       .join('');
   }
@@ -10762,6 +10834,11 @@
     }
     if (els.ccoInboxShowSystemToggle) {
       els.ccoInboxShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
+        state.ccoInboxShowSystemMessages
+      );
+    }
+    if (els.ccoReplyShowSystemToggle) {
+      els.ccoReplyShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
         state.ccoInboxShowSystemMessages
       );
     }
@@ -11015,6 +11092,20 @@
     const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
     const filteredResult = getCcoFilteredConversations(openRows, { withMeta: true });
     const filteredRows = filteredResult.rows;
+    const hasVisibleRows = Array.isArray(filteredRows) && filteredRows.length > 0;
+    setCcoCenterEmptyState(!hasVisibleRows, {
+      emptyMessage: hasVisibleRows
+        ? ''
+        : `Vald mailbox: ${
+            sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all'
+              ? 'Alla'
+              : formatCcoMailboxShortLabel(state.ccoInboxMailboxFilter)
+          } · ${
+            sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages)
+              ? 'Systemmail visas'
+              : 'Systemmail döljs'
+          }`,
+    });
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     const debugMode = isCcoDebugMode();
     const densityMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
@@ -11435,9 +11526,10 @@
     const conversationId = String(conversation.conversationId || '').trim();
     const context = state.ccoSelectedMessageContextByConversationId?.[conversationId] || null;
     const senderMailbox = String(state.ccoSenderMailboxId || '').trim() || CCO_DEFAULT_SENDER_MAILBOX;
+    const senderMailboxShort = formatCcoMailboxShortLabel(senderMailbox) || senderMailbox;
     const slaLabel = formatCcoSlaStatusLabel(conversation.slaStatus);
     const riskLabel = formatCcoRecommendedAction(conversation.recommendedAction);
-    els.ccoReplyContextStrip.textContent = `${conversation.sender} · ${senderMailbox} · SLA ${slaLabel} · ${riskLabel}`;
+    els.ccoReplyContextStrip.textContent = `${conversation.sender} · ${senderMailboxShort} · SLA ${slaLabel} · ${riskLabel}`;
     if (context && context.excerpt) {
       els.ccoReplyingToContext.textContent = `Svarar på: ${context.label} — ${context.excerpt}`;
     } else {
@@ -11473,6 +11565,33 @@
       return;
     }
     els.ccoDeleteMailBtn.title = 'Flyttar valt mail till papperskorg (Deleted Items).';
+  }
+
+  function setCcoReplyEmptyState(isEmpty = false, { emptyMessage = '' } = {}) {
+    if (els.ccoReplyColumn) {
+      els.ccoReplyColumn.classList.toggle('is-empty', isEmpty === true);
+    }
+    if (els.ccoReplyShowSystemToggle) {
+      els.ccoReplyShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
+        state.ccoInboxShowSystemMessages
+      );
+    }
+    if (els.ccoReplyEmptyState) {
+      const detailEl = els.ccoReplyEmptyState.querySelector('.mini.muted');
+      if (detailEl && emptyMessage) detailEl.textContent = emptyMessage;
+    }
+    if (els.ccoDraftBodyInput) {
+      els.ccoDraftBodyInput.disabled = isEmpty === true;
+    }
+  }
+
+  function setCcoCenterEmptyState(isEmpty = false, { emptyMessage = '' } = {}) {
+    if (els.ccoCenterColumn) {
+      els.ccoCenterColumn.classList.toggle('is-empty', isEmpty === true);
+    }
+    if (els.ccoCenterEmptyStateMeta && emptyMessage) {
+      els.ccoCenterEmptyStateMeta.textContent = emptyMessage;
+    }
   }
 
   function renderCcoConversationHistory(conversation = null) {
@@ -11523,6 +11642,10 @@
   function renderCcoDetail(data = null) {
     const conversation = getCcoSelectedConversation();
     if (!conversation) {
+      setCcoReplyEmptyState(true, {
+        emptyMessage:
+          'Välj en tråd i arbetskön för att öppna compose-läget. Du kan även uppdatera inkorgen eller visa systemmail.',
+      });
       if (els.ccoConversationMeta) els.ccoConversationMeta.textContent = 'Ingen konversation vald.';
       if (els.ccoConversationPreview) els.ccoConversationPreview.textContent = 'Ingen förhandsvisning än.';
       if (els.ccoConversationHistoryList) {
@@ -11530,6 +11653,11 @@
       }
       if (els.ccoDraftSubjectInput) els.ccoDraftSubjectInput.value = '';
       if (els.ccoDraftToInput) els.ccoDraftToInput.value = '';
+      if (els.ccoDraftSubjectInput) els.ccoDraftSubjectInput.disabled = true;
+      if (els.ccoDraftToInput) els.ccoDraftToInput.disabled = true;
+      if (els.ccoSenderMailboxSelect) els.ccoSenderMailboxSelect.disabled = true;
+      if (els.ccoSignatureProfileSelect) els.ccoSignatureProfileSelect.disabled = true;
+      if (els.ccoInsertSignatureToggle) els.ccoInsertSignatureToggle.disabled = true;
       if (els.ccoDraftRiskIndicator) els.ccoDraftRiskIndicator.textContent = '-';
       if (els.ccoDraftPolicyIndicator) els.ccoDraftPolicyIndicator.textContent = '-';
       if (els.ccoDraftConfidence) els.ccoDraftConfidence.textContent = '-';
@@ -11553,7 +11681,14 @@
       return;
     }
 
+    setCcoReplyEmptyState(false);
+
     setSelectedCcoConversation(conversation.conversationId);
+    if (els.ccoDraftSubjectInput) els.ccoDraftSubjectInput.disabled = false;
+    if (els.ccoDraftToInput) els.ccoDraftToInput.disabled = false;
+    if (els.ccoSenderMailboxSelect) els.ccoSenderMailboxSelect.disabled = false;
+    if (els.ccoSignatureProfileSelect) els.ccoSignatureProfileSelect.disabled = false;
+    if (els.ccoInsertSignatureToggle) els.ccoInsertSignatureToggle.disabled = false;
     const evaluation = getCcoDraftEvaluationForConversation(conversation.conversationId);
     const previewText = sanitizeCcoPreviewText(conversation.latestInboundPreview || '');
     if (els.ccoConversationMeta) {
@@ -11619,11 +11754,8 @@
     syncCcoSignatureSelectors();
     renderCcoSignaturePreview();
     if (els.ccoDraftBodyInput) {
-      els.ccoDraftBodyInput.value = applyCcoSignatureToDraft({
-        body: getCcoDraftBody(conversation),
-        senderMailboxId: state.ccoSenderMailboxId,
-        signatureProfile: getCcoSelectedSignatureProfile(),
-      });
+      els.ccoDraftBodyInput.value = removeCcoSignatureFromDraft(getCcoDraftBody(conversation));
+      els.ccoDraftBodyInput.disabled = false;
     }
     renderCcoCustomerSummary(conversation);
     renderCcoReplyContext(conversation);
@@ -11658,11 +11790,14 @@
     const senderMailboxId =
       String(state.ccoSenderMailboxId || '').trim().toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
     const signatureProfile = normalizeCcoSignatureProfileKey(state.ccoSignatureProfile);
-    const finalBody = applyCcoSignatureToDraft({
-      body: draftBody,
-      senderMailboxId,
-      signatureProfile: getCcoSelectedSignatureProfile(),
-    });
+    const includeSignature = sanitizeCcoIncludeSignature(state.ccoIncludeSignature);
+    const finalBody = includeSignature
+      ? applyCcoSignatureToDraft({
+          body: draftBody,
+          senderMailboxId,
+          signatureProfile: getCcoSelectedSignatureProfile(),
+        })
+      : removeCcoSignatureFromDraft(draftBody);
     const toRaw = String(els.ccoDraftToInput?.value || '').trim();
     const to = toRaw
       .split(',')
@@ -11675,6 +11810,7 @@
         mailboxId: String(conversation.mailboxId || '').trim(),
         senderMailboxId,
         signatureProfile,
+        includeSignature,
         replyToMessageId: String(conversation.messageId || '').trim(),
         conversationId: String(conversation.conversationId || '').trim(),
         to,
@@ -12060,11 +12196,11 @@
       .slice(0, 80);
     const defaultPattern = senderPattern || subjectSnippet || '';
     const input = window.prompt(
-      'Dölj avsändare/pattern (e-post för avsändare eller textmönster för ämne).',
+      'Dölj avsändare/mönster (e-post för avsändare eller textmönster för ämne).',
       defaultPattern
     );
     if (input === null) {
-      setStatus(els.ccoSendStatus, 'Ingen pattern sparad.');
+      setStatus(els.ccoSendStatus, 'Inget mönster sparat.');
       return;
     }
     const normalized = String(input || '').trim().toLowerCase();
@@ -12199,14 +12335,10 @@
     });
     const refinedReply = String(response?.output?.data?.refinedReply || '').trim();
     if (!refinedReply) throw new Error('Förfining returnerade tomt svar.');
-    const signedReply = applyCcoSignatureToDraft({
-      body: refinedReply,
-      senderMailboxId: state.ccoSenderMailboxId,
-      signatureProfile: getCcoSelectedSignatureProfile(),
-    });
-    setCcoDraftBodyForConversation(conversation.conversationId, signedReply);
+    const nextDraft = removeCcoSignatureFromDraft(refinedReply);
+    setCcoDraftBodyForConversation(conversation.conversationId, nextDraft);
     setCcoDraftEvaluationForConversation(conversation.conversationId, response);
-    if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = signedReply;
+    if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = nextDraft;
     renderCcoDetail(state.ccoInboxData?.data || null);
     setStatus(els.ccoSendStatus, 'Svar förfinat och risk/policy-kontrollerat.');
   }
@@ -14066,8 +14198,12 @@
     state.ccoDraftOverrideByConversationId = {};
     state.ccoDraftModeByConversationId = {};
     state.ccoSystemMessageByConversationId = {};
+    state.ccoSystemMessageSenderPatterns = [];
+    state.ccoSystemMessageSubjectPatterns = [];
     state.ccoSelectedMessageContextByConversationId = {};
     state.ccoDraftEvaluationByConversationId = {};
+    state.ccoIncludeSignature = true;
+    state.ccoSignaturePreviewExpanded = false;
     state.ccoConversationScrollTopByConversationId = {};
     state.ccoSprintActive = false;
     state.ccoSprintQueueIds = [];
@@ -14574,6 +14710,24 @@
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
   els.runCcoInboxBtn?.addEventListener('click', runCcoInboxBrief);
+  els.ccoReplyRefreshBtn?.addEventListener('click', () => {
+    runCcoInboxBrief().catch((error) => {
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
+    });
+  });
+  els.ccoClearFiltersBtn?.addEventListener('click', () => {
+    state.ccoInboxMailboxFilter = 'all';
+    state.ccoInboxSlaFilter = 'all';
+    state.ccoInboxLifecycleFilter = 'all';
+    state.ccoInboxSearchQuery = '';
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoShowSystemMailsBtn?.addEventListener('click', () => {
+    state.ccoInboxShowSystemMessages = true;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
   els.ccoStartSprintBtn?.addEventListener('click', () => {
     startCcoSprint().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta fokus.', true);
@@ -14665,6 +14819,13 @@
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
+  els.ccoReplyShowSystemToggle?.addEventListener('change', () => {
+    state.ccoInboxShowSystemMessages = sanitizeCcoShowSystemMessages(
+      els.ccoReplyShowSystemToggle?.checked
+    );
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
   els.ccoInboxDensityFilters?.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-cco-density-mode]');
     if (!button) return;
@@ -14748,24 +14909,31 @@
     state.ccoSenderMailboxId = selectedMailboxId;
     state.ccoSignatureProfile = resolveDefaultSignatureForSenderMailbox(selectedMailboxId);
     syncCcoSignatureSelectors();
-    applyCurrentCcoSignatureToEditor();
     renderCcoSignaturePreview();
     const conversation = getCcoSelectedConversation();
     if (conversation) {
       setCcoDraftBodyForConversation(conversation.conversationId, els.ccoDraftBodyInput?.value || '');
     }
+    persistCcoWorkspaceSessionState();
   });
   els.ccoSignatureProfileSelect?.addEventListener('change', () => {
     state.ccoSignatureProfile = normalizeCcoSignatureProfileKey(
       String(els.ccoSignatureProfileSelect?.value || '').trim()
     );
     syncCcoSignatureSelectors();
-    applyCurrentCcoSignatureToEditor();
     renderCcoSignaturePreview();
     const conversation = getCcoSelectedConversation();
     if (conversation) {
       setCcoDraftBodyForConversation(conversation.conversationId, els.ccoDraftBodyInput?.value || '');
     }
+    persistCcoWorkspaceSessionState();
+  });
+  els.ccoInsertSignatureToggle?.addEventListener('change', () => {
+    state.ccoIncludeSignature = sanitizeCcoIncludeSignature(els.ccoInsertSignatureToggle?.checked);
+    persistCcoWorkspaceSessionState();
+  });
+  els.ccoToggleSignaturePreviewBtn?.addEventListener('click', () => {
+    toggleCcoSignaturePreview();
   });
   els.ccoCopyReplyBtn?.addEventListener('click', () => {
     const text = String(els.ccoDraftBodyInput?.value || '').trim();
@@ -14794,7 +14962,7 @@
   });
   els.ccoHidePatternBtn?.addEventListener('click', () => {
     hideCcoSenderOrPatternForSelectedConversation().catch((error) => {
-      setStatus(els.ccoSendStatus, error.message || 'Kunde inte spara pattern.', true);
+      setStatus(els.ccoSendStatus, error.message || 'Kunde inte spara mönster.', true);
     });
   });
   els.ccoDeleteMailBtn?.addEventListener('click', () => {
