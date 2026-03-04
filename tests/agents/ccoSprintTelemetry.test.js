@@ -307,3 +307,74 @@ test('CCO metrics endpoint returns sprint KPIs and stress proxy index', async ()
     assert.equal(metrics.latestSprintFeedback.slaImproved, true);
   });
 });
+
+test('CCO usage event route logs indicator override set/cleared audit events', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-usage-events-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const analysisStore = await createCapabilityAnalysisStore({
+    filePath: path.join(tempDir, 'capability-analysis.json'),
+    maxEntries: 2000,
+  });
+  const app = express();
+  app.use(express.json());
+  const auth = createMockAuth('OWNER');
+  app.use(
+    '/api/v1',
+    createCapabilitiesRouter({
+      authStore,
+      tenantConfigStore: createTenantConfigStore(),
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      executionGateway: createExecutionGateway({ buildVersion: 'test-build' }),
+      capabilityAnalysisStore: analysisStore,
+      templateStore: null,
+      graphReadConnector: null,
+      graphSendConnector: null,
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const setResponse = await fetch(`${baseUrl}/api/v1/cco/usage/event`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'indicator_override_set',
+        conversationId: 'conv-override-1',
+        overrideState: 'high',
+        overrideBy: 'owner-a',
+        overrideAt: new Date().toISOString(),
+      }),
+    });
+    assert.equal(setResponse.status, 200);
+
+    const clearResponse = await fetch(`${baseUrl}/api/v1/cco/usage/event`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'indicator_override_cleared',
+        conversationId: 'conv-override-1',
+        clearedAt: new Date().toISOString(),
+      }),
+    });
+    assert.equal(clearResponse.status, 200);
+  });
+
+  const audits = await authStore.listAuditEvents({
+    tenantId: 'tenant-a',
+    limit: 200,
+  });
+  const setEvent = audits.find((event) => event.action === 'cco.indicator.override.set');
+  const clearEvent = audits.find((event) => event.action === 'cco.indicator.override.cleared');
+  assert.ok(setEvent);
+  assert.ok(clearEvent);
+  assert.equal(setEvent.metadata.conversationId, 'conv-override-1');
+  assert.equal(setEvent.metadata.overrideState, 'high');
+  assert.equal(clearEvent.metadata.conversationId, 'conv-override-1');
+});

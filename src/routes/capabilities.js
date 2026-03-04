@@ -1561,6 +1561,24 @@ function toCcoUsageEventType(value = '') {
   if (normalized === 'focus_mode_toggled' || normalized === 'cco.focus.toggled') {
     return 'focus_mode_toggled';
   }
+  if (normalized === 'indicator_override_set' || normalized === 'cco.indicator.override.set') {
+    return 'indicator_override_set';
+  }
+  if (
+    normalized === 'indicator_override_cleared' ||
+    normalized === 'cco.indicator.override.cleared'
+  ) {
+    return 'indicator_override_cleared';
+  }
+  return '';
+}
+
+function toCcoIndicatorOverrideState(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return '';
+  if (['new', 'medium', 'high', 'critical', 'handled'].includes(normalized)) {
+    return normalized;
+  }
   return '';
 }
 
@@ -1798,7 +1816,8 @@ async function runCcoUsageEventHandler({ req, res, authStore }) {
   const eventType = toCcoUsageEventType(input.eventType || input.type || input.action);
   if (!eventType) {
     return res.status(422).json({
-      error: 'eventType måste vara workspace_open, draft_mode_selected eller focus_mode_toggled.',
+      error:
+        'eventType måste vara workspace_open, draft_mode_selected, focus_mode_toggled, indicator_override_set eller indicator_override_cleared.',
     });
   }
 
@@ -1851,6 +1870,40 @@ async function runCcoUsageEventHandler({ req, res, authStore }) {
       ...metadata,
       isActive: input.isActive === true,
       source: normalizeText(input.source) || 'ui',
+    };
+  } else if (eventType === 'indicator_override_set') {
+    if (!conversationId) {
+      return res.status(422).json({ error: 'conversationId krävs för indicator_override_set.' });
+    }
+    const overrideState = toCcoIndicatorOverrideState(
+      input.overrideState || input.state || input.indicatorState
+    );
+    if (!overrideState) {
+      return res.status(422).json({
+        error: 'overrideState måste vara new, medium, high, critical eller handled.',
+      });
+    }
+    action = 'cco.indicator.override.set';
+    targetType = 'cco_conversation';
+    targetId = conversationId;
+    metadata = {
+      ...metadata,
+      conversationId,
+      overrideState,
+      overrideBy: normalizeText(input.overrideBy || actor.email || actor.id || ''),
+      overrideAt: toIso(input.overrideAt) || timestamp,
+    };
+  } else if (eventType === 'indicator_override_cleared') {
+    if (!conversationId) {
+      return res.status(422).json({ error: 'conversationId krävs för indicator_override_cleared.' });
+    }
+    action = 'cco.indicator.override.cleared';
+    targetType = 'cco_conversation';
+    targetId = conversationId;
+    metadata = {
+      ...metadata,
+      conversationId,
+      clearedAt: toIso(input.clearedAt) || timestamp,
     };
   }
 

@@ -419,6 +419,105 @@ function toConversationSnapshot(input = {}) {
   };
 }
 
+function toFeedTimestampMs(value = '') {
+  const iso = toIso(value);
+  if (!iso) return 0;
+  const ts = Date.parse(iso);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function toFeedCounterpartLabel(conversation = {}, message = {}, direction = 'inbound') {
+  const safeConversation = asObject(conversation);
+  const safeMessage = asObject(message);
+  if (direction === 'outbound') {
+    const identity = resolveCustomerIdentity(safeConversation);
+    const customerLabel =
+      normalizeText(identity.customerName) ||
+      maskSender(normalizeText(identity.customerEmail)) ||
+      normalizeText(safeConversation.sender) ||
+      'kund';
+    return `Till ${customerLabel}`;
+  }
+  return (
+    normalizeText(safeMessage.senderName) ||
+    maskSender(normalizeText(safeMessage.senderEmail)) ||
+    normalizeText(safeMessage.sender) ||
+    normalizeText(safeConversation.sender) ||
+    'okänd avsändare'
+  );
+}
+
+function toConversationFeedEntries(conversation = {}) {
+  const safeConversation = asObject(conversation);
+  const conversationId = normalizeText(safeConversation.conversationId);
+  if (!conversationId) {
+    return { inbound: [], outbound: [] };
+  }
+  const subject = sanitizeSubject(safeConversation.rawSubject || safeConversation.subject);
+  const fallbackMailboxAddress =
+    normalizeText(safeConversation.mailboxAddress) ||
+    normalizeText(safeConversation.userPrincipalName) ||
+    normalizeText(safeConversation.mailboxId) ||
+    'okand-postlada';
+  const sourceMessages = asArray(safeConversation.messages);
+  const inbound = [];
+  const outbound = [];
+
+  sourceMessages.forEach((message, index) => {
+    const safeMessage = asObject(message);
+    const direction = normalizeDirection(safeMessage.direction || safeMessage.role || safeMessage.type);
+    if (direction !== 'inbound' && direction !== 'outbound') return;
+    const messageId = normalizeText(safeMessage.messageId) || null;
+    const sentAt =
+      toIso(safeMessage.sentAt) ||
+      (direction === 'inbound'
+        ? toIso(safeConversation.lastInboundAt)
+        : toIso(safeConversation.lastOutboundAt)) ||
+      '';
+    const previewSource =
+      normalizeText(safeMessage.bodyPreview) ||
+      normalizeText(safeMessage.preview) ||
+      normalizeText(safeMessage.text) ||
+      normalizeText(safeMessage.content);
+    const preview = capText(previewSource, 360) || (direction === 'outbound'
+      ? 'Skickat meddelande registrerat.'
+      : 'Inkommande meddelande registrerat.');
+    const mailboxAddress =
+      normalizeText(safeMessage.mailboxAddress) ||
+      normalizeText(safeMessage.userPrincipalName) ||
+      normalizeText(safeMessage.mailboxId) ||
+      fallbackMailboxAddress;
+    const counterpart = toFeedCounterpartLabel(safeConversation, safeMessage, direction);
+    const feedEntry = {
+      feedId: normalizeIdentifier(
+        `${conversationId}:${direction}:${messageId || sentAt || index}`,
+        1024
+      ),
+      conversationId,
+      messageId,
+      direction,
+      subject,
+      counterpart: capText(counterpart, 200) || (direction === 'outbound' ? 'Till kund' : 'okänd avsändare'),
+      mailboxAddress: capText(mailboxAddress, 320) || 'okand-postlada',
+      sentAt,
+      preview,
+    };
+    if (direction === 'outbound') {
+      outbound.push(feedEntry);
+    } else {
+      inbound.push(feedEntry);
+    }
+  });
+
+  inbound.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
+  outbound.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
+
+  return {
+    inbound,
+    outbound,
+  };
+}
+
 function toSlaStatusRank(value = '') {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === 'breach') return 3;
@@ -802,6 +901,8 @@ class AnalyzeInboxCapability extends BaseCapability {
           'urgentConversations',
           'needsReplyToday',
           'conversationWorklist',
+          'inboundFeed',
+          'outboundFeed',
           'slaBreaches',
           'riskFlags',
           'suggestedDrafts',
@@ -1152,6 +1253,64 @@ class AnalyzeInboxCapability extends BaseCapability {
                 escalationRequired: { type: 'boolean' },
                 messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
+              },
+            },
+          },
+          inboundFeed: {
+            type: 'array',
+            maxItems: 1200,
+            items: {
+              type: 'object',
+              required: [
+                'feedId',
+                'conversationId',
+                'direction',
+                'subject',
+                'counterpart',
+                'mailboxAddress',
+                'sentAt',
+                'preview',
+              ],
+              additionalProperties: false,
+              properties: {
+                feedId: { type: 'string', minLength: 1, maxLength: 1024 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: ['string', 'null'], maxLength: 1024 },
+                direction: { type: 'string', enum: ['inbound'] },
+                subject: { type: 'string', minLength: 1, maxLength: 200 },
+                counterpart: { type: 'string', minLength: 1, maxLength: 200 },
+                mailboxAddress: { type: 'string', minLength: 1, maxLength: 320 },
+                sentAt: { type: 'string', maxLength: 50 },
+                preview: { type: 'string', minLength: 1, maxLength: 360 },
+              },
+            },
+          },
+          outboundFeed: {
+            type: 'array',
+            maxItems: 1200,
+            items: {
+              type: 'object',
+              required: [
+                'feedId',
+                'conversationId',
+                'direction',
+                'subject',
+                'counterpart',
+                'mailboxAddress',
+                'sentAt',
+                'preview',
+              ],
+              additionalProperties: false,
+              properties: {
+                feedId: { type: 'string', minLength: 1, maxLength: 1024 },
+                conversationId: { type: 'string', minLength: 1, maxLength: 1024 },
+                messageId: { type: ['string', 'null'], maxLength: 1024 },
+                direction: { type: 'string', enum: ['outbound'] },
+                subject: { type: 'string', minLength: 1, maxLength: 200 },
+                counterpart: { type: 'string', minLength: 1, maxLength: 200 },
+                mailboxAddress: { type: 'string', minLength: 1, maxLength: 320 },
+                sentAt: { type: 'string', maxLength: 50 },
+                preview: { type: 'string', minLength: 1, maxLength: 360 },
               },
             },
           },
@@ -1534,6 +1693,8 @@ class AnalyzeInboxCapability extends BaseCapability {
     const slaBreaches = [];
     const riskFlags = [];
     const conversationWorklist = [];
+    const inboundFeed = [];
+    const outboundFeed = [];
     const customerSummariesByKey = new Map();
     const warnings = [];
     let maskedPreviewCount = 0;
@@ -1546,6 +1707,9 @@ class AnalyzeInboxCapability extends BaseCapability {
     }
 
     for (const conversation of conversations) {
+      const conversationFeed = toConversationFeedEntries(conversation);
+      inboundFeed.push(...conversationFeed.inbound);
+      outboundFeed.push(...conversationFeed.outbound);
       if (!includeClosed && normalizeText(conversation.status) === 'closed') continue;
       const inbound = asObject(conversation.latestInboundMessage);
       const outbound = asObject(conversation.latestOutboundMessage);
@@ -1984,6 +2148,8 @@ class AnalyzeInboxCapability extends BaseCapability {
 
     unresolved.sort(compareWorkItemsBySlaAndPriority);
     conversationWorklist.sort(compareWorkItemsBySlaAndPriority);
+    inboundFeed.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
+    outboundFeed.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
 
     const suggestedDrafts = [];
     for (const item of unresolved.slice(0, maxDrafts)) {
@@ -2153,6 +2319,8 @@ class AnalyzeInboxCapability extends BaseCapability {
         urgentConversations: urgentConversations.slice(0, 25),
         needsReplyToday: needsReplyToday.slice(0, 50),
         conversationWorklist: conversationWorklist.slice(0, 120),
+        inboundFeed: inboundFeed.slice(0, 1200),
+        outboundFeed: outboundFeed.slice(0, 1200),
         slaBreaches: slaBreaches.slice(0, 50),
         riskFlags: riskFlags.slice(0, 120),
         suggestedDrafts,

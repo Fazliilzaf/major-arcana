@@ -29,6 +29,12 @@ test('AnalyzeInbox returns schema-valid output with max 5 suggested drafts', asy
               sentAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
               bodyPreview: 'Hej, jag har svullnad och feber. Kontakta mig pa 0701234567 eller patient@example.com',
             },
+            {
+              messageId: 'msg-1-out',
+              direction: 'outbound',
+              sentAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+              bodyPreview: 'Tack för ditt meddelande. Vi återkommer inom kort.',
+            },
           ],
         },
         {
@@ -107,6 +113,12 @@ test('AnalyzeInbox returns schema-valid output with max 5 suggested drafts', asy
   assert.equal(typeof output.data.conversationWorklist?.[0]?.riskStackScore, 'number');
   assert.equal(typeof output.data.conversationWorklist?.[0]?.riskStackExplanation, 'string');
   assert.equal(Array.isArray(output.data.customerSummaries), true);
+  assert.equal(Array.isArray(output.data.inboundFeed), true);
+  assert.equal(Array.isArray(output.data.outboundFeed), true);
+  assert.equal(output.data.inboundFeed.length >= 1, true);
+  assert.equal(output.data.outboundFeed.length >= 1, true);
+  assert.equal(output.data.inboundFeed[0].direction, 'inbound');
+  assert.equal(output.data.outboundFeed[0].direction, 'outbound');
   const firstDraft = output.data.suggestedDrafts?.[0] || {};
   assert.equal(typeof firstDraft?.draftModes?.short, 'string');
   assert.equal(typeof firstDraft?.draftModes?.warm, 'string');
