@@ -1420,6 +1420,18 @@
     .cco-workspace .status-line {
       color: var(--cco-muted);
     }
+    .cco-debug-overlay {
+      margin: 6px 0 2px;
+      border: 1px dashed rgba(124, 98, 82, 0.45);
+      border-radius: 10px;
+      background: rgba(244, 233, 224, 0.72);
+      color: #4f3d33;
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 6px 10px;
+      white-space: pre-wrap;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
     body.cco-light-mode {
       background-color: var(--cco-bg);
       background-image: none;
@@ -4531,6 +4543,7 @@
           </div>
         </div>
         <div id="ccoInboxStatus" class="status-line"></div>
+        <div id="ccoDebugOverlay" class="cco-debug-overlay hidden"></div>
         <div id="ccoSprintShell" class="cco-sprint-shell is-collapsed">
           <div class="cco-sprint-controls">
             <div>

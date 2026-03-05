@@ -1081,6 +1081,7 @@
     ccoInboxMaxDrafts: document.getElementById('ccoInboxMaxDrafts'),
     ccoInboxIncludeClosed: document.getElementById('ccoInboxIncludeClosed'),
     ccoInboxStatus: document.getElementById('ccoInboxStatus'),
+    ccoDebugOverlay: document.getElementById('ccoDebugOverlay'),
     ccoInboxMailboxMeta: document.getElementById('ccoInboxMailboxMeta'),
     ccoInboxPriority: document.getElementById('ccoInboxPriority'),
     ccoInboxRiskFlags: document.getElementById('ccoInboxRiskFlags'),
@@ -11425,6 +11426,44 @@
     }
   }
 
+  function isCcoDebugOverlayEnabled() {
+    return state.ccoEvidenceMode === true || isCcoInteractionDebugEnabled();
+  }
+
+  function renderCcoDebugOverlay(snapshot = null) {
+    if (!els.ccoDebugOverlay) return;
+    if (!isCcoDebugOverlayEnabled()) {
+      els.ccoDebugOverlay.classList.add('hidden');
+      els.ccoDebugOverlay.textContent = '';
+      return;
+    }
+    const safe = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const parts = [
+      `mode=${sanitizeCcoMailViewMode(safe.mode || state.ccoMailViewMode)}`,
+      `loading=${safe.loading === true || state.ccoInboxLoading === true ? 'true' : 'false'}`,
+      `total=${Number.isFinite(Number(safe.totalRows)) ? Number(safe.totalRows) : 0}`,
+      `open=${Number.isFinite(Number(safe.openRows)) ? Number(safe.openRows) : 0}`,
+      `filtered=${Number.isFinite(Number(safe.filteredRows)) ? Number(safe.filteredRows) : 0}`,
+      `visible=${Number.isFinite(Number(safe.visibleRows)) ? Number(safe.visibleRows) : 0}`,
+      `feed=${Number.isFinite(Number(safe.feedCount)) ? Number(safe.feedCount) : 0}`,
+      `mailbox=${sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)}`,
+      `sla=${sanitizeCcoSlaFilter(state.ccoInboxSlaFilter)}`,
+      `lifecycle=${sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter)}`,
+      `search="${sanitizeCcoSearchQuery(state.ccoInboxSearchQuery)}"`,
+      `system=${sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages) ? 'on' : 'off'}`,
+    ];
+    const firstItem = String(safe.firstItemSubject || '').trim();
+    if (firstItem) {
+      parts.push(`first="${firstItem.slice(0, 80)}"`);
+    }
+    const reason = String(safe.reason || '').trim();
+    if (reason) {
+      parts.push(`reason="${reason}"`);
+    }
+    els.ccoDebugOverlay.classList.remove('hidden');
+    els.ccoDebugOverlay.textContent = `[CCO DEBUG] ${parts.join(' | ')}`;
+  }
+
   function setCcoLoadingState(isLoading = false, message = '') {
     const loading = isLoading === true;
     state.ccoInboxLoading = loading;
@@ -11437,6 +11476,10 @@
     if (els.ccoCenterLoadingMeta) {
       els.ccoCenterLoadingMeta.textContent = message || (loading ? 'Synkar arbetskö och läsyta.' : '');
     }
+    renderCcoDebugOverlay({
+      loading,
+      reason: message || '',
+    });
   }
 
   function renderCcoWorkspaceCompactState() {
@@ -12020,6 +12063,9 @@
     const debugMode = isCcoDebugMode();
     const densityMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
     const sectionExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
+    const firstFilteredSubject = String(
+      filteredRows[0]?.subject || filteredRows[0]?.latestInboundPreview || ''
+    ).trim();
     state.ccoInboxSectionExpanded = sectionExpanded;
 
     if (state.ccoSprintActive !== true) {
@@ -12114,6 +12160,27 @@
             clientY: event.clientY,
           });
         });
+      });
+      renderCcoDebugOverlay({
+        mode: mailViewMode,
+        totalRows: queueRows.length,
+        openRows: openRows.length,
+        filteredRows: filteredRows.length,
+        visibleRows: feedEntries.length,
+        feedCount: feedEntries.length,
+        firstItemSubject: String(
+          selectedFeed?.subject ||
+            selectedFeed?.preview ||
+            feedEntries[0]?.subject ||
+            feedEntries[0]?.preview ||
+            firstFilteredSubject
+        ).trim(),
+        reason:
+          feedEntries.length === 0
+            ? `Feed (${feedDirection}) tom för valda filter`
+            : usingHandledFallback
+            ? 'Öppen kö saknas, feed används för visning'
+            : '',
       });
       return;
     }
@@ -12277,6 +12344,26 @@
             }`,
       });
     }
+    let queueReason = '';
+    if (hasRowsHiddenByCurrentView) {
+      queueReason = `Dolt av läge/filter (${formatCcoDensityModeLabel(densityMode)})`;
+    } else if (!hasFilteredRows && fallbackInboundCount > 0) {
+      queueReason = `Arbetskö tom, ${fallbackInboundCount} inkomna finns`;
+    } else if (!hasFilteredRows) {
+      queueReason = 'Inga konversationer efter filter';
+    } else if (usingHandledFallback) {
+      queueReason = 'Öppen kö saknas, visar hanterade konversationer';
+    }
+    renderCcoDebugOverlay({
+      mode: 'queue',
+      totalRows: queueRows.length,
+      openRows: openRows.length,
+      filteredRows: filteredRows.length,
+      visibleRows: visibleQueueRows,
+      feedCount: getCcoFeedEntries(data, 'inbound').length,
+      firstItemSubject: firstFilteredSubject,
+      reason: queueReason,
+    });
 
     const selectedRow = filteredRows.find((row) => String(row?.conversationId || '').trim() === selectedId);
     if (!selectedRow && filteredRows.length === 0) {
