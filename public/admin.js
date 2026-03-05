@@ -861,6 +861,7 @@
     ccoInboxBriefRunInFlight: false,
     ccoInboxLoading: false,
     ccoInboxLastSyncAt: '',
+    ccoAutoSwitchToInboundPending: false,
     monitorDetailsVisible: false,
     ccoEvidenceMode: isCcoEvidenceModeEnabled(),
   };
@@ -12126,6 +12127,30 @@
       Number(sectionOutputs.rest.shown || 0);
     const fallbackInboundCount =
       hasFilteredRows === true ? 0 : getCcoFeedEntries(data, 'inbound').length;
+    const hasDefaultQueueFilters =
+      sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all' &&
+      sanitizeCcoSlaFilter(state.ccoInboxSlaFilter) === 'all' &&
+      sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter) === 'all' &&
+      sanitizeCcoSearchQuery(state.ccoInboxSearchQuery) === '';
+    if (
+      mailViewMode === 'queue' &&
+      state.ccoAutoSwitchToInboundPending === true &&
+      hasFilteredRows !== true &&
+      fallbackInboundCount > 0 &&
+      hasDefaultQueueFilters
+    ) {
+      state.ccoMailViewMode = 'inbound';
+      state.ccoAutoSwitchToInboundPending = false;
+      persistCcoWorkspaceSessionState();
+      if (els.ccoInboxStatus) {
+        setStatus(
+          els.ccoInboxStatus,
+          `Arbetskön är tom just nu. Visar ${fallbackInboundCount} inkomna mail i stället.`
+        );
+      }
+      renderCcoInbox(state.ccoInboxData);
+      return;
+    }
     if (els.ccoSwitchInboundBtn) {
       const showInboundShortcut = hasFilteredRows !== true && fallbackInboundCount > 0;
       els.ccoSwitchInboundBtn.hidden = !showInboundShortcut;
@@ -12812,6 +12837,7 @@
     syncCcoSignatureSelectors();
     renderCcoSignaturePreview();
     if (!data) {
+      state.ccoAutoSwitchToInboundPending = false;
       state.ccoInboxLastSyncAt = '';
       setSelectedCcoConversation('');
       state.ccoDraftEvaluationByConversationId = {};
@@ -13023,6 +13049,7 @@
         ? response.entries[0]
         : null;
       if (entry?.output) {
+        state.ccoAutoSwitchToInboundPending = true;
         renderCcoInbox(entry.output);
         await loadCcoMetrics({ since: '7d' });
         renderCcoInbox(state.ccoInboxData);
@@ -13120,6 +13147,7 @@
           input,
         },
       });
+      state.ccoAutoSwitchToInboundPending = true;
       renderCcoInbox(response?.output || null);
       await loadCcoMetrics({ since: '7d' });
       renderCcoInbox(state.ccoInboxData);
@@ -15951,6 +15979,7 @@
   });
   els.ccoSwitchInboundBtn?.addEventListener('click', () => {
     state.ccoMailViewMode = 'inbound';
+    state.ccoAutoSwitchToInboundPending = false;
     closeCcoIndicatorContextMenu();
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
@@ -16091,6 +16120,7 @@
       nextMode,
     });
     state.ccoMailViewMode = nextMode;
+    state.ccoAutoSwitchToInboundPending = false;
     state.ccoSelectedFeedMessageId = '';
     closeCcoIndicatorContextMenu();
     persistCcoWorkspaceSessionState();
