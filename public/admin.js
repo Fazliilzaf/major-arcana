@@ -9690,13 +9690,104 @@
     return null;
   }
 
+  function buildCcoFallbackConversationRowsFromFeed(feedEntries = [], { direction = 'inbound' } = {}) {
+    const source = Array.isArray(feedEntries) ? feedEntries : [];
+    if (!source.length) return [];
+    const normalizedDirection = String(direction || '').trim().toLowerCase() === 'outbound'
+      ? 'outbound'
+      : 'inbound';
+    const nowMs = Date.now();
+    const rows = [];
+    for (const item of source) {
+      const conversationId = String(item?.conversationId || '').trim();
+      if (!conversationId) continue;
+      const sentAt = String(item?.sentAt || item?.receivedAt || '').trim();
+      const sentMs = Date.parse(sentAt);
+      const hoursSinceInbound = Number.isFinite(sentMs)
+        ? Math.max(0, Number(((nowMs - sentMs) / 3600000).toFixed(1)))
+        : 0;
+      rows.push({
+        conversationId,
+        messageId: String(item?.messageId || '').trim(),
+        mailboxId: String(item?.mailboxId || item?.mailboxAddress || '').trim(),
+        mailboxAddress: String(item?.mailboxAddress || item?.mailboxId || '').trim(),
+        userPrincipalName: String(item?.userPrincipalName || '').trim(),
+        subject: String(item?.subject || '(utan ämne)').trim() || '(utan ämne)',
+        sender: String(item?.counterpart || item?.sender || item?.recipient || 'okänd avsändare').trim() || 'okänd avsändare',
+        latestInboundPreview: sanitizeCcoPreviewText(item?.preview || item?.bodyPreview || ''),
+        hoursSinceInbound,
+        lastInboundAt: normalizedDirection === 'inbound' ? sentAt : '',
+        lastOutboundAt: normalizedDirection === 'outbound' ? sentAt : '',
+        slaStatus: 'safe',
+        hoursRemaining: 0,
+        slaThreshold: 48,
+        isUnanswered: normalizedDirection === 'inbound',
+        unansweredThresholdHours: 24,
+        stagnated: false,
+        stagnationHours: 0,
+        followUpSuggested: false,
+        intent: 'unclear',
+        intentConfidence: 0.3,
+        tone: 'neutral',
+        toneConfidence: 0.4,
+        priorityLevel: 'Medium',
+        priorityScore: 0,
+        priorityReasons: [],
+        customerKey: extractEmailFromText(item?.counterpart || item?.sender || item?.recipient || ''),
+        customerSummary: null,
+        lifecycleStatus: 'new',
+        tempoProfile: 'reflective',
+        recommendedFollowUpDelayDays: 5,
+        ctaIntensity: 'normal',
+        followUpSuggestedAt: null,
+        followUpTimingReason: [],
+        followUpUrgencyLevel: 'normal',
+        followUpManualApprovalRequired: true,
+        estimatedWorkMinutes: 4,
+        workloadBreakdown: normalizeCcoWorkloadBreakdown(null, 4),
+        recommendedAction: normalizedDirection === 'inbound' ? 'Granska och svara' : 'Skickat svar registrerat',
+        escalationRequired: false,
+        messageClassification: normalizeCcoMessageClassification(item?.messageClassification || 'regular'),
+        needsReplyStatus: normalizedDirection === 'inbound' ? 'needs_reply' : 'handled',
+        confidenceLevel: 'Low',
+        draftModes: normalizeCcoDraftModes(null, ''),
+        recommendedMode: 'professional',
+        structureUsed: normalizeCcoDraftStructure(null),
+        proposedReply: '',
+      });
+    }
+    return rows;
+  }
+
   function buildCcoConversationMap(data = null) {
     const safeData = data && typeof data === 'object' ? data : {};
     const map = new Map();
     const worklist = Array.isArray(safeData.conversationWorklist)
       ? safeData.conversationWorklist
       : [];
+    const needsReplyToday = Array.isArray(safeData.needsReplyToday)
+      ? safeData.needsReplyToday
+      : [];
+    const inboundFeed = Array.isArray(safeData.inboundFeed)
+      ? safeData.inboundFeed
+      : [];
+    const outboundFeed = Array.isArray(safeData.outboundFeed)
+      ? safeData.outboundFeed
+      : [];
     const drafts = Array.isArray(safeData.suggestedDrafts) ? safeData.suggestedDrafts : [];
+    const worklistSeed = [...worklist, ...needsReplyToday];
+    if (!worklistSeed.length) {
+      const inboundFallbackRows = buildCcoFallbackConversationRowsFromFeed(inboundFeed, {
+        direction: 'inbound',
+      });
+      worklistSeed.push(...inboundFallbackRows);
+      if (!worklistSeed.length) {
+        const outboundFallbackRows = buildCcoFallbackConversationRowsFromFeed(outboundFeed, {
+          direction: 'outbound',
+        });
+        worklistSeed.push(...outboundFallbackRows);
+      }
+    }
     const customerSummaries = Array.isArray(safeData.customerSummaries)
       ? safeData.customerSummaries
       : [];
@@ -9707,7 +9798,7 @@
       customerSummaryByKey.set(normalized.customerKey, normalized);
     }
 
-    for (const row of worklist) {
+    for (const row of worklistSeed) {
       const conversationId = String(row?.conversationId || '').trim();
       if (!conversationId) continue;
       const mailboxLabel = resolveCcoMailboxLabel(row);
@@ -11892,6 +11983,8 @@
     const openRows = sortedRows.filter(
       (row) => String(row?.needsReplyStatus || '').trim().toLowerCase() !== 'handled'
     );
+    const queueRows = openRows.length > 0 ? openRows : sortedRows;
+    const usingHandledFallback = openRows.length === 0 && sortedRows.length > 0;
     if (state.ccoSprintActive === true) {
       const validOpenConversationIds = new Set(
         openRows.map((row) => String(row?.conversationId || '').trim()).filter(Boolean)
@@ -11916,11 +12009,11 @@
         state.ccoSprintQueueIds = safeSprintQueueIds;
       }
     }
-    if (!openRows.length && state.ccoWorkspaceCompact !== true) {
+    if (!queueRows.length && state.ccoWorkspaceCompact !== true) {
       state.ccoWorkspaceCompact = true;
     }
-    const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
-    const filteredResult = getCcoFilteredConversations(openRows, { withMeta: true });
+    const unansweredRows = queueRows.filter((row) => row.isUnanswered === true);
+    const filteredResult = getCcoFilteredConversations(queueRows, { withMeta: true });
     const filteredRows = filteredResult.rows;
     const hasFilteredRows = Array.isArray(filteredRows) && filteredRows.length > 0;
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
@@ -11948,7 +12041,11 @@
 
     const mailViewMode = sanitizeCcoMailViewMode(state.ccoMailViewMode);
     if (els.ccoInboxModeMeta) {
-      els.ccoInboxModeMeta.textContent = `Vy: ${formatCcoMailViewModeLabel(mailViewMode)}`;
+      const handledFallbackSuffix =
+        mailViewMode === 'queue' && usingHandledFallback
+          ? ' · Öppen kö saknas, visar hanterade konversationer'
+          : '';
+      els.ccoInboxModeMeta.textContent = `Vy: ${formatCcoMailViewModeLabel(mailViewMode)}${handledFallbackSuffix}`;
     }
     if (els.ccoInboxDensityFilters) {
       els.ccoInboxDensityFilters.style.display = mailViewMode === 'queue' ? '' : 'none';
