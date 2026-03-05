@@ -93,3 +93,34 @@ test('startup disk guard sanitizes oversized state files before boot', async () 
   await fs.stat(`${analysisPath}.oversize.bak`);
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test('startup disk guard prunes stale oversize backup files', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-oversize-bak-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const staleBakPath = path.join(stateRoot, 'memory.json.oversize.bak');
+
+  await createFile(staleBakPath, JSON.stringify({ stale: true }));
+  const staleAt = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  await fs.utimes(staleBakPath, staleAt, staleAt);
+
+  const summary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      backupRetentionMaxFiles: 1,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 1,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: {
+      warn() {},
+    },
+  });
+
+  assert.equal(summary.stateGuardBackups.deletedCount, 1);
+  await assert.rejects(fs.stat(staleBakPath), (error) => error && error.code === 'ENOENT');
+  await fs.rm(tempDir, { recursive: true, force: true });
+});

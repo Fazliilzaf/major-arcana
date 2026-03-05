@@ -1373,25 +1373,36 @@
       min-height: 20px;
     }
     .cco-workspace {
-      --cco-bg: #D6C2B2;
-      --cco-surface: #F3EAE2;
-      --cco-surface-alt: #E9DCCF;
-      --cco-panel: #FDF9F5;
-      --cco-border: #C4AE9C;
-      --cco-text: #3E2E29;
-      --cco-muted: #6E4B41;
-      --cco-accent: #A7917D;
+      --bg: #D6C2B2;
+      --panel: #C4AE9C;
+      --panel-soft: #A7917D;
+      --text: #3E2E29;
+      --muted: #6E4B41;
+      --border: rgba(62,46,41,0.18);
+      --shadow-1: 0 2px 10px rgba(62,46,41,0.10);
+      --shadow-2: 0 8px 24px rgba(62,46,41,0.12);
+      --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.55);
+      --cco-bg: var(--bg);
+      --cco-surface: #DCCABD;
+      --cco-surface-alt: #EADFD6;
+      --cco-panel: #FAF7F4;
+      --cco-border: var(--border);
+      --cco-text: var(--text);
+      --cco-muted: var(--muted);
+      --cco-accent: var(--panel-soft);
       --cco-critical: #8B5F5A;
       --cco-high: #A8744C;
       --cco-medium: #B8A56A;
-      --cco-low: #866D5F;
+      --cco-low: #77806A;
       --cco-chip-bg: #EFE4DA;
-      --cco-page-shadow: 0 12px 28px rgba(62, 46, 41, 0.12);
-      --cco-panel-shadow: 0 8px 20px rgba(82, 61, 47, 0.08);
-      --cco-card-shadow: 0 4px 12px rgba(82, 61, 47, 0.06);
-      --cco-chip-shadow: 0 1px 3px rgba(82, 61, 47, 0.12);
-      background: linear-gradient(180deg, rgba(214, 194, 178, 0.34) 0%, rgba(196, 174, 156, 0.23) 100%);
-      border: 1px solid rgba(196, 174, 156, 0.72);
+      --cco-shadow-1: var(--shadow-1);
+      --cco-shadow-2: var(--shadow-2);
+      --cco-page-shadow: var(--shadow-2);
+      --cco-panel-shadow: var(--shadow-2);
+      --cco-card-shadow: var(--shadow-1);
+      --cco-chip-shadow: var(--shadow-1);
+      background: linear-gradient(180deg, rgba(214, 194, 178, 0.5) 0%, rgba(214, 194, 178, 0.3) 100%);
+      border: 1px solid var(--border);
       box-shadow: var(--cco-page-shadow);
       color: var(--cco-text);
       animation: none;
@@ -1406,7 +1417,7 @@
       border: 0;
       border-radius: 0;
       padding: 0;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.05));
       box-shadow: none;
       overflow: visible;
     }
@@ -1504,7 +1515,7 @@
       border: 1px solid var(--cco-border);
       background: #F0E6E0;
       color: var(--cco-text);
-      box-shadow: var(--cco-chip-shadow);
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
       text-shadow: none;
       animation: none;
       padding: 6px 10px;
@@ -1568,7 +1579,7 @@
     .cco-workspace .cco-toolbar-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
     .cco-view-mode-toggle {
@@ -1591,6 +1602,7 @@
       font-weight: 600;
       cursor: pointer;
       line-height: 1;
+      box-shadow: var(--cco-shadow-1);
     }
     .cco-view-mode-btn:hover {
       background: #F0E6E0;
@@ -1601,7 +1613,11 @@
       background: #fff;
       border-color: #C8B5A8;
       color: #1A1411;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--cco-shadow-1);
+    }
+    .cco-center-mode-toggle {
+      margin: 0 0 2px 2px;
+      width: fit-content;
     }
     .cco-header {
       display: none;
@@ -1850,6 +1866,7 @@
       flex-direction: column;
       gap: 6px;
       position: relative;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-sprint-item::before {
       content: "";
@@ -1922,34 +1939,34 @@
     }
     .cco-layout {
       display: grid;
-      grid-template-columns: minmax(220px, 0.72fr) minmax(440px, 1.38fr) minmax(320px, 0.98fr);
+      grid-template-columns: minmax(150px, 0.42fr) minmax(500px, 1.55fr) minmax(320px, 0.98fr);
       grid-template-areas: "inbox center reply";
       gap: 0;
       position: relative;
-      border: 1px solid rgba(196, 174, 156, 0.72);
-      border-radius: 10px;
+      border: 1px solid var(--cco-border);
+      border-radius: 14px;
       overflow: hidden;
       min-height: 500px;
       height: calc(100vh - var(--headerHeight, 142px));
       max-height: none;
-      background: linear-gradient(180deg, #f6efea 0%, #f3ebe6 100%);
+      background: linear-gradient(180deg, rgba(214, 194, 178, 0.52) 0%, rgba(167, 145, 125, 0.28) 100%);
       box-shadow: var(--cco-panel-shadow);
       transition: opacity 150ms ease;
     }
     .cco-inbox {
       grid-area: inbox;
-      background: linear-gradient(180deg, #ffffff 0%, #fcf8f5 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.16) 100%), var(--panel);
       border-right: 1px solid var(--cco-border);
-      box-shadow: inset -1px 0 0 rgba(226, 216, 209, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.6);
+      box-shadow: var(--shadow-inset), var(--cco-shadow-1);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 9px;
+      gap: 6px;
+      padding: 6px;
       min-width: 0;
     }
     .cco-inbox-controls {
-      min-width: 248px;
+      min-width: 154px;
     }
     .cco-inbox-controls .cco-column-title h3 {
       font-size: 12px;
@@ -1960,9 +1977,9 @@
     }
     .cco-center {
       grid-area: center;
-      background: linear-gradient(180deg, #fefcfa 0%, #fcf8f5 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.14) 100%), var(--panel);
       border-right: 1px solid var(--cco-border);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+      box-shadow: var(--shadow-inset), var(--cco-shadow-1);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1975,7 +1992,7 @@
       margin-bottom: 0;
     }
     .cco-center-worklist {
-      gap: 10px;
+      gap: 8px;
       overflow-y: auto;
       min-height: 0;
       flex: 1 1 auto;
@@ -1985,32 +2002,32 @@
       pointer-events: auto;
     }
     .cco-conversation {
-      background: #fff;
-      border: 1px solid #E6DCD5;
+      background: #fffdfb;
+      border: 1px solid var(--cco-border);
       border-radius: 12px;
       padding: 14px;
-      overflow: visible;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      box-shadow: 0 6px 18px rgba(76, 54, 36, 0.06);
+      box-shadow: var(--cco-card-shadow), var(--shadow-inset);
     }
     .cco-center-empty-state {
       display: none;
-      border: 1px solid #E8DDD5;
+      border: 1px solid var(--cco-border);
       border-radius: 14px;
       padding: 14px;
-      background: #FFF;
-      box-shadow: 0 2px 7px rgba(0, 0, 0, 0.04);
+      background: #fffdfb;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
       flex: 1 1 auto;
     }
     .cco-center-loading {
       display: none;
-      border: 1px solid #E8DDD5;
+      border: 1px solid var(--cco-border);
       border-radius: 14px;
       padding: 14px;
-      background: linear-gradient(180deg, #FFF 0%, #FBF7F4 100%);
-      box-shadow: 0 3px 10px rgba(76, 54, 36, 0.05);
+      background: linear-gradient(180deg, #fffdfb 0%, #f7eee7 100%);
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
       min-height: 220px;
       flex: 1 1 auto;
       gap: 10px;
@@ -2057,38 +2074,46 @@
     }
     .cco-reply {
       grid-area: reply;
-      background: linear-gradient(180deg, #fdf8f5 0%, #f8f2ee 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.12) 100%), var(--panel-soft);
       border-left: 1px solid var(--cco-border);
-      box-shadow: inset 1px 0 0 rgba(226, 216, 209, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.46);
+      box-shadow: var(--shadow-inset), var(--cco-shadow-1);
       padding: 9px;
-      overflow-y: auto;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 8px;
       min-width: 0;
+      min-height: 0;
+    }
+    #ccoReplyMainBlocks {
+      display: grid;
+      grid-template-rows: minmax(210px, 0.9fr) minmax(320px, 1.1fr);
+      gap: 10px;
+      min-height: 0;
+      flex: 1 1 auto;
     }
     .cco-nav-stack {
       display: grid;
-      gap: 5px;
+      gap: 4px;
     }
     .cco-nav-block {
-      border: 1px solid #e7ddd6;
+      border: 1px solid var(--cco-border);
       border-radius: 12px;
-      background: #fff;
-      padding: 7px;
-      box-shadow: var(--cco-card-shadow);
+      background: #fffdfb;
+      padding: 6px;
+      box-shadow: var(--cco-card-shadow), var(--shadow-inset);
       display: grid;
-      gap: 6px;
+      gap: 5px;
     }
     .cco-nav-block-tools {
       gap: 8px;
       align-content: start;
     }
     .cco-center-block {
-      border: 1px solid #e7ddd6;
+      border: 1px solid var(--cco-border);
       border-radius: 12px;
-      background: #fff;
-      box-shadow: var(--cco-card-shadow);
+      background: #fffdfb;
+      box-shadow: var(--cco-card-shadow), var(--shadow-inset);
       padding: 10px;
       min-height: 0;
     }
@@ -2146,21 +2171,21 @@
       user-select: none !important;
     }
     .cco-reply-block {
-      border: 1px solid #E8DDD5;
+      border: 1px solid var(--cco-border);
       border-radius: 12px;
-      background: #fff;
+      background: #fffdfb;
       padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 9px;
-      box-shadow: var(--cco-card-shadow);
+      box-shadow: var(--cco-card-shadow), var(--shadow-inset);
     }
     .cco-reply-empty-state {
-      border: 1px solid #E8DDD5;
+      border: 1px solid var(--cco-border);
       border-radius: 14px;
-      background: linear-gradient(165deg, #FFF, #FAF6F3);
+      background: linear-gradient(165deg, #fffdfb, #f6ede6);
       padding: 14px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
       display: grid;
       gap: 8px;
     }
@@ -2184,15 +2209,24 @@
     }
     .cco-reply-context-strip {
       border-radius: 10px;
-      border: 1px solid #E7D8CE;
-      background: #F9F2ED;
-      color: #493F38;
+      border: 1px solid var(--cco-border);
+      background: #f2e7de;
+      color: var(--cco-text);
       padding: 7px 9px;
       font-size: 11px;
       line-height: 1.4;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-compose-header-block {
       gap: 8px;
+    }
+    .cco-compose-studio {
+      display: grid;
+      grid-template-rows: auto minmax(280px, 1fr) auto auto;
+      gap: 10px;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 3px;
     }
     .cco-compose-header-grid {
       display: grid;
@@ -2220,8 +2254,8 @@
       line-height: 1.2;
     }
     .cco-editor-block {
-      min-height: 450px;
-      gap: 8px;
+      min-height: 420px;
+      gap: 10px;
     }
     .cco-column-title {
       display: flex;
@@ -2252,6 +2286,7 @@
       font-weight: 600;
       display: none;
       cursor: pointer;
+      box-shadow: var(--cco-shadow-1);
     }
     body.cco-focus-mode .cco-focus-toggle {
       display: inline-flex;
@@ -2297,12 +2332,28 @@
       align-items: center;
       padding: 2px 0 0;
     }
+    .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search) {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: 4px;
+      max-height: 58px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search) .cco-filter-btn {
+      max-width: 100%;
+      justify-content: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .cco-filter-block {
-      border: 1px solid #E8DDD5;
+      border: 1px solid var(--cco-border);
       border-radius: 12px;
-      background: #FFF;
+      background: #fffdfb;
       padding: 6px;
-      box-shadow: var(--cco-card-shadow);
+      box-shadow: var(--cco-card-shadow), var(--shadow-inset);
       display: grid;
       gap: 5px;
     }
@@ -2318,7 +2369,7 @@
       width: 100%;
       border: 0;
       background: transparent;
-      color: #5F5550;
+      color: var(--cco-muted);
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.06em;
@@ -2328,6 +2379,8 @@
       justify-content: space-between;
       padding: 0 2px 4px;
       cursor: pointer;
+      box-shadow: var(--cco-shadow-1);
+      border-radius: 8px;
     }
     .cco-filter-block-toggle:hover {
       color: #473d37;
@@ -2371,17 +2424,24 @@
       padding: 5px 8px;
       font-size: 12px;
       line-height: 1.25;
-      background: #fff;
-      border: 1px solid #E2D8D1;
-      color: #2b2521;
+      background: #fffdfb;
+      border: 1px solid var(--cco-border);
+      color: var(--cco-text);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
     }
     .cco-mailbox-favorites {
       margin-top: 2px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      max-height: 58px;
+      overflow-y: auto;
     }
     .cco-mailbox-favorites .cco-filter-btn {
-      padding: 4px 8px;
-      font-size: 10px;
+      padding: 3px 7px;
+      font-size: 9px;
+      min-height: 24px;
+      justify-content: center;
     }
     .cco-search-system-row {
       display: grid;
@@ -2402,8 +2462,10 @@
       gap: 8px;
     }
     .cco-search-input {
-      flex: 1 1 170px;
-      min-width: 170px;
+      flex: 1 1 0;
+      min-width: 0;
+      width: min(220px, 100%);
+      justify-self: start;
       border-radius: 10px;
       padding: 6px 10px;
       font-size: 12px;
@@ -2521,21 +2583,59 @@
       z-index: 4;
       box-shadow: var(--cco-chip-shadow);
     }
+    .cco-indicator-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      margin: 0 0 2px 2px;
+    }
+    .cco-indicator-filter-btn {
+      border: 1px solid var(--cco-border);
+      background: #fffdfb;
+      color: var(--cco-muted);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      box-shadow: var(--cco-chip-shadow);
+    }
+    .cco-indicator-filter-btn:hover {
+      background: #f3e9e2;
+      border-color: rgba(62,46,41,0.28);
+    }
+    .cco-indicator-filter-btn.is-active {
+      background: #F4ECE8;
+      border-color: #C2AA9C;
+      color: #1A1411;
+    }
+    .cco-indicator-filter-btn .cco-thread-indicator {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+      margin-top: 0;
+    }
     .cco-center-density-row .cco-filter-btn {
       font-size: 10px;
       padding: 4px 9px;
     }
     .cco-filter-btn {
-      border: 1px solid #E2D8D1;
-      background: #FFFFFF;
-      color: #6B625C;
+      border: 1px solid var(--cco-border);
+      background: #fffdfb;
+      color: var(--cco-muted);
       border-radius: 999px;
-      padding: 4px 9px;
+      padding: 3px 8px;
       font-size: 10px;
       font-weight: 600;
       cursor: pointer;
       line-height: 1;
       box-shadow: var(--cco-chip-shadow);
+      min-height: 24px;
     }
     .cco-filter-btn:hover {
       background: #F6EDE9;
@@ -2554,6 +2654,8 @@
       max-height: none;
       background: transparent;
       overflow: visible;
+      display: grid;
+      gap: 8px;
     }
     .cco-read-tabs {
       display: inline-flex;
@@ -2588,22 +2690,26 @@
       min-height: 0;
     }
     .cco-thread {
-      border-bottom: 1px solid #EFE5DF;
-      padding: 7px 8px 6px;
+      border: 1px solid var(--cco-border);
+      padding: 7px 10px;
       margin: 0;
       border-left: 4px solid transparent;
       transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
       pointer-events: auto;
-      border-radius: 8px;
+      border-radius: 10px;
+      background: #fffdfb;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-thread:hover {
-      background: #F6EDE9;
-      box-shadow: inset 0 0 0 1px #e3d4c9, 0 2px 8px rgba(82, 61, 47, 0.12);
+      background: #f4ebe4;
+      border-color: rgba(62,46,41,0.28);
+      box-shadow: var(--cco-shadow-2);
     }
     .cco-thread.active {
-      background: #EFE5DF;
+      background: #efe3da;
       border-left: 4px solid var(--cco-accent);
-      box-shadow: inset 0 0 0 1px #d7c3b5, 0 3px 10px rgba(82, 61, 47, 0.12);
+      border-color: rgba(62,46,41,0.34);
+      box-shadow: var(--cco-shadow-2);
     }
     .cco-thread.sla-tone-warning {
       background: #FFF8EC;
@@ -2650,7 +2756,7 @@
       box-shadow: none;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
       pointer-events: auto;
     }
@@ -2670,7 +2776,8 @@
       overflow: hidden;
       margin: 0;
       padding: 0;
-      background: #fff;
+      background: #fffdfb;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-inbox-group > summary {
       list-style: none;
@@ -2686,6 +2793,7 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: #6B625C;
+      box-shadow: var(--cco-shadow-1);
     }
     .cco-group-title-wrap {
       display: flex;
@@ -2763,17 +2871,17 @@
     .cco-thread-head {
       display: flex;
       align-items: flex-start;
-      gap: 6px;
+      gap: 7px;
       min-width: 0;
     }
     .cco-thread-indicator {
-      width: 15px;
-      height: 15px;
-      min-width: 15px;
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
       border-radius: 999px;
-      border: 1px solid #D8CEC7;
-      background: #F1EAE6;
-      color: #6E645D;
+      border: 1px solid rgba(62,46,41,0.28);
+      background: #f1e9e3;
+      color: #6E4B41;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -2792,7 +2900,8 @@
     }
     .cco-thread:hover .cco-thread-indicator,
     .cco-thread-btn:focus-visible .cco-thread-indicator {
-      box-shadow: 0 0 0 3px rgba(166, 145, 125, 0.24);
+      transform: translateY(-1px);
+      box-shadow: var(--cco-shadow-1), 0 0 0 3px rgba(167, 145, 125, 0.24);
     }
     .cco-thread-indicator.state-neutral {
       background: rgba(167, 145, 125, 0.2);
@@ -2800,29 +2909,29 @@
       color: #6E4B41;
     }
     .cco-thread-indicator.state-new {
-      background: rgba(139, 121, 149, 0.22);
-      border-color: #8B7995;
-      color: #445565;
+      background: rgba(139, 121, 95, 0.2);
+      border-color: #8B795F;
+      color: #8B795F;
     }
     .cco-thread-indicator.state-medium {
       background: rgba(184, 165, 106, 0.24);
       border-color: #B8A56A;
-      color: #7F734A;
+      color: #7C6A2B;
     }
     .cco-thread-indicator.state-high {
-      background: rgba(168, 116, 76, 0.24);
+      background: rgba(168, 116, 76, 0.22);
       border-color: #A8744C;
-      color: #6F4E35;
+      color: #8B5A2F;
     }
     .cco-thread-indicator.state-critical {
-      background: rgba(139, 95, 90, 0.24);
+      background: rgba(139, 95, 90, 0.22);
       border-color: #8B5F5A;
-      color: #5E3F3C;
+      color: #8B5F5A;
     }
     .cco-thread-indicator.state-handled {
       background: rgba(119, 128, 106, 0.24);
       border-color: #77806A;
-      color: #4F5648;
+      color: #4E6D44;
     }
     .cco-thread-indicator.is-overridden::after {
       content: "";
@@ -2847,45 +2956,25 @@
       text-overflow: ellipsis;
     }
     .cco-thread-preview {
-      font-size: 11px;
-      color: #5E5650;
-      line-height: 1.35;
-      word-break: break-word;
-      display: none;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: none !important;
     }
     .cco-thread-action {
-      font-size: 10px;
-      font-weight: 600;
-      line-height: 1.35;
-      color: #6A4F40;
-      margin-top: 1px;
-      display: none;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: none !important;
     }
     .cco-thread-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 4px;
       margin-top: 2px;
-    }
-    .cco-thread.active .cco-thread-preview,
-    .cco-thread.active .cco-thread-action,
-    .cco-thread:hover .cco-thread-preview {
-      display: -webkit-box;
+      overflow: hidden;
+      max-height: 32px;
     }
     .cco-priority-badge,
     .cco-thread-chip {
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      padding: 3px 7px;
+      padding: 2px 5px;
       font-size: 9px;
       font-weight: 600;
       line-height: 1;
@@ -2958,7 +3047,7 @@
       background: #FFFFFF;
       border-radius: 14px;
       border: 1px solid #E8DDD5;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
       color: var(--cco-text);
       line-height: 1.6;
       font-size: 15px;
@@ -2973,6 +3062,7 @@
       display: grid;
       gap: 8px;
       margin-bottom: 2px;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-customer-summary-head {
       display: flex;
@@ -3000,6 +3090,7 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      box-shadow: var(--cco-shadow-1);
     }
     .cco-summary-toggle:hover {
       background: #f7f1ed;
@@ -3165,7 +3256,7 @@
       border: 1px solid var(--cco-border) !important;
       background: #f5efeb !important;
       color: var(--cco-text) !important;
-      box-shadow: none !important;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset) !important;
       transform: none !important;
     }
     .cco-draft-mode-btn:hover {
@@ -3269,6 +3360,10 @@
       font-weight: 600;
       color: #5F5550;
       list-style: none;
+      border: 1px solid var(--cco-border);
+      border-radius: 8px;
+      padding: 5px 7px;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-actions-more > summary::-webkit-details-marker {
       display: none;
@@ -3298,6 +3393,10 @@
       font-size: 12px;
       color: #5F5550;
       font-weight: 600;
+      border: 1px solid var(--cco-border);
+      border-radius: 8px;
+      padding: 5px 7px;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-safety-details > summary::-webkit-details-marker {
       display: none;
@@ -3452,21 +3551,27 @@
       width: 100%;
       border: 0;
       margin: 0;
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: transparent;
       color: #2B2521;
       text-align: left;
       cursor: pointer;
       display: grid;
-      gap: 4px;
+      gap: 3px;
       pointer-events: auto;
+      border-left: 4px solid transparent;
+      transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-feed-item-btn:hover {
-      background: #F7F0EB;
+      background: #f4ebe4;
+      box-shadow: var(--cco-shadow-2);
+      border-left-color: #d8c2b3;
     }
     .cco-feed-item.is-selected .cco-feed-item-btn {
-      background: #EFE5DF;
-      box-shadow: inset 0 0 0 1px #D8C7BB;
+      background: #efe3da;
+      border-left-color: var(--cco-accent);
+      box-shadow: var(--cco-shadow-2);
     }
     .cco-feed-item-top {
       display: flex;
@@ -3497,14 +3602,57 @@
       text-overflow: ellipsis;
     }
     .cco-feed-item-preview {
-      font-size: 12px;
-      color: #5E5650;
-      line-height: 1.35;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
+      display: none !important;
+    }
+    .cco-reply-read-zone {
+      min-height: 0;
       overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      flex-direction: column;
+    }
+    .cco-reply-read-zone .cco-read-tab-panel {
+      min-height: 0;
+    }
+    .cco-reply-read-zone .cco-read-tab-panel.is-active {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+    #ccoReadTabConversation {
+      grid-template-rows: auto minmax(0, 1fr);
+      align-content: start;
+    }
+    .cco-reply-read-zone #ccoConversationPreview {
+      margin-bottom: 0;
+      max-width: none;
+      min-height: 100px;
+    }
+    .cco-reply-readonly-banner {
+      display: none;
+      border: 1px solid #E7D9CF;
+      border-radius: 10px;
+      background: #F8F1EC;
+      color: #4C413A;
+      padding: 6px 9px;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+    .cco-reply.is-readonly .cco-reply-readonly-banner {
+      display: block;
+    }
+    .cco-reply.is-readonly #ccoComposeStudio {
+      display: none;
+    }
+    .cco-reply.is-readonly #ccoReplyEmptyState {
+      display: none !important;
+    }
+    .cco-reply.is-readonly #ccoReplyMainBlocks {
+      display: grid;
+    }
+    .cco-reply.is-readonly #ccoConversationColumn {
+      min-height: 0;
+      flex: 1 1 auto;
     }
     .cco-indicator-context-menu {
       position: fixed;
@@ -3532,6 +3680,7 @@
       padding: 7px 9px;
       cursor: pointer;
       line-height: 1.25;
+      box-shadow: var(--cco-shadow-1), var(--shadow-inset);
     }
     .cco-indicator-context-menu button:hover {
       background: #F6EEE9;
@@ -3565,10 +3714,13 @@
     }
     @media (max-width: 1650px) {
       .cco-layout {
-        grid-template-columns: minmax(210px, 0.7fr) minmax(360px, 1.25fr) minmax(280px, 0.95fr);
+        grid-template-columns: minmax(150px, 0.42fr) minmax(350px, 1.32fr) minmax(270px, 0.95fr);
       }
       .cco-compose-header-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #ccoReplyMainBlocks {
+        grid-template-rows: minmax(210px, 0.92fr) minmax(280px, 1.08fr);
       }
       .cco-actions-toolbar {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3576,7 +3728,7 @@
     }
     @media (max-width: 1220px) {
       .cco-layout {
-        grid-template-columns: 300px minmax(0, 1fr);
+        grid-template-columns: 240px minmax(0, 1fr);
         grid-template-areas:
           "inbox center"
           "reply reply";
@@ -3637,6 +3789,618 @@
       }
       .cco-performance-panel.visible {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    /* CCO v5.1 micro-spec (UI-only) */
+    .cco-workspace {
+      --bg: #F7F2EE;
+      --panel: #FBF7F4;
+      --panel-soft: #F5EDE7;
+      --card: #FFFFFF;
+      --text: #2E2A27;
+      --muted: #6E625A;
+      --border: rgba(46,42,39,0.16);
+      --shadow-1: 0 2px 10px rgba(46,42,39,0.10);
+      --shadow-2: 0 10px 30px rgba(46,42,39,0.14);
+      --shadow-press: inset 0 1px 0 rgba(255,255,255,0.65);
+      --shadow-inset: var(--shadow-press);
+      --cco-bg: var(--bg);
+      --cco-surface: #F3ECE6;
+      --cco-surface-alt: #F1E8E1;
+      --cco-panel: var(--panel);
+      --cco-card: var(--card);
+      --cco-border: var(--border);
+      --cco-text: var(--text);
+      --cco-muted: var(--muted);
+      --cco-accent: #C4AE9C;
+      --cco-critical: #8B5F5A;
+      --cco-high: #A8744C;
+      --cco-medium: #B8A56A;
+      --cco-low: #77806A;
+      --cco-chip-bg: #F1E8E1;
+      --cco-shadow-1: var(--shadow-1);
+      --cco-shadow-2: var(--shadow-2);
+      --cco-page-shadow: var(--shadow-2);
+      --cco-panel-shadow: var(--shadow-1);
+      --cco-card-shadow: var(--shadow-1);
+      --cco-chip-shadow: var(--shadow-1);
+      --cco-panel-radius: 16px;
+      --cco-card-radius: 14px;
+      --cco-button-radius: 12px;
+      --cco-chip-radius: 999px;
+      --cco-page-padding: 16px;
+      --cco-column-gap: 14px;
+      --cco-block-padding: 14px;
+      --cco-block-gap: 12px;
+      --cco-list-row-padding: 10px 12px;
+      --cco-row-focus: 64px;
+      --cco-row-work: 56px;
+      --cco-row-overview: 48px;
+      background: var(--cco-bg);
+      border-color: transparent;
+      box-shadow: none;
+      color: var(--cco-text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .cco-layout-root {
+      min-height: calc(100vh - var(--headerHeight, 120px));
+      height: calc(100vh - var(--headerHeight, 120px));
+      background: transparent;
+      overflow: hidden;
+    }
+    body.cco-light-mode {
+      background-color: #F7F2EE;
+      background-image: none;
+      color: #2E2A27;
+    }
+    body.cco-light-mode .container {
+      width: min(1760px, calc(100vw - 32px));
+      margin: 8px auto 10px;
+    }
+    body.cco-compact-header #adminHeader {
+      margin-bottom: 4px;
+      max-height: 54px;
+      overflow: hidden;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 8px;
+    }
+    body.cco-compact-header .admin-brand-mark-shell {
+      width: 78px;
+    }
+    body.cco-compact-header .brand-stack {
+      gap: 8px;
+      min-width: 0;
+    }
+    body.cco-compact-header .brand-stack h1 {
+      display: none;
+    }
+    body.cco-compact-header .header .lang-wrap label {
+      font-size: 11px;
+    }
+    body.cco-compact-header .header .lang-wrap select {
+      min-width: 116px;
+      padding: 4px 8px;
+      height: 30px;
+      font-size: 12px;
+    }
+    body.cco-compact-header #sessionMeta {
+      font-size: 11px;
+      line-height: 1.2;
+      margin-top: 0;
+    }
+    body.cco-compact-header .header-menu-row {
+      padding: 5px 8px;
+      gap: 6px;
+      flex-wrap: nowrap;
+      box-shadow: var(--shadow-1), var(--shadow-press);
+    }
+    body.cco-compact-header .header-menu-row .btn {
+      min-height: 30px;
+      height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+      line-height: 1;
+    }
+    body.cco-compact-header .header-menu-row select {
+      min-width: 132px;
+      height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    body.cco-compact-header .section-nav {
+      top: 4px;
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height: 40px;
+    }
+    body.cco-compact-header .section-nav .btn {
+      min-height: 28px;
+      height: 28px;
+      padding: 0 9px;
+      font-size: 11px;
+    }
+    .cco-workspace .mini,
+    .cco-workspace .muted,
+    .cco-thread-meta,
+    .cco-search-meta,
+    .cco-group-meta,
+    .cco-feed-item-meta {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--cco-muted);
+    }
+    .cco-workspace .cco-toolbar {
+      min-height: 44px;
+      max-height: 44px;
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--cco-border);
+      border-radius: 14px;
+      background: var(--cco-panel);
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-workspace .cco-toolbar-left,
+    .cco-workspace .cco-toolbar-right {
+      flex-wrap: nowrap;
+      gap: 8px;
+    }
+    .cco-workspace .cco-toolbar-left h2 {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .cco-workspace .cco-toolbar .mini {
+      white-space: nowrap;
+    }
+    #ccoInboxStatus {
+      min-height: 16px;
+      max-height: 18px;
+      padding: 2px 4px 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--cco-muted);
+      border-bottom: 0;
+    }
+    #ccoWorkspaceLayout {
+      margin-top: 6px !important;
+    }
+    .cco-layout {
+      grid-template-columns: minmax(240px, 260px) minmax(520px, 1fr) minmax(360px, 400px);
+      gap: var(--cco-column-gap);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      min-height: 0;
+      height: calc(100vh - var(--headerHeight, 120px));
+      overflow: hidden;
+    }
+    .cco-inbox,
+    .cco-center,
+    .cco-reply {
+      border: 1px solid var(--cco-border);
+      border-radius: var(--cco-panel-radius);
+      background: var(--cco-panel);
+      box-shadow: var(--cco-panel-shadow), var(--shadow-press);
+      min-height: 0;
+    }
+    .cco-inbox {
+      padding: 10px;
+      gap: 10px;
+      border-right: 1px solid var(--cco-border);
+    }
+    .cco-center {
+      padding: 10px;
+      gap: 10px;
+      border-right: 1px solid var(--cco-border);
+      overflow: hidden;
+    }
+    .cco-reply {
+      padding: 10px;
+      gap: 10px;
+      border-left: 1px solid var(--cco-border);
+      overflow: hidden;
+    }
+    .cco-nav-stack {
+      gap: var(--cco-block-gap);
+    }
+    .cco-nav-block,
+    .cco-filter-block {
+      border: 1px solid var(--cco-border);
+      border-radius: var(--cco-card-radius);
+      background: var(--cco-card);
+      box-shadow: var(--cco-card-shadow), var(--shadow-press);
+      padding: 10px;
+      gap: 8px;
+    }
+    .cco-center-block,
+    .cco-reply-block,
+    .cco-conversation,
+    .cco-center-empty-state,
+    .cco-center-loading,
+    .cco-reply-empty-state {
+      border-radius: var(--cco-card-radius);
+      border: 1px solid var(--cco-border);
+      background: var(--cco-card);
+      box-shadow: var(--cco-card-shadow), var(--shadow-press);
+      padding: var(--cco-block-padding);
+    }
+    .cco-column-title h3,
+    .cco-filter-block-title,
+    .cco-compose-header-grid label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--cco-muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .cco-workspace .btn {
+      min-height: 34px;
+      height: 34px;
+      padding: 0 12px;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 600;
+      border-radius: var(--cco-button-radius);
+      border: 1px solid var(--cco-border);
+      background: #FFFFFF;
+      color: var(--cco-text);
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-workspace .btn:hover {
+      border-color: rgba(46,42,39,0.24);
+      background: #FAF5F1;
+      transform: translateY(-1px);
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-workspace .btn.primary {
+      min-height: 40px;
+      height: 40px;
+      padding: 0 16px;
+      font-size: 14px;
+      border-radius: var(--cco-button-radius);
+      background: #2E2A27;
+      border-color: #2E2A27;
+      color: #FFFFFF;
+    }
+    .cco-workspace .btn.small {
+      min-height: 30px;
+      height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+      border-radius: var(--cco-button-radius);
+    }
+    .cco-workspace input,
+    .cco-workspace select {
+      min-height: 34px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid var(--cco-border);
+      background: #FFFFFF;
+      color: var(--cco-text);
+      box-shadow: var(--shadow-press);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .cco-workspace textarea {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--cco-border);
+      background: #FFFFFF;
+      color: var(--cco-text);
+      font-size: 14px;
+      line-height: 1.45;
+      box-shadow: var(--shadow-press);
+    }
+    .cco-search-input {
+      width: 100%;
+      max-width: 100%;
+      min-height: 34px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .cco-mailbox-select {
+      min-height: 34px;
+      height: 34px;
+      font-size: 14px;
+      border-radius: 12px;
+      padding: 0 12px;
+    }
+    .cco-inline-toggle {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--cco-muted);
+    }
+    .cco-filter-block-toggle {
+      min-height: 30px;
+      height: 30px;
+      padding: 0 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border: 1px solid var(--cco-border);
+      background: #FBF7F4;
+      color: var(--cco-muted);
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search) {
+      max-height: 62px;
+      gap: 6px;
+    }
+    .cco-mailbox-favorites {
+      max-height: 62px;
+      gap: 6px;
+    }
+    .cco-view-mode-toggle {
+      padding: 2px;
+      border: 1px solid var(--cco-border);
+      border-radius: 999px;
+      background: #F5EEEA;
+      box-shadow: var(--cco-shadow-1);
+    }
+    .cco-view-mode-btn,
+    .cco-filter-btn,
+    .cco-indicator-filter-btn,
+    .cco-thread-chip,
+    .cco-priority-badge,
+    .cco-summary-toggle,
+    .cco-focus-toggle {
+      min-height: 26px;
+      height: 26px;
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 12px;
+      line-height: 1;
+      border: 1px solid var(--cco-border);
+      box-shadow: var(--cco-chip-shadow);
+      background: #FFFFFF;
+      color: var(--cco-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cco-view-mode-btn.is-active,
+    .cco-filter-btn.is-active,
+    .cco-indicator-filter-btn.is-active {
+      background: rgba(196,174,156,0.20);
+      border-color: rgba(46,42,39,0.28);
+      color: #2E2A27;
+    }
+    .cco-filter-btn:hover,
+    .cco-indicator-filter-btn:hover,
+    .cco-view-mode-btn:hover,
+    .cco-thread-chip:hover {
+      box-shadow: var(--cco-shadow-1);
+      transform: translateY(-1px);
+      border-color: rgba(46,42,39,0.24);
+    }
+    .cco-center-density-row {
+      margin: 0;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--cco-border);
+      background: #F7F2EE;
+      box-shadow: var(--cco-shadow-1);
+    }
+    .cco-thread-list {
+      gap: 10px;
+    }
+    .cco-thread {
+      border-radius: var(--cco-card-radius);
+      border: 1px solid var(--cco-border);
+      padding: var(--cco-list-row-padding);
+      background: #FFFFFF;
+      border-left: 4px solid transparent;
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-thread-btn {
+      min-height: var(--cco-row-work);
+      gap: 4px;
+      justify-content: center;
+    }
+    .cco-layout[data-cco-density-mode="focus"] .cco-thread-btn,
+    .cco-layout[data-cco-density-mode="focus"] .cco-feed-item-btn {
+      min-height: var(--cco-row-focus);
+    }
+    .cco-layout[data-cco-density-mode="work"] .cco-thread-btn,
+    .cco-layout[data-cco-density-mode="work"] .cco-feed-item-btn {
+      min-height: var(--cco-row-work);
+    }
+    .cco-layout[data-cco-density-mode="overview"] .cco-thread-btn,
+    .cco-layout[data-cco-density-mode="overview"] .cco-feed-item-btn {
+      min-height: var(--cco-row-overview);
+    }
+    .cco-thread:hover,
+    .cco-feed-item-btn:hover {
+      border-color: rgba(46,42,39,0.26);
+      box-shadow: var(--cco-shadow-1);
+      transform: translateY(-1px);
+    }
+    .cco-thread.active,
+    .cco-feed-item.is-selected .cco-feed-item-btn {
+      background: rgba(196,174,156,0.20);
+      border-left: 4px solid #C4AE9C;
+      border-color: rgba(46,42,39,0.30);
+      box-shadow: var(--cco-shadow-1);
+    }
+    .cco-thread-head {
+      gap: 8px;
+    }
+    .cco-thread-subject,
+    .cco-feed-item-subject {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--cco-text);
+    }
+    .cco-thread-meta,
+    .cco-feed-item-meta {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--cco-muted);
+    }
+    .cco-thread-tags {
+      margin-top: 3px;
+      max-height: 30px;
+      overflow: hidden;
+      gap: 6px;
+    }
+    .cco-feed-item-btn {
+      padding: 6px 10px;
+      gap: 2px;
+    }
+    .cco-feed-item-btn .cco-thread-tags {
+      display: none;
+    }
+    .cco-thread-chip,
+    .cco-priority-badge {
+      font-size: 12px;
+      min-height: 26px;
+      height: 26px;
+      padding: 0 10px;
+    }
+    .cco-thread-indicator {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+    }
+    .cco-thread:hover .cco-thread-indicator,
+    .cco-thread-btn:focus-visible .cco-thread-indicator {
+      box-shadow: var(--cco-shadow-1), 0 0 0 2px rgba(196,174,156,0.24);
+    }
+    #ccoReplyMainBlocks {
+      grid-template-rows: minmax(190px, 0.8fr) minmax(320px, 1.2fr);
+      gap: 12px;
+    }
+    .cco-compose-studio {
+      grid-template-rows: auto minmax(280px, 1fr) auto auto;
+      gap: 12px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .cco-compose-header-grid {
+      gap: 8px 10px;
+      align-items: end;
+    }
+    .cco-compose-header-grid input,
+    .cco-compose-header-grid select {
+      min-height: 34px;
+      height: 34px;
+      font-size: 14px;
+      padding: 0 12px;
+    }
+    .cco-editor {
+      min-height: 280px;
+      border-radius: 14px;
+      line-height: 1.45;
+      font-size: 14px;
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-actions-toolbar {
+      gap: 8px;
+    }
+    .cco-actions-toolbar .btn {
+      min-height: 34px;
+      height: 34px;
+      padding: 0 10px;
+      font-size: 13px;
+      line-height: 1;
+    }
+    .cco-safety-chip-row {
+      gap: 8px;
+    }
+    .cco-safety-chip {
+      border-radius: 12px;
+      border: 1px solid var(--cco-border);
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+      background: #FFFFFF;
+    }
+    .cco-send-sticky-bar {
+      padding-top: 8px;
+      border-top: 1px solid var(--cco-border);
+      background: linear-gradient(180deg, rgba(251,247,244,0.95), rgba(255,255,255,0.98) 42%);
+      gap: 8px;
+    }
+    .cco-send {
+      min-height: 40px !important;
+      height: 40px !important;
+      padding: 0 16px !important;
+      border-radius: 12px !important;
+      font-size: 14px !important;
+      width: auto;
+    }
+    .cco-reply-readonly-banner {
+      border-radius: 12px;
+      border: 1px solid var(--cco-border);
+      background: #F8F1EC;
+      color: #4C413A;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      box-shadow: var(--cco-shadow-1), var(--shadow-press);
+    }
+    .cco-center-worklist,
+    .cco-feed-list,
+    .cco-compose-studio,
+    .cco-conversation-history-list {
+      scrollbar-gutter: stable;
+    }
+    @media (max-width: 1650px) {
+      .cco-layout {
+        grid-template-columns: minmax(240px, 260px) minmax(520px, 1fr) minmax(340px, 400px);
+      }
+      #ccoReplyMainBlocks {
+        grid-template-rows: minmax(180px, 0.82fr) minmax(300px, 1.18fr);
+      }
+    }
+    @media (max-width: 1220px) {
+      .cco-layout {
+        grid-template-columns: 240px minmax(0, 1fr);
+        grid-template-areas:
+          "inbox center"
+          "reply reply";
+        height: auto;
+        max-height: none;
+      }
+      .cco-send {
+        width: 100%;
+      }
+    }
+    @media (max-width: 1100px) {
+      .cco-layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "inbox"
+          "center"
+          "reply";
+        height: auto;
+        max-height: none;
+      }
+      body.cco-compact-header #adminHeader {
+        max-height: none;
+        overflow: visible;
+        flex-wrap: wrap;
+      }
+      body.cco-compact-header .section-nav {
+        max-height: none;
       }
     }
     .risk-trend-list {
@@ -4567,8 +5331,8 @@
           <div class="cco-toolbar-left">
             <h2>CCO inkorgsarbetsyta</h2>
             <div id="ccoSprintStatusBar" class="cco-sprint-status status-attention">Behöver uppmärksamhet</div>
-            <div id="ccoStatusCounts" class="cco-status-metrics">0 kritiska | 0 höga | 0 öppna</div>
-            <div id="ccoInboxMailboxMeta" class="mini muted">0 postlådor · 0 meddelanden</div>
+            <div id="ccoStatusCounts" class="cco-status-metrics">-</div>
+            <div id="ccoInboxMailboxMeta" class="mini muted">Hämtar mail…</div>
           </div>
           <div class="cco-toolbar-right">
             <label class="mini" for="ccoInboxMaxDrafts" style="margin:0;display:flex;align-items:center;gap:8px">
@@ -4579,11 +5343,6 @@
               <input id="ccoInboxIncludeClosed" type="checkbox" />
               Inkludera stängda
             </label>
-            <div id="ccoInboxModeToggle" class="cco-view-mode-toggle" role="group" aria-label="Inkorgsvy">
-              <button type="button" class="cco-view-mode-btn is-active" data-cco-mail-view="queue">Arbetskö</button>
-              <button type="button" class="cco-view-mode-btn" data-cco-mail-view="inbound">Alla inkomna</button>
-              <button type="button" class="cco-view-mode-btn" data-cco-mail-view="sent">Skickat</button>
-            </div>
             <button id="ccoWorkspaceCompactToggleBtn" class="btn small cco-compact-toggle" type="button" aria-expanded="false">
               Visa fokusdetaljer
             </button>
@@ -4622,18 +5381,15 @@
             <div class="cco-nav-stack">
               <section class="cco-nav-block cco-nav-block-top">
                 <div class="cco-column-title" style="padding:2px 2px 0">
-                  <h3>Inkorgskontroller</h3>
-                  <div class="cco-column-title-actions">
-                    <button id="ccoFocusShowAllBtn" class="cco-focus-toggle" type="button">Visa alla</button>
-                    <div id="ccoInboxPriority" class="cco-priority-badge badge-low">Låg</div>
-                  </div>
+                  <h3>Sök & systemmail</h3>
+                  <button id="ccoFocusShowAllBtn" class="cco-focus-toggle" type="button">Visa alla</button>
                 </div>
                 <div id="ccoInboxSearchRow" class="cco-filter-row cco-filter-row-search cco-search-system-row">
                   <input
                     id="ccoInboxSearchInput"
                     class="cco-search-input"
                     type="search"
-                    placeholder="Sök namn, e-post, ämne eller historik"
+                    placeholder="Sök (namn, e-post, ämne, historik)"
                     autocomplete="off"
                   />
                   <label class="cco-inline-toggle" style="justify-self:end">
@@ -4642,21 +5398,6 @@
                   </label>
                 </div>
                 <div id="ccoInboxSearchMeta" class="cco-search-meta mini muted"></div>
-                <div class="cco-filter-block-title" style="padding-top:2px">Prioritet</div>
-                <div id="ccoUnansweredPanel" class="cco-unanswered-panel">
-                  <button type="button" class="cco-unanswered-chip" data-cco-set-filter="breach">
-                    <span>🔴 Kritiska</span>
-                    <strong id="ccoUnansweredCriticalCount">0</strong>
-                  </button>
-                  <button type="button" class="cco-unanswered-chip" data-cco-set-filter="warning">
-                    <span>🟠 Höga</span>
-                    <strong id="ccoUnansweredHighCount">0</strong>
-                  </button>
-                  <button type="button" class="cco-unanswered-chip" data-cco-set-filter="all">
-                    <span>🟡 Medel</span>
-                    <strong id="ccoUnansweredMediumCount">0</strong>
-                  </button>
-                </div>
                 <div id="ccoSoftBreakPanel" class="cco-soft-break-panel">
                   <div class="cco-soft-break-title">Du lämnar sprintläge</div>
                   <div class="cco-soft-break-text">Välj hur sprinten ska hanteras innan du öppnar tråden.</div>
@@ -4692,7 +5433,7 @@
               <section class="cco-nav-block cco-nav-block-filters">
                 <section id="ccoExtraFiltersBlock" class="cco-filter-block is-collapsed">
                   <button id="ccoExtraFiltersToggleBtn" class="cco-filter-block-toggle" type="button" aria-expanded="false">
-                    <span>Fler filter</span>
+                    <span>Filter</span>
                     <span id="ccoExtraFiltersChevron" aria-hidden="true">▸</span>
                   </button>
                   <div id="ccoExtraFiltersContent" class="cco-filter-block-content">
@@ -4728,8 +5469,21 @@
           <section id="ccoCenterColumn" class="cco-center">
             <section class="cco-center-block cco-center-block-worklist">
               <div class="cco-column-title cco-center-title">
-                <h3>Arbetskö</h3>
-                <div id="ccoInboxRiskFlags" class="mini muted">0 / 0</div>
+                <h3 id="ccoCenterListTitle">Arbetskö</h3>
+                <div id="ccoInboxRiskFlags" class="mini muted">Hämtar…</div>
+              </div>
+              <div id="ccoInboxModeToggle" class="cco-view-mode-toggle cco-center-mode-toggle" role="group" aria-label="Inkorgsvy">
+                <button type="button" class="cco-view-mode-btn is-active" data-cco-mail-view="queue">Arbetskö</button>
+                <button type="button" class="cco-view-mode-btn" data-cco-mail-view="inbound">Alla inkomna</button>
+                <button type="button" class="cco-view-mode-btn" data-cco-mail-view="sent">Skickat</button>
+              </div>
+              <div id="ccoIndicatorFilterRow" class="cco-indicator-filter-row" role="group" aria-label="Statusfilter">
+                <button type="button" class="cco-indicator-filter-btn is-active" data-cco-indicator-filter="all">Alla</button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="new"><span class="cco-thread-indicator state-new"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Blå</button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="critical"><span class="cco-thread-indicator state-critical"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Röd</button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="high"><span class="cco-thread-indicator state-high"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Orange</button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium"><span class="cco-thread-indicator state-medium"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Gul</button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled"><span class="cco-thread-indicator state-handled"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Grön</button>
               </div>
               <div id="ccoInboxModeMeta" class="mini muted" style="margin:0 0 4px 2px"></div>
               <div id="ccoInboxDensityFilters" class="cco-filter-row cco-center-density-row">
@@ -4807,20 +5561,18 @@
             </section>
             <section id="ccoCenterEmptyState" class="cco-center-empty-state">
               <div class="cco-empty-state-title">Inga trådar i listan just nu</div>
-              <div id="ccoCenterEmptyStateMeta" class="mini muted">Justera filter eller uppdatera inkorgen för att fortsätta.</div>
+              <div id="ccoCenterEmptyStateMeta" class="mini muted">Justera urval eller uppdatera inkorgen för att fortsätta.</div>
               <div class="cco-empty-state-actions">
-                <button id="ccoClearFiltersBtn" class="btn small" type="button">Rensa filter</button>
-                <button id="ccoShowSystemMailsBtn" class="btn small" type="button">Visa systemmail</button>
-                <button id="ccoSwitchInboundBtn" class="btn small" type="button">Visa alla inkomna</button>
-                <button id="ccoSwitchOverviewBtn" class="btn small" type="button">Byt till Översikt</button>
+                <button id="ccoCenterRefreshBtn" class="btn small" type="button">Uppdatera inkorg</button>
               </div>
             </section>
           </section>
 
           <section id="ccoReplyColumn" class="cco-reply">
             <div class="cco-column-title">
-              <h3>Svarsstudio</h3>
+              <h3 id="ccoReplyColumnTitle">Svarsstudio</h3>
             </div>
+            <div id="ccoReplyReadOnlyBanner" class="cco-reply-readonly-banner" hidden>Skrivskyddad vy - byt till Arbetskö för att svara</div>
             <section id="ccoReplyEmptyState" class="cco-reply-empty-state">
               <div class="cco-empty-state-title">Inga trådar att svara på just nu</div>
               <div class="mini muted">Välj en tråd i arbetskön eller uppdatera inkorgen för att fortsätta.</div>
@@ -4911,6 +5663,7 @@
                 </div>
               </div>
             </section>
+            <div id="ccoComposeStudio" class="cco-compose-studio">
             <section class="cco-reply-block cco-compose-header-block">
               <div id="ccoReplyContextStrip" class="cco-reply-context-strip">Ingen konversation vald.</div>
               <div id="ccoReplyingToContext" class="mini muted">Välj ett meddelande i historiken för att svara med kontext.</div>
@@ -4926,7 +5679,7 @@
                 <div>
                   <label for="ccoSenderMailboxSelect">Skicka från</label>
                   <select id="ccoSenderMailboxSelect">
-                    <option value="contact@hairtpclinic.com" title="contact@hairtpclinic.com">contact — Hair TP Clinic · standard</option>
+                    <option value="contact@hairtpclinic.com" title="contact@hairtpclinic.com">contact — Hair TP Clinic · standardkonto</option>
                     <option value="info@hairtpclinic.com" title="info@hairtpclinic.com">info — Hair TP Clinic</option>
                     <option value="kons@hairtpclinic.com" title="kons@hairtpclinic.com">kons — Hair TP Clinic</option>
                     <option value="marknad@hairtpclinic.com" title="marknad@hairtpclinic.com">marknad — Hair TP Clinic</option>
@@ -4993,14 +5746,14 @@
             <section class="cco-reply-block cco-safety-block">
               <div id="ccoDraftRecommendedActionRow" class="cco-recommended-row">🎯 Rekommenderad åtgärd: -</div>
               <details class="cco-safety-details">
-                <summary>Visa risk, policy och konfidens</summary>
+                <summary>Visa risk, regelverk och konfidens</summary>
                 <div class="cco-safety-chip-row">
                   <span class="cco-safety-chip">
                     <span class="cco-safety-chip-label">Riskbedömning</span>
                     <span id="ccoDraftRiskIndicator" class="cco-risk-indicator">-</span>
                   </span>
                   <span class="cco-safety-chip">
-                    <span class="cco-safety-chip-label">Policykontroll</span>
+                    <span class="cco-safety-chip-label">Regelverkskontroll</span>
                     <span id="ccoDraftPolicyIndicator" class="cco-risk-indicator">-</span>
                   </span>
                   <span class="cco-safety-chip">
@@ -5017,6 +5770,7 @@
               </div>
             </section>
             </div>
+            </div>
           </section>
           <div id="ccoResizeHandleLeft" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd vänster" aria-orientation="vertical"></div>
           <div id="ccoResizeHandleRight" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd höger" aria-orientation="vertical"></div>
@@ -5027,7 +5781,7 @@
             <button type="button" data-cco-indicator-override="critical">Markera: Kritisk (Röd)</button>
             <button type="button" data-cco-indicator-override="handled">Markera: Hanterad (Grön)</button>
             <div class="is-divider"></div>
-            <button type="button" data-cco-indicator-override="auto">Återställ till auto</button>
+            <button type="button" data-cco-indicator-override="auto">Återställ automatiskt</button>
           </div>
         </div>
       </section>

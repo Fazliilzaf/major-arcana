@@ -14,6 +14,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=512
       - key: ARCANA_AI_PROVIDER
         value: openai
       - key: OPENAI_API_KEY
@@ -49,9 +51,31 @@ services:
       - key: CLIENTO_WIDGET_SRC_CURATIIO
         value: https://cliento.com/widget-v3/cliento.js
       - key: ARCANA_BACKUP_RETENTION_MAX_FILES
-        value: 50
+        value: 12
       - key: ARCANA_BACKUP_RETENTION_MAX_AGE_DAYS
-        value: 30
+        value: 14
+      - key: ARCANA_REPORT_RETENTION_MAX_FILES
+        value: 20
+      - key: ARCANA_REPORT_RETENTION_MAX_AGE_DAYS
+        value: 14
+      - key: ARCANA_STARTUP_AUTH_STORE_MAX_BYTES
+        value: 12582912
+      - key: ARCANA_STARTUP_MEMORY_STORE_MAX_BYTES
+        value: 25165824
+      - key: ARCANA_STARTUP_CAP_ANALYSIS_STORE_MAX_BYTES
+        value: 33554432
+      - key: ARCANA_STARTUP_TEMPLATE_STORE_MAX_BYTES
+        value: 25165824
+      - key: ARCANA_STARTUP_TENANT_CONFIG_STORE_MAX_BYTES
+        value: 8388608
+      - key: ARCANA_STARTUP_PATIENT_SIGNAL_STORE_MAX_BYTES
+        value: 20971520
+      - key: ARCANA_STARTUP_SLO_TICKET_STORE_MAX_BYTES
+        value: 8388608
+      - key: ARCANA_STARTUP_RELEASE_GOVERNANCE_STORE_MAX_BYTES
+        value: 8388608
+      - key: ARCANA_STARTUP_SECRET_ROTATION_STORE_MAX_BYTES
+        value: 4194304
       - key: ARCANA_SCHEDULER_ENABLED
         value: true
       - key: ARCANA_SCHEDULER_REPORT_WINDOW_DAYS
@@ -77,7 +101,7 @@ services:
       - key: ARCANA_SCHEDULER_JITTER_SEC
         value: 4
       - key: ARCANA_SCHEDULER_RUN_ON_STARTUP
-        value: true
+        value: false
       - key: ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS
         value: 30
       - key: ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS
