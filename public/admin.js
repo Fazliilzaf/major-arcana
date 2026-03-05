@@ -12086,7 +12086,7 @@
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     const debugMode = isCcoDebugMode();
     const densityMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
-    const sectionExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
+    let sectionExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
     const firstFilteredSubject = String(
       filteredRows[0]?.subject || filteredRows[0]?.latestInboundPreview || ''
     ).trim();
@@ -12264,6 +12264,19 @@
       needs: needsRows.length,
       rest: restRows.length,
     };
+    const nonSprintTotal =
+      Number(sectionTotals.high || 0) +
+      Number(sectionTotals.needs || 0) +
+      Number(sectionTotals.rest || 0);
+    const allNonSprintCollapsed =
+      sectionExpanded.high !== true &&
+      sectionExpanded.needs !== true &&
+      sectionExpanded.rest !== true;
+    if (mailViewMode === 'queue' && nonSprintTotal > 0 && allNonSprintCollapsed) {
+      sectionExpanded = defaultCcoSectionExpandedState();
+      state.ccoInboxSectionExpanded = sectionExpanded;
+      persistCcoWorkspaceSessionState();
+    }
     const sectionOrder = getCcoSectionRenderOrder(sectionTotals);
     applyCcoSectionDomOrder(sectionOrder);
 
