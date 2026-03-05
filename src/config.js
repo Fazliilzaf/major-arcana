@@ -265,9 +265,15 @@ const config = {
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
   authOwnerMfaBypassHosts: (() => {
+    const defaults = [
+      'arcana-staging.onrender.com',
+      'arcana.hairtpclinic.se',
+      'arcana.hairtpclinic.com',
+      'ma.hairtpclinic.se',
+      'ma.hairtpclinic.com',
+    ];
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
-    if (configured.length > 0) return configured;
-    return ['arcana-staging.onrender.com', 'arcana.hairtpclinic.se', 'arcana.hairtpclinic.com'];
+    return Array.from(new Set([...configured, ...defaults]));
   })(),
   authOwnerCredentialSelfHeal: asBool(process.env.AUTH_OWNER_CREDENTIAL_SELF_HEAL, true),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
