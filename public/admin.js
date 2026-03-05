@@ -38,6 +38,7 @@
   const CCO_EVIDENCE_QUERY_PARAM = 'evidence';
   const CCO_EVIDENCE_ALLOWED_HOSTS = Object.freeze([
     'arcana-staging.onrender.com',
+    'arcana.hairtpclinic.se',
     'localhost',
     '127.0.0.1',
   ]);
@@ -1134,6 +1135,7 @@
     ccoCenterEmptyStateMeta: document.getElementById('ccoCenterEmptyStateMeta'),
     ccoClearFiltersBtn: document.getElementById('ccoClearFiltersBtn'),
     ccoShowSystemMailsBtn: document.getElementById('ccoShowSystemMailsBtn'),
+    ccoSwitchInboundBtn: document.getElementById('ccoSwitchInboundBtn'),
     ccoSwitchOverviewBtn: document.getElementById('ccoSwitchOverviewBtn'),
     ccoConversationColumn: document.getElementById('ccoConversationColumn'),
     ccoConversationMeta: document.getElementById('ccoConversationMeta'),
@@ -11956,6 +11958,10 @@
     if (els.ccoInboxWorklist) {
       els.ccoInboxWorklist.style.display = mailViewMode === 'queue' ? '' : 'none';
     }
+    if (els.ccoSwitchInboundBtn && mailViewMode !== 'queue') {
+      els.ccoSwitchInboundBtn.hidden = true;
+      els.ccoSwitchInboundBtn.disabled = true;
+    }
     if (mailViewMode !== 'queue') {
       const feedDirection = mailViewMode === 'sent' ? 'outbound' : 'inbound';
       const feedEntries = getCcoFeedEntries(data, feedDirection);
@@ -12118,6 +12124,13 @@
       Number(sectionOutputs.high.shown || 0) +
       Number(sectionOutputs.needs.shown || 0) +
       Number(sectionOutputs.rest.shown || 0);
+    const fallbackInboundCount =
+      hasFilteredRows === true ? 0 : getCcoFeedEntries(data, 'inbound').length;
+    if (els.ccoSwitchInboundBtn) {
+      const showInboundShortcut = hasFilteredRows !== true && fallbackInboundCount > 0;
+      els.ccoSwitchInboundBtn.hidden = !showInboundShortcut;
+      els.ccoSwitchInboundBtn.disabled = !showInboundShortcut;
+    }
     const hasRowsHiddenByCurrentView = hasFilteredRows && visibleQueueRows === 0;
     if (hasRowsHiddenByCurrentView) {
       setCcoCenterEmptyState(true, {
@@ -12129,6 +12142,8 @@
       setCcoCenterEmptyState(!hasFilteredRows, {
         emptyMessage: hasFilteredRows
           ? ''
+          : fallbackInboundCount > 0
+          ? `Arbetskön är tom. Det finns ${fallbackInboundCount} inkomna mail i vyn "Alla inkomna".`
           : `Vald mailbox: ${
               sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all'
                 ? 'Alla'
@@ -15931,6 +15946,12 @@
   });
   els.ccoShowSystemMailsBtn?.addEventListener('click', () => {
     state.ccoInboxShowSystemMessages = true;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoSwitchInboundBtn?.addEventListener('click', () => {
+    state.ccoMailViewMode = 'inbound';
+    closeCcoIndicatorContextMenu();
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });

@@ -2161,6 +2161,115 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
   });
 }
 
+function toCcoRuntimeStatusHandler({
+  authStore,
+  capabilityAnalysisStore,
+  graphReadEnabled = false,
+  graphSendEnabled = false,
+  graphDeleteEnabled = false,
+  graphReadConnectorAvailable = false,
+  graphSendConnectorAvailable = false,
+}) {
+  return async (req, res) => {
+    const tenantId = toTenantId(req);
+    const graphReadOptions = toGraphReadOptionsFromEnv();
+
+    let latestAnalysisEntry = null;
+    if (capabilityAnalysisStore && typeof capabilityAnalysisStore.list === 'function') {
+      const entries = await capabilityAnalysisStore.list({
+        tenantId,
+        capabilityName: 'CCO.InboxAnalysis',
+        limit: 1,
+      });
+      latestAnalysisEntry = asArray(entries)[0] || null;
+    }
+
+    const latestOutputData = asObject(latestAnalysisEntry?.output?.data);
+    const conversationWorklist = asArray(latestOutputData.conversationWorklist);
+    const inboundFeed = asArray(latestOutputData.inboundFeed);
+    const outboundFeed = asArray(latestOutputData.outboundFeed);
+    const systemmailCount = conversationWorklist.filter((row) => {
+      const classification = normalizeText(row?.messageClassification).toLowerCase();
+      return classification === 'system_mail';
+    }).length;
+
+    let latestReadStart = null;
+    let latestReadComplete = null;
+    let latestReadError = null;
+    if (authStore && typeof authStore.listAuditEvents === 'function') {
+      const auditEvents = await authStore.listAuditEvents({
+        tenantId,
+        limit: 800,
+      });
+      for (const event of asArray(auditEvents)) {
+        const action = normalizeText(event?.action).toLowerCase();
+        if (!latestReadStart && action === 'mailbox.read.start') {
+          latestReadStart = event;
+        } else if (!latestReadComplete && action === 'mailbox.read.complete') {
+          latestReadComplete = event;
+        } else if (!latestReadError && action === 'mailbox.read.error') {
+          latestReadError = event;
+        }
+        if (latestReadStart && latestReadComplete && latestReadError) break;
+      }
+    }
+
+    const pickAuditSnapshot = (event) => {
+      if (!event || typeof event !== 'object') return null;
+      const metadata = asObject(event.metadata);
+      return {
+        id: normalizeText(event.id) || null,
+        ts: normalizeText(event.ts) || null,
+        action: normalizeText(event.action) || null,
+        outcome: normalizeText(event.outcome) || null,
+        mailboxCount: toNumber(metadata.mailboxCount, null),
+        mailboxErrors: toNumber(metadata.mailboxErrors, null),
+        inboundMessageCount: toNumber(metadata.inboundMessageCount, null),
+        outboundMessageCount: toNumber(metadata.outboundMessageCount, null),
+        errorMessage: normalizeText(metadata.errorMessage) || null,
+      };
+    };
+
+    return res.json({
+      generatedAt: new Date().toISOString(),
+      graph: {
+        readEnabled: graphReadEnabled === true,
+        sendEnabled: graphSendEnabled === true,
+        deleteEnabled: graphDeleteEnabled === true,
+        readConnectorAvailable: graphReadConnectorAvailable === true,
+        sendConnectorAvailable: graphSendConnectorAvailable === true,
+        fullTenant: graphReadOptions.fullTenant === true,
+        userScope: graphReadOptions.userScope,
+        allowlistMode: graphReadOptions.allowlistMode === true,
+        allowlistMailboxIds: asArray(graphReadOptions.allowlistMailboxIds),
+        allowlistMailboxCount: asArray(graphReadOptions.allowlistMailboxIds).length,
+        maxUsers: toNumber(graphReadOptions.maxUsers, 0),
+        maxMessagesPerUser: toNumber(graphReadOptions.maxMessagesPerUser, 0),
+        maxInboxMessagesPerUser: toNumber(graphReadOptions.maxInboxMessagesPerUser, 0),
+        maxSentMessagesPerUser: toNumber(graphReadOptions.maxSentMessagesPerUser, 0),
+        maxMessages: toNumber(graphReadOptions.maxMessages, 0),
+        maxInboxMessages: toNumber(graphReadOptions.maxInboxMessages, 0),
+        maxSentMessages: toNumber(graphReadOptions.maxSentMessages, 0),
+      },
+      latestCounts: {
+        worklistCount: conversationWorklist.length,
+        inboundFeedCount: inboundFeed.length,
+        outboundFeedCount: outboundFeed.length,
+        systemmailCount,
+      },
+      latestAnalysis: {
+        ts: normalizeText(latestAnalysisEntry?.ts) || null,
+        generatedAt: normalizeText(latestOutputData.generatedAt) || null,
+      },
+      latestAudit: {
+        mailboxReadStart: pickAuditSnapshot(latestReadStart),
+        mailboxReadComplete: pickAuditSnapshot(latestReadComplete),
+        mailboxReadError: pickAuditSnapshot(latestReadError),
+      },
+    });
+  };
+}
+
 function toCapabilityRunError(res, error) {
   const status = pickErrorStatus(error?.code);
   return res.status(status).json(toErrorPayload(error));
@@ -3047,6 +3156,27 @@ function createCapabilitiesRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     toRoleGuardedHandler(
       toCcoMetricsHandler({ authStore, capabilityAnalysisStore })
+    )
+  );
+
+  router.get(
+    '/cco/runtime/status',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoRuntimeStatusHandler({
+        authStore,
+        capabilityAnalysisStore,
+        graphReadEnabled: shouldEnableGraphRead,
+        graphSendEnabled: shouldEnableGraphSend,
+        graphDeleteEnabled: shouldEnableGraphDelete,
+        graphReadConnectorAvailable:
+          !!resolvedGraphReadConnector &&
+          typeof resolvedGraphReadConnector.fetchInboxSnapshot === 'function',
+        graphSendConnectorAvailable:
+          !!resolvedGraphSendConnector &&
+          typeof resolvedGraphSendConnector.sendReply === 'function',
+      })
     )
   );
 
