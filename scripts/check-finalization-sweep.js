@@ -16,7 +16,7 @@ function parseArgs(argv) {
     ),
     expectedExternalFailSteps: normalizeText(
       process.env.ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS ||
-        'check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff'
+        'bootstrap_release_cycle,check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff'
     ),
     strictExpectedOnly: true,
   };

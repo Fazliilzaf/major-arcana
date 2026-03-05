@@ -19,7 +19,7 @@ jobs:
       ARCANA_AI_PROVIDER: fallback
       ARCANA_FINALIZATION_SWEEP_OUT_FILE: ./data/reports/finalization-sweep-latest.json
       ARCANA_FINALIZATION_SWEEP_BOOTSTRAP_MODE: if_missing
-      ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS: check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff
+      ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS: bootstrap_release_cycle,check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff
       ARCANA_EXPECTED_CLOSURE_REMAINING: external_pentest_evidence,stability_window_14_30d,formal_live_signoff
     steps:
       - name: Checkout
