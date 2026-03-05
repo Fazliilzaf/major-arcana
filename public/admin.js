@@ -1090,6 +1090,7 @@
     ccoUnansweredHighCount: document.getElementById('ccoUnansweredHighCount'),
     ccoUnansweredMediumCount: document.getElementById('ccoUnansweredMediumCount'),
     ccoInboxMailboxFilters: document.getElementById('ccoInboxMailboxFilters'),
+    ccoInboxMailboxSelect: document.getElementById('ccoInboxMailboxSelect'),
     ccoInboxSlaFilters: document.getElementById('ccoInboxSlaFilters'),
     ccoInboxStateFilters: document.getElementById('ccoInboxStateFilters'),
     ccoInboxSearchInput: document.getElementById('ccoInboxSearchInput'),
@@ -1133,6 +1134,7 @@
     ccoCenterEmptyStateMeta: document.getElementById('ccoCenterEmptyStateMeta'),
     ccoClearFiltersBtn: document.getElementById('ccoClearFiltersBtn'),
     ccoShowSystemMailsBtn: document.getElementById('ccoShowSystemMailsBtn'),
+    ccoSwitchOverviewBtn: document.getElementById('ccoSwitchOverviewBtn'),
     ccoConversationColumn: document.getElementById('ccoConversationColumn'),
     ccoConversationMeta: document.getElementById('ccoConversationMeta'),
     ccoConversationPreview: document.getElementById('ccoConversationPreview'),
@@ -11089,6 +11091,13 @@
     return 'Arbetskö';
   }
 
+  function formatCcoDensityModeLabel(value = CCO_DEFAULT_DENSITY_MODE) {
+    const mode = sanitizeCcoDensityMode(value);
+    if (mode === 'focus') return 'Fokus';
+    if (mode === 'overview') return 'Översikt';
+    return 'Arbete';
+  }
+
   function buildCcoThreadMarkup(row = null, selectedId = '', debugMode = false) {
     if (!row || typeof row !== 'object') return '';
     const isActive = row.conversationId === selectedId;
@@ -11217,6 +11226,40 @@
         count: Number(mailboxCounts[mailbox] || 0),
       })),
     ];
+    if (els.ccoInboxMailboxSelect) {
+      const options = [
+        {
+          value: 'all',
+          label: 'Alla postlådor',
+          count: safeRows.length,
+        },
+        ...filterOptions.map((mailbox) => ({
+          value: mailbox,
+          label: formatCcoMailboxShortLabel(mailbox) || mailbox,
+          count: Number(mailboxCounts[mailbox] || 0),
+          title: mailbox,
+        })),
+      ];
+      els.ccoInboxMailboxSelect.innerHTML = options
+        .map((entry) => {
+          const value = sanitizeCcoMailboxFilter(entry.value);
+          const isActive =
+            sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === sanitizeCcoMailboxFilter(value);
+          const label =
+            value === 'all'
+              ? `${entry.label} (${Number(entry.count || 0)})`
+              : `${entry.label} · ${Number(entry.count || 0)}`;
+          const title = entry.title ? ` title="${escapeHtml(entry.title)}"` : '';
+          return `<option value="${escapeHtml(value)}"${isActive ? ' selected' : ''}${title}>${escapeHtml(
+            label
+          )}</option>`;
+        })
+        .join('');
+      const selectedFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
+      if (els.ccoInboxMailboxSelect.value !== selectedFilter) {
+        els.ccoInboxMailboxSelect.value = selectedFilter;
+      }
+    }
     els.ccoInboxMailboxFilters.innerHTML = buttons
       .map((entry) => {
         const value = normalizeCcoMailboxKey(entry.value);
@@ -11845,20 +11888,7 @@
     const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
     const filteredResult = getCcoFilteredConversations(openRows, { withMeta: true });
     const filteredRows = filteredResult.rows;
-    const hasVisibleRows = Array.isArray(filteredRows) && filteredRows.length > 0;
-    setCcoCenterEmptyState(!hasVisibleRows, {
-      emptyMessage: hasVisibleRows
-        ? ''
-        : `Vald mailbox: ${
-            sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all'
-              ? 'Alla'
-              : formatCcoMailboxShortLabel(state.ccoInboxMailboxFilter)
-          } · ${
-            sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages)
-              ? 'Systemmail visas'
-              : 'Systemmail döljs'
-          }`,
-    });
+    const hasFilteredRows = Array.isArray(filteredRows) && filteredRows.length > 0;
     const selectedId = String(state.ccoSelectedConversationId || '').trim();
     const debugMode = isCcoDebugMode();
     const densityMode = sanitizeCcoDensityMode(state.ccoInboxDensityMode);
@@ -12050,6 +12080,34 @@
       const capped = capCcoSectionRows(sectionInputs[section], capWithBudget, selectedId);
       sectionOutputs[section] = capped;
       remainingVisibleBudget = Math.max(0, remainingVisibleBudget - capped.shown);
+    }
+
+    const visibleQueueRows =
+      Number(sectionOutputs.sprint.shown || 0) +
+      Number(sectionOutputs.high.shown || 0) +
+      Number(sectionOutputs.needs.shown || 0) +
+      Number(sectionOutputs.rest.shown || 0);
+    const hasRowsHiddenByCurrentView = hasFilteredRows && visibleQueueRows === 0;
+    if (hasRowsHiddenByCurrentView) {
+      setCcoCenterEmptyState(true, {
+        emptyMessage: `Valda filter matchar ${filteredRows.length} konversationer men inga syns i läget ${formatCcoDensityModeLabel(
+          densityMode
+        )}. Byt till Översikt eller justera filter.`,
+      });
+    } else {
+      setCcoCenterEmptyState(!hasFilteredRows, {
+        emptyMessage: hasFilteredRows
+          ? ''
+          : `Vald mailbox: ${
+              sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all'
+                ? 'Alla'
+                : formatCcoMailboxShortLabel(state.ccoInboxMailboxFilter)
+            } · ${
+              sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages)
+                ? 'Systemmail visas'
+                : 'Systemmail döljs'
+            }`,
+      });
     }
 
     const selectedRow = filteredRows.find((row) => String(row?.conversationId || '').trim() === selectedId);
@@ -12424,8 +12482,9 @@
     if (els.ccoCenterColumn) {
       els.ccoCenterColumn.classList.toggle('is-empty', isEmpty === true);
     }
-    if (els.ccoCenterEmptyStateMeta && emptyMessage) {
-      els.ccoCenterEmptyStateMeta.textContent = emptyMessage;
+    if (els.ccoCenterEmptyStateMeta) {
+      els.ccoCenterEmptyStateMeta.textContent =
+        emptyMessage || 'Justera filter eller uppdatera inkorgen för att fortsätta.';
     }
   }
 
@@ -15839,6 +15898,12 @@
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
+  els.ccoSwitchOverviewBtn?.addEventListener('click', () => {
+    state.ccoMailViewMode = 'queue';
+    state.ccoInboxDensityMode = 'overview';
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
   els.ccoStartSprintBtn?.addEventListener('click', () => {
     startCcoSprint().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte starta fokus.', true);
@@ -15892,6 +15957,13 @@
     const button = closestFromEventTarget(event, 'button[data-cco-mailbox-filter]');
     if (!button) return;
     const nextFilter = sanitizeCcoMailboxFilter(button.getAttribute('data-cco-mailbox-filter') || 'all');
+    if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
+    state.ccoInboxMailboxFilter = nextFilter;
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxMailboxSelect?.addEventListener('change', () => {
+    const nextFilter = sanitizeCcoMailboxFilter(els.ccoInboxMailboxSelect?.value || 'all');
     if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
     state.ccoInboxMailboxFilter = nextFilter;
     persistCcoWorkspaceSessionState();
@@ -15982,8 +16054,10 @@
   });
   els.ccoInboxWorklist?.addEventListener('click', (event) => {
     const button = closestFromEventTarget(event, '.ccoConversationSelectBtn');
-    if (!button) return;
-    const conversationId = String(button.getAttribute('data-conversation-id') || '').trim();
+    const rowScope = button ? null : closestFromEventTarget(event, '[data-cco-conversation-id]');
+    const conversationId = String(
+      button?.getAttribute('data-conversation-id') || rowScope?.getAttribute('data-cco-conversation-id') || ''
+    ).trim();
     const clickedEl = getEventTargetElement(event);
     const topElementAtPoint =
       Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
