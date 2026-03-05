@@ -11440,6 +11440,7 @@
     const safe = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const parts = [
       `mode=${sanitizeCcoMailViewMode(safe.mode || state.ccoMailViewMode)}`,
+      `view=${sanitizeCcoDensityMode(safe.view || state.ccoInboxDensityMode)}`,
       `loading=${safe.loading === true || state.ccoInboxLoading === true ? 'true' : 'false'}`,
       `total=${Number.isFinite(Number(safe.totalRows)) ? Number(safe.totalRows) : 0}`,
       `open=${Number.isFinite(Number(safe.openRows)) ? Number(safe.openRows) : 0}`,
@@ -11455,6 +11456,29 @@
     const firstItem = String(safe.firstItemSubject || '').trim();
     if (firstItem) {
       parts.push(`first="${firstItem.slice(0, 80)}"`);
+    }
+    if (safe.sections && typeof safe.sections === 'object') {
+      const sectionParts = [];
+      for (const sectionKey of ['sprint', 'high', 'needs', 'rest']) {
+        const section = safe.sections[sectionKey];
+        if (!section || typeof section !== 'object') continue;
+        const shown = Number(section.shown || 0);
+        const total = Number(section.total || 0);
+        const cap = Number(section.cap || 0);
+        sectionParts.push(`${sectionKey}:${shown}/${total}(cap:${cap})`);
+      }
+      if (sectionParts.length) {
+        parts.push(`sections=${sectionParts.join(',')}`);
+      }
+    }
+    if (Number.isFinite(Number(safe.containerHeight))) {
+      parts.push(`container=${Math.round(Number(safe.containerHeight))}px`);
+    }
+    if (String(safe.containerOverflowY || '').trim()) {
+      parts.push(`overflowY=${String(safe.containerOverflowY).trim()}`);
+    }
+    if (Number.isFinite(Number(safe.computedVisibleRows))) {
+      parts.push(`computedVisible=${Number(safe.computedVisibleRows)}`);
     }
     const reason = String(safe.reason || '').trim();
     if (reason) {
@@ -12163,11 +12187,15 @@
       });
       renderCcoDebugOverlay({
         mode: mailViewMode,
+        view: densityMode,
         totalRows: queueRows.length,
         openRows: openRows.length,
         filteredRows: filteredRows.length,
         visibleRows: feedEntries.length,
         feedCount: feedEntries.length,
+        containerHeight: Number(els.ccoInboxWorklist?.getBoundingClientRect?.().height || 0),
+        containerOverflowY: getComputedStyle(els.ccoInboxWorklist || document.body).overflowY,
+        computedVisibleRows: feedEntries.length,
         firstItemSubject: String(
           selectedFeed?.subject ||
             selectedFeed?.preview ||
@@ -12356,11 +12384,37 @@
     }
     renderCcoDebugOverlay({
       mode: 'queue',
+      view: densityMode,
       totalRows: queueRows.length,
       openRows: openRows.length,
       filteredRows: filteredRows.length,
       visibleRows: visibleQueueRows,
       feedCount: getCcoFeedEntries(data, 'inbound').length,
+      sections: {
+        sprint: {
+          shown: sectionOutputs.sprint.shown,
+          total: sectionOutputs.sprint.total,
+          cap: sectionCaps.sprint,
+        },
+        high: {
+          shown: sectionOutputs.high.shown,
+          total: sectionOutputs.high.total,
+          cap: sectionCaps.high,
+        },
+        needs: {
+          shown: sectionOutputs.needs.shown,
+          total: sectionOutputs.needs.total,
+          cap: sectionCaps.needs,
+        },
+        rest: {
+          shown: sectionOutputs.rest.shown,
+          total: sectionOutputs.rest.total,
+          cap: Number.isFinite(sectionCaps.rest) ? sectionCaps.rest : 999,
+        },
+      },
+      containerHeight: Number(els.ccoInboxWorklist?.getBoundingClientRect?.().height || 0),
+      containerOverflowY: getComputedStyle(els.ccoInboxWorklist || document.body).overflowY,
+      computedVisibleRows: visibleQueueRows,
       firstItemSubject: firstFilteredSubject,
       reason: queueReason,
     });
@@ -12456,8 +12510,13 @@
     for (const section of ['sprint', 'high', 'needs', 'rest']) {
       const block = blockBySection[section];
       if (!block) continue;
-      block.open = densityVisibility[section] === true && sectionExpanded[section] === true;
-      block.classList.toggle('cco-density-hidden', densityVisibility[section] !== true);
+      const sectionVisible = densityVisibility[section] === true;
+      block.classList.toggle('cco-density-hidden', !sectionVisible);
+      // Do not mutate open-state for hidden sections; otherwise density switches
+      // can accidentally persist collapsed states and make Arbete/Översikt look empty.
+      if (sectionVisible) {
+        block.open = sectionExpanded[section] === true;
+      }
     }
 
   }
@@ -16390,6 +16449,7 @@
   els.ccoInboxWorklist?.addEventListener('toggle', (event) => {
     const details = closestFromEventTarget(event, 'details');
     if (!details) return;
+    if (details.classList.contains('cco-density-hidden')) return;
     const sectionKey =
       String(details.getAttribute('data-cco-section') || '').trim().toLowerCase() || 'rest';
     if (!['sprint', 'high', 'needs', 'rest'].includes(sectionKey)) return;
