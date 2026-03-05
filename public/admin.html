@@ -2001,13 +2001,6 @@
       0% { background-position: 100% 0; }
       100% { background-position: -100% 0; }
     }
-    .cco-center.is-empty .cco-conversation {
-      display: none;
-    }
-    .cco-center.is-empty .cco-center-worklist,
-    .cco-center.is-empty .cco-center-density-row {
-      display: none;
-    }
     .cco-center.is-empty .cco-center-empty-state {
       display: block;
     }
@@ -2301,6 +2294,41 @@
     .cco-filter-subgroup + .cco-filter-subgroup {
       border-top: 1px solid #efe5de;
       padding-top: 8px;
+    }
+    .cco-mailbox-select-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+    }
+    .cco-mailbox-select-row label {
+      font-size: 11px;
+      color: #6B625C;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      white-space: nowrap;
+      margin: 0;
+      padding-left: 2px;
+    }
+    .cco-mailbox-select {
+      min-width: 0;
+      width: 100%;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 12px;
+      line-height: 1.25;
+      background: #fff;
+      border: 1px solid #E2D8D1;
+      color: #2b2521;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    .cco-mailbox-favorites {
+      margin-top: 2px;
+    }
+    .cco-mailbox-favorites .cco-filter-btn {
+      padding: 5px 9px;
+      font-size: 11px;
     }
     .cco-search-system-row {
       display: grid;
@@ -4579,11 +4607,17 @@
               <section class="cco-nav-block cco-nav-block-mailbox">
                 <section id="ccoMailboxFiltersBlock" class="cco-filter-block">
                   <button id="ccoMailboxFiltersToggleBtn" class="cco-filter-block-toggle" type="button" aria-expanded="true">
-                    <span>Mailboxar</span>
+                    <span>Postlådor</span>
                     <span id="ccoMailboxFiltersChevron" aria-hidden="true">▾</span>
                   </button>
                   <div class="cco-filter-block-content">
-                    <div id="ccoInboxMailboxFilters" class="cco-filter-row cco-filter-row-mailbox">
+                    <div class="cco-mailbox-select-row">
+                      <label for="ccoInboxMailboxSelect">Postlåda</label>
+                      <select id="ccoInboxMailboxSelect" class="cco-mailbox-select">
+                        <option value="all">Alla postlådor</option>
+                      </select>
+                    </div>
+                    <div id="ccoInboxMailboxFilters" class="cco-filter-row cco-filter-row-mailbox cco-mailbox-favorites">
                       <button type="button" class="cco-filter-btn is-active" data-cco-mailbox-filter="all">Alla</button>
                     </div>
                   </div>
@@ -4706,8 +4740,34 @@
                 <div class="cco-loading-line w-90"></div>
               </div>
             </section>
+            <section id="ccoCenterEmptyState" class="cco-center-empty-state">
+              <div class="cco-empty-state-title">Inga trådar i listan just nu</div>
+              <div id="ccoCenterEmptyStateMeta" class="mini muted">Justera filter eller uppdatera inkorgen för att fortsätta.</div>
+              <div class="cco-empty-state-actions">
+                <button id="ccoClearFiltersBtn" class="btn small" type="button">Rensa filter</button>
+                <button id="ccoShowSystemMailsBtn" class="btn small" type="button">Visa systemmail</button>
+                <button id="ccoSwitchOverviewBtn" class="btn small" type="button">Byt till Översikt</button>
+              </div>
+            </section>
+          </section>
 
-            <section id="ccoConversationColumn" class="cco-conversation cco-center-block cco-center-block-read cco-center-read-split">
+          <section id="ccoReplyColumn" class="cco-reply">
+            <div class="cco-column-title">
+              <h3>Svarsstudio</h3>
+            </div>
+            <section id="ccoReplyEmptyState" class="cco-reply-empty-state">
+              <div class="cco-empty-state-title">Inga trådar att svara på just nu</div>
+              <div class="mini muted">Välj en tråd i arbetskön eller uppdatera inkorgen för att fortsätta.</div>
+              <div class="cco-empty-state-actions">
+                <button id="ccoReplyRefreshBtn" class="btn small" type="button">Uppdatera inkorg</button>
+                <label class="cco-inline-toggle">
+                  <input id="ccoReplyShowSystemToggle" type="checkbox" />
+                  Visa systemmail
+                </label>
+              </div>
+            </section>
+            <div id="ccoReplyMainBlocks">
+            <section id="ccoConversationColumn" class="cco-conversation cco-reply-block cco-reply-read-zone">
               <div class="cco-column-title">
                 <h3>Läsyta</h3>
                 <div id="ccoConversationMeta" class="mini muted">Ingen konversation vald.</div>
@@ -4785,32 +4845,6 @@
                 </div>
               </div>
             </section>
-            <section id="ccoCenterEmptyState" class="cco-center-empty-state">
-              <div class="cco-empty-state-title">Inga konversationer att visa just nu</div>
-              <div id="ccoCenterEmptyStateMeta" class="mini muted">Justera filter eller uppdatera inkorgen för att fortsätta.</div>
-              <div class="cco-empty-state-actions">
-                <button id="ccoClearFiltersBtn" class="btn small" type="button">Rensa filter</button>
-                <button id="ccoShowSystemMailsBtn" class="btn small" type="button">Visa systemmail</button>
-              </div>
-            </section>
-          </section>
-
-          <section id="ccoReplyColumn" class="cco-reply">
-            <div class="cco-column-title">
-              <h3>Svarsstudio</h3>
-            </div>
-            <section id="ccoReplyEmptyState" class="cco-reply-empty-state">
-              <div class="cco-empty-state-title">Inga trådar att svara på just nu</div>
-              <div class="mini muted">Uppdatera inkorgen eller visa systemmail om du vill se fler konversationer.</div>
-              <div class="cco-empty-state-actions">
-                <button id="ccoReplyRefreshBtn" class="btn small" type="button">Uppdatera inkorg</button>
-                <label class="cco-inline-toggle">
-                  <input id="ccoReplyShowSystemToggle" type="checkbox" />
-                  Visa systemmail
-                </label>
-              </div>
-            </section>
-            <div id="ccoReplyMainBlocks">
             <section class="cco-reply-block cco-compose-header-block">
               <div id="ccoReplyContextStrip" class="cco-reply-context-strip">Ingen konversation vald.</div>
               <div id="ccoReplyingToContext" class="mini muted">Välj ett meddelande i historiken för att svara med kontext.</div>
