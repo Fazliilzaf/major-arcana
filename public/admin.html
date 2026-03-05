@@ -5975,6 +5975,810 @@
     body.compact .code-block {
       max-height: 180px;
     }
+    /* CCO v8 visual skeleton: premium glass/neumorphic shell (UI-only) */
+    body.cco-light-mode.cco-compact-header {
+      background:
+        radial-gradient(1280px 740px at -6% -18%, rgba(141, 157, 183, 0.18) 0%, transparent 62%),
+        radial-gradient(1180px 720px at 102% -12%, rgba(168, 116, 76, 0.18) 0%, transparent 58%),
+        radial-gradient(1260px 760px at 52% 116%, rgba(119, 128, 106, 0.16) 0%, transparent 64%),
+        linear-gradient(180deg, #d8c9bd 0%, #c9b5a5 42%, #b39e8f 100%);
+      color: #3b2e28;
+    }
+    body.cco-light-mode.cco-compact-header .container {
+      width: min(1880px, 98vw);
+      margin: 4px auto 10px;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader {
+      margin-bottom: 6px;
+      min-height: 52px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(81, 61, 52, 0.2);
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.16)),
+        linear-gradient(180deg, rgba(214, 199, 184, 0.5), rgba(163, 143, 130, 0.34));
+      box-shadow:
+        0 26px 46px rgba(62, 46, 41, 0.2),
+        0 10px 20px rgba(62, 46, 41, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.52);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .brand-stack {
+      gap: 8px;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .admin-brand-mark-shell {
+      width: 68px;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader h1 {
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .lang-wrap {
+      gap: 6px;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .lang-wrap label {
+      font-size: 11px;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .lang-wrap select {
+      min-width: 110px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border-color: rgba(81, 61, 52, 0.24);
+      background: rgba(255, 255, 255, 0.72);
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader #sessionMeta {
+      font-size: 11px;
+      line-height: 1.2;
+      opacity: 0.9;
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .header-menu-row {
+      gap: 6px;
+      padding: 2px;
+      border-radius: 12px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.2)),
+        linear-gradient(150deg, rgba(163, 143, 130, 0.36), rgba(124, 99, 86, 0.22));
+      border: 1px solid rgba(81, 61, 52, 0.2);
+      box-shadow: 0 10px 22px rgba(62, 46, 41, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+    body.cco-light-mode.cco-compact-header #adminHeader .header-menu-row .btn,
+    body.cco-light-mode.cco-compact-header #adminHeader .header-menu-row select {
+      min-height: 30px;
+      height: 30px;
+      font-size: 12px;
+      padding: 0 10px;
+      border-radius: 10px;
+    }
+    body.cco-light-mode.cco-compact-header .section-nav {
+      margin-bottom: 6px;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(81, 61, 52, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.18)),
+        linear-gradient(155deg, rgba(195, 175, 158, 0.48), rgba(163, 143, 130, 0.32));
+      box-shadow:
+        0 18px 34px rgba(62, 46, 41, 0.17),
+        inset 0 1px 0 rgba(255, 255, 255, 0.48);
+      gap: 6px;
+    }
+    body.cco-light-mode.cco-compact-header .section-nav .sectionNavBtn {
+      min-height: 30px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(81, 61, 52, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.2)),
+        linear-gradient(155deg, rgba(214, 199, 184, 0.66), rgba(163, 143, 130, 0.34));
+      box-shadow: 0 6px 14px rgba(62, 46, 41, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      color: #4e3d35;
+    }
+    body.cco-light-mode.cco-compact-header .section-nav .sectionNavBtn.active {
+      color: #2b211d;
+      border-color: rgba(81, 61, 52, 0.32);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.26)),
+        linear-gradient(155deg, rgba(195, 175, 158, 0.78), rgba(124, 99, 86, 0.42));
+      box-shadow:
+        0 10px 18px rgba(62, 46, 41, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 0 0 1px rgba(141, 157, 183, 0.24);
+    }
+    body.cco-light-mode #ccoWorkspaceSection.cco-workspace {
+      --cco-bg: #d6c7b8;
+      --cco-surface: rgba(195, 175, 158, 0.56);
+      --cco-surface-alt: rgba(163, 143, 130, 0.46);
+      --cco-panel: rgba(255, 255, 255, 0.34);
+      --cco-border: rgba(78, 61, 53, 0.22);
+      --cco-text: #3b2e28;
+      --cco-muted: #7c6356;
+      --cco-accent: #a38f82;
+      --cco-critical: #b85f5a;
+      --cco-high: #a8744c;
+      --cco-medium: #b8a56a;
+      --cco-low: #77806a;
+      --cco-chip-bg: rgba(255, 255, 255, 0.48);
+      --cco-shadow-1: 0 8px 22px rgba(62, 46, 41, 0.14);
+      --cco-shadow-2: 0 18px 42px rgba(62, 46, 41, 0.19);
+      --cco-page-shadow: 0 34px 66px rgba(62, 46, 41, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      --cco-panel-shadow: 0 16px 34px rgba(62, 46, 41, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.58);
+      --cco-card-shadow: 0 10px 22px rgba(62, 46, 41, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      --cco-chip-shadow: 0 6px 14px rgba(62, 46, 41, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(78, 61, 53, 0.18);
+      border-radius: 16px;
+      background:
+        radial-gradient(130% 95% at -8% -12%, rgba(141, 157, 183, 0.18) 0%, transparent 68%),
+        radial-gradient(120% 92% at 108% -10%, rgba(168, 116, 76, 0.18) 0%, transparent 66%),
+        radial-gradient(110% 92% at 50% 112%, rgba(119, 128, 106, 0.16) 0%, transparent 68%),
+        linear-gradient(180deg, rgba(214, 199, 184, 0.58) 0%, rgba(163, 143, 130, 0.44) 100%);
+      box-shadow: var(--cco-page-shadow);
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+    }
+    body.cco-light-mode #ccoWorkspaceSection.cco-layout-root {
+      min-height: calc(100vh - var(--headerHeight, 110px));
+      height: calc(100vh - var(--headerHeight, 110px));
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar {
+      min-height: 44px;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.24)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.6), rgba(163, 143, 130, 0.34));
+      box-shadow: var(--cco-card-shadow);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-left h2 {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-left,
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-right {
+      gap: 6px;
+      align-items: center;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-right .btn,
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-right input,
+    body.cco-light-mode #ccoWorkspaceSection .cco-toolbar-right select {
+      min-height: 30px;
+      height: 30px;
+      font-size: 12px;
+      padding: 0 10px;
+      border-radius: 10px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoInboxStatus {
+      min-height: 18px;
+      padding: 2px 8px 0;
+      border-bottom: 1px solid rgba(78, 61, 53, 0.16);
+      font-size: 11px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+      grid-template-columns: 260px minmax(520px, 1fr) clamp(380px, 28vw, 460px);
+      gap: 14px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      min-height: 0;
+      height: calc(100vh - var(--headerHeight, 110px) - 52px);
+      margin-top: 6px !important;
+      overflow: visible;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox,
+    body.cco-light-mode #ccoWorkspaceSection .cco-center,
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply {
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      border-radius: 14px;
+      background:
+        linear-gradient(170deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.2)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.5), rgba(163, 143, 130, 0.26));
+      box-shadow: var(--cco-panel-shadow);
+      backdrop-filter: blur(14px) saturate(122%);
+      -webkit-backdrop-filter: blur(14px) saturate(122%);
+      padding: 10px;
+      gap: 8px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox {
+      border-right: 1px solid rgba(78, 61, 53, 0.2);
+      min-width: 0;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-center {
+      border-right: 1px solid rgba(78, 61, 53, 0.2);
+      min-width: 0;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply {
+      border-left: 1px solid rgba(78, 61, 53, 0.2);
+      min-width: 0;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-nav-stack {
+      gap: 8px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-nav-block,
+    body.cco-light-mode #ccoWorkspaceSection .cco-center-block,
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply-block,
+    body.cco-light-mode #ccoWorkspaceSection .cco-conversation,
+    body.cco-light-mode #ccoWorkspaceSection .cco-center-empty-state,
+    body.cco-light-mode #ccoWorkspaceSection .cco-center-loading,
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply-empty-state,
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-block {
+      border: 1px solid rgba(78, 61, 53, 0.18);
+      border-radius: 12px;
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.32)),
+        linear-gradient(150deg, rgba(214, 199, 184, 0.42), rgba(163, 143, 130, 0.2));
+      box-shadow: var(--cco-card-shadow);
+      backdrop-filter: blur(12px) saturate(118%);
+      -webkit-backdrop-filter: blur(12px) saturate(118%);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-column-title {
+      margin-bottom: 4px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-column-title h3 {
+      font-size: 11px;
+      letter-spacing: 0.07em;
+      color: #5e4b41;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-search-system-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-search-input {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      border-color: rgba(78, 61, 53, 0.2);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 4px 10px rgba(62, 46, 41, 0.08);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inline-toggle {
+      font-size: 11px;
+      color: #654f43;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-select-row label {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: #654f43;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-select {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border-color: rgba(78, 61, 53, 0.22);
+      background: rgba(255, 255, 255, 0.76);
+      font-size: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 4px 10px rgba(62, 46, 41, 0.08);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-favorites {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      max-height: none;
+      overflow: visible;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-block-toggle {
+      min-height: 28px;
+      height: 28px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      border-radius: 9px;
+      color: #5e4b41;
+      box-shadow: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-subgroup + .cco-filter-subgroup {
+      padding-top: 7px;
+      margin-top: 1px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search):not(.cco-mailbox-favorites) {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      max-height: 72px;
+      overflow-y: auto;
+      padding-right: 1px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-view-mode-toggle,
+    body.cco-light-mode #ccoWorkspaceSection .cco-read-tabs {
+      padding: 3px;
+      border-radius: 11px;
+      border: 1px solid rgba(78, 61, 53, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.32)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.4), rgba(163, 143, 130, 0.24));
+      box-shadow: 0 6px 14px rgba(62, 46, 41, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.58);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-view-mode-btn {
+      min-height: 28px;
+      height: 28px;
+      font-size: 11px;
+      border-radius: 9px;
+      padding: 0 11px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #6b5548;
+      box-shadow: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-view-mode-btn.is-active {
+      border-color: rgba(78, 61, 53, 0.2);
+      color: #2b211d;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.4)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.58), rgba(163, 143, 130, 0.3));
+      box-shadow:
+        0 8px 16px rgba(62, 46, 41, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 0 0 1px rgba(141, 157, 183, 0.22);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-row {
+      gap: 6px;
+      margin: 0 0 3px 1px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-btn {
+      min-height: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.3)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.36), rgba(163, 143, 130, 0.22));
+      box-shadow: var(--cco-chip-shadow);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-btn .cco-thread-indicator {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-count {
+      font-size: 11px;
+      color: #5e4b41;
+      font-weight: 600;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-center-density-row {
+      margin: 0 0 4px;
+      padding: 3px;
+      border-radius: 11px;
+      border-color: rgba(78, 61, 53, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.32)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.38), rgba(163, 143, 130, 0.22));
+      box-shadow: 0 6px 14px rgba(62, 46, 41, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn {
+      min-height: 26px;
+      height: 26px;
+      padding: 0 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      font-size: 11px;
+      font-weight: 600;
+      color: #614d42;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.42), rgba(163, 143, 130, 0.2));
+      box-shadow: var(--cco-chip-shadow);
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn::before,
+    body.cco-light-mode #ccoWorkspaceSection .btn::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 0;
+      height: 42%;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+      pointer-events: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn:hover,
+    body.cco-light-mode #ccoWorkspaceSection .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(78, 61, 53, 0.34);
+      box-shadow: 0 8px 18px rgba(62, 46, 41, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn.is-active {
+      color: #2b211d;
+      border-color: rgba(78, 61, 53, 0.34);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.36)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.7), rgba(163, 143, 130, 0.34));
+      box-shadow:
+        0 9px 20px rgba(62, 46, 41, 0.19),
+        inset 0 1px 0 rgba(255, 255, 255, 0.76),
+        0 0 0 1px rgba(141, 157, 183, 0.2);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .btn.primary,
+    body.cco-light-mode #ccoWorkspaceSection .cco-send-sticky-bar .cco-send {
+      color: #fff;
+      border-color: rgba(62, 46, 41, 0.3);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.02)),
+        linear-gradient(145deg, rgba(95, 75, 66, 0.94), rgba(62, 46, 41, 0.94));
+      box-shadow:
+        0 10px 20px rgba(62, 46, 41, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-center-worklist,
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-list {
+      overflow-y: auto;
+      min-height: 0;
+      padding-right: 2px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox-group {
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      overflow: visible;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox-group > summary {
+      min-height: 26px;
+      padding: 3px 6px 4px;
+      border-radius: 8px;
+      font-size: 10px;
+      color: #6a5449;
+      border: 1px solid rgba(78, 61, 53, 0.12);
+      background: rgba(255, 255, 255, 0.38);
+      box-shadow: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox-group[open] > summary {
+      border-bottom: 1px solid rgba(78, 61, 53, 0.12);
+      margin-bottom: 4px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-list {
+      gap: 9px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread {
+      border: 1px solid rgba(78, 61, 53, 0.18);
+      border-left: 4px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 58px;
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.36)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.32), rgba(163, 143, 130, 0.12));
+      box-shadow: var(--cco-card-shadow);
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread:hover,
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item:hover {
+      transform: translateY(-1px);
+      border-color: rgba(78, 61, 53, 0.3);
+      box-shadow:
+        0 14px 28px rgba(62, 46, 41, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        0 0 0 1px rgba(141, 157, 183, 0.16);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread.active,
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item.is-selected {
+      border-left: 4px solid #8d9db7;
+      border-color: rgba(78, 61, 53, 0.34);
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.4)),
+        linear-gradient(145deg, rgba(141, 157, 183, 0.24), rgba(195, 175, 158, 0.3));
+      box-shadow:
+        0 16px 30px rgba(62, 46, 41, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        0 0 0 1px rgba(141, 157, 183, 0.28);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-subject,
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item-subject {
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 600;
+      color: #2e2521;
+      -webkit-line-clamp: 1;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-meta,
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item-meta {
+      font-size: 12px;
+      line-height: 1.35;
+      color: #6c564a;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-chip:nth-child(n + 2) {
+      display: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-chip {
+      min-height: 22px;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.28)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.4), rgba(163, 143, 130, 0.18));
+      box-shadow: var(--cco-chip-shadow);
+      color: #5e4b41;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator {
+      width: 15px;
+      height: 15px;
+      min-width: 15px;
+      border-radius: 999px;
+      border: 1px solid rgba(78, 61, 53, 0.24);
+      margin-top: 1px;
+      box-shadow: 0 4px 10px rgba(62, 46, 41, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.36);
+      transform: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator svg {
+      display: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-neutral {
+      background: rgba(124, 99, 86, 0.55);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-new {
+      background: rgba(141, 157, 183, 0.95);
+      border-color: rgba(68, 85, 101, 0.52);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-critical {
+      background: rgba(184, 95, 90, 0.94);
+      border-color: rgba(94, 63, 60, 0.54);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-high {
+      background: rgba(168, 116, 76, 0.94);
+      border-color: rgba(111, 78, 53, 0.52);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-medium {
+      background: rgba(184, 165, 106, 0.94);
+      border-color: rgba(127, 115, 74, 0.52);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-handled {
+      background: rgba(119, 128, 106, 0.94);
+      border-color: rgba(79, 86, 72, 0.52);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item {
+      border: 1px solid rgba(78, 61, 53, 0.18);
+      border-radius: 12px;
+      padding: 0;
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.34)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.3), rgba(163, 143, 130, 0.12));
+      box-shadow: var(--cco-card-shadow);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-feed-item-btn {
+      min-height: 58px;
+      gap: 5px;
+      padding: 10px 12px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoReplyMainBlocks {
+      grid-template-rows: minmax(220px, 0.9fr) minmax(330px, 1.1fr);
+      gap: 10px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply-read-zone {
+      min-height: 0;
+      overflow: hidden;
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoReadTabConversation,
+    body.cco-light-mode #ccoWorkspaceSection #ccoReadTabCustomer {
+      min-height: 0;
+      overflow: auto;
+      padding-right: 2px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-reply-readonly-banner {
+      border: 1px solid rgba(78, 61, 53, 0.24);
+      border-left: 3px solid #8d9db7;
+      border-radius: 10px;
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.32)),
+        linear-gradient(145deg, rgba(141, 157, 183, 0.22), rgba(195, 175, 158, 0.24));
+      color: #4f3f36;
+      padding: 8px 10px;
+      box-shadow: var(--cco-chip-shadow);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-compose-header-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px 10px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-compose-header-grid label {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: #634f44;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-compose-header-grid input,
+    body.cco-light-mode #ccoWorkspaceSection .cco-compose-header-grid select {
+      height: 30px;
+      min-height: 30px;
+      padding: 0 9px;
+      border-radius: 10px;
+      border-color: rgba(78, 61, 53, 0.22);
+      background: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-editor-block {
+      min-height: 0;
+      gap: 9px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-editor {
+      min-height: 280px;
+      border-radius: 12px;
+      border: 1px solid rgba(78, 61, 53, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.62)),
+        linear-gradient(145deg, rgba(214, 199, 184, 0.22), rgba(163, 143, 130, 0.12));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 8px 16px rgba(62, 46, 41, 0.12);
+      color: #2f2521;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-actions-toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-actions-toolbar .btn {
+      min-height: 30px;
+      height: 30px;
+      font-size: 12px;
+      border-radius: 10px;
+      padding: 0 10px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-recommended-row,
+    body.cco-light-mode #ccoWorkspaceSection .cco-safety-chip {
+      border: 1px solid rgba(78, 61, 53, 0.2);
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.3)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.34), rgba(163, 143, 130, 0.2));
+      box-shadow: var(--cco-chip-shadow);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-send-sticky-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 3;
+      padding-top: 6px;
+      border-top: 1px solid rgba(78, 61, 53, 0.16);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.54));
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-send-sticky-bar .btn {
+      min-height: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoIndicatorContextMenu {
+      border: 1px solid rgba(78, 61, 53, 0.24);
+      border-radius: 12px;
+      background:
+        linear-gradient(175deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.42)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.38), rgba(163, 143, 130, 0.24));
+      box-shadow: 0 18px 34px rgba(62, 46, 41, 0.22);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
+    }
+    body.cco-light-mode #ccoWorkspaceSection #ccoIndicatorContextMenu button {
+      min-height: 30px;
+      font-size: 12px;
+      color: #4f3f36;
+    }
+    /* D + E final tightening: fewer visible controls, less chip-wall, cleaner status */
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-favorites {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+      max-height: 150px;
+      overflow-y: auto;
+      padding-right: 1px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-favorites .cco-filter-btn {
+      justify-content: flex-start;
+      width: 100%;
+      min-height: 28px;
+      height: 28px;
+      padding: 0 9px;
+      border-radius: 10px;
+      font-size: 11px;
+      text-align: left;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-mailbox-favorites .cco-filter-btn:nth-child(n + 6) {
+      display: none;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search):not(.cco-mailbox-favorites) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+      max-height: 132px;
+      overflow-y: auto;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn {
+      min-height: 28px;
+      height: 28px;
+      padding: 0 9px;
+      border-radius: 10px;
+      font-size: 11px;
+      text-align: left;
+      justify-content: flex-start;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn[data-cco-sla-filter],
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn[data-cco-state-filter],
+    body.cco-light-mode #ccoWorkspaceSection .cco-filter-btn[data-cco-mailbox-filter] {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-row {
+      gap: 7px;
+      margin: 0 0 4px 1px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-btn {
+      min-height: 28px;
+      height: 28px;
+      min-width: 42px;
+      padding: 0 8px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 7px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-btn.is-active {
+      box-shadow:
+        0 9px 20px rgba(62, 46, 41, 0.19),
+        inset 0 1px 0 rgba(255, 255, 255, 0.76),
+        0 0 0 1px rgba(141, 157, 183, 0.2);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-indicator-filter-btn .cco-thread-indicator {
+      width: 10px;
+      height: 10px;
+      min-width: 10px;
+      border: 0;
+      box-shadow: none;
+      margin: 0;
+      opacity: 1;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator {
+      width: 11px;
+      height: 11px;
+      min-width: 11px;
+      border: 0;
+      box-shadow: none;
+      margin-top: 3px;
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-neutral {
+      background: rgba(124, 99, 86, 0.78);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-new {
+      background: rgba(141, 157, 183, 0.98);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-critical {
+      background: rgba(184, 95, 90, 0.98);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-high {
+      background: rgba(168, 116, 76, 0.98);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-medium {
+      background: rgba(184, 165, 106, 0.98);
+    }
+    body.cco-light-mode #ccoWorkspaceSection .cco-thread-indicator.state-handled {
+      background: rgba(119, 128, 106, 0.98);
+    }
+    @media (max-width: 1380px) {
+      body.cco-light-mode #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+        grid-template-columns: 248px minmax(460px, 1fr) minmax(360px, 0.9fr);
+      }
+    }
+    @media (max-width: 1200px) {
+      body.cco-light-mode #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      body.cco-light-mode #ccoWorkspaceSection .cco-inbox,
+      body.cco-light-mode #ccoWorkspaceSection .cco-center,
+      body.cco-light-mode #ccoWorkspaceSection .cco-reply {
+        min-height: 320px;
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation: none !important;
