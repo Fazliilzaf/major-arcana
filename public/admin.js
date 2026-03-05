@@ -13029,7 +13029,7 @@
     applyCcoSnoozeButtonState();
   }
 
-  async function runCcoInboxBrief({ quiet = false } = {}) {
+  async function runCcoInboxBrief({ quiet = false, forceLoading = false } = {}) {
     if (state.ccoInboxBriefRunInFlight) {
       if (!quiet) {
         setStatus(els.ccoInboxStatus, 'CCO inkorgsbrief körs redan.');
@@ -13038,6 +13038,7 @@
     }
     state.ccoInboxBriefRunInFlight = true;
     const shouldShowLoading =
+      forceLoading === true ||
       quiet !== true ||
       !(state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object');
     if (shouldShowLoading) {
@@ -14979,7 +14980,7 @@
     await loadTenants();
     if (normalizedScope === 'cco') {
       if (canTemplateWrite()) {
-        await runCcoInboxBrief({ quiet: true });
+        await runCcoInboxBrief({ quiet: true, forceLoading: true });
       } else {
         await loadCcoInboxBrief({ quiet: true });
       }
