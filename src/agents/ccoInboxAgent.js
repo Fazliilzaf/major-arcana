@@ -186,6 +186,27 @@ function normalizeDraftModes(value = null, fallbackReply = '') {
   };
 }
 
+function normalizeFeedDirection(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'outbound') return 'outbound';
+  return 'inbound';
+}
+
+function normalizeFeedEntry(item = {}) {
+  const safe = asObject(item);
+  return {
+    feedId: normalizeText(safe.feedId) || 'okand-feed',
+    conversationId: normalizeText(safe.conversationId) || 'okand',
+    messageId: normalizeText(safe.messageId) || 'okand',
+    direction: normalizeFeedDirection(safe.direction),
+    subject: normalizeText(safe.subject) || '(utan ämne)',
+    counterpart: normalizeText(safe.counterpart) || 'okänd kontakt',
+    mailboxAddress: normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId) || 'okand-postlada',
+    sentAt: normalizeText(safe.sentAt) || new Date().toISOString(),
+    preview: normalizeText(safe.preview) || '',
+  };
+}
+
 function normalizeStructureUsed(value = null) {
   const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return {
@@ -237,6 +258,8 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
         'priorityLevel',
         'mailboxCount',
         'messageCount',
+        'inboundFeed',
+        'outboundFeed',
         'generatedAt',
       ],
       additionalProperties: false,
@@ -251,6 +274,8 @@ const ccoInboxAnalysisOutputSchema = Object.freeze({
         priorityLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
         mailboxCount: { type: 'number', minimum: 0 },
         messageCount: { type: 'number', minimum: 0 },
+        inboundFeed: { type: 'array', maxItems: 1200, items: { type: 'object' } },
+        outboundFeed: { type: 'array', maxItems: 1200, items: { type: 'object' } },
         generatedAt: { type: 'string', minLength: 1, maxLength: 50 },
       },
     },
@@ -488,6 +513,8 @@ function composeCcoInboxAnalysis({
       priorityLevel: normalizePriorityLevel(data.priorityLevel),
       mailboxCount: toNonNegativeNumber(data.mailboxCount, 0),
       messageCount: toNonNegativeNumber(data.messageCount, 0),
+      inboundFeed: toStructuredRows(data.inboundFeed, 1200).map(normalizeFeedEntry),
+      outboundFeed: toStructuredRows(data.outboundFeed, 1200).map(normalizeFeedEntry),
       generatedAt: new Date().toISOString(),
     },
     metadata: composedMetadata,
