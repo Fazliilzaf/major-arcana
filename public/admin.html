@@ -6892,6 +6892,181 @@
     body.cco-light-mode #ccoWorkspaceSection .cco-feed-item-meta {
       color: #654f43;
     }
+    /* Final hard override: apply regardless of light-mode class (matches live screenshots) */
+    body.cco-compact-header #adminHeader {
+      min-height: 44px !important;
+      padding: 4px 8px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      overflow: visible !important;
+    }
+    body.cco-compact-header #adminHeader .admin-brand-mark-shell {
+      width: 54px !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    body.cco-compact-header #adminHeader .admin-brand-mark {
+      filter:
+        sepia(0.4)
+        saturate(0.94)
+        hue-rotate(-8deg)
+        contrast(1.14)
+        brightness(0.74)
+        drop-shadow(0 2px 8px rgba(33, 24, 19, 0.34)) !important;
+    }
+    body #ccoWorkspaceSection .cco-center::before {
+      display: none !important;
+    }
+    body #ccoWorkspaceSection .cco-mailbox-favorites {
+      max-height: none !important;
+      overflow: visible !important;
+      padding-right: 0 !important;
+    }
+    body #ccoWorkspaceSection .cco-filter-btn,
+    body #ccoWorkspaceSection .cco-thread-chip,
+    body #ccoWorkspaceSection .cco-priority-badge {
+      min-height: 24px !important;
+      height: 24px !important;
+      padding: 0 8px !important;
+      border-radius: 9px !important;
+      font-size: 10px !important;
+    }
+    body #ccoWorkspaceSection .cco-mailbox-favorites .cco-filter-btn {
+      width: auto !important;
+      max-width: 100% !important;
+    }
+    body #ccoWorkspaceSection .cco-filter-btn-mailbox-count,
+    body #ccoWorkspaceSection .cco-indicator-filter-count {
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+    }
+    body #ccoWorkspaceSection .cco-indicator-filter-row {
+      gap: 6px !important;
+      flex-wrap: wrap !important;
+    }
+    body #ccoWorkspaceSection .cco-indicator-filter-btn {
+      min-height: 24px !important;
+      height: 24px !important;
+      min-width: 0 !important;
+      padding: 0 7px !important;
+      border-radius: 9px !important;
+      gap: 5px !important;
+      justify-content: flex-start !important;
+      overflow: visible !important;
+      white-space: nowrap !important;
+    }
+    body #ccoWorkspaceSection .cco-indicator-filter-label {
+      display: inline !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      color: #574439 !important;
+      line-height: 1 !important;
+    }
+    body #ccoWorkspaceSection .cco-indicator-filter-btn .cco-thread-indicator,
+    body #ccoWorkspaceSection .cco-thread-indicator {
+      width: 13px !important;
+      height: 13px !important;
+      min-width: 13px !important;
+      border: 1px solid rgba(78, 61, 53, 0.34) !important;
+      box-shadow: 0 4px 10px rgba(62, 46, 41, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.34) !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-neutral {
+      background: #7c6356 !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-new {
+      background: #8d9db7 !important;
+      border-color: #445565 !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-critical {
+      background: #b85f5a !important;
+      border-color: #5e3f3c !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-high {
+      background: #a8744c !important;
+      border-color: #6f4e35 !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-medium {
+      background: #b8a56a !important;
+      border-color: #7f734a !important;
+    }
+    body #ccoWorkspaceSection .cco-thread-indicator.state-handled {
+      background: #77806a !important;
+      border-color: #4f5648 !important;
+    }
+    body #ccoWorkspaceSection #ccoReplyMainBlocks {
+      grid-template-rows: minmax(220px, 0.95fr) minmax(0, 1.05fr) !important;
+      gap: 8px !important;
+    }
+    body #ccoWorkspaceSection .cco-compose-studio {
+      grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+      gap: 8px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    body #ccoWorkspaceSection .cco-editor-block {
+      min-height: 0 !important;
+    }
+    body #ccoWorkspaceSection .cco-editor,
+    body #ccoWorkspaceSection #ccoDraftBodyInput {
+      min-height: 190px !important;
+      max-height: 34vh !important;
+      position: relative !important;
+      z-index: 1 !important;
+    }
+    body #ccoWorkspaceSection .cco-actions-toolbar .btn {
+      min-height: 28px !important;
+      height: 28px !important;
+      padding: 0 8px !important;
+      border-radius: 9px !important;
+      font-size: 11px !important;
+    }
+    body #ccoWorkspaceSection .cco-actions-block,
+    body #ccoWorkspaceSection .cco-safety-block {
+      position: relative !important;
+      z-index: 2 !important;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-view,
+    body #ccoWorkspaceSection .cco-feed-list {
+      background: #fdfaf7 !important;
+      background-image: none !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-item {
+      opacity: 1 !important;
+      background: #fff !important;
+      border-color: rgba(78, 61, 53, 0.18) !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-item-btn {
+      color: #2f2521 !important;
+      background: transparent !important;
+      mix-blend-mode: normal !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-item-btn::before {
+      display: none !important;
+      content: none !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-item.is-selected .cco-feed-item-btn {
+      background: #ede4dc !important;
+      color: #2b211d !important;
+    }
+    body #ccoWorkspaceSection .cco-feed-item:hover .cco-feed-item-btn {
+      background: #f4ebe4 !important;
+      color: #2b211d !important;
+    }
     @media (max-width: 1380px) {
       body.cco-light-mode #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
         grid-template-columns: 248px minmax(460px, 1fr) minmax(360px, 0.9fr);
@@ -7199,12 +7374,12 @@
                 <button type="button" class="cco-view-mode-btn" data-cco-mail-view="sent">Skickat</button>
               </div>
               <div id="ccoIndicatorFilterRow" class="cco-indicator-filter-row" role="group" aria-label="Statusfilter">
-                <button type="button" class="cco-indicator-filter-btn is-active" data-cco-indicator-filter="all" title="Alla: 0" aria-label="Alla: 0"><span class="cco-thread-indicator state-neutral" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="new" title="Ny/återkommit: 0" aria-label="Ny/återkommit: 0"><span class="cco-thread-indicator state-new" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="critical" title="Kritisk: 0" aria-label="Kritisk: 0"><span class="cco-thread-indicator state-critical" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="high" title="Hög: 0" aria-label="Hög: 0"><span class="cco-thread-indicator state-high" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium" title="Medel: 0" aria-label="Medel: 0"><span class="cco-thread-indicator state-medium" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled" title="Hanterad: 0" aria-label="Hanterad: 0"><span class="cco-thread-indicator state-handled" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn is-active" data-cco-indicator-filter="all" title="Alla: 0" aria-label="Alla: 0"><span class="cco-thread-indicator state-neutral" aria-hidden="true"></span><span class="cco-indicator-filter-label">Alla</span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="new" title="Ny/återkommit: 0" aria-label="Ny/återkommit: 0"><span class="cco-thread-indicator state-new" aria-hidden="true"></span><span class="cco-indicator-filter-label">Ny</span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="critical" title="Kritisk: 0" aria-label="Kritisk: 0"><span class="cco-thread-indicator state-critical" aria-hidden="true"></span><span class="cco-indicator-filter-label">Kritisk</span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="high" title="Hög: 0" aria-label="Hög: 0"><span class="cco-thread-indicator state-high" aria-hidden="true"></span><span class="cco-indicator-filter-label">Hög</span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium" title="Medel: 0" aria-label="Medel: 0"><span class="cco-thread-indicator state-medium" aria-hidden="true"></span><span class="cco-indicator-filter-label">Medel</span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled" title="Hanterad: 0" aria-label="Hanterad: 0"><span class="cco-thread-indicator state-handled" aria-hidden="true"></span><span class="cco-indicator-filter-label">Hanterad</span><span class="cco-indicator-filter-count">0</span></button>
               </div>
               <div id="ccoInboxModeMeta" class="mini muted" style="margin:0 0 4px 2px"></div>
               <div id="ccoInboxDensityFilters" class="cco-filter-row cco-center-density-row">
