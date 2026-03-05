@@ -11257,10 +11257,13 @@
         const ring = document.createElement('span');
         ring.className = `cco-thread-indicator ${indicatorClassByFilter[value] || 'state-neutral'}`;
         ring.setAttribute('aria-hidden', 'true');
+        const labelEl = document.createElement('span');
+        labelEl.className = 'cco-indicator-filter-label';
+        labelEl.textContent = labels[value] || labels.all;
         const countEl = document.createElement('span');
         countEl.className = 'cco-indicator-filter-count';
         countEl.textContent = String(count);
-        button.append(ring, countEl);
+        button.append(ring, labelEl, countEl);
       });
   }
 

@@ -242,7 +242,7 @@ function createAuthRouter({
       const hasOwnerMembership = memberships.some(
         (membership) => String(membership?.role || '').toUpperCase() === ROLE_OWNER
       );
-      const ownerMfaBypassed = hasOwnerMembership && isOwnerMfaBypassed(req);
+      const ownerMfaBypassed = isOwnerMfaBypassed(req);
       const requiresMfa = ownerMfaBypassed
         ? false
         : hasOwnerMembership || Boolean(user?.mfaRequired);
@@ -271,7 +271,7 @@ function createAuthRouter({
             tenantRequested: tenantId || null,
             setupRequired: Boolean(pendingMfa.setupRequired),
             tenantCount: memberships.length,
-            ownerMfaBypassed: false,
+            ownerMfaBypassed,
           },
         });
 
