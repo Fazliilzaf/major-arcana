@@ -899,16 +899,6 @@
     tenantSelectionPanel: document.getElementById('tenantSelectionPanel'),
     tenantSelectionSelect: document.getElementById('tenantSelectionSelect'),
     completeTenantSelectionBtn: document.getElementById('completeTenantSelectionBtn'),
-    mfaPanel: document.getElementById('mfaPanel'),
-    mfaSetupHint: document.getElementById('mfaSetupHint'),
-    mfaSetupSecretWrap: document.getElementById('mfaSetupSecretWrap'),
-    mfaSetupSecret: document.getElementById('mfaSetupSecret'),
-    mfaSetupOtpAuthWrap: document.getElementById('mfaSetupOtpAuthWrap'),
-    mfaSetupOtpAuth: document.getElementById('mfaSetupOtpAuth'),
-    mfaRecoveryCodesWrap: document.getElementById('mfaRecoveryCodesWrap'),
-    mfaRecoveryCodes: document.getElementById('mfaRecoveryCodes'),
-    mfaCodeInput: document.getElementById('mfaCodeInput'),
-    mfaVerifyBtn: document.getElementById('mfaVerifyBtn'),
     loginBtn: document.getElementById('loginBtn'),
     loginStatus: document.getElementById('loginStatus'),
     appModalBackdrop: document.getElementById('appModalBackdrop'),
@@ -3135,41 +3125,6 @@
 
   function clearPendingMfa() {
     state.pendingMfaTicket = '';
-    if (els.mfaPanel) els.mfaPanel.classList.add('hidden');
-    if (els.mfaSetupHint) els.mfaSetupHint.classList.add('hidden');
-    if (els.mfaSetupSecretWrap) els.mfaSetupSecretWrap.classList.add('hidden');
-    if (els.mfaSetupOtpAuthWrap) els.mfaSetupOtpAuthWrap.classList.add('hidden');
-    if (els.mfaRecoveryCodesWrap) els.mfaRecoveryCodesWrap.classList.add('hidden');
-    if (els.mfaSetupSecret) els.mfaSetupSecret.textContent = '';
-    if (els.mfaSetupOtpAuth) els.mfaSetupOtpAuth.textContent = '';
-    if (els.mfaRecoveryCodes) els.mfaRecoveryCodes.textContent = '';
-    if (els.mfaCodeInput) els.mfaCodeInput.value = '';
-  }
-
-  function renderPendingMfa(payload = {}) {
-    if (!els.mfaPanel) return;
-    const mfaTicket = String(payload?.mfaTicket || '').trim();
-    if (!mfaTicket) {
-      clearPendingMfa();
-      return;
-    }
-
-    state.pendingMfaTicket = mfaTicket;
-    const setupRequired = Boolean(payload?.mfa?.setupRequired);
-
-    if (els.mfaPanel) els.mfaPanel.classList.remove('hidden');
-    if (els.mfaSetupHint) els.mfaSetupHint.classList.toggle('hidden', !setupRequired);
-    if (els.mfaSetupSecretWrap) els.mfaSetupSecretWrap.classList.add('hidden');
-    if (els.mfaSetupOtpAuthWrap) els.mfaSetupOtpAuthWrap.classList.add('hidden');
-    if (els.mfaRecoveryCodesWrap) els.mfaRecoveryCodesWrap.classList.add('hidden');
-    if (els.mfaSetupSecret) els.mfaSetupSecret.textContent = '';
-    if (els.mfaSetupOtpAuth) els.mfaSetupOtpAuth.textContent = '';
-    if (els.mfaRecoveryCodes) els.mfaRecoveryCodes.textContent = '';
-    if (els.mfaCodeInput) {
-      els.mfaCodeInput.value = '';
-      els.mfaCodeInput.setAttribute('autocomplete', 'off');
-      els.mfaCodeInput.focus({ preventScroll: true });
-    }
   }
 
   function isOwner() {
@@ -15645,7 +15600,7 @@
   async function verifyMfa(codeOverride = '') {
     try {
       const mfaTicket = String(state.pendingMfaTicket || '').trim();
-      const code = String(codeOverride || els.mfaCodeInput?.value || '').trim();
+      const code = String(codeOverride || '').trim();
       if (!mfaTicket || !code) {
         throw new Error('Ange MFA-kod först.');
       }
@@ -15683,10 +15638,6 @@
       setAuthVisible(true);
       await refreshAll({ scope: resolveRefreshScope() });
     } catch (error) {
-      if (els.mfaCodeInput) {
-        els.mfaCodeInput.value = '';
-        els.mfaCodeInput.focus({ preventScroll: true });
-      }
       setStatus(els.loginStatus, error.message || 'MFA-verifiering misslyckades.', true);
     }
   }
@@ -16155,12 +16106,6 @@
   }
 
   els.loginBtn?.addEventListener('click', handleLogin);
-  els.mfaVerifyBtn?.addEventListener('click', verifyMfa);
-  els.mfaCodeInput?.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    verifyMfa();
-  });
   els.completeTenantSelectionBtn?.addEventListener('click', completeTenantSelection);
   els.switchTenantBtn?.addEventListener('click', switchTenant);
   els.refreshBtn?.addEventListener('click', () =>
