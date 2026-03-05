@@ -52,3 +52,44 @@ test('startup disk guard prunes backups/reports and clears stale tmp files', asy
   await assert.rejects(fs.stat(authTmpPath), (error) => error && error.code === 'ENOENT');
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test('startup disk guard sanitizes oversized state files before boot', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-startup-state-guard-'));
+  const stateRoot = path.join(tempDir, 'state');
+  const backupDir = path.join(stateRoot, 'backups');
+  const reportsDir = path.join(stateRoot, 'reports');
+  const analysisPath = path.join(stateRoot, 'capability-analysis.json');
+
+  await createFile(analysisPath, JSON.stringify({ entries: new Array(2000).fill({ a: 'b' }) }));
+
+  const summary = await runStartupDiskGuard({
+    config: {
+      stateRoot,
+      backupDir,
+      reportsDir,
+      capabilityAnalysisStorePath: analysisPath,
+      startupStateFileGuardEnabled: true,
+      startupCapabilityAnalysisStoreMaxBytes: 512,
+      backupRetentionMaxFiles: 1,
+      backupRetentionMaxAgeDays: 365,
+      reportRetentionMaxFiles: 1,
+      reportRetentionMaxAgeDays: 365,
+    },
+    logger: {
+      warn() {},
+    },
+  });
+
+  assert.equal(summary.stateFiles.sanitizedCount, 1);
+  const sanitized = summary.stateFiles.sanitized[0] || {};
+  assert.equal(sanitized.scope, 'capability_analysis_store');
+  assert.equal(Boolean(sanitized.backupPath), true);
+
+  const sanitizedRaw = await fs.readFile(analysisPath, 'utf8');
+  const sanitizedJson = JSON.parse(sanitizedRaw);
+  assert.equal(Array.isArray(sanitizedJson.entries), true);
+  assert.equal(sanitizedJson.entries.length, 0);
+
+  await fs.stat(`${analysisPath}.oversize.bak`);
+  await fs.rm(tempDir, { recursive: true, force: true });
+});

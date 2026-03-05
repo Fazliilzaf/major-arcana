@@ -5,6 +5,13 @@ const { pruneBackups } = require('./stateBackup');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 
 const TMP_FILE_PATTERN = /\.tmp$/i;
+const MB = 1024 * 1024;
+
+function toPositiveInt(value, fallback = 0) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return Math.max(1, Number(fallback) || 1);
+  return parsed;
+}
 
 function asDirectory(value) {
   if (typeof value !== 'string') return '';
@@ -58,6 +65,139 @@ async function pruneTempFilesInDirectory({
   return deleted;
 }
 
+function buildStateFileGuards(config = {}) {
+  const ts = new Date().toISOString();
+  return [
+    {
+      scope: 'auth_store',
+      filePath: config.authStorePath,
+      maxBytes: toPositiveInt(config.startupAuthStoreMaxBytes, 25 * MB),
+      fallback: {
+        users: {},
+        memberships: {},
+        sessions: {},
+        pendingLogins: {},
+        pendingMfaChallenges: {},
+        auditEvents: [],
+      },
+    },
+    {
+      scope: 'memory_store',
+      filePath: config.memoryStorePath,
+      maxBytes: toPositiveInt(config.startupMemoryStoreMaxBytes, 180 * MB),
+      fallback: { conversations: {} },
+    },
+    {
+      scope: 'capability_analysis_store',
+      filePath: config.capabilityAnalysisStorePath,
+      maxBytes: toPositiveInt(config.startupCapabilityAnalysisStoreMaxBytes, 220 * MB),
+      fallback: {
+        version: 1,
+        createdAt: ts,
+        updatedAt: ts,
+        entries: [],
+      },
+    },
+    {
+      scope: 'template_store',
+      filePath: config.templateStorePath,
+      maxBytes: toPositiveInt(config.startupTemplateStoreMaxBytes, 80 * MB),
+      fallback: { templates: {}, evaluations: [] },
+    },
+    {
+      scope: 'tenant_config_store',
+      filePath: config.tenantConfigStorePath,
+      maxBytes: toPositiveInt(config.startupTenantConfigStoreMaxBytes, 25 * MB),
+      fallback: { tenants: {} },
+    },
+    {
+      scope: 'patient_signal_store',
+      filePath: config.patientSignalStorePath,
+      maxBytes: toPositiveInt(config.startupPatientSignalStoreMaxBytes, 80 * MB),
+      fallback: { version: 1, createdAt: ts, updatedAt: ts, events: [] },
+    },
+    {
+      scope: 'slo_ticket_store',
+      filePath: config.sloTicketStorePath,
+      maxBytes: toPositiveInt(config.startupSloTicketStoreMaxBytes, 30 * MB),
+      fallback: { version: 1, createdAt: ts, updatedAt: ts, tickets: [] },
+    },
+    {
+      scope: 'release_governance_store',
+      filePath: config.releaseGovernanceStorePath,
+      maxBytes: toPositiveInt(config.startupReleaseGovernanceStoreMaxBytes, 25 * MB),
+      fallback: { version: 1, createdAt: ts, updatedAt: ts, cycles: [] },
+    },
+    {
+      scope: 'secret_rotation_store',
+      filePath: config.secretRotationStorePath,
+      maxBytes: toPositiveInt(config.startupSecretRotationStoreMaxBytes, 10 * MB),
+      fallback: { version: 1, createdAt: ts, updatedAt: ts, secrets: {} },
+    },
+  ];
+}
+
+async function sanitizeOversizedStateFiles({ config }) {
+  const guardsEnabled = config.startupStateFileGuardEnabled !== false;
+  const summary = {
+    enabled: guardsEnabled,
+    checkedCount: 0,
+    sanitizedCount: 0,
+    checked: [],
+    sanitized: [],
+    errors: [],
+  };
+  if (!guardsEnabled) return summary;
+
+  const guards = buildStateFileGuards(config);
+  for (const guard of guards) {
+    const absoluteFilePath = String(guard.filePath || '').trim()
+      ? path.resolve(String(guard.filePath || '').trim())
+      : '';
+    if (!absoluteFilePath) continue;
+    summary.checkedCount += 1;
+    try {
+      const stat = await fs.stat(absoluteFilePath);
+      const sizeBytes = Number(stat.size || 0);
+      summary.checked.push({
+        scope: guard.scope,
+        filePath: absoluteFilePath,
+        sizeBytes,
+        maxBytes: guard.maxBytes,
+      });
+      if (sizeBytes <= guard.maxBytes) continue;
+
+      const backupPath = `${absoluteFilePath}.oversize.bak`;
+      try {
+        await fs.unlink(backupPath);
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+
+      await fs.rename(absoluteFilePath, backupPath);
+      await fs.writeFile(absoluteFilePath, JSON.stringify(guard.fallback, null, 2), 'utf8');
+      summary.sanitizedCount += 1;
+      summary.sanitized.push({
+        scope: guard.scope,
+        filePath: absoluteFilePath,
+        backupPath,
+        previousSizeBytes: sizeBytes,
+        maxBytes: guard.maxBytes,
+      });
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue;
+      summary.errors.push({
+        scope: guard.scope,
+        filePath: absoluteFilePath,
+        message: error?.message || 'state file guard failed',
+        code: error?.code || null,
+      });
+    }
+  }
+
+  return summary;
+}
+
 async function runStartupDiskGuard({ config, logger = console } = {}) {
   const summary = {
     startedAt: new Date().toISOString(),
@@ -69,12 +209,26 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
       reclaimedBytes: 0,
       deleted: [],
     },
+    stateFiles: null,
     reclaimedBytes: 0,
     errors: [],
   };
   if (!config || typeof config !== 'object') {
     summary.errors.push({ scope: 'startup_disk_guard', message: 'config saknas' });
     return summary;
+  }
+
+  try {
+    summary.stateFiles = await sanitizeOversizedStateFiles({ config });
+  } catch (error) {
+    summary.errors.push({
+      scope: 'state_file_guard',
+      message: error?.message || 'state file guard failed',
+      code: error?.code || null,
+    });
+  }
+  if (Array.isArray(summary.stateFiles?.errors) && summary.stateFiles.errors.length > 0) {
+    summary.errors.push(...summary.stateFiles.errors);
   }
 
   try {
@@ -145,12 +299,13 @@ async function runStartupDiskGuard({ config, logger = console } = {}) {
     summary.errors.length > 0
   ) {
     const reclaimedMb = Number((Number(summary.reclaimedBytes || 0) / (1024 * 1024)).toFixed(2));
+    const sanitizedStateFiles = Number(summary.stateFiles?.sanitizedCount || 0);
     logger?.warn?.(
       `[startup-disk-guard] reclaimed=${reclaimedMb}MB backupsDeleted=${
         summary.backupPrune?.deletedCount || 0
       } reportsDeleted=${summary.reportPrune?.deletedCount || 0} tmpDeleted=${
         summary.tempFiles.deletedCount
-      } errors=${summary.errors.length}`
+      } sanitizedStateFiles=${sanitizedStateFiles} errors=${summary.errors.length}`
     );
   }
 
