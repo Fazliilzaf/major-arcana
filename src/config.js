@@ -216,39 +216,39 @@ const config = {
   startupStateFileGuardEnabled: asBool(process.env.ARCANA_STARTUP_STATE_FILE_GUARD_ENABLED, true),
   startupAuthStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_AUTH_STORE_MAX_BYTES,
-    25 * 1024 * 1024
+    12 * 1024 * 1024
   ),
   startupMemoryStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_MEMORY_STORE_MAX_BYTES,
-    180 * 1024 * 1024
+    24 * 1024 * 1024
   ),
   startupCapabilityAnalysisStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_CAP_ANALYSIS_STORE_MAX_BYTES,
-    220 * 1024 * 1024
+    32 * 1024 * 1024
   ),
   startupTemplateStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_TEMPLATE_STORE_MAX_BYTES,
-    80 * 1024 * 1024
+    24 * 1024 * 1024
   ),
   startupTenantConfigStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_TENANT_CONFIG_STORE_MAX_BYTES,
-    25 * 1024 * 1024
+    8 * 1024 * 1024
   ),
   startupPatientSignalStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_PATIENT_SIGNAL_STORE_MAX_BYTES,
-    80 * 1024 * 1024
+    20 * 1024 * 1024
   ),
   startupSloTicketStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_SLO_TICKET_STORE_MAX_BYTES,
-    30 * 1024 * 1024
+    8 * 1024 * 1024
   ),
   startupReleaseGovernanceStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_RELEASE_GOVERNANCE_STORE_MAX_BYTES,
-    25 * 1024 * 1024
+    8 * 1024 * 1024
   ),
   startupSecretRotationStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_SECRET_ROTATION_STORE_MAX_BYTES,
-    10 * 1024 * 1024
+    4 * 1024 * 1024
   ),
 
   authStorePath: resolveStatePath({
