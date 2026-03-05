@@ -87,6 +87,20 @@ function makeDraft(index) {
   };
 }
 
+function makeFeed(index, direction = 'inbound') {
+  return {
+    feedId: `feed-${direction}-${index}`,
+    conversationId: `conv-${index}`,
+    messageId: `msg-${index}`,
+    direction,
+    subject: `Feed Subject ${index}`,
+    counterpart: direction === 'outbound' ? `to-${index}@example.com` : `from-${index}@example.com`,
+    mailboxAddress: `mailbox-${index}@hairtpclinic.com`,
+    sentAt: new Date().toISOString(),
+    preview: `Feed preview ${index}`,
+  };
+}
+
 test('CCO inbox analysis compose returns schema-valid output', () => {
   const output = composeCcoInboxAnalysis({
     inboxOutput: {
@@ -99,6 +113,8 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
         suggestedDrafts: [makeDraft(1), makeDraft(2)],
         executiveSummary: 'Inbox summary',
         priorityLevel: 'Critical',
+        inboundFeed: [makeFeed(1, 'inbound')],
+        outboundFeed: [makeFeed(1, 'outbound')],
       },
       metadata: {
         capability: 'AnalyzeInbox',
@@ -137,6 +153,10 @@ test('CCO inbox analysis compose returns schema-valid output', () => {
   assert.equal(typeof output.data.suggestedDrafts?.[0]?.customerSummary?.customerName, 'string');
   assert.equal(output.data.suggestedDrafts?.[0]?.tempoProfile, 'responsive');
   assert.equal(output.data.suggestedDrafts?.[0]?.dominantRisk, 'tone');
+  assert.equal(Array.isArray(output.data.inboundFeed), true);
+  assert.equal(Array.isArray(output.data.outboundFeed), true);
+  assert.equal(output.data.inboundFeed[0]?.direction, 'inbound');
+  assert.equal(output.data.outboundFeed[0]?.direction, 'outbound');
 });
 
 test('CCO inbox analysis compose clamps draft list to max 5', () => {
@@ -151,6 +171,8 @@ test('CCO inbox analysis compose clamps draft list to max 5', () => {
         suggestedDrafts: [1, 2, 3, 4, 5, 6, 7].map((index) => makeDraft(index)),
         executiveSummary: 'ok',
         priorityLevel: 'Medium',
+        inboundFeed: [],
+        outboundFeed: [],
       },
       metadata: {},
       warnings: [],
@@ -172,6 +194,8 @@ test('CCO inbox analysis omits empty optional metadata fields', () => {
         suggestedDrafts: [makeDraft(1)],
         executiveSummary: 'ok',
         priorityLevel: 'Low',
+        inboundFeed: [],
+        outboundFeed: [],
       },
       metadata: {},
       warnings: [],
@@ -211,6 +235,8 @@ test('CCO inbox analysis accepts long provider message ids', () => {
         ],
         executiveSummary: 'ok',
         priorityLevel: 'Low',
+        inboundFeed: [],
+        outboundFeed: [],
       },
       metadata: {},
       warnings: [],
