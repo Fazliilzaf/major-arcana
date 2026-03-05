@@ -589,10 +589,10 @@
   });
   const CCO_COLUMN_RESIZE_BREAKPOINT = 1360;
   const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
-    leftMin: 240,
+    leftMin: 260,
     leftMax: 280,
-    rightMin: 360,
-    rightMax: 420,
+    rightMin: 380,
+    rightMax: 460,
     centerMin: 520,
   });
 
@@ -5226,7 +5226,7 @@
     if (!Number.isFinite(width) || width <= 0) return { left: null, right: null };
     const limits = CCO_COLUMN_WIDTH_LIMITS;
     const fallbackLeft = 260;
-    const fallbackRight = 400;
+    const fallbackRight = 420;
     const rawLeft = Number(input?.left);
     const rawRight = Number(input?.right);
     const hasLeft = Number.isFinite(rawLeft) && rawLeft > 0;
@@ -5422,7 +5422,7 @@
     const topPadding = compactCco ? 10 : 34;
     let computed = Math.max(floor, Math.round(headerHeight + navHeight + topPadding));
     if (compactCco) {
-      computed = Math.min(120, computed);
+      computed = Math.min(110, computed);
     }
     document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
     applyCcoColumnLayout({ persist: false });
@@ -10876,7 +10876,7 @@
       renderCcoReplyContext(null);
     }
     setCcoReplyEmptyState(false, {
-      emptyMessage: 'Skrivskyddad vy - byt till Arbetskö för att svara.',
+      emptyMessage: 'Skrivskyddad vy. Byt till Arbetskö för att svara.',
     });
     return true;
   }
@@ -11203,7 +11203,7 @@
   function buildCcoCheckmarkIconMarkup({ state = 'neutral', isOverridden = false } = {}) {
     const className = mapCcoIndicatorStateToClassName(state);
     const overrideClass = isOverridden === true ? ' is-overridden' : '';
-    return `<span class="cco-thread-indicator ${className}${overrideClass}" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>`;
+    return `<span class="cco-thread-indicator ${className}${overrideClass}" aria-hidden="true"></span>`;
   }
 
   function formatCcoIndicatorStateLabel(state = '') {
@@ -11270,11 +11270,19 @@
     }
     const labels = {
       all: 'Alla',
-      new: 'Blå',
-      critical: 'Röd',
-      high: 'Orange',
-      medium: 'Gul',
-      handled: 'Grön',
+      new: 'Ny/återkommit',
+      critical: 'Kritisk',
+      high: 'Hög',
+      medium: 'Medel',
+      handled: 'Hanterad',
+    };
+    const indicatorClassByFilter = {
+      all: 'state-neutral',
+      new: 'state-new',
+      critical: 'state-critical',
+      high: 'state-high',
+      medium: 'state-medium',
+      handled: 'state-handled',
     };
     const activeFilter = sanitizeCcoIndicatorViewFilter(state.ccoIndicatorViewFilter);
     els.ccoIndicatorFilterRow
@@ -11283,18 +11291,21 @@
         const value = sanitizeCcoIndicatorViewFilter(
           String(button.getAttribute('data-cco-indicator-filter') || 'all')
         );
+        const count = Number(counts[value] || 0);
         const isActive = value === activeFilter;
         button.classList.toggle('is-active', isActive);
         button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        if (value === 'all') {
-          button.textContent = `${labels.all} (${counts.all})`;
-          return;
-        }
-        const ring = button.querySelector('.cco-thread-indicator');
-        const label = `${labels[value]} (${counts[value] || 0})`;
+        const tooltipLabel = `${labels[value] || labels.all}: ${count}`;
+        button.setAttribute('title', tooltipLabel);
+        button.setAttribute('aria-label', tooltipLabel);
         button.textContent = '';
-        if (ring) button.appendChild(ring);
-        button.append(label);
+        const ring = document.createElement('span');
+        ring.className = `cco-thread-indicator ${indicatorClassByFilter[value] || 'state-neutral'}`;
+        ring.setAttribute('aria-hidden', 'true');
+        const countEl = document.createElement('span');
+        countEl.className = 'cco-indicator-filter-count';
+        countEl.textContent = String(count);
+        button.append(ring, countEl);
       });
   }
 
@@ -12317,6 +12328,7 @@
         setSelectedCcoConversation('', { syncRoute: false });
       }
       renderCcoFeedList(visibleFeedEntries, mailViewMode);
+      renderCcoIndicatorFilterRow(visibleFeedEntries.map((entry) => entry?.row || entry));
       const feedViewEmptyMessage =
         feedEntries.length === 0
           ? `Inga mail i ${formatCcoMailViewModeLabel(mailViewMode).toLowerCase()} för valda filter.`
@@ -12352,6 +12364,7 @@
           const conversationId = String(itemEl.getAttribute('data-cco-conversation-id') || '').trim();
           if (!conversationId) return;
           event.preventDefault();
+          event.stopPropagation();
           openCcoIndicatorContextMenu({
             conversationId,
             clientX: event.clientX,
@@ -12986,7 +12999,7 @@
     }
     if (els.ccoReplyReadOnlyBanner) {
       els.ccoReplyReadOnlyBanner.hidden = !readOnlyMode;
-      els.ccoReplyReadOnlyBanner.textContent = 'Skrivskyddad vy - byt till Arbetskö för att svara';
+      els.ccoReplyReadOnlyBanner.textContent = 'Skrivskyddad vy. Byt till Arbetskö för att svara.';
     }
   }
 
@@ -13086,7 +13099,7 @@
     if (!conversation) {
       setCcoReplyEmptyState(!readOnlyMode, {
         emptyMessage: readOnlyMode
-          ? 'Skrivskyddad vy - välj ett mail i listan för att läsa.'
+          ? 'Skrivskyddad vy. Välj ett mail i listan för att läsa.'
           : 'Välj en tråd i arbetskön för att öppna svarsläget. Du kan även uppdatera inkorgen eller visa systemmail.',
       });
       if (els.ccoConversationMeta) {
@@ -13139,7 +13152,7 @@
     if (readOnlyMode) {
       setCcoReplyEmptyState(false, {
         emptyMessage:
-          'Skrivskyddad vy - byt till Arbetskö för att svara.',
+          'Skrivskyddad vy. Byt till Arbetskö för att svara.',
       });
     } else {
       setCcoReplyEmptyState(false);
@@ -16690,6 +16703,7 @@
     const conversationId = String(scope?.getAttribute('data-cco-conversation-id') || '').trim();
     if (!conversationId) return;
     event.preventDefault();
+    event.stopPropagation();
     logCcoInteraction('worklist-row-context-menu', {
       conversationId,
       clientX: Number(event.clientX || 0),

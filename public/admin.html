@@ -1458,7 +1458,7 @@
       margin: 8px auto 14px;
     }
     body.cco-light-mode .header .admin-brand-mark {
-      filter: brightness(0.95) saturate(0.95);
+      filter: sepia(0.42) saturate(0.86) hue-rotate(-8deg) brightness(0.82);
     }
     body.cco-light-mode .section-nav {
       opacity: 1;
@@ -2560,7 +2560,7 @@
       justify-content: center;
       min-width: 18px;
       height: 18px;
-      border-radius: 999px;
+      border-radius: 12px;
       background: #F4ECE8;
       color: #6B625C;
       font-size: 10px;
@@ -2825,7 +2825,7 @@
       justify-content: center;
       min-width: 22px;
       padding: 2px 7px;
-      border-radius: 999px;
+      border-radius: 12px;
       border: 1px solid rgba(194, 170, 156, 0.5);
       background: rgba(255, 255, 255, 0.65);
       color: #6B625C;
@@ -3793,50 +3793,53 @@
     }
     /* CCO v5.1 micro-spec (UI-only) */
     .cco-workspace {
-      --bg: #F7F2EE;
-      --panel: #FBF7F4;
-      --panel-soft: #F5EDE7;
-      --card: #FFFFFF;
-      --text: #2E2A27;
-      --muted: #6E625A;
-      --border: rgba(46,42,39,0.16);
+      --bg: #D6C2B2;
+      --panel: #C4AE9C;
+      --panel-soft: #A7917D;
+      --card: #FBF7F4;
+      --text: #513D34;
+      --muted: #7F6557;
+      --border: rgba(81,61,52,0.22);
       --shadow-1: 0 2px 10px rgba(46,42,39,0.10);
       --shadow-2: 0 10px 30px rgba(46,42,39,0.14);
       --shadow-press: inset 0 1px 0 rgba(255,255,255,0.65);
       --shadow-inset: var(--shadow-press);
       --cco-bg: var(--bg);
-      --cco-surface: #F3ECE6;
-      --cco-surface-alt: #F1E8E1;
+      --cco-surface: #C4AE9C;
+      --cco-surface-alt: #A7917D;
       --cco-panel: var(--panel);
       --cco-card: var(--card);
       --cco-border: var(--border);
       --cco-text: var(--text);
       --cco-muted: var(--muted);
-      --cco-accent: #C4AE9C;
-      --cco-critical: #8B5F5A;
+      --cco-accent: #A7917D;
+      --cco-critical: #B85F5A;
       --cco-high: #A8744C;
       --cco-medium: #B8A56A;
       --cco-low: #77806A;
-      --cco-chip-bg: #F1E8E1;
+      --cco-new: #8FA0B8;
+      --cco-chip-bg: rgba(214, 194, 178, 0.50);
       --cco-shadow-1: var(--shadow-1);
       --cco-shadow-2: var(--shadow-2);
       --cco-page-shadow: var(--shadow-2);
       --cco-panel-shadow: var(--shadow-1);
       --cco-card-shadow: var(--shadow-1);
       --cco-chip-shadow: var(--shadow-1);
-      --cco-panel-radius: 16px;
-      --cco-card-radius: 14px;
+      --cco-panel-radius: 10px;
+      --cco-card-radius: 12px;
       --cco-button-radius: 12px;
-      --cco-chip-radius: 999px;
+      --cco-chip-radius: 12px;
       --cco-page-padding: 16px;
       --cco-column-gap: 14px;
       --cco-block-padding: 14px;
       --cco-block-gap: 12px;
       --cco-list-row-padding: 10px 12px;
       --cco-row-focus: 64px;
-      --cco-row-work: 56px;
+      --cco-row-work: 58px;
       --cco-row-overview: 48px;
-      background: var(--cco-bg);
+      background:
+        radial-gradient(120% 160% at 18% -18%, rgba(255,255,255,0.30) 0%, transparent 62%),
+        linear-gradient(180deg, rgba(214,194,178,0.96) 0%, rgba(167,145,125,0.88) 100%);
       border-color: transparent;
       box-shadow: none;
       color: var(--cco-text);
@@ -3844,15 +3847,18 @@
       line-height: 1.45;
     }
     .cco-layout-root {
-      min-height: calc(100vh - var(--headerHeight, 120px));
-      height: calc(100vh - var(--headerHeight, 120px));
+      min-height: calc(100vh - var(--headerHeight, 110px));
+      height: calc(100vh - var(--headerHeight, 110px));
       background: transparent;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
     body.cco-light-mode {
-      background-color: #F7F2EE;
+      background-color: #D6C2B2;
       background-image: none;
-      color: #2E2A27;
+      color: #513D34;
     }
     body.cco-light-mode .container {
       width: min(1760px, calc(100vw - 32px));
@@ -3860,8 +3866,8 @@
     }
     body.cco-compact-header #adminHeader {
       margin-bottom: 4px;
-      max-height: 54px;
-      overflow: hidden;
+      max-height: 56px;
+      overflow: visible;
       flex-wrap: nowrap;
       align-items: center;
       gap: 8px;
@@ -3911,13 +3917,13 @@
     }
     body.cco-compact-header .section-nav {
       top: 4px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       padding: 6px 8px;
       gap: 6px;
       flex-wrap: nowrap;
       overflow-x: auto;
       overflow-y: hidden;
-      max-height: 40px;
+      max-height: 38px;
     }
     body.cco-compact-header .section-nav .btn {
       min-height: 28px;
@@ -3945,8 +3951,8 @@
       gap: 8px;
       padding: 6px 12px;
       border: 1px solid var(--cco-border);
-      border-radius: 14px;
-      background: var(--cco-panel);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(251,247,244,0.94) 0%, rgba(244,235,227,0.90) 100%);
       box-shadow: var(--cco-shadow-1), var(--shadow-press);
     }
     .cco-workspace .cco-toolbar-left,
@@ -3975,17 +3981,19 @@
       border-bottom: 0;
     }
     #ccoWorkspaceLayout {
-      margin-top: 6px !important;
+      margin-top: 4px !important;
+      flex: 1 1 auto;
+      min-height: 0;
     }
     .cco-layout {
-      grid-template-columns: minmax(240px, 260px) minmax(520px, 1fr) minmax(360px, 400px);
+      grid-template-columns: minmax(260px, 280px) minmax(520px, 1fr) minmax(380px, 460px);
       gap: var(--cco-column-gap);
       border: 0;
       border-radius: 0;
       background: transparent;
       box-shadow: none;
       min-height: 0;
-      height: calc(100vh - var(--headerHeight, 120px));
+      height: 100%;
       overflow: hidden;
     }
     .cco-inbox,
@@ -3993,13 +4001,13 @@
     .cco-reply {
       border: 1px solid var(--cco-border);
       border-radius: var(--cco-panel-radius);
-      background: var(--cco-panel);
+      background: linear-gradient(180deg, rgba(251,247,244,0.76) 0%, rgba(251,247,244,0.62) 100%);
       box-shadow: var(--cco-panel-shadow), var(--shadow-press);
       min-height: 0;
     }
     .cco-inbox {
-      padding: 10px;
-      gap: 10px;
+      padding: 8px;
+      gap: 8px;
       border-right: 1px solid var(--cco-border);
     }
     .cco-center {
@@ -4023,8 +4031,8 @@
       border-radius: var(--cco-card-radius);
       background: var(--cco-card);
       box-shadow: var(--cco-card-shadow), var(--shadow-press);
-      padding: 10px;
-      gap: 8px;
+      padding: 8px;
+      gap: 6px;
     }
     .cco-center-block,
     .cco-reply-block,
@@ -4109,16 +4117,16 @@
     .cco-search-input {
       width: 100%;
       max-width: 100%;
-      min-height: 34px;
-      height: 34px;
+      min-height: 30px;
+      height: 30px;
       padding: 0 12px;
       border-radius: 12px;
-      font-size: 14px;
+      font-size: 13px;
     }
     .cco-mailbox-select {
-      min-height: 34px;
-      height: 34px;
-      font-size: 14px;
+      min-height: 32px;
+      height: 32px;
+      font-size: 13px;
       border-radius: 12px;
       padding: 0 12px;
     }
@@ -4128,8 +4136,8 @@
       color: var(--cco-muted);
     }
     .cco-filter-block-toggle {
-      min-height: 30px;
-      height: 30px;
+      min-height: 28px;
+      height: 28px;
       padding: 0 8px;
       border-radius: 10px;
       font-size: 12px;
@@ -4140,18 +4148,20 @@
       color: var(--cco-muted);
       box-shadow: var(--cco-shadow-1), var(--shadow-press);
     }
-    .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search) {
-      max-height: 62px;
+    .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search):not(.cco-mailbox-favorites) {
+      grid-template-columns: 1fr;
+      max-height: 144px;
       gap: 6px;
     }
     .cco-mailbox-favorites {
-      max-height: 62px;
+      max-height: 84px;
       gap: 6px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .cco-view-mode-toggle {
       padding: 2px;
       border: 1px solid var(--cco-border);
-      border-radius: 999px;
+      border-radius: 10px;
       background: #F5EEEA;
       box-shadow: var(--cco-shadow-1);
     }
@@ -4164,7 +4174,7 @@
     .cco-focus-toggle {
       min-height: 26px;
       height: 26px;
-      border-radius: 999px;
+      border-radius: var(--cco-chip-radius);
       padding: 0 10px;
       font-size: 12px;
       line-height: 1;
@@ -4175,6 +4185,53 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+    }
+    .cco-view-mode-btn,
+    .cco-filter-btn,
+    .cco-indicator-filter-btn,
+    .cco-thread-chip,
+    .cco-priority-badge {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255,255,255,0.5);
+    }
+    .cco-view-mode-btn::before,
+    .cco-filter-btn::before,
+    .cco-indicator-filter-btn::before,
+    .cco-thread-chip::before,
+    .cco-priority-badge::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      right: 1px;
+      top: 1px;
+      height: 44%;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0));
+    }
+    .cco-indicator-filter-btn {
+      min-height: 28px;
+      height: 28px;
+      min-width: 46px;
+      justify-content: center;
+      border-radius: 12px;
+      padding: 0 8px;
+      gap: 6px;
+    }
+    .cco-view-mode-btn {
+      min-height: 28px;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 10px;
+    }
+    .cco-indicator-filter-count {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--cco-text);
+      min-width: 12px;
+      text-align: center;
     }
     .cco-view-mode-btn.is-active,
     .cco-filter-btn.is-active,
@@ -4194,7 +4251,7 @@
     .cco-center-density-row {
       margin: 0;
       padding: 4px;
-      border-radius: 999px;
+      border-radius: 12px;
       border: 1px solid var(--cco-border);
       background: #F7F2EE;
       box-shadow: var(--cco-shadow-1);
@@ -4212,8 +4269,8 @@
     }
     .cco-thread-btn {
       min-height: var(--cco-row-work);
-      gap: 4px;
-      justify-content: center;
+      gap: 3px;
+      justify-content: flex-start;
     }
     .cco-layout[data-cco-density-mode="focus"] .cco-thread-btn,
     .cco-layout[data-cco-density-mode="focus"] .cco-feed-item-btn {
@@ -4280,10 +4337,60 @@
       width: 16px;
       height: 16px;
       min-width: 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(81,61,52,0.32);
+      background: rgba(127,101,87,0.48);
+      box-shadow: 0 1px 4px rgba(62,46,41,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .cco-thread-indicator::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      right: 1px;
+      top: 1px;
+      height: 46%;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+    .cco-thread-indicator svg {
+      display: none !important;
     }
     .cco-thread:hover .cco-thread-indicator,
     .cco-thread-btn:focus-visible .cco-thread-indicator {
-      box-shadow: var(--cco-shadow-1), 0 0 0 2px rgba(196,174,156,0.24);
+      box-shadow: var(--cco-shadow-1), 0 0 0 2px rgba(196,174,156,0.32);
+      transform: translateY(-1px);
+    }
+    .cco-thread-indicator.state-neutral {
+      background: rgba(127,101,87,0.42);
+      border-color: rgba(81,61,52,0.45);
+    }
+    .cco-thread-indicator.state-new {
+      background: rgba(143,160,184,0.72);
+      border-color: rgba(68,85,101,0.72);
+    }
+    .cco-thread-indicator.state-critical {
+      background: rgba(184,95,90,0.72);
+      border-color: rgba(94,63,60,0.72);
+    }
+    .cco-thread-indicator.state-high {
+      background: rgba(168,116,76,0.72);
+      border-color: rgba(111,78,53,0.72);
+    }
+    .cco-thread-indicator.state-medium {
+      background: rgba(184,165,106,0.72);
+      border-color: rgba(95,115,74,0.72);
+    }
+    .cco-thread-indicator.state-handled {
+      background: rgba(119,128,106,0.72);
+      border-color: rgba(79,86,72,0.72);
+    }
+    .cco-indicator-filter-btn .cco-thread-indicator {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
     }
     #ccoReplyMainBlocks {
       grid-template-rows: minmax(190px, 0.8fr) minmax(320px, 1.2fr);
@@ -4365,7 +4472,7 @@
     }
     @media (max-width: 1650px) {
       .cco-layout {
-        grid-template-columns: minmax(240px, 260px) minmax(520px, 1fr) minmax(340px, 400px);
+        grid-template-columns: minmax(260px, 280px) minmax(520px, 1fr) minmax(380px, 420px);
       }
       #ccoReplyMainBlocks {
         grid-template-rows: minmax(180px, 0.82fr) minmax(300px, 1.18fr);
@@ -4373,7 +4480,7 @@
     }
     @media (max-width: 1220px) {
       .cco-layout {
-        grid-template-columns: 240px minmax(0, 1fr);
+        grid-template-columns: 260px minmax(0, 1fr);
         grid-template-areas:
           "inbox center"
           "reply reply";
@@ -5478,12 +5585,12 @@
                 <button type="button" class="cco-view-mode-btn" data-cco-mail-view="sent">Skickat</button>
               </div>
               <div id="ccoIndicatorFilterRow" class="cco-indicator-filter-row" role="group" aria-label="Statusfilter">
-                <button type="button" class="cco-indicator-filter-btn is-active" data-cco-indicator-filter="all">Alla</button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="new"><span class="cco-thread-indicator state-new"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Blå</button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="critical"><span class="cco-thread-indicator state-critical"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Röd</button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="high"><span class="cco-thread-indicator state-high"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Orange</button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium"><span class="cco-thread-indicator state-medium"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Gul</button>
-                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled"><span class="cco-thread-indicator state-handled"><svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.1l2.3 2.4 5.3-5.3"></path></svg></span>Grön</button>
+                <button type="button" class="cco-indicator-filter-btn is-active" data-cco-indicator-filter="all" title="Alla: 0" aria-label="Alla: 0"><span class="cco-thread-indicator state-neutral" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="new" title="Ny/återkommit: 0" aria-label="Ny/återkommit: 0"><span class="cco-thread-indicator state-new" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="critical" title="Kritisk: 0" aria-label="Kritisk: 0"><span class="cco-thread-indicator state-critical" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="high" title="Hög: 0" aria-label="Hög: 0"><span class="cco-thread-indicator state-high" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium" title="Medel: 0" aria-label="Medel: 0"><span class="cco-thread-indicator state-medium" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
+                <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled" title="Hanterad: 0" aria-label="Hanterad: 0"><span class="cco-thread-indicator state-handled" aria-hidden="true"></span><span class="cco-indicator-filter-count">0</span></button>
               </div>
               <div id="ccoInboxModeMeta" class="mini muted" style="margin:0 0 4px 2px"></div>
               <div id="ccoInboxDensityFilters" class="cco-filter-row cco-center-density-row">
@@ -5572,7 +5679,7 @@
             <div class="cco-column-title">
               <h3 id="ccoReplyColumnTitle">Svarsstudio</h3>
             </div>
-            <div id="ccoReplyReadOnlyBanner" class="cco-reply-readonly-banner" hidden>Skrivskyddad vy - byt till Arbetskö för att svara</div>
+            <div id="ccoReplyReadOnlyBanner" class="cco-reply-readonly-banner" hidden>Skrivskyddad vy. Byt till Arbetskö för att svara.</div>
             <section id="ccoReplyEmptyState" class="cco-reply-empty-state">
               <div class="cco-empty-state-title">Inga trådar att svara på just nu</div>
               <div class="mini muted">Välj en tråd i arbetskön eller uppdatera inkorgen för att fortsätta.</div>
@@ -5781,7 +5888,7 @@
             <button type="button" data-cco-indicator-override="critical">Markera: Kritisk (Röd)</button>
             <button type="button" data-cco-indicator-override="handled">Markera: Hanterad (Grön)</button>
             <div class="is-divider"></div>
-            <button type="button" data-cco-indicator-override="auto">Återställ automatiskt</button>
+            <button type="button" data-cco-indicator-override="auto">Återställ auto</button>
           </div>
         </div>
       </section>
