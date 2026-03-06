@@ -11261,7 +11261,7 @@
         labelEl.className = 'cco-indicator-filter-label';
         labelEl.textContent = labels[value] || labels.all;
         const countEl = document.createElement('span');
-        countEl.className = 'cco-indicator-filter-count';
+        countEl.className = 'cco-count-inline cco-indicator-filter-count';
         countEl.textContent = String(count);
         button.append(ring, labelEl, countEl);
       });
@@ -11460,7 +11460,7 @@
           ? `<span>${escapeHtml(entry.label)}</span>`
           : `<span class="cco-filter-btn-mailbox-label">${escapeHtml(entry.label)}</span>`;
         const countHtml = Number(entry.count || 0) > 0
-          ? `<span class="cco-filter-btn-mailbox-count">${Number(entry.count || 0)}</span>`
+          ? `<span class="cco-count-inline cco-filter-btn-mailbox-count">${Number(entry.count || 0)}</span>`
           : '';
         const title = entry.title
           ? ` title="${escapeHtml(entry.title)}"`
