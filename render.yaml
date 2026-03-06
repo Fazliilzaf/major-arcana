@@ -15,7 +15,7 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: NODE_OPTIONS
-        value: --max-old-space-size=512
+        value: --max-old-space-size=384
       - key: ARCANA_AI_PROVIDER
         value: openai
       - key: OPENAI_API_KEY
@@ -107,7 +107,7 @@ services:
       - key: ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS
         value: 36
       - key: ARCANA_METRICS_MAX_SAMPLES
-        value: 5000
+        value: 2000
       - key: ARCANA_METRICS_SLOW_REQUEST_MS
         value: 1500
       - key: ARCANA_OBSERVABILITY_ALERT_MAX_ERROR_RATE_PCT
