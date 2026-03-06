@@ -11321,6 +11321,12 @@
     const tagMarkup = primaryChip
       ? `<span class="cco-thread-tags">${primaryChip}</span>`
       : '';
+    const previewText = String(
+      row.latestInboundPreview || row.lastMessagePreview || row.recommendedAction || ''
+    ).trim();
+    const previewMarkup = previewText
+      ? `<span class="cco-thread-preview">${escapeHtml(previewText)}</span>`
+      : '';
     return `
       <li class="cco-thread${isActive ? ' active' : ''}${slaToneClass ? ` ${slaToneClass}` : ''}${isNew ? ' thread-new' : ''} sprint-focus" data-dominant-risk="${escapeHtml(
         dominantRisk
@@ -11336,6 +11342,7 @@
       row.subject
     )}</span></span>
           <span class="cco-thread-meta">${escapeHtml(row.sender)} · <span title="${escapeHtml(mailboxLabel)}">${escapeHtml(mailboxShortLabel)}</span> · ${meta}</span>
+          ${previewMarkup}
           ${tagMarkup}
         </button>
       </li>
@@ -11983,6 +11990,7 @@
               <span class="cco-feed-item-meta">${escapeHtml(entry.counterpart)} · <span title="${escapeHtml(
           entry.mailboxAddress
         )}">${escapeHtml(mailboxShort)}</span> · ${escapeHtml(sentAtLabel)}</span>
+              <span class="cco-feed-item-preview">${escapeHtml(String(entry.preview || '').trim())}</span>
               <span class="cco-thread-tags"><span class="cco-thread-chip">${escapeHtml(directionChip)}</span></span>
             </button>
           </li>

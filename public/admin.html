@@ -7236,6 +7236,720 @@
     body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-high { background: var(--cco-v11-high) !important; border-color: var(--cco-v11-high-shadow) !important; }
     body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-medium { background: var(--cco-v11-medium) !important; border-color: var(--cco-v11-medium-shadow) !important; }
     body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-handled { background: var(--cco-v11-handled) !important; border-color: var(--cco-v11-handled-shadow) !important; }
+    /* Screenshot correction pass: remove UI-over-UI clutter + fix clipping/overlap */
+    body.cco-compact-header {
+      --cco-fx-bg-1: #d6c7b8;
+      --cco-fx-bg-2: #c3af9e;
+      --cco-fx-bg-3: #a38f82;
+      --cco-fx-bg-4: #7c6356;
+      --cco-fx-bg-5: #4e3d35;
+      --cco-fx-shadow-1: rgba(59, 46, 40, 0.24);
+      --cco-fx-shadow-2: rgba(59, 46, 40, 0.16);
+      --cco-fx-panel-glass: rgba(255, 249, 243, 0.44);
+      --cco-fx-panel-border: rgba(255, 250, 245, 0.56);
+      background:
+        radial-gradient(48% 44% at 7% 12%, rgba(191, 164, 146, 0.2), rgba(191, 164, 146, 0)),
+        radial-gradient(46% 42% at 88% 16%, rgba(141, 157, 183, 0.16), rgba(141, 157, 183, 0)),
+        radial-gradient(52% 44% at 90% 84%, rgba(168, 116, 76, 0.16), rgba(168, 116, 76, 0)),
+        linear-gradient(165deg, #ddd0c3 0%, #ccb8a8 48%, #b49e8f 100%) !important;
+    }
+    body.cco-compact-header #adminHeader {
+      min-height: 40px !important;
+      padding: 2px 8px !important;
+      border-radius: 12px !important;
+      border: 1px solid rgba(255, 250, 244, 0.52) !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.18)),
+        linear-gradient(152deg, rgba(195, 175, 158, 0.4), rgba(163, 143, 130, 0.24)) !important;
+      box-shadow:
+        0 12px 28px var(--cco-fx-shadow-1),
+        0 4px 10px var(--cco-fx-shadow-2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.52) !important;
+      backdrop-filter: blur(14px) saturate(118%) !important;
+      -webkit-backdrop-filter: blur(14px) saturate(118%) !important;
+      gap: 6px !important;
+    }
+    body.cco-compact-header #adminHeader .brand-stack {
+      gap: 6px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    body.cco-compact-header #adminHeader .admin-brand-mark-shell,
+    body.cco-compact-header #adminHeader .admin-brand-mark-shell::before,
+    body.cco-compact-header #adminHeader .admin-brand-mark-shell::after {
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      content: none !important;
+    }
+    body.cco-compact-header #adminHeader .admin-brand-mark-shell {
+      width: 44px !important;
+      min-width: 44px !important;
+      max-width: 44px !important;
+      height: 44px !important;
+      display: grid !important;
+      place-items: center !important;
+    }
+    body.cco-compact-header #adminHeader .admin-brand-mark {
+      width: 38px !important;
+      height: 38px !important;
+      object-fit: contain !important;
+      filter:
+        sepia(0.38)
+        saturate(0.92)
+        hue-rotate(-8deg)
+        contrast(1.12)
+        brightness(0.74)
+        drop-shadow(0 2px 6px rgba(33, 24, 19, 0.32)) !important;
+    }
+    body.cco-compact-header #adminHeader h1 {
+      font-size: 15px !important;
+      line-height: 1 !important;
+      letter-spacing: 0.01em !important;
+      margin: 0 !important;
+    }
+    body.cco-compact-header #adminHeader .lang-wrap {
+      gap: 4px !important;
+    }
+    body.cco-compact-header #adminHeader .lang-wrap label,
+    body.cco-compact-header #adminHeader #sessionMeta {
+      font-size: 10px !important;
+      line-height: 1.15 !important;
+      margin: 0 !important;
+    }
+    body.cco-compact-header #adminHeader .header-menu-row {
+      gap: 4px !important;
+      padding: 2px !important;
+      border-radius: 10px !important;
+      border: 1px solid rgba(81, 61, 52, 0.2) !important;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.18)),
+        linear-gradient(148deg, rgba(163, 143, 130, 0.34), rgba(124, 99, 86, 0.24)) !important;
+      box-shadow:
+        0 8px 18px rgba(62, 46, 41, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.48) !important;
+    }
+    body.cco-compact-header #adminHeader .header-menu-row .btn,
+    body.cco-compact-header #adminHeader .header-menu-row select {
+      min-height: 26px !important;
+      height: 26px !important;
+      padding: 0 9px !important;
+      border-radius: 9px !important;
+      font-size: 11px !important;
+      line-height: 1 !important;
+    }
+    body.cco-compact-header .section-nav {
+      margin-bottom: 4px !important;
+      padding: 4px !important;
+      gap: 5px !important;
+      border-radius: 12px !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.16)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.4), rgba(163, 143, 130, 0.24)) !important;
+      border: 1px solid rgba(255, 250, 244, 0.52) !important;
+      box-shadow:
+        0 10px 22px rgba(62, 46, 41, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    }
+    body.cco-compact-header .section-nav .sectionNavBtn {
+      min-height: 28px !important;
+      height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 9px !important;
+      font-size: 12px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection.cco-workspace {
+      border-radius: 14px !important;
+      border: 1px solid var(--cco-fx-panel-border) !important;
+      background:
+        radial-gradient(122% 92% at -8% -14%, rgba(141, 157, 183, 0.18), rgba(141, 157, 183, 0)),
+        radial-gradient(112% 84% at 108% -8%, rgba(168, 116, 76, 0.16), rgba(168, 116, 76, 0)),
+        linear-gradient(180deg, rgba(214, 199, 184, 0.52), rgba(163, 143, 130, 0.36)) !important;
+      box-shadow:
+        0 22px 42px rgba(59, 46, 40, 0.2),
+        0 10px 20px rgba(59, 46, 40, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.56) !important;
+      backdrop-filter: blur(16px) saturate(124%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(124%) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar {
+      min-height: 40px !important;
+      padding: 5px 8px !important;
+      gap: 6px !important;
+      border-bottom: 1px solid rgba(78, 61, 53, 0.18) !important;
+      background: transparent !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-left h2 {
+      font-size: 12px !important;
+      line-height: 1.2 !important;
+      letter-spacing: 0.03em !important;
+      margin: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-sprint-status,
+    body.cco-compact-header #ccoWorkspaceSection #ccoStatusCounts,
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxMailboxMeta {
+      font-size: 11px !important;
+      line-height: 1.2 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right {
+      gap: 5px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right .btn,
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right input,
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right select {
+      min-height: 26px !important;
+      height: 26px !important;
+      padding: 0 8px !important;
+      border-radius: 9px !important;
+      font-size: 11px !important;
+      line-height: 1 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right #runCcoInboxBtn {
+      min-height: 28px !important;
+      height: 28px !important;
+      padding: 0 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-layout-root::before,
+    body.cco-compact-header #ccoWorkspaceSection .cco-layout-root::after,
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox::before,
+    body.cco-compact-header #ccoWorkspaceSection .cco-center::before,
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply::before,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-btn::before {
+      display: none !important;
+      content: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+      grid-template-columns: minmax(240px, 260px) minmax(520px, 1fr) minmax(380px, 420px) !important;
+      gap: 12px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox,
+    body.cco-compact-header #ccoWorkspaceSection .cco-center,
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply {
+      border: 1px solid rgba(255, 250, 244, 0.52) !important;
+      border-radius: 12px !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.26)),
+        linear-gradient(150deg, rgba(195, 175, 158, 0.34), rgba(163, 143, 130, 0.2)) !important;
+      box-shadow:
+        0 14px 30px rgba(94, 75, 65, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+      backdrop-filter: blur(12px) saturate(120%) !important;
+      -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-mailbox-select-row {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxMailboxFilters.cco-mailbox-favorites {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 4px !important;
+      max-height: none !important;
+      overflow: visible !important;
+      padding-right: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxMailboxFilters .cco-filter-btn {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-height: 25px !important;
+      height: 25px !important;
+      border-radius: 10px !important;
+      padding: 0 9px !important;
+      justify-content: space-between !important;
+      font-size: 11px !important;
+      text-align: left !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-filter-btn-mailbox-count,
+    body.cco-compact-header #ccoWorkspaceSection .cco-indicator-filter-count {
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding: 0 !important;
+      margin: 0 0 0 4px !important;
+      line-height: 1 !important;
+      font-weight: 700 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxSlaFilters,
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxStateFilters,
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox-controls .cco-filter-row:not(.cco-filter-row-search):not(.cco-mailbox-favorites) {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 4px !important;
+      max-height: none !important;
+      overflow: visible !important;
+      padding-right: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-filter-btn,
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-chip,
+    body.cco-compact-header #ccoWorkspaceSection .cco-priority-badge {
+      min-height: 24px !important;
+      height: 24px !important;
+      border-radius: 10px !important;
+      padding: 0 8px !important;
+      font-size: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-indicator-filter-row {
+      gap: 7px !important;
+      margin: 0 0 4px 2px !important;
+      flex-wrap: wrap !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-indicator-filter-btn {
+      min-height: 28px !important;
+      height: 28px !important;
+      border-radius: 10px !important;
+      padding: 0 9px !important;
+      gap: 6px !important;
+      justify-content: flex-start !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-indicator-filter-label {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-indicator-filter-btn[data-cco-indicator-filter="all"] .cco-indicator-filter-label {
+      display: inline !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator {
+      width: 14px !important;
+      height: 14px !important;
+      min-width: 14px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      box-shadow:
+        0 0 0 1px rgba(62, 46, 41, 0.24),
+        0 4px 10px rgba(62, 46, 41, 0.22) !important;
+      margin-top: 0 !important;
+      opacity: 1 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-neutral { background: #907d71 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-new { background: #6f8fb8 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-critical { background: #c45e58 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-high { background: #b87947 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-medium { background: #c2ab57 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator.state-handled { background: #738a67 !important; }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-indicator svg {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-center-worklist,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-view,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-list {
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      background: rgba(255, 252, 248, 0.58) !important;
+      border-radius: 11px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item {
+      border: 0 !important;
+      background: transparent !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-btn,
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-btn {
+      min-height: 58px !important;
+      border: 1px solid rgba(255, 250, 244, 0.58) !important;
+      border-left: 4px solid transparent !important;
+      border-radius: 10px !important;
+      margin: 4px 6px !important;
+      padding: 9px 11px !important;
+      gap: 4px !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.4)),
+        linear-gradient(148deg, rgba(195, 175, 158, 0.24), rgba(163, 143, 130, 0.12)) !important;
+      box-shadow:
+        0 7px 18px rgba(94, 75, 65, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.68) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-btn:hover,
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread:hover .cco-thread-btn {
+      border-color: rgba(111, 143, 184, 0.38) !important;
+      box-shadow:
+        0 11px 22px rgba(94, 75, 65, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item.is-selected .cco-feed-item-btn,
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread.active .cco-thread-btn {
+      border-left-color: #6f8fb8 !important;
+      border-color: rgba(111, 143, 184, 0.44) !important;
+      background:
+        linear-gradient(170deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.46)),
+        linear-gradient(145deg, rgba(111, 143, 184, 0.2), rgba(195, 175, 158, 0.18)) !important;
+      box-shadow:
+        0 14px 24px rgba(68, 85, 101, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.76) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-subject,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-subject {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      line-height: 1.3 !important;
+      color: #2e2420 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-meta,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-meta {
+      font-size: 12px !important;
+      line-height: 1.35 !important;
+      color: #6a5448 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-preview,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-preview {
+      display: block !important;
+      font-size: 12px !important;
+      line-height: 1.35 !important;
+      color: #715b4e !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoReplyColumn {
+      overflow-y: auto !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoReplyMainBlocks {
+      grid-template-rows: minmax(230px, 0.95fr) minmax(0, 1.05fr) !important;
+      gap: 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply-read-zone,
+    body.cco-compact-header #ccoWorkspaceSection #ccoReadTabConversation,
+    body.cco-compact-header #ccoWorkspaceSection #ccoReadTabCustomer {
+      min-height: 0 !important;
+      overflow: auto !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoComposeStudio {
+      grid-template-rows: auto minmax(240px, 1fr) auto auto !important;
+      gap: 8px !important;
+      overflow: visible !important;
+      padding-right: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-editor,
+    body.cco-compact-header #ccoWorkspaceSection #ccoDraftBodyInput {
+      min-height: 240px !important;
+      max-height: 34vh !important;
+      overflow-y: auto !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-actions-toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 6px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-actions-toolbar .btn {
+      min-height: 28px !important;
+      height: 28px !important;
+      padding: 0 9px !important;
+      font-size: 11px !important;
+      border-radius: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-actions-block,
+    body.cco-compact-header #ccoWorkspaceSection .cco-safety-block {
+      position: relative !important;
+      z-index: 2 !important;
+      overflow: visible !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.58)),
+        linear-gradient(148deg, rgba(195, 175, 158, 0.24), rgba(163, 143, 130, 0.14)) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-send-sticky-bar {
+      position: static !important;
+      bottom: auto !important;
+      z-index: 1 !important;
+      background: transparent !important;
+      border-top: 1px solid rgba(78, 61, 53, 0.14) !important;
+      padding-top: 6px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply-readonly-banner {
+      border-radius: 10px !important;
+      padding: 8px 10px !important;
+      border: 1px solid rgba(68, 85, 101, 0.32) !important;
+      border-left: 4px solid #6f8fb8 !important;
+      background:
+        linear-gradient(178deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.4)),
+        linear-gradient(145deg, rgba(111, 143, 184, 0.2), rgba(195, 175, 158, 0.2)) !important;
+      color: #3f332d !important;
+    }
+    /* vNext workflow pass: mac mail/outlook skeleton + CCO intelligence overlay */
+    body.cco-compact-header #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+      grid-template-columns: minmax(224px, 238px) minmax(560px, 1fr) minmax(390px, 420px) !important;
+      gap: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-left,
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.22)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.3), rgba(163, 143, 130, 0.16)) !important;
+      border: 1px solid rgba(78, 61, 53, 0.16) !important;
+      border-radius: 10px !important;
+      padding: 4px 7px !important;
+      box-shadow:
+        0 8px 18px rgba(94, 75, 65, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-left {
+      gap: 7px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-toolbar-right {
+      justify-content: flex-end !important;
+      align-items: center !important;
+      gap: 4px !important;
+      flex-wrap: wrap !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn {
+      padding: 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-nav-stack {
+      gap: 7px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-nav-block {
+      padding: 7px !important;
+      gap: 6px !important;
+      border-radius: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-column-title h3 {
+      font-size: 10px !important;
+      letter-spacing: 0.08em !important;
+      line-height: 1.2 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-search-input {
+      height: 30px !important;
+      border-radius: 10px !important;
+      font-size: 12px !important;
+      padding: 0 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-inline-toggle {
+      font-size: 11px !important;
+      gap: 5px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-mailbox-select-row {
+      display: grid !important;
+      grid-template-columns: auto minmax(0, 1fr) !important;
+      gap: 7px !important;
+      align-items: center !important;
+      margin-bottom: 2px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-mailbox-select-row label {
+      font-size: 10px !important;
+      letter-spacing: 0.08em !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxControlsColumn .cco-mailbox-select {
+      min-height: 30px !important;
+      height: 30px !important;
+      border-radius: 10px !important;
+      font-size: 12px !important;
+      padding: 0 9px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxMailboxFilters.cco-mailbox-favorites .cco-filter-btn:nth-child(n + 7) {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxMailboxFilters.cco-mailbox-favorites .cco-filter-btn {
+      min-height: 24px !important;
+      height: 24px !important;
+      border-radius: 9px !important;
+      padding: 0 8px !important;
+      font-size: 11px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxSlaFilters .cco-filter-btn,
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxStateFilters .cco-filter-btn {
+      min-height: 23px !important;
+      height: 23px !important;
+      border-radius: 8px !important;
+      font-size: 10px !important;
+      padding: 0 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoCenterColumn {
+      padding: 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoCenterColumn .cco-center-block-worklist {
+      gap: 6px !important;
+      padding: 8px !important;
+      border-radius: 11px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoInboxModeToggle {
+      padding: 3px !important;
+      border-radius: 10px !important;
+      gap: 4px !important;
+      width: fit-content !important;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.32)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.34), rgba(163, 143, 130, 0.2)) !important;
+      border: 1px solid rgba(78, 61, 53, 0.2) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-view-mode-btn {
+      min-height: 27px !important;
+      height: 27px !important;
+      border-radius: 9px !important;
+      padding: 0 10px !important;
+      font-size: 11px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-center-density-row {
+      width: fit-content !important;
+      min-width: 0 !important;
+      padding: 3px !important;
+      gap: 4px !important;
+      border-radius: 10px !important;
+      margin: 0 0 3px 1px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-center-density-row .cco-filter-btn {
+      min-height: 24px !important;
+      height: 24px !important;
+      border-radius: 8px !important;
+      padding: 0 8px !important;
+      font-size: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox-group {
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox-group > summary {
+      min-height: 24px !important;
+      padding: 2px 6px !important;
+      border-radius: 8px !important;
+      font-size: 10px !important;
+      letter-spacing: 0.05em !important;
+      border: 1px solid rgba(78, 61, 53, 0.16) !important;
+      background: rgba(255, 255, 255, 0.46) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-inbox-group[open] > summary {
+      margin-bottom: 3px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-list,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-list {
+      gap: 4px !important;
+      padding: 2px 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-btn,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-btn {
+      min-height: 56px !important;
+      max-height: 64px !important;
+      padding: 8px 10px !important;
+      border-radius: 10px !important;
+      margin: 0 4px !important;
+      gap: 2px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-tags {
+      margin-top: 1px !important;
+      gap: 4px !important;
+      max-height: 22px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-chip:nth-child(n + 3) {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-thread-preview,
+    body.cco-compact-header #ccoWorkspaceSection .cco-feed-item-preview {
+      margin-top: 0 !important;
+      opacity: 0.88 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoReplyColumn {
+      padding: 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoReplyMainBlocks {
+      gap: 7px !important;
+      min-height: 0 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply-read-zone {
+      padding: 8px !important;
+      border-radius: 10px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-message {
+      margin-bottom: 8px !important;
+      padding: 10px 12px !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoComposeStudio > .cco-reply-block {
+      border-radius: 10px !important;
+      padding: 8px !important;
+      gap: 7px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-compose-header-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 6px 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-compose-header-grid input,
+    body.cco-compact-header #ccoWorkspaceSection .cco-compose-header-grid select {
+      min-height: 30px !important;
+      height: 30px !important;
+      border-radius: 9px !important;
+      font-size: 12px !important;
+      padding: 0 9px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-draft-mode-buttons {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 5px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-draft-mode-buttons .btn {
+      min-height: 26px !important;
+      height: 26px !important;
+      border-radius: 8px !important;
+      font-size: 10px !important;
+      padding: 0 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-editor,
+    body.cco-compact-header #ccoWorkspaceSection #ccoDraftBodyInput {
+      min-height: 260px !important;
+      max-height: 39vh !important;
+      padding: 10px 12px !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-actions-toolbar .btn {
+      min-height: 27px !important;
+      height: 27px !important;
+      border-radius: 8px !important;
+      font-size: 10px !important;
+      padding: 0 8px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-safety-chip-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 6px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-safety-chip {
+      border-radius: 9px !important;
+      padding: 5px 6px !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply.is-readonly #ccoReplyMainBlocks {
+      grid-template-rows: minmax(0, 1fr) !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply.is-readonly #ccoConversationColumn {
+      min-height: 0 !important;
+      height: 100% !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection .cco-reply.is-readonly #ccoComposeStudio {
+      display: none !important;
+    }
+    body.cco-compact-header #ccoWorkspaceSection #ccoIndicatorContextMenu {
+      border-radius: 10px !important;
+      border: 1px solid rgba(78, 61, 53, 0.24) !important;
+      background:
+        linear-gradient(176deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.42)),
+        linear-gradient(145deg, rgba(195, 175, 158, 0.32), rgba(163, 143, 130, 0.22)) !important;
+      box-shadow: 0 18px 30px rgba(62, 46, 41, 0.24) !important;
+      backdrop-filter: blur(12px) saturate(120%) !important;
+      -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+    }
+    @media (max-width: 1380px) {
+      body.cco-compact-header #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+        grid-template-columns: minmax(220px, 230px) minmax(460px, 1fr) minmax(350px, 380px) !important;
+      }
+    }
+    @media (max-width: 1200px) {
+      body.cco-compact-header #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+      }
+      body.cco-compact-header #ccoWorkspaceSection .cco-inbox,
+      body.cco-compact-header #ccoWorkspaceSection .cco-center,
+      body.cco-compact-header #ccoWorkspaceSection .cco-reply {
+        min-height: 320px !important;
+      }
+    }
     @media (max-width: 1380px) {
       body.cco-light-mode #ccoWorkspaceSection #ccoWorkspaceLayout.cco-layout {
         grid-template-columns: 248px minmax(460px, 1fr) minmax(360px, 0.9fr);
