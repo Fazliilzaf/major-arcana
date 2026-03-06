@@ -1,0 +1,4 @@
+
+> arcana-@1.0.0 check:syntax
+> find ./src ./scripts ./public -type f -name "*.js" -print0 | xargs -0 -n1 node --check && node --check server.js
+

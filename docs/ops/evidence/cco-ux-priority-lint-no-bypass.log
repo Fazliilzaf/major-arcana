@@ -1,0 +1,5 @@
+
+> arcana-@1.0.0 lint:no-bypass
+> node ./scripts/check-route-bypass.js
+
+[no-bypass] ok: inga förbjudna store-importer i src/routes eller src/capabilities
