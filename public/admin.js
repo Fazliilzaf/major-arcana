@@ -12206,6 +12206,10 @@
     const mailViewMode = sanitizeCcoMailViewMode(state.ccoMailViewMode);
     if (els.ccoWorkspaceLayout) {
       els.ccoWorkspaceLayout.setAttribute('data-cco-density-mode', densityMode);
+      els.ccoWorkspaceLayout.setAttribute('data-cco-mail-view', mailViewMode);
+    }
+    if (els.ccoCenterColumn) {
+      els.ccoCenterColumn.setAttribute('data-cco-mail-view', mailViewMode);
     }
     let sectionExpanded = sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded);
     const firstFilteredSubject = String(
@@ -12959,6 +12963,7 @@
     const readOnlyMode = isCcoReadOnlyMailViewMode();
     if (els.ccoReplyColumn) {
       els.ccoReplyColumn.classList.toggle('is-readonly', readOnlyMode);
+      els.ccoReplyColumn.classList.toggle('is-compose', !readOnlyMode);
     }
     if (els.ccoReplyColumnTitle) {
       els.ccoReplyColumnTitle.textContent = readOnlyMode ? 'Läspanel' : 'Svarsstudio';
