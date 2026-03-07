@@ -589,10 +589,10 @@
   });
   const CCO_COLUMN_RESIZE_BREAKPOINT = 1360;
   const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
-    leftMin: 260,
-    leftMax: 280,
-    rightMin: 380,
-    rightMax: 460,
+    leftMin: 180,
+    leftMax: 220,
+    rightMin: 420,
+    rightMax: 520,
     centerMin: 520,
   });
 
