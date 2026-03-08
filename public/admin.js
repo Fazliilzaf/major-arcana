@@ -589,11 +589,11 @@
   });
   const CCO_COLUMN_RESIZE_BREAKPOINT = 1360;
   const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
-    leftMin: 220,
-    leftMax: 240,
-    rightMin: 420,
-    rightMax: 500,
-    centerMin: 540,
+    leftMin: 300,
+    leftMax: 320,
+    rightMin: 390,
+    rightMax: 430,
+    centerMin: 620,
   });
 
   function sanitizeCcoDensityMode(value = '') {
@@ -888,6 +888,8 @@
     state.ccoInboxSlaFilter = 'all';
   }
   state.ccoWorkspaceCompact = true;
+  state.ccoMailboxFiltersExpanded = true;
+  state.ccoExtraFiltersExpanded = true;
 
   const els = {
     adminHeader: document.getElementById('adminHeader'),
@@ -964,6 +966,7 @@
     opsSection: document.getElementById('opsSection'),
     settingsSection: document.getElementById('settingsSection'),
     overviewSection: document.getElementById('overviewSection'),
+    ccoTopUtilityMoreBtn: document.getElementById('ccoTopUtilityMoreBtn'),
     ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
     ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
     ccoInboxControlsColumn: document.getElementById('ccoInboxControlsColumn'),
@@ -1109,6 +1112,9 @@
     ccoInboxSearchInput: document.getElementById('ccoInboxSearchInput'),
     ccoInboxShowSystemToggle: document.getElementById('ccoInboxShowSystemToggle'),
     ccoInboxSearchMeta: document.getElementById('ccoInboxSearchMeta'),
+    ccoSidebarBadgeRow: document.getElementById('ccoSidebarBadgeRow'),
+    ccoSidebarRefreshBtn: document.getElementById('ccoSidebarRefreshBtn'),
+    ccoSidebarSystemBtn: document.getElementById('ccoSidebarSystemBtn'),
     ccoMailboxFiltersBlock: document.getElementById('ccoMailboxFiltersBlock'),
     ccoMailboxFiltersToggleBtn: document.getElementById('ccoMailboxFiltersToggleBtn'),
     ccoMailboxFiltersChevron: document.getElementById('ccoMailboxFiltersChevron'),
@@ -1184,6 +1190,7 @@
     ccoReplyEmptyState: document.getElementById('ccoReplyEmptyState'),
     ccoReplyMainBlocks: document.getElementById('ccoReplyMainBlocks'),
     ccoComposeStudio: document.getElementById('ccoComposeStudio'),
+    ccoStatusSummaryRows: document.getElementById('ccoStatusSummaryRows'),
     ccoReplyRefreshBtn: document.getElementById('ccoReplyRefreshBtn'),
     ccoReplyShowSystemToggle: document.getElementById('ccoReplyShowSystemToggle'),
     ccoDraftRiskIndicator: document.getElementById('ccoDraftRiskIndicator'),
@@ -1419,6 +1426,11 @@
     revisionSummary: document.getElementById('revisionSummary'),
     revisionDiffBlock: document.getElementById('revisionDiffBlock'),
   };
+
+  if (els.ccoWorkspaceSection) {
+    els.ccoWorkspaceSection.setAttribute('data-cco-skin', 'major-arcana');
+    els.ccoWorkspaceSection.removeAttribute('data-cco-overlay');
+  }
 
   let activeModalResolver = null;
   let activeModalOptions = null;
@@ -3068,7 +3080,7 @@
 
   function setSessionMeta() {
     if (!els.sessionMeta) return;
-    if (!state.token || !state.tenantId || !state.role) {
+    if ((!state.token && state.ccoEvidenceMode !== true) || !state.tenantId || !state.role) {
       els.sessionMeta.textContent = t('session_not_logged', 'Inte inloggad');
       return;
     }
@@ -5372,12 +5384,13 @@
   function updateWorkspaceViewportMetrics() {
     const headerHeight = Number(els.adminHeader?.offsetHeight || 0);
     const navHeight = Number(els.sectionNav?.offsetHeight || 0);
-    const compactCco = document.body.classList.contains('cco-compact-header');
-    const floor = compactCco ? 96 : 150;
-    const topPadding = compactCco ? 10 : 34;
+    const ccoModeActive =
+      state.activeSectionGroup === 'ccoWorkspaceSection' || isCcoRoutePath(window.location.pathname || '');
+    const floor = ccoModeActive ? 120 : 150;
+    const topPadding = ccoModeActive ? 24 : 34;
     let computed = Math.max(floor, Math.round(headerHeight + navHeight + topPadding));
-    if (compactCco) {
-      computed = Math.min(110, computed);
+    if (ccoModeActive) {
+      computed = Math.min(176, computed);
     }
     document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
     applyCcoColumnLayout({ persist: false });
@@ -5418,7 +5431,7 @@
     const ccoModeActive =
       normalized === 'ccoWorkspaceSection' || isCcoRoutePath(window.location.pathname || '');
     document.body.classList.toggle('cco-light-mode', ccoModeActive);
-    document.body.classList.toggle('cco-compact-header', ccoModeActive);
+    document.body.classList.remove('cco-compact-header');
   }
 
   function setActiveSectionGroup(nextGroupId, options = {}) {
@@ -10823,12 +10836,16 @@
       renderCcoConversationHistory(row);
       renderCcoCustomerSummary(row);
       renderCcoReplyContext(row);
+      renderCcoStatusSummary(row, getCcoDraftEvaluationForConversation(row.conversationId), {
+        readOnlyMode: true,
+      });
     } else {
       if (els.ccoConversationHistoryList) {
         els.ccoConversationHistoryList.innerHTML = '<li class="muted mini">Ingen historik tillgänglig för valt mail.</li>';
       }
       renderCcoCustomerSummary(null);
       renderCcoReplyContext(null);
+      renderCcoStatusSummary(null, null, { readOnlyMode: true });
     }
     setCcoReplyEmptyState(false, {
       emptyMessage: 'Skrivskyddad vy. Byt till Arbetskö för att svara.',
@@ -11178,6 +11195,27 @@
     return 'Arbetskö';
   }
 
+  function formatCcoMailWorkspaceHeading(value = 'queue') {
+    const mode = sanitizeCcoMailViewMode(value);
+    if (mode === 'inbound') return 'Alla inkomna';
+    if (mode === 'sent') return 'Skickat';
+    return 'Arbetskö';
+  }
+
+  function formatCcoMailWorkspaceSummary(value = 'queue', usingHandledFallback = false) {
+    const mode = sanitizeCcoMailViewMode(value);
+    if (mode === 'inbound') {
+      return 'Senaste inkomna över alla postlådor och pågående kundtrådar.';
+    }
+    if (mode === 'sent') {
+      return 'Skickade svar, uppföljningar och senast genomförd kommunikation.';
+    }
+    if (usingHandledFallback) {
+      return 'Öppen kö saknas just nu. Visar hanterade konversationer som nästa arbetsyta.';
+    }
+    return 'Prioritera det som kräver svar, uppföljning eller mänsklig bedömning först.';
+  }
+
   function formatCcoDensityModeLabel(value = CCO_DEFAULT_DENSITY_MODE) {
     const mode = sanitizeCcoDensityMode(value);
     if (mode === 'focus') return 'Fokus';
@@ -11267,66 +11305,131 @@
       });
   }
 
+  function renderCcoSidebarBadgeRow(rows = []) {
+    if (!els.ccoSidebarBadgeRow) return;
+    const source = Array.isArray(rows) ? rows : [];
+    const counts = [
+      {
+        tone: 'neutral',
+        label: 'Alla mail',
+        value: source.length,
+      },
+      {
+        tone: 'blue',
+        label: 'Ny eller återkom',
+        value: source.filter((row) => getCcoIndicatorStateForFilter(row) === 'new').length,
+      },
+      {
+        tone: 'red',
+        label: 'Hög eller kritisk',
+        value: source.filter((row) => {
+          const indicatorState = getCcoIndicatorStateForFilter(row);
+          return indicatorState === 'high' || indicatorState === 'critical';
+        }).length,
+      },
+      {
+        tone: 'green',
+        label: 'Hanterade',
+        value: source.filter((row) => {
+          const stateValue = String(row?.needsReplyStatus || '').trim().toLowerCase();
+          return stateValue === 'handled' || getCcoIndicatorStateForFilter(row) === 'handled';
+        }).length,
+      },
+    ];
+    els.ccoSidebarBadgeRow.innerHTML = counts
+      .map(
+        (entry) => `
+          <div class="cco-numeric-status-badge is-${escapeHtml(entry.tone)}" title="${escapeHtml(
+            `${entry.label}: ${entry.value}`
+          )}" aria-label="${escapeHtml(`${entry.label}: ${entry.value}`)}">
+            <span class="cco-numeric-status-number">${escapeHtml(String(entry.value))}</span>
+          </div>
+        `
+      )
+      .join('');
+  }
+
+  function renderCcoStatusSummary(row = null, evaluation = null, { readOnlyMode = false } = {}) {
+    if (!els.ccoStatusSummaryRows) return;
+    const safeRow = row && typeof row === 'object' ? row : null;
+    const riskLevel = Number(evaluation?.riskSummary?.output?.riskLevel);
+    let riskTone = 'alert';
+    if (Number.isFinite(riskLevel) && riskLevel <= 2) riskTone = 'success';
+    else if (Number.isFinite(riskLevel) && riskLevel <= 3) riskTone = 'progress';
+    const riskText = safeRow
+      ? formatCcoRiskIndicator(safeRow, evaluation)
+      : readOnlyMode
+        ? 'Skrivskyddad läsning'
+        : 'Ingen tråd vald';
+    const actionText = safeRow
+      ? formatCcoRecommendedAction(safeRow.recommendedAction)
+      : readOnlyMode
+        ? 'Byt till Arbetskö för att svara'
+        : 'Välj en tråd för att få rekommendation';
+    const confidenceText = safeRow
+      ? formatCcoConfidenceLabel(String(safeRow.confidenceLevel || 'Low'))
+      : '-';
+    const rows = [
+      {
+        tone: riskTone,
+        icon: '▲',
+        label: 'Risknivå',
+        value: riskText,
+      },
+      {
+        tone: 'progress',
+        icon: '◔',
+        label: 'Rekommendation',
+        value: actionText,
+      },
+      {
+        tone: 'success',
+        icon: '●',
+        label: 'Konfidens',
+        value: confidenceText,
+      },
+    ];
+    els.ccoStatusSummaryRows.innerHTML = rows
+      .map(
+        (entry) => `
+          <div class="cco-status-summary-row is-${escapeHtml(entry.tone)}">
+            <span class="cco-status-summary-icon" aria-hidden="true">${escapeHtml(entry.icon)}</span>
+            <div class="cco-status-summary-copy">
+              <div class="cco-status-summary-label">${escapeHtml(entry.label)}</div>
+              <div class="cco-status-summary-meta">${escapeHtml(entry.value)}</div>
+            </div>
+            <span class="cco-status-summary-tail" aria-hidden="true">›</span>
+          </div>
+        `
+      )
+      .join('');
+  }
+
   function buildCcoThreadMarkup(row = null, selectedId = '', debugMode = false) {
     if (!row || typeof row !== 'object') return '';
     const isActive = row.conversationId === selectedId;
     const conversationId = String(row.conversationId || '').trim();
-    const status = formatCcoNeedsReplyLabel(row.needsReplyStatus);
-    const safeHours = Number(row.hoursSinceInbound || 0);
-    const meta = `${safeHours.toFixed(1)}h sedan`;
     const mailboxLabel = row.mailboxLabel || resolveCcoMailboxLabel(row);
     const mailboxShortLabel = formatCcoMailboxShortLabel(mailboxLabel) || mailboxLabel;
-    const relationshipStatus = String(row.relationshipStatus || classifyCcoRelationshipStatus(row))
-      .trim()
-      .toLowerCase();
-    const relationshipClass = ['new', 'returning', 'loyal', 'dormant'].includes(relationshipStatus)
-      ? `relationship-${relationshipStatus}`
-      : 'relationship-new';
-    const relationshipLabel = row.relationshipLabel || formatCcoRelationshipChip(relationshipStatus);
-    const lifecycleLabel = formatCcoLifecycleLabel(row.lifecycleStatus || row?.customerSummary?.lifecycleStatus);
     const priorityClass = getCcoPriorityBadgeClass(row.priorityLevel);
-    const slaChipClass = getCcoSlaChipClass(row.slaStatus);
     const slaToneClass = getCcoSlaToneClass(row);
     const isNew = row.isNewSinceLastVisit === true;
     const dominantRisk = inferCcoDominantRisk(row);
     const highRisk = ['critical', 'high'].includes(safeLower(row.priorityLevel || ''));
-    const unansweredChip = row.isUnanswered === true
-      ? `<span class="cco-thread-chip">Obesvarad ≥ ${Math.max(1, Number(row.unansweredThresholdHours || 24))}h</span>`
-      : '';
-    const scoreChip = debugMode
-      ? `<span class="cco-thread-chip">Poäng ${Math.round(Number(row.priorityScore || 0))}</span>`
-      : '';
-    const followUpChip = row.followUpSuggested
-      ? '<span class="cco-thread-chip">🔁 Följ upp</span>'
-      : '';
-    const systemMessageChip = isLikelyCcoSystemMessage(row)
-      ? '<span class="cco-thread-chip system-message">Systemmail</span>'
-      : '';
-    const allChips = [
-      `<span class="cco-priority-badge ${priorityClass}">${escapeHtml(formatCcoPriorityLabel(row.priorityLevel))}</span>`,
-      `<span class="cco-thread-chip ${slaChipClass}">${escapeHtml(formatCcoSlaStatusChip(row.slaStatus))}</span>`,
-      `<span class="cco-thread-chip">${escapeHtml(formatCcoIntentChip(row.intent))}</span>`,
-      `<span class="cco-thread-chip">${escapeHtml(formatCcoToneChip(row.tone))}</span>`,
-      `<span class="cco-thread-chip">${escapeHtml(lifecycleLabel)}</span>`,
-      `<span class="cco-thread-chip ${relationshipClass}">${escapeHtml(relationshipLabel)}</span>`,
-      `<span class="cco-thread-chip">${escapeHtml(status)}</span>`,
-      unansweredChip,
-      followUpChip,
-      systemMessageChip,
-      scoreChip,
-    ].filter(Boolean);
     const indicator = getCcoThreadIndicatorState(row);
     const indicatorMarkup = buildCcoCheckmarkIconMarkup(indicator);
-    const primaryChip = allChips[0] || '';
-    const tagMarkup = primaryChip
-      ? `<span class="cco-thread-tags">${primaryChip}</span>`
-      : '';
-    const previewText = String(
-      row.latestInboundPreview || row.lastMessagePreview || row.recommendedAction || ''
-    ).trim();
-    const previewMarkup = previewText
-      ? `<span class="cco-thread-preview">${escapeHtml(previewText)}</span>`
-      : '';
+    const safeSubject = String(row.subject || '').trim() || '(utan ämne)';
+    const senderLabel = String(row.sender || '').trim() || 'Okänd avsändare';
+    const timestampLabel = row.lastInboundAt
+      ? formatCcoDateTimeValue(row.lastInboundAt)
+      : `${Number(row.hoursSinceInbound || 0).toFixed(1)}h sedan`;
+    const metaBits = [senderLabel, mailboxShortLabel, timestampLabel].filter(Boolean);
+    const metaMarkup = `<span class="cco-thread-meta-row">${metaBits
+      .map((bit) => `<span>${escapeHtml(bit)}</span>`)
+      .join('<span class="cco-thread-meta-sep" aria-hidden="true">·</span>')}</span>`;
+    const primaryChip = `<span class="cco-list-row-chip cco-priority-badge ${priorityClass}">${escapeHtml(
+      formatCcoPriorityLabel(row.priorityLevel)
+    )}</span>`;
     return `
       <li class="cco-thread${isActive ? ' active' : ''}${slaToneClass ? ` ${slaToneClass}` : ''}${isNew ? ' thread-new' : ''} sprint-focus" data-dominant-risk="${escapeHtml(
         dominantRisk
@@ -11338,12 +11441,15 @@
         <button type="button" class="cco-thread-btn ccoConversationSelectBtn" data-conversation-id="${escapeHtml(
           conversationId
         )}">
-          <span class="cco-thread-head">${indicatorMarkup}<span class="cco-thread-subject">${escapeHtml(
-      row.subject
-    )}</span></span>
-          <span class="cco-thread-meta">${escapeHtml(row.sender)} · <span title="${escapeHtml(mailboxLabel)}">${escapeHtml(mailboxShortLabel)}</span> · ${meta}</span>
-          ${previewMarkup}
-          ${tagMarkup}
+          ${indicatorMarkup}
+          <span class="cco-thread-mail cco-list-row-body">
+            <span class="cco-thread-subject-row">
+              <span class="cco-thread-subject">${escapeHtml(safeSubject)}</span>
+              ${primaryChip}
+            </span>
+            ${metaMarkup}
+          </span>
+          <span class="cco-list-row-tail" aria-hidden="true">›</span>
         </button>
       </li>
     `;
@@ -11456,24 +11562,20 @@
         const value = normalizeCcoMailboxKey(entry.value);
         const isActive = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === sanitizeCcoMailboxFilter(value);
         const hasMessages = value === 'all' || presentMailboxLabels.has(value);
-        const labelHtml = value === 'all'
-          ? `<span>${escapeHtml(entry.label)}</span>`
-          : `<span class="cco-filter-btn-mailbox-label">${escapeHtml(entry.label)}</span>`;
-        const countHtml = Number(entry.count || 0) > 0
-          ? `<span class="cco-count-inline cco-filter-btn-mailbox-count">${Number(entry.count || 0)}</span>`
-          : '';
+        const labelHtml = `<span class="cco-mailbox-row-label">${escapeHtml(entry.label)}</span>`;
+        const countHtml = `<span class="cco-mailbox-row-count">${Number(entry.count || 0)}</span>`;
         const title = entry.title
           ? ` title="${escapeHtml(entry.title)}"`
           : '';
-        const innerClass = value === 'all' ? '' : ' class="cco-filter-btn-mailbox"';
-        return `<button type="button" class="cco-filter-btn${isActive ? ' is-active' : ''}" data-cco-mailbox-filter="${escapeHtml(
+        return `<button type="button" class="cco-filter-btn cco-mailbox-row${isActive ? ' is-active' : ''}" data-cco-mailbox-filter="${escapeHtml(
           value || 'all'
-        )}"${hasMessages ? '' : ' data-empty="true"'}${title}><span${innerClass}>${labelHtml}${countHtml}</span></button>`;
+        )}"${hasMessages ? '' : ' data-empty="true"'}${title}>${labelHtml}${countHtml}</button>`;
       })
       .join('');
   }
 
   function renderCcoSearchControls() {
+    const showSystem = sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages);
     if (els.ccoInboxSearchInput) {
       const nextValue = sanitizeCcoSearchQuery(state.ccoInboxSearchQuery);
       if (els.ccoInboxSearchInput.value !== nextValue) {
@@ -11481,14 +11583,14 @@
       }
     }
     if (els.ccoInboxShowSystemToggle) {
-      els.ccoInboxShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
-        state.ccoInboxShowSystemMessages
-      );
+      els.ccoInboxShowSystemToggle.checked = showSystem;
     }
     if (els.ccoReplyShowSystemToggle) {
-      els.ccoReplyShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
-        state.ccoInboxShowSystemMessages
-      );
+      els.ccoReplyShowSystemToggle.checked = showSystem;
+    }
+    if (els.ccoSidebarSystemBtn) {
+      els.ccoSidebarSystemBtn.textContent = showSystem ? 'Dölj systemmail' : 'Visa systemmail';
+      els.ccoSidebarSystemBtn.classList.toggle('is-active', showSystem);
     }
   }
 
@@ -11521,7 +11623,7 @@
   }
 
   function isCcoDebugOverlayEnabled() {
-    return state.ccoEvidenceMode === true || isCcoInteractionDebugEnabled();
+    return isCcoInteractionDebugEnabled();
   }
 
   function renderCcoDebugOverlay(snapshot = null) {
@@ -11978,20 +12080,27 @@
         const sentAtLabel = entry.sentAt ? formatCcoDateTimeValue(entry.sentAt) : '-';
         const mailboxShort = formatCcoMailboxShortLabel(entry.mailboxAddress) || entry.mailboxAddress;
         const directionChip = mode === 'sent' ? 'Skickat' : 'Inkommet';
+        const counterpart = String(entry.counterpart || '').trim() || 'Okänd kontakt';
+        const safeSubject = String(entry.subject || '').trim() || '(utan ämne)';
+        const sentAtMeta = [counterpart, mailboxShort, sentAtLabel].filter(Boolean);
         return `
           <li class="cco-feed-item${selected ? ' is-selected' : ''}" data-cco-feed-id="${escapeHtml(entry.feedId)}" data-cco-conversation-id="${escapeHtml(entry.conversationId)}">
             <button type="button" class="cco-feed-item-btn ccoFeedSelectBtn" data-cco-feed-id="${escapeHtml(
               entry.feedId
             )}" data-conversation-id="${escapeHtml(entry.conversationId)}">
-              <span class="cco-feed-item-top">
-                ${indicatorMarkup}
-                <span class="cco-feed-item-subject">${escapeHtml(entry.subject)}</span>
+              ${indicatorMarkup}
+              <span class="cco-feed-item-mail cco-list-row-body">
+                <span class="cco-feed-item-subject-row">
+                  <span class="cco-feed-item-subject">${escapeHtml(safeSubject)}</span>
+                  <span class="cco-list-row-chip">${escapeHtml(directionChip)}</span>
+                </span>
+                <span class="cco-feed-item-meta-row">
+                  ${sentAtMeta
+                    .map((bit) => `<span>${escapeHtml(bit)}</span>`)
+                    .join('<span class="cco-thread-meta-sep" aria-hidden="true">·</span>')}
+                </span>
               </span>
-              <span class="cco-feed-item-meta">${escapeHtml(entry.counterpart)} · <span title="${escapeHtml(
-          entry.mailboxAddress
-        )}">${escapeHtml(mailboxShort)}</span> · ${escapeHtml(sentAtLabel)}</span>
-              <span class="cco-feed-item-preview">${escapeHtml(String(entry.preview || '').trim())}</span>
-              <span class="cco-thread-tags"><span class="cco-thread-chip">${escapeHtml(directionChip)}</span></span>
+              <span class="cco-list-row-tail" aria-hidden="true">›</span>
             </button>
           </li>
         `;
@@ -12242,14 +12351,13 @@
     renderCcoUnansweredPanel(unansweredRows);
 
     if (els.ccoCenterListTitle) {
-      els.ccoCenterListTitle.textContent = formatCcoMailViewModeLabel(mailViewMode);
+      els.ccoCenterListTitle.textContent = formatCcoMailWorkspaceHeading(mailViewMode);
     }
     if (els.ccoInboxModeMeta) {
-      const handledFallbackSuffix =
-        mailViewMode === 'queue' && usingHandledFallback
-          ? ' · Öppen kö saknas, visar hanterade konversationer'
-          : '';
-      els.ccoInboxModeMeta.textContent = `Vy: ${formatCcoMailViewModeLabel(mailViewMode)}${handledFallbackSuffix}`;
+      els.ccoInboxModeMeta.textContent = formatCcoMailWorkspaceSummary(
+        mailViewMode,
+        usingHandledFallback
+      );
     }
     if (els.ccoInboxDensityFilters) {
       els.ccoInboxDensityFilters.style.display = mailViewMode === 'queue' ? '' : 'none';
@@ -12900,9 +13008,22 @@
     const senderMailboxShort = formatCcoMailboxShortLabel(senderMailbox) || senderMailbox;
     const slaLabel = formatCcoSlaStatusLabel(conversation.slaStatus);
     const riskLabel = formatCcoRecommendedAction(conversation.recommendedAction);
-    els.ccoReplyContextStrip.textContent = `${conversation.sender} · ${senderMailboxShort} · SLA ${slaLabel} · ${riskLabel}`;
+    els.ccoReplyContextStrip.innerHTML = [
+      `<span class="cco-reply-context-party">${escapeHtml(conversation.sender || 'Okänd kund')}</span>`,
+      `<span class="cco-reply-context-sep" aria-hidden="true">·</span>`,
+      `<span class="cco-reply-context-mailbox">${escapeHtml(senderMailboxShort)}</span>`,
+      `<span class="cco-reply-context-sep" aria-hidden="true">·</span>`,
+      `<span class="cco-reply-context-status">SLA ${escapeHtml(slaLabel)}</span>`,
+      `<span class="cco-reply-context-sep" aria-hidden="true">·</span>`,
+      `<span class="cco-reply-context-action">${escapeHtml(riskLabel)}</span>`,
+    ].join('');
     if (context && context.excerpt) {
-      els.ccoReplyingToContext.textContent = `Svarar på: ${context.label} — ${context.excerpt}`;
+      els.ccoReplyingToContext.innerHTML = [
+        '<span class="cco-reply-context-caption">Svarar på</span>',
+        `<span class="cco-reply-context-source">${escapeHtml(context.label)}</span>`,
+        '<span class="cco-reply-context-sep" aria-hidden="true">·</span>',
+        `<span class="cco-reply-context-excerpt">${escapeHtml(context.excerpt)}</span>`,
+      ].join(' ');
     } else {
       els.ccoReplyingToContext.textContent = 'Välj ett meddelande i historiken för att svara med kontext.';
     }
@@ -13097,7 +13218,7 @@
       if (els.ccoDraftPolicyIndicator) els.ccoDraftPolicyIndicator.textContent = '-';
       if (els.ccoDraftConfidence) els.ccoDraftConfidence.textContent = '-';
       if (els.ccoDraftRecommendedActionRow) {
-        els.ccoDraftRecommendedActionRow.textContent = '🎯 Rekommenderad åtgärd: -';
+        els.ccoDraftRecommendedActionRow.textContent = 'Rekommenderad åtgärd: -';
       }
       if (els.ccoDraftRecommendedAction) els.ccoDraftRecommendedAction.textContent = '-';
       if (els.ccoDraftBodyInput) els.ccoDraftBodyInput.value = '';
@@ -13116,6 +13237,7 @@
       renderCcoSignaturePreview();
       renderCcoCustomerSummary(null);
       renderCcoReplyContext(null);
+      renderCcoStatusSummary(null, null, { readOnlyMode });
       applyCcoSnoozeButtonState();
       return;
     }
@@ -13152,8 +13274,11 @@
       const lastOutboundLabel = conversation.lastOutboundAt
         ? formatCcoDateTimeValue(conversation.lastOutboundAt)
         : '-';
+      const lifecycleLabel = formatCcoLifecycleLabel(
+        conversation.customerSummary?.lifecycleStatus || conversation.lifecycleStatus
+      );
       els.ccoConversationMeta.textContent =
-        `${conversation.sender} · ${formatCcoIntentLabel(conversation.intent)} · Ton: ${formatCcoToneLabel(conversation.tone)} (${toneConfidencePct}) · SLA: ${formatCcoSlaStatusLabel(conversation.slaStatus)} · ${slaCountdown} · ${formatCcoPriorityLabel(conversation.priorityLevel)} · ` +
+        `${conversation.sender} · Kundresa: ${lifecycleLabel} · ${formatCcoIntentLabel(conversation.intent)} · Ton: ${formatCcoToneLabel(conversation.tone)} (${toneConfidencePct}) · SLA: ${formatCcoSlaStatusLabel(conversation.slaStatus)} · ${slaCountdown} · ${formatCcoPriorityLabel(conversation.priorityLevel)} · ` +
         `${conversation.escalationRequired ? 'Eskalering krävs' : 'Normal'} · Senast inkommet: ${lastInboundLabel} · Senast svarat: ${lastOutboundLabel}`;
     }
     if (els.ccoConversationPreview) {
@@ -13197,7 +13322,7 @@
       els.ccoDraftRecommendedAction.textContent = `${formatCcoRecommendedAction(conversation.recommendedAction)}${previewText ? ' · Förhandsvisning maskerad' : ''}`;
     }
     if (els.ccoDraftRecommendedActionRow) {
-      els.ccoDraftRecommendedActionRow.textContent = `🎯 Rekommenderad åtgärd: ${formatCcoRecommendedAction(
+      els.ccoDraftRecommendedActionRow.textContent = `Rekommenderad åtgärd: ${formatCcoRecommendedAction(
         conversation.recommendedAction
       )}`;
     }
@@ -13210,6 +13335,7 @@
     }
     renderCcoCustomerSummary(conversation);
     renderCcoReplyContext(conversation);
+    renderCcoStatusSummary(conversation, evaluation, { readOnlyMode });
     restoreCcoConversationScroll(conversation.conversationId);
   }
 
@@ -13356,6 +13482,8 @@
         [],
         'Ingen CCO-data än.'
       );
+      renderCcoSidebarBadgeRow([]);
+      renderCcoStatusSummary(null, null, { readOnlyMode: isCcoReadOnlyMailViewMode() });
       if (els.ccoSendStatus) els.ccoSendStatus.textContent = '';
       renderCcoSprintPanel([], []);
       renderCcoWorklist(null);
@@ -13380,6 +13508,7 @@
     ).slice(0, 8);
     const mailboxCount = sourceMailboxIds.length;
     const messageCount = sortedRows.length;
+    renderCcoSidebarBadgeRow(sortedRows);
 
     if (els.ccoInboxPriority) {
       const priorityLabel = String(normalizePriorityLevelForUi(data.priorityLevel));
@@ -15901,7 +16030,7 @@
     state.ccoInboxSearchQuery = '';
     state.ccoInboxShowSystemMessages = false;
     state.ccoMailboxFiltersExpanded = true;
-    state.ccoExtraFiltersExpanded = false;
+    state.ccoExtraFiltersExpanded = true;
     state.ccoWorkspaceCompact = true;
     state.ccoCenterReadTab = 'conversation';
     state.ccoSelectedConversationId = '';
@@ -16416,6 +16545,9 @@
   els.runOrchestratorBtn?.addEventListener('click', runOrchestrator);
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
+  els.ccoTopUtilityMoreBtn?.addEventListener('click', () => {
+    document.body.classList.toggle('cco-top-utility-open');
+  });
   els.runCcoInboxBtn?.addEventListener('click', () => {
     logCcoInteraction('run-cco-inbox-brief-click', {
       source: 'runCcoInboxBtn',
@@ -16431,6 +16563,17 @@
     runCcoInboxBrief().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
     });
+  });
+  els.ccoSidebarRefreshBtn?.addEventListener('click', () => {
+    runCcoInboxBrief().catch((error) => {
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
+    });
+  });
+  els.ccoSidebarSystemBtn?.addEventListener('click', () => {
+    state.ccoInboxShowSystemMessages = !sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages);
+    persistCcoWorkspaceSessionState();
+    renderCcoSearchControls();
+    renderCcoInbox(state.ccoInboxData);
   });
   els.ccoClearFiltersBtn?.addEventListener('click', () => {
     state.ccoInboxMailboxFilter = 'all';

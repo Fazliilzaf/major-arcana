@@ -1,0 +1,172 @@
+:root {
+  --ma-font-sans: "Jost", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ma-font-display: "Cormorant Garamond", Georgia, serif;
+
+  --ma-space-4: 4px;
+  --ma-space-8: 8px;
+  --ma-space-12: 12px;
+  --ma-space-16: 16px;
+  --ma-space-20: 20px;
+  --ma-space-24: 24px;
+  --ma-space-32: 32px;
+  --ma-space-40: 40px;
+  --ma-space-48: 48px;
+
+  --ma-layout-page-padding: 32px;
+  --ma-layout-topbar-height: 64px;
+  --ma-layout-top-gap: 24px;
+  --ma-layout-panel-gap: 24px;
+  --ma-layout-right-stack-gap: 24px;
+  --ma-layout-panel-padding: 24px;
+  --ma-layout-card-padding: 16px;
+
+  --ma-type-panel-title-size: 28px;
+  --ma-type-panel-title-line: 1.15;
+  --ma-type-panel-title-weight: 700;
+  --ma-type-section-size: 22px;
+  --ma-type-section-line: 1.2;
+  --ma-type-section-weight: 650;
+  --ma-type-row-size: 18px;
+  --ma-type-row-line: 1.25;
+  --ma-type-row-weight: 550;
+  --ma-type-meta-size: 15px;
+  --ma-type-meta-line: 1.3;
+  --ma-type-meta-weight: 500;
+  --ma-type-body-size: 16px;
+  --ma-type-body-line: 1.45;
+  --ma-type-body-weight: 400;
+  --ma-type-button-size: 16px;
+  --ma-type-button-line: 1;
+  --ma-type-button-weight: 600;
+  --ma-type-badge-size: 20px;
+  --ma-type-badge-line: 1;
+  --ma-type-badge-weight: 700;
+  --ma-type-month-size: 24px;
+  --ma-type-month-line: 1;
+  --ma-type-month-weight: 700;
+  --ma-type-utility-size: 14px;
+  --ma-type-utility-line: 1.2;
+  --ma-type-utility-weight: 500;
+
+  --ma-radius-panel: 20px;
+  --ma-radius-card: 14px;
+  --ma-radius-button: 14px;
+  --ma-radius-chip: 12px;
+  --ma-radius-checkbox: 5px;
+  --ma-radius-circle: 999px;
+
+  --ma-neutral-light-greige: #D6C2B2;
+  --ma-neutral-sand: #C4AE9C;
+  --ma-neutral-taupe: #A7917D;
+  --ma-neutral-brown: #7F6557;
+  --ma-neutral-dark-brown: #513D34;
+
+  --ma-neutral-shadow-1: #BBA696;
+  --ma-neutral-shadow-2: #A18A79;
+  --ma-neutral-shadow-3: #866D5F;
+  --ma-neutral-shadow-4: #6E4B41;
+  --ma-neutral-shadow-5: #3E2E29;
+
+  --ma-neutral-2-light-greige: #D6C7B8;
+  --ma-neutral-2-sand: #C3AF9E;
+  --ma-neutral-2-taupe: #A38F82;
+  --ma-neutral-2-brown: #7C6356;
+  --ma-neutral-2-dark-brown: #4E3D35;
+
+  --ma-neutral-2-shadow-1: #B8A595;
+  --ma-neutral-2-shadow-2: #9E897A;
+  --ma-neutral-2-shadow-3: #836F63;
+  --ma-neutral-2-shadow-4: #5E4B41;
+  --ma-neutral-2-shadow-5: #3B2E28;
+
+  --ma-status-blue: #8D9DB7;
+  --ma-status-blue-shadow: #445565;
+  --ma-status-red: #B85F5A;
+  --ma-status-red-shadow: #5E3F3C;
+  --ma-status-yellow: #B8A56A;
+  --ma-status-yellow-shadow: #7F734A;
+  --ma-status-orange: #A8744C;
+  --ma-status-orange-shadow: #6F4E35;
+  --ma-status-green: #77806A;
+  --ma-status-green-shadow: #4F5648;
+
+  --ma-page-bg:
+    radial-gradient(circle at 11% 12%, rgba(255, 255, 255, 0.34), transparent 34%),
+    radial-gradient(circle at 86% 10%, rgba(196, 174, 156, 0.18), transparent 30%),
+    radial-gradient(circle at 52% 100%, rgba(163, 143, 130, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(214, 194, 178, 0.96) 0%, rgba(214, 199, 184, 0.94) 44%, rgba(196, 174, 156, 0.92) 100%);
+  --ma-surface-panel: rgba(250, 246, 242, 0.92);
+  --ma-surface-card: rgba(252, 248, 244, 0.90);
+  --ma-surface-control: rgba(255, 255, 255, 0.82);
+  --ma-surface-border: rgba(120, 105, 90, 0.16);
+  --ma-surface-border-strong: rgba(120, 105, 90, 0.22);
+  --ma-surface-muted: rgba(70, 60, 50, 0.55);
+  --ma-surface-muted-strong: rgba(70, 60, 50, 0.72);
+  --ma-text: #513D34;
+  --ma-text-strong: #3E2E29;
+  --ma-text-soft: #7F6557;
+  --ma-text-on-dark: rgba(252, 248, 244, 0.98);
+
+  --ma-shadow-panel:
+    0 8px 24px rgba(70, 50, 30, 0.08),
+    0 2px 6px rgba(70, 50, 30, 0.05);
+  --ma-shadow-panel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --ma-shadow-control:
+    0 4px 10px rgba(45, 28, 18, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+  --ma-shadow-selected:
+    0 6px 14px rgba(35, 22, 15, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  --ma-fill-panel:
+    linear-gradient(180deg, rgba(250, 246, 242, 0.96) 0%, rgba(246, 240, 235, 0.90) 100%);
+  --ma-fill-card:
+    linear-gradient(180deg, rgba(252, 248, 244, 0.92) 0%, rgba(248, 243, 238, 0.88) 100%);
+  --ma-fill-control:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(252, 248, 244, 0.82) 100%);
+  --ma-fill-primary:
+    linear-gradient(180deg, rgba(127, 101, 87, 0.94) 0%, rgba(81, 61, 52, 0.98) 100%);
+  --ma-fill-primary-soft:
+    linear-gradient(180deg, rgba(167, 145, 125, 0.88) 0%, rgba(127, 101, 87, 0.94) 100%);
+
+  --ma-shell-left-width: 312px;
+  --ma-shell-right-width: 428px;
+  --ma-shell-center-min: 560px;
+  --ma-shell-workspace-height: calc(100vh - 248px);
+  --ma-toolbar-compact-height: 40px;
+  --ma-toolbar-shell-height: 56px;
+  --ma-badge-size: 54px;
+  --ma-badge-gap: 10px;
+  --ma-search-height: 50px;
+  --ma-nav-row-height: 56px;
+  --ma-shortcut-height: 54px;
+  --ma-list-row-height: 72px;
+  --ma-list-chip-width: 96px;
+  --ma-list-chip-height: 30px;
+  --ma-detail-action-height: 48px;
+  --ma-detail-attachment-height: 52px;
+  --ma-checklist-row-height: 58px;
+
+  --ma-backdrop-blur: 18px;
+  --ma-panel-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 38%);
+  --ma-control-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.06) 42%, rgba(255, 255, 255, 0) 100%);
+
+  --ma-minimal-shell-radius: 14px;
+  --ma-minimal-card-radius: 12px;
+  --ma-minimal-inline-radius: 12px;
+  --ma-minimal-toolbar-height: 50px;
+  --ma-minimal-column-padding: 18px;
+  --ma-minimal-section-gap: 16px;
+  --ma-minimal-control-height: 44px;
+  --ma-minimal-row-height: 84px;
+  --ma-minimal-soft-border: rgba(94, 75, 65, 0.10);
+  --ma-minimal-shell-border: rgba(94, 75, 65, 0.14);
+  --ma-minimal-accent-line: rgba(94, 75, 65, 0.22);
+  --ma-minimal-shell-fill: rgba(250, 246, 242, 0.86);
+  --ma-minimal-glass-fill: rgba(255, 255, 255, 0.56);
+  --ma-minimal-muted-fill: rgba(252, 248, 244, 0.62);
+  --ma-minimal-selected-fill: rgba(255, 255, 255, 0.72);
+  --ma-minimal-soft-shadow: 0 10px 26px rgba(62, 46, 41, 0.08);
+  --ma-minimal-control-shadow: 0 4px 12px rgba(62, 46, 41, 0.08);
+}

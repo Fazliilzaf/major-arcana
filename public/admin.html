@@ -11120,6 +11120,8 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/styles/cco-major-arcana-skin-tokens.css" />
+  <link rel="stylesheet" href="/styles/cco-major-arcana-skin.css" />
 </head>
 <body>
   <div class="container">
@@ -11130,7 +11132,7 @@
         </div>
         <h1 data-i18n="brand_title">Major Arcana</h1>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <div class="admin-header-controls">
         <div class="lang-wrap">
           <label for="languageSelect" class="mini muted" data-i18n="label_language">Språk</label>
           <select id="languageSelect">
@@ -11182,17 +11184,20 @@
     </section>
 
     <section id="dashboardPanel" class="hidden">
-      <nav id="sectionNav" class="section-nav panel">
-        <button class="btn small sectionNavBtn active" data-target="overviewSection" data-i18n="nav_overview">Översikt</button>
-        <button class="btn small sectionNavBtn" data-target="templateLifecycleSection" data-i18n="nav_templates">Mallar</button>
-        <button class="btn small sectionNavBtn" data-target="reviewsQueueSection" data-i18n="nav_reviews">Granskningar</button>
-        <button class="btn small sectionNavBtn" data-target="incidentsQueueSection" data-i18n="nav_incidents">Incidenter</button>
-        <button class="btn small sectionNavBtn" data-target="auditSection" data-i18n="nav_audit">Revision</button>
-        <button class="btn small sectionNavBtn" data-target="teamSection" data-i18n="nav_team">Team</button>
-        <button class="btn small sectionNavBtn" data-target="settingsSection" data-i18n="nav_settings">Inställningar</button>
-        <button class="btn small sectionNavBtn" data-target="opsSection" data-i18n="nav_ops">Drift</button>
-        <button class="btn small sectionNavBtn" data-target="ccoWorkspaceSection" data-cco-view="all" data-i18n="nav_cco">CCO</button>
-      </nav>
+      <div class="cco-top-tabs-shell">
+        <nav id="sectionNav" class="section-nav panel">
+          <button class="btn small sectionNavBtn active" data-target="overviewSection" data-i18n="nav_overview">Översikt</button>
+          <button class="btn small sectionNavBtn" data-target="templateLifecycleSection" data-i18n="nav_templates">Mallar</button>
+          <button class="btn small sectionNavBtn" data-target="reviewsQueueSection" data-i18n="nav_reviews">Granskningar</button>
+          <button class="btn small sectionNavBtn" data-target="incidentsQueueSection" data-i18n="nav_incidents">Incidenter</button>
+          <button class="btn small sectionNavBtn" data-target="auditSection" data-i18n="nav_audit">Revision</button>
+          <button class="btn small sectionNavBtn" data-target="teamSection" data-i18n="nav_team">Team</button>
+          <button class="btn small sectionNavBtn" data-target="settingsSection" data-i18n="nav_settings">Inställningar</button>
+          <button class="btn small sectionNavBtn" data-target="opsSection" data-i18n="nav_ops">Drift</button>
+          <button class="btn small sectionNavBtn" data-target="ccoWorkspaceSection" data-cco-view="all" data-i18n="nav_cco">CCO</button>
+        </nav>
+        <button id="ccoTopUtilityMoreBtn" class="btn cco-top-utility-btn" type="button" aria-label="Fler verktyg">•••</button>
+      </div>
 
       <div class="overview-layout" data-section-group="overviewSection">
         <section class="panel">
@@ -11251,7 +11256,7 @@
         </section>
       </div>
 
-      <section id="ccoWorkspaceSection" data-section-group="ccoWorkspaceSection" class="cco-workspace cco-layout-root">
+      <section id="ccoWorkspaceSection" data-section-group="ccoWorkspaceSection" data-cco-skin="major-arcana" class="cco-workspace cco-layout-root">
         <div class="cco-header">CCO - Arbetsläge</div>
         <div class="cco-toolbar">
           <div class="cco-toolbar-left">
@@ -11261,11 +11266,11 @@
             <div id="ccoInboxMailboxMeta" class="mini muted">Hämtar mail…</div>
           </div>
           <div class="cco-toolbar-right">
-            <label class="mini" for="ccoInboxMaxDrafts" style="margin:0;display:flex;align-items:center;gap:8px">
+            <label class="mini cco-toolbar-field" for="ccoInboxMaxDrafts">
               Max utkast:
-              <input id="ccoInboxMaxDrafts" type="number" value="5" min="1" max="5" style="width:72px" />
+              <input id="ccoInboxMaxDrafts" class="cco-toolbar-number" type="number" value="5" min="1" max="5" />
             </label>
-            <label class="mini" for="ccoInboxIncludeClosed" style="margin:0;display:flex;align-items:center;gap:6px">
+            <label class="mini cco-toolbar-field cco-toolbar-field-compact" for="ccoInboxIncludeClosed">
               <input id="ccoInboxIncludeClosed" type="checkbox" />
               Inkludera stängda
             </label>
@@ -11280,7 +11285,7 @@
         <div id="ccoSprintShell" class="cco-sprint-shell is-collapsed">
           <div class="cco-sprint-controls">
             <div>
-              <h3 id="ccoFocusHeading" style="margin:0">IDAG – FOKUS (0 av 0)</h3>
+              <h3 id="ccoFocusHeading" class="cco-sprint-heading">IDAG – FOKUS (0 av 0)</h3>
               <div id="ccoSprintProgress" class="mini muted">Fokuskö väntar.</div>
               <div class="cco-workload-row">
                 <div id="ccoFocusWorkload" class="mini muted">≈ 0 min arbete</div>
@@ -11302,11 +11307,26 @@
             <li class="mini muted">Ingen fokuskö ännu.</li>
           </ul>
         </div>
-        <div id="ccoWorkspaceLayout" class="cco-layout" style="margin-top:8px">
+        <div id="ccoWorkspaceLayout" class="cco-layout">
+          <div id="ccoMailWorkbench" class="cco-mail-workbench">
           <aside id="ccoInboxControlsColumn" class="cco-inbox cco-inbox-controls">
             <div class="cco-nav-stack">
+              <div id="ccoSidebarBadgeRow" class="cco-sidebar-badge-row numeric_status_badge_row" aria-label="Snabbstatus">
+                <div class="cco-numeric-status-badge is-neutral" title="Alla mail">
+                  <span class="cco-numeric-status-number">0</span>
+                </div>
+                <div class="cco-numeric-status-badge is-blue" title="Nya eller återkomna">
+                  <span class="cco-numeric-status-number">0</span>
+                </div>
+                <div class="cco-numeric-status-badge is-red" title="Hög och kritisk">
+                  <span class="cco-numeric-status-number">0</span>
+                </div>
+                <div class="cco-numeric-status-badge is-green" title="Hanterade">
+                  <span class="cco-numeric-status-number">0</span>
+                </div>
+              </div>
               <section class="cco-nav-block cco-nav-block-top">
-                <div class="cco-column-title" style="padding:2px 2px 0">
+                <div class="cco-column-title cco-column-title-tight">
                   <h3>Sök & systemmail</h3>
                   <button id="ccoFocusShowAllBtn" class="cco-focus-toggle" type="button">Visa alla</button>
                 </div>
@@ -11318,7 +11338,7 @@
                     placeholder="Sök (namn, e-post, ämne, historik)"
                     autocomplete="off"
                   />
-                  <label class="cco-inline-toggle" style="justify-self:end">
+                  <label class="cco-inline-toggle cco-inline-toggle-search">
                     <input id="ccoInboxShowSystemToggle" type="checkbox" />
                     Visa systemmail
                   </label>
@@ -11357,10 +11377,10 @@
               </section>
 
               <section class="cco-nav-block cco-nav-block-filters">
-                <section id="ccoExtraFiltersBlock" class="cco-filter-block is-collapsed">
-                  <button id="ccoExtraFiltersToggleBtn" class="cco-filter-block-toggle" type="button" aria-expanded="false">
+                <section id="ccoExtraFiltersBlock" class="cco-filter-block">
+                  <button id="ccoExtraFiltersToggleBtn" class="cco-filter-block-toggle" type="button" aria-expanded="true">
                     <span>Filter</span>
-                    <span id="ccoExtraFiltersChevron" aria-hidden="true">▸</span>
+                    <span id="ccoExtraFiltersChevron" aria-hidden="true">▾</span>
                   </button>
                   <div id="ccoExtraFiltersContent" class="cco-filter-block-content">
                     <section class="cco-filter-subgroup">
@@ -11389,6 +11409,29 @@
                   </div>
                 </section>
               </section>
+
+              <section class="cco-nav-block cco-nav-block-calendar">
+                <div class="cco-mini-calendar-card">
+                  <div class="cco-mini-calendar-year">2026</div>
+                  <div class="cco-mini-calendar-month">Mars</div>
+                  <div class="cco-mini-calendar-days">
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span class="is-active">7</span>
+                    <span>8</span>
+                    <span>9</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="cco-nav-block cco-nav-block-shortcuts">
+                <div class="cco-shortcut-button-group">
+                  <button id="ccoSidebarRefreshBtn" class="btn cco-shortcut-btn" type="button">Uppdatera inkorg</button>
+                  <button id="ccoSidebarSystemBtn" class="btn cco-shortcut-btn" type="button">Visa systemmail</button>
+                </div>
+              </section>
             </div>
           </aside>
 
@@ -11411,7 +11454,7 @@
                 <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="medium" title="Medel: 0" aria-label="Medel: 0"><span class="cco-thread-indicator state-medium" aria-hidden="true"></span><span class="cco-indicator-filter-label">Medel</span><span class="cco-indicator-filter-count">0</span></button>
                 <button type="button" class="cco-indicator-filter-btn" data-cco-indicator-filter="handled" title="Hanterad: 0" aria-label="Hanterad: 0"><span class="cco-thread-indicator state-handled" aria-hidden="true"></span><span class="cco-indicator-filter-label">Hanterad</span><span class="cco-indicator-filter-count">0</span></button>
               </div>
-              <div id="ccoInboxModeMeta" class="mini muted" style="margin:0 0 4px 2px"></div>
+              <div id="ccoInboxModeMeta" class="mini muted cco-mode-meta"></div>
               <div id="ccoInboxDensityFilters" class="cco-filter-row cco-center-density-row">
                 <button type="button" class="cco-filter-btn" data-cco-density-mode="focus">Fokus</button>
                 <button type="button" class="cco-filter-btn is-active" data-cco-density-mode="work">Arbete</button>
@@ -11419,7 +11462,7 @@
               </div>
               <section id="ccoInboxFeedView" class="cco-feed-view" hidden>
                 <ul id="ccoInboxFeedList" class="cco-feed-list">
-                  <li class="muted mini" style="padding:12px 14px">Inga mail i vyn.</li>
+                  <li class="muted mini cco-placeholder-row">Inga mail i vyn.</li>
                 </ul>
               </section>
               <div id="ccoInboxWorklist" class="cco-inbox-sections cco-center-worklist">
@@ -11432,7 +11475,7 @@
                     <span id="ccoInboxGroupAcuteCount" class="cco-group-count">0</span>
                   </summary>
                   <ul id="ccoInboxGroupAcuteList" class="cco-thread-list">
-                    <li class="muted mini" style="padding:12px 14px">Inga konversationer i kö.</li>
+                    <li class="muted mini cco-placeholder-row">Inga konversationer i kö.</li>
                   </ul>
                 </details>
                 <details id="ccoInboxGroupHigh" data-cco-section="high" class="cco-inbox-group section-today" open>
@@ -11444,7 +11487,7 @@
                     <span id="ccoInboxGroupTodayCount" class="cco-group-count">0</span>
                   </summary>
                   <ul id="ccoInboxGroupTodayList" class="cco-thread-list">
-                    <li class="muted mini" style="padding:12px 14px">Inga konversationer i kö.</li>
+                    <li class="muted mini cco-placeholder-row">Inga konversationer i kö.</li>
                   </ul>
                 </details>
                 <details id="ccoInboxGroupNeeds" data-cco-section="needs" class="cco-inbox-group section-followup" open>
@@ -11456,7 +11499,7 @@
                     <span id="ccoInboxGroupFollowupCount" class="cco-group-count">0</span>
                   </summary>
                   <ul id="ccoInboxGroupFollowupList" class="cco-thread-list">
-                    <li class="muted mini" style="padding:12px 14px">Inga konversationer i kö.</li>
+                    <li class="muted mini cco-placeholder-row">Inga konversationer i kö.</li>
                   </ul>
                 </details>
                 <details id="ccoInboxGroupRest" data-cco-section="rest" class="cco-inbox-group section-other">
@@ -11468,7 +11511,7 @@
                     <span id="ccoInboxGroupOtherCount" class="cco-group-count">0</span>
                   </summary>
                   <ul id="ccoInboxGroupOtherList" class="cco-thread-list">
-                    <li class="muted mini" style="padding:12px 14px">Inga konversationer i kö.</li>
+                    <li class="muted mini cco-placeholder-row">Inga konversationer i kö.</li>
                   </ul>
                 </details>
               </div>
@@ -11493,10 +11536,12 @@
               </div>
             </section>
           </section>
+          </div>
 
+          <div id="ccoRightRail" class="cco-right-rail">
           <section id="ccoReplyColumn" class="cco-reply">
             <div class="cco-column-title">
-              <h3 id="ccoReplyColumnTitle">Svarsstudio</h3>
+              <h3 id="ccoReplyColumnTitle">Kunddialog</h3>
             </div>
             <div id="ccoReplyReadOnlyBanner" class="cco-reply-readonly-banner" hidden>Skrivskyddad vy. Byt till Arbetskö för att svara.</div>
             <section id="ccoReplyEmptyState" class="cco-reply-empty-state">
@@ -11523,7 +11568,7 @@
               <div id="ccoReadTabConversation" class="cco-read-tab-panel is-active">
                 <div id="ccoConversationPreview" class="cco-message">Ingen förhandsvisning än.</div>
                 <div class="cco-conversation-history-wrap">
-                  <h3 style="margin:0 0 6px 0">Historik</h3>
+                  <h3 class="cco-subsection-title">Historik</h3>
                   <ul id="ccoConversationHistoryList" class="cco-mini-list cco-conversation-history-list">
                     <li class="muted mini">Ingen historik än.</li>
                   </ul>
@@ -11578,11 +11623,11 @@
                   </div>
                 </section>
                 <div>
-                  <h3 style="margin:0 0 6px 0">Sammanfattning</h3>
+                  <h3 class="cco-subsection-title">Sammanfattning</h3>
                   <div id="ccoInboxSummary" class="cco-message">Ingen inkorgsbrief än.</div>
                 </div>
                 <div>
-                  <h3 style="margin:0 0 6px 0">Behöver svar idag</h3>
+                  <h3 class="cco-subsection-title">Behöver svar idag</h3>
                   <ul id="ccoInboxNeedsReplyList" class="cco-mini-list">
                     <li class="muted mini">Inga konversationer i kö.</li>
                   </ul>
@@ -11619,7 +11664,7 @@
                     <option value="egzona">Egzona Krasniqi</option>
                     <option value="fazli">Fazli Krasniqi</option>
                   </select>
-                  <label class="cco-inline-toggle" for="ccoInsertSignatureToggle" style="margin-top:22px">
+                  <label class="cco-inline-toggle cco-inline-toggle-stack" for="ccoInsertSignatureToggle">
                     <input id="ccoInsertSignatureToggle" type="checkbox" checked />
                     Infoga signatur vid skick
                   </label>
@@ -11662,7 +11707,7 @@
               </div>
               <details class="cco-actions-more">
                 <summary>Fler åtgärder</summary>
-                <div class="cco-actions cco-actions-single" style="margin-top:8px">
+                <div class="cco-actions cco-actions-single cco-actions-single-spaced">
                   <button id="ccoCopyReplyBtn" class="btn small">Kopiera svar</button>
                   <button id="ccoMarkSystemMailBtn" class="btn small">Markera som systemmail</button>
                   <button id="ccoHidePatternBtn" class="btn small">Dölj avsändare/mönster</button>
@@ -11696,8 +11741,40 @@
               </div>
             </section>
             </div>
-            </div>
           </section>
+            <section id="ccoStatusSummaryCard" class="cco-status-summary-card">
+              <div class="cco-column-title">
+                <h3>Statusöversikt</h3>
+              </div>
+              <div id="ccoStatusSummaryRows" class="cco-status-summary-rows">
+                <div class="cco-status-summary-row is-alert">
+                  <span class="cco-status-summary-icon" aria-hidden="true">▲</span>
+                  <div class="cco-status-summary-copy">
+                    <div class="cco-status-summary-label">Risknivå</div>
+                    <div class="cco-status-summary-meta">-</div>
+                  </div>
+                  <span class="cco-status-summary-tail" aria-hidden="true">›</span>
+                </div>
+                <div class="cco-status-summary-row is-progress">
+                  <span class="cco-status-summary-icon" aria-hidden="true">◔</span>
+                  <div class="cco-status-summary-copy">
+                    <div class="cco-status-summary-label">Rekommendation</div>
+                    <div class="cco-status-summary-meta">-</div>
+                  </div>
+                  <span class="cco-status-summary-tail" aria-hidden="true">›</span>
+                </div>
+                <div class="cco-status-summary-row is-success">
+                  <span class="cco-status-summary-icon" aria-hidden="true">●</span>
+                  <div class="cco-status-summary-copy">
+                    <div class="cco-status-summary-label">Konfidens</div>
+                    <div class="cco-status-summary-meta">-</div>
+                  </div>
+                  <span class="cco-status-summary-tail" aria-hidden="true">›</span>
+                </div>
+              </div>
+            </section>
+          </section>
+          </div>
           <div id="ccoResizeHandleLeft" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd vänster" aria-orientation="vertical"></div>
           <div id="ccoResizeHandleRight" class="cco-column-resizer" role="separator" aria-label="Justera kolumnbredd höger" aria-orientation="vertical"></div>
           <div id="ccoIndicatorContextMenu" class="cco-indicator-context-menu" role="menu" aria-hidden="true">
