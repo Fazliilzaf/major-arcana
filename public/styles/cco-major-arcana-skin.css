@@ -1,13 +1,13 @@
 :root {
-  --cco-vnext-page-max: 1680px;
+  --cco-vnext-shell-gutter: 24px;
   --cco-vnext-top-shell-height: 60px;
   --cco-vnext-rail-height: 44px;
   --cco-vnext-main-gap: 12px;
-  --cco-vnext-surface-padding: 16px;
-  --cco-vnext-left-region: 46%;
-  --cco-vnext-right-region: 54%;
-  --cco-vnext-left-region-read: 52%;
-  --cco-vnext-right-region-read: 48%;
+  --cco-vnext-surface-padding: 14px;
+  --cco-vnext-left-region: 45%;
+  --cco-vnext-right-region: 55%;
+  --cco-vnext-left-region-read: 53%;
+  --cco-vnext-right-region-read: 47%;
   --cco-vnext-compose-history: 0.3fr;
   --cco-vnext-compose-editor: 0.7fr;
   --cco-vnext-list-row-height: 68px;
@@ -42,10 +42,11 @@ body.cco-light-mode {
 }
 
 body.cco-light-mode .container {
-  width: min(calc(100vw - 32px), calc(var(--cco-vnext-page-max) + (var(--ma-space-24) * 2)));
+  width: auto;
   max-width: none;
-  margin: 0 auto;
-  padding: var(--ma-space-16) !important;
+  margin: 0 var(--cco-vnext-shell-gutter);
+  padding: var(--ma-space-16) 0 !important;
+  box-sizing: border-box;
   background: transparent !important;
 }
 
@@ -66,9 +67,9 @@ body.cco-light-mode #adminHeader {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--ma-space-16);
   align-items: center;
-  width: min(var(--cco-vnext-page-max), calc(100vw - 32px));
+  width: 100%;
   max-width: none;
-  margin: 0 auto var(--ma-space-12);
+  margin: 0 0 var(--ma-space-12);
   padding: var(--ma-space-16) var(--ma-space-20) !important;
   border-radius: var(--ma-radius-panel);
   border: 1px solid rgba(81, 61, 52, 0.10);
@@ -160,9 +161,9 @@ body.cco-light-mode #adminHeader .header-menu-row .btn.danger {
 body.cco-light-mode .cco-top-tabs-shell {
   display: flex;
   align-items: center;
-  width: min(var(--cco-vnext-page-max), calc(100vw - 32px));
+  width: 100%;
   max-width: none;
-  margin: 0 auto var(--ma-space-12);
+  margin: 0 0 var(--ma-space-12);
 }
 
 body.cco-light-mode #sectionNav.panel {
@@ -205,9 +206,9 @@ body.cco-light-mode #sectionNav .sectionNavBtn[aria-current="page"] {
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] {
-  width: min(var(--cco-vnext-page-max), calc(100vw - 32px));
+  width: 100%;
   max-width: none;
-  margin: 0 auto;
+  margin: 0;
   display: grid;
   gap: var(--ma-space-12);
 }
