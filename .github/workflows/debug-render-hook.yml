@@ -15,15 +15,15 @@ jobs:
       - name: Parse hook target safely
         run: |
           python - <<'PY'
-import os, re
-url = os.environ.get('RENDER_DEPLOY_HOOK_URL','')
-print('hook_present=' + ('yes' if url else 'no'))
-service = None
-m = re.search(r'(srv-[A-Za-z0-9]+)', url)
-if m:
-    service = m.group(1)
-print('service_id=' + (service or 'unknown'))
-if url:
-    safe_host = url.split('/')[2] if '://' in url else 'unknown'
-    print('hook_host=' + safe_host)
-PY
+          import os, re
+          url = os.environ.get('RENDER_DEPLOY_HOOK_URL','')
+          print('hook_present=' + ('yes' if url else 'no'))
+          service = None
+          m = re.search(r'(srv-[A-Za-z0-9]+)', url)
+          if m:
+              service = m.group(1)
+          print('service_id=' + (service or 'unknown'))
+          if url:
+              safe_host = url.split('/')[2] if '://' in url else 'unknown'
+              print('hook_host=' + safe_host)
+          PY
