@@ -7,6 +7,11 @@ on:
         description: "Public Arcana URL (optional, defaults to secret ARCANA_PUBLIC_BASE_URL)"
         required: false
         type: string
+      tenant_id:
+        description: "Tenant ID for auth checks"
+        required: false
+        default: "hair-tp-clinic"
+        type: string
 
 permissions:
   contents: read
@@ -22,6 +27,7 @@ jobs:
       ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
       ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
       ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_DEFAULT_TENANT: ${{ inputs.tenant_id }}
       ARCANA_PREFLIGHT_REPORT_FILE: ./data/reports/preflight-latest.json
       ARCANA_STABILITY_WINDOW_OUT_FILE: ./data/reports/stability-window-latest.json
     steps:
