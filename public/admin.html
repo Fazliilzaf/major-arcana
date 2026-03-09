@@ -11257,36 +11257,36 @@
 
       <section id="ccoWorkspaceSection" data-section-group="ccoWorkspaceSection" data-cco-skin="major-arcana" class="cco-workspace cco-layout-root">
         <div class="cco-utility-rail" aria-label="CCO verktygsrad">
-          <div class="cco-utility-primary">
-            <div class="cco-utility-search">
-              <input
-                id="ccoInboxSearchInput"
-                class="cco-search-input"
-                type="search"
-                placeholder="Sök kund, tråd eller ämne"
-                autocomplete="off"
-              />
-            </div>
-            <div class="cco-utility-mailbox-select">
-              <select id="ccoInboxMailboxSelect" class="cco-mailbox-select">
-                <option value="all">Alla postlådor</option>
-              </select>
-            </div>
+          <div class="cco-utility-search">
+            <input
+              id="ccoInboxSearchInput"
+              class="cco-search-input"
+              type="search"
+              placeholder="Sök kund, tråd eller ämne"
+              autocomplete="off"
+            />
+          </div>
+          <div class="cco-utility-mailbox-select">
+            <select id="ccoInboxMailboxSelect" class="cco-mailbox-select">
+              <option value="all">Alla postlådor</option>
+            </select>
+          </div>
+          <div class="cco-utility-filters" aria-label="CCO filter">
             <div id="ccoInboxMailboxFilters" class="cco-filter-row cco-filter-row-mailbox cco-mailbox-favorites"></div>
             <div id="ccoInboxSlaFilters" class="cco-filter-row cco-filter-row-sla"></div>
             <div id="ccoInboxStateFilters" class="cco-filter-row cco-filter-row-state"></div>
-            <label class="cco-inline-toggle cco-inline-toggle-rail" for="ccoInboxShowSystemToggle">
-              <input id="ccoInboxShowSystemToggle" type="checkbox" />
-              Visa systemmail
-            </label>
           </div>
-          <div class="cco-utility-secondary">
+          <label class="cco-inline-toggle cco-inline-toggle-rail" for="ccoInboxShowSystemToggle">
+            <input id="ccoInboxShowSystemToggle" type="checkbox" />
+            Visa systemmail
+          </label>
+          <div class="cco-utility-summary" aria-live="polite">
             <div id="ccoStatusCounts" class="cco-status-metrics">-</div>
             <div id="ccoInboxMailboxMeta" class="mini muted">Hämtar mail…</div>
             <div id="ccoInboxSearchMeta" class="mini muted"></div>
-            <div id="ccoInboxStatus" class="status-line"></div>
-            <button id="runCcoInboxBtn" class="btn primary">Kör CCO inkorgsbrief</button>
           </div>
+          <div id="ccoInboxStatus" class="status-line"></div>
+          <button id="runCcoInboxBtn" class="btn primary">Kör CCO inkorgsbrief</button>
         </div>
 
         <div id="ccoWorkspaceLayout" class="cco-layout cco-layout-vnext">
