@@ -14,7 +14,7 @@ function loadConfigWithEnv(envPatch) {
   return config;
 }
 
-test('production ignores public owner MFA bypass hosts', () => {
+test('config ignores public owner MFA bypass hosts', () => {
   const config = loadConfigWithEnv({
     NODE_ENV: 'production',
     ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS:
@@ -27,14 +27,13 @@ test('production ignores public owner MFA bypass hosts', () => {
   ]);
 });
 
-test('non-production keeps configured owner MFA bypass hosts', () => {
+test('config still keeps non-public owner MFA bypass hosts', () => {
   const config = loadConfigWithEnv({
     NODE_ENV: 'development',
     ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS: 'arcana.hairtpclinic.se,custom.internal',
   });
 
   assert.deepEqual(config.authOwnerMfaBypassHosts, [
-    'arcana.hairtpclinic.se',
     'custom.internal',
     'arcana-staging.onrender.com',
   ]);

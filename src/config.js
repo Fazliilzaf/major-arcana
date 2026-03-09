@@ -276,7 +276,6 @@ const config = {
     const defaults = ['arcana-staging.onrender.com'];
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
     const merged = Array.from(new Set([...configured, ...defaults]));
-    if (!isProduction) return merged;
     const deniedHosts = new Set([
       'arcana.hairtpclinic.se',
       'arcana.hairtpclinic.com',
