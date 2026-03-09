@@ -93,6 +93,14 @@ function normalizeSemanticMode(value, fallback = 'heuristic') {
   return fallback;
 }
 
+function normalizeHost(value) {
+  const raw = asNonEmptyString(value).toLowerCase();
+  if (!raw) return '';
+  const withoutScheme = raw.replace(/^https?:\/\//, '');
+  const first = withoutScheme.split('/')[0] || '';
+  return (first.split(':')[0] || '').trim();
+}
+
 function resolveDirectoryPath(value, fallbackPath) {
   const resolved = asNonEmptyString(value, fallbackPath);
   return path.resolve(resolved);
@@ -267,7 +275,18 @@ const config = {
   authOwnerMfaBypassHosts: (() => {
     const defaults = ['arcana-staging.onrender.com'];
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
-    return Array.from(new Set([...configured, ...defaults]));
+    const merged = Array.from(new Set([...configured, ...defaults]));
+    if (!isProduction) return merged;
+    const deniedHosts = new Set([
+      'arcana.hairtpclinic.se',
+      'arcana.hairtpclinic.com',
+      'ma.hairtpclinic.se',
+      'ma.hairtpclinic.com',
+    ]);
+    return merged.filter((item) => {
+      const host = normalizeHost(item);
+      return host && !deniedHosts.has(host);
+    });
   })(),
   authOwnerCredentialSelfHeal: asBool(process.env.AUTH_OWNER_CREDENTIAL_SELF_HEAL, true),
   authLoginSessionRotationScope: normalizeSessionRotationScope(
