@@ -35,13 +35,6 @@
   const CCO_THREAD_QUERY_PARAM = 'thread';
   const CCO_WORKSPACE_SESSION_KEY = 'ARCANA_CCO_WORKSPACE_STATE';
   const CCO_LAST_SEEN_AT_KEY = 'ARCANA_CCO_LAST_SEEN_AT';
-  const CCO_EVIDENCE_QUERY_PARAM = 'evidence';
-  const CCO_EVIDENCE_ALLOWED_HOSTS = Object.freeze([
-    'arcana-staging.onrender.com',
-    'arcana.hairtpclinic.se',
-    'localhost',
-    '127.0.0.1',
-  ]);
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -222,13 +215,6 @@
     return String(searchParams.get(CCO_THREAD_QUERY_PARAM) || '').trim();
   }
 
-  function isCcoEvidenceModeEnabled() {
-    const searchParams = new URLSearchParams(window.location.search || '');
-    const requested = searchParams.get(CCO_EVIDENCE_QUERY_PARAM) === '1';
-    if (!requested) return false;
-    const host = String(window.location.hostname || '').trim().toLowerCase();
-    return CCO_EVIDENCE_ALLOWED_HOSTS.includes(host);
-  }
 
   function readCcoLastSeenAtMs() {
     try {
@@ -420,36 +406,6 @@
     return true;
   }
 
-  function sanitizeCcoMailboxFiltersExpanded(value = false) {
-    if (value === true || value === 1) return true;
-    if (value === false || value === 0) return false;
-    const normalized = String(value || '')
-      .trim()
-      .toLowerCase();
-    if (normalized === 'true' || normalized === '1') return true;
-    return false;
-  }
-
-  function sanitizeCcoExtraFiltersExpanded(value = false) {
-    if (value === true || value === 1) return true;
-    if (value === false || value === 0) return false;
-    const normalized = String(value || '')
-      .trim()
-      .toLowerCase();
-    if (normalized === 'true' || normalized === '1') return true;
-    return false;
-  }
-
-  function sanitizeCcoWorkspaceCompact(value = true) {
-    if (value === false || value === 0) return false;
-    if (value === true || value === 1) return true;
-    const normalized = String(value || '')
-      .trim()
-      .toLowerCase();
-    if (normalized === 'false' || normalized === '0') return false;
-    return true;
-  }
-
   function sanitizeCcoCenterReadTab(value = 'conversation') {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'customer') return 'customer';
@@ -587,14 +543,6 @@
     needs: 12,
     maxVisibleRows: 15,
   });
-  const CCO_COLUMN_RESIZE_BREAKPOINT = 1360;
-  const CCO_COLUMN_WIDTH_LIMITS = Object.freeze({
-    leftMin: 300,
-    leftMax: 320,
-    rightMin: 390,
-    rightMax: 430,
-    centerMin: 620,
-  });
 
   function sanitizeCcoDensityMode(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
@@ -622,15 +570,6 @@
     };
   }
 
-  function sanitizeCcoColumnLayout(value = null) {
-    const safe = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-    const left = Number(safe.left);
-    const right = Number(safe.right);
-    return {
-      left: Number.isFinite(left) ? Math.round(left) : null,
-      right: Number.isFinite(right) ? Math.round(right) : null,
-    };
-  }
 
   function loadLanguage() {
     const raw = String(localStorage.getItem(LANGUAGE_KEY) || 'sv')
@@ -778,15 +717,7 @@
     ccoInboxDensityMode: sanitizeCcoDensityMode(
       initialCcoWorkspaceSession.densityMode || CCO_DEFAULT_DENSITY_MODE
     ),
-    ccoMailboxFiltersExpanded: sanitizeCcoMailboxFiltersExpanded(
-      initialCcoWorkspaceSession.mailboxFiltersExpanded
-    ),
-    ccoExtraFiltersExpanded: sanitizeCcoExtraFiltersExpanded(
-      initialCcoWorkspaceSession.extraFiltersExpanded
-    ),
-    ccoWorkspaceCompact: sanitizeCcoWorkspaceCompact(initialCcoWorkspaceSession.workspaceCompact),
     ccoCenterReadTab: sanitizeCcoCenterReadTab(initialCcoWorkspaceSession.centerReadTab),
-    ccoColumnLayout: sanitizeCcoColumnLayout(initialCcoWorkspaceSession.columnLayout),
     ccoInboxSectionExpanded: sanitizeCcoSectionExpandedState(
       initialCcoWorkspaceSession.sectionExpanded
     ),
@@ -881,15 +812,11 @@
     ccoInboxLastSyncAt: '',
     ccoAutoSwitchToInboundPending: false,
     monitorDetailsVisible: false,
-    ccoEvidenceMode: isCcoEvidenceModeEnabled(),
   };
 
   if (state.ccoInboxSlaFilter === 'unanswered') {
     state.ccoInboxSlaFilter = 'all';
   }
-  state.ccoWorkspaceCompact = true;
-  state.ccoMailboxFiltersExpanded = true;
-  state.ccoExtraFiltersExpanded = true;
 
   const els = {
     adminHeader: document.getElementById('adminHeader'),
@@ -966,14 +893,10 @@
     opsSection: document.getElementById('opsSection'),
     settingsSection: document.getElementById('settingsSection'),
     overviewSection: document.getElementById('overviewSection'),
-    ccoTopUtilityMoreBtn: document.getElementById('ccoTopUtilityMoreBtn'),
     ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
     ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
-    ccoInboxControlsColumn: document.getElementById('ccoInboxControlsColumn'),
     ccoCenterColumn: document.getElementById('ccoCenterColumn'),
     ccoReplyColumn: document.getElementById('ccoReplyColumn'),
-    ccoResizeHandleLeft: document.getElementById('ccoResizeHandleLeft'),
-    ccoResizeHandleRight: document.getElementById('ccoResizeHandleRight'),
     openCcoWorkspaceBtn: document.getElementById('openCcoWorkspaceBtn'),
     ccoWorkspaceEntryStatus: document.getElementById('ccoWorkspaceEntryStatus'),
     ccoOverviewSummaryList: document.getElementById('ccoOverviewSummaryList'),
@@ -1089,10 +1012,7 @@
     dailyBriefSummary: document.getElementById('dailyBriefSummary'),
     dailyBriefRecommendations: document.getElementById('dailyBriefRecommendations'),
     runCcoInboxBtn: document.getElementById('runCcoInboxBtn'),
-    ccoInboxMaxDrafts: document.getElementById('ccoInboxMaxDrafts'),
-    ccoInboxIncludeClosed: document.getElementById('ccoInboxIncludeClosed'),
     ccoInboxStatus: document.getElementById('ccoInboxStatus'),
-    ccoDebugOverlay: document.getElementById('ccoDebugOverlay'),
     ccoInboxMailboxMeta: document.getElementById('ccoInboxMailboxMeta'),
     ccoInboxPriority: document.getElementById('ccoInboxPriority'),
     ccoInboxRiskFlags: document.getElementById('ccoInboxRiskFlags'),
@@ -1112,17 +1032,6 @@
     ccoInboxSearchInput: document.getElementById('ccoInboxSearchInput'),
     ccoInboxShowSystemToggle: document.getElementById('ccoInboxShowSystemToggle'),
     ccoInboxSearchMeta: document.getElementById('ccoInboxSearchMeta'),
-    ccoSidebarBadgeRow: document.getElementById('ccoSidebarBadgeRow'),
-    ccoSidebarRefreshBtn: document.getElementById('ccoSidebarRefreshBtn'),
-    ccoSidebarSystemBtn: document.getElementById('ccoSidebarSystemBtn'),
-    ccoMailboxFiltersBlock: document.getElementById('ccoMailboxFiltersBlock'),
-    ccoMailboxFiltersToggleBtn: document.getElementById('ccoMailboxFiltersToggleBtn'),
-    ccoMailboxFiltersChevron: document.getElementById('ccoMailboxFiltersChevron'),
-    ccoExtraFiltersBlock: document.getElementById('ccoExtraFiltersBlock'),
-    ccoExtraFiltersToggleBtn: document.getElementById('ccoExtraFiltersToggleBtn'),
-    ccoExtraFiltersChevron: document.getElementById('ccoExtraFiltersChevron'),
-    ccoWorkspaceCompactToggleBtn: document.getElementById('ccoWorkspaceCompactToggleBtn'),
-    ccoSprintShell: document.getElementById('ccoSprintShell'),
     ccoInboxDensityFilters: document.getElementById('ccoInboxDensityFilters'),
     ccoInboxFeedView: document.getElementById('ccoInboxFeedView'),
     ccoInboxFeedList: document.getElementById('ccoInboxFeedList'),
@@ -1192,7 +1101,6 @@
     ccoComposeStudio: document.getElementById('ccoComposeStudio'),
     ccoStatusSummaryRows: document.getElementById('ccoStatusSummaryRows'),
     ccoReplyRefreshBtn: document.getElementById('ccoReplyRefreshBtn'),
-    ccoReplyShowSystemToggle: document.getElementById('ccoReplyShowSystemToggle'),
     ccoDraftRiskIndicator: document.getElementById('ccoDraftRiskIndicator'),
     ccoDraftPolicyIndicator: document.getElementById('ccoDraftPolicyIndicator'),
     ccoDraftConfidence: document.getElementById('ccoDraftConfidence'),
@@ -1429,7 +1337,6 @@
 
   if (els.ccoWorkspaceSection) {
     els.ccoWorkspaceSection.setAttribute('data-cco-skin', 'major-arcana');
-    els.ccoWorkspaceSection.removeAttribute('data-cco-overlay');
   }
 
   let activeModalResolver = null;
@@ -3080,7 +2987,7 @@
 
   function setSessionMeta() {
     if (!els.sessionMeta) return;
-    if ((!state.token && state.ccoEvidenceMode !== true) || !state.tenantId || !state.role) {
+    if (!state.token || !state.tenantId || !state.role) {
       els.sessionMeta.textContent = t('session_not_logged', 'Inte inloggad');
       return;
     }
@@ -5060,11 +4967,7 @@
         searchQuery: sanitizeCcoSearchQuery(state.ccoInboxSearchQuery),
         showSystemMessages: sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages),
         densityMode: sanitizeCcoDensityMode(state.ccoInboxDensityMode),
-        mailboxFiltersExpanded: sanitizeCcoMailboxFiltersExpanded(state.ccoMailboxFiltersExpanded),
-        extraFiltersExpanded: sanitizeCcoExtraFiltersExpanded(state.ccoExtraFiltersExpanded),
-        workspaceCompact: sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact),
         centerReadTab: sanitizeCcoCenterReadTab(state.ccoCenterReadTab),
-        columnLayout: sanitizeCcoColumnLayout(state.ccoColumnLayout),
         sectionExpanded: sanitizeCcoSectionExpandedState(state.ccoInboxSectionExpanded),
         includeSignature: sanitizeCcoIncludeSignature(state.ccoIncludeSignature),
         signaturePreviewExpanded: sanitizeCcoSignaturePreviewExpanded(
@@ -5159,243 +5062,6 @@
     }, 170);
   }
 
-  function isCcoColumnResizeViewport() {
-    return window.innerWidth > CCO_COLUMN_RESIZE_BREAKPOINT;
-  }
-
-  function clampNumber(value, min, max) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) return min;
-    if (numeric < min) return min;
-    if (numeric > max) return max;
-    return numeric;
-  }
-
-  function readCcoColumnWidthsFromGrid() {
-    const layoutEl = els.ccoWorkspaceLayout;
-    if (!layoutEl) return { left: null, right: null };
-    const computed = window.getComputedStyle(layoutEl).gridTemplateColumns || '';
-    const parts = computed
-      .split(/\s+/)
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-    if (parts.length < 3) return { left: null, right: null };
-    const left = Number.parseFloat(parts[0]);
-    const right = Number.parseFloat(parts[parts.length - 1]);
-    return {
-      left: Number.isFinite(left) ? Math.round(left) : null,
-      right: Number.isFinite(right) ? Math.round(right) : null,
-    };
-  }
-
-  function normalizeCcoColumnLayoutForWidth(layoutWidth, input = {}, preferredSide = '') {
-    const width = Number(layoutWidth);
-    if (!Number.isFinite(width) || width <= 0) return { left: null, right: null };
-    const limits = CCO_COLUMN_WIDTH_LIMITS;
-    const fallbackLeft = 260;
-    const fallbackRight = 420;
-    const rawLeft = Number(input?.left);
-    const rawRight = Number(input?.right);
-    const hasLeft = Number.isFinite(rawLeft) && rawLeft > 0;
-    const hasRight = Number.isFinite(rawRight) && rawRight > 0;
-    let left = clampNumber(
-      hasLeft ? rawLeft : fallbackLeft,
-      limits.leftMin,
-      Math.min(limits.leftMax, width - limits.rightMin - limits.centerMin)
-    );
-    let right = clampNumber(
-      hasRight ? rawRight : fallbackRight,
-      limits.rightMin,
-      Math.min(limits.rightMax, width - limits.leftMin - limits.centerMin)
-    );
-
-    let center = width - left - right;
-    if (center < limits.centerMin) {
-      let shortage = limits.centerMin - center;
-      if (preferredSide === 'left') {
-        const reducibleLeft = Math.max(0, left - limits.leftMin);
-        const reduceBy = Math.min(reducibleLeft, shortage);
-        left -= reduceBy;
-        shortage -= reduceBy;
-      } else if (preferredSide === 'right') {
-        const reducibleRight = Math.max(0, right - limits.rightMin);
-        const reduceBy = Math.min(reducibleRight, shortage);
-        right -= reduceBy;
-        shortage -= reduceBy;
-      }
-      if (shortage > 0) {
-        const reducibleLeft = Math.max(0, left - limits.leftMin);
-        const reduceLeft = Math.min(reducibleLeft, Math.ceil(shortage / 2));
-        left -= reduceLeft;
-        shortage -= reduceLeft;
-      }
-      if (shortage > 0) {
-        const reducibleRight = Math.max(0, right - limits.rightMin);
-        const reduceRight = Math.min(reducibleRight, shortage);
-        right -= reduceRight;
-        shortage -= reduceRight;
-      }
-      center = width - left - right;
-      if (center < limits.centerMin) {
-        const fallbackMaxLeft = Math.max(limits.leftMin, width - right - limits.centerMin);
-        left = clampNumber(left, limits.leftMin, fallbackMaxLeft);
-        const fallbackMaxRight = Math.max(limits.rightMin, width - left - limits.centerMin);
-        right = clampNumber(right, limits.rightMin, fallbackMaxRight);
-      }
-    }
-    return { left: Math.round(left), right: Math.round(right) };
-  }
-
-  function updateCcoResizeHandlePositions() {
-    const layoutEl = els.ccoWorkspaceLayout;
-    if (!layoutEl || !els.ccoResizeHandleLeft || !els.ccoResizeHandleRight) return;
-    if (layoutEl.getAttribute('data-resize-enabled') !== 'true') return;
-    const rect = layoutEl.getBoundingClientRect();
-    const width = Math.round(rect.width || 0);
-    if (width <= 0) return;
-    const columnLayout = normalizeCcoColumnLayoutForWidth(width, state.ccoColumnLayout || {});
-    if (!Number.isFinite(columnLayout.left) || !Number.isFinite(columnLayout.right)) return;
-    els.ccoResizeHandleLeft.style.left = `${columnLayout.left}px`;
-    els.ccoResizeHandleRight.style.left = `${width - columnLayout.right}px`;
-  }
-
-  function applyCcoColumnLayout({ persist = false, preferredSide = '' } = {}) {
-    const layoutEl = els.ccoWorkspaceLayout;
-    if (!layoutEl) return;
-    if (!isCcoColumnResizeViewport()) {
-      layoutEl.removeAttribute('data-resize-enabled');
-      layoutEl.style.removeProperty('grid-template-columns');
-      if (els.ccoResizeHandleLeft) els.ccoResizeHandleLeft.style.left = '';
-      if (els.ccoResizeHandleRight) els.ccoResizeHandleRight.style.left = '';
-      return;
-    }
-    const rect = layoutEl.getBoundingClientRect();
-    const width = Math.round(rect.width || 0);
-    if (width <= 0) return;
-    const base =
-      state.ccoColumnLayout?.left || state.ccoColumnLayout?.right
-        ? state.ccoColumnLayout
-        : readCcoColumnWidthsFromGrid();
-    const normalized = normalizeCcoColumnLayoutForWidth(width, base, preferredSide);
-    if (!Number.isFinite(normalized.left) || !Number.isFinite(normalized.right)) return;
-    state.ccoColumnLayout = normalized;
-    layoutEl.setAttribute('data-resize-enabled', 'true');
-    layoutEl.style.gridTemplateColumns = `${normalized.left}px minmax(${CCO_COLUMN_WIDTH_LIMITS.centerMin}px, 1fr) ${normalized.right}px`;
-    updateCcoResizeHandlePositions();
-    if (persist) persistCcoWorkspaceSessionState();
-  }
-
-  function startCcoColumnResize(side = 'left', event) {
-    if (!event || event.button !== 0) return;
-    if (!isCcoColumnResizeViewport()) return;
-    const layoutEl = els.ccoWorkspaceLayout;
-    if (!layoutEl) return;
-    const rect = layoutEl.getBoundingClientRect();
-    const width = Math.round(rect.width || 0);
-    if (width <= 0) return;
-    const current = normalizeCcoColumnLayoutForWidth(width, state.ccoColumnLayout || {}, side);
-    ccoColumnResizeState = {
-      side,
-      pointerId: event.pointerId,
-      startX: Number(event.clientX || 0),
-      startLeft: current.left,
-      startRight: current.right,
-    };
-    const handle = side === 'right' ? els.ccoResizeHandleRight : els.ccoResizeHandleLeft;
-    if (handle?.setPointerCapture) {
-      try {
-        handle.setPointerCapture(event.pointerId);
-      } catch {
-        // ignore capture failures
-      }
-    }
-    handle?.classList.add('is-dragging');
-    document.body.classList.add('cco-col-resizing');
-    event.preventDefault();
-  }
-
-  function moveCcoColumnResize(side = 'left', event) {
-    const active = ccoColumnResizeState;
-    if (!active || active.side !== side) return;
-    if (active.pointerId !== undefined && event.pointerId !== active.pointerId) return;
-    const deltaX = Number(event.clientX || 0) - Number(active.startX || 0);
-    if (!Number.isFinite(deltaX)) return;
-    const nextLayout =
-      side === 'left'
-        ? { left: active.startLeft + deltaX, right: active.startRight }
-        : { left: active.startLeft, right: active.startRight - deltaX };
-    state.ccoColumnLayout = nextLayout;
-    applyCcoColumnLayout({ persist: false, preferredSide: side });
-    event.preventDefault();
-  }
-
-  function stopCcoColumnResize(side = 'left', event) {
-    const active = ccoColumnResizeState;
-    if (!active || active.side !== side) return;
-    if (active.pointerId !== undefined && event.pointerId !== active.pointerId) return;
-    const handle = side === 'right' ? els.ccoResizeHandleRight : els.ccoResizeHandleLeft;
-    if (handle?.releasePointerCapture) {
-      try {
-        handle.releasePointerCapture(event.pointerId);
-      } catch {
-        // ignore release failures
-      }
-    }
-    handle?.classList.remove('is-dragging');
-    document.body.classList.remove('cco-col-resizing');
-    ccoColumnResizeState = null;
-    applyCcoColumnLayout({ persist: true });
-  }
-
-  function initCcoColumnResizers() {
-    if (els.ccoResizeHandleLeft && !els.ccoResizeHandleLeft.dataset.bound) {
-      els.ccoResizeHandleLeft.addEventListener('pointerdown', (event) => {
-        startCcoColumnResize('left', event);
-      });
-      els.ccoResizeHandleLeft.addEventListener('pointermove', (event) => {
-        moveCcoColumnResize('left', event);
-      });
-      els.ccoResizeHandleLeft.addEventListener('pointerup', (event) => {
-        stopCcoColumnResize('left', event);
-      });
-      els.ccoResizeHandleLeft.addEventListener('pointercancel', (event) => {
-        stopCcoColumnResize('left', event);
-      });
-      els.ccoResizeHandleLeft.dataset.bound = '1';
-    }
-    if (els.ccoResizeHandleRight && !els.ccoResizeHandleRight.dataset.bound) {
-      els.ccoResizeHandleRight.addEventListener('pointerdown', (event) => {
-        startCcoColumnResize('right', event);
-      });
-      els.ccoResizeHandleRight.addEventListener('pointermove', (event) => {
-        moveCcoColumnResize('right', event);
-      });
-      els.ccoResizeHandleRight.addEventListener('pointerup', (event) => {
-        stopCcoColumnResize('right', event);
-      });
-      els.ccoResizeHandleRight.addEventListener('pointercancel', (event) => {
-        stopCcoColumnResize('right', event);
-      });
-      els.ccoResizeHandleRight.dataset.bound = '1';
-    }
-    applyCcoColumnLayout({ persist: false });
-  }
-
-  function updateWorkspaceViewportMetrics() {
-    const headerHeight = Number(els.adminHeader?.offsetHeight || 0);
-    const navHeight = Number(els.sectionNav?.offsetHeight || 0);
-    const ccoModeActive =
-      state.activeSectionGroup === 'ccoWorkspaceSection' || isCcoRoutePath(window.location.pathname || '');
-    const floor = ccoModeActive ? 120 : 150;
-    const topPadding = ccoModeActive ? 24 : 34;
-    let computed = Math.max(floor, Math.round(headerHeight + navHeight + topPadding));
-    if (ccoModeActive) {
-      computed = Math.min(176, computed);
-    }
-    document.documentElement.style.setProperty('--headerHeight', `${computed}px`);
-    applyCcoColumnLayout({ persist: false });
-  }
-
   function resolveDefaultTargetForGroup(groupId) {
     const normalized = String(groupId || '').trim();
     if (!normalized) return 'overviewSection';
@@ -5454,7 +5120,6 @@
 
     const targetId = String(options.targetId || resolveDefaultTargetForGroup(groupId)).trim();
     if (targetId) setActiveSectionNav(targetId);
-    updateWorkspaceViewportMetrics();
     if (options.syncHash !== false) syncSectionHash(groupId);
 
     if (options.scroll) {
@@ -8380,14 +8045,9 @@
   }
 
   function readCcoInboxOptions() {
-    const rawMaxDrafts = Number(els.ccoInboxMaxDrafts?.value || 5);
-    const maxDrafts = Number.isFinite(rawMaxDrafts) ? Math.max(1, Math.min(5, rawMaxDrafts)) : 5;
-    if (els.ccoInboxMaxDrafts) {
-      els.ccoInboxMaxDrafts.value = String(maxDrafts);
-    }
     return {
-      includeClosed: Boolean(els.ccoInboxIncludeClosed?.checked),
-      maxDrafts,
+      includeClosed: false,
+      maxDrafts: 5,
     };
   }
 
@@ -11305,50 +10965,6 @@
       });
   }
 
-  function renderCcoSidebarBadgeRow(rows = []) {
-    if (!els.ccoSidebarBadgeRow) return;
-    const source = Array.isArray(rows) ? rows : [];
-    const counts = [
-      {
-        tone: 'neutral',
-        label: 'Alla mail',
-        value: source.length,
-      },
-      {
-        tone: 'blue',
-        label: 'Ny eller återkom',
-        value: source.filter((row) => getCcoIndicatorStateForFilter(row) === 'new').length,
-      },
-      {
-        tone: 'red',
-        label: 'Hög eller kritisk',
-        value: source.filter((row) => {
-          const indicatorState = getCcoIndicatorStateForFilter(row);
-          return indicatorState === 'high' || indicatorState === 'critical';
-        }).length,
-      },
-      {
-        tone: 'green',
-        label: 'Hanterade',
-        value: source.filter((row) => {
-          const stateValue = String(row?.needsReplyStatus || '').trim().toLowerCase();
-          return stateValue === 'handled' || getCcoIndicatorStateForFilter(row) === 'handled';
-        }).length,
-      },
-    ];
-    els.ccoSidebarBadgeRow.innerHTML = counts
-      .map(
-        (entry) => `
-          <div class="cco-numeric-status-badge is-${escapeHtml(entry.tone)}" title="${escapeHtml(
-            `${entry.label}: ${entry.value}`
-          )}" aria-label="${escapeHtml(`${entry.label}: ${entry.value}`)}">
-            <span class="cco-numeric-status-number">${escapeHtml(String(entry.value))}</span>
-          </div>
-        `
-      )
-      .join('');
-  }
-
   function renderCcoStatusSummary(row = null, evaluation = null, { readOnlyMode = false } = {}) {
     if (!els.ccoStatusSummaryRows) return;
     const safeRow = row && typeof row === 'object' ? row : null;
@@ -11425,11 +11041,15 @@
       : `${Number(row.hoursSinceInbound || 0).toFixed(1)}h sedan`;
     const metaBits = [senderLabel, mailboxShortLabel, timestampLabel].filter(Boolean);
     const metaMarkup = `<span class="cco-thread-meta-row">${metaBits
-      .map((bit) => `<span>${escapeHtml(bit)}</span>`)
-      .join('<span class="cco-thread-meta-sep" aria-hidden="true">·</span>')}</span>`;
+      .map((bit) => `<span>${escapeHtml(bit)}<\/span>`)
+      .join('<span class="cco-thread-meta-sep" aria-hidden="true">·<\/span>')}<\/span>`;
+    const previewLine = String(row.latestInboundPreview || row.recommendedAction || '').trim();
+    const previewMarkup = previewLine
+      ? `<span class="cco-thread-preview">${escapeHtml(previewLine)}<\/span>`
+      : '';
     const primaryChip = `<span class="cco-list-row-chip cco-priority-badge ${priorityClass}">${escapeHtml(
       formatCcoPriorityLabel(row.priorityLevel)
-    )}</span>`;
+    )}<\/span>`;
     return `
       <li class="cco-thread${isActive ? ' active' : ''}${slaToneClass ? ` ${slaToneClass}` : ''}${isNew ? ' thread-new' : ''} sprint-focus" data-dominant-risk="${escapeHtml(
         dominantRisk
@@ -11448,6 +11068,7 @@
               ${primaryChip}
             </span>
             ${metaMarkup}
+            ${previewMarkup}
           </span>
           <span class="cco-list-row-tail" aria-hidden="true">›</span>
         </button>
@@ -11585,103 +11206,6 @@
     if (els.ccoInboxShowSystemToggle) {
       els.ccoInboxShowSystemToggle.checked = showSystem;
     }
-    if (els.ccoReplyShowSystemToggle) {
-      els.ccoReplyShowSystemToggle.checked = showSystem;
-    }
-    if (els.ccoSidebarSystemBtn) {
-      els.ccoSidebarSystemBtn.textContent = showSystem ? 'Dölj systemmail' : 'Visa systemmail';
-      els.ccoSidebarSystemBtn.classList.toggle('is-active', showSystem);
-    }
-  }
-
-  function renderCcoMailboxFiltersVisibility() {
-    const expanded = sanitizeCcoMailboxFiltersExpanded(state.ccoMailboxFiltersExpanded);
-    state.ccoMailboxFiltersExpanded = expanded;
-    if (els.ccoMailboxFiltersBlock) {
-      els.ccoMailboxFiltersBlock.classList.toggle('is-collapsed', !expanded);
-    }
-    if (els.ccoMailboxFiltersToggleBtn) {
-      els.ccoMailboxFiltersToggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    }
-    if (els.ccoMailboxFiltersChevron) {
-      els.ccoMailboxFiltersChevron.textContent = expanded ? '▾' : '▸';
-    }
-  }
-
-  function renderCcoExtraFiltersVisibility() {
-    const expanded = sanitizeCcoExtraFiltersExpanded(state.ccoExtraFiltersExpanded);
-    state.ccoExtraFiltersExpanded = expanded;
-    if (els.ccoExtraFiltersBlock) {
-      els.ccoExtraFiltersBlock.classList.toggle('is-collapsed', !expanded);
-    }
-    if (els.ccoExtraFiltersToggleBtn) {
-      els.ccoExtraFiltersToggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    }
-    if (els.ccoExtraFiltersChevron) {
-      els.ccoExtraFiltersChevron.textContent = expanded ? '▾' : '▸';
-    }
-  }
-
-  function isCcoDebugOverlayEnabled() {
-    return isCcoInteractionDebugEnabled();
-  }
-
-  function renderCcoDebugOverlay(snapshot = null) {
-    if (!els.ccoDebugOverlay) return;
-    if (!isCcoDebugOverlayEnabled()) {
-      els.ccoDebugOverlay.classList.add('hidden');
-      els.ccoDebugOverlay.textContent = '';
-      return;
-    }
-    const safe = snapshot && typeof snapshot === 'object' ? snapshot : {};
-    const parts = [
-      `mode=${sanitizeCcoMailViewMode(safe.mode || state.ccoMailViewMode)}`,
-      `view=${sanitizeCcoDensityMode(safe.view || state.ccoInboxDensityMode)}`,
-      `loading=${safe.loading === true || state.ccoInboxLoading === true ? 'true' : 'false'}`,
-      `total=${Number.isFinite(Number(safe.totalRows)) ? Number(safe.totalRows) : 0}`,
-      `open=${Number.isFinite(Number(safe.openRows)) ? Number(safe.openRows) : 0}`,
-      `filtered=${Number.isFinite(Number(safe.filteredRows)) ? Number(safe.filteredRows) : 0}`,
-      `visible=${Number.isFinite(Number(safe.visibleRows)) ? Number(safe.visibleRows) : 0}`,
-      `feed=${Number.isFinite(Number(safe.feedCount)) ? Number(safe.feedCount) : 0}`,
-      `mailbox=${sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)}`,
-      `sla=${sanitizeCcoSlaFilter(state.ccoInboxSlaFilter)}`,
-      `lifecycle=${sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter)}`,
-      `search="${sanitizeCcoSearchQuery(state.ccoInboxSearchQuery)}"`,
-      `system=${sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages) ? 'on' : 'off'}`,
-    ];
-    const firstItem = String(safe.firstItemSubject || '').trim();
-    if (firstItem) {
-      parts.push(`first="${firstItem.slice(0, 80)}"`);
-    }
-    if (safe.sections && typeof safe.sections === 'object') {
-      const sectionParts = [];
-      for (const sectionKey of ['sprint', 'high', 'needs', 'rest']) {
-        const section = safe.sections[sectionKey];
-        if (!section || typeof section !== 'object') continue;
-        const shown = Number(section.shown || 0);
-        const total = Number(section.total || 0);
-        const cap = Number(section.cap || 0);
-        sectionParts.push(`${sectionKey}:${shown}/${total}(cap:${cap})`);
-      }
-      if (sectionParts.length) {
-        parts.push(`sections=${sectionParts.join(',')}`);
-      }
-    }
-    if (Number.isFinite(Number(safe.containerHeight))) {
-      parts.push(`container=${Math.round(Number(safe.containerHeight))}px`);
-    }
-    if (String(safe.containerOverflowY || '').trim()) {
-      parts.push(`overflowY=${String(safe.containerOverflowY).trim()}`);
-    }
-    if (Number.isFinite(Number(safe.computedVisibleRows))) {
-      parts.push(`computedVisible=${Number(safe.computedVisibleRows)}`);
-    }
-    const reason = String(safe.reason || '').trim();
-    if (reason) {
-      parts.push(`reason="${reason}"`);
-    }
-    els.ccoDebugOverlay.classList.remove('hidden');
-    els.ccoDebugOverlay.textContent = `[CCO DEBUG] ${parts.join(' | ')}`;
   }
 
   function setCcoLoadingState(isLoading = false, message = '') {
@@ -11695,25 +11219,6 @@
     }
     if (els.ccoCenterLoadingMeta) {
       els.ccoCenterLoadingMeta.textContent = message || (loading ? 'Synkar arbetskö och läsyta.' : '');
-    }
-    renderCcoDebugOverlay({
-      loading,
-      reason: message || '',
-    });
-  }
-
-  function renderCcoWorkspaceCompactState() {
-    const compact = sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact);
-    state.ccoWorkspaceCompact = compact;
-    if (els.ccoSprintShell) {
-      els.ccoSprintShell.classList.toggle('is-collapsed', compact);
-    }
-    if (els.ccoWorkspaceCompactToggleBtn) {
-      els.ccoWorkspaceCompactToggleBtn.textContent = compact
-        ? 'Visa fokusdetaljer'
-        : 'Dölj fokusdetaljer';
-      els.ccoWorkspaceCompactToggleBtn.setAttribute('aria-expanded', compact ? 'false' : 'true');
-      els.ccoWorkspaceCompactToggleBtn.setAttribute('aria-pressed', compact ? 'false' : 'true');
     }
   }
 
@@ -12083,6 +11588,10 @@
         const counterpart = String(entry.counterpart || '').trim() || 'Okänd kontakt';
         const safeSubject = String(entry.subject || '').trim() || '(utan ämne)';
         const sentAtMeta = [counterpart, mailboxShort, sentAtLabel].filter(Boolean);
+        const previewText = String(entry.preview || '').trim();
+        const previewMarkup = previewText
+          ? `<span class="cco-feed-item-preview">${escapeHtml(previewText)}<\/span>`
+          : '';
         return `
           <li class="cco-feed-item${selected ? ' is-selected' : ''}" data-cco-feed-id="${escapeHtml(entry.feedId)}" data-cco-conversation-id="${escapeHtml(entry.conversationId)}">
             <button type="button" class="cco-feed-item-btn ccoFeedSelectBtn" data-cco-feed-id="${escapeHtml(
@@ -12096,9 +11605,10 @@
                 </span>
                 <span class="cco-feed-item-meta-row">
                   ${sentAtMeta
-                    .map((bit) => `<span>${escapeHtml(bit)}</span>`)
-                    .join('<span class="cco-thread-meta-sep" aria-hidden="true">·</span>')}
+                    .map((bit) => `<span>${escapeHtml(bit)}<\/span>`)
+                    .join('<span class="cco-thread-meta-sep" aria-hidden="true">·<\/span>')}
                 </span>
+                ${previewMarkup}
               </span>
               <span class="cco-list-row-tail" aria-hidden="true">›</span>
             </button>
@@ -12298,9 +11808,6 @@
         state.ccoSprintQueueIds = safeSprintQueueIds;
       }
     }
-    if (!queueRows.length && state.ccoWorkspaceCompact !== true) {
-      state.ccoWorkspaceCompact = true;
-    }
     const unansweredRows = queueRows.filter((row) => row.isUnanswered === true);
     const filteredResult = getCcoFilteredConversations(queueRows, { withMeta: true });
     const filteredRows = filteredResult.rows;
@@ -12335,8 +11842,6 @@
     }
 
     renderCcoMailboxFilterRow(openRows);
-    renderCcoMailboxFiltersVisibility();
-    renderCcoExtraFiltersVisibility();
     renderCcoSlaFilterRow();
     renderCcoLifecycleFilterRow();
     renderCcoSearchControls();
@@ -12346,7 +11851,6 @@
     if (mailViewMode === 'queue') {
       renderCcoIndicatorFilterRow(filteredRows);
     }
-    renderCcoWorkspaceCompactState();
     renderCcoCenterReadTab();
     renderCcoUnansweredPanel(unansweredRows);
 
@@ -12449,33 +11953,6 @@
             clientY: event.clientY,
           });
         });
-      });
-      renderCcoDebugOverlay({
-        mode: mailViewMode,
-        view: densityMode,
-        totalRows: queueRows.length,
-        openRows: openRows.length,
-        filteredRows: visibleFeedEntries.length,
-        visibleRows: visibleFeedEntries.length,
-        feedCount: feedEntries.length,
-        containerHeight: Number(els.ccoInboxWorklist?.getBoundingClientRect?.().height || 0),
-        containerOverflowY: getComputedStyle(els.ccoInboxWorklist || document.body).overflowY,
-        computedVisibleRows: visibleFeedEntries.length,
-        firstItemSubject: String(
-          selectedFeed?.subject ||
-            selectedFeed?.preview ||
-            visibleFeedEntries[0]?.subject ||
-            visibleFeedEntries[0]?.preview ||
-            firstFilteredSubject
-        ).trim(),
-        reason:
-          feedEntries.length === 0
-            ? `Feed (${feedDirection}) tom för valda filter`
-            : visibleFeedEntries.length === 0 && indicatorViewFilter !== 'all'
-            ? `Statusfilter ${indicatorFilterLabel} matchar 0`
-            : usingHandledFallback
-            ? 'Öppen kö saknas, feed används för visning'
-            : '',
       });
       return;
     }
@@ -12690,42 +12167,6 @@
     } else if (usingHandledFallback) {
       queueReason = 'Öppen kö saknas, visar hanterade konversationer';
     }
-    renderCcoDebugOverlay({
-      mode: 'queue',
-      view: densityMode,
-      totalRows: queueRows.length,
-      openRows: openRows.length,
-      filteredRows: indicatorFilteredRows.length,
-      visibleRows: visibleQueueRows,
-      feedCount: getCcoFeedEntries(data, 'inbound').length,
-      sections: {
-        sprint: {
-          shown: sectionOutputs.sprint.shown,
-          total: sectionOutputs.sprint.total,
-          cap: sectionCaps.sprint,
-        },
-        high: {
-          shown: sectionOutputs.high.shown,
-          total: sectionOutputs.high.total,
-          cap: sectionCaps.high,
-        },
-        needs: {
-          shown: sectionOutputs.needs.shown,
-          total: sectionOutputs.needs.total,
-          cap: sectionCaps.needs,
-        },
-        rest: {
-          shown: sectionOutputs.rest.shown,
-          total: sectionOutputs.rest.total,
-          cap: Number.isFinite(sectionCaps.rest) ? sectionCaps.rest : 999,
-        },
-      },
-      containerHeight: Number(els.ccoInboxWorklist?.getBoundingClientRect?.().height || 0),
-      containerOverflowY: getComputedStyle(els.ccoInboxWorklist || document.body).overflowY,
-      computedVisibleRows: visibleQueueRows,
-      firstItemSubject: firstFilteredSubject,
-      reason: queueReason,
-    });
 
     setCcoSectionSummary({
       section: 'sprint',
@@ -13099,11 +12540,6 @@
     renderCcoReplyModeState();
     if (els.ccoReplyColumn) {
       els.ccoReplyColumn.classList.toggle('is-empty', isEmpty === true);
-    }
-    if (els.ccoReplyShowSystemToggle) {
-      els.ccoReplyShowSystemToggle.checked = sanitizeCcoShowSystemMessages(
-        state.ccoInboxShowSystemMessages
-      );
     }
     if (els.ccoReplyEmptyState) {
       const detailEl = els.ccoReplyEmptyState.querySelector('.mini.muted');
@@ -13482,7 +12918,6 @@
         [],
         'Ingen CCO-data än.'
       );
-      renderCcoSidebarBadgeRow([]);
       renderCcoStatusSummary(null, null, { readOnlyMode: isCcoReadOnlyMailViewMode() });
       if (els.ccoSendStatus) els.ccoSendStatus.textContent = '';
       renderCcoSprintPanel([], []);
@@ -13508,7 +12943,6 @@
     ).slice(0, 8);
     const mailboxCount = sourceMailboxIds.length;
     const messageCount = sortedRows.length;
-    renderCcoSidebarBadgeRow(sortedRows);
 
     if (els.ccoInboxPriority) {
       const priorityLabel = String(normalizePriorityLevelForUi(data.priorityLevel));
@@ -13711,21 +13145,6 @@
       renderCcoSearchMeta();
     }
     try {
-      if (state.ccoEvidenceMode === true) {
-        state.ccoDeleteCapability = sanitizeCcoDeleteCapabilityStatus({
-          deleteEnabled: false,
-          reason: 'Evidensläge är skrivskyddat.',
-          reasonCode: 'CCO_EVIDENCE_READ_ONLY',
-        });
-        renderCcoInbox(createCcoEvidenceInboxOutput());
-        if (!quiet) {
-          setStatus(
-            els.ccoInboxStatus,
-            'Evidensläge aktivt: maskad dummydata laddad (5 trådar, 10 inkomna, 10 skickat).'
-          );
-        }
-        return;
-      }
       if (!canTemplateWrite()) throw new Error('Du saknar behorighet.');
       await loadCcoDeleteCapabilityStatus({ quiet: true });
       const input = readCcoInboxOptions();
@@ -15481,164 +14900,6 @@
     return state.activeSectionGroup === 'ccoWorkspaceSection' ? 'cco' : 'all';
   }
 
-  function createCcoEvidenceInboxOutput() {
-    const now = Date.now();
-    const mailboxes = [
-      'contact@hairtpclinic.com',
-      'egzona@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ];
-    const indicatorStates = ['critical', 'high', 'medium', 'new', 'handled'];
-    const conversationWorklist = Array.from({ length: 5 }, (_unused, index) => {
-      const mailbox = mailboxes[index % mailboxes.length];
-      const conversationId = `evidence-conv-${index + 1}`;
-      const inboundAt = new Date(now - (index + 1) * 60 * 60 * 1000).toISOString();
-      const outboundAt =
-        index % 2 === 0
-          ? new Date(now - (index + 2) * 60 * 60 * 1000).toISOString()
-          : '';
-      const priorityByIndex = ['Critical', 'High', 'Medium', 'Low', 'Low'];
-      const slaByIndex = ['breach', 'warning', 'warning', 'safe', 'safe'];
-      const needsReplyByIndex = ['awaiting_reply', 'awaiting_reply', 'follow_up_pending', 'new', 'handled'];
-      const dominantRiskByIndex = ['miss', 'tone', 'follow_up', 'relationship', 'neutral'];
-      return {
-        conversationId,
-        messageId: `evidence-message-${index + 1}`,
-        mailboxId: mailbox,
-        mailboxAddress: mailbox,
-        userPrincipalName: mailbox,
-        subject: `Evidensrad ${index + 1} · Maskerad tråd`,
-        sender: `Kund ${index + 1}`,
-        senderEmail: `kund${index + 1}@example.invalid`,
-        latestInboundPreview: `Detta är maskad dummytext för evidensläge (${index + 1}/5).`,
-        hoursSinceInbound: index + 1,
-        lastInboundAt: inboundAt,
-        lastOutboundAt: outboundAt,
-        slaStatus: slaByIndex[index],
-        hoursRemaining: index === 0 ? -2 : Math.max(1, 12 - index * 2),
-        slaThreshold: index === 0 ? 6 : 24,
-        isUnanswered: index !== 4,
-        stagnated: index === 2,
-        followUpSuggested: index === 2 || index === 3,
-        intent: ['complaint', 'booking_request', 'follow_up', 'pricing_question', 'follow_up'][index],
-        intentConfidence: 0.88 - index * 0.05,
-        tone: ['frustrated', 'anxious', 'neutral', 'positive', 'neutral'][index],
-        toneConfidence: 0.77 - index * 0.04,
-        priorityLevel: priorityByIndex[index],
-        priorityScore: 95 - index * 12,
-        priorityReasons: ['Evidensläge: maskad prioriteringssignal'],
-        customerKey: `evidence-customer-${index + 1}`,
-        customerSummary: {
-          customerKey: `evidence-customer-${index + 1}`,
-          customerName: `Kund ${index + 1}`,
-          lifecycleStatus: ['new', 'returning', 'active_dialogue', 'returning', 'active_dialogue'][index],
-          lifecycleSource: 'auto',
-          interactionCount: 1 + index,
-          engagementScore: Math.max(0.1, 0.75 - index * 0.1),
-          caseCount: 1 + index,
-          daysSinceLastInteraction: index,
-          lastInteractionAt: inboundAt,
-          lastCaseSummary: `Maskerad sammanfattning ${index + 1}`,
-          timeline: [
-            {
-              occurredAt: inboundAt,
-              subject: `Evidenshistorik ${index + 1}`,
-              status: 'active_dialogue',
-            },
-          ],
-        },
-        lifecycleStatus: ['new', 'returning', 'active_dialogue', 'returning', 'active_dialogue'][index],
-        tempoProfile: ['steady', 'rapid', 'reflective', 'steady', 'reflective'][index],
-        recommendedFollowUpDelayDays: [0, 1, 2, 3, 5][index],
-        ctaIntensity: ['high', 'normal', 'normal', 'low', 'low'][index],
-        followUpSuggestedAt:
-          index === 2 ? new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString() : '',
-        followUpTimingReason: index === 2 ? ['follow_up_due'] : [],
-        confidenceLevel: ['High', 'High', 'Medium', 'Medium', 'Low'][index],
-        recommendedAction: [
-          'Svara direkt – risk för missat ärende',
-          'Svara lugnande inom 1h',
-          'Skicka mjuk uppföljning idag',
-          'Svara personligt för att stärka relationen',
-          'Markera som hanterad',
-        ][index],
-        needsReplyStatus: needsReplyByIndex[index],
-        dominantRisk: dominantRiskByIndex[index],
-        relationshipStatus: ['new', 'returning', 'active', 'returning', 'active'][index],
-        indicatorState: indicatorStates[index],
-        isNewSinceLastVisit: index === 3,
-        hasNewInboundSinceHandled: index === 3,
-        escalationRequired: index === 0,
-      };
-    });
-
-    const inboundFeed = Array.from({ length: 10 }, (_unused, index) => {
-      const mailbox = mailboxes[index % mailboxes.length];
-      const conversationId = `evidence-conv-${(index % 5) + 1}`;
-      return {
-        feedId: `evidence-inbound-${index + 1}`,
-        conversationId,
-        messageId: `evidence-inbound-message-${index + 1}`,
-        direction: 'inbound',
-        subject: `Inkommande ${index + 1} · Maskerad`,
-        counterpart: `avsändare${index + 1}@example.invalid`,
-        mailboxAddress: mailbox,
-        sentAt: new Date(now - (index + 1) * 35 * 60 * 1000).toISOString(),
-        preview: `Maskad inbound preview ${index + 1}.`,
-      };
-    });
-
-    const outboundFeed = Array.from({ length: 10 }, (_unused, index) => {
-      const mailbox = mailboxes[index % mailboxes.length];
-      const conversationId = `evidence-conv-${(index % 5) + 1}`;
-      return {
-        feedId: `evidence-outbound-${index + 1}`,
-        conversationId,
-        messageId: `evidence-outbound-message-${index + 1}`,
-        direction: 'outbound',
-        subject: `Skickat ${index + 1} · Maskerad`,
-        counterpart: `Till mottagare${index + 1}@example.invalid`,
-        mailboxAddress: mailbox,
-        sentAt: new Date(now - (index + 1) * 28 * 60 * 1000).toISOString(),
-        preview: `Maskad outbound preview ${index + 1}.`,
-      };
-    });
-
-    return {
-      data: {
-        generatedAt: new Date(now).toISOString(),
-        priorityLevel: 'High',
-        slaBreaches: conversationWorklist.filter((row) => row.slaStatus === 'breach'),
-        riskFlags: conversationWorklist.slice(0, 3).map((row) => ({
-          conversationId: row.conversationId,
-          reason: 'Evidensläge',
-        })),
-        conversationWorklist,
-        needsReplyToday: conversationWorklist.filter((row) => row.isUnanswered === true),
-        suggestedDrafts: conversationWorklist.slice(0, 3),
-        customerSummaries: conversationWorklist.map((row) => row.customerSummary),
-        inboxSummary:
-          'Evidensläge aktivt: maskad data för UI-verifiering (5 trådar, 10 inkomna, 10 skickat).',
-        inboxStatus: 'Behöver uppmärksamhet',
-        inboundFeed,
-        outboundFeed,
-        metadata: {
-          evidenceMode: true,
-        },
-      },
-      metadata: {
-        generatedAt: new Date(now).toISOString(),
-        ccoDefaultSenderMailbox: 'contact@hairtpclinic.com',
-        ccoDefaultSignatureProfile: 'egzona',
-        sourceMailboxIds: mailboxes,
-        mailboxCount: mailboxes.length,
-        messageCount: conversationWorklist.length,
-      },
-    };
-  }
 
   async function refreshAll({ scope = 'all' } = {}) {
     const normalizedScope = String(scope || '').trim().toLowerCase() === 'cco' ? 'cco' : 'all';
@@ -15851,29 +15112,6 @@
   }
 
   async function restoreSession() {
-    if (state.ccoEvidenceMode === true) {
-      stopDashboardStream();
-      clearCcoAutoRefreshTimer();
-      state.token = '';
-      state.role = 'OWNER';
-      state.tenantId = 'hair-tp-clinic';
-      state.availableTenants = [
-        {
-          tenantId: 'hair-tp-clinic',
-          role: 'OWNER',
-          config: {
-            assistantName: 'Arcana (Evidensläge)',
-          },
-        },
-      ];
-      renderTenantSwitchOptions();
-      setSessionMeta();
-      updateLifecyclePermissions();
-      setAuthVisible(true);
-      setStatus(els.loginStatus, 'Evidensläge aktivt (ingen inloggning krävs).');
-      await runCcoInboxBrief({ quiet: true });
-      return;
-    }
     if (!state.token) {
       stopDashboardStream();
       setAuthVisible(false);
@@ -16029,9 +15267,6 @@
     state.ccoInboxLifecycleFilter = 'all';
     state.ccoInboxSearchQuery = '';
     state.ccoInboxShowSystemMessages = false;
-    state.ccoMailboxFiltersExpanded = true;
-    state.ccoExtraFiltersExpanded = true;
-    state.ccoWorkspaceCompact = true;
     state.ccoCenterReadTab = 'conversation';
     state.ccoSelectedConversationId = '';
     state.ccoDraftOverrideByConversationId = {};
@@ -16149,8 +15384,6 @@
     if (els.dailyBriefIncludeClosed) els.dailyBriefIncludeClosed.checked = false;
     renderDailyBrief(null);
     setStatus(els.dailyBriefStatus, '');
-    if (els.ccoInboxMaxDrafts) els.ccoInboxMaxDrafts.value = '5';
-    if (els.ccoInboxIncludeClosed) els.ccoInboxIncludeClosed.checked = false;
     renderCcoInbox(null);
     setStatus(els.ccoInboxStatus, '');
     if (els.latestActivityList) {
@@ -16545,9 +15778,6 @@
   els.runOrchestratorBtn?.addEventListener('click', runOrchestrator);
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
-  els.ccoTopUtilityMoreBtn?.addEventListener('click', () => {
-    document.body.classList.toggle('cco-top-utility-open');
-  });
   els.runCcoInboxBtn?.addEventListener('click', () => {
     logCcoInteraction('run-cco-inbox-brief-click', {
       source: 'runCcoInboxBtn',
@@ -16563,17 +15793,6 @@
     runCcoInboxBrief().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
     });
-  });
-  els.ccoSidebarRefreshBtn?.addEventListener('click', () => {
-    runCcoInboxBrief().catch((error) => {
-      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
-    });
-  });
-  els.ccoSidebarSystemBtn?.addEventListener('click', () => {
-    state.ccoInboxShowSystemMessages = !sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages);
-    persistCcoWorkspaceSessionState();
-    renderCcoSearchControls();
-    renderCcoInbox(state.ccoInboxData);
   });
   els.ccoClearFiltersBtn?.addEventListener('click', () => {
     state.ccoInboxMailboxFilter = 'all';
@@ -16666,21 +15885,6 @@
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
-  els.ccoMailboxFiltersToggleBtn?.addEventListener('click', () => {
-    state.ccoMailboxFiltersExpanded = !sanitizeCcoMailboxFiltersExpanded(state.ccoMailboxFiltersExpanded);
-    persistCcoWorkspaceSessionState();
-    renderCcoMailboxFiltersVisibility();
-  });
-  els.ccoExtraFiltersToggleBtn?.addEventListener('click', () => {
-    state.ccoExtraFiltersExpanded = !sanitizeCcoExtraFiltersExpanded(state.ccoExtraFiltersExpanded);
-    persistCcoWorkspaceSessionState();
-    renderCcoExtraFiltersVisibility();
-  });
-  els.ccoWorkspaceCompactToggleBtn?.addEventListener('click', () => {
-    state.ccoWorkspaceCompact = !sanitizeCcoWorkspaceCompact(state.ccoWorkspaceCompact);
-    persistCcoWorkspaceSessionState();
-    renderCcoWorkspaceCompactState();
-  });
   els.ccoInboxSlaFilters?.addEventListener('click', (event) => {
     const button = closestFromEventTarget(event, 'button[data-cco-sla-filter]');
     if (!button) return;
@@ -16710,13 +15914,6 @@
   els.ccoInboxShowSystemToggle?.addEventListener('change', () => {
     state.ccoInboxShowSystemMessages = sanitizeCcoShowSystemMessages(
       els.ccoInboxShowSystemToggle?.checked
-    );
-    persistCcoWorkspaceSessionState();
-    renderCcoInbox(state.ccoInboxData);
-  });
-  els.ccoReplyShowSystemToggle?.addEventListener('change', () => {
-    state.ccoInboxShowSystemMessages = sanitizeCcoShowSystemMessages(
-      els.ccoReplyShowSystemToggle?.checked
     );
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
@@ -17297,22 +16494,16 @@
     }
     syncCcoAutoRefresh({ immediate: isCcoWorkspaceActive() });
   });
-  window.addEventListener('resize', () => {
-    updateWorkspaceViewportMetrics();
-  });
-
   syncRiskFilterInputs();
   syncAuditFilterInputs();
   syncTemplateFilterInputs();
   bindScrollableListPersistence();
   applyLanguage();
-  initCcoColumnResizers();
   state.activeSectionGroup = resolveInitialSectionGroup();
   setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
     targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
     scroll: false,
   });
-  renderCcoWorkspaceCompactState();
   renderCcoCenterReadTab();
   renderTonePreview();
   renderTeamSummary([]);
