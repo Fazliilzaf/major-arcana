@@ -10,9 +10,11 @@
   --cco-vnext-right-region-read: 47%;
   --cco-vnext-compose-history: 0.3fr;
   --cco-vnext-compose-editor: 0.7fr;
-  --cco-vnext-list-row-height: 68px;
+  --cco-vnext-list-row-height: 64px;
   --cco-vnext-chip-height: 34px;
-  --cco-vnext-editor-height: 280px;
+  --cco-vnext-editor-height: 400px;
+  --cco-vnext-readable-max: 1120px;
+  --cco-vnext-readable-tight: 860px;
   --cco-vnext-surface-shadow:
     0 12px 28px rgba(62, 46, 41, 0.10),
     0 2px 8px rgba(62, 46, 41, 0.06);
@@ -522,7 +524,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .muted {
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed-view,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inbox-sections {
   display: grid;
-  gap: var(--ma-space-10, 10px);
+  gap: 8px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inbox-group {
@@ -597,7 +599,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread + .cco-thread,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed-item + .cco-feed-item {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread-btn,
@@ -608,18 +610,19 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed
   gap: 12px;
   width: 100%;
   min-height: var(--cco-vnext-list-row-height);
-  padding: 10px 12px;
+  padding: 8px 12px;
   text-align: left;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(248, 242, 237, 0.84));
-  box-shadow: var(--ma-shadow-panel-inner);
-  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
+  border-radius: 12px;
+  border: 1px solid rgba(81, 61, 52, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(248, 242, 237, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.34);
+  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease, background 140ms ease;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread-btn:hover,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed-item-btn:hover {
   transform: translateY(-1px);
-  box-shadow: var(--cco-vnext-control-shadow);
+  box-shadow: 0 6px 14px rgba(62, 46, 41, 0.10), inset 0 1px 0 rgba(255,255,255,0.38);
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread.active .cco-thread-btn,
@@ -660,7 +663,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 650;
   color: currentColor;
 }
@@ -673,7 +676,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-list-row-chip,
@@ -701,35 +704,47 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 0;
+  align-content: start;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyMainBlocks {
   display: grid;
   gap: 0;
+  width: 100%;
+  max-width: none;
+  align-content: start;
 }
 
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn,
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio,
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoStatusSummaryCard {
-  padding-top: 12px;
-  border-top: 1px solid var(--cco-vnext-divider);
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn .cco-reply-block {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn {
+  display: grid;
+  gap: 10px;
+  width: min(100%, var(--cco-vnext-readable-max));
   padding-top: 0;
   border-top: 0;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose #ccoReplyMainBlocks {
-  grid-template-columns: minmax(0, var(--cco-vnext-compose-history)) minmax(0, var(--cco-vnext-compose-editor));
-  column-gap: 14px;
-  row-gap: 12px;
+  grid-template-columns: 1fr;
+  column-gap: 0;
+  row-gap: 0;
   align-items: start;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose #ccoConversationColumn {
-  padding-right: 14px;
-  border-right: 1px solid var(--cco-vnext-divider);
+  padding-right: 0;
+  padding-bottom: 8px;
+  margin-bottom: 0;
+  border-right: 0;
+  border-bottom: 0;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose #ccoComposeStudio {
@@ -738,9 +753,10 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose #ccoStatusSummaryCard {
-  grid-column: 1 / -1;
-  margin-top: 4px;
-  padding-top: 14px;
+  grid-column: auto;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cco-vnext-divider);
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyReadOnlyBanner {
@@ -756,14 +772,14 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationMeta,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyingToContext {
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.3;
   color: var(--cco-vnext-text-muted);
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn .cco-column-title,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-block .mini.muted:first-child {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn .cco-column-title h3,
@@ -776,18 +792,20 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-subs
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationPreview {
-  min-height: 112px;
-  padding: 16px;
+  width: min(100%, var(--cco-vnext-readable-tight));
+  min-height: 136px;
+  padding: 14px 16px;
   font-size: 15px;
   line-height: 1.5;
   color: var(--cco-vnext-text-strong);
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-wrap,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-read-secondary,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-customer-summary {
-  margin-top: 12px;
+  width: min(100%, var(--cco-vnext-readable-tight));
+  margin-top: 8px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-list {
@@ -797,7 +815,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conv
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-history-item,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-mini-list > li {
-  padding: 12px 0;
+  padding: 10px 0;
   border-radius: 0;
   border: 0;
   border-top: 1px solid var(--cco-vnext-divider);
@@ -813,17 +831,19 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-mini
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-studio {
   display: grid;
-  gap: 12px;
+  gap: 8px;
+  width: 100%;
+  max-width: none;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-reply-context-strip {
-  margin-bottom: 4px;
-  padding: 0 0 10px;
+  margin-bottom: 2px;
+  padding: 0 0 6px;
   border-radius: 0;
   border: 0;
   border-bottom: 1px solid var(--cco-vnext-divider);
   background: transparent;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--cco-vnext-text-strong);
   font-weight: 650;
 }
@@ -831,14 +851,15 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-repl
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
+  gap: 6px 10px;
+  width: min(100%, var(--cco-vnext-readable-max));
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid label,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-studio label {
   display: block;
-  margin: 0 0 6px;
-  font-size: 12px;
+  margin: 0 0 4px;
+  font-size: 11px;
   line-height: 1.2;
   font-weight: 750;
   letter-spacing: 0.05em;
@@ -848,7 +869,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-comp
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-studio input,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-studio select {
-  height: 38px;
+  height: 36px;
   padding: 0 12px;
   font-size: 14px;
   color: var(--cco-vnext-text-strong);
@@ -856,7 +877,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-comp
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inline-toggle-stack {
-  margin-top: 8px;
+  margin-top: 6px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -866,8 +887,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inli
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-modes {
   display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-buttons,
@@ -884,6 +905,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-send
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-editor {
   min-height: var(--cco-vnext-editor-height);
+  width: min(100%, var(--cco-vnext-readable-tight));
+  max-width: none;
   padding: 16px;
   resize: vertical;
   font-family: var(--ma-font-sans);
@@ -894,7 +917,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-edit
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-signature-preview-toggle {
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -902,11 +925,12 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-sign
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-signature-preview {
-  margin-top: 10px;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--cco-vnext-divider);
   background: rgba(255,255,255,0.48);
+  width: min(100%, var(--cco-vnext-readable-tight));
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block,
@@ -915,8 +939,26 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoStatu
   margin-top: 0;
 }
 
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio > .cco-reply-block + .cco-reply-block {
+  padding-top: 10px;
+  border-top: 1px solid var(--cco-vnext-divider);
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block .mini.muted,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-block .mini.muted {
+  margin-bottom: 3px;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar .btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-buttons .btn {
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-more {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-more > summary {
@@ -934,12 +976,13 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-acti
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-recommended-row,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-details > summary {
-  padding: 10px 12px;
-  border-radius: 12px;
+  width: min(100%, var(--cco-vnext-readable-max));
+  padding: 7px 10px;
+  border-radius: 10px;
   border: 1px solid rgba(81, 61, 52, 0.10);
   background: rgba(255,255,255,0.50);
   color: var(--cco-vnext-text-strong);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
   list-style: none;
   cursor: pointer;
@@ -957,10 +1000,16 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safe
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--cco-vnext-divider);
-  background: rgba(255,255,255,0.56);
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 0;
+  border-left: 1px solid var(--cco-vnext-divider);
+  border-radius: 0;
+  background: transparent;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-chip:first-child {
+  border-left: 0;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-risk-indicator {
@@ -989,27 +1038,39 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .policy-o
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-rows {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 0;
+  width: min(100%, var(--cco-vnext-readable-max));
+  max-width: none;
+  border: 1px solid var(--cco-vnext-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.38);
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border-left: 1px solid var(--cco-vnext-divider);
+  border-radius: 0;
+  background: transparent;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-row.is-alert {
-  border-left: 4px solid var(--ma-status-red);
+  box-shadow: inset 3px 0 0 var(--ma-status-red);
 }
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-row.is-progress {
-  border-left: 4px solid var(--ma-status-orange);
+  box-shadow: inset 3px 0 0 var(--ma-status-orange);
 }
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-row.is-success {
-  border-left: 4px solid var(--ma-status-green);
+  box-shadow: inset 3px 0 0 var(--ma-status-green);
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-row:first-child {
+  border-left: 0;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-status-summary-label {
@@ -1031,7 +1092,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoStatu
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoStatusSummaryCard {
-  padding-top: 14px;
+  padding-top: 8px;
   border-top: 1px solid var(--cco-vnext-divider);
 }
 
