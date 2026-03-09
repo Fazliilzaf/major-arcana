@@ -1,0 +1,109 @@
+name: arcana-owner-mfa-heal
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public Arcana URL (optional, defaults to secret ARCANA_PUBLIC_BASE_URL)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  owner-mfa-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL_INPUT: ${{ inputs.base_url }}
+      BASE_URL_SECRET: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Resolve base URL
+        id: resolve_base_url
+        run: |
+          BASE_URL="${BASE_URL_INPUT:-${BASE_URL_SECRET:-}}"
+          BASE_URL="${BASE_URL%/}"
+          if [[ -z "${BASE_URL}" ]]; then
+            echo "::error::Missing base URL. Set workflow input base_url or secret ARCANA_PUBLIC_BASE_URL."
+            exit 1
+          fi
+          if [[ ! "${BASE_URL}" =~ ^https?:// ]]; then
+            echo "::error::Invalid base URL: ${BASE_URL}"
+            exit 1
+          fi
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run owner MFA setup safely
+        id: heal
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: |
+          OUT_FILE="$RUNNER_TEMP/owner-mfa-setup.txt"
+          set +e
+          npm run owner:mfa:setup -- \
+            --base-url "$BASE_URL" \
+            --email "$ARCANA_OWNER_EMAIL" \
+            --password "$ARCANA_OWNER_PASSWORD" \
+            >"$OUT_FILE" 2>&1
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -ne 0 ]]; then
+            sed -n '1,120p' "$OUT_FILE"
+            exit "$EXIT_CODE"
+          fi
+
+          SECRET="$(sed -n 's/^   secret=//p' "$OUT_FILE" | head -n 1)"
+          if [[ -n "$SECRET" ]]; then
+            echo "::add-mask::$SECRET"
+          fi
+
+          RECOVERY_COUNT="$(sed -n 's/^   recoveryCodes=//p' "$OUT_FILE" | head -n 1)"
+          if [[ -z "$RECOVERY_COUNT" ]]; then
+            RECOVERY_COUNT=0
+          fi
+
+          echo "artifact_path=$OUT_FILE" >> "$GITHUB_OUTPUT"
+          echo "generated_secret=$([[ -n "$SECRET" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "recovery_count=$RECOVERY_COUNT" >> "$GITHUB_OUTPUT"
+
+          grep -E '^(✅|⚠️ MFA secret/recovery genererades|   baseUrl=|   email=|   tenant=|   tokenLength=|   recoveryCodes=)' "$OUT_FILE" || true
+
+      - name: Upload owner MFA setup artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-mfa-heal-${{ github.run_id }}
+          path: ${{ steps.heal.outputs.artifact_path }}
+          if-no-files-found: error
+          retention-days: 1
