@@ -77,6 +77,10 @@ jobs:
       ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
       ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
       ARCANA_DEFAULT_TENANT: ${{ inputs.tenant_id }}
+      RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
+      ARCANA_STAGING_DEPLOY_HOOK_URL: ${{ secrets.ARCANA_STAGING_DEPLOY_HOOK_URL }}
+      RENDER_DEPLOY_HOOK_URL_STAGING: ${{ secrets.RENDER_DEPLOY_HOOK_URL_STAGING }}
+      STAGING_RENDER_DEPLOY_HOOK_URL: ${{ secrets.STAGING_RENDER_DEPLOY_HOOK_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,6 +126,33 @@ jobs:
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
+
+      - name: Trigger staging deploy hook when available
+        run: |
+          hook_url=""
+          for candidate in \
+            "${RENDER_STAGING_DEPLOY_HOOK_URL:-}" \
+            "${ARCANA_STAGING_DEPLOY_HOOK_URL:-}" \
+            "${RENDER_DEPLOY_HOOK_URL_STAGING:-}" \
+            "${STAGING_RENDER_DEPLOY_HOOK_URL:-}"
+          do
+            if [[ -n "${candidate}" ]]; then
+              hook_url="${candidate}"
+              break
+            fi
+          done
+
+          if [[ -z "${hook_url}" ]]; then
+            echo "No staging deploy hook secret available. Continuing without explicit trigger."
+            exit 0
+          fi
+
+          echo "Triggering staging deploy hook."
+          curl -fsS -X POST "${hook_url}" >/tmp/trigger-staging-hook.json || {
+            echo "::warning::Failed to trigger staging deploy hook."
+            exit 0
+          }
+          cat /tmp/trigger-staging-hook.json || true
 
       - name: Wait for expected build header
         env:
