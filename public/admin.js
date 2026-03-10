@@ -11919,6 +11919,10 @@
               mailViewMode
             ).toLowerCase()}.`
           : '';
+      state.ccoReplyEmptyMessage =
+        visibleFeedEntries.length === 0
+          ? feedViewEmptyMessage || 'Valt mail matchar inte aktuellt filter.'
+          : '';
       setCcoCenterEmptyState(visibleFeedEntries.length === 0, {
         emptyMessage:
           visibleFeedEntries.length === 0 ? feedViewEmptyMessage : '',
@@ -12129,16 +12133,33 @@
     };
     const indicatorFilterLabel = indicatorFilterLabels[indicatorViewFilter] || indicatorFilterLabels.all;
     if (hasRowsHiddenByCurrentView) {
+      state.ccoReplyEmptyMessage = `Vald tråd matchar inte aktuellt filter. Byt till ${formatCcoDensityModeLabel(
+        densityMode
+      )} eller justera urval.`;
       setCcoCenterEmptyState(true, {
         emptyMessage: `Valda filter matchar ${indicatorFilteredRows.length} konversationer men inga syns i läget ${formatCcoDensityModeLabel(
           densityMode
         )}. Byt till Översikt eller justera filter.`,
       });
     } else if (!hasIndicatorFilteredRows && hasFilteredRows && indicatorViewFilter !== 'all') {
+      state.ccoReplyEmptyMessage = `Vald tråd matchar inte aktuellt statusfilter ${indicatorFilterLabel.toLowerCase()}.`;
       setCcoCenterEmptyState(true, {
         emptyMessage: `Statusfilter ${indicatorFilterLabel.toLowerCase()} matchar inga konversationer i arbetskön.`,
       });
     } else {
+      state.ccoReplyEmptyMessage = !hasIndicatorFilteredRows
+        ? fallbackInboundCount > 0
+          ? `Arbetskön är tom. Det finns ${fallbackInboundCount} inkomna mail i vyn "Alla inkomna".`
+          : `Vald mailbox: ${
+              sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter) === 'all'
+                ? 'Alla'
+                : formatCcoMailboxShortLabel(state.ccoInboxMailboxFilter)
+            } · ${
+              sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages)
+                ? 'Systemmail visas'
+                : 'Systemmail döljs'
+            }`
+        : '';
       setCcoCenterEmptyState(!hasIndicatorFilteredRows, {
         emptyMessage: hasIndicatorFilteredRows
           ? ''
@@ -12536,17 +12557,35 @@
     }
   }
 
+  function getCcoReplyEmptyMessage({ readOnlyMode = false } = {}) {
+    const explicitMessage = String(state.ccoReplyEmptyMessage || '').trim();
+    if (explicitMessage) return explicitMessage;
+    if (els.ccoCenterColumn?.classList.contains('is-empty')) {
+      const centerMessage = String(els.ccoCenterEmptyStateMeta?.textContent || '').trim();
+      if (centerMessage) return centerMessage;
+    }
+    return readOnlyMode
+      ? 'Välj ett mail i listan för att öppna läspanelen.'
+      : 'Välj en tråd i arbetskön för att öppna svarsläget.';
+  }
+
   function setCcoReplyEmptyState(isEmpty = false, { emptyMessage = '' } = {}) {
+    const readOnlyMode = isCcoReadOnlyMailViewMode();
     renderCcoReplyModeState();
     if (els.ccoReplyColumn) {
       els.ccoReplyColumn.classList.toggle('is-empty', isEmpty === true);
     }
     if (els.ccoReplyEmptyState) {
       const detailEl = els.ccoReplyEmptyState.querySelector('.mini.muted');
-      if (detailEl && emptyMessage) detailEl.textContent = emptyMessage;
+      if (detailEl) {
+        detailEl.textContent = emptyMessage || getCcoReplyEmptyMessage({ readOnlyMode });
+      }
     }
     if (els.ccoDraftBodyInput) {
       els.ccoDraftBodyInput.disabled = isEmpty === true;
+    }
+    if (els.ccoReplyReadOnlyBanner && isEmpty === true) {
+      els.ccoReplyReadOnlyBanner.hidden = true;
     }
     if (isEmpty === true) {
       applyCcoSnoozeButtonState();
@@ -12620,15 +12659,14 @@
     renderCcoReplyModeState();
     const selectedFeedEntry = getCcoSelectedFeedEntry(data);
     if (readOnlyMode && selectedFeedEntry) {
+      state.ccoReplyEmptyMessage = '';
       renderCcoReadOnlyFeedDetail(selectedFeedEntry);
       return;
     }
     const conversation = getCcoSelectedConversation();
     if (!conversation) {
-      setCcoReplyEmptyState(!readOnlyMode, {
-        emptyMessage: readOnlyMode
-          ? 'Skrivskyddad vy. Välj ett mail i listan för att läsa.'
-          : 'Välj en tråd i arbetskön för att öppna svarsläget. Du kan även uppdatera inkorgen eller visa systemmail.',
+      setCcoReplyEmptyState(true, {
+        emptyMessage: getCcoReplyEmptyMessage({ readOnlyMode }),
       });
       if (els.ccoConversationMeta) {
         els.ccoConversationMeta.textContent = readOnlyMode
@@ -12679,11 +12717,13 @@
     }
 
     if (readOnlyMode) {
+      state.ccoReplyEmptyMessage = '';
       setCcoReplyEmptyState(false, {
         emptyMessage:
           'Skrivskyddad vy. Byt till Arbetskö för att svara.',
       });
     } else {
+      state.ccoReplyEmptyMessage = '';
       setCcoReplyEmptyState(false);
     }
 
