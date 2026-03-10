@@ -2971,6 +2971,7 @@
       els.sectionNav.hidden = !isLoggedIn;
     }
     if (isLoggedIn) {
+      mountCcoHeaderNav();
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -16578,6 +16579,7 @@
     }
     syncCcoAutoRefresh({ immediate: isCcoWorkspaceActive() });
   });
+  mountCcoHeaderNav();
   syncRiskFilterInputs();
   syncAuditFilterInputs();
   syncTemplateFilterInputs();
