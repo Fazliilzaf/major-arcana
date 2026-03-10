@@ -2169,12 +2169,12 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
   body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose .cco-actions-toolbar .btn,
   body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose .cco-draft-mode-buttons .btn,
   body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose .cco-send-sticky-bar .btn {
-    height: 20px !important;
+    height: 18px !important;
     font-size: 9px !important;
     padding: 0 5px !important;
   }
 
   body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn.is-compose .cco-send-sticky-bar {
-    margin-bottom: -32px !important;
+    margin-bottom: -40px !important;
   }
 }
