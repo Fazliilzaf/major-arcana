@@ -3027,3 +3027,102 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
     max-height: var(--cco-pixel-history-list-max-1440) !important;
   }
 }
+
+/* Hard compression pass: top budget and one-row list header */
+body.cco-light-mode .container {
+  padding-top: 8px !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] {
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 0 16px !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .brand-stack,
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sectionNav.panel,
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .admin-header-controls {
+  min-height: 44px !important;
+  height: 44px !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .lang-wrap label,
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sessionMeta {
+  display: none !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .admin-header-controls .header-menu-row {
+  gap: 6px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .admin-header-controls .header-menu-row .btn,
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .admin-header-controls .header-menu-row select,
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #languageSelect {
+  min-height: 36px !important;
+  height: 36px !important;
+}
+
+body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #tenantSwitchSelect {
+  min-width: 220px !important;
+  width: 220px !important;
+}
+
+body.cco-light-mode #dashboardPanel {
+  margin-top: 8px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-utility-rail {
+  margin-top: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoWorkspaceLayout.cco-layout-vnext {
+  margin-top: 8px !important;
+  height: calc(100vh - 120px) !important;
+  min-height: calc(100vh - 120px) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn > .cco-center-block-worklist {
+  grid-template-columns: auto auto minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "title modes filters density"
+    "worklist worklist worklist worklist" !important;
+  align-items: center !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-center-title {
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoIndicatorFilterRow,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxDensityFilters {
+  align-self: center !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inbox-group > summary {
+  min-height: 20px !important;
+  padding: 2px 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inbox-group + .cco-inbox-group {
+  margin-top: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed-item-btn {
+  min-height: 60px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-thread.active .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed-item.active .cco-feed-item-btn {
+  min-height: 68px !important;
+}
