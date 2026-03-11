@@ -3498,3 +3498,1073 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-comp
   padding: 0 var(--ma-space-16) !important;
   border-radius: var(--ma-radius-card) !important;
 }
+
+/* CCO mail-client vnext authority pass:
+   lock utility rail + inbox/history/reply into one dense desktop mail-client flow. */
+body.cco-light-mode[data-cco-vnext="true"] .container {
+  width: calc(100vw - (var(--ma-vnext-page-inline-padding) * 2)) !important;
+  max-width: none !important;
+  margin: 0 auto var(--ma-space-16) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] {
+  --cco-vnext-list-width: var(--ma-vnext-list-width);
+  --cco-vnext-history-width: var(--ma-vnext-history-width);
+  --cco-vnext-history-active-width: var(--ma-vnext-history-width);
+  --cco-vnext-reply-min-width: var(--ma-vnext-reply-min-width);
+  --cco-vnext-reply-max-width: none;
+  --cco-vnext-column-gap: var(--ma-vnext-column-gap);
+  display: grid !important;
+  gap: var(--ma-vnext-shell-gap) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"].cco-history-collapsed {
+  --cco-vnext-history-active-width: var(--ma-vnext-history-width-collapsed);
+}
+
+body.cco-light-mode #adminHeader {
+  display: grid !important;
+  grid-template-columns: 180px minmax(0, 1fr) !important;
+  grid-template-rows: var(--ma-vnext-shell-row-a-height) var(--ma-vnext-shell-row-b-height) !important;
+  grid-template-areas:
+    "brand controls"
+    "nav nav" !important;
+  gap: var(--ma-vnext-shell-gap) var(--ma-space-12) !important;
+  min-height: calc(var(--ma-vnext-shell-row-a-height) + var(--ma-vnext-shell-row-b-height) + var(--ma-vnext-shell-gap)) !important;
+  padding: 0 var(--ma-vnext-page-inline-padding) !important;
+  border-radius: var(--ma-radius-panel) !important;
+}
+
+body.cco-light-mode #adminHeader .brand-stack {
+  grid-area: brand !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+  gap: var(--ma-space-12) !important;
+}
+
+body.cco-light-mode #adminHeader .admin-brand-mark-shell,
+body.cco-light-mode #adminHeader .admin-brand-mark {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+}
+
+body.cco-light-mode #adminHeader h1 {
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+body.cco-light-mode #adminHeader .admin-header-controls {
+  grid-area: controls !important;
+  display: grid !important;
+  grid-template-columns: 112px 112px 320px 92px 92px 92px !important;
+  align-items: center !important;
+  justify-content: end !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #adminHeader .lang-wrap label,
+body.cco-light-mode #adminHeader #sessionMeta {
+  display: none !important;
+}
+
+body.cco-light-mode #adminHeader .lang-wrap,
+body.cco-light-mode #adminHeader select,
+body.cco-light-mode #adminHeader .btn {
+  height: var(--ma-vnext-toolbar-control-height) !important;
+  min-height: var(--ma-vnext-toolbar-control-height) !important;
+}
+
+body.cco-light-mode #adminHeader #tenantSwitchSelect {
+  min-width: 320px !important;
+  width: 320px !important;
+}
+
+body.cco-light-mode #adminHeader .cco-global-nav-mount {
+  grid-area: nav !important;
+  min-width: 0 !important;
+}
+
+body.cco-light-mode #sectionNav.panel {
+  min-height: var(--ma-vnext-shell-row-b-height) !important;
+  height: var(--ma-vnext-shell-row-b-height) !important;
+  padding: 0 var(--ma-space-8) !important;
+  border-radius: var(--ma-radius-card) !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #sectionNav .sectionNavBtn {
+  min-height: var(--ma-vnext-shell-row-b-height) !important;
+  height: var(--ma-vnext-shell-row-b-height) !important;
+  padding: 0 12px !important;
+  font-size: 15px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.cco-light-mode #sectionNav .sectionNavBtn + .sectionNavBtn {
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-toolbar {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+  min-height: var(--ma-vnext-shell-row-c-height) !important;
+  height: var(--ma-vnext-shell-row-c-height) !important;
+  padding: 0 var(--ma-vnext-page-inline-padding) !important;
+  margin: 0 !important;
+  border-radius: var(--ma-radius-card) !important;
+  border: 1px solid var(--ma-surface-border) !important;
+  background: var(--ma-fill-panel) !important;
+  box-shadow: var(--ma-shadow-panel), var(--ma-shadow-panel-inner) !important;
+  overflow: visible !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-toolbar-left,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-toolbar-right {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-toolbar-left h2,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxSearchMeta,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxModeMeta,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoSprintStatusBar {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoUtilityRailControls {
+  display: grid !important;
+  grid-template-columns: auto auto auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+  min-width: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxSearchRow {
+  display: grid !important;
+  grid-template-columns: var(--ma-vnext-toolbar-search-width) max-content !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+  min-width: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxSearchInput,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxMailboxSelect {
+  height: var(--ma-vnext-toolbar-control-height) !important;
+  min-height: var(--ma-vnext-toolbar-control-height) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxSearchInput {
+  width: var(--ma-vnext-toolbar-search-width) !important;
+  min-width: var(--ma-vnext-toolbar-search-width) !important;
+  padding: 0 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxShowSystemToggle,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyShowSystemToggle {
+  accent-color: var(--ma-neutral-dark-brown) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-inline-toggle-search {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  max-width: var(--ma-vnext-toolbar-systemmail-width) !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersBlock,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersBlock .cco-filter-block-content {
+  display: block !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersToggleBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersChevron,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersBlock .cco-mailbox-row,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersBlock label {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailboxFiltersBlock .cco-mailbox-select-row {
+  display: block !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxMailboxSelect {
+  width: var(--ma-vnext-toolbar-mailbox-width) !important;
+  min-width: var(--ma-vnext-toolbar-mailbox-width) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoActiveFilterSummary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 120px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: var(--ma-radius-chip) !important;
+  border: 1px solid var(--ma-surface-border) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoRailSummaryCounts {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 12px !important;
+  color: var(--ma-text-soft) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStatusCounts,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxMailboxMeta {
+  min-height: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoTopUtilityMoreBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #runCcoInboxBtn {
+  min-height: var(--ma-vnext-toolbar-control-height) !important;
+  height: var(--ma-vnext-toolbar-control-height) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoTopUtilityMoreBtn {
+  width: var(--ma-vnext-toolbar-more-width) !important;
+  min-width: var(--ma-vnext-toolbar-more-width) !important;
+  font-size: 13px !important;
+  letter-spacing: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #runCcoInboxBtn {
+  width: var(--ma-vnext-toolbar-cta-width) !important;
+  min-width: var(--ma-vnext-toolbar-cta-width) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoUtilityRailAdvanced {
+  position: absolute !important;
+  top: calc(100% + var(--ma-space-8)) !important;
+  right: var(--ma-vnext-page-inline-padding) !important;
+  z-index: 40 !important;
+  display: none !important;
+  width: min(560px, calc(100vw - 48px)) !important;
+  padding: var(--ma-space-16) !important;
+  border: 1px solid var(--ma-surface-border) !important;
+  border-radius: var(--ma-radius-card) !important;
+  background: var(--ma-fill-panel) !important;
+  box-shadow: var(--ma-shadow-panel), var(--ma-shadow-panel-inner) !important;
+  grid-template-columns: 1fr !important;
+  gap: var(--ma-space-12) !important;
+}
+
+body.cco-top-utility-open #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoUtilityRailAdvanced {
+  display: grid !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoExtraFiltersBlock,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoExtraFiltersBlock .cco-filter-block-content {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoExtraFiltersToggleBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoSoftBreakPanel,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorkspaceCompactToggleBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #densityToggleBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #switchTenantBtn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #refreshBtn {
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorkspaceLayout.cco-layout {
+  display: grid !important;
+  grid-template-columns:
+    var(--cco-vnext-list-width)
+    var(--cco-vnext-history-active-width)
+    minmax(var(--cco-vnext-reply-min-width), 1fr) !important;
+  gap: var(--cco-vnext-column-gap) !important;
+  align-items: stretch !important;
+  min-height: calc(100vh - 136px) !important;
+  height: calc(100vh - 136px) !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoMailWorkbench {
+  display: contents !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterColumn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumn {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  padding: var(--ma-space-12) var(--ma-space-14, 14px) !important;
+  border: 1px solid var(--ma-surface-border) !important;
+  border-radius: var(--ma-radius-panel) !important;
+  background: var(--ma-fill-panel) !important;
+  box-shadow: var(--ma-shadow-panel), var(--ma-shadow-panel-inner) !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterColumn {
+  grid-column: 1 !important;
+  display: block !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn {
+  grid-column: 2 !important;
+  display: grid !important;
+  grid-template-rows: 28px 28px minmax(0, 1fr) !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumn {
+  grid-column: 3 !important;
+  display: grid !important;
+  grid-template-rows: 28px auto minmax(0, 1fr) auto !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead {
+  position: absolute !important;
+  top: var(--ma-space-12) !important;
+  left: 14px !important;
+  right: 14px !important;
+  z-index: 8 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "title title"
+    "modes density"
+    "status status" !important;
+  row-gap: 4px !important;
+  min-height: var(--ma-vnext-worklist-head-height) !important;
+  padding: 0 0 var(--ma-space-8) !important;
+  border-bottom: 1px solid rgba(120, 105, 90, 0.14) !important;
+  background: linear-gradient(180deg, rgba(250, 246, 242, 0.98) 0%, rgba(250, 246, 242, 0.92) 78%, rgba(250, 246, 242, 0) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead .cco-center-title {
+  grid-area: title !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 22px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterListTitle,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumnTitle,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn .cco-column-title h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  font-weight: 650 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxRiskFlags {
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxModeToggle {
+  grid-area: modes !important;
+  width: fit-content !important;
+  min-height: 28px !important;
+  padding: 2px !important;
+  margin: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-view-mode-btn {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxDensityFilters {
+  grid-area: density !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-self: end !important;
+  gap: 6px !important;
+  margin: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxDensityFilters .cco-filter-btn {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoIndicatorFilterRow {
+  grid-area: status !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 24px !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-indicator-filter-btn {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  gap: 6px !important;
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-indicator-filter-btn .cco-thread-indicator {
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-center-block-worklist {
+  position: relative !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxFeedView,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxWorklist {
+  position: relative !important;
+  top: calc(-1 * var(--ma-vnext-worklist-head-height)) !important;
+  height: calc(100% + var(--ma-vnext-worklist-head-height)) !important;
+  padding-top: calc(var(--ma-vnext-worklist-head-height) + var(--ma-space-8)) !important;
+  overflow: auto !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterLoadingState,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterEmptyState {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 9 !important;
+  display: none !important;
+  align-content: center !important;
+  justify-items: start !important;
+  padding: var(--ma-space-16) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterColumn.is-loading #ccoCenterLoadingState,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterColumn.is-empty #ccoCenterEmptyState {
+  display: grid !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-inbox-group,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-list,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-inbox-group > summary {
+  min-height: 24px !important;
+  padding: 8px 0 4px !important;
+  margin: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-group-title-wrap > span:first-child {
+  font-size: 13px !important;
+  letter-spacing: 0.04em !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-group-meta,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-group-count {
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-list,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-list {
+  display: grid !important;
+  gap: var(--ma-vnext-thread-row-gap) !important;
+  padding: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item {
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-btn {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 16px !important;
+  align-items: center !important;
+  min-height: var(--ma-vnext-thread-row-height) !important;
+  padding: 10px 14px !important;
+  border: 1px solid rgba(120, 105, 90, 0.12) !important;
+  border-radius: var(--ma-radius-card) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread.active .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-feed-item-btn {
+  min-height: var(--ma-vnext-thread-row-height-active) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn > .cco-thread-indicator,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-btn > .cco-thread-indicator {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn::before,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-btn::before {
+  left: 0 !important;
+  top: 8px !important;
+  bottom: 8px !important;
+  width: 6px !important;
+  opacity: 1 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-subject,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-subject {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-meta-row,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-meta-row,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-preview {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-preview {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-list-row-chip {
+  height: 22px !important;
+  min-width: auto !important;
+  width: auto !important;
+  max-width: 92px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-list-row-tail {
+  width: 16px !important;
+  min-width: 16px !important;
+  font-size: 16px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn .cco-column-title,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumn > .cco-column-title {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 28px !important;
+  margin: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoHistoryCollapseBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: 72px !important;
+  min-width: 72px !important;
+  height: 32px !important;
+  border: 1px solid var(--ma-surface-border) !important;
+  border-radius: var(--ma-radius-button) !important;
+  background: rgba(255, 255, 255, 0.76) !important;
+  color: var(--ma-text-strong) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn .cco-read-tabs {
+  padding: 2px !important;
+  min-height: 28px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn .cco-read-tabs .cco-filter-btn {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReadTabConversation,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReadTabCustomer {
+  display: none !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReadTabConversation.is-active,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReadTabCustomer.is-active {
+  display: grid !important;
+  grid-template-rows: minmax(120px, auto) minmax(0, 1fr) !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationPreview,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyReadPanelBody {
+  min-height: 180px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(120, 105, 90, 0.12) !important;
+  border-radius: var(--ma-radius-card) !important;
+  background: rgba(255, 255, 255, 0.46) !important;
+  box-shadow: none !important;
+  overflow: auto !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-conversation-history-wrap {
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationHistoryList {
+  display: grid !important;
+  gap: 6px !important;
+  max-height: calc((var(--ma-vnext-history-row-height) * 3) + 24px) !important;
+  overflow: auto !important;
+  padding: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-conversation-history-item {
+  min-height: var(--ma-vnext-history-row-height) !important;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(120, 105, 90, 0.12) !important;
+  border-radius: var(--ma-radius-card) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-conversation-history-item.is-selected {
+  min-height: var(--ma-vnext-history-row-height-active) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed > :not(.cco-column-title) {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed .cco-column-title h3,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed #ccoConversationMeta,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed .cco-history-collapse-label {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoConversationColumn.is-collapsed #ccoHistoryCollapseBtn {
+  width: 32px !important;
+  min-width: 32px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyReadOnlyBanner {
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: var(--ma-radius-card) !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyMainBlocks {
+  display: block !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyReadPanel,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoComposeStudio {
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: auto !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumn.is-readonly #ccoComposeStudio {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyColumn.is-compose #ccoReplyReadPanel {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyReadPanel {
+  display: grid !important;
+  grid-template-rows: auto minmax(180px, 1fr) !important;
+  gap: var(--ma-space-8) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyReadPanelMeta {
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoComposeStudio {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoComposeStudio > .cco-reply-block,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStatusSummaryCard {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyContextStrip {
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: var(--ma-radius-card) !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyingToContext {
+  min-height: 16px !important;
+  font-size: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-compose-header-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 58%) minmax(0, 42%) !important;
+  gap: 8px 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-compose-header-grid input,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-compose-header-grid select {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-inline-toggle-stack {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-editor-block {
+  display: grid !important;
+  grid-template-rows: auto minmax(var(--ma-vnext-reply-editor-height), 1fr) auto auto !important;
+  gap: var(--ma-space-8) !important;
+  min-height: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-draft-modes {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-draft-mode-buttons {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-draft-mode-btn {
+  width: 96px !important;
+  min-width: 96px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoDraftBodyInput {
+  min-height: var(--ma-vnext-reply-editor-height) !important;
+  height: 100% !important;
+  padding: 12px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-signature-preview-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-actions-block > .mini.muted,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoDraftRecommendedActionRow {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-actions-toolbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-actions-toolbar .btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-actions-more summary,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-send-sticky-bar .btn {
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-safety-details {
+  margin-top: var(--ma-space-8) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-send-sticky-bar {
+  position: sticky !important;
+  bottom: 0 !important;
+  display: grid !important;
+  grid-template-columns: 148px 132px 96px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: var(--ma-space-8) !important;
+  min-height: var(--ma-vnext-send-bar-height) !important;
+  padding: 6px 0 0 !important;
+  border-top: 1px solid rgba(120, 105, 90, 0.12) !important;
+  background: linear-gradient(180deg, rgba(250, 246, 242, 0.88) 0%, rgba(250, 246, 242, 0.98) 100%) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-send-sticky-bar .cco-send {
+  width: 148px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStickySnoozeBtn {
+  width: 132px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStickyDeleteBtn {
+  width: 96px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStatusSummaryCard {
+  padding-top: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStatusSummaryCard .cco-column-title {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoStatusSummaryRows {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: var(--ma-space-8) !important;
+  margin: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-status-summary-row {
+  min-height: var(--ma-vnext-summary-band-height) !important;
+  padding: 0 10px !important;
+  border: 1px solid rgba(120, 105, 90, 0.12) !important;
+  border-radius: var(--ma-radius-card) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-status-summary-tail {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-status-summary-label {
+  font-size: 10px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-status-summary-meta {
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoReplyEmptyState,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterEmptyState {
+  max-height: 88px !important;
+}
+
+@media (min-width: 1536px) {
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] {
+    --cco-vnext-list-width: var(--ma-vnext-list-width-wide);
+    --cco-vnext-history-width: var(--ma-vnext-history-width-wide);
+    --cco-vnext-history-active-width: var(--ma-vnext-history-width-wide);
+    --cco-vnext-reply-min-width: var(--ma-vnext-reply-min-width-wide);
+  }
+
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"].cco-history-collapsed {
+    --cco-vnext-history-active-width: var(--ma-vnext-history-width-collapsed);
+  }
+
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-editor-block {
+    grid-template-rows: auto minmax(var(--ma-vnext-reply-editor-height-wide), 1fr) auto auto !important;
+  }
+
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoDraftBodyInput {
+    min-height: var(--ma-vnext-reply-editor-height-wide) !important;
+  }
+}
+
+@media (min-width: 1728px) {
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] {
+    --cco-vnext-list-width: var(--ma-vnext-list-width-max);
+    --cco-vnext-history-width: var(--ma-vnext-history-width-max);
+    --cco-vnext-history-active-width: var(--ma-vnext-history-width-max);
+    --cco-vnext-reply-max-width: var(--ma-vnext-reply-max-width);
+    --cco-vnext-column-gap: var(--ma-vnext-column-gap-wide);
+  }
+
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"].cco-history-collapsed {
+    --cco-vnext-history-active-width: var(--ma-vnext-history-width-collapsed);
+  }
+
+  body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorkspaceLayout.cco-layout {
+    grid-template-columns:
+      var(--cco-vnext-list-width)
+      var(--cco-vnext-history-active-width)
+      minmax(var(--cco-vnext-reply-min-width), var(--cco-vnext-reply-max-width)) !important;
+    gap: var(--cco-vnext-column-gap) !important;
+    justify-content: space-between !important;
+  }
+}
+
+/* Final density authority lock for vnext overlay. */
+body.cco-light-mode #adminHeader {
+  grid-template-rows: 43px 33px !important;
+  min-height: 82px !important;
+  margin-bottom: var(--ma-vnext-shell-gap) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] {
+  gap: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorkspaceLayout.cco-layout {
+  margin-top: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead {
+  height: 84px !important;
+  min-height: 84px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead .cco-center-title {
+  min-height: 18px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoCenterListTitle {
+  font-size: 15px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxModeToggle {
+  min-height: 24px !important;
+  height: 24px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxModeToggle .cco-view-mode-btn {
+  min-height: 20px !important;
+  height: 20px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxDensityFilters .cco-filter-btn {
+  min-height: 20px !important;
+  height: 20px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoIndicatorFilterRow {
+  min-height: 18px !important;
+  height: 18px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-indicator-filter-btn {
+  min-height: 18px !important;
+  height: 18px !important;
+  padding: 0 8px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxFeedView,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoInboxWorklist {
+  top: -96px !important;
+  height: calc(100% + 96px) !important;
+  padding-top: 96px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-inbox-group > summary {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-btn {
+  height: var(--ma-vnext-thread-row-height) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread.active .cco-thread-btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-feed-item-btn {
+  height: var(--ma-vnext-thread-row-height-active) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-mail,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-mail {
+  gap: 2px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-subject,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-subject {
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-meta-row,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-meta-row {
+  line-height: 1 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-preview {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread.active .cco-thread-preview,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-thread-preview {
+  display: block !important;
+  line-height: 1 !important;
+}

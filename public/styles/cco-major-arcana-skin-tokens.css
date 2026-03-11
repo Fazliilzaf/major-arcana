@@ -169,4 +169,38 @@
   --ma-minimal-selected-fill: rgba(255, 255, 255, 0.72);
   --ma-minimal-soft-shadow: 0 10px 26px rgba(62, 46, 41, 0.08);
   --ma-minimal-control-shadow: 0 4px 12px rgba(62, 46, 41, 0.08);
+
+  --ma-vnext-page-inline-padding: 16px;
+  --ma-vnext-shell-row-a-height: 44px;
+  --ma-vnext-shell-row-b-height: 34px;
+  --ma-vnext-shell-row-c-height: 38px;
+  --ma-vnext-shell-gap: 4px;
+  --ma-vnext-toolbar-control-height: 36px;
+  --ma-vnext-toolbar-search-width: 240px;
+  --ma-vnext-toolbar-mailbox-width: 220px;
+  --ma-vnext-toolbar-systemmail-width: 140px;
+  --ma-vnext-toolbar-more-width: 96px;
+  --ma-vnext-toolbar-cta-width: 180px;
+  --ma-vnext-column-gap: 12px;
+  --ma-vnext-column-gap-wide: 16px;
+  --ma-vnext-list-width: 620px;
+  --ma-vnext-list-width-wide: 680px;
+  --ma-vnext-list-width-max: 720px;
+  --ma-vnext-history-width: 280px;
+  --ma-vnext-history-width-wide: 300px;
+  --ma-vnext-history-width-max: 320px;
+  --ma-vnext-history-width-collapsed: 44px;
+  --ma-vnext-reply-min-width: 440px;
+  --ma-vnext-reply-min-width-wide: 470px;
+  --ma-vnext-reply-max-width: 620px;
+  --ma-vnext-worklist-head-height: 72px;
+  --ma-vnext-thread-row-height: 52px;
+  --ma-vnext-thread-row-height-active: 56px;
+  --ma-vnext-thread-row-gap: 6px;
+  --ma-vnext-history-row-height: 48px;
+  --ma-vnext-history-row-height-active: 88px;
+  --ma-vnext-reply-editor-height: 240px;
+  --ma-vnext-reply-editor-height-wide: 280px;
+  --ma-vnext-send-bar-height: 46px;
+  --ma-vnext-summary-band-height: 40px;
 }
