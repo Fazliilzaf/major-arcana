@@ -11110,7 +11110,7 @@
     const groupEl = listEl.closest('.cco-inbox-group');
     if (!Array.isArray(rows) || !rows.length) {
       if (groupEl) groupEl.dataset.empty = 'true';
-      listEl.innerHTML = `<li class="muted mini" style="padding:12px 14px">${escapeHtml(emptyText)}</li>`;
+      listEl.innerHTML = `<li class="cco-empty-list-row muted mini">${escapeHtml(emptyText)}</li>`;
       return;
     }
     if (groupEl) groupEl.dataset.empty = 'false';
