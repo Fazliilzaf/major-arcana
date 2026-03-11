@@ -112,6 +112,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCente
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn.is-empty {
   grid-template-rows: auto !important;
   align-content: start !important;
+  align-self: start !important;
+  height: auto !important;
+  min-height: 64px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn.is-empty > .cco-center-block-worklist,
