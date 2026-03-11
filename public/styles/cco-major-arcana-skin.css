@@ -4476,8 +4476,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead {
-  height: 84px !important;
-  min-height: 84px !important;
+  height: var(--ma-vnext-worklist-head-height) !important;
+  min-height: var(--ma-vnext-worklist-head-height) !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] #ccoWorklistHead .cco-center-title {
@@ -4535,17 +4535,26 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-btn {
+  box-sizing: border-box !important;
   height: var(--ma-vnext-thread-row-height) !important;
+  min-height: var(--ma-vnext-thread-row-height) !important;
+  max-height: var(--ma-vnext-thread-row-height) !important;
+  overflow: hidden !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread.active .cco-thread-btn,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-feed-item-btn {
+  box-sizing: border-box !important;
   height: var(--ma-vnext-thread-row-height-active) !important;
+  min-height: var(--ma-vnext-thread-row-height-active) !important;
+  max-height: var(--ma-vnext-thread-row-height-active) !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-mail,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-mail {
-  gap: 2px !important;
+  gap: 1px !important;
+  min-height: 0 !important;
+  align-content: center !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-subject,
@@ -4559,12 +4568,13 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-
   line-height: 1 !important;
 }
 
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-preview {
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-preview,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item-preview {
   display: none !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread.active .cco-thread-preview,
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-thread-preview {
-  display: block !important;
-  line-height: 1 !important;
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-thread-preview,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item.is-selected .cco-feed-item-preview {
+  display: none !important;
 }

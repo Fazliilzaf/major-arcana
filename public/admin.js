@@ -583,7 +583,7 @@
   const CCO_DEFAULT_DENSITY_MODE = 'work';
   const CCO_VISUAL_LIMITS = Object.freeze({
     sprint: 3,
-    high: 7,
+    high: 12,
     needs: 12,
     maxVisibleRows: 15,
   });
@@ -12448,13 +12448,13 @@
     };
     const visibility = { sprint: true, high: true, needs: false, rest: false };
     const primaryRows = safeTotals.sprint + safeTotals.high;
-    // Keep Arbete as a focused view, but avoid dead-looking queues when the
-    // focused sections are nearly empty and remaining rows exist downstream.
-    if (primaryRows < 2 && safeTotals.needs > 0) {
+    // Keep Arbete focused on sprint + high, but pull in downstream sections
+    // once the primary queue can no longer fill a realistic desktop worklist.
+    if (primaryRows < 12 && safeTotals.needs > 0) {
       visibility.needs = true;
     }
     const visibleSoFar = primaryRows + (visibility.needs ? safeTotals.needs : 0);
-    if (visibleSoFar < 2 && safeTotals.rest > 0) {
+    if (visibleSoFar < 12 && safeTotals.rest > 0) {
       visibility.rest = true;
     }
     return visibility;
