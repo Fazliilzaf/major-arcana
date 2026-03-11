@@ -211,4 +211,20 @@
   --cco-pixel-history-preview-height-1440: 96px;
   --cco-pixel-history-list-max-1536: 144px;
   --cco-pixel-history-list-max-1440: 112px;
+  --cco-shell-row-a-height: 56px;
+  --cco-shell-row-b-height: 44px;
+  --cco-shell-utility-height: 44px;
+  --cco-shell-brand-width: 180px;
+  --cco-shell-language-width: 120px;
+  --cco-shell-density-width: 110px;
+  --cco-shell-clinic-width: 320px;
+  --cco-shell-action-width: 96px;
+  --cco-shell-search-width: 240px;
+  --cco-shell-mailbox-width: 220px;
+  --cco-shell-system-width: 140px;
+  --cco-shell-filter-pill-width: 120px;
+  --cco-shell-cta-width: 180px;
+  --cco-shell-top-budget-1440: 144px;
+  --cco-shell-top-budget-1536: 152px;
+  --cco-shell-sticky-blur: 14px;
 }

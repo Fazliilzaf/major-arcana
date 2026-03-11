@@ -11282,9 +11282,22 @@
             </select>
           </div>
           <div class="cco-utility-filters" aria-label="CCO filter">
-            <div id="ccoInboxMailboxFilters" class="cco-filter-row cco-filter-row-mailbox cco-mailbox-favorites"></div>
-            <div id="ccoInboxSlaFilters" class="cco-filter-row cco-filter-row-sla"></div>
-            <div id="ccoInboxStateFilters" class="cco-filter-row cco-filter-row-state"></div>
+            <button
+              id="ccoInboxFilterSummaryBtn"
+              class="cco-filter-btn cco-filter-summary-btn"
+              type="button"
+              hidden
+            >
+              0 filter aktiva
+            </button>
+            <details id="ccoInboxFilterTray" class="cco-filter-tray">
+              <summary id="ccoInboxFilterTraySummary" class="cco-filter-btn cco-filter-tray-toggle">Fler filter</summary>
+              <div id="ccoInboxFilterPopover" class="cco-filter-popover">
+                <div id="ccoInboxMailboxFilters" class="cco-filter-row cco-filter-row-mailbox cco-mailbox-favorites"></div>
+                <div id="ccoInboxSlaFilters" class="cco-filter-row cco-filter-row-sla"></div>
+                <div id="ccoInboxStateFilters" class="cco-filter-row cco-filter-row-state"></div>
+              </div>
+            </details>
           </div>
           <label class="cco-inline-toggle cco-inline-toggle-rail" for="ccoInboxShowSystemToggle">
             <input id="ccoInboxShowSystemToggle" type="checkbox" />

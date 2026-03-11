@@ -1027,6 +1027,10 @@
     ccoUnansweredHighCount: document.getElementById('ccoUnansweredHighCount'),
     ccoUnansweredMediumCount: document.getElementById('ccoUnansweredMediumCount'),
     ccoInboxMailboxFilters: document.getElementById('ccoInboxMailboxFilters'),
+    ccoInboxFilterSummaryBtn: document.getElementById('ccoInboxFilterSummaryBtn'),
+    ccoInboxFilterTray: document.getElementById('ccoInboxFilterTray'),
+    ccoInboxFilterTraySummary: document.getElementById('ccoInboxFilterTraySummary'),
+    ccoInboxFilterPopover: document.getElementById('ccoInboxFilterPopover'),
     ccoInboxMailboxSelect: document.getElementById('ccoInboxMailboxSelect'),
     ccoInboxSlaFilters: document.getElementById('ccoInboxSlaFilters'),
     ccoInboxStateFilters: document.getElementById('ccoInboxStateFilters'),
@@ -11220,6 +11224,89 @@
       .join('');
   }
 
+  function formatCcoSlaFilterLabel(value = '') {
+    switch (sanitizeCcoSlaFilter(value)) {
+      case 'breach':
+        return 'SLA-brist';
+      case 'warning':
+        return 'SLA-varning';
+      case 'safe':
+        return 'SLA säker';
+      case 'new':
+        return 'Nya';
+      default:
+        return '';
+    }
+  }
+
+  function formatCcoLifecycleFilterLabel(value = '') {
+    switch (sanitizeCcoLifecycleFilter(value)) {
+      case 'follow_up_pending':
+        return 'Uppföljning väntar';
+      case 'active_dialogue':
+        return 'Aktiv dialog';
+      case 'new':
+        return 'Ny';
+      case 'awaiting_reply':
+        return 'Väntar svar';
+      case 'dormant':
+        return 'Vilande';
+      case 'handled':
+        return 'Hanterad';
+      case 'archived':
+        return 'Arkiverad';
+      default:
+        return '';
+    }
+  }
+
+  function collectCcoActiveUtilityFilters() {
+    const activeFilters = [];
+    const mailboxFilter = sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter);
+    const slaFilter = sanitizeCcoSlaFilter(state.ccoInboxSlaFilter);
+    const lifecycleFilter = sanitizeCcoLifecycleFilter(state.ccoInboxLifecycleFilter);
+
+    if (mailboxFilter !== 'all') {
+      activeFilters.push(`Postlåda: ${formatCcoMailboxShortLabel(mailboxFilter) || mailboxFilter}`);
+    }
+    if (slaFilter !== 'all') {
+      activeFilters.push(formatCcoSlaFilterLabel(slaFilter));
+    }
+    if (lifecycleFilter !== 'all') {
+      activeFilters.push(formatCcoLifecycleFilterLabel(lifecycleFilter));
+    }
+
+    return activeFilters.filter(Boolean);
+  }
+
+  function setCcoFilterTrayOpen(nextOpen = false) {
+    if (!els.ccoInboxFilterTray) return;
+    const open = nextOpen === true;
+    els.ccoInboxFilterTray.open = open;
+    if (els.ccoInboxFilterTraySummary) {
+      els.ccoInboxFilterTraySummary.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+  }
+
+  function renderCcoUtilityFilterSummary() {
+    const activeFilters = collectCcoActiveUtilityFilters();
+    const activeCount = activeFilters.length;
+    const tooltip = activeFilters.join(' · ');
+
+    if (els.ccoInboxFilterSummaryBtn) {
+      els.ccoInboxFilterSummaryBtn.hidden = activeCount === 0;
+      els.ccoInboxFilterSummaryBtn.textContent = `${activeCount} filter aktiva`;
+      els.ccoInboxFilterSummaryBtn.title = tooltip || 'Inga aktiva filter';
+    }
+    if (els.ccoInboxFilterTray) {
+      els.ccoInboxFilterTray.dataset.activeCount = String(activeCount);
+      els.ccoInboxFilterTray.dataset.hasActive = activeCount > 0 ? 'true' : 'false';
+    }
+    if (els.ccoInboxFilterTraySummary) {
+      els.ccoInboxFilterTraySummary.title = tooltip || 'Visa fler filter';
+    }
+  }
+
   function renderCcoSearchControls() {
     const showSystem = sanitizeCcoShowSystemMessages(state.ccoInboxShowSystemMessages);
     if (els.ccoInboxSearchInput) {
@@ -11277,6 +11364,7 @@
     if (!els.ccoInboxSearchMeta) return;
     if (state.ccoInboxLoading === true) {
       els.ccoInboxSearchMeta.textContent = 'Hämtar mail…';
+      els.ccoInboxSearchMeta.title = 'Hämtar mail…';
       return;
     }
     const safeMeta = meta && typeof meta === 'object' ? meta : {};
@@ -11285,24 +11373,27 @@
     const totalBeforeSearch = Number(safeMeta.totalBeforeSearch || 0);
     const matchedRows = Number(safeMeta.matchedRows || 0);
     const searchQuery = sanitizeCcoSearchQuery(safeMeta.searchQuery);
-    const parts = [];
+    const inlineParts = [];
+    const titleParts = [];
 
     if (searchQuery) {
-      parts.push(`Visar ${matchedRows} av ${totalBeforeSearch} efter sökning`);
-    } else {
-      parts.push(`Visar ${totalBeforeSearch} konversationer`);
-    }
-    if (searchQuery) {
-      parts.push(`Sök: "${searchQuery}"`);
+      inlineParts.push(`Sök: ${matchedRows}/${totalBeforeSearch}`);
+      titleParts.push(`Sök: "${searchQuery}"`);
     }
     if (!includeSystemMessages && hiddenSystemRows > 0) {
-      parts.push(`${hiddenSystemRows} systemmail dolda`);
+      inlineParts.push(`${hiddenSystemRows} system dolda`);
     }
     if (state.ccoInboxLastSyncAt) {
-      parts.push(`Senast synk: ${formatCcoDateTimeValue(state.ccoInboxLastSyncAt)}`);
+      titleParts.push(`Senast synk: ${formatCcoDateTimeValue(state.ccoInboxLastSyncAt)}`);
+    }
+    if (!inlineParts.length && state.ccoInboxLastSyncAt) {
+      inlineParts.push(`Synk ${formatCcoDateTimeValue(state.ccoInboxLastSyncAt)}`);
     }
 
-    els.ccoInboxSearchMeta.textContent = parts.join(' · ');
+    const text = inlineParts.join(' · ');
+    const title = [...inlineParts, ...titleParts].filter(Boolean).join(' · ');
+    els.ccoInboxSearchMeta.textContent = text;
+    els.ccoInboxSearchMeta.title = title || text;
   }
 
   function renderCcoSlaFilterRow() {
@@ -11869,6 +11960,7 @@
     renderCcoMailboxFilterRow(openRows);
     renderCcoSlaFilterRow();
     renderCcoLifecycleFilterRow();
+    renderCcoUtilityFilterSummary();
     renderCcoSearchControls();
     renderCcoSearchMeta(filteredResult.meta);
     renderCcoDensityFilterRow();
@@ -13039,10 +13131,10 @@
       const sourceMailboxShortLabels = sourceMailboxIds
         .map((mailbox) => formatCcoMailboxShortLabel(mailbox))
         .filter(Boolean);
-      const suffix = sourceMailboxShortLabels.length
-        ? ` · ${sourceMailboxShortLabels.join(', ')}`
-        : '';
-      els.ccoInboxMailboxMeta.textContent = `${mailboxCount} postlådor · ${messageCount} meddelanden${suffix}`;
+      const summaryText = `${mailboxCount} postlådor · ${messageCount} meddelanden`;
+      const suffix = sourceMailboxShortLabels.length ? ` · ${sourceMailboxShortLabels.join(', ')}` : '';
+      els.ccoInboxMailboxMeta.textContent = summaryText;
+      els.ccoInboxMailboxMeta.title = `${summaryText}${suffix}`;
     }
     if (els.ccoWorkspaceEntryStatus) {
       els.ccoWorkspaceEntryStatus.textContent =
@@ -15954,6 +16046,7 @@
     const nextFilter = sanitizeCcoMailboxFilter(button.getAttribute('data-cco-mailbox-filter') || 'all');
     if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
     state.ccoInboxMailboxFilter = nextFilter;
+    setCcoFilterTrayOpen(false);
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
@@ -15961,6 +16054,7 @@
     const nextFilter = sanitizeCcoMailboxFilter(els.ccoInboxMailboxSelect?.value || 'all');
     if (nextFilter === sanitizeCcoMailboxFilter(state.ccoInboxMailboxFilter)) return;
     state.ccoInboxMailboxFilter = nextFilter;
+    setCcoFilterTrayOpen(false);
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
@@ -15972,6 +16066,7 @@
     state.ccoInboxViewMode = 'all';
     setActiveSectionNav('ccoWorkspaceSection');
     syncCcoThreadRouteState(state.ccoSelectedConversationId);
+    setCcoFilterTrayOpen(false);
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
   });
@@ -15982,8 +16077,32 @@
       button.getAttribute('data-cco-state-filter') || 'all'
     );
     state.ccoInboxLifecycleFilter = nextFilter;
+    setCcoFilterTrayOpen(false);
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxFilterSummaryBtn?.addEventListener('click', () => {
+    setCcoFilterTrayOpen(true);
+    els.ccoInboxFilterTraySummary?.focus();
+  });
+  els.ccoInboxFilterTray?.addEventListener('toggle', () => {
+    if (els.ccoInboxFilterTraySummary) {
+      els.ccoInboxFilterTraySummary.setAttribute(
+        'aria-expanded',
+        els.ccoInboxFilterTray.open ? 'true' : 'false'
+      );
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (!els.ccoInboxFilterTray || !els.ccoInboxFilterTray.open) return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (els.ccoInboxFilterTray.contains(target) || els.ccoInboxFilterSummaryBtn?.contains(target)) return;
+    setCcoFilterTrayOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !els.ccoInboxFilterTray?.open) return;
+    setCcoFilterTrayOpen(false);
   });
   els.ccoInboxSearchInput?.addEventListener('input', () => {
     state.ccoInboxSearchQuery = sanitizeCcoSearchQuery(els.ccoInboxSearchInput?.value || '');
