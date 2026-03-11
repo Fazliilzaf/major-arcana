@@ -3080,6 +3080,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoWorks
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn > .cco-center-block-worklist {
   position: relative !important;
+  isolation: isolate !important;
   padding: 12px 12px 0 !important;
   background: linear-gradient(180deg, rgba(250, 246, 242, 0.95), rgba(247, 241, 236, 0.92)) !important;
   border: 1px solid rgba(81, 61, 52, 0.10) !important;
@@ -3097,7 +3098,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCente
   height: 112px !important;
   background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(248, 242, 237, 0.94)) !important;
   border-bottom: 1px solid rgba(81, 61, 52, 0.10) !important;
-  z-index: 0 !important;
+  backdrop-filter: blur(var(--cco-shell-sticky-blur)) !important;
+  z-index: 1 !important;
   pointer-events: none !important;
 }
 
@@ -3107,8 +3109,14 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoIndic
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxDensityFilters,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxModeMeta {
   position: relative !important;
-  z-index: 1 !important;
+  z-index: 2 !important;
   background: transparent !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxWorklist,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFeedView {
+  position: relative !important;
+  z-index: 0 !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-center-title,
