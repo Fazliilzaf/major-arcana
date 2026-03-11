@@ -3117,6 +3117,11 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInbox
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFeedView {
   position: relative !important;
   z-index: 0 !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-center-title,
