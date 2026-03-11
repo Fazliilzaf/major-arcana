@@ -4021,7 +4021,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-feed-item {
   margin: 0 !important;
+  padding: 0 !important;
   border: 0 !important;
+  min-height: 0 !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"][data-cco-overlay="mail-client-vnext"] .cco-thread-btn,
