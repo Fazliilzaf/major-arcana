@@ -11107,10 +11107,13 @@
 
   function renderCcoSectionRows(listEl, rows = [], selectedId = '', debugMode = false, emptyText = 'Inga konversationer i kö.') {
     if (!listEl) return;
+    const groupEl = listEl.closest('.cco-inbox-group');
     if (!Array.isArray(rows) || !rows.length) {
+      if (groupEl) groupEl.dataset.empty = 'true';
       listEl.innerHTML = `<li class="muted mini" style="padding:12px 14px">${escapeHtml(emptyText)}</li>`;
       return;
     }
+    if (groupEl) groupEl.dataset.empty = 'false';
     listEl.innerHTML = rows
       .map((row) => buildCcoThreadMarkup(row, selectedId, debugMode))
       .filter(Boolean)
@@ -11709,7 +11712,7 @@
           ? `<span class="cco-feed-item-preview">${escapeHtml(previewText)}<\/span>`
           : '';
         return `
-          <li class="cco-feed-item${selected ? ' is-selected' : ''}" data-cco-feed-id="${escapeHtml(entry.feedId)}" data-cco-conversation-id="${escapeHtml(entry.conversationId)}">
+          <li class="cco-feed-item${selected ? ' is-selected' : ''}" data-cco-feed-id="${escapeHtml(entry.feedId)}" data-cco-conversation-id="${escapeHtml(entry.conversationId)}" data-cco-indicator-state="${escapeHtml(indicator.state)}">
             <button type="button" class="cco-feed-item-btn ccoFeedSelectBtn" data-cco-feed-id="${escapeHtml(
               entry.feedId
             )}" data-conversation-id="${escapeHtml(entry.conversationId)}">
