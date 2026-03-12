@@ -2387,9 +2387,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-util
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFilterSummaryBtn,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFilterTraySummary {
-  min-height: var(--cco-shell-row-b-height) !important;
-  max-height: var(--cco-shell-row-b-height) !important;
-  height: var(--cco-shell-row-b-height) !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  height: 36px !important;
   padding: 0 12px !important;
   white-space: nowrap !important;
 }
@@ -2417,8 +2417,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-filt
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-search-input,
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-mailbox-select,
-body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #runCcoInboxBtn {
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-mailbox-select {
   min-height: var(--cco-shell-utility-height) !important;
   max-height: var(--cco-shell-utility-height) !important;
   height: var(--cco-shell-utility-height) !important;
@@ -2429,6 +2428,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #runCcoIn
   width: var(--cco-shell-cta-width) !important;
   min-width: var(--cco-shell-cta-width) !important;
   max-width: var(--cco-shell-cta-width) !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  height: 40px !important;
   white-space: nowrap !important;
 }
 
