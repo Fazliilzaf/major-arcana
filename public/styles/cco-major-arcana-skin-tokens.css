@@ -184,7 +184,7 @@
   --cco-pixel-mode-height: 34px;
   --cco-pixel-chip-height: 24px;
   --cco-pixel-density-height: 30px;
-  --cco-pixel-mode-meta-height: 0px;
+  --cco-pixel-mode-meta-height: 16px;
   --cco-pixel-section-height: 24px;
   --cco-pixel-row-height: 52px;
   --cco-pixel-row-height-selected: 56px;
@@ -237,4 +237,22 @@
   --cco-shell-top-budget-1440: 112px;
   --cco-shell-top-budget-1536: 112px;
   --cco-shell-sticky-blur: 14px;
+
+  --cco-pass1-header-row-height: 36px;
+  --cco-pass1-nav-row-height: 34px;
+  --cco-pass1-filter-row-height: 38px;
+  --cco-pass1-filter-button-height: 36px;
+  --cco-pass1-cta-height: 40px;
+  --cco-pass1-top-gap: 8px;
+  --cco-pass1-inline-gap: 10px;
+  --cco-pass1-top-radius: 12px;
+  --cco-pass1-top-shadow:
+    0 2px 6px rgba(70, 50, 30, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --cco-pass1-worklist-title-size: 24px;
+  --cco-pass1-worklist-mode-height: 34px;
+  --cco-pass1-worklist-status-height: 28px;
+  --cco-pass1-worklist-meta-size: 14px;
+  --cco-pass1-worklist-meta-line: 1.25;
+  --cco-pass1-worklist-gap: 8px;
 }
