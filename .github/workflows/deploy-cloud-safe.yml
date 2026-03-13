@@ -169,7 +169,13 @@ jobs:
           BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
         run: |
           echo "Triggering Render deploy hook for ${BASE_URL}"
-          RESPONSE="$(curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}")"
+          DEPLOY_URL="${RENDER_DEPLOY_HOOK_URL}"
+          if [[ "${DEPLOY_URL}" == *\?* ]]; then
+            DEPLOY_URL="${DEPLOY_URL}&ref=${GITHUB_SHA}"
+          else
+            DEPLOY_URL="${DEPLOY_URL}?ref=${GITHUB_SHA}"
+          fi
+          RESPONSE="$(curl -fsS -X POST "${DEPLOY_URL}")"
           if [[ -n "${RESPONSE}" ]]; then
             echo "${RESPONSE}"
           fi
