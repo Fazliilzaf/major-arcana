@@ -1055,6 +1055,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
   display: grid !important;
 }
 
+@media not all {
 /* Structural cleanup: preserve all functions, remove overlap, and organize the live shell. */
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn > .cco-center-block-worklist {
   grid-template-areas:
@@ -1758,6 +1759,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoStatusSummaryRows {
   gap: var(--ma-space-12) !important;
+}
 }
 
 /* Global shell flattening: keep the work surfaces, remove the two extra wrapper shells. */

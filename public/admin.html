@@ -6813,6 +6813,7 @@
       background: #77806a;
       border-color: #4f5648;
     }
+    @media not all {
     /* Feedback hotfix: resolve visibility/overlap issues from live screenshots */
     body.cco-light-mode.cco-compact-header #adminHeader {
       min-height: 44px;
@@ -7077,6 +7078,8 @@
       background: #f4ebe4 !important;
       color: #2b211d !important;
     }
+    }
+    @media not all {
     /* Visual skeleton v11: warm premium glass/neumorphism based on reference palettes */
     body.cco-compact-header {
       --cco-v11-base-1: #D6C7B8;
@@ -10257,6 +10260,7 @@
         grid-template-columns: minmax(196px, 208px) minmax(560px, 1fr) minmax(342px, 376px) !important;
       }
     }
+    @media not all {
     /* CCO frame reduction pass: flatten nested frame-on-frame styling */
     body.cco-compact-header #adminHeader {
       padding: 8px 10px !important;
@@ -11128,6 +11132,7 @@
         animation: none !important;
         transition: none !important;
       }
+    }
     }
   </style>
   <link rel="stylesheet" href="/styles/cco-major-arcana-skin-tokens.css" />
