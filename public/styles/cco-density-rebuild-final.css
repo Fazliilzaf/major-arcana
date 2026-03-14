@@ -2080,3 +2080,92 @@ body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoI
   overflow: auto !important;
   padding-top: var(--ma-space-8) !important;
 }
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyMainBlocks,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyMainBlocks {
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "history compose"
+    "history summary" !important;
+  gap: var(--ma-space-8) !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationColumn,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationColumn {
+  grid-template-rows: auto auto auto !important;
+  gap: var(--ma-space-8) !important;
+  align-content: start !important;
+  align-self: start !important;
+  padding-bottom: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReadTabConversation.is-active,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReadTabConversation.is-active {
+  grid-template-rows: auto auto !important;
+  gap: var(--ma-space-8) !important;
+  height: auto !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationPreview,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationPreview {
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-conversation-history-wrap,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-conversation-history-wrap {
+  grid-template-rows: auto auto !important;
+  gap: var(--ma-space-8) !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationHistoryList,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationHistoryList {
+  height: auto !important;
+  max-height: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoComposeStudio,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoComposeStudio {
+  grid-template-rows: auto auto auto auto !important;
+  gap: var(--ma-space-8) !important;
+  height: auto !important;
+  align-content: start !important;
+  align-self: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-compose-header-block,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-compose-header-block {
+  grid-template-rows: auto auto auto !important;
+  gap: var(--ma-space-8) !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyingToContext:empty,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyingToContext:empty {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-editor-block,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-editor-block {
+  height: auto !important;
+  min-height: 0 !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: var(--ma-space-8) !important;
+  padding-top: var(--ma-space-8) !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-actions-block,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-actions-block,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-safety-block,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) .cco-safety-block {
+  height: auto !important;
+  grid-template-rows: auto auto auto !important;
+  gap: var(--ma-space-8) !important;
+  padding-top: var(--ma-space-8) !important;
+  align-content: start !important;
+}
