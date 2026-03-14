@@ -268,3 +268,14 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
   padding-right: 0 !important;
   border-right: 0 !important;
 }
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyMainBlocks {
+  align-items: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationColumn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoComposeStudio,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoStatusSummaryCard {
+  height: auto !important;
+  align-self: start !important;
+}
