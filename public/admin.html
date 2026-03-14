@@ -11915,11 +11915,11 @@
 
       <div class="row cols-2" data-section-group="settingsSection" style="margin-top:14px">
         <section class="panel">
-          <h2>Mailbox Writing Identity</h2>
-          <div class="mini muted">Profil per mailbox för drafting. Påverkar inte tone eller priority.</div>
+          <h2>Skrivprofil per inkorg</h2>
+          <div class="mini muted">Profil per inkorg för utkast. Påverkar drafting och justerar toneConfidence. Påverkar inte tone-klass, intents eller priorityScore.</div>
           <div class="seg quick-actions glass-toolbar" style="margin-top:10px;align-items:end;flex-wrap:wrap">
             <div>
-              <label for="writingIdentitySampleSize">Sample size (30-50)</label>
+              <label for="writingIdentitySampleSize">Urvalsstorlek (30-50)</label>
               <input id="writingIdentitySampleSize" type="number" min="30" max="50" value="40" style="width:120px" />
             </div>
             <button id="refreshWritingIdentityBtn" class="btn">Ladda profiler</button>
@@ -11928,13 +11928,13 @@
           <div id="writingIdentityStatus" class="status-line"></div>
           <div class="grid" style="margin-top:10px">
             <div>
-              <label for="writingIdentityMailboxSelect">Välj mailbox</label>
+              <label for="writingIdentityMailboxSelect">Välj inkorg</label>
               <select id="writingIdentityMailboxSelect">
-                <option value="">Välj mailbox</option>
+                <option value="">Välj inkorg</option>
               </select>
             </div>
             <div>
-              <label for="writingIdentityMailboxFilter">Filtrera mailbox (email)</label>
+              <label for="writingIdentityMailboxFilter">Filtrera inkorg (e-post)</label>
               <input id="writingIdentityMailboxFilter" type="email" placeholder="egzona@hairtpclinic.com" />
             </div>
           </div>
@@ -11942,7 +11942,7 @@
           <table style="margin-top:10px">
             <thead>
               <tr>
-                <th>Mailbox</th>
+                <th>Inkorg</th>
                 <th>Version</th>
                 <th>Källa</th>
                 <th>Uppdaterad</th>
@@ -11960,53 +11960,53 @@
           <div class="mini muted">Spara profil i analysis-store. Version ökas automatiskt.</div>
           <div class="grid" style="margin-top:10px">
             <div>
-              <label for="writingIdentityMailboxInput">Mailbox (email/UPN)</label>
+              <label for="writingIdentityMailboxInput">Inkorg (e-post/UPN)</label>
               <input id="writingIdentityMailboxInput" type="email" placeholder="contact@hairtpclinic.com" />
             </div>
             <div>
               <label for="writingIdentityCtaStyle">CTA-stil</label>
               <select id="writingIdentityCtaStyle">
-                <option value="balanced">balanced</option>
-                <option value="structured">structured</option>
-                <option value="direct">direct</option>
-                <option value="direct-structured">direct-structured</option>
-                <option value="calm-guiding">calm-guiding</option>
+                <option value="balanced">balanserad</option>
+                <option value="structured">strukturerad</option>
+                <option value="direct">direkt</option>
+                <option value="direct-structured">direkt-strukturerad</option>
+                <option value="calm-guiding">lugn-vägledande</option>
               </select>
             </div>
             <div>
-              <label for="writingIdentityGreeting">Greeting</label>
+              <label for="writingIdentityGreeting">Hälsning</label>
               <input id="writingIdentityGreeting" type="text" placeholder="Hej," />
             </div>
             <div>
-              <label for="writingIdentityClosing">Closing</label>
+              <label for="writingIdentityClosing">Avslut</label>
               <input id="writingIdentityClosing" type="text" placeholder="Vänliga hälsningar" />
             </div>
             <div>
-              <label for="writingIdentityFormality">Formality (0-10)</label>
+              <label for="writingIdentityFormality">Formalitet (0-10)</label>
               <input id="writingIdentityFormality" type="number" min="0" max="10" step="1" value="5" />
             </div>
             <div>
-              <label for="writingIdentityWarmth">Warmth (0-10)</label>
+              <label for="writingIdentityWarmth">Värme (0-10)</label>
               <input id="writingIdentityWarmth" type="number" min="0" max="10" step="1" value="5" />
             </div>
             <div>
-              <label for="writingIdentitySentenceLength">Sentence length</label>
+              <label for="writingIdentitySentenceLength">Meningslängd</label>
               <select id="writingIdentitySentenceLength">
-                <option value="short">short</option>
-                <option value="medium" selected>medium</option>
-                <option value="long">long</option>
+                <option value="short">kort</option>
+                <option value="medium" selected>medel</option>
+                <option value="long">lång</option>
               </select>
             </div>
             <div>
-              <label for="writingIdentityEmojiUsage">Emoji usage</label>
+              <label for="writingIdentityEmojiUsage">Emoji-användning</label>
               <select id="writingIdentityEmojiUsage">
-                <option value="false" selected>false</option>
-                <option value="true">true</option>
+                <option value="false" selected>nej</option>
+                <option value="true">ja</option>
               </select>
             </div>
           </div>
           <div style="margin-top:12px">
-            <button id="saveWritingIdentityBtn" class="btn primary">Spara Writing Identity</button>
+            <button id="saveWritingIdentityBtn" class="btn primary">Spara skrivprofil</button>
           </div>
           <div id="writingIdentityEditStatus" class="status-line"></div>
           <div id="writingIdentityProfileMeta" class="mini muted" style="margin-top:8px">Ingen profil vald.</div>

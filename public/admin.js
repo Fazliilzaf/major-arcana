@@ -2169,9 +2169,19 @@
         const version = Number(record.version || 1);
         const source = String(record.source || 'auto').trim() || 'auto';
         const updatedAt = formatDateTime(record.updatedAt || record.createdAt || '', true);
-        els.writingIdentityProfileMeta.textContent = `Mailbox: ${mailbox} • v${version} • source=${source} • uppdaterad ${updatedAt}`;
+        els.writingIdentityProfileMeta.textContent = `Inkorg: ${mailbox} • v${version} • källa=${formatWritingIdentitySourceLabel(source)} • uppdaterad ${updatedAt}`;
       }
     }
+  }
+
+  function formatWritingIdentitySourceLabel(value = '') {
+    const source = String(value || '')
+      .trim()
+      .toLowerCase();
+    if (!source) return 'Automatisk';
+    if (source === 'manual') return 'Manuell';
+    if (source === 'auto') return 'Automatisk';
+    return source;
   }
 
   function renderWritingIdentityProfiles() {
@@ -2182,7 +2192,7 @@
 
     if (els.writingIdentityMailboxSelect) {
       const current = normalizeWritingMailbox(state.selectedWritingIdentityMailbox);
-      els.writingIdentityMailboxSelect.innerHTML = '<option value="">Välj mailbox</option>';
+      els.writingIdentityMailboxSelect.innerHTML = '<option value="">Välj inkorg</option>';
       for (const item of profiles) {
         const mailbox = normalizeWritingMailbox(item?.mailbox);
         if (!mailbox) continue;
@@ -2215,7 +2225,7 @@
       tr.innerHTML = `
         <td class="code">${escapeHtml(mailbox)}</td>
         <td>${version}</td>
-        <td>${escapeHtml(source)}</td>
+        <td>${escapeHtml(formatWritingIdentitySourceLabel(source))}</td>
         <td class="mini">${escapeHtml(updatedAt)}</td>
         <td><button type="button" class="btn small writingIdentitySelectBtn" data-mailbox="${escapeHtml(mailbox)}">Välj</button></td>
       `;
@@ -2244,7 +2254,7 @@
       const path = query.toString()
         ? `/cco/writing-identities?${query.toString()}`
         : '/cco/writing-identities';
-      if (!quiet) setStatus(els.writingIdentityStatus, 'Laddar Writing Identity-profiler...');
+      if (!quiet) setStatus(els.writingIdentityStatus, 'Laddar skrivprofiler...');
       const response = await api(path);
       const profiles = Array.isArray(response?.profiles) ? response.profiles : [];
       state.writingIdentityProfiles = profiles
@@ -2267,13 +2277,13 @@
       fillWritingIdentityForm(selectedRecord);
       renderWritingIdentityProfiles();
       if (!quiet) {
-        setStatus(els.writingIdentityStatus, `Writing Identity-profiler laddade: ${state.writingIdentityProfiles.length}.`);
+        setStatus(els.writingIdentityStatus, `Skrivprofiler laddade: ${state.writingIdentityProfiles.length}.`);
       }
     } catch (error) {
       if (!quiet) {
         setStatus(
           els.writingIdentityStatus,
-          error.message || 'Kunde inte läsa Writing Identity-profiler.',
+          error.message || 'Kunde inte läsa skrivprofiler.',
           true
         );
       }
@@ -2282,10 +2292,10 @@
 
   async function saveWritingIdentityProfile() {
     try {
-      if (!isOwner()) throw new Error('Endast OWNER kan spara Writing Identity.');
+      if (!isOwner()) throw new Error('Endast OWNER kan spara skrivprofiler.');
       const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxInput?.value || '');
       if (!isValidWritingMailbox(mailbox)) {
-        throw new Error('Mailbox måste vara giltig email/UPN.');
+        throw new Error('Inkorg måste vara giltig e-post/UPN.');
       }
 
       const profile = toWritingIdentityProfile({
@@ -2298,7 +2308,7 @@
         warmthIndex: els.writingIdentityWarmth?.value,
       });
 
-      setStatus(els.writingIdentityEditStatus, `Sparar Writing Identity för ${mailbox}...`);
+      setStatus(els.writingIdentityEditStatus, `Sparar skrivprofil för ${mailbox}...`);
       const response = await api(`/cco/writing-identities/${encodeURIComponent(mailbox)}`, {
         method: 'PUT',
         body: {
@@ -2312,12 +2322,12 @@
       await loadWritingIdentityProfiles({ quiet: true });
       setStatus(
         els.writingIdentityEditStatus,
-        `Writing Identity sparad för ${savedMailbox} (v${Number(response?.profile?.version || 1)}).`
+        `Skrivprofil sparad för ${savedMailbox} (v${Number(response?.profile?.version || 1)}).`
       );
     } catch (error) {
       setStatus(
         els.writingIdentityEditStatus,
-        error.message || 'Kunde inte spara Writing Identity.',
+        error.message || 'Kunde inte spara skrivprofil.',
         true
       );
     }
@@ -2334,7 +2344,7 @@
       const mailboxFilter = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
       const mailboxes = isValidWritingMailbox(mailboxFilter) ? [mailboxFilter] : [];
 
-      setStatus(els.writingIdentityStatus, 'Kör auto-extraktion av Writing Identity...');
+      setStatus(els.writingIdentityStatus, 'Kör auto-extraktion av skrivprofiler...');
       const response = await api('/cco/writing-identities/auto-extract', {
         method: 'POST',
         body: {
@@ -2352,7 +2362,7 @@
     } catch (error) {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte auto-extrahera Writing Identity.',
+        error.message || 'Kunde inte auto-extrahera skrivprofiler.',
         true
       );
     }
@@ -15701,7 +15711,7 @@
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        error.message || 'Kunde inte läsa skrivprofiler.',
         true
       );
     });
@@ -15722,7 +15732,7 @@
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        error.message || 'Kunde inte läsa skrivprofiler.',
         true
       );
     });
