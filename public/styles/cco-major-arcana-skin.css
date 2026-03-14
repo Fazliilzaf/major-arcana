@@ -2225,8 +2225,8 @@ body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] h1 {
 }
 
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sectionNav.panel {
-  padding: 4px 8px !important;
-  gap: 8px !important;
+  padding: 2px 6px !important;
+  gap: 6px !important;
   border-radius: 16px !important;
 }
 
@@ -2985,10 +2985,10 @@ body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sectionNav.pan
 }
 
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sectionNav .sectionNavBtn {
-  min-height: 36px !important;
-  height: 36px !important;
-  padding: 0 14px !important;
-  font-size: 15px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 14px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -2996,7 +2996,7 @@ body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #sectionNav .se
 
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .admin-header-controls {
   grid-area: controls !important;
-  gap: 12px !important;
+  gap: 8px !important;
 }
 
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] .lang-wrap label,
@@ -3010,9 +3010,9 @@ body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #tenantSwitchSe
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #switchTenantBtn,
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #refreshBtn,
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #logoutBtn {
-  min-height: 36px !important;
-  height: 36px !important;
-  max-height: 36px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  max-height: 32px !important;
 }
 
 body.cco-light-mode #adminHeader[data-cco-header-mounted="true"] #languageSelect {
@@ -3061,8 +3061,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-util
   grid-template-areas: "search mailbox system summary filters cta" !important;
   min-height: var(--cco-shell-utility-height) !important;
   height: var(--cco-shell-utility-height) !important;
-  padding: 4px 12px !important;
-  gap: 8px !important;
+  padding: 2px 10px !important;
+  gap: 6px !important;
   margin: -1px 0 0 !important;
 }
 
@@ -3075,8 +3075,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #runCcoIn
   width: var(--cco-shell-cta-width) !important;
   min-width: var(--cco-shell-cta-width) !important;
   max-width: var(--cco-shell-cta-width) !important;
-  min-height: 36px !important;
-  height: 36px !important;
+  min-height: 32px !important;
+  height: 32px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoWorkspaceLayout.cco-layout-vnext {
@@ -3087,7 +3087,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoWorks
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCenterColumn > .cco-center-block-worklist {
   position: relative !important;
   isolation: isolate !important;
-  padding: 12px 12px 0 !important;
+  padding: 10px 10px 0 !important;
   background: linear-gradient(180deg, rgba(250, 246, 242, 0.95), rgba(247, 241, 236, 0.92)) !important;
   border: 1px solid rgba(81, 61, 52, 0.10) !important;
   border-radius: 16px !important;
@@ -3127,7 +3127,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-cent
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxModeToggle,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoIndicatorFilterRow,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxDensityFilters {
-  padding-bottom: 8px !important;
+  padding-bottom: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxDensityFilters {
@@ -5281,12 +5281,12 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-feed
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-list-row-chip,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-priority-badge {
-  min-height: 22px !important;
-  height: 22px !important;
-  padding: 0 8px !important;
+  min-height: 20px !important;
+  height: 20px !important;
+  padding: 0 7px !important;
   border-radius: 999px !important;
   box-shadow: none !important;
-  font-size: 11px !important;
+  font-size: 10.5px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-list-row-tail {
@@ -5490,18 +5490,18 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid {
   display: grid !important;
   grid-template-columns: 58% 42% !important;
-  gap: 8px !important;
+  gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid > div {
   display: grid !important;
-  gap: 4px !important;
+  gap: 3px !important;
   min-width: 0 !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid > div:nth-child(4) {
   grid-template-columns: minmax(0, 1fr) auto !important;
-  column-gap: 8px !important;
+  column-gap: 6px !important;
   align-items: end !important;
 }
 
@@ -5543,7 +5543,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inli
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-editor-block {
   display: grid !important;
   grid-template-rows: auto minmax(0, 1fr) auto auto !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-height: 0 !important;
 }
 
@@ -5551,7 +5551,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draf
   display: grid !important;
   grid-template-columns: auto 1fr auto !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   margin: 0 !important;
 }
 
@@ -5565,7 +5565,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draf
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-buttons {
   display: flex !important;
-  gap: 8px !important;
+  gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-btn {
@@ -5604,9 +5604,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-sign
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoToggleSignaturePreviewBtn {
-  min-height: 32px !important;
-  height: 32px !important;
-  padding: 0 10px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoSignaturePreview.is-collapsed {
@@ -5615,7 +5615,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoSigna
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block {
   display: grid !important;
-  gap: 8px !important;
+  gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block > .mini {
@@ -5629,8 +5629,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-acti
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar {
   display: flex !important;
   flex-wrap: wrap !important;
-  gap: 8px !important;
-  max-height: 72px !important;
+  gap: 6px !important;
+  max-height: 64px !important;
   overflow: hidden !important;
 }
 
@@ -5644,7 +5644,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-acti
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-block {
   display: grid !important;
-  gap: 8px !important;
+  gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoDraftRecommendedActionRow {
@@ -5661,7 +5661,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safe
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-chip-row {
   display: flex !important;
   flex-wrap: nowrap !important;
-  gap: 8px !important;
+  gap: 6px !important;
   overflow: hidden !important;
 }
 
@@ -5676,7 +5676,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-send
   bottom: 0 !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-height: var(--cco-pixel-sendbar-height) !important;
   height: var(--cco-pixel-sendbar-height) !important;
   padding: 0 !important;
@@ -6229,9 +6229,9 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inli
   grid-area: system !important;
   min-width: 0 !important;
   max-width: var(--cco-shell-system-width) !important;
-  min-height: 36px !important;
-  height: 36px !important;
-  padding: 0 10px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 8px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -6242,7 +6242,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-util
   display: flex !important;
   align-items: center !important;
   min-width: 0 !important;
-  gap: 8px !important;
+  gap: 6px !important;
   overflow: hidden !important;
   white-space: nowrap !important;
 }
@@ -6277,15 +6277,15 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-util
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   overflow: visible !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFilterSummaryBtn,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInboxFilterTraySummary {
-  min-height: 32px !important;
-  height: 32px !important;
+  min-height: 28px !important;
+  height: 28px !important;
   border-radius: 12px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
@@ -6375,8 +6375,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #runCcoIn
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-search-input,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-mailbox-select {
-  min-height: 36px !important;
-  height: 36px !important;
+  min-height: 32px !important;
+  height: 32px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoWorkspaceLayout.cco-layout-vnext {
