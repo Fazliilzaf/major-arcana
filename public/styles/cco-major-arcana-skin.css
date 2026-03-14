@@ -3146,6 +3146,99 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inbo
     min-height: calc(100vh - var(--cco-shell-top-budget-1440)) !important;
   }
 }
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoReplyMainBlocks {
+  grid-template-rows: minmax(0, 1fr) !important;
+  grid-template-areas: "history compose" !important;
+  row-gap: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoConversationColumn {
+  grid-template-rows: auto auto auto !important;
+  row-gap: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoReadTabConversation.is-active {
+  grid-template-rows: auto auto !important;
+  gap: 8px !important;
+  height: auto !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoConversationPreview {
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-conversation-history-wrap {
+  grid-template-rows: auto auto !important;
+  gap: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-conversation-history-list {
+  max-height: none !important;
+  height: auto !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoComposeStudio {
+  position: relative !important;
+  inset: auto !important;
+  grid-area: compose !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: 8px !important;
+  align-content: start !important;
+  align-self: start !important;
+  justify-self: stretch !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-compose-header-block {
+  grid-template-rows: auto auto auto !important;
+  gap: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] #ccoReplyingToContext:empty {
+  display: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-editor-block {
+  height: auto !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: 8px !important;
+  padding-top: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-editor-block > div:nth-child(2) {
+  min-height: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-draft-modes {
+  margin-bottom: 0 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-actions-block {
+  height: auto !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 8px !important;
+  padding-top: 8px !important;
+  align-content: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn[data-cco-reply-state="compose"] .cco-safety-block {
+  height: auto !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 8px !important;
+  padding-top: 8px !important;
+  align-content: start !important;
+}
 }
 
 body.cco-light-mode .cco-top-tabs-shell:empty {
