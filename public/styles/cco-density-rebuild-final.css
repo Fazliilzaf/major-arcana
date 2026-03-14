@@ -2084,15 +2084,15 @@ body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoI
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyMainBlocks,
 body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoReplyMainBlocks {
   grid-template-rows: auto auto !important;
-  grid-template-areas:
-    "history compose"
-    "history summary" !important;
+  grid-template-areas: none !important;
   gap: var(--ma-space-8) !important;
   align-content: start !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationColumn,
 body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoConversationColumn {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
   grid-template-rows: auto auto auto !important;
   gap: var(--ma-space-8) !important;
   align-content: start !important;
@@ -2130,10 +2130,29 @@ body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoR
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoComposeStudio,
 body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoComposeStudio {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  position: static !important;
+  inset: auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: auto !important;
   grid-template-rows: auto auto auto auto !important;
   gap: var(--ma-space-8) !important;
   height: auto !important;
   align-content: start !important;
+  align-self: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoStatusSummaryCard,
+body.cco-compact-header #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn:is(.is-compose, [data-cco-reply-state="compose"]) #ccoStatusSummaryCard {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
   align-self: start !important;
 }
 
