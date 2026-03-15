@@ -653,3 +653,217 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoInbox
   min-width: 12px !important;
   font-size: 14px !important;
 }
+
+/* PASS 4: right column hierarchy only; preserve PASS 1 flow and PASS 2/3 top-left density. */
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyColumn {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn {
+  gap: 6px !important;
+  padding-right: 10px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn .cco-conversation-title {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 6px !important;
+  min-height: auto !important;
+  align-items: start !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationColumn .cco-conversation-title h3 {
+  font-size: 19px !important;
+  line-height: 1.15 !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationMeta {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  opacity: 0.82 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-read-tabs {
+  min-height: 30px !important;
+  height: 30px !important;
+  gap: 4px !important;
+  padding: 1px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-read-tabs button {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12.5px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReadTabConversation.is-active {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationPreview {
+  min-height: 164px !important;
+  max-height: 204px !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(120, 105, 90, 0.12) !important;
+  box-shadow: 0 1px 3px rgba(70, 50, 30, 0.05) !important;
+  font-size: 16px !important;
+  line-height: 1.45 !important;
+  background: rgba(252, 248, 244, 0.92) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-wrap {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-history-head {
+  min-height: 28px !important;
+  height: 28px !important;
+  align-items: center !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-wrap .cco-subsection-title {
+  font-size: 15px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-history-collapse-btn {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12.5px !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationHistoryList,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-list {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-item,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-list li {
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio > .cco-reply-block + .cco-reply-block {
+  padding-top: 6px !important;
+  border-top: 1px solid rgba(120, 105, 90, 0.1) !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-block {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyContextStrip {
+  min-height: 32px !important;
+  max-height: 32px !important;
+  font-size: 12.5px !important;
+  line-height: 1 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyingToContext {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid > div {
+  gap: 3px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid label,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-editor-block label[for="ccoDraftBodyInput"],
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block > .mini,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-modes > .mini,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoSignaturePreviewLabel {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid input,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid select,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inline-toggle-stack {
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-editor-block {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-modes {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-btn {
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoDraftModeHint {
+  font-size: 12.5px !important;
+  line-height: 1.2 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoDraftBodyInput {
+  padding: 12px !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-signature-preview-toggle {
+  min-height: 28px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoToggleSignaturePreviewBtn {
+  min-height: 28px !important;
+  height: 28px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-block {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar {
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar .btn,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-more > summary,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-details > summary,
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-chip {
+  min-height: 28px !important;
+  height: 28px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-send-sticky-bar {
+  min-height: 36px !important;
+  height: 36px !important;
+  gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-send-sticky-bar .btn {
+  min-height: 36px !important;
+  height: 36px !important;
+}
