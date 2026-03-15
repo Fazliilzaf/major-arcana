@@ -702,6 +702,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-read
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReadTabConversation.is-active {
   gap: 6px !important;
+  row-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConversationPreview {
@@ -714,10 +715,12 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoConve
   font-size: 16px !important;
   line-height: 1.45 !important;
   background: rgba(252, 248, 244, 0.92) !important;
+  margin-bottom: 0 !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conversation-history-wrap {
   gap: 6px !important;
+  row-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-history-head {
@@ -756,6 +759,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-conv
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio {
   gap: 6px !important;
+  row-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoComposeStudio > .cco-reply-block + .cco-reply-block {
@@ -765,6 +769,7 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoCompo
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-block {
   gap: 6px !important;
+  row-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReplyContextStrip {
@@ -781,6 +786,8 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoReply
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid {
   gap: 6px !important;
+  row-gap: 6px !important;
+  column-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-compose-header-grid > div {
@@ -808,10 +815,13 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-inli
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-editor-block {
   gap: 6px !important;
+  row-gap: 6px !important;
+  padding-top: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-modes {
   gap: 6px !important;
+  row-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-draft-mode-btn {
@@ -843,10 +853,21 @@ body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] #ccoToggl
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block,
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-block {
   gap: 6px !important;
+  row-gap: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-block {
+  padding-top: 6px !important;
+}
+
+body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-safety-block {
+  padding-top: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar {
   gap: 6px !important;
+  row-gap: 6px !important;
+  column-gap: 6px !important;
 }
 
 body.cco-light-mode #ccoWorkspaceSection[data-cco-skin="major-arcana"] .cco-actions-toolbar .btn,
