@@ -21,10 +21,12 @@ test('config ignores public owner MFA bypass hosts', () => {
       'arcana.hairtpclinic.se,arcana.hairtpclinic.com,ma.hairtpclinic.se,ma.hairtpclinic.com,arcana-staging.onrender.com,custom.internal',
   });
 
-  assert.deepEqual(config.authOwnerMfaBypassHosts, [
+  assert.deepEqual([...config.authOwnerMfaBypassHosts].sort(), [
     'arcana-staging.onrender.com',
     'custom.internal',
-  ]);
+    'localhost',
+    '127.0.0.1',
+  ].sort());
 });
 
 test('config still keeps non-public owner MFA bypass hosts', () => {
@@ -33,8 +35,10 @@ test('config still keeps non-public owner MFA bypass hosts', () => {
     ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS: 'arcana.hairtpclinic.se,custom.internal',
   });
 
-  assert.deepEqual(config.authOwnerMfaBypassHosts, [
+  assert.deepEqual([...config.authOwnerMfaBypassHosts].sort(), [
+    'localhost',
+    '127.0.0.1',
     'custom.internal',
     'arcana-staging.onrender.com',
-  ]);
+  ].sort());
 });

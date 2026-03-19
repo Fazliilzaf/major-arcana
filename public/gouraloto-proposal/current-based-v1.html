@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Goura Loto | Transformational Coaching and Retreats</title>
+  <meta name="description" content="A production-style evolution of the current Goura Loto website, preserving its identity while improving clarity and conversion flow." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <style>
+    @font-face {
+      font-family: 'Aime Light';
+      font-style: normal;
+      font-weight: 300;
+      font-display: swap;
+      src: url('https://www.gouraloto.com/wp-content/uploads/2026/01/Aime-Light.ttf') format('truetype');
+    }
+
+    @font-face {
+      font-family: 'Neue Montreal';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url('https://www.gouraloto.com/wp-content/uploads/2026/01/NeueMontreal-Regular.ttf') format('truetype');
+    }
+
+    @font-face {
+      font-family: 'Neue Montreal';
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+      src: url('https://www.gouraloto.com/wp-content/uploads/2026/01/NeueMontreal-Medium.ttf') format('truetype');
+    }
+
+    :root {
+      --primary: #FE4900;
+      --secondary: #FBAD41;
+      --text: #290A08;
+      --accent: #E4DDD7;
+      --paper: #FFFAF5;
+      --mist: #FAFCF8;
+      --black: #000;
+      --white: #fff;
+      --deep: #5D7D66;
+      --line: #D8C8BA;
+      --max: 1240px;
+      --r-xl: 22px;
+      --r-lg: 16px;
+      --r-md: 10px;
+      --s1: 0 8px 24px rgba(41, 10, 8, 0.08);
+      --s2: 0 18px 46px rgba(41, 10, 8, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Neue Montreal', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1100px 460px at 102% -12%, #FFEBD8 0%, rgba(255,235,216,0) 62%),
+        radial-gradient(840px 420px at -7% 100%, #F0E4DA 0%, rgba(240,228,218,0) 68%),
+        var(--paper);
+      line-height: 1.58;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    .wrap {
+      width: min(calc(100% - 36px), var(--max));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      backdrop-filter: blur(10px);
+      background: rgba(255, 250, 245, 0.84);
+      border-bottom: 1px solid rgba(216, 200, 186, 0.8);
+    }
+
+    .header-row {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .logo img {
+      width: 210px;
+      height: auto;
+    }
+
+    .menu {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .menu a { opacity: 0.92; }
+    .menu a:hover { opacity: 1; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: var(--white);
+      font-family: 'Neue Montreal', sans-serif;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-weight: 600;
+      padding: 14px 18px;
+      transition: 180ms ease;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(254, 73, 0, 0.3);
+    }
+
+    .button:hover {
+      background: var(--secondary);
+      transform: translateY(-1px);
+      color: var(--text);
+    }
+
+    .button.soft {
+      background: var(--white);
+      border-color: var(--line);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .hero {
+      min-height: 84vh;
+      position: relative;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(180deg, rgba(251, 173, 65, 0.06) 0%, rgba(46, 32, 13, 0.78) 100%),
+        url('https://www.gouraloto.com/wp-content/uploads/2026/02/0118.jpg');
+      background-size: cover;
+      background-position: center top;
+      z-index: -2;
+    }
+
+    .hero-panel {
+      margin: 0 auto 42px;
+      width: min(calc(100% - 36px), 1120px);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.48);
+      color: var(--white);
+      padding: 34px 28px;
+      box-shadow: var(--s2);
+      backdrop-filter: blur(4px);
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-family: 'Aime Light', serif;
+      font-size: clamp(2rem, 5.1vw, 4.1rem);
+      font-weight: 300;
+      line-height: 1.1;
+      max-width: 16ch;
+      text-wrap: balance;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 64ch;
+      font-size: 1.12rem;
+      color: rgba(255,255,255,0.94);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .hero-actions .button.soft {
+      background: rgba(255,255,255,0.92);
+      color: var(--text);
+      border-color: transparent;
+    }
+
+    .trust-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .trust {
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.94);
+    }
+
+    .trust strong {
+      display: block;
+      color: var(--white);
+      margin-bottom: 2px;
+    }
+
+    .section {
+      padding: 72px 0 6px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: 'Aime Light', serif;
+      font-size: clamp(1.9rem, 3.4vw, 3.3rem);
+      font-weight: 300;
+      line-height: 1.14;
+      color: var(--text);
+      max-width: 14ch;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: #6F5249;
+      font-size: 1rem;
+      max-width: 62ch;
+      justify-self: end;
+      text-align: left;
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 12px;
+    }
+
+    .media {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      min-height: 420px;
+      box-shadow: var(--s1);
+    }
+
+    .media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      box-shadow: var(--s1);
+      padding: 20px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-family: 'Aime Light', serif;
+      font-size: 2rem;
+      font-weight: 300;
+      line-height: 1.2;
+      color: var(--text);
+    }
+
+    .stack { display: grid; gap: 10px; }
+
+    .block {
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      background: var(--surface-2);
+      padding: 12px;
+      font-size: 0.95rem;
+    }
+
+    .block strong { color: var(--text); }
+
+    .program-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .program {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: var(--s1);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .program img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .program .content {
+      padding: 14px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .program h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .meta span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--white);
+      color: #62453C;
+      font-size: 0.78rem;
+      padding: 3px 9px;
+    }
+
+    .program p { margin: 0; font-size: 0.92rem; color: #5B3E36; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      box-shadow: var(--s1);
+      padding: 14px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 1.16rem;
+      color: var(--text);
+    }
+
+    .rows { display: grid; gap: 8px; }
+
+    .row {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--white);
+      padding: 10px;
+      font-size: 0.92rem;
+    }
+
+    .status {
+      margin-top: 6px;
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #63463C;
+      background: var(--white);
+      letter-spacing: 0.02em;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .sw {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .tone { height: 44px; }
+    .sw small {
+      display: block;
+      text-align: center;
+      padding: 6px 4px;
+      font-size: 0.72rem;
+      color: #5E433A;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .gallery img {
+      width: 100%;
+      min-height: 182px;
+      height: 100%;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .quotes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .quote {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      padding: 14px;
+      font-size: 0.96rem;
+      color: #4D332E;
+    }
+
+    .quote span {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.82rem;
+      color: #7D5E54;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mile {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      padding: 11px;
+      font-size: 0.92rem;
+    }
+
+    .mile b {
+      display: inline-flex;
+      margin-bottom: 6px;
+      border-radius: 999px;
+      background: #FFE8DB;
+      color: #6D3006;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      padding: 10px 12px;
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    details p {
+      margin: 8px 0 0;
+      font-size: 0.92rem;
+      color: #594038;
+    }
+
+    .faq { display: grid; gap: 8px; }
+
+    .contact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .contact-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .option {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      padding: 10px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .option h4 { margin: 0; color: var(--text); font-size: 1rem; }
+    .option p { margin: 0; color: #694C42; font-size: 0.89rem; }
+
+    .form {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--white);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .form h3 {
+      margin: 0;
+      font-size: 1.14rem;
+      color: var(--text);
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: #74574C;
+    }
+
+    input, select, textarea {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font: inherit;
+      color: #3D2721;
+      background: var(--white);
+    }
+
+    textarea { min-height: 102px; resize: vertical; }
+
+    .closing {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(120deg, #FFF9F4, #F5ECE3);
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .closing h3 {
+      margin: 0 0 4px;
+      color: var(--text);
+      font-size: 1.16rem;
+    }
+
+    .closing p { margin: 0; color: #6A4C42; }
+
+    .footer {
+      margin: 26px 0 30px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: #7B5D53;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.83rem;
+      flex-wrap: wrap;
+    }
+
+    .fade {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 620ms ease forwards;
+    }
+
+    .fade.d2 { animation-delay: 120ms; }
+    .fade.d3 { animation-delay: 200ms; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1080px) {
+      .section-head,
+      .about-grid,
+      .split,
+      .visual-grid,
+      .contact,
+      .quotes { grid-template-columns: 1fr; }
+
+      .features,
+      .program-grid,
+      .timeline,
+      .contact-options { grid-template-columns: 1fr; }
+
+      .trust-row { grid-template-columns: 1fr; }
+      .palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .gallery { grid-template-columns: 1fr 1fr; }
+      .hero-panel { margin-bottom: 28px; }
+    }
+
+    @media (max-width: 760px) {
+      .header-row { min-height: 66px; flex-wrap: wrap; padding: 10px 0; }
+      .menu { gap: 10px; font-size: 0.88rem; }
+      .hero { padding-top: 80px; min-height: 72vh; }
+      .hero-panel { padding: 24px 18px; }
+      .gallery { grid-template-columns: 1fr; }
+      .closing { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="logo" href="https://www.gouraloto.com/">
+        <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/GOURALOTO.svg" alt="Goura Loto" />
+      </a>
+      <nav class="menu" aria-label="Main navigation">
+        <a href="#about">About</a>
+        <a href="#pathways">Coaching</a>
+        <a href="#retreats">Retreats & Courses</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-panel fade">
+      <span class="chip">Embodied transformation with clear next steps</span>
+      <h1>Train joy. Live aligned. Begin your path with practical clarity.</h1>
+      <p>
+        A transformational journey rooted in Damanhur wisdom and modern facilitation.
+        Choose coaching, retreats, or long-path alchemical practice and begin with one clear action today.
+      </p>
+      <div class="hero-actions">
+        <a class="button" href="#contact">Book Intro Call</a>
+        <a class="button soft" href="#pathways">Explore Pathways</a>
+      </div>
+      <div class="trust-row">
+        <div class="trust"><strong>25+ years</strong>Practice and facilitation in transformational inner work.</div>
+        <div class="trust"><strong>Who this is for</strong>People ready to shift patterns and embody meaningful change.</div>
+        <div class="trust"><strong>Response promise</strong>Personal response within 24-48 hours.</div>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <section id="about" class="section fade d2">
+      <div class="section-head">
+        <h2>A clear way to understand the work</h2>
+        <p>Depth and poetic language remain, now organized into practical decision cues for faster confidence.</p>
+      </div>
+      <div class="about-grid">
+        <article class="media">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/02/0247.jpg" alt="Katia portrait" loading="lazy" />
+        </article>
+        <article class="card">
+          <h3>Founder + Method</h3>
+          <div class="stack">
+            <div class="block"><strong>Katia Perina</strong> - Goura Loto creator, long-term Damanhur practitioner, and guide for embodied transformation.</div>
+            <div class="block">Inner alchemy + symbolic process + practical integration. Emotional healing translated into daily-life action.</div>
+            <div class="block">Choose the right entry point: Coaching, Retreats, or School of Alchemy. Each path has clear format and outcomes.</div>
+            <a class="button" style="width:fit-content;" href="#contact">Start My Path</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="pathways" class="section fade d2">
+      <div class="section-head">
+        <h2>Choose your pathway</h2>
+        <p>Structured cards remove confusion: level, duration, format, expected outcome, and direct action.</p>
+      </div>
+      <div class="program-grid">
+        <article class="program">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/02/0247.jpg" alt="Transformational coaching" loading="lazy" />
+          <div class="content">
+            <h3>1:1 Transformational Coaching</h3>
+            <div class="meta">
+              <span>Online / In-person</span>
+              <span>60-90 min</span>
+              <span>Personalized</span>
+            </div>
+            <p><strong>You get:</strong> emotional reset, clarity, and a practical 14-day integration plan.</p>
+            <a class="button" href="#contact">Book First Session</a>
+          </div>
+        </article>
+
+        <article class="program">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/gruppo-bosco-1.jpg" alt="Retreat group" loading="lazy" />
+          <div class="content">
+            <h3>Retreats & Courses</h3>
+            <div class="meta">
+              <span>Group</span>
+              <span>2-3 days</span>
+              <span>Intro to Deepening</span>
+            </div>
+            <p><strong>You get:</strong> guided symbolic process and structured integration tools.</p>
+            <a class="button" href="#retreats">Compare Retreats</a>
+          </div>
+        </article>
+
+        <article class="program">
+          <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/creazione-spirali-home.jpg" alt="Stone spiral process" loading="lazy" />
+          <div class="content">
+            <h3>School of Alchemy</h3>
+            <div class="meta">
+              <span>Long path</span>
+              <span>Ongoing</span>
+              <span>Deep commitment</span>
+            </div>
+            <p><strong>You get:</strong> long-term symbolic study and embodied transformation system.</p>
+            <a class="button" href="#contact">Request Program Fit</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="retreats" class="section fade d3">
+      <div class="section-head">
+        <h2>Retreat comparison with clear states</h2>
+        <p>Program status and action labels are explicit to reduce friction and increase conversion quality.</p>
+      </div>
+      <div class="split">
+        <article class="panel">
+          <h3>Current programs</h3>
+          <div class="rows">
+            <div class="row"><strong>Beginning of the Way</strong><br/>2 days - Intro level - Italy<br/><span class="status">Open</span></div>
+            <div class="row"><strong>Sacredness of Life</strong><br/>3 days - Deepening level - Italy<br/><span class="status">Waitlist</span></div>
+            <div class="row"><strong>School of Alchemy</strong><br/>Long path - Hybrid<br/><span class="status">Request Info</span></div>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>How this helps decisions</h3>
+          <div class="rows">
+            <div class="row">Visitors compare options in under 60 seconds.</div>
+            <div class="row">Action labels match intent: Reserve, Join Waitlist, Request Info.</div>
+            <div class="row">Uncertain visitors get a "Help me choose" path instead of dropping.</div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="button" href="#contact">Help Me Choose</a>
+            <a class="button soft" href="#contact">Reserve My Spot</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section fade d3">
+      <div class="section-head">
+        <h2>Visual language and color system</h2>
+        <p>Option A active: same brand recognition with clearer role assignment and improved readability.</p>
+      </div>
+      <div class="split">
+        <article class="panel">
+          <h3>Active UI color roles</h3>
+          <div class="palette">
+            <div class="sw"><div class="tone" style="background:#FE4900"></div><small>Action</small></div>
+            <div class="sw"><div class="tone" style="background:#FBAD41"></div><small>Accent</small></div>
+            <div class="sw"><div class="tone" style="background:#290A08"></div><small>Text</small></div>
+            <div class="sw"><div class="tone" style="background:#FFF9F4"></div><small>Surface</small></div>
+            <div class="sw"><div class="tone" style="background:#5D8067"></div><small>Depth</small></div>
+          </div>
+          <p style="margin-top:8px;font-size:0.92rem;"><strong>Typography stack:</strong> Aime Light (display) + Neue Montreal (UI/body).</p>
+        </article>
+        <article class="panel">
+          <h3>Image language in action</h3>
+          <div class="gallery">
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/sessioni-coaching.jpg" alt="Coaching visual" loading="lazy" />
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/cammino.jpg" alt="Path visual" loading="lazy" />
+            <img src="https://www.gouraloto.com/wp-content/uploads/2026/01/corso-russia.jpg" alt="Community visual" loading="lazy" />
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Social proof and confidence</h2>
+        <p>Short testimonials support trust while keeping the page fast to scan.</p>
+      </div>
+      <div class="quotes">
+        <article class="quote">"I came for coaching and left with a clear inner direction and practical tools I could apply the same week."<span>Client feedback - 1:1 journey</span></article>
+        <article class="quote">"The retreat held both depth and structure. I knew exactly what my next step was when I returned home."<span>Client feedback - retreat pathway</span></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>6-week execution roadmap</h2>
+        <p>Fast fixes first, system rollout second, optimization third.</p>
+      </div>
+      <div class="timeline">
+        <article class="mile"><b>Weeks 1-2</b>H1 hierarchy, CTA placement, naming consistency, metadata fixes, and trust strips.</article>
+        <article class="mile"><b>Weeks 3-4</b>Image roles, crop rules, color and typography tokens, standardized program cards.</article>
+        <article class="mile"><b>Weeks 5-6</b>Optimize from behavior: CTA clicks, form starts, form completions, booking events.</article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Frequently asked questions</h2>
+        <p>Decision clarity without forcing users to leave the page.</p>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>How do I choose between coaching and retreats?</summary>
+          <p>If you want personalized pattern work now, start with coaching. If you prefer group immersion and ritual depth, start with retreats.</p>
+        </details>
+        <details>
+          <summary>Can I begin online and continue in person later?</summary>
+          <p>Yes. The pathway supports online entry and in-person deepening when timing and location align.</p>
+        </details>
+        <details>
+          <summary>How soon can I expect a response?</summary>
+          <p>You receive a personal response within 24-48 hours with the recommended next step for your situation.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="section-head">
+        <h2>Contact in three clear paths</h2>
+        <p>Fast path for ready visitors plus guided path for those who need orientation.</p>
+      </div>
+      <div class="contact">
+        <article class="panel">
+          <h3>Choose your contact method</h3>
+          <div class="contact-options">
+            <article class="option">
+              <h4>Path 1: Book now</h4>
+              <p>For people ready to start immediately.</p>
+              <a class="button" href="#">Open Calendar</a>
+            </article>
+            <article class="option">
+              <h4>Path 2: Direct email</h4>
+              <p>For tailored requests and retreat questions.</p>
+              <a class="button soft" href="mailto:info@gouraloto.com">info@gouraloto.com</a>
+            </article>
+            <article class="option">
+              <h4>Path 3: Guided form</h4>
+              <p>For visitors who want help choosing pathway.</p>
+              <a class="button soft" href="#">Open Inquiry Form</a>
+            </article>
+          </div>
+        </article>
+
+        <form class="form" action="#" method="post" novalidate>
+          <h3>Quick inquiry form</h3>
+          <label>Name<input type="text" placeholder="Your name" /></label>
+          <label>Email<input type="email" placeholder="you@example.com" /></label>
+          <label>I am interested in
+            <select>
+              <option>1:1 Coaching</option>
+              <option>Retreats & Courses</option>
+              <option>School of Alchemy</option>
+              <option>I need help choosing</option>
+            </select>
+          </label>
+          <label>Message<textarea placeholder="Share your current intention, challenge, or question."></textarea></label>
+          <button class="button" type="submit">Send Inquiry</button>
+          <small style="color:#785B50;">Expected response: within 24-48 hours.</small>
+        </form>
+      </div>
+
+      <div class="closing">
+        <div>
+          <h3>Ready to begin your next phase?</h3>
+          <p>Start with one clear step today and receive a guided path based on your current stage.</p>
+        </div>
+        <a class="button" href="#">Book Intro Call</a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>@2026 - GouraLoto.com</span>
+      <span><a href="https://www.gouraloto.com/privacy-policy/">Privacy Policy</a> · <a href="https://www.gouraloto.com/cookie-policy/">Cookie Policy</a></span>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="20" x2="1480" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DED1C4"/>
+      <stop offset="1" stop-color="#C5B09F"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1220 190) rotate(90) scale(280 560)">
+      <stop stop-color="white" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF8F4" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#EFE6DF" stop-opacity="0.90"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCF8F5" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#F2E8E1" stop-opacity="0.86"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7C6356" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#4E3D35" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.66"/>
+      <stop offset="1" stop-color="#F4ECE5" stop-opacity="0.28"/>
+    </linearGradient>
+    <linearGradient id="redDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#E56E60"/>
+      <stop offset="1" stop-color="#B3352B"/>
+    </linearGradient>
+    <linearGradient id="amberDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ECCB4B"/>
+      <stop offset="1" stop-color="#D2A216"/>
+    </linearGradient>
+    <linearGradient id="brownDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#B28666"/>
+      <stop offset="1" stop-color="#7A5842"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#6A4E38" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6A4E38" flood-opacity="0.08"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#6A4E38" flood-opacity="0.09"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#6A4E38" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#shine)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="34" y="24" width="1532" height="56" rx="26" fill="url(#glass)" stroke="#CCBAAC"/>
+    <rect x="34" y="96" width="1532" height="52" rx="24" fill="url(#glass)" stroke="#CCBAAC"/>
+  </g>
+  <circle cx="64" cy="52" r="18" fill="#3B2E28" opacity="0.95"/>
+  <g font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">
+    <rect x="60" y="107" width="112" height="30" rx="15" fill="url(#gloss)"/>
+    <text x="89" y="127" fill="#FBF7F3">Journey</text>
+    <text x="196" y="127" fill="#5E4B41" opacity="0.72">Threads</text>
+    <text x="292" y="127" fill="#5E4B41" opacity="0.72">Reply</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="176" width="1520" height="770" rx="34" fill="url(#panel)" stroke="#CDBCAE"/>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="68" y="212" width="226" height="690" rx="28" fill="url(#glass)" stroke="#D0C0B3"/>
+    <rect x="318" y="212" width="798" height="690" rx="28" fill="url(#card)" stroke="#D0C0B3"/>
+    <rect x="1140" y="212" width="392" height="690" rx="28" fill="url(#card)" stroke="#D0C0B3"/>
+  </g>
+
+  <text x="96" y="252" fill="#5E4B41" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.18em">ACTIVE THREADS</text>
+  <rect x="96" y="280" width="168" height="90" rx="24" fill="url(#card)" stroke="#8AB0EF" stroke-width="2"/>
+  <text x="116" y="314" fill="#3B2E28" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 3</text>
+  <text x="116" y="344" fill="#7C6356" font-size="17" font-family="Inter, Arial, sans-serif">Multiple threads  colleague mail</text>
+  <rect x="96" y="388" width="168" height="72" rx="20" fill="url(#card)" stroke="#D0C0B3"/>
+  <text x="116" y="418" fill="#3B2E28" font-size="21" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 11</text>
+  <text x="116" y="442" fill="#7C6356" font-size="16" font-family="Inter, Arial, sans-serif">SLA risk today</text>
+  <rect x="96" y="478" width="168" height="72" rx="20" fill="url(#card)" stroke="#D0C0B3"/>
+  <text x="116" y="508" fill="#3B2E28" font-size="21" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 2</text>
+  <text x="116" y="532" fill="#7C6356" font-size="16" font-family="Inter, Arial, sans-serif">Dormant follow-up</text>
+
+  <text x="350" y="252" fill="#3B2E28" font-size="34" font-family="Inter, Arial, sans-serif" font-weight="700">Journey Timeline</text>
+  <text x="350" y="286" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">Show the entire customer story before deciding the next answer.</text>
+
+  <rect x="350" y="316" width="734" height="68" rx="24" fill="url(#glass)" stroke="#D0C0B3"/>
+  <text x="378" y="358" fill="#5E4B41" font-size="20" font-family="Inter, Arial, sans-serif">Next best step: answer today in one thread and acknowledge the parallel mail.</text>
+
+  <line x1="420" y1="424" x2="420" y2="824" stroke="#B8A595" stroke-width="4" stroke-linecap="round"/>
+
+  <g filter="url(#softShadow)">
+    <circle cx="420" cy="468" r="16" fill="url(#brownDot)"/>
+    <rect x="458" y="430" width="586" height="92" rx="24" fill="url(#card)" stroke="#D0C0B3"/>
+  </g>
+  <text x="490" y="466" fill="#3B2E28" font-size="26" font-family="Inter, Arial, sans-serif" font-weight="700">First incoming thread</text>
+  <text x="490" y="496" fill="#7C6356" font-size="18" font-family="Inter, Arial, sans-serif">Price question after consultation. Standard reply was sent.</text>
+
+  <g filter="url(#softShadow)">
+    <circle cx="420" cy="592" r="16" fill="url(#amberDot)"/>
+    <rect x="458" y="554" width="586" height="110" rx="24" fill="url(#card)" stroke="#D0C0B3"/>
+  </g>
+  <text x="490" y="592" fill="#3B2E28" font-size="26" font-family="Inter, Arial, sans-serif" font-weight="700">New thread to another mailbox</text>
+  <text x="490" y="624" fill="#7C6356" font-size="18" font-family="Inter, Arial, sans-serif">Customer asked a related follow-up elsewhere. Risk: fragmented communication.</text>
+
+  <g filter="url(#softShadow)">
+    <circle cx="420" cy="742" r="16" fill="url(#redDot)"/>
+    <rect x="458" y="694" width="606" height="126" rx="26" fill="url(#card)" stroke="#8AB0EF" stroke-width="2"/>
+  </g>
+  <text x="490" y="736" fill="#3B2E28" font-size="28" font-family="Inter, Arial, sans-serif" font-weight="700">Current moment</text>
+  <text x="490" y="770" fill="#6B594D" font-size="20" font-family="Inter, Arial, sans-serif" font-weight="600">Reply today, reconnect the threads, restore confidence.</text>
+  <text x="490" y="798" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">Recommended tone: warm but structured. Mention that all details are now gathered here.</text>
+
+  <text x="1172" y="252" fill="#5E4B41" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.18em">NEXT STEP</text>
+  <text x="1172" y="288" fill="#3B2E28" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="700">Send follow-up</text>
+  <rect x="1172" y="318" width="328" height="42" rx="21" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1172" y="372" width="108" height="38" rx="19" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1290" y="372" width="108" height="38" rx="19" fill="url(#gloss)"/>
+  <rect x="1408" y="372" width="92" height="38" rx="19" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="1213" y="396" fill="#5E4B41" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Short</text>
+  <text x="1329" y="396" fill="#FBF7F3" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Warm</text>
+  <text x="1432" y="396" fill="#5E4B41" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Pro</text>
+  <rect x="1172" y="430" width="328" height="254" rx="28" fill="#FFFFFF" fill-opacity="0.76" stroke="#D0C0B3"/>
+  <text x="1198" y="470" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">Hi,</text>
+  <text x="1198" y="506" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">Thank you for writing again. I have gathered the full context here.</text>
+  <text x="1198" y="542" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">I want to answer both your earlier message and this follow-up clearly.</text>
+  <text x="1198" y="578" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">If you reply in this thread, I will keep everything in one place going forward.</text>
+  <rect x="1172" y="706" width="128" height="42" rx="18" fill="url(#gloss)"/>
+  <rect x="1314" y="706" width="150" height="42" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="1214" y="733" fill="#FBF7F3" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Send</text>
+  <text x="1351" y="733" fill="#5E4B41" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Schedule</text>
+
+  <text x="70" y="968" fill="#7C6356" font-size="18" font-family="Inter, Arial, sans-serif">Concept 3  Journey Timeline  Customer history becomes the interface, with response as the final step.</text>
+</svg>

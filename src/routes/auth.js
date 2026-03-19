@@ -100,7 +100,7 @@ function createAuthRouter({
       .map((item) => normalizeHost(item))
       .filter(Boolean);
     const requestHost = normalizeHost(req?.hostname);
-    const candidates = requestHost ? [requestHost, ...headerHosts] : headerHosts;
+    const candidates = headerHosts.length > 0 ? headerHosts : requestHost ? [requestHost] : [];
     return candidates.some((item) => ownerMfaBypassHostSet.has(item));
   }
 

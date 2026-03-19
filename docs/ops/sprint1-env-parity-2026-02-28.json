@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-02-28T21:16:50.284Z",
+  "hosts": [
+    {
+      "baseUrl": "https://arcana-staging.onrender.com",
+      "ts": "2026-02-28T21:10:44.999Z",
+      "eventId": "fa30391b-0026-4da3-8c38-9a4106608ca5",
+      "metadata": {
+        "fullTenant": true,
+        "userScope": "all",
+        "maxUsers": 50,
+        "maxMessagesPerUser": 50,
+        "mailboxTimeoutMs": 5000,
+        "runTimeoutMs": 30000,
+        "maxMailboxErrors": 5,
+        "includeRead": false,
+        "windowDays": 14
+      },
+      "distributed": {
+        "configuredBackend": "memory",
+        "active": false,
+        "redis": {
+          "enabled": false,
+          "connected": false,
+          "moduleAvailable": true,
+          "required": false,
+          "urlConfigured": false,
+          "lastError": null
+        }
+      }
+    },
+    {
+      "baseUrl": "https://arcana.hairtpclinic.se",
+      "ts": "2026-02-28T21:10:56.473Z",
+      "eventId": "b8c401fa-b7f2-4cea-ac05-0c24a2f6d204",
+      "metadata": {
+        "fullTenant": true,
+        "userScope": "all",
+        "maxUsers": 50,
+        "maxMessagesPerUser": 50,
+        "mailboxTimeoutMs": 5000,
+        "runTimeoutMs": 30000,
+        "maxMailboxErrors": 5,
+        "includeRead": false,
+        "windowDays": 14
+      },
+      "distributed": {
+        "configuredBackend": "memory",
+        "active": false,
+        "redis": {
+          "enabled": false,
+          "connected": false,
+          "moduleAvailable": true,
+          "required": false,
+          "urlConfigured": false,
+          "lastError": null
+        }
+      }
+    }
+  ]
+}

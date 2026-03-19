@@ -1,0 +1,191 @@
+/* eslint-disable no-console */
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { chromium } = require('playwright');
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createSyntheticCcoOutput(totalRows = 34) {
+  const now = Date.now();
+  const mailboxPool = [
+    'contact@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'info@hairtpclinic.com',
+    'kons@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+  ];
+  const conversationWorklist = [];
+  for (let i = 0; i < totalRows; i += 1) {
+    const mailboxId = mailboxPool[i % mailboxPool.length];
+    const inboundMs = now - (i + 1) * 36 * 60 * 1000;
+    const hasOutbound = i % 3 !== 0;
+    conversationWorklist.push({
+      conversationId: `minimal-v4-video-conv-${i + 1}`,
+      messageId: `minimal-v4-video-msg-${i + 1}`,
+      mailboxId,
+      subject: `Video-tråd ${i + 1}`,
+      sender: `kund${i + 1}@example.com`,
+      latestInboundPreview: `Video bevisrad ${i + 1}.`,
+      lastInboundAt: new Date(inboundMs).toISOString(),
+      lastOutboundAt: hasOutbound ? new Date(inboundMs + 20 * 60 * 1000).toISOString() : '',
+      hoursSinceInbound: Number(((now - inboundMs) / 3600000).toFixed(1)),
+      slaStatus: i < 5 ? 'breach' : i < 12 ? 'warning' : 'safe',
+      hoursRemaining: i < 5 ? -1 : i < 12 ? 3 : 21,
+      slaThreshold: 12,
+      needsReplyStatus: hasOutbound ? 'active_dialogue' : 'awaiting_reply',
+      isUnanswered: !hasOutbound,
+      unansweredThresholdHours: 24,
+      followUpSuggested: i > 7 && i % 2 === 0,
+      intent: i % 2 === 0 ? 'booking_request' : 'follow_up',
+      tone: i % 4 === 0 ? 'anxious' : 'neutral',
+      toneConfidence: 0.8,
+      priorityLevel: i < 5 ? 'Critical' : i < 12 ? 'High' : 'Medium',
+      priorityScore: Math.max(10, 95 - i),
+      recommendedAction: i < 5 ? 'Svara omedelbart' : 'Svara idag',
+      recommendedMode: i % 2 === 0 ? 'warm' : 'professional',
+      draftModes: {
+        short: 'Hej,\n\nTack för ditt meddelande.\n\nVänliga hälsningar',
+        warm: 'Hej,\n\nTack för att du hör av dig. Vi hjälper dig gärna vidare.\n\nVänliga hälsningar',
+        professional: 'Hej,\n\nTack för ditt meddelande. Vi återkommer med tydlig återkoppling.\n\nVänliga hälsningar',
+      },
+      customerSummary: {
+        customerName: `Kund ${i + 1}`,
+        lifecycleStatus: i % 2 === 0 ? 'ACTIVE_DIALOGUE' : 'AWAITING_REPLY',
+        interactionCount: (i % 5) + 1,
+        timeline: [
+          {
+            occurredAt: new Date(inboundMs).toISOString(),
+            subject: `Case ${i + 1}`,
+            status: 'inbound',
+          },
+        ],
+      },
+    });
+  }
+  return {
+    output: {
+      data: {
+        generatedAt: new Date().toISOString(),
+        conversationWorklist,
+      },
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        model: 'synthetic-minimal-v4-video',
+      },
+    },
+  };
+}
+
+async function main() {
+  const baseUrl = process.env.ARCANA_BASE_URL || 'http://127.0.0.1:3000';
+  const outDir = path.join(process.cwd(), 'docs/ops/evidence');
+  await fs.mkdir(outDir, { recursive: true });
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1510, height: 900 },
+    recordVideo: {
+      dir: outDir,
+      size: { width: 1510, height: 900 },
+    },
+  });
+  const page = await context.newPage();
+
+  const output = createSyntheticCcoOutput(42);
+  const delayedAnalysisPayload = JSON.stringify({ entries: [{ output: output.output }] });
+  const delayedRunPayload = JSON.stringify(output);
+
+  await page.route('**/api/v1/agents/analysis?agent=CCO&limit=1', async (route) => {
+    await wait(800);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: delayedAnalysisPayload });
+  });
+  await page.route('**/api/v1/agents/CCO/run', async (route) => {
+    await wait(650);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: delayedRunPayload });
+  });
+
+  const consoleMessages = [];
+  const pageErrors = [];
+  page.on('console', (msg) => {
+    consoleMessages.push({ type: msg.type(), text: msg.text() });
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(String(error?.message || error));
+  });
+
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.evaluate(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+  await page.goto(`${baseUrl}/cco?evidence=minimal-v4-video`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 45000,
+  });
+  await page.waitForSelector('#ccoWorkspaceSection', { state: 'attached', timeout: 30000 });
+  await page.click('.sectionNavBtn[data-target="ccoWorkspaceSection"]').catch(() => {});
+  await wait(1800);
+  await page.click('#ccoInboxModeToggle [data-cco-mail-view="queue"]').catch(() => {});
+  await wait(700);
+
+  const firstRowBtn = page.locator('#ccoInboxWorklist .ccoConversationSelectBtn').first();
+  if ((await firstRowBtn.count()) && (await firstRowBtn.isVisible().catch(() => false))) {
+    await firstRowBtn.click({ timeout: 10000 });
+  }
+  await wait(1400);
+
+  const draftInput = page.locator('#ccoDraftBodyInput').first();
+  if ((await draftInput.count()) && (await draftInput.isVisible().catch(() => false))) {
+    const currentValue = await draftInput.inputValue().catch(() => '');
+    const nextValue = `${String(currentValue || '').trim()}\n\n[Video-bevis] Uppdaterad text i editor.`;
+    await draftInput.fill(nextValue.trim()).catch(() => {});
+  }
+  await wait(1600);
+
+  await page.click('#ccoDraftModeWarmBtn').catch(() => {});
+  await wait(1100);
+  await page.click('#ccoDraftModeProfessionalBtn').catch(() => {});
+  await wait(1000);
+  await page.click('#ccoDraftModeShortBtn').catch(() => {});
+  await wait(1000);
+
+  await page.click('#ccoCenterTabCustomerBtn').catch(() => {});
+  await wait(900);
+  await page.click('#ccoCenterTabConversationBtn').catch(() => {});
+  await wait(1200);
+
+  const video = page.video();
+  await context.close();
+  await browser.close();
+
+  const rawVideoPath = await video.path();
+  const targetPath = path.join(outDir, 'cco-minimal-v4-flow.webm');
+  await fs.copyFile(rawVideoPath, targetPath);
+
+  const consoleErrors = consoleMessages.filter((entry) => entry.type === 'error');
+  await fs.writeFile(
+    path.join(outDir, 'cco-minimal-v4-video-console-local.json'),
+    JSON.stringify(
+      {
+        createdAt: new Date().toISOString(),
+        baseUrl,
+        consoleErrorCount: consoleErrors.length,
+        consoleErrors,
+        pageErrorCount: pageErrors.length,
+        pageErrors,
+      },
+      null,
+      2
+    )
+  );
+
+  console.log(`MINIMAL v4 flow video captured: ${targetPath}`);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

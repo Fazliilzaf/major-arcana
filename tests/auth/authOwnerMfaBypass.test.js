@@ -21,7 +21,7 @@ async function withServer(app, run) {
   }
 }
 
-test('owner login bypasses MFA only on configured staging host', async () => {
+test('owner login bypasses MFA on configured prelaunch hosts only', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-mfa-bypass-'));
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
@@ -49,12 +49,30 @@ test('owner login bypasses MFA only on configured staging host', async () => {
       requireAuth: (_req, _res, next) => next(),
       requireRole: () => (_req, _res, next) => next(),
       requireTenantScope: () => (_req, _res, next) => next(),
-      ownerMfaBypassHosts: ['arcana-staging.onrender.com'],
+      ownerMfaBypassHosts: ['arcana-staging.onrender.com', 'localhost', '127.0.0.1'],
       loginSessionRotationScope: 'none',
     })
   );
 
   await withServer(app, async (baseUrl) => {
+    const localResponse = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-host': 'localhost:3000',
+      },
+      body: JSON.stringify({
+        email: 'owner@example.com',
+        password: 'secret12345',
+        tenantId: 'tenant-a',
+      }),
+    });
+
+    assert.equal(localResponse.status, 200);
+    const localPayload = await localResponse.json();
+    assert.equal(typeof localPayload.token, 'string');
+    assert.equal(localPayload.requiresMfa, undefined);
+
     const stagingResponse = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: {

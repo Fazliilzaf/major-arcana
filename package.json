@@ -6,6 +6,24 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "setup:mac": "bash ./scripts/bootstrap-mac-studio.sh",
+    "workstation:bootstrap": "bash ./scripts/bootstrap-apple-workstation.sh",
+    "workstation:bootstrap:remote": "bash ./scripts/bootstrap-remote-apple-client.sh",
+    "commands:install": "bash ./scripts/install-arcana-commands.sh",
+    "studio:sync": "bash ./scripts/mac-studio-sync.sh",
+    "studio:share": "bash ./scripts/mac-studio-screen-share.sh",
+    "studio:doctor": "bash ./scripts/mac-studio-doctor.sh",
+    "studio:shell": "bash ./scripts/mac-studio-remote.sh shell",
+    "studio:codex": "bash ./scripts/mac-studio-remote.sh codex",
+    "studio:start": "bash ./scripts/mac-studio-start.sh",
+    "imac:bootstrap": "bash ./scripts/imac-bootstrap.sh",
+    "imac:sync": "bash ./scripts/imac-sync.sh",
+    "imac:share": "bash ./scripts/imac-screen-share.sh",
+    "imac:doctor": "bash ./scripts/imac-doctor.sh",
+    "imac:codex:sync": "bash ./scripts/imac-codex-sync.sh",
+    "imac:shell": "bash ./scripts/imac-remote.sh shell",
+    "imac:codex": "bash ./scripts/imac-remote.sh codex",
+    "imac:start": "bash ./scripts/imac-start.sh",
     "dev:offline": "ARCANA_AI_PROVIDER=fallback ARCANA_GRAPH_READ_ENABLED=false ARCANA_GRAPH_SEND_ENABLED=false node server.js",
     "check:syntax": "find ./src ./scripts ./public -type f -name \"*.js\" -print0 | xargs -0 -n1 node --check && node --check server.js",
     "smoke": "bash ./scripts/smoke-template.sh",
@@ -99,6 +117,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "openai": "^6.22.0",
+    "playwright": "1.58.2",
     "redis": "^4.7.1"
   }
 }

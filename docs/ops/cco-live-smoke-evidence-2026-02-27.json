@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-02-27T22:13:49.729Z",
+  "baseUrl": "https://arcana.hairtpclinic.se",
+  "result": "ok",
+  "steps": {
+    "healthz": "ok",
+    "readyz": "ok",
+    "loginStatus": 200,
+    "loginRequiresMfa": true,
+    "setupRequired": false,
+    "mfaStatus": 200,
+    "ccoRunStatus": 403,
+    "ccoAnalysisStatus": 200,
+    "ccoSendStatus": 422
+  },
+  "ccoRun": {
+    "decision": null,
+    "agent": null,
+    "runId": null,
+    "gatewayRunId": null,
+    "priorityLevel": null,
+    "mailboxCount": null,
+    "messageCount": null,
+    "needsReplyTodayCount": null,
+    "suggestedDraftsCount": null,
+    "conversationWorklistCount": null
+  },
+  "ccoAnalysis": {
+    "hasEntry": false,
+    "capability": null,
+    "generatedAt": null
+  },
+  "ccoSend": {
+    "responseSnippet": "{\"error\":\"mailboxId kravs.\",\"code\":\"CCO_SEND_INPUT_INVALID\",\"details\":null}"
+  }
+}

@@ -273,7 +273,7 @@ const config = {
   authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
   authOwnerMfaBypassHosts: (() => {
-    const defaults = ['arcana-staging.onrender.com'];
+    const defaults = ['arcana-staging.onrender.com', 'localhost', '127.0.0.1'];
     const configured = asStringArray(process.env.ARCANA_AUTH_OWNER_MFA_BYPASS_HOSTS);
     const merged = Array.from(new Set([...configured, ...defaults]));
     const deniedHosts = new Set([

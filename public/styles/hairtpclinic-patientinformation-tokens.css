@@ -1,0 +1,33 @@
+:root {
+  --spec-ink: #4a4946;
+  --spec-ink-soft: #4a4946;
+  --spec-light: #efe6e0;
+  --spec-paper: #fefbf9;
+  --spec-soft: #efe6e0;
+  --spec-soft-2: #cabbae;
+  --spec-gold: #cabbae;
+  --spec-gold-dark: #cabbae;
+  --spec-line: #cabbae;
+  --spec-dark: #4a4946;
+  --spec-max: 1180px;
+  --spec-bubble-gap: 1.15rem;
+  --spec-card-bubble-gap: 1.75rem;
+  --spec-sticky-offset: 0rem;
+  --spec-scroll-offset: 6rem;
+  --spec-bubble-fill: linear-gradient(180deg, var(--spec-paper) 0%, var(--spec-light) 24%, var(--spec-gold) 100%);
+  --spec-bubble-soft-fill: linear-gradient(180deg, var(--spec-paper) 0%, var(--spec-light) 32%, var(--spec-paper) 100%);
+  --spec-bubble-shadow: inset 0 1px 0 var(--spec-paper), 0 1px 0 var(--spec-dark),
+    0 10px 18px -14px var(--spec-dark), 0 14px 22px -20px var(--spec-light);
+  --spec-bubble-shadow-soft: inset 0 1px 0 var(--spec-paper), 0 1px 0 var(--spec-dark),
+    0 8px 14px -14px var(--spec-dark), 0 12px 18px -20px var(--spec-light);
+  --spec-badge-text: var(--spec-dark);
+  --spec-badge-text-shadow: 0 1px 0 var(--spec-paper);
+  --spec-label-size: 0.9rem;
+  --spec-label-color: var(--spec-dark);
+  --spec-label-shadow: 0 1px 0 var(--spec-paper);
+  --spec-body-size: 1.12rem;
+  --spec-body-size-dense: 1.08rem;
+  --spec-body-line: 1.72;
+  --spec-note-size: 1.04rem;
+  --spec-note-line: 1.64;
+}

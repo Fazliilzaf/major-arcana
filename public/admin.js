@@ -31,10 +31,12 @@
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/cco';
+  const CCO_NEXT_PRIMARY_PATH = '/cco-next';
   const CCO_UNANSWERED_PRIMARY_PATH = '/unanswered';
   const CCO_THREAD_QUERY_PARAM = 'thread';
   const CCO_WORKSPACE_SESSION_KEY = 'ARCANA_CCO_WORKSPACE_STATE';
   const CCO_LAST_SEEN_AT_KEY = 'ARCANA_CCO_LAST_SEEN_AT';
+  const CCO_ONBOARDING_COMPLETED_KEY = 'cco-onboarding-completed';
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -160,6 +162,11 @@
     );
   }
 
+  function isCcoNextRoutePath(pathname = '') {
+    const normalized = String(pathname || '').trim().toLowerCase();
+    return normalized.endsWith('/cco-next') || normalized.endsWith('/admin/cco-next');
+  }
+
   function isUnansweredRoutePath(pathname = '') {
     void pathname;
     return false;
@@ -210,7 +217,12 @@
   }
 
   function readCcoThreadFromLocation() {
-    if (!isCcoRoutePath(window.location.pathname || '')) return '';
+    if (
+      !isCcoRoutePath(window.location.pathname || '') &&
+      !isCcoNextRoutePath(window.location.pathname || '')
+    ) {
+      return '';
+    }
     const searchParams = new URLSearchParams(window.location.search || '');
     return String(searchParams.get(CCO_THREAD_QUERY_PARAM) || '').trim();
   }
@@ -243,6 +255,22 @@
       // ignore localStorage failures
     }
     return iso;
+  }
+
+  function readCcoOnboardingCompleted() {
+    try {
+      return String(localStorage.getItem(CCO_ONBOARDING_COMPLETED_KEY) || '').trim().toLowerCase() === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  function persistCcoOnboardingCompleted(completed = true) {
+    try {
+      localStorage.setItem(CCO_ONBOARDING_COMPLETED_KEY, completed === true ? 'true' : 'false');
+    } catch {
+      // ignore localStorage failures
+    }
   }
 
   function readCcoWorkspaceSessionState() {
@@ -316,6 +344,277 @@
     for (const [conversationId, draft] of entries) {
       if (!conversationId || !draft.trim()) continue;
       safe[conversationId] = draft.slice(0, 12000);
+    }
+    return safe;
+  }
+
+  function sanitizeCcoNextPreviewThreadStateMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const safe = {};
+    const textKeys = [
+      'owner',
+      'handoffStatus',
+      'activeEditor',
+      'draftOwner',
+      'draftUpdatedAt',
+      'collisionState',
+      'handoffRequest',
+      'handoffTarget',
+      'handoffNote',
+      'handoffStatusDetail',
+      'lifecycleStage',
+      'nextActionLabel',
+      'nextActionSummary',
+      'lastActionTakenLabel',
+      'lastActionTakenAt',
+      'draftStateLabel',
+      'latestInboundPreview',
+      'medicalBlocker',
+      'bookingState',
+      'waitingOn',
+      'slaStatus',
+      'situationSummary',
+      'customerContext',
+      'internalNote',
+      'responseAngle',
+      'escalationRule',
+      'caseType',
+      'subject',
+      'keyNote',
+    ];
+    const studioTextKeys = [
+      'activeDialog',
+      'strategyKey',
+      'strategyLabel',
+      'strategyReason',
+      'objective',
+      'desiredOutcome',
+      'guardrail',
+      'postSendState',
+      'postSendQueue',
+      'postSendWaitingOn',
+      'postSendOwner',
+      'postSendFollowUpDueAt',
+      'recommendedTool',
+      'templateKey',
+      'templateLabel',
+      'templateSummary',
+      'templateDraftBody',
+      'currentDraftBody',
+      'editedDraftBody',
+      'draftSource',
+      'readinessTone',
+      'readinessLabel',
+      'readinessSummary',
+      'readinessState',
+      'policyStatus',
+      'lastAppliedTemplateKey',
+      'lastAppliedTemplateAt',
+      'lastEditedAt',
+      'lastSentAt',
+      'signatureEditorProfileId',
+      'aiContextSummary',
+      'aiSuggestionLabel',
+      'aiSuggestionReason',
+      'aiSuggestionBody',
+      'aiLastGeneratedAt',
+      'aiAppliedAt',
+      'snoozePresetKey',
+      'snoozeUntilAt',
+      'scheduledSendAt',
+      'deleteRequestedAt',
+      'deletedAt',
+      'deletedReason',
+    ];
+    const summaryTextKeys = ['assignedTo', 'lifecycleStatus', 'lastCaseSummary', 'customerSince'];
+    for (const [conversationIdRaw, entryRaw] of Object.entries(value).slice(0, 50)) {
+      const conversationId = String(conversationIdRaw || '').trim();
+      if (!conversationId || !entryRaw || typeof entryRaw !== 'object' || Array.isArray(entryRaw)) continue;
+      const entry = {};
+      for (const key of textKeys) {
+        if (!Object.prototype.hasOwnProperty.call(entryRaw, key)) continue;
+        const safeValue = String(entryRaw[key] || '').trim();
+        if (!safeValue) continue;
+        entry[key] = safeValue.slice(0, 2400);
+      }
+      for (const booleanKey of ['needsMedicalReview', 'followUpSuggested']) {
+        if (!Object.prototype.hasOwnProperty.call(entryRaw, booleanKey)) continue;
+        entry[booleanKey] = entryRaw[booleanKey] === true;
+      }
+      if (Object.prototype.hasOwnProperty.call(entryRaw, 'previewSummary')) {
+        const rawSummary =
+          entryRaw.previewSummary && typeof entryRaw.previewSummary === 'object' && !Array.isArray(entryRaw.previewSummary)
+            ? entryRaw.previewSummary
+            : {};
+        const safeSummary = {};
+        for (const key of summaryTextKeys) {
+          const safeValue = String(rawSummary[key] || '').trim();
+          if (!safeValue) continue;
+          safeSummary[key] = safeValue.slice(0, 1200);
+        }
+        const interactionCount = Number(rawSummary.interactionCount);
+        if (Number.isFinite(interactionCount) && interactionCount >= 0) {
+          safeSummary.interactionCount = Math.round(interactionCount);
+        }
+        const engagementScore = Number(rawSummary.engagementScore);
+        if (Number.isFinite(engagementScore) && engagementScore >= 0) {
+          safeSummary.engagementScore = Math.max(0, Math.min(1, engagementScore));
+        }
+        if (Object.keys(safeSummary).length) {
+          entry.previewSummary = safeSummary;
+        }
+      }
+      if (Array.isArray(entryRaw.previewMessages)) {
+        entry.previewMessages = entryRaw.previewMessages.slice(0, 24).map((message) => ({
+          author: String(message?.author || '').trim().slice(0, 140),
+          role: String(message?.role || '').trim().slice(0, 40),
+          timestamp: String(message?.timestamp || '').trim().slice(0, 80),
+          body: String(message?.body || '').trim().slice(0, 4000),
+        }));
+      }
+      if (Array.isArray(entryRaw.previewHistory)) {
+        entry.previewHistory = entryRaw.previewHistory.slice(0, 24).map((item) => ({
+          label: String(item?.label || '').trim().slice(0, 160),
+          timestamp: String(item?.timestamp || '').trim().slice(0, 80),
+          excerpt: String(item?.excerpt || '').trim().slice(0, 2000),
+        }));
+      }
+      if (Array.isArray(entryRaw.previewNotes)) {
+        entry.previewNotes = entryRaw.previewNotes
+          .slice(0, 24)
+          .map((note) => ({
+            id: String(note?.id || '').trim().slice(0, 120),
+            category: String(note?.category || '').trim().slice(0, 80),
+            priority: String(note?.priority || '').trim().slice(0, 40),
+            title: String(note?.title || '').trim().slice(0, 200),
+            content: String(note?.content || note?.note || '').trim().slice(0, 4000),
+            timestamp: String(note?.timestamp || '').trim().slice(0, 80),
+            tags: Array.isArray(note?.tags)
+              ? note.tags
+                  .slice(0, 8)
+                  .map((item) => String(item || '').trim())
+                  .filter(Boolean)
+                  .map((item) => item.slice(0, 80))
+              : [],
+          }))
+          .filter((note) => note.content);
+      }
+      if (Array.isArray(entryRaw.medicalFlags)) {
+        entry.medicalFlags = entryRaw.medicalFlags
+          .slice(0, 12)
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .map((item) => item.slice(0, 200));
+      }
+      if (Array.isArray(entryRaw.activeViewers)) {
+        entry.activeViewers = entryRaw.activeViewers
+          .slice(0, 6)
+          .map((viewer) => ({
+            id: String(viewer?.id || '').trim().slice(0, 80),
+            name: String(viewer?.name || '').trim().slice(0, 120),
+            action: String(viewer?.action || viewer?.status || '').trim().slice(0, 40),
+            location: String(viewer?.location || viewer?.context || '').trim().slice(0, 120),
+            durationSeconds: Math.max(
+              0,
+              Math.round(
+                Number(
+                  viewer?.durationSeconds != null
+                    ? viewer.durationSeconds
+                    : viewer?.duration_seconds || 0
+                ) || 0
+              )
+            ),
+          }))
+          .filter((viewer) => viewer.name);
+      }
+      if (Array.isArray(entryRaw.suggestedSlots)) {
+        entry.suggestedSlots = entryRaw.suggestedSlots
+          .slice(0, 8)
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .map((item) => item.slice(0, 120));
+      }
+      if (Object.prototype.hasOwnProperty.call(entryRaw, 'previewStudio')) {
+        const rawStudio =
+          entryRaw.previewStudio && typeof entryRaw.previewStudio === 'object' && !Array.isArray(entryRaw.previewStudio)
+            ? entryRaw.previewStudio
+            : {};
+        const safeStudio = {};
+        for (const key of studioTextKeys) {
+          const safeValue = String(rawStudio[key] || '').trim();
+          if (!safeValue) continue;
+          safeStudio[key] = safeValue.slice(0, 4000);
+        }
+        for (const booleanKey of ['isOpen', 'sendReady', 'isDeleted']) {
+          if (!Object.prototype.hasOwnProperty.call(rawStudio, booleanKey)) continue;
+          safeStudio[booleanKey] = rawStudio[booleanKey] === true;
+        }
+        for (const numberKey of ['wordCount', 'aiConfidence', 'aiVersion']) {
+          if (!Object.prototype.hasOwnProperty.call(rawStudio, numberKey)) continue;
+          const numberValue = Number(rawStudio[numberKey]);
+          if (Number.isFinite(numberValue) && numberValue >= 0) safeStudio[numberKey] = numberValue;
+        }
+        if (Array.isArray(rawStudio.signatureProfiles)) {
+          safeStudio.signatureProfiles = rawStudio.signatureProfiles
+            .slice(0, 8)
+            .map((entry) => ({
+              id: String(entry?.id || '').trim().slice(0, 80),
+              ownerKey: String(entry?.ownerKey || '').trim().slice(0, 80),
+              name: String(entry?.name || '').trim().slice(0, 120),
+              title: String(entry?.title || '').trim().slice(0, 120),
+              greeting: String(entry?.greeting || '').trim().slice(0, 120),
+              contact: String(entry?.contact || '').trim().slice(0, 240),
+              email: String(entry?.email || '').trim().slice(0, 120),
+              phone: String(entry?.phone || '').trim().slice(0, 80),
+            }))
+            .filter((entry) => entry.id);
+        }
+        if (Array.isArray(rawStudio.toneFilters)) {
+          safeStudio.toneFilters = rawStudio.toneFilters
+            .slice(0, 8)
+            .map((entry) => String(entry || '').trim().toLowerCase())
+            .filter(Boolean)
+            .map((entry) => entry.slice(0, 80));
+        }
+        if (Array.isArray(rawStudio.aiContextUsed)) {
+          safeStudio.aiContextUsed = rawStudio.aiContextUsed
+            .slice(0, 8)
+            .map((entry) => String(entry || '').trim())
+            .filter(Boolean)
+            .map((entry) => entry.slice(0, 160));
+        }
+        if (rawStudio.signatureEditorDraft && typeof rawStudio.signatureEditorDraft === 'object' && !Array.isArray(rawStudio.signatureEditorDraft)) {
+          safeStudio.signatureEditorDraft = {
+            id: String(rawStudio.signatureEditorDraft.id || '').trim().slice(0, 80),
+            ownerKey: String(rawStudio.signatureEditorDraft.ownerKey || '').trim().slice(0, 80),
+            name: String(rawStudio.signatureEditorDraft.name || '').trim().slice(0, 120),
+            title: String(rawStudio.signatureEditorDraft.title || '').trim().slice(0, 120),
+            greeting: String(rawStudio.signatureEditorDraft.greeting || '').trim().slice(0, 120),
+            contact: String(rawStudio.signatureEditorDraft.contact || '').trim().slice(0, 240),
+            email: String(rawStudio.signatureEditorDraft.email || '').trim().slice(0, 120),
+            phone: String(rawStudio.signatureEditorDraft.phone || '').trim().slice(0, 80),
+          };
+        }
+        if (Object.keys(safeStudio).length) {
+          entry.previewStudio = safeStudio;
+        }
+      }
+      if (Object.keys(entry).length) {
+        safe[conversationId] = entry;
+      }
+    }
+    return safe;
+  }
+
+  function sanitizeCcoNextPreviewIdList(value) {
+    if (!Array.isArray(value)) return [];
+    const safe = [];
+    const seen = new Set();
+    for (const entry of value.slice(0, 50)) {
+      const normalized = String(entry || '').trim();
+      if (!normalized || seen.has(normalized)) continue;
+      seen.add(normalized);
+      safe.push(normalized.slice(0, 200));
     }
     return safe;
   }
@@ -408,8 +707,18 @@
 
   function sanitizeCcoCenterReadTab(value = 'conversation') {
     const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'notes') return 'notes';
+    if (normalized === 'history') return 'history';
     if (normalized === 'customer') return 'customer';
     return 'conversation';
+  }
+
+  function sanitizeCcoSidebarTab(value = 'overview') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'ai') return 'ai';
+    if (normalized === 'medical') return 'medical';
+    if (normalized === 'team') return 'team';
+    return 'overview';
   }
 
   const CCO_LOCKED_MAILBOX_ALLOWLIST = Object.freeze([
@@ -539,9 +848,9 @@
   const CCO_DEFAULT_DENSITY_MODE = 'work';
   const CCO_VISUAL_LIMITS = Object.freeze({
     sprint: 3,
-    high: 12,
+    high: 7,
     needs: 12,
-    maxVisibleRows: 18,
+    maxVisibleRows: 15,
   });
 
   function sanitizeCcoDensityMode(value = '') {
@@ -775,6 +1084,68 @@
     ccoStrategicInsights: null,
     ccoAdaptiveFocusShowAll: false,
     ccoFocusWorkloadMinutes: 0,
+    ccoSidebarTab: 'overview',
+    ccoNextPreviewSearchQuery: sanitizeCcoSearchQuery(initialCcoWorkspaceSession.nextPreviewSearchQuery || ''),
+    ccoNextPreviewScenario: sanitizeCcoNextPreviewScenario(initialCcoWorkspaceSession.nextPreviewScenario || 'all'),
+    ccoNextPreviewSelectedConversationId: String(
+      initialCcoWorkspaceSession.nextPreviewSelectedConversationId || ''
+    ).trim(),
+    ccoNextPreviewCenterTab: sanitizeCcoCenterReadTab(
+      initialCcoWorkspaceSession.nextPreviewCenterTab || 'conversation'
+    ),
+    ccoNextPreviewSidebarTab: sanitizeCcoSidebarTab(
+      initialCcoWorkspaceSession.nextPreviewSidebarTab || 'overview'
+    ),
+    ccoNextPreviewHistoryCollapsed:
+      Object.prototype.hasOwnProperty.call(initialCcoWorkspaceSession, 'nextPreviewHistoryCollapsed')
+        ? initialCcoWorkspaceSession.nextPreviewHistoryCollapsed === true
+        : true,
+    ccoNextPreviewSavedView: sanitizeCcoNextPreviewSavedView(
+      initialCcoWorkspaceSession.nextPreviewSavedView || 'all'
+    ),
+    ccoNextPreviewFollowUpFilter: sanitizeCcoNextPreviewFollowUpFilter(
+      initialCcoWorkspaceSession.nextPreviewFollowUpFilter || 'all'
+    ),
+    ccoNextPreviewWorklistDensity: sanitizeCcoNextPreviewWorklistDensity(
+      initialCcoWorkspaceSession.nextPreviewWorklistDensity || 'regular'
+    ),
+    ccoNextPreviewDisclosureMode: sanitizeCcoNextPreviewDisclosureMode(
+      initialCcoWorkspaceSession.nextPreviewDisclosureMode || 'progressive'
+    ),
+    ccoNextPreviewSelectionMode: initialCcoWorkspaceSession.nextPreviewSelectionMode === true,
+    ccoNextPreviewSelectedRowIds: sanitizeCcoNextPreviewIdList(
+      initialCcoWorkspaceSession.nextPreviewSelectedRowIds
+    ),
+    ccoNextPreviewFinalMailboxIds: Array.isArray(initialCcoWorkspaceSession.nextPreviewFinalMailboxIds)
+      ? initialCcoWorkspaceSession.nextPreviewFinalMailboxIds
+      : [],
+    ccoNextPreviewFinalExpandedCategories: Array.isArray(
+      initialCcoWorkspaceSession.nextPreviewFinalExpandedCategories
+    )
+      ? initialCcoWorkspaceSession.nextPreviewFinalExpandedCategories
+      : ['all'],
+    ccoNextPreviewFinalTheme: sanitizeCcoNextPreviewFinalTheme(
+      initialCcoWorkspaceSession.nextPreviewFinalTheme || 'system'
+    ),
+    ccoNextPreviewFinalOwnerView: initialCcoWorkspaceSession.nextPreviewFinalOwnerView === true,
+    ccoNextPreviewFinalCiCollapsed: initialCcoWorkspaceSession.nextPreviewFinalCiCollapsed === true,
+    ccoNextPreviewFinalCiFocusCollapsed:
+      initialCcoWorkspaceSession.nextPreviewFinalCiFocusCollapsed === true,
+    ccoNextPreviewFinalCiTrendsCollapsed:
+      initialCcoWorkspaceSession.nextPreviewFinalCiTrendsCollapsed === true,
+    ccoNextPreviewFinalCiCommCollapsed:
+      initialCcoWorkspaceSession.nextPreviewFinalCiCommCollapsed === true,
+    ccoNextPreviewFinalCiAiCollapsed:
+      initialCcoWorkspaceSession.nextPreviewFinalCiAiCollapsed === true,
+    ccoNextPreviewFinalMailboxMenuOpen: false,
+    ccoNextPreviewFinalMoreMenuOpen: false,
+    ccoNextPreviewDraftByConversationId: sanitizeCcoDraftMap(
+      initialCcoWorkspaceSession.nextPreviewDraftsByConversationId
+    ),
+    ccoNextPreviewThreadStateByConversationId: sanitizeCcoNextPreviewThreadStateMap(
+      initialCcoWorkspaceSession.nextPreviewThreadStateByConversationId
+    ),
+    ccoOnboardingShown: false,
     ccoCustomerSummaryExpanded: false,
     ccoPendingSoftBreakConversationId: '',
     ccoIndicatorContextConversationId: '',
@@ -895,6 +1266,8 @@
     settingsSection: document.getElementById('settingsSection'),
     overviewSection: document.getElementById('overviewSection'),
     ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
+    ccoNextWorkspaceSection: document.getElementById('ccoNextWorkspaceSection'),
+    ccoNextPreviewRoot: document.getElementById('ccoNextPreviewRoot'),
     ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
     ccoCenterColumn: document.getElementById('ccoCenterColumn'),
     ccoReplyColumn: document.getElementById('ccoReplyColumn'),
@@ -1035,6 +1408,12 @@
     ccoInboxSlaFilters: document.getElementById('ccoInboxSlaFilters'),
     ccoInboxStateFilters: document.getElementById('ccoInboxStateFilters'),
     ccoInboxSearchInput: document.getElementById('ccoInboxSearchInput'),
+    ccoUtilitySprintBtn: document.getElementById('ccoUtilitySprintBtn'),
+    ccoUtilityAdvancedSearchBtn: document.getElementById('ccoUtilityAdvancedSearchBtn'),
+    ccoUtilityStatsBtn: document.getElementById('ccoUtilityStatsBtn'),
+    ccoUtilityShortcutsBtn: document.getElementById('ccoUtilityShortcutsBtn'),
+    ccoUtilityNotificationsBtn: document.getElementById('ccoUtilityNotificationsBtn'),
+    ccoUtilityProfileBtn: document.getElementById('ccoUtilityProfileBtn'),
     ccoInboxShowSystemToggle: document.getElementById('ccoInboxShowSystemToggle'),
     ccoInboxSearchMeta: document.getElementById('ccoInboxSearchMeta'),
     ccoInboxDensityFilters: document.getElementById('ccoInboxDensityFilters'),
@@ -1077,7 +1456,9 @@
     ccoHistoryCollapseBtn: document.getElementById('ccoHistoryCollapseBtn'),
     ccoCenterTabConversationBtn: document.getElementById('ccoCenterTabConversationBtn'),
     ccoCenterTabCustomerBtn: document.getElementById('ccoCenterTabCustomerBtn'),
+    ccoCenterTabHistoryBtn: document.getElementById('ccoCenterTabHistoryBtn'),
     ccoReadTabConversation: document.getElementById('ccoReadTabConversation'),
+    ccoReadTabHistory: document.getElementById('ccoReadTabHistory'),
     ccoReadTabCustomer: document.getElementById('ccoReadTabCustomer'),
     ccoCustomerSummaryPanel: document.getElementById('ccoCustomerSummaryPanel'),
     ccoCustomerSummaryName: document.getElementById('ccoCustomerSummaryName'),
@@ -1107,6 +1488,19 @@
     ccoComposeStudio: document.getElementById('ccoComposeStudio'),
     ccoStatusSummaryCard: document.getElementById('ccoStatusSummaryCard'),
     ccoStatusSummaryRows: document.getElementById('ccoStatusSummaryRows'),
+    ccoSidebarTabOverviewBtn: document.getElementById('ccoSidebarTabOverviewBtn'),
+    ccoSidebarTabAiBtn: document.getElementById('ccoSidebarTabAiBtn'),
+    ccoSidebarTabMedicalBtn: document.getElementById('ccoSidebarTabMedicalBtn'),
+    ccoSidebarTabTeamBtn: document.getElementById('ccoSidebarTabTeamBtn'),
+    ccoSidebarPanelOverview: document.getElementById('ccoSidebarPanelOverview'),
+    ccoSidebarPanelAi: document.getElementById('ccoSidebarPanelAi'),
+    ccoSidebarPanelMedical: document.getElementById('ccoSidebarPanelMedical'),
+    ccoSidebarPanelTeam: document.getElementById('ccoSidebarPanelTeam'),
+    ccoSidebarOverviewFacts: document.getElementById('ccoSidebarOverviewFacts'),
+    ccoSidebarAiFacts: document.getElementById('ccoSidebarAiFacts'),
+    ccoSidebarMedicalFacts: document.getElementById('ccoSidebarMedicalFacts'),
+    ccoSidebarTeamFacts: document.getElementById('ccoSidebarTeamFacts'),
+    ccoSidebarOpenStudioBtn: document.getElementById('ccoSidebarOpenStudioBtn'),
     ccoReplyRefreshBtn: document.getElementById('ccoReplyRefreshBtn'),
     ccoDraftRiskIndicator: document.getElementById('ccoDraftRiskIndicator'),
     ccoDraftPolicyIndicator: document.getElementById('ccoDraftPolicyIndicator'),
@@ -1117,6 +1511,9 @@
     ccoDraftModeShortBtn: document.getElementById('ccoDraftModeShortBtn'),
     ccoDraftModeWarmBtn: document.getElementById('ccoDraftModeWarmBtn'),
     ccoDraftModeProfessionalBtn: document.getElementById('ccoDraftModeProfessionalBtn'),
+    ccoQuickBookBtn: document.getElementById('ccoQuickBookBtn'),
+    ccoQuickTemplateBtn: document.getElementById('ccoQuickTemplateBtn'),
+    ccoOpenResponseStudioBtn: document.getElementById('ccoOpenResponseStudioBtn'),
     ccoReplyContextStrip: document.getElementById('ccoReplyContextStrip'),
     ccoReplyingToContext: document.getElementById('ccoReplyingToContext'),
     ccoDraftBodyInput: document.getElementById('ccoDraftBodyInput'),
@@ -2103,6 +2500,7 @@
     el.style.color = isError ? '#ffb2b2' : '#9aa6bb';
     const toastMode = options && typeof options === 'object' ? options.toast || 'auto' : 'auto';
     if (toastMode === 'none') return;
+    if (el.offsetParent === null) return;
     maybeToastFromStatus(message, isError);
   }
 
@@ -2182,7 +2580,7 @@
 
     if (els.writingIdentityMailboxSelect) {
       const current = normalizeWritingMailbox(state.selectedWritingIdentityMailbox);
-      els.writingIdentityMailboxSelect.innerHTML = '<option value="">Välj mailbox</option>';
+      els.writingIdentityMailboxSelect.innerHTML = '<option value="">Välj inkorg</option>';
       for (const item of profiles) {
         const mailbox = normalizeWritingMailbox(item?.mailbox);
         if (!mailbox) continue;
@@ -2244,7 +2642,7 @@
       const path = query.toString()
         ? `/cco/writing-identities?${query.toString()}`
         : '/cco/writing-identities';
-      if (!quiet) setStatus(els.writingIdentityStatus, 'Laddar Writing Identity-profiler...');
+      if (!quiet) setStatus(els.writingIdentityStatus, 'Laddar skrivprofiler...');
       const response = await api(path);
       const profiles = Array.isArray(response?.profiles) ? response.profiles : [];
       state.writingIdentityProfiles = profiles
@@ -2267,13 +2665,13 @@
       fillWritingIdentityForm(selectedRecord);
       renderWritingIdentityProfiles();
       if (!quiet) {
-        setStatus(els.writingIdentityStatus, `Writing Identity-profiler laddade: ${state.writingIdentityProfiles.length}.`);
+        setStatus(els.writingIdentityStatus, `Skrivprofiler laddade: ${state.writingIdentityProfiles.length}.`);
       }
     } catch (error) {
       if (!quiet) {
         setStatus(
           els.writingIdentityStatus,
-          error.message || 'Kunde inte läsa Writing Identity-profiler.',
+          error.message || 'Kunde inte läsa skrivprofiler.',
           true
         );
       }
@@ -2282,10 +2680,10 @@
 
   async function saveWritingIdentityProfile() {
     try {
-      if (!isOwner()) throw new Error('Endast OWNER kan spara Writing Identity.');
+      if (!isOwner()) throw new Error('Endast OWNER kan spara skrivprofiler.');
       const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxInput?.value || '');
       if (!isValidWritingMailbox(mailbox)) {
-        throw new Error('Mailbox måste vara giltig email/UPN.');
+        throw new Error('Inkorg måste vara giltig e-post/UPN.');
       }
 
       const profile = toWritingIdentityProfile({
@@ -2298,7 +2696,7 @@
         warmthIndex: els.writingIdentityWarmth?.value,
       });
 
-      setStatus(els.writingIdentityEditStatus, `Sparar Writing Identity för ${mailbox}...`);
+      setStatus(els.writingIdentityEditStatus, `Sparar skrivprofil för ${mailbox}...`);
       const response = await api(`/cco/writing-identities/${encodeURIComponent(mailbox)}`, {
         method: 'PUT',
         body: {
@@ -2312,12 +2710,12 @@
       await loadWritingIdentityProfiles({ quiet: true });
       setStatus(
         els.writingIdentityEditStatus,
-        `Writing Identity sparad för ${savedMailbox} (v${Number(response?.profile?.version || 1)}).`
+        `Skrivprofil sparad för ${savedMailbox} (v${Number(response?.profile?.version || 1)}).`
       );
     } catch (error) {
       setStatus(
         els.writingIdentityEditStatus,
-        error.message || 'Kunde inte spara Writing Identity.',
+        error.message || 'Kunde inte spara skrivprofil.',
         true
       );
     }
@@ -2334,7 +2732,7 @@
       const mailboxFilter = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
       const mailboxes = isValidWritingMailbox(mailboxFilter) ? [mailboxFilter] : [];
 
-      setStatus(els.writingIdentityStatus, 'Kör auto-extraktion av Writing Identity...');
+      setStatus(els.writingIdentityStatus, 'Kör auto-extraktion av skrivprofiler...');
       const response = await api('/cco/writing-identities/auto-extract', {
         method: 'POST',
         body: {
@@ -2352,7 +2750,7 @@
     } catch (error) {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte auto-extrahera Writing Identity.',
+        error.message || 'Kunde inte auto-extrahera skrivprofiler.',
         true
       );
     }
@@ -3423,9 +3821,17 @@
     return String(state.activeSectionGroup || '').trim() === 'ccoWorkspaceSection';
   }
 
+  function isCcoNextWorkspaceActive() {
+    return String(state.activeSectionGroup || '').trim() === 'ccoNextWorkspaceSection';
+  }
+
+  function isCcoSurfaceActive() {
+    return isCcoWorkspaceActive() || isCcoNextWorkspaceActive();
+  }
+
   function shouldRunCcoAutoRefresh() {
     if (!state.token) return false;
-    if (!isCcoWorkspaceActive()) return false;
+    if (!isCcoSurfaceActive()) return false;
     if (document.visibilityState === 'hidden') return false;
     return true;
   }
@@ -4984,6 +5390,7 @@
   }
 
   function persistCcoWorkspaceSessionState() {
+    syncCcoNextPreviewBackboneToState();
     try {
       const payload = {
         selectedConversationId: String(state.ccoSelectedConversationId || '').trim(),
@@ -5019,6 +5426,45 @@
         ),
         scrollTopByConversationId: sanitizeCcoScrollMap(state.ccoConversationScrollTopByConversationId),
         selectedFeedMessageId: String(state.ccoSelectedFeedMessageId || '').trim(),
+        nextPreviewSearchQuery: sanitizeCcoSearchQuery(state.ccoNextPreviewSearchQuery || ''),
+        nextPreviewScenario: sanitizeCcoNextPreviewScenario(state.ccoNextPreviewScenario || 'all'),
+        nextPreviewSelectedConversationId: String(state.ccoNextPreviewSelectedConversationId || '').trim(),
+        nextPreviewCenterTab: sanitizeCcoCenterReadTab(state.ccoNextPreviewCenterTab || 'conversation'),
+        nextPreviewSidebarTab: sanitizeCcoSidebarTab(state.ccoNextPreviewSidebarTab || 'overview'),
+        nextPreviewHistoryCollapsed: state.ccoNextPreviewHistoryCollapsed === true,
+        nextPreviewSavedView: sanitizeCcoNextPreviewSavedView(state.ccoNextPreviewSavedView || 'all'),
+        nextPreviewFollowUpFilter: sanitizeCcoNextPreviewFollowUpFilter(
+          state.ccoNextPreviewFollowUpFilter || 'all'
+        ),
+        nextPreviewWorklistDensity: sanitizeCcoNextPreviewWorklistDensity(
+          state.ccoNextPreviewWorklistDensity || 'regular'
+        ),
+        nextPreviewDisclosureMode: sanitizeCcoNextPreviewDisclosureMode(
+          state.ccoNextPreviewDisclosureMode || 'progressive'
+        ),
+        nextPreviewSelectionMode: state.ccoNextPreviewSelectionMode === true,
+        nextPreviewSelectedRowIds: sanitizeCcoNextPreviewIdList(state.ccoNextPreviewSelectedRowIds),
+        nextPreviewFinalMailboxIds: sanitizeCcoNextPreviewIdList(state.ccoNextPreviewFinalMailboxIds),
+        nextPreviewFinalExpandedCategories: sanitizeCcoNextPreviewIdList(
+          state.ccoNextPreviewFinalExpandedCategories
+        ),
+        nextPreviewFinalTheme: sanitizeCcoNextPreviewFinalTheme(
+          state.ccoNextPreviewFinalTheme || 'system'
+        ),
+        nextPreviewFinalOwnerView: state.ccoNextPreviewFinalOwnerView === true,
+        nextPreviewFinalCiCollapsed: state.ccoNextPreviewFinalCiCollapsed === true,
+        nextPreviewFinalCiFocusCollapsed:
+          state.ccoNextPreviewFinalCiFocusCollapsed === true,
+        nextPreviewFinalCiTrendsCollapsed:
+          state.ccoNextPreviewFinalCiTrendsCollapsed === true,
+        nextPreviewFinalCiCommCollapsed:
+          state.ccoNextPreviewFinalCiCommCollapsed === true,
+        nextPreviewFinalCiAiCollapsed:
+          state.ccoNextPreviewFinalCiAiCollapsed === true,
+        nextPreviewDraftsByConversationId: sanitizeCcoDraftMap(state.ccoNextPreviewDraftByConversationId),
+        nextPreviewThreadStateByConversationId: sanitizeCcoNextPreviewThreadStateMap(
+          state.ccoNextPreviewThreadStateByConversationId
+        ),
       };
       sessionStorage.setItem(CCO_WORKSPACE_SESSION_KEY, JSON.stringify(payload));
     } catch {
@@ -5068,6 +5514,9 @@
       return threadId
         ? `${basePath}?${CCO_THREAD_QUERY_PARAM}=${encodeURIComponent(threadId)}`
         : basePath;
+    }
+    if (normalized === 'ccoNextWorkspaceSection') {
+      return CCO_NEXT_PRIMARY_PATH;
     }
     const hash = SECTION_GROUP_HASH_MAP[normalized] || SECTION_GROUP_HASH_MAP.overviewSection;
     return `${ADMIN_PRIMARY_PATH}${hash}`;
@@ -5125,9 +5574,29 @@
   function syncWorkspaceTheme(groupId) {
     const normalized = String(groupId || '').trim();
     const ccoModeActive =
-      normalized === 'ccoWorkspaceSection' || isCcoRoutePath(window.location.pathname || '');
+      normalized === 'ccoWorkspaceSection' ||
+      normalized === 'ccoNextWorkspaceSection' ||
+      isCcoRoutePath(window.location.pathname || '') ||
+      isCcoNextRoutePath(window.location.pathname || '');
+    const ccoNextModeActive =
+      normalized === 'ccoNextWorkspaceSection' || isCcoNextRoutePath(window.location.pathname || '');
     document.body.classList.toggle('cco-light-mode', ccoModeActive);
+    document.body.classList.toggle('cco-next-preview-route', ccoNextModeActive);
     document.body.classList.remove('cco-compact-header');
+    if (els.adminHeader) {
+      if (ccoNextModeActive) {
+        els.adminHeader.style.setProperty('display', 'none', 'important');
+      } else {
+        els.adminHeader.style.removeProperty('display');
+      }
+    }
+    if (els.sectionNav) {
+      if (ccoNextModeActive) {
+        els.sectionNav.style.setProperty('display', 'none', 'important');
+      } else {
+        els.sectionNav.style.removeProperty('display');
+      }
+    }
   }
 
   function setActiveSectionGroup(nextGroupId, options = {}) {
@@ -5136,15 +5605,28 @@
     const enteringCco =
       String(groupId || '').trim() === 'ccoWorkspaceSection' &&
       String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
+    const enteringCcoNext =
+      String(groupId || '').trim() === 'ccoNextWorkspaceSection' &&
+      String(previousGroupId || '').trim() !== 'ccoNextWorkspaceSection';
     const leavingCco =
       String(groupId || '').trim() !== 'ccoWorkspaceSection' &&
       String(previousGroupId || '').trim() === 'ccoWorkspaceSection';
+    const leavingCcoNext =
+      String(groupId || '').trim() !== 'ccoNextWorkspaceSection' &&
+      String(previousGroupId || '').trim() === 'ccoNextWorkspaceSection';
     runModeTransition(previousGroupId, groupId);
     state.activeSectionGroup = groupId;
     syncWorkspaceTheme(groupId);
     document.querySelectorAll('[data-section-group]').forEach((section) => {
       const currentGroup = String(section.getAttribute('data-section-group') || '').trim();
-      section.classList.toggle('hidden', currentGroup !== groupId);
+      const isActive = currentGroup === groupId;
+      section.classList.toggle('hidden', !isActive);
+      section.hidden = !isActive;
+      if (isActive) {
+        section.style.removeProperty('display');
+      } else {
+        section.style.setProperty('display', 'none', 'important');
+      }
     });
     refreshSectionVisualState(groupId);
 
@@ -5167,14 +5649,21 @@
         route: '/cco',
         workspaceId: 'cco',
       });
+      maybeShowCcoOnboarding();
     }
-    if (leavingCco) {
+    if (enteringCcoNext) {
+      state.ccoAdaptiveFocusShowAll = false;
+      state.ccoFocusWorkloadMinutes = 0;
+      hideCcoSoftBreakPanel();
+    }
+    if (leavingCco || leavingCcoNext) {
       state.ccoLastSeenAtMs = Date.now();
       state.ccoSeenConversationIds = {};
       persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
       persistCcoWorkspaceSessionState();
     }
-    const shouldImmediateCcoRefresh = isCcoWorkspaceActive() && (enteringCco || !state.ccoInboxData);
+    const shouldImmediateCcoRefresh =
+      isCcoSurfaceActive() && ((enteringCco || enteringCcoNext) || !state.ccoInboxData);
     syncCcoAutoRefresh({ immediate: shouldImmediateCcoRefresh });
   }
 
@@ -5219,10 +5708,12 @@
     if (!els.sectionNav) return;
     pruneLegacyCcoUnansweredNavButtons();
     const resolvedTargetId = resolveSectionNavTarget(targetId);
+    const sectionNavTarget =
+      resolvedTargetId === 'ccoNextWorkspaceSection' ? 'ccoWorkspaceSection' : resolvedTargetId;
     const ccoViewMode = sanitizeCcoViewMode(state.ccoInboxViewMode);
     els.sectionNav.querySelectorAll('.sectionNavBtn').forEach((button) => {
       const currentTarget = String(button.getAttribute('data-target') || '').trim();
-      if (!currentTarget || currentTarget !== resolvedTargetId) {
+      if (!currentTarget || currentTarget !== sectionNavTarget) {
         button.classList.remove('active');
         return;
       }
@@ -5236,11 +5727,14 @@
   }
 
   function resolveInitialSectionGroup() {
-    const fromHash = resolveSectionGroupFromHash(window.location.hash || '');
-    if (fromHash) return fromHash;
+    if (isCcoNextRoutePath(window.location.pathname || '')) {
+      return 'ccoNextWorkspaceSection';
+    }
     if (isCcoRoutePath(window.location.pathname || '')) {
       return 'ccoWorkspaceSection';
     }
+    const fromHash = resolveSectionGroupFromHash(window.location.hash || '');
+    if (fromHash) return fromHash;
     return state.activeSectionGroup || 'overviewSection';
   }
 
@@ -8526,7 +9020,10 @@
   function formatCcoIntentLabel(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     const map = {
+      booking: 'Bokning',
       booking_request: 'Bokningsförfrågan',
+      rebooking: 'Omboka',
+      info: 'Info',
       pricing_question: 'Prisfråga',
       anxiety_pre_op: 'Oro inför behandling',
       complaint: 'Klagomål',
@@ -8540,7 +9037,9 @@
   function formatCcoIntentIcon(value = '') {
     const normalized = String(value || '').trim().toLowerCase();
     const map = {
+      booking: '📅',
       booking_request: '📅',
+      info: '💬',
       follow_up: '💬',
       pricing_question: '💰',
       complaint: '⚠',
@@ -10523,12 +11022,14 @@
     }
     const row = feedEntry.row && typeof feedEntry.row === 'object' ? feedEntry.row : null;
     if (row) {
+      const evaluation = getCcoDraftEvaluationForConversation(row.conversationId);
       renderCcoConversationHistory(row);
       renderCcoCustomerSummary(row);
       renderCcoReplyContext(row);
-      renderCcoStatusSummary(row, getCcoDraftEvaluationForConversation(row.conversationId), {
+      renderCcoStatusSummary(row, evaluation, {
         readOnlyMode: true,
       });
+      renderCcoSidebar(row, evaluation);
     } else {
       if (els.ccoConversationHistoryList) {
         els.ccoConversationHistoryList.innerHTML = '<li class="muted mini">Ingen historik tillgänglig för valt mail.</li>';
@@ -10536,6 +11037,7 @@
       renderCcoCustomerSummary(null);
       renderCcoReplyContext(null);
       renderCcoStatusSummary(null, null, { readOnlyMode: true });
+      renderCcoSidebar(null, null);
     }
     setCcoReplyEmptyState(false, {
       emptyMessage: 'Skrivskyddad vy. Byt till Arbetskö för att svara.',
@@ -11342,26 +11844,13149 @@
     const tab = sanitizeCcoCenterReadTab(state.ccoCenterReadTab);
     state.ccoCenterReadTab = tab;
     const isConversationTab = tab === 'conversation';
+    const isCustomerTab = tab === 'customer';
+    const isHistoryTab = tab === 'history';
     if (els.ccoCenterTabConversationBtn) {
       els.ccoCenterTabConversationBtn.classList.toggle('is-active', isConversationTab);
       els.ccoCenterTabConversationBtn.setAttribute('aria-selected', isConversationTab ? 'true' : 'false');
     }
     if (els.ccoCenterTabCustomerBtn) {
-      els.ccoCenterTabCustomerBtn.classList.toggle('is-active', !isConversationTab);
-      els.ccoCenterTabCustomerBtn.setAttribute('aria-selected', !isConversationTab ? 'true' : 'false');
+      els.ccoCenterTabCustomerBtn.classList.toggle('is-active', isCustomerTab);
+      els.ccoCenterTabCustomerBtn.setAttribute('aria-selected', isCustomerTab ? 'true' : 'false');
+    }
+    if (els.ccoCenterTabHistoryBtn) {
+      els.ccoCenterTabHistoryBtn.classList.toggle('is-active', isHistoryTab);
+      els.ccoCenterTabHistoryBtn.setAttribute('aria-selected', isHistoryTab ? 'true' : 'false');
     }
     if (els.ccoReadTabConversation) {
       els.ccoReadTabConversation.classList.toggle('is-active', isConversationTab);
+      els.ccoReadTabConversation.hidden = !isConversationTab;
+    }
+    if (els.ccoReadTabHistory) {
+      els.ccoReadTabHistory.classList.toggle('is-active', isHistoryTab);
+      els.ccoReadTabHistory.hidden = !isHistoryTab;
     }
     if (els.ccoReadTabCustomer) {
-      els.ccoReadTabCustomer.classList.toggle('is-active', !isConversationTab);
+      els.ccoReadTabCustomer.classList.toggle('is-active', isCustomerTab);
+      els.ccoReadTabCustomer.hidden = !isCustomerTab;
     }
+    renderCcoNextPreview();
   }
 
   function setCcoCenterReadTab(tab = 'conversation', { persist = true } = {}) {
     state.ccoCenterReadTab = sanitizeCcoCenterReadTab(tab);
     renderCcoCenterReadTab();
     if (persist) persistCcoWorkspaceSessionState();
+  }
+
+  function renderCcoSidebarTabState() {
+    const tab = sanitizeCcoSidebarTab(state.ccoSidebarTab);
+    state.ccoSidebarTab = tab;
+    const items = [
+      ['overview', els.ccoSidebarTabOverviewBtn, els.ccoSidebarPanelOverview],
+      ['ai', els.ccoSidebarTabAiBtn, els.ccoSidebarPanelAi],
+      ['medical', els.ccoSidebarTabMedicalBtn, els.ccoSidebarPanelMedical],
+      ['team', els.ccoSidebarTabTeamBtn, els.ccoSidebarPanelTeam],
+    ];
+    items.forEach(([value, button, panel]) => {
+      const isActive = value === tab;
+      button?.classList.toggle('is-active', isActive);
+      button?.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      if (panel) {
+        panel.classList.toggle('is-active', isActive);
+        panel.hidden = !isActive;
+      }
+    });
+    renderCcoNextPreview();
+  }
+
+  function renderCcoSidebar(conversation = null, evaluation = null) {
+    if (!conversation || typeof conversation !== 'object') {
+      renderIncidentIntelligenceList(
+        els.ccoSidebarOverviewFacts,
+        [],
+        'Välj en konversation för att se kundsignal.'
+      );
+      renderIncidentIntelligenceList(
+        els.ccoSidebarAiFacts,
+        [],
+        'Välj en konversation för att se AI-stöd.'
+      );
+      renderIncidentIntelligenceList(
+        els.ccoSidebarMedicalFacts,
+        [],
+        'Ingen medicinkontext ännu i denna vy.'
+      );
+      renderIncidentIntelligenceList(
+        els.ccoSidebarTeamFacts,
+        [],
+        'Ingen teamkontext ännu i denna vy.'
+      );
+      renderCcoSidebarTabState();
+      return;
+    }
+
+    const summary = normalizeCcoCustomerSummary(conversation.customerSummary, {
+      customerKey: conversation.customerKey,
+      customerName: conversation.sender,
+    });
+    const overviewRows = [
+      `Livscykel · ${formatCcoLifecycleLabel(summary.lifecycleStatus)}`,
+      `Interaktioner · ${String(summary.interactionCount || 0)}`,
+      `Engagemang · ${Math.round(Number(summary.engagementScore || 0) * 100)}%`,
+      `Uppföljning · ${formatCcoFollowUpSummary(conversation)}`,
+    ];
+    const aiRows = [
+      `Intent · ${formatCcoIntentLabel(conversation.intent || 'unclear')}`,
+      `Ton · ${formatCcoToneLabel(conversation.tone || 'neutral')}`,
+      `Rekommendation · ${formatCcoRecommendedAction(conversation.recommendedAction || '')}`,
+      `Konfidens · ${formatCcoConfidenceLabel(conversation.confidenceLevel || 'Low')}`,
+      `Risk · ${formatCcoRiskIndicator(conversation, evaluation)}`,
+      `Policy · ${formatCcoPolicyIndicator(conversation, evaluation)}`,
+    ];
+    const medicalRows = [
+      `Senaste ärende · ${summary.lastCaseSummary || '-'}`,
+      `Senast inkommet · ${conversation.lastInboundAt ? formatCcoDateTimeValue(conversation.lastInboundAt) : '-'}`,
+      `Historikposter · ${String(buildCcoConversationHistoryEntries(conversation).length)}`,
+      `Följ upp · ${conversation.followUpSuggested === true ? 'Ja' : 'Ingen aktiv trigger'}`,
+    ];
+    const deleteCapability = sanitizeCcoDeleteCapabilityStatus(state.ccoDeleteCapability);
+    const signatureProfile = getCcoSelectedSignatureProfile();
+    const teamRows = [
+      `Postlåda · ${formatCcoMailboxShortLabel(state.ccoSenderMailboxId) || state.ccoSenderMailboxId || '-'}`,
+      `Signatur · ${signatureProfile?.fullName || '-'}`,
+      `Systemmail · ${isCcoSystemMessageRow(conversation) ? 'Ja' : 'Nej'}`,
+      `Radering · ${deleteCapability.deleteEnabled === true ? 'Tillgänglig' : deleteCapability.reason || 'Inte aktiverad'}`,
+    ];
+    renderIncidentIntelligenceList(els.ccoSidebarOverviewFacts, overviewRows, 'Välj en konversation för att se kundsignal.');
+    renderIncidentIntelligenceList(els.ccoSidebarAiFacts, aiRows, 'Välj en konversation för att se AI-stöd.');
+    renderIncidentIntelligenceList(
+      els.ccoSidebarMedicalFacts,
+      medicalRows,
+      'Ingen medicinkontext ännu i denna vy.'
+    );
+    renderIncidentIntelligenceList(els.ccoSidebarTeamFacts, teamRows, 'Ingen teamkontext ännu i denna vy.');
+    renderCcoSidebarTabState();
+  }
+
+  function buildCcoStatsModalMessage() {
+    const data = state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object'
+      ? state.ccoInboxData.data
+      : null;
+    if (!data) {
+      return 'Kör CCO inkorgsbrief för att visa statistik i detta pass.';
+    }
+    const rows = getSortedCcoConversations(data);
+    const openRows = buildCcoOpenConversationRows(data);
+    const unansweredCount = openRows.filter((row) => row.isUnanswered === true).length;
+    const breachCount = openRows.filter((row) => normalizeCcoSlaStatus(row?.slaStatus) === 'breach').length;
+    return [
+      `Öppna konversationer: ${openRows.length}`,
+      `Obesvarade: ${unansweredCount}`,
+      `SLA-brist: ${breachCount}`,
+      `Totalt i feeden: ${rows.length}`,
+    ].join('\n');
+  }
+
+  function openCcoAdvancedSearchModal() {
+    const filters = collectCcoActiveUtilityFilters();
+    void openAppModal({
+      title: 'Avancerad sök',
+      message: filters.length
+        ? `Aktiva filter:\n${filters.join('\n')}\n\nFortsätt använda befintliga filter i verktygsraden i detta pass.`
+        : 'Använd befintliga mailbox-, SLA- och statusfilter i verktygsraden i detta pass.',
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function buildCcoNextKeyboardShortcutsMessage() {
+    const store = ensureCcoNextPreviewBackboneStore();
+    const snapshot = store?.getSnapshot ? store.getSnapshot() : null;
+    const selectedConversation = snapshot?.selectedConversation || null;
+    const selectedStudio = snapshot?.selectedStudio || null;
+    const activeThreadLabel = selectedConversation
+      ? `${selectedConversation.sender || 'Okänd kund'} · ${selectedConversation.workflowLabel || 'Aktiv tråd'}`
+      : 'Ingen tråd vald just nu.';
+    const lines = [
+      'Kommandopalett',
+      '⌘K / Ctrl+K · Öppna kommandopaletten',
+      '↑ / ↓ i paletten · Flytta mellan kommandon',
+      'Enter i paletten · Kör markerat kommando',
+      'Esc i paletten · Stäng kommandopaletten',
+      '',
+      'Köer och navigering',
+      'Alt + Shift + 1 · Alla trådar',
+      'Alt + Shift + 2 · Agera nu',
+      'Alt + Shift + 3 · Bokningsklar',
+      'Alt + Shift + 4 · Följ upp idag',
+      'Alt + Shift + 5 · Väntar på patient',
+      'Alt + Shift + 6 · Medicinsk granskning',
+      'Alt + Shift + 7 · Admin / låg',
+      '↑ / ↓ i worklisten · Flytta mellan synliga trådar',
+      '',
+      'Snabbåtgärder för vald tråd',
+      'B · Boka nu',
+      'M · Lägg in mall',
+      'S · Öppna Svarsstudion',
+      'O · Ta ansvar',
+      'L · Återkom senare',
+      'H · Markera hanterad',
+      '? · Visa den här hjälpytan',
+      '',
+      'Sök och visningar',
+      'Enter i sökfältet · Kör sökningen',
+      'Sparade vyer, follow-up-filter och densitet finns även i kommandopaletten.',
+      '',
+      `Aktiv tråd: ${activeThreadLabel}`,
+      selectedStudio?.isOpen === true
+        ? `Studio aktiv: ${selectedStudio.title || 'Svarsstudio'} · ${selectedStudio.primaryAction?.label || 'Skicka'}`
+        : 'Studio aktiv: Nej',
+    ];
+    return lines.join('\n');
+  }
+
+  function openCcoKeyboardShortcutsModal() {
+    const message = isCcoNextWorkspaceActive()
+      ? buildCcoNextKeyboardShortcutsMessage()
+      : [
+          'Alt + Shift + 1 · Översikt',
+          'Alt + Shift + 2 · AI',
+          'Alt + Shift + 3 · Medicin',
+          'Alt + Shift + 4 · Team',
+          'Enter i sökfältet · uppdatera sökning',
+        ].join('\n');
+    void openAppModal({
+      title: 'Kortkommandon',
+      message,
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function getCcoNextPreviewFinalOperatorName() {
+    const profileName = String(
+      state.profile?.name ||
+        state.profile?.displayName ||
+        state.profile?.user?.name ||
+        state.profile?.user?.displayName ||
+        ''
+    ).trim();
+    const firstName = profileName.split(/\s+/).filter(Boolean)[0] || '';
+    const previewSeed = getCcoNextPreviewSeed();
+    const hasPreviewMatch = Array.isArray(previewSeed?.worklist)
+      ? previewSeed.worklist.some((row) =>
+          safeLower(row?.ownerDisplay || row?.owner || '').includes(safeLower(firstName))
+        )
+      : false;
+    return hasPreviewMatch && firstName ? firstName : 'Sara';
+  }
+
+  function buildCcoNextFinalNotificationsMessage() {
+    const previewSeed = getCcoNextPreviewSeed();
+    const worklist = Array.isArray(previewSeed?.worklist) ? previewSeed.worklist : [];
+    const store = ensureCcoNextPreviewBackboneStore();
+    const snapshot = store?.getSnapshot ? store.getSnapshot() : null;
+    const selectedConversation = snapshot?.selectedConversation || null;
+    const riskCount = worklist.filter((row) => {
+      const risk = String(row?.escalationRisk || '').trim().toLowerCase();
+      const sla = normalizeCcoSlaStatus(row?.slaStatus);
+      return risk === 'high' || sla === 'breach';
+    }).length;
+    const dueTodayCount = worklist.filter((row) =>
+      getCcoNextPreviewDueMeta(row?.followUpDueAt || '').isToday === true
+    ).length;
+    return [
+      `Sprintyta: ${Math.min(3, worklist.length)} trådar surfacade`,
+      `Hög risk: ${riskCount}`,
+      `Uppföljning idag: ${dueTodayCount}`,
+      selectedConversation
+        ? `Aktiv tråd: ${selectedConversation.sender || 'Okänd kund'} · ${
+            selectedConversation.workflowLabel || 'Pågående'
+          }`
+        : 'Aktiv tråd: Ingen vald ännu.',
+    ].join('\n');
+  }
+
+  function openCcoNextFinalNotificationsModal() {
+    void openAppModal({
+      title: 'Notifieringar',
+      message: buildCcoNextFinalNotificationsMessage(),
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function buildCcoNextFinalProfileMessage() {
+    const previewSeed = getCcoNextPreviewSeed();
+    const mailboxCatalog = getCcoNextPreviewFinalMailboxCatalog(previewSeed?.worklist || []);
+    const selectedMailboxIds = getCcoNextPreviewFinalSelectedMailboxIds(previewSeed?.worklist || []);
+    return [
+      `Operatör: ${getCcoNextPreviewFinalOperatorName()}`,
+      `Språk: ${isEnglishLanguage() ? 'English' : 'Svenska'}`,
+      `Tema: ${
+        sanitizeCcoNextPreviewFinalTheme(state.ccoNextPreviewFinalTheme || 'system') === 'dark'
+          ? 'Mörk'
+          : sanitizeCcoNextPreviewFinalTheme(state.ccoNextPreviewFinalTheme || 'system') === 'system'
+          ? 'System'
+          : 'Ljus'
+      }`,
+      `Mailboxar: ${selectedMailboxIds.length}/${mailboxCatalog.length} valda`,
+      `Vy: ${state.ccoNextPreviewFinalOwnerView === true ? 'Ägarvy' : 'Beslutsvy'}`,
+    ].join('\n');
+  }
+
+  function buildCcoNextFinalConversationNotes(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : null;
+    if (!safeConversation) return [];
+    const conversationId = String(safeConversation.conversationId || '').trim();
+    const persistedThreadState = conversationId ? getCcoNextPreviewThreadState(conversationId) : {};
+    const persistedNotes = Array.isArray(persistedThreadState?.previewNotes)
+      ? persistedThreadState.previewNotes
+          .map((note, index) => ({
+            id: String(note?.id || '').trim() || `manual-note-${conversationId || 'thread'}-${index}`,
+            category: String(note?.category || 'intern').trim().toLowerCase() || 'intern',
+            priority: String(note?.priority || 'medium').trim().toLowerCase() || 'medium',
+            eyebrow: 'Manuell',
+            title: String(note?.title || 'Anteckning').trim() || 'Anteckning',
+            note: String(note?.content || note?.note || '').trim(),
+            content: String(note?.content || note?.note || '').trim(),
+            timestamp: String(
+              note?.timestamp || safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(0, 0)
+            ).trim(),
+            tags: Array.isArray(note?.tags)
+              ? note.tags.map((tag) => String(tag || '').trim()).filter(Boolean).slice(0, 8)
+              : [],
+          }))
+          .filter((note) => note.content)
+      : [];
+    const derivedNotes = [
+      safeConversation.keyNote
+        ? {
+            id: `${conversationId || 'thread'}-key-note`,
+            category: 'sla',
+            priority: 'high',
+            eyebrow: 'Operativt',
+            title: 'Nyckelnotis',
+            note: safeConversation.keyNote,
+            content: safeConversation.keyNote,
+            timestamp: safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(-2, 0),
+            tags: ['SLA'],
+          }
+        : null,
+      safeConversation.internalNote
+        ? {
+            id: `${conversationId || 'thread'}-internal-note`,
+            category: 'intern',
+            priority: 'medium',
+            eyebrow: 'Internt',
+            title: 'Intern operativ notis',
+            note: safeConversation.internalNote,
+            content: safeConversation.internalNote,
+            timestamp: safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(-3, 0),
+            tags: ['Internt'],
+          }
+        : null,
+      safeConversation.operatorCue
+        ? {
+            id: `${conversationId || 'thread'}-operator-cue`,
+            category: 'uppfoljning',
+            priority: 'high',
+            eyebrow: 'Beslut',
+            title: 'Operatörscue',
+            note: safeConversation.operatorCue,
+            content: safeConversation.operatorCue,
+            timestamp: safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(-1, -30),
+            tags: ['Nästa steg'],
+          }
+        : null,
+      safeConversation.handoffStatusDetail || safeConversation.handoffNote
+        ? {
+            id: `${conversationId || 'thread'}-handoff-note`,
+            category: 'intern',
+            priority: 'medium',
+            eyebrow: 'Team',
+            title: 'Handoff',
+            note:
+              safeConversation.handoffStatusDetail ||
+              safeConversation.handoffNote,
+            content:
+              safeConversation.handoffStatusDetail ||
+              safeConversation.handoffNote,
+            timestamp:
+              safeConversation.draftUpdatedAt ||
+              safeConversation.lastInboundAt ||
+              getCcoNextPreviewTimestampOffset(-4, 0),
+            tags: ['Team'],
+          }
+        : null,
+      safeConversation.medicalContext
+        ? {
+            id: `${conversationId || 'thread'}-medical-note`,
+            category: 'medicinsk',
+            priority: 'medium',
+            eyebrow: 'Kontext',
+            title: 'Medicinsk notis',
+            note: safeConversation.medicalContext,
+            content: safeConversation.medicalContext,
+            timestamp: safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(-5, 0),
+            tags: ['Klinik'],
+          }
+        : null,
+      safeConversation.customerContext
+        ? {
+            id: `${conversationId || 'thread'}-customer-context`,
+            category: 'kundprofil',
+            priority: 'low',
+            eyebrow: 'Kundprofil',
+            title: 'Kundkontext',
+            note: safeConversation.customerContext,
+            content: safeConversation.customerContext,
+            timestamp: safeConversation.lastInboundAt || getCcoNextPreviewTimestampOffset(-24, 0),
+            tags: ['Profil'],
+          }
+        : null,
+    ].filter(Boolean);
+    return persistedNotes
+      .concat(derivedNotes)
+      .sort((left, right) => {
+        const rightTime = Date.parse(String(right?.timestamp || ''));
+        const leftTime = Date.parse(String(left?.timestamp || ''));
+        if (!Number.isFinite(rightTime) && !Number.isFinite(leftTime)) return 0;
+        if (!Number.isFinite(rightTime)) return -1;
+        if (!Number.isFinite(leftTime)) return 1;
+        return rightTime - leftTime;
+      });
+  }
+
+  function buildCcoNextFinalNotesMessage(scope = 'all') {
+    const store = ensureCcoNextPreviewBackboneStore();
+    const snapshot = store?.getSnapshot ? store.getSnapshot() : null;
+    const selectedConversation = snapshot?.selectedConversation || null;
+    if (scope === 'current' && selectedConversation) {
+      const currentNotes = buildCcoNextFinalConversationNotes(selectedConversation);
+      if (!currentNotes.length) {
+        return `${selectedConversation.sender || 'Kund'}\nInga anteckningar ännu.`;
+      }
+      return [`${selectedConversation.sender || 'Kund'}`]
+        .concat(
+          currentNotes.map(
+            (entry) => `${entry.eyebrow} · ${entry.title}\n${entry.note}`
+          )
+        )
+        .join('\n\n');
+    }
+    const previewSeed = getCcoNextPreviewSeed();
+    const worklist = Array.isArray(previewSeed?.worklist) ? previewSeed.worklist : [];
+    const entries = [];
+    worklist.slice(0, 6).forEach((row) => {
+      const notes = buildCcoNextFinalConversationNotes(row);
+      if (!notes.length) return;
+      entries.push(`${row.sender || 'Kund'}\n${notes[0].eyebrow} · ${notes[0].title}\n${notes[0].note}`);
+    });
+    return entries.length ? entries.join('\n\n') : 'Inga anteckningar tillgängliga ännu.';
+  }
+
+  function openCcoNextFinalNotesModal(scope = 'all') {
+    void openAppModal({
+      title: scope === 'current' ? 'Anteckningar' : 'Alla anteckningar',
+      message: buildCcoNextFinalNotesMessage(scope),
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function openCcoNextFinalProfileModal() {
+    void openAppModal({
+      title: 'Profil',
+      message: buildCcoNextFinalProfileMessage(),
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function focusCcoNextCommandPaletteInput(options = {}) {
+    const selectAll = options?.selectAll === true;
+    window.setTimeout(() => {
+      const input = els.ccoNextPreviewRoot?.querySelector('[data-cco-next-command-query]');
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        if (selectAll) {
+          input.select();
+          return;
+        }
+        const cursor = input.value.length;
+        if (typeof input.setSelectionRange === 'function') {
+          input.setSelectionRange(cursor, cursor);
+        }
+      }
+    }, 0);
+  }
+
+  function openCcoNextCommandPalette(initialQuery = '') {
+    if (!isCcoNextWorkspaceActive()) return;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    if (initialQuery) {
+      store.setCommandQuery(initialQuery);
+    } else {
+      store.setCommandPaletteOpen(true);
+    }
+    syncCcoNextPreviewBackboneToState();
+    renderCcoNextPreview();
+    focusCcoNextCommandPaletteInput({ selectAll: true });
+  }
+
+  function closeCcoNextCommandPalette() {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    store.setCommandPaletteOpen(false);
+    syncCcoNextPreviewBackboneToState();
+    renderCcoNextPreview();
+  }
+
+  function runCcoNextCommandPaletteCommand(commandId = '') {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store || typeof store.runCommand !== 'function') return;
+    const result = store.runCommand(commandId);
+    syncCcoNextPreviewBackboneToState();
+    persistCcoWorkspaceSessionState();
+    renderCcoNextPreview();
+    if (result?.modal) {
+      void openAppModal({
+        title: result.modal.title,
+        message: result.modal.message,
+        confirmLabel: 'Stäng',
+        cancelLabel: 'Stäng',
+        closeOnEscape: true,
+        closeOnBackdrop: true,
+      });
+    }
+    if (result?.toast) {
+      pushToast(result.toast.message, {
+        title: result.toast.title || 'CCO Next',
+        tone: result.toast.tone || 'info',
+      });
+    }
+  }
+
+  function isTypingIntoInteractiveControl(target) {
+    const element = target instanceof HTMLElement ? target : null;
+    if (!element) return false;
+    if (element.isContentEditable === true) return true;
+    const tagName = String(element.tagName || '').trim().toLowerCase();
+    if (['input', 'textarea', 'select'].includes(tagName)) return true;
+    return Boolean(element.closest('[contenteditable="true"]'));
+  }
+
+  function openCcoStatsModal() {
+    void openAppModal({
+      title: 'CCO-statistik',
+      message: buildCcoStatsModalMessage(),
+      confirmLabel: 'Stäng',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    });
+  }
+
+  function maybeShowCcoOnboarding() {
+    if (!isCcoWorkspaceActive()) return;
+    if (state.ccoOnboardingShown === true) return;
+    if (readCcoOnboardingCompleted()) return;
+    state.ccoOnboardingShown = true;
+    openAppModal({
+      title: 'Välkommen till CCO',
+      message: [
+        '1. Använd sök och filter i översta raden.',
+        '2. Välj en tråd i vänsterkolumnen.',
+        '3. Växla mellan Konversation, Kundhistorik och Historik.',
+        '4. Öppna Svarsstudio från snabbåtgärderna när du vill skriva svar.',
+      ].join('\n'),
+      confirmLabel: 'Markera som klar',
+      cancelLabel: 'Stäng',
+      closeOnEscape: true,
+      closeOnBackdrop: true,
+    }).then((result) => {
+      if (result?.confirmed) {
+        persistCcoOnboardingCompleted(true);
+        pushToast('Onboarding markerad som klar.', { title: 'CCO', tone: 'success' });
+        return;
+      }
+      state.ccoOnboardingShown = false;
+    });
+  }
+
+  function openCcoResponseStudio() {
+    const conversation = getCcoSelectedConversation();
+    if (!conversation) {
+      setStatus(els.ccoSendStatus, 'Välj en konversation först.', true);
+      return;
+    }
+    if (!els.ccoComposeStudio || !els.ccoDraftBodyInput) {
+      setStatus(els.ccoSendStatus, 'Svarsstudio saknas i denna adminyta.', true);
+      return;
+    }
+    if (isCcoReadOnlyMailViewMode()) {
+      state.ccoMailViewMode = 'queue';
+      persistCcoWorkspaceSessionState();
+      renderCcoInbox(state.ccoInboxData);
+    }
+    els.ccoComposeStudio.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => {
+      els.ccoDraftBodyInput?.focus();
+    }, 100);
+    setStatus(els.ccoSendStatus, 'Svarsstudio öppnad för vald konversation.');
+  }
+
+  function ensureCcoNextPreviewStyles() {
+    let style = document.getElementById('ccoNextPreviewRouteStylesRuntime');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'ccoNextPreviewRouteStylesRuntime';
+      document.head.append(style);
+    }
+    style.textContent = `
+      body.cco-next-preview-route {
+        --cco-next-pink: #ec4899;
+        --cco-next-rose: #f43f5e;
+        --cco-next-rose-soft: rgba(236, 72, 153, 0.12);
+        --cco-next-rose-border: rgba(236, 72, 153, 0.22);
+        --cco-next-green: #16a34a;
+        --cco-next-amber: #d97706;
+        --cco-next-space-1: 4px;
+        --cco-next-space-2: 8px;
+        --cco-next-space-3: 12px;
+        --cco-next-space-4: 16px;
+        --cco-next-space-6: 24px;
+        --cco-next-radius-xs: 4px;
+        --cco-next-radius-sm: 6px;
+        --cco-next-radius-md: 8px;
+        --cco-next-radius-lg: 12px;
+        --cco-next-radius-full: 9999px;
+        --cco-next-shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.08);
+        --cco-next-shadow-md: 0 2px 6px rgba(17, 24, 39, 0.1);
+        --cco-next-shadow-lg: 0 4px 12px rgba(17, 24, 39, 0.12);
+        --cco-next-header-h: 40px;
+        --cco-next-tab-h: 32px;
+        --cco-next-btn-sm-h: 28px;
+        --cco-next-btn-md-h: 36px;
+        --cco-next-row-h: 60px;
+        --cco-next-font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background:
+          radial-gradient(1180px 660px at 14% -10%, rgba(255, 255, 255, 0.72) 0%, transparent 58%),
+          radial-gradient(920px 560px at 100% 10%, rgba(251, 207, 232, 0.26) 0%, transparent 56%),
+          linear-gradient(180deg, #f8f4ef 0%, #f3eee9 56%, #efe7df 100%);
+        color: var(--cco-vnext-text-strong);
+        min-height: 100vh;
+        overflow-x: hidden;
+        font-family: var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route .container {
+        width: min(1520px, calc(100vw - 20px));
+        margin: 4px auto 8px;
+      }
+
+      body.cco-next-preview-route .header,
+      body.cco-next-preview-route #adminHeader,
+      body.cco-next-preview-route .section-nav,
+      body.cco-next-preview-route .cco-top-tabs-shell {
+        display: none !important;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection {
+        display: block;
+        padding: 0;
+        background: transparent;
+      }
+
+      body.cco-next-preview-route #ccoNextPreviewRoot,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-shell {
+        display: grid;
+        gap: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextPreviewRoot {
+        height: calc(100vh - 18px);
+        min-height: calc(100vh - 18px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-shell {
+        color: var(--cco-vnext-text-strong);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        height: calc(100vh - 18px);
+        min-height: calc(100vh - 18px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-topbar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-strip,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface {
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-topbar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-strip {
+        background: rgba(249, 250, 251, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-topbar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: var(--cco-next-space-3);
+        align-items: center;
+        min-height: var(--cco-next-header-h);
+        padding: var(--cco-next-space-2) var(--cco-next-space-4);
+        border-radius: var(--cco-next-radius-lg);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-brand-stack {
+        display: grid;
+        gap: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-brand-badge {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        min-height: 20px;
+        padding: 0 8px;
+        border-radius: var(--cco-next-radius-full);
+        background:
+          linear-gradient(135deg, rgba(236, 72, 153, 0.96), rgba(244, 63, 94, 0.98));
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-brand-mark {
+        margin: 0;
+        color: #111827;
+        font-size: 28px;
+        line-height: 0.92;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-search-shell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: var(--cco-next-radius-full);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-search {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 30px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #111827;
+        font: 500 13px/1 var(--cco-next-font-stack);
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-search::placeholder {
+        color: rgba(86, 71, 59, 0.44);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-search-shortcut {
+        appearance: none;
+        -webkit-appearance: none;
+        min-width: 40px;
+        height: 26px;
+        padding: 0 10px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        border-radius: 999px;
+        background: rgba(249, 250, 251, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+        color: rgba(55, 65, 81, 0.86);
+        font: 600 11px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 160;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 52px 24px 24px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-scrim {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        background: rgba(17, 24, 39, 0.18);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-panel {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 10px;
+        width: min(720px, calc(100vw - 48px));
+        max-height: calc(100vh - 96px);
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        background: rgba(249, 250, 251, 0.98);
+        box-shadow: var(--cco-next-shadow-lg);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-input {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        background: rgba(255, 255, 255, 0.98);
+        color: #111827;
+        font: 500 14px/1 var(--cco-next-font-stack);
+        box-shadow: var(--cco-next-shadow-sm);
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-close {
+        appearance: none;
+        -webkit-appearance: none;
+        min-width: 44px;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        background: rgba(255, 255, 255, 0.96);
+        color: rgba(55, 65, 81, 0.88);
+        font: 600 12px/1 var(--cco-next-font-stack);
+        box-shadow: var(--cco-next-shadow-sm);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-meta-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(229, 231, 235, 0.92);
+        background: rgba(255, 255, 255, 0.94);
+        color: rgba(75, 85, 99, 0.9);
+        font: 500 11px/1 var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-list {
+        display: grid;
+        gap: 6px;
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-item {
+        appearance: none;
+        -webkit-appearance: none;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 12px;
+        align-items: start;
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--cco-next-shadow-sm);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-item.is-active {
+        border-color: rgba(236, 72, 153, 0.28);
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(252, 231, 243, 0.88));
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-category {
+        font: 600 10px/1.1 var(--cco-next-font-stack);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(107, 114, 128, 0.9);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-title {
+        font: 600 14px/1.2 var(--cco-next-font-stack);
+        color: #111827;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-description {
+        font: 500 12px/1.4 var(--cco-next-font-stack);
+        color: rgba(75, 85, 99, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-side {
+        display: grid;
+        justify-items: end;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-shortcut,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(229, 231, 235, 0.96);
+        background: rgba(249, 250, 251, 0.98);
+        color: rgba(75, 85, 99, 0.94);
+        font: 600 10px/1 var(--cco-next-font-stack);
+        letter-spacing: 0.02em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-badge {
+        color: rgba(219, 39, 119, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-command-empty {
+        padding: 18px 14px;
+        border-radius: 12px;
+        border: 1px dashed rgba(209, 213, 219, 0.94);
+        background: rgba(255, 255, 255, 0.92);
+        color: rgba(75, 85, 99, 0.92);
+        font: 500 13px/1.5 var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-actions,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tabrail,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-toolbar-actions,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-segmented,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-tabs,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-tabs,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tab,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-mini-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+        color: #374151;
+        font-family: var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tab,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-mini-btn {
+        min-height: var(--cco-next-btn-md-h);
+        padding: 0 12px;
+        border-radius: var(--cco-next-radius-md);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action:hover,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tab:hover,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn:hover,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-mini-btn:hover,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread:hover {
+        transform: translateY(-1px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action.is-primary,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action.is-sprint,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tab.is-active,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn.is-primary {
+        color: #fff9f7;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action.is-primary,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-tab.is-active,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn.is-primary {
+        background:
+          linear-gradient(135deg, rgba(236, 72, 153, 0.96), rgba(244, 63, 94, 0.98));
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-top-action.is-sprint {
+        background:
+          linear-gradient(180deg, rgba(44, 194, 113, 0.94), rgba(18, 156, 84, 0.98));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn.is-danger {
+        color: #fff7f7;
+        border-color: rgba(220, 38, 38, 0.22);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.96), rgba(220, 38, 38, 0.98));
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-inline-btn:disabled {
+        opacity: 0.54;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-strip {
+        display: grid;
+        align-items: center;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: var(--cco-next-space-3);
+        padding: var(--cco-next-space-2) var(--cco-next-space-3);
+        border-radius: var(--cco-next-radius-lg);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-tools {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: flex-end;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-note {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 500;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip {
+        min-height: 20px;
+        padding: 0 8px;
+        border-radius: var(--cco-next-radius-xs);
+        font-size: 11px;
+        font-weight: 500;
+        color: #4b5563;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip.is-pink {
+        background: rgba(255, 236, 245, 0.92);
+        border-color: rgba(255, 79, 147, 0.16);
+        color: #d43e79;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip.is-danger {
+        background: rgba(255, 236, 236, 0.94);
+        border-color: rgba(208, 80, 74, 0.18);
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip.is-warn {
+        background: rgba(255, 241, 218, 0.92);
+        border-color: rgba(230, 162, 77, 0.18);
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip.is-success {
+        background: rgba(226, 245, 234, 0.92);
+        border-color: rgba(22, 179, 107, 0.18);
+        color: #23714d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-chip.is-neutral {
+        background: rgba(249, 250, 251, 0.96);
+        border-color: rgba(229, 231, 235, 0.94);
+        color: #6b7280;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-scenario-strip {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 3px;
+        padding: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-scenario-strip::-webkit-scrollbar {
+        display: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-scenario-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        min-height: 26px;
+        padding: 0 7px;
+        border-radius: var(--cco-next-radius-sm);
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: 500 11px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        white-space: nowrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-scenario-btn.is-active {
+        background: linear-gradient(135deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        color: #be185d;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-scenario-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        border-radius: var(--cco-next-radius-full);
+        background: rgba(107, 114, 128, 0.1);
+        color: inherit;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-workspace {
+        display: grid;
+        grid-template-columns: minmax(252px, 0.68fr) minmax(0, 1.92fr) minmax(220px, 0.42fr);
+        gap: var(--cco-next-space-3);
+        align-items: stretch;
+        min-height: 0;
+        height: 100%;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 0;
+        height: 100%;
+        padding: 12px;
+        border-radius: var(--cco-next-radius-lg);
+        background: rgba(255, 255, 255, 0.92);
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface.is-sidebar {
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        align-items: flex-start;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.94);
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface-body {
+        display: grid;
+        gap: 6px;
+        min-height: 0;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-body {
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-body {
+        align-content: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-body {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-body {
+        align-content: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-body::-webkit-scrollbar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-body::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-body::-webkit-scrollbar-thumb,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-body::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(156, 163, 175, 0.3);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-kicker {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-panel-title {
+        margin: 2px 0 0;
+        color: #111827;
+        font-size: 16px;
+        line-height: 1.1;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-toolbar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-modes {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-summary {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 500;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-list-filters {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-row.is-controls {
+        align-items: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-label {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-rail {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-chip {
+        appearance: none;
+        -webkit-appearance: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: var(--cco-next-radius-sm);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        font: 500 11px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-chip.is-active {
+        background: linear-gradient(135deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        color: #be185d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-filter-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        border-radius: var(--cco-next-radius-full);
+        background: rgba(107, 114, 128, 0.1);
+        color: inherit;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: var(--cco-next-radius-full);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(249, 250, 251, 0.96);
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-mini-btn {
+        min-height: var(--cco-next-btn-sm-h);
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-mini-btn.is-active {
+        background: linear-gradient(135deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        color: #be185d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sprint-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: var(--cco-next-radius-md);
+        background: rgba(240, 253, 244, 0.96);
+        border: 1px solid rgba(134, 239, 172, 0.82);
+        color: #166534;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-bulk-bar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-empty-card {
+        display: grid;
+        gap: 6px;
+        padding: 8px 9px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(249, 250, 251, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-bulk-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-bulk-copy strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-empty-card strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 650;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-bulk-copy span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-empty-card span {
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-bulk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-group {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: var(--cco-next-radius-md);
+        background: rgba(249, 250, 251, 0.96);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        color: #374151;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-group-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-group-copy small {
+        color: #6b7280;
+        font-size: 9px;
+        line-height: 1.2;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-group.is-priority .cco-next-preview-group-head {
+        background: rgba(254, 242, 242, 0.96);
+        color: #b91c1c;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-regular {
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-compact {
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-select {
+        appearance: none;
+        -webkit-appearance: none;
+        display: inline-flex;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        color: transparent;
+        box-shadow: var(--cco-next-shadow-sm);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-select.is-selected {
+        background: linear-gradient(135deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        color: #be185d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-selectable {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread {
+        width: 100%;
+        display: grid;
+        gap: 6px;
+        min-height: var(--cco-next-row-h);
+        padding: 8px 9px;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        border-radius: 10px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 250, 251, 0.96));
+        box-shadow: var(--cco-next-shadow-sm);
+        text-align: left;
+        color: #111827;
+        cursor: pointer;
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-compact .cco-next-preview-thread {
+        gap: 5px;
+        padding: 7px 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-collapsed .cco-next-preview-thread-reason.is-compact {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.3;
+        font-weight: 500;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-collapsed .cco-next-preview-thread-summary,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-shell.is-collapsed .cco-next-preview-thread-follow-through {
+        display: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread.is-active {
+        border-color: var(--cco-next-rose-border);
+        background:
+          linear-gradient(180deg, rgba(255, 247, 250, 0.96), rgba(249, 250, 251, 0.98));
+        box-shadow:
+          0 2px 6px rgba(236, 72, 153, 0.14),
+          inset 2px 0 0 0 rgba(236, 72, 153, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-main {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-avatar {
+        display: inline-flex;
+        width: 32px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--cco-next-radius-full);
+        background:
+          linear-gradient(135deg, rgba(107, 114, 128, 0.94), rgba(75, 85, 99, 0.98));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-priority {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 0 7px;
+        border-radius: var(--cco-next-radius-xs);
+        background: rgba(243, 244, 246, 0.96);
+        color: #4b5563;
+        font-size: 10px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane.is-danger {
+        background: rgba(255, 236, 236, 0.94);
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane.is-warn {
+        background: rgba(255, 241, 218, 0.94);
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane.is-success {
+        background: rgba(226, 245, 234, 0.94);
+        color: #23714d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane.is-neutral,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-lane.is-muted {
+        background: rgba(243, 244, 246, 0.96);
+        color: #4b5563;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-owner {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-owner.is-warn {
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-score {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 20px;
+        padding: 0 7px;
+        border-radius: var(--cco-next-radius-xs);
+        background: rgba(243, 244, 246, 0.96);
+        color: #4b5563;
+        font-size: 10px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-score.is-danger {
+        background: rgba(255, 236, 236, 0.94);
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-score.is-warn {
+        background: rgba(255, 241, 218, 0.94);
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-score.is-success {
+        background: rgba(226, 245, 234, 0.94);
+        color: #23714d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        align-items: baseline;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-sender {
+        color: #111827;
+        font-size: 14px;
+        line-height: 1.12;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-time {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-subject {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.22;
+        font-weight: 500;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-reason {
+        color: #4b5563;
+        font-size: 10px;
+        line-height: 1.25;
+        font-weight: 500;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through {
+        display: grid;
+        gap: 1px;
+        padding: 5px 7px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(236, 72, 153, 0.12);
+        background: rgba(253, 242, 248, 0.9);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through strong {
+        color: #be185d;
+        font-size: 11px;
+        line-height: 1.22;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.24;
+        font-weight: 500;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-success {
+        border-color: rgba(35, 113, 77, 0.18);
+        background: rgba(238, 249, 242, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-success strong {
+        color: #23714d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-success span {
+        color: rgba(39, 92, 67, 0.78);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-danger {
+        border-color: rgba(178, 71, 63, 0.18);
+        background: rgba(255, 243, 242, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-danger strong {
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-danger span {
+        color: rgba(114, 60, 54, 0.8);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-warn {
+        border-color: rgba(168, 97, 23, 0.18);
+        background: rgba(255, 247, 236, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-warn strong {
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-warn span {
+        color: rgba(108, 75, 45, 0.8);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-muted {
+        border-color: rgba(229, 231, 235, 0.94);
+        background: rgba(249, 250, 251, 0.96);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-muted strong {
+        color: #374151;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-follow-through.is-muted span {
+        color: #6b7280;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-summary-item {
+        display: flex;
+        gap: 5px;
+        align-items: baseline;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-summary-label {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-summary-value {
+        color: #374151;
+        font-size: 11px;
+        line-height: 1.24;
+        font-weight: 500;
+        min-width: 0;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops-item {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+        padding: 6px 8px 7px;
+        border-radius: 11px;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops-item:last-child {
+        grid-column: 1 / -1;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops-label {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops-value {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.24;
+        font-weight: 600;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 20px;
+        padding: 0 8px;
+        border-radius: var(--cco-next-radius-full);
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-deadline {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-deadline.is-danger {
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-deadline.is-warn {
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-title {
+        margin: 0;
+        color: #111827;
+        font-size: 20px;
+        line-height: 1.06;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-meta {
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.28;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.84fr);
+        gap: var(--cco-next-space-3);
+        min-height: 0;
+        align-items: stretch;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-pane,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-pane {
+        display: grid;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-pane {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-pane {
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-shell {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 4px;
+        padding-top: 2px;
+        min-height: 0;
+        flex: 1 1 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through {
+        display: grid;
+        gap: 2px;
+        padding: 7px 9px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(236, 72, 153, 0.14);
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through strong {
+        color: #8f365c;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through span {
+        color: rgba(86, 66, 74, 0.82);
+        font-size: 11px;
+        line-height: 1.28;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-success {
+        border-color: rgba(35, 113, 77, 0.18);
+        background: linear-gradient(180deg, rgba(244, 251, 247, 0.98), rgba(234, 246, 239, 0.98));
+        box-shadow: 0 6px 14px rgba(35, 113, 77, 0.08), inset 0 1px 0 rgba(255,255,255,0.76);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-success strong {
+        color: #23714d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-success span {
+        color: rgba(39, 92, 67, 0.82);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-danger {
+        border-color: rgba(178, 71, 63, 0.18);
+        background: linear-gradient(180deg, rgba(255, 248, 247, 0.98), rgba(255, 240, 239, 0.98));
+        box-shadow: 0 6px 14px rgba(178, 71, 63, 0.08), inset 0 1px 0 rgba(255,255,255,0.76);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-danger strong {
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-danger span {
+        color: rgba(114, 60, 54, 0.84);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-warn {
+        border-color: rgba(168, 97, 23, 0.18);
+        background: linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(255, 244, 232, 0.98));
+        box-shadow: 0 6px 14px rgba(168, 97, 23, 0.08), inset 0 1px 0 rgba(255,255,255,0.76);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-warn strong {
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-warn span {
+        color: rgba(108, 75, 45, 0.82);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-muted {
+        border-color: rgba(229, 231, 235, 0.94);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.98));
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-muted strong {
+        color: #374151;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-follow-through.is-muted span {
+        color: rgba(95, 80, 70, 0.76);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-token {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 0 7px;
+        border-radius: var(--cco-next-radius-full);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 600;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-token.is-primary {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        color: #be185d;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-token.is-danger {
+        color: #b2473f;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-status-token.is-warn {
+        color: #a86117;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-stack {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-card {
+        display: grid;
+        gap: 4px;
+        padding: 9px 10px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-card.is-primary {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.16);
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-card strong {
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-card p {
+        margin: 0;
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-note {
+        padding-top: 0;
+        color: #374151;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-brief {
+        display: grid;
+        gap: 8px;
+        padding: 10px 11px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-brief-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-brief-copy strong {
+        color: #111827;
+        font-size: 14px;
+        line-height: 1.22;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-brief-copy p {
+        margin: 0;
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-summary-item {
+        display: grid;
+        gap: 3px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(229, 231, 235, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-summary-item strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-summary-item p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.34;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-workflow-band {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-card {
+        display: grid;
+        gap: 5px;
+        padding: 10px 11px 11px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-card.is-primary {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-card strong {
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 650;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-focus-card p {
+        margin: 0;
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.28;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-timeline {
+        position: relative;
+        display: grid;
+        gap: 12px;
+        padding-left: 24px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-timeline::before {
+        content: "";
+        position: absolute;
+        left: 9px;
+        top: 4px;
+        bottom: 4px;
+        width: 2px;
+        background: linear-gradient(180deg, rgba(255, 79, 147, 0.28), rgba(255, 79, 147, 0.08));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message::before {
+        content: "";
+        position: absolute;
+        left: -18px;
+        top: 15px;
+        width: 8px;
+        height: 8px;
+        border-radius: var(--cco-next-radius-full);
+        background: rgba(236, 72, 153, 0.42);
+        border: 2px solid rgba(255, 255, 255, 0.92);
+        box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.12);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--cco-next-radius-full);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          linear-gradient(135deg, rgba(107, 114, 128, 0.94), rgba(75, 85, 99, 0.98));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-shell {
+        display: grid;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-author {
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-date {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-history-card {
+        display: grid;
+        gap: 4px;
+        padding: 10px 11px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-tabs {
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-tabs .cco-next-preview-tab {
+        min-height: 30px;
+        padding: 0 10px;
+        color: #6b7280;
+        background: rgba(249, 250, 251, 0.94);
+        box-shadow: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-tabs .cco-next-preview-tab.is-active {
+        color: #374151;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message.is-agent .cco-next-preview-message-body {
+        background: rgba(253, 242, 248, 0.82);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-shell .cco-next-preview-message-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-shell .cco-next-preview-history-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-reading-shell .cco-next-preview-card {
+        background: rgba(249, 250, 251, 0.88);
+        border-color: rgba(229, 231, 235, 0.78);
+        box-shadow: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-message-body p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-card p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-history-card p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card p {
+        margin: 0;
+        color: #374151;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-stack {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-conversation-panel,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-conversation-shell {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-conversation-panel {
+        overflow-y: auto;
+        padding-right: 4px;
+        border-top: 1px solid rgba(229, 231, 235, 0.78);
+        padding-top: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-conversation-panel::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-conversation-panel::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(156, 163, 175, 0.28);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-state-banner {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-state-card {
+        display: grid;
+        gap: 6px;
+        padding: 10px 11px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-state-card.is-primary {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-state-card strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.26;
+        font-weight: 650;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-guide {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-guide-item {
+        display: grid;
+        gap: 6px;
+        padding: 12px 14px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-guide-item.is-primary {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.18);
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-guide-item strong {
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-guide-item p {
+        margin: 0;
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.34;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-surface {
+        position: relative;
+        display: grid;
+        gap: 5px;
+        grid-template-rows: auto auto auto minmax(112px, 1fr) auto;
+        padding: 10px 11px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(249, 250, 251, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+        min-height: 0;
+        overflow: hidden;
+        align-content: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-title {
+        margin: 2px 0 0;
+        color: #111827;
+        font-size: 15px;
+        line-height: 1.15;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-intro {
+        margin: 4px 0 0;
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.32;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice {
+        appearance: none;
+        -webkit-appearance: none;
+        display: grid;
+        gap: 2px;
+        align-content: start;
+        min-height: 54px;
+        padding: 8px 9px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+        text-align: left;
+        color: #111827;
+        cursor: pointer;
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice:hover {
+        transform: translateY(-1px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice small {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.28;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice.is-primary.is-book {
+        background: linear-gradient(180deg, rgba(233, 248, 239, 0.98), rgba(222, 243, 231, 0.98));
+        border-color: rgba(22, 179, 107, 0.22);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice.is-primary.is-template {
+        background: linear-gradient(180deg, rgba(255, 245, 226, 0.98), rgba(255, 238, 210, 0.98));
+        border-color: rgba(230, 162, 77, 0.2);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice.is-primary.is-studio {
+        background: linear-gradient(180deg, rgba(255, 248, 251, 0.98), rgba(255, 241, 246, 0.98));
+        border-color: rgba(255, 79, 147, 0.2);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 9px 10px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action.is-book {
+        background: linear-gradient(180deg, rgba(240, 253, 244, 0.98), rgba(220, 252, 231, 0.98));
+        border-color: rgba(34, 197, 94, 0.22);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action.is-template {
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.98));
+        border-color: rgba(217, 119, 6, 0.22);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action.is-studio {
+        background: linear-gradient(180deg, rgba(253, 242, 248, 0.98), rgba(252, 231, 243, 0.98));
+        border-color: rgba(236, 72, 153, 0.22);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-copy strong {
+        color: #111827;
+        font-size: 13px;
+        line-height: 1.18;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-copy p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-meta {
+        margin: 0;
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.3;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-cta.is-template {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.96), rgba(217, 119, 6, 0.98));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action-cta.is-studio {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.96), rgba(244, 63, 94, 0.98));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-secondary-tools {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding-top: 2px;
+        border-top: 1px dashed rgba(229, 231, 235, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-secondary-tools-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-secondary-tool-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-secondary-tools-note {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.22;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief-card {
+        display: grid;
+        gap: 2px;
+        padding: 7px 8px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief-card span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief-card strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.22;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief-card p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.26;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-check-item {
+        display: grid;
+        gap: 3px;
+        padding: 8px 9px;
+        border-radius: 11px;
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-check-item span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-label {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-check-item strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.24;
+        font-weight: 650;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card.is-success {
+        border-color: rgba(34, 197, 94, 0.18);
+        background: rgba(240, 253, 244, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card.is-warn {
+        border-color: rgba(245, 158, 11, 0.18);
+        background: rgba(255, 251, 235, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta-card.is-danger {
+        border-color: rgba(239, 68, 68, 0.18);
+        background: rgba(254, 242, 242, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-ai-card {
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-ai-preview {
+        padding: 8px 9px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        color: #374151;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-modal {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        display: grid;
+        place-items: center;
+        padding: 12px;
+        background: rgba(249, 250, 251, 0.78);
+        backdrop-filter: blur(6px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-modal-card {
+        width: min(100%, 420px);
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border-radius: var(--cco-next-radius-lg);
+        border: 1px solid rgba(229, 231, 235, 0.98);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--cco-next-shadow-md);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-form-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-field {
+        display: grid;
+        gap: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-field-full {
+        grid-column: 1 / -1;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-field span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-field input {
+        width: 100%;
+        min-height: 34px;
+        padding: 0 10px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.98);
+        color: #111827;
+        font: 500 12px/1.2 var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset {
+        appearance: none;
+        -webkit-appearance: none;
+        display: grid;
+        gap: 4px;
+        padding: 10px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        text-align: left;
+        cursor: pointer;
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.32;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-studio-preset-note {
+        color: #4b5563;
+        font-size: 10px;
+        line-height: 1.32;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-items: stretch;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-draft-shell,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-side,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-checklist {
+        display: grid;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-draft-shell {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-side {
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-checklist {
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-draft {
+        width: 100%;
+        min-height: 96px;
+        height: 100%;
+        padding: 9px 10px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--cco-next-shadow-sm);
+        color: #111827;
+        font: 500 13px/1.45 var(--cco-next-font-stack);
+        resize: vertical;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-footnote {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.28;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-actions.is-commit {
+        padding-top: 2px;
+        justify-content: flex-start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-actions.is-utility {
+        padding-top: 2px;
+        border-top: 1px dashed rgba(229, 231, 235, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-actions.is-secondary {
+        margin-top: -1px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 8px;
+        padding: 8px 9px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-summary-item {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-summary-item span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-summary-item strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.22;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-bottom: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--cco-next-radius-full);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          linear-gradient(135deg, rgba(107, 114, 128, 0.94), rgba(75, 85, 99, 0.98));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-name {
+        color: #111827;
+        font-size: 14px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-meta {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.24;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-stack {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-metric {
+        display: grid;
+        gap: 2px;
+        padding: 7px 8px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px solid rgba(229, 231, 235, 0.94);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--cco-next-shadow-sm);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-metric span {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-metric strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.18;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-history-card strong {
+        color: #111827;
+        font-size: 12px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-card span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-history-card span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-empty {
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.26;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card p {
+        color: #4b5563;
+        font-size: 11px;
+        line-height: 1.34;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card-list,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-journey-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card-line,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-journey-item {
+        display: grid;
+        gap: 2px;
+        padding-top: 6px;
+        border-top: 1px dashed rgba(229, 231, 235, 0.94);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card-line strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-journey-item strong {
+        color: #374151;
+        font-size: 10px;
+        line-height: 1.25;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-card-line span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-journey-date {
+        color: #4b5563;
+        font-size: 11px;
+        line-height: 1.34;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-journey-item p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.34;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-empty {
+        padding: 8px 10px;
+        border-radius: var(--cco-next-radius-md);
+        border: 1px dashed rgba(229, 231, 235, 0.94);
+        background: rgba(249, 250, 251, 0.96);
+      }
+
+      @media (max-width: 1440px) {
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-kpi-strip,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-state-banner,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-meta,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-brief,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-action-choice-grid,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-primary-action,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-row,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-decision-summary,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-summary {
+          grid-template-columns: 1fr;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-thread-ops,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-sidebar-metrics,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-grid,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-workflow-band,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-response-actions,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-center-stage {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 1520px) {
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-workspace {
+          grid-template-columns: minmax(248px, 0.74fr) minmax(560px, 1.58fr) minmax(228px, 0.48fr);
+        }
+      }
+
+      @media (max-width: 1280px) {
+        body.cco-next-preview-route .container {
+          width: min(100vw - 28px, 1320px);
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-topbar,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-overview-strip {
+          grid-template-columns: 1fr;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-workspace {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-preview-surface {
+          min-height: auto;
+          height: auto;
+        }
+      }
+    `;
+  }
+
+  function ensureCcoNextPreviewFinalShellStyles() {
+    let style = document.getElementById('ccoNextPreviewFinalShellRuntime');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'ccoNextPreviewFinalShellRuntime';
+      document.head.append(style);
+    }
+    style.textContent = `
+      body.cco-next-preview-route #ccoNextPreviewRoot,
+      body.cco-next-preview-route #ccoNextWorkspaceSection {
+        min-height: 100vh;
+      }
+
+      body.cco-next-preview-route #ccoNextPreviewRoot {
+        height: calc(100vh - 18px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell {
+        --cco-next-final-bg: #f7f8fb;
+        --cco-next-final-surface: #ffffff;
+        --cco-next-final-border: rgba(226, 232, 240, 0.94);
+        --cco-next-final-muted: #6b7280;
+        --cco-next-final-strong: #111827;
+        --cco-next-final-soft: #f3f4f6;
+        --cco-next-final-hover: #f9fafb;
+        --cco-next-final-danger: #e11d48;
+        --cco-next-final-danger-soft: #fff1f2;
+        --cco-next-final-success: #059669;
+        --cco-next-final-success-soft: #ecfdf5;
+        --cco-next-final-warn: #d97706;
+        --cco-next-final-warn-soft: #fffbeb;
+        --cco-next-final-info: #2563eb;
+        --cco-next-final-info-soft: #eff6ff;
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        min-height: calc(100vh - 18px);
+        height: calc(100vh - 18px);
+        position: relative;
+        background: var(--cco-next-final-bg);
+        color: var(--cco-next-final-strong);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell.is-dark {
+        --cco-next-final-bg: #0f172a;
+        --cco-next-final-surface: #111827;
+        --cco-next-final-border: rgba(51, 65, 85, 0.9);
+        --cco-next-final-muted: #9ca3af;
+        --cco-next-final-strong: #f9fafb;
+        --cco-next-final-soft: #1f2937;
+        --cco-next-final-hover: #172033;
+        --cco-next-final-danger-soft: rgba(127, 29, 29, 0.35);
+        --cco-next-final-success-soft: rgba(6, 78, 59, 0.35);
+        --cco-next-final-warn-soft: rgba(120, 53, 15, 0.35);
+        --cco-next-final-info-soft: rgba(30, 58, 138, 0.35);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-nav,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbar,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane {
+        background: var(--cco-next-final-surface);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-nav,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbar {
+        border-bottom: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 53px;
+        padding: 6px 24px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-logo {
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        color: var(--cco-next-final-strong);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-search-shell {
+        position: relative;
+        flex: 0 0 280px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-search-icon {
+        position: absolute;
+        inset: 50% auto auto 12px;
+        transform: translateY(-50%);
+        color: var(--cco-next-final-muted);
+        width: 12px;
+        height: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon {
+        width: 16px;
+        height: 16px;
+        display: block;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.85;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-search,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-mini,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-chevron {
+        width: 10px;
+        height: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-tab {
+        width: 14px;
+        height: 14px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-button {
+        width: 12px;
+        height: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-utility {
+        width: 12px;
+        height: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-category,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-inline-icon.is-insight {
+        width: 11px;
+        height: 11px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-search {
+        width: 100%;
+        min-height: 26.5px;
+        padding: 0 12px 0 28px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        background: color-mix(in srgb, var(--cco-next-final-soft) 72%, transparent);
+        color: var(--cco-next-final-strong);
+        font: 500 11px/1 var(--cco-next-font-stack);
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-search::placeholder {
+        color: color-mix(in srgb, var(--cco-next-final-muted) 88%, transparent);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header-control-cluster {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header-toggle-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 4px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--cco-next-final-soft) 88%, transparent);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-icon-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-segment-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mini-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        color: var(--cco-next-final-strong);
+        font-family: var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-button,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-button.is-sprint {
+        border-color: rgba(5, 150, 105, 0.28);
+        background: linear-gradient(135deg, #10b981, #0f766e);
+        color: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-button.is-active,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip-button.is-active {
+        border-color: rgba(236, 72, 153, 0.2);
+        background: rgba(252, 231, 243, 0.92);
+        color: #db2777;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-icon-button {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: transparent;
+        color: var(--cco-next-final-muted);
+        padding: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-icon-button.is-accent {
+        color: #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-icon-button.is-profile {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        background: color-mix(in srgb, var(--cco-next-final-soft) 72%, transparent);
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-icon-button.is-notes {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        border: 1px solid rgba(236, 72, 153, 0.24);
+        background: #ffffff;
+        color: #db2777;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-profile-image {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-segment-button {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--cco-next-final-muted);
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-segment-button.is-active {
+        background: #ffffff;
+        color: #ec4899;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notification-dot {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #ef4444;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 24px;
+        min-height: 31px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab {
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 8px 8px 0 0;
+        border-color: transparent;
+        background: transparent;
+        color: var(--cco-next-final-muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab-icon {
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.94;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab-label {
+        line-height: 1;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab.is-active {
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        color: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 24px;
+        min-height: 42px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-shell {
+        position: relative;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip-button {
+        background: #111827;
+        color: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell.is-dark .cco-next-final-chip-button {
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chevron {
+        width: 10px;
+        height: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.72;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 18;
+        width: 180px;
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-menu-head {
+        margin-bottom: 6px;
+        color: var(--cco-next-final-muted);
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 30px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--cco-next-final-strong);
+        font: 600 11px/1 var(--cco-next-font-stack);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-option:hover {
+        background: var(--cco-next-final-hover);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-check {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-option.is-selected .cco-next-final-mailbox-check {
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        border-color: rgba(236, 72, 153, 0.36);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mailbox-count {
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-statusline {
+        margin-left: auto;
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-workspace {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 360px;
+        min-height: 0;
+        height: 100%;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane {
+        min-height: 0;
+        height: 100%;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-left,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-center {
+        border-right: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-left,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-center,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-surface {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-left-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-head {
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-section-kicker,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-label {
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-left-title,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel-title {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 22px;
+        line-height: 1.1;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-left-count,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-count {
+        color: #ec4899;
+        font-size: 20px;
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-left-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-worklist-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-scroll,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-scroll,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-scroll {
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-worklist-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-scroll {
+        padding: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bulkbar {
+        display: grid;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--cco-next-final-border);
+        background: color-mix(in srgb, var(--cco-next-final-soft) 80%, transparent);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bulkbar strong {
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bulkbar span {
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bulk-actions,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-pill-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-badge-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tab-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-pill,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-token {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-strong);
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip.is-danger,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-token.is-danger,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-pill.is-danger {
+        background: var(--cco-next-final-danger-soft);
+        border-color: rgba(225, 29, 72, 0.24);
+        color: var(--cco-next-final-danger);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip.is-success,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-token.is-success,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-pill.is-success {
+        background: var(--cco-next-final-success-soft);
+        border-color: rgba(5, 150, 105, 0.24);
+        color: var(--cco-next-final-success);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip.is-warn,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-token.is-warn,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-pill.is-warn {
+        background: var(--cco-next-final-warn-soft);
+        border-color: rgba(217, 119, 6, 0.24);
+        color: var(--cco-next-final-warn);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-chip.is-info,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-token.is-info {
+        background: var(--cco-next-final-info-soft);
+        border-color: rgba(37, 99, 235, 0.24);
+        color: var(--cco-next-final-info);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category {
+        border-bottom: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 14px;
+        border: 0;
+        border-left: 4px solid transparent;
+        background: transparent;
+        color: var(--cco-next-final-strong);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-toggle:hover {
+        background: var(--cco-next-final-hover);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-red .cco-next-final-category-toggle {
+        background: color-mix(in srgb, var(--cco-next-final-danger-soft) 65%, transparent);
+        border-left-color: #ef4444;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-blue .cco-next-final-category-toggle {
+        background: color-mix(in srgb, var(--cco-next-final-info-soft) 65%, transparent);
+        border-left-color: #3b82f6;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-amber .cco-next-final-category-toggle {
+        background: color-mix(in srgb, var(--cco-next-final-warn-soft) 65%, transparent);
+        border-left-color: #f59e0b;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-purple .cco-next-final-category-toggle {
+        background: rgba(243, 232, 255, 0.72);
+        border-left-color: #8b5cf6;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-green .cco-next-final-category-toggle {
+        background: color-mix(in srgb, var(--cco-next-final-success-soft) 65%, transparent);
+        border-left-color: #10b981;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell.is-dark .cco-next-final-category.is-purple .cco-next-final-category-toggle {
+        background: rgba(88, 28, 135, 0.25);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-main {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-handle {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+        width: 8px;
+        flex: 0 0 auto;
+        opacity: 0.72;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-handle span {
+        width: 3px;
+        height: 3px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 10px;
+        height: 10px;
+        color: var(--cco-next-final-muted);
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        color: inherit;
+        font-size: 11px;
+        line-height: 1;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-red .cco-next-final-category-chevron,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-red .cco-next-final-category-icon {
+        color: #ef4444;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-blue .cco-next-final-category-chevron,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-blue .cco-next-final-category-icon {
+        color: #2563eb;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-amber .cco-next-final-category-chevron,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-amber .cco-next-final-category-icon {
+        color: #d97706;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-purple .cco-next-final-category-chevron,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-purple .cco-next-final-category-icon {
+        color: #8b5cf6;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-green .cco-next-final-category-chevron,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category.is-green .cco-next-final-category-icon {
+        color: #10b981;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--cco-next-final-strong);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-count {
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-category-body {
+        background: var(--cco-next-final-surface);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-bottom: 1px solid var(--cco-next-final-border);
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message:hover {
+        background: var(--cco-next-final-hover);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message.is-soft-danger {
+        background: rgba(255, 241, 242, 0.4);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message.is-active {
+        background: rgba(252, 231, 243, 0.62);
+        box-shadow: inset 3px 0 0 #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell.is-dark .cco-next-final-message.is-active {
+        background: rgba(131, 24, 67, 0.32);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message.is-multi {
+        padding-left: 40px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-select {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-select.is-selected {
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        border-color: rgba(236, 72, 153, 0.36);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-grid {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-avatar {
+        position: relative;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--cco-next-final-soft);
+        border: 1px solid var(--cco-next-final-border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        overflow: visible;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-avatar-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 999px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-avatar-presence {
+        position: absolute;
+        right: -1px;
+        top: -1px;
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        border: 1px solid #ffffff;
+        background: #00bc7d;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-avatar-badge {
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #ffffff;
+        font-size: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-subhead {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-head {
+        justify-content: space-between;
+        margin-bottom: 1px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-name {
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-time,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-preview,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-muted {
+        color: var(--cco-next-final-muted);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-time {
+        font-size: 9px;
+        flex-shrink: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-subject {
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-preview {
+        margin-top: 1px;
+        font-size: 9px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-badges {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 16px;
+        padding: 0 5px;
+        border-radius: 6px;
+        border: 1px solid var(--cco-next-final-border);
+        font-size: 7px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag.is-danger {
+        background: var(--cco-next-final-danger-soft);
+        border-color: rgba(225, 29, 72, 0.22);
+        color: var(--cco-next-final-danger);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag.is-success {
+        background: var(--cco-next-final-success-soft);
+        border-color: rgba(5, 150, 105, 0.22);
+        color: var(--cco-next-final-success);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag.is-warn {
+        background: var(--cco-next-final-warn-soft);
+        border-color: rgba(217, 119, 6, 0.22);
+        color: var(--cco-next-final-warn);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag.is-purple {
+        background: rgba(243, 232, 255, 0.7);
+        border-color: rgba(139, 92, 246, 0.22);
+        color: #7c3aed;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-tag.is-neutral {
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-muted);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-title {
+        margin: 0 0 4px;
+        color: var(--cco-next-final-strong);
+        font-size: 28px;
+        line-height: 1.1;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-meta {
+        display: none;
+        color: var(--cco-next-final-muted);
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-date-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-muted);
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-scroll {
+        padding: 0 16px 16px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-badges,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-card-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stats-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-form-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-badges {
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        padding: 12px 0;
+        overflow-x: auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-alert {
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(217, 119, 6, 0.22);
+        background: var(--cco-next-final-warn-soft);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-alert strong {
+        display: block;
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-alert p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-copy p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-card p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-card p {
+        margin: 0;
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-copy {
+        padding: 14px 0 16px;
+        border-top: 1px solid var(--cco-next-final-border);
+        border-bottom: 1px solid var(--cco-next-final-border);
+        background: color-mix(in srgb, var(--cco-next-final-warn-soft) 42%, transparent);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-copy strong {
+        display: block;
+        margin: 6px 0 8px;
+        color: var(--cco-next-final-strong);
+        font-size: 16px;
+        line-height: 1.4;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-copy .cco-next-final-inbound {
+        margin-top: 10px;
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-card-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: 14px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-bubble,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-note {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--cco-next-final-surface) 92%, var(--cco-next-final-soft));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-note {
+        padding: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-card h4,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card h4,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-card h4,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-label {
+        margin: 0 0 6px;
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-card strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-author {
+        color: var(--cco-next-final-strong);
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs {
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        padding: 12px 0;
+        border-top: 1px solid var(--cco-next-final-border);
+        border-bottom: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs button {
+        appearance: none;
+        -webkit-appearance: none;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 10px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        color: var(--cco-next-final-muted);
+        font: 700 10px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs button.is-active {
+        color: #ec4899;
+        border-color: rgba(236, 72, 153, 0.24);
+        background: rgba(253, 242, 248, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-list,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-list,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-stack {
+        display: grid;
+        gap: 12px;
+        padding-top: 14px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-tab {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-heading h3 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-heading p {
+        margin: 4px 0 0;
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-toolbar-button {
+        min-height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 10px;
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-strong);
+        font: 700 10px/1 var(--cco-next-font-stack);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-toolbar-button.is-primary {
+        border-color: rgba(244, 114, 182, 0.24);
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        color: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-card {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--cco-next-final-surface) 94%, var(--cco-next-final-soft));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--cco-next-final-border);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--cco-next-final-soft) 84%, white),
+          color-mix(in srgb, var(--cco-next-final-surface) 94%, white)
+        );
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-head-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--cco-next-final-border);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--cco-next-final-muted);
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon.is-danger {
+        color: #dc2626;
+        background: rgba(254, 242, 242, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon.is-warn {
+        color: #d97706;
+        background: rgba(255, 251, 235, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon.is-info {
+        color: #2563eb;
+        background: rgba(239, 246, 255, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon.is-purple {
+        color: #7c3aed;
+        background: rgba(245, 243, 255, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-icon .cco-next-final-inline-icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-title-row h4 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-priority {
+        display: inline-flex;
+        align-items: center;
+        min-height: 16px;
+        padding: 0 6px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        font-size: 7px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-priority.is-danger {
+        color: #b91c1c;
+        background: rgba(254, 226, 226, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-priority.is-warn {
+        color: #a16207;
+        background: rgba(254, 243, 199, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-priority.is-success {
+        color: #15803d;
+        background: rgba(220, 252, 231, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-time {
+        margin-top: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--cco-next-final-muted);
+        font-size: 8px;
+        line-height: 1.2;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-body {
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-body strong {
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-rich-note-body p {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-tags {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-note-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding: 0 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(192, 132, 252, 0.28);
+        background: rgba(245, 243, 255, 0.92);
+        color: #7c3aed;
+        font-size: 8px;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-empty {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        padding: 32px 16px;
+        border: 1px dashed var(--cco-next-final-border);
+        border-radius: 12px;
+        color: var(--cco-next-final-muted);
+        text-align: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-empty p {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-empty-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-soft);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--cco-next-final-muted);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-notes-empty-icon .cco-next-final-inline-icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-tab,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-tab {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 14px;
+        background: linear-gradient(
+          163deg,
+          color-mix(in srgb, var(--cco-next-final-soft) 88%, white),
+          color-mix(in srgb, var(--cco-next-final-surface) 96%, white)
+        );
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-media {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-avatar.is-large {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-vip {
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid #ffffff;
+        background: linear-gradient(135deg, #facc15, #f59e0b);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-vip .cco-next-final-inline-icon {
+        width: 9px;
+        height: 9px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-copy h3 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-profile-copy p {
+        margin: 4px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 12px;
+        padding: 10px;
+        background: linear-gradient(163deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+        display: grid;
+        gap: 3px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card.is-blue {
+        border-color: #bfdbfe;
+        background: linear-gradient(163deg, rgba(239, 246, 255, 0.96), rgba(219, 234, 254, 0.72));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card.is-green {
+        border-color: #a7f3d0;
+        background: linear-gradient(163deg, rgba(236, 253, 245, 0.96), rgba(209, 250, 229, 0.72));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card.is-purple {
+        border-color: #e9d5ff;
+        background: linear-gradient(163deg, rgba(250, 245, 255, 0.96), rgba(243, 232, 255, 0.72));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-head span:last-child {
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-icon.is-blue {
+        color: #2563eb;
+        background: rgba(219, 234, 254, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-icon.is-green {
+        color: #059669;
+        background: rgba(209, 250, 229, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-icon.is-purple {
+        color: #7c3aed;
+        background: rgba(237, 233, 254, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card strong {
+        color: var(--cco-next-final-strong);
+        font-size: 14px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-stat-card p {
+        margin: 0;
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        line-height: 1.35;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--cco-next-final-surface) 94%, white);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section.is-neutral {
+        background: rgba(248, 250, 252, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section.is-green {
+        border-color: #a7f3d0;
+        background: rgba(236, 253, 245, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section.is-purple {
+        border-color: #e9d5ff;
+        background: rgba(250, 245, 255, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section h4 {
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-section-body,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-preferences,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-contact-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-row,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-row {
+        justify-content: space-between;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        color: var(--cco-next-final-muted);
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-icon.is-info {
+        color: #2563eb;
+        background: rgba(219, 234, 254, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-icon.is-purple {
+        color: #7c3aed;
+        background: rgba(237, 233, 254, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-icon.is-warn {
+        color: #d97706;
+        background: rgba(254, 243, 199, 0.92);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+        display: grid;
+        gap: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-copy span,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-label {
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        line-height: 1.3;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-detail-copy strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-row strong {
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        line-height: 1.4;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-value-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-contact-list div,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-preferences div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-tab-head h3 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-tab-head p {
+        margin: 4px 0 0;
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline {
+        position: relative;
+        display: grid;
+        gap: 14px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-line {
+        position: absolute;
+        left: 15px;
+        top: 10px;
+        bottom: 10px;
+        width: 2px;
+        background: var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-dot {
+        position: relative;
+        z-index: 1;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 2px solid #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--cco-next-final-muted);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-dot.is-info {
+        color: #2563eb;
+        background: rgba(239, 246, 255, 0.96);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-dot.is-success {
+        color: #059669;
+        background: rgba(236, 253, 245, 0.96);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-dot.is-purple {
+        color: #7c3aed;
+        background: rgba(245, 243, 255, 0.96);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-dot.is-warn {
+        color: #d97706;
+        background: rgba(255, 247, 237, 0.96);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-card {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--cco-next-final-surface) 96%, white);
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-head h4 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-head p {
+        margin: 2px 0 0;
+        color: var(--cco-next-final-muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-head > span {
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.4;
+        white-space: nowrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-timeline-detail {
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(248, 250, 252, 0.9);
+        color: #364153;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-bubble {
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--cco-next-final-strong);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-latest-message .cco-next-final-message-bubble {
+        background: rgba(239, 246, 255, 0.74);
+        border-color: rgba(191, 219, 254, 0.9);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-note {
+        margin-top: auto;
+        background: color-mix(in srgb, var(--cco-next-final-warn-soft) 60%, transparent);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane {
+        display: grid;
+        grid-template-rows: minmax(0, 0.46fr) minmax(0, 0.54fr);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-surface + .cco-next-final-right-surface {
+        border-top: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-scroll,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-scroll {
+        padding: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-cta {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(236, 72, 153, 0.16);
+        background: linear-gradient(135deg, rgba(252, 231, 243, 0.92), rgba(254, 242, 242, 0.96));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-shell.is-dark .cco-next-final-studio-cta {
+        background: linear-gradient(135deg, rgba(80, 7, 36, 0.48), rgba(69, 10, 10, 0.42));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-cta strong {
+        display: block;
+        margin: 6px 0 6px;
+        color: var(--cco-next-final-strong);
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-primary-cta {
+        width: 100%;
+        min-height: 38px;
+        margin-top: 10px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        color: #ffffff;
+        font: 700 12px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-subactions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-mini-button {
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 8px;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 16px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item span {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item strong {
+        color: var(--cco-next-final-strong);
+        font-size: 12px;
+        line-height: 1.4;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-name {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 18px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-meta {
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        line-height: 1.4;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-logo {
+        color: #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-workspace {
+        grid-template-columns: 348px minmax(0, 1fr) 348px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-left-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-head {
+        padding: 8px 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-worklist-title {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 13px;
+        line-height: 1.25;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-worklist-title span {
+        color: #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-head {
+        align-items: center;
+        min-height: 40px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-title {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.25;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-meta {
+        margin-top: 2px;
+        font-size: 10px;
+        line-height: 1.3;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-menu {
+        border: 0;
+        background: transparent;
+        color: var(--cco-next-final-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-menu.is-top {
+        padding: 4px 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-center-scroll {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs {
+        gap: 0;
+        padding: 0 12px;
+        border-top: 1px solid var(--cco-next-final-border);
+        border-bottom: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs button {
+        min-height: 31px;
+        padding: 0 12px;
+        border-radius: 0;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-size: 9px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs button.is-active {
+        background: transparent;
+        border-color: #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-conversation-shell {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-context-banner {
+        margin: 10px 12px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid rgba(236, 72, 153, 0.24);
+        border-radius: 10px;
+        background: rgba(253, 242, 248, 0.82);
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-context-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #be185d;
+        font-weight: 700;
+        flex: 0 0 auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-context-icon .cco-next-final-inline-icon {
+        width: 10px;
+        height: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-context-banner strong {
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-status-strip {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 12px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread {
+        position: relative;
+        padding: 10px 16px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-line {
+        position: absolute;
+        top: 24px;
+        bottom: 44px;
+        left: 31px;
+        width: 2px;
+        background: rgba(244, 114, 182, 0.28);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-latest-message {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-dot {
+        position: relative;
+        z-index: 1;
+        width: 10px;
+        height: 10px;
+        margin-top: 14px;
+        border-radius: 999px;
+        background: #f472b6;
+        box-shadow: 0 0 0 4px var(--cco-next-final-surface);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-copy {
+        min-width: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-author {
+        color: var(--cco-next-final-strong);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-time {
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-separator {
+        color: rgba(107, 114, 128, 0.72);
+        font-size: 10px;
+        line-height: 1;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-thread-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: rgba(253, 242, 248, 0.92);
+        color: #ec4899;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-older-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 12px;
+        min-height: 36px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 10px;
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-muted);
+        font: 600 11px/1 var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-older-chevron {
+        width: 10px;
+        height: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-list {
+        padding: 12px 16px 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-message-row.is-history {
+        opacity: 0.78;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-conversation-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px 10px;
+        color: var(--cco-next-final-muted);
+        font-size: 10px;
+        border-top: 1px solid var(--cco-next-final-border);
+        margin-top: auto;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-meta-icon {
+        width: 12px;
+        height: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(107, 114, 128, 0.78);
+        font-size: 9px;
+        line-height: 1;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-meta-icon::before {
+        content: none;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-operator-note {
+        padding: 10px 16px;
+        border-top: 1px solid rgba(217, 119, 6, 0.2);
+        background: rgba(255, 251, 235, 0.66);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-operator-note h4 {
+        margin: 0 0 4px;
+        color: var(--cco-next-final-strong);
+        font-size: 10px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-operator-note p {
+        margin: 0;
+        color: #a16207;
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bottom-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--cco-next-final-border);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-bottom-action-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-square-button {
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 14px;
+        background: var(--cco-next-final-surface);
+        color: var(--cco-next-final-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-square-button .cco-next-final-inline-icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-square-button.is-accent {
+        border-color: rgba(244, 114, 182, 0.24);
+        background: rgba(253, 242, 248, 0.92);
+        color: #ec4899;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-primary-pill {
+        min-height: 42px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #ec4899, #f43f5e);
+        color: #ffffff;
+        font: 700 12px/1 var(--cco-next-font-stack);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-primary-pill .cco-next-final-inline-icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane {
+        display: flex;
+        flex-direction: column;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-surface {
+        height: 100%;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel-eyebrow {
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-collapse-button {
+        border: 0;
+        background: transparent;
+        color: var(--cco-next-final-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-scroll {
+        padding: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-head,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-tabs,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-stack,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stats-grid {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-head {
+        margin: 0;
+        padding-top: 12px;
+        padding-bottom: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-head .cco-next-final-avatar {
+        background: #fce7f3;
+        border-color: #fbcfe8;
+        color: #c6005c;
+        overflow: hidden;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid {
+        gap: 6px 12px;
+        padding-top: 0;
+        padding-bottom: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-customer-name {
+        font-size: 11px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item.is-info strong {
+        color: #155dfc;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item.is-success strong {
+        color: #00a63e;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-info-grid-item.is-warn strong {
+        color: #f54900;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-panel {
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--cco-next-final-border);
+        border-bottom: 1px solid var(--cco-next-final-border);
+        background: linear-gradient(163deg, rgb(255, 251, 235) 0%, rgb(255, 247, 237) 100%);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-toggle,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-toggle {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-toggle {
+        padding: 10px 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-title {
+        color: #7b3306;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        line-height: 1.5;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-copy {
+        padding: 0 12px 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-focus-panel p {
+        margin: 0;
+        color: #7b3306;
+        font-size: 10px;
+        line-height: 1.62;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-card {
+        border-radius: 10px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ci-stack {
+        padding-top: 10px;
+        padding-bottom: 12px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 10px;
+        padding: 9px;
+        background: #ffffff;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-purple {
+        border-color: #e9d4ff;
+        background: linear-gradient(163deg, rgb(250, 245, 255) 0%, rgb(245, 243, 255) 100%);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-blue {
+        border-color: #bedbff;
+        background: rgba(239, 246, 255, 0.5);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-green {
+        border-color: #a4f4cf;
+        background: linear-gradient(154deg, rgb(236, 253, 245) 0%, rgb(240, 253, 250) 100%);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-toggle {
+        padding: 0;
+        margin-bottom: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-body {
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-title {
+        color: var(--cco-next-final-strong);
+        font-size: 9px;
+        line-height: 1.5;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-purple .cco-next-final-insight-title,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-purple .cco-next-final-insight-item {
+        color: #6e11b0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-blue .cco-next-final-insight-title {
+        color: #1c398e;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-card.is-green .cco-next-final-insight-title,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-block strong {
+        color: #004f3b;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr);
+        gap: 6px;
+        align-items: start;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon.is-purple {
+        color: #6e11b0;
+        background: rgba(233, 213, 255, 0.56);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon.is-warn {
+        color: #b45309;
+        background: rgba(254, 243, 199, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon.is-success {
+        color: #047857;
+        background: rgba(209, 250, 229, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon.is-info {
+        color: #1d4ed8;
+        background: rgba(219, 234, 254, 0.72);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-insight-item-icon .cco-next-final-inline-icon {
+        width: 9px;
+        height: 9px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-card,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-card {
+        display: grid;
+        gap: 8px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-block,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-block {
+        border-radius: 4px;
+        background: #ffffff;
+        padding: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 2px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-row strong,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-block strong {
+        font-size: 10px;
+        line-height: 1.5;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-row span {
+        color: #6a7282;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-block p,
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-block p {
+        margin: 0;
+        color: #364153;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-ai-block p {
+        color: #006045;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-metrics {
+        color: #1447e6;
+        display: grid;
+        gap: 1px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-history-metrics strong {
+        font-size: 9px;
+        line-height: 1.5;
+        font-weight: 600;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-overlay {
+        position: absolute;
+        inset: 84px 0 0 0;
+        z-index: 22;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-overlay-scrim {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        background: rgba(15, 23, 42, 0.18);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-studio-overlay-card {
+        position: relative;
+        justify-self: end;
+        width: min(420px, calc(100vw - 24px));
+        height: 100%;
+        background: var(--cco-next-final-surface);
+        border-left: 1px solid var(--cco-next-final-border);
+        box-shadow: -12px 0 36px rgba(15, 23, 42, 0.14);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stat {
+        border: 1px solid var(--cco-next-final-border);
+        border-radius: 12px;
+        padding: 12px;
+        background: var(--cco-next-final-surface);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stat span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--cco-next-final-muted);
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-stat strong {
+        color: var(--cco-next-final-strong);
+        font-size: 20px;
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-field {
+        display: grid;
+        gap: 6px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-field span {
+        color: var(--cco-next-final-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-field input {
+        width: 100%;
+        min-height: 34px;
+        padding: 0 10px;
+        border-radius: 10px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        color: var(--cco-next-final-strong);
+        font: 500 11px/1.2 var(--cco-next-font-stack);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.26);
+        backdrop-filter: blur(6px);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-card {
+        width: min(100%, 320px);
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-surface);
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-card h3 {
+        margin: 0;
+        color: var(--cco-next-final-strong);
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-card p {
+        margin: 0;
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-preset {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--cco-next-final-border);
+        background: var(--cco-next-final-soft);
+        color: var(--cco-next-final-strong);
+        text-align: left;
+        font: 600 10px/1.4 var(--cco-next-font-stack);
+        cursor: pointer;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-modal-preset strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--cco-next-final-strong);
+        font-size: 11px;
+      }
+
+      body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-empty {
+        padding: 14px;
+        border: 1px dashed var(--cco-next-final-border);
+        border-radius: 12px;
+        color: var(--cco-next-final-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 1360px) {
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-workspace {
+          grid-template-columns: 320px minmax(0, 1fr) 336px;
+        }
+      }
+
+      @media (max-width: 1180px) {
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-header {
+          flex-wrap: wrap;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-search-shell {
+          flex: 1 1 100%;
+          order: 3;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-workspace {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-left,
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-panel.is-center {
+          border-right: 0;
+          border-bottom: 1px solid var(--cco-next-final-border);
+        }
+
+        body.cco-next-preview-route #ccoNextWorkspaceSection .cco-next-final-right-pane {
+          display: flex;
+        }
+      }
+    `;
+  }
+
+  function getCcoNextPreviewFinalMailboxDefinitions() {
+    return [
+      { id: 'egzona', label: 'Egzona' },
+      { id: 'contact', label: 'Contact' },
+      { id: 'fazli', label: 'Fazli' },
+      { id: 'kvitto', label: 'Kvitto' },
+      { id: 'info', label: 'Info' },
+      { id: 'kons', label: 'Kons' },
+      { id: 'marknad', label: 'Marknad' },
+    ];
+  }
+
+  function normalizeCcoNextPreviewFinalMailboxId(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    const allowed = getCcoNextPreviewFinalMailboxDefinitions().map((entry) => entry.id);
+    return allowed.includes(normalized) ? normalized : '';
+  }
+
+  function getCcoNextPreviewFinalMailboxId(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const explicit = normalizeCcoNextPreviewFinalMailboxId(safeRow.mailboxId || safeRow.mailboxLabel);
+    if (explicit) return explicit;
+    const conversationId = String(safeRow.conversationId || '').trim().toLowerCase();
+    if (conversationId.includes('anna') || conversationId.includes('johan')) return 'contact';
+    if (conversationId.includes('erik')) return 'info';
+    if (conversationId.includes('mona')) return 'egzona';
+    if (conversationId.includes('linda')) return 'fazli';
+    if (conversationId.includes('karin')) return 'kons';
+    if (conversationId.includes('maria')) return 'kvitto';
+    const intent = safeLower(safeRow.intent || '');
+    if (intent === 'admin') return 'kvitto';
+    if (safeRow.needsMedicalReview === true || String(safeRow.workflowLane || '').trim().toLowerCase() === 'medical_review') {
+      return 'kons';
+    }
+    if (intent === 'pricing') return 'info';
+    const owner = safeLower(safeRow.owner || safeRow.ownerDisplay || safeRow.previewSummary?.assignedTo || '');
+    if (owner.includes('egzona')) return 'egzona';
+    if (owner.includes('fazli')) return 'fazli';
+    return 'contact';
+  }
+
+  function getCcoNextPreviewFinalMailboxCatalog(rows = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    const counts = source.reduce((acc, row) => {
+      const mailboxId = getCcoNextPreviewFinalMailboxId(row);
+      if (!mailboxId) return acc;
+      acc[mailboxId] = Number(acc[mailboxId] || 0) + 1;
+      return acc;
+    }, {});
+    return getCcoNextPreviewFinalMailboxDefinitions().map((entry) => ({
+      ...entry,
+      count: Number(counts[entry.id] || 0),
+    }));
+  }
+
+  function isCcoNextPreviewFinalOwnerViewActive() {
+    return state.ccoNextPreviewFinalOwnerView === true;
+  }
+
+  function getCcoNextPreviewFinalSelectedMailboxIds(rows = []) {
+    const availableIds = getCcoNextPreviewFinalMailboxCatalog(rows).map((entry) => entry.id);
+    const rawSelection = Array.isArray(state.ccoNextPreviewFinalMailboxIds)
+      ? state.ccoNextPreviewFinalMailboxIds
+      : [];
+    const normalized = Array.from(
+      new Set(
+        rawSelection
+          .map((entry) => normalizeCcoNextPreviewFinalMailboxId(entry))
+          .filter((entry) => availableIds.includes(entry))
+      )
+    );
+    const resolved = normalized.length ? normalized : availableIds;
+    state.ccoNextPreviewFinalMailboxIds = resolved;
+    return resolved;
+  }
+
+  function filterCcoNextPreviewFinalRowsByMailbox(rows = [], selectedMailboxIds = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    const allowed = Array.isArray(selectedMailboxIds) ? selectedMailboxIds : [];
+    if (!allowed.length) return source;
+    return source.filter((row) => allowed.includes(getCcoNextPreviewFinalMailboxId(row)));
+  }
+
+  function getCcoNextPreviewFinalCategoryDefinitions() {
+    if (isCcoNextPreviewFinalOwnerViewActive()) {
+      return [
+        { id: 'all', label: 'Alla trådar', tone: 'neutral', icon: 'inbox' },
+        { id: 'mine', label: 'Mina trådar', tone: 'green', icon: 'user' },
+        { id: 'unassigned', label: 'Oägda', tone: 'purple', icon: 'user' },
+        { id: 'high-risk', label: 'Hög risk', tone: 'red', icon: 'alert' },
+        { id: 'admin', label: 'Admin', tone: 'neutral', icon: 'file' },
+      ];
+    }
+    return [
+      { id: 'all', label: 'Alla trådar', tone: 'neutral', icon: 'inbox' },
+      { id: 'later', label: 'Senare', tone: 'blue', icon: 'clock' },
+      { id: 'followup', label: 'Uppföljningar', tone: 'purple', icon: 'bell' },
+      { id: 'sprint', label: 'Sprint', tone: 'green', icon: 'zap' },
+      { id: 'act-now', label: 'Agera nu', tone: 'red', icon: 'chevron-right' },
+      { id: 'bookable', label: 'Bokningsklara', tone: 'blue', icon: 'calendar' },
+      { id: 'today', label: 'Idag', tone: 'amber', icon: 'clock' },
+      { id: 'tomorrow', label: 'Imorgon', tone: 'amber', icon: 'clock' },
+      { id: 'high-risk', label: 'Hög risk', tone: 'red', icon: 'alert' },
+      { id: 'unassigned', label: 'Oägda', tone: 'purple', icon: 'user' },
+      { id: 'medical', label: 'Medicinsk granskning', tone: 'purple', icon: 'medical' },
+      { id: 'admin', label: 'Admin', tone: 'neutral', icon: 'file' },
+    ];
+  }
+
+  function matchesCcoNextPreviewFinalCategory(row = null, categoryId = 'all') {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const safeCategoryId = String(categoryId || 'all').trim().toLowerCase();
+    const explicitCategories = Array.isArray(safeRow.finalCategoryIds)
+      ? safeRow.finalCategoryIds
+          .map((entry) => String(entry || '').trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+    if (safeCategoryId === 'all') return true;
+    if (explicitCategories.length) return explicitCategories.includes(safeCategoryId);
+    const dueMeta = getCcoNextPreviewDueMeta(safeRow.followUpDueAt || '');
+    const lane = String(safeRow.workflowLane || '').trim().toLowerCase();
+    const bookingState = String(safeRow.bookingState || '').trim().toLowerCase();
+    const escalationRisk = String(safeRow.escalationRisk || '').trim().toLowerCase();
+    const slaStatus = String(safeRow.slaStatus || '').trim().toLowerCase();
+    if (isCcoNextPreviewFinalOwnerViewActive()) {
+      const operatorName = safeLower(getCcoNextPreviewFinalOperatorName());
+      const rowOwner = safeLower(
+        safeRow.ownerDisplay || safeRow.owner || safeRow.previewSummary?.assignedTo || ''
+      );
+      if (safeCategoryId === 'all') return true;
+      if (safeCategoryId === 'mine') return rowOwner.includes(operatorName);
+      if (safeCategoryId === 'unassigned') return !String(rowOwner || '').trim();
+      if (safeCategoryId === 'high-risk') {
+        return (
+          escalationRisk === 'high' ||
+          slaStatus === 'breach' ||
+          String(safeRow.escalationTone || '').trim() === 'danger'
+        );
+      }
+      if (safeCategoryId === 'admin') return lane === 'admin_low' || safeLower(safeRow.intent || '') === 'admin';
+      return false;
+    }
+    if (safeCategoryId === 'later') {
+      return (
+        String(safeRow.waitingOn || '').trim().toLowerCase() === 'customer' &&
+        dueMeta.isToday !== true &&
+        dueMeta.isTomorrow !== true &&
+        lane !== 'action_now'
+      );
+    }
+    if (safeCategoryId === 'followup') {
+      return safeRow.followUpSuggested === true && lane !== 'action_now';
+    }
+    if (safeCategoryId === 'sprint') return safeRow.inSprint === true || lane === 'action_now';
+    if (safeCategoryId === 'act-now') return lane === 'action_now';
+    if (safeCategoryId === 'bookable') return lane === 'booking_ready' || bookingState === 'ready_now' || bookingState === 'slots_ready';
+    if (safeCategoryId === 'today') return dueMeta.isToday === true;
+    if (safeCategoryId === 'tomorrow') return dueMeta.isTomorrow === true;
+    if (safeCategoryId === 'high-risk') {
+      return escalationRisk === 'high' || slaStatus === 'breach' || String(safeRow.escalationTone || '').trim() === 'danger';
+    }
+    if (safeCategoryId === 'unassigned') return !String(safeRow.owner || '').trim();
+    if (safeCategoryId === 'medical') return safeRow.needsMedicalReview === true || lane === 'medical_review';
+    if (safeCategoryId === 'admin') return lane === 'admin_low' || safeLower(safeRow.intent || '') === 'admin';
+    return false;
+  }
+
+  function getCcoNextPreviewFinalExpandedCategories(disclosureMode = 'progressive') {
+    const availableIds = getCcoNextPreviewFinalCategoryDefinitions().map((entry) => entry.id);
+    if (String(disclosureMode || '').trim().toLowerCase() === 'expanded') {
+      state.ccoNextPreviewFinalExpandedCategories = availableIds;
+      return availableIds;
+    }
+    const raw = Array.isArray(state.ccoNextPreviewFinalExpandedCategories)
+      ? state.ccoNextPreviewFinalExpandedCategories
+      : ['all'];
+    const normalized = Array.from(
+      new Set(
+        raw
+          .map((entry) => String(entry || '').trim().toLowerCase())
+          .filter((entry) => availableIds.includes(entry))
+      )
+    );
+    const resolved = normalized.length ? normalized : ['all'];
+    state.ccoNextPreviewFinalExpandedCategories = resolved;
+    return resolved;
+  }
+
+  function getCcoNextPreviewFinalSurfacedRows(rows = [], selectedConversationId = '') {
+    const source = Array.isArray(rows) ? rows.filter(Boolean) : [];
+    if (!source.length) return [];
+    const preferredIds = [];
+    if (selectedConversationId) preferredIds.push(String(selectedConversationId).trim());
+    preferredIds.push('cco-next-preview-anna', 'cco-next-preview-erik', 'cco-next-preview-maria');
+    const surfaced = [];
+    const seen = new Set();
+    preferredIds.forEach((conversationId) => {
+      if (!conversationId || seen.has(conversationId)) return;
+      const match = source.find((row) => String(row?.conversationId || '').trim() === conversationId);
+      if (!match) return;
+      seen.add(conversationId);
+      surfaced.push(match);
+    });
+    for (const row of source) {
+      const conversationId = String(row?.conversationId || '').trim();
+      if (!conversationId || seen.has(conversationId)) continue;
+      surfaced.push(row);
+      seen.add(conversationId);
+      if (surfaced.length >= 3) break;
+    }
+    return surfaced.slice(0, 3);
+  }
+
+  function sanitizeCcoNextPreviewFinalTheme(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'dark') return 'dark';
+    if (normalized === 'system') return 'system';
+    return 'system';
+  }
+
+  function resolveCcoNextPreviewFinalTheme(value = '') {
+    const normalized = sanitizeCcoNextPreviewFinalTheme(value);
+    if (normalized === 'system') {
+      try {
+        return window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      } catch {
+        return 'light';
+      }
+    }
+    return normalized;
+  }
+
+  function sanitizeCcoNextPreviewScenario(value = '') {
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    if (
+      normalized === 'action_now' ||
+      normalized === 'booking_ready' ||
+      normalized === 'follow_up_today' ||
+      normalized === 'waiting_reply' ||
+      normalized === 'medical_review' ||
+      normalized === 'admin_low'
+    ) {
+      return normalized;
+    }
+    return 'all';
+  }
+
+  function sanitizeCcoNextPreviewSavedView(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (
+      normalized === 'unowned' ||
+      normalized === 'booking_now' ||
+      normalized === 'high_risk' ||
+      normalized === 'waiting_customer'
+    ) {
+      return normalized;
+    }
+    return 'all';
+  }
+
+  function sanitizeCcoNextPreviewFollowUpFilter(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (
+      normalized === 'overdue' ||
+      normalized === 'today' ||
+      normalized === 'tomorrow' ||
+      normalized === 'waiting_reply'
+    ) {
+      return normalized;
+    }
+    return 'all';
+  }
+
+  function sanitizeCcoNextPreviewWorklistDensity(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'compact') return 'compact';
+    return 'regular';
+  }
+
+  function sanitizeCcoNextPreviewDisclosureMode(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'expanded') return 'expanded';
+    return 'progressive';
+  }
+
+  function getCcoNextPreviewLaneMeta(lane = 'all') {
+    const normalized = sanitizeCcoNextPreviewScenario(lane);
+    if (normalized === 'action_now') {
+      return {
+        label: 'Agera nu',
+        description: 'SLA-risk, oägda trådar och tapp-risk som kräver beslut nu.',
+        tone: 'danger',
+      };
+    }
+    if (normalized === 'booking_ready') {
+      return {
+        label: 'Bokningsklar',
+        description: 'Kunder som kan få en tid direkt utan fler klartecken.',
+        tone: 'success',
+      };
+    }
+    if (normalized === 'follow_up_today') {
+      return {
+        label: 'Följ upp idag',
+        description: 'Aktiva trådar som behöver nästa steg idag men inte akutbeslut.',
+        tone: 'warn',
+      };
+    }
+    if (normalized === 'waiting_reply') {
+      return {
+        label: 'Väntar på patient',
+        description: 'Vi har gjort vår del. Vänta eller följ upp när fönstret öppnar.',
+        tone: 'neutral',
+      };
+    }
+    if (normalized === 'medical_review') {
+      return {
+        label: 'Medicinsk granskning',
+        description: 'Bokning och definitivt svar pausas tills kliniken har svarat.',
+        tone: 'danger',
+      };
+    }
+    if (normalized === 'admin_low') {
+      return {
+        label: 'Admin / låg prioritet',
+        description: 'Kvitton, underlag och låg-risk admin som inte ska störa huvudkön.',
+        tone: 'muted',
+      };
+    }
+    return {
+      label: 'Alla trådar',
+      description: 'Samlad vy över operativa, medicinska och administrativa köer.',
+      tone: 'neutral',
+    };
+  }
+
+  function matchesCcoNextPreviewScenario(row = null, scenario = 'all') {
+    if (!row || typeof row !== 'object') return false;
+    const normalized = sanitizeCcoNextPreviewScenario(scenario);
+    if (normalized === 'all') return true;
+    return String(row?.workflowLane || '').trim().toLowerCase() === normalized;
+  }
+
+  function getCcoNextPreviewScenarioCounts(rows = []) {
+    const source = Array.isArray(rows) ? rows : [];
+    const counts = {
+      all: source.length,
+      action_now: 0,
+      booking_ready: 0,
+      follow_up_today: 0,
+      waiting_reply: 0,
+      medical_review: 0,
+      admin_low: 0,
+    };
+    source.forEach((row) => {
+      const lane = sanitizeCcoNextPreviewScenario(row?.workflowLane || '');
+      if (lane !== 'all') counts[lane] += 1;
+    });
+    return counts;
+  }
+
+  function getCcoNextPreviewNowTimestamp() {
+    return Date.parse('2026-04-22T13:15:00.000Z');
+  }
+
+  function getCcoNextPreviewFollowUpEngine() {
+    if (typeof window === 'undefined') return null;
+    const engine = window.ArcanaCcoNextFollowUpEngine;
+    return engine && typeof engine === 'object' ? engine : null;
+  }
+
+  function getCcoNextPreviewCustomerIntelligenceHelper() {
+    if (typeof window === 'undefined') return null;
+    const helper = window.ArcanaCcoNextCustomerIntelligence;
+    return helper && typeof helper === 'object' ? helper : null;
+  }
+
+  function getCcoNextPreviewCollaborationHelper() {
+    if (typeof window === 'undefined') return null;
+    const helper = window.ArcanaCcoNextCollaboration;
+    return helper && typeof helper === 'object' ? helper : null;
+  }
+
+  function formatCcoNextPreviewCadenceLabel(value = '') {
+    const engine = getCcoNextPreviewFollowUpEngine();
+    if (engine && typeof engine.formatCadenceLabel === 'function') {
+      return String(engine.formatCadenceLabel(value) || '').trim();
+    }
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'daily') return 'varje dag';
+    if (normalized === 'weekly') return 'varje vecka';
+    if (normalized === 'biweekly') return 'varannan vecka';
+    if (normalized === 'monthly') return 'varje månad';
+    return String(value || '').trim();
+  }
+
+  function getCcoNextPreviewDueMeta(value = '') {
+    const timestamp = Date.parse(String(value || ''));
+    if (!Number.isFinite(timestamp)) {
+      return {
+        label: 'Ingen deadline',
+        tone: 'neutral',
+        isToday: false,
+        isTomorrow: false,
+        isDueSoon: false,
+        isOverdue: false,
+      };
+    }
+    const nowTimestamp = getCcoNextPreviewNowTimestamp();
+    const diffMs = timestamp - nowTimestamp;
+    const diffHours = diffMs / 3600000;
+    const now = new Date(nowTimestamp);
+    const dueDate = new Date(timestamp);
+    const sameDay =
+      now.getFullYear() === dueDate.getFullYear() &&
+      now.getMonth() === dueDate.getMonth() &&
+      now.getDate() === dueDate.getDate();
+    const tomorrow = new Date(nowTimestamp);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow =
+      tomorrow.getFullYear() === dueDate.getFullYear() &&
+      tomorrow.getMonth() === dueDate.getMonth() &&
+      tomorrow.getDate() === dueDate.getDate();
+    const timeLabel = new Intl.DateTimeFormat('sv-SE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(dueDate);
+    let label = new Intl.DateTimeFormat('sv-SE', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(dueDate);
+    if (sameDay) label = `Idag ${timeLabel}`;
+    else if (isTomorrow) label = `Imorgon ${timeLabel}`;
+    const isOverdue = diffMs < 0;
+    const isDueSoon = diffMs >= 0 && diffHours <= 2;
+    return {
+      label,
+      tone: isOverdue ? 'danger' : isDueSoon ? 'danger' : sameDay ? 'warn' : 'neutral',
+      isToday: sameDay,
+      isTomorrow,
+      isDueSoon,
+      isOverdue,
+    };
+  }
+
+  function getCcoNextPreviewOwnerMeta(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const owner = String(safeRow.owner || '').trim();
+    if (owner) {
+      return {
+        label: owner,
+        note: `Ägs av ${owner}`,
+        tone: 'neutral',
+        isOwned: true,
+      };
+    }
+    return {
+      label: 'Oägd',
+      note: 'Ingen har tagit ägarskap ännu.',
+      tone: 'warn',
+      isOwned: false,
+    };
+  }
+
+  function getCcoNextPreviewBookingMeta(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    if (safeRow.needsMedicalReview === true) {
+      return {
+        state: 'blocked_medical',
+        label: 'Medicinskt blockerad',
+        explanation: 'Kräver klinisk bedömning innan bokning eller definitiv återkoppling.',
+        tone: 'danger',
+      };
+    }
+    const stateValue = String(safeRow.bookingState || '').trim().toLowerCase();
+    if (stateValue === 'ready_now') {
+      return {
+        state: 'ready_now',
+        label: 'Redo att boka',
+        explanation: 'Kunden kan få en tid direkt om vi tar beslut nu.',
+        tone: 'success',
+      };
+    }
+    if (stateValue === 'slots_ready') {
+      return {
+        state: 'slots_ready',
+        label: 'Kan erbjudas nu',
+        explanation: 'Det finns konkreta tider att skicka ut direkt.',
+        tone: 'success',
+      };
+    }
+    if (stateValue === 'awaiting_confirmation') {
+      return {
+        state: 'awaiting_confirmation',
+        label: 'Väntar bekräftelse',
+        explanation: 'Förslag är skickat. Nästa steg är kundens besked eller en mjuk nudge.',
+        tone: 'neutral',
+      };
+    }
+    if (stateValue === 'needs_slots') {
+      return {
+        state: 'needs_slots',
+        label: 'Saknar tider',
+        explanation: 'Behöver ett tydligt slot-förslag innan bokning kan avslutas.',
+        tone: 'warn',
+      };
+    }
+    return {
+      state: 'not_relevant',
+      label: 'Ej bokningsklart',
+      explanation: 'Detta ärende kräver något annat än kalenderbokning just nu.',
+      tone: 'neutral',
+    };
+  }
+
+  function getCcoNextPreviewWaitingMeta(row = null, dueMeta = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const safeDueMeta = dueMeta && typeof dueMeta === 'object' ? dueMeta : getCcoNextPreviewDueMeta('');
+    const waitingOn = String(safeRow.waitingOn || '').trim().toLowerCase();
+    const followUpMode = String(safeRow.followUpMode || '').trim().toLowerCase();
+    const recurringCadenceLabel = formatCcoNextPreviewCadenceLabel(safeRow.recurringCadence || '');
+    const sequenceLabel = String(safeRow.followUpSequenceLabel || '').trim();
+    const sequenceStep = Number(safeRow.followUpSequenceStep || 0) || 0;
+    const waitUntilReply = safeRow.waitUntilReply === true;
+    const fallbackAction = String(safeRow.followUpFallbackAction || '').trim().toLowerCase();
+    const slaGuardMessage = String(safeRow.slaGuardMessage || '').trim();
+    if (safeRow.needsMedicalReview === true || String(safeRow.waitingOn || '').trim().toLowerCase() === 'clinic') {
+      return {
+        label: 'Väntar klinik',
+        blocker: safeRow.medicalBlocker || 'Medicinsk granskning krävs innan nästa kundsteg.',
+        tone: 'danger',
+      };
+    }
+    if (!String(safeRow.owner || '').trim()) {
+      return {
+        label: 'Saknar ägare',
+        blocker: 'Tråden behöver en tydlig ägare innan nästa steg kan tas.',
+        tone: 'warn',
+      };
+    }
+    if (waitingOn === 'colleague') {
+      const handoffTarget = String(safeRow.handoffTarget || '').trim();
+      const handoffNote = String(safeRow.handoffNote || safeRow.handoffStatusDetail || '').trim();
+      return {
+        label: 'Väntar på kollega',
+        blocker:
+          handoffTarget && safeDueMeta.label && safeDueMeta.label !== '-'
+            ? `Inväntar ${handoffTarget} före ${safeDueMeta.label.toLowerCase()}. ${handoffNote}`.trim()
+            : handoffTarget
+            ? `Inväntar ${handoffTarget} innan nästa kundsteg tas. ${handoffNote}`.trim()
+            : handoffNote || 'Tråden väntar på intern återkoppling före nästa steg.',
+        tone: 'warn',
+      };
+    }
+    if (waitingOn === 'owner' || waitingOn === 'self') {
+      const label =
+        followUpMode === 'scheduled_send'
+          ? safeDueMeta.label && safeDueMeta.label !== '-'
+            ? `Skicka ${safeDueMeta.label}`
+            : 'Skicka senare'
+          : recurringCadenceLabel
+          ? `Återkommer ${recurringCadenceLabel}`
+          : safeDueMeta.label && safeDueMeta.label !== '-'
+          ? `Återuppta ${safeDueMeta.label}`
+          : 'Återuppta senare';
+      let blocker =
+        safeDueMeta.label && safeDueMeta.label !== '-'
+          ? `Tråden är parkerad till ${safeDueMeta.label.toLowerCase()} innan nästa steg tas.`
+          : 'Tråden är parkerad tills teamet tar tillbaka den igen.';
+      if (recurringCadenceLabel) {
+        blocker = `Första återtag sker ${safeDueMeta.label.toLowerCase()}. Därefter återkommer tråden ${recurringCadenceLabel}.`;
+      } else if (sequenceLabel) {
+        blocker = `${sequenceLabel} är aktiv. Ta tillbaka tråden ${safeDueMeta.label.toLowerCase()} för steg ${sequenceStep || 1}.`;
+      } else if (followUpMode === 'scheduled_send') {
+        blocker = `Nästa utskick ligger ${safeDueMeta.label.toLowerCase()} och samma ägare håller tråden varm tills dess.`;
+      }
+      if (slaGuardMessage) blocker = `${blocker} ${slaGuardMessage}`.trim();
+      return {
+        label,
+        blocker,
+        tone: 'neutral',
+      };
+    }
+    if (waitingOn === 'customer') {
+      let blocker = 'Ingen ny åtgärd tills kunden svarar eller uppföljningstiden nås.';
+      if (waitUntilReply) {
+        blocker = `Vi väntar på kundens svar. Om inget svar kommer före ${safeDueMeta.label.toLowerCase()} ska en mjuk uppföljning öppnas igen.`;
+      }
+      if (sequenceLabel) {
+        blocker = `${sequenceLabel} är aktiv${sequenceStep ? ` i steg ${sequenceStep}` : ''}. Om kunden fortfarande är tyst ${safeDueMeta.label.toLowerCase()} går tråden vidare till nästa steg.`;
+      }
+      if (fallbackAction === 'mark_dormant') {
+        blocker = `${blocker} Om kunden fortsätter vara tyst efter sista steget går tråden till vilande läge.`;
+      }
+      if (slaGuardMessage) blocker = `${blocker} ${slaGuardMessage}`.trim();
+      if (safeDueMeta.isToday || safeDueMeta.isDueSoon || safeDueMeta.isOverdue) {
+        return {
+          label: 'Följ upp kund nu',
+          blocker,
+          tone: 'warn',
+        };
+      }
+      return {
+        label: 'Väntar på patient',
+        blocker,
+        tone: 'neutral',
+      };
+    }
+    if (String(safeRow.waitingOn || '').trim().toLowerCase() === 'slots') {
+      return {
+        label: 'Saknar lediga tider',
+        blocker: 'Behöver konkret slot innan vi kan slutföra tråden.',
+        tone: 'warn',
+      };
+    }
+    return {
+      label: 'Redo för åtgärd',
+      blocker: 'Inget externt hinder just nu.',
+      tone: 'success',
+    };
+  }
+
+  function getCcoNextPreviewEscalationMeta(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    if (safeRow.needsMedicalReview === true) {
+      return {
+        label: 'Medicinsk review',
+        detail: 'Klinisk bedömning behövs före nästa steg.',
+        tone: 'danger',
+      };
+    }
+    const risk = String(safeRow.escalationRisk || '').trim().toLowerCase();
+    if (risk === 'high') {
+      return {
+        label: 'Hög tapp-risk',
+        detail: 'Risk att kunden lämnar eller tappar förtroende om vi väntar längre.',
+        tone: 'danger',
+      };
+    }
+    if (risk === 'medium') {
+      return {
+        label: 'Bevaka risk',
+        detail: 'Tråden behöver tydlig uppföljning för att inte stanna av.',
+        tone: 'warn',
+      };
+    }
+    return {
+      label: 'Ingen aktiv risk',
+      detail: 'Ingen särskild eskalering behövs just nu.',
+      tone: 'neutral',
+    };
+  }
+
+  function getCcoNextPreviewUrgencyMeta(row = null, meta = {}) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const dueMeta = meta?.dueMeta || getCcoNextPreviewDueMeta('');
+    const bookingMeta = meta?.bookingMeta || getCcoNextPreviewBookingMeta(safeRow);
+    const ownerMeta = meta?.ownerMeta || getCcoNextPreviewOwnerMeta(safeRow);
+    let score = 24;
+    const priority = String(safeRow.priorityLevel || '').trim().toLowerCase();
+    if (priority === 'critical') score += 24;
+    else if (priority === 'high') score += 18;
+    else if (priority === 'medium') score += 10;
+    else score += 4;
+    const slaState = String(safeRow.slaStatus || '').trim().toLowerCase();
+    if (slaState === 'breach') score += 28;
+    else if (slaState === 'warning') score += 16;
+    if (dueMeta.isOverdue) score += 14;
+    else if (dueMeta.isDueSoon) score += 10;
+    else if (dueMeta.isToday) score += 8;
+    if (bookingMeta.state === 'ready_now' || bookingMeta.state === 'slots_ready') score += 10;
+    if (ownerMeta.isOwned === false) score += 12;
+    if (String(safeRow.escalationRisk || '').trim().toLowerCase() === 'high') score += 14;
+    else if (String(safeRow.escalationRisk || '').trim().toLowerCase() === 'medium') score += 8;
+    if (safeRow.needsMedicalReview === true) score += 6;
+    if (String(safeRow.intent || '').trim().toLowerCase() === 'admin') score -= 22;
+    score = Math.max(8, Math.min(99, score));
+    return {
+      value: score,
+      tone: score >= 80 ? 'danger' : score >= 58 ? 'warn' : score >= 40 ? 'success' : 'neutral',
+    };
+  }
+
+  function getCcoNextPreviewQueueAssignment(row = null, meta = {}) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const queueOverride = sanitizeCcoNextPreviewScenario(safeRow.queueOverride || 'all');
+    const dueMeta = meta?.dueMeta || getCcoNextPreviewDueMeta('');
+    const bookingMeta = meta?.bookingMeta || getCcoNextPreviewBookingMeta(safeRow);
+    const ownerMeta = meta?.ownerMeta || getCcoNextPreviewOwnerMeta(safeRow);
+    const waitingMeta = meta?.waitingMeta || getCcoNextPreviewWaitingMeta(safeRow, dueMeta);
+    const escalationMeta = meta?.escalationMeta || getCcoNextPreviewEscalationMeta(safeRow);
+    const intent = String(safeRow.intent || '').trim().toLowerCase();
+    const slaState = String(safeRow.slaStatus || '').trim().toLowerCase();
+
+    if (queueOverride !== 'all') return queueOverride;
+    if (intent === 'admin') return 'admin_low';
+    if (safeRow.needsMedicalReview === true || waitingMeta.label === 'Väntar klinik') return 'medical_review';
+    if (
+      (bookingMeta.state === 'ready_now' || bookingMeta.state === 'slots_ready') &&
+      waitingMeta.label !== 'Väntar på patient' &&
+      waitingMeta.label !== 'Följ upp kund nu' &&
+      slaState !== 'breach'
+    ) {
+      return 'booking_ready';
+    }
+    if (slaState === 'breach' || dueMeta.isOverdue || dueMeta.isDueSoon || ownerMeta.isOwned === false || escalationMeta.tone === 'danger') {
+      return 'action_now';
+    }
+    if (waitingMeta.label === 'Väntar på patient') return 'waiting_reply';
+    if (dueMeta.isToday || waitingMeta.label === 'Följ upp kund nu' || safeRow.followUpSuggested === true || slaState === 'warning') {
+      return 'follow_up_today';
+    }
+    return 'follow_up_today';
+  }
+
+  function getCcoNextPreviewQueueReason(row = null, meta = {}) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const lane = sanitizeCcoNextPreviewScenario(meta?.lane || safeRow.workflowLane || 'all');
+    const waitingMeta = meta?.waitingMeta || getCcoNextPreviewWaitingMeta(safeRow, meta?.dueMeta);
+    const bookingMeta = meta?.bookingMeta || getCcoNextPreviewBookingMeta(safeRow);
+    const dueMeta = meta?.dueMeta || getCcoNextPreviewDueMeta(safeRow.followUpDueAt || '');
+    const escalationMeta = meta?.escalationMeta || getCcoNextPreviewEscalationMeta(safeRow);
+    const recurringCadenceLabel = formatCcoNextPreviewCadenceLabel(safeRow.recurringCadence || '');
+    const sequenceLabel = String(safeRow.followUpSequenceLabel || '').trim();
+    const sequenceStep = Number(safeRow.followUpSequenceStep || 0) || 0;
+    const waitUntilReply = safeRow.waitUntilReply === true;
+    const slaGuardMessage = String(safeRow.slaGuardMessage || '').trim();
+
+    if (lane === 'action_now') {
+      if (!String(safeRow.owner || '').trim()) return 'Oägd tråd med hög risk om ingen tar den idag.';
+      if (String(safeRow.slaStatus || '').trim().toLowerCase() === 'breach') {
+        return `SLA är bruten och kunden behöver besked senast ${dueMeta.label.toLowerCase()}.`;
+      }
+      return `${waitingMeta.blocker} ${escalationMeta.tone === 'danger' ? escalationMeta.detail : ''}`.trim();
+    }
+    if (lane === 'booking_ready') {
+      return `${bookingMeta.label} och kunden kan få en konkret tid nu.`;
+    }
+    if (lane === 'follow_up_today') {
+      if (String(safeRow.waitingOn || '').trim().toLowerCase() === 'colleague') {
+        return `${String(safeRow.handoffStatusDetail || 'Intern återkoppling väntas.').trim()} ${
+          safeDueMeta.label && safeDueMeta.label !== '-'
+            ? `Ta tillbaka tråden ${safeDueMeta.label.toLowerCase()} om inget svar kommit internt.`
+            : ''
+        }`.trim();
+      }
+      if (recurringCadenceLabel) {
+        return `Återkommande uppföljning är aktiv. Första återtag sker ${dueMeta.label.toLowerCase()} och därefter ${recurringCadenceLabel}.`;
+      }
+      if (String(safeRow.waitingOn || '').trim().toLowerCase() === 'owner') {
+        return `${slaGuardMessage ? `${slaGuardMessage} ` : ''}Tråden är parkerad till ${dueMeta.label.toLowerCase()} då nästa aktiva steg ska tas tillbaka av teamet.`.trim();
+      }
+      return 'Tråden behöver nästa steg idag för att inte tappa fart över natten.';
+    }
+    if (lane === 'waiting_reply') {
+      if (sequenceLabel) {
+        return `${sequenceLabel} är aktiv${sequenceStep ? ` i steg ${sequenceStep}` : ''}. Vänta till ${dueMeta.label.toLowerCase()} eller följ upp då.`;
+      }
+      if (waitUntilReply) {
+        return `${slaGuardMessage ? `${slaGuardMessage} ` : ''}Vi väntar på kundens svar och öppnar tråden igen ${dueMeta.label.toLowerCase()} om inget svar kommer.`.trim();
+      }
+      return `Vi har redan svarat. Vänta till ${dueMeta.label.toLowerCase()} eller följ upp då.`;
+    }
+    if (lane === 'medical_review') {
+      return 'Medicinsk bedömning krävs innan bokning eller definitiv återkoppling.';
+    }
+    if (lane === 'admin_low') {
+      if (String(safeRow.lastActionTakenLabel || '').trim().toLowerCase().includes('hanterad')) {
+        return 'Tråden är hanterad för nu och öppnas igen bara om kunden återkommer eller något ändras.';
+      }
+      return 'Administrativt ärende utan patientrisk. Hanteras efter operativa köer.';
+    }
+    return 'Aktiv tråd i previewn.';
+  }
+
+  function getCcoNextPreviewToolGuidance(row = null, meta = {}) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const bookingMeta = meta?.bookingMeta || getCcoNextPreviewBookingMeta(safeRow);
+    const waitingMeta = meta?.waitingMeta || getCcoNextPreviewWaitingMeta(safeRow, meta?.dueMeta);
+    const lane = sanitizeCcoNextPreviewScenario(meta?.lane || safeRow.workflowLane || 'all');
+    let recommendedTool = 'open_studio';
+    if (lane === 'booking_ready' || bookingMeta.state === 'ready_now' || bookingMeta.state === 'slots_ready') recommendedTool = 'book';
+    else if (lane === 'admin_low') recommendedTool = 'template';
+    else if (waitingMeta.label === 'Följ upp kund nu') recommendedTool = 'template';
+    const slotCount = Array.isArray(safeRow.suggestedSlots) ? safeRow.suggestedSlots.filter(Boolean).length : 0;
+    const bookHeadline =
+      bookingMeta.state === 'ready_now' || bookingMeta.state === 'slots_ready'
+        ? slotCount >= 2
+          ? 'Skicka tider direkt'
+          : 'Bekräfta bokning nu'
+        : safeRow.needsMedicalReview === true
+        ? 'Avvakta bokning'
+        : 'Boka först när tråden är redo';
+    const templateHeadline =
+      lane === 'admin_low'
+        ? 'Förbered adminsvar'
+        : waitingMeta.label === 'Följ upp kund nu'
+        ? 'Förbered dagens uppföljning'
+        : waitingMeta.label === 'Väntar på patient'
+        ? 'Förbered varm nudge'
+        : 'Förbered standardsvar';
+    const studioHeadline =
+      safeRow.needsMedicalReview === true
+        ? 'Skriv ett tryggt mellanbesked'
+        : String(safeRow.intent || '').trim().toLowerCase() === 'pricing'
+        ? 'Svara med trygg väg framåt'
+        : 'Finjustera ton och nästa steg';
+    const bookGuide =
+      recommendedTool === 'book'
+        ? slotCount >= 2
+          ? 'Kunden är redo och du kan driva bokningen framåt i ett steg.'
+          : 'Använd när kunden är redo och inga interna hinder återstår.'
+        : 'Använd först när du kan erbjuda en konkret tid och tråden inte väntar på klinik eller kund.';
+    const templateGuide =
+      recommendedTool === 'template'
+        ? 'Bra för standardiserad uppföljning, adminbesked eller ett kort svar som kan gå ut snabbt.'
+        : 'Bra när svaret kan vara kort, standardiserat och inte kräver känslig tonbedömning.';
+    const studioGuide =
+      recommendedTool === 'open_studio'
+        ? 'Välj när nästa steg kräver omdöme, lugn ton eller tydlig vägledning innan något går ut.'
+        : 'Välj när du behöver justera ton, sammanhang eller erbjuda fler alternativ än en standardmall.';
+    return {
+      recommendedTool,
+      label: recommendedTool === 'book' ? 'Boka' : recommendedTool === 'template' ? 'Mall' : 'Öppna Svarsstudio',
+      reason: recommendedTool === 'book' ? bookingMeta.explanation : recommendedTool === 'template' ? templateGuide : studioGuide,
+      bookGuide,
+      templateGuide,
+      studioGuide,
+      choices: [
+        {
+          key: 'book',
+          action: 'book',
+          tone: 'book',
+          label: 'Boka',
+          headline: bookHeadline,
+          note: bookGuide,
+        },
+        {
+          key: 'template',
+          action: 'template',
+          tone: 'template',
+          label: 'Mall',
+          headline: templateHeadline,
+          note: templateGuide,
+        },
+        {
+          key: 'open_studio',
+          action: 'open-studio',
+          tone: 'studio',
+          label: 'Öppna Svarsstudio',
+          headline: studioHeadline,
+          note: studioGuide,
+        },
+      ],
+    };
+  }
+
+  function buildCcoNextPreviewRowModel(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const collaborationHelper = getCcoNextPreviewCollaborationHelper();
+    const collaborationState =
+      collaborationHelper && typeof collaborationHelper.deriveCollisionState === 'function'
+        ? String(
+            collaborationHelper.deriveCollisionState(safeRow, getCcoNextPreviewActorLabel()) || ''
+          ).trim()
+        : String(safeRow.collisionState || '').trim();
+    const activeViewers = Array.isArray(safeRow.activeViewers) ? safeRow.activeViewers : [];
+    const handoffRequest = String(safeRow.handoffRequest || '').trim().toLowerCase();
+    const dueMeta = getCcoNextPreviewDueMeta(safeRow.followUpDueAt || '');
+    const ownerMeta = getCcoNextPreviewOwnerMeta(safeRow);
+    const bookingMeta = getCcoNextPreviewBookingMeta(safeRow);
+    const waitingMeta = getCcoNextPreviewWaitingMeta(safeRow, dueMeta);
+    const escalationMeta = getCcoNextPreviewEscalationMeta(safeRow);
+    const lane = getCcoNextPreviewQueueAssignment(safeRow, {
+      dueMeta,
+      bookingMeta,
+      ownerMeta,
+      waitingMeta,
+      escalationMeta,
+    });
+    const laneMeta = getCcoNextPreviewLaneMeta(lane);
+    const urgencyMeta = getCcoNextPreviewUrgencyMeta(safeRow, {
+      dueMeta,
+      bookingMeta,
+      ownerMeta,
+    });
+    const toolGuidance = getCcoNextPreviewToolGuidance(safeRow, {
+      lane,
+      dueMeta,
+      bookingMeta,
+      waitingMeta,
+    });
+    const queueReason = getCcoNextPreviewQueueReason(safeRow, {
+      lane,
+      dueMeta,
+      bookingMeta,
+      waitingMeta,
+      escalationMeta,
+    });
+    const recurringCadenceLabel = formatCcoNextPreviewCadenceLabel(safeRow.recurringCadence || '');
+    const sequenceLabel = String(safeRow.followUpSequenceLabel || '').trim();
+    const followUpBadge = sequenceLabel
+      ? {
+          label: `${sequenceLabel} · steg ${Number(safeRow.followUpSequenceStep || 1) || 1}`,
+          tone: 'warn',
+        }
+      : recurringCadenceLabel
+      ? {
+          label: `Återkom ${recurringCadenceLabel}`,
+          tone: 'neutral',
+        }
+      : safeRow.waitUntilReply === true
+      ? {
+          label: 'Tills kundsvar',
+          tone: 'neutral',
+        }
+      : String(safeRow.slaGuardStatus || '').trim() === 'adjusted'
+      ? {
+          label: 'SLA-vakt',
+          tone: 'danger',
+        }
+      : String(safeRow.followUpMode || '').trim().toLowerCase() === 'scheduled_send'
+      ? {
+          label: 'Schemalagt utskick',
+          tone: 'neutral',
+        }
+      : null;
+    const topBadges = [
+      { label: laneMeta.label, tone: laneMeta.tone === 'muted' ? 'neutral' : laneMeta.tone },
+      { label: dueMeta.label, tone: dueMeta.tone },
+      { label: bookingMeta.label, tone: bookingMeta.tone },
+    ];
+    if (escalationMeta.tone !== 'neutral') topBadges.push({ label: escalationMeta.label, tone: escalationMeta.tone });
+    const listBadges = [
+      safeRow.lastActionTakenLabel
+        ? {
+            label: safeRow.lastActionTakenLabel,
+            tone: 'neutral',
+          }
+        : null,
+      handoffRequest === 'pending'
+        ? {
+            label: 'Handoff väntar',
+            tone: 'warn',
+          }
+        : null,
+      collaborationState === 'editing' || collaborationState === 'typing'
+        ? {
+            label: 'Krockrisk',
+            tone: 'danger',
+          }
+        : activeViewers.length
+        ? {
+            label: `${activeViewers.length} i tråden`,
+            tone: 'neutral',
+          }
+        : null,
+      safeRow.draftStateLabel
+        ? {
+            label: safeRow.draftStateLabel,
+            tone: 'warn',
+          }
+        : null,
+      followUpBadge,
+      safeRow.caseType ? { label: safeRow.caseType, tone: 'neutral' } : null,
+      waitingMeta.label !== 'Redo för åtgärd' ? { label: waitingMeta.label, tone: waitingMeta.tone } : null,
+      safeRow.needsMedicalReview === true
+        ? {
+            label: Array.isArray(safeRow.medicalFlags) && safeRow.medicalFlags.length ? safeRow.medicalFlags[0] : 'Medicinsk kontroll',
+            tone: 'danger',
+          }
+        : null,
+      escalationMeta.tone === 'danger' ? { label: escalationMeta.label, tone: escalationMeta.tone } : null,
+    ]
+      .filter(Boolean)
+      .slice(0, 3);
+    const previewSummary = {
+      ...(safeRow.previewSummary || {}),
+      assignedTo: ownerMeta.isOwned ? ownerMeta.label : 'Oägd',
+      lastCaseSummary: safeRow.situationSummary || safeRow.previewSummary?.lastCaseSummary || '',
+    };
+    return {
+      ...safeRow,
+      workflowLane: lane,
+      workflowLabel: laneMeta.label,
+      workflowDescription: laneMeta.description,
+      queueReason,
+      ownerDisplay: ownerMeta.label,
+      ownerNote: ownerMeta.note,
+      ownerTone: ownerMeta.tone,
+      bookingReadinessLabel: bookingMeta.label,
+      bookingReadinessTone: bookingMeta.tone,
+      bookingReadinessExplanation: bookingMeta.explanation,
+      waitingStateLabel: waitingMeta.label,
+      blockerSummary: waitingMeta.blocker,
+      escalationLabel: escalationMeta.label,
+      escalationTone: escalationMeta.tone,
+      escalationDetail: escalationMeta.detail,
+      lastActionTakenLabel: String(safeRow.lastActionTakenLabel || '').trim(),
+      lastActionTakenAt: String(safeRow.lastActionTakenAt || '').trim(),
+      urgencyScore: urgencyMeta.value,
+      urgencyScoreTone: urgencyMeta.tone,
+      recommendedTool: toolGuidance.recommendedTool,
+      recommendedToolLabel: toolGuidance.label,
+      recommendedToolReason: toolGuidance.reason,
+      actionChoices: Array.isArray(toolGuidance.choices) ? toolGuidance.choices : [],
+      actionGuidance: {
+        book: toolGuidance.bookGuide,
+        template: toolGuidance.templateGuide,
+        open_studio: toolGuidance.studioGuide,
+      },
+      topBadges: topBadges.slice(0, 4),
+      listBadges,
+      previewSummary,
+      followUpDeadline: dueMeta.label,
+      dueTone: dueMeta.tone,
+      availableActionLabel: toolGuidance.label,
+      availableActionSupport: toolGuidance.reason,
+      draftStateLabel: String(safeRow.draftStateLabel || '').trim(),
+      lifecycleStageLabel: safeRow.lifecycleStage || previewSummary.lifecycleStatus || '-',
+    };
+  }
+
+  function buildCcoNextPreviewFollowThroughMeta(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const laneMeta = getCcoNextPreviewLaneMeta(safeRow.workflowLane || 'all');
+    const workflowLabel = String(safeRow.workflowLabel || laneMeta.label || 'Aktiv tråd').trim() || 'Aktiv tråd';
+    const waitingStateLabel = String(safeRow.waitingStateLabel || 'Redo för åtgärd').trim() || 'Redo för åtgärd';
+    const followUpDeadline = String(safeRow.followUpDeadline || '-').trim() || '-';
+    const ownerDisplay = String(safeRow.ownerDisplay || safeRow.owner || safeRow.previewSummary?.assignedTo || '-').trim() || '-';
+    const bookingReadinessLabel = String(safeRow.bookingReadinessLabel || '-').trim() || '-';
+    const lastActionTakenLabel = String(safeRow.lastActionTakenLabel || '').trim();
+    const nextActionLabel = String(safeRow.nextActionLabel || 'Ingen nästa handling definierad').trim() || 'Ingen nästa handling definierad';
+    const nextActionSummary = String(safeRow.nextActionSummary || safeRow.queueReason || '').trim();
+    const waitingOnValue = String(safeRow.waitingOn || '').trim().toLowerCase();
+    const recurringCadenceLabel = formatCcoNextPreviewCadenceLabel(safeRow.recurringCadence || '');
+    const sequenceLabel = String(safeRow.followUpSequenceLabel || '').trim();
+    const sequenceStep = Number(safeRow.followUpSequenceStep || 0) || 0;
+    const waitUntilReply = safeRow.waitUntilReply === true;
+    const fallbackAction = String(safeRow.followUpFallbackAction || '').trim().toLowerCase();
+    const slaGuardMessage = String(safeRow.slaGuardMessage || '').trim();
+    const hasFollowUp = followUpDeadline && followUpDeadline !== '-';
+    const ownerLabel = ownerDisplay && ownerDisplay !== '-' ? `${ownerDisplay} äger nästa steg` : 'Ingen ägare ännu';
+    let waitingLabel = waitingStateLabel;
+    let followUpExpectation = hasFollowUp ? `Följ upp ${followUpDeadline.toLowerCase()}` : 'Ingen uppföljning planerad ännu';
+    if (waitingOnValue === 'customer') {
+      waitingLabel = hasFollowUp ? `Väntar på kund till ${followUpDeadline}` : 'Väntar på kund';
+      if (sequenceLabel) {
+        followUpExpectation = hasFollowUp
+          ? `${sequenceLabel}${sequenceStep ? ` · steg ${sequenceStep}` : ''} bevakas till ${followUpDeadline.toLowerCase()}`
+          : `${sequenceLabel} är aktiv`;
+      } else if (waitUntilReply) {
+        followUpExpectation = hasFollowUp
+          ? `Följ upp om inget svar innan ${followUpDeadline.toLowerCase()}`
+          : 'Följ upp när kundfönstret öppnas igen';
+      } else {
+        followUpExpectation = hasFollowUp
+          ? `Följ upp om inget svar innan ${followUpDeadline.toLowerCase()}`
+          : 'Följ upp när kundfönstret öppnas igen';
+      }
+      if (fallbackAction === 'mark_dormant') {
+        followUpExpectation = `${followUpExpectation} · vilande efter sista steg`;
+      }
+    } else if (waitingOnValue === 'owner' || waitingOnValue === 'self') {
+      waitingLabel = hasFollowUp ? `Återuppta ${followUpDeadline}` : 'Återuppta senare';
+      if (recurringCadenceLabel) {
+        followUpExpectation = hasFollowUp
+          ? `Ta tillbaka tråden ${followUpDeadline.toLowerCase()} och därefter ${recurringCadenceLabel}`
+          : `Ta tillbaka tråden ${recurringCadenceLabel}`;
+      } else if (String(safeRow.followUpMode || '').trim().toLowerCase() === 'scheduled_send') {
+        followUpExpectation = hasFollowUp
+          ? `Skicka senare ${followUpDeadline.toLowerCase()}`
+          : 'Skicka i nästa planerade block';
+      } else {
+        followUpExpectation = hasFollowUp
+          ? `Ta tillbaka tråden ${followUpDeadline.toLowerCase()}`
+          : 'Ta tillbaka tråden i nästa arbetsblock';
+      }
+    } else if (waitingOnValue === 'clinic' || safeRow.needsMedicalReview === true) {
+      waitingLabel = 'Väntar på klinik';
+      followUpExpectation = 'Klinisk review måste bli klar innan nästa kundsteg';
+    } else if (waitingOnValue === 'colleague') {
+      const target = String(safeRow.handoffTarget || '').trim();
+      const detail = String(safeRow.handoffStatusDetail || safeRow.handoffNote || '').trim();
+      waitingLabel = 'Väntar på kollega';
+      followUpExpectation = target
+        ? `${target} behöver ta över innan nästa kundsteg.${detail ? ` ${detail}` : ''}`.trim()
+        : detail || 'Inväntar intern återkoppling före nästa steg.';
+    } else if (!String(safeRow.owner || '').trim()) {
+      waitingLabel = 'Saknar ägare';
+      followUpExpectation = 'Ta ägarskap innan tråden lämnas vidare';
+    } else if (
+      String(safeRow.workflowLane || '').trim().toLowerCase() === 'booking_ready' ||
+      String(safeRow.bookingState || '').trim().toLowerCase() === 'ready_now' ||
+      String(safeRow.bookingState || '').trim().toLowerCase() === 'slots_ready'
+    ) {
+      waitingLabel = 'Redo att boka nu';
+      followUpExpectation = 'Skicka tider eller boka direkt i denna arbetscykel';
+    }
+    if (slaGuardMessage) {
+      followUpExpectation = `${followUpExpectation} · ${slaGuardMessage}`;
+    }
+    return {
+      changeLabel: lastActionTakenLabel ? `${lastActionTakenLabel} · nu ${workflowLabel}` : `Nu i ${workflowLabel}`,
+      changeSummary: `${waitingLabel} · ${followUpExpectation} · ${ownerLabel}`,
+      queueLabel: workflowLabel,
+      waitingLabel,
+      followUpLabel: followUpDeadline,
+      ownerLabel: ownerDisplay,
+      bookingLabel: bookingReadinessLabel,
+      nextStepLabel: nextActionLabel,
+      nextStepSummary: nextActionSummary || 'Ingen ytterligare uppföljning definierad ännu.',
+      tone: String(laneMeta.tone || 'neutral'),
+    };
+  }
+
+  function getCcoNextPreviewSeed() {
+    return {
+      lastSyncAt: '2026-04-22T16:18:00.000Z',
+      mailboxLabel: 'Hair TP Clinic · contact',
+      rows: [
+        {
+          conversationId: 'cco-next-preview-anna',
+          sender: 'Anna Karlsson',
+          subject: 'Akut ombokning idag',
+          caseType: 'Ombokning',
+          latestInboundPreview:
+            'Hej! Jag måste tyvärr ställa in min tid imorgon. Kan jag få en ny tid så snart som möjligt? Helst någon eftermiddag denna vecka.',
+          lastInboundAt: '2026-04-22T10:42:00.000Z',
+          priorityLevel: 'Critical',
+          slaStatus: 'breach',
+          inSprint: true,
+          followUpSuggested: true,
+          intent: 'rebooking',
+          tone: 'urgent',
+          confidenceLevel: 'High',
+          recommendedAction: 'follow_up',
+          bookingState: 'slots_ready',
+          waitingOn: 'none',
+          followUpDueAt: '2026-04-22T14:15:00.000Z',
+          escalationRisk: 'medium',
+          lifecycleStage: 'Återbesök väntar',
+          suggestedSlots: ['Idag 15:30', 'Imorgon 17:00'],
+          operatorCue:
+            'Kunden måste få två konkreta ombokningsalternativ nu, annars riskerar vi både SLA och besöket i morgon.',
+          situationSummary:
+            'Morgondagens behandling kan fortfarande räddas om vi ger ett tydligt ombokningsbeslut i denna arbetscykel.',
+          nextActionLabel: 'Erbjud två ombokningstider nu',
+          nextActionSummary:
+            'Skicka två eftermiddagstider direkt. Om kunden väljer en av dem kan bokningen avslutas utan fler loopar.',
+          owner: 'Sara',
+          handoffStatus: 'in_progress',
+          keyNote: 'Kunden kan endast efter 15:00 och vill helst lösa detta innan arbetsdagen är slut.',
+          customerContext: 'Återkommande kund sedan 2024 · snabb att svara när vi ger konkreta alternativ.',
+          internalNote: 'Två tider finns redan i kalendern. Håll Sara som ägare tills kunden bekräftat.',
+          medicalContext: 'Ingen medicinsk spärr. Ärendet är helt kalenderstyrt och redo för ombokning.',
+          responseAngle: 'Lugn, lösningsfokuserad och konkret med två tydliga alternativ.',
+          escalationRule: 'Eskalera först om inga tider kan erbjudas idag.',
+          medicalFlags: [],
+          previewDraftBody:
+            'Hej Anna,\n\nVi löser ombokningen direkt. Just nu finns en tid idag kl 15:30 och en tid imorgon kl 17:00. Svara gärna med den som passar bäst så uppdaterar jag bokningen direkt.\n\nVänliga hälsningar,\nSara · Hair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Anna Karlsson',
+              role: 'customer',
+              timestamp: '2026-04-22T10:42:00.000Z',
+              body:
+                'Hej! Jag måste tyvärr ställa in min tid imorgon. Kan jag få en ny tid så snart som möjligt? Helst någon eftermiddag denna vecka.',
+            },
+            {
+              author: 'Sara',
+              role: 'agent',
+              timestamp: '2026-04-17T08:05:00.000Z',
+              body: 'Självklart. Vi tittar på eftermiddagstider och återkommer med nästa möjliga lucka så snart vi har bekräftat kalendern.',
+            },
+            {
+              author: 'Anna Karlsson',
+              role: 'customer',
+              timestamp: '2025-01-14T10:18:00.000Z',
+              body: 'Tack, fredag morgon passar mig bäst när det går att lösa. Jag återkommer gärna snabbt om ni hittar en ny tid.',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Inkommande',
+              timestamp: '2026-04-22T10:42:00.000Z',
+              excerpt: 'Akut ombokning inför morgondagen med krav på eftermiddagstid.',
+            },
+            {
+              label: 'Intern notis',
+              timestamp: '2026-04-17T08:05:00.000Z',
+              excerpt: 'Två tider finns redan i kalendern. Svara i denna arbetscykel så vi inte tappar besöket.',
+            },
+          ],
+          journeyStage: 'return_visit',
+          vipStatus: 'vip',
+          lifetimeValue: 126000,
+          relationshipSensitivity: 'high',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: true,
+            marketing: false,
+          },
+          insuranceContext: 'Ingen försäkring. Egenbetalare med tidigare fullföljda behandlingar.',
+          treatmentContext: 'Återkommande PRP-patient som vill hålla samma behandlingsrytm utan att tappa fart.',
+          plannedTreatment: 'PRP återbesök',
+          recentTreatments: ['PRP · jan 2026', 'PRP · okt 2025'],
+          returnVisitState: 'Återkommande patient',
+          journeyEvents: [
+            {
+              id: 'anna-contact',
+              type: 'contact',
+              label: 'Första kontakt',
+              date: '2024',
+              note: 'Kom in via rekommendation och konverterade snabbt.',
+            },
+            {
+              id: 'anna-consult',
+              type: 'consultation',
+              label: 'Konsultation bokad',
+              date: '2024-02-12',
+              note: 'Valde behandlingsplan samma vecka.',
+            },
+            {
+              id: 'anna-treatment',
+              type: 'treatment',
+              label: 'Senaste PRP',
+              date: '2026-01-18',
+              note: 'Stabil uppföljning utan komplikationer.',
+              tone: 'success',
+            },
+            {
+              id: 'anna-now',
+              type: 'follow_up',
+              label: 'Ombokning nu',
+              date: '2026-04-22',
+              note: 'Behöver nytt eftermiddagsalternativ idag.',
+              tone: 'warn',
+            },
+          ],
+          activeViewers: [
+            {
+              id: 'collab-egzona',
+              name: 'Egzona',
+              action: 'viewing',
+              location: 'Kalender',
+              durationSeconds: 240,
+            },
+          ],
+          activeEditor: '',
+          draftOwner: 'Sara',
+          draftUpdatedAt: '2026-04-22T11:54:00.000Z',
+          collisionState: 'none',
+          handoffRequest: '',
+          handoffTarget: '',
+          handoffNote: '',
+          handoffStatusDetail: 'Sara håller tråden tills kunden väljer tid.',
+          previewSummary: {
+            lifecycleStatus: 'active_dialogue',
+            interactionCount: 5,
+            engagementScore: 0.82,
+            lastCaseSummary: 'Akut ombokning med tydlig lösning möjlig direkt.',
+            customerSince: '2023',
+            assignedTo: 'Sara',
+          },
+          surfaceMailboxTag: 'Contact',
+          surfaceMailboxTone: 'purple',
+          surfaceIntentTag: 'Omboka',
+          surfaceIntentTone: 'warn',
+          surfaceDueLabel: '1h',
+          surfaceDueTone: 'danger',
+          surfaceMoodEmoji: '😰',
+          surfacePresence: true,
+          surfaceAvatarImage: '/assets/cco-next/anna-karlsson.jpg',
+          surfaceHidePreview: true,
+          surfaceRowTone: 'soft-danger',
+          finalCategoryIds: ['sprint', 'act-now', 'bookable', 'today', 'high-risk'],
+        },
+        {
+          conversationId: 'cco-next-preview-erik',
+          sender: 'Erik Johansson',
+          subject: 'Bokningsfråga fillers',
+          caseType: 'Bokningsfråga',
+          latestInboundPreview:
+            'Hej, jag funderar på fillers och vill gärna veta hur jag enklast bokar en tid som passar denna vecka.',
+          lastInboundAt: '2026-04-22T09:15:00.000Z',
+          priorityLevel: 'High',
+          slaStatus: 'warning',
+          inSprint: true,
+          followUpSuggested: true,
+          intent: 'booking',
+          tone: 'positive',
+          confidenceLevel: 'Medium',
+          recommendedAction: 'follow_up',
+          bookingState: 'ready_now',
+          waitingOn: 'owner',
+          followUpDueAt: '2026-04-22T15:00:00.000Z',
+          escalationRisk: 'high',
+          lifecycleStage: 'Bokningsförfrågan',
+          operatorCue:
+            'Kunden vill snabbt vidare till en bokningsbar lösning. Ta ägarskap nu och svara med enkel väg till tid denna vecka.',
+          situationSummary:
+            'Det finns ett tydligt bokningsfönster nu, men tråden är fortfarande oägd och kräver ett snabbt konkret svar idag.',
+          nextActionLabel: 'Ta ägarskap och svara idag',
+          nextActionSummary:
+            'Sätt ägare, ge ett kort svar om fillers och erbjud närmaste bokningsväg direkt i samma svar.',
+          owner: '',
+          handoffStatus: 'unassigned',
+          keyNote: 'Hög tapp-risk om vi inte visar tydlig väg framåt under dagen.',
+          customerContext: 'Ny lead från Instagram-annons · tydlig bokningsvilja och låg friktion om vi svarar snabbt.',
+          internalNote: 'Saknar ägare. Bör tas av den som kan ge kort fillers-svar och leda mot bokning utan omvägar.',
+          medicalContext: 'Ingen medicinsk spärr ännu, men konsultation kan behövas före behandling beroende på område.',
+          responseAngle: 'Kort, trygg och bokningsnära. Besvara frågan utan att överlasta med detaljer.',
+          escalationRule: 'Eskalera endast om kunden går över till medicinska riskfrågor eller behöver specialistbedömning.',
+          medicalFlags: [],
+          previewDraftBody:
+            'Hej Erik,\n\nTack för din fråga. För fillers hjälper vi dig gärna vidare direkt till rätt bokningsväg denna vecka. Om du vill kan jag redan idag ge dig nästa lediga tid och kort beskriva hur upplägget brukar se ut.\n\nVänliga hälsningar,\nHair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Erik Johansson',
+              role: 'customer',
+              timestamp: '2026-04-22T10:15:00.000Z',
+              body:
+                'Hej, jag funderar på fillers och vill gärna veta hur jag enklast bokar en tid som passar denna vecka.',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Inkommande',
+              timestamp: '2026-04-22T10:15:00.000Z',
+              excerpt: 'Bokningsfråga om fillers med tydlig vilja att komma vidare snabbt.',
+            },
+            {
+              label: 'Operativ risk',
+              timestamp: '2026-04-22T11:28:00.000Z',
+              excerpt: 'Oägd lead med hög tapp-risk om bokningsvägen inte görs tydlig idag.',
+            },
+          ],
+          journeyStage: 'consultation',
+          vipStatus: 'new',
+          lifetimeValue: 0,
+          relationshipSensitivity: 'medium',
+          duplicateState: 'possible',
+          duplicateNote: 'Liknar äldre lead-spår från Instagram. Kontrollera telefon innan flera svar går ut.',
+          consentStatus: {
+            gdpr: true,
+            photos: null,
+            marketing: true,
+          },
+          insuranceContext: 'Ej relevant i detta läge. Kunden är fortfarande i konsultationsspåret.',
+          treatmentContext: 'Ingen behandling ännu. Behöver trygg konsultationsväg före prisdiskussion på detaljnivå.',
+          plannedTreatment: 'Konsultation inför hårtransplantation',
+          recentTreatments: [],
+          returnVisitState: 'Ny lead',
+          journeyEvents: [
+            {
+              id: 'erik-lead',
+              type: 'contact',
+              label: 'Lead från Instagram',
+              date: '2026-04-21',
+              note: 'Kom in via annons med tydlig köpavsikt.',
+            },
+            {
+              id: 'erik-compare',
+              type: 'consultation',
+              label: 'Prisjämförelse',
+              date: '2026-04-22',
+              note: 'Väger oss mot annan klinik innan bokning.',
+              tone: 'warn',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'new',
+            interactionCount: 1,
+            engagementScore: 0.66,
+            lastCaseSummary: 'Ny bokningsfråga om fillers med tydlig chans att konvertera om vi svarar snabbt.',
+            customerSince: '2026',
+            assignedTo: '',
+          },
+          surfaceMailboxTag: 'Bokning',
+          surfaceMailboxTone: 'purple',
+          surfaceIntentTag: 'Bokning',
+          surfaceIntentTone: 'info',
+          surfaceDueLabel: '2h',
+          surfaceDueTone: 'warn',
+          surfaceMoodEmoji: '🎉',
+          surfacePresence: true,
+          surfaceAvatarImage: '/assets/cco-next/erik-johansson.jpg',
+          surfaceHidePreview: true,
+          surfaceHideOwnerTag: true,
+          surfaceRowTone: 'soft-danger',
+          finalCategoryIds: ['sprint', 'act-now', 'bookable', 'today'],
+        },
+        {
+          conversationId: 'cco-next-preview-mona',
+          sender: 'Mona Nilsson',
+          subject: 'Redo att boka PRP nästa vecka',
+          caseType: 'Bokning',
+          latestInboundPreview:
+            'Hej, tisdag eller onsdag efter lunch passar mig. Ni får gärna boka den tid som finns först.',
+          lastInboundAt: '2026-04-22T09:12:00.000Z',
+          priorityLevel: 'Medium',
+          slaStatus: 'warning',
+          inSprint: false,
+          followUpSuggested: false,
+          intent: 'booking',
+          tone: 'warm',
+          confidenceLevel: 'High',
+          recommendedAction: 'follow_up',
+          bookingState: 'ready_now',
+          waitingOn: 'none',
+          followUpDueAt: '2026-04-22T17:00:00.000Z',
+          escalationRisk: 'low',
+          lifecycleStage: 'Bokningsklar',
+          suggestedSlots: ['Tis 14:00', 'Ons 16:30'],
+          operatorCue:
+            'Det här är en ren bokningsvinst. Kunden har redan gett mandat att vi väljer första lediga tiden efter lunch.',
+          situationSummary:
+            'Kunden är redo att låta oss boka direkt och kräver inget extra beslut från teamet.',
+          nextActionLabel: 'Bekräfta tid direkt',
+          nextActionSummary:
+            'Välj första lämpliga slot, bekräfta den och stäng tråden som bokad i samma arbetscykel.',
+          owner: 'Egzona',
+          handoffStatus: 'assigned',
+          keyNote: 'Två tider finns lediga. Ingen anledning att lägga denna i uppföljningskö.',
+          customerContext: 'Återkommande patient med hög sannolikhet att fullfölja nästa steg direkt.',
+          internalNote: 'Kan bokas nu om Egzona tar beslut före lunch.',
+          medicalContext: 'Ingen medicinsk spärr. Tidigare PRP-behandling utan komplikationer.',
+          responseAngle: 'Kort, trygg och bekräftande. Kunden vill att vi gör jobbet enkelt.',
+          escalationRule: 'Ingen eskalering behövs så länge tiderna är kvar.',
+          medicalFlags: [],
+          previewDraftBody:
+            'Hej Mona,\n\nPerfekt, då bokar vi in dig på första lediga eftermiddagstiden nästa vecka: tisdag kl 14:00. Om du vill ha onsdag kl 16:30 i stället är det bara att svara så justerar vi direkt.\n\nVänliga hälsningar,\nEgzona · Hair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Mona Nilsson',
+              role: 'customer',
+              timestamp: '2026-04-22T09:12:00.000Z',
+              body:
+                'Hej, tisdag eller onsdag efter lunch passar mig. Ni får gärna boka den tid som finns först.',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Inkommande',
+              timestamp: '2026-04-22T09:12:00.000Z',
+              excerpt: 'Kunden ger mandat att vi väljer första passande tid.',
+            },
+            {
+              label: 'Kalenderkontroll',
+              timestamp: '2026-04-22T09:18:00.000Z',
+              excerpt: 'Två lediga tider säkrade: tis 14:00 och ons 16:30.',
+            },
+          ],
+          journeyStage: 'booked',
+          vipStatus: 'loyal',
+          lifetimeValue: 42000,
+          relationshipSensitivity: 'medium',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: false,
+            marketing: true,
+          },
+          insuranceContext: 'Ingen försäkringskoppling. Vanlig bokningsresa.',
+          treatmentContext: 'Tidigare PRP-förlopp med god följsamhet och låg friktion i bokningsledet.',
+          plannedTreatment: 'PRP nästa vecka',
+          recentTreatments: ['PRP · nov 2025', 'PRP · jun 2025'],
+          returnVisitState: 'Återbesök bokningsklart',
+          journeyEvents: [
+            {
+              id: 'mona-contact',
+              type: 'contact',
+              label: 'Tidigare patient',
+              date: '2024',
+              note: 'Har fullföljt tidigare PRP-upplägg.',
+            },
+            {
+              id: 'mona-treatment',
+              type: 'treatment',
+              label: 'Senaste PRP',
+              date: '2025-11-04',
+              note: 'Lugn behandlingshistorik utan blockerare.',
+              tone: 'success',
+            },
+            {
+              id: 'mona-booking',
+              type: 'booking',
+              label: 'Redo att boka',
+              date: '2026-04-22',
+              note: 'Kunden har gett mandat att vi väljer första lediga tid.',
+              tone: 'success',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'follow_up_pending',
+            interactionCount: 4,
+            engagementScore: 0.74,
+            lastCaseSummary: 'Bokningsklar patient med två öppna tider och låg friktion.',
+            customerSince: '2024',
+            assignedTo: 'Egzona',
+          },
+        },
+        {
+          conversationId: 'cco-next-preview-johan',
+          sender: 'Johan Lagerström',
+          subject: 'Bokning av tid',
+          caseType: 'Bokning',
+          latestInboundPreview:
+            'Hej, jag vill boka en PrP-behandling. Jag är tillgänglig fredag kl 09:00 eller måndag kl 15:30.',
+          lastInboundAt: '2026-04-22T11:08:00.000Z',
+          priorityLevel: 'High',
+          slaStatus: 'warning',
+          inSprint: true,
+          followUpSuggested: true,
+          intent: 'booking',
+          tone: 'warm',
+          confidenceLevel: 'High',
+          recommendedAction: 'follow_up',
+          bookingState: 'awaiting_confirmation',
+          waitingOn: 'customer',
+          followUpDueAt: '2026-04-22T16:00:00.000Z',
+          escalationRisk: 'medium',
+          lifecycleStage: 'Bekräftelse väntar',
+          operatorCue:
+            'Kunden fick två tider men har inte bekräftat. Det här är inte bokningsklart längre, men det ska inte lämnas över natten.',
+          situationSummary:
+            'Vi har redan gjort ett bra första svar. Nu behövs en varm nudge som gör det lätt att svara med ett enkelt ja eller nej.',
+          nextActionLabel: 'Skicka mjuk uppföljning idag',
+          nextActionSummary:
+            'Påminn om de föreslagna tiderna och gör det lätt att svara med ett kort ja/nej.',
+          owner: 'Egzona',
+          keyNote: 'Väntar på bekräftelse av nästa lediga tid. Håll tonen varm och enkel.',
+          customerContext: 'Kund sedan 2023 · hög sannolikhet att boka om vi följer upp idag.',
+          internalNote: 'Mjuk uppföljning räcker. Ingen behov av eskalering.',
+          medicalContext: 'PrP-uppföljning utan medicinska flaggor.',
+          responseAngle: 'Varm, personlig och lätt att svara på med ett snabbt bekräftelseval.',
+          escalationRule: 'Eskalera endast om kunden efterfrågar fler tider eller medicinsk rådgivning.',
+          medicalFlags: [],
+          previewDraftBody:
+            'Hej Johan,\n\nJag följer bara upp de tider vi skickade tidigare. Just nu finns fortfarande fredag kl 09:00 och måndag kl 15:30 tillgängligt. Svara gärna med den tid som passar dig bäst så uppdaterar jag bokningen direkt.\n\nVänliga hälsningar,\nEgzona · Hair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Johan Lagerström',
+              role: 'customer',
+              timestamp: '2026-04-22T11:08:00.000Z',
+              body:
+                'Hej,\n\nJag vill boka in en PrP-behandling. Jag är tillgänglig på fredag, gärna kl 09:00, alternativt måndag kl 15:30. Hör gärna av er med nästa lediga tid!',
+            },
+            {
+              author: 'Egzona Krasniqi',
+              role: 'agent',
+              timestamp: '2026-04-22T11:32:00.000Z',
+              body:
+                'Hej Johan,\n\nDu kan träffa oss fredag kl 09:00 eller måndag kl 15:30. Bekräfta gärna så uppdaterar jag vår kalender.\n\nVänliga hälsningar,\nEgzona · Hair TP Clinic',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Senast inkommet',
+              timestamp: '2026-04-22T11:08:00.000Z',
+              excerpt: 'Kunden vill boka in en PrP-behandling fredag eller måndag.',
+            },
+            {
+              label: 'Intern notis',
+              timestamp: '2026-04-22T11:20:00.000Z',
+              excerpt: 'Föreslå ledig tid direkt för att hålla tråden varm.',
+            },
+            {
+              label: 'Svarsstudio',
+              timestamp: '2026-04-22T11:32:00.000Z',
+              excerpt: 'Förslag klart, väntar på kundens bekräftelse.',
+            },
+          ],
+          journeyStage: 'follow_up',
+          vipStatus: 'high_value',
+          lifetimeValue: 68500,
+          relationshipSensitivity: 'high',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: true,
+            marketing: true,
+          },
+          insuranceContext: 'Ingen försäkring relevant i bokningsspåret.',
+          treatmentContext: 'Tidigare PRP-kund som nu bara behöver bekräfta nästa slot för att hålla behandlingsplanen.',
+          plannedTreatment: 'PRP behandling',
+          recentTreatments: ['PRP · dec 2025', 'PRP · sep 2025'],
+          returnVisitState: 'Väntar på bekräftelse',
+          journeyEvents: [
+            {
+              id: 'johan-consult',
+              type: 'consultation',
+              label: 'Tidigare konsultation',
+              date: '2023-09-14',
+              note: 'Konverterade till behandling inom samma månad.',
+            },
+            {
+              id: 'johan-treatment',
+              type: 'treatment',
+              label: 'Senaste PRP',
+              date: '2025-12-11',
+              note: 'Vill fortsätta behandlingen utan långt uppehåll.',
+              tone: 'success',
+            },
+            {
+              id: 'johan-follow-up',
+              type: 'follow_up',
+              label: 'Bekräftelse väntar',
+              date: '2026-04-22',
+              note: 'Två tider ligger ute och behöver enkel ja/nej-återkoppling.',
+              tone: 'warn',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'follow_up_pending',
+            interactionCount: 3,
+            engagementScore: 0.43,
+            lastCaseSummary: 'Väntar på kundens bekräftelse av föreslagen tid.',
+            customerSince: '2023',
+            assignedTo: 'Egzona',
+          },
+        },
+        {
+          conversationId: 'cco-next-preview-linda',
+          sender: 'Linda Berg',
+          subject: 'Väntar på återkoppling om ärrbehandling',
+          caseType: 'Uppföljning',
+          latestInboundPreview:
+            'Förslag skickat igår. Kunden har ännu inte svarat på om hon vill gå vidare med kontrolltid denna vecka.',
+          lastInboundAt: '2026-04-21T09:25:00.000Z',
+          priorityLevel: 'Medium',
+          slaStatus: 'safe',
+          inSprint: false,
+          followUpSuggested: false,
+          intent: 'follow_up',
+          tone: 'neutral',
+          confidenceLevel: 'Medium',
+          recommendedAction: 'follow_up',
+          bookingState: 'awaiting_confirmation',
+          waitingOn: 'customer',
+          followUpDueAt: '2026-04-23T10:00:00.000Z',
+          lifecycleStage: 'Väntar besked',
+          escalationRisk: 'low',
+          operatorCue:
+            'Läs senaste utgående svar och avgör om en mjuk påminnelse behövs först imorgon.',
+          situationSummary:
+            'Vi har redan gett kunden ett lugnt nästa steg. Om vi följer upp för tidigt skapar vi mer brus än hjälp.',
+          nextActionLabel: 'Avvakta till imorgon 10:00',
+          nextActionSummary:
+            'Ingen ny åtgärd behövs just nu. Om kunden inte svarar innan imorgon, skicka en kort check-in.',
+          owner: 'Fazli',
+          keyNote: 'Vi väntar på kunden, inte tvärtom. Risk för överarbete om vi följer upp för tidigt.',
+          customerContext: 'Ny kund från konsultation för två veckor sedan · behöver lugn vägledning.',
+          internalNote: 'Avvakta tills uppföljningströskeln passerat. Ingen aktiv risk idag.',
+          medicalContext: 'Ärrbehandling kräver klinikbedömning först om kunden vill gå vidare.',
+          responseAngle: 'Försiktig och rådgivande. Undvik att pressa kunden innan uppföljningstiden är inne.',
+          escalationRule: 'Eskalera till klinik endast om kunden beskriver nya symptom.',
+          medicalFlags: ['Klinikbedömning vid symptom'],
+          previewDraftBody:
+            'Hej Linda,\n\nJag följer bara upp vårt senaste meddelande. Om du vill kan vi hjälpa dig att boka en kontrolltid den här veckan. Återkom gärna när det passar.\n\nVänliga hälsningar,\nFazli · Hair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Linda Berg',
+              role: 'customer',
+              timestamp: '2026-04-20T16:10:00.000Z',
+              body: 'Hej, jag funderar fortfarande på om jag behöver boka en extra kontroll för ärrbehandlingen.',
+            },
+            {
+              author: 'Fazli Krasniqi',
+              role: 'agent',
+              timestamp: '2026-04-21T09:25:00.000Z',
+              body:
+                'Hej Linda,\n\nAbsolut, vi hjälper dig gärna vidare. Om du vill kan vi boka en kontrolltid denna vecka. Återkom med vad som passar dig bäst.\n\nVänliga hälsningar,\nFazli · Hair TP Clinic',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Utgående svar',
+              timestamp: '2026-04-21T09:25:00.000Z',
+              excerpt: 'Vi erbjöd kontrolltid denna vecka och väntar nu på kunden.',
+            },
+            {
+              label: 'Intern notis',
+              timestamp: '2026-04-21T09:40:00.000Z',
+              excerpt: 'Påminnelse tidigast efter 24h om kunden fortfarande är tyst.',
+            },
+          ],
+          journeyStage: 'follow_up',
+          vipStatus: 'standard',
+          lifetimeValue: 14000,
+          relationshipSensitivity: 'medium',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: false,
+            marketing: false,
+          },
+          insuranceContext: 'Ingen försäkringssignal. Normal uppföljning efter konsultation.',
+          treatmentContext: 'Ärrbehandlingen kräver först kontrolltid om kunden vill gå vidare.',
+          plannedTreatment: 'Kontroll för ärrbehandling',
+          recentTreatments: ['Konsultation · apr 2026'],
+          returnVisitState: 'Väntar besked',
+          journeyEvents: [
+            {
+              id: 'linda-consult',
+              type: 'consultation',
+              label: 'Konsultation genomförd',
+              date: '2026-04-08',
+              note: 'Kunden behöver lugn vägledning efter första mötet.',
+            },
+            {
+              id: 'linda-follow-up',
+              type: 'follow_up',
+              label: 'Inväntar besked',
+              date: '2026-04-21',
+              note: 'En kort check-in räcker först när uppföljningsfönstret öppnar.',
+              tone: 'neutral',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'awaiting_reply',
+            interactionCount: 3,
+            engagementScore: 0.46,
+            lastCaseSummary: 'Avvaktande kund. Ingen aktiv åtgärd behövs innan uppföljningsfönstret öppnar.',
+            customerSince: '2026',
+            assignedTo: 'Fazli',
+          },
+        },
+        {
+          conversationId: 'cco-next-preview-karin',
+          sender: 'Karin Ekman',
+          subject: 'PRP efter håravfall · behöver medicinsk granskning',
+          caseType: 'Medicinsk bedömning',
+          latestInboundPreview:
+            'Hej, jag använder blodförtunnande och har fått mer irritation i hårbotten. Är det säkert att boka PRP nu eller ska jag vänta?',
+          lastInboundAt: '2026-04-22T09:48:00.000Z',
+          priorityLevel: 'High',
+          slaStatus: 'warning',
+          inSprint: false,
+          followUpSuggested: true,
+          intent: 'question',
+          tone: 'worried',
+          confidenceLevel: 'High',
+          recommendedAction: 'follow_up',
+          bookingState: 'blocked_medical',
+          waitingOn: 'clinic',
+          followUpDueAt: '2026-04-22T15:30:00.000Z',
+          lifecycleStage: 'Medicinsk review',
+          escalationRisk: 'medium',
+          needsMedicalReview: true,
+          medicalBlocker: 'Kliniken måste bedöma om behandlingen ska pausas eller flyttas fram.',
+          medicalFlags: ['Blodförtunnande', 'Hudirritation'],
+          operatorCue:
+            'Det här ska inte bokas eller mallsvaras bort. Säkerställ klinisk bedömning först och håll kunden trygg under tiden.',
+          situationSummary:
+            'Kunden efterfrågar både medicinsk rådgivning och eventuell bokning. Fel steg här kan skapa risk och fel förväntan.',
+          nextActionLabel: 'Skicka till klinisk review före svar',
+          nextActionSummary:
+            'Tagga ärendet för medicinsk granskning, ge kunden en trygg mellanåterkoppling och boka inte förrän kliniken svarat.',
+          owner: 'Fazli',
+          handoffStatus: 'waiting_review',
+          keyNote: 'Medicinskt blockerad tills kliniken bedömt risknivå och lämplig väntetid.',
+          customerContext: 'Befintlig patient i behandlingsresa · hög trygghetsförväntan.',
+          internalNote: 'Behöver kort intern sammanfattning till kliniken innan återkoppling går ut.',
+          medicalContext: 'Pågående håravfallsresa. Blodförtunnande + ny irritation kräver bedömning.',
+          responseAngle: 'Trygg, försiktig och transparent. Bekräfta frågan och tydliggör att kliniken granskar innan bokning.',
+          escalationRule: 'Eskalera till klinik omedelbart och boka inte innan grönt ljus finns.',
+          previewDraftBody:
+            'Hej Karin,\n\nTack för att du berättar detta. Eftersom du använder blodförtunnande och samtidigt beskriver irritation i hårbotten vill vi först låta kliniken granska läget innan vi bokar eller ger definitiv rådgivning. Vi återkommer så snart den bedömningen är klar.\n\nVänliga hälsningar,\nHair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Karin Ekman',
+              role: 'customer',
+              timestamp: '2026-04-22T09:48:00.000Z',
+              body:
+                'Hej, jag använder blodförtunnande och har fått mer irritation i hårbotten. Är det säkert att boka PRP nu eller ska jag vänta?',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Inkommande',
+              timestamp: '2026-04-22T09:48:00.000Z',
+              excerpt: 'Kund beskriver blodförtunnande och irritation före planerad PRP.',
+            },
+            {
+              label: 'Intern bedömning',
+              timestamp: '2026-04-22T10:02:00.000Z',
+              excerpt: 'Skicka till klinisk granskning innan bokning eller rådgivning går ut.',
+            },
+          ],
+          journeyStage: 'treatment',
+          vipStatus: 'loyal',
+          lifetimeValue: 52000,
+          relationshipSensitivity: 'high',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: null,
+            marketing: false,
+          },
+          insuranceContext: 'Ingen försäkring. Klinisk bedömning styr nästa steg.',
+          treatmentContext:
+            'Pågående håravfallsresa där blodförtunnande och irritation gör att ton, timing och bokning måste hållas försiktiga.',
+          plannedTreatment: 'PRP efter klinisk review',
+          recentTreatments: ['Håravfallsuppföljning · mar 2026', 'PRP · jan 2026'],
+          returnVisitState: 'Medicinsk vänt',
+          journeyEvents: [
+            {
+              id: 'karin-treatment',
+              type: 'treatment',
+              label: 'Pågående behandlingsresa',
+              date: '2025',
+              note: 'Tidigare PRP utan större avvikelser.',
+            },
+            {
+              id: 'karin-review',
+              type: 'follow_up',
+              label: 'Medicinsk review',
+              date: '2026-04-22',
+              note: 'Kliniken måste först bedöma blodförtunnande och irritation.',
+              tone: 'danger',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'active_dialogue',
+            interactionCount: 2,
+            engagementScore: 0.58,
+            lastCaseSummary: 'Medicinskt blockerad fråga som kräver klinisk review före nästa steg.',
+            customerSince: '2025',
+            assignedTo: 'Fazli',
+          },
+        },
+        {
+          conversationId: 'cco-next-preview-maria',
+          sender: 'Maria Andersson',
+          subject: 'Fråga om botox',
+          caseType: 'Info',
+          latestInboundPreview:
+            'Hej, jag funderar på botox och vill gärna förstå vad som brukar vara nästa steg innan jag bokar.',
+          lastInboundAt: '2026-04-21T10:14:00.000Z',
+          priorityLevel: 'Low',
+          slaStatus: 'safe',
+          inSprint: false,
+          followUpSuggested: false,
+          intent: 'info',
+          tone: 'positive',
+          confidenceLevel: 'High',
+          recommendedAction: 'follow_up',
+          bookingState: 'needs_clarity',
+          waitingOn: 'none',
+          followUpDueAt: '2026-04-25T09:30:00.000Z',
+          lifecycleStage: 'Informationsfråga',
+          escalationRisk: 'low',
+          operatorCue:
+            'Läs frågan och svara med en kort, trygg översikt över hur ett botoxspår brukar börja utan att överlasta kunden.',
+          situationSummary:
+            'Detta är inte akut, men ett tydligt informationssvar kan hjälpa kunden vidare utan att tvinga fram bokning direkt.',
+          nextActionLabel: 'Svara med kort information',
+          nextActionSummary:
+            'Ingen omedelbar risk. Ge en vänlig överblick och erbjud konsultation om kunden vill gå vidare senare.',
+          owner: 'Sara',
+          keyNote: 'Låg prioritet men bra läge att svara kort och tryggt utan att skapa onödig friktion.',
+          customerContext: 'Nyare kundkontakt med låg risk och tydligt informationsbehov.',
+          internalNote: 'Kan hanteras lugnt. Fokus ligger på att göra botoxspåret begripligt och tryggt.',
+          medicalContext: 'Ingen aktiv medicinsk varning i den här frågan.',
+          responseAngle: 'Kort, vänlig och förklarande. Svara utan att låta som en säljpush.',
+          escalationRule: 'Eskalera endast om kunden går över till medicinska symptom eller behandlingsrisker.',
+          medicalFlags: [],
+          previewDraftBody:
+            'Hej Maria,\n\nTack för din fråga. För botox börjar vi vanligtvis med att gå igenom område, mål och om en konsultation behövs innan bokning. Om du vill kan vi hjälpa dig vidare med nästa steg i lugn takt.\n\nVänliga hälsningar,\nSara · Hair TP Clinic',
+          previewMessages: [
+            {
+              author: 'Maria Andersson',
+              role: 'customer',
+              timestamp: '2026-04-20T10:14:00.000Z',
+              body: 'Hej, jag funderar på botox och vill gärna förstå vad som brukar vara nästa steg innan jag bokar.',
+            },
+          ],
+          previewHistory: [
+            {
+              label: 'Inkommande',
+              timestamp: '2026-04-20T10:14:00.000Z',
+              excerpt: 'Kunden ställer en lugn informationsfråga om botox och nästa steg.',
+            },
+          ],
+          journeyStage: 'consultation',
+          vipStatus: 'loyal',
+          lifetimeValue: 36000,
+          relationshipSensitivity: 'low',
+          duplicateState: 'clear',
+          duplicateNote: '',
+          consentStatus: {
+            gdpr: true,
+            photos: false,
+            marketing: false,
+          },
+          insuranceContext: 'Ingen försäkringskoppling relevant i detta spår.',
+          treatmentContext: 'Kunden vill förstå botoxspåret innan eventuell bokning.',
+          plannedTreatment: 'Botox konsultation',
+          recentTreatments: ['Hudkonsultation · 2025'],
+          returnVisitState: 'Informationsläge',
+          journeyEvents: [
+            {
+              id: 'maria-treatment',
+              type: 'contact',
+              label: 'Tidigare kontakt',
+              date: '2025',
+              note: 'Tidigare hudkonsultation utan pågående behandlingsspår.',
+            },
+            {
+              id: 'maria-info',
+              type: 'consultation',
+              label: 'Botoxfråga nu',
+              date: '2026-04-20',
+              note: 'Informationsfråga som kan besvaras lugnt utan att pressa kunden till beslut.',
+              tone: 'neutral',
+            },
+          ],
+          previewSummary: {
+            lifecycleStatus: 'awaiting_reply',
+            interactionCount: 1,
+            engagementScore: 0.31,
+            lastCaseSummary: 'Informationsfråga om botox utan akut risk, men med behov av tydlig och lugn guidning.',
+            customerSince: '2022',
+            assignedTo: 'Sara',
+          },
+          surfaceMailboxTag: 'Info',
+          surfaceMailboxTone: 'purple',
+          surfaceIntentTag: 'Info',
+          surfaceIntentTone: 'neutral',
+          surfaceDueLabel: '',
+          surfaceMoodEmoji: '🙂',
+          surfaceAvatarImage: '/assets/cco-next/maria-andersson.jpg',
+          surfaceHidePreview: true,
+          finalCategoryIds: [],
+        },
+      ],
+    };
+  }
+
+  function getCcoNextPreviewBaseRows() {
+    const previewSeed = getCcoNextPreviewSeed();
+    const baseRows = (Array.isArray(previewSeed.rows) ? previewSeed.rows : [])
+      .map(mergeCcoNextPreviewRowWithState)
+      .map(buildCcoNextPreviewRowModel);
+    return {
+      previewSeed,
+      baseRows,
+    };
+  }
+
+  function getCcoNextPreviewRows(searchQuery = '') {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.getSnapshot === 'function') {
+      const snapshot = store.getSnapshot(searchQuery);
+      syncCcoNextPreviewBackboneToState();
+      return snapshot;
+    }
+    const { previewSeed, baseRows } = getCcoNextPreviewBaseRows();
+    const safeQuery = sanitizeCcoSearchQuery(searchQuery);
+    const scenario = sanitizeCcoNextPreviewScenario(state.ccoNextPreviewScenario);
+    const scenarioRows = baseRows.filter((row) => matchesCcoNextPreviewScenario(row, scenario));
+    const rowsForQuery = scenarioRows.length ? scenarioRows : baseRows;
+    const counts = getCcoNextPreviewScenarioCounts(baseRows);
+    if (!safeQuery) {
+      return {
+        previewSeed,
+        rows: rowsForQuery,
+        searchValue: '',
+        scenario,
+        counts,
+      };
+    }
+    const loweredQuery = safeQuery.toLowerCase();
+    const filteredRows = rowsForQuery.filter((row) => {
+      const haystack = [
+        row?.sender,
+        row?.subject,
+        row?.latestInboundPreview,
+        row?.previewDraftBody,
+        row?.operatorCue,
+        row?.nextActionLabel,
+        row?.keyNote,
+        row?.owner,
+        row?.queueReason,
+        row?.bookingReadinessLabel,
+        row?.blockerSummary,
+        row?.lifecycleStageLabel,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(loweredQuery);
+    });
+    if (!filteredRows.length) {
+      return {
+        previewSeed,
+        rows: rowsForQuery,
+        searchValue: '',
+        scenario,
+        counts,
+      };
+    }
+    return {
+      previewSeed,
+      rows: filteredRows,
+      searchValue: safeQuery,
+      scenario,
+      counts,
+    };
+  }
+
+  function getCcoNextSelectedConversation(rows = null) {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.getSnapshot === 'function') {
+      const snapshot = store.getSnapshot();
+      syncCcoNextPreviewBackboneToState();
+      if (Array.isArray(rows) && rows.length) {
+        const selectedId = String(snapshot.selectedConversation?.conversationId || '').trim();
+        return rows.find((row) => String(row?.conversationId || '').trim() === selectedId) || rows[0] || null;
+      }
+      return snapshot.selectedConversation || null;
+    }
+    const availableRows =
+      Array.isArray(rows) && rows.length ? rows : getCcoNextPreviewRows(state.ccoNextPreviewSearchQuery).rows;
+    const selectedId = String(state.ccoNextPreviewSelectedConversationId || '').trim();
+    return availableRows.find((row) => String(row?.conversationId || '').trim() === selectedId) || availableRows[0] || null;
+  }
+
+  function getCcoNextPreviewConversationById(conversationId = '') {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId) return null;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.getThreadViewModelById === 'function') {
+      const row = store.getThreadViewModelById(safeConversationId);
+      syncCcoNextPreviewBackboneToState();
+      return row || null;
+    }
+    const { baseRows } = getCcoNextPreviewBaseRows();
+    return (
+      baseRows.find((row) => String(row?.conversationId || '').trim() === safeConversationId) || null
+    );
+  }
+
+  function getCcoNextPreviewDraftValue(conversation = null) {
+    const conversationId = String(conversation?.conversationId || '').trim();
+    if (!conversationId) return '';
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.getDraftValueById === 'function') {
+      const value = store.getDraftValueById(conversationId);
+      syncCcoNextPreviewBackboneToState();
+      return value || String(conversation?.previewDraftBody || '');
+    }
+    const overrideMap =
+      state.ccoNextPreviewDraftByConversationId && typeof state.ccoNextPreviewDraftByConversationId === 'object'
+        ? state.ccoNextPreviewDraftByConversationId
+        : {};
+    const overrideValue = Object.prototype.hasOwnProperty.call(overrideMap, conversationId)
+      ? String(overrideMap[conversationId] || '')
+      : '';
+    return overrideValue || String(conversation?.previewDraftBody || '');
+  }
+
+  function getCcoNextPreviewThreadState(conversationId = '') {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId) return {};
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.getThreadStateById === 'function') {
+      const threadState = store.getThreadStateById(safeConversationId);
+      syncCcoNextPreviewBackboneToState();
+      return threadState && typeof threadState === 'object' ? threadState : {};
+    }
+    const stateMap =
+      state.ccoNextPreviewThreadStateByConversationId &&
+      typeof state.ccoNextPreviewThreadStateByConversationId === 'object'
+        ? state.ccoNextPreviewThreadStateByConversationId
+        : {};
+    const override = stateMap[safeConversationId];
+    return override && typeof override === 'object' ? override : {};
+  }
+
+  function getCcoNextPreviewActorLabel() {
+    const displayName = String(
+      state.profile?.name ||
+        state.profile?.displayName ||
+        state.profile?.user?.name ||
+        state.profile?.user?.displayName ||
+        ''
+    ).trim();
+    if (displayName) return displayName;
+    const email = String(
+      state.profile?.email ||
+        state.profile?.user?.email ||
+        ''
+    ).trim();
+    if (email.includes('@')) {
+      const base = email.split('@')[0].replace(/[._-]+/g, ' ').trim();
+      if (base) {
+        return base
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ');
+      }
+    }
+    return 'Fazli';
+  }
+
+  let ccoNextPreviewBackboneStore = null;
+
+  function buildCcoNextPreviewBackboneDependencies() {
+    return {
+      sanitizeScenario: sanitizeCcoNextPreviewScenario,
+      sanitizeSearchQuery: sanitizeCcoSearchQuery,
+      getTimestampOffset: getCcoNextPreviewTimestampOffset,
+      getActorLabel: getCcoNextPreviewActorLabel,
+      getOwnerPatch: getCcoNextPreviewOwnerPatch,
+      buildRowModel: buildCcoNextPreviewRowModel,
+      buildFollowThroughMeta: buildCcoNextPreviewFollowThroughMeta,
+      buildTemplateDraft: buildCcoNextPreviewTemplateDraft,
+      buildTemplateAppliedPatch: buildCcoNextPreviewTemplateAppliedPatch,
+      buildStudioPatch: buildCcoNextPreviewStudioPatch,
+      buildStudioOpenState: buildCcoNextPreviewStudioOpenState,
+      buildStudioStrategyPatch: buildCcoNextPreviewStudioStrategyPatch,
+      buildStudioTemplateState: buildCcoNextPreviewStudioTemplateState,
+      buildStudioDraftPatch: buildCcoNextPreviewStudioDraftPatch,
+      buildStudioRewriteState: buildCcoNextPreviewStudioRewriteState,
+      buildStudioSignatureState: buildCcoNextPreviewStudioSignatureState,
+      buildStudioSignatureEditorState: buildCcoNextPreviewStudioSignatureEditorState,
+      buildStudioSignatureProfileSaveState: buildCcoNextPreviewStudioSignatureProfileSaveState,
+      buildStudioToneToggleState: buildCcoNextPreviewStudioToneToggleState,
+      buildStudioSuggestionState: buildCcoNextPreviewStudioSuggestionState,
+      buildStudioHandledState: buildCcoNextPreviewStudioHandledState,
+      buildStudioReturnLaterState: buildCcoNextPreviewStudioReturnLaterState,
+      buildStudioSnoozeState: buildCcoNextPreviewStudioSnoozeState,
+      buildStudioScheduleState: buildCcoNextPreviewStudioScheduleState,
+      buildStudioDeleteState: buildCcoNextPreviewStudioDeleteState,
+      buildStudioSendStatePatch: buildCcoNextPreviewStudioSendStatePatch,
+      buildStudioViewModel: buildCcoNextPreviewStudioViewModel,
+      buildProjectedOutcome: buildCcoNextPreviewProjectedOutcome,
+      buildPrimaryActionPlan: buildCcoNextPreviewPrimaryActionPlan,
+      buildSendStatePatch: buildCcoNextPreviewSendStatePatch,
+      buildMedicalClearPatch: buildCcoNextPreviewMedicalClearPatch,
+      buildReplyPatch: buildCcoNextPreviewReplyPatch,
+      buildSimulatedReply: buildCcoNextPreviewSimulatedReply,
+    };
+  }
+
+  function getCcoNextPreviewSessionStateFromMirror() {
+    return {
+      searchQuery: sanitizeCcoSearchQuery(state.ccoNextPreviewSearchQuery || ''),
+      scenario: sanitizeCcoNextPreviewScenario(state.ccoNextPreviewScenario || 'all'),
+      selectedThreadId: String(state.ccoNextPreviewSelectedConversationId || '').trim(),
+      centerTab: sanitizeCcoCenterReadTab(state.ccoNextPreviewCenterTab || 'conversation'),
+      sidebarTab: sanitizeCcoSidebarTab(state.ccoNextPreviewSidebarTab || 'overview'),
+      historyCollapsed: state.ccoNextPreviewHistoryCollapsed === true,
+      savedView: sanitizeCcoNextPreviewSavedView(state.ccoNextPreviewSavedView || 'all'),
+      followUpFilter: sanitizeCcoNextPreviewFollowUpFilter(
+        state.ccoNextPreviewFollowUpFilter || 'all'
+      ),
+      worklistDensity: sanitizeCcoNextPreviewWorklistDensity(
+        state.ccoNextPreviewWorklistDensity || 'regular'
+      ),
+      disclosureMode: sanitizeCcoNextPreviewDisclosureMode(
+        state.ccoNextPreviewDisclosureMode || 'progressive'
+      ),
+      selectionMode: state.ccoNextPreviewSelectionMode === true,
+      selectedRowIds: sanitizeCcoNextPreviewIdList(state.ccoNextPreviewSelectedRowIds),
+      draftsByConversationId: sanitizeCcoDraftMap(state.ccoNextPreviewDraftByConversationId),
+      threadStateByConversationId: sanitizeCcoNextPreviewThreadStateMap(
+        state.ccoNextPreviewThreadStateByConversationId
+      ),
+    };
+  }
+
+  function syncCcoNextPreviewBackboneToState() {
+    if (!ccoNextPreviewBackboneStore || typeof ccoNextPreviewBackboneStore.exportSessionState !== 'function') return;
+    const exported = ccoNextPreviewBackboneStore.exportSessionState();
+    state.ccoNextPreviewSearchQuery = sanitizeCcoSearchQuery(exported.searchQuery || '');
+    state.ccoNextPreviewScenario = sanitizeCcoNextPreviewScenario(exported.scenario || 'all');
+    state.ccoNextPreviewSelectedConversationId = String(exported.selectedThreadId || '').trim();
+    state.ccoNextPreviewCenterTab = sanitizeCcoCenterReadTab(exported.centerTab || 'conversation');
+    state.ccoNextPreviewSidebarTab = sanitizeCcoSidebarTab(exported.sidebarTab || 'overview');
+    state.ccoNextPreviewHistoryCollapsed = exported.historyCollapsed === true;
+    state.ccoNextPreviewSavedView = sanitizeCcoNextPreviewSavedView(exported.savedView || 'all');
+    state.ccoNextPreviewFollowUpFilter = sanitizeCcoNextPreviewFollowUpFilter(
+      exported.followUpFilter || 'all'
+    );
+    state.ccoNextPreviewWorklistDensity = sanitizeCcoNextPreviewWorklistDensity(
+      exported.worklistDensity || 'regular'
+    );
+    state.ccoNextPreviewDisclosureMode = sanitizeCcoNextPreviewDisclosureMode(
+      exported.disclosureMode || 'progressive'
+    );
+    state.ccoNextPreviewSelectionMode = exported.selectionMode === true;
+    state.ccoNextPreviewSelectedRowIds = sanitizeCcoNextPreviewIdList(exported.selectedRowIds);
+    state.ccoNextPreviewDraftByConversationId = sanitizeCcoDraftMap(exported.draftsByConversationId);
+    state.ccoNextPreviewThreadStateByConversationId = sanitizeCcoNextPreviewThreadStateMap(
+      exported.threadStateByConversationId
+    );
+  }
+
+  function ensureCcoNextPreviewBackboneStore() {
+    if (ccoNextPreviewBackboneStore) return ccoNextPreviewBackboneStore;
+    const factory = window.ArcanaCcoNextBackbone?.createStore;
+    if (typeof factory !== 'function') return null;
+    ccoNextPreviewBackboneStore = factory({
+      previewSeed: getCcoNextPreviewSeed(),
+      sessionState: getCcoNextPreviewSessionStateFromMirror(),
+      dependencies: buildCcoNextPreviewBackboneDependencies(),
+    });
+    syncCcoNextPreviewBackboneToState();
+    return ccoNextPreviewBackboneStore;
+  }
+
+  function resetCcoNextPreviewBackboneStore() {
+    ccoNextPreviewBackboneStore = null;
+  }
+
+  function mergeCcoNextPreviewRowWithState(row = null) {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const conversationId = String(safeRow.conversationId || '').trim();
+    if (!conversationId) return { ...safeRow };
+    const override = getCcoNextPreviewThreadState(conversationId);
+    return {
+      ...safeRow,
+      ...override,
+      previewSummary: {
+        ...(safeRow.previewSummary || {}),
+        ...(override.previewSummary || {}),
+      },
+      previewMessages: Array.isArray(override.previewMessages)
+        ? override.previewMessages
+        : Array.isArray(safeRow.previewMessages)
+        ? safeRow.previewMessages
+        : [],
+      previewHistory: Array.isArray(override.previewHistory)
+        ? override.previewHistory
+        : Array.isArray(safeRow.previewHistory)
+        ? safeRow.previewHistory
+        : [],
+      medicalFlags: Array.isArray(override.medicalFlags)
+        ? override.medicalFlags
+        : Array.isArray(safeRow.medicalFlags)
+        ? safeRow.medicalFlags
+        : [],
+      suggestedSlots: Array.isArray(override.suggestedSlots)
+        ? override.suggestedSlots
+        : Array.isArray(safeRow.suggestedSlots)
+        ? safeRow.suggestedSlots
+        : [],
+    };
+  }
+
+  function setCcoNextPreviewDraftValue(conversationId = '', value = '') {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId) return;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.setDraftValue === 'function') {
+      store.setDraftValue(safeConversationId, value || '');
+      syncCcoNextPreviewBackboneToState();
+      return;
+    }
+    state.ccoNextPreviewDraftByConversationId = {
+      ...(state.ccoNextPreviewDraftByConversationId && typeof state.ccoNextPreviewDraftByConversationId === 'object'
+        ? state.ccoNextPreviewDraftByConversationId
+        : {}),
+      [safeConversationId]: String(value || ''),
+    };
+  }
+
+  function setCcoNextPreviewThreadState(conversationId = '', patch = {}) {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId || !patch || typeof patch !== 'object') return;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.applyLegacyPatch === 'function') {
+      store.applyLegacyPatch(safeConversationId, patch);
+      syncCcoNextPreviewBackboneToState();
+      return;
+    }
+    const current = getCcoNextPreviewThreadState(safeConversationId);
+    state.ccoNextPreviewThreadStateByConversationId = {
+      ...(state.ccoNextPreviewThreadStateByConversationId &&
+      typeof state.ccoNextPreviewThreadStateByConversationId === 'object'
+        ? state.ccoNextPreviewThreadStateByConversationId
+        : {}),
+      [safeConversationId]: {
+        ...current,
+        ...patch,
+        previewSummary: {
+          ...(current.previewSummary || {}),
+          ...(patch.previewSummary || {}),
+        },
+      },
+    };
+  }
+
+  function getCcoNextPreviewTimestampOffset(hours = 0, minutes = 0) {
+    return new Date(getCcoNextPreviewNowTimestamp() + hours * 3600000 + minutes * 60000).toISOString();
+  }
+
+  function buildCcoNextPreviewTemplateDraft(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    return buildCcoNextPreviewStudioTemplateDraft(
+      safeConversation,
+      getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    );
+  }
+
+  function buildCcoNextPreviewTemplateAppliedPatch(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioTemplateState = buildCcoNextPreviewStudioTemplateState(
+      safeConversation,
+      safeConversation.previewStudio || {},
+      safeConversation.previewDraftBody || ''
+    );
+    return {
+      ...studioTemplateState.patch,
+      lastActionTakenLabel: 'Mall applicerad',
+      lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+      draftStateLabel: 'Studio-utkast klart',
+      nextActionLabel: 'Granska och skicka från studion',
+      nextActionSummary:
+        studioTemplateState.patch?.previewStudio?.postSendState || 'Utkastet är nu redo för fortsatt bearbetning.',
+      previewSummary: {
+        ...(studioTemplateState.patch?.previewSummary || {}),
+        assignedTo:
+          studioTemplateState.patch?.previewSummary?.assignedTo ||
+          safeConversation.owner ||
+          safeConversation.ownerDisplay ||
+          safeConversation.previewSummary?.assignedTo ||
+          '',
+        lastCaseSummary:
+          'En Hair TP-anpassad studiomall är nu vald för tråden. Nästa steg är att skicka eller finjustera från Svarsstudion.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioPatch(conversation = null, hasDraft = false) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const ownerPatch = getCcoNextPreviewOwnerPatch(safeConversation);
+    return {
+      ...ownerPatch,
+      lastActionTakenLabel: 'Svarsstudio öppnad',
+      lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+      draftStateLabel: hasDraft ? 'Studio pågår' : 'Studio öppnad',
+      nextActionLabel: 'Finjustera och skicka från studion',
+      nextActionSummary:
+        'Använd studion för att väga ton, trygghet och nästa steg innan svaret går ut. Målet är ett svar som känns säkert och lätt att agera på.',
+      previewSummary: {
+        assignedTo: ownerPatch.owner || safeConversation.owner || safeConversation.previewSummary?.assignedTo || '',
+        lastCaseSummary: 'Svarsstudio öppnades med aktuellt scenario, utkast och prioriteringsskäl för fortsatt bearbetning.',
+      },
+    };
+  }
+
+  function appendCcoNextPreviewHistoryEntry(conversation = null, entry = {}) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : null;
+    const conversationId = String(safeConversation?.conversationId || '').trim();
+    if (!conversationId) return;
+    const currentHistory = Array.isArray(safeConversation?.previewHistory) ? safeConversation.previewHistory : [];
+    setCcoNextPreviewThreadState(conversationId, {
+      previewHistory: [
+        {
+          label: String(entry.label || 'Preview-åtgärd').trim() || 'Preview-åtgärd',
+          timestamp: String(entry.timestamp || getCcoNextPreviewTimestampOffset(0, 0)),
+          excerpt: String(entry.excerpt || '').trim(),
+        },
+        ...currentHistory,
+      ],
+    });
+  }
+
+  function appendCcoNextPreviewMessage(conversation = null, message = {}) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : null;
+    const conversationId = String(safeConversation?.conversationId || '').trim();
+    if (!conversationId) return;
+    const currentMessages = Array.isArray(safeConversation?.previewMessages) ? safeConversation.previewMessages : [];
+    setCcoNextPreviewThreadState(conversationId, {
+      previewMessages: [
+        ...currentMessages,
+        {
+          author: String(message.author || getCcoNextPreviewActorLabel()).trim() || getCcoNextPreviewActorLabel(),
+          role: String(message.role || 'agent').trim() || 'agent',
+          timestamp: String(message.timestamp || getCcoNextPreviewTimestampOffset(0, 0)),
+          body: String(message.body || '').trim(),
+        },
+      ],
+    });
+  }
+
+  function getCcoNextPreviewOwnerPatch(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    if (String(safeConversation.owner || '').trim()) return {};
+    const actor = getCcoNextPreviewActorLabel();
+    return {
+      owner: actor,
+      handoffStatus: 'assigned',
+      previewSummary: {
+        assignedTo: actor,
+      },
+    };
+  }
+
+  function syncCcoNextPreviewSelection(conversationId = '') {
+    const safeConversationId = String(conversationId || '').trim();
+    if (!safeConversationId) return null;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (store && typeof store.selectThread === 'function') {
+      const nextConversation = store.selectThread(safeConversationId);
+      syncCcoNextPreviewBackboneToState();
+      return nextConversation;
+    }
+    const nextConversation = getCcoNextPreviewConversationById(safeConversationId);
+    if (!nextConversation) return null;
+    const activeScenario = sanitizeCcoNextPreviewScenario(state.ccoNextPreviewScenario);
+    if (activeScenario !== 'all' && !matchesCcoNextPreviewScenario(nextConversation, activeScenario)) {
+      state.ccoNextPreviewScenario = sanitizeCcoNextPreviewScenario(nextConversation.workflowLane || 'all');
+    }
+    state.ccoNextPreviewSelectedConversationId = safeConversationId;
+    state.ccoNextPreviewCenterTab = 'conversation';
+    state.ccoNextPreviewSidebarTab = 'overview';
+    state.ccoNextPreviewHistoryCollapsed = true;
+    return nextConversation;
+  }
+
+  function getCcoNextPreviewDraftStats(value = '') {
+    const safeValue = String(value || '');
+    const trimmed = safeValue.trim();
+    const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+    return {
+      words,
+      characters: safeValue.length,
+      paragraphs: trimmed ? safeValue.split(/\n\s*\n/).filter(Boolean).length : 0,
+    };
+  }
+
+  function cloneCcoNextPreviewStudioSignatureProfile(value = {}, fallbackId = '') {
+    const safeValue = value && typeof value === 'object' ? value : {};
+    return {
+      id: String(safeValue.id || fallbackId || '').trim().toLowerCase(),
+      ownerKey: String(safeValue.ownerKey || safeValue.id || fallbackId || '').trim().toLowerCase(),
+      name: String(safeValue.name || '').trim(),
+      title: String(safeValue.title || '').trim(),
+      greeting: String(safeValue.greeting || '').trim(),
+      contact: String(safeValue.contact || '').trim(),
+      email: String(safeValue.email || '').trim(),
+      phone: String(safeValue.phone || '').trim(),
+    };
+  }
+
+  function getCcoNextPreviewStudioBaseSignatureCatalog() {
+    return [
+      cloneCcoNextPreviewStudioSignatureProfile({
+        id: 'sara',
+        ownerKey: 'sara',
+        name: 'Sara',
+        title: 'Patientkoordinator',
+        greeting: 'Vänliga hälsningar,',
+        email: 'contact@hairtpclinic.com',
+        phone: '031-881166',
+      }),
+      cloneCcoNextPreviewStudioSignatureProfile({
+        id: 'egzona',
+        ownerKey: 'egzona',
+        name: 'Egzona',
+        title: 'Bokningsansvarig',
+        greeting: 'Vänliga hälsningar,',
+        email: 'contact@hairtpclinic.com',
+        phone: '031-881166',
+      }),
+      cloneCcoNextPreviewStudioSignatureProfile({
+        id: 'fazli',
+        ownerKey: 'fazli',
+        name: 'Fazli',
+        title: 'Clinical advisor',
+        greeting: 'Med vänliga hälsningar,',
+        email: 'contact@hairtpclinic.com',
+        phone: '031-881166',
+      }),
+    ].map((entry) => ({
+      ...entry,
+      contact:
+        entry.contact ||
+        `Hair TP Clinic · ${String(entry.email || 'contact@hairtpclinic.com').trim()} · ${String(
+          entry.phone || '031-881166'
+        ).trim()}`,
+    }));
+  }
+
+  function getCcoNextPreviewStudioSignatureCatalog(studioState = null) {
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const defaults = getCcoNextPreviewStudioBaseSignatureCatalog();
+    const profileMap = new Map(defaults.map((entry) => [entry.id, entry]));
+    const customProfiles = Array.isArray(safeStudioState.signatureProfiles)
+      ? safeStudioState.signatureProfiles
+      : [];
+    customProfiles.forEach((entryRaw) => {
+      const profile = cloneCcoNextPreviewStudioSignatureProfile(entryRaw, entryRaw?.id);
+      if (!profile.id || !profile.name) return;
+      const existing = profileMap.get(profile.id) || {};
+      profileMap.set(profile.id, {
+        ...existing,
+        ...profile,
+        contact:
+          profile.contact ||
+          existing.contact ||
+          `Hair TP Clinic · ${String(profile.email || existing.email || 'contact@hairtpclinic.com').trim()} · ${String(
+            profile.phone || existing.phone || '031-881166'
+          ).trim()}`,
+      });
+    });
+    return Array.from(profileMap.values());
+  }
+
+  function getCcoNextPreviewStudioToneFilterCatalog() {
+    return [
+      { key: 'warm', label: 'Varm' },
+      { key: 'concise', label: 'Kort' },
+      { key: 'confident', label: 'Tydlig' },
+      { key: 'clear_next_step', label: 'Nästa steg' },
+      { key: 'calm', label: 'Lugn' },
+    ];
+  }
+
+  function getCcoNextPreviewStudioDefaultToneFilters(strategyKey = '') {
+    switch (String(strategyKey || '').trim()) {
+      case 'booking_proposal':
+        return ['confident', 'clear_next_step'];
+      case 'follow_up_nudge':
+        return ['warm', 'concise', 'clear_next_step'];
+      case 'medical_review_hold':
+        return ['calm', 'clear_next_step'];
+      case 'trust_builder':
+        return ['warm', 'confident', 'clear_next_step'];
+      case 'admin_response':
+        return ['concise', 'clear_next_step'];
+      default:
+        return ['warm', 'clear_next_step'];
+    }
+  }
+
+  function getCcoNextPreviewStudioToneFilters(studioState = null, strategyKey = '') {
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const active = Array.isArray(safeStudioState.toneFilters)
+      ? safeStudioState.toneFilters
+          .map((entry) => String(entry || '').trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+    return active.length ? Array.from(new Set(active)) : getCcoNextPreviewStudioDefaultToneFilters(strategyKey);
+  }
+
+  function getCcoNextPreviewStudioDefaultSignatureId(conversation = null, studioState = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const selectedId = String(safeStudioState.selectedSignatureId || '').trim().toLowerCase();
+    if (selectedId) return selectedId;
+    const ownerKey = String(
+      safeConversation.ownerDisplay ||
+        safeConversation.owner ||
+        safeConversation.previewSummary?.assignedTo ||
+        getCcoNextPreviewActorLabel()
+    )
+      .trim()
+      .toLowerCase();
+    if (ownerKey.includes('egzona')) return 'egzona';
+    if (ownerKey.includes('fazli')) return 'fazli';
+    return 'sara';
+  }
+
+  function getCcoNextPreviewStudioSignature(conversation = null, studioState = null) {
+    const catalog = getCcoNextPreviewStudioSignatureCatalog(studioState);
+    const signatureId = getCcoNextPreviewStudioDefaultSignatureId(conversation, studioState);
+    return (
+      catalog.find((entry) => entry.id === signatureId) ||
+      catalog[0] || {
+        id: 'sara',
+        name: 'Sara',
+        title: 'Patientkoordinator',
+        greeting: 'Vänliga hälsningar,',
+        contact: 'Hair TP Clinic · contact@hairtpclinic.com · 031-881166',
+      }
+    );
+  }
+
+  function buildCcoNextPreviewStudioSignatureBlock(signature = null) {
+    const safeSignature = signature && typeof signature === 'object' ? signature : getCcoNextPreviewStudioSignature();
+    return [
+      String(safeSignature.greeting || 'Vänliga hälsningar,').trim(),
+      String(safeSignature.name || 'Hair TP Clinic').trim(),
+      `${String(safeSignature.title || 'Hair TP Clinic').trim()} · Hair TP Clinic`,
+      String(
+        safeSignature.contact ||
+          `Hair TP Clinic · ${String(safeSignature.email || 'contact@hairtpclinic.com').trim()} · ${String(
+            safeSignature.phone || '031-881166'
+          ).trim()}`
+      ).trim(),
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  function stripCcoNextPreviewStudioSignature(value = '') {
+    const safeValue = String(value || '').trim();
+    if (!safeValue) return '';
+    const markerPatterns = [
+      /\n\nVänliga hälsningar,[\s\S]*$/i,
+      /\n\nMed vänliga hälsningar,[\s\S]*$/i,
+      /\n\nBästa hälsningar,[\s\S]*$/i,
+    ];
+    for (const pattern of markerPatterns) {
+      if (pattern.test(safeValue)) {
+        return safeValue.replace(pattern, '').trim();
+      }
+    }
+    return safeValue;
+  }
+
+  function applyCcoNextPreviewStudioSignature(value = '', signature = null) {
+    const safeSignature = signature && typeof signature === 'object' ? signature : getCcoNextPreviewStudioSignature();
+    const body = stripCcoNextPreviewStudioSignature(value);
+    if (!body) return buildCcoNextPreviewStudioSignatureBlock(safeSignature);
+    return `${body}\n\n${buildCcoNextPreviewStudioSignatureBlock(safeSignature)}`.trim();
+  }
+
+  function buildCcoNextPreviewStudioSignatureEditorDraft(conversation = null, studioState = null, profileId = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const selectedProfileId = String(profileId || safeStudioState.signatureEditorProfileId || safeStudioState.selectedSignatureId || '').trim();
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, {
+      ...safeStudioState,
+      selectedSignatureId: selectedProfileId,
+    });
+    return cloneCcoNextPreviewStudioSignatureProfile(signature, signature.id || selectedProfileId || 'sara');
+  }
+
+  function buildCcoNextPreviewStudioHasClearNextStep(draftBody = '', strategyKey = '') {
+    const safeDraft = String(draftBody || '').trim().toLowerCase();
+    if (!safeDraft) return false;
+    const nextStepPatterns = [/svara/i, /bekräfta/i, /välj/i, /återkom/i, /vi återkommer/i, /klinik/i];
+    const hasExplicitNextStep = nextStepPatterns.some((pattern) => pattern.test(safeDraft));
+    if (!hasExplicitNextStep) return false;
+    if (String(strategyKey || '').trim() === 'medical_review_hold') return /återkommer|granskar|klinik/i.test(safeDraft);
+    return true;
+  }
+
+  function buildCcoNextPreviewStudioAiSuggestion(conversation = null, studioState = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const strategyKey = String(
+      safeStudioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const version = Math.max(0, Number(safeStudioState.aiVersion || 0));
+    const variant = version % 3;
+    const firstName = String(safeConversation.sender || 'kunden').trim().split(/\s+/)[0] || 'kunden';
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, safeStudioState);
+    const toneFilters = getCcoNextPreviewStudioToneFilters(safeStudioState, strategyKey);
+    const slots = Array.isArray(safeConversation.suggestedSlots) ? safeConversation.suggestedSlots.filter(Boolean).slice(0, 2) : [];
+    const slotSentence =
+      slots.length >= 2
+        ? `${slots[0]} eller ${slots[1]}`
+        : slots.length === 1
+        ? slots[0]
+        : 'nästa passande tid';
+    let body = '';
+    let confidence = 0.82;
+    let label = 'AI-förslag';
+    let reason = 'Bygger på vald strategi, senaste kundsignal och nästa operativa läge.';
+    switch (strategyKey) {
+      case 'booking_proposal':
+        confidence = slots.length ? 0.92 : 0.78;
+        label = 'Bokningsförslag';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nVi kan lösa ombokningen direkt. Jag kan erbjuda ${slotSentence}.\n\nSvara gärna med det alternativ som passar dig bäst så bekräftar jag direkt i samma tråd.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nJag håller ombokningen varm åt dig och kan just nu erbjuda ${slotSentence}.\n\nVälj det alternativ som passar bäst så låser jag tiden direkt härifrån.`
+            : `Hej ${firstName},\n\nVi tar detta vidare nu. Tillgängliga tider just nu är ${slotSentence}.\n\nÅterkom kort i samma tråd med det alternativ du vill ha så bekräftar jag direkt.`;
+        reason = 'Strategin är bokningsförslag och tråden är redan redo att ta ett konkret kalendersteg.';
+        break;
+      case 'follow_up_nudge':
+        confidence = 0.84;
+        label = 'Uppföljning';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nJag följer upp vårt senaste förslag så att vi kan komma vidare idag.\n\nDet räcker att du svarar kort i samma tråd så tar jag nästa steg direkt.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nJag ville bara fånga upp tråden igen så att den inte blir liggande.\n\nSvara gärna kort här så hjälper jag dig vidare direkt.`
+            : `Hej ${firstName},\n\nJag följer upp så att vi inte tappar fart i ärendet.\n\nÅterkom gärna med ett kort ja/nej i samma tråd så driver jag nästa steg direkt.`;
+        reason = 'Strategin är uppföljning och systemet väntar på ett enkelt kundsvar innan nästa steg tas.';
+        break;
+      case 'medical_review_hold':
+        confidence = 0.94;
+        label = 'Tryggt mellanbesked';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nTack för att du berättar detta. Vi pausar bokningen tills kliniken har granskat läget så att nästa steg blir tryggt och korrekt.\n\nVi återkommer så snart bedömningen är klar med ett tydligt besked.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nTack för ditt meddelande. Innan vi går vidare med bokning låter vi kliniken göra en kort bedömning.\n\nVi återkommer med ett tydligt besked så snart den är klar.`
+            : `Hej ${firstName},\n\nVi tar detta stegvis och låter först kliniken granska läget innan vi bokar eller lovar något mer.\n\nSå snart bedömningen är klar återkommer vi med nästa tydliga steg.`;
+        reason = 'Strategin är medicinsk vänt och AI-förslaget undviker bokningslöften innan klinisk review är klar.';
+        break;
+      case 'trust_builder':
+        confidence = 0.74;
+        label = 'Trygg väg framåt';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nTack för din fråga. Vi vill ge dig ett tydligt nästa steg som känns tryggt och lätt att ta beslut på.\n\nOm du vill hjälper jag dig vidare med rätt konsultationstid direkt och går igenom prisbilden på ett konkret sätt i samma steg.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nTack för att du hörde av dig. För att du ska få rätt beslutsunderlag börjar vi med att säkra rätt upplägg för just ditt läge.\n\nJag hjälper dig gärna vidare direkt med nästa konsultationssteg härifrån.`
+            : `Hej ${firstName},\n\nJag vill ge dig en tydlig och trygg väg framåt, inte bara ett allmänt svar.\n\nOm du vill går vi vidare med nästa konsultationssteg direkt så får du ett mer konkret underlag att ta ställning till.`;
+        reason = 'Strategin är trust builder och AI-förslaget prioriterar trygghet, tydlighet och låg friktion.';
+        break;
+      case 'admin_response':
+        confidence = 0.9;
+        label = 'Adminsvar';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nVi tar fram ditt kvitto och underlag nu.\n\nOm försäkringen behöver något särskilt format kan du svara i samma tråd så anpassar vi det direkt.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nVi förbereder underlaget nu och återkommer med allt samlat.\n\nOm du behöver ett visst format för försäkring eller ersättning kan du skriva det direkt här.`
+            : `Hej ${firstName},\n\nKvitto och underlag tas fram nu.\n\nÅterkom gärna i samma tråd om försäkringen eller arbetsgivaren behöver någon särskild komplettering.`;
+        reason = 'Strategin är adminsvar och AI-förslaget håller svaret kort, tydligt och underlagsorienterat.';
+        break;
+      case 'holding_reply':
+      default:
+        confidence = 0.8;
+        label = 'Mellanbesked';
+        body =
+          variant === 0
+            ? `Hej ${firstName},\n\nJag tar detta vidare nu och återkommer med nästa tydliga steg i samma tråd.\n\nOm vi behöver något mer från dig skriver jag det kort och konkret här.`
+            : variant === 1
+            ? `Hej ${firstName},\n\nTack för ditt meddelande. Jag håller tråden varm och återkommer med nästa tydliga steg i samma konversation.\n\nSå fort nästa beslut är säkrat hör jag av mig här.`
+            : `Hej ${firstName},\n\nVi driver detta vidare nu.\n\nJag återkommer i samma tråd med nästa tydliga steg så att du slipper jaga uppdatering.`;
+        reason = 'Strategin är mellanbesked och AI-förslaget håller tråden varm medan nästa beslut säkras.';
+        break;
+    }
+    if (toneFilters.includes('warm') && !/tack/i.test(body)) {
+      body = body.replace(/\n\n/, '\n\nTack för att du hörde av dig.\n\n');
+    }
+    if (toneFilters.includes('concise')) {
+      body = body.replace(/så att vi kan komma vidare idag\./i, '').replace(/Jag hjälper dig gärna vidare direkt med nästa konsultationssteg härifrån\./i, 'Jag hjälper dig vidare direkt.');
+    }
+    if (toneFilters.includes('confident') && !/direkt/i.test(body)) {
+      body = body.replace(/\n\nSvara/i, '\n\nSvara gärna direkt');
+    }
+    if (toneFilters.includes('calm')) {
+      body = body.replace(/direkt/gi, 'stegvis');
+    }
+    if (toneFilters.includes('clear_next_step') && !buildCcoNextPreviewStudioHasClearNextStep(body, strategyKey)) {
+      body = `${body}\n\nSvara gärna i samma tråd så tar jag nästa steg direkt.`;
+    }
+    if (String(currentDraft || '').trim() && version > 0 && variant === 2) {
+      body = stripCcoNextPreviewStudioSignature(currentDraft);
+    }
+    return {
+      version,
+      confidence,
+      label,
+      reason,
+      contextSummary: 'AI väger samman kö, bokningsläge, väntestatus, senaste kundsignal och valt responspår.',
+      contextUsed: [
+        safeConversation.workflowLabel || 'Ingen kö',
+        safeConversation.caseType || 'Tråd',
+        safeConversation.waitingStateLabel || 'Redo för åtgärd',
+        safeConversation.bookingReadinessLabel || safeConversation.bookingState || 'Inte relevant',
+        safeConversation.followUpDeadline || 'Ingen follow-up',
+      ].filter(Boolean),
+      suggestionBody: applyCcoNextPreviewStudioSignature(body, signature),
+    };
+  }
+
+  function buildCcoNextPreviewStudioReadiness(draftBody = '', conversation = null, studioState = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const stats = getCcoNextPreviewDraftStats(draftBody);
+    const normalizedDraft = String(draftBody || '').trim().toLowerCase();
+    const strategyKey = String(
+      safeStudioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const hasPolicyRisk = /(gratis|garanti|100%|helt säkert)/i.test(normalizedDraft);
+    const isTooShort = stats.words > 0 && stats.words < 14;
+    const isTooLong = stats.words > 175;
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, safeStudioState);
+    const signaturePresent = String(draftBody || '').includes(signature.name);
+    const hasClearNextStep = buildCcoNextPreviewStudioHasClearNextStep(draftBody, strategyKey);
+    const bookingNeedsConcreteTime =
+      strategyKey === 'booking_proposal' && !/(kl|tid|morgon|eftermiddag|\d{1,2}:\d{2})/i.test(normalizedDraft);
+    const medicalRisk =
+      strategyKey === 'medical_review_hold' && /(boka|vi bokar|jag bokar|tid finns)/i.test(normalizedDraft);
+    const hardBlocked = hasPolicyRisk || medicalRisk || !String(draftBody || '').trim();
+    let tone = 'success';
+    let label = 'Redo att skicka';
+    let summary = 'Utkastet har tydligt nästa steg, rimlig längd och rätt signatur för denna tråd.';
+    if (!String(draftBody || '').trim()) {
+      tone = 'warn';
+      label = 'Behöver utkast';
+      summary = 'Lägg in mall, använd AI-förslag eller skriv ett utkast innan svar kan skickas från studion.';
+    } else if (hasPolicyRisk || medicalRisk) {
+      tone = 'danger';
+      label = 'Blockerat tills justerat';
+      summary = hasPolicyRisk
+        ? 'Utkastet innehåller ord som riskerar att sänka tillit eller bryta policylinjen. Justera innan skick.'
+        : 'Medicinsk vänt får inte innehålla bokningslöften. Ta bort löftet innan svaret kan gå ut.';
+    } else if (isTooShort || isTooLong || !signaturePresent || !hasClearNextStep || bookingNeedsConcreteTime) {
+      tone = 'warn';
+      label = 'Finjustera innan skick';
+      if (bookingNeedsConcreteTime) summary = 'Bokningsförslaget behöver minst ett konkret tidsfönster innan det känns trovärdigt.';
+      else if (!hasClearNextStep) summary = 'Svaret behöver ett tydligare nästa steg så att kunden vet exakt vad som händer nu.';
+      else if (isTooShort) summary = 'Utkastet är för kort för att kännas tryggt och professionellt för patienten.';
+      else if (isTooLong) summary = 'Utkastet är för långt. Korta ned så nästa steg blir lättare att ta in.';
+      else summary = 'Säkra rätt signatur innan utskick så att ägarskap och avsändare blir tydliga.';
+    }
+    return {
+      tone,
+      label,
+      summary,
+      readinessState: hardBlocked ? 'blocked' : tone === 'warn' ? 'needs_review' : 'ready',
+      policyStatus: hasPolicyRisk || medicalRisk ? 'blocked' : 'clear',
+      sendReady: !hardBlocked,
+      wordCount: stats.words,
+      hasPolicyRisk,
+      isTooShort,
+      isTooLong,
+      signaturePresent,
+      hasClearNextStep,
+      bookingNeedsConcreteTime,
+      checks: [
+        {
+          label: 'Längd',
+          value: `${stats.words} ord`,
+          tone: isTooShort || isTooLong ? 'warn' : 'success',
+        },
+        {
+          label: 'Nästa steg',
+          value: hasClearNextStep ? 'Tydligt' : 'Saknas',
+          tone: hasClearNextStep ? 'success' : 'warn',
+        },
+        {
+          label: 'Policy',
+          value: hasPolicyRisk || medicalRisk ? 'Justera' : 'Utan riskord',
+          tone: hasPolicyRisk || medicalRisk ? 'danger' : 'success',
+        },
+        {
+          label: 'Signatur',
+          value: signature.name,
+          tone: signaturePresent ? 'success' : 'warn',
+        },
+      ],
+    };
+  }
+
+  function buildCcoNextPreviewStudioDerivedState(conversation = null, studioState = null, draftBody = '', overrides = {}) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = studioState && typeof studioState === 'object' ? studioState : {};
+    const explicitDraft = String(draftBody == null ? '' : draftBody);
+    const strategyKey = String(
+      overrides.strategyKey || safeStudioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const selectedSignatureId = String(
+      overrides.selectedSignatureId || safeStudioState.selectedSignatureId || getCcoNextPreviewStudioDefaultSignatureId(safeConversation, safeStudioState)
+    ).trim();
+    const mergedStudioState = {
+      ...safeStudioState,
+      ...overrides,
+      strategyKey,
+      selectedSignatureId,
+      signatureProfiles: Array.isArray(overrides.signatureProfiles)
+        ? overrides.signatureProfiles
+        : Array.isArray(safeStudioState.signatureProfiles)
+        ? safeStudioState.signatureProfiles
+        : [],
+    };
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === strategyKey) || strategyCatalog[0] || null;
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, strategyKey);
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, mergedStudioState);
+    const templateDraft =
+      String(overrides.templateDraftBody || safeStudioState.templateDraftBody || '').trim() ||
+      buildCcoNextPreviewStudioTemplateDraft(safeConversation, strategyKey);
+    const resolvedDraft =
+      explicitDraft.trim()
+        ? explicitDraft
+        : String(overrides.currentDraftBody || safeStudioState.currentDraftBody || '').trim()
+        ? String(overrides.currentDraftBody || safeStudioState.currentDraftBody || '')
+        : templateDraft;
+    const toneFilters = getCcoNextPreviewStudioToneFilters(mergedStudioState, strategyKey);
+    const aiVersion = Number(overrides.aiVersion != null ? overrides.aiVersion : safeStudioState.aiVersion || 0) || 0;
+    const aiSuggestion = buildCcoNextPreviewStudioAiSuggestion(
+      safeConversation,
+      {
+        ...mergedStudioState,
+        strategyKey,
+        selectedSignatureId: signature.id,
+        toneFilters,
+        aiVersion,
+      },
+      resolvedDraft
+    );
+    const readiness = buildCcoNextPreviewStudioReadiness(resolvedDraft, safeConversation, {
+      ...mergedStudioState,
+      strategyKey,
+      selectedSignatureId: signature.id,
+      toneFilters,
+    });
+    return {
+      ...mergedStudioState,
+      isOpen: overrides.isOpen != null ? overrides.isOpen === true : mergedStudioState.isOpen === true,
+      strategyKey,
+      strategyLabel: String(overrides.strategyLabel || selectedStrategy?.label || safeStudioState.strategyLabel || 'Svarsstudio').trim(),
+      strategyReason: String(overrides.strategyReason || selectedStrategy?.description || safeStudioState.strategyReason || '').trim(),
+      objective: String(overrides.objective || objective.objective).trim(),
+      desiredOutcome: String(overrides.desiredOutcome || objective.desiredOutcome).trim(),
+      guardrail: String(overrides.guardrail || objective.guardrail).trim(),
+      postSendState: String(overrides.postSendState || objective.postSendState).trim(),
+      postSendQueue: String(overrides.postSendQueue || objective.postSendQueue).trim(),
+      postSendWaitingOn: String(overrides.postSendWaitingOn || objective.postSendWaitingOn).trim(),
+      postSendOwner: String(overrides.postSendOwner || objective.postSendOwner).trim(),
+      postSendFollowUpDueAt: String(overrides.postSendFollowUpDueAt || objective.postSendFollowUpDueAt).trim(),
+      recommendedTool: String(overrides.recommendedTool || selectedStrategy?.recommendedTool || safeConversation.recommendedTool || 'open_studio').trim(),
+      templateKey: String(overrides.templateKey || strategyKey).trim(),
+      templateLabel: String(overrides.templateLabel || selectedStrategy?.label || 'Studiomall').trim(),
+      templateSummary: String(overrides.templateSummary || selectedStrategy?.description || '').trim(),
+      templateDraftBody: templateDraft,
+      currentDraftBody: resolvedDraft,
+      editedDraftBody: String(overrides.editedDraftBody || mergedStudioState.editedDraftBody || '').trim() || (String(mergedStudioState.draftSource || '').trim() === 'edited' ? resolvedDraft : ''),
+      draftSource: String(overrides.draftSource || mergedStudioState.draftSource || 'template').trim(),
+      sendReady: overrides.sendReady != null ? overrides.sendReady === true : readiness.sendReady,
+      selectedSignatureId: signature.id,
+      signatureLabel: signature.name,
+      signatureGreeting: signature.greeting,
+      signatureProfiles: getCcoNextPreviewStudioSignatureCatalog(mergedStudioState),
+      signatureEditorProfileId: String(
+        overrides.signatureEditorProfileId || mergedStudioState.signatureEditorProfileId || signature.id
+      ).trim(),
+      signatureEditorDraft: cloneCcoNextPreviewStudioSignatureProfile(
+        overrides.signatureEditorDraft ||
+          mergedStudioState.signatureEditorDraft ||
+          buildCcoNextPreviewStudioSignatureEditorDraft(safeConversation, mergedStudioState, signature.id),
+        signature.id
+      ),
+      toneFilters,
+      aiVersion,
+      aiConfidence: Number(overrides.aiConfidence != null ? overrides.aiConfidence : aiSuggestion.confidence) || 0,
+      aiContextSummary: String(overrides.aiContextSummary || aiSuggestion.contextSummary || '').trim(),
+      aiContextUsed: Array.isArray(overrides.aiContextUsed) ? overrides.aiContextUsed : aiSuggestion.contextUsed,
+      aiSuggestionLabel: String(overrides.aiSuggestionLabel || aiSuggestion.label || 'AI-förslag').trim(),
+      aiSuggestionReason: String(overrides.aiSuggestionReason || aiSuggestion.reason || '').trim(),
+      aiSuggestionBody: String(overrides.aiSuggestionBody || aiSuggestion.suggestionBody || '').trim(),
+      aiLastGeneratedAt: String(
+        overrides.aiLastGeneratedAt || mergedStudioState.aiLastGeneratedAt || getCcoNextPreviewTimestampOffset(0, 0)
+      ).trim(),
+      aiAppliedAt: String(overrides.aiAppliedAt || mergedStudioState.aiAppliedAt || '').trim(),
+      readinessTone: String(overrides.readinessTone || readiness.tone || '').trim(),
+      readinessLabel: String(overrides.readinessLabel || readiness.label || '').trim(),
+      readinessSummary: String(overrides.readinessSummary || readiness.summary || '').trim(),
+      readinessState: String(overrides.readinessState || readiness.readinessState || '').trim(),
+      policyStatus: String(overrides.policyStatus || readiness.policyStatus || '').trim(),
+      wordCount: Number(overrides.wordCount != null ? overrides.wordCount : readiness.wordCount) || 0,
+      snoozePresetKey: String(overrides.snoozePresetKey || mergedStudioState.snoozePresetKey || '').trim(),
+      snoozeUntilAt: String(overrides.snoozeUntilAt || mergedStudioState.snoozeUntilAt || '').trim(),
+      followUpMode: String(overrides.followUpMode || mergedStudioState.followUpMode || '').trim(),
+      waitUntilReply: overrides.waitUntilReply != null ? overrides.waitUntilReply === true : mergedStudioState.waitUntilReply === true,
+      recurringCadence: String(overrides.recurringCadence || mergedStudioState.recurringCadence || '').trim(),
+      followUpSequenceKey: String(overrides.followUpSequenceKey || mergedStudioState.followUpSequenceKey || '').trim(),
+      followUpSequenceStep: Number(
+        overrides.followUpSequenceStep != null
+          ? overrides.followUpSequenceStep
+          : mergedStudioState.followUpSequenceStep || 0
+      ) || 0,
+      followUpSequenceLabel: String(
+        overrides.followUpSequenceLabel || mergedStudioState.followUpSequenceLabel || ''
+      ).trim(),
+      followUpFallbackAction: String(
+        overrides.followUpFallbackAction || mergedStudioState.followUpFallbackAction || ''
+      ).trim(),
+      slaGuardStatus: String(overrides.slaGuardStatus || mergedStudioState.slaGuardStatus || '').trim(),
+      slaGuardMessage: String(overrides.slaGuardMessage || mergedStudioState.slaGuardMessage || '').trim(),
+      scheduledSendAt: String(overrides.scheduledSendAt || mergedStudioState.scheduledSendAt || '').trim(),
+      deleteRequestedAt: String(overrides.deleteRequestedAt || mergedStudioState.deleteRequestedAt || '').trim(),
+      deletedAt: String(overrides.deletedAt || mergedStudioState.deletedAt || '').trim(),
+      deletedReason: String(overrides.deletedReason || mergedStudioState.deletedReason || '').trim(),
+      isDeleted: overrides.isDeleted != null ? overrides.isDeleted === true : mergedStudioState.isDeleted === true,
+      lastRewriteAction: String(overrides.lastRewriteAction || mergedStudioState.lastRewriteAction || '').trim(),
+      lastRewriteAt: String(overrides.lastRewriteAt || mergedStudioState.lastRewriteAt || '').trim(),
+      lastAppliedTemplateKey: String(overrides.lastAppliedTemplateKey || mergedStudioState.lastAppliedTemplateKey || '').trim(),
+      lastAppliedTemplateAt: String(overrides.lastAppliedTemplateAt || mergedStudioState.lastAppliedTemplateAt || '').trim(),
+      lastEditedAt: String(overrides.lastEditedAt || mergedStudioState.lastEditedAt || '').trim(),
+      lastSentAt: String(overrides.lastSentAt || mergedStudioState.lastSentAt || '').trim(),
+    };
+  }
+
+  function buildCcoNextPreviewStudioRewriteDraft(conversation = null, rewriteKey = '', currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStudioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const safeRewriteKey = String(rewriteKey || '').trim().toLowerCase();
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, safeStudioState);
+    const firstName = String(safeConversation.sender || 'kunden').trim().split(/\s+/)[0] || 'du';
+    const slots = Array.isArray(safeConversation.suggestedSlots) ? safeConversation.suggestedSlots.filter(Boolean).slice(0, 2) : [];
+    const slotSentence =
+      slots.length >= 2
+        ? `${slots[0]} eller ${slots[1]}`
+        : slots.length === 1
+        ? slots[0]
+        : 'nästa passande tid';
+    let body = stripCcoNextPreviewStudioSignature(currentDraft || '');
+    if (!body) {
+      body = stripCcoNextPreviewStudioSignature(
+        buildCcoNextPreviewStudioTemplateDraft(safeConversation, safeStudioState || null)
+      );
+    }
+    switch (safeRewriteKey) {
+      case 'shorten':
+        body = `Hej ${firstName},\n\nVi driver detta vidare direkt. ${slots.length ? `Jag kan erbjuda ${slotSentence}.` : 'Jag återkommer med nästa tydliga steg.'}\n\nSvara kort i samma tråd så tar jag nästa steg direkt.`;
+        break;
+      case 'warm':
+        body = `Hej ${firstName},\n\nTack för att du hörde av dig. Jag tar detta vidare nu och vill göra nästa steg så enkelt som möjligt för dig.${slots.length ? ` Just nu kan jag erbjuda ${slotSentence}.` : ''}\n\nSvara gärna i samma tråd så löser jag resten direkt härifrån.`;
+        break;
+      case 'professional':
+        body = `Hej ${firstName},\n\nTack för ditt meddelande. Vi går nu vidare med nästa steg i ärendet.${slots.length ? ` Tillgängliga tider just nu är ${slotSentence}.` : ''}\n\nÅterkom gärna i samma tråd så bekräftar jag nästa steg direkt.`;
+        break;
+      case 'sharper':
+        body = `Hej ${firstName},\n\n${slots.length ? `Välj ${slotSentence} så bekräftar jag direkt.` : 'Jag återkommer med nästa besked direkt i denna tråd.'}\n\nSvara kort här så tar jag nästa steg.`;
+        break;
+      default:
+        break;
+    }
+    return applyCcoNextPreviewStudioSignature(body, signature);
+  }
+
+  function getCcoNextPreviewStudioDefaultStrategyKey(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const waitingOn = String(safeConversation.waitingOn || '').trim().toLowerCase();
+    const bookingState = String(safeConversation.bookingState || '').trim().toLowerCase();
+    const intent = String(safeConversation.intent || '').trim().toLowerCase();
+    const risk = String(safeConversation.escalationRisk || '').trim().toLowerCase();
+    if (safeConversation.needsMedicalReview === true || waitingOn === 'clinic') return 'medical_review_hold';
+    if (intent === 'admin') return 'admin_response';
+    if (intent === 'pricing' || risk === 'high') return 'trust_builder';
+    if (bookingState === 'ready_now' || bookingState === 'slots_ready') return 'booking_proposal';
+    if (waitingOn === 'customer' || bookingState === 'awaiting_confirmation') return 'follow_up_nudge';
+    return 'holding_reply';
+  }
+
+  function getCcoNextPreviewStudioStrategyCatalog(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const recommended = getCcoNextPreviewStudioDefaultStrategyKey(safeConversation);
+    const catalog = [
+      {
+        key: 'booking_proposal',
+        label: 'Bokningsförslag',
+        shortLabel: 'Boka',
+        description: 'Skicka konkret tid eller två valbara tider.',
+        recommendedTool: 'book',
+        sendLabel: 'Skicka bokningsförslag',
+      },
+      {
+        key: 'follow_up_nudge',
+        label: 'Uppföljning',
+        shortLabel: 'Mall',
+        description: 'Påminn kunden med ett kort, enkelt nästa steg.',
+        recommendedTool: 'template',
+        sendLabel: 'Skicka uppföljning',
+      },
+      {
+        key: 'holding_reply',
+        label: 'Mellanbesked',
+        shortLabel: 'Svarsstudio',
+        description: 'Håll tråden varm medan du säkrar nästa steg.',
+        recommendedTool: 'open_studio',
+        sendLabel: 'Skicka mellanbesked',
+      },
+      {
+        key: 'medical_review_hold',
+        label: 'Medicinsk vänt',
+        shortLabel: 'Svarsstudio',
+        description: 'Bekräfta frågan tryggt medan kliniken granskar.',
+        recommendedTool: 'open_studio',
+        sendLabel: 'Skicka tryggt mellanbesked',
+      },
+      {
+        key: 'trust_builder',
+        label: 'Pris / trygghet',
+        shortLabel: 'Svarsstudio',
+        description: 'Bygg tillit och ge tydlig väg framåt i samma svar.',
+        recommendedTool: 'open_studio',
+        sendLabel: 'Skicka trygg väg framåt',
+      },
+      {
+        key: 'admin_response',
+        label: 'Adminsvar',
+        shortLabel: 'Mall',
+        description: 'Skicka kvitto, underlag eller administrativ återkoppling.',
+        recommendedTool: 'template',
+        sendLabel: 'Skicka adminsvar',
+      },
+    ];
+    const scoreForKey = (key = '') => {
+      if (key === recommended) return 100;
+      const intent = String(safeConversation.intent || '').trim().toLowerCase();
+      const waitingOn = String(safeConversation.waitingOn || '').trim().toLowerCase();
+      if (key === 'booking_proposal' && intent === 'booking') return 80;
+      if (key === 'follow_up_nudge' && waitingOn === 'customer') return 75;
+      if (key === 'medical_review_hold' && safeConversation.needsMedicalReview === true) return 95;
+      if (key === 'trust_builder' && intent === 'pricing') return 78;
+      if (key === 'admin_response' && intent === 'admin') return 82;
+      return 10;
+    };
+    return catalog
+      .map((entry) => ({
+        ...entry,
+        isRecommended: entry.key === recommended,
+      }))
+      .sort((left, right) => scoreForKey(right.key) - scoreForKey(left.key));
+  }
+
+  function buildCcoNextPreviewStudioObjective(conversation = null, strategyKey = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeKey = String(strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)).trim();
+    const owner = String(safeConversation.ownerDisplay || safeConversation.owner || getCcoNextPreviewActorLabel()).trim() || getCcoNextPreviewActorLabel();
+    const followUpLabel = String(safeConversation.followUpDeadline || 'nästa uppföljningsfönster').trim();
+    switch (safeKey) {
+      case 'booking_proposal':
+        return {
+          objective: 'Få kunden att välja eller bekräfta en konkret tid.',
+          desiredOutcome: 'Kunden svarar med ett tydligt ja till ett av våra tider.',
+          guardrail: 'Skicka inte öppna formuleringar som lämnar nästa steg otydligt.',
+          postSendState: 'Väntar på kunds bekräftelse',
+          postSendQueue: 'waiting_reply',
+          postSendWaitingOn: 'customer',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(20, 45),
+        };
+      case 'follow_up_nudge':
+        return {
+          objective: 'Få kunden att svara på vårt tidigare förslag idag.',
+          desiredOutcome: 'Kunden återkommer med ett enkelt ja/nej eller väljer nästa steg.',
+          guardrail: 'Undvik att skapa mer brus än hjälp eller att låta svaret kännas pushigt.',
+          postSendState: `Väntar på kund till ${followUpLabel}`,
+          postSendQueue: 'waiting_reply',
+          postSendWaitingOn: 'customer',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(5, 0),
+        };
+      case 'medical_review_hold':
+        return {
+          objective: 'Hålla kunden trygg medan kliniken gör sin bedömning.',
+          desiredOutcome: 'Kunden förstår att vi återkommer efter klinisk review, inte före.',
+          guardrail: 'Boka inte och ge inte medicinska löften i detta steg.',
+          postSendState: 'Väntar på klinikens granskning',
+          postSendQueue: 'medical_review',
+          postSendWaitingOn: 'clinic',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(4, 0),
+        };
+      case 'trust_builder':
+        return {
+          objective: 'Öka tryggheten och ge en tydlig väg framåt trots tvekan eller prisjämförelse.',
+          desiredOutcome: 'Kunden går vidare mot konsultation eller konkret nästa steg i stället för att försvinna.',
+          guardrail: 'Undvik generiska säljsvar eller alltför öppna prisformuleringar.',
+          postSendState: `Följ upp om inget svar före ${followUpLabel}`,
+          postSendQueue: 'follow_up_today',
+          postSendWaitingOn: 'customer',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(5, 0),
+        };
+      case 'admin_response':
+        return {
+          objective: 'Bekräfta att underlag eller kvitto tas fram utan att störa huvudkön.',
+          desiredOutcome: 'Kunden vet när adminsvaret kommer och behöver inte jaga oss igen.',
+          guardrail: 'Gör inte adminärendet större än det är och undvik onödigt fluff.',
+          postSendState: 'Väntar på eventuell komplettering från kund',
+          postSendQueue: 'admin_low',
+          postSendWaitingOn: 'customer',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(48, 0),
+        };
+      default:
+        return {
+          objective: 'Hålla tråden varm medan nästa beslut säkras.',
+          desiredOutcome: 'Kunden känner att vi driver ärendet framåt med tydligt nästa steg.',
+          guardrail: 'Lämna inte svaret utan tydlig förväntan på vad som händer nu.',
+          postSendState: `Väntar på kund till ${followUpLabel}`,
+          postSendQueue: 'follow_up_today',
+          postSendWaitingOn: 'customer',
+          postSendOwner: owner,
+          postSendFollowUpDueAt: getCcoNextPreviewTimestampOffset(5, 0),
+        };
+    }
+  }
+
+  function buildCcoNextPreviewStudioTemplateDraft(conversation = null, studioStateOrStrategy = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState =
+      studioStateOrStrategy && typeof studioStateOrStrategy === 'object' ? studioStateOrStrategy : null;
+    const strategyKey =
+      typeof studioStateOrStrategy === 'string'
+        ? String(studioStateOrStrategy || '').trim()
+        : String(studioState?.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)).trim();
+    const sender = String(safeConversation.sender || 'kunden').trim() || 'kunden';
+    const firstName = sender.split(/\s+/)[0] || 'du';
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, studioState || null);
+    const signatureBlock = buildCcoNextPreviewStudioSignatureBlock(signature);
+    const slots = Array.isArray(safeConversation.suggestedSlots)
+      ? safeConversation.suggestedSlots.filter(Boolean).slice(0, 2)
+      : [];
+    const slotSentence =
+      slots.length >= 2
+        ? `Just nu kan vi erbjuda ${slots[0]} eller ${slots[1]}.`
+        : slots.length === 1
+        ? `Just nu kan vi erbjuda ${slots[0]}.`
+        : 'Vi håller nästa passande tid redo åt dig.';
+    switch (strategyKey) {
+      case 'booking_proposal':
+        return `Hej ${firstName},\n\nVi kan lösa ombokningen direkt. ${slotSentence}\n\nSvara gärna med det alternativ som passar bäst så bekräftar jag bokningen i samma tråd.\n\n${signatureBlock}`;
+      case 'follow_up_nudge':
+        return `Hej ${firstName},\n\nJag följer upp vårt senaste förslag så att tråden inte blir liggande. ${slotSentence}\n\nDet räcker att du svarar kort med det alternativ som passar dig bäst så tar jag nästa steg direkt.\n\n${signatureBlock}`;
+      case 'medical_review_hold':
+        return `Hej ${firstName},\n\nTack för att du berättar detta. För att nästa steg ska bli tryggt och korrekt låter vi först kliniken granska läget innan vi bokar eller ger definitiv rekommendation.\n\nVi återkommer så snart bedömningen är klar med ett tydligt besked om hur du går vidare.\n\n${signatureBlock}`;
+      case 'trust_builder':
+        return `Hej ${firstName},\n\nTack för din fråga. För att ge dig rätt prisbild och trygg väg framåt börjar vi med att gå igenom ditt läge och vilket upplägg som passar dig bäst.\n\nOm du vill hjälper jag dig vidare med nästa konsultationstid direkt och ger en tydlig prisram i samma steg, så att du får ett underlag som går att ta beslut på.\n\n${signatureBlock}`;
+      case 'admin_response':
+        return `Hej ${firstName},\n\nVi tar fram kvitto och underlag nu och skickar allt samlat till dig i nästa adminblock.\n\nOm försäkringen behöver något särskilt format kan du svara i samma tråd så anpassar vi det direkt.\n\n${signatureBlock}`;
+      default:
+        return `Hej ${firstName},\n\nJag tar detta vidare nu och återkommer med nästa tydliga steg i samma tråd.\n\nOm vi behöver något mer från dig skriver jag det kort och konkret här.\n\n${signatureBlock}`;
+    }
+  }
+
+  function buildCcoNextPreviewStudioOpenState(conversation = null, currentStudio = null, existingDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const ownerPatch = getCcoNextPreviewOwnerPatch(safeConversation);
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, studioState);
+    const strategyKey = String(
+      studioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === strategyKey) || strategyCatalog[0] || null;
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, strategyKey);
+    const templateDraft = buildCcoNextPreviewStudioTemplateDraft(safeConversation, strategyKey);
+    const draftBody = String(existingDraft || '').trim() ? String(existingDraft || '') : templateDraft;
+    const previewStudio = buildCcoNextPreviewStudioDerivedState(
+      safeConversation,
+      {
+        ...studioState,
+        isOpen: true,
+        strategyKey,
+        strategyLabel: selectedStrategy?.label || 'Svarsstudio',
+        strategyReason: selectedStrategy?.description || '',
+        objective: objective.objective,
+        desiredOutcome: objective.desiredOutcome,
+        guardrail: objective.guardrail,
+        postSendState: objective.postSendState,
+        postSendQueue: objective.postSendQueue,
+        postSendWaitingOn: objective.postSendWaitingOn,
+        postSendOwner: objective.postSendOwner,
+        postSendFollowUpDueAt: objective.postSendFollowUpDueAt,
+        recommendedTool: selectedStrategy?.recommendedTool || safeConversation.recommendedTool || 'open_studio',
+        templateKey: strategyKey,
+        templateLabel: selectedStrategy?.label || 'Studiomall',
+        templateSummary: selectedStrategy?.description || '',
+        templateDraftBody: templateDraft,
+        currentDraftBody: draftBody,
+        draftSource: String(existingDraft || '').trim() ? studioState.draftSource || 'existing' : 'template',
+        selectedSignatureId: signature.id,
+        signatureLabel: signature.name,
+        signatureGreeting: signature.greeting,
+        activeDialog: '',
+      },
+      draftBody
+    );
+    return {
+      draftBody,
+      patch: {
+        ...ownerPatch,
+        lastActionTakenLabel: 'Svarsstudio öppnad',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: String(existingDraft || '').trim() ? 'Studio pågår' : 'Studion laddad',
+        nextActionLabel: 'Arbeta klart och skicka från studion',
+        nextActionSummary: objective.postSendState,
+        previewSummary: {
+          assignedTo: ownerPatch.owner || safeConversation.owner || safeConversation.previewSummary?.assignedTo || '',
+          lastCaseSummary: 'Svarsstudion öppnades med strategi, mål och nästa efterläge för vald tråd.',
+        },
+        previewStudio,
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: 'Svarsstudion öppnades med mål, strategi och utkast för vald tråd.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioStrategyPatch(conversation = null, strategyKey = '', currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const safeStrategyKey = String(strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)).trim();
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, studioState);
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === safeStrategyKey) || strategyCatalog[0] || null;
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, safeStrategyKey);
+    const templateDraft = buildCcoNextPreviewStudioTemplateDraft(safeConversation, safeStrategyKey);
+    const shouldReplaceDraft =
+      !String(currentDraft || '').trim() ||
+      String(studioState.draftSource || '').trim().toLowerCase() === 'template';
+    const nextDraft = shouldReplaceDraft ? templateDraft : String(currentDraft || '');
+    return {
+      draftBody: shouldReplaceDraft ? nextDraft : null,
+      patch: {
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            isOpen: true,
+            strategyKey: safeStrategyKey,
+            strategyLabel: selectedStrategy?.label || 'Svarsstudio',
+            strategyReason: selectedStrategy?.description || '',
+            objective: objective.objective,
+            desiredOutcome: objective.desiredOutcome,
+            guardrail: objective.guardrail,
+            postSendState: objective.postSendState,
+            postSendQueue: objective.postSendQueue,
+            postSendWaitingOn: objective.postSendWaitingOn,
+            postSendOwner: objective.postSendOwner,
+            postSendFollowUpDueAt: objective.postSendFollowUpDueAt,
+            recommendedTool: selectedStrategy?.recommendedTool || safeConversation.recommendedTool || 'open_studio',
+            templateKey: safeStrategyKey,
+            templateLabel: selectedStrategy?.label || 'Studiomall',
+            templateSummary: selectedStrategy?.description || '',
+            templateDraftBody: templateDraft,
+            currentDraftBody: nextDraft,
+            draftSource: shouldReplaceDraft ? 'template' : studioState.draftSource || 'edited',
+            selectedSignatureId: signature.id,
+            signatureLabel: signature.name,
+            signatureGreeting: signature.greeting,
+            activeDialog: '',
+          },
+          nextDraft
+        ),
+        draftStateLabel: shouldReplaceDraft ? 'Strategiutkast klart' : 'Strategi vald',
+        lastActionTakenLabel: 'Strategi vald',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        nextActionLabel: shouldReplaceDraft ? 'Granska och skicka från studion' : 'Fortsätt finjustera och skicka',
+        nextActionSummary: objective.postSendState,
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: `${selectedStrategy?.label || 'Responspåret'} är nu valt i Svarsstudion.`,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioTemplateState(conversation = null, currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, studioState);
+    const strategyKey = String(
+      studioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === strategyKey) || strategyCatalog[0] || null;
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, strategyKey);
+    const draftBody = buildCcoNextPreviewStudioTemplateDraft(safeConversation, strategyKey);
+    return {
+      draftBody,
+      patch: {
+        lastActionTakenLabel: 'Studiomall applicerad',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Studio-utkast klart',
+        nextActionLabel: 'Granska och skicka från studion',
+        nextActionSummary: objective.postSendState,
+        previewSummary: {
+          assignedTo:
+            safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || '',
+          lastCaseSummary: 'Svarsstudion förberedde ett strategianpassat utkast med tydligt nästa läge efter utskick.',
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            isOpen: true,
+            strategyKey,
+            strategyLabel: selectedStrategy?.label || 'Studiomall',
+            strategyReason: selectedStrategy?.description || '',
+            objective: objective.objective,
+            desiredOutcome: objective.desiredOutcome,
+            guardrail: objective.guardrail,
+            postSendState: objective.postSendState,
+            postSendQueue: objective.postSendQueue,
+            postSendWaitingOn: objective.postSendWaitingOn,
+            postSendOwner: objective.postSendOwner,
+            postSendFollowUpDueAt: objective.postSendFollowUpDueAt,
+            recommendedTool: selectedStrategy?.recommendedTool || safeConversation.recommendedTool || 'open_studio',
+            templateKey: strategyKey,
+            templateLabel: selectedStrategy?.label || 'Studiomall',
+            templateSummary: selectedStrategy?.description || '',
+            templateDraftBody: draftBody,
+            currentDraftBody: draftBody,
+            editedDraftBody: String(currentDraft || '').trim() ? String(currentDraft || '') : '',
+            draftSource: 'template',
+            selectedSignatureId: signature.id,
+            signatureLabel: signature.name,
+            signatureGreeting: signature.greeting,
+            lastAppliedTemplateKey: strategyKey,
+            lastAppliedTemplateAt: getCcoNextPreviewTimestampOffset(0, 0),
+          },
+          draftBody
+        ),
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: 'Studiomallen är nu applicerad och klar för granskning.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioRewriteState(conversation = null, rewriteKey = '', currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const safeRewriteKey = String(rewriteKey || '').trim().toLowerCase();
+    const rewriteLabels = {
+      shorten: 'Kortare',
+      warm: 'Varmare',
+      professional: 'Proffsigare',
+      sharper: 'Skarpare',
+    };
+    const nextDraft = buildCcoNextPreviewStudioRewriteDraft(
+      safeConversation,
+      safeRewriteKey,
+      studioState,
+      currentDraft
+    );
+    return {
+      draftBody: nextDraft,
+      patch: {
+        lastActionTakenLabel: `Omskrivet · ${rewriteLabels[safeRewriteKey] || 'Finjusterat'}`,
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Omskrivet i studio',
+        nextActionLabel: 'Granska och skicka från studion',
+        nextActionSummary: 'Utkastet är nu tonjusterat för vald riktning och kan skickas när du är nöjd.',
+        previewSummary: {
+          assignedTo:
+            safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || '',
+          lastCaseSummary: 'Svarsstudion finjusterade utkastet så att ton och nästa steg blir tydligare för kunden.',
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            isOpen: true,
+            currentDraftBody: nextDraft,
+            editedDraftBody: nextDraft,
+            draftSource: 'edited',
+            lastRewriteAction: safeRewriteKey,
+            lastRewriteAt: getCcoNextPreviewTimestampOffset(0, 0),
+          },
+          nextDraft
+        ),
+      },
+      historyLabel: 'Utkast omskrivet',
+      historyExcerpt: `Svarsstudion gjorde utkastet ${String(
+        rewriteLabels[safeRewriteKey] || 'mer träffsäkert'
+      ).toLowerCase()} för vald tråd.`,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: `Utkastet gjordes ${String(rewriteLabels[safeRewriteKey] || 'tydligare').toLowerCase()} i Svarsstudion.`,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioSignatureState(conversation = null, signatureId = '', currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, { ...studioState, selectedSignatureId: signatureId });
+    const nextDraft = applyCcoNextPreviewStudioSignature(
+      String(currentDraft || studioState.currentDraftBody || safeConversation.previewDraftBody || ''),
+      signature
+    );
+    return {
+      draftBody: nextDraft,
+      patch: {
+        owner: signature.name,
+        handoffStatus: 'assigned',
+        lastActionTakenLabel: 'Signatur uppdaterad',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Signatur säkrad',
+        nextActionLabel: 'Granska och skicka från studion',
+        nextActionSummary: `${signature.name} äger nu nästa svar och står som avsändare för utskicket.`,
+        previewSummary: {
+          assignedTo: signature.name,
+          lastCaseSummary: `Svarsstudion växlade till ${signature.name} som tydlig avsändare för nästa steg.`,
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            isOpen: true,
+            currentDraftBody: nextDraft,
+            editedDraftBody: nextDraft,
+            draftSource: 'edited',
+            selectedSignatureId: signature.id,
+            signatureLabel: signature.name,
+            signatureGreeting: signature.greeting,
+            activeDialog: '',
+          },
+          nextDraft
+        ),
+      },
+      historyLabel: 'Signatur uppdaterad',
+      historyExcerpt: `Svarsstudion satte ${signature.name} som avsändare för tråden.`,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: `${signature.name} är nu vald som signatur i Svarsstudion.`,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioHandledState(conversation = null, currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const actor = String(
+      safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || getCcoNextPreviewActorLabel()
+    ).trim() || getCcoNextPreviewActorLabel();
+    return {
+      patch: {
+        owner: actor,
+        handoffStatus: 'resolved_for_now',
+        waitingOn: 'none',
+        queueOverride: 'admin_low',
+        followUpSuggested: false,
+        followUpDueAt: '',
+        bookingState: safeConversation.bookingState || 'not_relevant',
+        lifecycleStage: 'Hanterad i preview',
+        nextActionLabel: 'Ingen åtgärd just nu',
+        nextActionSummary: 'Tråden är hanterad för nu och behöver bara öppnas igen om kunden återkommer.',
+        lastActionTakenLabel: 'Markerad som hanterad',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Avslutad för nu',
+        slaStatus: 'safe',
+        previewSummary: {
+          assignedTo: actor,
+          lifecycleStatus: 'resolved_for_now',
+          lastCaseSummary: 'Operatören markerade tråden som hanterad för nu och flyttade den till låg prioritet.',
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            currentDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            editedDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            draftSource: 'handled',
+            sendReady: false,
+            activeDialog: '',
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      historyLabel: 'Markerad som hanterad',
+      historyExcerpt: 'Tråden markerades som klar för nu och flyttades ut ur den aktiva arbetskön.',
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: 'Tråden är nu markerad som hanterad för denna arbetscykel.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioReturnLaterState(conversation = null, currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const actor = String(
+      safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || getCcoNextPreviewActorLabel()
+    ).trim() || getCcoNextPreviewActorLabel();
+    const plan = getCcoNextPreviewFollowUpPlan('return_later', '', safeConversation);
+    const followUpAt = String(plan?.targetAt || getCcoNextPreviewTimestampOffset(21, 0)).trim();
+    const dueLabel = String(plan?.dueLabel || getCcoNextPreviewDueMeta(followUpAt).label).trim();
+    const summary = String(
+      plan?.nextActionSummary ||
+        `Tråden är parkerad till ${dueLabel.toLowerCase()} och ska tas tillbaka då om inget nytt händer innan dess.`
+    ).trim();
+    return {
+      patch: {
+        owner: actor,
+        handoffStatus: String(plan?.handoffStatus || 'scheduled_follow_up').trim(),
+        waitingOn: String(plan?.waitingOn || 'owner').trim(),
+        queueOverride: String(plan?.queueOverride || 'follow_up_today').trim(),
+        followUpSuggested: true,
+        followUpDueAt: followUpAt,
+        followUpMode: String(plan?.followUpMode || 'one_off').trim(),
+        waitUntilReply: plan?.waitUntilReply === true,
+        recurringCadence: String(plan?.recurringCadence || '').trim(),
+        followUpSequenceKey: String(plan?.followUpSequenceKey || '').trim(),
+        followUpSequenceStep: Number(plan?.followUpSequenceStep || 0) || 0,
+        followUpSequenceLabel: String(plan?.followUpSequenceLabel || '').trim(),
+        followUpFallbackAction: String(plan?.followUpFallbackAction || '').trim(),
+        slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+        slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+        lifecycleStage: String(plan?.lifecycleStage || 'Återupptas senare').trim(),
+        nextActionLabel: String(plan?.nextActionLabel || `Återuppta ${dueLabel}`).trim(),
+        nextActionSummary: summary,
+        lastActionTakenLabel: 'Återuppta senare',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Parkerad för senare',
+        previewSummary: {
+          assignedTo: actor,
+          lifecycleStatus: 'scheduled_follow_up',
+          lastCaseSummary: summary,
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            currentDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            editedDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            draftSource: 'saved',
+            snoozePresetKey: String(plan?.key || 'return_later').trim(),
+            snoozeUntilAt: followUpAt,
+            followUpMode: String(plan?.followUpMode || 'one_off').trim(),
+            waitUntilReply: plan?.waitUntilReply === true,
+            recurringCadence: String(plan?.recurringCadence || '').trim(),
+            followUpSequenceKey: String(plan?.followUpSequenceKey || '').trim(),
+            followUpSequenceStep: Number(plan?.followUpSequenceStep || 0) || 0,
+            followUpSequenceLabel: String(plan?.followUpSequenceLabel || '').trim(),
+            followUpFallbackAction: String(plan?.followUpFallbackAction || '').trim(),
+            slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+            slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+            activeDialog: '',
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      historyLabel: 'Återuppta senare',
+      historyExcerpt: summary,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: plan?.slaGuardStatus === 'adjusted' ? summary : `Tråden parkerades till ${dueLabel.toLowerCase()} med samma ägare kvar.`,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioSignatureEditorState(conversation = null, currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const selectedId = String(studioState.selectedSignatureId || getCcoNextPreviewStudioDefaultSignatureId(safeConversation, studioState)).trim();
+    const editorDraft = buildCcoNextPreviewStudioSignatureEditorDraft(safeConversation, studioState, selectedId);
+    return {
+      patch: {
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            activeDialog: 'signature_editor',
+            signatureEditorProfileId: selectedId,
+            signatureEditorDraft: editorDraft,
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: 'Signaturredigeraren öppnades i Svarsstudion.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioSignatureProfileSaveState(conversation = null, currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const editorDraft = cloneCcoNextPreviewStudioSignatureProfile(
+      studioState.signatureEditorDraft || buildCcoNextPreviewStudioSignatureEditorDraft(safeConversation, studioState),
+      studioState.signatureEditorProfileId || studioState.selectedSignatureId || 'sara'
+    );
+    const nextProfiles = getCcoNextPreviewStudioSignatureCatalog(studioState).map((entry) =>
+      entry.id === editorDraft.id ? { ...entry, ...editorDraft } : entry
+    );
+    const nextSignature = getCcoNextPreviewStudioSignature(safeConversation, {
+      ...studioState,
+      signatureProfiles: nextProfiles,
+      selectedSignatureId: editorDraft.id,
+    });
+    const nextDraft = applyCcoNextPreviewStudioSignature(
+      String(currentDraft || studioState.currentDraftBody || safeConversation.previewDraftBody || ''),
+      nextSignature
+    );
+    return {
+      draftBody: nextDraft,
+      patch: {
+        owner: nextSignature.name,
+        handoffStatus: 'assigned',
+        lastActionTakenLabel: 'Signaturprofil sparad',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Signatur uppdaterad',
+        nextActionLabel: 'Granska och skicka från studion',
+        nextActionSummary: `${nextSignature.name} är nu satt som tydlig avsändare för nästa svar.`,
+        previewSummary: {
+          assignedTo: nextSignature.name,
+          lastCaseSummary: `Svarsstudion sparade signaturprofilen för ${nextSignature.name} och uppdaterade utkastet direkt.`,
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            signatureProfiles: nextProfiles,
+            selectedSignatureId: nextSignature.id,
+            signatureLabel: nextSignature.name,
+            signatureGreeting: nextSignature.greeting,
+            signatureEditorProfileId: nextSignature.id,
+            signatureEditorDraft: editorDraft,
+            activeDialog: '',
+            draftSource: 'edited',
+            lastEditedAt: getCcoNextPreviewTimestampOffset(0, 0),
+          },
+          nextDraft
+        ),
+      },
+      historyLabel: 'Signaturprofil sparad',
+      historyExcerpt: `${nextSignature.name} uppdaterades som signaturprofil och avsändare i studion.`,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: 'Signaturprofilen sparades och utkastet uppdaterades direkt.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioToneToggleState(conversation = null, toneKey = '', currentStudio = null, currentDraft = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const safeToneKey = String(toneKey || '').trim().toLowerCase();
+    const currentFilters = getCcoNextPreviewStudioToneFilters(
+      studioState,
+      studioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    );
+    const hasTone = currentFilters.includes(safeToneKey);
+    const nextFilters = hasTone
+      ? currentFilters.filter((entry) => entry !== safeToneKey)
+      : [...currentFilters, safeToneKey];
+    return {
+      patch: {
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            toneFilters: nextFilters,
+            aiVersion: Number(studioState.aiVersion || 0) + 1,
+          },
+          String(currentDraft || studioState.currentDraftBody || '')
+        ),
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: `${safeToneKey === 'clear_next_step' ? 'Nästa steg-tonen' : safeToneKey} är nu ${
+          hasTone ? 'av' : 'på'
+        } för AI-förslaget.`,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioSuggestionState(conversation = null, currentStudio = null, currentDraft = '', mode = 'regenerate') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const safeMode = String(mode || 'regenerate').trim().toLowerCase();
+    const nextVersion = safeMode === 'regenerate' ? Number(studioState.aiVersion || 0) + 1 : Number(studioState.aiVersion || 0);
+    const nextStudio = buildCcoNextPreviewStudioDerivedState(
+      safeConversation,
+      {
+        ...studioState,
+        aiVersion: nextVersion,
+        aiAppliedAt: safeMode === 'apply' ? getCcoNextPreviewTimestampOffset(0, 0) : studioState.aiAppliedAt,
+      },
+      String(currentDraft || studioState.currentDraftBody || '')
+    );
+    if (safeMode === 'apply') {
+      const appliedDraft = String(nextStudio.aiSuggestionBody || nextStudio.currentDraftBody || '').trim();
+      return {
+        draftBody: appliedDraft,
+        patch: {
+          lastActionTakenLabel: 'AI-förslag applicerat',
+          lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+          draftStateLabel: 'AI-utkast aktivt',
+          nextActionLabel: 'Granska och skicka från studion',
+          nextActionSummary: 'AI-förslaget är nu lagt som utkast och kan skickas eller finjusteras vidare.',
+          previewSummary: {
+            assignedTo:
+              safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || '',
+            lastCaseSummary: 'Svarsstudion applicerade ett backbone-aware AI-förslag på utkastet.',
+          },
+          previewStudio: {
+            ...nextStudio,
+            currentDraftBody: appliedDraft,
+            editedDraftBody: appliedDraft,
+            draftSource: 'ai',
+            aiAppliedAt: getCcoNextPreviewTimestampOffset(0, 0),
+          },
+        },
+        historyLabel: 'AI-förslag applicerat',
+        historyExcerpt: 'Svarsstudion lade in AI-förslaget som nytt utkast för tråden.',
+        toast: {
+          title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+          tone: 'success',
+          message: 'AI-förslaget lades in som nytt utkast i Svarsstudion.',
+        },
+      };
+    }
+    return {
+      patch: {
+        previewStudio: nextStudio,
+      },
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: 'AI-förslaget genererades om med samma operativa kontext.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioDraftPatch(conversation = null, currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    return {
+      previewStudio: buildCcoNextPreviewStudioDerivedState(
+        safeConversation,
+        {
+          ...studioState,
+          isOpen: true,
+          currentDraftBody: String(draftBody || ''),
+          editedDraftBody: String(draftBody || ''),
+          draftSource: 'edited',
+          lastEditedAt: getCcoNextPreviewTimestampOffset(0, 0),
+        },
+        String(draftBody || '')
+      ),
+    };
+  }
+
+  function getCcoNextPreviewFollowUpPlan(type = 'snooze', presetKey = '', conversation = null) {
+    const engine = getCcoNextPreviewFollowUpEngine();
+    const safeType = String(type || 'snooze').trim().toLowerCase();
+    if (!engine) return null;
+    if (safeType === 'schedule' && typeof engine.buildSchedulePlan === 'function') {
+      return engine.buildSchedulePlan({
+        presetKey,
+        conversation,
+        nowTimestamp: getCcoNextPreviewNowTimestamp(),
+      });
+    }
+    if (safeType === 'return_later' && typeof engine.buildReturnLaterPlan === 'function') {
+      return engine.buildReturnLaterPlan({
+        conversation,
+        nowTimestamp: getCcoNextPreviewNowTimestamp(),
+      });
+    }
+    if (typeof engine.buildSnoozePlan === 'function') {
+      return engine.buildSnoozePlan({
+        presetKey,
+        conversation,
+        nowTimestamp: getCcoNextPreviewNowTimestamp(),
+      });
+    }
+    return null;
+  }
+
+  function getCcoNextPreviewStudioSnoozePresets(conversation = null) {
+    const engine = getCcoNextPreviewFollowUpEngine();
+    if (engine && typeof engine.getSnoozePresets === 'function') {
+      return engine.getSnoozePresets({
+        conversation,
+        nowTimestamp: getCcoNextPreviewNowTimestamp(),
+      });
+    }
+    return [
+      { key: 'later_today', label: 'Senare idag', offsetHours: 2, offsetMinutes: 0 },
+      { key: 'tomorrow_morning', label: 'Imorgon 09:00', offsetHours: 21, offsetMinutes: 0 },
+      { key: 'next_week', label: 'Nästa vecka', offsetHours: 168, offsetMinutes: 0 },
+      { key: 'until_customer_replies', label: 'Tills kunden svarar', offsetHours: 48, offsetMinutes: 0 },
+    ];
+  }
+
+  function getCcoNextPreviewStudioSchedulePresets(conversation = null) {
+    const engine = getCcoNextPreviewFollowUpEngine();
+    if (engine && typeof engine.getSchedulePresets === 'function') {
+      return engine.getSchedulePresets({
+        conversation,
+        nowTimestamp: getCcoNextPreviewNowTimestamp(),
+      });
+    }
+    return [
+      { key: 'today_1700', label: 'Idag 17:00', offsetHours: 5, offsetMinutes: 0 },
+      { key: 'tomorrow_0900', label: 'Imorgon 09:00', offsetHours: 21, offsetMinutes: 0 },
+      { key: 'next_week', label: 'Nästa vecka', offsetHours: 168, offsetMinutes: 0 },
+    ];
+  }
+
+  function buildCcoNextPreviewStudioSnoozeState(conversation = null, presetKey = '', currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const actor = String(
+      safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || getCcoNextPreviewActorLabel()
+    ).trim() || getCcoNextPreviewActorLabel();
+    const plan = getCcoNextPreviewFollowUpPlan('snooze', presetKey, safeConversation);
+    const snoozeAt = String(plan?.targetAt || getCcoNextPreviewTimestampOffset(21, 0)).trim();
+    const dueLabel = String(plan?.dueLabel || getCcoNextPreviewDueMeta(snoozeAt).label).trim();
+    const waitsForCustomer = plan?.waitUntilReply === true || String(plan?.waitingOn || '').trim() === 'customer';
+    const summary = String(
+      plan?.nextActionSummary ||
+        (waitsForCustomer
+          ? `Vi väntar på kund till ${dueLabel.toLowerCase()}. Om inget svar kommer före då ska tråden få en ny nudge.`
+          : `Tråden är parkerad till ${dueLabel.toLowerCase()} och ska tas tillbaka av ${actor} då.`)
+    ).trim();
+    return {
+      patch: {
+        owner: actor,
+        handoffStatus: String(plan?.handoffStatus || (waitsForCustomer ? 'awaiting_reply' : 'scheduled_follow_up')).trim(),
+        waitingOn: String(plan?.waitingOn || (waitsForCustomer ? 'customer' : 'owner')).trim(),
+        queueOverride: String(plan?.queueOverride || (waitsForCustomer ? 'waiting_reply' : 'follow_up_today')).trim(),
+        followUpSuggested: true,
+        followUpDueAt: snoozeAt,
+        followUpMode: String(plan?.followUpMode || 'one_off').trim(),
+        waitUntilReply: waitsForCustomer,
+        recurringCadence: String(plan?.recurringCadence || '').trim(),
+        followUpSequenceKey: String(plan?.followUpSequenceKey || '').trim(),
+        followUpSequenceStep: Number(plan?.followUpSequenceStep || 0) || 0,
+        followUpSequenceLabel: String(plan?.followUpSequenceLabel || '').trim(),
+        followUpFallbackAction: String(plan?.followUpFallbackAction || '').trim(),
+        slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+        slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+        lifecycleStage: String(plan?.lifecycleStage || (waitsForCustomer ? 'Väntar på kunds svar' : 'Återupptas senare')).trim(),
+        nextActionLabel: String(plan?.nextActionLabel || (waitsForCustomer ? `Följ upp om inget svar innan ${dueLabel}` : `Återuppta ${dueLabel}`)).trim(),
+        nextActionSummary: summary,
+        lastActionTakenLabel: 'Snoozad i studio',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Parkerad i studio',
+        previewSummary: {
+          assignedTo: actor,
+          lifecycleStatus: waitsForCustomer ? 'awaiting_reply' : 'scheduled_follow_up',
+          lastCaseSummary: summary,
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            currentDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            editedDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            draftSource: 'saved',
+            snoozePresetKey: String(plan?.key || presetKey || '').trim(),
+            snoozeUntilAt: snoozeAt,
+            followUpMode: String(plan?.followUpMode || 'one_off').trim(),
+            waitUntilReply: waitsForCustomer,
+            recurringCadence: String(plan?.recurringCadence || '').trim(),
+            followUpSequenceKey: String(plan?.followUpSequenceKey || '').trim(),
+            followUpSequenceStep: Number(plan?.followUpSequenceStep || 0) || 0,
+            followUpSequenceLabel: String(plan?.followUpSequenceLabel || '').trim(),
+            followUpFallbackAction: String(plan?.followUpFallbackAction || '').trim(),
+            slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+            slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+            scheduledSendAt: '',
+            activeDialog: '',
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      historyLabel: 'Snoozad i studio',
+      historyExcerpt: summary,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: summary,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioScheduleState(conversation = null, presetKey = '', currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const actor = String(
+      safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || getCcoNextPreviewActorLabel()
+    ).trim() || getCcoNextPreviewActorLabel();
+    const plan = getCcoNextPreviewFollowUpPlan('schedule', presetKey, safeConversation);
+    const scheduledAt = String(plan?.targetAt || getCcoNextPreviewTimestampOffset(5, 0)).trim();
+    const dueLabel = String(plan?.dueLabel || getCcoNextPreviewDueMeta(scheduledAt).label).trim();
+    const summary = String(
+      plan?.nextActionSummary ||
+        `Svarsstudion har planerat nästa utskick till ${dueLabel.toLowerCase()}. ${actor} äger nästa steg tills dess.`
+    ).trim();
+    return {
+      patch: {
+        owner: actor,
+        handoffStatus: String(plan?.handoffStatus || 'scheduled_follow_up').trim(),
+        waitingOn: String(plan?.waitingOn || 'owner').trim(),
+        queueOverride: String(plan?.queueOverride || 'follow_up_today').trim(),
+        followUpSuggested: true,
+        followUpDueAt: scheduledAt,
+        followUpMode: String(plan?.followUpMode || 'scheduled_send').trim(),
+        waitUntilReply: false,
+        recurringCadence: String(plan?.recurringCadence || '').trim(),
+        followUpSequenceKey: '',
+        followUpSequenceStep: 0,
+        followUpSequenceLabel: '',
+        followUpFallbackAction: '',
+        slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+        slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+        lifecycleStage: String(plan?.lifecycleStage || 'Schemalagt utskick').trim(),
+        nextActionLabel: String(plan?.nextActionLabel || `Skicka ${dueLabel}`).trim(),
+        nextActionSummary: summary,
+        lastActionTakenLabel: 'Utskick schemalagt',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Schemalagt för utskick',
+        previewSummary: {
+          assignedTo: actor,
+          lifecycleStatus: 'scheduled_follow_up',
+          lastCaseSummary: summary,
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            currentDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            editedDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            draftSource: 'scheduled',
+            scheduledSendAt: scheduledAt,
+            snoozePresetKey: String(plan?.key || presetKey || '').trim(),
+            followUpMode: String(plan?.followUpMode || 'scheduled_send').trim(),
+            waitUntilReply: false,
+            recurringCadence: String(plan?.recurringCadence || '').trim(),
+            followUpSequenceKey: '',
+            followUpSequenceStep: 0,
+            followUpSequenceLabel: '',
+            followUpFallbackAction: '',
+            slaGuardStatus: String(plan?.slaGuardStatus || 'clear').trim(),
+            slaGuardMessage: String(plan?.slaGuardMessage || '').trim(),
+            activeDialog: '',
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      historyLabel: 'Utskick schemalagt',
+      historyExcerpt: summary,
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'info',
+        message: summary,
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioDeleteState(conversation = null, currentStudio = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    return {
+      patch: {
+        handoffStatus: 'removed_preview',
+        lastActionTakenLabel: 'Tråd borttagen',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Borttagen i preview',
+        previewSummary: {
+          assignedTo: safeConversation.owner || safeConversation.ownerDisplay || safeConversation.previewSummary?.assignedTo || '',
+          lifecycleStatus: 'removed_preview',
+          lastCaseSummary: 'Tråden togs bort från previewn efter en säker raderingsbekräftelse i studion.',
+        },
+        previewStudio: buildCcoNextPreviewStudioDerivedState(
+          safeConversation,
+          {
+            ...studioState,
+            currentDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            editedDraftBody: String(draftBody || studioState.currentDraftBody || ''),
+            sendReady: false,
+            activeDialog: '',
+            deleteRequestedAt: '',
+            deletedAt: getCcoNextPreviewTimestampOffset(0, 0),
+            deletedReason: 'safe_delete',
+            isDeleted: true,
+          },
+          String(draftBody || studioState.currentDraftBody || '')
+        ),
+      },
+      historyLabel: 'Tråd borttagen',
+      historyExcerpt: 'Svarsstudion tog bort tråden från den aktiva preview-inkorgen efter bekräftelse.',
+      toast: {
+        title: `CCO Next · ${safeConversation.sender || 'Tråd'}`,
+        tone: 'success',
+        message: 'Tråden togs bort från preview-inkorgen efter bekräftelse.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewStudioSendStatePatch(conversation = null, draftBody = '', currentStudio = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const studioState = currentStudio && typeof currentStudio === 'object' ? currentStudio : {};
+    const nowIso = getCcoNextPreviewTimestampOffset(0, 0);
+    const signature = getCcoNextPreviewStudioSignature(safeConversation, studioState);
+    const actor = String(
+      studioState.postSendOwner || safeConversation.owner || safeConversation.ownerDisplay || getCcoNextPreviewActorLabel()
+    ).trim() || getCcoNextPreviewActorLabel();
+    const strategyKey = String(
+      studioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, strategyKey);
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === strategyKey) || strategyCatalog[0] || null;
+    const interactionCount = getCcoNextPreviewInteractionCount(safeConversation, 1);
+    const sharedStudioPatch = buildCcoNextPreviewStudioDerivedState(
+      safeConversation,
+      {
+        ...studioState,
+        isOpen: true,
+        strategyKey,
+        strategyLabel: selectedStrategy?.label || 'Svarsstudio',
+        strategyReason: selectedStrategy?.description || '',
+        objective: objective.objective,
+        desiredOutcome: objective.desiredOutcome,
+        guardrail: objective.guardrail,
+        postSendState: objective.postSendState,
+        postSendQueue: objective.postSendQueue,
+        postSendWaitingOn: objective.postSendWaitingOn,
+        postSendOwner: actor,
+        postSendFollowUpDueAt: objective.postSendFollowUpDueAt,
+        recommendedTool: selectedStrategy?.recommendedTool || safeConversation.recommendedTool || 'open_studio',
+        templateKey: strategyKey,
+        templateLabel: selectedStrategy?.label || 'Studiomall',
+        templateSummary: selectedStrategy?.description || '',
+        templateDraftBody:
+          studioState.templateDraftBody || buildCcoNextPreviewStudioTemplateDraft(safeConversation, strategyKey),
+        currentDraftBody: String(draftBody || ''),
+        editedDraftBody: String(draftBody || ''),
+        draftSource: 'sent',
+        sendReady: false,
+        selectedSignatureId: signature.id,
+        signatureLabel: signature.name,
+        signatureGreeting: signature.greeting,
+        lastSentAt: nowIso,
+        activeDialog: '',
+      },
+      String(draftBody || '')
+    );
+    switch (strategyKey) {
+      case 'booking_proposal':
+        return {
+          patch: {
+            owner: actor,
+            queueOverride: objective.postSendQueue,
+            handoffStatus: 'awaiting_reply',
+            waitingOn: 'customer',
+            followUpSuggested: false,
+            followUpDueAt: objective.postSendFollowUpDueAt,
+            bookingState: 'awaiting_confirmation',
+            lifecycleStage: 'Väntar bekräftelse',
+            nextActionLabel: 'Invänta kundens bekräftelse',
+            nextActionSummary: `Bokningsförslaget är ute. Följ upp om inget svar innan ${getCcoNextPreviewDueMeta(
+              objective.postSendFollowUpDueAt
+            ).label.toLowerCase()}.`,
+            lastActionTakenLabel: 'Studiosvar skickat',
+            lastActionTakenAt: nowIso,
+            draftStateLabel: 'Senast skickat från studion',
+            slaStatus: 'safe',
+            previewSummary: {
+              assignedTo: actor,
+              interactionCount,
+              lifecycleStatus: 'awaiting_reply',
+              lastCaseSummary:
+                'Svarsstudion skickade ett konkret bokningsförslag. Tråden väntar nu på kundens bekräftelse.',
+            },
+            previewStudio: sharedStudioPatch,
+          },
+          historyLabel: 'Studiosvar skickat',
+          historyExcerpt:
+            'Svarsstudion skickade ett bokningsförslag och flyttade tråden till väntar på patient.',
+          toastTone: 'success',
+          toastMessage: 'Studiosvaret är skickat. Tråden väntar nu på kundens bokningsbekräftelse.',
+        };
+      case 'medical_review_hold':
+        return {
+          patch: {
+            owner: actor,
+            queueOverride: objective.postSendQueue,
+            handoffStatus: 'waiting_review',
+            waitingOn: 'clinic',
+            followUpSuggested: true,
+            followUpDueAt: objective.postSendFollowUpDueAt,
+            bookingState: 'blocked_medical',
+            needsMedicalReview: true,
+            medicalBlocker: 'medical_review',
+            lifecycleStage: 'Medicinsk review aktiv',
+            nextActionLabel: 'Invänta klinikens klartecken',
+            nextActionSummary:
+              'Kunden har fått ett tryggt mellanbesked. Nästa steg är att låta kliniken granska innan vi bokar eller lovar något mer.',
+            lastActionTakenLabel: 'Studiosvar skickat',
+            lastActionTakenAt: nowIso,
+            draftStateLabel: 'Senast skickat från studion',
+            previewSummary: {
+              assignedTo: actor,
+              interactionCount,
+              lifecycleStatus: 'active_dialogue',
+              lastCaseSummary:
+                'Svarsstudion skickade ett tryggt mellanbesked medan ärendet väntar på medicinsk review.',
+            },
+            previewStudio: sharedStudioPatch,
+          },
+          historyLabel: 'Tryggt mellanbesked skickat',
+          historyExcerpt:
+            'Svarsstudion skickade ett mellanbesked och lät tråden ligga kvar i medicinsk granskning.',
+          toastTone: 'success',
+          toastMessage: 'Mellanbesked skickat från Svarsstudion. Tråden väntar nu på klinikens granskning.',
+        };
+      case 'admin_response':
+        return {
+          patch: {
+            owner: actor,
+            queueOverride: objective.postSendQueue,
+            handoffStatus: 'awaiting_reply',
+            waitingOn: 'customer',
+            followUpSuggested: false,
+            followUpDueAt: objective.postSendFollowUpDueAt,
+            bookingState: 'not_relevant',
+            lifecycleStage: 'Admin återkopplad',
+            nextActionLabel: 'Invänta eventuell komplettering',
+            nextActionSummary:
+              'Underlag eller kvitto är nu skickat. Tråden kräver bara ny åtgärd om kunden återkommer med kompletteringar.',
+            lastActionTakenLabel: 'Studiosvar skickat',
+            lastActionTakenAt: nowIso,
+            draftStateLabel: 'Senast skickat från studion',
+            previewSummary: {
+              assignedTo: actor,
+              interactionCount,
+              lifecycleStatus: 'awaiting_reply',
+              lastCaseSummary:
+                'Svarsstudion skickade ett administrativt svar. Tråden väntar nu bara på eventuell komplettering.',
+            },
+            previewStudio: sharedStudioPatch,
+          },
+          historyLabel: 'Adminsvar skickat',
+          historyExcerpt:
+            'Svarsstudion skickade ett administrativt besked och flyttade tråden till vänteläge.',
+          toastTone: 'success',
+          toastMessage: 'Adminsvar skickat från Svarsstudion. Tråden ligger nu i vänteläge.',
+        };
+      case 'trust_builder':
+        return {
+          patch: {
+            owner: actor,
+            queueOverride: objective.postSendQueue,
+            handoffStatus: 'awaiting_reply',
+            waitingOn: 'customer',
+            followUpSuggested: true,
+            followUpDueAt: objective.postSendFollowUpDueAt,
+            bookingState: safeConversation.bookingState || 'needs_slots',
+            lifecycleStage: 'Trygg väg framåt skickad',
+            nextActionLabel: 'Bevaka kundens svar',
+            nextActionSummary: `Om kunden inte svarar innan ${getCcoNextPreviewDueMeta(
+              objective.postSendFollowUpDueAt
+            ).label.toLowerCase()} behövs en ny varm uppföljning.`,
+            lastActionTakenLabel: 'Studiosvar skickat',
+            lastActionTakenAt: nowIso,
+            draftStateLabel: 'Senast skickat från studion',
+            previewSummary: {
+              assignedTo: actor,
+              interactionCount,
+              lifecycleStatus: 'awaiting_reply',
+              lastCaseSummary:
+                'Svarsstudion skickade ett förtroendeskapande svar med tydlig väg framåt mot konsultation eller bokning.',
+            },
+            previewStudio: sharedStudioPatch,
+          },
+          historyLabel: 'Trygg väg framåt skickad',
+          historyExcerpt:
+            'Svarsstudion skickade ett trygghetsskapande svar och satte upp nästa uppföljningsfönster.',
+          toastTone: 'success',
+          toastMessage: 'Svar skickat från Svarsstudion. Tråden väntar nu på kundens svar.',
+        };
+      case 'follow_up_nudge':
+      case 'holding_reply':
+      default:
+        return {
+          patch: {
+            owner: actor,
+            queueOverride: objective.postSendQueue,
+            handoffStatus: 'awaiting_reply',
+            waitingOn: 'customer',
+            followUpSuggested: true,
+            followUpDueAt: objective.postSendFollowUpDueAt,
+            bookingState: safeConversation.bookingState || 'awaiting_confirmation',
+            lifecycleStage: strategyKey === 'holding_reply' ? 'Mellanbesked skickat' : 'Uppföljning aktiv',
+            nextActionLabel: 'Invänta kundens svar',
+            nextActionSummary: `Om kunden inte svarar innan ${getCcoNextPreviewDueMeta(
+              objective.postSendFollowUpDueAt
+            ).label.toLowerCase()} behöver tråden en ny varm uppföljning.`,
+            lastActionTakenLabel: 'Studiosvar skickat',
+            lastActionTakenAt: nowIso,
+            draftStateLabel: 'Senast skickat från studion',
+            previewSummary: {
+              assignedTo: actor,
+              interactionCount,
+              lifecycleStatus: 'awaiting_reply',
+              lastCaseSummary:
+                strategyKey === 'holding_reply'
+                  ? 'Svarsstudion skickade ett mellanbesked som håller tråden varm tills nästa beslut är säkrat.'
+                  : 'Svarsstudion skickade en varm uppföljning och satte ett tydligt uppföljningsfönster.',
+            },
+            previewStudio: sharedStudioPatch,
+          },
+          historyLabel: strategyKey === 'holding_reply' ? 'Mellanbesked skickat' : 'Uppföljning skickad',
+          historyExcerpt:
+            strategyKey === 'holding_reply'
+              ? 'Svarsstudion skickade ett mellanbesked och flyttade tråden till vänteläge.'
+              : 'Svarsstudion skickade en uppföljning och satte nästa uppföljningsfönster.',
+          toastTone: 'success',
+          toastMessage:
+            strategyKey === 'holding_reply'
+              ? 'Mellanbesked skickat från Svarsstudion. Tråden ligger nu i vänteläge.'
+              : 'Uppföljning skickad från Svarsstudion. Tråden väntar nu på kundens svar.',
+        };
+    }
+  }
+
+  function buildCcoNextPreviewStudioViewModel(conversation = null, options = {}) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    if (!safeConversation?.conversationId) return null;
+    const rawStudioState =
+      options?.studioState && typeof options.studioState === 'object'
+        ? options.studioState
+        : safeConversation.previewStudio && typeof safeConversation.previewStudio === 'object'
+        ? safeConversation.previewStudio
+        : {};
+    const rawStrategyKey = String(
+      rawStudioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const fallbackTemplateDraft =
+      rawStudioState.templateDraftBody || buildCcoNextPreviewStudioTemplateDraft(safeConversation, rawStrategyKey);
+    const draftBody =
+      String(options?.draftBody || rawStudioState.currentDraftBody || safeConversation.previewDraftBody || '').trim()
+        ? String(options?.draftBody || rawStudioState.currentDraftBody || safeConversation.previewDraftBody || '')
+        : fallbackTemplateDraft;
+    const studioState = buildCcoNextPreviewStudioDerivedState(safeConversation, rawStudioState, draftBody);
+    const strategyCatalog = getCcoNextPreviewStudioStrategyCatalog(safeConversation);
+    const strategyKey = String(
+      studioState.strategyKey || getCcoNextPreviewStudioDefaultStrategyKey(safeConversation)
+    ).trim();
+    const selectedStrategy =
+      strategyCatalog.find((entry) => entry.key === strategyKey) || strategyCatalog[0] || null;
+    const objective = buildCcoNextPreviewStudioObjective(safeConversation, strategyKey);
+    const templateDraft =
+      studioState.templateDraftBody || buildCcoNextPreviewStudioTemplateDraft(safeConversation, strategyKey);
+    const draftStats = options?.draftStats || getCcoNextPreviewDraftStats(draftBody);
+    const projectedOutcome =
+      options?.projectedOutcome || buildCcoNextPreviewProjectedOutcome(safeConversation, draftBody);
+    const projectedRow = projectedOutcome?.projected || null;
+    const signatureCatalog = getCcoNextPreviewStudioSignatureCatalog(studioState);
+    const selectedSignature = getCcoNextPreviewStudioSignature(safeConversation, studioState);
+    const readiness = buildCcoNextPreviewStudioReadiness(draftBody, safeConversation, studioState);
+    const recommendedTool =
+      selectedStrategy?.recommendedTool || studioState.recommendedTool || safeConversation.recommendedTool || 'open_studio';
+    const toolTone =
+      recommendedTool === 'book' ? 'book' : recommendedTool === 'template' ? 'template' : 'studio';
+    const chipTone =
+      recommendedTool === 'book' ? 'success' : recommendedTool === 'template' ? 'warn' : 'pink';
+    const dueLabel = getCcoNextPreviewDueMeta(objective.postSendFollowUpDueAt).label;
+    const returnLaterPlan = getCcoNextPreviewFollowUpPlan('return_later', '', safeConversation);
+    const sendReady = readiness.sendReady && Boolean(String(draftBody || '').trim()) && studioState.sendReady !== false;
+    const primaryAction = !String(draftBody || '').trim()
+      ? {
+          action: 'studio-apply-template',
+          cta: 'Lägg in studiomall',
+          tone: toolTone,
+          heading: 'Förbered rätt utkast först',
+          note: selectedStrategy?.description || 'Lägg in en studiomall innan du skickar från studion.',
+          outcomeLabel: 'Efter detta: Studio-utkast klart',
+          outcomeNote: 'Utkastet blir redigerbart direkt i studion och kan skickas eller finjusteras i nästa steg.',
+        }
+      : sendReady
+      ? {
+          action: 'studio-send',
+          cta: selectedStrategy?.sendLabel || 'Skicka från studion',
+          tone: toolTone,
+          heading: `${selectedStrategy?.label || 'Svarsstudio'} driver nästa steg`,
+          note:
+            selectedStrategy?.recommendedTool === 'book'
+              ? 'Skicka ett konkret bokningsförslag och sätt ett tydligt vänteläge direkt.'
+              : selectedStrategy?.recommendedTool === 'template'
+              ? 'Skicka ett standardsvar med rätt ton, tydligt nästa steg och ett definierat uppföljningsfönster.'
+              : 'Finjustera svaret i studion och skicka det med tydlig operational uppföljning.',
+          outcomeLabel: `Efter skick: ${projectedRow?.workflowLabel || getCcoNextPreviewLaneMeta(objective.postSendQueue).label}`,
+          outcomeNote:
+            projectedRow?.nextActionSummary ||
+            `${objective.postSendState}. Följ upp ${String(
+              projectedRow?.followUpDeadline || dueLabel
+            ).toLowerCase()} om inget svar kommer.`,
+        }
+      : {
+          action: 'studio-use-suggestion',
+          cta: 'Använd AI-förslag',
+          tone: 'studio',
+          heading: 'Gör utkastet skickredo först',
+          note: readiness.summary,
+          outcomeLabel: 'Efter detta: Ett tydligare utkast',
+          outcomeNote:
+            'AI-förslaget lägger in ett mer träffsäkert svar med tydlig nästa handling och bättre sändklarhet.',
+        };
+    if (readiness.tone !== 'success' && primaryAction.action === 'studio-send') {
+      primaryAction.note = `${primaryAction.note} ${readiness.summary}`.trim();
+    }
+    let dialog = null;
+    if (studioState.activeDialog === 'signature_editor') {
+      dialog = {
+        type: 'signature_editor',
+        title: 'Redigera signatur',
+        subtitle: 'Uppdatera den aktiva signaturprofilen utan att lämna Svarsstudion.',
+        confirmAction: 'studio-save-signature-profile',
+        cancelAction: 'studio-close-signature-editor',
+        profile: cloneCcoNextPreviewStudioSignatureProfile(
+          studioState.signatureEditorDraft || buildCcoNextPreviewStudioSignatureEditorDraft(safeConversation, studioState),
+          studioState.signatureEditorProfileId || selectedSignature.id
+        ),
+      };
+    } else if (studioState.activeDialog === 'snooze') {
+      dialog = {
+        type: 'snooze',
+        title: 'Återkom senare',
+        subtitle: 'Pausa tråden med ett tydligt uppföljningsfönster eller låt den vila tills kunden svarar.',
+        cancelAction: 'studio-close-snooze',
+        presets: getCcoNextPreviewStudioSnoozePresets(safeConversation).map((entry) => ({
+          ...entry,
+          action: `studio-snooze:${entry.key}`,
+        })),
+      };
+    } else if (studioState.activeDialog === 'schedule') {
+      dialog = {
+        type: 'schedule',
+        title: 'Schemalägg utskick',
+        subtitle: 'Planera nästa utskick utan att förlora utkast, ägarskap eller nästa steg.',
+        cancelAction: 'studio-close-schedule',
+        presets: getCcoNextPreviewStudioSchedulePresets(safeConversation).map((entry) => ({
+          ...entry,
+          action: `studio-schedule:${entry.key}`,
+        })),
+      };
+    } else if (studioState.activeDialog === 'delete') {
+      dialog = {
+        type: 'delete',
+        title: 'Ta bort tråden från previewn?',
+        subtitle: 'Detta tar bort tråden från den lokala preview-inkorgen men påverkar inte backend eller `/cco`.',
+        confirmAction: 'studio-confirm-delete',
+        cancelAction: 'studio-cancel-delete',
+      };
+    }
+    return {
+      isOpen: studioState.isOpen === true,
+      title: selectedStrategy?.label || 'Svarsstudio',
+      chipLabel:
+        recommendedTool === 'book' ? 'Boka' : recommendedTool === 'template' ? 'Mall' : 'Svarsstudio',
+      chipTone,
+      intro: `${safeConversation.workflowLabel || '-'} · ${safeConversation.ownerDisplay || 'Oägd'} · ${
+        safeConversation.waitingStateLabel || 'Redo för åtgärd'
+      } · ${safeConversation.followUpDeadline || '-'}`,
+      latestSignal: String(
+        safeConversation.latestInboundPreview || safeConversation.operatorCue || 'Ingen ny kundsignal ännu.'
+      ),
+      objective: objective.objective,
+      desiredOutcome: objective.desiredOutcome,
+      guardrail: objective.guardrail,
+      responseAngle: String(
+        safeConversation.responseAngle ||
+          safeConversation.recommendedToolReason ||
+          selectedStrategy?.description ||
+          ''
+      ),
+      toneFilters: getCcoNextPreviewStudioToneFilterCatalog().map((entry) => ({
+        ...entry,
+        action: `studio-toggle-tone:${entry.key}`,
+        isActive: studioState.toneFilters.includes(entry.key),
+      })),
+      strategies: strategyCatalog.map((entry) => ({
+        ...entry,
+        action: `studio-strategy:${entry.key}`,
+        isSelected: entry.key === strategyKey,
+        toolLabel:
+          entry.recommendedTool === 'book'
+            ? 'Boka'
+            : entry.recommendedTool === 'template'
+            ? 'Mall'
+            : 'Svarsstudio',
+      })),
+      template: {
+        label: selectedStrategy?.label || 'Studiomall',
+        summary: selectedStrategy?.description || 'Strategianpassat utkast för vald tråd.',
+        applyAction: 'studio-apply-template',
+        draftSourceLabel:
+          studioState.lastAppliedTemplateKey === strategyKey
+            ? 'Senast laddad mall'
+            : String(studioState.draftSource || '').trim() === 'edited'
+            ? 'Eget utkast'
+            : 'Rekommenderad mall',
+      },
+      draft: {
+        body: draftBody,
+        stats: draftStats,
+        sendReady,
+        source: String(studioState.draftSource || (sendReady ? 'edited' : 'template')).trim() || 'template',
+      },
+      readiness,
+      ai: {
+        label: String(studioState.aiSuggestionLabel || 'AI-förslag'),
+        confidence: Number(studioState.aiConfidence || 0),
+        confidenceLabel: `${Math.round(Number(studioState.aiConfidence || 0) * 100)}%`,
+        confidenceTone:
+          Number(studioState.aiConfidence || 0) >= 0.9
+            ? 'success'
+            : Number(studioState.aiConfidence || 0) >= 0.78
+            ? 'warn'
+            : 'neutral',
+        contextSummary: String(studioState.aiContextSummary || 'AI väger samman kö, väntestatus och valt responspår.'),
+        contextUsed: Array.isArray(studioState.aiContextUsed) ? studioState.aiContextUsed : [],
+        suggestionBody: String(studioState.aiSuggestionBody || ''),
+        reason: String(studioState.aiSuggestionReason || ''),
+        regenerateAction: 'studio-regenerate-suggestion',
+        useAction: 'studio-use-suggestion',
+      },
+      rewriteActions: [
+        { key: 'shorten', label: 'Kortare', action: 'studio-rewrite:shorten' },
+        { key: 'warm', label: 'Varmare', action: 'studio-rewrite:warm' },
+        { key: 'professional', label: 'Proffsigare', action: 'studio-rewrite:professional' },
+        { key: 'sharper', label: 'Skarpare', action: 'studio-rewrite:sharper' },
+      ].map((entry) => ({
+        ...entry,
+        isActive: String(studioState.lastRewriteAction || '').trim().toLowerCase() === entry.key,
+      })),
+      signature: {
+        selectedId: selectedSignature.id,
+        label: selectedSignature.name,
+        title: selectedSignature.title,
+        greeting: selectedSignature.greeting,
+        contact: selectedSignature.contact,
+        editorAction: 'studio-open-signature-editor',
+        choices: signatureCatalog.map((entry) => ({
+          id: entry.id,
+          label: entry.name,
+          action: `studio-signature:${entry.id}`,
+          isSelected: entry.id === selectedSignature.id,
+        })),
+      },
+      primaryAction,
+      completionActions: [
+        {
+          action: 'studio-return-later',
+          label: 'Återuppta senare',
+          note: `Parkera tråden till ${String(
+            returnLaterPlan?.dueLabel || getCcoNextPreviewDueMeta(getCcoNextPreviewTimestampOffset(21, 0)).label
+          )
+            .trim()
+            .toLowerCase()}.`,
+        },
+        {
+          action: 'studio-mark-handled',
+          label: 'Markera hanterad',
+          note: 'Flytta tråden ur den aktiva kön när den är klar för nu.',
+        },
+      ],
+      workflowActions: {
+        snoozeAction: 'studio-open-snooze',
+        scheduleAction: 'studio-open-schedule',
+        deleteAction: 'studio-open-delete',
+      },
+      postSend: {
+        queueLabel: projectedRow?.workflowLabel || getCcoNextPreviewLaneMeta(objective.postSendQueue).label,
+        stateLabel: studioState.postSendState || objective.postSendState,
+        waitingLabel:
+          projectedRow?.waitingStateLabel ||
+          (objective.postSendWaitingOn === 'clinic'
+            ? 'Väntar på klinik'
+            : objective.postSendWaitingOn === 'customer'
+            ? `Väntar på kund till ${dueLabel}`
+            : 'Redo för nästa steg'),
+        followUpLabel: projectedRow?.followUpDeadline || dueLabel,
+        ownerLabel: projectedRow?.ownerDisplay || objective.postSendOwner || '-',
+        bookingLabel: projectedRow?.bookingReadinessLabel || safeConversation.bookingReadinessLabel || '-',
+        summary:
+          projectedRow?.nextActionSummary ||
+          `${objective.postSendState}. ${String(objective.desiredOutcome || '').trim()}`,
+      },
+      dialog,
+    };
+  }
+
+  function buildCcoNextPreviewProjectedOutcome(conversation = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : null;
+    if (!safeConversation) return null;
+    const studioState =
+      safeConversation.previewStudio && typeof safeConversation.previewStudio === 'object'
+        ? safeConversation.previewStudio
+        : {};
+    const transition =
+      (studioState.isOpen === true || String(studioState.strategyKey || '').trim()) &&
+      typeof buildCcoNextPreviewStudioSendStatePatch === 'function'
+        ? buildCcoNextPreviewStudioSendStatePatch(safeConversation, draftBody, studioState)
+        : buildCcoNextPreviewSendStatePatch(safeConversation, draftBody);
+    const projected = buildCcoNextPreviewRowModel({
+      ...safeConversation,
+      ...transition.patch,
+      previewSummary: {
+        ...(safeConversation.previewSummary || {}),
+        ...(transition.patch?.previewSummary || {}),
+      },
+      previewMessages: Array.isArray(safeConversation.previewMessages) ? safeConversation.previewMessages : [],
+      previewHistory: Array.isArray(safeConversation.previewHistory) ? safeConversation.previewHistory : [],
+      medicalFlags: Array.isArray(safeConversation.medicalFlags) ? safeConversation.medicalFlags : [],
+      suggestedSlots: Array.isArray(safeConversation.suggestedSlots) ? safeConversation.suggestedSlots : [],
+    });
+    return {
+      transition,
+      projected,
+    };
+  }
+
+  function buildCcoNextPreviewPrimaryActionPlan(conversation = null, draftBody = '', projectedOutcome = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const trimmedDraft = String(draftBody || '').trim();
+    const hasDraft = Boolean(trimmedDraft);
+    const recommendedTool = String(safeConversation.recommendedTool || 'open_studio').trim().toLowerCase();
+    const bookingState = String(safeConversation.bookingState || '').trim().toLowerCase();
+    const waitingOn = String(safeConversation.waitingOn || '').trim().toLowerCase();
+    const intent = String(safeConversation.intent || '').trim().toLowerCase();
+    const draftStateLabel = String(safeConversation.draftStateLabel || '').trim().toLowerCase();
+    const lastActionTakenLabel = String(safeConversation.lastActionTakenLabel || '').trim().toLowerCase();
+    const projectedLabel = String(
+      projectedOutcome?.projected?.workflowLabel || safeConversation.waitingStateLabel || safeConversation.workflowLabel || '-'
+    ).trim();
+    const projectedSummary = String(
+      projectedOutcome?.projected?.nextActionSummary ||
+        projectedOutcome?.projected?.queueReason ||
+        safeConversation.nextActionSummary ||
+        ''
+    ).trim();
+    const templatePrepared =
+      draftStateLabel.includes('mall') ||
+      lastActionTakenLabel.includes('mall');
+    const sendPreviewLabel =
+      safeConversation.needsMedicalReview === true
+        ? 'Skicka mellanbesked'
+        : bookingState === 'ready_now' || bookingState === 'slots_ready'
+        ? 'Skicka bokningsförslag'
+        : waitingOn === 'customer' || bookingState === 'awaiting_confirmation'
+        ? 'Skicka uppföljning'
+        : intent === 'admin'
+        ? 'Skicka adminsvar'
+        : 'Skicka svar';
+
+    if (recommendedTool === 'book') {
+      return {
+        action: 'book',
+        tone: 'book',
+        cta: 'Boka nu',
+        heading: 'Gör bokningen till nästa steg',
+        note:
+          'Kunden är redo och vi har redan underlaget som krävs för att skicka ett konkret bokningsförslag direkt.',
+        outcomeLabel: `Efter detta: ${projectedLabel}`,
+        outcomeNote: projectedSummary || 'Tråden går vidare till väntar på patient när tidsförslaget har gått ut.',
+        sendFallbackLabel: sendPreviewLabel,
+      };
+    }
+
+    if (recommendedTool === 'template') {
+      if (templatePrepared) {
+        return {
+          action: 'send-preview',
+          tone: 'template',
+          cta: sendPreviewLabel,
+          heading: 'Mallen är klar, skicka nästa steg nu',
+          note:
+            'Utkastet är redan anpassat till scenariot. Operatören ska inte tänka om en gång till, utan få ut rätt svar medan tråden fortfarande är varm.',
+          outcomeLabel: `Efter detta: ${projectedLabel}`,
+          outcomeNote: projectedSummary || 'Tråden flyttas vidare till sitt nästa vänt- eller uppföljningsläge.',
+          sendFallbackLabel: sendPreviewLabel,
+        };
+      }
+      return {
+        action: 'template',
+        tone: 'template',
+        cta: 'Lägg in mall',
+        heading: 'Förbered standardsvaret först',
+        note:
+          'Det här är rätt läge för ett Hair TP-anpassat standardsvar. Lägg in mallen nu och finjustera bara om tråden kräver det.',
+        outcomeLabel: 'Efter detta: Klar att skicka',
+        outcomeNote: 'Mallen förbereder ett utkast som kan skickas direkt eller justeras snabbt innan utskick.',
+        sendFallbackLabel: sendPreviewLabel,
+      };
+    }
+
+    if (recommendedTool === 'open_studio') {
+      return {
+        action: 'open-studio',
+        tone: 'studio',
+        cta: 'Öppna Svarsstudio',
+        heading: safeConversation.needsMedicalReview === true ? 'Säkra tonen innan något går ut' : 'Ta tråden genom studion först',
+        note:
+          safeConversation.needsMedicalReview === true
+            ? 'Kunden behöver ett tryggt mellanbesked. Studion är rätt väg när tonen måste vara säker, lugn och tydlig innan svar skickas.'
+            : 'Här behövs mer omdöme än en standardmall. Använd studion när svarsvinkel, trygghet eller nästa steg måste vägas ihop innan utskick.',
+        outcomeLabel: hasDraft ? 'Studion öppnas med aktuellt utkast' : 'Studion öppnas med trådens kontext',
+        outcomeNote:
+          String(safeConversation.responseAngle || projectedSummary || 'Finjustera ton, trygghet och nästa steg innan svar går ut.').trim(),
+        sendFallbackLabel: sendPreviewLabel,
+      };
+    }
+
+    return {
+      action: 'send-preview',
+      tone: 'neutral',
+      cta: sendPreviewLabel,
+      heading: 'Skicka nästa steg nu',
+      note: 'Response-ytan har redan det som behövs för att föra tråden framåt i previewn.',
+      outcomeLabel: `Efter detta: ${projectedLabel}`,
+      outcomeNote: projectedSummary || 'Tråden går vidare till nästa lokala arbetsläge.',
+      sendFallbackLabel: sendPreviewLabel,
+    };
+  }
+
+  function buildCcoNextPreviewSimulatedReply(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const firstName = String(safeConversation.sender || 'kunden').trim().split(/\s+/)[0] || 'kunden';
+    if (safeConversation.needsMedicalReview === true) {
+      return `Hej, tack. Jag väntar gärna in klinikens bedömning innan vi går vidare.`;
+    }
+    const bookingState = String(safeConversation.bookingState || '').trim().toLowerCase();
+    if (bookingState === 'awaiting_confirmation' || bookingState === 'ready_now' || bookingState === 'slots_ready') {
+      return `Hej, ${String(firstName).toLowerCase() === 'johan' ? 'fredag kl 09:00 fungerar bra för mig.' : 'det första förslaget fungerar bra för mig.'}`;
+    }
+    if (String(safeConversation.intent || '').trim().toLowerCase() === 'admin') {
+      return 'Tack, skicka gärna underlaget när det är klart så återkommer jag om något saknas.';
+    }
+    return 'Tack, det låter bra. Jag vill gärna gå vidare enligt ert förslag.';
+  }
+
+  function getCcoNextPreviewInteractionCount(conversation = null, delta = 0) {
+    const currentCount = Math.max(0, Number(conversation?.previewSummary?.interactionCount || 0));
+    return Math.max(1, currentCount + Number(delta || 0));
+  }
+
+  function buildCcoNextPreviewSendStatePatch(conversation = null, draftBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const actor = String(safeConversation.owner || getCcoNextPreviewActorLabel()).trim() || getCcoNextPreviewActorLabel();
+    const nowIso = getCcoNextPreviewTimestampOffset(0, 0);
+    const ownerPatch = getCcoNextPreviewOwnerPatch(safeConversation);
+    const interactionCount = getCcoNextPreviewInteractionCount(safeConversation, 1);
+    const bookingState = String(safeConversation.bookingState || '').trim().toLowerCase();
+    const intent = String(safeConversation.intent || '').trim().toLowerCase();
+    if (safeConversation.needsMedicalReview === true) {
+      return {
+        patch: {
+          ...ownerPatch,
+          queueOverride: 'medical_review',
+          waitingOn: 'clinic',
+          handoffStatus: 'waiting_review',
+          followUpSuggested: true,
+          followUpDueAt: getCcoNextPreviewTimestampOffset(4, 0),
+          lifecycleStage: 'Medicinsk review aktiv',
+          nextActionLabel: 'Invänta klinikens klartecken',
+          nextActionSummary: 'Kunden har fått en trygg mellanåterkoppling. Vänta nu på klinikens bedömning före bokning eller definitivt svar.',
+          lastActionTakenLabel: 'Mellanåterkoppling skickad',
+          lastActionTakenAt: nowIso,
+          draftStateLabel: 'Senast skickat',
+          previewSummary: {
+            assignedTo: actor,
+            interactionCount,
+            lifecycleStatus: 'active_dialogue',
+            lastCaseSummary: 'Trygg mellanåterkoppling skickad medan klinisk review pågår.',
+          },
+        },
+        historyLabel: 'Mellanåterkoppling skickad',
+        historyExcerpt: 'Previewn skickade ett tryggt svar medan ärendet väntar på klinisk review.',
+        toastTone: 'success',
+        toastMessage: 'Trygg mellanåterkoppling skickad i previewn. Ärendet ligger kvar i medicinsk granskning.',
+      };
+    }
+    if (intent === 'admin') {
+      return {
+        patch: {
+          ...ownerPatch,
+          queueOverride: 'admin_low',
+          waitingOn: 'customer',
+          handoffStatus: 'awaiting_reply',
+          bookingState: 'not_relevant',
+          followUpSuggested: false,
+          followUpDueAt: getCcoNextPreviewTimestampOffset(48, 0),
+          lifecycleStage: 'Admin återkopplad',
+          nextActionLabel: 'Invänta adminbekräftelse',
+          nextActionSummary: 'Underlag eller besked är skickat. Återkom bara om kunden behöver komplettering.',
+          lastActionTakenLabel: 'Adminsvar skickat',
+          lastActionTakenAt: nowIso,
+          draftStateLabel: 'Senast skickat',
+          previewSummary: {
+            assignedTo: actor,
+            interactionCount,
+            lifecycleStatus: 'awaiting_reply',
+            lastCaseSummary: 'Administrativ återkoppling skickad. Kunden väntar nu på underlaget.',
+          },
+        },
+        historyLabel: 'Adminsvar skickat',
+        historyExcerpt: 'Previewn skickade ett administrativt besked och flyttade tråden till vänteläge.',
+        toastTone: 'success',
+        toastMessage: 'Adminsvar skickat i previewn. Tråden väntar nu på kundens eventuella följdfråga.',
+      };
+    }
+    if (bookingState === 'ready_now' || bookingState === 'slots_ready') {
+      return {
+        patch: {
+          ...ownerPatch,
+          queueOverride: 'waiting_reply',
+          waitingOn: 'customer',
+          handoffStatus: 'awaiting_reply',
+          bookingState: 'awaiting_confirmation',
+          followUpSuggested: false,
+          followUpDueAt: getCcoNextPreviewTimestampOffset(20, 45),
+          lifecycleStage: 'Väntar bekräftelse',
+          nextActionLabel: 'Invänta kundens bekräftelse',
+          nextActionSummary: 'Bokningsförslaget är nu skickat. Om kunden inte svarar före imorgon förmiddag behövs en mjuk nudge.',
+          lastActionTakenLabel: 'Bokningsförslag skickat',
+          lastActionTakenAt: nowIso,
+          draftStateLabel: 'Senast skickat',
+          slaStatus: 'safe',
+          previewSummary: {
+            assignedTo: actor,
+            interactionCount,
+            lifecycleStatus: 'awaiting_reply',
+            lastCaseSummary: 'Kunden har fått ett tydligt bokningsförslag och väntar nu bara på att bekräfta.',
+          },
+        },
+        historyLabel: 'Bokningsförslag skickat',
+        historyExcerpt: 'Previewn skickade ett konkret tidsförslag och flyttade tråden till väntar på patient.',
+        toastTone: 'success',
+        toastMessage: 'Bokningsförslaget är skickat i previewn. Tråden flyttas nu till väntar på patient.',
+      };
+    }
+    return {
+      patch: {
+        ...ownerPatch,
+        queueOverride: 'waiting_reply',
+        waitingOn: 'customer',
+        handoffStatus: 'awaiting_reply',
+        followUpSuggested: true,
+        followUpDueAt: getCcoNextPreviewTimestampOffset(5, 0),
+        lifecycleStage: 'Följ upp idag',
+        nextActionLabel: 'Följ upp kunden senare idag',
+        nextActionSummary: 'Svaret är ute. Om kunden inte återkommer innan dagens slut, lägg en kort nudge i nästa block.',
+        lastActionTakenLabel: 'Svar skickat',
+        lastActionTakenAt: nowIso,
+        draftStateLabel: 'Senast skickat',
+        slaStatus: 'warning',
+        previewSummary: {
+          assignedTo: actor,
+          interactionCount,
+          lifecycleStatus: 'awaiting_reply',
+          lastCaseSummary: 'Ett tydligt nästa steg är skickat. Tråden behöver bevakas tills kunden svarar senare idag.',
+        },
+      },
+      historyLabel: 'Svar skickat',
+      historyExcerpt: draftBody
+        ? 'Previewn skickade utkastet och planerade tråden för en senare uppföljning idag.'
+        : 'Previewn skickade ett svar och planerade tråden för uppföljning idag.',
+      toastTone: 'success',
+      toastMessage: 'Svar skickat i previewn. Tråden flyttas nu vidare efter nästa uppföljningsfönster.',
+    };
+  }
+
+  function buildCcoNextPreviewMedicalClearPatch(conversation = null) {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const actor = String(safeConversation.owner || getCcoNextPreviewActorLabel()).trim() || getCcoNextPreviewActorLabel();
+    return {
+      ...getCcoNextPreviewOwnerPatch(safeConversation),
+      needsMedicalReview: false,
+      medicalBlocker: '',
+      queueOverride: 'booking_ready',
+      bookingState: 'ready_now',
+      waitingOn: 'none',
+      followUpSuggested: true,
+      followUpDueAt: getCcoNextPreviewTimestampOffset(2, 0),
+      lifecycleStage: 'Klar för bokning',
+      nextActionLabel: 'Erbjud tid idag',
+      nextActionSummary: 'Medicinsk review är markerad som klar. Nästa steg är att erbjuda första passande tid och driva ärendet vidare direkt.',
+      handoffStatus: 'assigned',
+      lastActionTakenLabel: 'Review klar',
+      lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+      draftStateLabel: 'Bokningsklar',
+      previewSummary: {
+        assignedTo: actor,
+        lifecycleStatus: 'active_dialogue',
+        lastCaseSummary: 'Medicinsk review är markerad som klar. Tråden kan nu flyttas till bokningsklar.',
+      },
+    };
+  }
+
+  function buildCcoNextPreviewReplyPatch(conversation = null, replyBody = '') {
+    const safeConversation = conversation && typeof conversation === 'object' ? conversation : {};
+    const actor = String(safeConversation.owner || getCcoNextPreviewActorLabel()).trim() || getCcoNextPreviewActorLabel();
+    const bookingState = String(safeConversation.bookingState || '').trim().toLowerCase();
+    if (bookingState === 'awaiting_confirmation' || String(safeConversation.intent || '').trim().toLowerCase() === 'booking') {
+      return {
+        queueOverride: 'booking_ready',
+        waitingOn: 'none',
+        bookingState: 'ready_now',
+        followUpSuggested: true,
+        followUpDueAt: getCcoNextPreviewTimestampOffset(1, 15),
+        lifecycleStage: 'Svar inkommet',
+        nextActionLabel: 'Bekräfta bokning nu',
+        nextActionSummary: 'Kunden har svarat positivt. Lås tiden och skicka slutlig bokningsbekräftelse i samma arbetscykel.',
+        handoffStatus: 'assigned',
+        lastActionTakenLabel: 'Kundsvar inkommet',
+        lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+        draftStateLabel: 'Klar för bekräftelse',
+        latestInboundPreview: replyBody,
+        slaStatus: 'warning',
+        previewSummary: {
+          assignedTo: actor,
+          interactionCount: getCcoNextPreviewInteractionCount(safeConversation, 1),
+          lifecycleStatus: 'active_dialogue',
+          lastCaseSummary: 'Kunden har svarat och är redo för nästa bokningssteg idag.',
+        },
+      };
+    }
+    return {
+      queueOverride: 'follow_up_today',
+      waitingOn: 'none',
+      followUpSuggested: true,
+      followUpDueAt: getCcoNextPreviewTimestampOffset(2, 0),
+      lifecycleStage: 'Svar inkommet',
+      nextActionLabel: 'Ta nästa steg idag',
+      nextActionSummary: 'Kunden har svarat. Läs igenom, uppdatera svaret och driv ärendet vidare innan arbetsdagen är slut.',
+      handoffStatus: 'assigned',
+      lastActionTakenLabel: 'Kundsvar inkommet',
+      lastActionTakenAt: getCcoNextPreviewTimestampOffset(0, 0),
+      draftStateLabel: 'Svar krävs',
+      latestInboundPreview: replyBody,
+      slaStatus: 'warning',
+      previewSummary: {
+        assignedTo: actor,
+        interactionCount: getCcoNextPreviewInteractionCount(safeConversation, 1),
+        lifecycleStatus: 'active_dialogue',
+        lastCaseSummary: 'Kunden har svarat och tråden behöver ett nytt beslut i denna arbetscykel.',
+      },
+    };
+  }
+
+  function renderCcoNextPreview() {
+    if (!els.ccoNextPreviewRoot || !isCcoNextWorkspaceActive()) return;
+    ensureCcoNextPreviewStyles();
+    ensureCcoNextPreviewFinalShellStyles();
+    const store = ensureCcoNextPreviewBackboneStore();
+    const resolveSnapshot = () => {
+      const nextSnapshot =
+        store && typeof store.getSnapshot === 'function'
+          ? store.getSnapshot()
+          : getCcoNextPreviewRows(state.ccoNextPreviewSearchQuery);
+      syncCcoNextPreviewBackboneToState();
+      return nextSnapshot;
+    };
+
+    let snapshot = resolveSnapshot();
+    let previewRows = Array.isArray(snapshot?.rows) ? snapshot.rows : [];
+    let selectedMailboxIds = getCcoNextPreviewFinalSelectedMailboxIds(previewRows);
+    let mailboxFilteredRows = filterCcoNextPreviewFinalRowsByMailbox(previewRows, selectedMailboxIds);
+    const selectedConversationId = String(snapshot?.selectedConversation?.conversationId || '').trim();
+    if (
+      store &&
+      mailboxFilteredRows.length &&
+      (!selectedConversationId ||
+        !mailboxFilteredRows.some(
+          (row) => String(row?.conversationId || '').trim() === selectedConversationId
+        ))
+    ) {
+      store.selectThread(String(mailboxFilteredRows[0]?.conversationId || '').trim());
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      snapshot = resolveSnapshot();
+      previewRows = Array.isArray(snapshot?.rows) ? snapshot.rows : [];
+      selectedMailboxIds = getCcoNextPreviewFinalSelectedMailboxIds(previewRows);
+      mailboxFilteredRows = filterCcoNextPreviewFinalRowsByMailbox(previewRows, selectedMailboxIds);
+    }
+
+    const previewSeed =
+      snapshot?.previewSeed && typeof snapshot.previewSeed === 'object' ? snapshot.previewSeed : {};
+    const searchValue = String(snapshot?.searchValue || state.ccoNextPreviewSearchQuery || '').trim();
+    const counts = snapshot?.counts && typeof snapshot.counts === 'object' ? snapshot.counts : {};
+    const buildInitials = (value) => {
+      const parts = String(value || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      if (!parts.length) return 'CC';
+      return parts
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+    };
+    const safePreviewText = (value, fallback = '') =>
+      escapeHtml(String(value || fallback || '')).replace(/\n/g, '<br />');
+    const formatPreviewDateTime = (value) => {
+      const timestamp = Date.parse(String(value || ''));
+      if (!Number.isFinite(timestamp)) return '-';
+      return new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(timestamp));
+    };
+    const formatPreviewClock = (value) => {
+      const timestamp = Date.parse(String(value || ''));
+      if (!Number.isFinite(timestamp)) return '-';
+      return new Intl.DateTimeFormat('sv-SE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(timestamp));
+    };
+    const formatPreviewRelativeToReference = (value, referenceValue = '') => {
+      const timestamp = Date.parse(String(value || ''));
+      const reference = Date.parse(String(referenceValue || ''));
+      if (!Number.isFinite(timestamp) || !Number.isFinite(reference)) return '-';
+      const deltaMs = Math.max(0, reference - timestamp);
+      const minutes = Math.round(deltaMs / 60000);
+      if (minutes <= 0) return 'Nu';
+      if (minutes < 60) return `${minutes} min sedan`;
+      const hours = Math.round(minutes / 60);
+      if (hours < 24) return `${hours} tim sedan`;
+      const days = Math.round(hours / 24);
+      return `${days} dagar sedan`;
+    };
+    const formatPreviewListTime = (value, referenceValue = '') => {
+      const timestamp = Date.parse(String(value || ''));
+      const reference = Date.parse(String(referenceValue || ''));
+      if (!Number.isFinite(timestamp)) return '-';
+      if (!Number.isFinite(reference)) return formatPreviewClock(value);
+      const entryDate = new Date(timestamp);
+      const referenceDate = new Date(reference);
+      const sameYear = entryDate.getFullYear() === referenceDate.getFullYear();
+      const sameMonth = entryDate.getMonth() === referenceDate.getMonth();
+      const dayDelta = referenceDate.getDate() - entryDate.getDate();
+      if (sameYear && sameMonth && dayDelta === 0) return formatPreviewClock(value);
+      if (sameYear && sameMonth && dayDelta === 1) return 'Igår';
+      return new Intl.DateTimeFormat('sv-SE', { month: 'short', day: 'numeric' }).format(entryDate);
+    };
+    const formatPreviewDayClock = (value, referenceValue = '') => {
+      const timestamp = Date.parse(String(value || ''));
+      const reference = Date.parse(String(referenceValue || ''));
+      if (!Number.isFinite(timestamp)) return '-';
+      const timeLabel = formatPreviewClock(value);
+      if (!Number.isFinite(reference)) return timeLabel;
+      const entryDate = new Date(timestamp);
+      const referenceDate = new Date(reference);
+      const sameYear = entryDate.getFullYear() === referenceDate.getFullYear();
+      const sameMonth = entryDate.getMonth() === referenceDate.getMonth();
+      const dayDelta = referenceDate.getDate() - entryDate.getDate();
+      if (sameYear && sameMonth && dayDelta === 0) return `Idag ${timeLabel}`;
+      if (sameYear && sameMonth && dayDelta === 1) return `Igår ${timeLabel}`;
+      return formatPreviewDateTime(value);
+    };
+    const getHoursSincePreview = (value, referenceValue = '') => {
+      const timestamp = Date.parse(String(value || ''));
+      const reference =
+        Date.parse(String(referenceValue || '')) || Date.now();
+      if (!Number.isFinite(timestamp) || !Number.isFinite(reference)) return null;
+      return Math.max(0, Math.round((reference - timestamp) / 3600000));
+    };
+    const normalizeTone = (tone = '') => {
+      const normalized = String(tone || '').trim().toLowerCase();
+      if (normalized === 'danger' || normalized === 'red') return 'danger';
+      if (normalized === 'success' || normalized === 'green') return 'success';
+      if (normalized === 'warn' || normalized === 'warning' || normalized === 'amber') return 'warn';
+      if (normalized === 'info' || normalized === 'blue') return 'info';
+      if (normalized === 'purple') return 'purple';
+      return 'neutral';
+    };
+    const renderTag = (label, tone = 'neutral') =>
+      label
+        ? `<span class="cco-next-final-message-tag is-${escapeHtml(
+            normalizeTone(tone)
+          )}">${escapeHtml(String(label))}</span>`
+        : '';
+    const renderChip = (label, tone = 'neutral') =>
+      label
+        ? `<span class="cco-next-final-chip is-${escapeHtml(normalizeTone(tone))}">${escapeHtml(
+            String(label)
+          )}</span>`
+        : '';
+    const renderToken = (label, tone = 'neutral') =>
+      label
+        ? `<span class="cco-next-final-token is-${escapeHtml(normalizeTone(tone))}">${escapeHtml(
+            String(label)
+          )}</span>`
+        : '';
+    const renderFinalShellIcon = (name, className = '') => {
+      const classes = ['cco-next-final-inline-icon', className].filter(Boolean).join(' ');
+      switch (String(name || '').trim().toLowerCase()) {
+        case 'search':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="m20 20-4.35-4.35"></path></svg>`;
+        case 'settings':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.75v2.5"></path><path d="M12 18.75v2.5"></path><path d="m4.93 4.93 1.77 1.77"></path><path d="m17.3 17.3 1.77 1.77"></path><path d="M2.75 12h2.5"></path><path d="M18.75 12h2.5"></path><path d="m4.93 19.07 1.77-1.77"></path><path d="m17.3 6.7 1.77-1.77"></path></svg>`;
+        case 'sun':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.75v2.5"></path><path d="M12 18.75v2.5"></path><path d="m4.93 4.93 1.77 1.77"></path><path d="m17.3 17.3 1.77 1.77"></path><path d="M2.75 12h2.5"></path><path d="M18.75 12h2.5"></path><path d="m4.93 19.07 1.77-1.77"></path><path d="m17.3 6.7 1.77-1.77"></path></svg>`;
+        case 'moon':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A7.9 7.9 0 0 1 9.8 4a8.7 8.7 0 1 0 10.2 10.2Z"></path></svg>`;
+        case 'monitor':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M9 19h6"></path><path d="M12 16v3"></path></svg>`;
+        case 'screen':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M9 19h6"></path><path d="M12 16v3"></path></svg>`;
+        case 'globe':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16"></path><path d="M12 4a12 12 0 0 1 0 16"></path><path d="M12 4a12 12 0 0 0 0 16"></path></svg>`;
+        case 'bell':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h12"></path><path d="M8 17V11a4 4 0 1 1 8 0v6"></path><path d="m6 17 1.4-1.4c.4-.4.6-.9.6-1.4"></path><path d="m18 17-1.4-1.4c-.4-.4-.6-.9-.6-1.4"></path><path d="M10 19a2 2 0 0 0 4 0"></path></svg>`;
+        case 'inbox':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H15l-2 3-2-3H4z"></path><path d="M9 10h6"></path></svg>`;
+        case 'mail-out':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12v10H4z"></path><path d="m4 8 6 5 6-5"></path><path d="M17 7h3v3"></path><path d="m20 7-5 5"></path></svg>`;
+        case 'phone':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4.5h3l1.2 4-1.8 1.8a14 14 0 0 0 4 4l1.8-1.8 4 1.2v3c0 .8-.7 1.5-1.5 1.5A15.5 15.5 0 0 1 6 5.9c0-.8.7-1.4 1.5-1.4Z"></path></svg>`;
+        case 'message':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z"></path><path d="M8 10h8"></path><path d="M8 13h5"></path></svg>`;
+        case 'users':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M4 19a5 5 0 0 1 10 0"></path><path d="M16.5 11a2.5 2.5 0 1 0 0-5"></path><path d="M18.5 19a4 4 0 0 0-3-3.87"></path></svg>`;
+        case 'zap':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"></path></svg>`;
+        case 'chart':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><path d="M7 16V9"></path><path d="M12 16V6"></path><path d="M17 16v-4"></path></svg>`;
+        case 'alert':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 8 14H4Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>`;
+        case 'medical':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>`;
+        case 'more':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"></circle></svg>`;
+        case 'chevron-right':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>`;
+        case 'chevron-down':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`;
+        case 'chevron-up':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>`;
+        case 'calendar':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"></rect><path d="M8 4v4"></path><path d="M16 4v4"></path><path d="M4 10h16"></path></svg>`;
+        case 'clock':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>`;
+        case 'user':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 19a7 7 0 0 1 14 0"></path></svg>`;
+        case 'file':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h6l4 4v14H8z"></path><path d="M14 3v4h4"></path><path d="M10 13h6"></path></svg>`;
+        case 'note':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12a2 2 0 0 1 2 2v12l-4-3H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path><path d="M8 8h8"></path><path d="M8 11h6"></path></svg>`;
+        case 'sparkles':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z"></path><path d="m19 14 .7 1.9L21.6 17l-1.9.7L19 19.6l-.7-1.9-1.9-.7 1.9-.7Z"></path><path d="m5 14 .6 1.6L7.2 16l-1.6.6L5 18.2l-.6-1.6L2.8 16l1.6-.4Z"></path></svg>`;
+        case 'refresh':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"></path><path d="M20 4v7h-7"></path></svg>`;
+        case 'plus':
+          return `<svg class="${classes}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>`;
+        default:
+          return '';
+      }
+    };
+    const getFinalNoteCategoryMeta = (category = 'intern') => {
+      const normalized = String(category || '').trim().toLowerCase();
+      if (normalized === 'kundprofil') return { label: 'Kundprofil', icon: 'user', tone: 'purple' };
+      if (normalized === 'konversation') return { label: 'Konversation', icon: 'file', tone: 'info' };
+      if (normalized === 'medicinsk') return { label: 'Medicinsk', icon: 'medical', tone: 'warn' };
+      if (normalized === 'betalning') return { label: 'Betalning', icon: 'calendar', tone: 'info' };
+      if (normalized === 'sla') return { label: 'SLA/Eskalering', icon: 'alert', tone: 'danger' };
+      if (normalized === 'uppfoljning') return { label: 'Uppföljning', icon: 'clock', tone: 'info' };
+      return { label: 'Intern', icon: 'note', tone: 'neutral' };
+    };
+    const getFinalNotePriorityMeta = (priority = 'medium') => {
+      const normalized = String(priority || '').trim().toLowerCase();
+      if (normalized === 'high') return { label: 'HÖG', tone: 'danger' };
+      if (normalized === 'low') return { label: 'LÅG', tone: 'success' };
+      return { label: 'MEDEL', tone: 'warn' };
+    };
+    const renderMetaIcon = (kind = 'neutral') => {
+      const normalized = String(kind || '').trim().toLowerCase();
+      if (normalized === 'count') return renderFinalShellIcon('clock', 'is-mini');
+      if (normalized === 'date') return renderFinalShellIcon('calendar', 'is-mini');
+      if (normalized === 'customer') return renderFinalShellIcon('user', 'is-mini');
+      return renderFinalShellIcon('more', 'is-mini');
+    };
+    const renderInsightItemIcon = (item = {}) => {
+      const iconName = String(item?.icon || 'sparkles').trim().toLowerCase();
+      const tone = normalizeTone(
+        item?.tone ||
+          (iconName === 'chart'
+            ? 'purple'
+            : iconName === 'clock' || iconName === 'alert'
+            ? 'warn'
+            : iconName === 'calendar'
+            ? 'info'
+            : iconName === 'medical' || iconName === 'sparkles'
+            ? 'success'
+            : 'purple')
+      );
+      return `<span class="cco-next-final-insight-item-icon is-${escapeHtml(tone)}">${renderFinalShellIcon(
+        iconName,
+        'is-insight'
+      )}</span>`;
+    };
+    const renderStudioMiniButton = (label, action, isActive = false) =>
+      label
+        ? `<button
+            type="button"
+            class="cco-next-final-mini-button${isActive ? ' is-active' : ''}"
+            ${action ? `data-cco-next-action="${escapeHtml(String(action))}"` : ''}
+          >${escapeHtml(String(label))}</button>`
+        : '';
+    const renderNoteCard = (eyebrow, title, note) => `
+      <article class="cco-next-final-note-card">
+        <h4>${escapeHtml(String(eyebrow || 'Fakta'))}</h4>
+        <strong>${escapeHtml(String(title || '-'))}</strong>
+        <p>${escapeHtml(String(note || '-'))}</p>
+      </article>
+    `;
+    const renderRichNoteCard = (note = {}) => {
+      const categoryMeta = getFinalNoteCategoryMeta(note?.category || 'intern');
+      const priorityMeta = getFinalNotePriorityMeta(note?.priority || 'medium');
+      const tags = Array.isArray(note?.tags) ? note.tags.filter(Boolean).slice(0, 6) : [];
+      return `
+        <article class="cco-next-final-rich-note-card">
+          <div class="cco-next-final-rich-note-head">
+            <div class="cco-next-final-rich-note-head-main">
+              <span class="cco-next-final-rich-note-icon is-${escapeHtml(categoryMeta.tone)}">${renderFinalShellIcon(
+                categoryMeta.icon,
+                'is-note'
+              )}</span>
+              <div class="cco-next-final-rich-note-copy">
+                <div class="cco-next-final-rich-note-title-row">
+                  <h4>${escapeHtml(categoryMeta.label)}</h4>
+                  <span class="cco-next-final-note-priority is-${escapeHtml(priorityMeta.tone)}">${escapeHtml(
+                    priorityMeta.label
+                  )}</span>
+                </div>
+                <div class="cco-next-final-rich-note-time">
+                  ${renderFinalShellIcon('clock', 'is-mini')}
+                  <span>${escapeHtml(formatPreviewDateTime(note?.timestamp || ''))}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cco-next-final-rich-note-body">
+            <strong>${escapeHtml(String(note?.title || 'Anteckning'))}</strong>
+            <p>${escapeHtml(String(note?.content || note?.note || '-'))}</p>
+            ${
+              tags.length
+                ? `<div class="cco-next-final-note-tags">${tags
+                    .map(
+                      (tag) =>
+                        `<span class="cco-next-final-note-tag">${escapeHtml(String(tag))}</span>`
+                    )
+                    .join('')}</div>`
+                : ''
+            }
+          </div>
+        </article>
+      `;
+    };
+    const formatFinalCurrencyCompact = (value) => {
+      const amount = Number(value);
+      if (!Number.isFinite(amount) || amount <= 0) return '0';
+      if (amount >= 1000) return `${Math.round(amount / 1000)}K`;
+      return String(Math.round(amount));
+    };
+    const formatFinalCurrencySek = (value) => {
+      const amount = Number(value);
+      if (!Number.isFinite(amount) || amount <= 0) return '0 kr';
+      return `${new Intl.NumberFormat('sv-SE', {
+        maximumFractionDigits: 0,
+      }).format(Math.round(amount))} kr`;
+    };
+    const formatFinalVipStatus = (value = '') => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'vip') return 'VIP';
+      if (normalized === 'high_value') return 'Högt värde';
+      if (normalized === 'loyal') return 'Lojal';
+      if (normalized === 'new') return 'Ny';
+      return 'Standard';
+    };
+    const formatFinalJourneyLabel = (value = '') => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'return_visit') return 'Återbesök';
+      if (normalized === 'follow_up') return 'Uppföljning';
+      if (normalized === 'consultation') return 'Konsultation';
+      if (normalized === 'booked') return 'Bokad';
+      if (normalized === 'treatment') return 'Behandling';
+      return String(value || 'Kundresa').trim() || 'Kundresa';
+    };
+    const formatFinalSensitivity = (value = '') => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'high') return 'Hög';
+      if (normalized === 'medium') return 'Medium';
+      if (normalized === 'low') return 'Låg';
+      return 'Normal';
+    };
+    const buildFinalPreviewCustomerEmail = (conversation = {}, isAnnaFocus = false) => {
+      if (isAnnaFocus) return 'anna.karlsson@email.com';
+      const sender = String(conversation?.sender || 'kund').trim().toLowerCase();
+      const slug = sender
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '.')
+        .replace(/^\.+|\.+$/g, '');
+      return `${slug || 'kund'}@email.com`;
+    };
+    const buildFinalPreviewCustomerPhone = (conversation = {}, isAnnaFocus = false) => {
+      if (isAnnaFocus) return '070-123 45 67';
+      const map = {
+        'cco-next-preview-erik': '073-845 12 40',
+        'cco-next-preview-maria': '072-118 34 52',
+        'cco-next-preview-karin': '070-554 21 09',
+        'cco-next-preview-johan': '076-290 44 18',
+        'cco-next-preview-linda': '072-440 81 23',
+      };
+      return map[String(conversation?.conversationId || '').trim()] || '070-000 00 00';
+    };
+    const buildFinalCustomerPreferences = (conversation = {}, isAnnaFocus = false) => {
+      if (isAnnaFocus) {
+        return [
+          'Föredrar fredagar 09:00-12:00',
+          'Vill alltid ha Dr. Eriksson',
+          'Prefererad kanal: E-post',
+        ];
+      }
+      const items = [];
+      if (String(conversation?.plannedTreatment || '').trim()) {
+        items.push(`Fokus: ${String(conversation.plannedTreatment).trim()}`);
+      }
+      items.push(
+        String(conversation?.relationshipSensitivity || '').trim().toLowerCase() === 'high'
+          ? 'Behöver varsam ton och tydlig trygghet'
+          : 'Föredrar tydliga nästa steg'
+      );
+      items.push(`Prefererad kanal: E-post`);
+      return items.slice(0, 3);
+    };
+    const buildFinalHistoryTimelineEntries = (conversation = {}, historyEntries = [], isAnnaFocus = false) => {
+      if (isAnnaFocus) {
+        return [
+          {
+            icon: 'inbox',
+            tone: 'info',
+            title: 'E-post mottaget',
+            description: 'Anna frågade om ombokning',
+            time: '2026-04-22 11:42',
+            detail: 'Hej! Jag måste tyvärr ställa in min tid imorgon...',
+          },
+          {
+            icon: 'mail-out',
+            tone: 'success',
+            title: 'E-post skickat',
+            description: 'Sara bekräftade bokning',
+            time: '2026-04-20 14:30',
+            detail: 'Hej Anna! Din tid för PRP-behandling är bekräftad...',
+          },
+          {
+            icon: 'calendar',
+            tone: 'purple',
+            title: 'Behandling genomförd',
+            description: 'PRP-behandling Serie 1/3',
+            time: '2025-12-15 10:00',
+            detail: 'Betalning: 4 500 kr · Status: Genomförd',
+          },
+          {
+            icon: 'calendar',
+            tone: 'purple',
+            title: 'Behandling genomförd',
+            description: 'DHI Hårtransplantation',
+            time: '2025-08-20 09:00',
+            detail: 'Betalning: 75 000 kr · Status: Genomförd',
+          },
+          {
+            icon: 'phone',
+            tone: 'warn',
+            title: 'Samtal',
+            description: 'Konsultation inför behandling',
+            time: '2025-02-10 14:30',
+            detail: 'Längd: 25 min · Initierad av: Klinik',
+          },
+          {
+            icon: 'message',
+            tone: 'success',
+            title: 'SMS skickat',
+            description: 'Påminnelse om behandling',
+            time: '2025-08-19 09:00',
+            detail: 'Automatisk påminnelse 24h innan behandling',
+          },
+        ];
+      }
+      return (Array.isArray(historyEntries) ? historyEntries : []).map((entry, index) => {
+        const label = String(entry?.label || 'Historikpost').trim() || 'Historikpost';
+        const excerpt = String(entry?.excerpt || '').trim() || 'Ingen ytterligare detalj tillgänglig.';
+        const normalized = label.toLowerCase();
+        let icon = 'note';
+        let tone = 'neutral';
+        let title = label;
+        if (normalized.includes('inkom') || normalized.includes('mottag')) {
+          icon = 'inbox';
+          tone = 'info';
+          title = 'E-post mottaget';
+        } else if (normalized.includes('utgå') || normalized.includes('skickat') || normalized.includes('svar')) {
+          icon = 'mail-out';
+          tone = 'success';
+          title = 'E-post skickat';
+        } else if (normalized.includes('notis') || normalized.includes('operativ')) {
+          icon = 'note';
+          tone = 'warn';
+          title = 'Intern notis';
+        } else if (normalized.includes('kalender') || normalized.includes('bok')) {
+          icon = 'calendar';
+          tone = 'purple';
+          title = 'Bokningsaktivitet';
+        } else if (normalized.includes('samtal')) {
+          icon = 'phone';
+          tone = 'warn';
+          title = 'Samtal';
+        }
+        return {
+          icon,
+          tone,
+          title,
+          description: label,
+          time: formatPreviewDateTime(entry?.timestamp || ''),
+          detail: excerpt,
+          entryId: `history-${index}`,
+        };
+      });
+    };
+    const renderFinalCustomerValueRow = (icon, label, value) => `
+      <div class="cco-next-final-customer-value-row">
+        <span class="cco-next-final-customer-value-label">${renderFinalShellIcon(icon, 'is-mini')}${escapeHtml(
+          String(label || 'Fält')
+        )}</span>
+        <strong>${escapeHtml(String(value || '-'))}</strong>
+      </div>
+    `;
+    const renderFinalCustomerInfoRow = (icon, label, value, accent = '') => `
+      <div class="cco-next-final-customer-detail-row">
+        <span class="cco-next-final-customer-detail-icon is-${escapeHtml(String(accent || 'neutral'))}">${renderFinalShellIcon(
+          icon,
+          'is-mini'
+        )}</span>
+        <div class="cco-next-final-customer-detail-copy">
+          <span>${escapeHtml(String(label || 'Fält'))}</span>
+          <strong>${escapeHtml(String(value || '-'))}</strong>
+        </div>
+      </div>
+    `;
+    const renderFinalHistoryTimelineCard = (entry = {}) => `
+      <div class="cco-next-final-history-timeline-row">
+        <span class="cco-next-final-history-dot is-${escapeHtml(String(entry?.tone || 'neutral'))}">
+          ${renderFinalShellIcon(String(entry?.icon || 'note'), 'is-mini')}
+        </span>
+        <article class="cco-next-final-history-timeline-card">
+          <div class="cco-next-final-history-timeline-head">
+            <div>
+              <h4>${escapeHtml(String(entry?.title || 'Händelse'))}</h4>
+              <p>${escapeHtml(String(entry?.description || '-'))}</p>
+            </div>
+            <span>${escapeHtml(String(entry?.time || '-'))}</span>
+          </div>
+          ${
+            String(entry?.detail || '').trim()
+              ? `<div class="cco-next-final-history-timeline-detail">${escapeHtml(String(entry.detail))}</div>`
+              : ''
+          }
+        </article>
+      </div>
+    `;
+    const renderCiCard = (entry = {}) => {
+      const badgeMarkup =
+        Array.isArray(entry?.badges) && entry.badges.length
+          ? `<div class="cco-next-final-badge-row">${entry.badges
+              .map((badge) => renderChip(badge?.label || 'Info', badge?.tone || 'neutral'))
+              .join('')}</div>`
+          : '';
+      const lineMarkup =
+        Array.isArray(entry?.lines) && entry.lines.length
+          ? `<div class="cco-next-final-info-grid">${entry.lines
+              .map(
+                (line) => `
+                  <div class="cco-next-final-info-grid-item">
+                    <span>${escapeHtml(String(line?.label || 'Fält'))}</span>
+                    <strong>${escapeHtml(String(line?.value || '-'))}</strong>
+                  </div>
+                `
+              )
+              .join('')}</div>`
+          : '';
+      const timelineMarkup =
+        Array.isArray(entry?.timeline) && entry.timeline.length
+          ? `<div class="cco-next-final-ci-stack">${entry.timeline
+              .map((item) =>
+                renderNoteCard(
+                  item?.date && Number.isFinite(Date.parse(String(item.date || '')))
+                    ? formatPreviewDateTime(item.date)
+                    : item?.date || 'Kundresa',
+                  item?.label || 'Händelse',
+                  item?.note || 'Ingen extra kontext.'
+                )
+              )
+              .join('')}</div>`
+          : '';
+      return `
+        <article class="cco-next-final-ci-card">
+          <h4>${escapeHtml(String(entry?.title || 'Kundsignal'))}</h4>
+          <strong>${escapeHtml(String(entry?.detail || '-'))}</strong>
+          <p>${escapeHtml(String(entry?.note || '-'))}</p>
+          ${badgeMarkup}
+          ${lineMarkup}
+          ${timelineMarkup}
+        </article>
+      `;
+    };
+    const renderInsightListCard = (entry = {}) => `
+      <article class="cco-next-final-insight-card is-${escapeHtml(String(entry?.tone || 'neutral'))}">
+        <button type="button" class="cco-next-final-insight-toggle" data-cco-next-toggle-ci-section="${escapeHtml(
+          String(entry?.sectionId || 'trends')
+        )}">
+          <div class="cco-next-final-insight-head">
+            <span class="cco-next-final-insight-title">${escapeHtml(String(entry?.title || 'Insikter'))}</span>
+          </div>
+          <span class="cco-next-final-chevron">${renderFinalShellIcon(
+            entry?.expanded === false ? 'chevron-right' : 'chevron-down',
+            'is-mini'
+          )}</span>
+        </button>
+        ${
+          entry?.expanded === false
+            ? ''
+            : `<div class="cco-next-final-insight-body"><div class="cco-next-final-insight-list">
+                ${(Array.isArray(entry?.items) ? entry.items : [])
+                  .map(
+                    (item) => `
+                      <div class="cco-next-final-insight-item">
+                        ${renderInsightItemIcon(item)}
+                        <span>${escapeHtml(String(item?.text || 'Ingen insikt tillgänglig.'))}</span>
+                      </div>
+                    `
+                  )
+                  .join('')}
+              </div></div>`
+        }
+      </article>
+    `;
+    const renderInsightHistoryCard = (entry = {}) => `
+      <article class="cco-next-final-insight-card is-blue">
+        <button type="button" class="cco-next-final-insight-toggle" data-cco-next-toggle-ci-section="${escapeHtml(
+          String(entry?.sectionId || 'communication')
+        )}">
+          <div class="cco-next-final-insight-head">
+            <span class="cco-next-final-insight-title">${escapeHtml(
+              String(entry?.title || 'Kommunikationshistorik')
+            )}</span>
+          </div>
+          <span class="cco-next-final-chevron">${renderFinalShellIcon(
+            entry?.expanded === false ? 'chevron-right' : 'chevron-down',
+            'is-mini'
+          )}</span>
+        </button>
+        ${
+          entry?.expanded === false
+            ? ''
+            : `<div class="cco-next-final-insight-body"><div class="cco-next-final-history-card">
+          <div class="cco-next-final-history-block">
+            <div class="cco-next-final-history-row">
+              <strong>Senaste interaktion</strong>
+              <span>${escapeHtml(String(entry?.latestAt || '-'))}</span>
+            </div>
+            <p>${escapeHtml(String(entry?.latestText || 'Ingen senaste interaktion ännu.'))}</p>
+          </div>
+          <div class="cco-next-final-history-block">
+            <div class="cco-next-final-history-row">
+              <strong>Föregående</strong>
+              <span>${escapeHtml(String(entry?.previousAt || '-'))}</span>
+            </div>
+            <p>${escapeHtml(String(entry?.previousText || 'Ingen tidigare interaktion ännu.'))}</p>
+          </div>
+          <div class="cco-next-final-history-metrics">
+            <strong>${escapeHtml(String(entry?.metricPrimary || 'Svarstid genomsnitt: -'))}</strong>
+            <strong>${escapeHtml(String(entry?.metricSecondary || 'Prefererad kanal: -'))}</strong>
+          </div>
+        </div></div>`
+        }
+      </article>
+    `;
+    const renderInsightAiCard = (entry = {}) => `
+      <article class="cco-next-final-insight-card is-green">
+        <button type="button" class="cco-next-final-insight-toggle" data-cco-next-toggle-ci-section="${escapeHtml(
+          String(entry?.sectionId || 'ai')
+        )}">
+          <div class="cco-next-final-insight-head">
+            <span class="cco-next-final-insight-title">${escapeHtml(String(entry?.title || 'AI-insikter'))}</span>
+          </div>
+          <span class="cco-next-final-chevron">${renderFinalShellIcon(
+            entry?.expanded === false ? 'chevron-right' : 'chevron-down',
+            'is-mini'
+          )}</span>
+        </button>
+        ${
+          entry?.expanded === false
+            ? ''
+            : `<div class="cco-next-final-insight-body"><div class="cco-next-final-ai-card">
+                ${(Array.isArray(entry?.blocks) ? entry.blocks : [])
+                  .map(
+                    (block) => `
+                      <div class="cco-next-final-ai-block">
+                        <strong>${escapeHtml(String(block?.title || 'Insikt'))}</strong>
+                        <p>${escapeHtml(String(block?.text || 'Ingen AI-insikt ännu.'))}</p>
+                      </div>
+                    `
+                  )
+                  .join('')}
+              </div></div>`
+        }
+      </article>
+    `;
+
+    const selectedConversation =
+      snapshot?.selectedConversation || getCcoNextSelectedConversation(mailboxFilteredRows);
+    const selectedSummary = snapshot?.selectedSummary || selectedConversation?.previewSummary || null;
+    const selectedFollowThrough =
+      snapshot?.selectedFollowThrough || buildCcoNextPreviewFollowThroughMeta(selectedConversation);
+    const centerTab = sanitizeCcoCenterReadTab(
+      snapshot?.centerTab || state.ccoNextPreviewCenterTab || 'conversation'
+    );
+    const sidebarTab = sanitizeCcoSidebarTab(
+      snapshot?.sidebarTab || state.ccoNextPreviewSidebarTab || 'overview'
+    );
+    const historyEntries = Array.isArray(snapshot?.historyEntries)
+      ? snapshot.historyEntries
+      : Array.isArray(selectedConversation?.previewHistory)
+      ? selectedConversation.previewHistory
+      : [];
+    const historyCollapsed =
+      snapshot?.historyCollapsed === true || state.ccoNextPreviewHistoryCollapsed === true;
+    const visibleHistoryEntries = Array.isArray(snapshot?.visibleHistoryEntries)
+      ? snapshot.visibleHistoryEntries
+      : historyCollapsed && historyEntries.length > 2
+      ? historyEntries.slice(0, 2)
+      : historyEntries;
+    const conversationMessages = Array.isArray(snapshot?.conversationMessages)
+      ? snapshot.conversationMessages
+      : Array.isArray(selectedConversation?.previewMessages)
+      ? selectedConversation.previewMessages
+      : [];
+    const selectionMode = snapshot?.selectionMode === true || state.ccoNextPreviewSelectionMode === true;
+    const selectedRowIds = Array.isArray(snapshot?.selectedRowIds) ? snapshot.selectedRowIds : [];
+    const selectedCount = Number(snapshot?.selectedCount || selectedRowIds.length || 0);
+    const allVisibleSelected = snapshot?.allVisibleSelected === true;
+    const worklistDensity = sanitizeCcoNextPreviewWorklistDensity(
+      snapshot?.worklistDensity || state.ccoNextPreviewWorklistDensity || 'regular'
+    );
+    const disclosureMode = sanitizeCcoNextPreviewDisclosureMode(
+      snapshot?.disclosureMode || state.ccoNextPreviewDisclosureMode || 'progressive'
+    );
+    const selectedDraftValue =
+      typeof snapshot?.selectedDraftValue === 'string'
+        ? snapshot.selectedDraftValue
+        : getCcoNextPreviewDraftValue(selectedConversation);
+    const draftStats = snapshot?.draftStats || getCcoNextPreviewDraftStats(selectedDraftValue);
+    const projectedOutcome =
+      snapshot?.projectedOutcome ||
+      buildCcoNextPreviewProjectedOutcome(
+        selectedConversation,
+        selectedDraftValue || buildCcoNextPreviewTemplateDraft(selectedConversation)
+      );
+    const projectedRow = snapshot?.projectedRow || projectedOutcome?.projected || null;
+    const primaryActionPlan =
+      snapshot?.primaryActionPlan ||
+      buildCcoNextPreviewPrimaryActionPlan(
+        selectedConversation,
+        selectedDraftValue || buildCcoNextPreviewTemplateDraft(selectedConversation),
+        projectedOutcome
+      );
+    const selectedStudio =
+      snapshot?.selectedStudio ||
+      (selectedConversation
+        ? buildCcoNextPreviewStudioViewModel(selectedConversation, {
+            draftBody: selectedDraftValue,
+            draftStats,
+            projectedOutcome,
+            primaryActionPlan,
+            studioState: selectedConversation.previewStudio || {},
+          })
+        : null);
+    const commandPalette =
+      snapshot?.commandPalette && typeof snapshot.commandPalette === 'object'
+        ? snapshot.commandPalette
+        : { isOpen: false, query: '', items: [], selectedIndex: 0, totalCount: 0, activeItem: null };
+    const customerIntelligenceHelper = getCcoNextPreviewCustomerIntelligenceHelper();
+    const collaborationHelper = getCcoNextPreviewCollaborationHelper();
+    const selectedCustomerIntelligence =
+      selectedConversation && customerIntelligenceHelper && typeof customerIntelligenceHelper.buildModel === 'function'
+        ? customerIntelligenceHelper.buildModel(selectedConversation)
+        : null;
+    const selectedCollaboration =
+      selectedConversation && collaborationHelper && typeof collaborationHelper.buildModel === 'function'
+        ? collaborationHelper.buildModel(selectedConversation, {
+            actorLabel: getCcoNextPreviewActorLabel(),
+          })
+        : null;
+    const mailboxCatalog = getCcoNextPreviewFinalMailboxCatalog(previewRows);
+    const brandLabel = String(previewSeed.mailboxLabel || 'Hair TP Clinic')
+      .split('·')[0]
+      .trim() || 'Hair TP Clinic';
+    const mailboxButtonLabel =
+      selectedMailboxIds.length === mailboxCatalog.length
+        ? `${brandLabel} - Alla mailboxar`
+        : selectedMailboxIds.length === 1
+        ? `${brandLabel} - ${
+            mailboxCatalog.find((entry) => entry.id === selectedMailboxIds[0])?.label || '1 vald'
+          }`
+        : `${brandLabel} - ${selectedMailboxIds.length} valda`;
+    const surfacedWorklistRows = getCcoNextPreviewFinalSurfacedRows(
+      mailboxFilteredRows,
+      String(selectedConversation?.conversationId || '').trim()
+    );
+    const previewActionCounts = {
+      unowned: mailboxFilteredRows.filter((row) => !String(row?.owner || '').trim()).length,
+      risk: mailboxFilteredRows.filter((row) =>
+        ['danger', 'high', 'breach'].includes(String(row?.escalationTone || row?.slaStatus || '').trim().toLowerCase())
+      ).length,
+    };
+    const finalThemeMode = sanitizeCcoNextPreviewFinalTheme(state.ccoNextPreviewFinalTheme || 'system');
+    const finalTheme = resolveCcoNextPreviewFinalTheme(finalThemeMode);
+    const ownerViewActive = isCcoNextPreviewFinalOwnerViewActive();
+    const ciHeaderCollapsed = state.ccoNextPreviewFinalCiCollapsed === true;
+    const ciFocusCollapsed = state.ccoNextPreviewFinalCiFocusCollapsed === true;
+    const ciTrendsCollapsed = state.ccoNextPreviewFinalCiTrendsCollapsed === true;
+    const ciCommCollapsed = state.ccoNextPreviewFinalCiCommCollapsed === true;
+    const ciAiCollapsed = state.ccoNextPreviewFinalCiAiCollapsed === true;
+    const expandedCategories = getCcoNextPreviewFinalExpandedCategories(disclosureMode);
+    const showMailboxMenu = state.ccoNextPreviewFinalMailboxMenuOpen === true;
+    const showMoreMenu = state.ccoNextPreviewFinalMoreMenuOpen === true;
+    const navItems = [
+      { id: 'conversations', label: 'Konversationer', icon: 'inbox', active: true },
+      { id: 'customers', label: 'Kunder', icon: 'users', active: false },
+      { id: 'automation', label: 'Automatisering', icon: 'zap', active: false },
+      { id: 'analytics', label: 'Analys', icon: 'chart', active: false },
+    ];
+    const moreItems = [
+      { id: 'integrations', label: 'Integrationer' },
+      { id: 'settings', label: 'Inställningar' },
+      { id: 'showcase', label: 'Showcase' },
+    ];
+    const finalShellProfileImage = String(
+      state.profile?.avatarUrl ||
+        state.profile?.avatar ||
+        state.profile?.image ||
+        state.profile?.picture ||
+        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'
+    ).trim();
+
+    const renderMailboxOption = (entry) => {
+      const isSelected = selectedMailboxIds.includes(String(entry?.id || ''));
+      return `
+        <button
+          type="button"
+          class="cco-next-final-mailbox-option${isSelected ? ' is-selected' : ''}"
+          data-cco-next-final-mailbox="${escapeHtml(String(entry?.id || ''))}"
+        >
+          <span class="cco-next-final-mailbox-check">${isSelected ? '✓' : ''}</span>
+          <span>${escapeHtml(String(entry?.label || 'Mailbox'))}</span>
+          <span class="cco-next-final-mailbox-count">${escapeHtml(String(entry?.count || 0))}</span>
+        </button>
+      `;
+    };
+
+    const renderMessageItem = (row) => {
+      const rowId = String(row?.conversationId || '').trim();
+      const isActive = rowId && rowId === String(selectedConversation?.conversationId || '').trim();
+      const isSelected = selectionMode && selectedRowIds.includes(rowId);
+      const mailboxId = getCcoNextPreviewFinalMailboxId(row);
+      const mailboxLabel =
+        mailboxCatalog.find((entry) => entry.id === mailboxId)?.label ||
+        getCcoNextPreviewFinalMailboxDefinitions().find((entry) => entry.id === mailboxId)?.label ||
+        mailboxId;
+      const laneMeta = getCcoNextPreviewLaneMeta(row?.workflowLane || 'all');
+      const dueTone = normalizeTone(row?.dueTone || row?.escalationTone || row?.slaTone || 'neutral');
+      const normalizedIntent = safeLower(row?.intent || '');
+      const intentTone =
+        normalizedIntent === 'booking'
+          ? 'info'
+          : normalizedIntent === 'rebooking' || normalizedIntent === 'omboka'
+          ? 'warn'
+          : normalizedIntent === 'admin'
+          ? 'neutral'
+          : 'purple';
+      const surfacedMailboxTag = String(row?.surfaceMailboxTag || mailboxLabel || '').trim();
+      const surfacedMailboxTone = String(row?.surfaceMailboxTone || 'purple').trim();
+      const surfacedIntentTag = String(
+        row?.surfaceIntentTag || (row?.intent ? formatCcoIntentLabel(row.intent) : '')
+      ).trim();
+      const surfacedIntentTone = String(row?.surfaceIntentTone || intentTone).trim();
+      const surfacedDueLabel = Object.prototype.hasOwnProperty.call(row || {}, 'surfaceDueLabel')
+        ? String(row?.surfaceDueLabel || '').trim()
+        : String(
+            row?.followUpDeadline ||
+              (row?.followUpDueAt ? getCcoNextPreviewDueMeta(row.followUpDueAt).label : '')
+          ).trim();
+      const surfacedDueTone = String(row?.surfaceDueTone || dueTone).trim();
+      const surfacedMoodEmoji = String(row?.surfaceMoodEmoji || '').trim();
+      const surfacedAvatarBadge = String(row?.surfaceAvatarBadge || '').trim();
+      const surfacedAvatarImage = String(row?.surfaceAvatarImage || '').trim();
+      const surfacePresence = row?.surfacePresence === true;
+      const hidePreview = row?.surfaceHidePreview === true;
+      const hideOwnerTag = row?.surfaceHideOwnerTag === true;
+      const rowToneClass = String(row?.surfaceRowTone || '').trim().toLowerCase() === 'soft-danger'
+        ? ' is-soft-danger'
+        : '';
+      const messageTags = [
+        surfacedMailboxTag ? renderTag(surfacedMailboxTag, surfacedMailboxTone) : '',
+        surfacedIntentTag ? renderTag(surfacedIntentTag, surfacedIntentTone) : '',
+        row?.inSprint === true ? renderTag('Sprint', 'success') : '',
+        row?.needsMedicalReview === true ? renderTag('Medicinsk', 'purple') : '',
+        !hideOwnerTag && !String(row?.owner || '').trim() ? renderTag('Oägd', 'purple') : '',
+        surfacedDueLabel ? renderTag(surfacedDueLabel, surfacedDueTone) : '',
+      ]
+        .filter(Boolean)
+        .slice(0, 4)
+        .join('');
+      const previewText = String(
+        row?.surfacePreviewText ||
+          row?.latestInboundPreview ||
+          row?.queueReason ||
+          row?.operatorCue ||
+          row?.customerContext ||
+          'Ingen förhandsvisning ännu.'
+      );
+      return `
+        <button
+          type="button"
+          class="cco-next-final-message${isActive ? ' is-active' : ''}${selectionMode ? ' is-multi' : ''}${rowToneClass}"
+          data-cco-next-thread="${escapeHtml(rowId)}"
+        >
+          ${
+            selectionMode
+              ? `<span
+                  class="cco-next-final-message-select${isSelected ? ' is-selected' : ''}"
+                  data-cco-next-toggle-select="${escapeHtml(rowId)}"
+                >${isSelected ? '✓' : ''}</span>`
+              : ''
+          }
+          <span class="cco-next-final-message-grid">
+              <span class="cco-next-final-avatar cco-next-final-message-avatar">
+              ${
+                surfacedAvatarImage
+                  ? `<img class="cco-next-final-avatar-image" src="${escapeHtml(surfacedAvatarImage)}" alt="" />`
+                  : escapeHtml(buildInitials(row?.sender || 'Kund'))
+              }
+              ${
+                surfacePresence
+                  ? '<span class="cco-next-final-avatar-presence"></span>'
+                  : ''
+              }
+              ${
+                surfacedAvatarBadge
+                  ? `<span class="cco-next-final-avatar-badge">${escapeHtml(surfacedAvatarBadge)}</span>`
+                  : ''
+              }
+            </span>
+            <span>
+              <span class="cco-next-final-message-head">
+                <strong class="cco-next-final-message-name">${escapeHtml(String(row?.sender || 'Okänd kund'))}${
+                  surfacedMoodEmoji
+                    ? ` ${escapeHtml(surfacedMoodEmoji)}`
+                    : ''
+                }</strong>
+                <span class="cco-next-final-message-time">${escapeHtml(
+                  formatPreviewListTime(row?.lastInboundAt, previewSeed.lastSyncAt)
+                )}</span>
+              </span>
+              <span class="cco-next-final-message-subject">${escapeHtml(
+                String(row?.subject || row?.caseType || 'Tråd')
+              )}</span>
+              ${
+                hidePreview
+                  ? ''
+                  : `<span class="cco-next-final-message-preview">${escapeHtml(previewText)}</span>`
+              }
+              <span class="cco-next-final-message-badges">${messageTags}</span>
+            </span>
+          </span>
+        </button>
+      `;
+    };
+
+    const renderCategory = (entry) => {
+      const categoryRows = surfacedWorklistRows.filter((row) =>
+        matchesCcoNextPreviewFinalCategory(row, entry?.id || 'all')
+      );
+      const isExpanded = expandedCategories.includes(String(entry?.id || 'all'));
+      const categoryIcon = String(entry?.icon || 'inbox');
+      const categoryChevron = renderFinalShellIcon(
+        isExpanded ? 'chevron-down' : 'chevron-right',
+        'is-category'
+      );
+      return `
+        <section class="cco-next-final-category is-${escapeHtml(String(entry?.tone || 'neutral'))}">
+          <button
+            type="button"
+            class="cco-next-final-category-toggle"
+            data-cco-next-final-category-toggle="${escapeHtml(String(entry?.id || 'all'))}"
+          >
+            <span class="cco-next-final-category-main">
+              <span class="cco-next-final-category-handle" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="cco-next-final-category-chevron">${categoryChevron}</span>
+              <span class="cco-next-final-category-icon">${renderFinalShellIcon(
+                categoryIcon,
+                'is-category'
+              )}</span>
+              <span class="cco-next-final-category-label">${escapeHtml(String(entry?.label || 'Kategori'))}</span>
+            </span>
+            <span class="cco-next-final-category-count">${escapeHtml(String(categoryRows.length))}</span>
+          </button>
+          ${
+            isExpanded
+              ? `<div class="cco-next-final-category-body">${
+                  categoryRows.length
+                    ? categoryRows.map(renderMessageItem).join('')
+                    : '<div class="cco-next-final-empty">Inga meddelanden i denna kategori.</div>'
+                }</div>`
+              : ''
+          }
+        </section>
+      `;
+    };
+
+    const renderCenterConversation = () => {
+      if (!selectedConversation) {
+        return '<div class="cco-next-final-empty">Välj en konversation i vänsterkolumnen.</div>';
+      }
+      const isAnnaFocus =
+        String(selectedConversation?.conversationId || '').trim() === 'cco-next-preview-anna';
+      const customerEmail = buildFinalPreviewCustomerEmail(selectedConversation, isAnnaFocus);
+      const customerPhone = buildFinalPreviewCustomerPhone(selectedConversation, isAnnaFocus);
+      const customerLocation = isAnnaFocus ? 'Stockholm, Sverige' : 'Sverige';
+      const customerSince = isAnnaFocus
+        ? 'Mars 2023 (3 år)'
+        : `${
+            String(selectedSummary?.customerSince || selectedConversation?.previewSummary?.customerSince || '2026').trim()
+          } · Kundresa`;
+      const customerRelation = isAnnaFocus
+        ? 'Återkommande · Lojal'
+        : `${formatFinalJourneyLabel(selectedConversation?.journeyStage)} · ${formatFinalVipStatus(
+            selectedConversation?.vipStatus
+          )}`;
+      const customerTemperature = isAnnaFocus
+        ? 'Varm · Aktiv'
+        : `${String(selectedConversation?.tone || 'neutral')
+            .trim()
+            .replace(/^\w/, (char) => char.toUpperCase())} · ${formatFinalSensitivity(
+            selectedConversation?.relationshipSensitivity
+          )}`;
+      const customerPurchases = isAnnaFocus
+        ? 4
+        : Math.max(
+            Array.isArray(selectedConversation?.recentTreatments) ? selectedConversation.recentTreatments.length : 0,
+            Number(selectedSummary?.interactionCount || 0),
+            1
+          );
+      const customerLifetimeValue = isAnnaFocus ? 89500 : Number(selectedConversation?.lifetimeValue || 0);
+      const customerAverageValue =
+        customerPurchases > 0 && Number.isFinite(customerLifetimeValue)
+          ? Math.round(customerLifetimeValue / customerPurchases)
+          : 0;
+      const customerStatusPrimary = isAnnaFocus
+        ? 'VIP'
+        : formatFinalVipStatus(selectedConversation?.vipStatus);
+      const customerStatusSecondary = isAnnaFocus
+        ? 'Återkommande'
+        : formatFinalJourneyLabel(selectedConversation?.journeyStage);
+      const customerPreferences = buildFinalCustomerPreferences(selectedConversation, isAnnaFocus);
+      const customerTimelineEntries = buildFinalHistoryTimelineEntries(
+        selectedConversation,
+        historyEntries,
+        isAnnaFocus
+      );
+      if (centerTab === 'customer') {
+        return `
+          <div class="cco-next-final-customer-tab">
+            <article class="cco-next-final-customer-profile-card">
+              <div class="cco-next-final-customer-profile-media">
+                <span class="cco-next-final-avatar is-large">
+                  ${
+                    selectedAvatarImage
+                      ? `<img class="cco-next-final-avatar-image" src="${escapeHtml(selectedAvatarImage)}" alt="" />`
+                      : escapeHtml(buildInitials(selectedConversation?.sender || 'Kund'))
+                  }
+                </span>
+                <span class="cco-next-final-customer-profile-vip">${renderFinalShellIcon('sparkles', 'is-mini')}</span>
+              </div>
+              <div class="cco-next-final-customer-profile-copy">
+                <h3>${escapeHtml(String(selectedConversation?.sender || 'Okänd kund'))}</h3>
+                <p>${renderFinalShellIcon('mail-out', 'is-mini')}${escapeHtml(customerEmail)}</p>
+                <p>${renderFinalShellIcon('phone', 'is-mini')}${escapeHtml(customerPhone)}</p>
+              </div>
+            </article>
+            <div class="cco-next-final-customer-stat-grid">
+              <article class="cco-next-final-customer-stat-card is-blue">
+                <div class="cco-next-final-customer-stat-head">
+                  <span class="cco-next-final-customer-stat-icon is-blue">${renderFinalShellIcon('calendar', 'is-mini')}</span>
+                  <span>Köp</span>
+                </div>
+                <strong>${escapeHtml(String(customerPurchases))}</strong>
+                <p>Behandlingar</p>
+              </article>
+              <article class="cco-next-final-customer-stat-card is-green">
+                <div class="cco-next-final-customer-stat-head">
+                  <span class="cco-next-final-customer-stat-icon is-green">${renderFinalShellIcon('chart', 'is-mini')}</span>
+                  <span>LTV</span>
+                </div>
+                <strong>${escapeHtml(formatFinalCurrencyCompact(customerLifetimeValue))}</strong>
+                <p>Livstidsvärde</p>
+              </article>
+              <article class="cco-next-final-customer-stat-card is-purple">
+                <div class="cco-next-final-customer-stat-head">
+                  <span class="cco-next-final-customer-stat-icon is-purple">${renderFinalShellIcon('sparkles', 'is-mini')}</span>
+                  <span>Status</span>
+                </div>
+                <strong>${escapeHtml(customerStatusPrimary)}</strong>
+                <p>${escapeHtml(customerStatusSecondary)}</p>
+              </article>
+            </div>
+            <article class="cco-next-final-customer-section">
+              <h4>${renderFinalShellIcon('user', 'is-mini')}Kundinformation</h4>
+              <div class="cco-next-final-customer-section-body">
+                ${renderFinalCustomerInfoRow('user', 'Kund sedan', customerSince, 'info')}
+                ${renderFinalCustomerInfoRow('chart', 'Relation', customerRelation, 'purple')}
+                ${renderFinalCustomerInfoRow('alert', 'Temperatur', customerTemperature, 'warn')}
+              </div>
+            </article>
+            <article class="cco-next-final-customer-section is-neutral">
+              <h4>Kontaktinformation</h4>
+              <div class="cco-next-final-customer-contact-list">
+                <div>${renderFinalShellIcon('mail-out', 'is-mini')}<span>${escapeHtml(customerEmail)}</span></div>
+                <div>${renderFinalShellIcon('phone', 'is-mini')}<span>${escapeHtml(customerPhone)}</span></div>
+                <div>${renderFinalShellIcon('globe', 'is-mini')}<span>${escapeHtml(customerLocation)}</span></div>
+              </div>
+            </article>
+            <article class="cco-next-final-customer-section is-green">
+              <h4>Kundvärde</h4>
+              <div class="cco-next-final-customer-value-grid">
+                ${renderFinalCustomerValueRow('chart', 'Total LTV', formatFinalCurrencySek(customerLifetimeValue))}
+                ${renderFinalCustomerValueRow('sparkles', 'Genomsnittligt ordervärde', formatFinalCurrencySek(customerAverageValue))}
+                ${renderFinalCustomerValueRow('calendar', 'Antal behandlingar', `${customerPurchases} st`)}
+              </div>
+            </article>
+            <article class="cco-next-final-customer-section is-purple">
+              <h4>Preferenser</h4>
+              <div class="cco-next-final-customer-preferences">
+                ${customerPreferences
+                  .map(
+                    (item) =>
+                      `<div>${renderFinalShellIcon('sparkles', 'is-mini')}<span>${escapeHtml(String(item || 'Preferens'))}</span></div>`
+                  )
+                  .join('')}
+              </div>
+            </article>
+          </div>
+        `;
+      }
+      if (centerTab === 'history') {
+        return `
+          <div class="cco-next-final-history-tab">
+            <div class="cco-next-final-history-tab-head">
+              <h3>Aktivitetshistorik</h3>
+              <p>Fullständig logg över all kommunikation och aktivitet</p>
+            </div>
+            ${
+              customerTimelineEntries.length
+                ? `<div class="cco-next-final-history-timeline">
+                    <div class="cco-next-final-history-timeline-line"></div>
+                    ${customerTimelineEntries
+                      .slice(0, historyCollapsed && !isAnnaFocus ? 2 : customerTimelineEntries.length)
+                      .map((entry) => renderFinalHistoryTimelineCard(entry))
+                      .join('')}
+                  </div>`
+                : '<div class="cco-next-final-empty">Ingen historik tillgänglig ännu.</div>'
+            }
+            ${
+              !isAnnaFocus && customerTimelineEntries.length > 2
+                ? `<button type="button" class="cco-next-final-mini-button" data-cco-next-history-toggle="true">${
+                    historyCollapsed ? 'Visa äldre' : 'Dölj äldre'
+                  }</button>`
+                : ''
+            }
+          </div>
+        `;
+      }
+      if (centerTab === 'notes') {
+        const noteEntries = buildCcoNextFinalConversationNotes(selectedConversation);
+        const customerName = selectedConversation?.sender || 'Kund';
+        return `
+          <div class="cco-next-final-notes-tab">
+            <div class="cco-next-final-notes-header">
+              <div class="cco-next-final-notes-heading">
+                <h3>Anteckningar för ${escapeHtml(customerName)}</h3>
+                <p>${escapeHtml(
+                  `${noteEntries.length} ${noteEntries.length === 1 ? 'anteckning' : 'anteckningar'} sparad`
+                )}</p>
+              </div>
+              <div class="cco-next-final-notes-actions">
+                <button type="button" class="cco-next-final-toolbar-button" data-cco-next-action="notes-refresh">${renderFinalShellIcon(
+                  'refresh',
+                  'is-mini'
+                )}Uppdatera</button>
+                <button type="button" class="cco-next-final-toolbar-button is-primary" data-cco-next-action="notes-create">${renderFinalShellIcon(
+                  'plus',
+                  'is-mini'
+                )}Ny anteckning</button>
+              </div>
+            </div>
+            ${
+              noteEntries.length
+                ? `<div class="cco-next-final-notes-list">${noteEntries
+                    .map((entry) => renderRichNoteCard(entry))
+                    .join('')}</div>`
+                : `<div class="cco-next-final-notes-empty">
+                    <div class="cco-next-final-notes-empty-icon">${renderFinalShellIcon('file', 'is-empty')}</div>
+                    <p>Inga anteckningar för ${escapeHtml(customerName)} än.</p>
+                    <button type="button" class="cco-next-final-toolbar-button is-primary" data-cco-next-action="notes-create">${renderFinalShellIcon(
+                      'plus',
+                      'is-mini'
+                    )}Skapa första anteckningen</button>
+                  </div>`
+            }
+          </div>
+        `;
+      }
+      const latestAuthor = String(latestMessage?.author || selectedConversation?.sender || 'Okänd avsändare');
+      const latestTimestamp = latestMessage?.timestamp || selectedConversation?.lastInboundAt || '';
+      const latestBody =
+        latestMessage?.body ||
+        latestMessage?.preview ||
+        selectedConversation?.latestInboundPreview ||
+        'Ingen konversation tillgänglig ännu.';
+      const latestTimestampLabel = formatPreviewDayClock(latestTimestamp, previewSeed.lastSyncAt);
+      return `
+        <div class="cco-next-final-conversation-shell">
+          <div class="cco-next-final-context-banner">
+            <span class="cco-next-final-context-icon">${renderFinalShellIcon('chevron-right', 'is-mini')}</span>
+            <strong>${escapeHtml(conversationContextSummary)}</strong>
+          </div>
+          <div class="cco-next-final-status-strip">${centerStatusBadges}</div>
+          <div class="cco-next-final-thread">
+            <div class="cco-next-final-thread-line"></div>
+            <div class="cco-next-final-latest-message">
+              <span class="cco-next-final-thread-dot"></span>
+              <span class="cco-next-final-avatar cco-next-final-message-avatar">${
+                selectedAvatarImage
+                  ? `<img class="cco-next-final-avatar-image" src="${escapeHtml(selectedAvatarImage)}" alt="" />`
+                  : escapeHtml(buildInitials(latestAuthor))
+              }</span>
+              <div class="cco-next-final-thread-copy">
+                <div class="cco-next-final-thread-head">
+                  <span class="cco-next-final-thread-author">${escapeHtml(latestAuthor)}</span>
+                  <span class="cco-next-final-thread-separator">·</span>
+                  <span class="cco-next-final-thread-time">${escapeHtml(latestTimestampLabel)}</span>
+                  <span class="cco-next-final-thread-badge">Senaste</span>
+                  <button type="button" class="cco-next-final-thread-menu" aria-label="Fler alternativ">${renderFinalShellIcon(
+                    'more',
+                    'is-button'
+                  )}</button>
+                </div>
+                <div class="cco-next-final-message-bubble">${safePreviewText(latestBody)}</div>
+              </div>
+            </div>
+            <button type="button" class="cco-next-final-older-toggle" data-cco-next-history-toggle="true">
+              <span class="cco-next-final-older-chevron">${renderFinalShellIcon(
+                historyCollapsed ? 'chevron-down' : 'chevron-up',
+                'is-mini'
+              )}</span>
+              <span>${escapeHtml(
+                olderMessages.length
+                  ? `${historyCollapsed ? 'Visa' : 'Dölj'} ${olderMessages.length} äldre meddelanden`
+                  : 'Inga äldre meddelanden'
+              )}</span>
+              <span class="cco-next-final-older-chevron">${renderFinalShellIcon(
+                historyCollapsed ? 'chevron-down' : 'chevron-up',
+                'is-mini'
+              )}</span>
+            </button>
+          </div>
+          ${
+            !historyCollapsed && olderMessages.length
+              ? `<div class="cco-next-final-history-list">${olderMessages
+                  .map(
+                    (message) => `
+                      <div class="cco-next-final-message-row is-history">
+                        <span class="cco-next-final-avatar">${escapeHtml(
+                          buildInitials(message?.author || 'CCO')
+                        )}</span>
+                        <div>
+                          <div class="cco-next-final-message-head">
+                            <strong class="cco-next-final-message-author">${escapeHtml(
+                              String(message?.author || 'Okänd avsändare')
+                            )}</strong>
+                            <span class="cco-next-final-message-time">${escapeHtml(
+                              formatPreviewDateTime(message?.timestamp)
+                            )}</span>
+                          </div>
+                          <div class="cco-next-final-message-bubble">${safePreviewText(
+                            message?.body || message?.preview || 'Ingen meddelandetext ännu.'
+                          )}</div>
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join('')}</div>`
+              : ''
+          }
+          <div class="cco-next-final-conversation-meta-row">
+            ${centerFooterItems.length
+              ? centerFooterItems
+                  .map(
+                    (entry) => `
+                      <span class="cco-next-final-meta-item is-${escapeHtml(String(entry?.kind || 'neutral'))}">
+                        <span class="cco-next-final-meta-icon" aria-hidden="true">${renderMetaIcon(entry?.kind || 'neutral')}</span>
+                        <span>${escapeHtml(String(entry?.label || '-'))}</span>
+                      </span>
+                    `
+                  )
+                  .join('')
+              : `<span>${escapeHtml(selectedConversation?.ownerDisplay || '-')}</span>`}
+          </div>
+          ${
+            selectedConversation?.keyNote || selectedConversation?.internalNote
+              ? `<div class="cco-next-final-operator-note">
+                  <h4>${renderFinalShellIcon('note', 'is-mini')}Intern operativ notis</h4>
+                  <p>${escapeHtml(
+                    String(
+                      selectedConversation?.keyNote ||
+                        selectedConversation?.internalNote ||
+                        'Ingen intern notis ännu.'
+                    )
+                  )}</p>
+                </div>`
+              : ''
+          }
+          <div class="cco-next-final-bottom-actions">
+            <div class="cco-next-final-bottom-action-group">
+              <button type="button" class="cco-next-final-square-button is-accent" data-cco-next-action="studio-open-schedule" aria-label="Schemalägg">${renderFinalShellIcon(
+                'calendar',
+                'is-button'
+              )}</button>
+              <button type="button" class="cco-next-final-square-button" data-cco-next-action="open-notes" aria-label="Anteckningar">${renderFinalShellIcon(
+                'file',
+                'is-button'
+              )}</button>
+            </div>
+            <button type="button" class="cco-next-final-primary-pill" data-cco-next-action="open-studio">${renderFinalShellIcon(
+              'sparkles',
+              'is-button'
+            )}${isAnnaFocus ? 'Svarstudio' : 'Svarstudio'}</button>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderStudioDialog = () => {
+      if (!selectedStudio?.dialog) return '';
+      const dialog = selectedStudio.dialog;
+      if (dialog.type === 'signature_editor') {
+        return `
+          <div class="cco-next-final-modal" role="dialog" aria-modal="true" aria-label="Redigera signatur">
+            <div class="cco-next-final-modal-card">
+              <h3>${escapeHtml(String(dialog.title || 'Redigera signatur'))}</h3>
+              <p>${escapeHtml(
+                String(dialog.subtitle || 'Uppdatera den aktiva signaturprofilen utan att lämna studion.')
+              )}</p>
+              <div class="cco-next-final-form-grid">
+                <label class="cco-next-final-field">
+                  <span>Namn</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.name || ''))}" data-cco-next-studio-field="signature-name" />
+                </label>
+                <label class="cco-next-final-field">
+                  <span>Titel</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.title || ''))}" data-cco-next-studio-field="signature-title" />
+                </label>
+                <label class="cco-next-final-field">
+                  <span>Hälsning</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.greeting || ''))}" data-cco-next-studio-field="signature-greeting" />
+                </label>
+                <label class="cco-next-final-field">
+                  <span>E-post</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.email || ''))}" data-cco-next-studio-field="signature-email" />
+                </label>
+                <label class="cco-next-final-field">
+                  <span>Telefon</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.phone || ''))}" data-cco-next-studio-field="signature-phone" />
+                </label>
+                <label class="cco-next-final-field">
+                  <span>Kontaktblock</span>
+                  <input type="text" value="${escapeHtml(String(dialog.profile?.contact || ''))}" data-cco-next-studio-field="signature-contact" />
+                </label>
+              </div>
+              <div class="cco-next-final-modal-actions">
+                <button type="button" class="cco-next-final-button is-sprint" data-cco-next-action="${escapeHtml(
+                  String(dialog.confirmAction || 'studio-save-signature-profile')
+                )}">Spara signatur</button>
+                <button type="button" class="cco-next-final-button" data-cco-next-action="${escapeHtml(
+                  String(dialog.cancelAction || 'studio-close-signature-editor')
+                )}">Avbryt</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      if (dialog.type === 'delete') {
+        return `
+          <div class="cco-next-final-modal" role="dialog" aria-modal="true" aria-label="Ta bort tråden">
+            <div class="cco-next-final-modal-card">
+              <h3>${escapeHtml(String(dialog.title || 'Ta bort tråden?'))}</h3>
+              <p>${escapeHtml(String(dialog.subtitle || 'Det här tar bort tråden från previewn.'))}</p>
+              <div class="cco-next-final-modal-actions">
+                <button type="button" class="cco-next-final-button" data-cco-next-action="${escapeHtml(
+                  String(dialog.cancelAction || 'studio-cancel-delete')
+                )}">Avbryt</button>
+                <button type="button" class="cco-next-final-button is-sprint" data-cco-next-action="${escapeHtml(
+                  String(dialog.confirmAction || 'studio-confirm-delete')
+                )}">Bekräfta</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="cco-next-final-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(
+          String(dialog.title || 'Planera senare')
+        )}">
+          <div class="cco-next-final-modal-card">
+            <h3>${escapeHtml(String(dialog.title || 'Planera senare'))}</h3>
+            <p>${escapeHtml(String(dialog.subtitle || 'Välj ett tydligt nästa läge för tråden.'))}</p>
+            ${(Array.isArray(dialog.presets) ? dialog.presets : [])
+              .map(
+                (entry) => `
+                  <button type="button" class="cco-next-final-modal-preset" data-cco-next-action="${escapeHtml(
+                    String(entry?.action || '')
+                  )}">
+                    <strong>${escapeHtml(String(entry?.label || 'Preset'))}</strong>
+                    ${escapeHtml(
+                      String(
+                        entry?.dialogSummary ||
+                          entry?.summary ||
+                          entry?.dialogSupport ||
+                          entry?.slaGuardMessage ||
+                          'Sätt tydligt ägarskap och nästa återupptagningspunkt.'
+                      )
+                    )}
+                  </button>
+                `
+              )
+              .join('')}
+            <div class="cco-next-final-modal-actions">
+              <button type="button" class="cco-next-final-button" data-cco-next-action="${escapeHtml(
+                String(dialog.cancelAction || 'studio-close-snooze')
+              )}">Stäng</button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const centerFocusBadges = [
+      renderToken(selectedConversation?.workflowLabel || 'Ingen status', 'danger'),
+      renderToken(selectedFollowThrough?.waitingLabel || selectedConversation?.waitingStateLabel || 'Redo för åtgärd', 'success'),
+      renderToken(selectedFollowThrough?.followUpLabel || selectedConversation?.followUpDeadline || '-', 'info'),
+      renderToken(selectedFollowThrough?.ownerLabel || selectedConversation?.ownerDisplay || '-', 'purple'),
+    ]
+      .filter(Boolean)
+      .join('');
+
+    const studioMetaBadges = [
+      renderToken(selectedConversation?.workflowLabel || 'Agera nu', 'danger'),
+      renderToken(selectedFollowThrough?.ownerLabel || selectedConversation?.ownerDisplay || '-', 'neutral'),
+      renderToken(selectedFollowThrough?.waitingLabel || selectedConversation?.waitingStateLabel || '-', 'neutral'),
+      renderToken(selectedFollowThrough?.followUpLabel || selectedConversation?.followUpDeadline || '-', 'neutral'),
+    ]
+      .filter(Boolean)
+      .join('');
+
+    const customerMeta = selectedConversation
+      ? `${selectedConversation.workflowLabel || formatCcoLifecycleLabel(selectedSummary?.lifecycleStatus || 'new')} · ${Math.round(
+          Number(selectedSummary?.engagementScore || 0) * 100
+        )}% engagemang · ${selectedConversation.ownerDisplay || '-'}`
+      : 'Ingen kund vald ännu.';
+
+    const latestMessage = conversationMessages[0] || null;
+    const olderMessages = conversationMessages.slice(1);
+    const inactivityHours = getHoursSincePreview(
+      latestMessage?.timestamp || selectedConversation?.lastInboundAt,
+      previewSeed.lastSyncAt
+    );
+    const conversationContextSummary =
+      String(
+        String(selectedConversation?.conversationId || '').trim() === 'cco-next-preview-anna'
+          ? 'PRP-behandling · Bekräftad bokning för Fredag 09:00'
+          : selectedConversation?.bookingReadinessExplanation ||
+              selectedConversation?.nextActionSummary ||
+              selectedConversation?.queueReason ||
+              selectedConversation?.responseAngle ||
+              'Skapa ett tydligt besked för kunden i denna arbetscykel.'
+      ).trim() || 'Skapa ett tydligt besked för kunden i denna arbetscykel.';
+    const selectedAvatarImage = String(selectedConversation?.surfaceAvatarImage || '').trim();
+    const centerStatusBadges = (
+      String(selectedConversation?.conversationId || '').trim() === 'cco-next-preview-anna'
+        ? [
+            renderToken('SLA 45m', 'danger'),
+            renderToken('Δ8h aktiv', 'warn'),
+            renderToken('Följ upp', 'warn'),
+          ]
+        : [
+            renderToken(
+              selectedConversation?.followUpDeadline ||
+                selectedConversation?.slaLabel ||
+                selectedConversation?.workflowLabel ||
+                'Fokus nu',
+              'danger'
+            ),
+            inactivityHours && inactivityHours >= 24 ? renderToken(`${inactivityHours}h inaktiv`, 'warn') : '',
+            renderToken('Följ upp', 'warn'),
+          ]
+    )
+      .filter(Boolean)
+      .join('');
+    const centerFooterItems =
+      String(selectedConversation?.conversationId || '').trim() === 'cco-next-preview-anna'
+        ? [
+            { kind: 'count', label: '3 tid' },
+            { kind: 'date', label: '2025-01-14' },
+            { kind: 'customer', label: 'Sedan 2023' },
+          ]
+        : [
+            selectedSummary?.interactionCount ? { kind: 'count', label: `${selectedSummary.interactionCount} trådar` } : null,
+            historyEntries[0]?.timestamp
+              ? { kind: 'date', label: formatPreviewDateTime(historyEntries[0].timestamp).slice(0, 10) }
+              : null,
+            selectedConversation?.customerSince ? { kind: 'customer', label: `Sedan ${selectedConversation.customerSince}` } : null,
+          ].filter(Boolean);
+
+    const renderStudioOverlay = () => {
+      if (!selectedConversation || !selectedStudio || selectedStudio.isOpen !== true) return '';
+      return `
+        <div class="cco-next-final-studio-overlay" role="dialog" aria-modal="true" aria-label="Svarstudio">
+          <button
+            type="button"
+            class="cco-next-final-studio-overlay-scrim"
+            data-cco-next-close-studio-panel="true"
+            aria-label="Stäng svarstudio"
+          ></button>
+          <section class="cco-next-final-studio-overlay-card">
+            <header class="cco-next-final-studio-head">
+              <div class="cco-next-final-studio-row">
+                <div>
+                  <span class="cco-next-final-section-kicker">Svarsstudio</span>
+                  <h2 class="cco-next-final-panel-title">${escapeHtml(
+                    String(selectedStudio?.title || 'Svarsstudio').toUpperCase()
+                  )}</h2>
+                </div>
+                <div class="cco-next-final-studio-row">
+                  <button type="button" class="cco-next-final-mini-button" data-cco-next-action="book">Boka</button>
+                  <button type="button" class="cco-next-final-mini-button" data-cco-next-close-studio-panel="true">Stäng</button>
+                </div>
+              </div>
+              <div class="cco-next-final-chip-row">${studioMetaBadges}</div>
+            </header>
+            <div class="cco-next-final-studio-scroll">
+              <section class="cco-next-final-studio-cta">
+                <span class="cco-next-final-label">Gör detta nu</span>
+                <strong>${escapeHtml(
+                  String(selectedStudio?.primaryAction?.heading || 'Arbeta klart svaret')
+                )}</strong>
+                <p>${escapeHtml(
+                  String(
+                    selectedStudio?.primaryAction?.note ||
+                      selectedConversation?.recommendedToolReason ||
+                      'Skicka ett tydligt nästa steg till kunden.'
+                  )
+                )}</p>
+                ${
+                  selectedStudio?.primaryAction
+                    ? `<button
+                        type="button"
+                        class="cco-next-final-primary-cta"
+                        data-cco-next-action="${escapeHtml(
+                          String(selectedStudio.primaryAction.action || 'studio-send')
+                        )}"
+                      >${escapeHtml(String(selectedStudio.primaryAction.cta || 'Skicka från studion'))}</button>`
+                    : ''
+                }
+              </section>
+
+              <div class="cco-next-final-ci-stack">
+                <article class="cco-next-final-studio-card">
+                  <h4>Responspår</h4>
+                  <div class="cco-next-final-pill-row">
+                    ${(Array.isArray(selectedStudio?.strategies) ? selectedStudio.strategies : [])
+                      .map((strategy) =>
+                        renderStudioMiniButton(
+                          strategy?.label || 'Svarsspår',
+                          strategy?.action || 'open-studio',
+                          strategy?.isSelected === true
+                        )
+                      )
+                      .join('')}
+                  </div>
+                </article>
+
+                <article class="cco-next-final-studio-card">
+                  <h4>Tonfilter</h4>
+                  <div class="cco-next-final-pill-row">
+                    ${(Array.isArray(selectedStudio?.toneFilters) ? selectedStudio.toneFilters : [])
+                      .map((filter) =>
+                        renderChip(filter?.label || 'Filter', filter?.isActive ? 'info' : 'neutral')
+                      )
+                      .join('')}
+                  </div>
+                </article>
+
+                <article class="cco-next-final-studio-card">
+                  <h4>Finjustera</h4>
+                  <div class="cco-next-final-pill-row">
+                    ${(Array.isArray(selectedStudio?.rewriteActions) ? selectedStudio.rewriteActions : [])
+                      .map((action) =>
+                        renderStudioMiniButton(
+                          action?.label || 'Finjustera',
+                          action?.action || 'studio-rewrite:shorten',
+                          action?.isActive === true
+                        )
+                      )
+                      .join('')}
+                  </div>
+                </article>
+
+                <article class="cco-next-final-studio-card">
+                  <h4>Signatur</h4>
+                  <div class="cco-next-final-pill-row">
+                    ${(Array.isArray(selectedStudio?.signature?.choices) ? selectedStudio.signature.choices : [])
+                      .map((entry) =>
+                        renderStudioMiniButton(
+                          entry?.label || 'Signatur',
+                          entry?.action || 'studio-signature:sara',
+                          entry?.isSelected === true
+                        )
+                      )
+                      .join('')}
+                    ${renderStudioMiniButton(
+                      'Redigera',
+                      selectedStudio?.signature?.editorAction || 'studio-open-signature-editor',
+                      false
+                    )}
+                  </div>
+                </article>
+
+                <article class="cco-next-final-studio-card">
+                  <h4>AI-stöd</h4>
+                  <strong>${escapeHtml(
+                    `${String(selectedStudio?.ai?.label || 'AI-stöd')} · ${String(
+                      selectedStudio?.ai?.confidenceLabel || '0%'
+                    )}`
+                  )}</strong>
+                  <p>${escapeHtml(
+                    String(
+                      selectedStudio?.ai?.reason ||
+                        selectedStudio?.ai?.contextSummary ||
+                        'Ingen AI-förklaring ännu.'
+                    )
+                  )}</p>
+                  <div class="cco-next-final-studio-subactions">
+                    ${renderStudioMiniButton(
+                      'Använd förslag',
+                      selectedStudio?.ai?.useAction || 'studio-use-suggestion',
+                      false
+                    )}
+                    ${renderStudioMiniButton(
+                      'Generera om',
+                      selectedStudio?.ai?.regenerateAction || 'studio-regenerate-suggestion',
+                      false
+                    )}
+                  </div>
+                </article>
+              </div>
+              ${renderStudioDialog()}
+            </div>
+          </section>
+        </div>
+      `;
+    };
+
+    const overviewCards = [
+      {
+        title: 'Kundläge',
+        detail:
+          selectedConversation?.lifecycleStageLabel ||
+          formatCcoLifecycleLabel(selectedSummary?.lifecycleStatus || 'new'),
+        note:
+          selectedSummary?.lastCaseSummary ||
+          selectedConversation?.customerContext ||
+          'Ingen extra kundkontext.',
+      },
+      {
+        title: 'Nästa bevakning',
+        detail:
+          selectedFollowThrough?.waitingLabel ||
+          selectedConversation?.waitingStateLabel ||
+          'Inget externt hinder',
+        note: `Följ upp ${
+          selectedFollowThrough?.followUpLabel || selectedConversation?.followUpDeadline || '-'
+        } · ${selectedFollowThrough?.bookingLabel || selectedConversation?.bookingReadinessLabel || '-'}`,
+      },
+      selectedCustomerIntelligence?.relationshipCard || null,
+    ].filter(Boolean);
+
+    const aiCards = [
+      {
+        title: 'Varför prioriterad',
+        detail: selectedConversation?.queueReason || '-',
+        note: `${selectedConversation?.workflowLabel || '-'} · ${selectedConversation?.responseAngle || '-'}`,
+      },
+      {
+        title: selectedStudio?.ai?.label || 'AI-stöd',
+        detail: selectedStudio?.ai?.confidenceLabel || '0%',
+        note:
+          selectedStudio?.ai?.reason ||
+          selectedStudio?.ai?.contextSummary ||
+          'Ingen AI-förklaring tillgänglig ännu.',
+      },
+    ];
+
+    const medicalCards = [
+      {
+        title: 'Medicinsk kontext',
+        detail: selectedConversation?.medicalContext || 'Ingen medicinsk kontext krävs just nu.',
+        note:
+          Array.isArray(selectedConversation?.medicalFlags) && selectedConversation.medicalFlags.length
+            ? selectedConversation.medicalFlags.join(' · ')
+            : 'Inga aktiva medicinska flaggor.',
+      },
+      selectedCustomerIntelligence?.treatmentCard || null,
+    ].filter(Boolean);
+
+    const teamCards = [
+      selectedCollaboration?.presenceCard || null,
+      selectedCollaboration?.handoffCard || null,
+      selectedCollaboration?.draftCard || null,
+    ].filter(Boolean);
+
+    const rightPanelCards =
+      sidebarTab === 'ai'
+        ? aiCards
+        : sidebarTab === 'medical'
+        ? medicalCards
+        : sidebarTab === 'team'
+        ? teamCards
+        : overviewCards;
+    const isAnnaConversation = String(selectedConversation?.conversationId || '').trim() === 'cco-next-preview-anna';
+    const whyInFocusTitle = String(
+      selectedConversation?.queueReason ||
+        selectedConversation?.operatorCue ||
+        'Tråden är prioriterad just nu.'
+    ).trim();
+    const whyInFocusBody = String(
+      selectedConversation?.situationSummary ||
+        selectedConversation?.nextActionSummary ||
+        selectedConversation?.customerContext ||
+        'Kunden behöver ett tydligt nästa steg i denna arbetscykel.'
+    ).trim();
+    const communicationLatest = historyEntries[0] || null;
+    const communicationPrevious = historyEntries[1] || null;
+    const overviewInsightCards = [
+      renderInsightListCard({
+        sectionId: 'trends',
+        tone: 'purple',
+        title: 'Trender & Patterns',
+        expanded: !ciTrendsCollapsed,
+        items: isAnnaConversation
+          ? [
+              { icon: 'chart', tone: 'purple', text: 'Bokningsfrekvens har ökat med 30% senaste kvartalet' },
+              { icon: 'clock', tone: 'warn', text: 'Föredrar morgontider (09:00-12:00) på fredagar' },
+              { icon: 'medical', tone: 'success', text: 'Konsekvent väljer Dr. Eriksson (+8 bokningar)' },
+            ]
+          : [
+              {
+                icon: 'chart',
+                tone: 'purple',
+                text: `${
+                  selectedConversation?.plannedTreatment || selectedConversation?.caseType || 'Det här spåret'
+                } driver nu nästa steg i relationen.`,
+              },
+              {
+                icon: 'clock',
+                tone: 'warn',
+                text: `Nästa uppföljning: ${
+                  selectedFollowThrough?.followUpLabel || selectedConversation?.followUpDeadline || 'inte satt'
+                }`,
+              },
+              {
+                icon: 'sparkles',
+                tone: 'success',
+                text: `${
+                  selectedConversation?.ownerDisplay || 'Teamet'
+                } bör hålla samma ägarskap tills tråden är löst.`,
+              },
+            ],
+      }),
+      renderInsightHistoryCard({
+        sectionId: 'communication',
+        title: 'Kommunikationshistorik',
+        expanded: !ciCommCollapsed,
+        latestAt: isAnnaConversation
+          ? '2 tim sedan'
+          : formatPreviewRelativeToReference(communicationLatest?.timestamp, previewSeed.lastSyncAt),
+        latestText: isAnnaConversation
+          ? '"Fredag kl 09:00 passar perfekt! Tack för flexibiliteten."'
+          : communicationLatest?.excerpt || selectedConversation?.latestInboundPreview || 'Ingen senaste interaktion ännu.',
+        previousAt: isAnnaConversation
+          ? '5 dagar sedan'
+          : formatPreviewRelativeToReference(communicationPrevious?.timestamp, previewSeed.lastSyncAt),
+        previousText: isAnnaConversation
+          ? 'Frågade om PRP-behandling och priser'
+          : communicationPrevious?.excerpt || selectedConversation?.customerContext || 'Ingen tidigare interaktion ännu.',
+        metricPrimary: isAnnaConversation
+          ? 'Svarstid genomsnitt: 2.4 timmar'
+          : `Svarstid genomsnitt: ${
+              inactivityHours && inactivityHours > 0 ? `${Math.max(1, inactivityHours)} tim` : 'under 1 tim'
+            }`,
+        metricSecondary: isAnnaConversation
+          ? 'Prefererad kanal: E-post (78%)'
+          : `Prefererad kanal: ${
+              selectedConversation?.mailboxLabel || brandLabel || 'E-post'
+            }`,
+      }),
+      renderInsightAiCard({
+        sectionId: 'ai',
+        title: 'AI-insikter',
+        expanded: !ciAiCollapsed,
+        blocks: [
+          {
+            title: 'Next Best Action',
+            text: isAnnaConversation
+              ? 'Skicka bokningsförslag för PRP fredag 09:00. Sannolikhet för accept: 92%'
+              : String(
+                  selectedConversation?.nextActionSummary ||
+                    selectedStudio?.primaryAction?.note ||
+                    'Skicka ett tydligt nästa steg till kunden.'
+                ).trim(),
+          },
+          {
+            title: 'Upsell-möjlighet',
+            text: isAnnaConversation
+              ? 'Kunden har visat intresse för PRP + Microneedling-paket (spara 15%)'
+              : String(
+                  selectedConversation?.treatmentContext ||
+                    selectedConversation?.plannedTreatment ||
+                    'Ingen tydlig uppsäljningssignal i den här tråden ännu.'
+                ).trim(),
+          },
+        ],
+      }),
+    ].join('');
+
+    const commandPaletteMarkup = commandPalette?.isOpen
+      ? `
+          <div class="cco-next-preview-command-layer" data-cco-next-command-layer="true">
+            <button
+              type="button"
+              class="cco-next-preview-command-scrim"
+              data-cco-next-command-close="true"
+              aria-label="Stäng kommandopaletten"
+            ></button>
+            <div class="cco-next-preview-command-panel" role="dialog" aria-modal="true" aria-label="Kommandopalett">
+              <div class="cco-next-preview-command-head">
+                <input
+                  type="search"
+                  class="cco-next-preview-command-input"
+                  data-cco-next-command-query="true"
+                  aria-label="Sök i kommandopaletten"
+                  value="${escapeHtml(String(commandPalette.query || ''))}"
+                  placeholder="Sök kommandon, köer, vyer eller trådar"
+                />
+                <button type="button" class="cco-next-preview-command-close" data-cco-next-command-close="true">Esc</button>
+              </div>
+              <div class="cco-next-preview-command-meta">
+                <span class="cco-next-preview-command-meta-chip">⌘K öppnar paletten</span>
+                <span class="cco-next-preview-command-meta-chip">↑ ↓ väljer</span>
+                <span class="cco-next-preview-command-meta-chip">Enter kör</span>
+                <span class="cco-next-preview-command-meta-chip">${escapeHtml(
+                  `${Number(commandPalette.totalCount || 0)} kommandon`
+                )}</span>
+              </div>
+              <div class="cco-next-preview-command-list" role="listbox" aria-label="Kommandon">
+                ${
+                  Array.isArray(commandPalette.items) && commandPalette.items.length
+                    ? commandPalette.items
+                        .map(
+                          (item, index) => `
+                            <button
+                              type="button"
+                              class="cco-next-preview-command-item${index === commandPalette.selectedIndex ? ' is-active' : ''}"
+                              data-cco-next-command-run="${escapeHtml(String(item?.id || ''))}"
+                              data-cco-next-command-index="${escapeHtml(String(index))}"
+                              role="option"
+                              aria-selected="${index === commandPalette.selectedIndex ? 'true' : 'false'}"
+                            >
+                              <span class="cco-next-preview-command-copy">
+                                <span class="cco-next-preview-command-category">${escapeHtml(String(item?.category || 'Kommando'))}</span>
+                                <strong class="cco-next-preview-command-title">${escapeHtml(String(item?.label || 'Kommando'))}</strong>
+                                <span class="cco-next-preview-command-description">${escapeHtml(
+                                  String(item?.description || 'Ingen beskrivning tillgänglig.')
+                                )}</span>
+                              </span>
+                              <span class="cco-next-preview-command-side">
+                                ${item?.shortcut ? `<span class="cco-next-preview-command-shortcut">${escapeHtml(String(item.shortcut || ''))}</span>` : ''}
+                                ${item?.active ? '<span class="cco-next-preview-command-badge">Aktiv</span>' : ''}
+                                ${item?.badge ? `<span class="cco-next-preview-command-badge">${escapeHtml(String(item.badge || ''))}</span>` : ''}
+                              </span>
+                            </button>
+                          `
+                        )
+                        .join('')
+                    : '<div class="cco-next-preview-command-empty">Inga kommandon matchar sökningen ännu. Prova ett kundnamn, en kö eller ett action-ord som boka, mall eller follow-up.</div>'
+                }
+              </div>
+            </div>
+          </div>
+        `
+      : '';
+
+    els.ccoNextPreviewRoot.innerHTML = `
+      <div class="cco-next-final-shell${finalTheme === 'dark' ? ' is-dark' : ''}" data-cco-next-layout="final-shell">
+        <header class="cco-next-final-header">
+          <div class="cco-next-final-logo">CCO</div>
+          <div class="cco-next-final-search-shell">
+            <span class="cco-next-final-search-icon">${renderFinalShellIcon('search', 'is-search')}</span>
+            <input
+              type="search"
+              class="cco-next-final-search"
+              data-cco-next-search="true"
+              aria-label="Sök kund, tråd eller ämne"
+              value="${escapeHtml(searchValue)}"
+              placeholder="Sök kund, tråd eller ämne (⌘K)"
+            />
+          </div>
+          <div class="cco-next-final-header-actions">
+            <button type="button" class="cco-next-final-button is-sprint" data-cco-next-action="sprint">${renderFinalShellIcon(
+              'zap',
+              'is-mini'
+            )}Sprint ${escapeHtml(
+              String(surfacedWorklistRows.length)
+            )}</button>
+            <div class="cco-next-final-header-control-cluster">
+              <div class="cco-next-final-header-toggle-group" aria-label="Visningskontroller">
+                <button
+                  type="button"
+                  class="cco-next-final-segment-button${finalThemeMode === 'light' ? ' is-active' : ''}"
+                  data-cco-next-theme-value="light"
+                  aria-label="Ljust tema"
+                  title="Ljust tema"
+                >${renderFinalShellIcon('sun', 'is-utility')}</button>
+                <button
+                  type="button"
+                  class="cco-next-final-segment-button${finalThemeMode === 'dark' ? ' is-active' : ''}"
+                  data-cco-next-theme-value="dark"
+                  aria-label="Mörkt tema"
+                  title="Mörkt tema"
+                >${renderFinalShellIcon('moon', 'is-utility')}</button>
+                <button
+                  type="button"
+                  class="cco-next-final-segment-button${finalThemeMode === 'system' ? ' is-active' : ''}"
+                  data-cco-next-theme-value="system"
+                  aria-label="Systemtema"
+                  title="Systemtema"
+                >${renderFinalShellIcon('monitor', 'is-utility')}</button>
+              </div>
+              <button
+                type="button"
+                class="cco-next-final-icon-button"
+                data-cco-next-toggle-language="true"
+                aria-label="Byt språk"
+                title="Byt språk"
+              >${renderFinalShellIcon('globe', 'is-button')}</button>
+              <button
+                type="button"
+                class="cco-next-final-icon-button"
+                data-cco-next-utility="notifications"
+                aria-label="Notifikationer"
+                title="Notifikationer"
+              >${renderFinalShellIcon('bell', 'is-button')}<span class="cco-next-final-notification-dot"></span></button>
+              <button
+                type="button"
+                class="cco-next-final-icon-button is-notes"
+                data-cco-next-utility="notes"
+                aria-label="Alla anteckningar"
+                title="Alla anteckningar"
+              >${renderFinalShellIcon('file', 'is-button')}</button>
+              <button
+                type="button"
+                class="cco-next-final-icon-button is-profile"
+                data-cco-next-utility="profile"
+                aria-label="Profil"
+                title="Profil"
+              >${
+                finalShellProfileImage
+                  ? `<img class="cco-next-final-profile-image" src="${escapeHtml(finalShellProfileImage)}" alt="" />`
+                  : escapeHtml(
+                      buildInitials(
+                        state.profile?.name ||
+                          state.profile?.displayName ||
+                          state.profile?.user?.name ||
+                          state.profile?.user?.displayName ||
+                          'CCO'
+                      )
+                    )
+              }</button>
+            </div>
+          </div>
+        </header>
+
+        <nav class="cco-next-final-nav" aria-label="Huvudnavigation">
+          ${navItems
+            .map(
+              (entry) => `<button
+                type="button"
+                class="cco-next-final-tab${entry.active ? ' is-active' : ''}"
+                data-cco-next-nav="${escapeHtml(String(entry.id || ''))}"
+              ><span class="cco-next-final-tab-content"><span class="cco-next-final-tab-icon">${renderFinalShellIcon(
+                String(entry.icon || 'more'),
+                'is-tab'
+              )}</span><span class="cco-next-final-tab-label">${escapeHtml(
+                String(entry.label || 'Navigation')
+              )}</span></span></button>`
+            )
+            .join('')}
+          <div class="cco-next-final-mailbox-shell">
+            <button
+              type="button"
+              class="cco-next-final-tab${showMoreMenu ? ' is-active' : ''}"
+              data-cco-next-toggle-more="true"
+            ><span class="cco-next-final-tab-content"><span class="cco-next-final-tab-icon">${renderFinalShellIcon(
+              'more',
+              'is-tab'
+            )}</span><span class="cco-next-final-tab-label">Mer</span></span></button>
+            ${
+              showMoreMenu
+                ? `<div class="cco-next-final-mailbox-menu">
+                    <div class="cco-next-final-mailbox-menu-head">Fler ytor</div>
+                    ${moreItems
+                      .map(
+                        (entry) => `<button
+                          type="button"
+                          class="cco-next-final-mailbox-option"
+                          data-cco-next-nav="${escapeHtml(String(entry.id || ''))}"
+                        >${escapeHtml(String(entry.label || 'Mer'))}</button>`
+                      )
+                      .join('')}
+                  </div>`
+                : ''
+            }
+          </div>
+        </nav>
+
+        <div class="cco-next-final-mailbar">
+          <div class="cco-next-final-mailbox-shell" data-cco-next-final-mailbox-shell="true">
+            <button
+              type="button"
+              class="cco-next-final-chip-button"
+              data-cco-next-toggle-mailboxes="true"
+            >
+              ${escapeHtml(mailboxButtonLabel)}
+              <span class="cco-next-final-chevron">${renderFinalShellIcon(
+                showMailboxMenu ? 'chevron-up' : 'chevron-down',
+                'is-chevron'
+              )}</span>
+            </button>
+            ${
+              showMailboxMenu
+                ? `<div class="cco-next-final-mailbox-menu">
+                    <div class="cco-next-final-mailbox-menu-head">Välj mailboxar</div>
+                    ${mailboxCatalog.map(renderMailboxOption).join('')}
+                  </div>`
+                : ''
+            }
+          </div>
+          <button
+            type="button"
+            class="cco-next-final-button${ownerViewActive ? ' is-active' : ''}"
+            data-cco-next-owner-view="true"
+          >
+            ${ownerViewActive ? 'Beslutsvy' : 'Ägarvy'}
+            <span class="cco-next-final-chevron">${renderFinalShellIcon('chevron-down', 'is-chevron')}</span>
+          </button>
+          <span class="cco-next-final-statusline">${escapeHtml(
+            `${previewActionCounts.unowned} oägda · ${previewActionCounts.risk} hög risk · vecka ${formatPreviewDateTime(
+              previewSeed.lastSyncAt
+            )}`
+          )}</span>
+        </div>
+
+        <div class="cco-next-final-workspace">
+          <aside class="cco-next-final-panel is-left">
+            <header class="cco-next-final-left-head">
+              <h2 class="cco-next-final-worklist-title">WORKLIST <span>(${escapeHtml(
+                String(surfacedWorklistRows.length)
+              )})</span></h2>
+            </header>
+            ${
+              selectionMode && selectedCount > 0
+                ? `<div class="cco-next-final-bulkbar">
+                    <div>
+                      <strong>${escapeHtml(String(selectedCount))} markerade</strong>
+                      <span>Bulk-hantering är aktiv men ligger sekundärt i den nya shellen.</span>
+                    </div>
+                    <div class="cco-next-final-bulk-actions">
+                      <button type="button" class="cco-next-final-button" data-cco-next-select-all="visible">${
+                        allVisibleSelected ? 'Alla valda' : 'Välj alla'
+                      }</button>
+                      <button type="button" class="cco-next-final-button" data-cco-next-clear-selection="true">Rensa</button>
+                      <button type="button" class="cco-next-final-button" data-cco-next-bulk-action="assign_self">Tilldela mig</button>
+                      <button type="button" class="cco-next-final-button" data-cco-next-bulk-action="mark_handled">Markera hanterad</button>
+                    </div>
+                  </div>`
+                : ''
+            }
+            <div class="cco-next-final-worklist-body">
+              ${
+                surfacedWorklistRows.length
+                  ? getCcoNextPreviewFinalCategoryDefinitions().map(renderCategory).join('')
+                  : '<div class="cco-next-final-empty">Inga trådar matchar vald mailboxkombination.</div>'
+              }
+            </div>
+          </aside>
+
+          <main class="cco-next-final-panel is-center">
+            <header class="cco-next-final-center-head">
+              <div>
+                <h1 class="cco-next-final-center-title">${escapeHtml(
+                  String(selectedConversation?.subject || 'Ingen konversation vald')
+                )}</h1>
+              </div>
+              <button type="button" class="cco-next-final-thread-menu is-top" aria-label="Fler alternativ">${renderFinalShellIcon(
+                'more',
+                'is-button'
+              )}</button>
+            </header>
+            <div class="cco-next-final-center-scroll">
+              ${
+                selectedConversation
+                  ? `
+                    <div class="cco-next-final-tabs" role="tablist" aria-label="Mittpanel">
+                      <button type="button" class="${centerTab === 'conversation' ? 'is-active' : ''}" data-cco-next-center-tab="conversation">Konversation</button>
+                      <button type="button" class="${centerTab === 'customer' ? 'is-active' : ''}" data-cco-next-center-tab="customer">Kundhistorik</button>
+                      <button type="button" class="${centerTab === 'history' ? 'is-active' : ''}" data-cco-next-center-tab="history">Historik</button>
+                      <button type="button" class="${centerTab === 'notes' ? 'is-active' : ''}" data-cco-next-center-tab="notes">Anteckningar</button>
+                    </div>
+                  `
+                  : ''
+              }
+              ${renderCenterConversation()}
+            </div>
+          </main>
+
+          <aside class="cco-next-final-right-pane">
+            <section class="cco-next-final-right-surface">
+              <header class="cco-next-final-ci-head">
+                <span class="cco-next-final-panel-eyebrow">KUNDINTELLIGENS</span>
+                <button type="button" class="cco-next-final-collapse-button" data-cco-next-toggle-ci-collapse="true" aria-label="${
+                  ciHeaderCollapsed ? 'Expandera kundhuvud' : 'Fäll kundhuvud'
+                }">${renderFinalShellIcon(
+                  ciHeaderCollapsed ? 'chevron-down' : 'chevron-up',
+                  'is-mini'
+                )}</button>
+              </header>
+              <div class="cco-next-final-ci-scroll">
+              ${
+                selectedConversation
+                  ? `
+                      ${
+                        ciHeaderCollapsed
+                          ? ''
+                          : `
+                      <div class="cco-next-final-customer-head">
+                        <span class="cco-next-final-avatar">${escapeHtml(
+                          buildInitials(selectedConversation.sender || 'K')
+                        )}</span>
+                        <div>
+                          <h3 class="cco-next-final-customer-name">${escapeHtml(
+                            String(selectedConversation.sender || 'Okänd kund')
+                          )}</h3>
+                          <div class="cco-next-final-customer-meta">${escapeHtml(customerMeta)}</div>
+                        </div>
+                      </div>
+
+                      <div class="cco-next-final-info-grid">
+                        <div class="cco-next-final-info-grid-item">
+                          <span>Livscykel</span>
+                          <strong>${escapeHtml(String(selectedConversation.lifecycleStageLabel || '-'))}</strong>
+                        </div>
+                        <div class="cco-next-final-info-grid-item">
+                          <span>Väntar på</span>
+                          <strong>${escapeHtml(String(selectedFollowThrough?.waitingLabel || selectedConversation.waitingStateLabel || '-'))}</strong>
+                        </div>
+                        <div class="cco-next-final-info-grid-item">
+                          <span>Ägare</span>
+                          <strong>${escapeHtml(String(selectedFollowThrough?.ownerLabel || selectedConversation.ownerDisplay || '-'))}</strong>
+                        </div>
+                        <div class="cco-next-final-info-grid-item is-info">
+                          <span>Uppföljning</span>
+                          <strong>${escapeHtml(String(selectedFollowThrough?.followUpLabel || selectedConversation.followUpDeadline || '-'))}</strong>
+                        </div>
+                        <div class="cco-next-final-info-grid-item is-success">
+                          <span>Status</span>
+                          <strong>${escapeHtml(String(selectedFollowThrough?.bookingLabel || selectedConversation.bookingReadinessLabel || '-'))}</strong>
+                        </div>
+                        <div class="cco-next-final-info-grid-item is-warn">
+                          <span>Risk</span>
+                          <strong>${escapeHtml(
+                            String(selectedConversation.escalationLabel || '-')
+                              .replace(/^Bevaka risk$/i, 'Bevaka')
+                              .trim() || '-'
+                          )}</strong>
+                        </div>
+                      </div>
+                      `
+                      }
+
+                      <section class="cco-next-final-focus-panel">
+                        <button type="button" class="cco-next-final-focus-toggle" data-cco-next-toggle-ci-focus="true">
+                          <span class="cco-next-final-focus-title">${renderFinalShellIcon('zap', 'is-mini')}Varför i fokus</span>
+                          <span class="cco-next-final-chevron">${renderFinalShellIcon(
+                            ciFocusCollapsed ? 'chevron-right' : 'chevron-down',
+                            'is-mini'
+                          )}</span>
+                        </button>
+                        ${
+                          ciFocusCollapsed
+                            ? ''
+                            : `<div class="cco-next-final-focus-copy"><p>${escapeHtml(
+                                `${whyInFocusTitle} ${whyInFocusBody}`.trim()
+                              )}</p></div>`
+                        }
+                      </section>
+
+                      <div class="cco-next-final-tabs" role="tablist" aria-label="Kundintelligens">
+                        <button type="button" class="${sidebarTab === 'overview' ? 'is-active' : ''}" data-cco-next-sidebar-tab="overview">Översikt</button>
+                        <button type="button" class="${sidebarTab === 'ai' ? 'is-active' : ''}" data-cco-next-sidebar-tab="ai">AI</button>
+                        <button type="button" class="${sidebarTab === 'medical' ? 'is-active' : ''}" data-cco-next-sidebar-tab="medical">Medicin</button>
+                        <button type="button" class="${sidebarTab === 'team' ? 'is-active' : ''}" data-cco-next-sidebar-tab="team">Team</button>
+                      </div>
+
+                      <div class="cco-next-final-ci-stack">
+                        ${sidebarTab === 'overview' ? overviewInsightCards : rightPanelCards
+                            .map((entry) => renderCiCard(entry))
+                            .join('')}
+                      </div>
+                    `
+                    : '<div class="cco-next-final-empty">Ingen kund vald ännu.</div>'
+                }
+              </div>
+            </section>
+          </aside>
+        </div>
+        ${renderStudioOverlay()}
+        ${commandPaletteMarkup}
+      </div>
+    `;
+    persistCcoWorkspaceSessionState();
   }
 
   function renderCcoSearchMeta(meta = null) {
@@ -11969,6 +25594,11 @@
     renderCcoSearchMeta(filteredResult.meta);
     renderCcoDensityFilterRow();
     renderCcoMailViewModeToggle();
+    if (els.ccoUtilitySprintBtn) {
+      const sprintActive = state.ccoSprintActive === true && state.ccoSprintQueueIds.length > 0;
+      els.ccoUtilitySprintBtn.textContent = sprintActive ? 'Avsluta sprint' : 'Sprint';
+      els.ccoUtilitySprintBtn.setAttribute('aria-pressed', sprintActive ? 'true' : 'false');
+    }
     if (mailViewMode === 'queue') {
       renderCcoIndicatorFilterRow(filteredRows);
     }
@@ -12665,10 +26295,9 @@
 
   function renderCcoReplyModeState() {
     const readOnlyMode = isCcoReadOnlyMailViewMode();
-    const isEmpty = els.ccoReplyColumn?.classList.contains('is-empty') === true;
+    const isEmpty = els.ccoReplyEmptyState ? els.ccoReplyEmptyState.hidden === false : false;
     if (els.ccoReplyColumn) {
-      els.ccoReplyColumn.classList.toggle('is-readonly', readOnlyMode);
-      els.ccoReplyColumn.classList.toggle('is-compose', !readOnlyMode);
+      els.ccoReplyColumn.classList.remove('is-readonly', 'is-compose', 'is-empty');
       els.ccoReplyColumn.dataset.ccoReplyState = isEmpty ? 'empty' : readOnlyMode ? 'readonly' : 'compose';
     }
     if (els.ccoReplyColumnTitle) {
@@ -12716,15 +26345,15 @@
     if (els.ccoHistoryCollapseBtn) {
       els.ccoHistoryCollapseBtn.hidden = readOnlyMode;
       els.ccoHistoryCollapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-      els.ccoHistoryCollapseBtn.textContent = collapsed ? 'Visa' : 'Dölj';
-      els.ccoHistoryCollapseBtn.title = collapsed ? 'Visa historik' : 'Fäll ihop historik';
+      els.ccoHistoryCollapseBtn.textContent = collapsed ? 'Visa äldre' : 'Dölj äldre';
+      els.ccoHistoryCollapseBtn.title = collapsed ? 'Visa äldre meddelanden' : 'Dölj äldre meddelanden';
     }
   }
 
   function getCcoReplyEmptyMessage({ readOnlyMode = false } = {}) {
     const explicitMessage = String(state.ccoReplyEmptyMessage || '').trim();
     if (explicitMessage) return explicitMessage;
-    if (els.ccoCenterColumn?.classList.contains('is-empty')) {
+    if (els.ccoCenterEmptyState ? els.ccoCenterEmptyState.hidden === false : false) {
       const centerMessage = String(els.ccoCenterEmptyStateMeta?.textContent || '').trim();
       if (centerMessage) return centerMessage;
     }
@@ -12737,7 +26366,7 @@
     const readOnlyMode = isCcoReadOnlyMailViewMode();
     renderCcoReplyModeState();
     if (els.ccoReplyColumn) {
-      els.ccoReplyColumn.classList.toggle('is-empty', isEmpty === true);
+      els.ccoReplyColumn.classList.remove('is-readonly', 'is-compose', 'is-empty');
       els.ccoReplyColumn.dataset.ccoReplyState = isEmpty === true ? 'empty' : readOnlyMode ? 'readonly' : 'compose';
     }
     if (els.ccoReplyEmptyState) {
@@ -12761,10 +26390,24 @@
       if (els.ccoCenterColumn) {
         els.ccoCenterColumn.classList.remove('is-empty');
       }
+      if (els.ccoCenterEmptyState) {
+        els.ccoCenterEmptyState.hidden = true;
+      }
+      const worklistBlock = els.ccoCenterColumn?.querySelector('.cco-center-block-worklist');
+      if (worklistBlock) {
+        worklistBlock.hidden = false;
+      }
       return;
     }
     if (els.ccoCenterColumn) {
-      els.ccoCenterColumn.classList.toggle('is-empty', isEmpty === true);
+      els.ccoCenterColumn.classList.remove('is-empty');
+    }
+    if (els.ccoCenterEmptyState) {
+      els.ccoCenterEmptyState.hidden = isEmpty !== true;
+    }
+    const worklistBlock = els.ccoCenterColumn?.querySelector('.cco-center-block-worklist');
+    if (worklistBlock) {
+      worklistBlock.hidden = isEmpty === true;
     }
     if (els.ccoCenterEmptyStateMeta) {
       els.ccoCenterEmptyStateMeta.textContent =
@@ -12875,6 +26518,7 @@
       renderCcoCustomerSummary(null);
       renderCcoReplyContext(null);
       renderCcoStatusSummary(null, null, { readOnlyMode });
+      renderCcoSidebar(null, null);
       applyCcoSnoozeButtonState();
       return;
     }
@@ -12975,6 +26619,7 @@
     renderCcoCustomerSummary(conversation);
     renderCcoReplyContext(conversation);
     renderCcoStatusSummary(conversation, evaluation, { readOnlyMode });
+    renderCcoSidebar(conversation, evaluation);
     restoreCcoConversationScroll(conversation.conversationId);
   }
 
@@ -13064,6 +26709,67 @@
     }
     syncCcoSignatureSelectors();
     renderCcoSignaturePreview();
+    if (isCcoNextWorkspaceActive()) {
+      if (!data) {
+        state.ccoAutoSwitchToInboundPending = false;
+        state.ccoInboxLastSyncAt = '';
+        state.ccoDraftEvaluationByConversationId = {};
+        state.ccoSprintActive = false;
+        state.ccoSprintQueueIds = [];
+        state.ccoSprintCompletedIds = [];
+        state.ccoSprintLabelByConversationId = {};
+        state.ccoSprintInitialTotal = 0;
+        state.ccoSprintId = '';
+        state.ccoSprintStartedAtMs = 0;
+        state.ccoSprintMetrics = null;
+        state.ccoSprintLatestFeedback = null;
+        state.ccoUsageAnalytics = null;
+        state.ccoRedFlagState = null;
+        state.ccoAdaptiveFocusState = null;
+        state.ccoRecoveryState = null;
+        state.ccoStrategicInsights = null;
+        state.ccoAdaptiveFocusShowAll = false;
+        state.ccoFocusWorkloadMinutes = 0;
+        renderCcoNextPreview();
+        return;
+      }
+
+      state.ccoInboxLastSyncAt = String(data.generatedAt || metadata.generatedAt || '').trim();
+      const sortedRows = getSortedCcoConversations(data)
+        .map((row) => enrichCcoConversationRow(row))
+        .filter((row) => isCcoAllowedMailboxRow(row));
+      const openRows = sortedRows.filter(
+        (row) => String(row?.needsReplyStatus || '').trim() !== 'handled'
+      );
+      const unansweredRows = openRows.filter((row) => row.isUnanswered === true);
+      const plannedRows = buildCcoSprintQueueRows(unansweredRows);
+      syncCcoSprintState(unansweredRows, plannedRows);
+      const validConversationIds = new Set(sortedRows.map((row) => String(row.conversationId || '').trim()));
+      const nextEvaluations = {};
+      for (const [conversationId, evaluation] of Object.entries(
+        state.ccoDraftEvaluationByConversationId || {}
+      )) {
+        if (!validConversationIds.has(String(conversationId || '').trim())) continue;
+        nextEvaluations[conversationId] = evaluation;
+      }
+      state.ccoDraftEvaluationByConversationId = nextEvaluations;
+      const previewRows = getCcoNextPreviewRows(state.ccoNextPreviewSearchQuery).rows;
+      const previewSelectedStillExists = previewRows.some(
+        (row) => String(row?.conversationId || '').trim() === String(state.ccoNextPreviewSelectedConversationId || '').trim()
+      );
+      if (!previewSelectedStillExists) {
+        const store = ensureCcoNextPreviewBackboneStore();
+        if (store && previewRows[0]?.conversationId) {
+          store.selectThread(String(previewRows[0].conversationId || '').trim());
+          syncCcoNextPreviewBackboneToState();
+        } else {
+          state.ccoNextPreviewSelectedConversationId = String(previewRows[0]?.conversationId || '').trim();
+        }
+      }
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
     if (!data) {
       state.ccoAutoSwitchToInboundPending = false;
       state.ccoInboxLastSyncAt = '';
@@ -13132,6 +26838,7 @@
         'Inga konversationer i kö.'
       );
       renderIncidentIntelligenceList(els.ccoInboxDraftsList, [], 'Inga utkast än.');
+      renderCcoNextPreview();
       return;
     }
 
@@ -13261,6 +26968,7 @@
         .map((item) => `${item.subject} · konfidens ${formatCcoConfidenceLabel(item.confidenceLevel || 'Low')}`),
       'Inga utkast än.'
     );
+    renderCcoNextPreview();
   }
 
   async function loadCcoInboxBrief({ quiet = true } = {}) {
@@ -15439,6 +29147,7 @@
   }
 
   function logout() {
+    resetCcoNextPreviewBackboneStore();
     stopDashboardStream();
     clearCcoAutoRefreshTimer();
     state.ccoLastSeenAtMs = Date.now();
@@ -15472,6 +29181,31 @@
     state.ccoInboxShowSystemMessages = false;
     state.ccoCenterReadTab = 'conversation';
     state.ccoSelectedConversationId = '';
+    state.ccoNextPreviewSearchQuery = '';
+    state.ccoNextPreviewScenario = 'all';
+    state.ccoNextPreviewSelectedConversationId = '';
+    state.ccoNextPreviewCenterTab = 'conversation';
+    state.ccoNextPreviewSidebarTab = 'overview';
+    state.ccoNextPreviewHistoryCollapsed = true;
+    state.ccoNextPreviewSavedView = 'all';
+    state.ccoNextPreviewFollowUpFilter = 'all';
+    state.ccoNextPreviewWorklistDensity = 'regular';
+    state.ccoNextPreviewDisclosureMode = 'progressive';
+    state.ccoNextPreviewSelectionMode = false;
+    state.ccoNextPreviewSelectedRowIds = [];
+    state.ccoNextPreviewFinalMailboxIds = [];
+    state.ccoNextPreviewFinalExpandedCategories = ['all'];
+      state.ccoNextPreviewFinalTheme = 'system';
+    state.ccoNextPreviewFinalOwnerView = false;
+    state.ccoNextPreviewFinalCiCollapsed = false;
+    state.ccoNextPreviewFinalCiFocusCollapsed = false;
+    state.ccoNextPreviewFinalCiTrendsCollapsed = false;
+    state.ccoNextPreviewFinalCiCommCollapsed = false;
+    state.ccoNextPreviewFinalCiAiCollapsed = false;
+    state.ccoNextPreviewFinalMailboxMenuOpen = false;
+    state.ccoNextPreviewFinalMoreMenuOpen = false;
+    state.ccoNextPreviewDraftByConversationId = {};
+    state.ccoNextPreviewThreadStateByConversationId = {};
     state.ccoDraftOverrideByConversationId = {};
     state.ccoDraftModeByConversationId = {};
     state.ccoSystemMessageByConversationId = {};
@@ -15701,7 +29435,7 @@
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        error.message || 'Kunde inte läsa skrivprofiler.',
         true
       );
     });
@@ -15722,7 +29456,7 @@
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
       setStatus(
         els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa Writing Identity-profiler.',
+        error.message || 'Kunde inte läsa skrivprofiler.',
         true
       );
     });
@@ -15992,6 +29726,29 @@
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
     });
   });
+  els.ccoUtilitySprintBtn?.addEventListener('click', () => {
+    startCcoSprint().catch((error) => {
+      setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera fokus.', true);
+    });
+  });
+  els.ccoUtilityAdvancedSearchBtn?.addEventListener('click', () => {
+    openCcoAdvancedSearchModal();
+  });
+  els.ccoUtilityStatsBtn?.addEventListener('click', () => {
+    openCcoStatsModal();
+  });
+  els.ccoUtilityShortcutsBtn?.addEventListener('click', () => {
+    openCcoKeyboardShortcutsModal();
+  });
+  els.ccoUtilityNotificationsBtn?.addEventListener('click', () => {
+    pushToast('Inga nya notifieringar i detta pass.', { title: 'CCO', tone: 'success' });
+  });
+  els.ccoUtilityProfileBtn?.addEventListener('click', () => {
+    pushToast('Profilpanelen återanvänder befintlig adminprofil i detta pass.', {
+      title: 'CCO',
+      tone: 'success',
+    });
+  });
   els.ccoCenterRefreshBtn?.addEventListener('click', () => {
     runCcoInboxBrief().catch((error) => {
       setStatus(els.ccoInboxStatus, error.message || 'Kunde inte uppdatera inkorgen.', true);
@@ -16140,6 +29897,14 @@
     state.ccoInboxSearchQuery = sanitizeCcoSearchQuery(els.ccoInboxSearchInput?.value || '');
     persistCcoWorkspaceSessionState();
     renderCcoInbox(state.ccoInboxData);
+  });
+  els.ccoInboxSearchInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    state.ccoInboxSearchQuery = sanitizeCcoSearchQuery(els.ccoInboxSearchInput?.value || '');
+    persistCcoWorkspaceSessionState();
+    renderCcoInbox(state.ccoInboxData);
+    setStatus(els.ccoInboxStatus, state.ccoInboxSearchQuery ? 'Sökning uppdaterad.' : 'Sökningen rensad.');
   });
   els.ccoInboxShowSystemToggle?.addEventListener('change', () => {
     state.ccoInboxShowSystemMessages = sanitizeCcoShowSystemMessages(
@@ -16357,6 +30122,835 @@
   });
   els.ccoCenterTabCustomerBtn?.addEventListener('click', () => {
     setCcoCenterReadTab('customer');
+  });
+  els.ccoCenterTabHistoryBtn?.addEventListener('click', () => {
+    setCcoCenterReadTab('history');
+  });
+  els.ccoSidebarTabOverviewBtn?.addEventListener('click', () => {
+    state.ccoSidebarTab = 'overview';
+    renderCcoSidebarTabState();
+  });
+  els.ccoSidebarTabAiBtn?.addEventListener('click', () => {
+    state.ccoSidebarTab = 'ai';
+    renderCcoSidebarTabState();
+  });
+  els.ccoSidebarTabMedicalBtn?.addEventListener('click', () => {
+    state.ccoSidebarTab = 'medical';
+    renderCcoSidebarTabState();
+  });
+  els.ccoSidebarTabTeamBtn?.addEventListener('click', () => {
+    state.ccoSidebarTab = 'team';
+    renderCcoSidebarTabState();
+  });
+  els.ccoQuickBookBtn?.addEventListener('click', () => {
+    setStatus(els.ccoSendStatus, 'Bokningsåtgärd förberedd för vald konversation.');
+  });
+  els.ccoQuickTemplateBtn?.addEventListener('click', () => {
+    setStatus(els.ccoSendStatus, 'Mallar återanvänder befintligt mallbibliotek i nästa pass.');
+  });
+  els.ccoOpenResponseStudioBtn?.addEventListener('click', () => {
+    openCcoResponseStudio();
+  });
+  els.ccoSidebarOpenStudioBtn?.addEventListener('click', () => {
+    openCcoResponseStudio();
+  });
+  els.ccoNextPreviewRoot?.addEventListener('click', (event) => {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    let shellMenuStateChanged = false;
+    const withinMailboxShell = closestFromEventTarget(event, '[data-cco-next-final-mailbox-shell]');
+    const withinMoreShell = closestFromEventTarget(
+      event,
+      '.cco-next-final-nav .cco-next-final-mailbox-shell'
+    );
+    if (state.ccoNextPreviewFinalMailboxMenuOpen === true && !withinMailboxShell) {
+      state.ccoNextPreviewFinalMailboxMenuOpen = false;
+      shellMenuStateChanged = true;
+    }
+    if (state.ccoNextPreviewFinalMoreMenuOpen === true && !withinMoreShell) {
+      state.ccoNextPreviewFinalMoreMenuOpen = false;
+      shellMenuStateChanged = true;
+    }
+
+    const toggleMailboxButton = closestFromEventTarget(event, '[data-cco-next-toggle-mailboxes]');
+    if (toggleMailboxButton) {
+      state.ccoNextPreviewFinalMailboxMenuOpen = state.ccoNextPreviewFinalMailboxMenuOpen !== true;
+      if (state.ccoNextPreviewFinalMailboxMenuOpen) {
+        state.ccoNextPreviewFinalMoreMenuOpen = false;
+      }
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const mailboxButton = closestFromEventTarget(event, '[data-cco-next-final-mailbox]');
+    if (mailboxButton) {
+      const snapshot = store.getSnapshot();
+      const previewRows = Array.isArray(snapshot?.rows) ? snapshot.rows : [];
+      const currentMailboxIds = getCcoNextPreviewFinalSelectedMailboxIds(previewRows);
+      const mailboxId = normalizeCcoNextPreviewFinalMailboxId(
+        mailboxButton.getAttribute('data-cco-next-final-mailbox') || ''
+      );
+      if (!mailboxId) return;
+      let nextMailboxIds = currentMailboxIds.includes(mailboxId)
+        ? currentMailboxIds.filter((entry) => entry !== mailboxId)
+        : [...currentMailboxIds, mailboxId];
+      if (!nextMailboxIds.length) {
+        nextMailboxIds = currentMailboxIds;
+      }
+      state.ccoNextPreviewFinalMailboxIds = nextMailboxIds;
+      state.ccoNextPreviewFinalMailboxMenuOpen = true;
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const categoryToggleButton = closestFromEventTarget(
+      event,
+      '[data-cco-next-final-category-toggle]'
+    );
+    if (categoryToggleButton) {
+      const categoryId = String(
+        categoryToggleButton.getAttribute('data-cco-next-final-category-toggle') || ''
+      )
+        .trim()
+        .toLowerCase();
+      const availableCategoryIds = getCcoNextPreviewFinalCategoryDefinitions().map(
+        (entry) => entry.id
+      );
+      if (!availableCategoryIds.includes(categoryId)) return;
+      const currentDisclosureMode = sanitizeCcoNextPreviewDisclosureMode(
+        store.getSnapshot()?.disclosureMode || state.ccoNextPreviewDisclosureMode || 'progressive'
+      );
+      if (currentDisclosureMode === 'expanded') {
+        store.setDisclosureMode('progressive');
+      }
+      const currentExpanded = Array.isArray(state.ccoNextPreviewFinalExpandedCategories)
+        ? state.ccoNextPreviewFinalExpandedCategories
+        : ['all'];
+      let nextExpanded = currentExpanded.includes(categoryId)
+        ? currentExpanded.filter((entry) => entry !== categoryId)
+        : [...currentExpanded, categoryId];
+      if (!nextExpanded.length) {
+        nextExpanded = ['all'];
+      }
+      state.ccoNextPreviewFinalExpandedCategories = Array.from(
+        new Set(
+          nextExpanded
+            .map((entry) => String(entry || '').trim().toLowerCase())
+            .filter((entry) => availableCategoryIds.includes(entry))
+        )
+      );
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const themeToggleButton = closestFromEventTarget(event, '[data-cco-next-theme-value]');
+    if (themeToggleButton) {
+      state.ccoNextPreviewFinalTheme = sanitizeCcoNextPreviewFinalTheme(
+        themeToggleButton.getAttribute('data-cco-next-theme-value') || 'system'
+      );
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const languageToggleButton = closestFromEventTarget(event, '[data-cco-next-toggle-language]');
+    if (languageToggleButton) {
+      setLanguage(isEnglishLanguage() ? 'sv' : 'en');
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const utilityButton = closestFromEventTarget(event, '[data-cco-next-utility]');
+    if (utilityButton) {
+      const utility = String(utilityButton.getAttribute('data-cco-next-utility') || '')
+        .trim()
+        .toLowerCase();
+      if (utility === 'settings') {
+        openCcoKeyboardShortcutsModal();
+      } else if (utility === 'notifications') {
+        openCcoNextFinalNotificationsModal();
+      } else if (utility === 'notes') {
+        openCcoNextFinalNotesModal('all');
+      } else if (utility === 'profile') {
+        openCcoNextFinalProfileModal();
+      }
+      if (shellMenuStateChanged) {
+        persistCcoWorkspaceSessionState();
+        renderCcoNextPreview();
+      }
+      return;
+    }
+
+    const toggleMoreButton = closestFromEventTarget(event, '[data-cco-next-toggle-more]');
+    if (toggleMoreButton) {
+      state.ccoNextPreviewFinalMoreMenuOpen = state.ccoNextPreviewFinalMoreMenuOpen !== true;
+      if (state.ccoNextPreviewFinalMoreMenuOpen) {
+        state.ccoNextPreviewFinalMailboxMenuOpen = false;
+      }
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const navButton = closestFromEventTarget(event, '[data-cco-next-nav]');
+    if (navButton) {
+      const navId = String(navButton.getAttribute('data-cco-next-nav') || '')
+        .trim()
+        .toLowerCase();
+      if (navId === 'analytics') {
+        openCcoStatsModal();
+      } else if (navId && navId !== 'conversations') {
+        pushToast('Den här ytan finns med i shellen men aktiveras i ett senare plattformspass.', {
+          title: 'CCO Next',
+          tone: 'info',
+        });
+      }
+      if (shellMenuStateChanged || state.ccoNextPreviewFinalMoreMenuOpen) {
+        state.ccoNextPreviewFinalMoreMenuOpen = false;
+        persistCcoWorkspaceSessionState();
+        renderCcoNextPreview();
+      }
+      return;
+    }
+
+    const ownerViewButton = closestFromEventTarget(event, '[data-cco-next-owner-view]');
+    if (ownerViewButton) {
+      state.ccoNextPreviewFinalOwnerView = state.ccoNextPreviewFinalOwnerView !== true;
+      state.ccoNextPreviewFinalExpandedCategories = ['all'];
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const ciCollapseButton = closestFromEventTarget(event, '[data-cco-next-toggle-ci-collapse]');
+    if (ciCollapseButton) {
+      state.ccoNextPreviewFinalCiCollapsed = state.ccoNextPreviewFinalCiCollapsed !== true;
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const ciFocusButton = closestFromEventTarget(event, '[data-cco-next-toggle-ci-focus]');
+    if (ciFocusButton) {
+      state.ccoNextPreviewFinalCiFocusCollapsed =
+        state.ccoNextPreviewFinalCiFocusCollapsed !== true;
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const ciSectionButton = closestFromEventTarget(event, '[data-cco-next-toggle-ci-section]');
+    if (ciSectionButton) {
+      const sectionId = String(
+        ciSectionButton.getAttribute('data-cco-next-toggle-ci-section') || ''
+      )
+        .trim()
+        .toLowerCase();
+      if (sectionId === 'trends') {
+        state.ccoNextPreviewFinalCiTrendsCollapsed =
+          state.ccoNextPreviewFinalCiTrendsCollapsed !== true;
+      } else if (sectionId === 'communication') {
+        state.ccoNextPreviewFinalCiCommCollapsed =
+          state.ccoNextPreviewFinalCiCommCollapsed !== true;
+      } else if (sectionId === 'ai') {
+        state.ccoNextPreviewFinalCiAiCollapsed =
+          state.ccoNextPreviewFinalCiAiCollapsed !== true;
+      }
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const commandCloseButton = closestFromEventTarget(event, '[data-cco-next-command-close]');
+    if (commandCloseButton) {
+      closeCcoNextCommandPalette();
+      return;
+    }
+
+    const commandRunButton = closestFromEventTarget(event, '[data-cco-next-command-run]');
+    if (commandRunButton) {
+      runCcoNextCommandPaletteCommand(
+        commandRunButton.getAttribute('data-cco-next-command-run') || ''
+      );
+      return;
+    }
+
+    const selectionModeButton = closestFromEventTarget(event, '[data-cco-next-selection-mode]');
+    if (selectionModeButton) {
+      const nextMode = String(selectionModeButton.getAttribute('data-cco-next-selection-mode') || '').trim().toLowerCase();
+      store.toggleSelectionMode(nextMode === 'on');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const selectAllButton = closestFromEventTarget(event, '[data-cco-next-select-all]');
+    if (selectAllButton) {
+      store.selectAllVisible();
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const clearSelectionButton = closestFromEventTarget(event, '[data-cco-next-clear-selection]');
+    if (clearSelectionButton) {
+      store.clearSelectedRows();
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const savedViewButton = closestFromEventTarget(event, '[data-cco-next-saved-view]');
+    if (savedViewButton) {
+      store.setSavedView(savedViewButton.getAttribute('data-cco-next-saved-view') || 'all');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const followUpFilterButton = closestFromEventTarget(event, '[data-cco-next-follow-up-filter]');
+    if (followUpFilterButton) {
+      store.setFollowUpFilter(
+        followUpFilterButton.getAttribute('data-cco-next-follow-up-filter') || 'all'
+      );
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const densityButton = closestFromEventTarget(event, '[data-cco-next-density]');
+    if (densityButton) {
+      store.setWorklistDensity(densityButton.getAttribute('data-cco-next-density') || 'regular');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const disclosureButton = closestFromEventTarget(event, '[data-cco-next-disclosure]');
+    if (disclosureButton) {
+      store.setDisclosureMode(
+        disclosureButton.getAttribute('data-cco-next-disclosure') || 'progressive'
+      );
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const toggleSelectButton = closestFromEventTarget(event, '[data-cco-next-toggle-select]');
+    if (toggleSelectButton) {
+      const conversationId = String(toggleSelectButton.getAttribute('data-cco-next-toggle-select') || '').trim();
+      if (!conversationId) return;
+      store.toggleRowSelection(conversationId);
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const bulkActionButton = closestFromEventTarget(event, '[data-cco-next-bulk-action]');
+    if (bulkActionButton) {
+      const result = store.applyBulkAction(
+        bulkActionButton.getAttribute('data-cco-next-bulk-action') || ''
+      );
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      if (result?.toast) {
+        pushToast(result.toast.message, {
+          title: result.toast.title || 'CCO Next',
+          tone: result.toast.tone || 'info',
+        });
+      }
+      return;
+    }
+
+    const threadButton = closestFromEventTarget(event, '[data-cco-next-thread]');
+    if (threadButton) {
+      const conversationId = String(threadButton.getAttribute('data-cco-next-thread') || '').trim();
+      if (!conversationId) return;
+      store.selectThread(conversationId);
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const centerTabButton = closestFromEventTarget(event, '[data-cco-next-center-tab]');
+    if (centerTabButton) {
+      store.setCenterTab(centerTabButton.getAttribute('data-cco-next-center-tab') || 'conversation');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const sidebarTabButton = closestFromEventTarget(event, '[data-cco-next-sidebar-tab]');
+    if (sidebarTabButton) {
+      store.setSidebarTab(sidebarTabButton.getAttribute('data-cco-next-sidebar-tab') || 'overview');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const historyToggleButton = closestFromEventTarget(event, '[data-cco-next-history-toggle]');
+    if (historyToggleButton) {
+      store.toggleHistoryCollapsed();
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const scenarioButton = closestFromEventTarget(event, '[data-cco-next-scenario]');
+    if (scenarioButton) {
+      store.setScenario(scenarioButton.getAttribute('data-cco-next-scenario') || 'all');
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const actionButton = closestFromEventTarget(event, '[data-cco-next-action]');
+    if (!actionButton) {
+      if (shellMenuStateChanged) {
+        persistCcoWorkspaceSessionState();
+        renderCcoNextPreview();
+      }
+      return;
+    }
+    const action = String(actionButton.getAttribute('data-cco-next-action') || '').trim().toLowerCase();
+    if (action === 'refresh') {
+      store.resetPreview();
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      pushToast('Preview återställd till första laddade inboxläget.', { title: 'CCO Next', tone: 'success' });
+      return;
+    }
+    if (action === 'sprint') {
+      store.focusSprint();
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      pushToast('Previewn filtreras nu till de trådar som kräver åtgärd nu.', { title: 'CCO Next', tone: 'info' });
+      return;
+    }
+    if (action === 'advanced-search') {
+      openCcoAdvancedSearchModal();
+      return;
+    }
+    if (action === 'stats') {
+      openCcoStatsModal();
+      return;
+    }
+    if (action === 'shortcuts') {
+      openCcoKeyboardShortcutsModal();
+      return;
+    }
+    if (action === 'open-command-palette') {
+      openCcoNextCommandPalette();
+      return;
+    }
+    if (action === 'open-notes') {
+      openCcoNextFinalNotesModal('current');
+      return;
+    }
+    if (action === 'notes-refresh') {
+      renderCcoNextPreview();
+      pushToast('Anteckningarna är uppdaterade.', { title: 'CCO Next', tone: 'success' });
+      return;
+    }
+    if (action === 'notes-create') {
+      const snapshot = store.getSnapshot();
+      const conversation = snapshot?.selectedConversation || null;
+      const conversationId = String(conversation?.conversationId || '').trim();
+      if (!conversation || !conversationId) {
+        pushToast('Välj en tråd innan du skapar en anteckning.', {
+          title: 'CCO Next',
+          tone: 'warning',
+        });
+        return;
+      }
+      void openAppModal({
+        title: `Ny anteckning för ${conversation.sender || 'kund'}`,
+        message: 'Skriv en kort intern notis som följer tråden.',
+        confirmLabel: 'Spara anteckning',
+        cancelLabel: 'Avbryt',
+        inputMode: 'textarea',
+        inputLabel: 'Anteckning',
+        inputPlaceholder: 'Skriv anteckningen här',
+        allowEmpty: false,
+        closeOnEscape: true,
+        closeOnBackdrop: true,
+      }).then((result) => {
+        if (!result?.confirmed) return;
+        const content = String(result.value || '').trim();
+        if (!content) return;
+        const currentThreadState = getCcoNextPreviewThreadState(conversationId);
+        const existingNotes = Array.isArray(currentThreadState?.previewNotes)
+          ? currentThreadState.previewNotes
+          : [];
+        setCcoNextPreviewThreadState(conversationId, {
+          previewNotes: [
+            {
+              id: `manual-note-${Date.now()}`,
+              category: 'intern',
+              priority: 'medium',
+              title: content.split('\n')[0].trim().slice(0, 72) || 'Anteckning',
+              content,
+              timestamp: getCcoNextPreviewTimestampOffset(0, 0),
+              tags: ['Manuell'],
+            },
+            ...existingNotes,
+          ],
+        });
+        persistCcoWorkspaceSessionState();
+        renderCcoNextPreview();
+        pushToast('Anteckningen är sparad i tråden.', {
+          title: `CCO Next · ${conversation.sender || 'Kund'}`,
+          tone: 'success',
+        });
+      });
+      return;
+    }
+    if (action === 'close-studio-panel') {
+      const snapshot = store.getSnapshot();
+      const conversationId = String(snapshot?.selectedConversation?.conversationId || '').trim();
+      if (!conversationId) return;
+      const currentStudio = snapshot?.selectedConversation?.previewStudio || {};
+      store.updateStudioState(conversationId, {
+        ...currentStudio,
+        isOpen: false,
+        activeDialog: '',
+      });
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+    if (action === 'copy-draft') {
+      const conversation = store.getSnapshot().selectedConversation;
+      const draftBody = conversation ? store.getDraftValueById(String(conversation.conversationId || '').trim()) : '';
+      if (!conversation || !draftBody) {
+        pushToast('Det finns inget utkast att kopiera ännu.', { title: 'CCO Next', tone: 'warning' });
+        return;
+      }
+      const complete = () =>
+        pushToast('Utkastet är kopierat från previewn.', {
+          title: `CCO Next · ${conversation.sender}`,
+          tone: 'success',
+        });
+      const fallback = () =>
+        pushToast('Clipboard är inte tillgänglig här, men utkastet finns kvar i svarsyta.', {
+          title: `CCO Next · ${conversation.sender}`,
+          tone: 'info',
+        });
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard
+          .writeText(draftBody)
+          .then(() => {
+            store.markDraftCopied(String(conversation.conversationId || '').trim());
+            syncCcoNextPreviewBackboneToState();
+            persistCcoWorkspaceSessionState();
+            renderCcoNextPreview();
+            complete();
+          })
+          .catch(fallback);
+      } else {
+        fallback();
+      }
+      return;
+    }
+    const closeStudioButton = closestFromEventTarget(event, '[data-cco-next-close-studio-panel]');
+    if (closeStudioButton) {
+      const snapshot = store.getSnapshot();
+      const conversationId = String(snapshot?.selectedConversation?.conversationId || '').trim();
+      if (!conversationId) return;
+      const currentStudio = snapshot?.selectedConversation?.previewStudio || {};
+      store.updateStudioState(conversationId, {
+        ...currentStudio,
+        isOpen: false,
+        activeDialog: '',
+      });
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+    const result = store.dispatchAction(action);
+    syncCcoNextPreviewBackboneToState();
+    persistCcoWorkspaceSessionState();
+    renderCcoNextPreview();
+    if (result?.modal) {
+      void openAppModal({
+        title: result.modal.title,
+        message: result.modal.message,
+        confirmLabel: 'Stäng',
+        cancelLabel: 'Stäng',
+        closeOnEscape: true,
+        closeOnBackdrop: true,
+      });
+    }
+    if (result?.toast) {
+      pushToast(result.toast.message, {
+        title: result.toast.title || 'CCO Next',
+        tone: result.toast.tone || 'info',
+      });
+    }
+  });
+  els.ccoNextPreviewRoot?.addEventListener('input', (event) => {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    const commandField = closestFromEventTarget(event, '[data-cco-next-command-query]');
+    if (commandField) {
+      store.setCommandQuery(commandField.value || '');
+      syncCcoNextPreviewBackboneToState();
+      renderCcoNextPreview();
+      focusCcoNextCommandPaletteInput();
+      return;
+    }
+    const studioField = closestFromEventTarget(event, '[data-cco-next-studio-field]');
+    if (studioField) {
+      const snapshot = store.getSnapshot();
+      const conversationId = String(snapshot?.selectedConversation?.conversationId || '').trim();
+      if (!conversationId) return;
+      const currentStudio = snapshot?.selectedConversation?.previewStudio || {};
+      const currentDraft = currentStudio?.signatureEditorDraft || {};
+      const fieldName = String(studioField.getAttribute('data-cco-next-studio-field') || '').trim();
+      if (!fieldName) return;
+      const nextDraft = {
+        ...currentDraft,
+      };
+      if (fieldName === 'signature-name') nextDraft.name = String(studioField.value || '');
+      if (fieldName === 'signature-title') nextDraft.title = String(studioField.value || '');
+      if (fieldName === 'signature-greeting') nextDraft.greeting = String(studioField.value || '');
+      if (fieldName === 'signature-email') nextDraft.email = String(studioField.value || '');
+      if (fieldName === 'signature-phone') nextDraft.phone = String(studioField.value || '');
+      if (fieldName === 'signature-contact') nextDraft.contact = String(studioField.value || '');
+      store.updateStudioState(conversationId, {
+        signatureEditorDraft: {
+          id: String(currentDraft.id || currentStudio.selectedSignatureId || 'sara'),
+          ownerKey: String(currentDraft.ownerKey || currentStudio.selectedSignatureId || 'sara'),
+          ...nextDraft,
+        },
+      });
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      return;
+    }
+    const handoffField = closestFromEventTarget(event, '[data-cco-next-handoff-field]');
+    if (handoffField) {
+      const snapshot = store.getSnapshot();
+      const conversationId = String(snapshot?.selectedConversation?.conversationId || '').trim();
+      if (!conversationId) return;
+      const fieldName = String(handoffField.getAttribute('data-cco-next-handoff-field') || '').trim();
+      if (!fieldName) return;
+      if (fieldName === 'target') {
+        store.updateCollaborationState(conversationId, {
+          handoffTarget: String(handoffField.value || ''),
+          handoffRequest:
+            String(snapshot?.selectedConversation?.handoffRequest || '').trim() || 'draft',
+        });
+      }
+      if (fieldName === 'note') {
+        store.updateCollaborationState(conversationId, {
+          handoffNote: String(handoffField.value || ''),
+          handoffRequest:
+            String(snapshot?.selectedConversation?.handoffRequest || '').trim() || 'draft',
+        });
+      }
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      return;
+    }
+    const draftField = closestFromEventTarget(event, '[data-cco-next-draft]');
+    if (!draftField) return;
+    const conversationId = String(draftField.getAttribute('data-cco-next-draft') || '').trim();
+    if (!conversationId) return;
+    store.updateDraft(conversationId, draftField.value || '');
+    syncCcoNextPreviewBackboneToState();
+    persistCcoWorkspaceSessionState();
+  });
+  els.ccoNextPreviewRoot?.addEventListener('keydown', (event) => {
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    const searchField = closestFromEventTarget(event, '[data-cco-next-search]');
+    if (!searchField || event.key !== 'Enter') return;
+    event.preventDefault();
+    const searchValue = String(searchField.value || '').trim();
+    if (!searchValue) {
+      openCcoNextCommandPalette();
+      return;
+    }
+    store.setSearchQuery(searchValue);
+    syncCcoNextPreviewBackboneToState();
+    persistCcoWorkspaceSessionState();
+    renderCcoNextPreview();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!isCcoWorkspaceActive() || isModalOpen()) return;
+    const safeSidebarShortcut = event.altKey && event.shiftKey;
+    if (!safeSidebarShortcut) return;
+    if (event.code === 'Digit1') {
+      event.preventDefault();
+      state.ccoSidebarTab = 'overview';
+      renderCcoSidebarTabState();
+      return;
+    }
+    if (event.code === 'Digit2') {
+      event.preventDefault();
+      state.ccoSidebarTab = 'ai';
+      renderCcoSidebarTabState();
+      return;
+    }
+    if (event.code === 'Digit3') {
+      event.preventDefault();
+      state.ccoSidebarTab = 'medical';
+      renderCcoSidebarTabState();
+      return;
+    }
+    if (event.code === 'Digit4') {
+      event.preventDefault();
+      state.ccoSidebarTab = 'team';
+      renderCcoSidebarTabState();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!isCcoNextWorkspaceActive() || isModalOpen()) return;
+    const store = ensureCcoNextPreviewBackboneStore();
+    if (!store) return;
+    const target = event.target;
+    const isTyping = isTypingIntoInteractiveControl(target);
+    const snapshot = store.getSnapshot();
+    const commandPalette = snapshot?.commandPalette || { isOpen: false, items: [], selectedIndex: 0 };
+
+    if ((event.metaKey || event.ctrlKey) && String(event.key || '').toLowerCase() === 'k') {
+      event.preventDefault();
+      openCcoNextCommandPalette();
+      return;
+    }
+
+    if (commandPalette.isOpen === true) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeCcoNextCommandPalette();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        store.moveCommandSelection(1);
+        syncCcoNextPreviewBackboneToState();
+        renderCcoNextPreview();
+        focusCcoNextCommandPaletteInput();
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        store.moveCommandSelection(-1);
+        syncCcoNextPreviewBackboneToState();
+        renderCcoNextPreview();
+        focusCcoNextCommandPaletteInput();
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        runCcoNextCommandPaletteCommand('');
+        return;
+      }
+    }
+
+    if (!commandPalette.isOpen && !isTyping && (event.key === '?' || (event.shiftKey && event.key === '/'))) {
+      event.preventDefault();
+      openCcoKeyboardShortcutsModal();
+      return;
+    }
+
+    if (!commandPalette.isOpen && event.altKey && event.shiftKey) {
+      const scenarioShortcutMap = {
+        Digit1: 'all',
+        Digit2: 'action_now',
+        Digit3: 'booking_ready',
+        Digit4: 'follow_up_today',
+        Digit5: 'waiting_reply',
+        Digit6: 'medical_review',
+        Digit7: 'admin_low',
+      };
+      const nextScenario = scenarioShortcutMap[event.code];
+      if (nextScenario) {
+        event.preventDefault();
+        store.setScenario(nextScenario);
+        syncCcoNextPreviewBackboneToState();
+        persistCcoWorkspaceSessionState();
+        renderCcoNextPreview();
+        return;
+      }
+    }
+
+    if (isTyping || commandPalette.isOpen) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      store.selectRelativeThread(1);
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      store.selectRelativeThread(-1);
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      return;
+    }
+
+    const quickActionMap = {
+      b: 'book',
+      m: 'template',
+      s: 'open-studio',
+      o: 'take-ownership',
+      l: 'studio-return-later',
+      h: 'studio-mark-handled',
+    };
+    const quickAction = quickActionMap[String(event.key || '').toLowerCase()];
+    if (quickAction) {
+      event.preventDefault();
+      const result = store.dispatchAction(quickAction);
+      syncCcoNextPreviewBackboneToState();
+      persistCcoWorkspaceSessionState();
+      renderCcoNextPreview();
+      if (result?.modal) {
+        void openAppModal({
+          title: result.modal.title,
+          message: result.modal.message,
+          confirmLabel: 'Stäng',
+          cancelLabel: 'Stäng',
+          closeOnEscape: true,
+          closeOnBackdrop: true,
+        });
+      }
+      if (result?.toast) {
+        pushToast(result.toast.message, {
+          title: result.toast.title || 'CCO Next',
+          tone: result.toast.tone || 'info',
+        });
+      }
+    }
   });
   document.addEventListener('click', (event) => {
     if (!els.ccoIndicatorContextMenu?.classList.contains('visible')) return;
@@ -16716,7 +31310,7 @@
     closeAllDrawers();
   });
   window.addEventListener('beforeunload', () => {
-    if (state.activeSectionGroup === 'ccoWorkspaceSection') {
+    if (isCcoSurfaceActive()) {
       state.ccoLastSeenAtMs = Date.now();
       persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
     }
@@ -16728,7 +31322,7 @@
       clearCcoAutoRefreshTimer();
       return;
     }
-    syncCcoAutoRefresh({ immediate: isCcoWorkspaceActive() });
+    syncCcoAutoRefresh({ immediate: isCcoSurfaceActive() });
   });
   mountCcoHeaderNav();
   syncRiskFilterInputs();
@@ -16741,7 +31335,13 @@
     targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
     scroll: false,
   });
-  renderCcoCenterReadTab();
+  if (isCcoWorkspaceActive()) {
+    renderCcoCenterReadTab();
+    renderCcoSidebar(null, null);
+    maybeShowCcoOnboarding();
+  } else if (isCcoNextWorkspaceActive()) {
+    renderCcoNextPreview();
+  }
   renderTonePreview();
   renderTeamSummary([]);
   fillWritingIdentityForm(null);

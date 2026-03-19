@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('node:fs');
 const path = require('node:path');
+const { chromium } = require('playwright');
 
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
@@ -19,6 +20,8 @@ app.use(cors(createCorsPolicy(config)));
 app.use(express.json());
 
 const ADMIN_HTML_PATH = path.join(__dirname, 'public', 'admin.html');
+const CCO_NEXT_UPSTREAM_DIST_DIR = path.join(__dirname, 'vendor', 'cconext-upstream', 'dist');
+const CCO_NEXT_UPSTREAM_HTML_PATH = path.join(CCO_NEXT_UPSTREAM_DIST_DIR, 'index.html');
 const rawAdminHtmlTemplate = fs.readFileSync(ADMIN_HTML_PATH, 'utf8');
 const uiBuildId = String(
   process.env.ARCANA_UI_BUILD_ID ||
@@ -40,6 +43,183 @@ function sendAdminHtml(res) {
   res.type('html').send(renderAdminHtml());
 }
 
+function hasCcoNextUpstreamBuild() {
+  return fs.existsSync(CCO_NEXT_UPSTREAM_HTML_PATH);
+}
+
+function sendCcoNextUpstreamHtml(res) {
+  if (!hasCcoNextUpstreamBuild()) {
+    return sendAdminHtml(res);
+  }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.type('html').send(fs.readFileSync(CCO_NEXT_UPSTREAM_HTML_PATH, 'utf8'));
+}
+
+async function sendStaticPagePdf(
+  req,
+  res,
+  {
+    pagePath,
+    fileName,
+    injectCss = '',
+    media = 'print',
+    viewport = { width: 1280, height: 1800 },
+    pageOptions = {},
+    bodyClass = '',
+    pdfOptions = {},
+    pageSizeFromDocument = false,
+    rasterizePage = false,
+  }
+) {
+  let browser;
+
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport, ...pageOptions });
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const targetUrl = new URL(pagePath, origin);
+
+    await page.goto(targetUrl.toString(), { waitUntil: 'networkidle' });
+    await page.emulateMedia({ media });
+
+    if (bodyClass) {
+      await page.evaluate((className) => {
+        document.body.classList.add(className);
+      }, bodyClass);
+    }
+
+    if (injectCss) {
+      await page.addStyleTag({ content: injectCss });
+    }
+
+    await page.evaluate(async () => {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+    });
+
+    let pageSize = null;
+    if (pageSizeFromDocument || rasterizePage) {
+      pageSize = await page.evaluate(() => ({
+        width: Math.ceil(document.documentElement.scrollWidth),
+        height: Math.ceil(
+          Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight,
+            document.documentElement.offsetHeight,
+            document.body.offsetHeight
+          )
+        ),
+      }));
+    }
+
+    if (rasterizePage) {
+      const screenshotBuffer = await page.screenshot({
+        fullPage: true,
+        type: 'png',
+      });
+      const screenshotData = screenshotBuffer.toString('base64');
+      const pdfPage = await browser.newPage({
+        viewport: {
+          width: pageSize.width,
+          height: Math.min(pageSize.height, 2000),
+        },
+      });
+
+      await pdfPage.setContent(
+        `<!doctype html>
+        <html lang="sv">
+          <head>
+            <meta charset="utf-8">
+            <style>
+              html, body {
+                margin: 0;
+                padding: 0;
+                background: #ffffff;
+              }
+
+              img {
+                display: block;
+                width: ${pageSize.width}px;
+                height: ${pageSize.height}px;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="data:image/png;base64,${screenshotData}" alt="Static page PDF export">
+          </body>
+        </html>`,
+        { waitUntil: 'load' }
+      );
+
+      const pdfBuffer = await pdfPage.pdf({
+        printBackground: true,
+        displayHeaderFooter: false,
+        width: `${pageSize.width}px`,
+        height: `${pageSize.height}px`,
+        margin: {
+          top: '0',
+          right: '0',
+          bottom: '0',
+          left: '0',
+        },
+        ...pdfOptions,
+      });
+
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      return res.send(pdfBuffer);
+    }
+
+    let resolvedPdfOptions = {
+      printBackground: true,
+      displayHeaderFooter: false,
+      margin: {
+        top: '14mm',
+        right: '14mm',
+        bottom: '14mm',
+        left: '14mm',
+      },
+      ...pdfOptions,
+    };
+
+    if (pageSizeFromDocument) {
+      resolvedPdfOptions = {
+        ...resolvedPdfOptions,
+        width: `${pageSize.width}px`,
+        height: `${pageSize.height}px`,
+        margin: {
+          top: '0',
+          right: '0',
+          bottom: '0',
+          left: '0',
+        },
+      };
+    }
+
+    const pdfBuffer = await page.pdf(resolvedPdfOptions);
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF generation failed', error);
+    return res.status(500).json({
+      ok: false,
+      error: 'pdf_generation_failed',
+    });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
 // Avoid stale admin/CCO UI assets between local/staging/prod deployments.
 app.use((req, res, next) => {
   const path = String(req.path || '').trim().toLowerCase();
@@ -53,7 +233,10 @@ app.use((req, res, next) => {
     '/admin/cco',
     '/admin/unanswered',
   ]);
-  if (disableCachePaths.has(path)) {
+  const isCcoNextHtmlPath =
+    path === '/cco-next' ||
+    (path.startsWith('/cco-next/') && !path.startsWith('/cco-next/assets/'));
+  if (disableCachePaths.has(path) || isCcoNextHtmlPath) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -64,6 +247,16 @@ app.use((req, res, next) => {
 
 app.get('/admin.html', (_req, res) => sendAdminHtml(res));
 app.use(express.static("public"));
+if (hasCcoNextUpstreamBuild()) {
+  app.use(
+    '/cco-next',
+    express.static(CCO_NEXT_UPSTREAM_DIST_DIR, {
+      index: false,
+      fallthrough: true,
+      redirect: false,
+    })
+  );
+}
 app.use(requestContextMiddleware({ headerName: 'x-correlation-id' }));
 
 const { openai } = require('./src/openai/client');
@@ -120,12 +313,73 @@ app.get("/", (req, res) => {
   res.sendFile("index.html", { root: __dirname + "/public" });
 });
 
+app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
+  res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {
+    root: __dirname + '/public',
+  });
+});
+
+app.get('/patientinformation/hartransplantation-dhi-prp-minimal', (_req, res) => {
+  res.sendFile('patientinformation-hartransplantation-dhi-prp-minimal.html', {
+    root: __dirname + '/public',
+  });
+});
+
+app.get('/patientinformation/hartransplantation-dhi-prp-minimal.pdf', (req, res) =>
+  sendStaticPagePdf(req, res, {
+    pagePath: '/patientinformation/hartransplantation-dhi-prp-minimal',
+    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic-Minimal.pdf',
+    media: 'screen',
+    viewport: { width: 1100, height: 1600 },
+    bodyClass: 'pdf-server-export',
+    pdfOptions: {
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: false,
+      margin: {
+        top: '10mm',
+        right: '10mm',
+        bottom: '12mm',
+        left: '10mm',
+      },
+    },
+  })
+);
+
+app.get('/patientinformation/hartransplantation-dhi-prp.pdf', (req, res) =>
+  sendStaticPagePdf(req, res, {
+    pagePath: '/patientinformation/hartransplantation-dhi-prp?export=pdf',
+    fileName: 'Patientinformation-Hartransplantation-DHI-och-PRP-Hair-TP-Clinic.pdf',
+    media: 'screen',
+    viewport: { width: 430, height: 932 },
+    pageOptions: { deviceScaleFactor: 2 },
+    bodyClass: 'pdf-server-export',
+    rasterizePage: true,
+  })
+);
+
+app.get('/patientinformation/ogonlocksplastik-curatiio.pdf', (req, res) =>
+  sendStaticPagePdf(req, res, {
+    pagePath: '/patientinformation-ogonlocksplastik-curatiio.html?v=20260309b',
+    fileName: 'Patientinformation-Ogonlocksplastik-Curatiio.pdf',
+    media: 'screen',
+    viewport: { width: 430, height: 932 },
+    pageOptions: { deviceScaleFactor: 2 },
+    bodyClass: 'pdf-server-export',
+    rasterizePage: true,
+  })
+);
+
 app.get("/admin", (req, res) => {
   sendAdminHtml(res);
 });
 
 app.get('/cco', (req, res) => {
   sendAdminHtml(res);
+});
+
+app.get(/^\/cco-next(?:\/.*)?$/, (_req, res) => {
+  sendCcoNextUpstreamHtml(res);
 });
 
 app.get('/unanswered', (req, res) => {
