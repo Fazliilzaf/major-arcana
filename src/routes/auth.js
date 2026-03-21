@@ -177,7 +177,7 @@ function createAuthRouter({
         passwordCandidates.some((candidate) => safeEqualText(candidate, bootstrapOwnerPassword))
       ) {
         try {
-          await authStore.bootstrapOwner({
+          const bootstrap = await authStore.bootstrapOwner({
             tenantId: normalizedBootstrapOwnerTenantId || tenantId || 'hair-tp-clinic',
             email: normalizedBootstrapOwnerEmail,
             password: bootstrapOwnerPassword,
@@ -188,6 +188,9 @@ function createAuthRouter({
             email: normalizedBootstrapOwnerEmail,
             password: bootstrapOwnerPassword,
           });
+          if (!user && bootstrap?.bootstrapped && bootstrap?.user?.id) {
+            user = bootstrap.user;
+          }
           ownerCredentialSelfHealed = Boolean(user);
         } catch (selfHealError) {
           await authStore.addAuditEvent({
