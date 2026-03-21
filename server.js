@@ -801,6 +801,7 @@ app.use((req, res, next) => runtimeMetricsStore.middleware(req, res, next));
       bootstrapOwnerEmail: config.bootstrapOwnerEmail,
       bootstrapOwnerPassword: config.bootstrapOwnerPassword,
       bootstrapOwnerTenantId: config.defaultTenantId,
+      bootstrapOwnerResetPassword: config.bootstrapOwnerResetPassword,
       ownerCredentialSelfHeal: config.authOwnerCredentialSelfHeal,
       loginSessionRotationScope: config.authLoginSessionRotationScope,
     })

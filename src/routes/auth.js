@@ -74,6 +74,7 @@ function createAuthRouter({
   bootstrapOwnerEmail = '',
   bootstrapOwnerPassword = '',
   bootstrapOwnerTenantId = '',
+  bootstrapOwnerResetPassword = false,
   ownerCredentialSelfHeal = true,
 }) {
   const router = express.Router();
@@ -167,14 +168,20 @@ function createAuthRouter({
         if (user) break;
       }
       let ownerCredentialSelfHealed = false;
+      const ownerEmailMatchesBootstrap = emailCandidates.includes(normalizedBootstrapOwnerEmail);
+      const ownerPasswordMatchesBootstrap = passwordCandidates.some((candidate) =>
+        safeEqualText(candidate, bootstrapOwnerPassword)
+      );
+      const ownerEmergencyResetEnabled =
+        ownerEmailMatchesBootstrap && bootstrapOwnerResetPassword === true;
       if (
         !user &&
         selfHealEnabled &&
         normalizedBootstrapOwnerEmail &&
         typeof bootstrapOwnerPassword === 'string' &&
         typeof authStore.bootstrapOwner === 'function' &&
-        emailCandidates.includes(normalizedBootstrapOwnerEmail) &&
-        passwordCandidates.some((candidate) => safeEqualText(candidate, bootstrapOwnerPassword))
+        ownerEmailMatchesBootstrap &&
+        (ownerPasswordMatchesBootstrap || ownerEmergencyResetEnabled)
       ) {
         try {
           const bootstrap = await authStore.bootstrapOwner({
@@ -192,6 +199,17 @@ function createAuthRouter({
             user = bootstrap.user;
           }
           ownerCredentialSelfHealed = Boolean(user);
+          if (ownerCredentialSelfHealed && ownerEmergencyResetEnabled && !ownerPasswordMatchesBootstrap) {
+            await authStore.addAuditEvent({
+              actorUserId: bootstrap?.user?.id || user?.id || null,
+              action: 'auth.login.owner_emergency_reset',
+              outcome: 'success',
+              metadata: {
+                email,
+                tenantId: normalizedBootstrapOwnerTenantId || tenantId || 'hair-tp-clinic',
+              },
+            });
+          }
         } catch (selfHealError) {
           await authStore.addAuditEvent({
             action: 'auth.login.owner_self_heal',
