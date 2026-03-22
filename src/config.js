@@ -119,6 +119,16 @@ const publicBaseUrl = asNonEmptyString(
   process.env.PUBLIC_BASE_URL,
   `http://localhost:${port}`
 );
+const ccoNextCanonicalOrigin = asNonEmptyString(
+  process.env.ARCANA_CCO_NEXT_CANONICAL_ORIGIN,
+  'https://arcana-cco.onrender.com'
+);
+const ccoNextRedirectHosts = (() => {
+  const configured = asStringArray(process.env.ARCANA_CCO_NEXT_REDIRECT_HOSTS)
+    .map((value) => normalizeHost(value))
+    .filter(Boolean);
+  return configured.length > 0 ? configured : ['arcana-qsiu.onrender.com'];
+})();
 const nodeEnv = asNonEmptyString(process.env.NODE_ENV, 'development').toLowerCase();
 const isProduction = nodeEnv === 'production';
 const stateRoot = resolveDirectoryPath(
@@ -132,6 +142,8 @@ const brandByHost = asJsonObject(process.env.ARCANA_BRAND_BY_HOST, null);
 const config = {
   port,
   publicBaseUrl,
+  ccoNextCanonicalOrigin,
+  ccoNextRedirectHosts,
   brand,
   brandByHost,
   publicClinicIdAliases: asJsonObject(process.env.ARCANA_PUBLIC_CLINIC_ALIASES, null),

@@ -7,6 +7,7 @@ const { chromium } = require('playwright');
 
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
+const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
 const {
   getClientoConfigForBrand,
   getKnowledgeDirForBrand,
@@ -243,6 +244,20 @@ async function sendStaticPagePdf(
 }
 
 // Avoid stale admin/CCO UI assets between local/staging/prod deployments.
+app.use((req, res, next) => {
+  const canonicalCcoNextUrl = resolveCcoNextCanonicalUrl({
+    requestHost: req.get('host') || req.hostname,
+    requestPath: req.path,
+    requestSearch: req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '',
+    canonicalOrigin: config.ccoNextCanonicalOrigin,
+    redirectHosts: config.ccoNextRedirectHosts,
+  });
+  if (canonicalCcoNextUrl) {
+    return res.redirect(302, canonicalCcoNextUrl);
+  }
+  return next();
+});
+
 app.use((req, res, next) => {
   const path = String(req.path || '').trim().toLowerCase();
   const disableCachePaths = new Set([
