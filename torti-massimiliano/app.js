@@ -1,5 +1,6 @@
 (function () {
   const STORAGE_KEY = "torti-ritual-saved-sheets-v1";
+  const ZONE_LAYOUT_VERSION = "cluster-horizontal-v1";
 
   const BODY_IMAGE_SIZE = {
     width: 160,
@@ -879,7 +880,6 @@
   const bodySketch = document.querySelector(".body-sketch");
   const bottleLayer = document.querySelector("[data-bottle-layer]");
   const zoneLayer = document.querySelector("[data-zone-layer]");
-  const zoneLabelLayer = document.querySelector("[data-zone-label-layer]");
   const productScroller = document.querySelector("[data-product-scroller]");
   const searchInput = document.querySelector("[data-product-search]");
   const sheetStatus = document.querySelector("[data-sheet-status]");
@@ -1210,6 +1210,15 @@
     }, {});
   }
 
+  function getSnapshotZoneLabelOffsets(snapshot) {
+    const version = snapshot && typeof snapshot === "object" ? snapshot.zoneLayoutVersion : "";
+    if (version !== ZONE_LAYOUT_VERSION) {
+      return cloneZoneLabelOffsets({});
+    }
+
+    return cloneZoneLabelOffsets(snapshot.zoneLabelOffsets);
+  }
+
   function getZoneLabelOffset(zoneId) {
     const value = state.zoneLabelOffsets[zoneId];
     if (!value) {
@@ -1243,6 +1252,7 @@
       search: state.search,
       bottles: cloneBottles(state.bottles),
       zoneLabelOffsets: cloneZoneLabelOffsets(state.zoneLabelOffsets),
+      zoneLayoutVersion: ZONE_LAYOUT_VERSION,
       isAdjustingLabels: state.isAdjustingLabels,
       selectedBottleId: state.selectedBottleId,
       pendingCatalogId: state.pendingCatalogId,
@@ -1255,7 +1265,7 @@
     state.lastName = snapshot.lastName || "";
     state.search = snapshot.search || "";
     state.bottles = cloneBottles(snapshot.bottles);
-    state.zoneLabelOffsets = cloneZoneLabelOffsets(snapshot.zoneLabelOffsets);
+    state.zoneLabelOffsets = getSnapshotZoneLabelOffsets(snapshot);
     state.isAdjustingLabels = Boolean(snapshot.isAdjustingLabels);
     state.selectedBottleId = snapshot.selectedBottleId || null;
     state.pendingCatalogId = snapshot.pendingCatalogId || null;
@@ -1276,6 +1286,7 @@
       lastName: state.lastName.trim(),
       bottles: cloneBottles(state.bottles),
       zoneLabelOffsets: cloneZoneLabelOffsets(state.zoneLabelOffsets),
+      zoneLayoutVersion: ZONE_LAYOUT_VERSION,
       createdAt: existingSheet ? existingSheet.createdAt : now,
       updatedAt: now,
     };
@@ -1317,7 +1328,8 @@
           firstName: String(sheet.firstName || ""),
           lastName: String(sheet.lastName || ""),
           bottles: cloneBottles(sheet.bottles),
-          zoneLabelOffsets: cloneZoneLabelOffsets(sheet.zoneLabelOffsets),
+          zoneLabelOffsets: sheet.zoneLayoutVersion === ZONE_LAYOUT_VERSION ? cloneZoneLabelOffsets(sheet.zoneLabelOffsets) : cloneZoneLabelOffsets({}),
+          zoneLayoutVersion: sheet.zoneLayoutVersion || "",
           createdAt: sheet.createdAt || new Date().toISOString(),
           updatedAt: sheet.updatedAt || sheet.createdAt || new Date().toISOString(),
         }));
@@ -1767,11 +1779,6 @@
       })
       .join("");
 
-    if (zoneLabelLayer) {
-      zoneLabelLayer.classList.remove("is-active");
-      zoneLabelLayer.innerHTML = "";
-    }
-
     zoneLayer.innerHTML = hitMarkup + clusterMarkup;
 
     zoneLayer.querySelectorAll("[data-zone-hit]").forEach((button) => {
@@ -2036,7 +2043,8 @@
       lastName: sheet.lastName || "",
       search: "",
       bottles: cloneBottles(sheet.bottles),
-      zoneLabelOffsets: cloneZoneLabelOffsets(sheet.zoneLabelOffsets),
+      zoneLabelOffsets: sheet.zoneLayoutVersion === ZONE_LAYOUT_VERSION ? cloneZoneLabelOffsets(sheet.zoneLabelOffsets) : cloneZoneLabelOffsets({}),
+      zoneLayoutVersion: sheet.zoneLayoutVersion || "",
       isAdjustingLabels: false,
       selectedBottleId: null,
       pendingCatalogId: null,

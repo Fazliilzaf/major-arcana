@@ -483,7 +483,8 @@ input {
   transform: translate(-50%, -50%);
 }
 
-.body-map {
+.body-map,
+.zone-layer {
   position: absolute;
   left: 47.5%;
   top: -116px;
@@ -492,6 +493,9 @@ input {
   aspect-ratio: 160 / 1170;
   transform: translateX(-50%) scale(1.2);
   transform-origin: center top;
+}
+
+.body-map {
   z-index: 1;
   pointer-events: none;
 }
@@ -518,22 +522,7 @@ input {
   pointer-events: none;
 }
 
-.zone-label-layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 160ms ease;
-  z-index: 4;
-}
-
-.zone-label-layer.is-active {
-  opacity: 1;
-}
-
 .zone-layer {
-  position: absolute;
-  inset: 0;
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -574,6 +563,7 @@ input {
   -webkit-touch-callout: none;
   touch-action: none;
   z-index: 3;
+  isolation: isolate;
 }
 
 .zone-cluster.is-dragging {
