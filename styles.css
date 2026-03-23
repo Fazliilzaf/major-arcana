@@ -269,25 +269,36 @@ input {
 
 .layer-chip {
   display: grid;
-  gap: 4px;
+  gap: 10px;
   width: 100%;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.82);
   padding: 12px 14px;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
   box-shadow: 0 8px 18px rgba(75, 53, 37, 0.03);
 }
 
-.layer-chip strong {
+.layer-chip-main {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.layer-chip strong,
+.layer-chip-main strong {
   color: var(--ink);
   font-size: 0.92rem;
   line-height: 1.15;
   font-weight: 700;
 }
 
-.layer-chip span {
+.layer-chip span,
+.layer-chip-main span {
   color: var(--muted);
   font-size: 0.66rem;
   letter-spacing: 0.12em;
@@ -306,6 +317,40 @@ input {
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 14px;
+}
+
+.layer-chip-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.panel-mini-action {
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--muted);
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  box-shadow: 0 6px 12px rgba(75, 53, 37, 0.03);
+  cursor: pointer;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.panel-mini-action:hover:not(:disabled) {
+  border-color: rgba(67, 50, 39, 0.2);
+  color: var(--ink);
+}
+
+.panel-mini-action:disabled,
+.panel-mini-action.is-disabled {
+  opacity: 0.42;
+  cursor: default;
 }
 
 .library-owned-grid {
@@ -328,15 +373,27 @@ input {
 .owned-card {
   display: grid;
   flex: 0 0 138px;
-  justify-items: start;
   align-content: start;
   gap: 10px;
   padding: 12px;
-  cursor: grab;
   text-align: left;
 }
 
-.owned-card:active {
+.owned-card-select {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: grab;
+}
+
+.owned-card-select:active {
   cursor: grabbing;
 }
 
@@ -352,6 +409,10 @@ input {
   line-height: 1.2;
   font-weight: 700;
   text-wrap: balance;
+}
+
+.owned-card-remove {
+  justify-self: start;
 }
 
 .library-owned-bottle {

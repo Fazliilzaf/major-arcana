@@ -1245,11 +1245,11 @@
     });
   }
 
-  function ensureMinimumLayers(layers) {
+  function ensureMinimumLayers(layers, fallbackBottles, fallbackZoneLabelOffsets) {
     const nextLayers = cloneLayers(layers);
 
-    while (nextLayers.length < 4) {
-      nextLayers.push(createLayerRecord(`Layer ${nextLayers.length + 1}`, [], {}));
+    if (nextLayers.length === 0) {
+      return buildDefaultLayers(fallbackBottles, fallbackZoneLabelOffsets);
     }
 
     return nextLayers;
@@ -1285,7 +1285,7 @@
       ? cloneLayers(snapshot.layers)
       : buildDefaultLayers(snapshot && snapshot.bottles, legacyOffsets);
 
-    return ensureMinimumLayers(sourceLayers);
+    return ensureMinimumLayers(sourceLayers, snapshot && snapshot.bottles, legacyOffsets);
   }
 
   function getActiveLayer() {
@@ -1624,6 +1624,127 @@
     state.zoneLabelOffsets = cloneZoneLabelOffsets({});
     state.selectedBottleId = null;
     state.pendingCatalogId = null;
+    syncBottleSeed();
+    render();
+  }
+
+  function renameLayer(layerId) {
+    syncActiveLayerSnapshot();
+    const layer = state.layers.find((entry) => entry.id === layerId);
+    if (!layer) {
+      return;
+    }
+
+    const nextName = window.prompt("Rename layer", layer.name);
+    if (nextName === null) {
+      return;
+    }
+
+    const trimmed = nextName.trim().replace(/\s+/g, " ");
+    if (!trimmed) {
+      return;
+    }
+
+    layer.name = trimmed.slice(0, 48);
+    render();
+  }
+
+  function deleteLayer(layerId) {
+    syncActiveLayerSnapshot();
+
+    if (state.layers.length <= 1) {
+      window.alert("At least one layer must remain.");
+      return;
+    }
+
+    const layerIndex = state.layers.findIndex((entry) => entry.id === layerId);
+    if (layerIndex < 0) {
+      return;
+    }
+
+    const layer = state.layers[layerIndex];
+    const bottleCount = Array.isArray(layer.bottles) ? layer.bottles.length : 0;
+    const confirmed = window.confirm(
+      bottleCount > 0
+        ? `Delete ${layer.name}? This will remove ${bottleCount} bottle${bottleCount === 1 ? "" : "s"} from this layer.`
+        : `Delete ${layer.name}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const remainingLayers = state.layers.filter((entry) => entry.id !== layerId);
+    const nextActiveLayer = state.activeLayerId === layerId
+      ? remainingLayers[layerIndex] || remainingLayers[layerIndex - 1] || remainingLayers[0] || null
+      : remainingLayers.find((entry) => entry.id === state.activeLayerId) || remainingLayers[0] || null;
+
+    state.layers = remainingLayers;
+    state.customerLibrary = normalizeCustomerLibrary(state.customerLibrary, state.layers);
+
+    if (nextActiveLayer) {
+      state.activeLayerId = nextActiveLayer.id;
+      state.bottles = cloneBottles(nextActiveLayer.bottles);
+      state.zoneLabelOffsets = cloneZoneLabelOffsets(nextActiveLayer.zoneLabelOffsets);
+    } else {
+      state.layers = buildDefaultLayers();
+      state.activeLayerId = state.layers[0].id;
+      state.bottles = [];
+      state.zoneLabelOffsets = cloneZoneLabelOffsets({});
+    }
+
+    state.selectedBottleId = null;
+    state.pendingCatalogId = null;
+    syncBottleSeed();
+    render();
+  }
+
+  function removeCatalogFromLibrary(catalogId) {
+    const product = getCatalogItem(catalogId);
+    if (!product) {
+      return;
+    }
+
+    syncActiveLayerSnapshot();
+
+    const usedBottleCount = state.layers.reduce((total, layer) => {
+      return total + (Array.isArray(layer.bottles) ? layer.bottles.filter((bottle) => bottle.catalogId === catalogId).length : 0);
+    }, 0);
+
+    const confirmed = window.confirm(
+      usedBottleCount > 0
+        ? `Remove ${product.name} from Customer Library? It will also be removed from ${usedBottleCount} placed bottle${usedBottleCount === 1 ? "" : "s"} across the saved layers in this sheet.`
+        : `Remove ${product.name} from Customer Library?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    state.layers = state.layers.map((layer) => ({
+      id: layer.id,
+      name: layer.name,
+      bottles: cloneBottles((Array.isArray(layer.bottles) ? layer.bottles : []).filter((bottle) => bottle.catalogId !== catalogId)),
+      zoneLabelOffsets: cloneZoneLabelOffsets(layer.zoneLabelOffsets),
+    }));
+
+    const activeLayer = state.layers.find((entry) => entry.id === state.activeLayerId) || state.layers[0] || null;
+    state.customerLibrary = state.customerLibrary.filter((entry) => entry !== catalogId);
+    state.pendingCatalogId = state.pendingCatalogId === catalogId ? null : state.pendingCatalogId;
+
+    if (activeLayer) {
+      state.activeLayerId = activeLayer.id;
+      state.bottles = cloneBottles(activeLayer.bottles);
+      state.zoneLabelOffsets = cloneZoneLabelOffsets(activeLayer.zoneLabelOffsets);
+    } else {
+      state.bottles = [];
+      state.zoneLabelOffsets = cloneZoneLabelOffsets({});
+    }
+
+    if (!state.bottles.some((bottle) => bottle.id === state.selectedBottleId)) {
+      state.selectedBottleId = null;
+    }
+
     syncBottleSeed();
     render();
   }
@@ -2180,12 +2301,19 @@
             const ratio = ownedCount > 0
               ? `${bottleCount} / ${ownedCount} bottles`
               : `${bottleCount} ${bottleCount === 1 ? "bottle" : "bottles"}`;
+            const canDelete = state.layers.length > 1;
 
             return `
-              <button class="layer-chip${activeLayer && activeLayer.id === layer.id ? " is-active" : ""}" type="button" data-activate-layer="${escapeHtml(layer.id)}">
-                <strong>${escapeHtml(layer.name)}</strong>
-                <span>${escapeHtml(ratio)}</span>
-              </button>
+              <article class="layer-chip${activeLayer && activeLayer.id === layer.id ? " is-active" : ""}">
+                <button class="layer-chip-main" type="button" data-activate-layer="${escapeHtml(layer.id)}">
+                  <strong>${escapeHtml(layer.name)}</strong>
+                  <span>${escapeHtml(ratio)}</span>
+                </button>
+                <div class="layer-chip-tools">
+                  <button class="panel-mini-action" type="button" data-rename-layer="${escapeHtml(layer.id)}">Rename</button>
+                  <button class="panel-mini-action${canDelete ? "" : " is-disabled"}" type="button" data-delete-layer="${escapeHtml(layer.id)}"${canDelete ? "" : " disabled"}>Delete</button>
+                </div>
+              </article>
             `;
           })
           .join("")}
@@ -2198,6 +2326,18 @@
     layersPanel.querySelectorAll("[data-activate-layer]").forEach((button) => {
       button.addEventListener("click", function () {
         activateLayer(button.getAttribute("data-activate-layer"));
+      });
+    });
+
+    layersPanel.querySelectorAll("[data-rename-layer]").forEach((button) => {
+      button.addEventListener("click", function () {
+        renameLayer(button.getAttribute("data-rename-layer"));
+      });
+    });
+
+    layersPanel.querySelectorAll("[data-delete-layer]").forEach((button) => {
+      button.addEventListener("click", function () {
+        deleteLayer(button.getAttribute("data-delete-layer"));
       });
     });
 
@@ -2233,10 +2373,13 @@
             <div class="library-owned-grid">
               ${ownedItems
                 .map((item) => `
-                  <button class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}">
-                    ${renderBottleVisual(item, "library-owned-bottle")}
-                    <strong>${escapeHtml(item.name)}</strong>
-                  </button>
+                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}">
+                    <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}">
+                      ${renderBottleVisual(item, "library-owned-bottle")}
+                      <strong>${escapeHtml(item.name)}</strong>
+                    </button>
+                    <button class="panel-mini-action owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}">Remove</button>
+                  </article>
                 `)
                 .join("")}
             </div>
@@ -2266,6 +2409,12 @@
         dragCatalogId = null;
         documentStage.classList.remove("is-dragging-catalog");
         renderStageState();
+      });
+    });
+
+    customerLibraryPanel.querySelectorAll("[data-remove-library-product]").forEach((button) => {
+      button.addEventListener("click", function () {
+        removeCatalogFromLibrary(button.getAttribute("data-remove-library-product"));
       });
     });
   }
