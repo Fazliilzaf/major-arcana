@@ -2292,7 +2292,10 @@
           <p>Layer combinations</p>
           <h2>Layers</h2>
         </div>
-        <span class="panel-count">${escapeHtml(`${state.layers.length} total`)}</span>
+        <div class="panel-meta">
+          <span class="panel-count">${escapeHtml(`${state.layers.length} total`)}</span>
+          <button class="ghost-button panel-header-action" type="button" data-create-layer>New layer</button>
+        </div>
       </div>
       <div class="layers-stack">
         ${state.layers
@@ -2311,15 +2314,12 @@
                 </button>
                 <div class="layer-chip-tools">
                   <button class="panel-mini-action" type="button" data-rename-layer="${escapeHtml(layer.id)}">Rename</button>
-                  <button class="panel-mini-action${canDelete ? "" : " is-disabled"}" type="button" data-delete-layer="${escapeHtml(layer.id)}"${canDelete ? "" : " disabled"}>Delete</button>
+                  <button class="panel-mini-action panel-mini-action-danger${canDelete ? "" : " is-disabled"}" type="button" data-delete-layer="${escapeHtml(layer.id)}"${canDelete ? "" : " disabled"}>Delete</button>
                 </div>
               </article>
             `;
           })
           .join("")}
-      </div>
-      <div class="layer-actions">
-        <button class="ghost-button" type="button" data-create-layer>New layer</button>
       </div>
     `;
 
@@ -2374,11 +2374,11 @@
               ${ownedItems
                 .map((item) => `
                   <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}">
+                    <button class="panel-mini-action panel-mini-action-danger owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from customer library">Remove</button>
                     <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}">
                       ${renderBottleVisual(item, "library-owned-bottle")}
                       <strong>${escapeHtml(item.name)}</strong>
                     </button>
-                    <button class="panel-mini-action owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}">Remove</button>
                   </article>
                 `)
                 .join("")}
