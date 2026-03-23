@@ -856,6 +856,9 @@
     firstName: "",
     lastName: "",
     search: "",
+    customerLibrary: [],
+    layers: [],
+    activeLayerId: null,
     bottles: [],
     zoneLabelOffsets: {},
     isAdjustingLabels: false,
@@ -890,6 +893,8 @@
   const newSheetButton = document.querySelector("[data-new-sheet]");
   const downloadSavedButton = document.querySelector("[data-download-saved]");
   const savedSheetsPanel = document.querySelector("[data-saved-sheets-panel]");
+  const layersPanel = document.querySelector("[data-layers-panel]");
+  const customerLibraryPanel = document.querySelector("[data-customer-library]");
   const pdfButtons = Array.from(document.querySelectorAll("[data-pdf-trigger]"));
   const levelRows = Array.from(document.querySelectorAll("[data-level-row]"));
   const placementTargets = Array.from(document.querySelectorAll("[data-place-level]"));
@@ -1210,6 +1215,113 @@
     }, {});
   }
 
+  function createLayerRecord(name, bottles, zoneLabelOffsets) {
+    return {
+      id: `layer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: String(name || "Layer"),
+      bottles: cloneBottles(bottles),
+      zoneLabelOffsets: cloneZoneLabelOffsets(zoneLabelOffsets),
+    };
+  }
+
+  function cloneLayers(layers) {
+    return (Array.isArray(layers) ? layers : [])
+      .filter((layer) => layer && typeof layer === "object")
+      .map((layer, index) => ({
+        id: String(layer.id || `layer-${index + 1}`),
+        name: String(layer.name || `Layer ${index + 1}`),
+        bottles: cloneBottles(layer.bottles),
+        zoneLabelOffsets: cloneZoneLabelOffsets(layer.zoneLabelOffsets),
+      }));
+  }
+
+  function buildDefaultLayers(initialBottles, initialZoneLabelOffsets) {
+    return Array.from({ length: 4 }, function (_, index) {
+      return createLayerRecord(
+        `Layer ${index + 1}`,
+        index === 0 ? initialBottles : [],
+        index === 0 ? initialZoneLabelOffsets : {}
+      );
+    });
+  }
+
+  function ensureMinimumLayers(layers) {
+    const nextLayers = cloneLayers(layers);
+
+    while (nextLayers.length < 4) {
+      nextLayers.push(createLayerRecord(`Layer ${nextLayers.length + 1}`, [], {}));
+    }
+
+    return nextLayers;
+  }
+
+  function normalizeCustomerLibrary(customerLibrary, layers) {
+    const seen = new Set();
+    const ordered = [];
+
+    const append = function (catalogId) {
+      if (!catalogId || seen.has(catalogId) || !getCatalogItem(catalogId)) {
+        return;
+      }
+
+      seen.add(catalogId);
+      ordered.push(catalogId);
+    };
+
+    (Array.isArray(customerLibrary) ? customerLibrary : []).forEach(append);
+    (Array.isArray(layers) ? layers : []).forEach((layer) => {
+      (Array.isArray(layer.bottles) ? layer.bottles : []).forEach((bottle) => {
+        append(bottle.catalogId);
+      });
+    });
+
+    return ordered;
+  }
+
+  function resolveSnapshotLayers(snapshot) {
+    const legacyOffsets = getSnapshotZoneLabelOffsets(snapshot);
+    const hasLayers = snapshot && Array.isArray(snapshot.layers) && snapshot.layers.length > 0;
+    const sourceLayers = hasLayers
+      ? cloneLayers(snapshot.layers)
+      : buildDefaultLayers(snapshot && snapshot.bottles, legacyOffsets);
+
+    return ensureMinimumLayers(sourceLayers);
+  }
+
+  function getActiveLayer() {
+    if (!state.layers.length) {
+      state.layers = buildDefaultLayers();
+      state.activeLayerId = state.layers[0].id;
+    }
+
+    const layer = state.layers.find((entry) => entry.id === state.activeLayerId) || state.layers[0] || null;
+
+    if (layer && state.activeLayerId !== layer.id) {
+      state.activeLayerId = layer.id;
+    }
+
+    return layer;
+  }
+
+  function syncActiveLayerSnapshot() {
+    const activeLayer = getActiveLayer();
+    if (!activeLayer) {
+      return;
+    }
+
+    activeLayer.bottles = cloneBottles(state.bottles);
+    activeLayer.zoneLabelOffsets = cloneZoneLabelOffsets(state.zoneLabelOffsets);
+    state.customerLibrary = normalizeCustomerLibrary(state.customerLibrary, state.layers);
+  }
+
+  function addCatalogToLibrary(catalogId) {
+    if (!catalogId || !getCatalogItem(catalogId)) {
+      return;
+    }
+
+    state.customerLibrary = normalizeCustomerLibrary(state.customerLibrary.concat(catalogId), state.layers);
+  }
+
   function getSnapshotZoneLabelOffsets(snapshot) {
     const version = snapshot && typeof snapshot === "object" ? snapshot.zoneLayoutVersion : "";
     if (version !== ZONE_LAYOUT_VERSION) {
@@ -1246,10 +1358,15 @@
   }
 
   function getWorkingStateSnapshot() {
+    syncActiveLayerSnapshot();
+
     return {
       firstName: state.firstName,
       lastName: state.lastName,
       search: state.search,
+      customerLibrary: state.customerLibrary.slice(),
+      layers: cloneLayers(state.layers),
+      activeLayerId: state.activeLayerId,
       bottles: cloneBottles(state.bottles),
       zoneLabelOffsets: cloneZoneLabelOffsets(state.zoneLabelOffsets),
       zoneLayoutVersion: ZONE_LAYOUT_VERSION,
@@ -1261,11 +1378,21 @@
   }
 
   function applyWorkingState(snapshot) {
+    snapshot = snapshot || {};
+    const nextLayers = resolveSnapshotLayers(snapshot || {});
+    const nextActiveLayerId = snapshot && nextLayers.some((layer) => layer.id === snapshot.activeLayerId)
+      ? snapshot.activeLayerId
+      : (nextLayers[0] ? nextLayers[0].id : null);
+    const activeLayer = nextLayers.find((layer) => layer.id === nextActiveLayerId) || nextLayers[0] || createLayerRecord("Layer 1", [], {});
+
     state.firstName = snapshot.firstName || "";
     state.lastName = snapshot.lastName || "";
     state.search = snapshot.search || "";
-    state.bottles = cloneBottles(snapshot.bottles);
-    state.zoneLabelOffsets = getSnapshotZoneLabelOffsets(snapshot);
+    state.customerLibrary = normalizeCustomerLibrary(snapshot.customerLibrary, nextLayers);
+    state.layers = nextLayers;
+    state.activeLayerId = activeLayer.id;
+    state.bottles = cloneBottles(activeLayer.bottles);
+    state.zoneLabelOffsets = cloneZoneLabelOffsets(activeLayer.zoneLabelOffsets);
     state.isAdjustingLabels = Boolean(snapshot.isAdjustingLabels);
     state.selectedBottleId = snapshot.selectedBottleId || null;
     state.pendingCatalogId = snapshot.pendingCatalogId || null;
@@ -1275,6 +1402,8 @@
   }
 
   function buildSheetSnapshot(sheetId) {
+    syncActiveLayerSnapshot();
+
     const existingSheet = state.currentSheetId
       ? state.savedSheets.find((sheet) => sheet.id === state.currentSheetId)
       : null;
@@ -1284,6 +1413,9 @@
       id: sheetId || state.currentSheetId || `sheet-${Date.now()}`,
       firstName: state.firstName.trim(),
       lastName: state.lastName.trim(),
+      customerLibrary: state.customerLibrary.slice(),
+      layers: cloneLayers(state.layers),
+      activeLayerId: state.activeLayerId,
       bottles: cloneBottles(state.bottles),
       zoneLabelOffsets: cloneZoneLabelOffsets(state.zoneLabelOffsets),
       zoneLayoutVersion: ZONE_LAYOUT_VERSION,
@@ -1323,16 +1455,27 @@
 
       return parsed
         .filter((sheet) => sheet && typeof sheet === "object")
-        .map((sheet) => ({
-          id: String(sheet.id || `sheet-${Date.now()}`),
-          firstName: String(sheet.firstName || ""),
-          lastName: String(sheet.lastName || ""),
-          bottles: cloneBottles(sheet.bottles),
-          zoneLabelOffsets: sheet.zoneLayoutVersion === ZONE_LAYOUT_VERSION ? cloneZoneLabelOffsets(sheet.zoneLabelOffsets) : cloneZoneLabelOffsets({}),
-          zoneLayoutVersion: sheet.zoneLayoutVersion || "",
-          createdAt: sheet.createdAt || new Date().toISOString(),
-          updatedAt: sheet.updatedAt || sheet.createdAt || new Date().toISOString(),
-        }));
+        .map((sheet) => {
+          const nextLayers = resolveSnapshotLayers(sheet);
+          const activeLayerId = nextLayers.some((layer) => layer.id === sheet.activeLayerId)
+            ? sheet.activeLayerId
+            : nextLayers[0].id;
+          const activeLayer = nextLayers.find((layer) => layer.id === activeLayerId) || nextLayers[0];
+
+          return {
+            id: String(sheet.id || `sheet-${Date.now()}`),
+            firstName: String(sheet.firstName || ""),
+            lastName: String(sheet.lastName || ""),
+            customerLibrary: normalizeCustomerLibrary(sheet.customerLibrary, nextLayers),
+            layers: nextLayers,
+            activeLayerId: activeLayerId,
+            bottles: cloneBottles(activeLayer.bottles),
+            zoneLabelOffsets: cloneZoneLabelOffsets(activeLayer.zoneLabelOffsets),
+            zoneLayoutVersion: sheet.zoneLayoutVersion || "",
+            createdAt: sheet.createdAt || new Date().toISOString(),
+            updatedAt: sheet.updatedAt || sheet.createdAt || new Date().toISOString(),
+          };
+        });
     } catch (error) {
       console.warn("Could not load saved Torti sheets", error);
       return [];
@@ -1364,6 +1507,9 @@
       firstName: snapshot.firstName,
       lastName: snapshot.lastName,
       search: "",
+      customerLibrary: snapshot.customerLibrary,
+      layers: snapshot.layers,
+      activeLayerId: snapshot.activeLayerId,
       bottles: snapshot.bottles,
       zoneLabelOffsets: snapshot.zoneLabelOffsets,
       isAdjustingLabels: false,
@@ -1379,6 +1525,9 @@
       firstName: "",
       lastName: "",
       search: "",
+      customerLibrary: [],
+      layers: buildDefaultLayers(),
+      activeLayerId: null,
       bottles: [],
       zoneLabelOffsets: {},
       isAdjustingLabels: false,
@@ -1394,6 +1543,8 @@
     if (!product) {
       return null;
     }
+
+    addCatalogToLibrary(catalogId);
 
     bottleSeed += 1;
     const placementType = getPlacementType(product.type);
@@ -1444,6 +1595,36 @@
   function setPendingCatalog(catalogId) {
     state.pendingCatalogId = state.pendingCatalogId === catalogId ? null : catalogId;
     state.selectedBottleId = null;
+    render();
+  }
+
+  function activateLayer(layerId) {
+    syncActiveLayerSnapshot();
+    const nextLayer = state.layers.find((layer) => layer.id === layerId);
+    if (!nextLayer) {
+      return;
+    }
+
+    state.activeLayerId = nextLayer.id;
+    state.bottles = cloneBottles(nextLayer.bottles);
+    state.zoneLabelOffsets = cloneZoneLabelOffsets(nextLayer.zoneLabelOffsets);
+    state.selectedBottleId = null;
+    state.pendingCatalogId = null;
+    syncBottleSeed();
+    render();
+  }
+
+  function createLayer() {
+    syncActiveLayerSnapshot();
+    const nextLayer = createLayerRecord(`Layer ${state.layers.length + 1}`, [], {});
+
+    state.layers = state.layers.concat(nextLayer);
+    state.activeLayerId = nextLayer.id;
+    state.bottles = [];
+    state.zoneLabelOffsets = cloneZoneLabelOffsets({});
+    state.selectedBottleId = null;
+    state.pendingCatalogId = null;
+    syncBottleSeed();
     render();
   }
 
@@ -1889,9 +2070,11 @@
   function renderStatus() {
     const pendingProduct = getCatalogItem(state.pendingCatalogId);
     const selectedBottle = getSelectedBottle();
+    const activeLayer = getActiveLayer();
+    const activeLayerLabel = activeLayer ? activeLayer.name : "Current layer";
 
     if (pendingProduct) {
-      sheetStatus.textContent = `${pendingProduct.name} is ready. Click or drag it into Head, Heart, or Base on the sheet, then move it anywhere you want.`;
+      sheetStatus.textContent = `${pendingProduct.name} is in the customer library. Click or drag it into ${activeLayerLabel}, then place it in Head, Heart, or Base on the sheet.`;
       if (adjustLabelsButton) {
         adjustLabelsButton.hidden = true;
       }
@@ -1904,8 +2087,8 @@
       const zoneNames = getBottleZoneNames(selectedBottle);
 
       sheetStatus.textContent = zoneNames.length > 0
-        ? `${product.name} · Zones: ${zoneNames.join(", ")}. Drag the bottle anywhere on the sheet. You can also drag the zone names directly.`
-        : `${product.name} selected. Drag the bottle around the sheet, choose one or more spray zones, then drag the zone names if you want to reposition them.`;
+        ? `${activeLayerLabel} · ${product.name} · Zones: ${zoneNames.join(", ")}. Drag the bottle anywhere on the sheet. You can also drag the zone names directly.`
+        : `${activeLayerLabel} · ${product.name} selected. Drag the bottle around the sheet, choose one or more spray zones, then drag the zone names if you want to reposition them.`;
       if (adjustLabelsButton) {
         adjustLabelsButton.hidden = true;
         adjustLabelsButton.classList.remove("is-active");
@@ -1914,7 +2097,7 @@
       return;
     }
 
-    sheetStatus.textContent = "Choose or drag a product below. Place it in Head, Heart, or Base, then move it freely on the sheet.";
+    sheetStatus.textContent = `${activeLayerLabel} is active. Click a bottle in Search collection to add it to the customer library, then place it in Head, Heart, or Base and move it freely on the sheet.`;
     if (adjustLabelsButton) {
       adjustLabelsButton.hidden = true;
       adjustLabelsButton.classList.remove("is-active");
@@ -1944,11 +2127,16 @@
           .map((sheet, index) => {
             const isActive = sheet.id === state.currentSheetId;
             const bottleCount = Array.isArray(sheet.bottles) ? sheet.bottles.length : 0;
+            const ownedCount = Array.isArray(sheet.customerLibrary) ? sheet.customerLibrary.length : 0;
+            const layerCount = Array.isArray(sheet.layers) ? sheet.layers.length : 0;
+            const summary = ownedCount > 0
+              ? `${ownedCount} owned · ${layerCount} ${layerCount === 1 ? "layer" : "layers"}`
+              : `${bottleCount} ${bottleCount === 1 ? "bottle" : "bottles"}`;
 
             return `
               <button class="saved-sheet-pill${isActive ? " is-active" : ""}" type="button" data-load-sheet="${escapeHtml(sheet.id)}">
                 <strong>${escapeHtml(getSheetLabel(sheet, index))}</strong>
-                <span>${escapeHtml(`${bottleCount} ${bottleCount === 1 ? "bottle" : "bottles"}`)}</span>
+                <span>${escapeHtml(summary)}</span>
               </button>
             `;
           })
@@ -1969,6 +2157,119 @@
     }
   }
 
+  function renderLayersPanel() {
+    if (!layersPanel) {
+      return;
+    }
+
+    const activeLayer = getActiveLayer();
+    const ownedCount = state.customerLibrary.length;
+
+    layersPanel.innerHTML = `
+      <div class="panel-intro">
+        <div class="panel-copy">
+          <p>Layer combinations</p>
+          <h2>Layers</h2>
+        </div>
+        <span class="panel-count">${escapeHtml(`${state.layers.length} total`)}</span>
+      </div>
+      <div class="layers-stack">
+        ${state.layers
+          .map((layer) => {
+            const bottleCount = Array.isArray(layer.bottles) ? layer.bottles.length : 0;
+            const ratio = ownedCount > 0
+              ? `${bottleCount} / ${ownedCount} bottles`
+              : `${bottleCount} ${bottleCount === 1 ? "bottle" : "bottles"}`;
+
+            return `
+              <button class="layer-chip${activeLayer && activeLayer.id === layer.id ? " is-active" : ""}" type="button" data-activate-layer="${escapeHtml(layer.id)}">
+                <strong>${escapeHtml(layer.name)}</strong>
+                <span>${escapeHtml(ratio)}</span>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+      <div class="layer-actions">
+        <button class="ghost-button" type="button" data-create-layer>New layer</button>
+      </div>
+    `;
+
+    layersPanel.querySelectorAll("[data-activate-layer]").forEach((button) => {
+      button.addEventListener("click", function () {
+        activateLayer(button.getAttribute("data-activate-layer"));
+      });
+    });
+
+    const createButton = layersPanel.querySelector("[data-create-layer]");
+    if (createButton) {
+      createButton.addEventListener("click", function () {
+        createLayer();
+      });
+    }
+  }
+
+  function renderCustomerLibrary() {
+    if (!customerLibraryPanel) {
+      return;
+    }
+
+    const ownedItems = state.customerLibrary
+      .map((catalogId) => getCatalogItem(catalogId))
+      .filter(Boolean);
+
+    customerLibraryPanel.innerHTML = `
+      <div class="panel-intro">
+        <div class="panel-copy">
+          <p>Purchased collection</p>
+          <h2>Customer Library</h2>
+        </div>
+        <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
+      </div>
+      ${
+        ownedItems.length === 0
+          ? '<div class="owned-empty">Click a bottle in Search collection to add it here, then build layers from the customer’s own library.</div>'
+          : `
+            <div class="library-owned-grid">
+              ${ownedItems
+                .map((item) => `
+                  <button class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}">
+                    ${renderBottleVisual(item, "library-owned-bottle")}
+                    <strong>${escapeHtml(item.name)}</strong>
+                  </button>
+                `)
+                .join("")}
+            </div>
+          `
+      }
+    `;
+
+    customerLibraryPanel.querySelectorAll("[data-library-product-id]").forEach((button) => {
+      button.addEventListener("click", function () {
+        setPendingCatalog(button.getAttribute("data-library-product-id"));
+      });
+
+      button.addEventListener("dragstart", function (event) {
+        dragCatalogId = button.getAttribute("data-library-product-id");
+        documentStage.classList.add("is-dragging-catalog");
+        placementTargets.forEach((target) => {
+          target.disabled = false;
+        });
+
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "copy";
+          event.dataTransfer.setData("text/plain", dragCatalogId);
+        }
+      });
+
+      button.addEventListener("dragend", function () {
+        dragCatalogId = null;
+        documentStage.classList.remove("is-dragging-catalog");
+        renderStageState();
+      });
+    });
+  }
+
   function renderProductScroller() {
     const query = normalize(state.search);
     const filtered = catalog.filter((item) => {
@@ -1987,6 +2288,7 @@
     productScroller.innerHTML = filtered
       .map((item) => {
         const pending = state.pendingCatalogId === item.id;
+        const owned = state.customerLibrary.includes(item.id);
 
         return `
           <button class="product-card${pending ? " is-pending" : ""}" type="button" draggable="true" data-product-id="${escapeHtml(item.id)}">
@@ -1994,6 +2296,7 @@
             <span class="product-copy">
               <strong>${escapeHtml(item.name)}</strong>
               <p>${renderProductMeta(item, "product-meta product-meta-card")}</p>
+              ${owned ? '<span class="product-owned-badge">In library</span>' : ""}
             </span>
           </button>
         `;
@@ -2002,7 +2305,9 @@
 
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
-        setPendingCatalog(button.getAttribute("data-product-id"));
+        const catalogId = button.getAttribute("data-product-id");
+        addCatalogToLibrary(catalogId);
+        setPendingCatalog(catalogId);
       });
 
       button.addEventListener("dragstart", function (event) {
@@ -2027,23 +2332,35 @@
   }
 
   function render() {
+    syncActiveLayerSnapshot();
     renderStageState();
     renderBottles();
     renderZoneLayer();
     renderSelectedBottlePanel();
     renderStatus();
     renderSavedSheets();
+    renderLayersPanel();
+    renderCustomerLibrary();
     renderActionState();
     renderProductScroller();
   }
 
   function getExportStateFromSheet(sheet) {
+    const nextLayers = resolveSnapshotLayers(sheet || {});
+    const activeLayerId = nextLayers.some((layer) => layer.id === sheet.activeLayerId)
+      ? sheet.activeLayerId
+      : nextLayers[0].id;
+    const activeLayer = nextLayers.find((layer) => layer.id === activeLayerId) || nextLayers[0];
+
     return {
       firstName: sheet.firstName || "",
       lastName: sheet.lastName || "",
       search: "",
-      bottles: cloneBottles(sheet.bottles),
-      zoneLabelOffsets: sheet.zoneLayoutVersion === ZONE_LAYOUT_VERSION ? cloneZoneLabelOffsets(sheet.zoneLabelOffsets) : cloneZoneLabelOffsets({}),
+      customerLibrary: normalizeCustomerLibrary(sheet.customerLibrary, nextLayers),
+      layers: nextLayers,
+      activeLayerId: activeLayerId,
+      bottles: cloneBottles(activeLayer.bottles),
+      zoneLabelOffsets: cloneZoneLabelOffsets(activeLayer.zoneLabelOffsets),
       zoneLayoutVersion: sheet.zoneLayoutVersion || "",
       isAdjustingLabels: false,
       selectedBottleId: null,
@@ -2305,6 +2622,9 @@
   }
 
   state.savedSheets = loadSavedSheets();
+  state.layers = buildDefaultLayers();
+  state.activeLayerId = state.layers[0].id;
+  state.customerLibrary = [];
   syncBottleSeed();
   syncFormFields();
   syncSheetPaperLock();

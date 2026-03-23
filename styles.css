@@ -207,6 +207,168 @@ input {
   padding: 0 0 14px;
 }
 
+.composition-strip {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 0 0 18px;
+}
+
+.layers-panel,
+.customer-library {
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 28px rgba(75, 53, 37, 0.04);
+  padding: 16px 18px;
+}
+
+.panel-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.panel-copy {
+  min-width: 0;
+}
+
+.panel-copy p,
+.panel-copy span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.panel-copy h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.8rem;
+  line-height: 0.94;
+  font-weight: 600;
+}
+
+.panel-count {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.layers-stack {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.layer-chip {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 12px 14px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(75, 53, 37, 0.03);
+}
+
+.layer-chip strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.layer-chip span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.layer-chip.is-active {
+  border-color: rgba(67, 50, 39, 0.26);
+  background: rgba(255, 252, 246, 0.96);
+  box-shadow: 0 12px 24px rgba(75, 53, 37, 0.06);
+}
+
+.layer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+}
+
+.library-owned-grid {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  overflow-x: auto;
+  padding-top: 14px;
+  scrollbar-width: thin;
+}
+
+.owned-card,
+.owned-empty {
+  min-height: 118px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10px 24px rgba(75, 53, 37, 0.04);
+}
+
+.owned-card {
+  display: grid;
+  flex: 0 0 138px;
+  justify-items: start;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  cursor: grab;
+  text-align: left;
+}
+
+.owned-card:active {
+  cursor: grabbing;
+}
+
+.owned-card.is-pending {
+  border-color: rgba(59, 42, 31, 0.5);
+  background: rgba(255, 252, 246, 0.98);
+  box-shadow: 0 14px 28px rgba(75, 53, 37, 0.06);
+}
+
+.owned-card strong {
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.library-owned-bottle {
+  width: 42px;
+  height: 62px;
+  border-radius: 12px 12px 9px 9px;
+}
+
+.owned-empty {
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .saved-sheets-head {
   display: flex;
   align-items: center;
@@ -1185,6 +1347,18 @@ input {
   line-height: 1.45;
 }
 
+.product-owned-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.6rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
 .zone-bottle-marker {
   position: absolute;
   pointer-events: none;
@@ -1216,6 +1390,10 @@ input {
   .sheet-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     display: grid;
+  }
+
+  .composition-strip {
+    grid-template-columns: 1fr;
   }
 
   .zone-editor-head {
@@ -1267,6 +1445,15 @@ input {
   .download-button,
   .ghost-button {
     width: 100%;
+  }
+
+  .layers-panel,
+  .customer-library {
+    padding: 14px;
+  }
+
+  .library-owned-grid {
+    gap: 10px;
   }
 }
 
