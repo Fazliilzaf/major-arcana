@@ -2818,9 +2818,8 @@
                       ${renderBottleVisual(item, "library-owned-bottle")}
                       <span class="owned-card-copy">
                         <strong>${escapeHtml(item.name)}</strong>
-                        <span class="library-level-summary">
-                          <span class="library-level-summary-meta">Layering levels</span>
-                          <span class="library-level-summary-value">${escapeHtml(getLevelDescription(allowedLevels))}</span>
+                        <span class="product-level-badges product-level-badges-library-current" aria-label="Selected layering levels">
+                          ${renderProductLevelBadges(item, item.id, "product-level-badge product-level-badge-library-current")}
                         </span>
                       </span>
                     </button>
