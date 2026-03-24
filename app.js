@@ -20,6 +20,132 @@
     skin: "low",
   };
 
+  const PRODUCT_ALLOWED_LEVELS = {
+    // Bianca
+    "bianca-perfume-amarena-e-prugna": ["high", "middle"],
+    "bianca-perfume-ananas-legno-papaya": ["high", "middle"],
+    "bianca-perfume-bergamoto-amber-09": ["high", "middle"],
+    "bianca-perfume-bois-de-vanille": ["middle", "low"],
+    "bianca-perfume-boogie": ["high", "middle"],
+    "bianca-perfume-camelia-flowers": ["middle"],
+    "bianca-perfume-candifrutt": ["high", "middle"],
+    "bianca-perfume-fairytale": ["high", "middle"],
+    "bianca-perfume-indaco-corallo": ["high", "middle"],
+    "bianca-perfume-laurel-hay": ["high", "middle"],
+    "bianca-perfume-lemon-vanille": ["high", "middle"],
+    "bianca-perfume-limon-fougere": ["high", "middle"],
+    "bianca-perfume-maggie": ["middle"],
+    "bianca-perfume-magnolia-bella-bella": ["middle"],
+    "bianca-perfume-maroccan-mint": ["high", "middle"],
+    "bianca-perfume-mulan-nud": ["middle", "low"],
+    "bianca-perfume-musk": ["middle", "low"],
+    "bianca-perfume-pesca-arancia-rossa": ["high", "middle"],
+    "bianca-perfume-pesca-e-ambra": ["middle", "low"],
+    "bianca-perfume-san-salvador-thiare": ["middle"],
+    "bianca-perfume-santalum-album": ["middle", "low"],
+    "bianca-perfume-sweet-sugar": ["middle", "low"],
+    "bianca-perfume-taaac": ["high", "middle"],
+    "bianca-perfume-tender-milk": ["middle", "low"],
+    "bianca-perfume-tiglio-blu01": ["high", "middle"],
+    "bianca-perfume-tuberosa-musk": ["middle", "low"],
+    "bianca-perfume-vetyver-blu": ["middle", "low"],
+    "bianca-perfume-white-pepper-oud": ["middle", "low"],
+    // Amber
+    "amber-perfume-ambra-orientale": ["middle", "low"],
+    "amber-perfume-ambra-viola-diris": ["middle", "low"],
+    "amber-perfume-aydan": ["middle"],
+    "amber-perfume-bitter-zagara": ["high", "middle"],
+    "amber-perfume-black-antilles": ["middle", "low"],
+    "amber-perfume-cananga-ylang-caffe": ["middle", "low"],
+    "amber-perfume-cedro": ["high", "middle"],
+    "amber-perfume-dark-chocolate-patchouli": ["middle", "low"],
+    "amber-perfume-davana-vinosa": ["middle", "low"],
+    "amber-perfume-dubai-sahara": ["low"],
+    "amber-perfume-fava-tonka": ["middle", "low"],
+    "amber-perfume-freak": ["middle"],
+    "amber-perfume-gesolmino-marino": ["high", "middle"],
+    "amber-perfume-hott-tabaco": ["low"],
+    "amber-perfume-incenso-caldo": ["low"],
+    "amber-perfume-labdanum-gold": ["low"],
+    "amber-perfume-milla-300": ["middle"],
+    "amber-perfume-passiflora-rouge": ["high", "middle"],
+    "amber-perfume-payago": ["middle"],
+    "amber-perfume-poudre-iris": ["middle", "low"],
+    "amber-perfume-santalum-red": ["middle", "low"],
+    "amber-perfume-spicy-clove": ["middle", "low"],
+    "amber-perfume-sugar-jasmine": ["middle"],
+    "amber-perfume-te-mi-de": ["middle"],
+    "amber-perfume-tobacco-flowers": ["middle", "low"],
+    "amber-perfume-tolu": ["low"],
+    "amber-perfume-tuberosa-bianca": ["middle"],
+    "amber-perfume-vaniglia01": ["low"],
+    "amber-perfume-zafferano-tonka": ["middle", "low"],
+    // Raw
+    "raw-perfume-absolute-40": ["low"],
+    "raw-perfume-alchemical-spice": ["middle", "low"],
+    "raw-perfume-amyas-marrakesh": ["middle", "low"],
+    "raw-perfume-arabian-nektar": ["middle", "low"],
+    "raw-perfume-argilla-guatemala": ["low"],
+    "raw-perfume-black-regressive": ["low"],
+    "raw-perfume-blackened-oud": ["low"],
+    "raw-perfume-cioccolato": ["middle", "low"],
+    "raw-perfume-frangipani-bloom": ["middle"],
+    "raw-perfume-gemme-di-ciliegia": ["middle"],
+    "raw-perfume-ginger-artemisia": ["high", "middle"],
+    "raw-perfume-indonesia": ["low"],
+    "raw-perfume-jasmine-cliche": ["middle"],
+    "raw-perfume-latte-noce-moscata": ["middle", "low"],
+    "raw-perfume-mooi-cologne": ["high", "middle"],
+    "raw-perfume-peluscioso": ["middle", "low"],
+    "raw-perfume-radica-aoud": ["low"],
+    "raw-perfume-red-cigars": ["low"],
+    "raw-perfume-resina-quercia": ["low"],
+    "raw-perfume-sex-therapy": ["middle", "low"],
+    "raw-perfume-spezie-winter": ["middle", "low"],
+    "raw-perfume-spin-rose": ["middle", "low"],
+    "raw-perfume-touberosa": ["middle"],
+    "raw-perfume-vaniglia-07": ["low"],
+    "raw-perfume-white-powder": ["middle", "low"],
+    "raw-perfume-wild-fennel": ["high", "middle"],
+    // Skin
+    "skin-body-cream-amarena-e-prugna": ["middle", "low"],
+    "skin-body-cream-arabian-nektar": ["middle", "low"],
+    "skin-body-lotion-aydan": ["middle", "low"],
+    "skin-body-cream-bergamotto-amber09": ["high", "low"],
+    "skin-body-cream-blackened-oud": ["low"],
+    "skin-body-cream-camelia-flowers": ["middle", "low"],
+    "skin-body-cream-dark-chocolate-patchouly": ["middle", "low"],
+    "skin-body-cream-dubai-sahara": ["low"],
+    "skin-body-cream-frangipani-bloom": ["middle", "low"],
+    "skin-body-cream-indonesia": ["low"],
+    "skin-body-care-labdanum-gold": ["low"],
+    "skin-body-cream-lemon-vanille": ["high", "low"],
+    "skin-body-lotion-maroccan-mint": ["high", "low"],
+    "skin-body-lotion-mooi-cologne": ["high", "low"],
+    "skin-body-cream-mulan-nud": ["middle", "low"],
+    "skin-body-lotion-payago": ["middle", "low"],
+    "skin-body-cream-red-cigars": ["low"],
+    "skin-body-cream-san-salvador-thiare": ["middle", "low"],
+    "skin-body-cream-spin-rose": ["middle", "low"],
+    "skin-body-cream-tender-milk": ["middle", "low"],
+    "skin-body-cream-touberosa": ["middle", "low"],
+    "skin-body-cream-vaniglia07": ["low"],
+    "skin-body-lotion-vetyver-blu": ["middle", "low"],
+    "skin-body-cream-white-powder": ["middle", "low"],
+    "skin-oil-amarena-e-prugna": ["middle", "low"],
+    "skin-oil-aydan": ["middle", "low"],
+    "skin-oil-bergamotto-amber09": ["high", "low"],
+    "skin-oil-boogie": ["high", "low"],
+    "skin-oil-dubai-sahara": ["low"],
+    "skin-oil-hott-tabaco": ["low"],
+    "skin-oil-jasmine-cliche": ["middle", "low"],
+    "skin-oil-mulan-nud": ["middle", "low"],
+    "skin-oil-passiflora-rouge": ["high", "low"],
+    "skin-oil-payago": ["middle", "low"],
+    "skin-oil-sugar-jasmine": ["middle", "low"],
+    "skin-oil-sweet-sugar": ["middle", "low"],
+  };
+
   const zones = [
     { id: "hair", label: "Spray Behind Neck and Hair", imageX: 80, imageY: 248, labelDx: 0, labelDy: 0, labelAnchor: "start", markerDx: -22, markerDy: -14 },
     { id: "neck", label: "Spray Shoulders", imageX: 58, imageY: 338, labelDx: 0, labelDy: 0, labelAnchor: "end", markerDx: 20, markerDy: -10 },
@@ -1104,6 +1230,11 @@
     }
   }
 
+  function normalizeLevelList(levels) {
+    return Array.from(new Set((Array.isArray(levels) ? levels : []).filter((level) => ["high", "middle", "low"].includes(level))))
+      .sort((left, right) => getLevelOrder(left) - getLevelOrder(right));
+  }
+
   function getProductPrimaryLevel(product) {
     if (!product) {
       return "middle";
@@ -1111,6 +1242,11 @@
 
     if (["high", "middle", "low"].includes(product.primaryLevel)) {
       return product.primaryLevel;
+    }
+
+    const explicitLevels = normalizeLevelList(PRODUCT_ALLOWED_LEVELS[product.id] || product.allowedLevels);
+    if (explicitLevels.length) {
+      return explicitLevels[0];
     }
 
     const collectionKey = String(product.collection || "").trim().toLowerCase();
@@ -1122,12 +1258,13 @@
   }
 
   function getDefaultAllowedLevels(product) {
-    return [getProductPrimaryLevel(product)];
+    const explicitLevels = normalizeLevelList(product ? (PRODUCT_ALLOWED_LEVELS[product.id] || product.allowedLevels) : null);
+    return explicitLevels.length ? explicitLevels : [getProductPrimaryLevel(product)];
   }
 
   function sanitizeAllowedLevels(levels, product) {
     const fallback = getDefaultAllowedLevels(product);
-    const unique = Array.from(new Set((Array.isArray(levels) ? levels : []).filter((level) => ["high", "middle", "low"].includes(level))));
+    const unique = normalizeLevelList(levels);
     return (unique.length ? unique : fallback).sort((left, right) => getLevelOrder(left) - getLevelOrder(right));
   }
 
@@ -1138,7 +1275,7 @@
 
     const explicitCatalogId = catalogId || product.id;
     const selection = explicitCatalogId ? state.productLevelSelections[explicitCatalogId] : null;
-    return sanitizeAllowedLevels(selection || product.allowedLevels, product);
+    return sanitizeAllowedLevels(selection || PRODUCT_ALLOWED_LEVELS[explicitCatalogId] || product.allowedLevels, product);
   }
 
   function getLevelDescription(levels) {
