@@ -2812,44 +2812,36 @@
                   const isPopoverOpen = state.openLibraryLevelPickerId === item.id;
 
                   return `
-                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isPopoverOpen ? " is-level-open" : ""}">
+                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isPopoverOpen ? " is-level-open" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
                     <button class="panel-mini-action panel-mini-action-danger owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from customer library">Remove</button>
                     <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}">
                       ${renderBottleVisual(item, "library-owned-bottle")}
-                      <strong>${escapeHtml(item.name)}</strong>
-                      <span class="product-level-badges product-level-badges-library-summary">
-                        ${renderProductLevelBadges(item, item.id, "product-level-badge product-level-badge-library")}
+                      <span class="owned-card-copy">
+                        <strong>${escapeHtml(item.name)}</strong>
+                        <span class="library-level-summary">
+                          <span class="library-level-summary-meta">Layering levels</span>
+                          <span class="library-level-summary-value">${escapeHtml(getLevelDescription(allowedLevels))}</span>
+                        </span>
                       </span>
                     </button>
-                    <div class="library-level-shell" data-library-level-shell="${escapeHtml(item.id)}">
-                      <button
-                        class="library-level-trigger${isPopoverOpen ? " is-open" : ""}"
-                        type="button"
-                        data-open-level-picker="${escapeHtml(item.id)}"
-                        aria-expanded="${isPopoverOpen ? "true" : "false"}"
-                      >
-                        <span class="library-level-trigger-meta">Layering levels</span>
-                        <span class="library-level-trigger-value">${escapeHtml(getLevelDescription(allowedLevels))}</span>
-                      </button>
-                      ${isPopoverOpen ? `
-                        <div class="library-level-popover" role="dialog" aria-label="Choose levels for ${escapeHtml(item.name)}">
-                          <p class="library-level-popover-title">Choose Head, Heart, or Base</p>
-                          <div class="library-level-picker">
-                            ${["high", "middle", "low"]
-                              .map((level) => `
-                                <button
-                                  class="library-level-chip${allowedLevels.includes(level) ? " is-active" : ""}"
-                                  type="button"
-                                  data-toggle-level="${escapeHtml(item.id)}::${escapeHtml(level)}"
-                                >
-                                  ${escapeHtml(getLevelLabel(level))}
-                                </button>
-                              `)
-                              .join("")}
-                          </div>
+                    ${isPopoverOpen ? `
+                      <div class="library-level-popover" role="dialog" aria-label="Choose levels for ${escapeHtml(item.name)}">
+                        <p class="library-level-popover-title">Choose Head, Heart, or Base</p>
+                        <div class="library-level-picker">
+                          ${["high", "middle", "low"]
+                            .map((level) => `
+                              <button
+                                class="library-level-chip${allowedLevels.includes(level) ? " is-active" : ""}"
+                                type="button"
+                                data-toggle-level="${escapeHtml(item.id)}::${escapeHtml(level)}"
+                              >
+                                ${escapeHtml(getLevelLabel(level))}
+                              </button>
+                            `)
+                            .join("")}
                         </div>
-                      ` : ""}
-                    </div>
+                      </div>
+                    ` : ""}
                   </article>
                 `;
                 })
@@ -2885,12 +2877,6 @@
     customerLibraryPanel.querySelectorAll("[data-remove-library-product]").forEach((button) => {
       button.addEventListener("click", function () {
         removeCatalogFromLibrary(button.getAttribute("data-remove-library-product"));
-      });
-    });
-
-    customerLibraryPanel.querySelectorAll("[data-open-level-picker]").forEach((button) => {
-      button.addEventListener("click", function () {
-        toggleLibraryLevelPicker(button.getAttribute("data-open-level-picker"));
       });
     });
 

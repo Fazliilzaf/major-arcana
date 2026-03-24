@@ -419,16 +419,16 @@ input {
 
 .library-owned-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(138px, 138px));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 220px));
   justify-content: flex-start;
-  gap: 12px;
+  gap: 14px;
   overflow: visible;
   padding-top: 12px;
 }
 
 .owned-card,
 .owned-empty {
-  min-height: 154px;
+  min-height: 110px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.84);
   box-shadow: 0 10px 24px rgba(75, 53, 37, 0.04);
@@ -436,23 +436,23 @@ input {
 
 .owned-card {
   display: grid;
-  width: 138px;
-  max-width: 138px;
+  width: 220px;
+  max-width: 220px;
   position: relative;
   align-content: start;
-  gap: 10px;
-  padding: 12px;
+  gap: 0;
+  padding: 14px;
   text-align: left;
   overflow: visible;
 }
 
 .owned-card-select {
   display: grid;
-  justify-items: start;
-  align-content: start;
-  gap: 10px;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
   width: 100%;
-  padding: 10px 0 0;
+  padding: 8px 0 0;
   border: 0;
   background: transparent;
   appearance: none;
@@ -480,47 +480,33 @@ input {
 
 .owned-card strong {
   color: var(--ink);
-  font-size: 0.8rem;
-  line-height: 1.2;
+  font-size: 0.92rem;
+  line-height: 1.08;
   font-weight: 700;
   text-wrap: balance;
 }
 
-.owned-card-select .product-level-badges {
-  margin-top: -2px;
-}
-
-.product-level-badges-library-summary {
-  min-height: 20px;
-}
-
-.library-level-shell {
-  position: relative;
-  width: 100%;
-}
-
-.library-level-trigger {
+.owned-card-copy {
   display: grid;
-  width: 100%;
-  gap: 4px;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+}
+
+.library-level-summary {
+  display: inline-grid;
   justify-items: start;
-  padding: 10px 12px;
+  gap: 4px;
+  width: fit-content;
+  min-width: 116px;
+  padding: 8px 12px;
   border: 1px solid var(--line-soft);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-.library-level-trigger.is-open {
-  border-color: rgba(78, 60, 48, 0.18);
-  background: rgba(255, 252, 247, 0.94);
-  box-shadow: 0 8px 18px rgba(72, 52, 34, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
-
-.library-level-trigger-meta {
+.library-level-summary-meta {
   color: var(--muted);
   font-size: 0.52rem;
   letter-spacing: 0.16em;
@@ -528,22 +514,22 @@ input {
   font-weight: 700;
 }
 
-.library-level-trigger-value {
+.library-level-summary-value {
   color: var(--ink);
-  font-size: 0.78rem;
-  line-height: 1.15;
+  font-size: 0.8rem;
+  line-height: 1.08;
   font-weight: 700;
 }
 
 .library-level-popover {
   position: absolute;
-  left: 0;
-  top: calc(100% + 10px);
+  left: 64px;
+  top: calc(100% - 6px);
   z-index: 12;
   display: grid;
-  gap: 12px;
-  width: 228px;
-  max-width: min(228px, calc(100vw - 48px));
+  gap: 10px;
+  width: 248px;
+  max-width: min(248px, calc(100vw - 48px));
   padding: 14px;
   border: 1px solid rgba(116, 96, 78, 0.14);
   border-radius: 18px;
@@ -555,7 +541,7 @@ input {
   content: "";
   position: absolute;
   top: -7px;
-  left: 18px;
+  left: 28px;
   width: 14px;
   height: 14px;
   background: rgba(252, 248, 244, 0.98);
@@ -607,11 +593,12 @@ input {
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 2;
 }
 
 .library-owned-bottle {
-  width: 42px;
-  height: 62px;
+  width: 46px;
+  height: 68px;
   border-radius: 12px 12px 9px 9px;
 }
 
