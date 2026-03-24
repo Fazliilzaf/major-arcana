@@ -2131,6 +2131,17 @@
     renderCustomerLibrary();
   }
 
+  function openLibraryLevelPicker(catalogId) {
+    if (!catalogId) {
+      return;
+    }
+
+    state.pendingCatalogId = catalogId;
+    state.selectedBottleId = null;
+    state.openLibraryLevelPickerId = catalogId;
+    render();
+  }
+
   function closeLibraryLevelPicker() {
     if (!state.openLibraryLevelPickerId) {
       return;
@@ -2850,7 +2861,7 @@
 
     customerLibraryPanel.querySelectorAll("[data-library-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
-        setPendingCatalog(button.getAttribute("data-library-product-id"));
+        openLibraryLevelPicker(button.getAttribute("data-library-product-id"));
       });
 
       button.addEventListener("dragstart", function (event) {
