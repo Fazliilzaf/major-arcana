@@ -1584,19 +1584,17 @@ input {
 .zone-editor-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(105, 80, 60, 0.14);
-  background: rgba(255, 255, 255, 0.985);
-  box-shadow:
-    0 22px 44px rgba(72, 52, 34, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  border: 0;
+  background: #fffdf9;
+  box-shadow: 0 18px 42px rgba(72, 52, 34, 0.05);
 }
 
 .zone-planner-sheet {
   --planner-row-height: 72px;
   position: relative;
   display: grid;
-  gap: 24px;
-  padding: 66px 34px 42px;
+  gap: 28px;
+  padding: 82px 36px 58px;
 }
 
 .zone-planner-rail {
@@ -1618,8 +1616,8 @@ input {
 
 .zone-planner-brand {
   display: grid;
-  gap: 8px;
-  padding-left: 44px;
+  gap: 12px;
+  padding-left: 40px;
 }
 
 .zone-planner-brand h3,
@@ -1631,21 +1629,21 @@ input {
 }
 
 .zone-planner-brand h3 {
-  font-size: clamp(2.25rem, 3vw, 3rem);
-  line-height: 0.94;
+  font-size: clamp(2.4rem, 3.2vw, 3.2rem);
+  line-height: 0.92;
   letter-spacing: 0.04em;
 }
 
 .zone-planner-brand p {
-  font-size: clamp(1.28rem, 1.9vw, 1.64rem);
+  font-size: clamp(1.32rem, 1.9vw, 1.7rem);
   line-height: 1;
   letter-spacing: 0.02em;
 }
 
 .zone-planner-layout {
   display: grid;
-  grid-template-columns: 184px minmax(0, 1fr) 292px;
-  gap: 26px;
+  grid-template-columns: 174px minmax(0, 1fr) 280px;
+  gap: 22px;
   align-items: start;
 }
 
@@ -1654,6 +1652,19 @@ input {
   min-height: 760px;
   overflow: hidden;
   border-right: 0;
+}
+
+.zone-planner-figure::after {
+  content: "";
+  position: absolute;
+  inset: 72px 0 0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 calc(var(--planner-row-height) - 1px),
+      rgba(88, 63, 46, 0.16) calc(var(--planner-row-height) - 1px) var(--planner-row-height)
+    );
+  pointer-events: none;
 }
 
 .zone-planner-figure-bands {
@@ -1672,22 +1683,22 @@ input {
 }
 
 .zone-planner-figure-band--high {
-  background: linear-gradient(90deg, rgba(248, 239, 182, 0.86), rgba(248, 239, 182, 0.08));
+  background: linear-gradient(90deg, rgba(248, 239, 182, 0.86), rgba(248, 239, 182, 0.04));
 }
 
 .zone-planner-figure-band--middle {
-  background: linear-gradient(90deg, rgba(244, 210, 192, 0.82), rgba(244, 210, 192, 0.1));
+  background: linear-gradient(90deg, rgba(244, 210, 192, 0.82), rgba(244, 210, 192, 0.04));
 }
 
 .zone-planner-figure-band--low {
-  background: linear-gradient(90deg, rgba(228, 220, 232, 0.86), rgba(228, 220, 232, 0.14));
+  background: linear-gradient(90deg, rgba(228, 220, 232, 0.86), rgba(228, 220, 232, 0.05));
 }
 
 .zone-planner-figure-image {
   position: absolute;
-  left: -20px;
-  bottom: -48px;
-  width: 172px;
+  left: -18px;
+  bottom: -60px;
+  width: 170px;
   height: auto;
   display: block;
 }
@@ -1699,11 +1710,11 @@ input {
 
 .zone-planner-table-head {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(132px, 0.95fr) 86px 86px 86px;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(132px, 0.95fr) 86px 86px 92px;
   align-items: end;
   gap: 14px;
-  min-height: 82px;
-  padding: 0 0 12px;
+  min-height: 88px;
+  padding: 0 0 10px;
   border-bottom: 2px solid rgba(88, 63, 46, 0.28);
 }
 
@@ -1714,7 +1725,7 @@ input {
 .zone-planner-col-title {
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.18rem;
+  font-size: 1.26rem;
   line-height: 1;
   font-weight: 600;
   text-align: center;
@@ -1723,10 +1734,10 @@ input {
 .zone-planner-col-type {
   display: grid;
   justify-items: center;
-  gap: 7px;
+  gap: 9px;
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.06rem;
+  font-size: 1.2rem;
   line-height: 1;
   font-weight: 600;
   opacity: 0.72;
@@ -1752,7 +1763,7 @@ input {
 
 .zone-planner-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(132px, 0.95fr) 86px 86px 86px;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(132px, 0.95fr) 86px 86px 92px;
   align-items: center;
   gap: 14px;
   min-height: var(--planner-row-height);
@@ -1763,32 +1774,17 @@ input {
   border-top: 0;
 }
 
-.zone-planner-row--high {
-  background: linear-gradient(90deg, rgba(248, 239, 182, 0.1), rgba(255, 255, 255, 0));
-}
-
-.zone-planner-row--middle {
-  background: linear-gradient(90deg, rgba(244, 210, 192, 0.1), rgba(255, 255, 255, 0));
-}
-
-.zone-planner-row--low {
-  background: linear-gradient(90deg, rgba(228, 220, 232, 0.12), rgba(255, 255, 255, 0));
-}
-
 .zone-planner-row.is-selected {
-  background:
-    linear-gradient(90deg, rgba(255, 252, 247, 0.86), rgba(255, 255, 255, 0.6)),
-    linear-gradient(90deg, rgba(88, 63, 46, 0.04), rgba(88, 63, 46, 0.01));
+  background: rgba(255, 252, 247, 0.66);
 }
 
 .zone-planner-row.is-disabled {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.85));
+  opacity: 0.34;
 }
 
 .zone-planner-area {
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   line-height: 1.34;
   padding-right: 8px;
   text-align: left;
@@ -1796,11 +1792,11 @@ input {
 
 .zone-planner-product {
   color: var(--text);
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   line-height: 1.28;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -1828,11 +1824,11 @@ input {
 
 .zone-planner-check-box {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: 1px solid rgba(74, 56, 44, 0.42);
   background: rgba(255, 252, 247, 0.98);
-  border-radius: 11px;
+  border-radius: 10px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 3px 8px rgba(75, 53, 37, 0.04);
@@ -1861,19 +1857,20 @@ input {
 .zone-planner-notes {
   display: grid;
   gap: 0;
-  padding-top: 82px;
+  padding-top: 88px;
   align-content: start;
 }
 
 .zone-planner-note {
   color: var(--text);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.05rem;
-  line-height: 1.3;
+  font-size: 1.06rem;
+  line-height: 1.34;
   min-height: calc((var(--planner-row-height) * var(--planner-group-rows, 1)) + 2px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   text-align: center;
+  padding-top: 12px;
 }
 
 .zone-planner-note p {

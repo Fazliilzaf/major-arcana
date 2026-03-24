@@ -2658,9 +2658,9 @@
       },
     ];
     const plannerNarratives = {
-      high: "Apply your perfume to the head zone behind the neck, lightly through the hair, across the shoulders, and on the chest, allowing a soft aura to form around you. This is the first impression, the part of the scent that moves with air and light.",
-      middle: "Use the heart zone, the chest, abdomen, or arms, for the perfumes you want to live closest to you. Here the fragrance warms with your own rhythm, unfolding gradually through the day and becoming part of your natural presence.",
-      low: "Reserve the base zone, hips, laps, behind the knees, or calfs, for the perfumes you want to release with subtle intention. These areas build warmth gradually, leaving a softer, more intimate and personal trail.",
+      high: "Apply your perfume to the head zone behind the neck, lightly through the hair, across the shoulders, allowing a soft aura to form around you. This is the first impression, the part of the scent that moves with air and light.",
+      middle: "Use the heart zone, the chest, arms, or abdomen, for the perfumes you want to live closest to you. Here, the fragrance warms with your own rhythm, unfolding slowly throughout the day and becoming part of your natural presence.",
+      low: "Reserve the base zone, hips, behind the knees, or calfs, for the perfumes you wish to release with subtle intention. These areas build warmth gradually, letting the scent rise in a quiet, continuous trail that feels personal, intimate, and entirely your own.",
     };
 
     selectedBottlePanel.hidden = false;
