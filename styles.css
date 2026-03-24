@@ -583,21 +583,27 @@ input {
 }
 
 .library-level-chip--high {
-  border-color: rgba(204, 183, 88, 0.28);
-  background: rgba(248, 238, 170, 0.34);
-  color: rgba(92, 72, 33, 0.88);
+  border-color: rgba(198, 177, 82, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 238, 0.96), rgba(247, 239, 190, 0.9)),
+    linear-gradient(90deg, rgba(250, 242, 196, 0.52), rgba(250, 242, 196, 0.18));
+  color: rgba(96, 77, 36, 0.84);
 }
 
 .library-level-chip--middle {
-  border-color: rgba(203, 144, 112, 0.26);
-  background: rgba(248, 212, 190, 0.34);
-  color: rgba(104, 58, 39, 0.88);
+  border-color: rgba(196, 140, 108, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 245, 0.96), rgba(245, 219, 205, 0.9)),
+    linear-gradient(90deg, rgba(246, 216, 199, 0.52), rgba(246, 216, 199, 0.18));
+  color: rgba(104, 63, 44, 0.84);
 }
 
 .library-level-chip--low {
-  border-color: rgba(170, 156, 201, 0.28);
-  background: rgba(224, 217, 239, 0.38);
-  color: rgba(77, 62, 102, 0.88);
+  border-color: rgba(161, 148, 191, 0.18);
+  background:
+    linear-gradient(180deg, rgba(252, 249, 253, 0.96), rgba(229, 223, 234, 0.92)),
+    linear-gradient(90deg, rgba(231, 223, 237, 0.54), rgba(231, 223, 237, 0.2));
+  color: rgba(79, 66, 101, 0.84);
 }
 
 .library-level-chip.is-active {
@@ -606,18 +612,24 @@ input {
 }
 
 .library-level-chip--high.is-active {
-  border-color: rgba(198, 171, 58, 0.4);
-  background: rgba(247, 232, 120, 0.78);
+  border-color: rgba(190, 165, 62, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 232, 0.98), rgba(246, 235, 170, 0.94)),
+    linear-gradient(90deg, rgba(248, 238, 177, 0.58), rgba(248, 238, 177, 0.28));
 }
 
 .library-level-chip--middle.is-active {
-  border-color: rgba(198, 126, 87, 0.34);
-  background: rgba(245, 197, 171, 0.82);
+  border-color: rgba(192, 126, 92, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 245, 0.98), rgba(244, 212, 194, 0.94)),
+    linear-gradient(90deg, rgba(244, 210, 192, 0.58), rgba(244, 210, 192, 0.28));
 }
 
 .library-level-chip--low.is-active {
-  border-color: rgba(145, 126, 188, 0.34);
-  background: rgba(214, 205, 236, 0.84);
+  border-color: rgba(149, 132, 186, 0.28);
+  background:
+    linear-gradient(180deg, rgba(252, 249, 253, 0.98), rgba(228, 220, 232, 0.95)),
+    linear-gradient(90deg, rgba(226, 218, 230, 0.6), rgba(226, 218, 230, 0.3));
 }
 
 .owned-card-remove {
