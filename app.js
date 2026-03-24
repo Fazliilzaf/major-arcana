@@ -2597,57 +2597,125 @@
     const product = getCatalogItem(selectedBottle.catalogId);
     const zoneNames = getBottleZoneNames(selectedBottle);
     const zoneGroups = getVisibleZoneGroups(product, selectedBottle);
+    const plannerType = getPlacementType(product.type);
+    const plannerTypeKey = plannerType === "Perfume" ? "perfume" : plannerType === "Oil" ? "oil" : "cream";
+    const plannerTypeColumns = [
+      {
+        key: "perfume",
+        label: "Perfume",
+        visual: { collection: "Bianca", type: "Perfume" },
+      },
+      {
+        key: "oil",
+        label: "Body Oil",
+        visual: { collection: "Skin", type: "Oil" },
+      },
+      {
+        key: "cream",
+        label: "Body Cream",
+        visual: { collection: "Skin", type: "Body Lotion" },
+      },
+    ];
+    const plannerNarratives = {
+      high: "Apply your perfume to the head zone behind the neck, lightly through the hair, across the shoulders, and on the chest, allowing a soft aura to form around you. This is the first impression, the part of the scent that moves with air and light.",
+      middle: "Use the heart zone, the chest, abdomen, or arms, for the perfumes you want to live closest to you. Here the fragrance warms with your own rhythm, unfolding gradually through the day and becoming part of your natural presence.",
+      low: "Reserve the base zone, hips, laps, behind the knees, or calfs, for the perfumes you want to release with subtle intention. These areas build warmth gradually, leaving a softer, more intimate and personal trail.",
+    };
 
     selectedBottlePanel.hidden = false;
     selectedBottlePanel.innerHTML = `
       <div class="zone-editor-card">
-        <div class="zone-editor-head">
-          <div class="zone-editor-selected">
-            ${renderBottleVisual(product, "zone-editor-bottle")}
-            <div class="zone-editor-copy">
-              <p>Selected product</p>
-              <h3>${escapeHtml(product.name)}</h3>
-            </div>
+        <div class="zone-planner-sheet">
+          <div class="zone-planner-rail zone-planner-rail--top" aria-hidden="true"></div>
+          <div class="zone-planner-brand">
+            <h3>THE ART OF LAYERING</h3>
+            <p>PERSONAL OLFACTORY STRATIFICATION</p>
           </div>
-          <p class="zone-editor-note">Choose the exact spray areas inside the allowed layering sections. The body map updates automatically.</p>
-        </div>
-        <div class="zone-plan-groups">
-          ${zoneGroups
-            .map((group) => `
-              <section class="zone-plan-group zone-plan-group--${escapeHtml(group.level)}">
-                <div class="zone-plan-group-head">
-                  <span class="zone-plan-level">${escapeHtml(group.label)}</span>
-                  <span class="zone-plan-count">${escapeHtml(`${group.zones.length} areas`)}</span>
-                </div>
-                <div class="zone-plan-rows">
-                  ${group.zones
-                    .map((zone) => {
-                      const selected = selectedBottle.zones.includes(zone.id);
+          <div class="zone-planner-layout">
+            <aside class="zone-planner-figure" aria-hidden="true">
+              <div class="zone-planner-figure-bands">
+                <div class="zone-planner-figure-band zone-planner-figure-band--high"></div>
+                <div class="zone-planner-figure-band zone-planner-figure-band--middle"></div>
+                <div class="zone-planner-figure-band zone-planner-figure-band--low"></div>
+              </div>
+              <img class="zone-planner-figure-image" src="./assets/body-reference-clean.png" alt="" draggable="false" />
+            </aside>
+            <section class="zone-planner-table" aria-label="Layering planner">
+              <div class="zone-planner-table-head">
+                <span class="zone-planner-col-area"></span>
+                <span class="zone-planner-col-title">Product Title</span>
+                ${plannerTypeColumns
+                  .map((column) => `
+                    <span class="zone-planner-col-type${column.key === plannerTypeKey ? " is-current" : ""}">
+                      ${renderBottleVisual(column.visual, "zone-planner-type-bottle")}
+                      <span>${escapeHtml(column.label)}</span>
+                    </span>
+                  `)
+                  .join("")}
+              </div>
+              <div class="zone-planner-table-body">
+                ${zoneGroups
+                  .map((group) => `
+                    <section class="zone-planner-group zone-planner-group--${escapeHtml(group.level)}" data-zone-group="${escapeHtml(group.level)}">
+                      ${group.zones
+                        .map((zone) => {
+                          const selected = selectedBottle.zones.includes(zone.id);
 
-                      return `
-                        <label class="zone-plan-row${selected ? " is-selected" : ""}">
-                          <span class="zone-plan-row-label">${escapeHtml(zone.label)}</span>
-                          <span class="zone-plan-row-product">${escapeHtml(product.name)}</span>
-                          <span class="zone-plan-row-check">
-                            <input class="zone-check-input" type="checkbox" data-zone-check="${escapeHtml(zone.id)}" ${selected ? "checked" : ""} />
-                            <span class="zone-check-box" aria-hidden="true"></span>
-                          </span>
-                        </label>
-                      `;
-                    })
-                    .join("")}
-                </div>
-              </section>
-            `)
-            .join("")}
+                          return `
+                            <div class="zone-planner-row zone-planner-row--${escapeHtml(group.level)}${selected ? " is-selected" : ""}">
+                              <span class="zone-planner-area">${escapeHtml(zone.label)}:</span>
+                              <span class="zone-planner-product">${escapeHtml(product.name)}</span>
+                              ${plannerTypeColumns
+                                .map((column) => {
+                                  if (column.key !== plannerTypeKey) {
+                                    return `<span class="zone-planner-cell zone-planner-cell-empty" aria-hidden="true"></span>`;
+                                  }
+
+                                  return `
+                                    <label class="zone-planner-cell zone-planner-cell-check${selected ? " is-selected" : ""}">
+                                      <input class="zone-check-input" type="checkbox" data-zone-check="${escapeHtml(zone.id)}" ${selected ? "checked" : ""} />
+                                      <span class="zone-planner-check-box" aria-hidden="true"></span>
+                                    </label>
+                                  `;
+                                })
+                                .join("")}
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </section>
+                  `)
+                  .join("")}
+              </div>
+            </section>
+            <aside class="zone-planner-notes">
+              ${zoneGroups
+                .map((group) => `
+                  <section class="zone-planner-note zone-planner-note--${escapeHtml(group.level)}" style="--planner-group-rows:${escapeHtml(String(group.zones.length))}">
+                    <p>${escapeHtml(plannerNarratives[group.level] || "")}</p>
+                  </section>
+                `)
+                .join("")}
+            </aside>
+          </div>
+          <div class="zone-planner-footer">
+            <div class="zone-planner-current-product">
+              ${renderBottleVisual(product, "zone-planner-current-bottle")}
+              <div class="zone-planner-current-copy">
+                <span>Current product</span>
+                <strong>${escapeHtml(product.name)}</strong>
+              </div>
+            </div>
+            <p class="zone-editor-summary">
+              ${
+                zoneNames.length > 0
+                  ? `Spray zones: ${escapeHtml(zoneNames.join(", "))}`
+                  : "No spray zones selected yet."
+              }
+            </p>
+          </div>
+          <div class="zone-planner-rail zone-planner-rail--bottom" aria-hidden="true"></div>
         </div>
-        <p class="zone-editor-summary">
-          ${
-            zoneNames.length > 0
-              ? `Spray zones: ${escapeHtml(zoneNames.join(", "))}`
-              : "No spray zones selected yet."
-          }
-        </p>
       </div>
     `;
 

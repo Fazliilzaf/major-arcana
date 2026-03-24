@@ -1216,6 +1216,8 @@ input {
 .mini-bottle,
 .product-bottle,
 .library-owned-bottle,
+.zone-planner-type-bottle,
+.zone-planner-current-bottle,
 .zone-editor-bottle,
 .zone-bottle {
   --collection-tint: rgba(143, 117, 97, 0.4);
@@ -1255,6 +1257,8 @@ input {
 .mini-bottle::before,
 .product-bottle::before,
 .library-owned-bottle::before,
+.zone-planner-type-bottle::before,
+.zone-planner-current-bottle::before,
 .zone-editor-bottle::before,
 .zone-bottle::before {
   content: "";
@@ -1267,6 +1271,8 @@ input {
 .mini-bottle.type-perfume::before,
 .product-bottle.type-perfume::before,
 .library-owned-bottle.type-perfume::before,
+.zone-planner-type-bottle.type-perfume::before,
+.zone-planner-current-bottle.type-perfume::before,
 .zone-editor-bottle.type-perfume::before,
 .zone-bottle.type-perfume::before {
   top: -7px;
@@ -1278,6 +1284,8 @@ input {
 .mini-bottle.type-oil,
 .product-bottle.type-oil,
 .library-owned-bottle.type-oil,
+.zone-planner-type-bottle.type-oil,
+.zone-planner-current-bottle.type-oil,
 .zone-editor-bottle.type-oil,
 .zone-bottle.type-oil {
   width: 28px;
@@ -1287,6 +1295,8 @@ input {
 .mini-bottle.type-oil::before,
 .product-bottle.type-oil::before,
 .library-owned-bottle.type-oil::before,
+.zone-planner-type-bottle.type-oil::before,
+.zone-planner-current-bottle.type-oil::before,
 .zone-editor-bottle.type-oil::before,
 .zone-bottle.type-oil::before {
   top: -8px;
@@ -1298,6 +1308,8 @@ input {
 .mini-bottle.type-body-lotion,
 .product-bottle.type-body-lotion,
 .library-owned-bottle.type-body-lotion,
+.zone-planner-type-bottle.type-body-lotion,
+.zone-planner-current-bottle.type-body-lotion,
 .zone-editor-bottle.type-body-lotion,
 .zone-bottle.type-body-lotion {
   border-radius: 9px 9px 12px 12px;
@@ -1306,6 +1318,8 @@ input {
 .mini-bottle.type-body-lotion::before,
 .product-bottle.type-body-lotion::before,
 .library-owned-bottle.type-body-lotion::before,
+.zone-planner-type-bottle.type-body-lotion::before,
+.zone-planner-current-bottle.type-body-lotion::before,
 .zone-editor-bottle.type-body-lotion::before,
 .zone-bottle.type-body-lotion::before {
   top: -8px;
@@ -1318,6 +1332,8 @@ input {
 .mini-bottle::after,
 .product-bottle::after,
 .library-owned-bottle::after,
+.zone-planner-type-bottle::after,
+.zone-planner-current-bottle::after,
 .zone-editor-bottle::after,
 .zone-bottle::after {
   content: "";
@@ -1335,6 +1351,8 @@ input {
 .mini-bottle.type-oil::after,
 .product-bottle.type-oil::after,
 .library-owned-bottle.type-oil::after,
+.zone-planner-type-bottle.type-oil::after,
+.zone-planner-current-bottle.type-oil::after,
 .zone-editor-bottle.type-oil::after,
 .zone-bottle.type-oil::after {
   width: 64%;
@@ -1345,6 +1363,8 @@ input {
 .mini-bottle.type-body-lotion::after,
 .product-bottle.type-body-lotion::after,
 .library-owned-bottle.type-body-lotion::after,
+.zone-planner-type-bottle.type-body-lotion::after,
+.zone-planner-current-bottle.type-body-lotion::after,
 .zone-editor-bottle.type-body-lotion::after,
 .zone-bottle.type-body-lotion::after {
   width: 48%;
@@ -1356,6 +1376,8 @@ input {
 .mini-bottle img,
 .product-bottle img,
 .library-owned-bottle img,
+.zone-planner-type-bottle img,
+.zone-planner-current-bottle img,
 .zone-editor-bottle img,
 .zone-bottle img {
   width: 100%;
@@ -1368,6 +1390,8 @@ input {
 .mini-bottle.has-image,
 .product-bottle.has-image,
 .library-owned-bottle.has-image,
+.zone-planner-type-bottle.has-image,
+.zone-planner-current-bottle.has-image,
 .zone-editor-bottle.has-image,
 .zone-bottle.has-image {
   border: 0;
@@ -1381,6 +1405,10 @@ input {
 .product-bottle.has-image::after,
 .library-owned-bottle.has-image::before,
 .library-owned-bottle.has-image::after,
+.zone-planner-type-bottle.has-image::before,
+.zone-planner-type-bottle.has-image::after,
+.zone-planner-current-bottle.has-image::before,
+.zone-planner-current-bottle.has-image::after,
 .zone-editor-bottle.has-image::before,
 .zone-editor-bottle.has-image::after,
 .zone-bottle.has-image::before,
@@ -1396,6 +1424,28 @@ input {
 .library-owned-bottle.has-image {
   width: 50px;
   height: 72px;
+}
+
+.zone-planner-type-bottle {
+  width: 28px;
+  height: 38px;
+  border-radius: 10px 10px 8px 8px;
+}
+
+.zone-planner-type-bottle.has-image {
+  width: 34px;
+  height: 48px;
+}
+
+.zone-planner-current-bottle {
+  width: 34px;
+  height: 48px;
+  border-radius: 12px 12px 9px 9px;
+}
+
+.zone-planner-current-bottle.has-image {
+  width: 42px;
+  height: 62px;
 }
 
 .zone-editor-bottle.has-image {
@@ -1440,6 +1490,7 @@ input {
 .mini-bottle.has-image .bottle-collection-mark,
 .product-bottle.has-image .bottle-collection-mark,
 .library-owned-bottle.has-image .bottle-collection-mark,
+.zone-planner-current-bottle.has-image .bottle-collection-mark,
 .zone-editor-bottle.has-image .bottle-collection-mark,
 .zone-bottle.has-image .bottle-collection-mark {
   right: 2px;
@@ -1514,25 +1565,319 @@ input {
   line-height: 1.55;
 }
 
-.zone-editor-card {
-  border-top: 0;
-  padding-top: 0;
+.zone-editor {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
-.zone-editor-head {
+.zone-editor-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(105, 80, 60, 0.18);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 18px 40px rgba(72, 52, 34, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.zone-planner-sheet {
+  --planner-row-height: 72px;
+  position: relative;
+  display: grid;
+  gap: 28px;
+  padding: 58px 28px 30px;
+}
+
+.zone-planner-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 18px;
+  background:
+    linear-gradient(180deg, rgba(105, 35, 24, 0.98), rgba(88, 28, 18, 0.98));
+}
+
+.zone-planner-rail--top {
+  top: 0;
+}
+
+.zone-planner-rail--bottom {
+  bottom: 0;
+}
+
+.zone-planner-brand {
+  display: grid;
+  gap: 8px;
+  padding-left: 16px;
+}
+
+.zone-planner-brand h3,
+.zone-planner-brand p {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+}
+
+.zone-planner-brand h3 {
+  font-size: clamp(2rem, 2.9vw, 2.8rem);
+  line-height: 0.96;
+  letter-spacing: 0.04em;
+}
+
+.zone-planner-brand p {
+  font-size: clamp(1.2rem, 1.8vw, 1.58rem);
+  line-height: 0.98;
+  letter-spacing: 0.02em;
+}
+
+.zone-planner-layout {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) 268px;
+  gap: 24px;
+  align-items: start;
+}
+
+.zone-planner-figure {
+  position: relative;
+  min-height: 748px;
+  overflow: hidden;
+  border-right: 1px solid rgba(88, 63, 46, 0.16);
+}
+
+.zone-planner-figure-bands {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.zone-planner-figure-band {
+  border-top: 1px solid rgba(88, 63, 46, 0.12);
+}
+
+.zone-planner-figure-band:first-child {
+  border-top: 0;
+}
+
+.zone-planner-figure-band--high {
+  background: linear-gradient(90deg, rgba(248, 239, 182, 0.86), rgba(248, 239, 182, 0.08));
+}
+
+.zone-planner-figure-band--middle {
+  background: linear-gradient(90deg, rgba(244, 210, 192, 0.82), rgba(244, 210, 192, 0.1));
+}
+
+.zone-planner-figure-band--low {
+  background: linear-gradient(90deg, rgba(228, 220, 232, 0.86), rgba(228, 220, 232, 0.14));
+}
+
+.zone-planner-figure-image {
+  position: absolute;
+  left: -22px;
+  bottom: -82px;
+  width: 164px;
+  height: auto;
+  display: block;
+}
+
+.zone-planner-table {
+  display: grid;
+  align-content: start;
+}
+
+.zone-planner-table-head {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(132px, 0.95fr) 86px 86px 86px;
+  align-items: end;
+  gap: 14px;
+  min-height: 92px;
+  padding: 0 0 14px;
+  border-bottom: 2px solid rgba(88, 63, 46, 0.28);
+}
+
+.zone-planner-col-area {
+  display: block;
+}
+
+.zone-planner-col-title {
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.22rem;
+  line-height: 1;
+  font-weight: 600;
+  text-align: center;
+}
+
+.zone-planner-col-type {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.1rem;
+  line-height: 1;
+  font-weight: 600;
+  opacity: 0.72;
+}
+
+.zone-planner-col-type.is-current {
+  opacity: 1;
+}
+
+.zone-planner-table-body {
+  display: grid;
+  border-bottom: 2px solid rgba(88, 63, 46, 0.22);
+}
+
+.zone-planner-group {
+  display: grid;
+}
+
+.zone-planner-group + .zone-planner-group {
+  border-top: 2px solid rgba(88, 63, 46, 0.24);
+}
+
+.zone-planner-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(132px, 0.95fr) 86px 86px 86px;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--planner-row-height);
+  border-top: 1px solid rgba(88, 63, 46, 0.14);
+}
+
+.zone-planner-group .zone-planner-row:first-child {
+  border-top: 0;
+}
+
+.zone-planner-row--high {
+  background: linear-gradient(90deg, rgba(248, 239, 182, 0.1), rgba(255, 255, 255, 0));
+}
+
+.zone-planner-row--middle {
+  background: linear-gradient(90deg, rgba(244, 210, 192, 0.1), rgba(255, 255, 255, 0));
+}
+
+.zone-planner-row--low {
+  background: linear-gradient(90deg, rgba(228, 220, 232, 0.12), rgba(255, 255, 255, 0));
+}
+
+.zone-planner-row.is-selected {
+  background:
+    linear-gradient(90deg, rgba(255, 252, 247, 0.86), rgba(255, 255, 255, 0.6)),
+    linear-gradient(90deg, rgba(88, 63, 46, 0.04), rgba(88, 63, 46, 0.01));
+}
+
+.zone-planner-area {
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.36;
+  padding-right: 8px;
+  text-align: center;
+}
+
+.zone-planner-product {
+  color: var(--text);
+  font-size: 0.68rem;
+  line-height: 1.28;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: center;
+}
+
+.zone-planner-cell {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  min-height: 100%;
+}
+
+.zone-planner-cell-empty::before {
+  display: none;
+}
+
+.zone-planner-cell-check {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  justify-self: center;
+}
+
+.zone-planner-check-box {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(74, 56, 44, 0.42);
+  background: rgba(255, 252, 247, 0.98);
+  border-radius: 11px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 3px 8px rgba(75, 53, 37, 0.04);
+}
+
+.zone-planner-cell-check.is-selected .zone-planner-check-box {
+  border-color: rgba(74, 56, 44, 0.56);
+  background: rgba(246, 241, 236, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 0 0 1px rgba(74, 56, 44, 0.14);
+}
+
+.zone-planner-cell-check.is-selected .zone-planner-check-box::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 14px;
+  height: 8px;
+  border-left: 2px solid rgba(74, 56, 44, 0.86);
+  border-bottom: 2px solid rgba(74, 56, 44, 0.86);
+  transform: translate(-50%, -58%) rotate(-45deg);
+}
+
+.zone-planner-notes {
+  display: grid;
+  gap: 0;
+  padding-top: 92px;
+  align-content: start;
+}
+
+.zone-planner-note {
+  color: var(--text);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  min-height: calc((var(--planner-row-height) * var(--planner-group-rows, 1)) + 2px);
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.zone-planner-note p {
+  margin: 0;
+}
+
+.zone-planner-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(88, 63, 46, 0.1);
 }
 
-.zone-editor-selected {
+.zone-planner-current-product {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.zone-editor-copy p {
+.zone-planner-current-copy span {
   margin: 0;
   color: var(--muted);
   font-size: 0.68rem;
@@ -1541,25 +1886,23 @@ input {
   font-weight: 700;
 }
 
-.zone-editor-copy h3 {
+.zone-planner-current-copy strong {
+  display: block;
   margin: 4px 0 0;
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1;
   font-weight: 600;
 }
 
-.zone-editor-note,
 .zone-editor-summary {
   margin: 0;
   color: var(--text);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   line-height: 1.48;
-}
-
-.zone-editor-note {
   max-width: 420px;
+  text-align: right;
 }
 
 .zone-plan-groups {
@@ -1873,11 +2216,25 @@ input {
     gap: 12px;
   }
 
-  .zone-plan-row {
-    grid-template-columns: minmax(0, 1fr) 94px 46px;
-    gap: 10px;
-    min-height: 58px;
-    padding: 0 14px;
+  .zone-planner-layout {
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .zone-planner-notes {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-top: 0;
+    gap: 18px;
+  }
+
+  .zone-planner-note {
+    min-height: 0;
+  }
+
+  .zone-planner-table-head,
+  .zone-planner-row {
+    grid-template-columns: minmax(146px, 1fr) minmax(110px, 0.82fr) 72px 72px 72px;
   }
 
   .sheet-actions {
@@ -1931,20 +2288,63 @@ input {
     grid-template-columns: 1fr;
   }
 
-  .zone-plan-group-head {
-    padding: 12px 14px 10px;
+  .zone-planner-layout {
+    grid-template-columns: 1fr;
   }
 
-  .zone-plan-row {
-    grid-template-columns: minmax(0, 1fr) 82px 42px;
+  .zone-planner-figure {
+    min-height: 270px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(88, 63, 46, 0.12);
+  }
+
+  .zone-planner-figure-image {
+    left: 10px;
+    bottom: -54px;
+    width: 132px;
+  }
+
+  .zone-planner-notes {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .zone-planner-table-head {
+    grid-template-columns: minmax(112px, 1fr) 84px 56px 56px 56px;
+    gap: 8px;
+    min-height: 62px;
+  }
+
+  .zone-planner-col-title {
+    font-size: 0.86rem;
+  }
+
+  .zone-planner-col-type {
+    font-size: 0.74rem;
+  }
+
+  .zone-planner-row {
+    grid-template-columns: minmax(112px, 1fr) 84px 56px 56px 56px;
     gap: 8px;
     min-height: 54px;
-    padding: 0 12px;
   }
 
-  .zone-plan-row-product {
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+  .zone-planner-area {
+    font-size: 0.68rem;
+  }
+
+  .zone-planner-product {
+    font-size: 0.54rem;
+    letter-spacing: 0.08em;
+  }
+
+  .zone-planner-footer {
+    display: grid;
+    gap: 12px;
+  }
+
+  .zone-editor-summary {
+    text-align: left;
   }
 
   .sheet-actions {
