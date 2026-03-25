@@ -1598,7 +1598,7 @@ input {
 
 .zone-planner-frame {
   position: relative;
-  padding: 34px 38px 38px;
+  padding: 40px 44px 44px;
   border: 0;
   background: #692517;
   box-shadow: 0 18px 36px rgba(72, 52, 34, 0.08);
@@ -1607,7 +1607,7 @@ input {
 .zone-planner-frame::before {
   content: "";
   position: absolute;
-  inset: 14px;
+  inset: 16px;
   border: 1px solid rgba(255, 255, 255, 0.82);
   pointer-events: none;
 }
@@ -1616,9 +1616,9 @@ input {
   --planner-row-height: 52px;
   position: relative;
   display: grid;
-  gap: 22px;
-  min-height: 780px;
-  padding: 34px 36px 34px;
+  gap: 18px;
+  min-height: 804px;
+  padding: 42px 46px 42px;
   background: #fffdf9;
 }
 
@@ -1630,7 +1630,7 @@ input {
   display: grid;
   justify-items: center;
   text-align: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .zone-planner-brand h3,
@@ -1642,40 +1642,40 @@ input {
 }
 
 .zone-planner-brand h3 {
-  font-size: clamp(2.14rem, 2.44vw, 2.52rem);
-  line-height: 0.92;
-  letter-spacing: 0.05em;
+  font-size: clamp(1.86rem, 2vw, 2.14rem);
+  line-height: 0.9;
+  letter-spacing: 0.045em;
 }
 
 .zone-planner-brand p {
-  font-size: clamp(1.06rem, 1.28vw, 1.28rem);
-  line-height: 1;
-  letter-spacing: 0.022em;
+  font-size: clamp(0.94rem, 1.1vw, 1.08rem);
+  line-height: 0.98;
+  letter-spacing: 0.016em;
 }
 
 .zone-planner-layout {
   display: grid;
-  grid-template-columns: 334px minmax(0, 612px) minmax(208px, 224px);
+  grid-template-columns: 304px minmax(0, 640px) minmax(176px, 188px);
   justify-content: center;
-  gap: 14px;
+  gap: 18px;
   align-items: start;
 }
 
 .zone-planner-figure {
   position: relative;
-  min-height: 650px;
+  min-height: 646px;
   overflow: visible;
 }
 
 .zone-planner-figure::before {
   content: "";
   position: absolute;
-  left: 206px;
-  top: 162px;
+  left: 184px;
+  top: 164px;
   width: 1px;
-  height: 502px;
+  height: 492px;
   background: rgba(58, 43, 33, 0.74);
-  transform: rotate(28deg);
+  transform: rotate(27deg);
   transform-origin: top center;
   z-index: 3;
 }
@@ -1683,17 +1683,17 @@ input {
 .zone-planner-figure::after {
   content: "";
   position: absolute;
-  left: 136px;
-  top: 170px;
-  width: 196px;
-  height: 502px;
+  left: 112px;
+  top: 174px;
+  width: 204px;
+  height: 492px;
   background:
     repeating-linear-gradient(
       to bottom,
       transparent 0 calc(var(--planner-row-height) - 1px),
       rgba(88, 63, 46, 0.32) calc(var(--planner-row-height) - 1px) var(--planner-row-height)
     );
-  clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
   pointer-events: none;
   z-index: 2;
 }
@@ -1715,7 +1715,7 @@ input {
 .zone-planner-figure-label {
   position: absolute;
   display: grid;
-  gap: 4px;
+  gap: 2px;
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
   font-weight: 600;
@@ -1724,12 +1724,12 @@ input {
 }
 
 .zone-planner-figure-label small {
-  font-size: 1.06rem;
+  font-size: 0.92rem;
   letter-spacing: 0.01em;
 }
 
 .zone-planner-figure-label span {
-  font-size: clamp(2.7rem, 3.28vw, 3.28rem);
+  font-size: clamp(2.18rem, 2.48vw, 2.6rem);
 }
 
 .zone-planner-figure-band {
@@ -1738,49 +1738,49 @@ input {
 }
 
 .zone-planner-figure-band--high {
-  top: 122px;
-  left: 96px;
-  width: 224px;
-  height: 166px;
+  top: 140px;
+  left: 84px;
+  width: 198px;
+  height: 150px;
   background: linear-gradient(90deg, rgba(249, 240, 176, 0.88), rgba(249, 240, 176, 0.1));
 }
 
 .zone-planner-figure-band--middle {
-  top: 274px;
-  left: 34px;
-  width: 274px;
-  height: 196px;
+  top: 286px;
+  left: 24px;
+  width: 246px;
+  height: 184px;
   background: linear-gradient(90deg, rgba(245, 208, 191, 0.84), rgba(245, 208, 191, 0.1));
 }
 
 .zone-planner-figure-band--low {
-  top: 446px;
+  top: 444px;
   left: 0;
-  width: 314px;
-  height: 188px;
+  width: 292px;
+  height: 184px;
   background: linear-gradient(90deg, rgba(226, 219, 232, 0.86), rgba(226, 219, 232, 0.12));
 }
 
 .zone-planner-figure-label--high {
-  top: 166px;
-  left: 114px;
+  top: 188px;
+  left: 100px;
 }
 
 .zone-planner-figure-label--middle {
-  top: 338px;
-  left: 52px;
+  top: 346px;
+  left: 40px;
 }
 
 .zone-planner-figure-label--low {
-  top: 520px;
-  left: 18px;
+  top: 506px;
+  left: 10px;
 }
 
 .zone-planner-figure-image {
   position: absolute;
-  left: 124px;
-  top: 102px;
-  height: 640px;
+  left: 102px;
+  top: 138px;
+  height: 610px;
   width: auto;
   display: block;
   z-index: 5;
@@ -1792,15 +1792,15 @@ input {
   display: grid;
   align-content: start;
   width: 100%;
-  padding-top: 126px;
+  padding-top: 130px;
 }
 
 .zone-planner-table-head {
   display: grid;
-  grid-template-columns: minmax(232px, 1.18fr) minmax(172px, 0.88fr) 82px;
+  grid-template-columns: minmax(178px, 1.14fr) minmax(154px, 0.88fr) 72px 72px 86px;
   align-items: end;
-  gap: 10px;
-  min-height: 82px;
+  gap: 8px;
+  min-height: 74px;
   padding: 0 0 8px;
   border-bottom: 1px solid rgba(88, 63, 46, 0.24);
 }
@@ -1812,7 +1812,7 @@ input {
 .zone-planner-col-title {
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.28rem;
+  font-size: 1.08rem;
   line-height: 1;
   font-weight: 600;
   text-align: center;
@@ -1822,18 +1822,18 @@ input {
   display: grid !important;
   justify-items: center;
   align-content: end;
-  gap: 6px;
-  min-height: 82px;
-  color: var(--ink);
+  gap: 5px;
+  min-height: 74px;
+  color: rgba(47, 34, 27, 0.74);
 }
 
-.zone-planner-col-type--active {
-  justify-self: center;
+.zone-planner-col-type.is-active {
+  color: var(--ink);
 }
 
 .zone-planner-col-type-label {
   font-family: "Cormorant Garamond", serif;
-  font-size: 0.98rem;
+  font-size: 0.86rem;
   line-height: 1;
   font-weight: 600;
   text-align: center;
@@ -1844,8 +1844,8 @@ input {
 }
 
 .zone-planner-type-bottle.has-image {
-  width: 26px;
-  height: 40px;
+  width: 22px;
+  height: 34px;
 }
 
 .zone-planner-table-body {
@@ -1869,9 +1869,9 @@ input {
 
 .zone-planner-row {
   display: grid;
-  grid-template-columns: minmax(232px, 1.18fr) minmax(172px, 0.88fr) 82px;
+  grid-template-columns: minmax(178px, 1.14fr) minmax(154px, 0.88fr) 72px 72px 86px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: var(--planner-row-height);
   border-bottom: 1px solid rgba(88, 63, 46, 0.12);
   background: transparent;
@@ -1887,7 +1887,7 @@ input {
 
 .zone-planner-area {
   color: var(--ink);
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   line-height: 1.14;
   text-align: left;
   white-space: nowrap;
@@ -1897,12 +1897,12 @@ input {
 
 .zone-planner-product {
   color: var(--text);
-  font-size: 0.58rem;
+  font-size: 0.53rem;
   line-height: 1.2;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.018em;
   text-transform: uppercase;
   font-weight: 600;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1939,11 +1939,11 @@ input {
 
 .zone-planner-check-box {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid rgba(74, 56, 44, 0.42);
   background: rgba(255, 252, 247, 0.98);
-  border-radius: 8px;
+  border-radius: 7px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 3px 8px rgba(75, 53, 37, 0.04);
@@ -1972,7 +1972,7 @@ input {
 .zone-planner-notes {
   display: grid;
   gap: 0;
-  padding-top: 126px;
+  padding-top: 132px;
   align-content: start;
   width: 100%;
 }
@@ -1980,8 +1980,8 @@ input {
 .zone-planner-note {
   color: var(--text);
   font-family: "Cormorant Garamond", serif;
-  font-size: 0.86rem;
-  line-height: 1.34;
+  font-size: 0.78rem;
+  line-height: 1.28;
   min-height: calc((var(--planner-row-height) * var(--planner-group-rows, 1)) + 1px);
   display: flex;
   align-items: center;
@@ -1996,7 +1996,7 @@ input {
 
 .zone-planner-note p {
   margin: 0;
-  max-width: 196px;
+  max-width: 166px;
 }
 
 .zone-plan-groups {
@@ -2311,7 +2311,7 @@ input {
   }
 
   .zone-planner-layout {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: 238px minmax(0, 1fr);
     gap: 18px;
   }
 
@@ -2332,7 +2332,7 @@ input {
 
   .zone-planner-table-head,
   .zone-planner-row {
-    grid-template-columns: minmax(206px, 1fr) minmax(144px, 0.82fr) 72px;
+    grid-template-columns: minmax(160px, 1fr) minmax(118px, 0.8fr) 56px 56px 68px;
   }
 
   .sheet-actions {
@@ -2410,7 +2410,7 @@ input {
   }
 
   .zone-planner-table-head {
-    grid-template-columns: minmax(146px, 1fr) minmax(98px, 112px) 60px;
+    grid-template-columns: minmax(130px, 1fr) minmax(86px, 104px) 48px 48px 58px;
     gap: 8px;
     min-height: 62px;
   }
@@ -2424,18 +2424,18 @@ input {
   }
 
   .zone-planner-row {
-    grid-template-columns: minmax(146px, 1fr) minmax(98px, 112px) 60px;
+    grid-template-columns: minmax(130px, 1fr) minmax(86px, 104px) 48px 48px 58px;
     gap: 8px;
     min-height: 54px;
   }
 
   .zone-planner-area {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
   }
 
   .zone-planner-product {
-    font-size: 0.54rem;
-    letter-spacing: 0.08em;
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
   }
 
   .zone-planner-footer {
