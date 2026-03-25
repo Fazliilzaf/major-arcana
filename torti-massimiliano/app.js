@@ -2661,11 +2661,7 @@
     const allowedLevels = hasPlannerProduct
       ? getProductAllowedLevels(activeProduct, activeBottle ? activeBottle.catalogId : activeProduct.id)
       : [];
-    const plannerNarratives = {
-      high: "Apply your perfume to the head zone behind the neck, lightly through the hair, across the shoulders, allowing a soft aura to form around you. This is the first impression, the part of the scent that moves with air and light.",
-      middle: "Use the heart zone, the chest, arms, or abdomen, for the perfumes you want to live closest to you. Here, the fragrance warms with your own rhythm, unfolding slowly throughout the day and becoming part of your natural presence.",
-      low: "Reserve the base zone, hips, behind the knees, or calfs, for the perfumes you wish to release with subtle intention. These areas build warmth gradually, letting the scent rise in a quiet, continuous trail that feels personal, intimate, and entirely your own.",
-    };
+
     const plannerRows = zoneGroups.flatMap((group) =>
       group.zones.map((zone) => {
         const selected = Boolean(activeBottle && activeBottle.zones.includes(zone.id));
@@ -2718,9 +2714,16 @@
           <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2-white-sheet.png" alt="" aria-hidden="true" />
           <div class="zone-planner-overlay">
             <div class="visually-hidden">
-              <h3>THE ART OF LAYERING</h3>
-              <p>PERSONAL OLFACTORY STRATIFICATION</p>
-              ${zoneGroups.map((group) => `<p>${escapeHtml(plannerNarratives[group.level] || "")}</p>`).join("")}
+              <h3>The Art of Layering</h3>
+              <p>Personal Olfactory Stratification</p>
+              <p>${hasPlannerProduct ? `${activeProduct.name} in ${activePlannerType}` : "No product selected yet."}</p>
+              <ul>
+                ${zoneGroups
+                  .flatMap((group) =>
+                    group.zones.map((zone) => `<li>${escapeHtml(zone.label)}${activeBottle && activeBottle.zones.includes(zone.id) ? " selected" : ""}</li>`)
+                  )
+                  .join("")}
+              </ul>
             </div>
             <div class="zone-planner-overlay-rows">
               ${plannerRows.join("")}

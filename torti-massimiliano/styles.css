@@ -1614,6 +1614,7 @@ input {
 .zone-planner-overlay {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .visually-hidden {
@@ -1640,7 +1641,7 @@ input {
 
 .zone-planner-overlay-row {
   display: grid;
-  grid-template-columns: 56% 14% 14% 16%;
+  grid-template-columns: 58% 14% 14% 14%;
   align-items: center;
 }
 
@@ -1654,23 +1655,29 @@ input {
   justify-content: center;
   justify-self: stretch;
   min-height: 70%;
-  margin: 0 6%;
-  padding: 0 1.2cqi;
-  background: rgba(255, 253, 249, 0.96);
+  margin: 0 4%;
+  padding: 0 0.7cqi;
+  background: rgba(251, 249, 244, 0.995);
   color: rgba(52, 38, 30, 0.96);
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(4.6px, 0.84cqi, 8.8px);
+  font-size: clamp(4.2px, 0.74cqi, 7.2px);
   line-height: 1.05;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow:
+    0 0 1px rgba(251, 249, 244, 0.98),
+    0 0 3px rgba(251, 249, 244, 0.98),
+    0 0 6px rgba(251, 249, 244, 0.98);
+  box-shadow: 0 0 0 0.32cqi rgba(251, 249, 244, 0.995);
 }
 
 .zone-planner-overlay-product.is-empty {
   color: transparent;
+  box-shadow: none;
 }
 
 .zone-planner-overlay-cell {
@@ -1678,19 +1685,26 @@ input {
   place-items: center;
   justify-self: stretch;
   min-height: 70%;
-  margin: 0 10%;
+  margin: 0 7%;
   padding: 0;
   border: 0;
-  background: rgba(255, 253, 249, 0.96);
+  background: rgba(251, 249, 244, 0.995);
+  box-shadow: 0 0 0 0.28cqi rgba(251, 249, 244, 0.995);
 }
 
 .zone-planner-overlay-cell--button {
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .zone-planner-overlay-cell--button:focus-visible {
   outline: 1px solid rgba(88, 63, 46, 0.26);
   outline-offset: 1px;
+}
+
+.zone-planner-overlay-cell--mask,
+.zone-planner-overlay-cell--disabled {
+  pointer-events: none;
 }
 
 .zone-planner-overlay-checkbox {
