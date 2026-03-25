@@ -2666,99 +2666,64 @@
       middle: "Use the heart zone, the chest, arms, or abdomen, for the perfumes you want to live closest to you. Here, the fragrance warms with your own rhythm, unfolding slowly throughout the day and becoming part of your natural presence.",
       low: "Reserve the base zone, hips, behind the knees, or calfs, for the perfumes you wish to release with subtle intention. These areas build warmth gradually, letting the scent rise in a quiet, continuous trail that feels personal, intimate, and entirely your own.",
     };
+    const plannerRows = zoneGroups.flatMap((group) =>
+      group.zones.map((zone) => {
+        const selected = Boolean(activeBottle && activeBottle.zones.includes(zone.id));
+        const isAllowed = allowedLevels.includes(group.level);
+        const productName = hasPlannerProduct && isAllowed ? activeProduct.name : "";
+
+        return `
+          <div class="zone-planner-overlay-row zone-planner-overlay-row--${escapeHtml(group.level)}${selected ? " is-selected" : ""}${!isAllowed ? " is-disabled" : ""}">
+            <span class="zone-planner-overlay-product${productName ? "" : " is-empty"}" title="${productName}">${escapeHtml(productName)}</span>
+            ${PLANNER_TYPE_COLUMNS.map((column) => {
+              const isProductTypeColumn = hasPlannerProduct && activePlannerType === column.key;
+
+              if (!hasPlannerProduct) {
+                return '<span class="zone-planner-overlay-cell zone-planner-overlay-cell--mask"></span>';
+              }
+
+              if (!isProductTypeColumn) {
+                return '<span class="zone-planner-overlay-cell zone-planner-overlay-cell--mask"></span>';
+              }
+
+              if (!isAllowed) {
+                return `
+                  <span class="zone-planner-overlay-cell zone-planner-overlay-cell--disabled">
+                    <span class="zone-planner-overlay-checkbox" aria-hidden="true"></span>
+                  </span>
+                `;
+              }
+
+              return `
+                <button
+                  type="button"
+                  class="zone-planner-overlay-cell zone-planner-overlay-cell--button${selected ? " is-selected" : ""}"
+                  data-zone-check-toggle="${escapeHtml(zone.id)}"
+                  aria-pressed="${selected ? "true" : "false"}"
+                  aria-label="${selected ? "Remove" : "Apply"} ${escapeHtml(zone.label)} for ${escapeHtml(activeProduct.name)}"
+                >
+                  <span class="zone-planner-overlay-checkbox" aria-hidden="true"></span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        `;
+      })
+    );
 
     selectedBottlePanel.hidden = false;
     selectedBottlePanel.innerHTML = `
       <div class="zone-editor-card">
-        <div class="zone-planner-frame">
-          <div class="zone-planner-sheet">
-            <div class="zone-planner-brand">
+        <div class="zone-planner-reference" aria-label="Layering planner">
+          <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2.png" alt="" aria-hidden="true" />
+          <div class="zone-planner-overlay">
+            <div class="visually-hidden">
               <h3>THE ART OF LAYERING</h3>
               <p>PERSONAL OLFACTORY STRATIFICATION</p>
+              ${zoneGroups.map((group) => `<p>${escapeHtml(plannerNarratives[group.level] || "")}</p>`).join("")}
             </div>
-            <div class="zone-planner-layout">
-              <aside class="zone-planner-figure" aria-hidden="true">
-                <div class="zone-planner-figure-bands">
-                  <div class="zone-planner-figure-band zone-planner-figure-band--high"></div>
-                  <div class="zone-planner-figure-band zone-planner-figure-band--middle"></div>
-                  <div class="zone-planner-figure-band zone-planner-figure-band--low"></div>
-                </div>
-                <div class="zone-planner-figure-labels">
-                  <span class="zone-planner-figure-label zone-planner-figure-label--high">Head</span>
-                  <span class="zone-planner-figure-label zone-planner-figure-label--middle">Heart</span>
-                  <span class="zone-planner-figure-label zone-planner-figure-label--low">Base</span>
-                </div>
-                <img class="zone-planner-figure-image" src="./assets/body-reference-clean.png" alt="" draggable="false" />
-              </aside>
-              <section class="zone-planner-table" aria-label="Layering planner">
-                <div class="zone-planner-table-head">
-                  <span class="zone-planner-col-area"></span>
-                  <span class="zone-planner-col-title">Product Title</span>
-                  ${getPlannerTypeColumnMarkup(activePlannerType)}
-                </div>
-                <div class="zone-planner-table-body">
-                  ${zoneGroups
-                    .map((group) => `
-                      <section class="zone-planner-group zone-planner-group--${escapeHtml(group.level)}" data-zone-group="${escapeHtml(group.level)}">
-                        ${group.zones
-                          .map((zone) => {
-                            const selected = Boolean(activeBottle && activeBottle.zones.includes(zone.id));
-                            const isAllowed = allowedLevels.includes(group.level);
-                            const productName = hasPlannerProduct && isAllowed ? escapeHtml(activeProduct.name) : "";
-
-                            return `
-                              <div class="zone-planner-row zone-planner-row--${escapeHtml(group.level)}${selected ? " is-selected" : ""}${!isAllowed ? " is-disabled" : ""}">
-                                <span class="zone-planner-area" title="${escapeHtml(zone.label)}">${escapeHtml(zone.label)}:</span>
-                                <span class="zone-planner-product" title="${productName}">${productName}</span>
-                                ${PLANNER_TYPE_COLUMNS.map((column) => {
-                                  const isProductTypeColumn = hasPlannerProduct && activePlannerType === column.key;
-
-                                  if (!hasPlannerProduct) {
-                                    return '<span class="zone-planner-cell zone-planner-cell-empty"></span>';
-                                  }
-
-                                  if (!isProductTypeColumn) {
-                                    return '<span class="zone-planner-cell zone-planner-cell-empty"></span>';
-                                  }
-
-                                  if (!isAllowed) {
-                                    return `
-                                      <span class="zone-planner-cell zone-planner-cell-disabled">
-                                        <span class="zone-planner-check-box" aria-hidden="true"></span>
-                                      </span>
-                                    `;
-                                  }
-
-                                  return `
-                                    <button
-                                      type="button"
-                                      class="zone-planner-cell-check${selected ? " is-selected" : ""}"
-                                      data-zone-check-toggle="${escapeHtml(zone.id)}"
-                                      aria-pressed="${selected ? "true" : "false"}"
-                                      aria-label="${selected ? "Remove" : "Apply"} ${escapeHtml(zone.label)} for ${escapeHtml(activeProduct.name)}"
-                                    >
-                                      <span class="zone-planner-check-box" aria-hidden="true"></span>
-                                    </button>
-                                  `;
-                                }).join("")}
-                              </div>
-                            `;
-                          })
-                          .join("")}
-                      </section>
-                    `)
-                    .join("")}
-                </div>
-              </section>
-              <aside class="zone-planner-notes">
-                  ${zoneGroups
-                    .map((group) => `
-                      <section class="zone-planner-note zone-planner-note--${escapeHtml(group.level)}" style="--planner-group-rows:${escapeHtml(String(group.zones.length))}">
-                        <p>${escapeHtml(plannerNarratives[group.level] || "")}</p>
-                      </section>
-                    `)
-                  .join("")}
-              </aside>
+            <div class="zone-planner-overlay-rows">
+              ${plannerRows.join("")}
             </div>
           </div>
         </div>
