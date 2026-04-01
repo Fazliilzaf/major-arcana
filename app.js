@@ -1517,23 +1517,38 @@
     return String(label || "").replace(/^Spray\s+/i, "").trim();
   }
 
+  function getBottleChipZoneLabel(label) {
+    const compact = getCompactZoneLabel(label);
+    if (!compact) {
+      return "";
+    }
+
+    return compact
+      .replace(/^Behind\s+your\s+/i, "Behind ")
+      .replace(/^Behind\s+Neck\s+and\s+Hair$/i, "Neck & Hair");
+  }
+
   function getBottleChipBaseLabel(bottle) {
     if (!bottle) {
       return "";
     }
 
     const levelLabel = getLevelLabel(bottle.level);
-    const compactZones = getBottleZoneNames(bottle).map(getCompactZoneLabel).filter(Boolean);
+    const compactZones = getBottleZoneNames(bottle).map(getBottleChipZoneLabel).filter(Boolean);
 
     if (compactZones.length === 0) {
-      return `${levelLabel} · No areas`;
+      return `${levelLabel} · Awaiting spray areas`;
     }
 
     if (compactZones.length === 1) {
       return `${levelLabel} · ${compactZones[0]}`;
     }
 
-    return `${levelLabel} · ${compactZones[0]} +${compactZones.length - 1}`;
+    if (compactZones.length === 2) {
+      return `${levelLabel} · ${compactZones[0]} + ${compactZones[1]}`;
+    }
+
+    return `${levelLabel} · ${compactZones[0]} + ${compactZones[1]} +${compactZones.length - 2}`;
   }
 
   function getBottleChipLabels(bottles) {

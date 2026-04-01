@@ -590,6 +590,7 @@ input {
   line-height: 1.2;
   letter-spacing: 0.03em;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
