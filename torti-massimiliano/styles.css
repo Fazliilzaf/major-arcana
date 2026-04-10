@@ -1751,13 +1751,24 @@ input {
 }
 
 .zone-planner-overlay-area {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   justify-self: stretch;
   min-height: 100%;
   margin: 0;
   padding: 0;
   background: transparent;
   box-shadow: none;
-  color: transparent;
+  color: rgba(79, 63, 50, 0.76);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(7px, 0.94cqi, 9px);
+  line-height: 1.08;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .zone-planner-overlay-product {
@@ -1769,11 +1780,11 @@ input {
   margin: 0;
   padding: 0;
   background: transparent;
-  color: transparent;
+  color: rgba(69, 56, 45, 0.88);
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(4px, 0.58cqi, 5.5px);
-  line-height: 1;
-  font-weight: 500;
+  font-size: clamp(7.5px, 1.02cqi, 10px);
+  line-height: 1.02;
+  font-weight: 550;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
