@@ -1740,6 +1740,32 @@ input {
   gap: 0;
 }
 
+.zone-planner-overlay-notes {
+  position: absolute;
+  left: 76.85%;
+  top: 34.25%;
+  width: 15.6%;
+  height: 56.1%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(7px, 0.95cqi, 10px);
+  pointer-events: none;
+}
+
+.zone-planner-overlay-note {
+  margin: 0;
+  color: rgba(67, 54, 44, 0.92);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(6.5px, 0.82cqi, 8.4px);
+  line-height: 1.18;
+  font-style: italic;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
 .zone-planner-overlay-row {
   display: grid;
   grid-template-columns: 35.5% 28.5% 12% 12% 12%;

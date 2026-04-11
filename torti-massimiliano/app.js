@@ -2890,6 +2890,11 @@
         `;
       })
     );
+    const plannerNotes = [
+      "Apply your perfume to the head zone - behind the neck, lightly through the hair, across the shoulders - allowing a soft aura to form around you. This is the first impression, the part of the scent that moves with air and light.",
+      "Use the heart zone - the chest, arms, or abdomen - for the perfumes you want to live closest to you. Here, the fragrance warms with your own rhythm, unfolding slowly throughout the day and becoming part of your natural presence.",
+      "Reserve the base zone - hips, behind the knees, or calves - for the perfumes you wish to release with subtle intention. These areas build warmth gradually, letting the scent rise in a quiet, continuous trail that feels personal, intimate, and entirely your own.",
+    ];
 
     selectedBottlePanel.hidden = false;
     selectedBottlePanel.innerHTML = `
@@ -2911,6 +2916,11 @@
             </div>
             <div class="zone-planner-overlay-rows">
               ${plannerRows.join("")}
+            </div>
+            <div class="zone-planner-overlay-notes" aria-hidden="true">
+              ${plannerNotes
+                .map((note) => `<p class="zone-planner-overlay-note">${escapeHtml(note)}</p>`)
+                .join("")}
             </div>
           </div>
         </div>
