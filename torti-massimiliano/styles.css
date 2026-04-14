@@ -530,10 +530,9 @@ input {
 }
 
 .owned-card-levels-trigger {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
   width: 100%;
   margin-left: 0;
   padding: 0;
@@ -570,6 +569,7 @@ input {
   flex-wrap: nowrap;
   gap: 5px;
   min-width: 0;
+  flex: 1 1 auto;
   width: 100%;
   color: var(--ink);
   font-size: 0.72rem;

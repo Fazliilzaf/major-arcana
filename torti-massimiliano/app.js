@@ -3166,7 +3166,6 @@
                     </div>
                     <div class="owned-card-meta">
                       <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
-                        <span class="owned-card-levels-label">Levels</span>
                         <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
                           ${activeSummaryTokens}
                         </span>
