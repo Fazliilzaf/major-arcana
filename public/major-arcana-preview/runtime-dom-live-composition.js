@@ -2393,6 +2393,7 @@
 
     async function loadLiveRuntime(options = {}) {
       clearRuntimeLiveRefreshTimer();
+      const deferInitialRender = options.deferInitialRender === true;
       const requestedMailboxIds = asArray(options.requestedMailboxIds)
         .map((value) =>
           typeof canonicalizeRuntimeMailboxId === "function"
@@ -2439,7 +2440,9 @@
         phase: "loading",
         requestedMailboxIds: runtimeMailboxIds,
       });
-      renderRuntimeConversationShell();
+      if (!deferInitialRender) {
+        renderRuntimeConversationShell();
+      }
 
       try {
         const adminToken = await waitForRuntimeAuthToken();
@@ -3856,7 +3859,7 @@
         console.warn("CCO workspace bootstrap misslyckades.", error);
       });
 
-      loadLiveRuntime().catch((error) => {
+      loadLiveRuntime({ deferInitialRender: true }).catch((error) => {
         console.warn("CCO live runtime misslyckades.", error);
       });
     }
