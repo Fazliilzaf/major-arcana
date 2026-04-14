@@ -2917,7 +2917,7 @@
     selectedBottlePanel.innerHTML = `
       <div class="zone-editor-card">
         <div class="zone-planner-reference" aria-label="Layering planner">
-          <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2-no-middle-text.png?v=20260414-no-drapery-fix" alt="" aria-hidden="true" />
+          <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2-no-middle-text.png?v=20260414-row-clean-fix-5" alt="" aria-hidden="true" />
           <div class="zone-planner-overlay">
             <div class="visually-hidden">
               <h3>The Art of Layering</h3>

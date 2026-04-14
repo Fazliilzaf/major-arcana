@@ -2866,13 +2866,12 @@
       group.zones.map((zone) => {
         const selected = Boolean(activeBottle && activeBottle.zones.includes(zone.id));
         const isAllowed = allowedLevels.includes(group.level);
-        const productName = hasPlannerProduct && isAllowed ? activeProduct.name : "";
         const areaLabel = getPlannerAreaLabel(zone.label);
 
         return `
           <div class="zone-planner-overlay-row zone-planner-overlay-row--${escapeHtml(group.level)}${selected ? " is-selected" : ""}${!isAllowed ? " is-disabled" : ""}">
             <span class="zone-planner-overlay-area" aria-hidden="true">${escapeHtml(areaLabel)}</span>
-            <span class="zone-planner-overlay-product${productName ? "" : " is-empty"}" title="${productName}">${escapeHtml(productName)}</span>
+            <span class="zone-planner-overlay-product" aria-hidden="true"></span>
             ${PLANNER_TYPE_COLUMNS.map((column) => {
               const isProductTypeColumn = hasPlannerProduct && activePlannerType === column.key;
 
@@ -2918,7 +2917,7 @@
     selectedBottlePanel.innerHTML = `
       <div class="zone-editor-card">
         <div class="zone-planner-reference" aria-label="Layering planner">
-          <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2-white-sheet.png" alt="" aria-hidden="true" />
+          <img class="zone-planner-reference-image" src="./assets/figma-planner-node-3-2-no-middle-text.png?v=20260414-row-clean-fix-5" alt="" aria-hidden="true" />
           <div class="zone-planner-overlay">
             <div class="visually-hidden">
               <h3>The Art of Layering</h3>
@@ -3159,38 +3158,42 @@
                   return `
                   <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isPopoverOpen ? " is-level-open" : ""}${isActiveProduct ? " is-active-product" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
                     <button class="panel-mini-action panel-mini-action-danger owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from customer library">Remove</button>
-                    <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}" aria-pressed="${isActiveProduct ? "true" : "false"}">
-                      ${renderBottleVisual(item, "library-owned-bottle")}
-                      <span class="owned-card-copy">
-                        <strong>${escapeHtml(item.name)}</strong>
-                        <span class="owned-card-hint">${isActiveProduct ? "Use the planner below to choose spray areas." : "Select this product, then choose spray areas below."}</span>
-                      </span>
-                    </button>
-                    <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
-                      <span class="owned-card-levels-label">Levels</span>
-                      <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
-                        ${activeSummaryTokens}
-                      </span>
-                    </button>
-                    ${hasPlacedBottles ? `
-                      <div class="owned-card-placed">
-                        <span class="owned-card-placed-label">Placed in ${escapeHtml(getActiveLayer().name)}</span>
-                        <div class="owned-card-placed-list">
-                          ${matchingBottles
-                            .map((bottle, index) => `
-                              <button
-                                class="owned-card-placed-chip${activeBottleId === bottle.id ? " is-active" : ""}"
-                                type="button"
-                                data-select-library-bottle="${escapeHtml(item.id)}::${escapeHtml(bottle.id)}"
-                                aria-pressed="${activeBottleId === bottle.id ? "true" : "false"}"
-                              >
-                                ${escapeHtml(bottleChipLabels[index] || `Bottle ${index + 1}`)}
-                              </button>
-                            `)
-                            .join("")}
+                    <div class="owned-card-main">
+                      <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}" aria-pressed="${isActiveProduct ? "true" : "false"}">
+                        ${renderBottleVisual(item, "library-owned-bottle")}
+                        <span class="owned-card-copy">
+                          <strong>${escapeHtml(item.name)}</strong>
+                          <span class="owned-card-hint">${isActiveProduct ? "Use the planner below to choose spray areas." : "Select this product, then choose spray areas below."}</span>
+                        </span>
+                      </button>
+                    </div>
+                    <div class="owned-card-meta">
+                      <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
+                        <span class="owned-card-levels-label">Levels</span>
+                        <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
+                          ${activeSummaryTokens}
+                        </span>
+                      </button>
+                      ${hasPlacedBottles ? `
+                        <div class="owned-card-placed">
+                          <span class="owned-card-placed-label">Placed in ${escapeHtml(getActiveLayer().name)}</span>
+                          <div class="owned-card-placed-list">
+                            ${matchingBottles
+                              .map((bottle, index) => `
+                                <button
+                                  class="owned-card-placed-chip${activeBottleId === bottle.id ? " is-active" : ""}"
+                                  type="button"
+                                  data-select-library-bottle="${escapeHtml(item.id)}::${escapeHtml(bottle.id)}"
+                                  aria-pressed="${activeBottleId === bottle.id ? "true" : "false"}"
+                                >
+                                  ${escapeHtml(bottleChipLabels[index] || `Bottle ${index + 1}`)}
+                                </button>
+                              `)
+                              .join("")}
+                          </div>
                         </div>
-                      </div>
-                    ` : ""}
+                      ` : ""}
+                    </div>
                     ${isPopoverOpen ? `
                       <div class="library-level-popover" role="dialog" aria-label="Choose levels for ${escapeHtml(item.name)}">
                         <p class="library-level-popover-title">Choose Head, Heart, or Base</p>
