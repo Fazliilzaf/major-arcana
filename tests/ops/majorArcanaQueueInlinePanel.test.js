@@ -407,7 +407,7 @@ test('renderQueueHistorySection behåller historik som eget läge', () => {
   assert.match(queueHistoryList.innerHTML, /Ingen historik hittades/i);
 });
 
-test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full mailboxvy', () => {
+test('renderQueueHistorySection filtrerar historik men visar Alla som full mailboxvy', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
   const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
@@ -419,7 +419,6 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
-  const queueMailboxToggle = createElementStub();
   const queuePrimaryLaneTag = createElementStub();
   const queueContent = createElementStub();
   const queueHistoryHead = createElementStub();
@@ -427,7 +426,6 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
   const queueHistoryList = createElementStub();
   const queueHistoryLoadMoreButton = createElementStub();
   const queueHistoryCount = createElementStub();
-  const queueMailboxCount = createElementStub();
   const queueTitle = createElementStub();
   const queueMailboxItems = [
     {
@@ -439,7 +437,7 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
       mailboxProvenanceDetail: 'truth',
       counterpartyLabel: 'Anna Karlsson',
       title: 'Kons live refresh proof',
-      detail: 'Detta är ett inkommande mejl som ska ligga i Alla mejl.',
+      detail: 'Detta är ett inkommande mejl som ska ligga i Alla.',
       direction: 'Mottaget',
       time: '13:24',
       recordedAt: '2026-04-14T13:24:00.000Z',
@@ -456,7 +454,7 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
       mailboxProvenanceDetail: 'truth',
       counterpartyLabel: 'Auto svar',
       title: 'Skickat svar från Kons',
-      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla mejl.',
+      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla.',
       direction: 'Skickat',
       time: '12:10',
       recordedAt: '2026-04-14T12:10:00.000Z',
@@ -483,8 +481,6 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
     'queueHistoryMeta',
     'queueHistoryPanel',
     'queueHistoryToggle',
-    'queueMailboxCount',
-    'queueMailboxToggle',
     'queuePrimaryLaneTag',
     'renderThreadContextRows',
     'setQueueContextVisibility',
@@ -528,8 +524,6 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
     queueHistoryMeta,
     queueHistoryPanel,
     queueHistoryToggle,
-    queueMailboxCount,
-    queueMailboxToggle,
     queuePrimaryLaneTag,
     () => {},
     () => {},
@@ -561,11 +555,8 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueContent.hidden, true);
   assert.equal(queuePrimaryLaneTag.hidden, true);
-  assert.equal(queueTitle.textContent, 'Alla mejl (2)');
+  assert.equal(queueTitle.textContent, 'Alla (2)');
   assert.equal(queueHistoryCount.textContent, '2');
-  assert.equal(queueMailboxCount.textContent, '2');
-  assert.equal(queueMailboxToggle.attributes['aria-expanded'], 'true');
-  assert.equal(queueMailboxToggle.classList.contains('is-active'), true);
   assert.equal(queueHistoryToggle.classList.contains('is-active'), false);
   assert.equal(queueHistoryList.dataset.queueListMode, 'mailbox');
   assert.match(queueHistoryMeta.textContent, /hela mailboxunderlaget/i);
@@ -576,7 +567,7 @@ test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full 
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
 });
 
-test('renderQueueHistorySection håller historik trådbunden när Alla mejl visar hela underlaget', () => {
+test('renderQueueHistorySection håller historik trådbunden när Alla visar hela underlaget', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
   const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
@@ -588,7 +579,6 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
-  const queueMailboxToggle = createElementStub();
   const queuePrimaryLaneTag = createElementStub();
   const queueContent = createElementStub();
   const queueHistoryHead = createElementStub();
@@ -596,7 +586,6 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
   const queueHistoryList = createElementStub();
   const queueHistoryLoadMoreButton = createElementStub();
   const queueHistoryCount = createElementStub();
-  const queueMailboxCount = createElementStub();
   const queueTitle = createElementStub();
   const queueMailboxItems = [
     {
@@ -608,7 +597,7 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
       mailboxProvenanceDetail: 'truth',
       counterpartyLabel: 'Anna Karlsson',
       title: 'Kons live refresh proof',
-      detail: 'Detta är ett inkommande mejl som ska ligga i Alla mejl.',
+      detail: 'Detta är ett inkommande mejl som ska ligga i Alla.',
       direction: 'Mottaget',
       time: '13:24',
       recordedAt: '2026-04-14T13:24:00.000Z',
@@ -625,7 +614,7 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
       mailboxProvenanceDetail: 'truth',
       counterpartyLabel: 'Auto svar',
       title: 'Skickat svar från Kons',
-      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla mejl.',
+      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla.',
       direction: 'Skickat',
       time: '12:10',
       recordedAt: '2026-04-14T12:10:00.000Z',
@@ -652,8 +641,6 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
     'queueHistoryMeta',
     'queueHistoryPanel',
     'queueHistoryToggle',
-    'queueMailboxCount',
-    'queueMailboxToggle',
     'queuePrimaryLaneTag',
     'renderThreadContextRows',
     'setQueueContextVisibility',
@@ -697,8 +684,6 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
     queueHistoryMeta,
     queueHistoryPanel,
     queueHistoryToggle,
-    queueMailboxCount,
-    queueMailboxToggle,
     queuePrimaryLaneTag,
     () => {},
     () => {},
@@ -729,8 +714,6 @@ test('renderQueueHistorySection håller historik trådbunden när Alla mejl visa
 
   assert.equal(queueTitle.textContent, 'Historik (1)');
   assert.equal(queueHistoryCount.textContent, '1');
-  assert.equal(queueMailboxCount.textContent, '2');
-  assert.equal(queueMailboxToggle.classList.contains('is-active'), false);
   assert.equal(queueHistoryToggle.classList.contains('is-active'), true);
   assert.equal(queueHistoryList.dataset.queueListMode, 'history');
   assert.match(queueHistoryList.innerHTML, /Kons live refresh proof/);

@@ -380,7 +380,7 @@ test('buildThreadCardMarkup ger cross-mailbox-kort kompakt klass men behåller l
   );
 });
 
-test('buildQueueMailboxDisplayLabels låter personnamn vinna över mailboxlabel i Alla mejl', () => {
+test('buildQueueMailboxDisplayLabels låter personnamn vinna över mailboxlabel i Alla', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const helperSource = extractFunctionSource(source, 'buildQueueMailboxDisplayLabels');
   const buildQueueMailboxDisplayLabels = new Function(
@@ -491,7 +491,7 @@ test('buildQueueMailboxDisplayLabels låter personnamn vinna över mailboxlabel 
   assert.equal(fallback.secondaryLabel, '');
 });
 
-test('Alla mejl-kortet renderar primary och secondary label i rätt ordning', () => {
+test('Alla-kortet renderar primary och secondary label i rätt ordning', () => {
   const buildThreadCardMarkup = createBuildThreadCardMarkupHarness();
   const html = buildThreadCardMarkup(
     {
@@ -522,7 +522,7 @@ test('Alla mejl-kortet renderar primary och secondary label i rätt ordning', ()
   assert.match(
     html,
     /thread-subject-primary">Sami Bonyadi<\/span>\s*<span class="thread-subject-context">Hairtpclinic Se · Kontaktformulär<\/span>/,
-    'Alla mejl-kortet ska visa personnamn först och organisation\/kontext på rad två.'
+    'Alla-kortet ska visa personnamn först och organisation\/kontext på rad två.'
   );
 });
 

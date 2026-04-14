@@ -49,7 +49,6 @@
       queueHistoryList,
       queueHistoryLoadMoreButton,
       queueHistoryToggle,
-      queueMailboxToggle,
       queueLaneButtons = [],
       queueViewJumpButtons = [],
       resizeHandles = [],
@@ -3253,7 +3252,7 @@
           }).catch((error) => {
             console.warn(
               normalizedViewMode === "mailbox"
-                ? "CCO workspace bootstrap misslyckades efter att Alla mejl stängdes."
+                ? "CCO workspace bootstrap misslyckades efter att Alla stängdes."
                 : "CCO workspace bootstrap misslyckades efter att historikpanelen stängdes.",
               error
             );
@@ -3270,7 +3269,7 @@
         }).catch((error) => {
           console.warn(
             normalizedViewMode === "mailbox"
-              ? "CCO Alla mejl kunde inte öppnas."
+              ? "CCO Alla kunde inte öppnas."
               : "CCO queue-historik kunde inte öppnas.",
             error
           );
@@ -3285,16 +3284,6 @@
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
           toggleQueueHistory();
-        });
-      }
-
-      if (queueMailboxToggle) {
-        const toggleQueueMailbox = () => toggleQueueHistoryView("mailbox");
-        queueMailboxToggle.addEventListener("click", toggleQueueMailbox);
-        queueMailboxToggle.addEventListener("keydown", (event) => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          toggleQueueMailbox();
         });
       }
 
