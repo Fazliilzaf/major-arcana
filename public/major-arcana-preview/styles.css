@@ -15838,22 +15838,6 @@ button {
   box-shadow: none;
 }
 
-.queue-history-panel.is-mailbox-view {
-  margin-left: 0;
-  padding: 12px 12px 10px;
-  border: 1px solid rgba(221, 191, 133, 0.5);
-  border-radius: 18px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 251, 242, 0.92) 0%,
-      rgba(250, 245, 232, 0.84) 100%
-    );
-  box-shadow:
-    0 8px 18px rgba(121, 92, 38, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
 .queue-history-panel.is-open {
   display: flex;
   flex-direction: column;
@@ -15864,7 +15848,6 @@ button {
 
 .queue-history-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -15873,29 +15856,6 @@ button {
 
 .queue-history-head[hidden] {
   display: none;
-}
-
-.queue-history-mode-badge {
-  flex: 0 0 100%;
-  margin: 0 0 4px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(206, 161, 68, 0.42);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 249, 229, 0.98) 0%,
-      rgba(248, 236, 195, 0.9) 100%
-    );
-  box-shadow:
-    0 2px 6px rgba(114, 84, 20, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.94);
-  color: #8e6210;
-  font-size: 9px;
-  line-height: 11px;
-  font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
 }
 
 .queue-history-head-actions {

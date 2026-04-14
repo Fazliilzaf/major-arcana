@@ -428,7 +428,6 @@
   const queueHistoryHead = document.querySelector(".queue-history-head");
   const queueHistoryList = document.querySelector("[data-queue-history-list]");
   const queueHistoryMeta = document.querySelector("[data-queue-history-meta]");
-  const queueHistoryModeBadge = document.querySelector("[data-queue-history-mode-badge]");
   const queueHistoryCompleteButton = document.querySelector("[data-queue-history-complete]");
   const queueHistoryDeleteButton = document.querySelector("[data-queue-history-delete]");
   const queueHistoryCount = document.querySelector("[data-queue-history-count]");
@@ -10697,7 +10696,6 @@
       queueFeedCountNodes,
       queueHistoryCount,
       queueHistoryHead,
-      queueHistoryModeBadge,
       queueHistoryCompleteButton,
       queueHistoryDeleteButton,
       queueHistoryList,
