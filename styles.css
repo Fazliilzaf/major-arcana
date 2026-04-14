@@ -554,7 +554,7 @@ input {
 .owned-card-levels-summary {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
   min-width: 0;
   width: 100%;
@@ -564,6 +564,10 @@ input {
   font-weight: 700;
   letter-spacing: 0.01em;
   overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .owned-card-level-token {
@@ -600,14 +604,6 @@ input {
   background: rgba(255, 255, 255, 0.82);
 }
 
-.owned-card-level-token-separator {
-  color: rgba(90, 74, 56, 0.48);
-  font-size: 0.74rem;
-  font-weight: 700;
-  line-height: 1;
-  margin: 0 1px;
-}
-
 .owned-card-placed {
   display: grid;
   gap: 6px;
@@ -625,8 +621,14 @@ input {
 
 .owned-card-placed-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .owned-card-placed-chip {
@@ -1821,6 +1823,7 @@ input {
   text-align: center;
   letter-spacing: 0;
   text-wrap: balance;
+  opacity: 0;
 }
 
 .zone-planner-overlay-row {
@@ -1852,6 +1855,7 @@ input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0;
 }
 
 .zone-planner-overlay-product {
@@ -1874,7 +1878,7 @@ input {
   text-overflow: ellipsis;
   box-shadow: none;
   transform: none;
-  text-shadow: 0 0 0.5px rgba(255, 255, 255, 0.22);
+  opacity: 0;
 }
 
 .zone-planner-overlay-product.is-empty {
@@ -2163,7 +2167,19 @@ input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.product-level-badges::-webkit-scrollbar,
+.owned-card-levels-summary::-webkit-scrollbar,
+.owned-card-placed-list::-webkit-scrollbar {
+  display: none;
 }
 
 .product-level-badge {
