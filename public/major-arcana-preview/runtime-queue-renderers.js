@@ -28,11 +28,25 @@
               .replace(/^_+|_+$/g, "");
     const normalizeText = (value = "") => asText(value).replace(/\s+/g, " ").trim();
     const normalizedKey = (value = "") => normalizeKey(normalizeText(value));
+    const normalizedTokens = (value = "") =>
+      normalizedKey(value)
+        .split("_")
+        .map((token) => token.trim())
+        .filter(Boolean);
     const uniquePush = (list, value = "") => {
       const text = normalizeText(value);
       if (!text) return;
       if (list.some((entry) => normalizedKey(entry) === normalizedKey(text))) return;
       list.push(text);
+    };
+    const isRedundantVariant = (left = "", right = "") => {
+      const leftTokens = normalizedTokens(left);
+      const rightTokens = normalizedTokens(right);
+      if (!leftTokens.length || !rightTokens.length) return false;
+      if (normalizedKey(left) === normalizedKey(right)) return true;
+      const leftInsideRight = leftTokens.every((token) => rightTokens.includes(token));
+      const rightInsideLeft = rightTokens.every((token) => leftTokens.includes(token));
+      return leftInsideRight || rightInsideLeft;
     };
     const isMailboxIdentityLabel = (value = "") => {
       const normalized = normalizedKey(value);
@@ -133,7 +147,8 @@
     if (
       explicitLabel &&
       normalizedKey(explicitLabel) !== normalizedKey(primaryLabel) &&
-      !isUnknownLabel(explicitLabel)
+      !isUnknownLabel(explicitLabel) &&
+      !isRedundantVariant(primaryLabel, explicitLabel)
     ) {
       uniquePush(secondaryParts, explicitLabel);
     }
