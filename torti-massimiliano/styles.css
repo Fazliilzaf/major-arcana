@@ -1878,8 +1878,8 @@ input {
   justify-self: stretch;
   min-height: 100%;
   margin: 0;
-  padding: 0 0.18em;
-  background: rgba(255, 252, 248, 0.98);
+  padding: 0;
+  background: transparent;
   color: transparent;
   font-family: "Cormorant Garamond", serif;
   font-size: clamp(8px, 1.02cqi, 10px);
