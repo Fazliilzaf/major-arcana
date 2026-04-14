@@ -1,4 +1,164 @@
 (() => {
+  function buildQueueMailboxDisplayLabels(item = {}, helpers = {}) {
+    const asText =
+      typeof helpers.asText === "function"
+        ? helpers.asText
+        : (value, fallback = "") => {
+            if (typeof value === "string") return value;
+            if (value === undefined || value === null) return fallback;
+            return String(value);
+          };
+    const compactRuntimeCopy =
+      typeof helpers.compactRuntimeCopy === "function"
+        ? helpers.compactRuntimeCopy
+        : (value, fallback = "", max = 108) => {
+            const text = String(value || fallback || "").replace(/\s+/g, " ").trim();
+            return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+          };
+    const normalizeKey =
+      typeof helpers.normalizeKey === "function"
+        ? helpers.normalizeKey
+        : (value = "") =>
+            String(value || "")
+              .trim()
+              .toLowerCase()
+              .normalize("NFKD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]+/g, "_")
+              .replace(/^_+|_+$/g, "");
+    const normalizeText = (value = "") => asText(value).replace(/\s+/g, " ").trim();
+    const normalizedKey = (value = "") => normalizeKey(normalizeText(value));
+    const uniquePush = (list, value = "") => {
+      const text = normalizeText(value);
+      if (!text) return;
+      if (list.some((entry) => normalizedKey(entry) === normalizedKey(text))) return;
+      list.push(text);
+    };
+    const isMailboxIdentityLabel = (value = "") => {
+      const normalized = normalizedKey(value);
+      if (!normalized) return false;
+      return (
+        normalized.includes("hairtpclinic") ||
+        normalized.includes("hair_tp_clinic") ||
+        normalized.includes("@hairtpclinic.com") ||
+        ["kons", "info", "kontakt", "contact", "mailbox"].includes(normalized)
+      );
+    };
+    const isUnknownLabel = (value = "") =>
+      [
+        "",
+        "okand avsandare",
+        "okand kund",
+        "unknown",
+        "unknown customer",
+        "unknown sender",
+      ].includes(normalizedKey(value));
+    const isOrganizationLike = (value = "") => {
+      const normalized = normalizedKey(value);
+      if (!normalized) return false;
+      return (
+        isMailboxIdentityLabel(normalized) ||
+        /\b(?:clinic|wordpress|info|contact|kontakt|mailbox|support|admin|booking|bokning|team|service|hairtpclinic)\b/i.test(
+          normalizeText(value)
+        )
+      );
+    };
+    const fallbackMailboxLabel = compactRuntimeCopy(
+      asText(item.mailboxLabel || item.mailboxAddress || item.mailboxId || "Alla mejl"),
+      "Alla mejl",
+      56
+    );
+    const explicitLabel = compactRuntimeCopy(
+      [
+        item.counterpartyLabel,
+        item.customerName,
+        item.customerLabel,
+        item.fromName,
+        item.senderName,
+        item.contactName,
+        item.contactLabel,
+      ].find((candidate) => normalizeText(candidate) && !isUnknownLabel(candidate)) || "",
+      "",
+      56
+    );
+    const titleText = normalizeText(item.title || item.subject || item.displaySubject || "");
+    const summaryText = normalizeText(item.summary || item.detail || item.preview || item.displayDetail || "");
+    const extractPersonFromText = (value = "") => {
+      const text = normalizeText(value);
+      if (!text) return "";
+      const titleContactMatch = text.match(/^(.+?)\s+kontaktformul[aä]r\b/i);
+      if (titleContactMatch) {
+        const candidate = compactRuntimeCopy(titleContactMatch[1], "", 56);
+        if (candidate && !isOrganizationLike(candidate)) return candidate;
+      }
+      const fromMatch = text.match(
+        /(?:^|\b)Från:\s*([^•\n]+?)(?=\s+(?:E-?post|Email|Epost|Telefon|Phone)\b|[•\n]|$)/i
+      );
+      if (fromMatch) {
+        const candidate = compactRuntimeCopy(fromMatch[1], "", 56);
+        if (candidate && !isOrganizationLike(candidate)) return candidate;
+      }
+      const greetingMatch = text.match(
+        /(?:Bästa hälsningar|Vänliga hälsningar|Med vänliga hälsningar|MVH|Mvh)\s*,?\s*([^•\n]+?)(?=\s+(?:Hårspecialist|Hair\s*TP\s*Clinic|Hairtpclinic|Wordpress|Vasaplatsen|Göteborg|PRP|E-?post|Email|Telefon|Phone|Bästa|Vänliga|Med)\b|[•\n]|$)/i
+      );
+      if (greetingMatch) {
+        const candidate = compactRuntimeCopy(greetingMatch[1], "", 56);
+        if (candidate && !isOrganizationLike(candidate)) return candidate;
+      }
+      return "";
+    };
+    const sourceContext = (() => {
+      const text = `${titleText} ${summaryText}`.trim();
+      if (!text) return "";
+      const patterns = [
+        { label: "Kontaktformulär", pattern: /kontaktformul[aä]r/i },
+        { label: "WordPress", pattern: /wordpress/i },
+        { label: "Live refresh", pattern: /live[-\s]?refresh/i },
+        { label: "E2E", pattern: /\be2e\b/i },
+        { label: "Ingångsprobe", pattern: /ingress probe/i },
+      ];
+      const match = patterns.find(({ pattern }) => pattern.test(text));
+      return match ? match.label : "";
+    })();
+    const personCandidate = extractPersonFromText(titleText) || extractPersonFromText(summaryText);
+    let primaryLabel = "";
+    if (personCandidate) {
+      primaryLabel = personCandidate;
+    } else if (explicitLabel && !isUnknownLabel(explicitLabel)) {
+      primaryLabel = explicitLabel;
+    } else {
+      primaryLabel = fallbackMailboxLabel;
+    }
+    const secondaryParts = [];
+    if (
+      explicitLabel &&
+      normalizedKey(explicitLabel) !== normalizedKey(primaryLabel) &&
+      !isUnknownLabel(explicitLabel)
+    ) {
+      uniquePush(secondaryParts, explicitLabel);
+    }
+    if (sourceContext && normalizedKey(sourceContext) !== normalizedKey(primaryLabel)) {
+      uniquePush(secondaryParts, sourceContext);
+    }
+    if (
+      !secondaryParts.length &&
+      summaryText &&
+      normalizedKey(summaryText) !== normalizedKey(primaryLabel) &&
+      normalizedKey(summaryText) !== normalizedKey(fallbackMailboxLabel)
+    ) {
+      uniquePush(secondaryParts, compactRuntimeCopy(summaryText, "", 72));
+    }
+    const secondaryLabel = secondaryParts.join(" · ");
+    return {
+      primaryLabel: compactRuntimeCopy(primaryLabel, fallbackMailboxLabel, 56),
+      secondaryLabel: compactRuntimeCopy(secondaryLabel, "", 88),
+      mailboxLabel: fallbackMailboxLabel,
+      sourceContext,
+      explicitLabel,
+      personCandidate,
+    };
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -1993,73 +2153,94 @@
       }
       const historyViewMode = normalizeKey(state.runtime?.queueHistory?.viewMode || "history");
       queueHistoryList.innerHTML = asArray(items)
-        .map((item, index) =>
-          historyViewMode === "mailbox" && typeof buildThreadCardMarkup === "function"
-            ? buildThreadCardMarkup(
-                {
-                  ...item,
-                  id: asText(item.runtimeThreadId || item.conversationId || item.id || `queue-mailbox-${index}`),
-                  customerName: asText(
-                    item.counterpartyLabel || item.customerName || item.mailboxLabel || "Okänd avsändare"
-                  ),
-                  displaySubject: asText(
-                    item.title || item.subject || item.displaySubject || item.counterpartyLabel || item.mailboxLabel || "Alla mejl"
-                  ),
-                  subject: asText(
-                    item.title || item.subject || item.displaySubject || item.counterpartyLabel || item.mailboxLabel || "Alla mejl"
-                  ),
-                  preview: asText(item.detail || item.preview || item.displayDetail || ""),
-                  systemPreview: asText(item.detail || item.preview || item.displayDetail || ""),
-                  lastActivityAt: asText(item.recordedAt || item.lastActivityAt || ""),
-                  lastActivityLabel: asText(item.time || item.lastActivityLabel || item.recordedLabel || ""),
-                  ownerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
-                  displayOwnerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
-                  mailboxLabel: asText(item.mailboxLabel || item.mailboxAddress || "Alla mejl"),
-                  mailboxAddress: asText(item.mailboxAddress || ""),
-                  mailboxProvenanceLabel: asText(item.mailboxProvenanceLabel || ""),
-                  mailboxProvenanceDetail: asText(item.mailboxProvenanceDetail || ""),
-                  avatar: (() => {
-                    const avatarSrc = item.avatar;
-                    if (typeof avatarSrc === "string" && avatarSrc && avatarSrc !== "undefined") {
-                      return avatarSrc;
-                    }
-                    return typeof buildAvatarDataUri === "function"
-                      ? buildAvatarDataUri(
-                          asText(
-                            item.counterpartyLabel || item.title || item.mailboxLabel || "Alla mejl"
-                          )
+        .map((item, index) => {
+          if (historyViewMode === "mailbox" && typeof buildThreadCardMarkup === "function") {
+            const mailboxDisplayLabels = buildQueueMailboxDisplayLabels(item, {
+              asText,
+              compactRuntimeCopy,
+              normalizeKey,
+            });
+            return buildThreadCardMarkup(
+              {
+                ...item,
+                ...mailboxDisplayLabels,
+                id: asText(item.runtimeThreadId || item.conversationId || item.id || `queue-mailbox-${index}`),
+                customerName: asText(mailboxDisplayLabels.primaryLabel),
+                displaySubject: asText(
+                  mailboxDisplayLabels.secondaryLabel ||
+                    item.title ||
+                    item.subject ||
+                    item.displaySubject ||
+                    item.counterpartyLabel ||
+                    item.mailboxLabel ||
+                    "Alla mejl"
+                ),
+                subject: asText(
+                  mailboxDisplayLabels.secondaryLabel ||
+                    item.title ||
+                    item.subject ||
+                    item.displaySubject ||
+                    item.counterpartyLabel ||
+                    item.mailboxLabel ||
+                    "Alla mejl"
+                ),
+                preview: asText(item.detail || item.preview || item.displayDetail || ""),
+                systemPreview: asText(item.detail || item.preview || item.displayDetail || ""),
+                lastActivityAt: asText(item.recordedAt || item.lastActivityAt || ""),
+                lastActivityLabel: asText(item.time || item.lastActivityLabel || item.recordedLabel || ""),
+                ownerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
+                displayOwnerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
+                mailboxLabel: asText(item.mailboxLabel || item.mailboxAddress || "Alla mejl"),
+                mailboxAddress: asText(item.mailboxAddress || ""),
+                mailboxProvenanceLabel: asText(item.mailboxProvenanceLabel || ""),
+                mailboxProvenanceDetail: asText(item.mailboxProvenanceDetail || ""),
+                avatar: (() => {
+                  const avatarSrc = item.avatar;
+                  if (typeof avatarSrc === "string" && avatarSrc && avatarSrc !== "undefined") {
+                    return avatarSrc;
+                  }
+                  return typeof buildAvatarDataUri === "function"
+                    ? buildAvatarDataUri(
+                        asText(
+                          mailboxDisplayLabels.primaryLabel ||
+                            item.counterpartyLabel ||
+                            item.title ||
+                            item.mailboxLabel ||
+                            "Alla mejl"
                         )
-                      : "";
-                  })(),
-                  nextActionSummary: asText(item.nextActionSummary || item.detail || item.preview || ""),
-                  systemHint: asText(item.nextActionSummary || item.detail || item.preview || ""),
-                  primaryLaneId: asText(item.primaryLaneId || item.laneId || ""),
-                  rowFamily: asText(item.rowFamily || "human_mail"),
-                  tags: asArray(item.tags),
-                  isUnread: item.isUnread === true,
-                  unread: item.isUnread === true,
-                  crossMailboxProvenanceEvidence: item.crossMailboxProvenanceEvidence === true,
-                  foundationState:
-                    item.foundationState && typeof item.foundationState === "object"
-                      ? item.foundationState
-                      : null,
-                  raw: item.raw && typeof item.raw === "object" ? item.raw : {},
-                },
-                index,
-                Boolean(
-                  item?.conversationId &&
-                    typeof runtimeConversationIdsMatch === "function" &&
-                    runtimeConversationIdsMatch(
-                      asText(item.conversationId),
-                      asText(state.runtime.queueHistory?.selectedConversationId)
-                    )
-                )
+                      )
+                    : "";
+                })(),
+                nextActionSummary: asText(item.nextActionSummary || item.detail || item.preview || ""),
+                systemHint: asText(item.nextActionSummary || item.detail || item.preview || ""),
+                primaryLaneId: asText(item.primaryLaneId || item.laneId || ""),
+                rowFamily: asText(item.rowFamily || "human_mail"),
+                tags: asArray(item.tags),
+                isUnread: item.isUnread === true,
+                unread: item.isUnread === true,
+                crossMailboxProvenanceEvidence: item.crossMailboxProvenanceEvidence === true,
+                foundationState:
+                  item.foundationState && typeof item.foundationState === "object"
+                    ? item.foundationState
+                    : null,
+                raw: item.raw && typeof item.raw === "object" ? item.raw : {},
+              },
+              index,
+              Boolean(
+                item?.conversationId &&
+                  typeof runtimeConversationIdsMatch === "function" &&
+                  runtimeConversationIdsMatch(
+                    asText(item.conversationId),
+                    asText(state.runtime.queueHistory?.selectedConversationId)
+                  )
               )
-            : buildQueueHistoryCardMarkup(item, {
-                selectedConversationId: state.runtime.queueHistory?.selectedConversationId,
-                useThreadCardClass: true,
-              })
-        )
+            );
+          }
+          return buildQueueHistoryCardMarkup(item, {
+            selectedConversationId: state.runtime.queueHistory?.selectedConversationId,
+            useThreadCardClass: true,
+          });
+        })
         .join("");
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }

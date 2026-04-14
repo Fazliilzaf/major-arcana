@@ -380,6 +380,152 @@ test('buildThreadCardMarkup ger cross-mailbox-kort kompakt klass men behåller l
   );
 });
 
+test('buildQueueMailboxDisplayLabels låter personnamn vinna över mailboxlabel i Alla mejl', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+  const helperSource = extractFunctionSource(source, 'buildQueueMailboxDisplayLabels');
+  const buildQueueMailboxDisplayLabels = new Function(
+    `${helperSource}
+     return buildQueueMailboxDisplayLabels;`
+  )();
+
+  const sami = buildQueueMailboxDisplayLabels(
+    {
+      counterpartyLabel: 'Hairtpclinic Se',
+      title: 'Sami Bonyadi Kontaktformulär',
+      subject: 'Sami Bonyadi Kontaktformulär',
+      summary:
+        'Från: Sami Bonyadi E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig? Jag tappar mycket hår pga mina dåliga gener.',
+      mailboxLabel: 'Kons',
+      mailboxAddress: 'kons@hairtpclinic.com',
+    },
+    {
+      asText: (value, fallback = '') => {
+        if (typeof value === 'string') return value;
+        if (value === undefined || value === null) return fallback;
+        return String(value);
+      },
+      compactRuntimeCopy: (value, fallback = '', max = 108) => {
+        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+      },
+      normalizeKey: (value = '') =>
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, ''),
+    }
+  );
+
+  assert.equal(sami.primaryLabel, 'Sami Bonyadi');
+  assert.match(sami.secondaryLabel, /Hairtpclinic Se/);
+  assert.match(sami.secondaryLabel, /Kontaktformulär/);
+
+  const fazli = buildQueueMailboxDisplayLabels(
+    {
+      counterpartyLabel: 'Hairtpclinic Com',
+      title: 'CCO live refresh proof [telefon]T[telefon]Z',
+      subject: 'CCO live refresh proof [telefon]T[telefon]Z',
+      summary:
+        'Hej, Detta är ett verkligt live-refresh-test för CCO. Bästa hälsningar, Fazli Krasniqi Hårspecialist | Hårtransplantationer & PRP-injektioner.',
+      mailboxLabel: 'Kons',
+      mailboxAddress: 'kons@hairtpclinic.com',
+    },
+    {
+      asText: (value, fallback = '') => {
+        if (typeof value === 'string') return value;
+        if (value === undefined || value === null) return fallback;
+        return String(value);
+      },
+      compactRuntimeCopy: (value, fallback = '', max = 108) => {
+        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+      },
+      normalizeKey: (value = '') =>
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, ''),
+    }
+  );
+
+  assert.equal(fazli.primaryLabel, 'Fazli Krasniqi');
+  assert.match(fazli.secondaryLabel, /Hairtpclinic Com/);
+  assert.match(fazli.secondaryLabel, /Live refresh/);
+
+  const fallback = buildQueueMailboxDisplayLabels(
+    {
+      title: 'Meddelande',
+      subject: 'Meddelande',
+      summary: '',
+      mailboxLabel: 'Kons',
+      mailboxAddress: 'kons@hairtpclinic.com',
+    },
+    {
+      asText: (value, fallback = '') => {
+        if (typeof value === 'string') return value;
+        if (value === undefined || value === null) return fallback;
+        return String(value);
+      },
+      compactRuntimeCopy: (value, fallback = '', max = 108) => {
+        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+      },
+      normalizeKey: (value = '') =>
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, ''),
+    }
+  );
+
+  assert.equal(fallback.primaryLabel, 'Kons');
+  assert.equal(fallback.secondaryLabel, '');
+});
+
+test('Alla mejl-kortet renderar primary och secondary label i rätt ordning', () => {
+  const buildThreadCardMarkup = createBuildThreadCardMarkupHarness();
+  const html = buildThreadCardMarkup(
+    {
+      id: 'mailbox-card',
+      customerName: 'Sami Bonyadi',
+      displaySubject: 'Hairtpclinic Se · Kontaktformulär',
+      subject: 'Hairtpclinic Se · Kontaktformulär',
+      lastActivityLabel: 'Idag 14:48',
+      lastActivityAt: '2026-04-14T14:48:05.000Z',
+      displayOwnerLabel: 'Ej tilldelad',
+      mailboxLabel: 'Kons',
+      mailboxProvenanceLabel: '',
+      mailboxProvenanceDetail: '',
+      primaryLaneId: 'all',
+      crossMailboxProvenanceEvidence: false,
+      unread: false,
+      avatar: 'avatar.svg',
+      tags: ['all'],
+      worklistSource: 'truth',
+      rowFamily: 'human_mail',
+      preview: 'Från: Sami Bonyadi E-post: [email] Telefon: [telefon]',
+      nextActionSummary: 'Öppna tråden',
+    },
+    0,
+    false
+  );
+
+  assert.match(
+    html,
+    /thread-subject-primary">Sami Bonyadi<\/span>\s*<span class="thread-subject-context">Hairtpclinic Se · Kontaktformulär<\/span>/,
+    'Alla mejl-kortet ska visa personnamn först och organisation\/kontext på rad två.'
+  );
+});
+
 test('loading-fallbacken i vansterkon stanger av gamla bakgrundsrader', () => {
   const renderersSource = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
