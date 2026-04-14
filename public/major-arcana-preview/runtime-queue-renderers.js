@@ -2018,19 +2018,6 @@
                   mailboxAddress: asText(item.mailboxAddress || ""),
                   mailboxProvenanceLabel: asText(item.mailboxProvenanceLabel || ""),
                   mailboxProvenanceDetail: asText(item.mailboxProvenanceDetail || ""),
-                  avatar: (() => {
-                    const avatarSrc = item.avatar;
-                    if (typeof avatarSrc === "string" && avatarSrc && avatarSrc !== "undefined") {
-                      return avatarSrc;
-                    }
-                    return typeof buildAvatarDataUri === "function"
-                      ? buildAvatarDataUri(
-                          asText(
-                            item.counterpartyLabel || item.title || item.mailboxLabel || "Alla mejl"
-                          )
-                        )
-                      : "";
-                  })(),
                   nextActionSummary: asText(item.nextActionSummary || item.detail || item.preview || ""),
                   systemHint: asText(item.nextActionSummary || item.detail || item.preview || ""),
                   primaryLaneId: asText(item.primaryLaneId || item.laneId || ""),
