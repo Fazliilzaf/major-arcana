@@ -49,7 +49,6 @@
       queueHistoryList,
       queueHistoryLoadMoreButton,
       queueHistoryToggle,
-      queueMailboxToggle,
       queueLaneButtons = [],
       queueViewJumpButtons = [],
       resizeHandles = [],
@@ -3212,89 +3211,60 @@
         });
       });
 
-      const toggleQueueHistoryView = (nextViewMode = "history") => {
-        const normalizedViewMode = nextViewMode === "mailbox" ? "mailbox" : "history";
-        const isSameViewOpen =
-          state.runtime.queueHistory.open &&
-          normalizeKey(state.runtime.queueHistory.viewMode || "history") === normalizedViewMode;
-        const nextOpen = !isSameViewOpen;
-        const previousThreadId = workspaceSourceOfTruth.getSelectedThreadId();
-        const selectedRuntimeThread =
-          typeof getSelectedRuntimeThread === "function" ? getSelectedRuntimeThread() : null;
-        const selectedRuntimeThreadId = asText(
-          selectedRuntimeThread?.id || previousThreadId
-        );
-        state.runtime.queueInlinePanel = {
-          ...state.runtime.queueInlinePanel,
-          open: false,
-          laneId: "",
-          feedKey: "",
-        };
-        state.runtime.queueHistory = {
-          ...state.runtime.queueHistory,
-          open: nextOpen,
-          viewMode: normalizedViewMode,
-          selectedConversationId: nextOpen
-            ? asText(state.runtime.queueHistory.selectedConversationId || selectedRuntimeThreadId)
-            : "",
-        };
-        captureRuntimeReentrySnapshot(
-          normalizedViewMode === "mailbox" ? "queue_mailbox_toggled" : "queue_history_toggled"
-        );
-        if (!nextOpen) {
-          reconcileRuntimeScopeSelection(previousThreadId, {
-            allowLaneFallback: true,
-          });
-          renderRuntimeConversationShell();
-          loadBootstrap({
-            preserveActiveDestination: true,
-            applyWorkspacePrefs: false,
-            quiet: true,
-          }).catch((error) => {
-            console.warn(
-              normalizedViewMode === "mailbox"
-                ? "CCO workspace bootstrap misslyckades efter att Alla mejl stängdes."
-                : "CCO workspace bootstrap misslyckades efter att historikpanelen stängdes.",
-              error
-            );
-          });
-          renderQueueHistorySection();
-          return;
-        }
-        renderQueueHistorySection();
-        const nextScopeKey = getQueueHistoryScopeKey();
-        loadQueueHistory({
-          force:
-            !state.runtime.queueHistory.loaded ||
-            state.runtime.queueHistory.scopeKey !== nextScopeKey,
-        }).catch((error) => {
-          console.warn(
-            normalizedViewMode === "mailbox"
-              ? "CCO Alla mejl kunde inte öppnas."
-              : "CCO queue-historik kunde inte öppnas.",
-            error
-          );
-        });
-      };
-
       if (queueHistoryToggle) {
-        const toggleQueueHistory = () => toggleQueueHistoryView("history");
+        const toggleQueueHistory = () => {
+          const nextOpen = !state.runtime.queueHistory.open;
+          const previousThreadId = workspaceSourceOfTruth.getSelectedThreadId();
+          const selectedRuntimeThread =
+            typeof getSelectedRuntimeThread === "function" ? getSelectedRuntimeThread() : null;
+          const selectedRuntimeThreadId = asText(
+            selectedRuntimeThread?.id || previousThreadId
+          );
+          state.runtime.queueInlinePanel = {
+            ...state.runtime.queueInlinePanel,
+            open: false,
+            laneId: "",
+            feedKey: "",
+          };
+          state.runtime.queueHistory = {
+            ...state.runtime.queueHistory,
+            open: nextOpen,
+            selectedConversationId: nextOpen
+              ? asText(state.runtime.queueHistory.selectedConversationId || selectedRuntimeThreadId)
+              : "",
+          };
+          captureRuntimeReentrySnapshot("queue_history_toggled");
+          if (!nextOpen) {
+            reconcileRuntimeScopeSelection(previousThreadId, {
+              allowLaneFallback: true,
+            });
+            renderRuntimeConversationShell();
+            loadBootstrap({
+              preserveActiveDestination: true,
+              applyWorkspacePrefs: false,
+              quiet: true,
+            }).catch((error) => {
+              console.warn("CCO workspace bootstrap misslyckades efter att historikpanelen stängdes.", error);
+            });
+            renderQueueHistorySection();
+            return;
+          }
+          renderQueueHistorySection();
+          const nextScopeKey = getQueueHistoryScopeKey();
+          loadQueueHistory({
+            force:
+              !state.runtime.queueHistory.loaded ||
+              state.runtime.queueHistory.scopeKey !== nextScopeKey,
+          }).catch((error) => {
+            console.warn("CCO queue-historik kunde inte öppnas.", error);
+          });
+        };
 
         queueHistoryToggle.addEventListener("click", toggleQueueHistory);
         queueHistoryToggle.addEventListener("keydown", (event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
           toggleQueueHistory();
-        });
-      }
-
-      if (queueMailboxToggle) {
-        const toggleQueueMailbox = () => toggleQueueHistoryView("mailbox");
-        queueMailboxToggle.addEventListener("click", toggleQueueMailbox);
-        queueMailboxToggle.addEventListener("keydown", (event) => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          toggleQueueMailbox();
         });
       }
 
