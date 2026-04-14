@@ -2182,7 +2182,7 @@
       },
       queueCategoriesCompact: false,
       queueHistory: {
-        open: false,
+        open: true,
         loading: false,
         loaded: false,
         error: "",

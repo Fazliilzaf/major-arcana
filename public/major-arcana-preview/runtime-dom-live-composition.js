@@ -2296,6 +2296,41 @@
 
     function openQueueInlineLane(laneId) {
       const normalizedLaneId = normalizeKey(laneId || "all") || "all";
+      if (normalizedLaneId === "all") {
+        state.runtime.queueInlinePanel = {
+          ...state.runtime.queueInlinePanel,
+          open: false,
+          laneId: "",
+          feedKey: "",
+        };
+        state.runtime.queueHistory = {
+          ...state.runtime.queueHistory,
+          open: true,
+          viewMode: "mailbox",
+          selectedConversationId: asText(
+            state.runtime.queueHistory.selectedConversationId ||
+              workspaceSourceOfTruth.getSelectedThreadId() ||
+              ""
+          ),
+        };
+        renderRuntimeConversationShell();
+        captureRuntimeReentrySnapshot("queue_mailbox_toggled");
+        debugReentrySnapshot("AFTER QUEUE MAILBOX TOGGLE");
+        debugRuntimePipeline("AFTER QUEUE MAILBOX TOGGLE");
+        const nextScopeKey = getQueueHistoryScopeKey();
+        loadQueueHistory({
+          force:
+            !state.runtime.queueHistory.loaded ||
+            state.runtime.queueHistory.scopeKey !== nextScopeKey,
+        }).catch((error) => {
+          console.warn("CCO Alla kunde inte öppnas.", error);
+        });
+        const queueStream = queueHistoryList?.closest(".queue-stream");
+        if (queueStream) {
+          queueStream.scrollTop = 0;
+        }
+        return;
+      }
       const wasSameInlinePanel =
         state.runtime.queueInlinePanel.open &&
         normalizeKey(state.runtime.queueInlinePanel.feedKey || "") === "" &&
