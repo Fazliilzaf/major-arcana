@@ -290,7 +290,7 @@ test('renderQueueHistorySection visar lane-panelen i samma inline-shell som hist
   assert.match(queueHistoryList.innerHTML, /queue-history-item-subject/);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Mottaget|Skickat/);
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
-  assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'false');
+  assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'true');
 });
 
 test('renderQueueHistorySection behåller historik som eget läge', () => {
@@ -405,6 +405,336 @@ test('renderQueueHistorySection behåller historik som eget läge', () => {
   assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'true');
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
   assert.match(queueHistoryList.innerHTML, /Ingen historik hittades/i);
+});
+
+test('renderQueueHistorySection filtrerar historik men visar Alla mejl som full mailboxvy', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueInlineLaneMetaSource = extractFunctionSource(source, 'getQueueInlineLaneMeta');
+  const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
+  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+
+  const queueHistoryPanel = createElementStub();
+  const queueHistoryToggle = createElementStub();
+  const queueMailboxToggle = createElementStub();
+  const queuePrimaryLaneTag = createElementStub();
+  const queueContent = createElementStub();
+  const queueHistoryHead = createElementStub();
+  const queueHistoryMeta = createElementStub();
+  const queueHistoryList = createElementStub();
+  const queueHistoryLoadMoreButton = createElementStub();
+  const queueHistoryCount = createElementStub();
+  const queueMailboxCount = createElementStub();
+  const queueTitle = createElementStub();
+  const queueMailboxItems = [
+    {
+      id: 'history-1',
+      conversationId: 'conv-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxLabel: 'Kons',
+      mailboxProvenanceLabel: 'Truth primary',
+      mailboxProvenanceDetail: 'truth',
+      counterpartyLabel: 'Anna Karlsson',
+      title: 'Kons live refresh proof',
+      detail: 'Detta är ett inkommande mejl som ska ligga i Alla mejl.',
+      direction: 'Mottaget',
+      time: '13:24',
+      recordedAt: '2026-04-14T13:24:00.000Z',
+      initials: 'AK',
+      queueLabel: 'Agera nu',
+      isUnread: true,
+    },
+    {
+      id: 'history-2',
+      conversationId: 'conv-2',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxLabel: 'Kons',
+      mailboxProvenanceLabel: 'Truth primary',
+      mailboxProvenanceDetail: 'truth',
+      counterpartyLabel: 'Auto svar',
+      title: 'Skickat svar från Kons',
+      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla mejl.',
+      direction: 'Skickat',
+      time: '12:10',
+      recordedAt: '2026-04-14T12:10:00.000Z',
+      initials: 'KS',
+      queueLabel: 'Skickat',
+    },
+  ];
+
+  const renderQueueHistorySection = new Function(
+    'QUEUE_LANE_LABELS',
+    'asArray',
+    'asText',
+    'compactRuntimeCopy',
+    'escapeHtml',
+    'getQueueLaneThreads',
+    'getQueueScopedRuntimeThreads',
+    'isSentRuntimeThread',
+    'normalizeKey',
+    'queueContent',
+    'queueHistoryCount',
+    'queueHistoryHead',
+    'queueHistoryList',
+    'queueHistoryLoadMoreButton',
+    'queueHistoryMeta',
+    'queueHistoryPanel',
+    'queueHistoryToggle',
+    'queueMailboxCount',
+    'queueMailboxToggle',
+    'queuePrimaryLaneTag',
+    'renderThreadContextRows',
+    'setQueueContextVisibility',
+    'state',
+    'queueTitle',
+    `${getQueueHistoryItemInitialsSource}
+     ${buildQueueHistoryCardMarkupSource}
+     ${buildQueueInlineLaneHistoryItemSource}
+     ${renderQueueInlineLaneListSource}
+     ${getQueueInlineLaneMetaSource}
+     ${renderQueueHistoryListSource}
+     ${renderQueueHistorySectionSource}
+     return renderQueueHistorySection;`
+  )(
+    { all: 'Alla', 'act-now': 'Agera nu' },
+    (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
+    (value, fallback = '') => {
+      if (typeof value === 'string') return value;
+      if (value === undefined || value === null) return fallback;
+      return String(value);
+    },
+    (value) => (typeof value === 'string' ? value : value == null ? '' : String(value)),
+    (value) => String(value),
+    () => [],
+    () => queueMailboxItems,
+    () => false,
+    (value, fallback = '') => {
+      const text =
+        typeof value === 'string'
+          ? value
+          : value === undefined || value === null
+            ? fallback
+            : String(value);
+      return text.trim().toLowerCase();
+    },
+    queueContent,
+    queueHistoryCount,
+    queueHistoryHead,
+    queueHistoryList,
+    queueHistoryLoadMoreButton,
+    queueHistoryMeta,
+    queueHistoryPanel,
+    queueHistoryToggle,
+    queueMailboxCount,
+    queueMailboxToggle,
+    queuePrimaryLaneTag,
+    () => {},
+    () => {},
+    {
+      runtime: {
+        live: true,
+        activeLaneId: 'all',
+        selectedThreadId: 'conv-1',
+        queueInlinePanel: {
+          open: false,
+          laneId: '',
+        },
+        queueHistory: {
+          open: true,
+          viewMode: 'mailbox',
+          loading: false,
+          error: '',
+          items: queueMailboxItems,
+          hasMore: false,
+          selectedConversationId: 'conv-1',
+        },
+      },
+    },
+    queueTitle
+  );
+
+  renderQueueHistorySection();
+
+  assert.equal(queueHistoryPanel.hidden, false);
+  assert.equal(queueContent.hidden, true);
+  assert.equal(queuePrimaryLaneTag.hidden, true);
+  assert.equal(queueTitle.textContent, 'Alla mejl (2)');
+  assert.equal(queueHistoryCount.textContent, '2');
+  assert.equal(queueMailboxCount.textContent, '2');
+  assert.equal(queueMailboxToggle.attributes['aria-expanded'], 'true');
+  assert.equal(queueMailboxToggle.classList.contains('is-active'), true);
+  assert.equal(queueHistoryToggle.classList.contains('is-active'), false);
+  assert.equal(queueHistoryList.dataset.queueListMode, 'mailbox');
+  assert.match(queueHistoryMeta.textContent, /hela mailboxunderlaget/i);
+  assert.match(queueHistoryList.innerHTML, /Kons live refresh proof/);
+  assert.match(queueHistoryList.innerHTML, /Skickat svar från Kons/);
+  assert.match(queueHistoryList.innerHTML, /data-history-conversation="conv-1"/);
+  assert.match(queueHistoryList.innerHTML, /data-history-conversation="conv-2"/);
+  assert.equal(queueHistoryLoadMoreButton.hidden, true);
+});
+
+test('renderQueueHistorySection håller historik trådbunden när Alla mejl visar hela underlaget', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueInlineLaneMetaSource = extractFunctionSource(source, 'getQueueInlineLaneMeta');
+  const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
+  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+
+  const queueHistoryPanel = createElementStub();
+  const queueHistoryToggle = createElementStub();
+  const queueMailboxToggle = createElementStub();
+  const queuePrimaryLaneTag = createElementStub();
+  const queueContent = createElementStub();
+  const queueHistoryHead = createElementStub();
+  const queueHistoryMeta = createElementStub();
+  const queueHistoryList = createElementStub();
+  const queueHistoryLoadMoreButton = createElementStub();
+  const queueHistoryCount = createElementStub();
+  const queueMailboxCount = createElementStub();
+  const queueTitle = createElementStub();
+  const queueMailboxItems = [
+    {
+      id: 'history-1',
+      conversationId: 'conv-1',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxLabel: 'Kons',
+      mailboxProvenanceLabel: 'Truth primary',
+      mailboxProvenanceDetail: 'truth',
+      counterpartyLabel: 'Anna Karlsson',
+      title: 'Kons live refresh proof',
+      detail: 'Detta är ett inkommande mejl som ska ligga i Alla mejl.',
+      direction: 'Mottaget',
+      time: '13:24',
+      recordedAt: '2026-04-14T13:24:00.000Z',
+      initials: 'AK',
+      queueLabel: 'Agera nu',
+      isUnread: true,
+    },
+    {
+      id: 'history-2',
+      conversationId: 'conv-2',
+      mailboxId: 'kons@hairtpclinic.com',
+      mailboxLabel: 'Kons',
+      mailboxProvenanceLabel: 'Truth primary',
+      mailboxProvenanceDetail: 'truth',
+      counterpartyLabel: 'Auto svar',
+      title: 'Skickat svar från Kons',
+      detail: 'Detta är ett skickat mejl som inte ska försvinna ur Alla mejl.',
+      direction: 'Skickat',
+      time: '12:10',
+      recordedAt: '2026-04-14T12:10:00.000Z',
+      initials: 'KS',
+      queueLabel: 'Skickat',
+    },
+  ];
+
+  const renderQueueHistorySection = new Function(
+    'QUEUE_LANE_LABELS',
+    'asArray',
+    'asText',
+    'compactRuntimeCopy',
+    'escapeHtml',
+    'getQueueLaneThreads',
+    'getQueueScopedRuntimeThreads',
+    'isSentRuntimeThread',
+    'normalizeKey',
+    'queueContent',
+    'queueHistoryCount',
+    'queueHistoryHead',
+    'queueHistoryList',
+    'queueHistoryLoadMoreButton',
+    'queueHistoryMeta',
+    'queueHistoryPanel',
+    'queueHistoryToggle',
+    'queueMailboxCount',
+    'queueMailboxToggle',
+    'queuePrimaryLaneTag',
+    'renderThreadContextRows',
+    'setQueueContextVisibility',
+    'state',
+    'queueTitle',
+    `${getQueueHistoryItemInitialsSource}
+     ${buildQueueHistoryCardMarkupSource}
+     ${buildQueueInlineLaneHistoryItemSource}
+     ${renderQueueInlineLaneListSource}
+     ${getQueueInlineLaneMetaSource}
+     ${renderQueueHistoryListSource}
+     ${renderQueueHistorySectionSource}
+     return renderQueueHistorySection;`
+  )(
+    { all: 'Alla', 'act-now': 'Agera nu' },
+    (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
+    (value, fallback = '') => {
+      if (typeof value === 'string') return value;
+      if (value === undefined || value === null) return fallback;
+      return String(value);
+    },
+    (value) => (typeof value === 'string' ? value : value == null ? '' : String(value)),
+    (value) => String(value),
+    () => [],
+    () => queueMailboxItems,
+    () => false,
+    (value, fallback = '') => {
+      const text =
+        typeof value === 'string'
+          ? value
+          : value === undefined || value === null
+            ? fallback
+            : String(value);
+      return text.trim().toLowerCase();
+    },
+    queueContent,
+    queueHistoryCount,
+    queueHistoryHead,
+    queueHistoryList,
+    queueHistoryLoadMoreButton,
+    queueHistoryMeta,
+    queueHistoryPanel,
+    queueHistoryToggle,
+    queueMailboxCount,
+    queueMailboxToggle,
+    queuePrimaryLaneTag,
+    () => {},
+    () => {},
+    {
+      runtime: {
+        live: true,
+        activeLaneId: 'all',
+        selectedThreadId: 'conv-1',
+        queueInlinePanel: {
+          open: false,
+          laneId: '',
+        },
+        queueHistory: {
+          open: true,
+          viewMode: 'history',
+          loading: false,
+          error: '',
+          items: queueMailboxItems,
+          hasMore: false,
+          selectedConversationId: 'conv-1',
+        },
+      },
+    },
+    queueTitle
+  );
+
+  renderQueueHistorySection();
+
+  assert.equal(queueTitle.textContent, 'Historik (1)');
+  assert.equal(queueHistoryCount.textContent, '1');
+  assert.equal(queueMailboxCount.textContent, '2');
+  assert.equal(queueMailboxToggle.classList.contains('is-active'), false);
+  assert.equal(queueHistoryToggle.classList.contains('is-active'), true);
+  assert.equal(queueHistoryList.dataset.queueListMode, 'history');
+  assert.match(queueHistoryList.innerHTML, /Kons live refresh proof/);
+  assert.doesNotMatch(queueHistoryList.innerHTML, /Skickat svar från Kons/);
 });
 
 test('renderQueueHistorySection visar vanlig arbetslista i queue-history-list nar ingen panel ar oppen', () => {
@@ -541,7 +871,7 @@ test('renderQueueHistorySection visar vanlig arbetslista i queue-history-list na
   assert.match(queueHistoryList.innerHTML, /data-runtime-thread="queue-1"/);
   assert.match(queueHistoryList.innerHTML, /data-runtime-thread="queue-2"/);
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
-  assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'false');
+  assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'true');
 });
 
 test('renderQueueHistorySection visar loading i samma kortsystem som live-kön', () => {

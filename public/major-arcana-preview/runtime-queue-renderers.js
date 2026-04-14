@@ -35,6 +35,8 @@
       queueHistoryMeta,
       queueHistoryPanel,
       queueHistoryToggle,
+      queueMailboxCount,
+      queueMailboxToggle,
       queueQuickLaneStrip,
       queueLaneButtons = [],
       queueLaneCountNodes = [],
@@ -1985,7 +1987,8 @@
     function renderQueueHistoryList(items = []) {
       if (!queueHistoryList) return;
       if (queueHistoryList.dataset) {
-        queueHistoryList.dataset.queueListMode = "history";
+        const historyViewMode = normalizeKey(state.runtime?.queueHistory?.viewMode || "history");
+        queueHistoryList.dataset.queueListMode = historyViewMode === "mailbox" ? "mailbox" : "history";
       }
       queueHistoryList.innerHTML = asArray(items)
         .map((item) =>
@@ -2043,6 +2046,10 @@
 
     function renderQueueHistorySection() {
       if (!queueHistoryPanel || !queueHistoryToggle) return;
+      const queueMailboxToggleNode =
+        typeof queueMailboxToggle === "undefined" ? null : queueMailboxToggle;
+      const queueMailboxCountNode =
+        typeof queueMailboxCount === "undefined" ? null : queueMailboxCount;
       const buildUnifiedStateThread = ({
         id,
         customerName,
@@ -2105,6 +2112,8 @@
         button.setAttribute("title", description);
       };
       const historyState = state.runtime.queueHistory;
+      const historyViewMode = normalizeKey(historyState?.viewMode || "history");
+      const isMailboxView = historyViewMode === "mailbox";
       const leftColumnState =
         typeof getRuntimeLeftColumnState === "function"
           ? getRuntimeLeftColumnState()
@@ -2173,8 +2182,29 @@
         Boolean(selectedThread) &&
         runtimeMode !== "offline_history" &&
         !isOfflineHistoryThread;
-      queueHistoryToggle.classList.toggle("is-active", isHistoryOpen);
-      queueHistoryToggle.setAttribute("aria-expanded", String(isHistoryOpen));
+      const allHistoryItems = asArray(historyState.items);
+      const selectedConversationId = asText(historyState.selectedConversationId);
+      const conversationIdsMatch =
+        typeof runtimeConversationIdsMatch === "function"
+          ? runtimeConversationIdsMatch
+          : (left, right) => {
+              const normalizedLeft = asText(left).trim().toLowerCase();
+              const normalizedRight = asText(right).trim().toLowerCase();
+              return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight);
+            };
+      const visibleHistoryItems = isMailboxView
+        ? allHistoryItems
+        : selectedConversationId
+          ? allHistoryItems.filter((item) =>
+              conversationIdsMatch(item?.conversationId, selectedConversationId)
+            )
+          : allHistoryItems;
+      queueHistoryToggle.classList.toggle("is-active", isHistoryOpen && !isMailboxView);
+      queueHistoryToggle.setAttribute("aria-expanded", String(isOpen));
+      if (queueMailboxToggleNode) {
+        queueMailboxToggleNode.classList.toggle("is-active", isMailboxView && isOpen);
+        queueMailboxToggleNode.setAttribute("aria-expanded", String(isOpen));
+      }
       queueHistoryPanel.hidden = !isOpen;
       queueHistoryPanel.classList.toggle("is-open", isOpen);
       if (queuePrimaryLaneTag) queuePrimaryLaneTag.hidden = isOpen;
@@ -2186,8 +2216,10 @@
       }
 
       if (queueHistoryCount) {
-        const visibleCount = asArray(historyState.items).length;
-        queueHistoryCount.textContent = String(visibleCount);
+        queueHistoryCount.textContent = String(visibleHistoryItems.length);
+      }
+      if (queueMailboxCountNode) {
+        queueMailboxCountNode.textContent = String(allHistoryItems.length);
       }
 
       syncQueueHistoryActionButton(completeActionButton, {
@@ -2206,14 +2238,19 @@
 
       if (isHistoryOpen) {
         if (queueHistoryList?.dataset) {
-          queueHistoryList.dataset.queueListMode = "history";
+          queueHistoryList.dataset.queueListMode = isMailboxView ? "mailbox" : "history";
         }
         if (queueTitle) {
-          queueTitle.textContent = `Historik (${asArray(historyState.items).length})`;
+          queueTitle.textContent = isMailboxView
+            ? `Alla mejl (${visibleHistoryItems.length})`
+            : `Historik (${visibleHistoryItems.length})`;
         }
 
         if (historyState.loading) {
-          setQueueHistoryMeta("Laddar äldre mejl…", { showHead: false });
+          setQueueHistoryMeta(
+            isMailboxView ? "Laddar alla mejl…" : "Laddar äldre mejl…",
+            { showHead: false }
+          );
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
           syncQueueHistoryActionButton(deleteActionButton, {
             visible: false,
@@ -2229,7 +2266,12 @@
         }
 
         if (historyState.error) {
-          setQueueHistoryMeta("Historiken kunde inte laddas just nu.", { showHead: false });
+          setQueueHistoryMeta(
+            isMailboxView
+              ? "Alla mejl kunde inte laddas just nu."
+              : "Historiken kunde inte laddas just nu.",
+            { showHead: false }
+          );
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
           syncQueueHistoryActionButton(deleteActionButton, {
             visible: false,
@@ -2246,21 +2288,27 @@
         }
 
         setQueueHistoryMeta(
-          runtimeMode === "offline_history" || state.runtime.live !== true
-            ? "Offline historikläge aktivt. Historik visas även när livekön är pausad."
-            : ""
+          isMailboxView
+            ? runtimeMode === "offline_history" || state.runtime.live !== true
+              ? "Offline historikläge aktivt. Alla mejl visas från senast kända mailboxunderlag."
+              : "Visar hela mailboxunderlaget för valt mailboxscope."
+            : runtimeMode === "offline_history" || state.runtime.live !== true
+              ? "Offline historikläge aktivt. Historik visas även när livekön är pausad."
+              : ""
         );
 
-        if (!asArray(historyState.items).length) {
+        if (!visibleHistoryItems.length) {
           if (queueHistoryList) {
             queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
+              isMailboxView
+                ? '<div class="queue-history-empty">Inga mejl hittades i valt mailboxscope ännu.</div>'
+                : '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
 
-        renderQueueHistoryList(historyState.items);
+        renderQueueHistoryList(visibleHistoryItems);
         if (queueHistoryLoadMoreButton) {
           queueHistoryLoadMoreButton.hidden = !historyState.hasMore;
         }
