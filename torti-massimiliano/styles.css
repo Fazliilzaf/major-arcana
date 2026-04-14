@@ -1947,13 +1947,13 @@ input {
 .zone-planner-overlay-cell--button.is-selected .zone-planner-overlay-checkbox::after {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 36%;
-  height: 62%;
-  border-right: 2px solid rgba(86, 63, 49, 0.94);
-  border-bottom: 2px solid rgba(86, 63, 49, 0.94);
-  transform: translate(-50%, -58%) rotate(42deg);
+  left: 55%;
+  top: 48%;
+  width: 44%;
+  height: 72%;
+  border-right: 2.2px solid rgba(86, 63, 49, 0.94);
+  border-bottom: 2.2px solid rgba(86, 63, 49, 0.94);
+  transform: translate(-50%, -52%) rotate(42deg);
 }
 
 .zone-plan-groups {
