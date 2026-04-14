@@ -78,8 +78,8 @@
       );
     };
     const fallbackMailboxLabel = compactRuntimeCopy(
-      asText(item.mailboxLabel || item.mailboxAddress || item.mailboxId || "Alla"),
-      "Alla",
+      asText(item.mailboxLabel || item.mailboxAddress || item.mailboxId || "Alla mejl"),
+      "Alla mejl",
       56
     );
     const explicitLabel = compactRuntimeCopy(
@@ -211,6 +211,8 @@
       queueHistoryMeta,
       queueHistoryPanel,
       queueHistoryToggle,
+      queueMailboxCount,
+      queueMailboxToggle,
       queueQuickLaneStrip,
       queueLaneButtons = [],
       queueLaneCountNodes = [],
@@ -389,12 +391,12 @@
           displayOwnerLabel: "System",
           displaySubject: "Scope och prioritering uppdateras",
           subject: "Scope och prioritering uppdateras",
-          preview: "Tidigare trådval rensas innan Alla öppnas.",
+          preview: "Tidigare trådval rensas innan den nya mailboxvyn öppnas.",
           mailboxLabel: "Live",
           intentLabel: "Synkar",
           statusLabel: "Förbereder",
           nextActionLabel: "Vänta",
-          nextActionSummary: "Tidigare trådval rensas innan Alla öppnas.",
+          nextActionSummary: "Tidigare trådval rensas innan den nya mailboxvyn öppnas.",
           tags: ["all"],
         },
       ];
@@ -2186,7 +2188,7 @@
                     item.displaySubject ||
                     item.counterpartyLabel ||
                     item.mailboxLabel ||
-                    "Alla"
+                    "Alla mejl"
                 ),
                 subject: asText(
                   mailboxDisplayLabels.secondaryLabel ||
@@ -2195,7 +2197,7 @@
                     item.displaySubject ||
                     item.counterpartyLabel ||
                     item.mailboxLabel ||
-                    "Alla"
+                    "Alla mejl"
                 ),
                 preview: asText(item.detail || item.preview || item.displayDetail || ""),
                 systemPreview: asText(item.detail || item.preview || item.displayDetail || ""),
@@ -2203,7 +2205,7 @@
                 lastActivityLabel: asText(item.time || item.lastActivityLabel || item.recordedLabel || ""),
                 ownerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
                 displayOwnerLabel: asText(item.ownerLabel || item.owner || "Ej tilldelad"),
-                mailboxLabel: asText(item.mailboxLabel || item.mailboxAddress || "Alla"),
+                mailboxLabel: asText(item.mailboxLabel || item.mailboxAddress || "Alla mejl"),
                 mailboxAddress: asText(item.mailboxAddress || ""),
                 mailboxProvenanceLabel: asText(item.mailboxProvenanceLabel || ""),
                 mailboxProvenanceDetail: asText(item.mailboxProvenanceDetail || ""),
@@ -2219,7 +2221,7 @@
                             item.counterpartyLabel ||
                             item.title ||
                             item.mailboxLabel ||
-                            "Alla"
+                            "Alla mejl"
                         )
                       )
                     : "";
@@ -2306,6 +2308,10 @@
       if (!queueHistoryPanel || !queueHistoryToggle) return;
       const queueHistoryModeBadgeNode =
         typeof queueHistoryModeBadge === "undefined" ? null : queueHistoryModeBadge;
+      const queueMailboxToggleNode =
+        typeof queueMailboxToggle === "undefined" ? null : queueMailboxToggle;
+      const queueMailboxCountNode =
+        typeof queueMailboxCount === "undefined" ? null : queueMailboxCount;
       const buildUnifiedStateThread = ({
         id,
         customerName,
@@ -2457,13 +2463,17 @@
           : allHistoryItems;
       queueHistoryToggle.classList.toggle("is-active", isHistoryOpen && !isMailboxView);
       queueHistoryToggle.setAttribute("aria-expanded", String(isOpen));
+      if (queueMailboxToggleNode) {
+        queueMailboxToggleNode.classList.toggle("is-active", isMailboxView && isOpen);
+        queueMailboxToggleNode.setAttribute("aria-expanded", String(isOpen));
+      }
       queueHistoryPanel.hidden = !isOpen;
       queueHistoryPanel.classList.toggle("is-open", isOpen);
       queueHistoryPanel.classList.toggle("is-mailbox-view", isMailboxView);
       if (queueHistoryModeBadgeNode) {
         queueHistoryModeBadgeNode.hidden = !isMailboxView;
         queueHistoryModeBadgeNode.textContent = isMailboxView
-          ? "Alla"
+          ? "Alla mejl"
           : "Historik · vald tråd";
       }
       if (queuePrimaryLaneTag) queuePrimaryLaneTag.hidden = isOpen;
@@ -2477,6 +2487,10 @@
       if (queueHistoryCount) {
         queueHistoryCount.textContent = String(visibleHistoryItems.length);
       }
+      if (queueMailboxCountNode) {
+        queueMailboxCountNode.textContent = String(allHistoryItems.length);
+      }
+
       syncQueueHistoryActionButton(completeActionButton, {
         visible: showHistoryCompleteAction,
         disabled: !canMarkHandled,
@@ -2497,13 +2511,13 @@
         }
         if (queueTitle) {
           queueTitle.textContent = isMailboxView
-            ? `Alla (${visibleHistoryItems.length})`
+            ? `Alla mejl (${visibleHistoryItems.length})`
             : `Historik (${visibleHistoryItems.length})`;
         }
 
         if (historyState.loading) {
           setQueueHistoryMeta(
-            isMailboxView ? "Laddar Alla…" : "Laddar äldre mejl…",
+            isMailboxView ? "Laddar alla mejl…" : "Laddar äldre mejl…",
             { showHead: false }
           );
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
@@ -2523,7 +2537,7 @@
         if (historyState.error) {
           setQueueHistoryMeta(
             isMailboxView
-              ? "Alla kunde inte laddas just nu."
+              ? "Alla mejl kunde inte laddas just nu."
               : "Historiken kunde inte laddas just nu.",
             { showHead: false }
           );
@@ -2545,8 +2559,8 @@
         setQueueHistoryMeta(
           isMailboxView
             ? runtimeMode === "offline_history" || state.runtime.live !== true
-              ? "Offline historikläge aktivt. Alla visas från senast kända mailboxunderlag."
-              : "Visar hela mailboxunderlaget för valt mailboxscope under Alla."
+              ? "Offline historikläge aktivt. Alla mejl visas från senast kända mailboxunderlag."
+              : "Visar hela mailboxunderlaget för valt mailboxscope."
             : runtimeMode === "offline_history" || state.runtime.live !== true
               ? "Offline historikläge aktivt. Historik visas även när livekön är pausad."
               : ""
@@ -2556,7 +2570,7 @@
           if (queueHistoryList) {
             queueHistoryList.innerHTML =
               isMailboxView
-                ? '<div class="queue-history-empty">Inga mejl hittades under Alla i valt mailboxscope ännu.</div>'
+                ? '<div class="queue-history-empty">Inga mejl hittades i valt mailboxscope ännu.</div>'
                 : '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;

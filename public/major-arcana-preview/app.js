@@ -433,6 +433,8 @@
   const queueHistoryDeleteButton = document.querySelector("[data-queue-history-delete]");
   const queueHistoryCount = document.querySelector("[data-queue-history-count]");
   const queueHistoryLoadMoreButton = document.querySelector("[data-queue-history-load-more]");
+  const queueMailboxToggle = document.querySelector("[data-queue-mailbox-toggle]");
+  const queueMailboxCount = document.querySelector("[data-queue-mailbox-count]");
   const queueQuickLaneStrip = document.querySelector(".queue-lane-quickstrip");
   const queueMailboxScopeLabel = document.querySelector("[data-queue-mailbox-scope-label]");
   const queueMailboxScopeCount = document.querySelector("[data-queue-mailbox-scope-count]");
@@ -2188,7 +2190,7 @@
         error: "",
         items: [],
         selectedConversationId: "",
-        viewMode: "mailbox",
+        viewMode: "history",
         limit: 24,
         hasMore: false,
         scopeKey: "",
@@ -10703,6 +10705,8 @@
       queueHistoryMeta,
       queueHistoryPanel,
       queueHistoryToggle,
+      queueMailboxCount,
+      queueMailboxToggle,
       queueQuickLaneStrip,
       queueLaneButtons,
       queueLaneCountNodes,
@@ -10951,6 +10955,7 @@
       queueContent,
       queueHistoryLoadMoreButton,
       queueHistoryToggle,
+      queueMailboxToggle,
       queueLaneButtons,
       queueViewJumpButtons,
       resizeHandles,
