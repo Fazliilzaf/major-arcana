@@ -1066,6 +1066,8 @@
     async function finalizeRuntimeLoad({
       preferredThreadId = "",
       resetHistoryOnChange = false,
+      restoredFocusSection = "",
+      restoredSelectedThreadId = "",
     } = {}) {
       clearRuntimeAuthRecoveryTimer();
       const effectivePreferredThreadId =
@@ -1092,6 +1094,22 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter live runtime.", error);
       });
+
+      const normalizedRestoredFocusSection = normalizeKey(restoredFocusSection || "");
+      const normalizedCurrentFocusSection = normalizeKey(workspaceSourceOfTruth.getFocusSection() || "");
+      const normalizedRestoredSelectedThreadId = asText(
+        restoredSelectedThreadId,
+        effectivePreferredThreadId
+      );
+      const currentSelectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
+      if (
+        normalizedRestoredFocusSection &&
+        normalizedRestoredFocusSection !== normalizedCurrentFocusSection &&
+        runtimeConversationIdsMatch(currentSelectedThreadId, normalizedRestoredSelectedThreadId)
+      ) {
+        workspaceSourceOfTruth.setFocusSection(normalizedRestoredFocusSection);
+        renderRuntimeConversationShell();
+      }
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -2491,6 +2509,10 @@
         ? requestedMailboxIds
         : getRequestedRuntimeMailboxIds();
       const preserveStableWorkspace = shouldPreserveStableRuntimeWorkspace(runtimeMailboxIds);
+      const shouldHonorReentryRestore =
+        preserveStableWorkspace !== true &&
+        state.runtime.loaded !== true &&
+        state.runtime.live !== true;
       const preferredThreadId = asText(options.preferredThreadId);
       const runtimeRequestSequence = ++liveRuntimeRequestSequence;
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
@@ -2773,12 +2795,26 @@
           error: "",
         });
         state.runtime.lastSyncAt = new Date().toISOString();
-        restoreRuntimeReentrySnapshot("live_runtime_load", { scopeMode: "hint_only" });
+        const reentryOutcome = restoreRuntimeReentrySnapshot("live_runtime_load", {
+          scopeMode: "hint_only",
+        });
         debugReentrySnapshot("AFTER RESTORE");
         debugRuntimePipeline("AFTER RESTORE");
         await finalizeRuntimeLoad({
           preferredThreadId,
           resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
+          restoredFocusSection: shouldHonorReentryRestore
+            ? asText(
+                reentryOutcome?.savedSnapshot?.activeFocusSection ||
+                  reentryOutcome?.restoredSnapshot?.activeFocusSection
+              )
+            : "",
+          restoredSelectedThreadId: shouldHonorReentryRestore
+            ? asText(
+                reentryOutcome?.savedSnapshot?.selectedThreadId ||
+                  reentryOutcome?.restoredSnapshot?.selectedThreadId
+              )
+            : "",
         });
         debugRuntimePipeline("AFTER FINALIZE");
         if (!isCurrentRequest()) return;
