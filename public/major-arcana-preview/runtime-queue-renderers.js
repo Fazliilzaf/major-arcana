@@ -2437,30 +2437,22 @@
         if (queueTitle) {
           queueTitle.textContent = `Arbetslista (${defaultThreads.length})`;
         }
-        setQueueHistoryMeta(runtimeMode === "offline_history" ? offlineWorkingSetMeta || "" : "");
+        setQueueHistoryMeta("");
         if (!defaultThreads.length) {
           renderQueueInlineLaneList([
             buildUnifiedStateThread({
               id: runtimeMode === "offline_history" ? "runtime-offline-empty" : "runtime-unified-empty",
               customerName: "Inga trådar i urvalet",
-              ownerLabel:
-                runtimeMode === "offline_history"
-                  ? "Historik"
-                  : "Arbetskö",
-              subject:
-                runtimeMode === "offline_history"
-                  ? "Ingen historik hittades i valt mailboxscope"
-                  : "Mailboxfiltret gav inga aktiva trådar",
+              ownerLabel: "Arbetskö",
+              subject: "Mailboxfiltret gav inga aktiva trådar",
               preview:
                 runtimeMode === "offline_history"
                   ? offlineEmptyMessage ||
                     "Livekön är offline och ingen historik hittades i valt mailboxscope ännu."
                   : "Välj fler mailboxar eller vänta på nästa inkommande konversation.",
               mailboxLabel: "Arbetskö",
-              statusLabel:
-                runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
-              nextActionLabel:
-                runtimeMode === "offline_history" ? "Byt mailboxscope" : "Justera urval",
+              statusLabel: "Ingen match",
+              nextActionLabel: "Justera urval",
               nextActionSummary:
                 runtimeMode === "offline_history"
                   ? "Välj ett annat mailboxscope eller invänta att livekopplingen kommer tillbaka."

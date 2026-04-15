@@ -1138,11 +1138,6 @@
     } = {}) {
       const normalizedRestoredLeftColumnMode = normalizeKey(restoredLeftColumnMode || "");
       if (normalizedRestoredLeftColumnMode !== "history") return false;
-      const nextSelectedConversationId = asText(
-        restoredSelectedConversationId,
-        workspaceSourceOfTruth.getSelectedThreadId()
-      );
-      if (!nextSelectedConversationId) return false;
       const nextScopeKey = getQueueHistoryScopeKey();
       const shouldForceReload =
         !state.runtime.queueHistory?.loaded ||
@@ -1161,7 +1156,10 @@
           ? state.runtime.queueHistory
           : {}),
         open: true,
-        selectedConversationId: nextSelectedConversationId,
+        selectedConversationId: asText(
+          restoredSelectedConversationId,
+          workspaceSourceOfTruth.getSelectedThreadId()
+        ),
         scopeKey: asText(restoredScopeKey || nextScopeKey),
       };
       renderRuntimeConversationShell();

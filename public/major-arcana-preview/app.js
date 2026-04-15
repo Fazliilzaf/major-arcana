@@ -11749,15 +11749,6 @@
       };
     }
 
-    if (getRuntimeMode() === "offline_history") {
-      return {
-        mode: "offline_history",
-        feedKey: "",
-        laneId: activeLaneId,
-        open: false,
-      };
-    }
-
     return {
       mode: "default",
       feedKey: "",
@@ -11789,27 +11780,25 @@
   }
 
   function isOfflineHistoryContextThread(thread) {
+    const offlineContextMode = normalizeKey(
+      thread?.offlineContextMode || thread?.raw?.offlineContextMode || ""
+    );
     return Boolean(
       thread &&
         typeof thread === "object" &&
         getRuntimeMode() === "offline_history" &&
-        (thread.offlineHistorySelection === true || thread.raw?.offlineHistorySelection === true)
+        offlineContextMode === "read_only"
     );
   }
 
   function createOfflineHistoryContextThread(thread, historyItem = null) {
     if (!thread || typeof thread !== "object") return null;
-    if (isOfflineHistoryContextThread(thread)) return thread;
+    if (thread.historyQueueItem && !historyItem) return thread;
     return {
       ...thread,
-      offlineHistorySelection: true,
-      offlineContextMode: "read_only",
-      offlineContextLabel: "Historik",
-      historyQueueItem: historyItem || null,
+      historyQueueItem: historyItem || thread.historyQueueItem || null,
       raw: {
         ...(thread.raw && typeof thread.raw === "object" ? thread.raw : {}),
-        offlineHistorySelection: true,
-        offlineContextLabel: "Historik",
       },
     };
   }
@@ -11860,10 +11849,16 @@
   }
 
   function isOfflineHistoryReadOnlyMode() {
+    const selectedHistoryThread = getSelectedOfflineHistoryThread();
     return (
       getRuntimeLeftColumnState().mode === "history" &&
       getRuntimeMode() === "offline_history" &&
-      Boolean(asText(getSelectedQueueHistoryConversationId()))
+      Boolean(selectedHistoryThread) &&
+      normalizeKey(
+        selectedHistoryThread?.offlineContextMode ||
+          selectedHistoryThread?.raw?.offlineContextMode ||
+          ""
+      ) === "read_only"
     );
   }
 
@@ -11905,18 +11900,12 @@
     let runtimeThread = null;
     let runtimeSource = "";
 
-    const offlineHistoryWithoutSelection =
-      leftColumnState.mode === "history" &&
-      normalizeKey(runtimeMode) === "offline_history" &&
-      !asText(queueHistoryConversationId);
-
     if (leftColumnState.mode === "history") {
-      if (offlineHistoryWithoutSelection) {
-        runtimeSource = "offline_history_empty";
-      } else if (isOfflineHistoryReadOnlyMode()) {
+      if (asText(queueHistoryConversationId)) {
         runtimeThread = getSelectedOfflineHistoryThread();
-        runtimeSource = runtimeThread ? "offline_history" : "offline_history_empty";
-      } else {
+        runtimeSource = runtimeThread ? "history_selection" : "";
+      }
+      if (!runtimeThread) {
         runtimeThread = pickThread(getQueueScopedRuntimeThreads());
         runtimeSource = runtimeThread ? "history_queue_scope" : "";
         if (!runtimeThread) {
@@ -11930,12 +11919,12 @@
       }
     }
 
-    if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "feed" && leftColumnState.feedKey) {
+    if (!runtimeThread && leftColumnState.mode === "feed" && leftColumnState.feedKey) {
       runtimeThread = pickThread(getInlinePanelFeedThreads(leftColumnState.feedKey));
       runtimeSource = runtimeThread ? `feed_${normalizeKey(leftColumnState.feedKey, "scope")}` : runtimeSource;
     }
 
-    if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "lane") {
+    if (!runtimeThread && leftColumnState.mode === "lane") {
       runtimeThread = pickThread(
         getQueueLaneThreads(
           leftColumnState.laneId || state.runtime.activeLaneId || "all",
@@ -11945,35 +11934,30 @@
       runtimeSource = runtimeThread ? "lane_scope" : runtimeSource;
     }
 
-    if (!runtimeThread && !offlineHistoryWithoutSelection) {
+    if (!runtimeThread) {
       const visibleThread = pickThread(getFilteredRuntimeThreads());
       if (visibleThread) {
         runtimeThread = visibleThread;
-        runtimeSource =
-          leftColumnState.mode === "offline_history" ? "offline_visible_scope" : "filtered_scope";
+        runtimeSource = "filtered_scope";
       }
     }
 
     if (
       !runtimeThread &&
-      !offlineHistoryWithoutSelection &&
       (!state.runtime.live || state.runtime.authRequired || state.runtime.loading)
     ) {
-      runtimeSource =
-        leftColumnState.mode === "offline_history"
-          ? "offline_unavailable"
-          : "runtime_unavailable";
+      runtimeSource = "runtime_unavailable";
     }
 
-    if (!runtimeThread && !offlineHistoryWithoutSelection) {
+    if (!runtimeThread) {
       runtimeThread = pickThread(getQueueScopedRuntimeThreads());
       runtimeSource = runtimeThread ? "queue_scope_fallback" : runtimeSource;
     }
-    if (!runtimeThread && !offlineHistoryWithoutSelection) {
+    if (!runtimeThread) {
       runtimeThread = pickThread(getMailboxScopedRuntimeThreads());
       runtimeSource = runtimeThread ? "mailbox_scope_fallback" : runtimeSource;
     }
-    if (!runtimeThread && !offlineHistoryWithoutSelection) {
+    if (!runtimeThread) {
       runtimeThread = pickThread(state.runtime.threads);
       runtimeSource = runtimeThread ? "runtime_scope_fallback" : runtimeSource;
     }
@@ -12011,7 +11995,7 @@
       focusSource: normalizeKey(focusSource || "none"),
       focusScopeActive,
       focusTruthPrimaryEnabled,
-      offlineHistoryReadOnly: isOfflineHistoryReadOnlyMode(),
+      offlineHistoryReadOnly: false,
     };
   }
 
@@ -12305,9 +12289,9 @@
   function ensureRuntimeSelection() {
     const leftColumnState = getRuntimeLeftColumnState();
     if (leftColumnState.mode === "history") {
-      if (isOfflineHistoryReadOnlyMode()) {
+      const nextSelectedThreadId = asText(getSelectedQueueHistoryConversationId());
+      if (nextSelectedThreadId) {
         const previousSelectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
-        const nextSelectedThreadId = getSelectedQueueHistoryConversationId();
         const changed = !runtimeConversationIdsMatch(
           previousSelectedThreadId,
           nextSelectedThreadId

@@ -1329,7 +1329,7 @@ test('renderQueueHistorySection visar offline fallback-arbetslista i defaultlage
   assert.doesNotMatch(queueHistoryList.innerHTML, /Servern kör offline-läge/i);
 });
 
-test('renderQueueHistorySection visar arlig offline-meta nar lokal historik saknas', () => {
+test('renderQueueHistorySection visar inte separat offline-meta nar lokal historik saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
   const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
@@ -1443,11 +1443,11 @@ test('renderQueueHistorySection visar arlig offline-meta nar lokal historik sakn
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Arbetslista (0)');
-  assert.equal(
-    queueHistoryMeta.textContent,
-    'Ingen lokal historik hittades i valt mailboxscope ännu.'
+  assert.equal(queueHistoryMeta.textContent, '');
+  assert.match(
+    queueHistoryList.innerHTML,
+    /Ingen lokal historik hittades i valt mailboxscope ännu\.|Livekön är offline och ingen historik hittades i valt mailboxscope ännu\./
   );
-  assert.match(queueHistoryList.innerHTML, /Ingen lokal historik hittades i valt mailboxscope ännu\./);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Livekön kunde inte läsas just nu/i);
 });
 

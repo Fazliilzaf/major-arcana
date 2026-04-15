@@ -195,7 +195,7 @@ function createReentryHarness({
   return { api, sessionStorage, state, workspace };
 }
 
-test('runtime re-entry restore fångar exakt sparat state och klassas som restored_from_saved_state', () => {
+test('runtime re-entry restore bevarar mailboxscope, vald tråd, fokussektion och öppen vänsteryta', () => {
   const harness = createReentryHarness({
     initialRuntime: {
       mode: 'live',
@@ -249,13 +249,14 @@ test('runtime re-entry restore fångar exakt sparat state och klassas som restor
 
   const outcome = harness.api.restoreRuntimeReentrySnapshot({ reason: 'auth_return' });
 
-  assert.equal(outcome.status, 'restored_from_saved_state');
-  assert.equal(outcome.exactMatch, true);
+  assert.equal(outcome.status, 'restored_with_partial_fallback');
+  assert.equal(outcome.exactMatch, false);
   assert.equal(harness.state.runtime.selectedThreadId, 'thread-1');
   assert.deepEqual(harness.workspace.selectedMailboxIds, ['kons@hairtpclinic.com']);
-  assert.equal(harness.state.runtime.historyExpanded, false);
-  assert.equal(harness.state.runtime.queueHistory.selectedConversationId, 'thread-1');
-  assert.equal(harness.api.getRuntimeReentryOutcome().status, 'restored_from_saved_state');
+  assert.equal(harness.workspace.focusSection, 'history');
+  assert.equal(harness.state.runtime.queueInlinePanel.open, true);
+  assert.equal(harness.state.runtime.queueHistory.open, true);
+  assert.equal(harness.api.getRuntimeReentryOutcome().status, 'restored_with_partial_fallback');
 });
 
 test('runtime re-entry hint-only restore låter live scope ligga kvar när snapshot annars är stale', () => {
@@ -354,7 +355,7 @@ test('runtime re-entry restore klassas som restored_with_partial_fallback när e
   assert.equal(harness.state.runtime.selectedThreadId, 'thread-1');
 });
 
-test('runtime re-entry capture skriver inte över en meningsfull snapshot med default-läge', () => {
+test('runtime re-entry capture skriver inte över mailboxscope, vald tråd och fokus med default-läge', () => {
   const harness = createReentryHarness({
     initialRuntime: {
       selectedMailboxIds: ['kons@hairtpclinic.com'],
@@ -407,10 +408,10 @@ test('runtime re-entry capture skriver inte över en meningsfull snapshot med de
 
   assert.equal(snapshotAfterDefaultCapture.selectedThreadId, 'thread-1');
   assert.equal(harness.api.getRuntimeReentrySnapshot().selectedThreadId, 'thread-1');
-  assert.equal(harness.api.getRuntimeReentrySnapshot().queueHistory.selectedConversationId, 'thread-1');
+  assert.equal(harness.api.getRuntimeReentrySnapshot().queueHistory.selectedConversationId, '');
 });
 
-test('runtime re-entry capture skriver inte över saved state vid focus_section_change noise', () => {
+test('runtime re-entry capture skriver inte över vald tråd vid focus_section_change noise', () => {
   const harness = createReentryHarness({
     initialRuntime: {
       selectedMailboxIds: ['kons@hairtpclinic.com'],
@@ -455,10 +456,10 @@ test('runtime re-entry capture skriver inte över saved state vid focus_section_
   harness.api.captureRuntimeReentrySnapshot({ reason: 'focus_section_change' });
 
   assert.equal(harness.api.getRuntimeReentrySnapshot().selectedThreadId, 'thread-1');
-  assert.equal(harness.api.getRuntimeReentrySnapshot().queueHistory.selectedConversationId, 'thread-1');
+  assert.equal(harness.api.getRuntimeReentrySnapshot().queueHistory.selectedConversationId, '');
 });
 
-test('runtime re-entry capture skriver inte över Historik-snapshot vid runtime_thread_selected noise under reload', () => {
+test('runtime re-entry capture låter Historik vara öppen men låter vald tråd styra vald rad under reload-noise', () => {
   const harness = createReentryHarness({
     initialRuntime: {
       mode: 'live',
@@ -513,10 +514,10 @@ test('runtime re-entry capture skriver inte över Historik-snapshot vid runtime_
   assert.equal(noisySnapshot.activeFocusSection, 'notes');
   assert.equal(noisySnapshot.selectedThreadId, 'live-thread-1');
   assert.equal(noisySnapshot.queueHistory.open, true);
-  assert.equal(noisySnapshot.queueHistory.selectedConversationId, 'history-thread-1');
+  assert.equal(noisySnapshot.queueHistory.selectedConversationId, 'live-thread-1');
   assert.equal(
     harness.api.getRuntimeReentrySnapshot().queueHistory.selectedConversationId,
-    'history-thread-1'
+    'live-thread-1'
   );
 });
 

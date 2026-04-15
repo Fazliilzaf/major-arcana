@@ -843,8 +843,8 @@ test('live runtime restore kan återöppna Historik som full mailboxyta efter re
 
   assert.match(
     source,
-    /state\.runtime\.queueHistory = \{[\s\S]*open:\s*true,[\s\S]*selectedConversationId:\s*nextSelectedConversationId,[\s\S]*scopeKey:/,
-    'Historikrestore ska återöppna queueHistory med samma conversationId och scope.'
+    /state\.runtime\.queueHistory = \{[\s\S]*open:\s*true,[\s\S]*selectedConversationId:\s*asText\([\s\S]*restoredSelectedConversationId,[\s\S]*workspaceSourceOfTruth\.getSelectedThreadId\(\)[\s\S]*\),[\s\S]*scopeKey:/,
+    'Historikrestore ska återöppna queueHistory med samma vänsteryta och låta vald tråd vara källa till vald historikrad.'
   );
 
   assert.match(

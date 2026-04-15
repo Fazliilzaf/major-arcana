@@ -1087,7 +1087,7 @@ test('getSelectedRuntimeThread returnerar vald offline-historiktrad nar historik
   assert.deepEqual(getSelectedRuntimeThread(), offlineHistoryThread);
 });
 
-test('getSelectedRuntimeThread returnerar null i offline-historiklage nar ingen historikruta ar vald', () => {
+test('getSelectedRuntimeThread faller tillbaka till synlig trad nar Historik ar oppen utan vald rad', () => {
   const visibleLiveThread = { id: 'thread-live-visible', tags: ['act-now'] };
   const getSelectedRuntimeThread = createGetSelectedRuntimeThreadHarness({
     filteredThreads: [visibleLiveThread],
@@ -1103,10 +1103,10 @@ test('getSelectedRuntimeThread returnerar null i offline-historiklage nar ingen 
     runtimeMode: 'offline_history',
   });
 
-  assert.equal(getSelectedRuntimeThread(), null);
+  assert.deepEqual(getSelectedRuntimeThread(), visibleLiveThread);
 });
 
-test('getSelectedRuntimeThread returnerar vald offline-historiktrad nar historiklaget ar oppet utan live-runtime-mode', () => {
+test('getSelectedRuntimeThread later vald historikrad vara source of truth aven utan live-runtime-mode', () => {
   const offlineHistoryThread = {
     id: 'history-thread-runtime-error',
     customerName: 'Historik utan live',
@@ -1127,10 +1127,10 @@ test('getSelectedRuntimeThread returnerar vald offline-historiktrad nar historik
     runtimeMode: 'runtime_error',
   });
 
-  assert.notDeepEqual(getSelectedRuntimeThread(), offlineHistoryThread);
+  assert.deepEqual(getSelectedRuntimeThread(), offlineHistoryThread);
 });
 
-test('getSelectedRuntimeThreadTruth markerar offline-historik som vald runtime- och focus-sanning', () => {
+test('getSelectedRuntimeThreadTruth markerar historikval som vald runtime- och focus-sanning utan read-only-speciallage', () => {
   const offlineHistoryThread = {
     id: 'history-thread-1',
     customerName: 'Historikkund',
@@ -1153,11 +1153,11 @@ test('getSelectedRuntimeThreadTruth markerar offline-historik som vald runtime- 
 
   const truth = getSelectedRuntimeThreadTruth();
 
-  assert.equal(truth.runtimeSource, 'offline_history');
-  assert.equal(truth.focusSource, 'offline_history');
+  assert.equal(truth.runtimeSource, 'history_selection');
+  assert.equal(truth.focusSource, 'history_selection');
   assert.equal(truth.leftColumnMode, 'history');
   assert.equal(truth.runtimeMode, 'offline_history');
-  assert.equal(truth.offlineHistoryReadOnly, true);
+  assert.equal(truth.offlineHistoryReadOnly, false);
   assert.deepEqual(truth.runtimeThread, offlineHistoryThread);
   assert.deepEqual(truth.focusThread, offlineHistoryThread);
 });
@@ -1279,7 +1279,7 @@ test('ensureRuntimeSelection later vald offline-historiktrad vara source of trut
   assert.equal(harness.getReconcileCalls().length, 0);
 });
 
-test('ensureRuntimeSelection rensar stale live-trad nar offline-historiklaget saknar valt kort', () => {
+test('ensureRuntimeSelection later vanlig reconcile-path ta over nar Historik ar oppen utan vald rad', () => {
   const harness = createEnsureRuntimeSelectionHarness({
     filteredThreads: [{ id: 'live-thread-1' }],
     queueScopedThreads: [{ id: 'live-thread-1' }],
@@ -1293,13 +1293,12 @@ test('ensureRuntimeSelection rensar stale live-trad nar offline-historiklaget sa
   const result = harness.run();
 
   assert.deepEqual(result, {
-    changed: true,
-    previousSelectedThreadId: 'live-thread-1',
-    selectedThreadId: '',
+    source: 'reconcile',
+    visibleThreads: [{ id: 'live-thread-1' }],
   });
-  assert.deepEqual(harness.getSelectedThreadWrites(), ['']);
+  assert.deepEqual(harness.getSelectedThreadWrites(), []);
   assert.equal(harness.getNormalizeCalls().length, 0);
-  assert.equal(harness.getReconcileCalls().length, 0);
+  assert.equal(harness.getReconcileCalls().length, 1);
 });
 
 test('reconcileRuntimeSelection prioriterar riktig kundtrad fore verifieringstrad nar valet ar automatiskt', () => {
