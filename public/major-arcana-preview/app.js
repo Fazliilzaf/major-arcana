@@ -3756,7 +3756,26 @@
     if (!runtimeReentryState || typeof runtimeReentryState.restoreRuntimeReentrySnapshot !== "function") {
       return null;
     }
-    return runtimeReentryState.restoreRuntimeReentrySnapshot({ reason, ...options });
+    const normalizedOptions =
+      options && typeof options === "object" ? { ...options } : {};
+    const preferInitialSnapshot = normalizedOptions.preferInitialSnapshot === true;
+    delete normalizedOptions.preferInitialSnapshot;
+    if (
+      preferInitialSnapshot &&
+      typeof runtimeReentryState.applyRuntimeReentrySnapshot === "function"
+    ) {
+      const preferredSnapshot = choosePreferredRuntimeReentrySnapshot(
+        initialRuntimeReentrySnapshot,
+        getRuntimeReentrySnapshot()
+      );
+      if (preferredSnapshot) {
+        return runtimeReentryState.applyRuntimeReentrySnapshot(preferredSnapshot, {
+          reason,
+          ...normalizedOptions,
+        });
+      }
+    }
+    return runtimeReentryState.restoreRuntimeReentrySnapshot({ reason, ...normalizedOptions });
   }
 
   function getRuntimeReentrySnapshot() {
@@ -3779,6 +3798,28 @@
   }
 
   const initialRuntimeReentrySnapshot = getRuntimeReentrySnapshot();
+
+  function scoreRuntimeReentrySnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return 0;
+    let score = 0;
+    if (normalizeKey(snapshot.leftColumnMode || "default") === "history") score += 6;
+    if (asArray(snapshot.mailboxscope).filter(Boolean).length) score += 4;
+    if (asText(snapshot.selectedThreadId)) score += 4;
+    if (normalizeKey(snapshot.activeFocusSection || "conversation") !== "conversation") score += 3;
+    if (snapshot.queueHistory?.open === true) score += 6;
+    if (asText(snapshot.queueHistory?.selectedConversationId)) score += 5;
+    if (asText(snapshot.queueHistory?.scopeKey)) score += 2;
+    if (asText(snapshot.historyContextThreadId)) score += 2;
+    return score;
+  }
+
+  function choosePreferredRuntimeReentrySnapshot(primarySnapshot, fallbackSnapshot) {
+    const primaryScore = scoreRuntimeReentrySnapshot(primarySnapshot);
+    const fallbackScore = scoreRuntimeReentrySnapshot(fallbackSnapshot);
+    if (primaryScore <= 0 && fallbackScore <= 0) return null;
+    return primaryScore >= fallbackScore ? primarySnapshot : fallbackSnapshot;
+  }
+
   let runtimeReentryBootstrapTimer = null;
   let runtimeReentryBootstrapApplied = false;
   const tryApplyRuntimeReentryBootstrap = () => {

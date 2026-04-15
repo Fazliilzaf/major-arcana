@@ -2860,6 +2860,7 @@
         });
         state.runtime.lastSyncAt = new Date().toISOString();
         const reentryOutcome = restoreRuntimeReentrySnapshot("live_runtime_load", {
+          preferInitialSnapshot: true,
           scopeMode: "hint_only",
         });
         const restoredReentrySnapshot = shouldHonorReentryRestore

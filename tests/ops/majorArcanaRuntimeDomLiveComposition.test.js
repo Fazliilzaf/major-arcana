@@ -266,10 +266,9 @@ test('runtime-dom-live-composition routear offline-historikkort via den gemensam
     /restoreRuntimeReentrySnapshot\("offline_history_load",\s*\{\s*scopeMode:\s*"hint_only"\s*\}\s*\)/,
     'Förväntade att offline history restore också är hint-only så att stale listscope inte får auktoritet över vänsterkolumnen.'
   );
-  assert.match(
-    source,
-    /scopeMode:\s*"hint_only"/,
-    'Förväntade att live-load återställer reentry som hint-only för att inte låsa vänsterkolumnens scope.'
+  assert.ok(
+    source.includes('restoreRuntimeReentrySnapshot("live_runtime_load", {\n          preferInitialSnapshot: true,\n          scopeMode: "hint_only",'),
+    'Förväntade att live-load återställer reentry hint-only men fortfarande föredrar den rikare boot-snapshoten när staging-reload försöker skriva över Historik med ett tunnare defaultläge.'
   );
   assert.match(
     source,
