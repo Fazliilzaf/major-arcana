@@ -884,21 +884,6 @@ test('runtime history search route returnerar store-baserad multi-mailbox-histor
       const searchPayload = await searchResponse.json();
       assert.equal(searchPayload.ok, true);
       assert.equal(searchPayload.resultCount, 1);
-      assert.deepEqual(searchPayload.projection, {
-        sourceStore: 'cco_history_store',
-        pipeline: 'cco_history_search',
-        kind: 'history_projection',
-        surface: 'history_search',
-        mailboxIds: ['kons@hairtpclinic.com', 'info@hairtpclinic.com'],
-        customerEmail: 'patient@example.com',
-        conversationId: '',
-        lookbackDays: 365,
-        q: 'PRP',
-        intent: 'reschedule',
-        resultTypes: ['action'],
-        actionTypes: ['customer_replied'],
-        outcomeCodes: [],
-      });
       assert.deepEqual(
         searchPayload.results.map((item) => item.resultType),
         ['action']
@@ -1023,21 +1008,6 @@ test('runtime history search uses mailbox truth store for explicit message-only 
       const payload = await response.json();
       assert.equal(payload.ok, true);
       assert.equal(payload.source, 'mailbox_truth_store');
-      assert.deepEqual(payload.projection, {
-        sourceStore: 'mailbox_truth_store',
-        pipeline: 'cco_mailbox_truth',
-        kind: 'mailbox_projection',
-        surface: 'full_mailbox',
-        mailboxIds: ['kons@hairtpclinic.com'],
-        customerEmail: 'patient@example.com',
-        conversationId: '',
-        lookbackDays: 365,
-        q: 'PRP',
-        intent: '',
-        resultTypes: ['message'],
-        actionTypes: [],
-        outcomeCodes: [],
-      });
       assert.equal(payload.resultCount, 1);
       assert.equal(payload.results[0]?.resultType, 'message');
       assert.equal(payload.results[0]?.subject, 'PRP uppföljning');

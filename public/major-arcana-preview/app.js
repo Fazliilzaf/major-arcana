@@ -2191,7 +2191,6 @@
         limit: 24,
         hasMore: false,
         scopeKey: "",
-        projection: null,
       },
       truthWorklistView: {
         hidden:
@@ -12854,43 +12853,6 @@
       .sort(compareHistoryEventsDesc);
   }
 
-  function normalizeQueueHistoryProjection(payload = null) {
-    if (!payload || typeof payload !== "object") return null;
-    const projection = {
-      sourceStore: asText(payload.sourceStore),
-      pipeline: asText(payload.pipeline),
-      kind: asText(payload.kind),
-      surface: asText(payload.surface),
-      mailboxIds: asArray(payload.mailboxIds).map((value) => canonicalizeRuntimeMailboxId(value)).filter(Boolean),
-      customerEmail: asText(payload.customerEmail),
-      conversationId: asText(payload.conversationId),
-      lookbackDays: asNumber(payload.lookbackDays, 0),
-      q: asText(payload.q),
-      intent: asText(payload.intent),
-      resultTypes: asArray(payload.resultTypes).map((value) => asText(value)).filter(Boolean),
-      actionTypes: asArray(payload.actionTypes).map((value) => asText(value)).filter(Boolean),
-      outcomeCodes: asArray(payload.outcomeCodes).map((value) => asText(value)).filter(Boolean),
-    };
-    if (
-      !projection.sourceStore &&
-      !projection.pipeline &&
-      !projection.kind &&
-      !projection.surface &&
-      !projection.mailboxIds.length &&
-      !projection.customerEmail &&
-      !projection.conversationId &&
-      !projection.lookbackDays &&
-      !projection.q &&
-      !projection.intent &&
-      !projection.resultTypes.length &&
-      !projection.actionTypes.length &&
-      !projection.outcomeCodes.length
-    ) {
-      return null;
-    }
-    return projection;
-  }
-
   async function loadQueueHistory({ append = false, force = false, prefetch = false } = {}) {
     const scopeIds = getQueueHistoryScopeIds();
     const scopeKey = getQueueHistoryScopeKey(scopeIds);
@@ -12908,7 +12870,6 @@
         limit: nextLimit,
         hasMore: false,
         scopeKey,
-        projection: null,
       };
       renderQueueHistorySection();
       return;
@@ -12940,7 +12901,6 @@
       if (requestSequence !== queueHistoryRequestSequence) return;
 
       const items = buildQueueHistoryItems(payload?.results);
-      const projection = normalizeQueueHistoryProjection(payload?.projection);
       const nextSelectedConversationId = items.some((item) =>
         runtimeConversationIdsMatch(item?.conversationId, state.runtime.queueHistory.selectedConversationId)
       )
@@ -12956,7 +12916,6 @@
         limit: nextLimit,
         hasMore: items.length >= nextLimit,
         scopeKey,
-        projection,
         open: prefetch ? state.runtime.queueHistory.open : true,
       };
       renderQueueHistorySection();
@@ -12971,7 +12930,6 @@
         selectedConversationId: "",
         hasMore: false,
         scopeKey,
-        projection: null,
         open: prefetch ? state.runtime.queueHistory.open : true,
       };
       renderQueueHistorySection();
@@ -22656,7 +22614,6 @@
       scopeKey: scopedMailboxIds.length
         ? getQueueHistoryScopeKey(scopedMailboxIds)
         : asText(state.runtime.queueHistory?.scopeKey),
-      projection: normalizeQueueHistoryProjection(historyPayload?.projection),
     };
 
     selectOfflineHistoryConversation(nextConversationId, {

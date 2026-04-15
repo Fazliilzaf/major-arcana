@@ -8019,25 +8019,6 @@ function toCcoRuntimeHistorySearchHandler({
         messageOnlySearch && ccoMailboxTruthStore
           ? createCcoMailboxTruthReadAdapter({ store: ccoMailboxTruthStore })
           : null;
-      const buildProjectionEnvelope = ({
-        sourceStore = 'unknown',
-        pipeline = 'unknown',
-        kind = 'unknown',
-      } = {}) => ({
-        sourceStore,
-        pipeline,
-        kind,
-        surface: messageOnlySearch ? 'full_mailbox' : 'history_search',
-        mailboxIds: parsedQuery.mailboxIds,
-        customerEmail: normalizeText(parsedQuery.customerEmail),
-        conversationId: normalizeText(parsedQuery.conversationId),
-        lookbackDays: parsedQuery.lookbackDays,
-        q: normalizeText(parsedQuery.q),
-        intent: normalizeText(parsedQuery.intent),
-        resultTypes: parsedQuery.resultTypes,
-        actionTypes: parsedQuery.actionTypes,
-        outcomeCodes: parsedQuery.outcomeCodes,
-      });
       if (mailboxTruthHistory) {
         const { startIso, endIso } = resolveCcoRuntimeWindowBounds({
           lookbackDays: parsedQuery.lookbackDays,
@@ -8066,11 +8047,6 @@ function toCcoRuntimeHistorySearchHandler({
           actionTypes: [],
           outcomeCodes: [],
           source: 'mailbox_truth_store',
-          projection: buildProjectionEnvelope({
-            sourceStore: 'mailbox_truth_store',
-            pipeline: 'cco_mailbox_truth',
-            kind: 'mailbox_projection',
-          }),
           window: {
             startIso,
             endIso,
@@ -8121,11 +8097,6 @@ function toCcoRuntimeHistorySearchHandler({
         resultTypes: parsedQuery.resultTypes,
         actionTypes: parsedQuery.actionTypes,
         outcomeCodes: parsedQuery.outcomeCodes,
-        projection: buildProjectionEnvelope({
-          sourceStore: 'cco_history_store',
-          pipeline: 'cco_history_search',
-          kind: 'history_projection',
-        }),
         window: {
           startIso,
           endIso,
