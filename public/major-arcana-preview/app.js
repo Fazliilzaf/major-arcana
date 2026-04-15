@@ -20399,6 +20399,7 @@
     const selectedThread = getSelectedRuntimeThread();
     const isDeletingThread = Boolean(asText(state.runtime.deletingThreadId));
     const runtimeMode = normalizeKey(state.runtime.mode || "");
+    const leftColumnState = getRuntimeLeftColumnState();
     const shouldHideShortcutRows =
       runtimeMode === "offline_history" ||
       !hasRuntimeQueueThreads() &&
@@ -20406,7 +20407,10 @@
         state.runtime.authRequired === true ||
         Boolean(asText(state.runtime.error)));
     const activeLaneId = normalizePrimaryQueueLaneId(state.runtime.activeLaneId || "all");
-    const activeLaneLabel = QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
+    const isHistoryViewActive = leftColumnState.mode === "history";
+    const activeLaneLabel = isHistoryViewActive
+      ? "Historik"
+      : QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
     const shortcutActions = QUEUE_ACTIONS.filter(
       (item) => item.action === "handled" || item.action === "delete"
     );
@@ -20422,17 +20426,21 @@
         return;
       }
       if (labelNode) {
-        const activeLaneButton =
-          queueLaneButtons.find(
-            (button) => normalizePrimaryQueueLaneId(button.dataset.queueLane || "all") === activeLaneId
-          ) ||
-          queueLaneButtons.find(
-            (button) => normalizePrimaryQueueLaneId(button.dataset.queueLane || "all") === "all"
-          ) ||
-          null;
-        const activeLaneIcon = activeLaneButton?.querySelector("svg")?.cloneNode(true) || null;
+        const activeLabelSource = isHistoryViewActive
+          ? queueHistoryToggle
+          : queueLaneButtons.find(
+              (button) =>
+                normalizePrimaryQueueLaneId(button.dataset.queueLane || "all") === activeLaneId
+            ) ||
+            queueLaneButtons.find(
+              (button) => normalizePrimaryQueueLaneId(button.dataset.queueLane || "all") === "all"
+            ) ||
+            null;
+        const activeLaneIcon = activeLabelSource?.querySelector("svg")?.cloneNode(true) || null;
         labelNode.textContent = "";
-        labelNode.style.color = activeLaneButton ? window.getComputedStyle(activeLaneButton).color : "";
+        labelNode.style.color = activeLabelSource
+          ? window.getComputedStyle(activeLabelSource).color
+          : "";
         if (activeLaneIcon) {
           activeLaneIcon.setAttribute("aria-hidden", "true");
           labelNode.appendChild(activeLaneIcon);
