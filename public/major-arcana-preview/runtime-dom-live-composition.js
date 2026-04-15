@@ -1293,6 +1293,38 @@
       return runtimeMailboxScopeMatches(referenceMailboxIds, normalizedRuntimeMailboxIds);
     }
 
+    function preserveStableRuntimeWorkspaceAfterRefreshFailure(
+      runtimeMailboxIds = [],
+      { phase = "live_refresh_preserved", error = "", scheduleAuthRecovery = false } = {}
+    ) {
+      if (!shouldPreserveStableRuntimeWorkspace(runtimeMailboxIds)) return false;
+      state.runtime.loading = false;
+      state.runtime.loaded = true;
+      state.runtime.startupLocked = false;
+      state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+        phase,
+        requestedMailboxIds: runtimeMailboxIds,
+        threads: asArray(state.runtime.threads),
+        legacyThreads: asArray(state.runtime.truthPrimaryLegacyThreads),
+        error:
+          asText(error) ||
+          "Behåller senaste stabila mailboxyta medan live-refresh återhämtar sig för samma scope.",
+      });
+      setRuntimeModeState("live", {
+        live: true,
+        offline: false,
+        authRequired: false,
+        error: "",
+      });
+      if (scheduleAuthRecovery) {
+        scheduleRuntimeAuthRecovery({
+          requestedMailboxIds: runtimeMailboxIds,
+        });
+      }
+      renderRuntimeConversationShell();
+      return true;
+    }
+
     function hasRuntimeHistoryPayloadContent(historyPayload = null) {
       if (!historyPayload || typeof historyPayload !== "object") return false;
       if (asArray(historyPayload?.messages).length > 0) return true;
@@ -2760,6 +2792,16 @@
         const adminToken = await waitForRuntimeAuthToken();
         if (!isCurrentRequest()) return;
         if (!adminToken) {
+          if (
+            preserveStableRuntimeWorkspaceAfterRefreshFailure(runtimeMailboxIds, {
+              phase: "live_refresh_preserved_auth_wait",
+              error:
+                "Behåller senaste stabila mailboxyta medan admin-sessionen återhämtar sig för samma scope.",
+              scheduleAuthRecovery: true,
+            })
+          ) {
+            return;
+          }
           state.runtime.loading = false;
           state.runtime.loaded = false;
           state.runtime.startupLocked = false;
@@ -2790,6 +2832,15 @@
         applyRuntimeGraphStatus(status?.graph || {});
         if (status?.graph?.readEnabled !== true) {
           clearRuntimeLiveRefreshTimer();
+          if (
+            preserveStableRuntimeWorkspaceAfterRefreshFailure(runtimeMailboxIds, {
+              phase: "live_refresh_preserved_offline",
+              error:
+                "Behåller senaste stabila mailboxyta medan livekön tillfälligt rapporterar offline för samma scope.",
+            })
+          ) {
+            return;
+          }
           await loadOfflineHistoryRuntime({
             runtimeMailboxIds,
             preferredThreadId,
@@ -3122,6 +3173,17 @@
         if (!isCurrentRequest()) return;
         const message = error instanceof Error ? error.message : String(error);
         const statusCode = Number(error?.statusCode || error?.status || 0);
+        if (
+          preserveStableRuntimeWorkspaceAfterRefreshFailure(runtimeMailboxIds, {
+            phase: isAuthFailure(statusCode, message)
+              ? "live_refresh_preserved_auth_failure"
+              : "live_refresh_preserved_error",
+            error: message,
+            scheduleAuthRecovery: isAuthFailure(statusCode, message),
+          })
+        ) {
+          return;
+        }
         state.runtime.loading = false;
         state.runtime.loaded = false;
         state.runtime.startupLocked = false;

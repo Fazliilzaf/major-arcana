@@ -675,6 +675,31 @@ test('loadOfflineHistoryRuntime faller tillbaka till lokal historiksokning innan
   );
 });
 
+test('loadLiveRuntime bevarar stabil mailboxworkspace när same-scope refresh tillfalligt faller till offline eller runtime error', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /function preserveStableRuntimeWorkspaceAfterRefreshFailure\(\s*runtimeMailboxIds = \[\],[\s\S]*shouldPreserveStableRuntimeWorkspace\(runtimeMailboxIds\)/,
+    'Förväntade en separat helper som bara bevarar redan stabil workspace när samma mailboxscope får en tillfällig refresh-failure.'
+  );
+  assert.match(
+    source,
+    /if \(status\?\.graph\?\.readEnabled !== true\) \{[\s\S]*preserveStableRuntimeWorkspaceAfterRefreshFailure\(runtimeMailboxIds,\s*\{[\s\S]*phase:\s*"live_refresh_preserved_offline"/,
+    'Förväntade att same-scope refresh inte längre får committa offline_history ovanpå ett redan stabilt live-workspace.'
+  );
+  assert.match(
+    source,
+    /preserveStableRuntimeWorkspaceAfterRefreshFailure\(runtimeMailboxIds,\s*\{[\s\S]*phase:\s*isAuthFailure\(statusCode,\s*message\)\s*\?\s*"live_refresh_preserved_auth_failure"\s*:\s*"live_refresh_preserved_error"/,
+    'Förväntade att tillfälliga refresh-fel i samma mailboxscope bevarar senaste stabila workspace i stället för att falla till runtime_error eller auth_required direkt.'
+  );
+  assert.match(
+    source,
+    /setRuntimeModeState\("live",\s*\{[\s\S]*offline:\s*false,[\s\S]*authRequired:\s*false,[\s\S]*error:\s*""[\s\S]*\}\);/,
+    'Förväntade att preserve-helpern håller kvar runtime i live-läge när samma mailboxworkspace bara behöver överleva en tillfällig refresh-failure.'
+  );
+});
+
 test('offline historikval hanteras via data-history-conversation och separat selectOfflineHistoryConversation-path', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
 
