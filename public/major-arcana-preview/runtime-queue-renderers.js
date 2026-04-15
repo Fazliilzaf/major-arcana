@@ -1954,7 +1954,7 @@
                   ? "Livekön är offline och det finns ännu ingen sparad historik att visa i arbetsytan."
                   : "Välj fler mailboxar eller vänta på nästa inkommande konversation.",
             mailboxLabel: "Arbetskö",
-            intentLabel: "Tom kö",
+            intentLabel: runtimeMode === "offline_history" ? "Offline historik" : "Tom kö",
             statusLabel: runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
             nextActionLabel: runtimeMode === "offline_history" ? "Byt mailboxscope" : "Justera urval",
             nextActionSummary: laneFiltered
@@ -2245,7 +2245,11 @@
           return;
         }
 
-        setQueueHistoryMeta("");
+        setQueueHistoryMeta(
+          runtimeMode === "offline_history" || state.runtime.live !== true
+            ? "Offline historikläge aktivt. Historik visas även när livekön är pausad."
+            : ""
+        );
 
         if (!asArray(historyState.items).length) {
           if (queueHistoryList) {
@@ -2272,7 +2276,7 @@
           if (queueTitle) {
             queueTitle.textContent = `Arbetslista (${loadingThreads.length})`;
           }
-          setQueueHistoryMeta("", { showHead: false });
+          setQueueHistoryMeta("Synkar live-trådar…", { showHead: false });
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
           syncQueueHistoryActionButton(deleteActionButton, {
             visible: false,
@@ -2286,7 +2290,7 @@
         if (queueTitle) {
           queueTitle.textContent = "Arbetslista (0)";
         }
-        setQueueHistoryMeta("", { showHead: false });
+        setQueueHistoryMeta("Laddar live-trådar…", { showHead: false });
         syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
         syncQueueHistoryActionButton(deleteActionButton, {
           visible: false,
@@ -2413,13 +2417,23 @@
         if (queueTitle) {
           queueTitle.textContent = `Arbetslista (${defaultThreads.length})`;
         }
-        setQueueHistoryMeta("");
+        setQueueHistoryMeta(
+          runtimeMode === "offline_history"
+            ? offlineWorkingSetMeta ||
+                "Offline historikläge. Arbetskön bygger just nu på senast kända mailboxhistorik."
+            : isOfflineHistoryMode
+              ? "Offline historikläge aktivt."
+              : ""
+        );
         if (!defaultThreads.length) {
           renderQueueInlineLaneList([
             buildUnifiedStateThread({
               id: runtimeMode === "offline_history" ? "runtime-offline-empty" : "runtime-unified-empty",
               customerName: "Inga trådar i urvalet",
-              ownerLabel: "Arbetskö",
+              ownerLabel:
+                runtimeMode === "offline_history"
+                  ? "Offline historik"
+                  : "Arbetskö",
               subject:
                 runtimeMode === "offline_history"
                   ? "Ingen historik hittades i valt mailboxscope"
@@ -2609,12 +2623,12 @@
       if (runtimeMode === "offline_history") {
         return {
           label: normalizedFeed === "later" ? "Senare" : "Skickade",
-          title: "Historik saknas",
-          meta: "CCO",
-          copy: "Den här vyn saknar innehåll i valt mailboxscope just nu.",
+          title: "Offline historikläge",
+          meta: "CCO historik",
+          copy: "Livekön är offline. Den här vyn visar bara sådant som kan härledas från sparad historik.",
           scope: `${mailboxScopeCount} mailboxar`,
-          context: "Ingen match",
-          hint: "Återgå till arbetskön eller välj ett annat mailboxscope.",
+          context: "Historikfallback",
+          hint: "Återgå till arbetskön eller invänta att livekopplingen kommer tillbaka.",
         };
       }
       if (state.runtime.error && !state.runtime.live) {
