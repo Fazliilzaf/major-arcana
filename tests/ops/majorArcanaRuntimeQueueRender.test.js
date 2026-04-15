@@ -610,23 +610,18 @@ test('mailboxbyte nollar vald tråd innan ny livekö laddas', () => {
 
   assert.match(
     liveCompositionSource,
-    /mailboxMenuGrid\.addEventListener\("change"[\s\S]*scheduleRuntimeMailboxScopeSelectionCommit\(\);/,
-    'Mailboxbyte ska batcha mailboxscope-ändringen i stället för att nollställa workspace direkt i change-handlern.'
+    /mailboxMenuGrid\.addEventListener\("change"[\s\S]*workspaceSourceOfTruth\.setSelectedThreadId\(""\);[\s\S]*state\.runtime\.historyContextThreadId = "";/,
+    'Mailboxbyte ska rensa vald tråd och historikkontext innan den nya livekön laddas.'
   );
   assert.match(
     liveCompositionSource,
-    /const shouldCommitMailboxScopeOnSuccess =[\s\S]*workspaceSourceOfTruth\.setSelectedMailboxIds\(runtimeMailboxIds\)[\s\S]*workspaceSourceOfTruth\.setSelectedThreadId\(""\);[\s\S]*state\.runtime\.historyContextThreadId = "";/,
-    'Mailboxbyte ska rensa vald tråd och historikkontext först när den nya livekön faktiskt är redo att committas.'
-  );
-  assert.match(
-    liveCompositionSource,
-    /state\.runtime\.mailboxScopePinned\s*=\s*normalizedNextSelectedMailboxIds\.length\s*>\s*0;/,
+    /state\.runtime\.mailboxScopePinned\s*=\s*nextSelectedMailboxIds\.length\s*>\s*0;/,
     'Mailboxbyte ska pinna ett manuellt valt mailboxscope så att selected mailbox inte skrivs över av thread-reconciliation.'
   );
 
   assert.match(
     liveCompositionSource,
-    /loadLiveRuntime\(\{[\s\S]*requestedMailboxIds:\s*normalizedNextSelectedMailboxIds,[\s\S]*preferredThreadId:\s*"",[\s\S]*resetHistoryOnChange:\s*true/,
+    /loadLiveRuntime\(\{[\s\S]*requestedMailboxIds:\s*nextSelectedMailboxIds,[\s\S]*preferredThreadId:\s*"",[\s\S]*resetHistoryOnChange:\s*true/,
     'Mailboxbyte ska inte försöka bära över föregående trådval in i nytt mailboxscope.'
   );
 

@@ -2094,7 +2094,6 @@
       live: false,
       authRequired: false,
       offline: false,
-      startupLocked: true,
       offlineWorkingSetSource: "",
       offlineWorkingSetMeta: "",
       error: "",
@@ -3756,26 +3755,7 @@
     if (!runtimeReentryState || typeof runtimeReentryState.restoreRuntimeReentrySnapshot !== "function") {
       return null;
     }
-    const normalizedOptions =
-      options && typeof options === "object" ? { ...options } : {};
-    const preferInitialSnapshot = normalizedOptions.preferInitialSnapshot === true;
-    delete normalizedOptions.preferInitialSnapshot;
-    if (
-      preferInitialSnapshot &&
-      typeof runtimeReentryState.applyRuntimeReentrySnapshot === "function"
-    ) {
-      const preferredSnapshot = choosePreferredRuntimeReentrySnapshot(
-        initialRuntimeReentrySnapshot,
-        getRuntimeReentrySnapshot()
-      );
-      if (preferredSnapshot) {
-        return runtimeReentryState.applyRuntimeReentrySnapshot(preferredSnapshot, {
-          reason,
-          ...normalizedOptions,
-        });
-      }
-    }
-    return runtimeReentryState.restoreRuntimeReentrySnapshot({ reason, ...normalizedOptions });
+    return runtimeReentryState.restoreRuntimeReentrySnapshot({ reason, ...options });
   }
 
   function getRuntimeReentrySnapshot() {
@@ -3798,28 +3778,6 @@
   }
 
   const initialRuntimeReentrySnapshot = getRuntimeReentrySnapshot();
-
-  function scoreRuntimeReentrySnapshot(snapshot) {
-    if (!snapshot || typeof snapshot !== "object") return 0;
-    let score = 0;
-    if (normalizeKey(snapshot.leftColumnMode || "default") === "history") score += 6;
-    if (asArray(snapshot.mailboxscope).filter(Boolean).length) score += 4;
-    if (asText(snapshot.selectedThreadId)) score += 4;
-    if (normalizeKey(snapshot.activeFocusSection || "conversation") !== "conversation") score += 3;
-    if (snapshot.queueHistory?.open === true) score += 6;
-    if (asText(snapshot.queueHistory?.selectedConversationId)) score += 5;
-    if (asText(snapshot.queueHistory?.scopeKey)) score += 2;
-    if (asText(snapshot.historyContextThreadId)) score += 2;
-    return score;
-  }
-
-  function choosePreferredRuntimeReentrySnapshot(primarySnapshot, fallbackSnapshot) {
-    const primaryScore = scoreRuntimeReentrySnapshot(primarySnapshot);
-    const fallbackScore = scoreRuntimeReentrySnapshot(fallbackSnapshot);
-    if (primaryScore <= 0 && fallbackScore <= 0) return null;
-    return primaryScore >= fallbackScore ? primarySnapshot : fallbackSnapshot;
-  }
-
   let runtimeReentryBootstrapTimer = null;
   let runtimeReentryBootstrapApplied = false;
   const tryApplyRuntimeReentryBootstrap = () => {
@@ -3912,42 +3870,6 @@
     }
   }
 
-  function readAdminTokenCookie() {
-    try {
-      const cookieSource = String(window.document?.cookie || "");
-      if (!cookieSource) return "";
-      const entries = cookieSource.split(";");
-      for (const entry of entries) {
-        const [rawName, ...rest] = String(entry || "").split("=");
-        if (normalizeText(rawName) !== ADMIN_TOKEN_STORAGE_KEY) continue;
-        const rawValue = rest.join("=");
-        return normalizeText(decodeURIComponent(rawValue || ""));
-      }
-    } catch {}
-    return "";
-  }
-
-  function persistAdminTokenCookie(token = "") {
-    const normalizedToken = normalizeText(token);
-    if (!normalizedToken || typeof document === "undefined") return;
-    try {
-      const secure =
-        normalizeText(window.location?.protocol || "").toLowerCase() === "https:" ? "; Secure" : "";
-      document.cookie = `${ADMIN_TOKEN_STORAGE_KEY}=${encodeURIComponent(
-        normalizedToken
-      )}; Path=/; SameSite=Lax${secure}`;
-    } catch {}
-  }
-
-  function clearAdminTokenCookie() {
-    if (typeof document === "undefined") return;
-    try {
-      const secure =
-        normalizeText(window.location?.protocol || "").toLowerCase() === "https:" ? "; Secure" : "";
-      document.cookie = `${ADMIN_TOKEN_STORAGE_KEY}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
-    } catch {}
-  }
-
   function getAdminToken() {
     const readTokenFromStorage = (storage) => {
       try {
@@ -3958,31 +3880,10 @@
     };
 
     const localToken = readTokenFromStorage(window.localStorage);
-    if (localToken) {
-      persistAdminTokenCookie(localToken);
-      return localToken;
-    }
+    if (localToken) return localToken;
 
     const sessionToken = readTokenFromStorage(window.sessionStorage);
-    if (sessionToken) {
-      persistAdminTokenCookie(sessionToken);
-      try {
-        window.localStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, sessionToken);
-      } catch {}
-      return sessionToken;
-    }
-
-    const cookieToken =
-      typeof readAdminTokenCookie === "function" ? readAdminTokenCookie() : "";
-    if (cookieToken) {
-      try {
-        window.localStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, cookieToken);
-      } catch {}
-      try {
-        window.sessionStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, cookieToken);
-      } catch {}
-      return cookieToken;
-    }
+    if (sessionToken) return sessionToken;
 
     if (typeof isLocalPreviewHost === "function" && isLocalPreviewHost()) {
       return "__preview_local__";
@@ -4000,7 +3901,6 @@
 
     clearTokenFromStorage(window.localStorage);
     clearTokenFromStorage(window.sessionStorage);
-    clearAdminTokenCookie();
   }
 
   async function waitForTruthWorklistAuthToken({ timeoutMs = 1800, intervalMs = 60 } = {}) {
@@ -4261,9 +4161,9 @@
     const parts = [];
     const writeBlockedByMode = runtimeMode === "auth_required" || runtimeMode === "offline_history";
     const sendModeBlockedCopy =
-      runtimeMode === "auth_required" ? "Skicka: auth-låst" : "Skicka: kräver aktiv tråd";
+      runtimeMode === "auth_required" ? "Skicka: auth-låst" : "Skicka: spärrad i läsläge";
     const deleteModeBlockedCopy =
-      runtimeMode === "auth_required" ? "Radera: auth-låst" : "Radera: kräver aktiv tråd";
+      runtimeMode === "auth_required" ? "Radera: auth-låst" : "Radera: spärrad i läsläge";
     const requestedTokens = new Set(
       getMailboxIdentityTokens({
         id: mailboxId,
@@ -4298,7 +4198,7 @@
     if (runtimeMode === "auth_required") {
       parts.push("Läs: auth-låst");
     } else if (runtimeMode === "offline_history") {
-      parts.push("Läs: historik");
+      parts.push("Läs: offline historik · läsläge");
     } else {
       parts.push(capability?.readAvailable ? "Läs: livekälla" : "Läs: spärrad");
     }
@@ -5891,7 +5791,7 @@
       summaryParts.push(studioTruthState.waveLabel);
     }
     if (!isComposeMode && isOfflineHistoryContextThread(thread)) {
-      summaryParts.push("Läge: Historik");
+      summaryParts.push("Läge: Offline historik");
     }
     const signatureLabel = getStudioSignatureProfile(studioState.selectedSignatureId).label;
     if (signatureLabel) {
@@ -10316,7 +10216,7 @@
       studioIncomingBody.innerHTML =
         `<article class="studio-conversation-message studio-conversation-message--empty"><p class="studio-conversation-message-text">${escapeHtml(
           isOfflineHistoryReadOnlyMode()
-            ? "Välj en historikruta i vänsterkolumnen för att öppna kundens historik här."
+            ? "Välj en historikruta i vänsterkolumnen för att öppna kundens historik i läsläge här."
             : "Välj en live-tråd i arbetskön för att öppna konversationen i studion."
         )}</p></article>`;
       return;
@@ -11158,10 +11058,6 @@
       runtimeConversationIdsMatch,
       normalizeVisibleRuntimeScope,
       normalizeWorkspaceState,
-      captureRuntimeReentrySnapshot,
-      getRuntimeReentryOutcome,
-      getRuntimeReentrySnapshot,
-      restoreRuntimeReentrySnapshot,
       openLaterDialog,
       persistCustomMailboxes,
       readPxVariable,
@@ -11749,6 +11645,15 @@
       };
     }
 
+    if (getRuntimeMode() === "offline_history") {
+      return {
+        mode: "offline_history",
+        feedKey: "",
+        laneId: activeLaneId,
+        open: false,
+      };
+    }
+
     return {
       mode: "default",
       feedKey: "",
@@ -11780,25 +11685,26 @@
   }
 
   function isOfflineHistoryContextThread(thread) {
-    const offlineContextMode = normalizeKey(
-      thread?.offlineContextMode || thread?.raw?.offlineContextMode || ""
-    );
     return Boolean(
       thread &&
         typeof thread === "object" &&
-        getRuntimeMode() === "offline_history" &&
-        offlineContextMode === "read_only"
+        (thread.offlineHistorySelection === true || thread.raw?.offlineHistorySelection === true)
     );
   }
 
   function createOfflineHistoryContextThread(thread, historyItem = null) {
     if (!thread || typeof thread !== "object") return null;
-    if (thread.historyQueueItem && !historyItem) return thread;
+    if (isOfflineHistoryContextThread(thread)) return thread;
     return {
       ...thread,
-      historyQueueItem: historyItem || thread.historyQueueItem || null,
+      offlineHistorySelection: true,
+      offlineContextMode: "read_only",
+      offlineContextLabel: "Offline historik",
+      historyQueueItem: historyItem || null,
       raw: {
         ...(thread.raw && typeof thread.raw === "object" ? thread.raw : {}),
+        offlineHistorySelection: true,
+        offlineContextLabel: "Offline historik",
       },
     };
   }
@@ -11849,16 +11755,9 @@
   }
 
   function isOfflineHistoryReadOnlyMode() {
-    const selectedHistoryThread = getSelectedOfflineHistoryThread();
     return (
       getRuntimeLeftColumnState().mode === "history" &&
-      getRuntimeMode() === "offline_history" &&
-      Boolean(selectedHistoryThread) &&
-      normalizeKey(
-        selectedHistoryThread?.offlineContextMode ||
-          selectedHistoryThread?.raw?.offlineContextMode ||
-          ""
-      ) === "read_only"
+      Boolean(asText(getSelectedQueueHistoryConversationId()))
     );
   }
 
@@ -11900,12 +11799,18 @@
     let runtimeThread = null;
     let runtimeSource = "";
 
+    const offlineHistoryWithoutSelection =
+      leftColumnState.mode === "history" &&
+      normalizeKey(runtimeMode) === "offline_history" &&
+      !asText(queueHistoryConversationId);
+
     if (leftColumnState.mode === "history") {
-      if (asText(queueHistoryConversationId)) {
+      if (offlineHistoryWithoutSelection) {
+        runtimeSource = "offline_history_empty";
+      } else if (isOfflineHistoryReadOnlyMode()) {
         runtimeThread = getSelectedOfflineHistoryThread();
-        runtimeSource = runtimeThread ? "history_selection" : "";
-      }
-      if (!runtimeThread) {
+        runtimeSource = runtimeThread ? "offline_history" : "offline_history_empty";
+      } else {
         runtimeThread = pickThread(getQueueScopedRuntimeThreads());
         runtimeSource = runtimeThread ? "history_queue_scope" : "";
         if (!runtimeThread) {
@@ -11919,12 +11824,12 @@
       }
     }
 
-    if (!runtimeThread && leftColumnState.mode === "feed" && leftColumnState.feedKey) {
+    if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "feed" && leftColumnState.feedKey) {
       runtimeThread = pickThread(getInlinePanelFeedThreads(leftColumnState.feedKey));
       runtimeSource = runtimeThread ? `feed_${normalizeKey(leftColumnState.feedKey, "scope")}` : runtimeSource;
     }
 
-    if (!runtimeThread && leftColumnState.mode === "lane") {
+    if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "lane") {
       runtimeThread = pickThread(
         getQueueLaneThreads(
           leftColumnState.laneId || state.runtime.activeLaneId || "all",
@@ -11934,30 +11839,35 @@
       runtimeSource = runtimeThread ? "lane_scope" : runtimeSource;
     }
 
-    if (!runtimeThread) {
+    if (!runtimeThread && !offlineHistoryWithoutSelection) {
       const visibleThread = pickThread(getFilteredRuntimeThreads());
       if (visibleThread) {
         runtimeThread = visibleThread;
-        runtimeSource = "filtered_scope";
+        runtimeSource =
+          leftColumnState.mode === "offline_history" ? "offline_visible_scope" : "filtered_scope";
       }
     }
 
     if (
       !runtimeThread &&
+      !offlineHistoryWithoutSelection &&
       (!state.runtime.live || state.runtime.authRequired || state.runtime.loading)
     ) {
-      runtimeSource = "runtime_unavailable";
+      runtimeSource =
+        leftColumnState.mode === "offline_history"
+          ? "offline_unavailable"
+          : "runtime_unavailable";
     }
 
-    if (!runtimeThread) {
+    if (!runtimeThread && !offlineHistoryWithoutSelection) {
       runtimeThread = pickThread(getQueueScopedRuntimeThreads());
       runtimeSource = runtimeThread ? "queue_scope_fallback" : runtimeSource;
     }
-    if (!runtimeThread) {
+    if (!runtimeThread && !offlineHistoryWithoutSelection) {
       runtimeThread = pickThread(getMailboxScopedRuntimeThreads());
       runtimeSource = runtimeThread ? "mailbox_scope_fallback" : runtimeSource;
     }
-    if (!runtimeThread) {
+    if (!runtimeThread && !offlineHistoryWithoutSelection) {
       runtimeThread = pickThread(state.runtime.threads);
       runtimeSource = runtimeThread ? "runtime_scope_fallback" : runtimeSource;
     }
@@ -11995,7 +11905,7 @@
       focusSource: normalizeKey(focusSource || "none"),
       focusScopeActive,
       focusTruthPrimaryEnabled,
-      offlineHistoryReadOnly: false,
+      offlineHistoryReadOnly: isOfflineHistoryReadOnlyMode(),
     };
   }
 
@@ -12289,9 +12199,9 @@
   function ensureRuntimeSelection() {
     const leftColumnState = getRuntimeLeftColumnState();
     if (leftColumnState.mode === "history") {
-      const nextSelectedThreadId = asText(getSelectedQueueHistoryConversationId());
-      if (nextSelectedThreadId) {
+      if (isOfflineHistoryReadOnlyMode()) {
         const previousSelectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
+        const nextSelectedThreadId = getSelectedQueueHistoryConversationId();
         const changed = !runtimeConversationIdsMatch(
           previousSelectedThreadId,
           nextSelectedThreadId
@@ -13926,28 +13836,6 @@
     force = false,
   } = {}) {
     if (!isTruthWorklistViewFeatureEnabled()) return;
-    const adminToken = normalizeText(getAdminToken?.() || "");
-    if (!adminToken) {
-      const currentState =
-        state.runtime && typeof state.runtime.truthWorklistView === "object"
-          ? state.runtime.truthWorklistView
-          : {};
-      state.runtime.truthWorklistView = {
-        ...currentState,
-        loading: false,
-        loaded: true,
-        authRequired: true,
-        error: "Logga in igen i admin for att lasa truth-driven worklistdata i denna assistvy.",
-        scopeKey: getTruthWorklistScopeKey(mailboxIds),
-        scopeMode,
-        mailboxIds: asArray(mailboxIds)
-          .map((item) => normalizeMailboxId(item))
-          .filter(Boolean),
-        payload: null,
-      };
-      renderTruthWorklistView();
-      return;
-    }
     const normalizedMailboxIds = asArray(mailboxIds)
       .map((item) => normalizeMailboxId(item))
       .filter(Boolean);
@@ -14055,11 +13943,6 @@
 
   function ensureTruthWorklistViewLoaded({ force = false } = {}) {
     if (!isTruthWorklistViewFeatureEnabled()) {
-      renderTruthWorklistView();
-      return;
-    }
-    const adminToken = normalizeText(getAdminToken?.() || "");
-    if (!adminToken) {
       renderTruthWorklistView();
       return;
     }
@@ -15287,7 +15170,7 @@
           )
         );
         if (sharedMailboxes.length) {
-          reasons.push(`Samma historikspår: ${sharedMailboxes[0]}`);
+          reasons.push(`Samma mailboxspår: ${sharedMailboxes[0]}`);
           confidence += 8;
         }
 
@@ -20315,7 +20198,6 @@
 
   function renderRuntimeConversationShell() {
     ensureRuntimeSelection();
-    syncFocusSectionUI(workspaceSourceOfTruth.getFocusSection());
     renderRuntimeQueue();
     renderQueueCategoryStripMode();
     renderTruthWorklistView();
@@ -20348,17 +20230,6 @@
     renderWorkspaceRuntimeContext();
     renderAnalyticsRuntime();
     renderRuntimeIntel(selectedFocusThread, focusReadState);
-    const shouldKeepColdStartHidden =
-      state.runtime.startupLocked === true &&
-      state.runtime.authRequired !== true &&
-      state.runtime.loaded !== true &&
-      state.runtime.live !== true &&
-      state.runtime.offline !== true;
-    if (shouldKeepColdStartHidden) {
-      document.body.classList.add("runtime-cold-start");
-    } else {
-      document.body.classList.remove("runtime-cold-start");
-    }
     if (
       (state.runtime.loaded === true ||
         state.runtime.live === true ||
@@ -20972,8 +20843,8 @@
     renderAutomationAutopilot();
   }
 
-  function syncFocusSectionUI(section) {
-    const activeSection = normalizeKey(section) || "conversation";
+  function applyFocusSection(section) {
+    const activeSection = workspaceSourceOfTruth.setFocusSection(section);
     focusTabButtons.forEach((button) => {
       const isActive = button.dataset.focusSection === activeSection;
       button.classList.toggle("is-active", isActive);
@@ -20986,12 +20857,6 @@
       panel.classList.toggle("is-active", isActive);
       panel.setAttribute("aria-hidden", isActive ? "false" : "true");
     });
-    return activeSection;
-  }
-
-  function applyFocusSection(section) {
-    const activeSection = workspaceSourceOfTruth.setFocusSection(section);
-    syncFocusSectionUI(activeSection);
     captureRuntimeReentrySnapshot("focus_section_change");
   }
 
@@ -21221,7 +21086,7 @@
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Öppna en aktiv tråd i arbetslistan för att ändra studioutkastet.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att ändra studioutkastet.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -21252,7 +21117,7 @@
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Öppna en aktiv tråd i arbetslistan för att växla responsspår.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att växla responsspår.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -21282,7 +21147,7 @@
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Öppna en aktiv tråd i arbetslistan för att ändra tonfilter.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att ändra tonfilter.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -21309,7 +21174,7 @@
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Öppna en aktiv tråd i arbetslistan för att finjustera svaret.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att finjustera svaret.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -21352,7 +21217,7 @@
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Öppna en aktiv tråd i arbetslistan för att använda verktygen.", "error");
+      setStudioFeedback("Offline historik är läsläge. Verktygen låses upp när live-tråden är tillgänglig.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);

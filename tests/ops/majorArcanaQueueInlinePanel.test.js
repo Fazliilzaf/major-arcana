@@ -404,9 +404,7 @@ test('renderQueueHistorySection behåller historik som eget läge', () => {
   assert.equal(queueTitle.textContent, 'Historik (0)');
   assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'true');
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
-  assert.equal(queueHistoryMeta.textContent, '');
-  assert.doesNotMatch(queueHistoryMeta.textContent, /äldre mejl|offline historikläge/i);
-  assert.match(queueHistoryList.innerHTML, /Ingen historik hittades i valt mailboxscope ännu/i);
+  assert.match(queueHistoryList.innerHTML, /Ingen historik hittades/i);
 });
 
 test('renderQueueHistorySection visar vanlig arbetslista i queue-history-list nar ingen panel ar oppen', () => {
@@ -1193,8 +1191,7 @@ test('renderQueueHistorySection prioriterar historik over live-fel nar historikp
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Historik (1)');
-  assert.equal(queueHistoryMeta.textContent, '');
-  assert.doesNotMatch(queueHistoryMeta.textContent, /offline historikläge/i);
+  assert.match(queueHistoryMeta.textContent, /offline historikläge/i);
   assert.match(queueHistoryList.innerHTML, /Shahram/);
   assert.match(queueHistoryList.innerHTML, /Offline historiktrad/);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Servern kör offline-läge/i);
@@ -1323,13 +1320,13 @@ test('renderQueueHistorySection visar offline fallback-arbetslista i defaultlage
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Arbetslista (1)');
-  assert.equal(queueHistoryMeta.textContent, '');
+  assert.match(queueHistoryMeta.textContent, /offline historikläge/i);
   assert.match(queueHistoryList.innerHTML, /offline-thread-1/);
   assert.match(queueHistoryList.innerHTML, /Arbetskön ska visa historikbaserad fallback/);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Servern kör offline-läge/i);
 });
 
-test('renderQueueHistorySection visar inte separat offline-meta nar lokal historik saknas', () => {
+test('renderQueueHistorySection visar arlig offline-meta nar lokal historik saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
   const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
@@ -1421,7 +1418,7 @@ test('renderQueueHistorySection visar inte separat offline-meta nar lokal histor
         loading: false,
         error: 'Ingen lokal historik hittades i valt mailboxscope ännu. Livekön är fortsatt offline.',
         offlineWorkingSetMeta:
-          'Ingen lokal historik hittades i valt mailboxscope ännu.',
+          'Offline historikläge. Ingen lokal historik hittades i valt mailboxscope ännu.',
         activeLaneId: 'all',
         queueInlinePanel: {
           open: false,
@@ -1443,28 +1440,12 @@ test('renderQueueHistorySection visar inte separat offline-meta nar lokal histor
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Arbetslista (0)');
-  assert.equal(queueHistoryMeta.textContent, '');
-  assert.match(
-    queueHistoryList.innerHTML,
-    /Ingen lokal historik hittades i valt mailboxscope ännu\.|Livekön är offline och ingen historik hittades i valt mailboxscope ännu\./
+  assert.equal(
+    queueHistoryMeta.textContent,
+    'Offline historikläge. Ingen lokal historik hittades i valt mailboxscope ännu.'
   );
+  assert.match(queueHistoryList.innerHTML, /Ingen lokal historik hittades i valt mailboxscope ännu\./);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Livekön kunde inte läsas just nu/i);
-});
-
-test('renderQueueHistorySection håller Historik neutral och gör inte Alla eller Historik till särskilda specialytor', () => {
-  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-
-  assert.doesNotMatch(
-    source,
-    /hela mailboxens strukturerade mejlspår|arbetslistans Alla|full mailboxyta/i,
-    'Historikcopy ska inte skriva om CCO-ytan till en ny produktmodell.'
-  );
-
-  assert.match(
-    source,
-    /Ingen historik hittades i valt mailboxscope ännu\./,
-    'Historik ska beskrivas neutralt utan att få ett separat specialläge i meta-raden.'
-  );
 });
 
 test('renderQueueHistorySection döljer scope-actions i offline_history', () => {

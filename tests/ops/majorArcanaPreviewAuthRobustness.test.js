@@ -70,8 +70,6 @@ function createStorage(entries = {}) {
 
 test('getAdminToken läser sessionStorage före localhost-fallback', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const readCookieSource = extractFunctionSource(source, 'readAdminTokenCookie');
-  const persistCookieSource = extractFunctionSource(source, 'persistAdminTokenCookie');
   const functionSource = extractFunctionSource(source, 'getAdminToken');
   const isLocalPreviewHost = () => false;
   const getAdminToken = new Function(
@@ -79,8 +77,7 @@ test('getAdminToken läser sessionStorage före localhost-fallback', () => {
     'isLocalPreviewHost',
     'normalizeText',
     'window',
-    'document',
-    `${readCookieSource}\n${persistCookieSource}\n${functionSource}; return getAdminToken;`
+    `${functionSource}; return getAdminToken;`
   )(
     'ARCANA_ADMIN_TOKEN',
     isLocalPreviewHost,
@@ -88,63 +85,21 @@ test('getAdminToken läser sessionStorage före localhost-fallback', () => {
     {
       localStorage: createStorage(),
       sessionStorage: createStorage({ ARCANA_ADMIN_TOKEN: 'session-token' }),
-      location: { protocol: 'https:' },
-      document: { cookie: '' },
     }
-    ,
-    { cookie: '' }
   );
 
   assert.equal(getAdminToken(), 'session-token');
 });
 
-test('getAdminToken återhämtar token från cookie och backfyller lagringen', () => {
-  const source = fs.readFileSync(APP_PATH, 'utf8');
-  const readCookieSource = extractFunctionSource(source, 'readAdminTokenCookie');
-  const persistCookieSource = extractFunctionSource(source, 'persistAdminTokenCookie');
-  const functionSource = extractFunctionSource(source, 'getAdminToken');
-  const localStorage = createStorage();
-  const sessionStorage = createStorage();
-  const documentObject = {
-    cookie: 'theme=light; ARCANA_ADMIN_TOKEN=cookie-token; mode=live',
-  };
-  const getAdminToken = new Function(
-    'ADMIN_TOKEN_STORAGE_KEY',
-    'isLocalPreviewHost',
-    'normalizeText',
-    'window',
-    'document',
-    `${readCookieSource}\n${persistCookieSource}\n${functionSource}; return getAdminToken;`
-  )(
-    'ARCANA_ADMIN_TOKEN',
-    () => false,
-    (value) => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    {
-      localStorage,
-      sessionStorage,
-      location: { protocol: 'https:' },
-      document: documentObject,
-    },
-    documentObject
-  );
-
-  assert.equal(getAdminToken(), 'cookie-token');
-  assert.equal(localStorage.getItem('ARCANA_ADMIN_TOKEN'), 'cookie-token');
-  assert.equal(sessionStorage.getItem('ARCANA_ADMIN_TOKEN'), 'cookie-token');
-});
-
 test('getAdminToken ger preview-token på localhost när lagringen är tom', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const readCookieSource = extractFunctionSource(source, 'readAdminTokenCookie');
-  const persistCookieSource = extractFunctionSource(source, 'persistAdminTokenCookie');
   const functionSource = extractFunctionSource(source, 'getAdminToken');
   const getAdminToken = new Function(
     'ADMIN_TOKEN_STORAGE_KEY',
     'isLocalPreviewHost',
     'normalizeText',
     'window',
-    'document',
-    `${readCookieSource}\n${persistCookieSource}\n${functionSource}; return getAdminToken;`
+    `${functionSource}; return getAdminToken;`
   )(
     'ARCANA_ADMIN_TOKEN',
     () => true,
@@ -152,11 +107,7 @@ test('getAdminToken ger preview-token på localhost när lagringen är tom', () 
     {
       localStorage: createStorage(),
       sessionStorage: createStorage(),
-      location: { protocol: 'https:' },
-      document: { cookie: '' },
     }
-    ,
-    { cookie: '' }
   );
 
   assert.equal(getAdminToken(), '__preview_local__');
@@ -164,16 +115,13 @@ test('getAdminToken ger preview-token på localhost när lagringen är tom', () 
 
 test('getAdminToken förblir tom utanför localhost när token saknas', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const readCookieSource = extractFunctionSource(source, 'readAdminTokenCookie');
-  const persistCookieSource = extractFunctionSource(source, 'persistAdminTokenCookie');
   const functionSource = extractFunctionSource(source, 'getAdminToken');
   const getAdminToken = new Function(
     'ADMIN_TOKEN_STORAGE_KEY',
     'isLocalPreviewHost',
     'normalizeText',
     'window',
-    'document',
-    `${readCookieSource}\n${persistCookieSource}\n${functionSource}; return getAdminToken;`
+    `${functionSource}; return getAdminToken;`
   )(
     'ARCANA_ADMIN_TOKEN',
     () => false,
@@ -181,11 +129,7 @@ test('getAdminToken förblir tom utanför localhost när token saknas', () => {
     {
       localStorage: createStorage(),
       sessionStorage: createStorage(),
-      location: { protocol: 'https:' },
-      document: { cookie: '' },
     }
-    ,
-    { cookie: '' }
   );
 
   assert.equal(getAdminToken(), '');

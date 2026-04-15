@@ -104,22 +104,6 @@ test('app.js kopplar lane- och feed-helpers till dom-live men inte tillbaka in i
     domCompositionCall.includes('\n      getQueueLaneThreads,'),
     'DOM live composition måste få getQueueLaneThreads för lane-klick i vänsterkolumnen.'
   );
-  assert.ok(
-    domCompositionCall.includes('\n      captureRuntimeReentrySnapshot,'),
-    'DOM live composition måste få captureRuntimeReentrySnapshot så staging-reentry inte blir en tom no-op i live-kedjan.'
-  );
-  assert.ok(
-    domCompositionCall.includes('\n      restoreRuntimeReentrySnapshot,'),
-    'DOM live composition måste få restoreRuntimeReentrySnapshot så Historik och vald tråd kan återställas efter reload.'
-  );
-  assert.ok(
-    domCompositionCall.includes('\n      getRuntimeReentrySnapshot,'),
-    'DOM live composition måste få getRuntimeReentrySnapshot för att kunna läsa sparat workspace-läge vid återinträde.'
-  );
-  assert.ok(
-    domCompositionCall.includes('\n      getRuntimeReentryOutcome,'),
-    'DOM live composition måste få getRuntimeReentryOutcome så reentry-diagnostiken speglar den riktiga restore-kedjan.'
-  );
 });
 
 test('app.js kopplar buildStudioSelectionSummary till overlay-renderern för den permanenta studio-orienteringen', () => {
@@ -418,16 +402,16 @@ test('fokusrenderern får offline-historikhelpers och studion visar read-only co
 
   assert.ok(
     focusRendererCall.includes('\n      isOfflineHistoryContextThread,'),
-    'Fokusrenderern måste få isOfflineHistoryContextThread för att kunna markera historikkontext utan att ändra ytan.'
+    'Fokusrenderern måste få isOfflineHistoryContextThread för att kunna markera offline läsläge.'
   );
   assert.ok(
     focusRendererCall.includes('\n      isOfflineHistorySelectionActive,'),
-    'Fokusrenderern måste få isOfflineHistorySelectionActive för ärliga empty states i historikläget.'
+    'Fokusrenderern måste få isOfflineHistorySelectionActive för ärliga empty states i offline historik.'
   );
   assert.match(
     overlaySource,
-    /Välj en aktiv tråd i arbetslistan för att använda hela Svarstudio\./,
-    'Studion ska visa neutral blockertext när den öppnas från historikkontext.'
+    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd\./,
+    'Studion ska visa tydlig read-only copy när den öppnas från offline historik.'
   );
 });
 

@@ -6,14 +6,12 @@ const { createAuthMiddleware } = require('../../src/security/authMiddleware');
 function createReq({
   authorization = '',
   xAuthToken = '',
-  cookie = '',
   host = 'localhost:3000',
   ip = '127.0.0.1',
 } = {}) {
   const headers = {
     authorization,
     'x-auth-token': xAuthToken,
-    cookie,
     host,
   };
   return {
@@ -180,44 +178,4 @@ test('valid token still uses the real session context', async () => {
   assert.equal(req.auth.sessionId, 'session-1');
   assert.equal(req.auth.authMode, undefined);
   assert.equal(req.currentUser.id, 'user-1');
-});
-
-test('cookie token can restore a real session context for non-local requests', async () => {
-  let touchedSessionId = '';
-  const authStore = {
-    async getSessionContextByToken(token) {
-      if (token === 'cookie-token') {
-        return {
-          session: { id: 'session-cookie' },
-          user: { id: 'user-cookie', email: 'fazli@hairtpclinic.com' },
-          membership: { id: 'membership-cookie', tenantId: 'hair-tp-clinic', role: 'OWNER' },
-        };
-      }
-      return null;
-    },
-    async touchSession(sessionId) {
-      touchedSessionId = sessionId;
-    },
-  };
-  const middleware = createAuthMiddleware({
-    authStore,
-    config: { defaultTenantId: 'hair-tp-clinic' },
-  });
-
-  const req = createReq({
-    cookie: 'other=1; ARCANA_ADMIN_TOKEN=cookie-token; theme=light',
-    host: 'arcana-staging.onrender.com',
-    ip: '203.0.113.10',
-  });
-  const res = createRes();
-  let nextCalled = false;
-  await middleware.requireAuth(req, res, () => {
-    nextCalled = true;
-  });
-
-  assert.equal(nextCalled, true);
-  assert.equal(res.statusCode, 200);
-  assert.equal(touchedSessionId, 'session-cookie');
-  assert.equal(req.auth.sessionId, 'session-cookie');
-  assert.equal(req.currentUser.id, 'user-cookie');
 });

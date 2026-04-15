@@ -103,16 +103,6 @@
       "focus-customer-chip--green",
     ];
 
-    function firstTextValue(...values) {
-      for (const value of values) {
-        const normalized = asText(value, "");
-        if (normalized) {
-          return normalized;
-        }
-      }
-      return "";
-    }
-
     function setCustomerHistoryState(text, tone = "green") {
       if (!focusCustomerHistoryState) return;
       focusCustomerHistoryState.textContent = asText(text, "");
@@ -1228,7 +1218,7 @@
         if (/\+?\d[\d\s().-]{5,}/.test(normalizedLine)) return false;
         return normalizedLine.length >= 2 && normalizedLine.length <= 72;
       });
-      const identity = firstTextValue(candidateLine, tokens[0], "Visa avsändarfooter").trim();
+      const identity = asText(candidateLine, tokens[0], "Visa avsändarfooter").trim();
       return compactRuntimeCopy(identity, "Visa avsändarfooter", 52);
     }
 
@@ -1529,7 +1519,7 @@
       const explicitTitle = extractConversationSignatureTitle(lines);
       const authorName = asText(message?.author).trim();
       const matchedProfileName = asText(matchedProfile?.fullName).trim();
-      const resolvedName = firstTextValue(
+      const resolvedName = asText(
         hintedProfile?.fullName,
         !isConversationGenericHairTpSignatureName(explicitName) ? explicitName : "",
         !isConversationGenericHairTpSignatureName(authorName) ? authorName : "",
@@ -1537,9 +1527,9 @@
       );
       const normalizedName = resolvedName || asText(hintedProfile?.fullName) || "";
       const resolvedTitle = normalizeHairTpSignatureTitle(
-        firstTextValue(hintedProfile?.title, matchedProfile?.title, explicitTitle)
+        asText(hintedProfile?.title, matchedProfile?.title, explicitTitle)
       );
-      const resolvedEmail = firstTextValue(hintedProfile?.email, signatureEmail, mailboxId).toLowerCase();
+      const resolvedEmail = asText(hintedProfile?.email, signatureEmail, mailboxId).toLowerCase();
       const normalizedText = [
         "Bästa hälsningar",
         asText(normalizedName),
@@ -1782,12 +1772,12 @@
         asText(block?.text).trim()
       );
       const signatureDisplay = buildConversationSignatureDisplay(message, structuredSections);
-      const rawPrimaryBodyText = firstTextValue(
+      const rawPrimaryBodyText = asText(
         structuredSections?.primaryBody?.text,
         mailThreadMessage?.primaryBody?.text,
         asText(message?.conversationBody, asText(message?.body, ""))
       ).trim();
-      const rawPrimaryBodyHtml = firstTextValue(
+      const rawPrimaryBodyHtml = asText(
         structuredSections?.primaryBody?.html,
         mailThreadMessage?.primaryBody?.html,
         asText(message?.conversationBodyHtml, asText(message?.bodyHtml, ""))
@@ -1952,7 +1942,7 @@
         if (focusHistoryDescription) {
           focusHistoryDescription.textContent =
             isOfflineHistorySelection
-              ? "Välj en historikruta i vänsterkolumnen för att läsa kundens historik här."
+              ? "Välj en historikruta i vänsterkolumnen för att läsa kundens historik här i läsläge."
               : "Fullständig logg över kommunikation och viktiga händelser för den här kunden.";
         }
         renderFocusSummaryCards(focusHistoryScope, [], "history");
@@ -1964,7 +1954,7 @@
         }
         if (focusHistoryMeta) {
           focusHistoryMeta.textContent = isOfflineHistorySelection
-            ? "Historik · välj en tråd"
+            ? "Offline historikläge · välj en historikruta"
             : state.runtime.authRequired
               ? "Logga in igen för att läsa live historik"
               : "Ingen live historik tillgänglig";
@@ -2122,7 +2112,7 @@
           ? formatHistoryTimestamp(allEvents[0].recordedAt)
           : thread.lastActivityLabel;
         focusHistoryMeta.textContent = isOfflineHistoryThread
-          ? `Historik · ${historyMailboxOptions.length || 1} mailbox · senaste aktivitet ${latestStamp}`
+          ? `Offline historik · ${historyMailboxOptions.length || 1} mailbox · senaste aktivitet ${latestStamp}`
           : isTruthDrivenReadOnly
             ? `${focusReadState.label || "Truth-driven focus"} · ${focusWaveLabel} · mailbox truth historik · ${historyMailboxOptions.length || 1} mailbox · senaste aktivitet ${latestStamp}`
             : `${historyMailboxOptions.length || 1} mailbox · senaste aktivitet ${latestStamp}`;
@@ -2246,30 +2236,6 @@
       const isTruthDrivenReadOnly =
         focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
-      const isStartupLocked =
-        state.runtime.startupLocked === true &&
-        state.runtime.authRequired !== true &&
-        state.runtime.offline !== true;
-      if (isStartupLocked) {
-        applyFocusWaitingState(true);
-        focusTitle.textContent = "Synkar live-läget";
-        focusStatusLine.textContent =
-          "Livekön startar upp. Väntar på att mailboxscopen ska stabiliseras.";
-        focusBadgeRow.innerHTML = "";
-        focusBadgeRow.hidden = true;
-        focusWorkrail.innerHTML = "";
-        focusConversationSection.innerHTML = `
-          <article class="conversation-entry conversation-entry-empty">
-            <div class="conversation-empty-card">
-              <div class="conversation-empty-meta-row">
-                <span class="conversation-state-pill">Synkar</span>
-              </div>
-              <h4 class="conversation-empty-title">Synkar live-läget</h4>
-              <p class="conversation-empty-text">Väntar på att livekön och mailboxscopen ska bli klara innan konversationen visas.</p>
-            </div>
-          </article>`;
-        return;
-      }
       if (!thread) {
         applyFocusWaitingState(true);
         const isLoading = state.runtime.loading === true;
@@ -2282,7 +2248,7 @@
             ? "Återställ live-läget"
             : "Väntar på live-tråd";
         const emptyBody = isOfflineHistorySelection
-          ? "Välj en historikruta i vänsterkolumnen för att läsa kundkontexten här."
+          ? "Offline historik är tillgänglig i läsläge. Välj en historikruta i vänsterkolumnen för att läsa kundkontexten här. Svar, senare, anteckning och radera kräver live-tråd."
           : isLoading
             ? "Livekön synkar just nu. Tråd, historik och kundstöd fylls tillbaka automatiskt när uppdateringen är klar."
           : isAuthRequired
@@ -2295,14 +2261,14 @@
           : "";
         setRuntimeActionRowsVisibility("[data-focus-actions]", false);
         focusTitle.textContent = isOfflineHistorySelection
-          ? "Historik"
+          ? "Offline historik · läsläge"
           : isLoading
             ? "Synkar live-läget"
           : isAuthRequired
             ? "Livekö ej ansluten"
             : "Väntar på live-tråd";
         focusStatusLine.textContent = isOfflineHistorySelection
-          ? "Välj en historikruta i vänsterkolumnen för att öppna tråden här."
+          ? "Offline historik · läsläge. Välj en historikruta i vänsterkolumnen för att öppna kundens historik här."
           : isLoading
             ? "Livekön synkar. Fokusytan uppdateras automatiskt när trådarna är på plats."
           : isAuthRequired
@@ -2316,7 +2282,7 @@
               <div class="conversation-empty-meta-row">
                 <span class="conversation-state-pill">${escapeHtml(
                   isOfflineHistorySelection
-                    ? "Historik"
+                    ? "Offline historik"
                     : isLoading
                       ? "Synkar"
                     : isAuthRequired
@@ -2344,7 +2310,7 @@
         .join(" · ");
       const focusStatusItems = [
         {
-          label: "Aktiv tråd",
+          label: isOfflineHistoryThread ? "Vald historik" : "Aktiv tråd",
           tone: "selected",
         },
         {
@@ -2389,7 +2355,7 @@
         });
       const focusStatusMarkup = buildFocusStatusRowMarkup(focusStatusItems);
       focusStatusLine.innerHTML = isOfflineHistoryThread
-        ? "Historik"
+        ? `Offline historik · läsläge<span class="focus-status-alert"> · Live-actions spärrade tills en live-tråd väljs</span>`
         : isTruthDrivenReadOnly
           ? `Läsläge i fokusytan<span class="focus-status-alert"> · Reply/studio ligger kvar utanför detta pass</span>`
           : focusStatusMarkup ||
@@ -2446,11 +2412,11 @@
         </div>`
         : "";
       const nextActionSummaryCopy = isOfflineHistoryThread
-        ? "Historiken följer med till fokusytan."
+        ? "Historiken följer med till fokusytan. Operativa actions kräver live-tråd."
         : isTruthDrivenReadOnly
           ? asText(
               focusReadState?.detail,
-              "Fokusytan visar den här tråden med fördjupad läskontext."
+              "Truth-driven läsläge i fokusytan för wave 1. Reply- och studioflödet ligger kvar utanför detta pass."
             )
         : compactRuntimeCopy(
             thread.nextActionSummary,
@@ -2463,7 +2429,7 @@
               thread.id
             )}" aria-controls="studio-shell">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>
-              Öppna Svarstudio
+              Svarstudio · läsläge
             </button>
           </div>`
         : isTruthDrivenReadOnly
@@ -2492,14 +2458,14 @@
           <div class="conversation-next-summary">
             <span class="conversation-next-label">${escapeHtml(
               isOfflineHistoryThread
-                ? "Kontext"
+                ? "Offline kontext"
                 : isTruthDrivenReadOnly
                   ? "Truth-driven focus"
                   : "Rekommenderat drag"
             )}</span>
             <strong class="conversation-next-title">${escapeHtml(
               isOfflineHistoryThread
-                ? "Historik"
+                ? "Läsläge från historik"
                 : isTruthDrivenReadOnly
                   ? `${focusWaveLabel} · Läsläge`
                   : thread.nextActionLabel
@@ -2582,56 +2548,6 @@
       const isTruthDrivenReadOnly =
         focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
-      const isStartupLocked =
-        state.runtime.startupLocked === true &&
-        state.runtime.authRequired !== true &&
-        state.runtime.offline !== true;
-      if (isStartupLocked) {
-        renderFocusSummaryCards(focusCustomerSummary, [], "customer");
-        if (focusCustomerHistoryTitle) {
-          focusCustomerHistoryTitle.textContent = "Synkar kundkontext";
-        }
-        if (focusCustomerHistoryDescription) {
-          focusCustomerHistoryDescription.textContent =
-            "Livekön startar upp. Kundprofil och historik fylls tillbaka när mailboxscopen är klar.";
-        }
-        focusCustomerHero.innerHTML = `
-          <div class="focus-customer-hero-main">
-            <div class="focus-customer-avatar">CCO</div>
-            <div class="focus-customer-copy">
-              <h3>Synkar kundkontext</h3>
-              <div class="focus-customer-contact-line">
-                <span>Väntar på att livekön ska bli klar innan kundytan öppnas.</span>
-              </div>
-              <div class="focus-customer-chip-row">
-                <span class="focus-customer-chip focus-customer-chip--violet">Synkar live</span>
-              </div>
-            </div>
-          </div>`;
-        focusCustomerStats.innerHTML = `
-          <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">ÄRENDEN</span><strong>-</strong><p>synkar live data</p></article>
-          <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">LTV</span><strong>-</strong><p>hämtar kundprofil</p></article>
-          <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">STATUS</span><strong>Synkar</strong><p>uppdaterar live-state</p></article>`;
-        focusCustomerGrid.innerHTML = `
-          <article class="focus-customer-data-card"><h4>Mailhistorik</h4><dl>
-            <div><dt>Mailboxar</dt><dd>-</dd></div>
-            <div><dt>Första mail</dt><dd>-</dd></div>
-            <div><dt>Senaste mail</dt><dd>-</dd></div>
-            <div><dt>Mail</dt><dd>-</dd></div>
-          </dl></article>`;
-        if (focusCustomerHistoryCount) {
-          focusCustomerHistoryCount.textContent = "Synkar…";
-        }
-        if (focusCustomerHistoryMeta) {
-          focusCustomerHistoryMeta.textContent = "Livekön startar upp.";
-        }
-        setCustomerHistoryState("Synkar live", "violet");
-        setCustomerHistoryListState(
-          "Synkar live",
-          "Väntar på att livekön ska bli klar innan historiken visas."
-        );
-        return;
-      }
       if (!thread) {
         const isLoading = state.runtime.loading === true;
         renderFocusSummaryCards(focusCustomerSummary, [], "customer");
@@ -2641,7 +2557,7 @@
         if (focusCustomerHistoryDescription) {
           focusCustomerHistoryDescription.textContent =
             isOfflineHistorySelection
-              ? "Välj en historikruta i vänsterkolumnen för att ladda kundkontexten här."
+              ? "Offline historik är tillgänglig. Välj en historikruta i vänsterkolumnen för att ladda kundkontexten här."
               : "Samlad aktivitet för kunden över valda mailboxar.";
         }
         const customerErrorTitle = isOfflineHistorySelection
@@ -2653,7 +2569,7 @@
             : "Kundkontext saknas";
         const customerErrorBody =
           isOfflineHistorySelection
-            ? "När du väljer en historikruta visas kunden och trådens sammanhang här."
+            ? "När du väljer en historikruta visas kunden och trådens sammanhang här i läsläge."
             : isLoading
               ? "Livekön synkar just nu. Kundprofil, historik och trådkontext fylls tillbaka automatiskt när uppdateringen är klar."
             : state.runtime.error || "Logga in igen för att läsa live kunddata i nya CCO.";
@@ -2671,7 +2587,7 @@
               <div class="focus-customer-chip-row">
                 <span class="focus-customer-chip focus-customer-chip--violet">${escapeHtml(
                   isOfflineHistorySelection
-                    ? "Historik"
+                    ? "Offline historik"
                     : isLoading
                       ? "Synkar live"
                     : state.runtime.authRequired
@@ -2721,19 +2637,19 @@
         }
         if (focusCustomerHistoryMeta) {
           focusCustomerHistoryMeta.textContent = isOfflineHistorySelection
-            ? "Historik · välj en tråd"
+            ? "Offline historikläge · välj en historikruta"
             : "Ingen live kundhistorik tillgänglig";
         }
         setCustomerHistoryState(
           isOfflineHistorySelection
-            ? "Historik"
+            ? "Offline historik"
             : state.runtime.authRequired
               ? "Inloggning krävs"
               : "Vänteläge",
           "violet"
         );
         setCustomerHistoryListState(
-          isOfflineHistorySelection ? "Historik" : "Vänteläge",
+          isOfflineHistorySelection ? "Offline historik" : "Vänteläge",
           isOfflineHistorySelection
             ? "Välj en historikruta för att läsa kundkontexten i listan."
             : "Väntar på att en historik eller live-tråd ska fylla listan.",
@@ -2806,7 +2722,7 @@
               }
               ${
                 isOfflineHistoryThread
-                  ? `<span class="focus-customer-chip focus-customer-chip--violet">Historik</span>`
+                  ? `<span class="focus-customer-chip focus-customer-chip--violet">Offline historik</span>`
                   : ""
               }
             </div>
@@ -2898,7 +2814,7 @@
       if (focusCustomerHistoryMeta) {
         const latestLabel = latestEvent?.time || thread.lastActivityLabel;
         focusCustomerHistoryMeta.textContent = isOfflineHistoryThread
-          ? `Historik · ${customerMailboxOptions.length || 1} mailboxar · senaste ${latestLabel}`
+          ? `Offline historik · ${customerMailboxOptions.length || 1} mailboxar · senaste ${latestLabel}`
           : isTruthDrivenReadOnly
             ? `${focusReadState.label || "Truth-driven focus"} · ${focusWaveLabel} · ${customerMailboxOptions.length || 1} mailboxar · ${relatedThreads.length} trådar · senaste ${latestLabel}`
             : `${customerMailboxOptions.length || 1} mailboxar · ${relatedThreads.length} trådar · senaste ${latestLabel}`;
@@ -3349,36 +3265,12 @@
       const isTruthDrivenReadOnly =
         focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
-      const isStartupLocked =
-        state.runtime.startupLocked === true &&
-        state.runtime.authRequired !== true &&
-        state.runtime.offline !== true;
-      if (isStartupLocked) {
-        applyIntelWaitingState(true);
-        focusIntelTitle.textContent = "Operativt stöd";
-        setRuntimeActionRowsVisibility("[data-intel-actions]", false);
-        intelDateButton.innerHTML = `<span>synkar live-läget</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.3 6.5 8 9.2l2.7-2.7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" /></svg>`;
-        intelCustomer.innerHTML = `
-          <div class="focus-intel-monogram">CCO</div>
-          <div class="focus-intel-customer-copy">
-            <div class="focus-intel-name-row">
-              <h4>Synkar live-läget</h4>
-              <span class="focus-intel-queue-pill" data-pill-icon="bolt">Synkar</span>
-            </div>
-            <p class="focus-intel-support-copy">Väntar på att livekön ska bli klar innan kunddata och historik visas.</p>
-          </div>`;
-        intelGrid.innerHTML = `
-          <article class="focus-intel-card"><h4>Kund</h4><p>Synkar live-läget</p></article>
-          <article class="focus-intel-card"><h4>Historik</h4><p>Väntar på live-data</p></article>
-          <article class="focus-intel-card"><h4>Nu</h4><p>Väntar på live-tråd</p></article>`;
-        return;
-      }
       if (!thread) {
         applyIntelWaitingState(true);
         const isLoading = state.runtime.loading === true;
         const isAuthRequired = state.runtime.authRequired === true;
         const supportCopy = isOfflineHistorySelection
-          ? "Välj en historikruta i vänsterkolumnen för att läsa kundstatus och historik här."
+          ? "Offline historik är tillgänglig i läsläge. Välj en historikruta i vänsterkolumnen för att läsa kundstatus och historik här. Svar, senare, anteckning och radera kräver live-tråd."
           : isLoading
             ? "Livekön synkar just nu. Kundstatus, historik och nästa drag fylls tillbaka automatiskt när uppdateringen är klar."
           : isAuthRequired
@@ -3386,11 +3278,11 @@
               "Öppna admin och logga in igen för att återställa live kunddata, historik och arbetsplan."
             : state.runtime.error ||
               "Välj en aktiv live-tråd i arbetskön för att läsa kundstatus, historik och rekommenderat nästa drag.";
-        focusIntelTitle.textContent = "Operativt stöd";
+        focusIntelTitle.textContent = isOfflineHistorySelection ? "Operativt stöd · läsläge" : "Operativt stöd";
         setRuntimeActionRowsVisibility("[data-intel-actions]", false);
         intelDateButton.innerHTML = `<span>${escapeHtml(
           isOfflineHistorySelection
-            ? "historik"
+            ? "offline historik · läsläge"
             : isLoading
               ? "synkar live-läget"
             : isAuthRequired
@@ -3403,7 +3295,7 @@
             <div class="focus-intel-name-row">
               <h4>${escapeHtml(
                 isOfflineHistorySelection
-                  ? "Välj tråd"
+                  ? "Välj historikruta"
                   : isLoading
                     ? "Synkar livekö"
                   : isAuthRequired
@@ -3412,7 +3304,7 @@
               )}</h4>
               <span class="focus-intel-queue-pill" data-pill-icon="bolt">${escapeHtml(
                 isOfflineHistorySelection
-                  ? "Historik"
+                  ? "Offline historik"
                   : isLoading
                     ? "Synkar"
                   : isAuthRequired
@@ -3426,7 +3318,7 @@
           <div class="focus-intel-item focus-intel-item-lifecycle"><span class="focus-intel-label">LIVSCYKEL</span><strong>-</strong></div>
           <div class="focus-intel-item focus-intel-item-waiting"><span class="focus-intel-label">VÄNTAR PÅ</span><strong>${escapeHtml(
             isOfflineHistorySelection
-              ? "Vald tråd"
+              ? "Historikval"
               : isLoading
                 ? "Live-sync"
               : isAuthRequired
@@ -3449,7 +3341,7 @@
             : isAuthRequired
             ? "För att få kundstatus, historik och arbetsplan tillbaka behöver admin-sessionen loggas in igen."
             : isOfflineHistorySelection
-              ? "När du väljer en historikruta visas kundstatus och historik här."
+              ? "När du väljer en historikruta visas kundstatus och historik här i läsläge. Live-actions kräver att en live-tråd väljs igen."
               : "När en live-tråd väljs samlas kundstatus, historik och rekommenderat nästa drag här.";
         }
         renderIntelCardGroup(intelPanelCustomer, []);
@@ -3464,14 +3356,14 @@
       }
       applyIntelWaitingState(false);
       focusIntelTitle.textContent = isOfflineHistoryThread
-        ? "Operativt stöd"
+        ? "Operativt stöd · läsläge"
         : isTruthDrivenReadOnly
           ? `Operativt stöd · ${focusReadState.label || "Truth-driven focus"}`
           : "Operativt stöd";
       setRuntimeActionRowsVisibility("[data-intel-actions]", !isOfflineHistoryThread);
       intelDateButton.innerHTML = `<span>${escapeHtml(
         isOfflineHistoryThread
-          ? "historik"
+          ? "offline historik · läsläge"
           : `live ${formatConversationTime(state.runtime.lastSyncAt || new Date().toISOString())}`
       )}</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.3 6.5 8 9.2l2.7-2.7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" /></svg>`;
       intelCustomer.innerHTML = `
@@ -3481,7 +3373,7 @@
             <h4>${escapeHtml(thread.customerName)}</h4>
             <span class="focus-intel-queue-pill" data-pill-icon="bolt">${escapeHtml(
               isOfflineHistoryThread
-                ? "Historik"
+                ? "Offline historik"
                 : thread.tags.includes("act-now")
                   ? "Agera nu"
                   : thread.tags.includes("sprint")
@@ -3492,7 +3384,7 @@
           <p>${escapeHtml(
             isTruthDrivenReadOnly
               ? compactRuntimeCopy(
-                  `${thread.displayCustomerMeta || `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`} · ${focusWaveLabel}`,
+                  `${thread.displayCustomerMeta || `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`} · ${focusWaveLabel} truth-driven läsläge`,
                   `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`,
                   86
                 )
@@ -3524,12 +3416,16 @@
         )}</strong></div>`;
       if (intelReasonCopy) {
         intelReasonCopy.textContent = isOfflineHistoryThread
-          ? compactRuntimeCopy(thread.whyInFocus, thread.whyInFocus, 132)
+          ? compactRuntimeCopy(
+              `${thread.whyInFocus} Läsläge från offline historik. Live-actions kräver att en live-tråd väljs igen.`,
+              "Läsläge från offline historik. Live-actions kräver att en live-tråd väljs igen.",
+              132
+            )
           : isTruthDrivenReadOnly
             ? compactRuntimeCopy(
                 `${thread.whyInFocus} ${asText(
                   focusReadState?.detail,
-                  "Fokusytan visar den här tråden med fördjupad läskontext."
+                  "Truth-driven läsläge i fokusytan för wave 1. Reply- och studioflödet ligger kvar utanför detta pass."
                 )}`,
                 thread.whyInFocus,
                 132

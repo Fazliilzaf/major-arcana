@@ -112,19 +112,6 @@
       quiet = false,
       forceReload = false,
     } = {}) {
-      const adminToken = normalizeText(getAdminToken?.() || "");
-      if (!adminToken) {
-        const error = new Error("Logga in i admin för att läsa workspace bootstrap.");
-        state.bootstrapError = error.message;
-        if (!quiet) {
-          loadBootstrapFeedback("error", error.message);
-        }
-        return Promise.resolve({
-          authRequired: true,
-          skipped: true,
-          error: error.message,
-        });
-      }
       if (forceReload) {
         refs.bootstrapPromise = null;
       }
@@ -552,7 +539,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att förhandsvisa eller svara.",
+          "Offline historik är läsläge. Öppna live-tråden för att förhandsvisa eller svara.",
           "studio"
         )
       ) {
@@ -606,7 +593,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att spara utkast.",
+          "Offline historik är läsläge. Öppna live-tråden för att spara utkast.",
           "studio"
         )
       ) {
@@ -647,7 +634,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att parkera konversationen.",
+          "Offline historik är läsläge. Öppna live-tråden för att parkera konversationen.",
           "studio"
         )
       ) {
@@ -662,7 +649,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att markera konversationen som klar.",
+          "Offline historik är läsläge. Öppna live-tråden för att markera konversationen som klar.",
           "studio"
         )
       ) {
@@ -700,7 +687,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att radera konversationen.",
+          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
           "studio"
         )
       ) {
@@ -728,7 +715,7 @@
       if (!thread || !state.runtime.deleteEnabled || asText(state.runtime.deletingThreadId)) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att radera konversationen.",
+          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
           "focusStatus"
         )
       ) {
@@ -756,7 +743,7 @@
       if (!thread) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att markera konversationen som klar.",
+          "Offline historik är läsläge. Öppna live-tråden för att markera konversationen som klar.",
           "focusStatus"
         )
       ) {
@@ -772,7 +759,7 @@
       if (!thread || state.runtime.historyDeleting) return;
       if (
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att radera konversationen.",
+          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
           "focusHistory"
         )
       ) {
@@ -811,7 +798,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Öppna en aktiv tråd i arbetslistan för att skicka svar.",
+          "Offline historik är läsläge. Öppna live-tråden för att skicka svar.",
           "studio"
         )
       ) {

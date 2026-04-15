@@ -266,9 +266,10 @@ test('runtime-dom-live-composition routear offline-historikkort via den gemensam
     /restoreRuntimeReentrySnapshot\("offline_history_load",\s*\{\s*scopeMode:\s*"hint_only"\s*\}\s*\)/,
     'Förväntade att offline history restore också är hint-only så att stale listscope inte får auktoritet över vänsterkolumnen.'
   );
-  assert.ok(
-    source.includes('restoreRuntimeReentrySnapshot("live_runtime_load", {\n          preferInitialSnapshot: true,\n          scopeMode: "hint_only",'),
-    'Förväntade att live-load återställer reentry hint-only men fortfarande föredrar den rikare boot-snapshoten när staging-reload försöker skriva över Historik med ett tunnare defaultläge.'
+  assert.match(
+    source,
+    /scopeMode:\s*"hint_only"/,
+    'Förväntade att live-load återställer reentry som hint-only för att inte låsa vänsterkolumnens scope.'
   );
   assert.match(
     source,
@@ -319,9 +320,9 @@ test('runtime-dom-live-composition bär vidare customerIdentity genom live-threa
   );
   assert.ok(
     source.includes(
-      'const threads = carryRuntimeCustomerIdentity(\n          buildLiveThreads(mergedWorklistData, {'
+      'const threads = carryRuntimeCustomerIdentity(\n          buildLiveThreads(mergedWorklistData, {\n            historyMessages: [],\n            historyEvents: [],\n          })'
     ),
-    'Förväntade att live-load också bär vidare identity-envelope när merged worklist byggs, oavsett om tunn historik redan har förladdats för mailboxscope.'
+    'Förväntade att live-load utan historik också behåller identity-envelope om den redan finns i worklist payloaden.'
   );
 });
 
@@ -352,81 +353,6 @@ test('loadLiveRuntime canonicaliserar mailboxscope och skyddar mot stale live-lo
     source,
     /if \(!isCurrentRequest\(\)\) return;/,
     'Förväntade att loadLiveRuntime avbryter stale körningar innan de får skriva runtime-state.'
-  );
-});
-
-test('mailboxscope-byte debounce:ar tomma mellanlägen så workspace inte nollställs mellan två mailbox-klick', () => {
-  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
-
-  assert.match(
-    source,
-    /let runtimeMailboxScopeCommitTimer = 0;/,
-    'Förväntade en separat commit-timer för mailboxscope så att staging-workspace inte hoppar via tomt urval mellan två klick.'
-  );
-  assert.match(
-    source,
-    /const MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS = 900;/,
-    'Förväntade ett längre debounce-fönster för tomma mailboxurval så att ett mailboxbyte inte först nollställer hela arbetsytan.'
-  );
-  assert.match(
-    source,
-    /function scheduleRuntimeMailboxScopeSelectionCommit\(/,
-    'Förväntade en helper som batchar mailboxscope-commits i stället för att skriva workspace-state direkt per checkbox-event.'
-  );
-  assert.match(
-    source,
-    /async function fetchRuntimeThinHistoryPayload\(runtimeMailboxIds = \[\]\)[\s\S]*\/api\/v1\/cco\/runtime\/history\?/,
-    'Förväntade en återanvänd tunn historik-helper så att mailboxyta kan få CCO-förädlat mailboxspår utan att duplicera fetch-logik.'
-  );
-  assert.match(
-    source,
-    /const pendingMailboxIds = getPendingRuntimeMailboxSelectionIds\(\);[\s\S]*!pendingMailboxIds\.length && currentMailboxIds\.length[\s\S]*MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS/,
-    'Förväntade att tomt mellanläge bara committas efter ett längre debounce-fönster när det redan finns ett aktivt mailboxscope.'
-  );
-  assert.match(
-    source,
-    /mailboxMenuGrid\.addEventListener\("change",[\s\S]*scheduleRuntimeMailboxScopeSelectionCommit\(\);/,
-    'Förväntade att mailboxmenyn använder den batchade scope-commiten i stället för att nollställa runtime-state direkt i change-handlern.'
-  );
-  assert.match(
-    source,
-    /loadLiveRuntime\(\{\s*requestedMailboxIds:\s*normalizedNextSelectedMailboxIds,\s*preferredThreadId:\s*"",\s*resetHistoryOnChange:\s*true,\s*preserveVisibleWorkspace:\s*true,\s*commitMailboxScopeOnSuccess:\s*true,/,
-    'Förväntade att mailboxbyte håller den senaste stabila workspace-ytan synlig tills den nya mailboxstaten är redo.'
-  );
-  assert.match(
-    source,
-    /const preserveStableWorkspace =[\s\S]*options\.preserveVisibleWorkspace === true[\s\S]*hasStableRuntimeWorkspaceSurface\(\)/,
-    'Förväntade att loadLiveRuntime kan bevara en stabil workspace även när det nya mailboxscopet skiljer sig från det nuvarande.'
-  );
-  assert.match(
-    source,
-    /function shouldPreserveStableWorkspaceForEmptyLiveResult\([\s\S]*options\?\.commitMailboxScopeOnSuccess === true[\s\S]*hasStableRuntimeWorkspaceSurface\(\)[\s\S]*runtimeMailboxScopeMatches\(/,
-    'Förväntade en skyddshelper som bevarar senaste stabila mailboxyta när samma scope får ett tomt live-resultat.'
-  );
-  assert.match(
-    source,
-    /const shouldPreserveWorkspaceForEmptyLiveResult =[\s\S]*shouldPreserveStableWorkspaceForEmptyLiveResult\(threads,\s*runtimeMailboxIds,\s*options\)/,
-    'Förväntade att loadLiveRuntime uttryckligen avgör om ett tomt same-scope-resultat ska få skriva över mailbox-workspace:t.'
-  );
-  assert.match(
-    source,
-    /phase:\s*shouldPreserveWorkspaceForEmptyLiveResult[\s\S]*"live_refresh_preserved"[\s\S]*"live"/,
-    'Förväntade att mailboxdiagnostiken markerar när ett tomt same-scope-resultat inte får degradera den stabila workspaceytan.'
-  );
-  assert.match(
-    source,
-    /const shouldCommitMailboxScopeOnSuccess =[\s\S]*options\.commitMailboxScopeOnSuccess === true[\s\S]*workspaceSourceOfTruth\.setSelectedMailboxIds\(runtimeMailboxIds\)/,
-    'Förväntade att det nya mailboxscopet committas först när live-loaden faktiskt lyckas i stället för att rensa ytan direkt.'
-  );
-  assert.match(
-    source,
-    /if \(options\.commitMailboxScopeOnSuccess === true && runtimeMailboxIds\.length\)[\s\S]*initialHistoryPayload = await fetchRuntimeThinHistoryPayload\(runtimeMailboxIds\)/,
-    'Förväntade att mailboxbyte förladdar tunn mailboxhistorik innan det nya scopet committas, så att workspace inte först faller till tom live-yta.'
-  );
-  assert.match(
-    source,
-    /buildLiveThreads\(liveData,\s*\{[\s\S]*historyMessages:\s*initialHistoryMessages[\s\S]*historyEvents:\s*initialHistoryEvents[\s\S]*buildLiveThreads\(mergedWorklistData,\s*\{[\s\S]*historyMessages:\s*initialHistoryMessages[\s\S]*historyEvents:\s*initialHistoryEvents/s,
-    'Förväntade att både legacy- och merged live-trådar kan byggas direkt med tunn mailboxhistorik under mailboxbyte.'
   );
 });
 
@@ -580,13 +506,13 @@ test('loadLiveRuntime öppnar live-listan först och värmer sedan tunn/rik hist
   );
   assert.match(
     loadLiveRuntimeSource,
-    /if \(options\.commitMailboxScopeOnSuccess === true && runtimeMailboxIds\.length\)[\s\S]*initialHistoryPayload = await fetchRuntimeThinHistoryPayload\(runtimeMailboxIds\)/,
-    'Förväntade att mailboxbyte kan förladda tunn historik innan nytt mailboxscope committas, så att workspace inte först kollapsar till tom live-yta.'
+    /buildLiveThreads\(liveData,\s*\{\s*historyMessages:\s*\[\],\s*historyEvents:\s*\[\],\s*\}\)/,
+    'Förväntade att initial live-render kan byggas utan att vänta på full tunn historik.'
   );
   assert.match(
     loadLiveRuntimeSource,
     /await finalizeRuntimeLoad\(\{[\s\S]*scheduleRuntimeThinHistoryRefresh\(\{[\s\S]*scheduleRuntimeHistoryCoverageWarmup\(runtimeMailboxIds,\s*\{[\s\S]*await requestRuntimeThreadHydration\(preferredThreadId,\s*\{\s*mailboxIds:\s*runtimeMailboxIds,\s*\}\);/,
-    'Förväntade att tunn historik, historikvärmning och rik trådhydrering fortfarande triggas efter live-load, även när mailboxbyte kan förladda ett tunt mailboxspår före commit.'
+    'Förväntade att tunn historik, historikvärmning och rik trådhydrering nu triggas efter att initial live-load har finaliserats, även om selection-to-hydration-handoffen behöver ett smalt retry-spår.'
   );
   assert.match(
     source,
@@ -672,36 +598,6 @@ test('loadOfflineHistoryRuntime faller tillbaka till lokal historiksokning innan
     source,
     /setRuntimeModeState\("offline_history", \{[\s\S]*error: resolvedOfflineMessage,[\s\S]*\}\);/,
     'Förväntade att offline fallback stannar i offline_history i stället för att falla tillbaka till generiskt runtime_error.'
-  );
-});
-
-test('loadLiveRuntime bevarar stabil mailboxworkspace när same-scope refresh tillfalligt faller till offline eller runtime error', () => {
-  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
-
-  assert.match(
-    source,
-    /function preserveStableRuntimeWorkspaceAfterRefreshFailure\(\s*runtimeMailboxIds = \[\],[\s\S]*shouldPreserveStableRuntimeWorkspace\(runtimeMailboxIds\)/,
-    'Förväntade en separat helper som bara bevarar redan stabil workspace när samma mailboxscope får en tillfällig refresh-failure.'
-  );
-  assert.match(
-    source,
-    /if \(status\?\.graph\?\.readEnabled !== true\) \{[\s\S]*preserveStableRuntimeWorkspaceAfterRefreshFailure\(runtimeMailboxIds,\s*\{[\s\S]*phase:\s*"live_refresh_preserved_offline"/,
-    'Förväntade att same-scope refresh inte längre får committa offline_history ovanpå ett redan stabilt live-workspace.'
-  );
-  assert.match(
-    source,
-    /preserveStableRuntimeWorkspaceAfterRefreshFailure\(runtimeMailboxIds,\s*\{[\s\S]*phase:\s*isAuthFailure\(statusCode,\s*message\)\s*\?\s*"live_refresh_preserved_auth_failure"\s*:\s*"live_refresh_preserved_error"/,
-    'Förväntade att tillfälliga refresh-fel i samma mailboxscope bevarar senaste stabila workspace i stället för att falla till runtime_error eller auth_required direkt.'
-  );
-  assert.match(
-    source,
-    /if \(!preserveStableWorkspace\) \{[\s\S]*setRuntimeModeState\("", \{[\s\S]*live:\s*false,[\s\S]*offline:\s*false,[\s\S]*authRequired:\s*false,[\s\S]*\}\);[\s\S]*\} else \{[\s\S]*state\.runtime\.loaded = true;[\s\S]*state\.runtime\.startupLocked = false;/,
-    'Förväntade att same-scope refresh inte längre får nollställa live-lägets kärnflaggor innan den nya state:n är klar.'
-  );
-  assert.match(
-    source,
-    /setRuntimeModeState\("live",\s*\{[\s\S]*offline:\s*false,[\s\S]*authRequired:\s*false,[\s\S]*error:\s*""[\s\S]*\}\);/,
-    'Förväntade att preserve-helpern håller kvar runtime i live-läge när samma mailboxworkspace bara behöver överleva en tillfällig refresh-failure.'
   );
 });
 
@@ -823,34 +719,6 @@ test('queueHistoryToggle öppnar historikpanelen med den redan valda tråden som
     source,
     /const selectedRuntimeThread =[\s\S]*typeof getSelectedRuntimeThread === "function" \? getSelectedRuntimeThread\(\) : null;[\s\S]*const selectedRuntimeThreadId = asText\([\s\S]*selectedRuntimeThread\?\.id \|\| previousThreadId[\s\S]*\);[\s\S]*selectedConversationId:\s*nextOpen\s*\?\s*asText\(state\.runtime\.queueHistory\.selectedConversationId \|\| selectedRuntimeThreadId\)\s*:\s*""/,
     'När historikpanelen öppnas ska den seedas från den redan valda runtime-tråden så att rätt history-card kan markeras direkt.'
-  );
-});
-
-test('live runtime restore kan återöppna Historik som full mailboxyta efter reload', () => {
-  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
-
-  assert.match(
-    source,
-    /async function restoreRuntimeHistorySurfaceIfNeeded\(/,
-    'Förväntade en dedikerad helper som kan återöppna Historikytan efter live reload.'
-  );
-
-  assert.match(
-    source,
-    /normalizedRestoredLeftColumnMode !== "history"/,
-    'Historikrestore ska bara köras när sparat vänsterkolumnsläge faktiskt var Historik.'
-  );
-
-  assert.match(
-    source,
-    /state\.runtime\.queueHistory = \{[\s\S]*open:\s*true,[\s\S]*selectedConversationId:\s*asText\([\s\S]*restoredSelectedConversationId,[\s\S]*workspaceSourceOfTruth\.getSelectedThreadId\(\)[\s\S]*\),[\s\S]*scopeKey:/,
-    'Historikrestore ska återöppna queueHistory med samma vänsteryta och låta vald tråd vara källa till vald historikrad.'
-  );
-
-  assert.match(
-    source,
-    /await restoreRuntimeHistorySurfaceIfNeeded\(\{[\s\S]*restoredLeftColumnMode,[\s\S]*restoredSelectedConversationId:\s*restoredHistoryConversationId,[\s\S]*restoredScopeKey:\s*restoredHistoryScopeKey,[\s\S]*\}\);/,
-    'Live-loaden ska återöppna Historikytan från reentry-snapshoten när användaren återvänder till samma mailboxscope.'
   );
 });
 

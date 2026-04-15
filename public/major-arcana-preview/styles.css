@@ -217,11 +217,6 @@ body {
   background: var(--page-gradient);
 }
 
-body.runtime-cold-start .preview-workspace {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 body:not(.is-preview-ready) .focus-tabs,
 body:not(.is-preview-ready) .focus-signals,
 body:not(.is-preview-ready) .focus-badge-row,

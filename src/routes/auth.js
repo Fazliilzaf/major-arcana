@@ -71,40 +71,6 @@ function safeEqualText(a, b) {
   return String(a || '') === String(b || '');
 }
 
-function isSecureRequest(req) {
-  const protocolHeader =
-    (typeof req.get === 'function' && req.get('x-forwarded-proto')) || '';
-  const requestProtocol = typeof req.protocol === 'string' ? req.protocol : '';
-  const normalized = String(protocolHeader || requestProtocol || '')
-    .split(',')[0]
-    .trim()
-    .toLowerCase();
-  return normalized === 'https';
-}
-
-function writeAuthTokenCookie(req, res, token = '') {
-  if (!res || typeof res.cookie !== 'function') return;
-  const normalizedToken = typeof token === 'string' ? token.trim() : '';
-  if (!normalizedToken) return;
-  res.cookie('ARCANA_ADMIN_TOKEN', normalizedToken, {
-    httpOnly: false,
-    sameSite: 'lax',
-    secure: isSecureRequest(req),
-    path: '/',
-  });
-}
-
-function clearAuthTokenCookie(req, res) {
-  if (!res || typeof res.cookie !== 'function') return;
-  res.cookie('ARCANA_ADMIN_TOKEN', '', {
-    httpOnly: false,
-    sameSite: 'lax',
-    secure: isSecureRequest(req),
-    path: '/',
-    expires: new Date(0),
-  });
-}
-
 function createAuthRouter({
   authStore,
   requireAuth,
@@ -424,7 +390,6 @@ function createAuthRouter({
         },
       });
 
-      writeAuthTokenCookie(req, res, created.token);
       return res.json({
         token: created.token,
         expiresAt: created.session.expiresAt,
@@ -590,7 +555,6 @@ function createAuthRouter({
         },
       });
 
-      writeAuthTokenCookie(req, res, created.token);
       return res.json({
         token: created.token,
         expiresAt: created.session.expiresAt,
@@ -660,7 +624,6 @@ function createAuthRouter({
         },
       });
 
-      writeAuthTokenCookie(req, res, created.token);
       return res.json({
         token: created.token,
         expiresAt: created.session.expiresAt,
@@ -722,7 +685,6 @@ function createAuthRouter({
           },
         });
 
-        writeAuthTokenCookie(req, res, created.token);
         return res.json({
           token: created.token,
           expiresAt: created.session.expiresAt,
@@ -748,7 +710,6 @@ function createAuthRouter({
         targetType: 'session',
         targetId: req.auth.sessionId,
       });
-      clearAuthTokenCookie(req, res);
       return res.json({ ok: true });
     } catch (error) {
       console.error(error);

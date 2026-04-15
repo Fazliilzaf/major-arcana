@@ -137,8 +137,8 @@ test('focus renderers låser truth-driven focus i read-only gren utan studio-kna
   );
   assert.match(
     source,
-    /Fokusytan visar den här tråden med fördjupad läskontext\./,
-    'Förväntade neutral provenancecopy för truth-driven focus utan att bygga ett separat läsläge i ytan.'
+    /Truth-driven läsläge i fokusytan för wave 1\. Reply- och studioflödet ligger kvar utanför detta pass\./,
+    'Förväntade tydlig provenancecopy för truth-driven focus.'
   );
 
   const conversationNextActionsStart = source.indexOf('const conversationNextActionsMarkup =');

@@ -231,42 +231,6 @@
     return Array.isArray(value) ? value : [];
   }
 
-  function readAuthTokenCookie() {
-    try {
-      const cookieSource = String(document.cookie || '');
-      if (!cookieSource) return '';
-      const entries = cookieSource.split(';');
-      for (const entry of entries) {
-        const [rawName, ...rest] = String(entry || '').split('=');
-        if (String(rawName || '').trim() !== TOKEN_KEY) continue;
-        return String(decodeURIComponent(rest.join('=') || '') || '').trim();
-      }
-    } catch {
-      return '';
-    }
-    return '';
-  }
-
-  function persistAuthTokenCookie(token = '') {
-    const normalizedToken = String(token || '').trim();
-    if (!normalizedToken) return;
-    try {
-      const secure = String(window.location?.protocol || '').toLowerCase() === 'https:' ? '; Secure' : '';
-      document.cookie = `${TOKEN_KEY}=${encodeURIComponent(normalizedToken)}; Path=/; SameSite=Lax${secure}`;
-    } catch {
-      // Ignore cookie write failures.
-    }
-  }
-
-  function clearAuthTokenCookie() {
-    try {
-      const secure = String(window.location?.protocol || '').toLowerCase() === 'https:' ? '; Secure' : '';
-      document.cookie = `${TOKEN_KEY}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
-    } catch {
-      // Ignore cookie clear failures.
-    }
-  }
-
   function isCcoInteractionDebugEnabled() {
     const params = new URLSearchParams(window.location.search || '');
     if (params.get('cco_debug_clicks') === '1') return true;
@@ -1048,7 +1012,7 @@
   }
 
   const state = {
-    token: localStorage.getItem(TOKEN_KEY) || readAuthTokenCookie() || '',
+    token: localStorage.getItem(TOKEN_KEY) || '',
     language: loadLanguage(),
     densityMode: loadDensityMode(),
     role: '',
@@ -29070,7 +29034,6 @@
     if (typeof token === 'string' && token) {
       state.token = token;
       localStorage.setItem(TOKEN_KEY, state.token);
-      persistAuthTokenCookie(state.token);
     }
     if (membership?.role) state.role = membership.role;
     if (membership?.tenantId) state.tenantId = membership.tenantId;
@@ -29280,7 +29243,6 @@
     } catch {
       stopDashboardStream();
       localStorage.removeItem(TOKEN_KEY);
-      clearAuthTokenCookie();
       state.token = '';
       state.role = '';
       state.tenantId = '';
@@ -29387,7 +29349,6 @@
     state.ccoLastSeenAtMs = Date.now();
     persistCcoLastSeenAtMs(state.ccoLastSeenAtMs);
     localStorage.removeItem(TOKEN_KEY);
-    clearAuthTokenCookie();
     state.token = '';
     state.role = '';
     state.tenantId = '';

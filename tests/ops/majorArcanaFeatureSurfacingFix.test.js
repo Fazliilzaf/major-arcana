@@ -108,7 +108,7 @@ test('surfacing fix stärker read-only-, tool- och later-surfacing utan expansio
   );
   assert.ok(
     stylesSource.includes('.studio-shell[data-read-only="true"] .studio-tool-button:disabled'),
-    'Historikkontext ska fortsatt ge ett tydligt read-only-utseende till studiots verktygskontroller.'
+    'Offline historik ska ge ett särskilt read-only-utseende till studiots verktygskontroller.'
   );
 });
 
@@ -120,28 +120,28 @@ test('offline historik öppnar svarstudio utan att handoffen hoppar tillbaka til
 
   assert.ok(
     focusSource.includes('data-runtime-studio-read-only="true"'),
-    'Historikknappen ska markera read-only handoff explicit i DOM i stället för att se ut som vanlig live-öppning.'
+    'Offline historik-knappen ska markera read-only handoff explicit i DOM i stället för att se ut som vanlig live-öppning.'
   );
   assert.ok(
     focusSource.includes(
       '<button class="conversation-next-button" type="button" data-runtime-studio-open data-runtime-studio-read-only="true" data-runtime-studio-thread-id="${escapeHtml('
     ),
-    'Historikknappen ska bära med sig historikkonversationens id så read-only-handoffen kan återvälja samma historikrad.'
+    'Offline historik-knappen ska bära med sig historikkonversationens id så read-only-handoffen kan återvälja samma historikrad.'
   );
   assert.ok(
     domCompositionSource.includes('const runtimeStudioReadOnly =') &&
       domCompositionSource.includes('runtimeStudioThreadId && runtimeStudioReadOnly') &&
       domCompositionSource.includes('selectOfflineHistoryConversation(runtimeStudioThreadId, { reloadBootstrap: false });') &&
       domCompositionSource.includes('readOnly: runtimeStudioReadOnly,'),
-    'DOM-handoffet ska återvälja samma historikkonversation innan svarstudion öppnas i read-only-läge.'
+    'DOM-handoffet ska återvälja samma offline-historikkonversation innan svarstudion öppnas i read-only-läge.'
   );
   assert.ok(
     actionEngineSource.includes('state.studio.readOnly = readOnly;'),
-    'Runtime action engine ska bära med sig ett explicit read-only-lås när studion öppnas från historikkontext.'
+    'Runtime action engine ska bära med sig ett explicit read-only-lås när studion öppnas från offline historik.'
   );
   assert.ok(
     asyncSource.includes('resolveStudioMode() !== "compose" && state.studio?.readOnly === true && lockedThread'),
-    'Async studioactions ska fortsätta blockeras när reply-studion är låst i historikkontext.'
+    'Async studioactions ska fortsätta blockeras när reply-studion är låst i offline historik.'
   );
 });
 

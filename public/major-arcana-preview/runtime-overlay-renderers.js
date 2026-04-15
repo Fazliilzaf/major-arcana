@@ -419,7 +419,7 @@
             ? `Vald kund · nytt mejl från ${selectedSenderLabel}`
             : `Fristående nytt mejl från ${selectedSenderLabel}`
           : isOfflineHistoryReply
-            ? `Historik · ${thread.mailboxLabel || selectedSenderLabel}`
+            ? `Offline historik · läsläge · live-actions spärrade · ${thread.mailboxLabel || selectedSenderLabel}`
           : isTruthDrivenStudio
             ? `${studioTruthState.label || "Truth-driven studio"} · ${studioWaveLabel} · reply-context låst · ${composeMailboxLabel || thread.mailboxLabel || selectedSenderLabel}`
           : isTruthScopeRollback
@@ -454,7 +454,7 @@
             ? `Från ${composeMailboxLabel} · reply-context låst`
             : `Från ${selectedSenderLabel} · reply-context låst`
           : isOfflineHistoryReply
-            ? `Källa låst till ${thread?.mailboxLabel || selectedSenderLabel}`
+            ? `Källa låst till ${thread?.mailboxLabel || selectedSenderLabel} · läsläge`
             : isTruthDrivenStudio
               ? `Källa låst till ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || selectedSenderLabel} · reply-context låst`
               : `Källa låst till ${thread?.mailboxLabel || selectedSenderLabel}`;
@@ -463,7 +463,7 @@
         studioNextActionTitle.textContent = isComposeMode
           ? "Skriv nytt mejl"
           : isOfflineHistoryReply
-            ? "Historik"
+            ? "Offline historik · läsläge"
             : isTruthDrivenStudio
               ? `${studioWaveLabel} · Svara från ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "låst mailbox"}`
           : thread?.nextActionLabel || "Välj en tråd";
@@ -474,7 +474,7 @@
             ? `Startar en ny kontakt med ${thread.customerName}. Vi förifyller mottagaren åt dig.`
             : `Fristående compose från ${selectedSenderLabel}. Välj mall, ton och signatur innan du skickar.`
           : isOfflineHistoryReply
-            ? "Historikkontexten är tillgänglig här. Öppna en aktiv tråd i arbetslistan för att fortsätta arbeta."
+            ? "Historikkontexten är läsbar här, men svar, förhandsvisning, senare, klar och radera kräver live-tråd."
           : isTruthDrivenStudio
             ? asText(
                 studioTruthState?.detail,
@@ -512,7 +512,7 @@
             ? compactRuntimeCopy(thread.whyInFocus, "Vald kundkontext ger extra stöd för ett nytt mejl.", 88)
             : "Det här är ett fristående nytt mejl. Lägg till mottagare, välj mall och håll tonen tydlig."
           : isOfflineHistoryReply
-            ? `${thread?.whyInFocus || "Historiken är tillgänglig här."}`
+            ? `${thread?.whyInFocus || "Historiken är tillgänglig i läsläge."} Operativa actions kräver live-tråd.`
           : isTruthDrivenStudio
             ? `${compactRuntimeCopy(
                 thread?.whyInFocus,
@@ -568,7 +568,7 @@
         studioIncomingTime.textContent =
           latestCustomerMessage?.time ||
           thread?.lastActivityLabel ||
-          (isComposeMode ? "Nu" : isOfflineHistoryReply ? "Historik" : "Ingen live-tråd vald");
+          (isComposeMode ? "Nu" : isOfflineHistoryReply ? "Offline historik" : "Ingen live-tråd vald");
       }
       if (studioIncomingLabel) {
         studioIncomingLabel.textContent = isComposeMode
@@ -654,7 +654,7 @@
         studioEditorSummary.textContent = isComposeMode
           ? replySummaryParts.join(" · ")
           : isOfflineHistoryReply
-            ? `Historik · ${thread.customerName} · ${thread.mailboxLabel}`
+            ? `Offline historik · läsläge · ${thread.customerName} · ${thread.mailboxLabel}`
             : thread
               ? replySummaryParts.join(" · ")
               : state.runtime.authRequired
@@ -663,7 +663,7 @@
       }
       if (studioPolicyPill) {
         studioPolicyPill.textContent = isOfflineHistoryReply
-          ? "Historik"
+          ? "Offline läsläge"
           : isTruthDrivenStudio
             ? "Truth guardrail aktiv"
             : policy.label;
@@ -716,7 +716,7 @@
         button.disabled = disableChoiceControls;
         button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
         button.title = isOfflineHistoryReply
-          ? `${buttonLabel} · kräver aktiv tråd`
+          ? `${buttonLabel} · spärrad i läsläge`
           : buttonLabel;
       });
       Object.entries(studioContextTabs).forEach(([key, tab]) => {
@@ -737,13 +737,13 @@
           studioPrimarySuggestion.disabled ? "true" : "false"
         );
         studioPrimarySuggestion.title = isOfflineHistoryReply
-          ? "Välj en aktiv tråd i arbetslistan för att använda förslaget"
+          ? "Offline historik · live-tråd krävs för att använda förslaget"
           : asText(studioPrimarySuggestionLabel?.textContent, "Primärt förslag");
       }
       const defaultStudioFeedback = state.runtime.authRequired
         ? "Logga in igen i admin för att skicka, spara eller radera från studion."
         : isOfflineHistoryReply
-          ? "Välj en aktiv tråd i arbetslistan för att använda hela Svarstudio."
+          ? "Offline historik är läsläge. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd."
           : isTruthDrivenStudio
             ? `${studioTruthState.label || "Truth-driven studio"} · ${studioWaveLabel} · ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} · reply-context låst.`
           : "";

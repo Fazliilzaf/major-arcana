@@ -206,9 +206,6 @@
         next.queueHistory && typeof next.queueHistory === "object" ? next.queueHistory : {};
       const nextMailboxScope = normalizeMailboxScope(next.mailboxscope);
       const previousMailboxScope = normalizeMailboxScope(previous.mailboxscope);
-      const nextLeftColumnMode = normalizeKey(next.leftColumnMode || "default") || "default";
-      const previousLeftColumnMode =
-        normalizeKey(previous.leftColumnMode || "default") || "default";
       const nextSelectedOwnerKey = normalizeKey(next.selectedOwnerKey || "all") || "all";
       const previousSelectedOwnerKey = normalizeKey(previous.selectedOwnerKey || "all") || "all";
       const nextActiveLaneId = normalizeKey(next.activeLaneId || "all") || "all";
@@ -226,30 +223,12 @@
         normalizeKey(previous.historyResultTypeFilter || "all") || "all";
       const nextHistoryRangeFilter = normalizeKey(next.historyRangeFilter || "all") || "all";
       const previousHistoryRangeFilter = normalizeKey(previous.historyRangeFilter || "all") || "all";
-      const mergedLeftColumnMode =
-        nextLeftColumnMode !== "default" ? nextLeftColumnMode : previousLeftColumnMode;
-      const mergedSelectedThreadId = asText(next.selectedThreadId) || asText(previous.selectedThreadId);
-      const mergedQueueHistoryOpen =
-        mergedLeftColumnMode === "history"
-          ? true
-          : nextQueueHistory.open === true;
-      const mergedQueueHistorySelectedConversationId =
-        mergedLeftColumnMode === "history"
-          ? asText(nextQueueHistory.selectedConversationId) ||
-            mergedSelectedThreadId ||
-            asText(previousQueueHistory.selectedConversationId)
-          : asText(nextQueueHistory.selectedConversationId);
-      const mergedQueueHistoryScopeKey =
-        mergedLeftColumnMode === "history"
-          ? asText(nextQueueHistory.scopeKey) || asText(previousQueueHistory.scopeKey)
-          : asText(nextQueueHistory.scopeKey);
 
       return {
         ...previous,
         ...next,
-        leftColumnMode: mergedLeftColumnMode,
         mailboxscope: nextMailboxScope.length ? nextMailboxScope : previousMailboxScope,
-        selectedThreadId: mergedSelectedThreadId,
+        selectedThreadId: asText(next.selectedThreadId) || asText(previous.selectedThreadId),
         selectedOwnerKey:
           nextSelectedOwnerKey !== "all" ? nextSelectedOwnerKey : previousSelectedOwnerKey,
         activeLaneId: nextActiveLaneId !== "all" ? nextActiveLaneId : previousActiveLaneId,
@@ -288,9 +267,11 @@
         queueHistory: {
           ...previousQueueHistory,
           ...nextQueueHistory,
-          open: mergedQueueHistoryOpen,
-          selectedConversationId: mergedQueueHistorySelectedConversationId,
-          scopeKey: mergedQueueHistoryScopeKey,
+          open: nextQueueHistory.open === true || previousQueueHistory.open === true,
+          selectedConversationId:
+            asText(nextQueueHistory.selectedConversationId) ||
+            asText(previousQueueHistory.selectedConversationId),
+          scopeKey: asText(nextQueueHistory.scopeKey) || asText(previousQueueHistory.scopeKey),
         },
       };
     }
@@ -366,7 +347,6 @@
         "offline_history_load",
         "offline_history_loaded",
         "focus_section_change",
-        "runtime_thread_selected",
       ]);
       if (
         currentSnapshot &&
@@ -549,8 +529,12 @@
 
       const runtime = state.runtime && typeof state.runtime === "object" ? state.runtime : null;
       if (runtime) {
-        const savedLeftColumnMode =
-          normalizeKey(savedSnapshot.leftColumnMode || "default") || "default";
+        runtime.historyContextThreadId = asText(savedSnapshot.historyContextThreadId);
+        runtime.historySearch = asText(savedSnapshot.historySearch);
+        runtime.historyMailboxFilter = normalizeKey(savedSnapshot.historyMailboxFilter || "all") || "all";
+        runtime.historyResultTypeFilter =
+          normalizeKey(savedSnapshot.historyResultTypeFilter || "all") || "all";
+        runtime.historyRangeFilter = normalizeKey(savedSnapshot.historyRangeFilter || "all") || "all";
         if (applyPanelState) {
           runtime.queueInlinePanel = {
             ...(runtime.queueInlinePanel && typeof runtime.queueInlinePanel === "object"
@@ -564,19 +548,11 @@
             ...(runtime.queueHistory && typeof runtime.queueHistory === "object"
               ? runtime.queueHistory
               : {}),
-            open:
-              savedLeftColumnMode === "history" || savedSnapshot.queueHistory?.open === true,
-            selectedConversationId:
-              savedLeftColumnMode === "history"
-                ? asText(
-                    savedSnapshot.queueHistory?.selectedConversationId ||
-                      savedSnapshot.selectedThreadId
-                  )
-                : "",
-            scopeKey:
-              savedLeftColumnMode === "history"
-                ? asText(savedSnapshot.queueHistory?.scopeKey)
-                : "",
+            open: savedSnapshot.queueHistory?.open === true,
+            selectedConversationId: asText(
+              savedSnapshot.queueHistory?.selectedConversationId || savedSnapshot.selectedThreadId
+            ),
+            scopeKey: asText(savedSnapshot.queueHistory?.scopeKey),
           };
         }
       }

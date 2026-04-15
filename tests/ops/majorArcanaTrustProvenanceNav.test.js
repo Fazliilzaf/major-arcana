@@ -212,20 +212,20 @@ test('slutpasset harmoniserar offline-copy, capability-spärrar och trust-språk
     'Capability-copy ska uttryckligen säga nar signaturprofilen saknas i det aktuella laget.'
   );
   assert.ok(
-    overlaySource.includes('Historik ·'),
-    'Studio-copy ska markera historikkontext utan att bygga ett separat offline-läsläge i ytan.'
+    overlaySource.includes('Offline historik · läsläge · live-actions spärrade'),
+    'Studio-copy ska göra offline historik som läsläge tydlig utan att ge sken av operativt läge.'
   );
   assert.ok(
-    appSource.includes('Skicka: kräver aktiv tråd'),
-    'Capability-copy ska uttryckligen markera när skicka kräver aktiv tråd utan speciallägesspråk.'
+    appSource.includes('Skicka: spärrad i läsläge'),
+    'Capability-copy ska uttryckligen markera att skicka är spärrat i offline läsläge.'
   );
   assert.ok(
-    appSource.includes('Radera: kräver aktiv tråd'),
-    'Capability-copy ska uttryckligen markera när delete kräver aktiv tråd utan speciallägesspråk.'
+    appSource.includes('Radera: spärrad i läsläge'),
+    'Capability-copy ska uttryckligen markera att delete är spärrat i offline läsläge.'
   );
   assert.ok(
-    intelSource.includes('Historik'),
-    'Fokusyta och kundintelligens ska kunna märka historikkontext utan att införa ett särskilt läsläge i mitten/höger.'
+    intelSource.includes('Offline historik · läsläge'),
+    'Fokusyta och kundintelligens ska märka offline historik som läsläge i mitten/höger.'
   );
   assert.ok(
     appSource.includes('Härledd från livekällor: KPI-raden bygger på live telemetry'),

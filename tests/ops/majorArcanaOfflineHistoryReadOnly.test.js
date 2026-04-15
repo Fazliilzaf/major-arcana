@@ -44,13 +44,13 @@ test('runtime action engine blockerar anteckning och schemalaggning i offline hi
 
   assert.match(
     source,
-    /Öppna en aktiv tråd i arbetslistan för att skapa anteckningar\./,
-    'Anteckningsöppning ska blockeras ärligt utan att ge offline historik ett eget specialspråk.'
+    /Offline historik är läsläge\. Öppna live-tråden för att skapa anteckningar\./,
+    'Anteckningsöppning ska blockeras ärligt i offline historik.'
   );
   assert.match(
     source,
-    /Öppna en aktiv tråd i arbetslistan för att schemalägga uppföljning\./,
-    'Schemaläggning ska blockeras ärligt utan att ge offline historik ett eget specialspråk.'
+    /Offline historik är läsläge\. Öppna live-tråden för att schemalägga uppföljning\./,
+    'Schemaläggning ska blockeras ärligt i offline historik.'
   );
 });
 
@@ -58,12 +58,12 @@ test('async orchestration blockerar operativa studioactions i offline historik',
   const source = fs.readFileSync(ASYNC_PATH, 'utf8');
 
   [
-    'Öppna en aktiv tråd i arbetslistan för att förhandsvisa eller svara.',
-    'Öppna en aktiv tråd i arbetslistan för att spara utkast.',
-    'Öppna en aktiv tråd i arbetslistan för att parkera konversationen.',
-    'Öppna en aktiv tråd i arbetslistan för att markera konversationen som klar.',
-    'Öppna en aktiv tråd i arbetslistan för att radera konversationen.',
-    'Öppna en aktiv tråd i arbetslistan för att skicka svar.',
+    'Öppna live-tråden för att förhandsvisa eller svara.',
+    'Öppna live-tråden för att spara utkast.',
+    'Öppna live-tråden för att parkera konversationen.',
+    'Öppna live-tråden för att markera konversationen som klar.',
+    'Öppna live-tråden för att radera konversationen.',
+    'Öppna live-tråden för att skicka svar.',
   ].forEach((message) => {
     assert.match(
       source,
@@ -88,23 +88,23 @@ test('overlay renderern satter studion i read-only lage for offline historik', (
   );
   assert.match(
     source,
-    /Välj en aktiv tråd i arbetslistan för att använda hela Svarstudio\./,
-    'Studion ska ge en neutral blockerförklaring utan att göra offline historik till ett eget specialläge.'
+    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd\./,
+    'Studion ska visa en tydlig read-only-förklaring i offline historik.'
   );
   assert.match(
     source,
-    /studioPolicyPill\.textContent =[\s\S]*isOfflineHistoryReply[\s\S]*"Historik"[\s\S]*policy\.label;/,
-    'Policy-pill ska märka historikkontexten utan att införa ett separat offline-läsläge i ytan.'
+    /studioPolicyPill\.textContent =[\s\S]*isOfflineHistoryReply[\s\S]*"Offline läsläge"[\s\S]*policy\.label;/,
+    'Policy-pill ska bytas till Offline läsläge i offline-history studio.'
   );
 });
 
-test('appen begransar offline historik till verkligt offline_history-runtime', () => {
+test('appen definierar offline historik som vald historikkonversation, inte som global offline-runtime', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
 
   assert.match(
     source,
-    /function isOfflineHistoryReadOnlyMode\(\) \{[\s\S]*getRuntimeLeftColumnState\(\)\.mode === "history"[\s\S]*getRuntimeMode\(\) === "offline_history"[\s\S]*getSelectedQueueHistoryConversationId\(\)/,
-    'Offline historik ska bara aktiveras av vald historikkonversation nar runtime verkligen ar offline_history.'
+    /function isOfflineHistoryReadOnlyMode\(\) \{[\s\S]*getRuntimeLeftColumnState\(\)\.mode === "history"[\s\S]*getSelectedQueueHistoryConversationId\(\)/,
+    'Offline historik ska aktiveras av vald historikkonversation i historikpanelen.'
   );
   assert.doesNotMatch(
     source,
