@@ -1267,6 +1267,32 @@
       );
     }
 
+    function shouldPreserveStableWorkspaceForEmptyLiveResult(
+      nextThreads = [],
+      runtimeMailboxIds = [],
+      options = {}
+    ) {
+      if (asArray(nextThreads).length > 0) return false;
+      if (options?.commitMailboxScopeOnSuccess === true) return false;
+      if (!hasStableRuntimeWorkspaceSurface()) return false;
+      if (state.runtime?.offline === true || state.runtime?.authRequired === true) return false;
+      const normalizedRuntimeMailboxIds = asArray(runtimeMailboxIds)
+        .map((value) => canonicalizeRuntimeMailboxId(value))
+        .filter(Boolean);
+      if (!normalizedRuntimeMailboxIds.length) return false;
+      const selectedMailboxIds = asArray(workspaceSourceOfTruth.getSelectedMailboxIds())
+        .map((value) => canonicalizeRuntimeMailboxId(value))
+        .filter(Boolean);
+      const requestedMailboxIds = asArray(getRequestedRuntimeMailboxIds())
+        .map((value) => canonicalizeRuntimeMailboxId(value))
+        .filter(Boolean);
+      const referenceMailboxIds = selectedMailboxIds.length
+        ? selectedMailboxIds
+        : requestedMailboxIds;
+      if (!referenceMailboxIds.length) return false;
+      return runtimeMailboxScopeMatches(referenceMailboxIds, normalizedRuntimeMailboxIds);
+    }
+
     function hasRuntimeHistoryPayloadContent(historyPayload = null) {
       if (!historyPayload || typeof historyPayload !== "object") return false;
       if (asArray(historyPayload?.messages).length > 0) return true;
@@ -2878,22 +2904,32 @@
             ? ""
             : "Truth-driven studio är avstängd för wave 1. Studion läser och skriver via legacy-kedjan medan worklist och fokus kan vara truth-driven.";
         const metadata = analysisPayload?.output?.metadata || {};
+        const shouldPreserveWorkspaceForEmptyLiveResult =
+          shouldPreserveStableWorkspaceForEmptyLiveResult(threads, runtimeMailboxIds, options);
+        const appliedLegacyThreads = shouldPreserveWorkspaceForEmptyLiveResult
+          ? asArray(state.runtime.truthPrimaryLegacyThreads)
+          : legacyThreads;
+        const appliedThreads = shouldPreserveWorkspaceForEmptyLiveResult
+          ? asArray(state.runtime.threads)
+          : threads;
         recordRuntimeThreadAssignment("live_load", {
           stage: "before_apply",
           selectedThreadId: preferredThreadId,
-          threadCount: threads.length,
-          legacyThreadCount: legacyThreads.length,
+          threadCount: appliedThreads.length,
+          legacyThreadCount: appliedLegacyThreads.length,
         });
-        state.runtime.truthPrimaryLegacyThreads = legacyThreads;
-        state.runtime.threads = threads;
+        state.runtime.truthPrimaryLegacyThreads = appliedLegacyThreads;
+        state.runtime.threads = appliedThreads;
         recordRuntimeThreadAssignment("live_load", {
-          stage: "after_apply",
+          stage: shouldPreserveWorkspaceForEmptyLiveResult
+            ? "after_apply_preserved_stable_workspace"
+            : "after_apply",
           selectedThreadId: preferredThreadId,
-          threadCount: threads.length,
-          legacyThreadCount: legacyThreads.length,
+          threadCount: appliedThreads.length,
+          legacyThreadCount: appliedLegacyThreads.length,
         });
         state.runtime.mailboxes = buildMailboxCatalog(
-          threads.map((thread) => ({
+          appliedThreads.map((thread) => ({
             mailboxId: thread.mailboxAddress,
             mailboxAddress: thread.mailboxAddress,
             userPrincipalName: thread.mailboxAddress,
@@ -2945,16 +2981,21 @@
           lastAppliedAt: new Date().toISOString(),
         };
         state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-          phase: "live",
+          phase: shouldPreserveWorkspaceForEmptyLiveResult
+            ? "live_refresh_preserved"
+            : "live",
           requestedMailboxIds: runtimeMailboxIds,
           liveData,
           mergedWorklistData,
-          threads,
-          legacyThreads,
+          threads: appliedThreads,
+          legacyThreads: appliedLegacyThreads,
           historyPayload: null,
           truthPrimaryPayload,
           configuredTruthPrimaryMailboxIds,
           activeTruthPrimaryMailboxIds,
+          error: shouldPreserveWorkspaceForEmptyLiveResult
+            ? "Behåller senaste stabila mailboxyta medan live-refresh returnerar tomt underlag för samma scope."
+            : "",
         });
         debugRuntimePipeline("AFTER LIVE LOAD (before restore)");
         debugReentrySnapshot("BEFORE RESTORE");

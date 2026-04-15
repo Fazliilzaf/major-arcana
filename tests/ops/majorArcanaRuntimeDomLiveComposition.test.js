@@ -395,6 +395,21 @@ test('mailboxscope-byte debounce:ar tomma mellanlägen så workspace inte nollst
   );
   assert.match(
     source,
+    /function shouldPreserveStableWorkspaceForEmptyLiveResult\([\s\S]*options\?\.commitMailboxScopeOnSuccess === true[\s\S]*hasStableRuntimeWorkspaceSurface\(\)[\s\S]*runtimeMailboxScopeMatches\(/,
+    'Förväntade en skyddshelper som bevarar senaste stabila mailboxyta när samma scope får ett tomt live-resultat.'
+  );
+  assert.match(
+    source,
+    /const shouldPreserveWorkspaceForEmptyLiveResult =[\s\S]*shouldPreserveStableWorkspaceForEmptyLiveResult\(threads,\s*runtimeMailboxIds,\s*options\)/,
+    'Förväntade att loadLiveRuntime uttryckligen avgör om ett tomt same-scope-resultat ska få skriva över mailbox-workspace:t.'
+  );
+  assert.match(
+    source,
+    /phase:\s*shouldPreserveWorkspaceForEmptyLiveResult[\s\S]*"live_refresh_preserved"[\s\S]*"live"/,
+    'Förväntade att mailboxdiagnostiken markerar när ett tomt same-scope-resultat inte får degradera den stabila workspaceytan.'
+  );
+  assert.match(
+    source,
     /const shouldCommitMailboxScopeOnSuccess =[\s\S]*options\.commitMailboxScopeOnSuccess === true[\s\S]*workspaceSourceOfTruth\.setSelectedMailboxIds\(runtimeMailboxIds\)/,
     'Förväntade att det nya mailboxscopet committas först när live-loaden faktiskt lyckas i stället för att rensa ytan direkt.'
   );
