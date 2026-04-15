@@ -103,6 +103,16 @@
       "focus-customer-chip--green",
     ];
 
+    function firstTextValue(...values) {
+      for (const value of values) {
+        const normalized = asText(value, "");
+        if (normalized) {
+          return normalized;
+        }
+      }
+      return "";
+    }
+
     function setCustomerHistoryState(text, tone = "green") {
       if (!focusCustomerHistoryState) return;
       focusCustomerHistoryState.textContent = asText(text, "");
@@ -1218,7 +1228,7 @@
         if (/\+?\d[\d\s().-]{5,}/.test(normalizedLine)) return false;
         return normalizedLine.length >= 2 && normalizedLine.length <= 72;
       });
-      const identity = asText(candidateLine, tokens[0], "Visa avsändarfooter").trim();
+      const identity = firstTextValue(candidateLine, tokens[0], "Visa avsändarfooter").trim();
       return compactRuntimeCopy(identity, "Visa avsändarfooter", 52);
     }
 
@@ -1519,7 +1529,7 @@
       const explicitTitle = extractConversationSignatureTitle(lines);
       const authorName = asText(message?.author).trim();
       const matchedProfileName = asText(matchedProfile?.fullName).trim();
-      const resolvedName = asText(
+      const resolvedName = firstTextValue(
         hintedProfile?.fullName,
         !isConversationGenericHairTpSignatureName(explicitName) ? explicitName : "",
         !isConversationGenericHairTpSignatureName(authorName) ? authorName : "",
@@ -1527,9 +1537,9 @@
       );
       const normalizedName = resolvedName || asText(hintedProfile?.fullName) || "";
       const resolvedTitle = normalizeHairTpSignatureTitle(
-        asText(hintedProfile?.title, matchedProfile?.title, explicitTitle)
+        firstTextValue(hintedProfile?.title, matchedProfile?.title, explicitTitle)
       );
-      const resolvedEmail = asText(hintedProfile?.email, signatureEmail, mailboxId).toLowerCase();
+      const resolvedEmail = firstTextValue(hintedProfile?.email, signatureEmail, mailboxId).toLowerCase();
       const normalizedText = [
         "Bästa hälsningar",
         asText(normalizedName),
@@ -1772,12 +1782,12 @@
         asText(block?.text).trim()
       );
       const signatureDisplay = buildConversationSignatureDisplay(message, structuredSections);
-      const rawPrimaryBodyText = asText(
+      const rawPrimaryBodyText = firstTextValue(
         structuredSections?.primaryBody?.text,
         mailThreadMessage?.primaryBody?.text,
         asText(message?.conversationBody, asText(message?.body, ""))
       ).trim();
-      const rawPrimaryBodyHtml = asText(
+      const rawPrimaryBodyHtml = firstTextValue(
         structuredSections?.primaryBody?.html,
         mailThreadMessage?.primaryBody?.html,
         asText(message?.conversationBodyHtml, asText(message?.bodyHtml, ""))

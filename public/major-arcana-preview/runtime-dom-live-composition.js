@@ -1068,10 +1068,12 @@
       resetHistoryOnChange = false,
     } = {}) {
       clearRuntimeAuthRecoveryTimer();
+      const effectivePreferredThreadId =
+        asText(preferredThreadId) || asText(workspaceSourceOfTruth.getSelectedThreadId());
       ensureRuntimeMailboxSelection();
       normalizeVisibleRuntimeScope({
         allowLaneFallback: true,
-        preferredThreadId,
+        preferredThreadId: effectivePreferredThreadId,
         resetHistoryOnChange,
       });
       if (state.customerRuntime.loaded) {
