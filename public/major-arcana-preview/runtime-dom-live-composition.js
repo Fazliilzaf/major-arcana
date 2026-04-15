@@ -3200,7 +3200,10 @@
           }
           openQueueInlineFeed(button.dataset.queueViewJump || "sent");
         };
-        button.addEventListener("click", jumpToInlinePanel);
+        button.addEventListener("pointerup", jumpToInlinePanel);
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+        });
         button.addEventListener("keydown", (event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
