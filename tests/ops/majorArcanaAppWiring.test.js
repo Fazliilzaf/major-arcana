@@ -104,6 +104,22 @@ test('app.js kopplar lane- och feed-helpers till dom-live men inte tillbaka in i
     domCompositionCall.includes('\n      getQueueLaneThreads,'),
     'DOM live composition måste få getQueueLaneThreads för lane-klick i vänsterkolumnen.'
   );
+  assert.ok(
+    domCompositionCall.includes('\n      captureRuntimeReentrySnapshot,'),
+    'DOM live composition måste få captureRuntimeReentrySnapshot så staging-reentry inte blir en tom no-op i live-kedjan.'
+  );
+  assert.ok(
+    domCompositionCall.includes('\n      restoreRuntimeReentrySnapshot,'),
+    'DOM live composition måste få restoreRuntimeReentrySnapshot så Historik och vald tråd kan återställas efter reload.'
+  );
+  assert.ok(
+    domCompositionCall.includes('\n      getRuntimeReentrySnapshot,'),
+    'DOM live composition måste få getRuntimeReentrySnapshot för att kunna läsa sparat workspace-läge vid återinträde.'
+  );
+  assert.ok(
+    domCompositionCall.includes('\n      getRuntimeReentryOutcome,'),
+    'DOM live composition måste få getRuntimeReentryOutcome så reentry-diagnostiken speglar den riktiga restore-kedjan.'
+  );
 });
 
 test('app.js kopplar buildStudioSelectionSummary till overlay-renderern för den permanenta studio-orienteringen', () => {
