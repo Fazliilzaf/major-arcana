@@ -2492,14 +2492,14 @@
           <div class="conversation-next-summary">
             <span class="conversation-next-label">${escapeHtml(
               isOfflineHistoryThread
-                ? "Offline kontext"
+                ? "Kontext"
                 : isTruthDrivenReadOnly
                   ? "Truth-driven focus"
                   : "Rekommenderat drag"
             )}</span>
             <strong class="conversation-next-title">${escapeHtml(
               isOfflineHistoryThread
-                ? "Läsläge från historik"
+                ? "Historik"
                 : isTruthDrivenReadOnly
                   ? `${focusWaveLabel} · Läsläge`
                   : thread.nextActionLabel

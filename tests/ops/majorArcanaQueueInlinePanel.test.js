@@ -404,7 +404,7 @@ test('renderQueueHistorySection behåller historik som eget läge', () => {
   assert.equal(queueTitle.textContent, 'Historik (0)');
   assert.equal(queueHistoryToggle.attributes['aria-expanded'], 'true');
   assert.equal(queueHistoryLoadMoreButton.hidden, true);
-  assert.match(queueHistoryMeta.textContent, /Historik visas även när livekön är pausad\./i);
+  assert.equal(queueHistoryMeta.textContent, '');
   assert.doesNotMatch(queueHistoryMeta.textContent, /äldre mejl|offline historikläge/i);
   assert.match(queueHistoryList.innerHTML, /Ingen historik hittades i valt mailboxscope ännu/i);
 });
@@ -1193,7 +1193,7 @@ test('renderQueueHistorySection prioriterar historik over live-fel nar historikp
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Historik (1)');
-  assert.match(queueHistoryMeta.textContent, /Historik visas även när livekön är pausad\./i);
+  assert.equal(queueHistoryMeta.textContent, '');
   assert.doesNotMatch(queueHistoryMeta.textContent, /offline historikläge/i);
   assert.match(queueHistoryList.innerHTML, /Shahram/);
   assert.match(queueHistoryList.innerHTML, /Offline historiktrad/);
@@ -1323,7 +1323,7 @@ test('renderQueueHistorySection visar offline fallback-arbetslista i defaultlage
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Arbetslista (1)');
-  assert.match(queueHistoryMeta.textContent, /Historik visas medan livekön är pausad\./i);
+  assert.equal(queueHistoryMeta.textContent, '');
   assert.match(queueHistoryList.innerHTML, /offline-thread-1/);
   assert.match(queueHistoryList.innerHTML, /Arbetskön ska visa historikbaserad fallback/);
   assert.doesNotMatch(queueHistoryList.innerHTML, /Servern kör offline-läge/i);
@@ -1462,8 +1462,8 @@ test('renderQueueHistorySection håller Historik neutral och gör inte Alla elle
 
   assert.match(
     source,
-    /Historik visas även när livekön är pausad\.|Ingen historik hittades i valt mailboxscope ännu\./,
-    'Historik ska beskrivas neutralt som historik i stället för som ett separat specialläge.'
+    /Ingen historik hittades i valt mailboxscope ännu\./,
+    'Historik ska beskrivas neutralt utan att få ett separat specialläge i meta-raden.'
   );
 });
 

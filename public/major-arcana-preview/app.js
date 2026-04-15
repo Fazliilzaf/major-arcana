@@ -11734,6 +11734,7 @@
     return Boolean(
       thread &&
         typeof thread === "object" &&
+        getRuntimeMode() === "offline_history" &&
         (thread.offlineHistorySelection === true || thread.raw?.offlineHistorySelection === true)
     );
   }
@@ -11803,6 +11804,7 @@
   function isOfflineHistoryReadOnlyMode() {
     return (
       getRuntimeLeftColumnState().mode === "history" &&
+      getRuntimeMode() === "offline_history" &&
       Boolean(asText(getSelectedQueueHistoryConversationId()))
     );
   }

@@ -98,13 +98,13 @@ test('overlay renderern satter studion i read-only lage for offline historik', (
   );
 });
 
-test('appen definierar offline historik som vald historikkonversation, inte som global offline-runtime', () => {
+test('appen begransar offline historik till verkligt offline_history-runtime', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
 
   assert.match(
     source,
-    /function isOfflineHistoryReadOnlyMode\(\) \{[\s\S]*getRuntimeLeftColumnState\(\)\.mode === "history"[\s\S]*getSelectedQueueHistoryConversationId\(\)/,
-    'Offline historik ska aktiveras av vald historikkonversation i historikpanelen.'
+    /function isOfflineHistoryReadOnlyMode\(\) \{[\s\S]*getRuntimeLeftColumnState\(\)\.mode === "history"[\s\S]*getRuntimeMode\(\) === "offline_history"[\s\S]*getSelectedQueueHistoryConversationId\(\)/,
+    'Offline historik ska bara aktiveras av vald historikkonversation nar runtime verkligen ar offline_history.'
   );
   assert.doesNotMatch(
     source,

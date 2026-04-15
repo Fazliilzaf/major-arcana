@@ -695,6 +695,11 @@ test('loadLiveRuntime bevarar stabil mailboxworkspace när same-scope refresh ti
   );
   assert.match(
     source,
+    /if \(!preserveStableWorkspace\) \{[\s\S]*setRuntimeModeState\("", \{[\s\S]*live:\s*false,[\s\S]*offline:\s*false,[\s\S]*authRequired:\s*false,[\s\S]*\}\);[\s\S]*\} else \{[\s\S]*state\.runtime\.loaded = true;[\s\S]*state\.runtime\.startupLocked = false;/,
+    'Förväntade att same-scope refresh inte längre får nollställa live-lägets kärnflaggor innan den nya state:n är klar.'
+  );
+  assert.match(
+    source,
     /setRuntimeModeState\("live",\s*\{[\s\S]*offline:\s*false,[\s\S]*authRequired:\s*false,[\s\S]*error:\s*""[\s\S]*\}\);/,
     'Förväntade att preserve-helpern håller kvar runtime i live-läge när samma mailboxworkspace bara behöver överleva en tillfällig refresh-failure.'
   );

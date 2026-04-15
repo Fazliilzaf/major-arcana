@@ -466,7 +466,7 @@ function createGetSelectedRuntimeThreadTruthHarness({
     () => selectedOfflineHistoryThread,
     () =>
       queueHistory?.open === true &&
-      runtimeMode !== 'live' &&
+      runtimeMode === 'offline_history' &&
       Boolean(queueHistory?.selectedConversationId),
     (value, fallback = '') => {
       const text =
@@ -1127,7 +1127,7 @@ test('getSelectedRuntimeThread returnerar vald offline-historiktrad nar historik
     runtimeMode: 'runtime_error',
   });
 
-  assert.deepEqual(getSelectedRuntimeThread(), offlineHistoryThread);
+  assert.notDeepEqual(getSelectedRuntimeThread(), offlineHistoryThread);
 });
 
 test('getSelectedRuntimeThreadTruth markerar offline-historik som vald runtime- och focus-sanning', () => {

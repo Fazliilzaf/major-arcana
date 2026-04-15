@@ -2752,34 +2752,41 @@
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
       state.runtime.startupLocked = !preserveStableWorkspace;
       state.runtime.loading = true;
-      state.runtime.truthPrimaryLegacyThreads = [];
-      state.runtime.liveHydratedThreadIds = [];
+      if (!preserveStableWorkspace) {
+        state.runtime.truthPrimaryLegacyThreads = [];
+        state.runtime.liveHydratedThreadIds = [];
+      }
       clearRuntimeAuthRecoveryTimer();
       resetRuntimeOpenFlowDiagnostics({
         requestSequence: runtimeRequestSequence,
         reason: "live_runtime_load",
       });
-      state.runtime.truthPrimaryCutover = {
-        enabled: false,
-        configuredMailboxIds: [],
-        activeMailboxIds: [],
-        fallbackReason: "",
-        lastAppliedAt: "",
-      };
-      state.runtime.focusTruthPrimary = {
-        enabled: false,
-        configuredMailboxIds: [],
-        activeMailboxIds: [],
-        fallbackReason: "",
-        readOnly: true,
-        lastAppliedAt: "",
-      };
-      setRuntimeModeState("", {
-        error: "",
-        live: false,
-        offline: false,
-        authRequired: false,
-      });
+      if (!preserveStableWorkspace) {
+        state.runtime.truthPrimaryCutover = {
+          enabled: false,
+          configuredMailboxIds: [],
+          activeMailboxIds: [],
+          fallbackReason: "",
+          lastAppliedAt: "",
+        };
+        state.runtime.focusTruthPrimary = {
+          enabled: false,
+          configuredMailboxIds: [],
+          activeMailboxIds: [],
+          fallbackReason: "",
+          readOnly: true,
+          lastAppliedAt: "",
+        };
+        setRuntimeModeState("", {
+          error: "",
+          live: false,
+          offline: false,
+          authRequired: false,
+        });
+      } else {
+        state.runtime.loaded = true;
+        state.runtime.startupLocked = false;
+      }
       state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
         phase: "loading",
         requestedMailboxIds: runtimeMailboxIds,

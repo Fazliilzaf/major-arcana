@@ -2268,11 +2268,7 @@
           return;
         }
 
-        setQueueHistoryMeta(
-          runtimeMode === "offline_history" || state.runtime.live !== true
-            ? "Historik visas även när livekön är pausad."
-            : ""
-        );
+        setQueueHistoryMeta("");
 
         if (!asArray(historyState.items).length) {
           if (queueHistoryList) {
@@ -2441,14 +2437,7 @@
         if (queueTitle) {
           queueTitle.textContent = `Arbetslista (${defaultThreads.length})`;
         }
-        setQueueHistoryMeta(
-          runtimeMode === "offline_history"
-            ? offlineWorkingSetMeta ||
-                "Historik visas medan livekön är pausad."
-            : isOfflineHistoryMode
-              ? "Historik aktiv."
-              : ""
-        );
+        setQueueHistoryMeta(runtimeMode === "offline_history" ? offlineWorkingSetMeta || "" : "");
         if (!defaultThreads.length) {
           renderQueueInlineLaneList([
             buildUnifiedStateThread({
