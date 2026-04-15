@@ -1944,10 +1944,10 @@
               : ownerFiltered
                 ? "Ägarfiltret gav inga aktiva trådar"
                 : runtimeMode === "offline_history"
-                  ? "Ingen historik hittades i valt mailboxscope"
+                  ? "Inget mailboxspår hittades i valt mailboxscope"
                   : "Mailboxfiltret gav inga aktiva trådar",
             preview: laneFiltered
-              ? "Byt kö i vänsterpanelen eller återgå till Alla trådar för att se fler konversationer."
+              ? "Byt kö i vänsterpanelen, återgå till arbetslistans Alla eller öppna Historik för hela mailboxspåret."
               : ownerFiltered
                 ? "Byt ägare eller återgå till Ägarvy för att se fler trådar."
                 : runtimeMode === "offline_history"
@@ -1958,7 +1958,7 @@
             statusLabel: runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
             nextActionLabel: runtimeMode === "offline_history" ? "Byt mailboxscope" : "Justera urval",
             nextActionSummary: laneFiltered
-              ? "Återgå till Alla trådar eller byt kö för att hitta nästa aktiva konversation."
+              ? "Återgå till arbetslistans Alla, byt kö eller öppna Historik för att hitta nästa relevanta konversation."
               : ownerFiltered
                 ? "Byt ägarfilter eller återgå till Ägarvy för att läsa fler trådar."
                 : runtimeMode === "offline_history"
@@ -2236,7 +2236,9 @@
         }
 
         if (historyState.loading) {
-          setQueueHistoryMeta("Laddar äldre mejl…", { showHead: false });
+          setQueueHistoryMeta(
+            "Laddar hela mailboxens strukturerade mejlspår för valt mailboxscope…"
+          );
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
           syncQueueHistoryActionButton(deleteActionButton, {
             visible: false,
@@ -2245,14 +2247,15 @@
           });
           renderQueueHistoryList([]);
           if (queueHistoryList) {
-            queueHistoryList.innerHTML = '<div class="queue-history-empty">Laddar historik…</div>';
+            queueHistoryList.innerHTML =
+              '<div class="queue-history-empty">Laddar mailboxspåret för valt mailboxscope…</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
 
         if (historyState.error) {
-          setQueueHistoryMeta("Historiken kunde inte laddas just nu.", { showHead: false });
+          setQueueHistoryMeta("Mailboxspåret kunde inte laddas just nu.");
           syncQueueHistoryActionButton(completeActionButton, { visible: false, disabled: true });
           syncQueueHistoryActionButton(deleteActionButton, {
             visible: false,
@@ -2270,14 +2273,14 @@
 
         setQueueHistoryMeta(
           runtimeMode === "offline_history" || state.runtime.live !== true
-            ? "Offline historikläge aktivt. Historik visas även när livekön är pausad."
-            : ""
+            ? "Historik visar hela mailboxens strukturerade mejlspår från senast kända CCO-underlag för valt mailboxscope."
+            : "Historik visar hela mailboxens strukturerade mejlspår för valt mailboxscope. Arbetslistan visar det operativa urvalet."
         );
 
         if (!asArray(historyState.items).length) {
           if (queueHistoryList) {
             queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
+              '<div class="queue-history-empty">Inga mejl hittades i mailboxspåret för valt mailboxscope ännu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
@@ -2414,12 +2417,13 @@
               customerName: "Inga trådar i urvalet",
               ownerLabel: "Arbetskö",
               subject: `${QUEUE_LANE_LABELS[laneId] || QUEUE_LANE_LABELS.all} har inga aktiva trådar`,
-              preview: "Byt kö i vänsterpanelen eller återgå till Alla trådar för att se fler konversationer.",
+              preview:
+                "Byt kö i vänsterpanelen, återgå till arbetslistans Alla eller öppna Historik för hela mailboxspåret.",
               mailboxLabel: "Arbetskö",
               statusLabel: "Ingen match",
               nextActionLabel: "Byt kö",
               nextActionSummary:
-                "Återgå till Alla trådar eller byt kö för att hitta nästa aktiva konversation.",
+                "Återgå till arbetslistans Alla, byt kö eller öppna Historik för att hitta nästa relevanta konversation.",
             }),
           ]);
         } else {
@@ -2459,7 +2463,7 @@
                   : "Arbetskö",
               subject:
                 runtimeMode === "offline_history"
-                  ? "Ingen historik hittades i valt mailboxscope"
+                  ? "Inget mailboxspår hittades i valt mailboxscope"
                   : "Mailboxfiltret gav inga aktiva trådar",
               preview:
                 runtimeMode === "offline_history"
