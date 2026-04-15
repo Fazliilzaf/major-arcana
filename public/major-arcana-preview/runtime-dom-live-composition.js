@@ -78,6 +78,9 @@
 
     let runtimeAuthRecoveryTimer = 0;
     let runtimeLiveRefreshTimer = 0;
+    let runtimeMailboxScopeCommitTimer = 0;
+    const MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS = 900;
+    const MAILBOX_SCOPE_NON_EMPTY_COMMIT_DELAY_MS = 140;
 
     const {
       CCO_DEFAULT_REPLY_SENDER,
@@ -932,6 +935,13 @@
       }
     }
 
+    function clearRuntimeMailboxScopeCommitTimer() {
+      if (runtimeMailboxScopeCommitTimer) {
+        windowObject.clearTimeout(runtimeMailboxScopeCommitTimer);
+        runtimeMailboxScopeCommitTimer = 0;
+      }
+    }
+
     function hasRuntimeAdminToken() {
       return Boolean(normalizeText(getAdminToken?.() || ""));
     }
@@ -1278,6 +1288,105 @@
         Number(summary.quotedCount || 0) > 0 ||
         Number(summary.systemCount || 0) > 0
       );
+    }
+
+    function getPendingRuntimeMailboxSelectionIds() {
+      if (!mailboxMenuGrid || typeof mailboxMenuGrid.querySelectorAll !== "function") {
+        return asArray(workspaceSourceOfTruth.getSelectedMailboxIds())
+          .map((value) => normalizeMailboxId(value))
+          .filter(Boolean);
+      }
+      return Array.from(mailboxMenuGrid.querySelectorAll("input[data-runtime-mailbox]:checked"))
+        .map((input) => normalizeMailboxId(input?.dataset?.runtimeMailbox))
+        .filter(Boolean);
+    }
+
+    function applyRuntimeMailboxScopeSelection(nextSelectedMailboxIds = []) {
+      const normalizedNextSelectedMailboxIds = asArray(nextSelectedMailboxIds)
+        .map((value) => normalizeMailboxId(value))
+        .filter(Boolean);
+      const currentSelectedMailboxIds = asArray(workspaceSourceOfTruth.getSelectedMailboxIds())
+        .map((value) => normalizeMailboxId(value))
+        .filter(Boolean);
+      if (runtimeMailboxScopeMatches(currentSelectedMailboxIds, normalizedNextSelectedMailboxIds)) {
+        state.runtime.mailboxScopePinned = normalizedNextSelectedMailboxIds.length > 0;
+        return normalizedNextSelectedMailboxIds;
+      }
+      const committedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
+        normalizedNextSelectedMailboxIds
+      );
+      state.runtime.mailboxScopePinned = committedMailboxIds.length > 0;
+      workspaceSourceOfTruth.setSelectedThreadId("");
+      state.runtime.historyContextThreadId = "";
+      state.runtime.queueInlinePanel = {
+        ...state.runtime.queueInlinePanel,
+        open: false,
+        laneId: "",
+        feedKey: "",
+      };
+      state.runtime.queueHistory = {
+        ...state.runtime.queueHistory,
+        open: false,
+        loading: false,
+        loaded: false,
+        error: "",
+        items: [],
+        selectedConversationId: "",
+        hasMore: false,
+        scopeKey: "",
+      };
+      renderRuntimeConversationShell();
+      captureRuntimeReentrySnapshot("mailboxscope_changed");
+      debugReentrySnapshot("AFTER MAILBOX CHANGE");
+      debugRuntimePipeline("AFTER MAILBOX CHANGE");
+      refreshQueueInlineHistoryIfOpen();
+      if (!committedMailboxIds.length) {
+        state.runtime.mailboxScopePinned = false;
+        state.runtime.queueHistory = {
+          ...state.runtime.queueHistory,
+          loading: false,
+          loaded: true,
+          error: "",
+          items: [],
+          selectedConversationId: "",
+          hasMore: false,
+          scopeKey: "",
+        };
+        workspaceSourceOfTruth.setSelectedThreadId("");
+        renderQueueHistorySection();
+        loadBootstrap({
+          preserveActiveDestination: true,
+          applyWorkspacePrefs: false,
+          quiet: true,
+        }).catch((error) => {
+          console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
+        });
+        return committedMailboxIds;
+      }
+      loadLiveRuntime({
+        requestedMailboxIds: committedMailboxIds,
+        preferredThreadId: "",
+        resetHistoryOnChange: true,
+      }).catch((error) => {
+        console.warn("CCO live runtime misslyckades efter mailboxbyte.", error);
+      });
+      return committedMailboxIds;
+    }
+
+    function scheduleRuntimeMailboxScopeSelectionCommit() {
+      clearRuntimeMailboxScopeCommitTimer();
+      const pendingMailboxIds = getPendingRuntimeMailboxSelectionIds();
+      const currentMailboxIds = asArray(workspaceSourceOfTruth.getSelectedMailboxIds())
+        .map((value) => normalizeMailboxId(value))
+        .filter(Boolean);
+      const delayMs =
+        !pendingMailboxIds.length && currentMailboxIds.length
+          ? MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS
+          : MAILBOX_SCOPE_NON_EMPTY_COMMIT_DELAY_MS;
+      runtimeMailboxScopeCommitTimer = windowObject.setTimeout(() => {
+        runtimeMailboxScopeCommitTimer = 0;
+        applyRuntimeMailboxScopeSelection(getPendingRuntimeMailboxSelectionIds());
+      }, delayMs);
     }
 
     function buildRuntimeThreadHydrationSearchCandidates(thread = null) {
@@ -3282,71 +3391,7 @@
         mailboxMenuGrid.addEventListener("change", (event) => {
           const input = event.target.closest("[data-runtime-mailbox]");
           if (!input) return;
-          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
-          const nextSelected = new Set(workspaceSourceOfTruth.getSelectedMailboxIds());
-          if (input.checked) {
-            nextSelected.add(mailboxId);
-          } else {
-            nextSelected.delete(mailboxId);
-          }
-          const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
-            Array.from(nextSelected)
-          );
-          state.runtime.mailboxScopePinned = nextSelectedMailboxIds.length > 0;
-          workspaceSourceOfTruth.setSelectedThreadId("");
-          state.runtime.historyContextThreadId = "";
-          state.runtime.queueInlinePanel = {
-            ...state.runtime.queueInlinePanel,
-            open: false,
-            laneId: "",
-            feedKey: "",
-          };
-          state.runtime.queueHistory = {
-            ...state.runtime.queueHistory,
-            open: false,
-            loading: false,
-            loaded: false,
-            error: "",
-            items: [],
-            selectedConversationId: "",
-            hasMore: false,
-            scopeKey: "",
-          };
-          renderRuntimeConversationShell();
-          captureRuntimeReentrySnapshot("mailboxscope_changed");
-          debugReentrySnapshot("AFTER MAILBOX CHANGE");
-          debugRuntimePipeline("AFTER MAILBOX CHANGE");
-          refreshQueueInlineHistoryIfOpen();
-          if (!nextSelectedMailboxIds.length) {
-            state.runtime.mailboxScopePinned = false;
-            state.runtime.queueHistory = {
-              ...state.runtime.queueHistory,
-              loading: false,
-              loaded: true,
-              error: "",
-              items: [],
-              selectedConversationId: "",
-              hasMore: false,
-              scopeKey: "",
-            };
-            workspaceSourceOfTruth.setSelectedThreadId("");
-            renderQueueHistorySection();
-            loadBootstrap({
-              preserveActiveDestination: true,
-              applyWorkspacePrefs: false,
-              quiet: true,
-            }).catch((error) => {
-              console.warn("CCO workspace bootstrap misslyckades efter tomt mailboxscope.", error);
-            });
-            return;
-          }
-          loadLiveRuntime({
-            requestedMailboxIds: nextSelectedMailboxIds,
-            preferredThreadId: "",
-            resetHistoryOnChange: true,
-          }).catch((error) => {
-            console.warn("CCO live runtime misslyckades efter mailboxbyte.", error);
-          });
+          scheduleRuntimeMailboxScopeSelectionCommit();
         });
       }
 

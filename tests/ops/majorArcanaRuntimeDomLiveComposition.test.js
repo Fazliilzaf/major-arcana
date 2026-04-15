@@ -355,6 +355,36 @@ test('loadLiveRuntime canonicaliserar mailboxscope och skyddar mot stale live-lo
   );
 });
 
+test('mailboxscope-byte debounce:ar tomma mellanlägen så workspace inte nollställs mellan två mailbox-klick', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /let runtimeMailboxScopeCommitTimer = 0;/,
+    'Förväntade en separat commit-timer för mailboxscope så att staging-workspace inte hoppar via tomt urval mellan två klick.'
+  );
+  assert.match(
+    source,
+    /const MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS = 900;/,
+    'Förväntade ett längre debounce-fönster för tomma mailboxurval så att ett mailboxbyte inte först nollställer hela arbetsytan.'
+  );
+  assert.match(
+    source,
+    /function scheduleRuntimeMailboxScopeSelectionCommit\(/,
+    'Förväntade en helper som batchar mailboxscope-commits i stället för att skriva workspace-state direkt per checkbox-event.'
+  );
+  assert.match(
+    source,
+    /const pendingMailboxIds = getPendingRuntimeMailboxSelectionIds\(\);[\s\S]*!pendingMailboxIds\.length && currentMailboxIds\.length[\s\S]*MAILBOX_SCOPE_EMPTY_COMMIT_DELAY_MS/,
+    'Förväntade att tomt mellanläge bara committas efter ett längre debounce-fönster när det redan finns ett aktivt mailboxscope.'
+  );
+  assert.match(
+    source,
+    /mailboxMenuGrid\.addEventListener\("change",[\s\S]*scheduleRuntimeMailboxScopeSelectionCommit\(\);/,
+    'Förväntade att mailboxmenyn använder den batchade scope-commiten i stället för att nollställa runtime-state direkt i change-handlern.'
+  );
+});
+
 test('loadLiveRuntime väntar in admin-token innan runtime-status hämtas', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
 
