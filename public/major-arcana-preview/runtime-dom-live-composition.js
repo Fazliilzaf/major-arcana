@@ -1112,6 +1112,46 @@
       }
     }
 
+    async function restoreRuntimeHistorySurfaceIfNeeded({
+      restoredLeftColumnMode = "",
+      restoredSelectedConversationId = "",
+      restoredScopeKey = "",
+    } = {}) {
+      const normalizedRestoredLeftColumnMode = normalizeKey(restoredLeftColumnMode || "");
+      if (normalizedRestoredLeftColumnMode !== "history") return false;
+      const nextSelectedConversationId = asText(
+        restoredSelectedConversationId,
+        workspaceSourceOfTruth.getSelectedThreadId()
+      );
+      if (!nextSelectedConversationId) return false;
+      const nextScopeKey = getQueueHistoryScopeKey();
+      const shouldForceReload =
+        !state.runtime.queueHistory?.loaded ||
+        (asText(state.runtime.queueHistory?.scopeKey) &&
+          asText(state.runtime.queueHistory?.scopeKey) !== asText(nextScopeKey));
+      state.runtime.queueInlinePanel = {
+        ...(state.runtime.queueInlinePanel && typeof state.runtime.queueInlinePanel === "object"
+          ? state.runtime.queueInlinePanel
+          : {}),
+        open: false,
+        laneId: "",
+        feedKey: "",
+      };
+      state.runtime.queueHistory = {
+        ...(state.runtime.queueHistory && typeof state.runtime.queueHistory === "object"
+          ? state.runtime.queueHistory
+          : {}),
+        open: true,
+        selectedConversationId: nextSelectedConversationId,
+        scopeKey: asText(restoredScopeKey || nextScopeKey),
+      };
+      renderRuntimeConversationShell();
+      await loadQueueHistory({ force: shouldForceReload }).catch((queueHistoryError) => {
+        console.warn("CCO kunde inte återställa Historik som mailboxyta efter reload.", queueHistoryError);
+      });
+      return true;
+    }
+
     function restoreRuntimeFocusSectionIfNeeded({
       restoredFocusSection = "",
       restoredSelectedThreadId = "",
@@ -2822,23 +2862,24 @@
         const reentryOutcome = restoreRuntimeReentrySnapshot("live_runtime_load", {
           scopeMode: "hint_only",
         });
+        const restoredReentrySnapshot = shouldHonorReentryRestore
+          ? reentryOutcome?.savedSnapshot || reentryOutcome?.restoredSnapshot || null
+          : null;
+        const restoredFocusSection = asText(restoredReentrySnapshot?.activeFocusSection);
+        const restoredSelectedThreadId = asText(restoredReentrySnapshot?.selectedThreadId);
+        const restoredLeftColumnMode = normalizeKey(restoredReentrySnapshot?.leftColumnMode || "");
+        const restoredHistoryConversationId = asText(
+          restoredReentrySnapshot?.queueHistory?.selectedConversationId ||
+            restoredSelectedThreadId
+        );
+        const restoredHistoryScopeKey = asText(restoredReentrySnapshot?.queueHistory?.scopeKey);
         debugReentrySnapshot("AFTER RESTORE");
         debugRuntimePipeline("AFTER RESTORE");
         await finalizeRuntimeLoad({
           preferredThreadId,
           resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
-          restoredFocusSection: shouldHonorReentryRestore
-            ? asText(
-                reentryOutcome?.savedSnapshot?.activeFocusSection ||
-                  reentryOutcome?.restoredSnapshot?.activeFocusSection
-              )
-            : "",
-          restoredSelectedThreadId: shouldHonorReentryRestore
-            ? asText(
-                reentryOutcome?.savedSnapshot?.selectedThreadId ||
-                  reentryOutcome?.restoredSnapshot?.selectedThreadId
-              )
-            : "",
+          restoredFocusSection,
+          restoredSelectedThreadId,
         });
         debugRuntimePipeline("AFTER FINALIZE");
         if (!isCurrentRequest()) return;
@@ -2861,15 +2902,14 @@
         });
         if (!isCurrentRequest()) return;
         if (shouldHonorReentryRestore) {
+          await restoreRuntimeHistorySurfaceIfNeeded({
+            restoredLeftColumnMode,
+            restoredSelectedConversationId: restoredHistoryConversationId,
+            restoredScopeKey: restoredHistoryScopeKey,
+          });
           restoreRuntimeFocusSectionIfNeeded({
-            restoredFocusSection: asText(
-              reentryOutcome?.savedSnapshot?.activeFocusSection ||
-                reentryOutcome?.restoredSnapshot?.activeFocusSection
-            ),
-            restoredSelectedThreadId: asText(
-              reentryOutcome?.savedSnapshot?.selectedThreadId ||
-                reentryOutcome?.restoredSnapshot?.selectedThreadId
-            ),
+            restoredFocusSection,
+            restoredSelectedThreadId,
             preferredThreadId,
           });
         }

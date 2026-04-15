@@ -722,6 +722,34 @@ test('queueHistoryToggle öppnar historikpanelen med den redan valda tråden som
   );
 });
 
+test('live runtime restore kan återöppna Historik som full mailboxyta efter reload', () => {
+  const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /async function restoreRuntimeHistorySurfaceIfNeeded\(/,
+    'Förväntade en dedikerad helper som kan återöppna Historikytan efter live reload.'
+  );
+
+  assert.match(
+    source,
+    /normalizedRestoredLeftColumnMode !== "history"/,
+    'Historikrestore ska bara köras när sparat vänsterkolumnsläge faktiskt var Historik.'
+  );
+
+  assert.match(
+    source,
+    /state\.runtime\.queueHistory = \{[\s\S]*open:\s*true,[\s\S]*selectedConversationId:\s*nextSelectedConversationId,[\s\S]*scopeKey:/,
+    'Historikrestore ska återöppna queueHistory med samma conversationId och scope.'
+  );
+
+  assert.match(
+    source,
+    /await restoreRuntimeHistorySurfaceIfNeeded\(\{[\s\S]*restoredLeftColumnMode,[\s\S]*restoredSelectedConversationId:\s*restoredHistoryConversationId,[\s\S]*restoredScopeKey:\s*restoredHistoryScopeKey,[\s\S]*\}\);/,
+    'Live-loaden ska återöppna Historikytan från reentry-snapshoten när användaren återvänder till samma mailboxscope.'
+  );
+});
+
 test('runtime-dom-live-composition blockerar bara riktiga historikkort när historikpanelen är stängd', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
 
