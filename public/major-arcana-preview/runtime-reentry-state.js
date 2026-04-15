@@ -206,6 +206,9 @@
         next.queueHistory && typeof next.queueHistory === "object" ? next.queueHistory : {};
       const nextMailboxScope = normalizeMailboxScope(next.mailboxscope);
       const previousMailboxScope = normalizeMailboxScope(previous.mailboxscope);
+      const nextLeftColumnMode = normalizeKey(next.leftColumnMode || "default") || "default";
+      const previousLeftColumnMode =
+        normalizeKey(previous.leftColumnMode || "default") || "default";
       const nextSelectedOwnerKey = normalizeKey(next.selectedOwnerKey || "all") || "all";
       const previousSelectedOwnerKey = normalizeKey(previous.selectedOwnerKey || "all") || "all";
       const nextActiveLaneId = normalizeKey(next.activeLaneId || "all") || "all";
@@ -227,6 +230,8 @@
       return {
         ...previous,
         ...next,
+        leftColumnMode:
+          nextLeftColumnMode !== "default" ? nextLeftColumnMode : previousLeftColumnMode,
         mailboxscope: nextMailboxScope.length ? nextMailboxScope : previousMailboxScope,
         selectedThreadId: asText(next.selectedThreadId) || asText(previous.selectedThreadId),
         selectedOwnerKey:
@@ -347,6 +352,7 @@
         "offline_history_load",
         "offline_history_loaded",
         "focus_section_change",
+        "runtime_thread_selected",
       ]);
       if (
         currentSnapshot &&
