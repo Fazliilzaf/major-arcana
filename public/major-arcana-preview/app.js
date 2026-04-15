@@ -3912,6 +3912,42 @@
     }
   }
 
+  function readAdminTokenCookie() {
+    try {
+      const cookieSource = String(window.document?.cookie || "");
+      if (!cookieSource) return "";
+      const entries = cookieSource.split(";");
+      for (const entry of entries) {
+        const [rawName, ...rest] = String(entry || "").split("=");
+        if (normalizeText(rawName) !== ADMIN_TOKEN_STORAGE_KEY) continue;
+        const rawValue = rest.join("=");
+        return normalizeText(decodeURIComponent(rawValue || ""));
+      }
+    } catch {}
+    return "";
+  }
+
+  function persistAdminTokenCookie(token = "") {
+    const normalizedToken = normalizeText(token);
+    if (!normalizedToken || typeof document === "undefined") return;
+    try {
+      const secure =
+        normalizeText(window.location?.protocol || "").toLowerCase() === "https:" ? "; Secure" : "";
+      document.cookie = `${ADMIN_TOKEN_STORAGE_KEY}=${encodeURIComponent(
+        normalizedToken
+      )}; Path=/; SameSite=Lax${secure}`;
+    } catch {}
+  }
+
+  function clearAdminTokenCookie() {
+    if (typeof document === "undefined") return;
+    try {
+      const secure =
+        normalizeText(window.location?.protocol || "").toLowerCase() === "https:" ? "; Secure" : "";
+      document.cookie = `${ADMIN_TOKEN_STORAGE_KEY}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secure}`;
+    } catch {}
+  }
+
   function getAdminToken() {
     const readTokenFromStorage = (storage) => {
       try {
@@ -3922,10 +3958,31 @@
     };
 
     const localToken = readTokenFromStorage(window.localStorage);
-    if (localToken) return localToken;
+    if (localToken) {
+      persistAdminTokenCookie(localToken);
+      return localToken;
+    }
 
     const sessionToken = readTokenFromStorage(window.sessionStorage);
-    if (sessionToken) return sessionToken;
+    if (sessionToken) {
+      persistAdminTokenCookie(sessionToken);
+      try {
+        window.localStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, sessionToken);
+      } catch {}
+      return sessionToken;
+    }
+
+    const cookieToken =
+      typeof readAdminTokenCookie === "function" ? readAdminTokenCookie() : "";
+    if (cookieToken) {
+      try {
+        window.localStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, cookieToken);
+      } catch {}
+      try {
+        window.sessionStorage?.setItem?.(ADMIN_TOKEN_STORAGE_KEY, cookieToken);
+      } catch {}
+      return cookieToken;
+    }
 
     if (typeof isLocalPreviewHost === "function" && isLocalPreviewHost()) {
       return "__preview_local__";
@@ -3943,6 +4000,7 @@
 
     clearTokenFromStorage(window.localStorage);
     clearTokenFromStorage(window.sessionStorage);
+    clearAdminTokenCookie();
   }
 
   async function waitForTruthWorklistAuthToken({ timeoutMs = 1800, intervalMs = 60 } = {}) {

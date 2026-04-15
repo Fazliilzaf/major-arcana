@@ -224,6 +224,63 @@ test('major arcana admin login skips MFA for OWNER even when owner MFA is enforc
   });
 });
 
+test('major arcana admin login also sets auth cookie for refresh recovery', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-admin-cookie-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+
+  await authStore.bootstrapOwner({
+    tenantId: 'tenant-a',
+    email: 'owner@example.com',
+    password: 'secret12345',
+    forcePasswordReset: true,
+    forceMfaReset: true,
+  });
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createAuthRouter({
+      authStore,
+      requireAuth: (_req, _res, next) => next(),
+      requireRole: () => (_req, _res, next) => next(),
+      requireTenantScope: () => (_req, _res, next) => next(),
+      ownerMfaRequired: true,
+      ownerMfaBypassHosts: ['arcana-staging.onrender.com'],
+      loginSessionRotationScope: 'none',
+    })
+  );
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-host': 'arcana-staging.onrender.com',
+      },
+      body: JSON.stringify({
+        client: 'major_arcana_admin',
+        email: 'owner@example.com',
+        password: 'secret12345',
+        tenantId: 'tenant-a',
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const setCookie = response.headers.get('set-cookie') || '';
+    assert.match(setCookie, /ARCANA_ADMIN_TOKEN=/);
+    assert.match(setCookie, /Path=\//);
+    assert.match(setCookie, /SameSite=Lax/i);
+  });
+});
+
 test('major arcana admin login skips MFA for STAFF but not PATIENT', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-auth-admin-staff-bypass-'));
   const authStore = await createAuthStore({

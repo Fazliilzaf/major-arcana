@@ -16,6 +16,28 @@ function getAuthToken(req) {
     return String(fromCustomHeader).trim();
   }
 
+  const rawCookieHeader = req.get('cookie') || '';
+  if (rawCookieHeader) {
+    const cookieEntries = String(rawCookieHeader)
+      .split(';')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    for (const entry of cookieEntries) {
+      const separatorIndex = entry.indexOf('=');
+      if (separatorIndex === -1) continue;
+      const name = entry.slice(0, separatorIndex).trim();
+      if (name !== 'ARCANA_ADMIN_TOKEN') continue;
+      const value = entry.slice(separatorIndex + 1).trim();
+      if (!value) continue;
+      try {
+        const decoded = decodeURIComponent(value);
+        if (decoded) return decoded;
+      } catch {
+        if (value) return value;
+      }
+    }
+  }
+
   return '';
 }
 

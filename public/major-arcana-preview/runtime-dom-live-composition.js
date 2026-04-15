@@ -953,6 +953,15 @@
       try {
         windowObject.sessionStorage?.removeItem?.("ARCANA_ADMIN_TOKEN");
       } catch {}
+      try {
+        const secure =
+          normalizeText(windowObject.location?.protocol || "").toLowerCase() === "https:"
+            ? "; Secure"
+            : "";
+        windowObject.document.cookie =
+          "ARCANA_ADMIN_TOKEN=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax" +
+          secure;
+      } catch {}
     }
 
     async function verifyRuntimeAdminToken(adminToken = "") {
