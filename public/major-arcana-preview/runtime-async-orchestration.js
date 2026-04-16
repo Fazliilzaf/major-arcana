@@ -643,6 +643,51 @@
       applyReplyLaterToThread(thread, label, { closeStudio: true });
     }
 
+    async function persistHandledConversationAction(thread, { closeStudio = false } = {}) {
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+      const conversationId = asText(
+        raw.conversationId,
+        asText(raw.mailboxConversationId, asText(thread?.id))
+      );
+      let messageId = asText(raw.messageId, asText(raw.latestMessageId, ""));
+      if (!messageId) {
+        messageId = `${conversationId || "conversation"}:handled`;
+      }
+      const mailboxId = asText(
+        raw.mailboxId,
+        asText(raw.mailboxAddress, asText(thread?.mailboxAddress))
+      );
+      const subject = asText(
+        raw.subject,
+        asText(thread?.displaySubject, asText(thread?.subject, "(utan ämne)"))
+      );
+
+      if (!conversationId || !mailboxId) {
+        throw new Error("Saknar conversation- eller mailbox-id för att markera klar.");
+      }
+
+      await apiRequest("/api/v1/capabilities/CcoConversationAction/run", {
+        method: "POST",
+        headers: {
+          "x-idempotency-key": createIdempotencyKey("major-arcana-handled"),
+        },
+        body: {
+          channel: "admin",
+          input: {
+            action: "handled",
+            conversationId,
+            messageId,
+            mailboxId,
+            subject,
+          },
+        },
+      });
+
+      const studioState = ensureStudioState(thread);
+      const outcome = suggestHandledOutcome(thread, studioState);
+      applyHandledToThread(thread, outcome, { closeStudio });
+    }
+
     async function handleStudioMarkHandled() {
       const thread = getLockedReplyStudioThread();
       const studioState = thread ? ensureStudioState(thread) : null;
@@ -655,8 +700,11 @@
       ) {
         return;
       }
-      const outcome = suggestHandledOutcome(thread, studioState);
-      applyHandledToThread(thread, outcome, { closeStudio: true });
+      try {
+        await persistHandledConversationAction(thread, { closeStudio: true });
+      } catch (error) {
+        setStudioFeedback(asText(error?.message, "Kunde inte markera tråden som klar."), "error");
+      }
     }
 
     async function deleteRuntimeThread(thread, idempotencyScope = "major-arcana-delete") {
@@ -749,9 +797,14 @@
       ) {
         return;
       }
-      const studioState = ensureStudioState(thread);
-      const outcome = suggestHandledOutcome(thread, studioState);
-      applyHandledToThread(thread, outcome, { closeStudio: false });
+      try {
+        await persistHandledConversationAction(thread, { closeStudio: false });
+      } catch (error) {
+        const msg = asText(error?.message, "Kunde inte markera tråden som klar.");
+        if (focusStatusLine) {
+          focusStatusLine.textContent = msg;
+        }
+      }
     }
 
     async function handleFocusHistoryDelete() {
