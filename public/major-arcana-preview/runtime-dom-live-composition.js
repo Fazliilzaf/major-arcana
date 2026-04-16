@@ -905,12 +905,18 @@
       }
     }
 
-    async function waitForRuntimeAuthToken({ timeoutMs = 1800, intervalMs = 60 } = {}) {
+    async function waitForRuntimeAuthToken({ timeoutMs, intervalMs = 60 } = {}) {
       const readToken = () =>
         normalizeText(typeof getAdminToken === "function" ? getAdminToken() : "");
       const existingToken = readToken();
       if (existingToken) return existingToken;
-      const deadline = Date.now() + timeoutMs;
+      const resolvedTimeout =
+        typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs >= 0
+          ? timeoutMs
+          : isLocalPreviewHost()
+            ? 1800
+            : 12000;
+      const deadline = Date.now() + resolvedTimeout;
       while (Date.now() < deadline) {
         await new Promise((resolve) =>
           windowObject.setTimeout(resolve, intervalMs)
@@ -2419,40 +2425,7 @@
       const preferredThreadId = asText(options.preferredThreadId);
       const runtimeRequestSequence = ++liveRuntimeRequestSequence;
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
-      state.runtime.loading = true;
-      state.runtime.truthPrimaryLegacyThreads = [];
-      state.runtime.liveHydratedThreadIds = [];
       clearRuntimeAuthRecoveryTimer();
-      resetRuntimeOpenFlowDiagnostics({
-        requestSequence: runtimeRequestSequence,
-        reason: "live_runtime_load",
-      });
-      state.runtime.truthPrimaryCutover = {
-        enabled: false,
-        configuredMailboxIds: [],
-        activeMailboxIds: [],
-        fallbackReason: "",
-        lastAppliedAt: "",
-      };
-      state.runtime.focusTruthPrimary = {
-        enabled: false,
-        configuredMailboxIds: [],
-        activeMailboxIds: [],
-        fallbackReason: "",
-        readOnly: true,
-        lastAppliedAt: "",
-      };
-      setRuntimeModeState("", {
-        error: "",
-        live: false,
-        offline: false,
-        authRequired: false,
-      });
-      state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-        phase: "loading",
-        requestedMailboxIds: runtimeMailboxIds,
-      });
-      renderRuntimeConversationShell();
 
       try {
         const adminToken = await waitForRuntimeAuthToken();
@@ -2481,6 +2454,40 @@
           renderRuntimeConversationShell();
           return;
         }
+
+        state.runtime.loading = true;
+        state.runtime.truthPrimaryLegacyThreads = [];
+        state.runtime.liveHydratedThreadIds = [];
+        resetRuntimeOpenFlowDiagnostics({
+          requestSequence: runtimeRequestSequence,
+          reason: "live_runtime_load",
+        });
+        state.runtime.truthPrimaryCutover = {
+          enabled: false,
+          configuredMailboxIds: [],
+          activeMailboxIds: [],
+          fallbackReason: "",
+          lastAppliedAt: "",
+        };
+        state.runtime.focusTruthPrimary = {
+          enabled: false,
+          configuredMailboxIds: [],
+          activeMailboxIds: [],
+          fallbackReason: "",
+          readOnly: true,
+          lastAppliedAt: "",
+        };
+        setRuntimeModeState("", {
+          error: "",
+          live: false,
+          offline: false,
+          authRequired: false,
+        });
+        state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+          phase: "loading",
+          requestedMailboxIds: runtimeMailboxIds,
+        });
+        renderRuntimeConversationShell();
 
         const status = await apiRequest("/api/v1/cco/runtime/status");
         if (!isCurrentRequest()) return;
