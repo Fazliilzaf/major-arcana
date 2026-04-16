@@ -12159,8 +12159,26 @@
       ? asText(options.preferredThreadId)
       : asText(workspaceSourceOfTruth.getSelectedThreadId());
     const currentThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
+
+    function findPreferredThreadAcrossRuntime() {
+      if (!asText(preferredThreadId)) return null;
+      const pools = [
+        visible,
+        asArray(state.runtime?.threads),
+        asArray(state.runtime?.truthPrimaryLegacyThreads),
+      ];
+      for (const pool of pools) {
+        const hit = asArray(pool).find((thread) =>
+          runtimeConversationIdsMatch(thread?.id, preferredThreadId)
+        );
+        if (hit) return hit;
+      }
+      return null;
+    }
+
+    const preferredResolved = findPreferredThreadAcrossRuntime();
     const nextThread =
-      visible.find((thread) => runtimeConversationIdsMatch(thread?.id, preferredThreadId)) ||
+      preferredResolved ||
       visible.find((thread) => !isVerificationRuntimeThread(thread)) ||
       visible[0] ||
       null;
@@ -21026,16 +21044,40 @@
     { closeStudio = false, refresh = true } = {}
   ) {
     if (!thread) return false;
+    const followUpIso = resolveLaterOptionDueAt(state.later.option);
     await requestConversationAction("/api/v1/cco/reply-later", thread, {
       idempotencyScope: "major-arcana-reply-later",
       errorMessage: "Kunde inte parkera tråden.",
       body: {
-        followUpDueAt: resolveLaterOptionDueAt(state.later.option),
+        followUpDueAt: followUpIso,
         waitingOn: "owner",
         nextActionLabel: "Återuppta senare",
         nextActionSummary: `Tråden är parkerad till ${label}.`,
         actionLabel: "Svara senare",
       },
+    });
+    const recordedAt = new Date().toISOString();
+    updateRuntimeThread(thread.id, (current) => {
+      current.waitingLabel = "Ägaråtgärd";
+      current.statusLabel = "Parkerad";
+      if (followUpIso) {
+        current.followUpLabel = formatDueLabel(followUpIso);
+      }
+      current.nextActionLabel = "Återuppta senare";
+      current.nextActionSummary = `Tråden är parkerad till ${label}.`;
+      current.tags = Array.from(
+        new Set([...asArray(current.tags), "later", "followup"].filter((tag) => tag !== "act-now"))
+      );
+      current.raw = {
+        ...current.raw,
+        waitingOn: "owner",
+        followUpDueAt: followUpIso,
+        followUpSuggestedAt: followUpIso,
+        lastActionTakenLabel: "Svara senare",
+        lastActionTakenAt: recordedAt,
+      };
+      current.cards = buildRuntimeSummaryCards(current.raw, current);
+      return current;
     });
     if (closeStudio) {
       setStudioFeedback(`Tråden parkerades till ${label}.`, "success");

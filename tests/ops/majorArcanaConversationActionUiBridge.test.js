@@ -102,7 +102,7 @@ test('applyHandledToThread använder backend-write och bootstrap-refresh utan lo
   assert.deepEqual(collapsedStates, [false]);
 });
 
-test('applyReplyLaterToThread använder backend-write och bootstrap-refresh utan lokal later patch', async () => {
+test('applyReplyLaterToThread skriver via backend, lägger optimistisk runtime-patch och refreshar projection', async () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
   const functionSource = extractFunctionSource(source, 'applyReplyLaterToThread', { async: true });
   assert.doesNotMatch(
@@ -114,6 +114,7 @@ test('applyReplyLaterToThread använder backend-write och bootstrap-refresh utan
   const requestCalls = [];
   const refreshCalls = [];
   const auxStatusCalls = [];
+  const optimisticPatchCalls = [];
   const focusStatusLine = { textContent: '' };
   const state = { later: { option: 'tomorrow_morning' } };
   const laterStatus = { id: 'later-status' };
@@ -128,6 +129,10 @@ test('applyReplyLaterToThread använder backend-write och bootstrap-refresh utan
     'setAuxStatus',
     'laterStatus',
     'refreshConversationActionRuntimeProjection',
+    'updateRuntimeThread',
+    'buildRuntimeSummaryCards',
+    'formatDueLabel',
+    'asArray',
     `${functionSource}; return applyReplyLaterToThread;`
   )(
     async (...args) => {
@@ -144,7 +149,21 @@ test('applyReplyLaterToThread använder backend-write och bootstrap-refresh utan
     laterStatus,
     async (...args) => {
       refreshCalls.push(args);
-    }
+    },
+    (conversationId, updater) => {
+      const stub = {
+        id: conversationId,
+        tags: [],
+        raw: {},
+        cards: null,
+      };
+      optimisticPatchCalls.push(conversationId);
+      updater(stub);
+      return stub;
+    },
+    () => ({}),
+    (value) => String(value || ''),
+    (value) => (Array.isArray(value) ? value : value == null ? [] : [value])
   );
 
   const result = await applyReplyLaterToThread({ id: 'thread-2' }, 'Imorgon 09:00', {
@@ -163,6 +182,7 @@ test('applyReplyLaterToThread använder backend-write och bootstrap-refresh utan
   );
   assert.equal(focusStatusLine.textContent, 'Tråden parkerades till Imorgon 09:00.');
   assert.equal(auxStatusCalls.length, 1);
+  assert.deepEqual(optimisticPatchCalls, ['thread-2']);
   assert.deepEqual(refreshCalls, [[{ id: 'thread-2' }, 'reply later']]);
 });
 
