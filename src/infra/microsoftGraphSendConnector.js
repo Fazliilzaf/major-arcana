@@ -514,13 +514,15 @@ function createMicrosoftGraphSendConnector(config = {}) {
     });
   }
 
-  async function moveMessageToDeletedItems({
+  async function moveMessageToFolder({
     mailboxId,
     messageId,
+    destinationId = 'deleteditems',
     timeoutMs = requestTimeoutMs,
   } = {}) {
     const normalizedMailboxId = requiredConfig('mailboxId', mailboxId);
     const normalizedMessageId = requiredConfig('messageId', messageId);
+    const normalizedDestinationId = requiredConfig('destinationId', destinationId);
     const accessToken = await fetchAccessToken();
     const moveUrl = `${graphBaseUrl}/users/${encodeURIComponent(
       normalizedMailboxId
@@ -530,20 +532,39 @@ function createMicrosoftGraphSendConnector(config = {}) {
       url: moveUrl,
       accessToken,
       payload: {
-        destinationId: 'deleteditems',
+        destinationId: normalizedDestinationId,
       },
       timeoutMs,
-      label: 'Microsoft Graph moveToDeletedItems',
+      label: 'Microsoft Graph moveMessageToFolder',
     });
-    const payload = await parseJsonResponse(response, 'Microsoft Graph moveToDeletedItems response');
+    const payload = await parseJsonResponse(response, 'Microsoft Graph moveMessageToFolder response');
+    const now = new Date().toISOString();
     return {
       provider: 'microsoft_graph',
       mailboxId: normalizedMailboxId,
       messageId: normalizedMessageId,
       movedMessageId: normalizeText(payload?.id) || normalizedMessageId,
       conversationId: normalizeText(payload?.conversationId) || null,
-      destinationFolderId: normalizeText(payload?.parentFolderId) || 'deleteditems',
-      deletedAt: new Date().toISOString(),
+      destinationFolderId: normalizeText(payload?.parentFolderId) || normalizedDestinationId,
+      movedAt: now,
+      deletedAt: normalizedDestinationId === 'deleteditems' ? now : null,
+      moveMode: normalizedDestinationId === 'deleteditems' ? 'soft_delete' : 'folder_move',
+    };
+  }
+
+  async function moveMessageToDeletedItems({
+    mailboxId,
+    messageId,
+    timeoutMs = requestTimeoutMs,
+  } = {}) {
+    const moveResult = await moveMessageToFolder({
+      mailboxId,
+      messageId,
+      destinationId: 'deleteditems',
+      timeoutMs,
+    });
+    return {
+      ...moveResult,
       deleteMode: 'soft_delete',
     };
   }
@@ -552,6 +573,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
     sendComposeDocument,
     sendNewMessage,
     sendReply,
+    moveMessageToFolder,
     moveMessageToDeletedItems,
     inspectPermissions,
   };

@@ -5488,6 +5488,212 @@ async function runCcoDeleteHandler({
   }
 }
 
+async function runCcoRestoreHandler({
+  req,
+  res,
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+  authStore,
+  ccoHistoryStore = null,
+}) {
+  const actor = toActor(req);
+  const tenantId = toTenantId(req);
+  const correlationId = toCorrelationId(req);
+  const payload = asObject(req.body);
+  const input = asObject(
+    payload.input && typeof payload.input === 'object' ? payload.input : payload
+  );
+  const mailboxId = toMailboxAddress(input.mailboxId);
+  const messageId = normalizeText(input.messageId);
+  const conversationId = normalizeText(input.conversationId);
+  const destinationFolderId = normalizeText(input.destinationFolderId).toLowerCase() || 'inbox';
+  if (!mailboxId || !messageId || !conversationId) {
+    return res.status(422).json({
+      error: 'mailboxId, messageId och conversationId krävs.',
+      code: 'CCO_RESTORE_INPUT_INVALID',
+    });
+  }
+  if (!graphDeleteEnabled) {
+    return res.status(503).json({
+      error: 'Restore mail är inte aktiverat i denna miljö.',
+      code: 'CCO_RESTORE_NOT_ENABLED',
+    });
+  }
+  if (!graphSendConnector || typeof graphSendConnector.moveMessageToFolder !== 'function') {
+    return res.status(503).json({
+      error: 'Microsoft Graph restore-connector saknas.',
+      code: 'CCO_RESTORE_CONNECTOR_UNAVAILABLE',
+    });
+  }
+  const allowlist = toMailboxAllowlistSet(graphDeleteAllowlist);
+  if (!allowlist.size) {
+    return res.status(503).json({
+      error: 'CCO delete/restore-allowlist är tom.',
+      code: 'CCO_RESTORE_ALLOWLIST_EMPTY',
+    });
+  }
+  const mailboxLower = mailboxId.toLowerCase();
+  if (!allowlist.has('*') && !allowlist.has(mailboxLower)) {
+    return res.status(403).json({
+      error: `Mailbox är inte allowlistad för restore: ${mailboxId}.`,
+      code: 'CCO_RESTORE_ALLOWLIST_BLOCKED',
+    });
+  }
+
+  if (authStore && typeof authStore.addAuditEvent === 'function') {
+    await authStore.addAuditEvent({
+      tenantId,
+      actorUserId: actor.id,
+      action: 'cco.restore.requested',
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        correlationId,
+        mailboxId,
+        messageId,
+        conversationId,
+        destinationFolderId,
+      },
+    });
+  }
+
+  try {
+    const restoreResult = await graphSendConnector.moveMessageToFolder({
+      mailboxId,
+      messageId,
+      destinationId: destinationFolderId,
+    });
+    if (authStore && typeof authStore.addAuditEvent === 'function') {
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: actor.id,
+        action: 'cco.restore.completed',
+        outcome: 'success',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata: {
+          correlationId,
+          mailboxId,
+          messageId,
+          conversationId,
+          destinationFolderId,
+          movedMessageId: normalizeText(restoreResult?.movedMessageId) || null,
+        },
+      });
+    }
+    if (ccoHistoryStore && typeof ccoHistoryStore.recordAction === 'function') {
+      await ccoHistoryStore.recordAction({
+        tenantId,
+        conversationId,
+        mailboxId,
+        messageId,
+        actionType: 'conversation_restored',
+        actionLabel: 'Konversation återställd',
+        source: 'major_arcana_preview',
+        actorUserId: actor.id || null,
+      });
+    }
+    return res.json({
+      ok: true,
+      mailboxId,
+      messageId,
+      conversationId,
+      restoreResult: {
+        provider: normalizeText(restoreResult?.provider) || 'microsoft_graph',
+        movedMessageId: normalizeText(restoreResult?.movedMessageId) || messageId,
+        destinationFolderId: normalizeText(restoreResult?.destinationFolderId) || destinationFolderId,
+        movedAt: normalizeText(restoreResult?.movedAt) || new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    if (authStore && typeof authStore.addAuditEvent === 'function') {
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: actor.id,
+        action: 'cco.restore.completed',
+        outcome: 'error',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata: {
+          correlationId,
+          mailboxId,
+          messageId,
+          conversationId,
+          destinationFolderId,
+          graphCode: normalizeText(error?.code) || null,
+          graphStatus: Number.isFinite(Number(error?.status)) ? Number(error.status) : null,
+          error: normalizeText(error?.message) || 'graph_restore_failed',
+        },
+      });
+    }
+    const wrappedError = new Error(error?.message || 'Microsoft Graph restore misslyckades.');
+    wrappedError.code = 'CCO_RESTORE_GRAPH_ERROR';
+    throw wrappedError;
+  }
+}
+
+async function runCcoStudioDraftSaveHandler({ req, res, authStore, ccoHistoryStore = null }) {
+  const actor = toActor(req);
+  const tenantId = toTenantId(req);
+  const payload = asObject(req.body);
+  const input = asObject(payload.input && typeof payload.input === 'object' ? payload.input : payload);
+  const conversationId = normalizeText(input.conversationId);
+  const mailboxId = toMailboxAddress(input.mailboxId);
+  const messageId = normalizeText(input.messageId) || null;
+  const draftBody = normalizeText(input.draftBody);
+  const subject = normalizeText(input.subject) || '(utan ämne)';
+  if (!conversationId || !mailboxId) {
+    return res.status(422).json({
+      error: 'conversationId och mailboxId krävs för draft save.',
+      code: 'CCO_DRAFT_SAVE_INPUT_INVALID',
+    });
+  }
+  if (!draftBody) {
+    return res.status(422).json({
+      error: 'Utkastet är tomt.',
+      code: 'CCO_DRAFT_SAVE_EMPTY',
+    });
+  }
+  if (authStore && typeof authStore.addAuditEvent === 'function') {
+    await authStore.addAuditEvent({
+      tenantId,
+      actorUserId: actor.id,
+      action: 'cco.draft.save',
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        mailboxId,
+        messageId,
+        draftLength: draftBody.length,
+      },
+    });
+  }
+  if (ccoHistoryStore && typeof ccoHistoryStore.recordAction === 'function') {
+    await ccoHistoryStore.recordAction({
+      tenantId,
+      conversationId,
+      mailboxId,
+      messageId,
+      actionType: 'draft_saved',
+      actionLabel: 'Utkast sparat',
+      subject,
+      source: 'major_arcana_preview',
+      actorUserId: actor.id || null,
+    });
+  }
+  return res.json({
+    ok: true,
+    conversationId,
+    mailboxId,
+    messageId,
+    savedAt: new Date().toISOString(),
+    draftLength: draftBody.length,
+  });
+}
+
 async function runCcoDeleteStatusHandler({
   req,
   res,
@@ -5847,6 +6053,46 @@ function toCcoDeleteHandler({
       return res.status(pickErrorStatus(error?.code)).json({
         error: error?.message || 'Kunde inte radera mail.',
         code: error?.code || 'CCO_DELETE_FAILED',
+      });
+    }
+  };
+}
+
+function toCcoRestoreHandler({
+  graphSendConnector,
+  graphDeleteEnabled,
+  graphDeleteAllowlist,
+  authStore,
+  ccoHistoryStore = null,
+}) {
+  return async (req, res) => {
+    try {
+      return await runCcoRestoreHandler({
+        req,
+        res,
+        graphSendConnector,
+        graphDeleteEnabled,
+        graphDeleteAllowlist,
+        authStore,
+        ccoHistoryStore,
+      });
+    } catch (error) {
+      return res.status(pickErrorStatus(error?.code)).json({
+        error: error?.message || 'Kunde inte återställa mail.',
+        code: error?.code || 'CCO_RESTORE_FAILED',
+      });
+    }
+  };
+}
+
+function toCcoStudioDraftSaveHandler({ authStore, ccoHistoryStore = null }) {
+  return async (req, res) => {
+    try {
+      return await runCcoStudioDraftSaveHandler({ req, res, authStore, ccoHistoryStore });
+    } catch (error) {
+      return res.status(pickErrorStatus(error?.code)).json({
+        error: error?.message || 'Kunde inte spara studioutkast.',
+        code: error?.code || 'CCO_STUDIO_DRAFT_SAVE_FAILED',
       });
     }
   };
@@ -8784,6 +9030,28 @@ function createCapabilitiesRouter({
         authStore,
       })
     )
+  );
+
+  router.post(
+    '/cco/restore',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoRestoreHandler({
+        graphSendConnector: resolvedGraphSendConnector,
+        graphDeleteEnabled: shouldEnableGraphDelete,
+        graphDeleteAllowlist,
+        authStore,
+        ccoHistoryStore,
+      })
+    )
+  );
+
+  router.post(
+    '/cco/studio/draft',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(toCcoStudioDraftSaveHandler({ authStore, ccoHistoryStore }))
   );
 
   router.get(

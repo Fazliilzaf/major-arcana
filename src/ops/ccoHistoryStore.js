@@ -349,6 +349,10 @@ function normalizeHistoryActionType(value = '') {
   if (normalized === 'handled' || normalized === 'cco.reply.handled') return 'handled';
   if (normalized === 'reply_sent' || normalized === 'cco.reply.sent') return 'reply_sent';
   if (normalized === 'reply_later' || normalized === 'cco.reply.later') return 'reply_later';
+  if (normalized === 'draft_saved' || normalized === 'cco.draft.saved') return 'draft_saved';
+  if (normalized === 'conversation_restored' || normalized === 'cco.conversation.restored') {
+    return 'conversation_restored';
+  }
   if (normalized === 'customer_replied' || normalized === 'cco.customer.replied') {
     return 'customer_replied';
   }

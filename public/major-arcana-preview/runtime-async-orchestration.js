@@ -608,6 +608,22 @@
           setStudioFeedback("Compose-utkastet sparades lokalt i studion.", "success");
           return;
         }
+        await apiRequest("/api/v1/cco/studio/draft", {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey("major-arcana-studio-draft"),
+          },
+          body: {
+            conversationId: asText(thread?.raw?.conversationId, asText(thread?.id)),
+            mailboxId: asText(
+              thread?.raw?.mailboxId,
+              asText(thread?.raw?.mailboxAddress, asText(thread?.mailboxAddress))
+            ),
+            messageId: asText(thread?.raw?.messageId, asText(thread?.raw?.latestMessageId)),
+            subject: asText(thread?.displaySubject, asText(thread?.subject)),
+            draftBody: asText(studioState.draftBody),
+          },
+        });
         updateRuntimeThread(thread.id, (current) => {
           current.raw = {
             ...current.raw,
@@ -640,11 +656,7 @@
       ) {
         return;
       }
-      try {
-        await applyReplyLaterToThread(thread, label, { closeStudio: true });
-      } catch (error) {
-        setStudioFeedback(error.message || "Kunde inte parkera tråden.", "error");
-      }
+      applyReplyLaterToThread(thread, label, { closeStudio: true });
     }
 
     async function persistHandledConversationAction(thread, { closeStudio = false } = {}) {
