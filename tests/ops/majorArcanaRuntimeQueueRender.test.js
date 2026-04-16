@@ -7986,7 +7986,7 @@ test('vald mailruta visar en kort varfor-nu-rad utan att duplicera hela operativ
         customer: [{ chip: 'Kundläge', lines: ['Kontaktväg: Kons', 'Nu väntar vi på: Behöver åtgärd'] }],
         history: [{ chip: 'Historikmönster', lines: ['Historiken visar bäst respons på tydliga CTA.'] }],
         signals: [{ chip: 'Prioriteringssignal', lines: ['Prioritetsskäl: Oläst kundrad', 'Nästa steg: Svara nu'] }],
-        medicine: [{ chip: 'Medicinsk kontext', lines: ['Ingen dominant risk', 'Ingen medicinsk spärr registrerad.'] }],
+        medicine: [],
         team: [{ chip: 'Teamläge', lines: ['Ägare: Egzona', 'Ingen eskalering krävs just nu.'] }],
       },
       tags: ['act-now'],

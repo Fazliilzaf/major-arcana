@@ -7103,22 +7103,7 @@
           ],
         },
       ],
-      medicine: [
-        {
-          chip: "Medicinsk kontext",
-          tone: "green",
-          provenance: {
-            label: "Systemstatus",
-            tone: "system",
-            detail: "Livekälla: medicinska signaler hämtas från registrerad risk- och behandlingskontext.",
-          },
-          lines: [
-            humanizeCode(row?.dominantRisk, "Ingen dominant risk"),
-            compactRuntimeCopy(row?.riskStackExplanation, "Ingen medicinsk spärr registrerad.", 110),
-            compactRuntimeCopy(row?.medicalContext, "Följ klinikens vanliga kontrollflöde vid osäkerhet.", 110),
-          ],
-        },
-      ],
+      medicine: [],
       team: [
         {
           chip: "Teamläge",

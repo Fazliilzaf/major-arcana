@@ -881,18 +881,19 @@ test('kundintelligens-fallbacken har fyra lugnare kategorier i stället för sex
   );
 });
 
-test('runtime focus-intel komprimerar högerkolumnen genom att slå ihop signaler och medicinskt in i Nu', () => {
+test('runtime focus-intel lämnar Nu utan separata medicinska kort', () => {
   const source = fs.readFileSync(FOCUS_RENDERERS_PATH, 'utf8');
 
+  assert.doesNotMatch(source, /buildIntelMedicalNowCard/, 'Medicinskt nu-kortet ska inte längre byggas i runtime.');
   assert.match(
     source,
-    /actions:\s*normalizeIntelDisplayCards\([\s\S]*buildIntelMedicalNowCard\(thread\),[\s\S]*\.\.\.asArray\(baseCards\.actions\),[\s\S]*\.\.\.asArray\(baseCards\.signals\),[\s\S]*\.\.\.asArray\(baseCards\.medicine\),/,
-    'Förväntade att högerkolumnens Nu-grupp nu börjar med medicinskt nu och låter arbetsplan och signaler komma via de nedre korten i stället för en dubbel toppruta.'
+    /actions:\s*normalizeIntelDisplayCards\(\s*\[[\s\S]*\.\.\.asArray\(baseCards\.actions\),[\s\S]*\.\.\.asArray\(baseCards\.signals\)\]/,
+    'Nu-panelen ska bara sammanfoga arbetsplan (actions) och prioriteringssignaler utan medicinsk data.'
   );
   assert.match(
     source,
     /signals:\s*\[\],[\s\S]*medicine:\s*\[\]/,
-    'Förväntade att separata signals- och medicine-paneler lämnas tomma när högerkolumnen förenklas.'
+    'Separata signals- och medicine-paneler ska lämnas tomma.'
   );
 });
 

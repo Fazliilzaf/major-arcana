@@ -460,56 +460,11 @@ button {
     inset 0 -4px 6px rgba(214, 176, 192, 0.24);
 }
 
-.preview-search,
 .preview-compose-pill,
 .preview-sprint-pill,
 .preview-utility-cluster,
 .preview-profile-pill {
   flex: 0 0 auto;
-}
-
-.preview-search {
-  width: 148px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 21px;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(214, 203, 195, 0.9);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(251, 249, 246, 0.96) 0%,
-      rgba(245, 239, 234, 0.92) 100%
-    );
-  box-shadow:
-    0 4px 10px rgba(143, 126, 112, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 1),
-    inset 0 -3px 5px rgba(206, 194, 186, 0.18);
-  color: rgba(85, 86, 96, 0.52);
-}
-
-.preview-search svg {
-  width: 11px;
-  height: 11px;
-  flex: 0 0 auto;
-}
-
-.preview-search input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #4a4d56;
-  font: inherit;
-  font-size: 11px;
-  line-height: 15px;
-  font-weight: 600;
-}
-
-.preview-search input::placeholder {
-  color: rgba(90, 92, 105, 0.66);
 }
 
 .preview-sprint-pill {
@@ -16835,10 +16790,6 @@ button {
 
   .preview-nav {
     flex-wrap: wrap;
-  }
-
-  .preview-search {
-    width: 100%;
   }
 
   .preview-utility-cluster {

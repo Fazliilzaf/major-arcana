@@ -3146,39 +3146,6 @@
       };
     }
 
-    function buildIntelMedicalNowCard(thread) {
-      const dominantRisk = humanizeCode(thread?.raw?.dominantRisk, "");
-      const medicalContext = compactRuntimeCopy(
-        thread?.raw?.medicalContext || thread?.raw?.riskStackExplanation,
-        "",
-        92
-      );
-      if (!dominantRisk && !medicalContext) {
-        return null;
-      }
-      if (
-        normalizeKey(dominantRisk) === "ingen-dominant-risk" &&
-        normalizeKey(medicalContext) === "ingen-medicinsk-sparr-registrerad"
-      ) {
-        return null;
-      }
-      return {
-        chip: "Medicinskt nu",
-        title: "Ta hänsyn till detta i svaret",
-        tone: "green",
-        provenance: {
-          label: "Medicinsk kontext",
-          tone: "system",
-          detail: "Visas här bara när medicinsk risk eller behandlingskontext kan påverka nästa svar.",
-        },
-        detail: medicalContext || "Medicinsk kontext finns registrerad för tråden.",
-        lines: [
-          { label: "Flagga", value: dominantRisk || "Kontrollera journalstödet" },
-          { label: "Risk", value: asText(thread?.riskLabel, "Bevaka") },
-        ],
-      };
-    }
-
     function buildRuntimeIntelPanelCards(thread) {
       const helperConversation = buildIntelHelperConversation(thread);
       const customerHelper =
@@ -3241,12 +3208,7 @@
           { maxCards: 3, fallbackTitle: "Team" }
         ),
         actions: normalizeIntelDisplayCards(
-          [
-            buildIntelMedicalNowCard(thread),
-            ...asArray(baseCards.actions),
-            ...asArray(baseCards.signals),
-            ...asArray(baseCards.medicine),
-          ],
+          [...asArray(baseCards.actions), ...asArray(baseCards.signals)],
           { maxCards: 3, fallbackTitle: "Nu" }
         ),
       };
