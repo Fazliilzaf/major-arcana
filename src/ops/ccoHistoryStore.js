@@ -346,6 +346,7 @@ function normalizeHistoryOutcome(rawOutcome = {}) {
 
 function normalizeHistoryActionType(value = '') {
   const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'handled' || normalized === 'cco.reply.handled') return 'handled';
   if (normalized === 'reply_sent' || normalized === 'cco.reply.sent') return 'reply_sent';
   if (normalized === 'reply_later' || normalized === 'cco.reply.later') return 'reply_later';
   if (normalized === 'customer_replied' || normalized === 'cco.customer.replied') {
@@ -380,14 +381,18 @@ function normalizeHistoryAction(rawAction = {}) {
   return {
     tenantId,
     conversationId,
+    canonicalConversationKey: normalizeText(rawAction.canonicalConversationKey) || null,
     mailboxId: normalizeEmailAddress(rawAction.mailboxId || rawAction.mailboxAddress) || null,
     customerEmail: customerEmail || null,
+    messageId: normalizeText(rawAction.messageId) || null,
     actionType,
     actionLabel: normalizeCompactText(rawAction.actionLabel, 80),
     subject: normalizeCompactText(rawAction.subject, 200),
     recordedAt: toIso(rawAction.recordedAt || rawAction.timestamp) || nowIso(),
     actorUserId: normalizeText(rawAction.actorUserId) || null,
+    actorEmail: normalizeEmailAddress(rawAction.actorEmail) || null,
     source: normalizeText(rawAction.source) || 'cco_usage_event',
+    version: Math.max(1, Number.parseInt(String(rawAction.version ?? '1'), 10) || 1),
     selectedMode: selectedMode || null,
     recommendedMode: recommendedMode || null,
     priorityLevel: normalizePriorityLevel(rawAction.priorityLevel),

@@ -1064,7 +1064,7 @@ test('renderQueueHistorySection visar skickade i samma inline-shell som historik
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueContent.hidden, true);
   assert.equal(queueTitle.textContent, 'Skickade (1)');
-  assert.match(queueHistoryMeta.textContent, /skickade mejl/i);
+  assert.equal(queueHistoryMeta.textContent, '');
   assert.match(queueHistoryList.innerHTML, /data-runtime-thread="sent-1"/);
 });
 

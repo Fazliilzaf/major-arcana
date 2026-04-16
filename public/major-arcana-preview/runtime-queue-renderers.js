@@ -1296,8 +1296,17 @@
         item.isUnread === true
           ? '<span class="queue-history-item-freshness" aria-label="Nytt oläst mejl"><span class="queue-history-item-freshness-dot"></span></span>'
           : "";
+      const buildHistorySignalIconMarkup = (iconKey) => {
+        if (typeof createPillIcon !== "function") return "";
+        const iconNode = createPillIcon(iconKey);
+        if (!iconNode) return "";
+        if (typeof iconNode === "string") return iconNode;
+        if (typeof iconNode.outerHTML === "string") return iconNode.outerHTML;
+        return "";
+      };
 
-      return `<article class="${useThreadCardClass ? "thread-card " : ""}queue-history-item${selectedClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
+      if (!useThreadCardClass) {
+        return `<article class="queue-history-item${selectedClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
         <span class="avatar queue-history-avatar">${escapeHtml(item.initials || "?")}</span>
         <div class="thread-main queue-history-body">
           <div class="thread-meta queue-history-item-head">
@@ -1310,6 +1319,227 @@
           ${detailMarkup}
         </div>
         ${metaMarkup}
+      </article>`;
+      }
+
+      const counterpartyCopy = compactRuntimeCopy(
+        asText(item.counterpartyLabel || "Okänd avsändare"),
+        "Okänd avsändare",
+        42
+      );
+      const normalizeHistoryCompareValue = (value = "") =>
+        asText(value)
+          .trim()
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      const escapeHistoryRegExp = (value = "") =>
+        asText(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const stripRepeatedHistoryLead = (value = "", leads = []) => {
+        let cleaned = asText(value).replace(/\s+/g, " ").trim();
+        asArray(leads)
+          .map((lead) => asText(lead).replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .forEach((lead) => {
+            const leadPattern = new RegExp(`^${escapeHistoryRegExp(lead)}(?:\\s*[-:|,–—]\\s*|\\s+)`, "i");
+            cleaned = cleaned.replace(leadPattern, "").trim();
+          });
+        return cleaned;
+      };
+      const rawHistoryTitle = asText(item.title);
+      const derivedHistoryTitle = stripRepeatedHistoryLead(rawHistoryTitle, [counterpartyCopy]);
+      const primaryHistoryTitleRaw =
+        derivedHistoryTitle &&
+        normalizeHistoryCompareValue(derivedHistoryTitle) !== normalizeHistoryCompareValue(counterpartyCopy)
+          ? derivedHistoryTitle
+          : rawHistoryTitle;
+      const primaryHistoryTitle = compactRuntimeCopy(
+        primaryHistoryTitleRaw,
+        rawHistoryTitle || "Historikrad",
+        72
+      );
+      const deriveHistoryInitials = (label = "") => {
+        const normalizedLabel = asText(label)
+          .trim()
+          .replace(/\s+/g, " ");
+        if (!normalizedLabel) return "?";
+        const parts = normalizedLabel
+          .split(" ")
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+        if (!parts.length) return "?";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+      };
+      const avatarText = asText(item.initials || deriveHistoryInitials(counterpartyCopy), "?");
+      const avatarSrc =
+        typeof buildAvatarDataUri === "function" ? buildAvatarDataUri(avatarText) : "";
+      const stampLabel = asText(
+        item.direction ||
+          item.queueLabel ||
+          worklistSourceLabel ||
+          item.mailboxProvenanceLabel ||
+          item.mailboxLabel ||
+          "Historik"
+      );
+      const historySignals = [];
+      const pushHistorySignal = (role, value, iconKey = "", marker = "") => {
+        const signalValue = asText(value);
+        const signalRole = normalizeKey(role || "what");
+        if (!signalValue) return;
+        const duplicate = historySignals.some(
+          (entry) =>
+            normalizeKey(entry.role || "") === signalRole &&
+            normalizeKey(entry.value || "") === normalizeKey(signalValue)
+        );
+        if (duplicate) return;
+        historySignals.push({
+          role: signalRole,
+          value: signalValue,
+          iconKey: iconKey || resolveSignalIcon(signalRole),
+          marker: asText(marker),
+        });
+      };
+      asArray(item.signalItems)
+        .slice(0, 3)
+        .forEach((signal) => {
+          const signalRole = normalizeKey(signal.role || signal.tone || "what");
+          pushHistorySignal(
+            signalRole,
+            signal.value,
+            resolveSignalIcon(signalRole),
+            `queue-history-operational-pill--${signalRole}`
+          );
+        });
+      pushHistorySignal("mailbox", item.mailboxLabel, mailboxMeta.icon, "queue-history-pill--mailbox");
+      pushHistorySignal(
+        "source",
+        worklistSourceLabel,
+        "layers",
+        worklistSourceLabel ? "queue-history-pill--source" : ""
+      );
+      if (!signalItems.length) {
+        pushHistorySignal("what", item.direction, directionMeta.icon, "queue-history-operational-pill--what");
+        pushHistorySignal("why", worklistSourceLabel, "layers", "queue-history-operational-pill--why");
+        pushHistorySignal("next", item.queueLabel, "layers", "queue-history-operational-pill--next");
+      }
+      const whatSignalValue = asText(
+        asArray(item.signalItems).find((signal) => normalizeKey(signal?.role || signal?.tone) === "what")?.value
+      );
+      const hasExplicitWhatSignal = Boolean(whatSignalValue);
+      const issueContextSource =
+        whatSignalValue || asText(item.intentLabel) || primaryHistoryTitle || counterpartyCopy;
+      const issueContextLabel = compactRuntimeCopy(issueContextSource, "", 40);
+      let secondaryContextFallback = stripRepeatedHistoryLead(asText(item.detail), [
+        counterpartyCopy,
+        rawHistoryTitle,
+        primaryHistoryTitle,
+        issueContextLabel,
+      ]);
+      if (counterpartyCopy) {
+        const escapedCounterparty = counterpartyCopy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        secondaryContextFallback = secondaryContextFallback.replace(
+          new RegExp(`^Från:\\s*${escapedCounterparty}\\s*`, "i"),
+          ""
+        );
+      }
+      secondaryContextFallback = secondaryContextFallback.replace(/^Från:\s*/i, "").trim();
+      while (/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(secondaryContextFallback)) {
+        secondaryContextFallback = secondaryContextFallback.replace(
+          /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i,
+          ""
+        ).trim();
+      }
+      secondaryContextFallback = secondaryContextFallback.replace(/^[,.;:-]+\s*/g, "").trim();
+      const snippetValue = compactRuntimeCopy(
+        asText(secondaryContextFallback),
+        "",
+        120
+      );
+      const showIssueContext = Boolean(issueContextLabel);
+      const showSnippet =
+        Boolean(snippetValue) &&
+        normalizeHistoryCompareValue(snippetValue) !==
+          normalizeHistoryCompareValue(issueContextLabel) &&
+        normalizeHistoryCompareValue(snippetValue) !==
+          normalizeHistoryCompareValue(primaryHistoryTitle);
+      const issueContextMarkup = showIssueContext
+        ? `<p class="thread-story thread-story-inline thread-story-secondary thread-story-secondary-muted">
+            <span class="thread-story-context">${escapeHtml(issueContextLabel)}</span>
+          </p>`
+        : "";
+      const snippetLineMarkup = showSnippet
+        ? `<p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
+            snippetValue
+          )}</p>`
+        : "";
+      const secondaryLineMarkup = `${issueContextMarkup}${snippetLineMarkup}`;
+      const intelligenceMarkup = historySignals.length
+        ? `<div class="thread-intelligence-row queue-history-item-meta queue-history-item-meta--fullwidth">
+            ${historySignals
+              .map((signal) => {
+                const historyIconMarkup = buildHistorySignalIconMarkup(signal.iconKey);
+                return `<span class="thread-intelligence-item thread-intelligence-item--${escapeHtml(
+                  signal.role
+                )}"${
+                  signal.marker
+                    ? ` data-history-pill-class="${escapeHtml(signal.marker)}"`
+                    : ""
+                }${signal.iconKey ? ` data-pill-icon="${escapeHtml(signal.iconKey)}"` : ""}>
+                  <span class="thread-intelligence-item-head">${
+                    historyIconMarkup
+                      ? `<span class="thread-intelligence-item-icon">${historyIconMarkup}</span>`
+                      : ""
+                  }</span>
+                  <span class="thread-intelligence-item-value">${escapeHtml(signal.value)}</span>
+                </span>`;
+              })
+              .join("")}
+          </div>`
+        : "";
+      const provenanceMarkup = asText(item.mailboxProvenanceLabel)
+        ? `<div class="intel-card-provenance thread-card-provenance">
+            <span class="intel-card-provenance-label intel-card-provenance-derived" data-history-pill-class="queue-history-pill--provenance">Mailboxspår</span>
+            <p class="intel-card-provenance-detail">${escapeHtml(
+              `${asText(item.mailboxProvenanceLabel)}${
+                asText(item.mailboxProvenanceDetail)
+                  ? ` · ${asText(item.mailboxProvenanceDetail)}`
+                  : ""
+              }`
+            )}</p>
+          </div>`
+        : "";
+      const supportMarkup =
+        intelligenceMarkup || provenanceMarkup
+          ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${provenanceMarkup}</div>`
+          : "";
+
+      return `<article class="thread-card queue-history-item${selectedClass}${
+        isSelected ? " thread-card-selected" : ""
+      }${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
+        <div class="thread-card-head">
+          <div class="thread-card-identity">
+            <img class="avatar" src="${avatarSrc}" alt="${escapeHtml(counterpartyCopy)}" />
+            <div class="thread-card-head-copy">
+              <div class="thread-heading thread-heading-merged">
+                ${freshnessMarkup}
+                <p class="thread-subject">
+                  <span class="thread-subject-primary">${escapeHtml(primaryHistoryTitle)}</span>
+                </p>
+              </div>
+              ${secondaryLineMarkup}
+            </div>
+          </div>
+          <div class="thread-card-stamp">
+            <div class="thread-card-stamp-top"><time datetime="${escapeHtml(
+              item.recordedAt || ""
+            )}">${escapeHtml(item.time || "")}</time></div>
+            <span class="thread-owner">${escapeHtml(stampLabel)}</span>
+          </div>
+        </div>
+        ${supportMarkup}
       </article>`;
     }
 
@@ -1540,6 +1770,7 @@
         recordedAt: asText(thread.lastActivityAt),
         title: title || "Aktiv tråd",
         detail: resolvedDetail,
+        snippetText: cleanedPreview || rawDetail,
         laneId: primaryLaneId,
         signalItems:
           typeof buildQueueInlineLaneSignalItems === "function"
@@ -1549,6 +1780,7 @@
         mailboxAddress: asText(thread.mailboxAddress),
         mailboxProvenanceLabel: asText(thread.mailboxProvenanceLabel),
         mailboxProvenanceDetail: asText(thread.mailboxProvenanceDetail),
+        intentLabel: asText(thread.intentLabel),
         worklistSource: asText(thread.worklistSource || "legacy"),
         worklistSourceLabel: asText(thread.worklistSourceLabel),
         isUnread: thread?.unread === true || thread?.isUnread === true,
@@ -1987,9 +2219,49 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "history";
       }
+      const enrichHistoryCardItem = (item = {}) => {
+        const historyConversationId = asText(item.conversationId);
+        if (
+          !historyConversationId ||
+          typeof buildQueueInlineLaneHistoryItem !== "function" ||
+          typeof getMailboxScopedRuntimeThreads !== "function" ||
+          typeof runtimeConversationIdsMatch !== "function"
+        ) {
+          return item;
+        }
+        const matchedThread = getMailboxScopedRuntimeThreads().find((thread) =>
+          runtimeConversationIdsMatch(thread?.id, historyConversationId)
+        );
+        if (!matchedThread) return item;
+        const runtimeHistoryItem = buildQueueInlineLaneHistoryItem(matchedThread);
+        return {
+          ...item,
+          counterpartyLabel: asText(runtimeHistoryItem.counterpartyLabel, item.counterpartyLabel),
+          title: asText(item.title, runtimeHistoryItem.title),
+          detail: asText(runtimeHistoryItem.snippetText, runtimeHistoryItem.detail, item.detail),
+          signalItems: asArray(runtimeHistoryItem.signalItems).length
+            ? runtimeHistoryItem.signalItems
+            : asArray(item.signalItems),
+          mailboxProvenanceLabel: asText(
+            runtimeHistoryItem.mailboxProvenanceLabel,
+            item.mailboxProvenanceLabel
+          ),
+          mailboxProvenanceDetail: asText(
+            runtimeHistoryItem.mailboxProvenanceDetail,
+            item.mailboxProvenanceDetail
+          ),
+          intentLabel: asText(runtimeHistoryItem.intentLabel, item.intentLabel),
+          worklistSource: asText(runtimeHistoryItem.worklistSource, item.worklistSource),
+          worklistSourceLabel: asText(
+            runtimeHistoryItem.worklistSourceLabel,
+            item.worklistSourceLabel
+          ),
+          isUnread: item.isUnread === true || runtimeHistoryItem.isUnread === true,
+        };
+      };
       queueHistoryList.innerHTML = asArray(items)
         .map((item) =>
-          buildQueueHistoryCardMarkup(item, {
+          buildQueueHistoryCardMarkup(enrichHistoryCardItem(item), {
             selectedConversationId: state.runtime.queueHistory?.selectedConversationId,
           })
         )
@@ -2036,7 +2308,7 @@
     function getQueueInlineFeedMeta(feedKey, count) {
       const normalizedFeedKey = normalizeKey(feedKey || "");
       if (normalizedFeedKey === "sent") {
-        return `Visar ${count} skickade mejl i valt mailbox- och ägarscope.`;
+        return "";
       }
       return `Visar ${count} mejl i samma vänsterarbetsyta.`;
     }
@@ -2351,7 +2623,10 @@
         if (queueTitle) {
           queueTitle.textContent = `${feedLabel} (${feedThreads.length})`;
         }
-        setQueueHistoryMeta(getQueueInlineFeedMeta(inlineFeedKey, feedThreads.length));
+        const queueInlineFeedMeta = getQueueInlineFeedMeta(inlineFeedKey, feedThreads.length);
+        setQueueHistoryMeta(queueInlineFeedMeta, {
+          showHead: inlineFeedKey === "sent" ? true : Boolean(queueInlineFeedMeta),
+        });
         if (!feedThreads.length) {
           renderQueueInlineLaneList([
             buildUnifiedStateThread({

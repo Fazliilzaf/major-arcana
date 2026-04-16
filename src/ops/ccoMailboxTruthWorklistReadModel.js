@@ -385,6 +385,13 @@ function buildWorklistRollupRow(rows = []) {
         .filter(Boolean)
     )
   );
+  const uniqueConversationKeys = Array.from(
+    new Set(
+      safeRows
+        .map((row) => normalizeText(row?.conversationKey || row?.id))
+        .filter(Boolean)
+    )
+  );
   const rollupIdentity = getWorklistMergeIdentityKey(primaryRow) || {
     key: normalizeText(primaryRow?.conversationKey || primaryRow?.id || ''),
     type: 'conversationKey',
@@ -460,6 +467,7 @@ function buildWorklistRollupRow(rows = []) {
       count: mergedCount,
       mailboxCount: uniqueMailboxIds.length,
       threadCount: uniqueConversationIds.length,
+      underlyingConversationKeys: uniqueConversationKeys,
       primaryConversationId: primaryRow?.conversationId || null,
       primaryMailboxId: normalizeMailboxId(
         primaryRow?.mailbox?.mailboxId ||
@@ -537,7 +545,97 @@ function buildCustomerRollupRows(rows = []) {
     }));
 }
 
-function createCcoMailboxTruthWorklistReadModel({ store = null, customerState = null } = {}) {
+function hasResolvedMergeReview(row = {}) {
+  const decisions = Object.values(asObject(row?.mergeReviewDecisionsByPairId));
+  if (decisions.length === 0) return false;
+  return decisions.every((entry) => {
+    const decision = normalizeText(entry?.decision).toLowerCase();
+    return decision === 'dismissed' || decision === 'approved';
+  });
+}
+
+function shouldSuppressOperatorState(row = {}, operatorState = null) {
+  if (!operatorState || operatorState.superseded === true) return true;
+  const actionAtMs = Date.parse(normalizeText(operatorState.actionAt || ''));
+  if (!Number.isFinite(actionAtMs)) return false;
+  const lastInboundMs = Date.parse(normalizeText(row?.lastInboundAt || row?.timing?.lastInboundAt || ''));
+  const lastOutboundMs = Date.parse(
+    normalizeText(row?.lastOutboundAt || row?.timing?.lastOutboundAt || '')
+  );
+  if (Number.isFinite(lastInboundMs) && lastInboundMs > actionAtMs) return true;
+  if (
+    normalizeActionState(operatorState.actionState) === 'reply_later' &&
+    Number.isFinite(lastOutboundMs) &&
+    lastOutboundMs > actionAtMs
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function normalizeActionState(value = '') {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === 'handled') return 'handled';
+  if (normalized === 'reply_later') return 'reply_later';
+  return '';
+}
+
+function applyConversationStateProjection({
+  tenantId = '',
+  rollupRows = [],
+  conversationStateStore = null,
+} = {}) {
+  if (
+    !conversationStateStore ||
+    typeof conversationStateStore.getActiveStateMap !== 'function' ||
+    !normalizeText(tenantId)
+  ) {
+    return asArray(rollupRows);
+  }
+  const activeStateMap = conversationStateStore.getActiveStateMap({
+    tenantId,
+    canonicalConversationKeys: asArray(rollupRows).map((row) => row?.conversationKey).filter(Boolean),
+  });
+  const projectedRows = [];
+  for (const row of asArray(rollupRows)) {
+    const operatorState = activeStateMap[normalizeText(row?.conversationKey)] || null;
+    if (!operatorState || shouldSuppressOperatorState(row, operatorState)) {
+      projectedRows.push(row);
+      continue;
+    }
+    const normalizedActionState = normalizeActionState(operatorState.actionState);
+    if (normalizedActionState === 'handled') {
+      continue;
+    }
+    projectedRows.push({
+      ...row,
+      lane: normalizedActionState === 'reply_later' ? 'later' : row.lane,
+      needsReply: true,
+      operatorState: {
+        actionState: normalizedActionState,
+        needsReplyStatusOverride:
+          normalizeText(operatorState.needsReplyStatusOverride || null) || null,
+        followUpDueAt: normalizeText(operatorState.followUpDueAt || null) || null,
+        waitingOn: normalizeText(operatorState.waitingOn || null) || null,
+        nextActionLabel: normalizeText(operatorState.nextActionLabel || null) || null,
+        nextActionSummary: normalizeText(operatorState.nextActionSummary || null) || null,
+        actionAt: normalizeText(operatorState.actionAt || null) || null,
+        version: Number(operatorState.version || 0) || 0,
+      },
+    });
+  }
+  return projectedRows.map((row, index) => ({
+    ...row,
+    placementIndex: index,
+  }));
+}
+
+function createCcoMailboxTruthWorklistReadModel({
+  store = null,
+  customerState = null,
+  tenantId = '',
+  conversationStateStore = null,
+} = {}) {
   if (!store || typeof store.listMessages !== 'function') {
     return null;
   }
@@ -804,7 +902,11 @@ function createCcoMailboxTruthWorklistReadModel({ store = null, customerState = 
     limit = 120,
   } = {}) {
     const readModel = buildReadModel({ mailboxIds, limit });
-    const rollupRows = buildCustomerRollupRows(readModel.rows);
+    const rollupRows = applyConversationStateProjection({
+      tenantId,
+      rollupRows: buildCustomerRollupRows(readModel.rows),
+      conversationStateStore,
+    });
     return {
       generatedAt: new Date().toISOString(),
       source: 'mailbox_truth_worklist_consumer',
@@ -865,11 +967,16 @@ function createCcoMailboxTruthWorklistReadModel({ store = null, customerState = 
           needsReply: row.needsReply === true,
           messageCount: row.messageCount,
           folderPresence: asObject(row.folderPresence),
+          operatorState: asObject(row.operatorState),
         },
         provenance: {
           source: 'mailbox_truth_store',
           parityScope: 'in_scope',
           rollup: row.rollup,
+          operatorStateSource:
+            row?.operatorState && Object.keys(asObject(row.operatorState)).length > 0
+              ? 'cco_conversation_state_store'
+              : null,
         },
       })),
     };

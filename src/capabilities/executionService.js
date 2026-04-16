@@ -26,6 +26,10 @@ const {
 } = require('../agents/ccoInboxAgent');
 const { buildCanonicalMailComposeDocument } = require('../ops/ccoMailComposeDocument');
 const {
+  createCcoMailboxTruthWorklistReadModel,
+  toCanonicalMailboxConversationKey,
+} = require('../ops/ccoMailboxTruthWorklistReadModel');
+const {
   CCO_DEFAULT_SENDER_MAILBOX,
   CCO_BASE_SIGNATURE_PROFILES,
   buildCanonicalCcoMailboxSettingsDocument,
@@ -558,6 +562,10 @@ function createCapabilityExecutor({
   tenantConfigStore,
   capabilityAnalysisStore = null,
   ccoSettingsStore = null,
+  ccoHistoryStore = null,
+  ccoMailboxTruthStore = null,
+  ccoCustomerStore = null,
+  ccoConversationStateStore = null,
   buildVersion = 'dev',
 }) {
   const runCapabilityThroughGateway = bindGatewayRunCapability(executionGateway);
@@ -604,6 +612,463 @@ function createCapabilityExecutor({
       targetId,
       metadata: metadata || {},
     });
+  }
+
+  function normalizeConversationActionWaitingOn(value = '') {
+    const normalized = normalizeText(value).toLowerCase();
+    if (normalized === 'customer') return 'customer';
+    return 'owner';
+  }
+
+  function isMergeReviewResolved(decisionsByPairId = {}) {
+    const decisions = Object.values(
+      decisionsByPairId && typeof decisionsByPairId === 'object' ? decisionsByPairId : {}
+    );
+    if (decisions.length === 0) return false;
+    return decisions.every((entry) => {
+      const decision = normalizeText(entry?.decision).toLowerCase();
+      return decision === 'approved' || decision === 'dismissed';
+    });
+  }
+
+  async function resolveConversationActionTarget({
+    tenantId,
+    mailboxId,
+    conversationId,
+    messageId,
+  }) {
+    if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+      throw makeCapabilityError(
+        'CCO_ACTION_TRUTH_UNAVAILABLE',
+        'Mailbox truth store saknas för CCO action resolution.'
+      );
+    }
+    const mailboxMessages = ccoMailboxTruthStore.listMessages({
+      mailboxIds: [mailboxId],
+      folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+    });
+    const matchingMessage = mailboxMessages.find((message) => {
+      const sameMessageId =
+        normalizeText(message?.graphMessageId || message?.messageId) === normalizeText(messageId);
+      const sameConversationId =
+        normalizeText(message?.conversationId) === normalizeText(conversationId);
+      return sameMessageId && sameConversationId;
+    });
+    if (!matchingMessage) {
+      throw makeCapabilityError(
+        'CCO_CONVERSATION_NOT_FOUND',
+        'Conversation kunde inte resolvas i mailbox truth.'
+      );
+    }
+    const customerState =
+      ccoCustomerStore && typeof ccoCustomerStore.getTenantCustomerState === 'function'
+        ? await ccoCustomerStore.getTenantCustomerState({ tenantId })
+        : null;
+    const worklistReadModel = createCcoMailboxTruthWorklistReadModel({
+      store: ccoMailboxTruthStore,
+      customerState,
+      tenantId,
+    });
+    if (!worklistReadModel || typeof worklistReadModel.buildConsumerModel !== 'function') {
+      throw makeCapabilityError(
+        'CCO_ACTION_TRUTH_UNAVAILABLE',
+        'Worklist consumer kunde inte byggas för CCO action resolution.'
+      );
+    }
+    const rawConversationKey = toCanonicalMailboxConversationKey({
+      mailboxId,
+      conversationId: matchingMessage?.conversationId,
+      mailboxConversationId: matchingMessage?.mailboxConversationId,
+      messageId,
+    });
+    const consumerModel = worklistReadModel.buildConsumerModel({
+      mailboxIds: [],
+      limit: 1000,
+    });
+    const matchingRows = (Array.isArray(consumerModel?.rows) ? consumerModel.rows : []).filter((row) => {
+      const underlyingConversationKeys = Array.isArray(row?.rollup?.underlyingConversationKeys)
+        ? row.rollup.underlyingConversationKeys
+        : [];
+      return (
+        normalizeText(row?.conversation?.key) === rawConversationKey ||
+        underlyingConversationKeys.includes(rawConversationKey)
+      );
+    });
+    if (matchingRows.length === 0) {
+      throw makeCapabilityError(
+        'CCO_CONVERSATION_NOT_FOUND',
+        'Canonical conversation kunde inte resolvas i worklist consumer.'
+      );
+    }
+    if (matchingRows.length > 1) {
+      throw makeCapabilityError(
+        'CCO_CONVERSATION_AMBIGUOUS',
+        'Canonical conversation resolution blev tvetydig.'
+      );
+    }
+    const row = matchingRows[0];
+    const hardConflictSignals = Array.isArray(row?.hardConflictSignals) ? row.hardConflictSignals : [];
+    if (hardConflictSignals.length > 0 && !isMergeReviewResolved(row?.mergeReviewDecisionsByPairId)) {
+      throw makeCapabilityError(
+        'CCO_CONVERSATION_REVIEW_REQUIRED',
+        'Conversation kräver review innan operator-state kan skrivas.'
+      );
+    }
+    const mergeKeyType = normalizeText(row?.rollup?.mergeKeyType || 'conversationKey') || 'conversationKey';
+    return {
+      canonicalConversationKey: normalizeText(row?.conversation?.key || row?.id),
+      canonicalConversationSource:
+        mergeKeyType === 'conversationKey' ? 'mailbox_conversation_fallback' : 'merge_identity',
+      canonicalConversationType: mergeKeyType,
+      primaryConversationId:
+        normalizeText(row?.rollup?.primaryConversationId || row?.conversation?.conversationId) || null,
+      underlyingConversationIds: Array.isArray(row?.rollup?.underlyingConversationIds)
+        ? row.rollup.underlyingConversationIds
+        : [normalizeText(conversationId)].filter(Boolean),
+      underlyingMailboxIds: Array.isArray(row?.rollup?.underlyingMailboxIds)
+        ? row.rollup.underlyingMailboxIds
+        : [normalizeText(mailboxId).toLowerCase()].filter(Boolean),
+      row,
+    };
+  }
+
+  async function writeAuditSafely(payload = {}) {
+    try {
+      const event = await authStore.addAuditEvent(payload);
+      return {
+        ok: true,
+        event,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
+    }
+  }
+
+  async function runCcoConversationStateAction({
+    action,
+    tenantId,
+    actor = {},
+    channel = 'admin',
+    input = {},
+    correlationId = null,
+    idempotencyKey = null,
+    requestMetadata = {},
+  }) {
+    const normalizedAction = normalizeText(action).toLowerCase();
+    const normalizedTenantId = normalizeText(tenantId);
+    const normalizedActor = {
+      id: normalizeText(actor?.id) || null,
+      role: normalizeText(actor?.role || '').toUpperCase() || null,
+      email: normalizeText(actor?.email).toLowerCase() || null,
+    };
+    const normalizedChannel = normalizeText(channel).toLowerCase() || 'admin';
+    const normalizedCorrelationId = normalizeText(correlationId) || null;
+    const normalizedIdempotencyKey = normalizeText(idempotencyKey) || null;
+    const normalizedInput = safeObject(input);
+    const mailboxId = normalizeText(normalizedInput.mailboxId).toLowerCase();
+    const conversationId = normalizeText(normalizedInput.conversationId);
+    const messageId = normalizeText(normalizedInput.messageId);
+    const source = normalizeText(normalizedInput.source) || 'cco_action_route';
+    const requestedActionAt = toIso(normalizedInput.actionAt);
+    const actionAt = requestedActionAt || new Date().toISOString();
+    const routeKey =
+      normalizedAction === 'handled' ? '/api/v1/cco/handled' : '/api/v1/cco/reply-later';
+
+    if (!normalizedTenantId) {
+      throw makeCapabilityError('CAPABILITY_INVALID_TENANT', 'tenantId saknas för CCO action.');
+    }
+    if (!['OWNER', 'STAFF'].includes(normalizedActor.role || '')) {
+      throw makeCapabilityError(
+        'CAPABILITY_ROLE_DENIED',
+        'Role saknar access till CCO conversation actions.'
+      );
+    }
+    if (normalizedChannel !== 'admin') {
+      throw makeCapabilityError(
+        'CAPABILITY_CHANNEL_DENIED',
+        'CCO conversation actions tillåter endast admin-channel.'
+      );
+    }
+    if (!mailboxId || !conversationId || !messageId) {
+      throw makeCapabilityError(
+        'CCO_ACTION_INPUT_INVALID',
+        'mailboxId, conversationId och messageId krävs.'
+      );
+    }
+    if (!normalizedIdempotencyKey) {
+      throw makeCapabilityError(
+        'CCO_ACTION_INPUT_INVALID',
+        'x-idempotency-key krävs för CCO conversation actions.'
+      );
+    }
+    if (
+      !ccoConversationStateStore ||
+      typeof ccoConversationStateStore.writeConversationState !== 'function'
+    ) {
+      throw makeCapabilityError(
+        'CCO_ACTION_STORE_UNAVAILABLE',
+        'Conversation state store saknas för CCO action.'
+      );
+    }
+
+    let followUpDueAt = null;
+    let waitingOn = null;
+    let nextActionLabel = null;
+    let nextActionSummary = null;
+    if (normalizedAction === 'reply_later') {
+      followUpDueAt = toIso(normalizedInput.followUpDueAt);
+      if (!followUpDueAt) {
+        throw makeCapabilityError(
+          'CCO_ACTION_INPUT_INVALID',
+          'followUpDueAt krävs och måste vara giltig ISO-tid för reply-later.'
+        );
+      }
+      waitingOn = normalizeConversationActionWaitingOn(normalizedInput.waitingOn);
+      nextActionLabel = normalizeText(normalizedInput.nextActionLabel) || null;
+      nextActionSummary = normalizeText(normalizedInput.nextActionSummary) || null;
+    }
+
+    const target = await resolveConversationActionTarget({
+      tenantId: normalizedTenantId,
+      mailboxId,
+      conversationId,
+      messageId,
+    });
+    const idempotencyPayload = {
+      action: normalizedAction,
+      mailboxId,
+      conversationId,
+      messageId,
+      actionAt: requestedActionAt,
+      followUpDueAt,
+      waitingOn,
+      nextActionLabel,
+      nextActionSummary,
+      actionLabel: normalizeText(normalizedInput.actionLabel) || null,
+      source,
+    };
+    const idempotencyResult = await ccoConversationStateStore.reserveIdempotency({
+      tenantId: normalizedTenantId,
+      routeKey,
+      actorUserId: normalizedActor.id,
+      canonicalConversationKey: target.canonicalConversationKey,
+      idempotencyKey: normalizedIdempotencyKey,
+      payload: idempotencyPayload,
+    });
+    if (idempotencyResult.status === 'replay') {
+      return safeObject(idempotencyResult.existing?.responseSnapshot);
+    }
+    if (idempotencyResult.status === 'mismatch') {
+      throw makeCapabilityError(
+        'CCO_IDEMPOTENCY_PAYLOAD_MISMATCH',
+        'Idempotency-nyckeln återanvändes med annan payload.'
+      );
+    }
+    if (idempotencyResult.status === 'in_progress') {
+      throw makeCapabilityError(
+        'CCO_IDEMPOTENCY_IN_PROGRESS',
+        'En identisk action kör redan för denna conversation.'
+      );
+    }
+
+    const requestedAuditAction =
+      normalizedAction === 'handled'
+        ? 'cco.reply.handled.requested'
+        : 'cco.reply.later.requested';
+    const completedAuditAction =
+      normalizedAction === 'handled'
+        ? 'cco.reply.handled.completed'
+        : 'cco.reply.later.completed';
+    const failedAuditAction =
+      normalizedAction === 'handled'
+        ? 'cco.reply.handled.failed'
+        : 'cco.reply.later.failed';
+    const historyActionType = normalizedAction === 'handled' ? 'handled' : 'reply_later';
+
+    let stateRecord;
+    try {
+      stateRecord = await ccoConversationStateStore.writeConversationState({
+        tenantId: normalizedTenantId,
+        canonicalConversationKey: target.canonicalConversationKey,
+        canonicalConversationSource: target.canonicalConversationSource,
+        canonicalConversationType: target.canonicalConversationType,
+        primaryConversationId: target.primaryConversationId,
+        underlyingConversationIds: target.underlyingConversationIds,
+        underlyingMailboxIds: target.underlyingMailboxIds,
+        actionState: normalizedAction,
+        needsReplyStatusOverride: normalizedAction === 'handled' ? 'handled' : 'needs_reply',
+        followUpDueAt,
+        waitingOn,
+        nextActionLabel,
+        nextActionSummary,
+        actionAt,
+        actionByUserId: normalizedActor.id,
+        actionByEmail: normalizedActor.email,
+        idempotencyKey: normalizedIdempotencyKey,
+      });
+    } catch (error) {
+      await ccoConversationStateStore.clearPendingIdempotency({
+        tenantId: normalizedTenantId,
+        routeKey,
+        actorUserId: normalizedActor.id,
+        canonicalConversationKey: target.canonicalConversationKey,
+        idempotencyKey: normalizedIdempotencyKey,
+      });
+      await writeAuditSafely({
+        tenantId: normalizedTenantId,
+        actorUserId: normalizedActor.id,
+        action: failedAuditAction,
+        outcome: 'failure',
+        targetType: 'cco_conversation',
+        targetId: conversationId,
+        metadata: {
+          correlationId: normalizedCorrelationId,
+          mailboxId,
+          conversationId,
+          messageId,
+          canonicalConversationKey: target.canonicalConversationKey,
+          stage: 'state_write',
+          errorCode: normalizeText(error?.code) || 'CCO_ACTION_STATE_WRITE_FAILED',
+          errorMessage: normalizeText(error?.message) || 'Conversation state write misslyckades.',
+          requestMetadata,
+        },
+      });
+      throw makeCapabilityError(
+        'CCO_ACTION_STATE_WRITE_FAILED',
+        normalizeText(error?.message) || 'Conversation state write misslyckades.'
+      );
+    }
+
+    let historyLogged = false;
+    let historyRef = null;
+    let historyWarning = null;
+    try {
+      if (!ccoHistoryStore || typeof ccoHistoryStore.recordAction !== 'function') {
+        throw new Error('ccoHistoryStore.recordAction saknas.');
+      }
+      const historyEntry = await ccoHistoryStore.recordAction({
+        tenantId: normalizedTenantId,
+        conversationId,
+        canonicalConversationKey: target.canonicalConversationKey,
+        mailboxId,
+        customerEmail: normalizeText(target?.row?.customer?.email || target?.row?.customerEmail) || null,
+        messageId,
+        actionType: historyActionType,
+        actionLabel:
+          normalizeText(normalizedInput.actionLabel) ||
+          (normalizedAction === 'handled' ? 'Markera klar' : 'Svara senare'),
+        subject: normalizeText(target?.row?.subject) || null,
+        recordedAt: actionAt,
+        actorUserId: normalizedActor.id,
+        actorEmail: normalizedActor.email,
+        source,
+        waitingOn,
+        nextActionLabel,
+        nextActionSummary,
+        followUpDueAt,
+        version: stateRecord.version,
+      });
+      historyLogged = true;
+      historyRef = historyEntry
+        ? `${historyEntry.actionType}:${historyEntry.conversationId}:${historyEntry.recordedAt}`
+        : null;
+    } catch (error) {
+      historyWarning = error;
+    }
+
+    const requestedAudit = await writeAuditSafely({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: requestedAuditAction,
+      outcome: 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        correlationId: normalizedCorrelationId,
+        mailboxId,
+        conversationId,
+        messageId,
+        canonicalConversationKey: target.canonicalConversationKey,
+        routeKey,
+        requestMetadata,
+      },
+    });
+    const terminalAudit = await writeAuditSafely({
+      tenantId: normalizedTenantId,
+      actorUserId: normalizedActor.id,
+      action: historyWarning ? failedAuditAction : completedAuditAction,
+      outcome: historyWarning ? 'warning' : 'success',
+      targetType: 'cco_conversation',
+      targetId: conversationId,
+      metadata: {
+        correlationId: normalizedCorrelationId,
+        mailboxId,
+        conversationId,
+        messageId,
+        canonicalConversationKey: target.canonicalConversationKey,
+        primaryConversationId: target.primaryConversationId,
+        actionState: stateRecord.actionState,
+        stateVersion: stateRecord.version,
+        historyLogged,
+        warningCode: historyWarning ? 'CCO_ACTION_HISTORY_WRITE_FAILED' : null,
+        warningMessage: historyWarning ? normalizeText(historyWarning?.message) || null : null,
+        requestMetadata,
+      },
+    });
+
+    const auditLogged = requestedAudit.ok === true && terminalAudit.ok === true;
+    const warningCode = historyWarning
+      ? 'CCO_ACTION_HISTORY_WRITE_FAILED'
+      : auditLogged
+        ? null
+        : 'CCO_ACTION_AUDIT_WRITE_FAILED';
+    const warningMessage = historyWarning
+      ? normalizeText(historyWarning?.message) || 'Historikloggning misslyckades efter state-write.'
+      : auditLogged
+        ? null
+        : 'Auditloggning misslyckades efter state-write.';
+    const responsePayload = {
+      ok: true,
+      action: normalizedAction,
+      canonicalConversationKey: target.canonicalConversationKey,
+      state: {
+        actionState: stateRecord.actionState,
+        needsReplyStatusOverride: stateRecord.needsReplyStatusOverride,
+        followUpDueAt: stateRecord.followUpDueAt,
+        waitingOn: stateRecord.waitingOn,
+        nextActionLabel: stateRecord.nextActionLabel,
+        nextActionSummary: stateRecord.nextActionSummary,
+        actionAt: stateRecord.actionAt,
+        superseded: stateRecord.superseded === true,
+        version: stateRecord.version,
+      },
+      projection: {
+        refreshMode: 'bootstrap_refresh',
+        invalidate: ['worklist', 'focus', 'history'],
+        primaryConversationId: target.primaryConversationId,
+      },
+      auditRef: normalizeText(terminalAudit?.event?.id || requestedAudit?.event?.id) || null,
+      historyRef,
+      writeCommitted: true,
+      historyLogged,
+      auditLogged,
+      warningCode,
+      warningMessage,
+    };
+
+    await ccoConversationStateStore.completeIdempotency({
+      tenantId: normalizedTenantId,
+      routeKey,
+      actorUserId: normalizedActor.id,
+      canonicalConversationKey: target.canonicalConversationKey,
+      idempotencyKey: normalizedIdempotencyKey,
+      responseSnapshot: responsePayload,
+    });
+
+    return responsePayload;
   }
 
   async function runCapability({
@@ -1910,11 +2375,27 @@ function createCapabilityExecutor({
     };
   }
 
+  async function runCcoHandled(params = {}) {
+    return runCcoConversationStateAction({
+      action: 'handled',
+      ...params,
+    });
+  }
+
+  async function runCcoReplyLater(params = {}) {
+    return runCcoConversationStateAction({
+      action: 'reply_later',
+      ...params,
+    });
+  }
+
   return {
     listCapabilities,
     listAgentBundles,
     runCapability,
     runAgent,
+    runCcoHandled,
+    runCcoReplyLater,
     runCcoSend,
   };
 }

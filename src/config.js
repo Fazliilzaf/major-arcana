@@ -188,6 +188,11 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth.json',
   }),
+  ccoConversationStateStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_CONVERSATION_STATE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-conversation-state.json',
+  }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
     stateRoot,

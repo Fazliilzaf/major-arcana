@@ -334,6 +334,7 @@ const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
+const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
@@ -743,6 +744,9 @@ process.once('SIGTERM', () => {
   const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
     filePath: config.ccoMailboxTruthStorePath,
   });
+  const ccoConversationStateStore = await createCcoConversationStateStore({
+    filePath: config.ccoConversationStateStorePath,
+  });
   const ccoNoteStore = await createCcoNoteStore({
     filePath: config.ccoNoteStorePath,
   });
@@ -1121,6 +1125,7 @@ process.once('SIGTERM', () => {
       authStore,
       tenantConfigStore,
       ccoSettingsStore,
+      ccoConversationStateStore,
       templateStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,

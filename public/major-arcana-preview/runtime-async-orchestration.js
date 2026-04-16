@@ -640,7 +640,11 @@
       ) {
         return;
       }
-      applyReplyLaterToThread(thread, label, { closeStudio: true });
+      try {
+        await applyReplyLaterToThread(thread, label, { closeStudio: true });
+      } catch (error) {
+        setStudioFeedback(error.message || "Kunde inte parkera tråden.", "error");
+      }
     }
 
     async function persistHandledConversationAction(thread, { closeStudio = false } = {}) {

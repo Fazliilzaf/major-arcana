@@ -618,6 +618,15 @@ function pickErrorStatus(errorCode = '') {
   if (code === 'CCO_SEND_ALLOWLIST_EMPTY') return 503;
   if (code === 'CCO_SEND_DISABLED') return 503;
   if (code === 'CCO_SEND_CONNECTOR_UNAVAILABLE') return 503;
+  if (code === 'CCO_ACTION_INPUT_INVALID') return 422;
+  if (code === 'CCO_ACTION_TRUTH_UNAVAILABLE') return 503;
+  if (code === 'CCO_ACTION_STORE_UNAVAILABLE') return 503;
+  if (code === 'CCO_ACTION_STATE_WRITE_FAILED') return 500;
+  if (code === 'CCO_CONVERSATION_NOT_FOUND') return 404;
+  if (code === 'CCO_CONVERSATION_AMBIGUOUS') return 409;
+  if (code === 'CCO_CONVERSATION_REVIEW_REQUIRED') return 409;
+  if (code === 'CCO_IDEMPOTENCY_PAYLOAD_MISMATCH') return 409;
+  if (code === 'CCO_IDEMPOTENCY_IN_PROGRESS') return 409;
   if (code === 'CCO_DELETE_INPUT_INVALID') return 422;
   if (code === 'CCO_DELETE_NOT_ENABLED') return 503;
   if (code === 'CCO_DELETE_CONNECTOR_UNAVAILABLE') return 503;
@@ -5764,6 +5773,60 @@ function toCcoSendHandler({
   };
 }
 
+function toCcoHandledHandler({ executor }) {
+  return async (req, res) => {
+    try {
+      const actor = toActor(req);
+      const payload = asObject(req.body);
+      const input = asObject(
+        payload.input && typeof payload.input === 'object' ? payload.input : payload
+      );
+      const result = await executor.runCcoHandled({
+        tenantId: toTenantId(req),
+        actor,
+        channel: toChannel(req),
+        input,
+        correlationId: toCorrelationId(req),
+        idempotencyKey: toIdempotencyKey(req),
+        requestMetadata: toRequestMetadata(req),
+      });
+      return res.json(result);
+    } catch (error) {
+      return res.status(pickErrorStatus(error?.code)).json({
+        error: error?.message || 'Kunde inte markera conversation som klar.',
+        code: error?.code || 'CCO_HANDLED_FAILED',
+      });
+    }
+  };
+}
+
+function toCcoReplyLaterHandler({ executor }) {
+  return async (req, res) => {
+    try {
+      const actor = toActor(req);
+      const payload = asObject(req.body);
+      const input = asObject(
+        payload.input && typeof payload.input === 'object' ? payload.input : payload
+      );
+      const result = await executor.runCcoReplyLater({
+        tenantId: toTenantId(req),
+        actor,
+        channel: toChannel(req),
+        input,
+        correlationId: toCorrelationId(req),
+        idempotencyKey: toIdempotencyKey(req),
+        requestMetadata: toRequestMetadata(req),
+      });
+      return res.json(result);
+    } catch (error) {
+      return res.status(pickErrorStatus(error?.code)).json({
+        error: error?.message || 'Kunde inte flytta conversation till svara senare.',
+        code: error?.code || 'CCO_REPLY_LATER_FAILED',
+      });
+    }
+  };
+}
+
 function toCcoDeleteHandler({
   graphSendConnector,
   graphDeleteEnabled,
@@ -6777,6 +6840,7 @@ async function buildWorklistTruthContext({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  ccoConversationStateStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 250,
@@ -6789,6 +6853,8 @@ async function buildWorklistTruthContext({
   const worklistReadModel = createCcoMailboxTruthWorklistReadModel({
     store: ccoMailboxTruthStore,
     customerState: resolvedCustomerState,
+    tenantId,
+    conversationStateStore: ccoConversationStateStore,
   });
   const shadowContext = await buildWorklistShadowContext({
     tenantId,
@@ -6867,6 +6933,7 @@ async function buildWorklistConsumerContext({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  ccoConversationStateStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 120,
@@ -6879,12 +6946,15 @@ async function buildWorklistConsumerContext({
   const worklistReadModel = createCcoMailboxTruthWorklistReadModel({
     store: ccoMailboxTruthStore,
     customerState: resolvedCustomerState,
+    tenantId,
+    conversationStateStore: ccoConversationStateStore,
   });
   const truthContext = await buildWorklistTruthContext({
     tenantId,
     capabilityAnalysisStore,
     ccoMailboxTruthStore,
     ccoCustomerStore,
+    ccoConversationStateStore,
     customerState: resolvedCustomerState,
     mailboxIds,
     limit,
@@ -7795,6 +7865,7 @@ function toCcoRuntimeWorklistTruthHandler({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  ccoConversationStateStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -7805,6 +7876,7 @@ function toCcoRuntimeWorklistTruthHandler({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -7868,6 +7940,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  ccoConversationStateStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -7878,6 +7951,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -7955,6 +8029,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   capabilityAnalysisStore = null,
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
+  ccoConversationStateStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -7965,6 +8040,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -8197,6 +8273,7 @@ function createCapabilitiesRouter({
   authStore,
   tenantConfigStore,
   ccoSettingsStore = null,
+  ccoConversationStateStore = null,
   requireAuth,
   requireRole,
   executionGateway = null,
@@ -8329,6 +8406,10 @@ function createCapabilitiesRouter({
     tenantConfigStore,
     capabilityAnalysisStore,
     ccoSettingsStore,
+    ccoHistoryStore,
+    ccoMailboxTruthStore,
+    ccoCustomerStore,
+    ccoConversationStateStore,
     buildVersion: process.env.npm_package_version || 'dev',
   });
 
@@ -8501,6 +8582,7 @@ function createCapabilitiesRouter({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
       })
     )
   );
@@ -8514,6 +8596,7 @@ function createCapabilitiesRouter({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
       })
     )
   );
@@ -8527,6 +8610,7 @@ function createCapabilitiesRouter({
         capabilityAnalysisStore,
         ccoMailboxTruthStore,
         ccoCustomerStore,
+        ccoConversationStateStore,
       })
     )
   );
@@ -8655,6 +8739,28 @@ function createCapabilitiesRouter({
         graphSendConnector: resolvedGraphSendConnector,
         graphSendEnabled: shouldEnableGraphSend,
         graphSendAllowlist,
+      })
+    )
+  );
+
+  router.post(
+    '/cco/handled',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoHandledHandler({
+        executor,
+      })
+    )
+  );
+
+  router.post(
+    '/cco/reply-later',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    toRoleGuardedHandler(
+      toCcoReplyLaterHandler({
+        executor,
       })
     )
   );
