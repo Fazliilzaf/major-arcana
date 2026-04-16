@@ -11,6 +11,14 @@ const APP_PATH = path.join(
   'major-arcana-preview',
   'app.js'
 );
+const RUNTIME_DOM_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  'public',
+  'major-arcana-preview',
+  'runtime-dom-live-composition.js'
+);
 
 function extractFunctionSource(source, functionName, { async = false } = {}) {
   const signature = `${async ? 'async ' : ''}function ${functionName}`;
@@ -294,6 +302,98 @@ test('refreshConversationActionRuntimeProjection faller tillbaka till workspace 
 
   assert.deepEqual(loadLiveRuntimeCalls, []);
   assert.deepEqual(bootstrapReasons, ['reply later']);
+});
+
+test('finalizeRuntimeLoad renderar om efter bootstrap så fokus och intel läser samma post-bootstrap-state', async () => {
+  const source = fs.readFileSync(RUNTIME_DOM_PATH, 'utf8');
+  const functionSource = extractFunctionSource(source, 'finalizeRuntimeLoad', { async: true });
+
+  const renderCalls = [];
+  const loadBootstrapCalls = [];
+
+  const finalizeRuntimeLoad = new Function(
+    'clearRuntimeAuthRecoveryTimer',
+    'ensureRuntimeMailboxSelection',
+    'normalizeVisibleRuntimeScope',
+    'state',
+    'ensureCustomerRuntimeProfilesFromLive',
+    'refreshCustomerIdentitySuggestions',
+    'renderRuntimeConversationShell',
+    'loadQueueHistory',
+    'loadBootstrap',
+    'console',
+    `${functionSource}; return finalizeRuntimeLoad;`
+  )(
+    () => {},
+    () => {},
+    () => {},
+    { customerRuntime: { loaded: false } },
+    () => {},
+    async () => {},
+    () => renderCalls.push('render'),
+    () => ({ catch() {} }),
+    async (options) => {
+      loadBootstrapCalls.push(options);
+    },
+    console
+  );
+
+  await finalizeRuntimeLoad({
+    preferredThreadId: 'thread-1',
+    resetHistoryOnChange: true,
+  });
+
+  assert.equal(loadBootstrapCalls.length, 1);
+  assert.equal(renderCalls.length, 2);
+});
+
+test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen inte ligger kvar på stale truth', async () => {
+  const source = fs.readFileSync(RUNTIME_DOM_PATH, 'utf8');
+  const functionSource = extractFunctionSource(source, 'selectRuntimeThread');
+
+  const renderCalls = [];
+  const bootstrapCalls = [];
+
+  const selectRuntimeThread = new Function(
+    'asText',
+    'summarizeSelectedRuntimeThreadTruthForDiagnostics',
+    'summarizeRuntimeOpenFlowThread',
+    'getSelectedRuntimeThread',
+    'state',
+    'reconcileRuntimeScopeSelection',
+    'syncSelectedCustomerIdentityForThread',
+    'ensureRuntimeOpenFlowDiagnostics',
+    'recordRuntimeOpenFlowEvent',
+    'renderRuntimeConversationShell',
+    'captureRuntimeReentrySnapshot',
+    'queueHistoryList',
+    'requestRuntimeThreadHydration',
+    'loadBootstrap',
+    `${functionSource}; return selectRuntimeThread;`
+  )(
+    (value) => (value == null ? '' : String(value)),
+    () => ({ selectedThreadId: 'thread-1' }),
+    () => ({ id: 'thread-1' }),
+    () => ({ id: 'thread-1' }),
+    { runtime: { queueHistory: {} } },
+    () => {},
+    () => {},
+    () => ({}),
+    () => {},
+    () => renderCalls.push('render'),
+    () => {},
+    { querySelectorAll() { return []; } },
+    () => ({ catch() {} }),
+    async (options) => {
+      bootstrapCalls.push(options);
+    }
+  );
+
+  selectRuntimeThread('thread-2', { reloadBootstrap: true });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(bootstrapCalls.length, 1);
+  assert.equal(renderCalls.length, 2);
 });
 
 test('bulk handled och later använder inte längre lokala patch-hjälpare direkt', () => {

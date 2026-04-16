@@ -1044,6 +1044,7 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter live runtime.", error);
       });
+      renderRuntimeConversationShell();
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -2256,6 +2257,8 @@
           quiet: true,
         }).catch((error) => {
           console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
+        }).finally(() => {
+          renderRuntimeConversationShell();
         });
       }
     }
