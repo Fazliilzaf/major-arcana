@@ -640,7 +640,11 @@
       ) {
         return;
       }
-      applyReplyLaterToThread(thread, label, { closeStudio: true });
+      try {
+        await applyReplyLaterToThread(thread, label, { closeStudio: true });
+      } catch (error) {
+        setStudioFeedback(error.message || "Kunde inte parkera tråden.", "error");
+      }
     }
 
     async function handleStudioMarkHandled() {
@@ -656,7 +660,11 @@
         return;
       }
       const outcome = suggestHandledOutcome(thread, studioState);
-      applyHandledToThread(thread, outcome, { closeStudio: true });
+      try {
+        await applyHandledToThread(thread, outcome, { closeStudio: true });
+      } catch (error) {
+        setStudioFeedback(error.message || "Kunde inte markera konversationen som klar.", "error");
+      }
     }
 
     async function deleteRuntimeThread(thread, idempotencyScope = "major-arcana-delete") {
@@ -751,7 +759,14 @@
       }
       const studioState = ensureStudioState(thread);
       const outcome = suggestHandledOutcome(thread, studioState);
-      applyHandledToThread(thread, outcome, { closeStudio: false });
+      try {
+        await applyHandledToThread(thread, outcome, { closeStudio: false });
+      } catch (error) {
+        if (focusStatusLine) {
+          focusStatusLine.textContent =
+            error.message || "Kunde inte markera konversationen som klar.";
+        }
+      }
     }
 
     async function handleFocusHistoryDelete() {

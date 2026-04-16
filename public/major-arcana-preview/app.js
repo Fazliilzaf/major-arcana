@@ -10536,8 +10536,6 @@
 
   const {
     updateRuntimeThread,
-    patchStudioThreadAfterHandled,
-    patchStudioThreadAfterReplyLater,
     patchStudioThreadAfterSend,
     isHandledRuntimeThread,
     suggestHandledOutcome,
@@ -16134,10 +16132,19 @@
     }
 
     if (normalizedCommand === "handled") {
-      selectedThreads.forEach((thread) => {
-        patchStudioThreadAfterHandled(thread, "Markera klar");
-      });
+      await Promise.all(
+        selectedThreads.map((thread) =>
+          requestConversationAction("/api/v1/cco/handled", thread, {
+            idempotencyScope: "major-arcana-handled",
+            errorMessage: "Kunde inte markera skickade trådar som klara.",
+            body: {
+              actionLabel: "Markera klar",
+            },
+          })
+        )
+      );
       getMailFeedRuntimeState(normalizedFeed).selectedKeys = [];
+      await refreshWorkspaceBootstrapForSelectedThread("mark handled bulk");
       setAuxStatus(
         sentStatus,
         `${selectedThreads.length} skickade trådar markerades som klara.`,
@@ -20880,9 +20887,94 @@
     captureRuntimeReentrySnapshot("focus_section_change");
   }
 
-  function applyReplyLaterToThread(thread, label, { closeStudio = false } = {}) {
+  function resolveLaterOptionDueAt(optionKey) {
+    const normalizedKey = normalizeKey(optionKey) || "one_hour";
+    const targetAt = new Date();
+    if (normalizedKey === "tomorrow_morning") {
+      targetAt.setDate(targetAt.getDate() + 1);
+      targetAt.setHours(9, 0, 0, 0);
+      return targetAt.toISOString();
+    }
+    if (normalizedKey === "monday_morning") {
+      const delta = ((8 - targetAt.getDay()) % 7) || 7;
+      targetAt.setDate(targetAt.getDate() + delta);
+      targetAt.setHours(9, 0, 0, 0);
+      return targetAt.toISOString();
+    }
+    targetAt.setHours(targetAt.getHours() + 1);
+    return targetAt.toISOString();
+  }
+
+  function getConversationActionTarget(thread) {
+    if (!thread) return null;
+    const mailboxId = asText(
+      thread.mailboxAddress,
+      thread.raw?.mailboxAddress,
+      thread.mailboxId,
+      thread.raw?.mailboxId
+    );
+    const conversationId = asText(thread.conversationId, thread.raw?.conversationId, thread.id);
+    const messageId = asText(
+      thread.raw?.graphMessageId,
+      thread.graphMessageId,
+      thread.raw?.messageId,
+      thread.messageId
+    );
+    if (!mailboxId || !conversationId || !messageId) return null;
+    return {
+      mailboxId,
+      conversationId,
+      messageId,
+    };
+  }
+
+  async function requestConversationAction(
+    path,
+    thread,
+    { idempotencyScope, body = {}, errorMessage = "Kunde inte uppdatera konversationen." } = {}
+  ) {
+    const target = getConversationActionTarget(thread);
+    if (!target) {
+      throw new Error(errorMessage);
+    }
+    const payload = await apiRequest(path, {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey(idempotencyScope),
+      },
+      body: {
+        channel: "admin",
+        ...target,
+        source: "major_arcana_preview",
+        ...body,
+      },
+    });
+    if (payload?.warningCode) {
+      console.warn(
+        `CCO conversation action ${path} returnerade warning ${payload.warningCode}.`,
+        payload?.warningMessage || ""
+      );
+    }
+    return payload;
+  }
+
+  async function applyReplyLaterToThread(
+    thread,
+    label,
+    { closeStudio = false, refresh = true } = {}
+  ) {
     if (!thread) return false;
-    patchStudioThreadAfterReplyLater(thread, label);
+    await requestConversationAction("/api/v1/cco/reply-later", thread, {
+      idempotencyScope: "major-arcana-reply-later",
+      errorMessage: "Kunde inte parkera tråden.",
+      body: {
+        followUpDueAt: resolveLaterOptionDueAt(state.later.option),
+        waitingOn: "owner",
+        nextActionLabel: "Återuppta senare",
+        nextActionSummary: `Tråden är parkerad till ${label}.`,
+        actionLabel: "Svara senare",
+      },
+    });
     if (closeStudio) {
       setStudioFeedback(`Tråden parkerades till ${label}.`, "success");
       setStudioOpen(false);
@@ -20891,13 +20983,25 @@
       focusStatusLine.textContent = `Tråden parkerades till ${label}.`;
     }
     setAuxStatus(laterStatus, `Tråden parkerades till ${label.toLowerCase()}.`, "success");
-    refreshWorkspaceBootstrapForSelectedThread("reply later");
+    if (refresh) {
+      await refreshWorkspaceBootstrapForSelectedThread("reply later");
+    }
     return true;
   }
 
-  function applyHandledToThread(thread, outcome, { closeStudio = false } = {}) {
+  async function applyHandledToThread(
+    thread,
+    outcome,
+    { closeStudio = false, refresh = true } = {}
+  ) {
     if (!thread) return false;
-    patchStudioThreadAfterHandled(thread, outcome);
+    await requestConversationAction("/api/v1/cco/handled", thread, {
+      idempotencyScope: "major-arcana-handled",
+      errorMessage: "Kunde inte markera tråden som klar.",
+      body: {
+        actionLabel: outcome,
+      },
+    });
     if (closeStudio) {
       setStudioFeedback(`Tråden markerades som klar: ${outcome}.`, "success");
       setStudioOpen(false);
@@ -20905,7 +21009,9 @@
     } else if (focusStatusLine) {
       focusStatusLine.textContent = `Tråden markerades som klar: ${outcome}.`;
     }
-    refreshWorkspaceBootstrapForSelectedThread("mark handled");
+    if (refresh) {
+      await refreshWorkspaceBootstrapForSelectedThread("mark handled");
+    }
     return true;
   }
 
@@ -20913,48 +21019,67 @@
     state.later.option = normalizeKey(optionKey) || "one_hour";
     renderLaterOptions(state.later.option);
     setLaterOpen(false);
-    const bulkSelectionKeys = asArray(state.later.bulkSelectionKeys)
-      .map((key) => normalizeKey(key))
-      .filter(Boolean);
-    if (bulkSelectionKeys.length) {
-      const label = getLaterOptionLabel(state.later.option);
-      const selectedThreads = bulkSelectionKeys
-        .map((threadId) =>
-          asArray(state.runtime.threads).find(
-            (thread) => normalizeKey(thread?.id) === normalizeKey(threadId)
-          )
-        )
+    try {
+      const bulkSelectionKeys = asArray(state.later.bulkSelectionKeys)
+        .map((key) => normalizeKey(key))
         .filter(Boolean);
-      state.later.bulkSelectionKeys = [];
-      if (selectedThreads.length) {
-        selectedThreads.forEach((thread) => {
-          patchStudioThreadAfterReplyLater(thread, label);
+      if (bulkSelectionKeys.length) {
+        const label = getLaterOptionLabel(state.later.option);
+        const selectedThreads = bulkSelectionKeys
+          .map((threadId) =>
+            asArray(state.runtime.threads).find(
+              (thread) => normalizeKey(thread?.id) === normalizeKey(threadId)
+            )
+          )
+          .filter(Boolean);
+        state.later.bulkSelectionKeys = [];
+        if (selectedThreads.length) {
+          await Promise.all(
+            selectedThreads.map((thread) =>
+              requestConversationAction("/api/v1/cco/reply-later", thread, {
+                idempotencyScope: "major-arcana-reply-later",
+                errorMessage: "Kunde inte parkera trådarna.",
+                body: {
+                  followUpDueAt: resolveLaterOptionDueAt(state.later.option),
+                  waitingOn: "owner",
+                  nextActionLabel: "Återuppta senare",
+                  nextActionSummary: `Tråden är parkerad till ${label}.`,
+                  actionLabel: "Svara senare",
+                },
+              })
+            )
+          );
+          getMailFeedRuntimeState("later").selectedKeys = [];
+          selectRuntimeThread(selectedThreads[0].id);
+          setAppView("conversations");
+          applyFocusSection("conversation");
+          setContextCollapsed(false);
+          await refreshWorkspaceBootstrapForSelectedThread("reply later bulk");
+          setAuxStatus(
+            laterStatus,
+            `${selectedThreads.length} trådar parkerades till ${label.toLowerCase()}.`,
+            "success"
+          );
+          return;
+        }
+      }
+      const selectedThread = getSelectedRuntimeThread();
+      if (selectedThread) {
+        await applyReplyLaterToThread(selectedThread, getLaterOptionLabel(state.later.option), {
+          closeStudio: canvas.classList.contains("is-studio-open"),
         });
-        getMailFeedRuntimeState("later").selectedKeys = [];
-        selectRuntimeThread(selectedThreads[0].id);
-        setAppView("conversations");
         applyFocusSection("conversation");
-        setContextCollapsed(false);
-        renderMailFeeds();
-        setAuxStatus(
-          laterStatus,
-          `${selectedThreads.length} trådar parkerades till ${label.toLowerCase()}.`,
-          "success"
-        );
         return;
       }
+      applyStudioMode("reply_later");
+      setStudioOpen(true);
+      setContextCollapsed(false);
+    } catch (error) {
+      setAuxStatus(laterStatus, error.message || "Kunde inte parkera tråden.", "error");
+      if (canvas.classList.contains("is-studio-open")) {
+        setStudioFeedback(error.message || "Kunde inte parkera tråden.", "error");
+      }
     }
-    const selectedThread = getSelectedRuntimeThread();
-    if (selectedThread) {
-      applyReplyLaterToThread(selectedThread, getLaterOptionLabel(state.later.option), {
-        closeStudio: canvas.classList.contains("is-studio-open"),
-      });
-      applyFocusSection("conversation");
-      return;
-    }
-    applyStudioMode("reply_later");
-    setStudioOpen(true);
-    setContextCollapsed(false);
   }
 
   function syncCurrentNoteDraftFromForm() {
