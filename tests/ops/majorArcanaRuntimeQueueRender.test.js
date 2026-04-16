@@ -1195,7 +1195,7 @@ test('queue inline lane cards render operational chips in the bottom meta row in
   assert.match(markup, /data-pill-icon="layers"/);
   assert.match(markup, /data-pill-icon="clock"/);
   assert.match(markup, /data-pill-icon="bolt"/);
-  assert.match(markup, /queue-history-pill--source[\s\S]*queue-history-pill--mailbox[\s\S]*queue-history-operational-pill--what/);
+  assert.match(markup, /queue-history-operational-pill--what[\s\S]*queue-history-pill--mailbox[\s\S]*queue-history-pill--source/);
   assert.doesNotMatch(markup, /queue-history-pill--direction/);
   assert.doesNotMatch(markup, /queue-history-pill--queue/);
 });
@@ -1455,6 +1455,228 @@ test('queue inline lane cards suppress what chips when they would only repeat th
 
   const renderedRoles = (signalItems || []).map((item) => item.role);
   assert.deepEqual(renderedRoles, ['next']);
+});
+
+test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsändare + ärendekontext på raden under', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
+  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+
+  const buildQueueHistoryCardMarkup = new Function(
+    'asArray',
+    'asText',
+    'compactRuntimeCopy',
+    'escapeHtml',
+    'getAvailableRuntimeMailboxes',
+    'normalizeKey',
+    'normalizeMailboxId',
+    'runtimeConversationIdsMatch',
+    `${getQueueHistoryMailboxMetaSource}
+     ${getQueueHistorySignalIconSource}
+     ${getQueueHistoryDirectionMetaSource}
+     ${getQueueHistoryQueueMetaSource}
+     ${buildQueueHistoryCardMarkupSource}
+     return buildQueueHistoryCardMarkup;`
+  )(
+    (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
+    (value, fallback = '') => {
+      if (typeof value === 'string') return value;
+      if (value === undefined || value === null) return fallback;
+      return String(value);
+    },
+    (value, fallback = '', max = 72) => {
+      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    },
+    (value) => String(value || ''),
+    () => [],
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, ''),
+    (value) => String(value || '').trim().toLowerCase(),
+    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase()
+  );
+
+  const markup = buildQueueHistoryCardMarkup({
+    conversationId: 'history-1',
+    counterpartyLabel: 'Sami Bonyadi',
+    title: 'Sami Bonyadi Kontaktformulär',
+    detail: 'Från: Sami Bonyadi E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig',
+    mailboxLabel: 'Kons',
+    mailboxProvenanceLabel: '2 mailboxar',
+    mailboxProvenanceDetail: 'Kons · Contact',
+    signalItems: [
+      { role: 'what', value: 'Kontaktformulär' },
+      { role: 'why', value: 'Behöver svar' },
+      { role: 'next', value: 'Svara nu' },
+    ],
+    time: '2026-04-14 14:48',
+    recordedAt: '2026-04-14T14:48:00.000Z',
+  });
+
+  assert.match(
+    markup,
+    /thread-subject-primary">Kontaktformulär</,
+    'Historikkortet ska lyfta själva ärendet som huvudrubrik när ämnet bär avsändarprefix.'
+  );
+  assert.match(
+    markup,
+    /thread-story-secondary[\s\S]*thread-story-lead">Sami Bonyadi<\/span>[\s\S]*thread-story-context"> · Kontaktformulär<\/span>/,
+    'Raden under huvudrubriken ska visa avsändaren och ärendekontexten i samma läsordning som de vanliga CCO-korten.'
+  );
+  assert.match(
+    markup,
+    /thread-intelligence-item--why[\s\S]*Behöver svar[\s\S]*thread-intelligence-item--next[\s\S]*Svara nu/,
+    'Historikkortet ska bära de operativa signalerna under informationshierarkin, inte begrava dem i en tunn metadata-rad.'
+  );
+});
+
+test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge historikkort samma signalhierarki som livekorten', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
+  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
+  const queueHistoryList = { innerHTML: '', dataset: {} };
+  const state = {
+    runtime: {
+      queueHistory: {
+        selectedConversationId: 'conversation-1',
+      },
+    },
+  };
+  const runtimeThreads = [
+    {
+      id: 'conversation-1',
+      customerName: 'Sami Bonyadi',
+      lastActivityLabel: '2026-04-14 14:48',
+      lastActivityAt: '2026-04-14T14:48:00.000Z',
+      displaySubject: 'Sami Bonyadi Kontaktformulär',
+      preview: 'Hej, jag vill förstå prisbilden och boka konsultation.',
+      mailboxLabel: 'Kons',
+      mailboxAddress: 'kons@hairtpclinic.com',
+      mailboxProvenanceLabel: '2 mailboxar',
+      mailboxProvenanceDetail: 'Kons · Contact',
+      intentLabel: 'Kontaktformulär',
+      statusLabel: 'Behöver svar',
+      nextActionLabel: 'Svara nu',
+      nextActionSummary: 'Ge prisbild och föreslå konsultation.',
+      primaryLaneId: 'act-now',
+      tags: ['all', 'act-now'],
+      unread: true,
+      worklistSource: 'truth_primary',
+      worklistSourceLabel: 'Truth primary',
+    },
+  ];
+
+  const renderQueueHistoryList = new Function(
+    'asArray',
+    'asText',
+    'compactRuntimeCopy',
+    'escapeHtml',
+    'getAvailableRuntimeMailboxes',
+    'decorateStaticPills',
+    'getMailboxScopedRuntimeThreads',
+    'isSentRuntimeThread',
+    'normalizeKey',
+    'normalizeMailboxId',
+    'queueHistoryList',
+    'runtimeConversationIdsMatch',
+    'state',
+    `${getQueueHistoryItemInitialsSource}
+     ${getQueueInlineLaneSignalWhatSource}
+     ${getQueueInlineLaneSignalWhySource}
+     ${getQueueInlineLaneSignalNextSource}
+     ${getQueueHistoryMailboxMetaSource}
+     ${getQueueHistorySignalIconSource}
+     ${getQueueHistoryDirectionMetaSource}
+     ${getQueueHistoryQueueMetaSource}
+     ${buildQueueInlineLaneSignalItemsSource}
+     ${buildQueueInlineLaneHistoryItemSource}
+     ${buildQueueHistoryCardMarkupSource}
+     ${renderQueueHistoryListSource}
+     return renderQueueHistoryList;`
+  )(
+    (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
+    (value, fallback = '') => {
+      if (typeof value === 'string') return value;
+      if (value === undefined || value === null) return fallback;
+      return String(value);
+    },
+    (value, fallback = '', max = 72) => {
+      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    },
+    (value) => String(value || ''),
+    () => [
+      {
+        canonicalId: 'kons@hairtpclinic.com',
+        id: 'consult',
+        email: 'kons@hairtpclinic.com',
+        label: 'Kons',
+        toneClass: 'mailbox-option-consult',
+      },
+    ],
+    () => {},
+    () => runtimeThreads,
+    () => false,
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, ''),
+    (value) => String(value || '').trim().toLowerCase(),
+    queueHistoryList,
+    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+    state
+  );
+
+  renderQueueHistoryList([
+    {
+      conversationId: 'conversation-1',
+      counterpartyLabel: 'Sami Bonyadi',
+      title: 'Sami Bonyadi Kontaktformulär',
+      detail: 'Tunn historikpreview',
+      mailboxLabel: 'Kons',
+      time: '2026-04-14 14:48',
+      recordedAt: '2026-04-14T14:48:00.000Z',
+    },
+  ]);
+
+  assert.match(
+    queueHistoryList.innerHTML,
+    /thread-subject-primary">Kontaktformulär</,
+    'När en historikrad matchar en befintlig runtime-tråd ska Historik återanvända den rikare ämneshierarkin.'
+  );
+  assert.match(
+    queueHistoryList.innerHTML,
+    /thread-story-lead">Sami Bonyadi<\/span>/,
+    'Historikkortet ska återanvända avsändarnamnet som sekundär rad, inte bara som en platt titel.'
+  );
+  assert.match(
+    queueHistoryList.innerHTML,
+    /thread-intelligence-item--why[\s\S]*Svar krävs nu[\s\S]*thread-intelligence-item--next[\s\S]*Svara nu/,
+    'Historikkortet ska återanvända operativa signaler från den matchande runtime-tråden när de redan finns i CCO.'
+  );
 });
 
 test('queue inline lane signal items map key lanes to operational why labels', () => {

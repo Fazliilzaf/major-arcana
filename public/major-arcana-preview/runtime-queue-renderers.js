@@ -1327,11 +1327,38 @@
         "Okänd avsändare",
         42
       );
-      const subjectContextCopy = compactRuntimeCopy(asText(item.title), "", 54);
-      const detailCopy = compactRuntimeCopy(
-        asText(item.detail),
-        "Ingen förhandsvisning tillgänglig.",
-        104
+      const normalizeHistoryCompareValue = (value = "") =>
+        asText(value)
+          .trim()
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      const escapeHistoryRegExp = (value = "") =>
+        asText(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const stripRepeatedHistoryLead = (value = "", leads = []) => {
+        let cleaned = asText(value).replace(/\s+/g, " ").trim();
+        asArray(leads)
+          .map((lead) => asText(lead).replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .forEach((lead) => {
+            const leadPattern = new RegExp(`^${escapeHistoryRegExp(lead)}(?:\\s*[-:|,–—]\\s*|\\s+)`, "i");
+            cleaned = cleaned.replace(leadPattern, "").trim();
+          });
+        return cleaned;
+      };
+      const rawHistoryTitle = asText(item.title);
+      const derivedHistoryTitle = stripRepeatedHistoryLead(rawHistoryTitle, [counterpartyCopy]);
+      const primaryHistoryTitleRaw =
+        derivedHistoryTitle &&
+        normalizeHistoryCompareValue(derivedHistoryTitle) !== normalizeHistoryCompareValue(counterpartyCopy)
+          ? derivedHistoryTitle
+          : rawHistoryTitle;
+      const primaryHistoryTitle = compactRuntimeCopy(
+        primaryHistoryTitleRaw,
+        rawHistoryTitle || "Historikrad",
+        72
       );
       const deriveHistoryInitials = (label = "") => {
         const normalizedLabel = asText(label)
@@ -1375,13 +1402,6 @@
           marker: asText(marker),
         });
       };
-      pushHistorySignal(
-        "source",
-        worklistSourceLabel,
-        "layers",
-        worklistSourceLabel ? "queue-history-pill--source" : ""
-      );
-      pushHistorySignal("mailbox", item.mailboxLabel, mailboxMeta.icon, "queue-history-pill--mailbox");
       asArray(item.signalItems)
         .slice(0, 3)
         .forEach((signal) => {
@@ -1393,11 +1413,53 @@
             `queue-history-operational-pill--${signalRole}`
           );
         });
+      pushHistorySignal("mailbox", item.mailboxLabel, mailboxMeta.icon, "queue-history-pill--mailbox");
+      pushHistorySignal(
+        "source",
+        worklistSourceLabel,
+        "layers",
+        worklistSourceLabel ? "queue-history-pill--source" : ""
+      );
       if (!signalItems.length) {
         pushHistorySignal("what", item.direction, directionMeta.icon, "queue-history-operational-pill--what");
         pushHistorySignal("why", worklistSourceLabel, "layers", "queue-history-operational-pill--why");
         pushHistorySignal("next", item.queueLabel, "layers", "queue-history-operational-pill--next");
       }
+      const whatSignalValue = asText(
+        asArray(item.signalItems).find((signal) => normalizeKey(signal?.role || signal?.tone) === "what")?.value
+      );
+      const hasExplicitWhatSignal = Boolean(whatSignalValue);
+      const secondaryContextFallback = stripRepeatedHistoryLead(asText(item.detail), [
+        counterpartyCopy,
+        rawHistoryTitle,
+        primaryHistoryTitle,
+      ]);
+      const secondaryContextValue = compactRuntimeCopy(
+        asText(whatSignalValue, secondaryContextFallback),
+        "",
+        44
+      );
+      const showSecondaryContext =
+        Boolean(secondaryContextValue) &&
+        normalizeHistoryCompareValue(secondaryContextValue) !== normalizeHistoryCompareValue(counterpartyCopy) &&
+        (
+          hasExplicitWhatSignal ||
+          normalizeHistoryCompareValue(secondaryContextValue) !== normalizeHistoryCompareValue(primaryHistoryTitle)
+        );
+      const secondaryLineMarkup =
+        counterpartyCopy || showSecondaryContext
+          ? `<p class="thread-story thread-story-inline thread-story-secondary">${
+              counterpartyCopy
+                ? `<span class="thread-story-lead">${escapeHtml(counterpartyCopy)}</span>`
+                : ""
+            }${
+              showSecondaryContext
+                ? `<span class="thread-story-context">${escapeHtml(
+                    counterpartyCopy ? ` · ${secondaryContextValue}` : secondaryContextValue
+                  )}</span>`
+                : ""
+            }</p>`
+          : "";
       const intelligenceMarkup = historySignals.length
         ? `<div class="thread-intelligence-row queue-history-item-meta queue-history-item-meta--fullwidth">
             ${historySignals
@@ -1448,19 +1510,10 @@
               <div class="thread-heading thread-heading-merged">
                 ${freshnessMarkup}
                 <p class="thread-subject">
-                  <span class="thread-subject-primary">${escapeHtml(counterpartyCopy)}</span>
-                  ${
-                    subjectContextCopy
-                      ? `<span class="thread-subject-context">${escapeHtml(subjectContextCopy)}</span>`
-                      : ""
-                  }
+                  <span class="thread-subject-primary">${escapeHtml(primaryHistoryTitle)}</span>
                 </p>
               </div>
-              ${
-                detailCopy
-                  ? `<p class="thread-story thread-story-inline">${escapeHtml(detailCopy)}</p>`
-                  : ""
-              }
+              ${secondaryLineMarkup}
             </div>
           </div>
           <div class="thread-card-stamp">
@@ -2148,9 +2201,48 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "history";
       }
+      const enrichHistoryCardItem = (item = {}) => {
+        const historyConversationId = asText(item.conversationId);
+        if (
+          !historyConversationId ||
+          typeof buildQueueInlineLaneHistoryItem !== "function" ||
+          typeof getMailboxScopedRuntimeThreads !== "function" ||
+          typeof runtimeConversationIdsMatch !== "function"
+        ) {
+          return item;
+        }
+        const matchedThread = getMailboxScopedRuntimeThreads().find((thread) =>
+          runtimeConversationIdsMatch(thread?.id, historyConversationId)
+        );
+        if (!matchedThread) return item;
+        const runtimeHistoryItem = buildQueueInlineLaneHistoryItem(matchedThread);
+        return {
+          ...item,
+          counterpartyLabel: asText(runtimeHistoryItem.counterpartyLabel, item.counterpartyLabel),
+          title: asText(item.title, runtimeHistoryItem.title),
+          detail: asText(runtimeHistoryItem.detail, item.detail),
+          signalItems: asArray(runtimeHistoryItem.signalItems).length
+            ? runtimeHistoryItem.signalItems
+            : asArray(item.signalItems),
+          mailboxProvenanceLabel: asText(
+            runtimeHistoryItem.mailboxProvenanceLabel,
+            item.mailboxProvenanceLabel
+          ),
+          mailboxProvenanceDetail: asText(
+            runtimeHistoryItem.mailboxProvenanceDetail,
+            item.mailboxProvenanceDetail
+          ),
+          worklistSource: asText(runtimeHistoryItem.worklistSource, item.worklistSource),
+          worklistSourceLabel: asText(
+            runtimeHistoryItem.worklistSourceLabel,
+            item.worklistSourceLabel
+          ),
+          isUnread: item.isUnread === true || runtimeHistoryItem.isUnread === true,
+        };
+      };
       queueHistoryList.innerHTML = asArray(items)
         .map((item) =>
-          buildQueueHistoryCardMarkup(item, {
+          buildQueueHistoryCardMarkup(enrichHistoryCardItem(item), {
             selectedConversationId: state.runtime.queueHistory?.selectedConversationId,
           })
         )

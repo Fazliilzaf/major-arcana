@@ -15134,6 +15134,19 @@ button {
   margin-top: 4px;
 }
 
+.thread-story-secondary {
+  color: rgba(96, 86, 77, 0.92);
+}
+
+.thread-story-lead {
+  font-weight: 640;
+  color: rgba(58, 48, 40, 0.96);
+}
+
+.thread-story-context {
+  color: rgba(122, 106, 92, 0.9);
+}
+
 .thread-story-placeholder {
   color: rgba(126, 118, 111, 0.76);
   font-weight: 580;
