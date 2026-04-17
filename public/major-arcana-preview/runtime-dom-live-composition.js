@@ -78,6 +78,10 @@
 
     let runtimeAuthRecoveryTimer = 0;
     let runtimeLiveRefreshTimer = 0;
+    const AUTH_RECOVERY_INITIAL_DELAY_MS = 2000;
+    const AUTH_RECOVERY_MAX_DELAY_MS = 30000;
+    let runtimeAuthRecoveryDelayMs = AUTH_RECOVERY_INITIAL_DELAY_MS;
+    let runtimeAuthRecoveryPollingEnabled = false;
 
     const {
       CCO_DEFAULT_REPLY_SENDER,
@@ -934,6 +938,31 @@
       }
     }
 
+    function resetRuntimeAuthRecoveryBackoff() {
+      runtimeAuthRecoveryDelayMs = AUTH_RECOVERY_INITIAL_DELAY_MS;
+    }
+
+    function bumpRuntimeAuthRecoveryBackoff() {
+      runtimeAuthRecoveryDelayMs = Math.min(
+        AUTH_RECOVERY_MAX_DELAY_MS,
+        Math.max(AUTH_RECOVERY_INITIAL_DELAY_MS, runtimeAuthRecoveryDelayMs * 2)
+      );
+    }
+
+    function setRuntimeAuthRecoveryPollingEnabled(enabled) {
+      runtimeAuthRecoveryPollingEnabled = enabled === true;
+      if (!runtimeAuthRecoveryPollingEnabled) {
+        clearRuntimeAuthRecoveryTimer();
+      }
+    }
+
+    function armRuntimeAuthRecoveryFromInteraction({ requestedMailboxIds = [] } = {}) {
+      if (state.runtime?.authRequired !== true) return;
+      setRuntimeAuthRecoveryPollingEnabled(true);
+      resetRuntimeAuthRecoveryBackoff();
+      scheduleRuntimeAuthRecovery({ requestedMailboxIds });
+    }
+
     function clearRuntimeLiveRefreshTimer() {
       if (runtimeLiveRefreshTimer) {
         windowObject.clearTimeout(runtimeLiveRefreshTimer);
@@ -950,6 +979,8 @@
 
     function scheduleRuntimeAuthRecovery({ requestedMailboxIds = [] } = {}) {
       clearRuntimeAuthRecoveryTimer();
+      if (state.runtime?.authRequired !== true) return;
+      if (!runtimeAuthRecoveryPollingEnabled) return;
       const nextRequestedMailboxIds = asArray(requestedMailboxIds)
         .map((value) =>
           typeof canonicalizeRuntimeMailboxId === "function"
@@ -959,6 +990,12 @@
         .filter(Boolean);
       const poll = async () => {
         if (state.runtime?.authRequired !== true) {
+          setRuntimeAuthRecoveryPollingEnabled(false);
+          resetRuntimeAuthRecoveryBackoff();
+          clearRuntimeAuthRecoveryTimer();
+          return;
+        }
+        if (!runtimeAuthRecoveryPollingEnabled) {
           clearRuntimeAuthRecoveryTimer();
           return;
         }
@@ -966,7 +1003,8 @@
           typeof getAdminToken === "function" ? getAdminToken() : ""
         );
         if (!adminToken) {
-          runtimeAuthRecoveryTimer = windowObject.setTimeout(poll, 500);
+          bumpRuntimeAuthRecoveryBackoff();
+          runtimeAuthRecoveryTimer = windowObject.setTimeout(poll, runtimeAuthRecoveryDelayMs);
           return;
         }
         clearRuntimeAuthRecoveryTimer();
@@ -976,11 +1014,19 @@
             : getRequestedRuntimeMailboxIds(),
           preferredThreadId: getRuntimeReentryThreadId(),
           resetHistoryOnChange: false,
+          allowAuthRecovery: true,
         }).catch((error) => {
           console.warn("CCO live runtime kunde inte återställas efter auth-recovery.", error);
+          bumpRuntimeAuthRecoveryBackoff();
+          if (runtimeAuthRecoveryPollingEnabled && state.runtime?.authRequired === true) {
+            runtimeAuthRecoveryTimer = windowObject.setTimeout(poll, runtimeAuthRecoveryDelayMs);
+          }
         });
       };
-      runtimeAuthRecoveryTimer = windowObject.setTimeout(poll, 500);
+      runtimeAuthRecoveryTimer = windowObject.setTimeout(
+        poll,
+        Math.max(AUTH_RECOVERY_INITIAL_DELAY_MS, runtimeAuthRecoveryDelayMs)
+      );
     }
 
     function scheduleRuntimeLiveRefresh({
@@ -997,7 +1043,7 @@
         )
         .filter(Boolean);
       const poll = async () => {
-        if (state.runtime?.mode !== "live") {
+        if (state.runtime?.mode !== "live" || state.runtime?.authRequired === true) {
           clearRuntimeLiveRefreshTimer();
           return;
         }
@@ -2427,6 +2473,10 @@
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
       clearRuntimeAuthRecoveryTimer();
 
+      if (state.runtime?.authRequired === true && options.allowAuthRecovery !== true) {
+        return;
+      }
+
       try {
         const adminToken = await waitForRuntimeAuthToken();
         if (!isCurrentRequest()) return;
@@ -2447,6 +2497,8 @@
             error:
               "Logga in igen i admin för att läsa livekö, historikfallback och mailboxstatus.",
           });
+          setRuntimeAuthRecoveryPollingEnabled(false);
+          resetRuntimeAuthRecoveryBackoff();
           scheduleRuntimeAuthRecovery({
             requestedMailboxIds: runtimeMailboxIds,
           });
@@ -2757,6 +2809,8 @@
         );
         clearRuntimeLiveRefreshTimer();
         if (isAuthFailure(statusCode, message)) {
+          setRuntimeAuthRecoveryPollingEnabled(false);
+          resetRuntimeAuthRecoveryBackoff();
           if (hasMeaningfulRuntimeReentryState()) {
             captureRuntimeReentrySnapshot("auth_failure");
           }
@@ -3603,6 +3657,9 @@
       const runtimeReauthLink = event.target.closest("[data-runtime-reauth]");
       if (runtimeReauthLink) {
         event.preventDefault();
+        armRuntimeAuthRecoveryFromInteraction({
+          requestedMailboxIds: getRequestedRuntimeMailboxIds(),
+        });
         windowObject.location.assign(buildReauthUrl());
         return true;
       }
