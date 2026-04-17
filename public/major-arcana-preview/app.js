@@ -2086,12 +2086,6 @@
     runtime: {
       loading: false,
       loaded: false,
-      hasReachedSteadyState: false,
-      hasRemovedRuntimeLoading: false,
-      authRecoveryArmed: false,
-      pendingFullRefresh: false,
-      isBackgroundRefresh: false,
-      backgroundRefreshSelectedThreadId: "",
       mode: "",
       live: false,
       authRequired: false,
@@ -2293,26 +2287,20 @@
     });
   }
   const TRUTH_WORKLIST_VIEW_STORAGE_KEY = "cco.truthWorklistView.hidden";
-  const truthPrimaryWorklistDisableStorageKey = asText(
-    WORKLIST_TRUTH_PRIMARY?.disableStorageKey
-  ).trim();
   const TRUTH_PRIMARY_WORKLIST_DISABLE_STORAGE_KEY =
-    truthPrimaryWorklistDisableStorageKey
-      ? truthPrimaryWorklistDisableStorageKey
+    typeof WORKLIST_TRUTH_PRIMARY?.disableStorageKey === "string" &&
+    WORKLIST_TRUTH_PRIMARY.disableStorageKey.trim()
+      ? WORKLIST_TRUTH_PRIMARY.disableStorageKey.trim()
       : "cco.truthPrimaryWorklist.disabled";
-  const truthPrimaryFocusDisableStorageKey = asText(
-    FOCUS_TRUTH_PRIMARY?.disableStorageKey
-  ).trim();
   const TRUTH_PRIMARY_FOCUS_DISABLE_STORAGE_KEY =
-    truthPrimaryFocusDisableStorageKey
-      ? truthPrimaryFocusDisableStorageKey
+    typeof FOCUS_TRUTH_PRIMARY?.disableStorageKey === "string" &&
+    FOCUS_TRUTH_PRIMARY.disableStorageKey.trim()
+      ? FOCUS_TRUTH_PRIMARY.disableStorageKey.trim()
       : "cco.truthPrimaryFocus.disabled";
-  const truthPrimaryStudioDisableStorageKey = asText(
-    STUDIO_TRUTH_PRIMARY?.disableStorageKey
-  ).trim();
   const TRUTH_PRIMARY_STUDIO_DISABLE_STORAGE_KEY =
-    truthPrimaryStudioDisableStorageKey
-      ? truthPrimaryStudioDisableStorageKey
+    typeof STUDIO_TRUTH_PRIMARY?.disableStorageKey === "string" &&
+    STUDIO_TRUTH_PRIMARY.disableStorageKey.trim()
+      ? STUDIO_TRUTH_PRIMARY.disableStorageKey.trim()
       : "cco.truthPrimaryStudio.disabled";
 
   const STUDIO_SIGNATURE_PROFILES = Object.freeze([
@@ -2477,8 +2465,7 @@
 
   function asText(value, fallback = "") {
     const normalized = String(value ?? "").trim();
-    if (normalized) return normalized;
-    return String(fallback ?? "");
+    return normalized || fallback;
   }
 
   function normalizeMailboxId(value) {
@@ -3899,14 +3886,6 @@
     const sessionToken = readTokenFromStorage(window.sessionStorage);
     if (sessionToken) return sessionToken;
 
-    // Prevent background auth-recovery loops until user explicitly initiates reauth.
-    if (
-      state.runtime?.authRequired === true &&
-      state.runtime?.authRecoveryArmed !== true
-    ) {
-      return "";
-    }
-
     if (typeof isLocalPreviewHost === "function" && isLocalPreviewHost()) {
       return "__preview_local__";
     }
@@ -4017,9 +3996,6 @@
   }
 
   function buildReauthUrl(reason = "session_expired") {
-    if (state.runtime && state.runtime.authRequired === true) {
-      state.runtime.authRecoveryArmed = true;
-    }
     const params = new URLSearchParams();
     params.set(AUTH_RETURN_TO_QUERY_PARAM, buildAdminReturnPath());
     params.set("reason", reason);
@@ -4056,113 +4032,6 @@
     if (state.runtime?.offline) return "offline_history";
     if (normalizeText(state.runtime?.error)) return "runtime_error";
     return "live";
-  }
-
-  let lastExplicitNavigationAt = 0;
-  let suppressAutoScrollUntil = 0;
-  let activeRuntimeVisualState = "";
-  let appliedShellViewState = "";
-  let appliedConversationShellState = null;
-
-  function markExplicitNavigationIntent() {
-    lastExplicitNavigationAt = Date.now();
-  }
-
-  function hasRecentExplicitNavigationIntent(windowMs = 1200) {
-    return Date.now() - lastExplicitNavigationAt <= windowMs;
-  }
-
-  function shouldSuppressProgrammaticScroll() {
-    return Date.now() < suppressAutoScrollUntil && !hasRecentExplicitNavigationIntent();
-  }
-
-  if (typeof Element !== "undefined" && Element.prototype) {
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    if (typeof originalScrollIntoView === "function" && !Element.prototype.__majorArcanaPatchedScrollIntoView) {
-      Element.prototype.scrollIntoView = function patchedScrollIntoView(...args) {
-        if (shouldSuppressProgrammaticScroll()) return;
-        return originalScrollIntoView.apply(this, args);
-      };
-      Element.prototype.__majorArcanaPatchedScrollIntoView = true;
-    }
-  }
-
-  document.addEventListener(
-    "pointerdown",
-    () => {
-      markExplicitNavigationIntent();
-    },
-    true
-  );
-
-  document.addEventListener(
-    "keydown",
-    () => {
-      markExplicitNavigationIntent();
-    },
-    true
-  );
-
-  const RUNTIME_VISUAL_STATES = Object.freeze([
-    "ready",
-    "syncing",
-    "auth_required",
-    "offline_history",
-    "runtime_error",
-  ]);
-
-  function deriveRuntimeVisualState() {
-    if (state.runtime?.authRequired === true) return "auth_required";
-    if (state.runtime?.loading === true) return "syncing";
-    if (normalizeText(state.runtime?.error)) return "runtime_error";
-    if (normalizeKey(getRuntimeMode()) === "offline_history") return "offline_history";
-    return "ready";
-  }
-
-  function syncRuntimeVisualStateMachine() {
-    const visualState = deriveRuntimeVisualState();
-    state.runtime.visualState = visualState;
-
-    if (visualState === "auth_required" && activeRuntimeVisualState !== "auth_required") {
-      state.runtime.mode = "auth_required";
-      state.runtime.authRecoveryArmed = false;
-    }
-
-    if (
-      state.runtime.hasReachedSteadyState !== true &&
-      (visualState === "ready" || visualState === "offline_history")
-    ) {
-      state.runtime.hasReachedSteadyState = true;
-    }
-
-    if (state.runtime.hasRemovedRuntimeLoading !== true) {
-      document.body.classList.remove("is-runtime-loading");
-      state.runtime.hasRemovedRuntimeLoading = true;
-    }
-
-    RUNTIME_VISUAL_STATES.forEach((candidate) => {
-      canvas.classList.toggle(`is-runtime-${candidate}`, candidate === visualState);
-    });
-    canvas.dataset.runtimeVisualState = visualState;
-
-    const freezeWorkspaceWidths = visualState === "auth_required" || visualState === "syncing";
-    if (freezeWorkspaceWidths) {
-      if (!canvas.classList.contains("is-workspace-width-frozen")) {
-        canvas.style.setProperty("--workspace-left-width-locked", `${workspaceState.left}px`);
-        canvas.style.setProperty("--workspace-main-width-locked", `${workspaceState.main}px`);
-        canvas.style.setProperty("--workspace-right-width-locked", `${workspaceState.right}px`);
-      }
-      canvas.classList.add("is-workspace-width-frozen");
-    } else {
-      canvas.classList.remove("is-workspace-width-frozen");
-    }
-
-    if (activeRuntimeVisualState && activeRuntimeVisualState !== visualState) {
-      suppressAutoScrollUntil = Date.now() + 1400;
-    }
-    activeRuntimeVisualState = visualState;
-
-    return visualState;
   }
 
   function buildRuntimeMailboxCapabilities(graph = {}) {
@@ -6187,9 +6056,7 @@
     { messageId = "", graphMessageId = "", sourceStore = "" } = {},
     index = 0
   ) {
-    const attachmentId = asText(
-      attachment?.id ?? attachment?.attachmentId ?? ""
-    ).trim();
+    const attachmentId = asText(attachment?.id, attachment?.attachmentId).trim();
     const contentId = asText(attachment?.contentId).trim();
     const name = asText(attachment?.name).trim();
     const contentType = asText(attachment?.contentType).trim().toLowerCase();
@@ -6749,9 +6616,9 @@
     const mailboxLabel = titleCaseMailbox(
       asText(row.mailboxAddress || row.mailboxId || row.userPrincipalName || "kons@hairtpclinic.com")
     );
-    const canonicalThreadMessages = asArray(threadDocument?.messages)
-      .filter((message) => message && typeof message === "object")
-      .sort(compareRuntimeMessagesDesc);
+    const canonicalThreadMessages = asArray(threadDocument?.messages).filter(
+      (message) => message && typeof message === "object"
+    );
     const feedEntriesByMessageId = new Map(
       asArray(feedEntries)
         .map((entry) => [asText(entry?.messageId), entry])
@@ -6813,7 +6680,7 @@
         mailDocument: matchedMailDocument,
       };
     });
-    const entries = (canonicalEntries.length
+    const entries = canonicalEntries.length
       ? canonicalEntries
       : feedEntries.length
       ? feedEntries
@@ -6851,9 +6718,7 @@
               .map((value) => sanitizePreviewText(value))
               .find((value) => value && !isRuntimePlaceholderLine(value)),
           },
-        ])
-      .slice()
-      .sort(compareRuntimeMessagesDesc);
+        ];
     const customerName = getRuntimeCustomerNameFromFeedEntries(entries, rowCustomerName);
     return entries.slice(0, 8).map((entry, index) => {
       const mailThreadMessage = getMailThreadMessage(entry);
@@ -8512,32 +8377,6 @@
     );
   }
 
-  function resolveRuntimeQueuePreviewText(value = "", { fallback = "" } = {}) {
-    const sanitized = asText(value)
-      .replace(/\s+/g, " ")
-      .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
-      .replace(/^You\s+don['’]t\s+often\s+get\s+email\s+from\s+\S+\.?\s*/i, "")
-      .replace(/^Power up your productivity with Microsoft 365\.?\s*/i, "")
-      .replace(/^Get more done with apps like Word\.?\s*/i, "")
-      .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
-      .replace(/^Read more about why this is important\.?\s*/i, "")
-      .replace(/^hur kan vi hjälpa dig med\s+/i, "Vill ha hjälp med ")
-      .replace(/^hur kan jag få hjälp med\s+/i, "Vill ha hjälp med ")
-      .replace(/^kan ni hjälpa mig med\s+/i, "Vill ha hjälp med ")
-      .replace(/^hur kan vi hjälpa dig\??\s*/i, "")
-      .replace(/^hur kan jag få hjälp\??\s*/i, "")
-      .replace(/^kan ni hjälpa mig\??\s*/i, "")
-      .replace(/^(?:hej|hello|hi)\b[,!:\-\s]*/i, "")
-      .replace(/^[\s_—–-]{6,}/, "")
-      .replace(/^\s*[–—-]\s*/, "")
-      .trim();
-    const resolved = compactRuntimeCopy(sanitized, "", 104);
-    if (resolved && !isRuntimePlaceholderLine(resolved)) {
-      return resolved;
-    }
-    return compactRuntimeCopy(asText(fallback), "Ingen senaste kundsignal ännu.", 104);
-  }
-
   function cloneIdentityEnvelope(value = null) {
     const safeValue = value && typeof value === "object" ? value : {};
     const customerIdentity = asObject(safeValue.customerIdentity || safeValue.identity);
@@ -9101,7 +8940,7 @@
     const messages = buildPreviewMessages(row, feedEntries, threadDocument);
     const resolvedThreadDocument =
       threadDocument && typeof threadDocument === "object"
-        ? normalizeThreadDocumentMessageOrder(threadDocument)
+        ? threadDocument
         : buildClientThreadDocumentFromPreviewMessages(messages, {
             conversationId: asText(row?.conversationId),
             customerEmail,
@@ -9159,25 +8998,6 @@
         fallback: "Ingen förhandsvisning tillgänglig.",
       }
     );
-    const latestInboundThreadDocumentMessage = asArray(resolvedThreadDocument?.messages).find(
-      (message) => normalizeKey(message?.direction) !== "outbound"
-    );
-    const queuePreviewFromThreadDocument = resolveRuntimePreviewText(
-      {},
-      {
-        additionalCandidates: [
-          latestInboundThreadDocumentMessage?.presentation?.previewText,
-          latestInboundThreadDocumentMessage?.presentation?.conversationText,
-          latestInboundThreadDocumentMessage?.primaryBody?.text,
-          latestInboundThreadDocumentMessage?.mailDocument?.previewText,
-          latestInboundThreadDocumentMessage?.mailDocument?.primaryBodyText,
-        ],
-        fallback: "",
-      }
-    );
-    const queuePreviewText = resolveRuntimeQueuePreviewText(queuePreviewFromThreadDocument || preview, {
-      fallback: "Ingen senaste kundsignal ännu.",
-    });
     const latestInboundPreview = preview;
     const normalizedMessages = messages.map((message, index) => {
       const nextMessage = { ...message };
@@ -9307,7 +9127,6 @@
       followUpAgeDetail: followUpAgingState.detail,
       followUpAgeActionLabel: followUpAgingState.actionLabel,
       preview,
-      queuePreviewText,
       rowFamily,
       lastActivityLabel: formatListTime(
         latestRelevantActivityAt || row?.lastInboundAt || row?.lastOutboundAt
@@ -9515,6 +9334,14 @@
         asText(primaryRow?.customerSummary?.customerKey) ||
         asText(primaryRow?.customerKey) ||
         "";
+      const pickAnalyzeInboxLaneField = (key) => {
+        for (const row of [primaryRow, ...bucketRows]) {
+          if (row && typeof row === "object" && row[key] !== undefined) {
+            return row[key];
+          }
+        }
+        return undefined;
+      };
       return {
         ...primaryRow,
         conversationId: bucket.groupKey || asText(primaryRow?.conversationId),
@@ -9550,6 +9377,9 @@
         tags: mergedTags.length
           ? mergedTags
           : asArray(primaryRow?.tags).map((tag) => normalizeKey(tag)).filter(Boolean),
+        workflowLane: pickAnalyzeInboxLaneField("workflowLane"),
+        bookingState: pickAnalyzeInboxLaneField("bookingState"),
+        needsMedicalReview: pickAnalyzeInboxLaneField("needsMedicalReview"),
         crossMailboxProvenanceEvidence:
           bucketRows.length > 1 || sourceConversationIds.length > 1 ? true : false,
       };
@@ -9730,7 +9560,7 @@
       feedEntries: buildHistoryFeedEntries(messages),
       threadDocument:
         historyPayload?.threadDocument && typeof historyPayload.threadDocument === "object"
-          ? normalizeThreadDocumentMessageOrder(historyPayload.threadDocument)
+          ? historyPayload.threadDocument
           : derivedThreadDocument,
       historyEvents: buildHistoryRuntimeEvents(events, {
         conversationId: historyBackedRow.conversationId || conversationId,
@@ -12585,54 +12415,6 @@
       Date.parse(String(left?.recordedAt || left?.timestamp || ""));
   }
 
-  function getRuntimeMessageSortIso(message = {}) {
-    const candidates = [
-      asText(message?.sentAt),
-      asText(message?.recordedAt),
-      asText(message?.timestamp),
-      asText(message?.createdAt),
-      asText(message?.updatedAt),
-      asText(message?.mailThreadMessage?.sentAt),
-      asText(message?.mailThreadMessage?.recordedAt),
-      asText(message?.mailThreadMessage?.timestamp),
-      asText(message?.mailDocument?.sentAt),
-      asText(message?.mailDocument?.receivedAt),
-      asText(message?.mailDocument?.createdAt),
-      asText(message?.mailDocument?.updatedAt),
-    ];
-    for (const candidate of candidates) {
-      const iso = toIso(candidate);
-      if (iso) return iso;
-    }
-    return "";
-  }
-
-  function compareRuntimeMessagesDesc(left, right) {
-    const rightIso = getRuntimeMessageSortIso(right);
-    const leftIso = getRuntimeMessageSortIso(left);
-    if (rightIso && leftIso && rightIso !== leftIso) {
-      return rightIso.localeCompare(leftIso);
-    }
-    if (rightIso && !leftIso) return -1;
-    if (!rightIso && leftIso) return 1;
-    const rightId = asText(right?.messageId || right?.id);
-    const leftId = asText(left?.messageId || left?.id);
-    const idCompare = rightId.localeCompare(leftId);
-    if (idCompare !== 0) return idCompare;
-    return asText(right?.subject || "").localeCompare(asText(left?.subject || ""));
-  }
-
-  function normalizeThreadDocumentMessageOrder(threadDocument = null) {
-    if (!threadDocument || typeof threadDocument !== "object") return threadDocument;
-    return {
-      ...threadDocument,
-      messages: asArray(threadDocument.messages)
-        .filter((message) => message && typeof message === "object")
-        .slice()
-        .sort(compareRuntimeMessagesDesc),
-    };
-  }
-
   function dedupeHistoryEvents(events) {
     const seen = new Set();
     return events.filter((event) => {
@@ -14500,11 +14282,6 @@
   }
 
   function normalizeWorkspaceState() {
-    if (canvas.classList.contains("is-workspace-width-frozen")) {
-      applyWorkspaceState();
-      return;
-    }
-
     const availableWidth = getWorkspaceAvailableWidth();
     if (!availableWidth) return;
 
@@ -20498,9 +20275,6 @@
   }
 
   function renderRuntimeConversationShell() {
-    if (state.runtime?.pendingFullRefresh === true) {
-      return;
-    }
     ensureRuntimeSelection();
     renderRuntimeQueue();
     renderQueueCategoryStripMode();
@@ -20510,65 +20284,53 @@
     renderQueueHistorySection();
     renderMailFeeds();
     renderThreadContextRows();
-    const backgroundRefreshSelectedThreadId = asText(
-      state.runtime?.backgroundRefreshSelectedThreadId
-    );
-    const shouldSkipFocusRefresh =
-      state.runtime?.isBackgroundRefresh === true &&
-      Boolean(backgroundRefreshSelectedThreadId) &&
-      runtimeConversationIdsMatch(
-        backgroundRefreshSelectedThreadId,
-        workspaceSourceOfTruth.getSelectedThreadId()
-      );
     const selectedThread = getSelectedRuntimeThread();
     const selectedFocusThread = getSelectedRuntimeFocusThread();
-    if (!shouldSkipFocusRefresh) {
-      syncSelectedCustomerIdentityForThread(selectedFocusThread || selectedThread);
-      const focusReadState = getRuntimeFocusReadState(selectedFocusThread);
-      const focusNotesHeading = document.querySelector(".focus-notes-head h3");
-      if (focusNotesHeading) {
-        focusNotesHeading.textContent = selectedFocusThread
-          ? `Anteckningar för ${selectedFocusThread.customerName}`
-          : state.runtime.authRequired
-            ? "Anteckningar kräver inloggning"
-            : "Anteckningar";
-      }
-      renderRuntimeFocusSignals(selectedFocusThread, focusReadState);
-      const focusQuickActions = focusReadState.readOnly
-        ? []
-        : (() => {
-              const base = [...FOCUS_ACTIONS];
-              if (state.runtime.pendingGraphRestore && state.runtime.deleteEnabled) {
-                base.push({
-                  label: "Återställ",
-                  tone: "compose",
-                  action: "restore",
-                  icon: "undo",
-                });
-              }
-              return base;
-            })();
-      renderQuickActionRows(focusActionRows, focusQuickActions);
-      renderRuntimeFocusConversation(selectedFocusThread, focusReadState);
-      renderRuntimeCustomerPanel(selectedFocusThread, focusReadState);
-      renderFocusHistorySection(selectedFocusThread, focusReadState);
-      renderFocusNotesSection();
-      renderQuickActionRows(intelActionRows, INTEL_ACTIONS);
-      renderRuntimeIntel(selectedFocusThread, focusReadState);
+    syncSelectedCustomerIdentityForThread(selectedFocusThread || selectedThread);
+    const focusReadState = getRuntimeFocusReadState(selectedFocusThread);
+    const focusNotesHeading = document.querySelector(".focus-notes-head h3");
+    if (focusNotesHeading) {
+      focusNotesHeading.textContent = selectedFocusThread
+        ? `Anteckningar för ${selectedFocusThread.customerName}`
+        : state.runtime.authRequired
+          ? "Anteckningar kräver inloggning"
+          : "Anteckningar";
     }
+    renderRuntimeFocusSignals(selectedFocusThread, focusReadState);
+    const focusQuickActions = focusReadState.readOnly
+      ? []
+      : (() => {
+            const base = [...FOCUS_ACTIONS];
+            if (state.runtime.pendingGraphRestore && state.runtime.deleteEnabled) {
+              base.push({
+                label: "Återställ",
+                tone: "compose",
+                action: "restore",
+                icon: "undo",
+              });
+            }
+            return base;
+          })();
+    renderQuickActionRows(focusActionRows, focusQuickActions);
+    renderRuntimeFocusConversation(selectedFocusThread, focusReadState);
+    renderRuntimeCustomerPanel(selectedFocusThread, focusReadState);
+    renderFocusHistorySection(selectedFocusThread, focusReadState);
+    renderFocusNotesSection();
+    renderQuickActionRows(intelActionRows, INTEL_ACTIONS);
+    renderRuntimeIntel(selectedFocusThread, focusReadState);
     renderStudioShell();
     renderWorkspaceRuntimeContext();
     renderAnalyticsRuntime();
-    if (!shouldSkipFocusRefresh) {
-      renderRuntimeIntel(selectedFocusThread, getRuntimeFocusReadState(selectedFocusThread));
-    }
-    const runtimeVisualState = syncRuntimeVisualStateMachine();
-    const isPreviewReady =
-      runtimeVisualState === "ready" ||
-      runtimeVisualState === "offline_history" ||
-      (state.runtime.hasReachedSteadyState === true && runtimeVisualState === "syncing");
-    if (isPreviewReady) {
+    renderRuntimeIntel(selectedFocusThread, focusReadState);
+    if (
+      (state.runtime.loaded === true ||
+        state.runtime.live === true ||
+        state.runtime.offline === true) &&
+      state.runtime.authRequired !== true
+    ) {
       document.body.classList.add("is-preview-ready");
+    } else {
+      document.body.classList.remove("is-preview-ready");
     }
   }
 
@@ -20874,30 +20636,22 @@
   }
 
   function setAppView(view = "conversations") {
-    markExplicitNavigationIntent();
     const normalizedView = workspaceSourceOfTruth.setView(view);
     const shellView = resolveShellView(normalizedView);
     const aliasAutomationSection = resolveAutomationSectionForView(normalizedView);
     const showConversations = shellView === "conversations";
-    const shellStructureChanged =
-      appliedShellViewState !== shellView ||
-      appliedConversationShellState !== showConversations;
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
-    if (shellStructureChanged) {
-      shellViewSections.forEach((section) => {
-        section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
-      });
+    shellViewSections.forEach((section) => {
+      section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
+    });
 
-      previewShell.hidden = !showConversations;
-      focusShell.hidden = !showConversations;
-      resizeHandles.forEach((handle) => {
-        handle.hidden = !showConversations;
-      });
-      appliedShellViewState = shellView;
-      appliedConversationShellState = showConversations;
-    }
+    previewShell.hidden = !showConversations;
+    focusShell.hidden = !showConversations;
+    resizeHandles.forEach((handle) => {
+      handle.hidden = !showConversations;
+    });
 
     navViewButtons.forEach((button) => {
       const buttonView = normalizeKey(button.dataset.navView);
@@ -20917,7 +20671,7 @@
 
     setMoreMenuOpen(false);
 
-    if (!showConversations && shellStructureChanged) {
+    if (!showConversations) {
       setStudioOpen(false);
       setNoteOpen(false);
       setNoteModeOpen(false);
@@ -21215,7 +20969,6 @@
   }
 
   function applyFocusSection(section) {
-    markExplicitNavigationIntent();
     const activeSection = workspaceSourceOfTruth.setFocusSection(section);
     focusTabButtons.forEach((button) => {
       const isActive = button.dataset.focusSection === activeSection;
@@ -21281,13 +21034,6 @@
     const target = getConversationActionTarget(thread);
     if (!target) {
       throw new Error(errorMessage);
-    }
-    if (path === "/api/v1/cco/handled") {
-      console.log("[CCO Markera klar] conversationActionTarget", {
-        conversationId: target.conversationId,
-        messageId: target.messageId,
-        mailboxId: target.mailboxId,
-      });
     }
     const payload = await apiRequest(path, {
       method: "POST",
@@ -21770,7 +21516,6 @@
 
   function startResize(handle, event) {
     if (!previewWorkspace) return;
-    if (canvas.classList.contains("is-workspace-width-frozen")) return;
 
     if (activeResizeCleanup) {
       activeResizeCleanup();
