@@ -4115,10 +4115,7 @@
       state.runtime.hasReachedSteadyState = true;
     }
 
-    if (
-      state.runtime.hasRemovedRuntimeLoading !== true &&
-      (visualState === "ready" || visualState === "offline_history")
-    ) {
+    if (state.runtime.hasRemovedRuntimeLoading !== true) {
       document.body.classList.remove("is-runtime-loading");
       state.runtime.hasRemovedRuntimeLoading = true;
     }
