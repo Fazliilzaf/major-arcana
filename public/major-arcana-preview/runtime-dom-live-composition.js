@@ -1907,6 +1907,7 @@
       activeTruthPrimaryMailboxIds = [],
       truthPrimaryPayload = null,
       isCurrentRequest = () => true,
+      onApplied = null,
     } = {}) {
       if (
         !runtimeMailboxIds.length ||
@@ -1950,6 +1951,9 @@
           });
           state.runtime.truthPrimaryLegacyThreads = legacyThreads;
           state.runtime.threads = threads;
+          if (typeof onApplied === "function") {
+            onApplied();
+          }
           recordRuntimeThreadAssignment("thin_history_refresh", {
             stage: "after_apply",
             historyPayload,
@@ -2498,6 +2502,16 @@
         ? requestedMailboxIds
         : getRequestedRuntimeMailboxIds();
       const preferredThreadId = asText(options.preferredThreadId);
+      const selectedThreadId = asText(workspaceSourceOfTruth.getSelectedThreadId());
+      let stableFocusThread =
+        selectedThreadId &&
+        asArray(state.runtime.liveHydratedThreadIds).some((threadId) =>
+          runtimeConversationIdsMatch(threadId, selectedThreadId)
+        )
+          ? asArray(state.runtime.threads).find((thread) =>
+              runtimeConversationIdsMatch(thread?.id, selectedThreadId)
+            ) || null
+          : null;
       const runtimeRequestSequence = ++liveRuntimeRequestSequence;
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
       clearRuntimeAuthRecoveryTimer();
@@ -2699,6 +2713,16 @@
         });
         state.runtime.truthPrimaryLegacyThreads = legacyThreads;
         state.runtime.threads = threads;
+        if (stableFocusThread) {
+          const stableFocusThreadIndex = state.runtime.threads.findIndex((thread) =>
+            runtimeConversationIdsMatch(thread?.id, selectedThreadId)
+          );
+          if (stableFocusThreadIndex >= 0) {
+            const patchedThreads = [...state.runtime.threads];
+            patchedThreads[stableFocusThreadIndex] = stableFocusThread;
+            state.runtime.threads = patchedThreads;
+          }
+        }
         recordRuntimeThreadAssignment("live_load", {
           stage: "after_apply",
           selectedThreadId: preferredThreadId,
@@ -2803,6 +2827,9 @@
           activeTruthPrimaryMailboxIds,
           truthPrimaryPayload,
           isCurrentRequest,
+          onApplied: () => {
+            stableFocusThread = null;
+          },
         });
         scheduleRuntimeHistoryCoverageWarmup(runtimeMailboxIds, {
           isCurrentRequest,
