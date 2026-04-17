@@ -13522,8 +13522,15 @@
       if (filterMode === "needs_reply") return item?.state?.needsReply === true;
       if (filterMode === "act_now") return normalizeText(item?.lane || "") === "act-now";
       if (filterMode === "comparable") return comparableMailboxIds.has(mailboxId);
-      if (filterMode === "today") return dueBucket.includes("today");
-      if (filterMode === "tomorrow") return dueBucket.includes("tomorrow");
+      if (filterMode === "today") {
+        return (
+          dueBucket.includes("today") &&
+          (item?.state?.needsReply === true || item?.state?.hasUnreadInbound === true)
+        );
+      }
+      if (filterMode === "tomorrow") {
+        return dueBucket.includes("tomorrow") && item?.state?.needsReply === true;
+      }
       return true;
     });
 
@@ -13575,8 +13582,17 @@
       comparable: rows.filter((item) =>
         comparableMailboxIds.has(normalizeMailboxId(item?.mailbox?.mailboxId || ""))
       ).length,
-      today: rows.filter((item) => asArray(item?.dueBucket).includes("today")).length,
-      tomorrow: rows.filter((item) => asArray(item?.dueBucket).includes("tomorrow")).length,
+      today: rows.filter((item) => {
+        const dueBucket = asArray(item?.dueBucket);
+        return (
+          dueBucket.includes("today") &&
+          (item?.state?.needsReply === true || item?.state?.hasUnreadInbound === true)
+        );
+      }).length,
+      tomorrow: rows.filter((item) => {
+        const dueBucket = asArray(item?.dueBucket);
+        return dueBucket.includes("tomorrow") && item?.state?.needsReply === true;
+      }).length,
     };
     const filterMode = normalizeText(viewState?.localFilter || "all") || "all";
     const sortMode = normalizeText(viewState?.localSort || "latest") || "latest";
