@@ -2473,7 +2473,8 @@
 
   function asText(value, fallback = "") {
     const normalized = String(value ?? "").trim();
-    return normalized || fallback;
+    if (normalized) return normalized;
+    return String(fallback ?? "");
   }
 
   function normalizeMailboxId(value) {
@@ -6169,7 +6170,9 @@
     { messageId = "", graphMessageId = "", sourceStore = "" } = {},
     index = 0
   ) {
-    const attachmentId = asText(attachment?.id, attachment?.attachmentId).trim();
+    const attachmentId = asText(
+      attachment?.id ?? attachment?.attachmentId ?? ""
+    ).trim();
     const contentId = asText(attachment?.contentId).trim();
     const name = asText(attachment?.name).trim();
     const contentType = asText(attachment?.contentType).trim().toLowerCase();
