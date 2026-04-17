@@ -274,6 +274,108 @@ function normalizeDecisionRisk(value = '') {
   return normalized ? normalized.toLowerCase() : null;
 }
 
+// --- Lane classification (mirrors deriveConversationWorklistLaneFields in analyzeInbox.js) ---
+const HISTORY_LANE_MEDICAL_TOPIC_PATTERN =
+  /\b(symptom|behandling|operation|biverkning|lakemedel|infektion|feber|svullnad|smarta)\b/i;
+
+function historyLaneIntentImpliesBooking(intent = '') {
+  const n = normalizeText(intent).toLowerCase();
+  return n === 'booking_request' || n.includes('booking');
+}
+
+function historyLaneMedicalKeywordsInSubjectOrPreview(subject = '', preview = '') {
+  const combined = `${subject}\n${preview}`;
+  return HISTORY_LANE_MEDICAL_TOPIC_PATTERN.test(combined);
+}
+
+function deriveConversationWorklistLaneFieldsForHistory({
+  slaStatus = '',
+  intent = '',
+  subject = '',
+  latestInboundPreview = '',
+  waitingOn: waitingOnSource = '',
+} = {}) {
+  const waitingOn = (() => {
+    const w = normalizeText(waitingOnSource).toLowerCase();
+    if (!w) return null;
+    return ['customer', 'owner', 'clinic'].includes(w) ? w : null;
+  })();
+
+  const needsMedicalReview = historyLaneMedicalKeywordsInSubjectOrPreview(subject, latestInboundPreview);
+  const bookingState = historyLaneIntentImpliesBooking(intent) ? 'booking_pending' : null;
+
+  const sla = normalizeText(slaStatus).toLowerCase();
+  const intentNorm = normalizeText(intent).toLowerCase();
+
+  let workflowLane = null;
+  if (sla === 'breach') {
+    workflowLane = 'action_now';
+  } else if (historyLaneIntentImpliesBooking(intent)) {
+    workflowLane = 'booking_ready';
+  } else if (needsMedicalReview) {
+    workflowLane = 'medical_review';
+  } else if (intentNorm === 'admin') {
+    workflowLane = 'admin_low';
+  } else if (waitingOn === 'customer') {
+    workflowLane = 'waiting_reply';
+  }
+
+  return {
+    workflowLane,
+    bookingState,
+    needsMedicalReview,
+    waitingOn,
+  };
+}
+
+function inferHistoryWaitingOnFromMessages(messages = []) {
+  const sorted = asArray(messages)
+    .filter((m) => m && toIso(m.sentAt))
+    .sort((left, right) => compareIsoAsc(left.sentAt, right.sentAt));
+  const last = sorted[sorted.length - 1];
+  if (!last) return '';
+  const w = normalizeText(last.waitingOn).toLowerCase();
+  if (w && ['customer', 'owner', 'clinic'].includes(w)) return w;
+  return normalizeDirection(last.direction) === 'outbound' ? 'customer' : 'owner';
+}
+
+function pickLatestInboundHistoryMessage(messages = []) {
+  const inbound = asArray(messages).filter((m) => normalizeDirection(m.direction) === 'inbound');
+  if (inbound.length === 0) return null;
+  return inbound.sort((left, right) => compareIsoAsc(left.sentAt, right.sentAt)).slice(-1)[0];
+}
+
+function applyLaneFieldsToHistoryMessages(messageSlice = []) {
+  if (messageSlice.length === 0) return;
+  const sorted = asArray(messageSlice)
+    .filter((m) => m && toIso(m.sentAt))
+    .sort((left, right) => compareIsoAsc(left.sentAt, right.sentAt));
+  const latestOverall = sorted[sorted.length - 1];
+  const latestInbound = pickLatestInboundHistoryMessage(messageSlice);
+  const anchor = latestInbound || latestOverall;
+  if (!anchor) return;
+
+  const subject = normalizeText(anchor.subject) || '(utan ämne)';
+  const latestInboundPreview = latestInbound ? normalizeText(latestInbound.bodyPreview) : '';
+  const intent = normalizeText(anchor.intent);
+  const slaStatus = normalizeText(anchor.slaStatus);
+  const waitingOnMerged = inferHistoryWaitingOnFromMessages(messageSlice);
+
+  const lane = deriveConversationWorklistLaneFieldsForHistory({
+    slaStatus,
+    intent,
+    subject,
+    latestInboundPreview,
+    waitingOn: waitingOnMerged,
+  });
+
+  for (const m of messageSlice) {
+    m.workflowLane = lane.workflowLane;
+    m.bookingState = lane.bookingState;
+    m.needsMedicalReview = lane.needsMedicalReview;
+  }
+}
+
 function normalizeHistoryMessage(rawMessage = {}) {
   const tenantId = normalizeText(rawMessage.tenantId);
   const mailboxId = normalizeMailboxId(rawMessage.mailboxId);
@@ -303,6 +405,16 @@ function normalizeHistoryMessage(rawMessage = {}) {
     counterpartyEmail: inferHistoryCounterpartyEmail(rawMessage) || null,
     firstSeenAt: toIso(rawMessage.firstSeenAt) || nowIso(),
     lastSeenAt: toIso(rawMessage.lastSeenAt) || nowIso(),
+    intent: normalizeCompactText(rawMessage.intent, 80),
+    slaStatus: (() => {
+      const s = normalizeText(rawMessage.slaStatus).toLowerCase();
+      return s || null;
+    })(),
+    waitingOn: (() => {
+      const w = normalizeText(rawMessage.waitingOn).toLowerCase();
+      if (!w) return null;
+      return ['customer', 'owner', 'clinic'].includes(w) ? w : null;
+    })(),
   };
 }
 
@@ -953,6 +1065,8 @@ async function createCcoHistoryStore({
     const safeWindowStartIso = toIso(windowStartIso);
     const safeWindowEndIso = toIso(windowEndIso);
     const seenWindowMessageIds = new Set();
+    const affectedConversationIds = new Set();
+    const affectedOrphanMessageIds = new Set();
 
     for (const rawMessage of asArray(messages)) {
       const normalizedMessage = normalizeHistoryMessage({
@@ -964,6 +1078,11 @@ async function createCcoHistoryStore({
       const compositeKey = `${normalizedMessage.tenantId}:${normalizedMessage.mailboxId}:${normalizedMessage.messageId}`;
       if (seenWindowMessageIds.has(compositeKey)) continue;
       seenWindowMessageIds.add(compositeKey);
+      if (normalizeText(normalizedMessage.conversationId)) {
+        affectedConversationIds.add(normalizeText(normalizedMessage.conversationId));
+      } else {
+        affectedOrphanMessageIds.add(normalizedMessage.messageId);
+      }
       if (existingIndex.has(compositeKey)) {
         const existingMessage = state.messages[existingIndex.get(compositeKey)];
         state.messages[existingIndex.get(compositeKey)] = {
@@ -978,6 +1097,28 @@ async function createCcoHistoryStore({
         existingIndex.set(compositeKey, state.messages.length - 1);
         insertedCount += 1;
       }
+    }
+
+    const tenantKey = mailbox.tenantId;
+    const mailboxKey = mailbox.mailboxId;
+    for (const conversationId of affectedConversationIds) {
+      const slice = state.messages.filter(
+        (m) =>
+          m.tenantId === tenantKey &&
+          m.mailboxId === mailboxKey &&
+          normalizeText(m.conversationId) === conversationId
+      );
+      applyLaneFieldsToHistoryMessages(slice);
+    }
+    for (const orphanId of affectedOrphanMessageIds) {
+      const slice = state.messages.filter(
+        (m) =>
+          m.tenantId === tenantKey &&
+          m.mailboxId === mailboxKey &&
+          !normalizeText(m.conversationId) &&
+          m.messageId === orphanId
+      );
+      applyLaneFieldsToHistoryMessages(slice);
     }
 
     if (safeWindowStartIso && safeWindowEndIso) {
