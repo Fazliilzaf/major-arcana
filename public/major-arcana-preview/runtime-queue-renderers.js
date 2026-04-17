@@ -427,7 +427,8 @@
       const foundationSource =
         asText(foundationState?.source) ||
         (foundationMode === "foundation" ? "mail_foundation" : "legacy_preview_fallback");
-      const previewCandidates = [
+      const modelQueuePreview = compactRuntimeCopy(asText(thread.queuePreviewText), "", 104);
+      const previewFallbackCandidates = [
         ...collectThreadMessagePreviewCandidates(preferredFoundationMessage),
         ...collectThreadMessagePreviewCandidates(thread.mailThreadMessage),
         thread.mailDocument?.previewText,
@@ -460,14 +461,20 @@
         latestCustomerMessage?.body,
         latestCustomerMessage?.bodyPreview,
       ];
-      let previewCopy = "";
-      for (const candidate of previewCandidates) {
-        const candidateRaw = asText(candidate).replace(/\s+/g, " ").trim();
-        if (!candidateRaw) continue;
-        const candidatePreview = sanitizeMailPreview(candidateRaw);
-        if (previewLooksGeneric(candidateRaw, candidatePreview)) continue;
-        previewCopy = candidatePreview;
-        break;
+      let previewCopy = modelQueuePreview;
+      if (
+        !previewCopy ||
+        previewLooksGeneric(modelQueuePreview, modelQueuePreview)
+      ) {
+        previewCopy = "";
+        for (const candidate of previewFallbackCandidates) {
+          const candidateRaw = asText(candidate).replace(/\s+/g, " ").trim();
+          if (!candidateRaw) continue;
+          const candidatePreview = sanitizeMailPreview(candidateRaw);
+          if (previewLooksGeneric(candidateRaw, candidatePreview)) continue;
+          previewCopy = candidatePreview;
+          break;
+        }
       }
       const hasUnread = thread.unread === true || thread.isUnread === true;
       const unreadIndicatorMarkup = hasUnread

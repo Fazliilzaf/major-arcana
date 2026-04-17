@@ -8512,6 +8512,32 @@
     );
   }
 
+  function resolveRuntimeQueuePreviewText(value = "", { fallback = "" } = {}) {
+    const sanitized = asText(value)
+      .replace(/\s+/g, " ")
+      .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
+      .replace(/^You\s+don['’]t\s+often\s+get\s+email\s+from\s+\S+\.?\s*/i, "")
+      .replace(/^Power up your productivity with Microsoft 365\.?\s*/i, "")
+      .replace(/^Get more done with apps like Word\.?\s*/i, "")
+      .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
+      .replace(/^Read more about why this is important\.?\s*/i, "")
+      .replace(/^hur kan vi hjälpa dig med\s+/i, "Vill ha hjälp med ")
+      .replace(/^hur kan jag få hjälp med\s+/i, "Vill ha hjälp med ")
+      .replace(/^kan ni hjälpa mig med\s+/i, "Vill ha hjälp med ")
+      .replace(/^hur kan vi hjälpa dig\??\s*/i, "")
+      .replace(/^hur kan jag få hjälp\??\s*/i, "")
+      .replace(/^kan ni hjälpa mig\??\s*/i, "")
+      .replace(/^(?:hej|hello|hi)\b[,!:\-\s]*/i, "")
+      .replace(/^[\s_—–-]{6,}/, "")
+      .replace(/^\s*[–—-]\s*/, "")
+      .trim();
+    const resolved = compactRuntimeCopy(sanitized, "", 104);
+    if (resolved && !isRuntimePlaceholderLine(resolved)) {
+      return resolved;
+    }
+    return compactRuntimeCopy(asText(fallback), "Ingen senaste kundsignal ännu.", 104);
+  }
+
   function cloneIdentityEnvelope(value = null) {
     const safeValue = value && typeof value === "object" ? value : {};
     const customerIdentity = asObject(safeValue.customerIdentity || safeValue.identity);
@@ -9133,6 +9159,25 @@
         fallback: "Ingen förhandsvisning tillgänglig.",
       }
     );
+    const latestInboundThreadDocumentMessage = asArray(resolvedThreadDocument?.messages).find(
+      (message) => normalizeKey(message?.direction) !== "outbound"
+    );
+    const queuePreviewFromThreadDocument = resolveRuntimePreviewText(
+      {},
+      {
+        additionalCandidates: [
+          latestInboundThreadDocumentMessage?.presentation?.previewText,
+          latestInboundThreadDocumentMessage?.presentation?.conversationText,
+          latestInboundThreadDocumentMessage?.primaryBody?.text,
+          latestInboundThreadDocumentMessage?.mailDocument?.previewText,
+          latestInboundThreadDocumentMessage?.mailDocument?.primaryBodyText,
+        ],
+        fallback: "",
+      }
+    );
+    const queuePreviewText = resolveRuntimeQueuePreviewText(queuePreviewFromThreadDocument || preview, {
+      fallback: "Ingen senaste kundsignal ännu.",
+    });
     const latestInboundPreview = preview;
     const normalizedMessages = messages.map((message, index) => {
       const nextMessage = { ...message };
@@ -9262,6 +9307,7 @@
       followUpAgeDetail: followUpAgingState.detail,
       followUpAgeActionLabel: followUpAgingState.actionLabel,
       preview,
+      queuePreviewText,
       rowFamily,
       lastActivityLabel: formatListTime(
         latestRelevantActivityAt || row?.lastInboundAt || row?.lastOutboundAt

@@ -1008,6 +1008,12 @@
 
     function mergeRuntimeThreadsPreferNewer(existingThreads = [], incomingThreads = []) {
       const getThreadKey = (thread = {}) => normalizeKey(thread?.id || thread?.conversationId || "");
+      const getThreadPhaseRank = (thread = {}) => {
+        const phase = asText(thread?.dataPhase).toUpperCase();
+        if (phase === "B") return 2;
+        if (phase === "A") return 1;
+        return 0;
+      };
       const mergedById = new Map();
 
       asArray(existingThreads).forEach((thread) => {
@@ -1022,6 +1028,15 @@
         const existingThread = mergedById.get(key);
         if (!existingThread) {
           mergedById.set(key, thread);
+          return;
+        }
+        const incomingPhaseRank = getThreadPhaseRank(thread);
+        const existingPhaseRank = getThreadPhaseRank(existingThread);
+        if (incomingPhaseRank > existingPhaseRank) {
+          mergedById.set(key, thread);
+          return;
+        }
+        if (incomingPhaseRank < existingPhaseRank) {
           return;
         }
         const incomingTimestamp = getRuntimeThreadSortTimestamp(thread);
@@ -1960,16 +1975,24 @@
           if (!isCurrentRequest()) return;
 
           const legacyThreads = sortRuntimeThreadsDeterministic(carryRuntimeCustomerIdentity(
-            buildLiveThreads(liveData, {
-            historyMessages: historyPayload?.messages,
-            historyEvents: historyPayload?.events,
-            })
+            asArray(
+              buildLiveThreads(liveData, {
+                historyMessages: historyPayload?.messages,
+                historyEvents: historyPayload?.events,
+              })
+            ).map((thread) =>
+              thread && typeof thread === "object" ? { ...thread, dataPhase: "B" } : thread
+            )
           ));
           const threads = sortRuntimeThreadsDeterministic(carryRuntimeCustomerIdentity(
-            buildLiveThreads(mergedWorklistData, {
-            historyMessages: historyPayload?.messages,
-            historyEvents: historyPayload?.events,
-            })
+            asArray(
+              buildLiveThreads(mergedWorklistData, {
+                historyMessages: historyPayload?.messages,
+                historyEvents: historyPayload?.events,
+              })
+            ).map((thread) =>
+              thread && typeof thread === "object" ? { ...thread, dataPhase: "B" } : thread
+            )
           ));
 
           recordRuntimeThreadAssignment("thin_history_refresh", {
@@ -2713,11 +2736,36 @@
           }
         }
 
+        const existingQueuePreviewByThreadId = new Map(
+          asArray(state.runtime.threads)
+            .map((thread) => [normalizeKey(thread?.id), asText(thread?.queuePreviewText)])
+            .filter((entry) => entry[0] && entry[1])
+        );
+        const preserveBackgroundQueuePreviewText = (threads = [], phase = "") =>
+          asArray(threads).map((thread) => {
+            const nextThread =
+              thread && typeof thread === "object"
+                ? { ...thread, dataPhase: phase || asText(thread?.dataPhase) }
+                : thread;
+            if (!nextThread || typeof nextThread !== "object") return nextThread;
+            if (!isBackgroundRefresh || phase !== "A") return nextThread;
+            const stableQueuePreviewText = existingQueuePreviewByThreadId.get(
+              normalizeKey(nextThread.id)
+            );
+            if (!stableQueuePreviewText) return nextThread;
+            return {
+              ...nextThread,
+              queuePreviewText: stableQueuePreviewText,
+            };
+          });
         const legacyThreads = sortRuntimeThreadsDeterministic(carryRuntimeCustomerIdentity(
-          buildLiveThreads(liveData, {
-            historyMessages: [],
-            historyEvents: [],
-          })
+          preserveBackgroundQueuePreviewText(
+            buildLiveThreads(liveData, {
+              historyMessages: [],
+              historyEvents: [],
+            }),
+            "A"
+          )
         ));
         const mergedWorklistData =
           typeof mergeTruthPrimaryWorklistData === "function"
@@ -2726,10 +2774,13 @@
               })
             : liveData;
         const threads = sortRuntimeThreadsDeterministic(carryRuntimeCustomerIdentity(
-          buildLiveThreads(mergedWorklistData, {
-            historyMessages: [],
-            historyEvents: [],
-          })
+          preserveBackgroundQueuePreviewText(
+            buildLiveThreads(mergedWorklistData, {
+              historyMessages: [],
+              historyEvents: [],
+            }),
+            "A"
+          )
         ));
         const activeFocusTruthMailboxIds = configuredFocusTruthMailboxIds.filter((mailboxId) =>
           activeTruthPrimaryMailboxIds.includes(mailboxId)
