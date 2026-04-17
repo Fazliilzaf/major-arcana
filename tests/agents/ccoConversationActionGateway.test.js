@@ -60,6 +60,8 @@ function createMockAuth(role = 'OWNER', email = 'owner@hairtpclinic.se') {
 async function createRouteFixture({
   truthMessages = [],
   historyStoreOverride = null,
+  conversationStateStoreOverride = undefined,
+  failConversationStateWrite = false,
   auditFailureActions = new Set(),
 } = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-conversation-actions-'));
@@ -87,9 +89,31 @@ async function createRouteFixture({
     (await createCcoHistoryStore({
       filePath: path.join(tempDir, 'cco-history.json'),
     }));
-  const ccoConversationStateStore = await createCcoConversationStateStore({
-    filePath: path.join(tempDir, 'cco-conversation-state.json'),
-  });
+  let ccoConversationStateStore =
+    conversationStateStoreOverride !== undefined
+      ? conversationStateStoreOverride
+      : await createCcoConversationStateStore({
+          filePath: path.join(tempDir, 'cco-conversation-state.json'),
+        });
+  if (
+    failConversationStateWrite === true &&
+    conversationStateStoreOverride === undefined
+  ) {
+    const baseStore = ccoConversationStateStore;
+    ccoConversationStateStore = {
+      getConversationState: (...args) => baseStore.getConversationState(...args),
+      getActiveState: (...args) => baseStore.getActiveState(...args),
+      getActiveStateMap: (...args) => baseStore.getActiveStateMap(...args),
+      writeConversationState: async () => {
+        throw new Error('state-write-failed');
+      },
+      supersedeConversationState: (...args) => baseStore.supersedeConversationState(...args),
+      migrateConversationState: (...args) => baseStore.migrateConversationState(...args),
+      reserveIdempotency: (...args) => baseStore.reserveIdempotency(...args),
+      completeIdempotency: (...args) => baseStore.completeIdempotency(...args),
+      clearPendingIdempotency: (...args) => baseStore.clearPendingIdempotency(...args),
+    };
+  }
   const app = express();
   app.use(express.json());
   const auth = createMockAuth();
@@ -488,6 +512,60 @@ test('CCO conversation action routes keep committed state when history logging f
     const actions = audits.map((event) => event.action);
     assert.equal(actions.includes('cco.reply.handled.requested'), true);
     assert.equal(actions.includes('cco.reply.handled.failed'), true);
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CCO handled route returns 400 when x-idempotency-key header is missing', async () => {
+  const fixture = await createRouteFixture({
+    truthMessages: buildTruthMessages(),
+  });
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/cco/handled`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(buildHandledPayload()),
+      });
+      assert.equal(response.status, 400);
+      const body = await response.json();
+      assert.equal(body.code, 'CCO_IDEMPOTENCY_HEADER_REQUIRED');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CCO handled route writes no audit events when conversation state write fails', async () => {
+  const fixture = await createRouteFixture({
+    truthMessages: buildTruthMessages(),
+    failConversationStateWrite: true,
+  });
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/v1/cco/handled`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-idempotency-key': 'handled-state-fail-1',
+        },
+        body: JSON.stringify(buildHandledPayload()),
+      });
+      assert.equal(response.status, 500);
+      const body = await response.json();
+      assert.equal(body.code, 'CCO_ACTION_STATE_WRITE_FAILED');
+
+      const audits = await fixture.authStore.listAuditEvents({
+        tenantId: 'tenant-a',
+        limit: 200,
+      });
+      assert.equal(audits.length, 0);
+    });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
