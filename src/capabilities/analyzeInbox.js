@@ -312,6 +312,60 @@ const RISK_PATTERNS = Object.freeze([
 const MEDICAL_TOPIC_PATTERN =
   /\b(symptom|behandling|operation|biverkning|lakemedel|infektion|feber|svullnad|smarta)\b/i;
 
+function intentImpliesBooking(intent = '') {
+  const n = normalizeText(intent).toLowerCase();
+  return n === 'booking_request' || n.includes('booking');
+}
+
+function medicalKeywordsInSubjectOrPreview(subject = '', preview = '') {
+  const combined = `${subject}\n${preview}`;
+  return MEDICAL_TOPIC_PATTERN.test(combined);
+}
+
+/**
+ * Maps AnalyzeInbox signals to runtime lane fields consumed by derivePrimaryRuntimeLane.
+ * Priority: SLA breach → booking → medical → admin intent → waiting on customer.
+ */
+function deriveConversationWorklistLaneFields({
+  slaStatus = '',
+  intent = '',
+  subject = '',
+  latestInboundPreview = '',
+  waitingOn: waitingOnSource = '',
+} = {}) {
+  const waitingOn = (() => {
+    const w = normalizeText(waitingOnSource).toLowerCase();
+    if (!w) return null;
+    return ['customer', 'owner', 'clinic'].includes(w) ? w : null;
+  })();
+
+  const needsMedicalReview = medicalKeywordsInSubjectOrPreview(subject, latestInboundPreview);
+  const bookingState = intentImpliesBooking(intent) ? 'booking_pending' : null;
+
+  const sla = normalizeText(slaStatus).toLowerCase();
+  const intentNorm = normalizeText(intent).toLowerCase();
+
+  let workflowLane = null;
+  if (sla === 'breach') {
+    workflowLane = 'action_now';
+  } else if (intentImpliesBooking(intent)) {
+    workflowLane = 'booking_ready';
+  } else if (needsMedicalReview) {
+    workflowLane = 'medical_review';
+  } else if (intentNorm === 'admin') {
+    workflowLane = 'admin_low';
+  } else if (waitingOn === 'customer') {
+    workflowLane = 'waiting_reply';
+  }
+
+  return {
+    workflowLane,
+    bookingState,
+    needsMedicalReview,
+    waitingOn,
+  };
+}
+
 const INTENT_ACTIONS = Object.freeze({
   booking_request: 'Boka tid',
   pricing_question: 'Skicka prisinformation',
@@ -572,6 +626,9 @@ function toConversationSnapshot(input = {}) {
           normalizeText(source.senderEmail) ||
           normalizeText(lastInbound?.sender)
       ) || null,
+    waitingOn:
+      normalizeText(source.waitingOn || source?.operatorState?.waitingOn || source?.waiting_on) ||
+      null,
   };
 }
 
@@ -1438,6 +1495,10 @@ class AnalyzeInboxCapability extends BaseCapability {
                 'escalationRequired',
                 'messageClassification',
                 'needsReplyStatus',
+                'workflowLane',
+                'bookingState',
+                'needsMedicalReview',
+                'waitingOn',
               ],
               additionalProperties: false,
               properties: {
@@ -1471,6 +1532,7 @@ class AnalyzeInboxCapability extends BaseCapability {
                     'cancellation',
                     'follow_up',
                     'unclear',
+                    'admin',
                   ],
                 },
                 intentConfidence: { type: 'number', minimum: 0, maximum: 1 },
@@ -1619,6 +1681,31 @@ class AnalyzeInboxCapability extends BaseCapability {
                 escalationRequired: { type: 'boolean' },
                 messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
+                workflowLane: {
+                  anyOf: [
+                    { type: 'null' },
+                    {
+                      type: 'string',
+                      enum: [
+                        'action_now',
+                        'booking_ready',
+                        'medical_review',
+                        'admin_low',
+                        'waiting_reply',
+                      ],
+                    },
+                  ],
+                },
+                bookingState: {
+                  anyOf: [{ type: 'null' }, { type: 'string', enum: ['booking_pending'] }],
+                },
+                needsMedicalReview: { type: 'boolean' },
+                waitingOn: {
+                  anyOf: [
+                    { type: 'null' },
+                    { type: 'string', enum: ['customer', 'owner', 'clinic'] },
+                  ],
+                },
               },
             },
           },
@@ -2585,6 +2672,13 @@ class AnalyzeInboxCapability extends BaseCapability {
       };
 
       if (unanswered && workItem.messageClassification !== 'system_mail') {
+        const laneFields = deriveConversationWorklistLaneFields({
+          slaStatus: workItem.slaStatus,
+          intent: workItem.intent,
+          subject: conversation.subject,
+          latestInboundPreview: workItem.latestInboundPreview,
+          waitingOn: conversation.waitingOn,
+        });
         conversationWorklist.push({
           conversationId: workItem.conversationId,
           messageId: workItem.messageId,
@@ -2631,6 +2725,10 @@ class AnalyzeInboxCapability extends BaseCapability {
           recommendedAction: workItem.recommendedAction,
           escalationRequired: workItem.escalationRequired,
           needsReplyStatus: workItem.needsReplyStatus,
+          workflowLane: laneFields.workflowLane,
+          bookingState: laneFields.bookingState,
+          needsMedicalReview: laneFields.needsMedicalReview,
+          waitingOn: laneFields.waitingOn,
         });
         if (workItem.messageClassification !== 'system_mail') {
           unresolved.push(workItem);
