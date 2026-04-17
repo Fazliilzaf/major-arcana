@@ -1006,6 +1006,34 @@
         });
     }
 
+    function mergeRuntimeThreadsPreferNewer(existingThreads = [], incomingThreads = []) {
+      const getThreadKey = (thread = {}) => normalizeKey(thread?.id || thread?.conversationId || "");
+      const mergedById = new Map();
+
+      asArray(existingThreads).forEach((thread) => {
+        const key = getThreadKey(thread);
+        if (!key || mergedById.has(key)) return;
+        mergedById.set(key, thread);
+      });
+
+      asArray(incomingThreads).forEach((thread) => {
+        const key = getThreadKey(thread);
+        if (!key) return;
+        const existingThread = mergedById.get(key);
+        if (!existingThread) {
+          mergedById.set(key, thread);
+          return;
+        }
+        const incomingTimestamp = getRuntimeThreadSortTimestamp(thread);
+        const existingTimestamp = getRuntimeThreadSortTimestamp(existingThread);
+        if (incomingTimestamp > existingTimestamp) {
+          mergedById.set(key, thread);
+        }
+      });
+
+      return sortRuntimeThreadsDeterministic(Array.from(mergedById.values()));
+    }
+
     function scheduleRuntimeAuthRecovery({ requestedMailboxIds = [] } = {}) {
       clearRuntimeAuthRecoveryTimer();
       if (state.runtime?.authRequired !== true) return;
@@ -1950,19 +1978,23 @@
             threadCount: threads.length,
             legacyThreadCount: legacyThreads.length,
           });
+          const nextRuntimeThreads = mergeRuntimeThreadsPreferNewer(
+            state.runtime.threads,
+            threads
+          );
           state.runtime.truthPrimaryLegacyThreads = legacyThreads;
-          state.runtime.threads = threads;
+          state.runtime.threads = nextRuntimeThreads;
           if (typeof onApplied === "function") {
             onApplied();
           }
           recordRuntimeThreadAssignment("thin_history_refresh", {
             stage: "after_apply",
             historyPayload,
-            threadCount: threads.length,
+            threadCount: nextRuntimeThreads.length,
             legacyThreadCount: legacyThreads.length,
           });
           state.runtime.mailboxes = buildMailboxCatalog(
-            threads.map((thread) => {
+            nextRuntimeThreads.map((thread) => {
               const mailboxAddress = asText(thread?.mailboxAddress);
               return {
                 mailboxId: mailboxAddress,
@@ -1986,7 +2018,7 @@
             requestedMailboxIds,
             liveData,
             mergedWorklistData,
-            threads,
+            threads: nextRuntimeThreads,
             legacyThreads,
             historyPayload,
             truthPrimaryPayload,
