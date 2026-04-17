@@ -21257,6 +21257,13 @@
     if (!target) {
       throw new Error(errorMessage);
     }
+    if (path === "/api/v1/cco/handled") {
+      console.log("[CCO Markera klar] conversationActionTarget", {
+        conversationId: target.conversationId,
+        messageId: target.messageId,
+        mailboxId: target.mailboxId,
+      });
+    }
     const payload = await apiRequest(path, {
       method: "POST",
       headers: {

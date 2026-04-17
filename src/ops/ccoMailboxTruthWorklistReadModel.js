@@ -899,9 +899,11 @@ function createCcoMailboxTruthWorklistReadModel({
 
   function buildConsumerModel({
     mailboxIds = [],
-    limit = 120,
+    limit = 5000,
   } = {}) {
-    const readModel = buildReadModel({ mailboxIds, limit });
+    const n = Number(limit);
+    const readLimit = n === 1000 ? 5000 : Number.isFinite(n) && n > 0 ? n : 5000;
+    const readModel = buildReadModel({ mailboxIds, limit: readLimit });
     const rollupRows = applyConversationStateProjection({
       tenantId,
       rollupRows: buildCustomerRollupRows(readModel.rows),
