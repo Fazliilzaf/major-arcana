@@ -185,8 +185,13 @@
   --workspace-left-width: 440px;
   --workspace-main-width: 564px;
   --workspace-right-width: 360px;
+  --workspace-left-width-locked: 440px;
+  --workspace-main-width-locked: 564px;
+  --workspace-right-width-locked: 360px;
   --workspace-gap: 18px;
   --workspace-focus-gap: 18px;
+  --focus-runtime-state-head-min-height: 28px;
+  --focus-runtime-state-status-min-height: 24px;
   --shell-sticky-offset: 0px;
   --workspace-top-clearance: 8px;
   --workspace-left-column-offset: 14px;
@@ -228,7 +233,8 @@ body:not(.is-preview-ready) .focus-intel-grid,
 body:not(.is-preview-ready) .focus-intel-action-row,
 body:not(.is-preview-ready) [data-focus-actions],
 body:not(.is-preview-ready) [data-intel-actions] {
-  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 body:not(.is-preview-ready) .focus-conversation-layout {
@@ -4636,11 +4642,13 @@ button {
   display: flex;
   flex-direction: row;
   align-items: baseline;
+  align-content: flex-start;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 0;
   padding: 0;
   border-bottom: 0;
+  min-height: var(--focus-runtime-state-head-min-height);
 }
 
 .focus-kicker,
@@ -4767,6 +4775,25 @@ button {
   white-space: nowrap;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  min-height: var(--focus-runtime-state-status-min-height);
+}
+
+.preview-canvas.is-workspace-width-frozen .preview-workspace {
+  grid-template-columns:
+    var(--workspace-left-width-locked)
+    minmax(0, 1fr);
+}
+
+.preview-canvas.is-workspace-width-frozen .focus-layout {
+  grid-template-columns:
+    minmax(0, var(--workspace-main-width-locked))
+    minmax(0, var(--workspace-right-width-locked));
+}
+
+.preview-canvas.is-workspace-width-frozen .workspace-resizer {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .focus-status-line::-webkit-scrollbar {

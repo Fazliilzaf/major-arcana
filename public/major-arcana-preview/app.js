@@ -4034,6 +4034,100 @@
     return "live";
   }
 
+  let lastExplicitNavigationAt = 0;
+  let suppressAutoScrollUntil = 0;
+  let activeRuntimeVisualState = "";
+  let appliedShellViewState = "";
+  let appliedConversationShellState = null;
+
+  function markExplicitNavigationIntent() {
+    lastExplicitNavigationAt = Date.now();
+  }
+
+  function hasRecentExplicitNavigationIntent(windowMs = 1200) {
+    return Date.now() - lastExplicitNavigationAt <= windowMs;
+  }
+
+  function shouldSuppressProgrammaticScroll() {
+    return Date.now() < suppressAutoScrollUntil && !hasRecentExplicitNavigationIntent();
+  }
+
+  if (typeof Element !== "undefined" && Element.prototype) {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    if (typeof originalScrollIntoView === "function" && !Element.prototype.__majorArcanaPatchedScrollIntoView) {
+      Element.prototype.scrollIntoView = function patchedScrollIntoView(...args) {
+        if (shouldSuppressProgrammaticScroll()) return;
+        return originalScrollIntoView.apply(this, args);
+      };
+      Element.prototype.__majorArcanaPatchedScrollIntoView = true;
+    }
+  }
+
+  document.addEventListener(
+    "pointerdown",
+    () => {
+      markExplicitNavigationIntent();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "keydown",
+    () => {
+      markExplicitNavigationIntent();
+    },
+    true
+  );
+
+  const RUNTIME_VISUAL_STATES = Object.freeze([
+    "ready",
+    "syncing",
+    "auth_required",
+    "offline_history",
+    "runtime_error",
+  ]);
+
+  function deriveRuntimeVisualState() {
+    if (state.runtime?.authRequired === true) return "auth_required";
+    if (state.runtime?.loading === true) return "syncing";
+    if (normalizeText(state.runtime?.error)) return "runtime_error";
+    if (normalizeKey(getRuntimeMode()) === "offline_history") return "offline_history";
+    return "ready";
+  }
+
+  function syncRuntimeVisualStateMachine() {
+    const visualState = deriveRuntimeVisualState();
+    state.runtime.visualState = visualState;
+
+    if (state.runtime.hasReachedSteadyState !== true && visualState === "ready") {
+      state.runtime.hasReachedSteadyState = true;
+    }
+
+    RUNTIME_VISUAL_STATES.forEach((candidate) => {
+      canvas.classList.toggle(`is-runtime-${candidate}`, candidate === visualState);
+    });
+    canvas.dataset.runtimeVisualState = visualState;
+
+    const freezeWorkspaceWidths = visualState === "auth_required" || visualState === "syncing";
+    if (freezeWorkspaceWidths) {
+      if (!canvas.classList.contains("is-workspace-width-frozen")) {
+        canvas.style.setProperty("--workspace-left-width-locked", `${workspaceState.left}px`);
+        canvas.style.setProperty("--workspace-main-width-locked", `${workspaceState.main}px`);
+        canvas.style.setProperty("--workspace-right-width-locked", `${workspaceState.right}px`);
+      }
+      canvas.classList.add("is-workspace-width-frozen");
+    } else {
+      canvas.classList.remove("is-workspace-width-frozen");
+    }
+
+    if (activeRuntimeVisualState && activeRuntimeVisualState !== visualState) {
+      suppressAutoScrollUntil = Date.now() + 1400;
+    }
+    activeRuntimeVisualState = visualState;
+
+    return visualState;
+  }
+
   function buildRuntimeMailboxCapabilities(graph = {}) {
     const signatureProfiles = asArray(graph?.signatureProfiles);
     const runtimeMode =
@@ -14246,6 +14340,11 @@
   }
 
   function normalizeWorkspaceState() {
+    if (canvas.classList.contains("is-workspace-width-frozen")) {
+      applyWorkspaceState();
+      return;
+    }
+
     const availableWidth = getWorkspaceAvailableWidth();
     if (!availableWidth) return;
 
@@ -20286,12 +20385,12 @@
     renderWorkspaceRuntimeContext();
     renderAnalyticsRuntime();
     renderRuntimeIntel(selectedFocusThread, focusReadState);
-    if (
-      (state.runtime.loaded === true ||
-        state.runtime.live === true ||
-        state.runtime.offline === true) &&
-      state.runtime.authRequired !== true
-    ) {
+    const runtimeVisualState = syncRuntimeVisualStateMachine();
+    const isPreviewReady =
+      runtimeVisualState === "ready" ||
+      runtimeVisualState === "offline_history" ||
+      (state.runtime.hasReachedSteadyState === true && runtimeVisualState === "syncing");
+    if (isPreviewReady) {
       document.body.classList.add("is-preview-ready");
     } else {
       document.body.classList.remove("is-preview-ready");
@@ -20600,22 +20699,30 @@
   }
 
   function setAppView(view = "conversations") {
+    markExplicitNavigationIntent();
     const normalizedView = workspaceSourceOfTruth.setView(view);
     const shellView = resolveShellView(normalizedView);
     const aliasAutomationSection = resolveAutomationSectionForView(normalizedView);
     const showConversations = shellView === "conversations";
+    const shellStructureChanged =
+      appliedShellViewState !== shellView ||
+      appliedConversationShellState !== showConversations;
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
-    shellViewSections.forEach((section) => {
-      section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
-    });
+    if (shellStructureChanged) {
+      shellViewSections.forEach((section) => {
+        section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
+      });
 
-    previewShell.hidden = !showConversations;
-    focusShell.hidden = !showConversations;
-    resizeHandles.forEach((handle) => {
-      handle.hidden = !showConversations;
-    });
+      previewShell.hidden = !showConversations;
+      focusShell.hidden = !showConversations;
+      resizeHandles.forEach((handle) => {
+        handle.hidden = !showConversations;
+      });
+      appliedShellViewState = shellView;
+      appliedConversationShellState = showConversations;
+    }
 
     navViewButtons.forEach((button) => {
       const buttonView = normalizeKey(button.dataset.navView);
@@ -20635,7 +20742,7 @@
 
     setMoreMenuOpen(false);
 
-    if (!showConversations) {
+    if (!showConversations && shellStructureChanged) {
       setStudioOpen(false);
       setNoteOpen(false);
       setNoteModeOpen(false);
@@ -20933,6 +21040,7 @@
   }
 
   function applyFocusSection(section) {
+    markExplicitNavigationIntent();
     const activeSection = workspaceSourceOfTruth.setFocusSection(section);
     focusTabButtons.forEach((button) => {
       const isActive = button.dataset.focusSection === activeSection;
@@ -21480,6 +21588,7 @@
 
   function startResize(handle, event) {
     if (!previewWorkspace) return;
+    if (canvas.classList.contains("is-workspace-width-frozen")) return;
 
     if (activeResizeCleanup) {
       activeResizeCleanup();
