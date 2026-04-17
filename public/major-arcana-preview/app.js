@@ -2088,6 +2088,7 @@
       loaded: false,
       hasReachedSteadyState: false,
       hasRemovedRuntimeLoading: false,
+      authRecoveryArmed: false,
       mode: "",
       live: false,
       authRequired: false,
@@ -3895,6 +3896,14 @@
     const sessionToken = readTokenFromStorage(window.sessionStorage);
     if (sessionToken) return sessionToken;
 
+    // Prevent background auth-recovery loops until user explicitly initiates reauth.
+    if (
+      state.runtime?.authRequired === true &&
+      state.runtime?.authRecoveryArmed !== true
+    ) {
+      return "";
+    }
+
     if (typeof isLocalPreviewHost === "function" && isLocalPreviewHost()) {
       return "__preview_local__";
     }
@@ -4005,6 +4014,9 @@
   }
 
   function buildReauthUrl(reason = "session_expired") {
+    if (state.runtime && state.runtime.authRequired === true) {
+      state.runtime.authRecoveryArmed = true;
+    }
     const params = new URLSearchParams();
     params.set(AUTH_RETURN_TO_QUERY_PARAM, buildAdminReturnPath());
     params.set("reason", reason);
@@ -4107,6 +4119,11 @@
   function syncRuntimeVisualStateMachine() {
     const visualState = deriveRuntimeVisualState();
     state.runtime.visualState = visualState;
+
+    if (visualState === "auth_required" && activeRuntimeVisualState !== "auth_required") {
+      state.runtime.mode = "auth_required";
+      state.runtime.authRecoveryArmed = false;
+    }
 
     if (
       state.runtime.hasReachedSteadyState !== true &&
