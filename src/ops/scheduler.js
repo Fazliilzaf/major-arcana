@@ -30,6 +30,7 @@ const { evaluateStrategicInsights } = require('../intelligence/strategicInsights
 const { runClientoBackfill } = require('../../scripts/run-cliento-backfill');
 const { createMicrosoftGraphMailboxTruthDelta } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
+const { config: defaultSchedulerConfig } = require('../config');
 
 function nowIso() {
   return new Date().toISOString();
@@ -258,7 +259,7 @@ function toUtcDateKey(value = null) {
 }
 
 function createScheduler({
-  config,
+  config: incomingConfig,
   authStore,
   templateStore,
   capabilityAnalysisStore = null,
@@ -272,9 +273,10 @@ function createScheduler({
   alertNotifier = null,
   logger = console,
 } = {}) {
-  if (!config) throw new Error('config saknas för scheduler.');
+  if (!incomingConfig) throw new Error('config saknas för scheduler.');
   if (!authStore) throw new Error('authStore saknas för scheduler.');
   if (!templateStore) throw new Error('templateStore saknas för scheduler.');
+  const config = { ...defaultSchedulerConfig, ...incomingConfig };
 
   const timers = new Map();
   let started = false;
