@@ -16140,17 +16140,12 @@ button {
   flex-wrap: nowrap;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item-head,
-.queue-history-list > .thread-card .thread-intelligence-item-icon {
-  display: none;
-}
-
 .queue-history-list > .thread-card .thread-intelligence-item,
 .queue-history-list > .thread-card button.thread-intelligence-item {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0;
+  gap: 4px;
   flex: 1 1 0;
   min-width: 0;
   max-width: 100%;
@@ -16271,13 +16266,6 @@ button {
 .queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-card-head-secondary,
 .queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-support-stack {
   gap: 8px;
-}
-
-.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-subject-primary {
-  color: #1a1a1a;
-}
-.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-story {
-  color: #666;
 }
 
 .queue-history-item:not(.thread-card) {
