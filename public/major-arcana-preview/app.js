@@ -13105,6 +13105,7 @@
           180
         );
         const mailboxId = normalizeMailboxId(item.mailboxId);
+        const primaryLaneId = derivePrimaryRuntimeLane(item);
         return {
           id: asText(item.messageId || `${item.conversationId}-${item.recordedAt}-${subject}`),
           conversationId: asText(item.conversationId),
@@ -13117,6 +13118,8 @@
           direction: normalizeKey(item.direction || "message") === "outbound" ? "Skickat" : "Mottaget",
           time: formatHistoryTimestamp(item.recordedAt),
           recordedAt: toIso(item.recordedAt),
+          primaryLaneId,
+          laneId: primaryLaneId,
           initials: initialsForName(
             getQueueHistoryCounterpartyLabel(item, customerEmail, getQueueHistoryMailboxLabel(mailboxId))
           ),

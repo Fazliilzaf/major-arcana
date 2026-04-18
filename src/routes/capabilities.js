@@ -4354,6 +4354,50 @@ async function collectStoredMailboxHistoryMessages({
   );
 }
 
+function buildHistoryLaneLookupFromMessages(messages = []) {
+  const map = new Map();
+  for (const message of asArray(messages)) {
+    const messageId = normalizeText(message?.messageId);
+    if (!messageId) continue;
+    const mailboxId = toMailboxAddress(
+      message?.mailboxId || message?.mailboxAddress || message?.userPrincipalName
+    );
+    const key = `${String(mailboxId || '').toLowerCase()}:${messageId}`;
+    map.set(key, {
+      workflowLane: message?.workflowLane ?? null,
+      bookingState: message?.bookingState ?? null,
+      needsMedicalReview: message?.needsMedicalReview === true,
+    });
+  }
+  return map;
+}
+
+function applyExplicitLaneFieldsToMessages(messages = []) {
+  return asArray(messages).map((message) => ({
+    ...message,
+    workflowLane: message?.workflowLane ?? null,
+    bookingState: message?.bookingState ?? null,
+    needsMedicalReview: message?.needsMedicalReview === true,
+  }));
+}
+
+function enrichHistorySearchResultWithLaneFields(record = {}, laneLookup = new Map()) {
+  const resultType = normalizeText(record?.resultType).toLowerCase();
+  if (resultType !== 'message') {
+    return record;
+  }
+  const messageId = normalizeText(record?.messageId);
+  const mailboxId = toMailboxAddress(record?.mailboxId);
+  const key = messageId ? `${String(mailboxId || '').toLowerCase()}:${messageId}` : '';
+  const lane = key && laneLookup.has(key) ? laneLookup.get(key) : null;
+  return {
+    ...record,
+    workflowLane: record?.workflowLane ?? lane?.workflowLane ?? null,
+    bookingState: record?.bookingState ?? lane?.bookingState ?? null,
+    needsMedicalReview: record?.needsMedicalReview === true || lane?.needsMedicalReview === true,
+  };
+}
+
 function toCcoRuntimeHistoryBackfillInput(input = {}) {
   const safeInput = asObject(input);
   const mailboxIds = resolveCcoRuntimeHistoryMailboxIds(safeInput);
@@ -4788,12 +4832,14 @@ function toCcoRuntimeHistoryHandler({
           conversationId,
           customerEmail,
         });
-        const hydratedMessages = hydratedThread.messages;
+        let hydratedMessages = hydratedThread.messages;
         await materializeCustomerReplyActions({
           tenantId,
           messages: hydratedMessages,
           ccoHistoryStore,
         });
+        hydratedMessages = applyExplicitLaneFieldsToMessages(hydratedMessages);
+        const historyLaneLookup = buildHistoryLaneLookupFromMessages(hydratedMessages);
         const events =
           typeof ccoHistoryStore.searchHistoryRecords === 'function'
             ? await ccoHistoryStore.searchHistoryRecords({
@@ -4810,6 +4856,9 @@ function toCcoRuntimeHistoryHandler({
                 resultTypes: ['message', 'outcome', 'action'],
               })
             : [];
+        const eventsWithLaneFields = asArray(events).map((event) =>
+          enrichHistorySearchResultWithLaneFields(event, historyLaneLookup)
+        );
         const summary = summarizeHistoryMessages(hydratedMessages);
         const missingWindowCount = missingCoverages.reduce(
           (sum, coverage) => sum + Number(coverage?.missingWindows?.length || 0),
@@ -4854,7 +4903,7 @@ function toCcoRuntimeHistoryHandler({
           summary,
           messages: hydratedMessages,
           threadDocument: hydratedThread.threadDocument,
-          events,
+          events: eventsWithLaneFields,
           store: {
             source: 'cco_history_store',
             mailbox: mailboxSummaries[0]?.mailbox || null,
@@ -8426,6 +8475,17 @@ function toCcoRuntimeHistorySearchHandler({
         actionTypes: parsedQuery.actionTypes,
         outcomeCodes: parsedQuery.outcomeCodes,
       });
+      const laneSourceMessages = await collectStoredMailboxHistoryMessages({
+        tenantId,
+        mailboxIds: parsedQuery.mailboxIds,
+        ccoHistoryStore,
+        sinceIso: startIso,
+        untilIso: endIso,
+      });
+      const searchLaneLookup = buildHistoryLaneLookupFromMessages(laneSourceMessages);
+      const enrichedResults = asArray(results).map((record) =>
+        enrichHistorySearchResultWithLaneFields(record, searchLaneLookup)
+      );
       return res.json({
         ok: true,
         mailboxId: parsedQuery.mailboxId,
@@ -8442,8 +8502,8 @@ function toCcoRuntimeHistorySearchHandler({
           startIso,
           endIso,
         },
-        resultCount: results.length,
-        results,
+        resultCount: enrichedResults.length,
+        results: enrichedResults,
       });
     } catch (error) {
       return res.status(500).json({
