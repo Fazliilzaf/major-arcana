@@ -15838,8 +15838,8 @@ button {
 }
 
 .queue-history-list[data-queue-list-mode="live"] {
-  gap: 14px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 4px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -15850,112 +15850,328 @@ button {
   height: 0;
 }
 
-
-/* =============================================================================
-   Kö-kort — queue list thread cards (reference)
-   Kort: vit, 4px vänster rosa kant, lätt skugga, 8px hörn, generös padding
-   Rad 1: 28px avatar (ljusgrå), namn + preview en rad, tid + ägare höger
-   Rad 2: separator, text-chips utan box (mailbox grå, what lila, why rosa, next grön)
-   Rad 3: | MAILBOXSPÅR (lila caps) + detalj grå
-   ============================================================================= */
-
-.queue-history-list > .thread-card {
-  position: relative;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 10px;
-  align-items: stretch;
-  width: 100%;
-  min-width: 0;
+.queue-history-list[data-queue-list-mode="live"] > .thread-card {
+  display: grid;
+  grid-template-rows: minmax(0, auto) auto;
+  align-content: start;
   min-height: 0;
   margin: 0;
-  padding: 14px 20px 16px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(224, 216, 210, 0.92);
-  border-left: 4px solid rgba(232, 152, 168, 0.95);
-  background: #fff;
+  gap: 4px;
+  padding: 6px 10px 6px 8px;
+  border: 1px solid rgba(223, 212, 204, 0.62);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(252, 248, 244, 0.92) 0%,
+      rgba(251, 245, 240, 0.82) 22%,
+      rgba(249, 242, 236, 0.62) 48%,
+      rgba(248, 241, 236, 0.54) 72%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(252, 248, 244, 0.92) 0%,
+      rgba(249, 243, 238, 0.58) 60%,
+      rgba(248, 241, 236, 0.18) 86%,
+      rgba(248, 241, 236, 0.04) 100%
+    );
   box-shadow:
-    0 1px 3px rgba(45, 38, 32, 0.07),
-    0 6px 18px rgba(45, 38, 32, 0.06);
-  overflow: hidden;
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.2);
+  --thread-card-wash: rgba(206, 190, 178, 0.08);
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+    background 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+  --queue-live-header-wash-start: rgba(255, 255, 255, 0.72);
+  --queue-live-header-wash-end: rgba(251, 245, 240, 0.4);
+  --queue-live-body-wash-start: rgba(255, 248, 243, 0.92);
+  --queue-live-body-wash-end: rgba(248, 241, 236, 0.42);
+  --queue-live-footer-wash-start: rgba(248, 251, 254, 0.84);
+  --queue-live-footer-wash-end: rgba(241, 245, 249, 0.38);
 }
 
-.queue-history-list > .thread-card::before,
-.queue-history-list > .thread-card::after {
-  content: none !important;
-  display: none !important;
-}
-
-.queue-history-list > .thread-card.thread-card-cross-mailbox,
-.queue-history-list > .thread-card.thread-card-cross-mailbox.thread-card-selected {
+.queue-history-list[data-queue-list-mode="live"] > .thread-card,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card {
+  display: grid;
+  grid-template-rows: minmax(0, auto) auto;
+  align-content: start;
   min-height: 0;
-  padding: 14px 20px 16px 14px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid rgba(224, 216, 210, 0.92);
-  border-left: 4px solid rgba(232, 152, 168, 0.95);
+  margin: 0;
+  gap: 4px;
+  padding: 6px 10px 6px 8px;
+  border: 1px solid rgba(223, 212, 204, 0.62);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(252, 248, 244, 0.92) 0%,
+      rgba(251, 245, 240, 0.82) 22%,
+      rgba(249, 242, 236, 0.62) 48%,
+      rgba(248, 241, 236, 0.54) 72%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(252, 248, 244, 0.92) 0%,
+      rgba(249, 243, 238, 0.58) 60%,
+      rgba(248, 241, 236, 0.18) 86%,
+      rgba(248, 241, 236, 0.04) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.2);
+  --thread-card-wash: rgba(206, 190, 178, 0.08);
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+  --queue-live-header-wash-start: rgba(255, 255, 255, 0.72);
+  --queue-live-header-wash-end: rgba(251, 245, 240, 0.4);
+  --queue-live-body-wash-start: rgba(255, 248, 243, 0.92);
+  --queue-live-body-wash-end: rgba(248, 241, 236, 0.42);
+  --queue-live-footer-wash-start: rgba(248, 251, 254, 0.84);
+  --queue-live-footer-wash-end: rgba(241, 245, 249, 0.38);
 }
 
-.queue-history-list > .thread-card + .thread-card {
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.thread-card-cross-mailbox,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.thread-card-cross-mailbox {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  gap: 4px;
+  justify-content: flex-start;
+  padding-bottom: 0;
+  box-shadow:
+    0 10px 26px rgba(87, 67, 51, 0.07),
+    0 2px 8px rgba(87, 67, 51, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card::before {
+  height: 0;
+  opacity: 0;
+  background: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card::before,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card::before {
+  height: 0;
+  opacity: 0;
+  background: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card:not(.thread-card-selected):hover,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card:not(.thread-card-selected):hover {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.28) 22%,
+      rgba(255, 255, 255, 0.06) 48%,
+      rgba(255, 255, 255, 0) 74%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(253, 249, 245, 0.92) 0%,
+      rgba(249, 243, 238, 0.54) 62%,
+      rgba(249, 243, 238, 0.14) 88%,
+      rgba(249, 243, 238, 0.02) 100%
+    );
+  border-color: rgba(217, 205, 196, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(229, 217, 208, 0.22);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card::after,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card::after {
+  background: var(--thread-card-rail) left 0 top 0 / 2px 100% no-repeat;
+  box-shadow: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card + .thread-card,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card + .thread-card {
   border-top: 0;
 }
 
-.queue-history-list > .thread-card:not(.thread-card-selected):hover {
-  border-color: rgba(214, 206, 200, 0.98);
-  border-left-color: rgba(228, 145, 162, 0.98);
+.queue-history-list[data-queue-list-mode="live"] > .thread-card-selected {
+  min-height: 0;
+  padding: 6px 10px 6px 8px;
+  border-top: 0;
+  border: 1px solid rgba(214, 201, 191, 0.74);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.84) 0%,
+      rgba(255, 255, 255, 0.32) 20%,
+      rgba(255, 255, 255, 0.08) 48%,
+      rgba(255, 255, 255, 0) 74%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(253, 248, 244, 0.9) 0%,
+      rgba(247, 241, 236, 0.56) 62%,
+      rgba(247, 241, 236, 0.16) 88%,
+      rgba(247, 241, 236, 0.03) 100%
+    );
   box-shadow:
-    0 2px 4px rgba(45, 38, 32, 0.09),
-    0 10px 24px rgba(45, 38, 32, 0.07);
+    0 6px 12px rgba(86, 66, 52, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.24);
+  --queue-live-header-wash-start: rgba(255, 255, 255, 0.82);
+  --queue-live-header-wash-end: rgba(252, 246, 241, 0.5);
+  --queue-live-body-wash-start: rgba(253, 248, 243, 0.96);
+  --queue-live-body-wash-end: rgba(249, 242, 236, 0.5);
+  --queue-live-footer-wash-start: rgba(249, 252, 255, 0.88);
+  --queue-live-footer-wash-end: rgba(242, 246, 250, 0.42);
 }
 
-.queue-history-list > .thread-card-selected {
-  min-height: 0 !important;
-  padding: 14px 20px 16px 14px !important;
-  border-radius: 8px !important;
-  border: 1px solid rgba(208, 198, 190, 0.95) !important;
-  border-left: 4px solid rgba(220, 130, 150, 0.95) !important;
-  background: #fff !important;
+.queue-history-list[data-queue-list-mode="live"] > .thread-card-selected,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card-selected {
+  min-height: 0;
+  padding: 6px 10px 6px 8px;
+  border-top: 0;
+  border: 1px solid rgba(214, 201, 191, 0.74);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.84) 0%,
+      rgba(255, 255, 255, 0.32) 20%,
+      rgba(255, 255, 255, 0.08) 48%,
+      rgba(255, 255, 255, 0) 74%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(253, 248, 244, 0.9) 0%,
+      rgba(247, 241, 236, 0.56) 62%,
+      rgba(247, 241, 236, 0.16) 88%,
+      rgba(247, 241, 236, 0.03) 100%
+    );
   box-shadow:
-    0 2px 5px rgba(45, 38, 32, 0.08),
-    0 8px 22px rgba(45, 38, 32, 0.09) !important;
+    0 6px 12px rgba(86, 66, 52, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.24);
+  --queue-live-header-wash-start: rgba(255, 255, 255, 0.82);
+  --queue-live-header-wash-end: rgba(252, 246, 241, 0.5);
+  --queue-live-body-wash-start: rgba(253, 248, 243, 0.96);
+  --queue-live-body-wash-end: rgba(249, 242, 236, 0.5);
+  --queue-live-footer-wash-start: rgba(249, 252, 255, 0.88);
+  --queue-live-footer-wash-end: rgba(242, 246, 250, 0.42);
 }
 
-/* Rad 1 */
-.queue-history-list > .thread-card .thread-card-head {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  gap: 10px;
+.queue-history-list[data-queue-list-mode="live"] > .thread-card-selected::after,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card-selected::after {
+  box-shadow: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-head {
+  padding: 0 4px 3px 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.28) 22%,
+      rgba(255, 255, 255, 0) 64%
+    ),
+    linear-gradient(
+      90deg,
+      var(--queue-live-header-wash-start) 0%,
+      var(--queue-live-header-wash-end) 58%,
+      rgba(249, 244, 239, 0.05) 84%,
+      rgba(249, 244, 239, 0) 100%
+    );
+  border-bottom: 1px solid rgba(222, 211, 203, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.2);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-head,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-card-head {
+  padding: 0 4px 3px 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.28) 22%,
+      rgba(255, 255, 255, 0) 64%
+    ),
+    linear-gradient(
+      90deg,
+      var(--queue-live-header-wash-start) 0%,
+      var(--queue-live-header-wash-end) 58%,
+      rgba(249, 244, 239, 0.05) 84%,
+      rgba(249, 244, 239, 0) 100%
+    );
+  border-bottom: 1px solid rgba(222, 211, 203, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.2);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.thread-card-cross-mailbox .thread-card-head,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.thread-card-cross-mailbox .thread-card-head {
+  padding: 0 0 2px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .avatar {
+  margin-top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 1px 3px rgba(77, 58, 43, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .avatar,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .avatar {
+  margin-top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 1px 3px rgba(77, 58, 43, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-subject-primary,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-subject-primary {
+  color: rgba(34, 29, 26, 0.98);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-subject-context,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-subject-context {
+  color: rgba(116, 100, 91, 0.82);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-owner,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-owner {
+  color: rgba(111, 97, 89, 0.84);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-stamp time,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-card-stamp time {
+  color: rgba(59, 54, 50, 0.94);
+}
+
+/* Queue list thread cards: single-line rows, ellipsis on text, icons never shrink */
+.queue-history-list > .thread-card {
   min-width: 0;
-  width: 100%;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  background: transparent !important;
-  box-shadow: none !important;
+  min-height: 0;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-card-head {
-  padding: 0;
-  border: 0;
-  background: transparent !important;
-  box-shadow: none !important;
+.queue-history-list > .thread-card .thread-card-head {
+  min-width: 0;
 }
 
 .queue-history-list > .thread-card .thread-card-identity {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  gap: 10px;
-  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
 }
 
 .queue-history-list > .thread-card .avatar {
@@ -15964,120 +16180,92 @@ button {
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  background: rgba(236, 232, 228, 0.98);
-  border: 1px solid rgba(228, 222, 216, 0.88);
-  box-shadow: none;
 }
 
 .queue-history-list > .thread-card .thread-card-head-copy {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 6px 8px;
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.queue-history-list > .thread-card .thread-heading {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 52%;
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-card-head-copy {
-  flex-direction: row;
-  flex-wrap: nowrap;
-}
-
-.queue-history-list > .thread-card .thread-heading,
 .queue-history-list > .thread-card .thread-heading-merged {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  flex: 0 1 auto;
   min-width: 0;
-  max-width: min(46%, 20rem);
-  overflow: hidden;
-}
-
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-heading-merged {
-  display: flex;
-  flex-wrap: nowrap;
+  min-height: 0;
 }
 
 .queue-history-list > .thread-card .thread-subject {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 6px 8px;
   min-width: 0;
+  max-width: 100%;
   margin: 0;
+  min-height: 0;
+}
+
+.queue-history-list > .thread-card .thread-subject-primary,
+.queue-history-list > .thread-card .thread-subject-context {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .queue-history-list > .thread-card .thread-subject-primary {
   flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  line-height: 1.3;
-  font-weight: 700;
-  color: rgba(42, 36, 32, 0.98);
+  font-size: 12.5px;
+  line-height: 1.2;
 }
 
 .queue-history-list > .thread-card .thread-subject-context {
-  flex: 0 2 auto;
+  flex: 1 1 auto;
+  max-width: none;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 560;
+}
+
+.queue-history-list > .thread-card .thread-story,
+.queue-history-list > .thread-card .thread-story-inline {
+  flex: 1 1 auto;
   min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 500;
+  color: rgba(96, 86, 77, 0.9);
+  display: block;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 500;
-  color: rgba(110, 100, 92, 0.88);
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
 }
 
 .queue-history-list > .thread-card .thread-unread-indicator {
   flex-shrink: 0;
 }
 
-.queue-history-list > .thread-card .thread-story,
-.queue-history-list > .thread-card .thread-story-inline,
-.queue-history-list > .thread-card .queue-history-item-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 400;
-  color: rgba(118, 110, 102, 0.95);
-}
-
-.queue-history-list > .thread-card[data-row-family="booking_system_mail"] .thread-story,
-.queue-history-list > .thread-card[data-row-family="notification/system_notice"] .thread-story {
-  color: rgba(100, 92, 86, 0.94);
-}
-
-.queue-history-list > .thread-card .thread-story-placeholder {
-  color: rgba(130, 122, 114, 0.82);
-  font-weight: 500;
-}
-
 .queue-history-list > .thread-card .thread-card-stamp {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: flex-end;
-  justify-content: flex-start;
-  flex: 0 0 auto;
+  flex-shrink: 0;
   min-width: 0;
-  max-width: min(34%, 9rem);
-  overflow: hidden;
-  gap: 2px;
-  padding-top: 1px;
 }
 
 .queue-history-list > .thread-card .thread-card-stamp-top {
@@ -16085,59 +16273,45 @@ button {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
-  width: 100%;
-  overflow: hidden;
+  max-width: 100%;
 }
 
 .queue-history-list > .thread-card .thread-card-stamp time,
 .queue-history-list > .thread-card .thread-owner {
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 500;
-  color: rgba(130, 122, 116, 0.92);
+  font-size: 10px;
+  line-height: 1.2;
 }
 
-.queue-history-list > .thread-card .thread-owner {
-  font-weight: 500;
-  color: rgba(130, 122, 116, 0.88);
-}
-
-/* Rad 2 + 3 */
-.queue-history-list > .thread-card .thread-support-stack,
-.queue-history-list > .thread-card .thread-support-stack-selected {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 8px;
-  width: 100%;
+.queue-history-list > .thread-card .thread-support-stack {
   min-width: 0;
-  margin: 0;
-  padding: 10px 0 0;
-  border: 0;
-  border-top: 1px solid rgba(230, 224, 218, 0.95);
-  background: transparent !important;
-  box-shadow: none !important;
+  width: 100%;
 }
 
 .queue-history-list > .thread-card .thread-intelligence-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
-  width: 100%;
+  gap: 6px 10px;
   min-width: 0;
+  width: 100%;
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-intelligence-row {
-  flex-wrap: nowrap;
+.queue-history-list > .thread-card .thread-intelligence-item {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  align-items: center;
 }
 
 .queue-history-list > .thread-card .thread-intelligence-item-head,
@@ -16145,56 +16319,13 @@ button {
   display: none;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item,
-.queue-history-list > .thread-card button.thread-intelligence-item {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0;
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  border: 0;
-  background: transparent !important;
-  font: inherit;
-  text-align: left;
-  cursor: inherit;
-  box-shadow: none;
-}
-
 .queue-history-list > .thread-card .thread-intelligence-item-value {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 600;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--mailbox .thread-intelligence-item-value {
-  color: rgba(72, 66, 60, 0.92);
-}
-
-.queue-history-list > .thread-card .thread-intelligence-item--what .thread-intelligence-item-value {
-  color: #5a58b0;
-}
-
-.queue-history-list > .thread-card .thread-intelligence-item--why .thread-intelligence-item-value {
-  color: #b8567a;
-}
-
-.queue-history-list > .thread-card .thread-intelligence-item--next .thread-intelligence-item-value {
-  color: #2f8f56;
-}
-
-.queue-history-list > .thread-card .thread-intelligence-item--source .thread-intelligence-item-value {
-  color: #6b5a9a;
+.queue-history-list > .thread-card button.thread-intelligence-item {
+  min-width: 0;
 }
 
 .queue-history-list > .thread-card .intel-card-provenance,
@@ -16202,39 +16333,32 @@ button {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
+  gap: 5px;
   margin: 0;
   padding: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
-  border: 0;
-}
-
-.queue-history-list > .thread-card .thread-card-provenance {
-  margin-top: 0;
 }
 
 .queue-history-list > .thread-card .intel-card-provenance-label {
   flex: 0 0 auto;
-  color: #7a6bab;
-  font-size: 9px;
-  line-height: 1.25;
-  font-weight: 700;
+  color: rgba(130, 122, 116, 0.82);
+  font-size: 8px;
+  line-height: 11px;
+  font-weight: 720;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .queue-history-list > .thread-card .intel-card-provenance-label::before {
   content: "|";
   display: inline;
-  margin-right: 5px;
-  color: #8b7ec4;
-  opacity: 0.95;
   width: auto;
   height: auto;
   border-radius: 0;
   background: none;
+  margin-right: 4px;
+  opacity: 0.55;
   font-weight: 700;
 }
 
@@ -16245,13 +16369,163 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10.5px;
-  line-height: 1.35;
-  font-weight: 500;
-  color: rgba(118, 110, 104, 0.9);
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: rgba(110, 102, 96, 0.88);
 }
 
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-story,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-story {
+  color: rgba(96, 86, 77, 0.9);
+  font-weight: 500;
+}
 
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack {
+  gap: 0;
+  margin-left: 0;
+  margin-top: 0;
+  padding: 2px 0 1px 0;
+  border-top: 0;
+  border-bottom: 1px solid rgba(221, 210, 202, 0.38);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 255, 255, 0.12) 24%,
+      rgba(255, 255, 255, 0) 66%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(253, 248, 243, 0.88) 0%,
+      rgba(247, 240, 234, 0.46) 60%,
+      rgba(248, 241, 236, 0.04) 86%,
+      rgba(248, 241, 236, 0) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    inset 0 -1px 0 rgba(228, 217, 208, 0.18);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-support-stack {
+  gap: 0;
+  margin-left: 0;
+  margin-top: 0;
+  padding: 2px 0 1px 0;
+  border-top: 0;
+  border-bottom: 1px solid rgba(221, 210, 202, 0.38);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 255, 255, 0.12) 24%,
+      rgba(255, 255, 255, 0) 66%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(253, 248, 243, 0.88) 0%,
+      rgba(247, 240, 234, 0.46) 60%,
+      rgba(248, 241, 236, 0.04) 86%,
+      rgba(248, 241, 236, 0) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    inset 0 -1px 0 rgba(228, 217, 208, 0.18);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.thread-card-cross-mailbox .thread-support-stack,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.thread-card-cross-mailbox .thread-support-stack {
+  gap: 2px;
+  padding: 2px 0 0;
+  margin-top: 0;
+  border-bottom: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.42) 0%,
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card[data-row-family="booking_system_mail"] .thread-story,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card[data-row-family="booking_system_mail"] .thread-story,
+.queue-history-list[data-queue-list-mode="live"] > .thread-card[data-row-family="notification/system_notice"] .thread-story,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card[data-row-family="notification/system_notice"] .thread-story {
+  color: rgba(76, 67, 61, 0.94);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-story-placeholder,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-story-placeholder {
+  color: rgba(122, 114, 106, 0.82);
+  font-weight: 590;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-row,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-intelligence-row {
+  gap: 4px 8px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.thread-card-cross-mailbox .thread-intelligence-row,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.thread-card-cross-mailbox .thread-intelligence-row {
+  gap: 4px 10px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-value {
+  color: currentColor;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 660;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-value,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-intelligence-item-value {
+  color: currentColor;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 660;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item--why,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-intelligence-item--why {
+  color: #9a446d;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-head,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-intelligence-item-head,
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-icon,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-intelligence-item-icon {
+  display: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack-selected,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-support-stack-selected {
+  gap: 0;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack .thread-intelligence-item,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-support-stack .thread-intelligence-item {
+  padding: 0;
+  border-radius: 0;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack .thread-intelligence-item + .thread-intelligence-item,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-support-stack .thread-intelligence-item + .thread-intelligence-item {
+  margin-left: 0;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-provenance,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card .thread-card-provenance {
+  margin-top: 0;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.thread-card-cross-mailbox .thread-card-provenance,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.thread-card-cross-mailbox .thread-card-provenance {
+  margin-top: 0;
+}
 
 .queue-history-item:not(.thread-card) {
   display: grid;
