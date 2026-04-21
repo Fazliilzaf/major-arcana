@@ -981,6 +981,8 @@ process.once('SIGTERM', () => {
       bootstrapOwnerResetPassword: config.bootstrapOwnerResetPassword,
       ownerCredentialSelfHeal: config.authOwnerCredentialSelfHeal,
       loginSessionRotationScope: config.authLoginSessionRotationScope,
+      majorArcanaPreviewAutoAuth: config.majorArcanaPreviewAutoAuth,
+      majorArcanaPreviewAutoAuthHosts: config.majorArcanaPreviewAutoAuthHosts,
     })
   );
 

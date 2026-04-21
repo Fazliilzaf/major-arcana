@@ -3936,6 +3936,41 @@
     } catch {}
   }
 
+  /**
+   * Staging-style convenience: when the server enables GET /api/v1/auth/preview-bootstrap-session
+   * for this host, fetch a fresh session before the first authenticated API calls (no password in the client).
+   */
+  async function ensurePreviewBootstrapSession() {
+    if (typeof isLocalPreviewHost === "function" && isLocalPreviewHost()) {
+      return;
+    }
+    const existing = normalizeText(getAdminToken());
+    if (existing && existing !== "__preview_local__") {
+      return;
+    }
+    try {
+      const response = await fetch(
+        new URL("/api/v1/auth/preview-bootstrap-session", window.location.origin).toString(),
+        {
+          method: "GET",
+          credentials: "same-origin",
+          headers: { accept: "application/json" },
+        }
+      );
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json().catch(() => null);
+      const token = normalizeText(payload?.token);
+      if (!token) {
+        return;
+      }
+      setAdminToken(token);
+    } catch {
+      // ignore — offline, endpoint disabled, or non-staging host
+    }
+  }
+
   async function waitForTruthWorklistAuthToken({ timeoutMs = 1800, intervalMs = 60 } = {}) {
     const timeout = Math.max(0, Number(timeoutMs) || 0);
     const interval = Math.max(20, Number(intervalMs) || 60);
@@ -22780,20 +22815,23 @@
   setAuxStatus(macrosStatus, "", "");
   setAuxStatus(settingsStatus, "", "");
   setAuxStatus(showcaseStatus, "", "");
-  initializeWorkspaceSurface();
-  const initialShellViewState = readShellViewStateFromLocation();
-  if (initialShellViewState.view !== "conversations") {
-    setAppView(initialShellViewState.view);
-  }
-  if (
-    resolveShellView(initialShellViewState.view) === "automation" &&
-    initialShellViewState.view === "automation" &&
-    initialShellViewState.automationSection
-  ) {
-    setAutomationSubnav(initialShellViewState.automationSection);
-  } else {
-    syncShellViewToLocation();
-  }
+  void (async () => {
+    await ensurePreviewBootstrapSession();
+    initializeWorkspaceSurface();
+    const initialShellViewState = readShellViewStateFromLocation();
+    if (initialShellViewState.view !== "conversations") {
+      setAppView(initialShellViewState.view);
+    }
+    if (
+      resolveShellView(initialShellViewState.view) === "automation" &&
+      initialShellViewState.view === "automation" &&
+      initialShellViewState.automationSection
+    ) {
+      setAutomationSubnav(initialShellViewState.automationSection);
+    } else {
+      syncShellViewToLocation();
+    }
+  })();
 
   function getRuntimeMailboxParitySnapshot() {
     const queueListMode = asText(queueHistoryList?.dataset?.queueListMode, "");

@@ -86,6 +86,8 @@ function createAuthRouter({
   bootstrapOwnerTenantId = '',
   bootstrapOwnerResetPassword = false,
   ownerCredentialSelfHeal = true,
+  majorArcanaPreviewAutoAuth = false,
+  majorArcanaPreviewAutoAuthHosts = [],
 }) {
   const router = express.Router();
 
@@ -95,6 +97,11 @@ function createAuthRouter({
   const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
   const ownerMfaBypassHostSet = new Set(
     (Array.isArray(ownerMfaBypassHosts) ? ownerMfaBypassHosts : [])
+      .map((item) => normalizeHost(item))
+      .filter(Boolean)
+  );
+  const majorArcanaPreviewAutoAuthHostSet = new Set(
+    (Array.isArray(majorArcanaPreviewAutoAuthHosts) ? majorArcanaPreviewAutoAuthHosts : [])
       .map((item) => normalizeHost(item))
       .filter(Boolean)
   );
@@ -113,6 +120,19 @@ function createAuthRouter({
     const requestHost = normalizeHost(req?.hostname);
     const candidates = headerHosts.length > 0 ? headerHosts : requestHost ? [requestHost] : [];
     return candidates.some((item) => ownerMfaBypassHostSet.has(item));
+  }
+
+  function isMajorArcanaPreviewAutoAuthHost(req) {
+    if (majorArcanaPreviewAutoAuthHostSet.size === 0) return false;
+    const headerHostsRaw =
+      (typeof req.get === 'function' && (req.get('x-forwarded-host') || req.get('host'))) || '';
+    const headerHosts = String(headerHostsRaw)
+      .split(',')
+      .map((item) => normalizeHost(item))
+      .filter(Boolean);
+    const requestHost = normalizeHost(req?.hostname);
+    const candidates = headerHosts.length > 0 ? headerHosts : requestHost ? [requestHost] : [];
+    return candidates.some((item) => majorArcanaPreviewAutoAuthHostSet.has(item));
   }
 
   function isMajorArcanaAdminClient(req) {
@@ -169,6 +189,69 @@ function createAuthRouter({
         role: membership.role,
       }));
   }
+
+  router.get('/auth/preview-bootstrap-session', async (req, res) => {
+    try {
+      if (!majorArcanaPreviewAutoAuth) {
+        return res.status(404).json({ error: 'Not found.' });
+      }
+      if (majorArcanaPreviewAutoAuthHostSet.size === 0) {
+        return res.status(503).json({ error: 'Preview auto-auth hosts not configured.' });
+      }
+      if (!isMajorArcanaPreviewAutoAuthHost(req)) {
+        return res.status(403).json({ error: 'Forbidden.' });
+      }
+      if (!normalizedBootstrapOwnerEmail || !bootstrapOwnerPassword) {
+        return res.status(503).json({ error: 'Owner bootstrap credentials missing.' });
+      }
+      const user = await authStore.authenticateUser({
+        email: normalizedBootstrapOwnerEmail,
+        password: bootstrapOwnerPassword,
+      });
+      if (!user) {
+        return res.status(503).json({ error: 'Owner authentication failed.' });
+      }
+      const memberships = await authStore.listMembershipsForUser(user.id, { includeDisabled: false });
+      let selectedMembership =
+        memberships.find((m) => normalizeTenantId(m.tenantId) === normalizedBootstrapOwnerTenantId) ||
+        null;
+      if (!selectedMembership && memberships.length === 1) {
+        selectedMembership = memberships[0];
+      }
+      if (!selectedMembership) {
+        return res.status(503).json({ error: 'Owner membership missing.' });
+      }
+      const { token, session } = await authStore.createSession({
+        userId: user.id,
+        membershipId: selectedMembership.id,
+      });
+      if (typeof authStore.addAuditEvent === 'function') {
+        try {
+          await authStore.addAuditEvent({
+            tenantId: selectedMembership.tenantId,
+            actorUserId: user.id,
+            action: 'auth.preview_bootstrap_session',
+            outcome: 'success',
+            targetType: 'session',
+            targetId: session?.id || '',
+            metadata: {
+              host: normalizeHost(
+                (typeof req.get === 'function' && (req.get('x-forwarded-host') || req.get('host'))) || ''
+              ),
+            },
+          });
+        } catch {
+          // ignore audit failures
+        }
+      }
+      return res.json({
+        token,
+        expiresAt: session?.expiresAt || null,
+      });
+    } catch {
+      return res.status(500).json({ error: 'Kunde inte skapa sessions-token.' });
+    }
+  });
 
   router.post('/auth/login', applyLoginRateLimit, async (req, res) => {
     try {

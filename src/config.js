@@ -424,6 +424,9 @@ const config = {
   bootstrapOwnerPassword: asNonEmptyString(process.env.ARCANA_OWNER_PASSWORD),
   bootstrapOwnerResetPassword: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD, false),
   bootstrapOwnerResetMfa: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_MFA, false),
+  /** When true, GET /api/v1/auth/preview-bootstrap-session can mint a session for ARCANA_OWNER_* on allowlisted hosts only (staging-style convenience; off by default). */
+  majorArcanaPreviewAutoAuth: asBool(process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH, false),
+  majorArcanaPreviewAutoAuthHosts: asStringArray(process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH_HOSTS),
 
   templateStorePath: resolveStatePath({
     explicitPath: process.env.TEMPLATE_STORE_PATH,
