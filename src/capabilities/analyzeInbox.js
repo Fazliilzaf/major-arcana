@@ -1250,7 +1250,7 @@ class AnalyzeInboxCapability extends BaseCapability {
   static allowedChannels = ['admin'];
 
   static requiresInputRisk = false;
-  static requiresOutputRisk = true;
+  static requiresOutputRisk = false;
   static requiresPolicyFloor = true;
 
   static persistStrategy = 'analysis';
