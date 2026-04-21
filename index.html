@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ec4899" />
+    <meta name="description" content="Premium bokningshantering och CRM för HairTP Clinic" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="HairTP CRM" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/cco-next/manifest.json" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/cco-next/icon.svg" />
+    <link rel="apple-touch-icon" href="/cco-next/icon.svg" />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    
+    <title>HairTP Clinic CRM - Bokningshantering</title>
+    <script type="module" crossorigin src="/cco-next/assets/js/index-bh97BxLG.js"></script>
+    <link rel="modulepreload" crossorigin href="/cco-next/assets/js/react-vendor-45JuJB1E.js">
+    <link rel="modulepreload" crossorigin href="/cco-next/assets/js/ui-vendor-CJrXv5Ph.js">
+    <link rel="modulepreload" crossorigin href="/cco-next/assets/js/utils-CPQne9vA.js">
+    <link rel="modulepreload" crossorigin href="/cco-next/assets/js/animation-pOD7n95U.js">
+    <link rel="stylesheet" crossorigin href="/cco-next/assets/css/index-6XjvdGev.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="/cco-next-backbone.js"></script>
+    <script src="/cco-next-follow-up-engine.js"></script>
+    <script src="/cco-next-collaboration.js"></script>
+    <script src="/cco-next-customer-intelligence.js"></script>
+    
+    <!-- Register Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/cco-next/sw.js')
+            .then(registration => {
+              console.log('SW registered:', registration);
+            })
+            .catch(error => {
+              console.log('SW registration failed:', error);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

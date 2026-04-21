@@ -1,0 +1,57 @@
+{
+  "name": "HairTP Clinic CRM",
+  "short_name": "HairTP",
+  "description": "Premium bokningshantering och CRM för HairTP Clinic",
+  "start_url": "/cco-next/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ec4899",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/cco-next/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/cco-next/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "medical"],
+  "screenshots": [
+    {
+      "src": "/cco-next/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/cco-next/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Inkorg",
+      "short_name": "Inkorg",
+      "description": "Öppna inkorg",
+      "url": "/cco-next/",
+      "icons": [{ "src": "/cco-next/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Kunder",
+      "short_name": "Kunder",
+      "description": "Visa kunder",
+      "url": "/cco-next/customers",
+      "icons": [{ "src": "/cco-next/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

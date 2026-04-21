@@ -1,0 +1,10 @@
+---
+description: Enhetlig CCO-pipeline för all inkommande mail — inga parallella specialflöden
+alwaysApply: true
+---
+
+# CCO inkommande mail
+
+- **All inkommande mail ska alltid gå genom samma CCO-pipeline** och hamna i rätt konto, tråd och kategori **med samma regler** som worklist, filter och åtgärder bygger på.
+- **Inga parallella specialflöden** bredvid den kanoniska pipelinen (ingen separat routing/heuristik som kringgår CCO:s intelligens, state och projektioner).
+- Vid implementation eller refaktor: föredra att **utöka den befintliga pipelinen** framför att lägga till sidokanaler; om en undantagsväg krävs ska den vara **motiverad, dokumenterad i kodreview** och helst **temporär** tills den är införlivad i samma modell.
