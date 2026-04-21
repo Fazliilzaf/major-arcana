@@ -3925,6 +3925,17 @@
     clearTokenFromStorage(window.sessionStorage);
   }
 
+  function setAdminToken(token) {
+    const normalizedToken = normalizeText(token);
+    if (!normalizedToken) return;
+    try {
+      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, normalizedToken);
+    } catch {}
+    try {
+      window.sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, normalizedToken);
+    } catch {}
+  }
+
   async function waitForTruthWorklistAuthToken({ timeoutMs = 1800, intervalMs = 60 } = {}) {
     const timeout = Math.max(0, Number(timeoutMs) || 0);
     const interval = Math.max(20, Number(intervalMs) || 60);
