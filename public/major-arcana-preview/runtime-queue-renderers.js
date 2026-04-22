@@ -1026,9 +1026,11 @@
     }
 
     function getQueueHistorySignalIcon(signalRole = "") {
-      if (signalRole === "next") return "bolt";
-      if (signalRole === "why") return "clock";
-      if (signalRole === "what") return "layers";
+      if (signalRole === "mailbox") return "mail";
+      if (signalRole === "category" || signalRole === "what") return "layers";
+      if (signalRole === "status" || signalRole === "why") return "clock";
+      if (signalRole === "action" || signalRole === "next") return "bolt";
+      if (signalRole === "context" || signalRole === "source") return "link";
       return "info";
     }
 
@@ -1064,6 +1066,16 @@
       const whatValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalWhat(thread, laneId)), "", 20);
       const whyValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalWhy(thread, laneId)), "", 18);
       const nextValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalNext(thread, laneId)), "", 18);
+      const mailboxValue = compactRuntimeCopy(
+        asText(thread?.mailboxLabel || thread?.mailboxAddress),
+        "",
+        18
+      );
+      const contextValue = compactRuntimeCopy(
+        asText(thread?.mailboxProvenanceLabel || thread?.worklistSourceLabel),
+        "",
+        22
+      );
       const normalizeSignalValue = (value) =>
         asText(value)
           .trim()
@@ -1089,28 +1101,44 @@
         !["behover_atgard", "behover_uppmarksamhet"].includes(normalizedWhyValue) &&
         normalizedWhyValue !== normalizedNextValue;
       const signalItems = [
+        mailboxValue
+          ? {
+              key: "Mailbox",
+              value: mailboxValue,
+              tone: "mailbox",
+              role: "mailbox",
+            }
+          : null,
         shouldRenderWhat
           ? {
-              key: "Gäller",
+              key: "Kategori",
               value: whatValue,
-              tone: "what",
-              role: "what",
+              tone: "category",
+              role: "category",
             }
           : null,
         shouldRenderWhy
           ? {
-              key: "Nu",
+              key: "Status",
               value: whyValue,
-              tone: "why",
-              role: "why",
+              tone: "status",
+              role: "status",
             }
           : null,
         {
-          key: "Nästa",
+          key: "Åtgärd",
           value: nextValue,
-          tone: "next",
-          role: "next",
+          tone: "action",
+          role: "action",
         },
+        contextValue
+          ? {
+              key: "Kontext",
+              value: contextValue,
+              tone: "context",
+              role: "context",
+            }
+          : null,
       ].filter((item) => item && item.value);
       return signalItems.slice(0, 3);
     }
@@ -1398,11 +1426,21 @@
         .slice(0, 3)
         .forEach((signal) => {
           const signalRole = normalizeKey(signal.role || signal.tone || "what");
+          const mappedSignalRole =
+            signalRole === "category"
+              ? "what"
+              : signalRole === "status"
+                ? "why"
+                : signalRole === "action"
+                  ? "next"
+                  : signalRole === "context"
+                    ? "source"
+                    : signalRole;
           pushHistorySignal(
-            signalRole,
+            mappedSignalRole,
             signal.value,
             resolveSignalIcon(signalRole),
-            `queue-history-operational-pill--${signalRole}`
+            `queue-history-operational-pill--${mappedSignalRole}`
           );
         });
       pushHistorySignal("mailbox", item.mailboxLabel, mailboxMeta.icon, "queue-history-pill--mailbox");
