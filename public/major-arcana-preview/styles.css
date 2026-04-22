@@ -15828,7 +15828,7 @@ button {
   gap: 5px;
   margin-top: 4px;
   flex: 1 1 auto;
-  height: 0;
+  height: auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -15847,7 +15847,7 @@ button {
   box-shadow: none;
   overflow-x: hidden;
   overflow-y: auto;
-  height: 0;
+  height: auto;
 }
 
 
