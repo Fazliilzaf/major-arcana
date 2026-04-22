@@ -13,9 +13,27 @@ services:
       - key: ARCANA_AI_PROVIDER
         value: fallback
       - key: ARCANA_GRAPH_READ_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_SEND_ENABLED
-        value: "false"
+        value: "true"
+      - key: ARCANA_GRAPH_TENANT_ID
+        sync: false
+      - key: ARCANA_GRAPH_CLIENT_ID
+        sync: false
+      - key: ARCANA_GRAPH_CLIENT_SECRET
+        sync: false
+      - key: ARCANA_GRAPH_USER_ID
+        sync: false
+      - key: ARCANA_GRAPH_FULL_TENANT
+        value: "true"
+      - key: ARCANA_GRAPH_USER_SCOPE
+        value: all
+      - key: ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST
+        sync: false
+      - key: ARCANA_MAILBOX_ALLOWLIST
+        sync: false
+      - key: ARCANA_GRAPH_SEND_ALLOWLIST
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: PUBLIC_BASE_URL
