@@ -1318,11 +1318,7 @@
       </article>`;
       }
 
-      const counterpartyCopy = compactRuntimeCopy(
-        asText(item.counterpartyLabel || "Okänd avsändare"),
-        "Okänd avsändare",
-        42
-      );
+      const counterpartyCopy = asText(item.counterpartyLabel || "Okänd avsändare");
       const normalizeHistoryCompareValue = (value = "") =>
         asText(value)
           .trim()
@@ -1429,9 +1425,16 @@
           item.queueInlineContext ||
           item.presentation?.inlineContext
       );
-      const hasExplicitWhatSignal = Boolean(whatSignalValue);
-      const issueContextSource =
+      const inlineContextLabel = compactRuntimeCopy(
         inlineContextHint ||
+          whatSignalValue ||
+          asText(item.intentLabel) ||
+          primaryHistoryTitle,
+        "",
+        72
+      );
+      const issueContextSource =
+        inlineContextLabel ||
         whatSignalValue ||
         asText(item.intentLabel) ||
         primaryHistoryTitle ||
@@ -1481,11 +1484,7 @@
           normalizeHistoryCompareValue(issueContextLabel) &&
         normalizeHistoryCompareValue(snippetValue) !==
           normalizeHistoryCompareValue(primaryHistoryTitle);
-      const issueContextMarkup = showIssueContext
-        ? `<p class="thread-story thread-story-inline thread-story-secondary thread-story-secondary-muted">
-            <span class="thread-story-context">${escapeHtml(issueContextLabel)}</span>
-          </p>`
-        : "";
+      const issueContextMarkup = "";
       const snippetLineMarkup = showSnippet
         ? `<p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
             snippetValue
@@ -1515,13 +1514,20 @@
               .join("")}
           </div>`
         : "";
-      const provenanceMarkup = asText(item.mailboxProvenanceLabel)
+      const mailboxTraceLabel = asText(
+        item.mailboxProvenanceLabel ||
+          (Number(item.rollup?.mailboxCount || 0) > 1 ? `${item.rollup.mailboxCount} mailboxar` : "")
+      );
+      const mailboxTraceDetail = asText(
+        item.mailboxProvenanceDetail || item.rollup?.provenanceDetail || ""
+      );
+      const provenanceMarkup = mailboxTraceLabel
         ? `<div class="intel-card-provenance thread-card-provenance">
             <span class="intel-card-provenance-label intel-card-provenance-derived" data-history-pill-class="queue-history-pill--provenance">Mailboxspår</span>
             <p class="intel-card-provenance-detail">${escapeHtml(
-              `${asText(item.mailboxProvenanceLabel)}${
-                asText(item.mailboxProvenanceDetail)
-                  ? ` · ${asText(item.mailboxProvenanceDetail)}`
+              `${mailboxTraceLabel}${
+                mailboxTraceDetail
+                  ? ` · ${mailboxTraceDetail}`
                   : ""
               }`
             )}</p>
@@ -1533,11 +1539,11 @@
           : "";
 
       const showTitleContext =
-        Boolean(primaryHistoryTitle) &&
-        normalizeHistoryCompareValue(primaryHistoryTitle) !==
+        Boolean(inlineContextLabel) &&
+        normalizeHistoryCompareValue(inlineContextLabel) !==
           normalizeHistoryCompareValue(counterpartyCopy);
       const subjectContextSpan = showTitleContext
-        ? `<span class="thread-subject-context">${escapeHtml(primaryHistoryTitle)}</span>`
+        ? `<span class="thread-subject-context">${escapeHtml(inlineContextLabel)}</span>`
         : "";
 
       return `<article class="thread-card queue-history-item${selectedClass}${
@@ -1806,8 +1812,16 @@
         "",
         132
       );
+      const defaultRollupInlineContext =
+        thread?.rollup?.enabled === true && Number(thread?.rollup?.mailboxCount || 0) > 1
+          ? "Samma kund har skrivit från flera mailboxar"
+          : "";
+      const defaultRollupExplanatoryLine =
+        thread?.rollup?.enabled === true && Number(thread?.rollup?.mailboxCount || 0) > 1
+          ? "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens."
+          : "";
       const resolvedTitle = inlineContextHint || title || "Aktiv tråd";
-      const finalDetail = explanatoryLineHint || resolvedDetail;
+      const finalDetail = explanatoryLineHint || defaultRollupExplanatoryLine || resolvedDetail;
       return {
         initials: getQueueHistoryItemInitials(thread.customerName),
         counterpartyLabel,
@@ -1815,8 +1829,8 @@
         recordedAt: asText(thread.lastActivityAt),
         title: resolvedTitle,
         detail: finalDetail,
-        inlineContext: inlineContextHint,
-        explanatoryLine: explanatoryLineHint,
+        inlineContext: inlineContextHint || defaultRollupInlineContext,
+        explanatoryLine: explanatoryLineHint || defaultRollupExplanatoryLine,
         snippetText: cleanedPreview || rawDetail,
         laneId: primaryLaneId,
         signalItems:
@@ -1825,8 +1839,15 @@
             : [],
         mailboxLabel,
         mailboxAddress: asText(thread.mailboxAddress),
-        mailboxProvenanceLabel: asText(thread.mailboxProvenanceLabel),
-        mailboxProvenanceDetail: asText(thread.mailboxProvenanceDetail),
+        mailboxProvenanceLabel: asText(
+          thread.mailboxProvenanceLabel ||
+            (Number(thread?.rollup?.mailboxCount || 0) > 1
+              ? `${thread.rollup.mailboxCount} mailboxar`
+              : "")
+        ),
+        mailboxProvenanceDetail: asText(
+          thread.mailboxProvenanceDetail || thread?.rollup?.provenanceDetail
+        ),
         intentLabel: asText(thread.intentLabel),
         worklistSource: asText(thread.worklistSource || "legacy"),
         worklistSourceLabel: asText(thread.worklistSourceLabel),
