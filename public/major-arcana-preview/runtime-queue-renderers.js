@@ -1648,39 +1648,44 @@
           ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${provenanceMarkup}</div>`
           : "";
 
-      const showTitleContext =
-        Boolean(inlineContextLabel) &&
-        normalizeHistoryCompareValue(inlineContextLabel) !==
-          normalizeHistoryCompareValue(counterpartyCopy);
-      const subjectContextSpan = showTitleContext
-        ? `<span class="thread-subject-context">${escapeHtml(inlineContextLabel)}</span>`
+      const subtitleMarkup = normalizedHistoryModel.subtitle
+        ? `<span class="thread-subject-context history-card-subtitle">${escapeHtml(
+            normalizedHistoryModel.subtitle
+          )}</span>`
+        : "";
+      const previewLine = explicitExplanatoryLine || (showSnippet ? snippetValue : "");
+      const previewMarkup = previewLine
+        ? `<div class="row-2 history-card-row-2">${escapeHtml(previewLine)}</div>`
         : "";
 
       return `<article class="thread-card queue-history-item${selectedClass}${
         isSelected ? " thread-card-selected" : ""
       }${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
-        <div class="thread-card-head">
-          <div class="thread-card-identity">
-            <img class="avatar" src="${avatarSrc}" alt="${escapeHtml(counterpartyCopy)}" />
-            <div class="thread-card-head-copy">
-              <div class="thread-heading-merged-full">
-                ${freshnessMarkup}
-                <p class="thread-subject">
+        <div class="thread-card-head card-top">
+          <div class="thread-card-identity history-avatar-wrap">
+            <span class="avatar queue-history-avatar history-avatar" aria-hidden="true">${escapeHtml(
+              avatarText
+            )}</span>
+            <span class="status-dot ${escapeHtml(normalizedHistoryModel.status)}" aria-hidden="true"></span>
+            <div class="thread-card-head-copy card-body">
+              <div class="row-1 history-card-row-1">
+                <p class="thread-subject history-card-name">
                   <span class="thread-subject-primary">${escapeHtml(counterpartyCopy)}</span>
-                  ${subjectContextSpan}
+                  ${subtitleMarkup}
                 </p>
               </div>
-              ${explanatoryLineMarkup}
-              <div class="thread-card-head-secondary">${secondaryLineMarkup}</div>
+              ${previewMarkup}
             </div>
           </div>
-          <div class="thread-card-stamp">
+          <div class="thread-card-stamp history-card-meta">
             <div class="thread-card-stamp-top"><time datetime="${escapeHtml(
               item.recordedAt || ""
             )}">${escapeHtml(item.time || "")}</time></div>
             <span class="thread-owner">${escapeHtml(stampLabel)}</span>
           </div>
         </div>
+        ${explanatoryLineMarkup}
+        <div class="thread-card-head-secondary">${secondaryLineMarkup}</div>
         ${supportMarkup}
       </article>`;
     }
