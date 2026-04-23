@@ -13174,6 +13174,161 @@
       .sort(compareHistoryEventsDesc);
   }
 
+  // ⚠️ OFFLINE ONLY — Seed-data för lokal design-verifiering.
+  // Denna helper anropas bara när runtime körs i offline-läge.
+  // Tas bort när backend stöder mailboxTrail och vi kan testa
+  // med riktig data. Se docs/design-specs/CURSOR_PROMPT.md.
+  function shouldApplyOfflineQueueHistorySeed() {
+    return getRuntimeMode() === "offline_history" || state.runtime.offline === true;
+  }
+
+  function applyOfflineQueueHistorySeedEnrichment(builtItems = [], rawSeeds = []) {
+    const rawByConversation = new Map(
+      asArray(rawSeeds).map((row) => [asText(row.conversationId), row])
+    );
+    return asArray(builtItems).map((item) => {
+      const raw = rawByConversation.get(asText(item.conversationId));
+      if (!raw || typeof raw !== "object") return item;
+      const next = { ...item };
+      if (Array.isArray(raw.mailboxTrail)) {
+        next.mailboxTrail = raw.mailboxTrail.map((entry) => asText(entry).trim()).filter(Boolean);
+      }
+      if (Array.isArray(raw.signalItems)) {
+        next.signalItems = raw.signalItems.map((signal) => ({
+          role: signal.role,
+          value: asText(
+            signal.value !== undefined && signal.value !== null ? signal.value : signal.label || ""
+          ),
+        }));
+      }
+      if (Object.prototype.hasOwnProperty.call(raw, "ownerLabel")) {
+        next.ownerLabel = raw.ownerLabel;
+      }
+      return next;
+    });
+  }
+
+  function getOfflineQueueHistorySeedResults() {
+    const isoAtLocal = (hours, minutes, dayOffset = 0) => {
+      const d = new Date();
+      if (dayOffset) d.setDate(d.getDate() + dayOffset);
+      d.setHours(hours, minutes, 0, 0);
+      return d.toISOString();
+    };
+
+    return [
+      {
+        messageId: "offline-seed-msg-1",
+        conversationId: "offline-seed-conv-1",
+        customerEmail: "morten.bak@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Morten Bak Kristoffersen",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(16, 7),
+        workflowLane: "action_now",
+        ownerLabel: "Sara L.",
+        mailboxTrail: ["Fazli", "Contact", "Egzona"],
+        signalItems: [
+          { role: "why", value: "Behöver uppmärksamhet" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-2",
+        conversationId: "offline-seed-conv-2",
+        customerEmail: "erik.lindqvist@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Erik Lindqvist",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Har skickat förfrågan via flera kanaler, behöver få allt konsoliderat.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(11, 34),
+        workflowLane: "action_now",
+        ownerLabel: "Egzona K.",
+        mailboxTrail: ["Contact", "Fazli", "Egzona", "Support", "Sales", "Info", "Admin", "Feedback"],
+        signalItems: [
+          { role: "why", value: "Hög risk" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-3",
+        conversationId: "offline-seed-conv-3",
+        customerEmail: "anna.svensson@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Anna Svensson",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Hej, jag skrev tidigare om konsultation men har nu en uppföljande fråga om priser.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(14, 22),
+        ownerLabel: "",
+        mailboxTrail: ["Contact", "Fazli"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-4",
+        conversationId: "offline-seed-conv-4",
+        customerEmail: "alexander.svensson@example.com",
+        mailboxId: "kons@hairtpclinic.com",
+        customerName: "Alexander Svensson",
+        subject: "Hur kan vi hjälpa dig",
+        detail:
+          "Hej, jag undrar om ni har tider nästa vecka för en konsultation.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(9, 15),
+        ownerLabel: "Sara L.",
+        mailboxTrail: ["Kons"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-5",
+        conversationId: "offline-seed-conv-5",
+        customerEmail: "kontakt@hairclinicstockholm.se",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Hair Clinic Stockholm AB",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Vi vill gärna diskutera ett samarbete kring remissförfarande för våra patienter.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(15, 47, -1),
+        ownerLabel: "",
+        mailboxTrail: ["Contact", "Partners"],
+        signalItems: [
+          { role: "why", value: "Hög risk" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-6",
+        conversationId: "offline-seed-conv-6",
+        customerEmail: "alexander.jl@example.com",
+        mailboxId: "kons@hairtpclinic.com",
+        customerName: "Alexander Jonatanson-Lindström",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail: "Kan ni hjälpa mig? Jag funderar på PRP-behandling och vill veta mer.",
+        direction: "inbound",
+        recordedAt: "2026-04-20T07:49:00.000Z",
+        ownerLabel: "Fazli K.",
+        mailboxTrail: ["Kons", "Contact", "Fazli", "Support"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+    ];
+  }
+
   async function loadQueueHistory({ append = false, force = false, prefetch = false } = {}) {
     const scopeIds = getQueueHistoryScopeIds();
     const scopeKey = getQueueHistoryScopeKey(scopeIds);
@@ -13221,7 +13376,15 @@
       const payload = await apiRequest(`/api/v1/cco/runtime/history/search?${params.toString()}`);
       if (requestSequence !== queueHistoryRequestSequence) return;
 
-      const items = buildQueueHistoryItems(payload?.results);
+      let rawResults = asArray(payload?.results);
+      if (shouldApplyOfflineQueueHistorySeed() && rawResults.length === 0) {
+        console.log("[offline] Seeding 6 mock history items");
+        rawResults = getOfflineQueueHistorySeedResults();
+      }
+      const items = applyOfflineQueueHistorySeedEnrichment(
+        buildQueueHistoryItems(rawResults),
+        rawResults
+      );
       const nextSelectedConversationId = items.some((item) =>
         runtimeConversationIdsMatch(item?.conversationId, state.runtime.queueHistory.selectedConversationId)
       )
@@ -13242,12 +13405,22 @@
       renderQueueHistorySection();
     } catch (error) {
       if (requestSequence !== queueHistoryRequestSequence) return;
+      let items = [];
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      if (shouldApplyOfflineQueueHistorySeed()) {
+        console.log("[offline] Seeding 6 mock history items");
+        const rawResults = getOfflineQueueHistorySeedResults();
+        items = applyOfflineQueueHistorySeedEnrichment(buildQueueHistoryItems(rawResults), rawResults);
+        if (items.length) {
+          errorMessage = "";
+        }
+      }
       state.runtime.queueHistory = {
         ...state.runtime.queueHistory,
         loading: false,
         loaded: true,
-        error: error instanceof Error ? error.message : String(error),
-        items: [],
+        error: errorMessage,
+        items,
         selectedConversationId: "",
         hasMore: false,
         scopeKey,
