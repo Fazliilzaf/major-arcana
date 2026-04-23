@@ -1657,28 +1657,31 @@
               .join("")}
           </div>`
         : "";
-      const mailboxTraceLabel = asText(
-        item.mailboxProvenanceLabel ||
-          (Number(item.rollup?.mailboxCount || 0) > 1 ? `${item.rollup.mailboxCount} mailboxar` : "")
-      );
-      const mailboxTraceDetail = asText(
-        item.mailboxProvenanceDetail || item.rollup?.provenanceDetail || ""
-      );
-      const provenanceMarkup = mailboxTraceLabel
-        ? `<div class="intel-card-provenance thread-card-provenance">
-            <span class="intel-card-provenance-label intel-card-provenance-derived" data-history-pill-class="queue-history-pill--provenance">Mailboxspår</span>
-            <p class="intel-card-provenance-detail">${escapeHtml(
-              `${mailboxTraceLabel}${
-                mailboxTraceDetail
-                  ? ` · ${mailboxTraceDetail}`
-                  : ""
-              }`
-            )}</p>
+      const mailboxTrailItems = normalizedHistoryModel.mailboxTrail;
+      const visibleMailboxTrailItems = mailboxTrailItems.slice(0, 3);
+      const mailboxTrailOverflowCount = Math.max(0, mailboxTrailItems.length - visibleMailboxTrailItems.length);
+      const mailboxTrailMarkup = visibleMailboxTrailItems.length
+        ? `<div class="intel-card-provenance thread-card-provenance mailbox-trail">
+            <span class="trail-bar" aria-hidden="true"></span>
+            ${buildInlineHistoryIconMarkup("inbox")}
+            <span class="intel-card-provenance-label intel-card-provenance-derived trail-label" data-history-pill-class="queue-history-pill--provenance">${escapeHtml(
+              HISTORIK_STRINGS.mailboxTrailLabel
+            )}</span>
+            ${visibleMailboxTrailItems
+              .map((entry, index) => `${index > 0 ? '<span class="trail-separator" aria-hidden="true">·</span>' : ""}<span class="intel-card-provenance-detail trail-item">${escapeHtml(entry)}</span>`)
+              .join("")}
+            ${
+              mailboxTrailOverflowCount > 0
+                ? `<span class="trail-separator" aria-hidden="true">·</span><button class="trail-more" type="button" data-mailbox-trail-overflow="${mailboxTrailOverflowCount}">${escapeHtml(
+                    HISTORIK_STRINGS.mailboxTrailMore.replace("{count}", String(mailboxTrailOverflowCount))
+                  )}</button>`
+                : ""
+            }
           </div>`
         : "";
       const supportMarkup =
-        intelligenceMarkup || provenanceMarkup
-          ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${provenanceMarkup}</div>`
+        intelligenceMarkup || mailboxTrailMarkup
+          ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${mailboxTrailMarkup}</div>`
           : "";
 
       const subtitleMarkup = normalizedHistoryModel.subtitle
