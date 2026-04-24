@@ -220,7 +220,7 @@
       ];
     }
 
-    function buildThreadCardMarkup(thread, index, selected) {
+    function buildRuntimeThreadCardPresentation(thread, selected) {
       const tags = asArray(thread.tags);
       const normalizeCardValue = (value) => String(value || "").trim().toLowerCase();
       const escapeRegExp = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -497,6 +497,42 @@
         18
       );
       const smartNextDetail = buildThreadSmartSummary(thread);
+      const parseTrailDetailLive = (detail = "") =>
+        asText(detail)
+          .split(/[·,]/g)
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+      const mailboxTrailFromPayload = asArray(thread.mailboxTrail)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromRollup = asArray(thread.rollup?.underlyingMailboxIds)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromDetail = parseTrailDetailLive(thread.mailboxProvenanceDetail || "");
+      const mailboxTrail = mailboxTrailFromPayload.length
+        ? mailboxTrailFromPayload
+        : mailboxTrailFromRollup.length
+          ? mailboxTrailFromRollup
+          : mailboxTrailFromDetail;
+      const deriveLiveInitials = (label = "") => {
+        const normalizedLabel = asText(label).trim().replace(/\s+/g, " ");
+        if (!normalizedLabel) return "?";
+        const parts = normalizedLabel
+          .split(" ")
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+        if (!parts.length) return "?";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+      };
+      const avatarInitials = asText(thread.initials) || deriveLiveInitials(customerCopy);
+      const resolvedNextChipValue =
+        (tags.includes("act-now") ||
+          tags.includes("high-risk") ||
+          signalLaneId === "act_now") &&
+        smartNextDetail
+          ? smartNextDetail
+          : nextSignalValue;
       const rowFamily = normalizeCardValue(
         thread.rowFamily || thread.raw?.rowFamily || "human_mail"
       );
@@ -534,13 +570,7 @@
         },
         {
           key: "Nästa",
-          value:
-            (tags.includes("act-now") ||
-              tags.includes("high-risk") ||
-              signalLaneId === "act_now") &&
-            smartNextDetail
-              ? smartNextDetail
-              : nextSignalValue,
+          value: resolvedNextChipValue,
           tone: "next",
           icon: "bolt",
           role: "next",
@@ -605,37 +635,145 @@
           </div>`
         : "";
       const crossMailboxClass = crossMailboxEvidenceMode ? " thread-card-cross-mailbox" : "";
-      return `<article class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}" data-runtime-thread="${escapeHtml(thread.id)}" data-worklist-source="${escapeHtml(thread.worklistSource || "legacy")}" data-row-family="${escapeHtml(rowFamily)}" data-foundation-mode="${escapeHtml(foundationMode)}" data-foundation-source="${escapeHtml(foundationSource)}">
+      return {
+        intelligenceMarkup,
+        storyMarkup,
+        supportMarkup,
+        selectedClass,
+        crossMailboxClass,
+        priorityClass,
+        crossMailboxEvidenceMode,
+        customerCopy,
+        displaySubjectContextCopy,
+        displayStoryCopy,
+        unreadIndicatorMarkup,
+        rowFamily,
+        foundationMode,
+        foundationSource,
+        thread,
+        selected,
+        mailboxTrail,
+        avatarInitials,
+        signalLaneId,
+        mailboxSignalValue,
+        whatSignalValue,
+        whySignalValue,
+        nextSignalValue: resolvedNextChipValue,
+        tags,
+      };
+    }
+
+    function buildThreadCardMarkup(thread, index, selected) {
+      const p = buildRuntimeThreadCardPresentation(thread, selected);
+      const relationshipChipValue =
+        p.mailboxTrail.length > 1 ? "Samma kund har skrivit från flera mailboxar" : "";
+      const footerChips = [
+        {
+          key: "category",
+          value: asText(p.mailboxSignalValue, "Kons"),
+          icon: "mail",
+          toneClass: "chip-gray",
+        },
+        {
+          key: "relationship",
+          value: relationshipChipValue,
+          icon: "users",
+          toneClass: "chip-blue",
+        },
+        {
+          key: "priority",
+          value: asText(p.whySignalValue),
+          icon: "alert",
+          toneClass: "chip-pink",
+        },
+        {
+          key: "action",
+          value: asText(p.nextSignalValue),
+          icon: "chevron-right",
+          toneClass: "chip-green",
+          interactive: "studio-open",
+          runtimeThreadId: p.thread.id,
+          studioAriaLabel: `Öppna svarsstudion för ${asText(p.thread.customerName || "vald tråd")}`,
+        },
+      ].filter((chip) => asText(chip.value));
+      const extraArticleClasses = `${p.crossMailboxClass}${p.priorityClass} thread-card-live`.trim();
+      const articleDataAttributes = ` data-row-family="${escapeHtml(p.rowFamily)}" data-foundation-mode="${escapeHtml(p.foundationMode)}" data-foundation-source="${escapeHtml(p.foundationSource)}"`;
+      const worklistSourceKey =
+        typeof normalizeKey === "function"
+          ? normalizeKey(p.thread.worklistSource || "legacy") || "legacy"
+          : asText(p.thread.worklistSource || "legacy")
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_") || "legacy";
+      const unifiedModel = {
+        counterpartyLabel: p.customerCopy,
+        customerInitials: p.avatarInitials,
+        mailboxTrail: p.mailboxTrail,
+        laneId: p.thread.primaryLaneId,
+        ownerLabel: p.thread.displayOwnerLabel || p.thread.ownerLabel,
+        tags: p.tags,
+        signalItems: asArray(p.thread.signalItems),
+        previewLine: p.displayStoryCopy,
+        footerChips,
+        hasOperationalSignals: false,
+        isUnread: p.thread.unread === true || p.thread.isUnread === true,
+        time: p.thread.lastActivityLabel,
+        recordedAt: p.thread.lastActivityAt,
+        stampLabel: asText(
+          p.thread.displayOwnerLabel || p.thread.ownerLabel || "Ej tilldelad"
+        ),
+        extraArticleClasses,
+        worklistSource: worklistSourceKey,
+      };
+      const unifiedOptions = {
+        runtimeThreadId: p.thread.id,
+        conversationId: p.thread.id,
+        selectedConversationId: asText(state.runtime.selectedThreadId),
+        worklistSource: worklistSourceKey,
+        articleDataAttributes,
+        skipNormalizeCardContent: false,
+      };
+      return buildUnifiedCardMarkup(unifiedModel, unifiedOptions);
+    }
+
+    /**
+     * @deprecated Use buildUnifiedCardMarkup instead.
+     * Kept temporarily during migration. Delete after 2026-05-01
+     * if no regression found.
+     */
+    function buildThreadCardMarkup_legacy(thread, index, selected) {
+      const p = buildRuntimeThreadCardPresentation(thread, selected);
+      return `<article class="thread-card thread-card-live${p.crossMailboxClass}${p.selectedClass}${p.priorityClass}" data-runtime-thread="${escapeHtml(p.thread.id)}" data-worklist-source="${escapeHtml(p.thread.worklistSource || "legacy")}" data-row-family="${escapeHtml(p.rowFamily)}" data-foundation-mode="${escapeHtml(p.foundationMode)}" data-foundation-source="${escapeHtml(p.foundationSource)}">
         <div class="thread-card-head">
           <div class="thread-card-identity">
-            <img class="avatar" src="${thread.avatar}" alt="${escapeHtml(thread.customerName)}" />
+            <img class="avatar" src="${p.thread.avatar}" alt="${escapeHtml(p.thread.customerName)}" />
             <div class="thread-card-head-copy">
               <div class="thread-heading thread-heading-merged">
-                ${unreadIndicatorMarkup}
+                ${p.unreadIndicatorMarkup}
                 <p class="thread-subject">
-                  <span class="thread-subject-primary">${escapeHtml(customerCopy)}</span>
+                  <span class="thread-subject-primary">${escapeHtml(p.customerCopy)}</span>
                   ${
-                    displaySubjectContextCopy
+                    p.displaySubjectContextCopy
                       ? `<span class="thread-subject-context">${escapeHtml(
-                          displaySubjectContextCopy
+                          p.displaySubjectContextCopy
                         )}</span>`
                       : ""
                   }
                 </p>
               </div>
-              ${storyMarkup}
+              ${p.storyMarkup}
             </div>
           </div>
           <div class="thread-card-stamp">
             <div class="thread-card-stamp-top">
-              <time datetime="${escapeHtml(thread.lastActivityAt || "")}">${escapeHtml(
-                thread.lastActivityLabel
+              <time datetime="${escapeHtml(p.thread.lastActivityAt || "")}">${escapeHtml(
+                p.thread.lastActivityLabel
               )}</time>
             </div>
-            <span class="thread-owner">${escapeHtml(thread.displayOwnerLabel || thread.ownerLabel || "Ej tilldelad")}</span>
+            <span class="thread-owner">${escapeHtml(p.thread.displayOwnerLabel || p.thread.ownerLabel || "Ej tilldelad")}</span>
           </div>
         </div>
-        ${supportMarkup}
+        ${p.supportMarkup}
       </article>`;
     }
 
@@ -1336,14 +1474,24 @@
       const intelligenceMarkup = footerChips.length
         ? `<div class="thread-intelligence-row queue-history-item-meta queue-history-item-meta--fullwidth card-footer">
             ${footerChips
-              .map(
-                (chip) => `<span class="thread-intelligence-item chip ${escapeHtml(
-                  chip.toneClass || "chip-gray"
-                )}" data-history-chip="${escapeHtml(chip.key)}">
+              .map((chip) => {
+                const toneClass = escapeHtml(chip.toneClass || "chip-gray");
+                const chipKey = escapeHtml(chip.key || "");
+                if (chip.interactive === "studio-open" && asText(chip.runtimeThreadId)) {
+                  const tid = escapeHtml(chip.runtimeThreadId);
+                  const aria = escapeHtml(
+                    chip.studioAriaLabel || "Öppna svarsstudion"
+                  );
+                  return `<button class="thread-intelligence-item chip ${toneClass}" data-history-chip="${chipKey}" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${tid}" aria-controls="studio-shell" aria-label="${aria}">
                   ${buildUnifiedCardIconMarkup(chip.icon)}
                   <span class="thread-intelligence-item-value">${escapeHtml(chip.value)}</span>
-                </span>`
-              )
+                </button>`;
+                }
+                return `<span class="thread-intelligence-item chip ${toneClass}" data-history-chip="${chipKey}">
+                  ${buildUnifiedCardIconMarkup(chip.icon)}
+                  <span class="thread-intelligence-item-value">${escapeHtml(chip.value)}</span>
+                </span>`;
+              })
               .join("")}
           </div>`
         : "";
@@ -1447,7 +1595,9 @@
           "Historik"
       );
 
-      return `<article class="thread-card queue-history-item unified-queue-card${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
+      const extraArticleClasses = asText(unifiedModel.extraArticleClasses).trim();
+      const articleDataAttributes = asText(options.articleDataAttributes);
+      return `<article class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${articleDataAttributes}${selectedState}>
         <div class="thread-card-head card-top">
           <div class="thread-card-identity history-avatar-wrap">
             <span class="avatar queue-history-avatar history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>

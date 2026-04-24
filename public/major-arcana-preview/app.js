@@ -23043,7 +23043,12 @@
       dom: {
         queueListMode,
         cardCount: domCards.length,
-        liveCardCount: domCards.filter((node) => node.classList?.contains("thread-card-live")).length,
+        liveCardCount: domCards.filter((node) => {
+          const runtimeThreadId = asText(node.getAttribute?.("data-runtime-thread"));
+          if (!runtimeThreadId) return false;
+          const historyConversationId = asText(node.getAttribute?.("data-history-conversation"));
+          return !historyConversationId;
+        }).length,
         historyCardCount: domCards.filter((node) => node.classList?.contains("queue-history-item")).length,
         selectedCardCount: domCards.filter((node) => node.classList?.contains("is-selected")).length,
         firstCards: domCards.slice(0, 6).map((node) => ({
