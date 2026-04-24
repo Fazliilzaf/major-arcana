@@ -1309,17 +1309,28 @@
         ownerLabel: unifiedModel.ownerLabel,
         signalItems: unifiedModel.signalItems,
       };
-      const statusDot = deriveStatusDot(statusModel);
+      const statusDot =
+        asText(unifiedModel.statusDot) || deriveStatusDot(statusModel);
 
-      const content = normalizeCardContent(
-        {
-          customerName: counterpartyCopy,
+      let content;
+      if (options.skipNormalizeCardContent) {
+        content = {
           subtitle,
           previewLine: asText(unifiedModel.previewLine),
           footerChips: asArray(unifiedModel.footerChips),
-        },
-        "[unified-card]"
-      );
+          tightMode: false,
+        };
+      } else {
+        content = normalizeCardContent(
+          {
+            customerName: counterpartyCopy,
+            subtitle,
+            previewLine: asText(unifiedModel.previewLine),
+            footerChips: asArray(unifiedModel.footerChips),
+          },
+          "[unified-card]"
+        );
+      }
 
       const footerChips = content.footerChips;
       const intelligenceMarkup = footerChips.length
@@ -1462,6 +1473,35 @@
         ${headSecondaryClosing}
         ${supportMarkup}
       </article>`;
+    }
+
+    /**
+     * Mappar historik-v3:s bearbetade fält till buildUnifiedCardMarkup-modellen.
+     * @param {object} item - Rå historikpost
+     * @param {object} v3 - Redan härledda v3-fält (samma semantik som tidigare inline-markup)
+     */
+    function unifiedCardModelFromHistoryItem(item = {}, v3 = {}) {
+      return {
+        counterpartyLabel: v3.counterpartyCopy,
+        customerInitials: v3.avatarText,
+        mailboxTrail: asArray(v3.mailboxTrail),
+        subtitle: asText(v3.subtitle),
+        laneId: item.laneId,
+        ownerLabel: item.ownerLabel,
+        tags: item.tags,
+        signalItems: asArray(item.signalItems),
+        statusDot: asText(v3.statusDot),
+        previewLine: asText(v3.previewLine),
+        explanatoryLine: asText(v3.explanatoryLine),
+        secondarySnippet: asText(v3.secondarySnippet),
+        footerChips: asArray(v3.footerChips),
+        hasOperationalSignals: Boolean(v3.hasOperationalSignals),
+        isUnread: item.isUnread,
+        loading: item.loading,
+        time: item.time,
+        recordedAt: item.recordedAt,
+        stampLabel: asText(v3.stampLabel),
+      };
     }
 
     function buildQueueHistoryCardMarkup(item, options = {}) {
@@ -1709,24 +1749,6 @@
         item.isUnread === true
           ? '<span class="queue-history-item-freshness" aria-label="Nytt oläst mejl"><span class="queue-history-item-freshness-dot"></span></span>'
           : "";
-      const buildInlineHistoryIconMarkup = (iconType = "") => {
-        if (iconType === "mail") {
-          return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>';
-        }
-        if (iconType === "users") {
-          return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
-        }
-        if (iconType === "alert") {
-          return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
-        }
-        if (iconType === "chevron-right") {
-          return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
-        }
-        if (iconType === "inbox") {
-          return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
-        }
-        return "";
-      };
 
       if (!useThreadCardClass) {
         return `<article class="queue-history-item${selectedClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
@@ -1780,8 +1802,6 @@
         72
       );
       const avatarText = normalizedHistoryModel.customerInitials;
-      const avatarSrc =
-        typeof buildAvatarDataUri === "function" ? buildAvatarDataUri(avatarText) : "";
       const stampLabel = asText(
         item.direction ||
           item.queueLabel ||
@@ -1901,19 +1921,12 @@
             "",
             120
           );
-      const showIssueContext = Boolean(issueContextLabel);
       const showSnippet =
         Boolean(snippetValue) &&
         normalizeHistoryCompareValue(snippetValue) !==
           normalizeHistoryCompareValue(issueContextLabel) &&
         normalizeHistoryCompareValue(snippetValue) !==
           normalizeHistoryCompareValue(primaryHistoryTitle);
-      const issueContextMarkup = "";
-      const snippetLineMarkup = showSnippet
-        ? `<p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
-            snippetValue
-          )}</p>`
-        : "";
       const explicitExplanatoryLine = compactRuntimeCopy(
         asText(
           item.explanatoryLine ||
@@ -1926,12 +1939,6 @@
         "",
         160
       );
-      const explanatoryLineMarkup = explicitExplanatoryLine
-        ? `<div class="thread-card-head-secondary"><p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
-            explicitExplanatoryLine
-          )}</p></div>`
-        : "";
-      const secondaryLineMarkup = `${issueContextMarkup}${snippetLineMarkup}`;
       const relationshipChipValue =
         normalizedHistoryModel.mailboxTrail.length > 1
           ? HISTORIK_STRINGS.multiMailboxSubtitle
@@ -1968,83 +1975,28 @@
           toneClass: "chip-green",
         },
       ].filter((chip) => asText(chip.value));
-      const intelligenceMarkup = footerChips.length
-        ? `<div class="thread-intelligence-row queue-history-item-meta queue-history-item-meta--fullwidth card-footer">
-            ${footerChips
-              .map((chip) => `<span class="thread-intelligence-item chip ${chip.toneClass}" data-history-chip="${chip.key}">
-                  ${buildInlineHistoryIconMarkup(chip.icon)}
-                  <span class="thread-intelligence-item-value">${escapeHtml(chip.value)}</span>
-                </span>`)
-              .join("")}
-          </div>`
-        : "";
-      const mailboxTrailItems = normalizedHistoryModel.mailboxTrail;
-      const visibleMailboxTrailItems = mailboxTrailItems.slice(0, 3);
-      const mailboxTrailOverflowCount = Math.max(0, mailboxTrailItems.length - visibleMailboxTrailItems.length);
-      const mailboxTrailMarkup = visibleMailboxTrailItems.length
-        ? `<div class="intel-card-provenance thread-card-provenance mailbox-trail">
-            <span class="trail-bar" aria-hidden="true"></span>
-            ${buildInlineHistoryIconMarkup("inbox")}
-            <span class="intel-card-provenance-label intel-card-provenance-derived trail-label" data-history-pill-class="queue-history-pill--provenance">${escapeHtml(
-              HISTORIK_STRINGS.mailboxTrailLabel
-            )}</span>
-            ${visibleMailboxTrailItems
-              .map((entry, index) => `${index > 0 ? '<span class="trail-separator" aria-hidden="true">·</span>' : ""}<span class="intel-card-provenance-detail trail-item">${escapeHtml(entry)}</span>`)
-              .join("")}
-            ${
-              mailboxTrailOverflowCount > 0
-                ? `<span class="trail-separator" aria-hidden="true">·</span><button class="trail-more" type="button" data-mailbox-trail-overflow="${mailboxTrailOverflowCount}">${escapeHtml(
-                    HISTORIK_STRINGS.mailboxTrailMore.replace("{count}", String(mailboxTrailOverflowCount))
-                  )}</button>`
-                : ""
-            }
-          </div>`
-        : "";
-      const supportMarkup =
-        intelligenceMarkup || mailboxTrailMarkup
-          ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${mailboxTrailMarkup}</div>`
-          : "";
-
-      const subtitleMarkup = normalizedHistoryModel.subtitle
-        ? `<span class="thread-subject-context history-card-subtitle">${escapeHtml(
-            normalizedHistoryModel.subtitle
-          )}</span>`
-        : "";
       const previewLine = explicitExplanatoryLine || (showSnippet ? snippetValue : "");
-      const previewMarkup = previewLine
-        ? `<div class="row-2 history-card-row-2">${escapeHtml(previewLine)}</div>`
-        : "";
-
-      return `<article class="thread-card queue-history-item${selectedClass}${
-        isSelected ? " thread-card-selected" : ""
-      }${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
-        <div class="thread-card-head card-top">
-          <div class="thread-card-identity history-avatar-wrap">
-            <span class="avatar queue-history-avatar history-avatar" aria-hidden="true">${escapeHtml(
-              avatarText
-            )}</span>
-            <span class="status-dot ${escapeHtml(normalizedHistoryModel.status)}" aria-hidden="true"></span>
-            <div class="thread-card-head-copy card-body">
-              <div class="row-1 history-card-row-1">
-                <p class="thread-subject history-card-name">
-                  <span class="thread-subject-primary">${escapeHtml(counterpartyCopy)}</span>
-                  ${subtitleMarkup}
-                </p>
-              </div>
-              ${previewMarkup}
-            </div>
-          </div>
-          <div class="thread-card-stamp history-card-meta">
-            <div class="thread-card-stamp-top"><time datetime="${escapeHtml(
-              item.recordedAt || ""
-            )}">${escapeHtml(item.time || "")}</time></div>
-            <span class="thread-owner">${escapeHtml(stampLabel)}</span>
-          </div>
-        </div>
-        ${explanatoryLineMarkup}
-        <div class="thread-card-head-secondary">${secondaryLineMarkup}</div>
-        ${supportMarkup}
-      </article>`;
+      const unifiedModel = unifiedCardModelFromHistoryItem(item, {
+        counterpartyCopy,
+        avatarText,
+        mailboxTrail: normalizedHistoryModel.mailboxTrail,
+        subtitle: normalizedHistoryModel.subtitle,
+        statusDot: normalizedHistoryModel.status,
+        previewLine,
+        explanatoryLine: explicitExplanatoryLine,
+        secondarySnippet: showSnippet ? snippetValue : "",
+        footerChips,
+        hasOperationalSignals,
+        stampLabel,
+      });
+      return buildUnifiedCardMarkup(unifiedModel, {
+        runtimeThreadId,
+        conversationId,
+        selectedConversationId,
+        worklistSource,
+        worklistSourceLabel,
+        skipNormalizeCardContent: true,
+      });
     }
 
     function buildQueueInlineLaneHistoryItem(thread) {
