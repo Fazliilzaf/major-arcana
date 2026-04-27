@@ -83,6 +83,16 @@
     let runtimeAuthRecoveryDelayMs = AUTH_RECOVERY_INITIAL_DELAY_MS;
     let runtimeAuthRecoveryPollingEnabled = false;
 
+    // Self-healing för transient runtime-fel (502/503/504/network).
+    // Auth-fel hanteras via scheduleRuntimeAuthRecovery; detta är för icke-auth-fel.
+    let runtimeTransientRetryTimer = 0;
+    let runtimeTransientRetryAttempt = 0;
+    const RUNTIME_TRANSIENT_RETRY_INITIAL_MS = 5000;
+    const RUNTIME_TRANSIENT_RETRY_MAX_MS = 30000;
+    const RUNTIME_TRANSIENT_RETRY_GROWTH = 1.7;
+    const RUNTIME_TRANSIENT_RETRY_MAX_ATTEMPTS = 12;
+    let runtimeVisibilityRecoveryBound = false;
+
     const {
       CCO_DEFAULT_REPLY_SENDER,
       CCO_DEFAULT_SIGNATURE_PROFILE,
@@ -968,6 +978,63 @@
         windowObject.clearTimeout(runtimeLiveRefreshTimer);
         runtimeLiveRefreshTimer = 0;
       }
+    }
+
+    function clearRuntimeTransientRetryTimer() {
+      if (runtimeTransientRetryTimer) {
+        windowObject.clearTimeout(runtimeTransientRetryTimer);
+        runtimeTransientRetryTimer = 0;
+      }
+    }
+
+    function resetRuntimeTransientRetry() {
+      clearRuntimeTransientRetryTimer();
+      runtimeTransientRetryAttempt = 0;
+    }
+
+    function scheduleRuntimeTransientRetry({ requestedMailboxIds = [] } = {}) {
+      clearRuntimeTransientRetryTimer();
+      if (state.runtime?.authRequired === true) return;
+      if (runtimeTransientRetryAttempt >= RUNTIME_TRANSIENT_RETRY_MAX_ATTEMPTS) {
+        return;
+      }
+      runtimeTransientRetryAttempt += 1;
+      const delayMs = Math.min(
+        RUNTIME_TRANSIENT_RETRY_INITIAL_MS *
+          Math.pow(RUNTIME_TRANSIENT_RETRY_GROWTH, runtimeTransientRetryAttempt - 1),
+        RUNTIME_TRANSIENT_RETRY_MAX_MS
+      );
+      const mailboxIdsSnapshot = asArray(requestedMailboxIds).slice();
+      runtimeTransientRetryTimer = windowObject.setTimeout(async () => {
+        runtimeTransientRetryTimer = 0;
+        if (state.runtime?.authRequired === true) return;
+        if (state.runtime?.mode !== "runtime_error") return;
+        try {
+          await loadLiveRuntime({
+            requestedMailboxIds: mailboxIdsSnapshot,
+          });
+        } catch (error) {
+          console.warn("CCO transient runtime-recovery misslyckades.", error);
+        }
+      }, delayMs);
+    }
+
+    function bindRuntimeVisibilityRecovery() {
+      if (runtimeVisibilityRecoveryBound) return;
+      const doc = windowObject?.document;
+      if (!doc || typeof doc.addEventListener !== "function") return;
+      doc.addEventListener("visibilitychange", () => {
+        if (doc.visibilityState !== "visible") return;
+        if (state.runtime?.authRequired === true) return;
+        if (state.runtime?.mode !== "runtime_error") return;
+        resetRuntimeTransientRetry();
+        loadLiveRuntime({
+          requestedMailboxIds: getRequestedRuntimeMailboxIds(),
+        }).catch((error) => {
+          console.warn("CCO visibility-recovery misslyckades.", error);
+        });
+      });
+      runtimeVisibilityRecoveryBound = true;
     }
 
     function getRuntimeReentryThreadId() {
@@ -2920,6 +2987,8 @@
           authRequired: false,
           error: "",
         });
+        // Self-healing: nollställ transient-retry-räknaren när vi är live igen.
+        resetRuntimeTransientRetry();
         state.runtime.lastSyncAt = new Date().toISOString();
         restoreRuntimeReentrySnapshot("live_runtime_load", { scopeMode: "hint_only" });
         debugReentrySnapshot("AFTER RESTORE");
@@ -2988,6 +3057,14 @@
             captureRuntimeReentrySnapshot("auth_failure");
           }
           scheduleRuntimeAuthRecovery({
+            requestedMailboxIds: runtimeMailboxIds,
+          });
+          // Auth-flow äger retry från och med nu; städa transient-retry.
+          resetRuntimeTransientRetry();
+        } else {
+          // Transient runtime-fel (502/503/504/network/JSON-parse).
+          // Schemalägg automatisk retry så att UI självläker när servern svarar igen.
+          scheduleRuntimeTransientRetry({
             requestedMailboxIds: runtimeMailboxIds,
           });
         }
@@ -4082,6 +4159,9 @@
       setNoteModeOpen(false);
       setFeedback(noteFeedback, "", "");
       setFeedback(scheduleFeedback, "", "");
+
+      // Self-healing: lyssna på flikfokus så att transient-fel återställs när användaren kommer tillbaka.
+      bindRuntimeVisibilityRecovery();
 
       loadBootstrap({
         preserveActiveDestination: true,
