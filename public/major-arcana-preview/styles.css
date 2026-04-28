@@ -3,6 +3,32 @@
    1) 2 bg-toner   2) topp-highlight   3) inset bottenskugga
    4) 3 yttre skuggor   5) ljus border som smälter in
    ============================================================ */
+/* v5: tillåt v5-kortet att växa utöver min-height så footer + actions syns */
+.thread-card.unified-queue-card[data-lane] {
+  min-height: 0 !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.thread-card.unified-queue-card[data-lane] > * {
+  flex-shrink: 0;
+}
+.thread-card.unified-queue-card[data-lane] .priority-bar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 5px;
+  height: 100%;
+  z-index: 1;
+}
+/* Säkerställ att även när live-mode-grid är på så respekteras vår flex-column */
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card[data-lane] {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-rows: none !important;
+}
+
 .thread-card.unified-queue-card {
   position: relative;
   /* (1) 2 bakgrundsnyanser — peach-amber wash */
