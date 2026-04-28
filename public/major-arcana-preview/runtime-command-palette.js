@@ -216,6 +216,19 @@
         action: () => clickByAriaLabel('Global'),
       },
 
+      // AI
+      {
+        id: 'ai-thread-summary',
+        label: 'Sammanfatta aktuell tråd (AI)',
+        hint: 'AI',
+        group: 'AI',
+        keywords: 'summary sammanfattning sammanfatta tråd thread ai sedan senast',
+        action: () => {
+          const ts = (typeof window !== 'undefined') && window.MajorArcanaPreviewThreadSummary;
+          if (ts && typeof ts.summarizeCurrent === 'function') ts.summarizeCurrent();
+        },
+      },
+
       // Sökning
       {
         id: 'unified-search-open',

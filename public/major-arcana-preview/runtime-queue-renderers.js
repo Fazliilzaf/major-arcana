@@ -1769,9 +1769,26 @@
       done: "admin",
       all: "admin",
     };
-    function v5LaneCode(laneId) {
+    function v5LaneCode(laneId, thread) {
       const key = typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
-      return V5_LANE_MAP[key] || "admin";
+      if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
+      // Fallback: härled från tags eller via getThreadPrimaryLaneId
+      if (thread && typeof getThreadPrimaryLaneId === "function") {
+        const derived = getThreadPrimaryLaneId(thread);
+        const derivedKey = typeof normalizeKey === "function" ? normalizeKey(derived) : asText(derived).toLowerCase();
+        if (V5_LANE_MAP[derivedKey]) return V5_LANE_MAP[derivedKey];
+      }
+      // Direkt tag-koll som sista fallback
+      const tags = thread ? asArray(thread.tags) : [];
+      if (tags.includes("act-now")) return "act-now";
+      if (tags.includes("sprint")) return "sprint";
+      if (tags.includes("later")) return "senare";
+      if (tags.includes("bookable") || tags.includes("booking")) return "bokning";
+      if (tags.includes("review") || tags.includes("granska")) return "granska";
+      if (tags.includes("medical") || tags.includes("medicinsk")) return "medicinsk";
+      if (tags.includes("unclear") || tags.includes("oklart")) return "oklart";
+      if (tags.includes("admin")) return "admin";
+      return "admin";
     }
     const V5_LANE_LABELS = {
       "act-now": "Agera nu",
@@ -2079,7 +2096,7 @@
       // Compute What/Why/Next via existing signal-functions. unifiedModel has the
       // fields they need (intentLabel, statusLabel, riskLabel, tags, etc.) — pass
       // through any explicit override from caller.
-      const v5Lane = v5LaneCode(unifiedModel.laneId);
+      const v5Lane = v5LaneCode(unifiedModel.laneId, unifiedModel);
       const v5Label = v5LaneLabel(v5Lane);
       const v5Icon = v5LaneIcon(v5Lane);
 

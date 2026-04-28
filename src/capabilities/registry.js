@@ -4,6 +4,7 @@ const { SummarizeIncidentsCapability } = require('./summarizeIncidents');
 const { AnalyzeInboxCapability } = require('./analyzeInbox');
 const { RefineReplyDraftCapability } = require('./refineReplyDraft');
 const { CcoConversationActionCapability } = require('./ccoConversationAction');
+const { SummarizeThreadCapability } = require('./summarizeThread');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
 const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
@@ -18,6 +19,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(AnalyzeInboxCapability),
   assertCapabilityClass(RefineReplyDraftCapability),
   assertCapabilityClass(CcoConversationActionCapability),
+  assertCapabilityClass(SummarizeThreadCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(
