@@ -236,6 +236,53 @@
 .cco-tsum-warnings {
   margin: 12px 0 0; font-size: 11px; color: rgba(180, 100, 40, 0.85);
 }
+.cco-tsum-anomalies {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(180, 130, 40, 0.10);
+  border-left: 4px solid rgba(180, 130, 40, 0.55);
+}
+.cco-tsum-anomalies.is-sev-high {
+  background: rgba(180, 50, 50, 0.10);
+  border-left-color: rgba(180, 50, 50, 0.65);
+}
+.cco-tsum-anomalies-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.cco-tsum-anomalies-icon { font-size: 16px; }
+.cco-tsum-anomalies-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a4a14;
+}
+.cco-tsum-anomalies.is-sev-high .cco-tsum-anomalies-label { color: #a82828; }
+.cco-tsum-anomalies-list { margin: 0; padding: 0; list-style: none; }
+.cco-tsum-anomalies-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+.cco-tsum-anomalies-item:first-child { border-top: 0; }
+.cco-tsum-anomalies-item-icon { font-size: 14px; flex-shrink: 0; line-height: 1.4; }
+.cco-tsum-anomalies-item-body { flex: 1; min-width: 0; }
+.cco-tsum-anomalies-item-title {
+  font-size: 12px; font-weight: 600; color: #2b251f;
+}
+.cco-tsum-anomalies-item-msg {
+  font-size: 11px; color: rgba(80, 60, 40, 0.70);
+  margin-top: 2px; line-height: 1.4;
+}
+.cco-tsum-anomalies-item-conf {
+  font-size: 10px; font-weight: 600; color: rgba(80, 60, 40, 0.50);
+  background: rgba(80, 60, 40, 0.06);
+  padding: 2px 6px; border-radius: 999px;
+  flex-shrink: 0;
+}
+[data-cco-theme="dark"] .cco-tsum-anomalies-item-title,
+.is-dark .cco-tsum-anomalies-item-title,
+html[data-theme="dark"] .cco-tsum-anomalies-item-title { color: #f3ece2; }
 .cco-tsum-nba {
   margin: 4px 0 14px;
   padding: 14px 16px;
@@ -503,7 +550,32 @@ html[data-theme="dark"] .cco-tsum-since {
     const sentiment = data.sentiment || null;
     const intent = data.intent || null;
     const nextBestAction = data.nextBestAction || null;
+    const anomalies = data.anomalies || null;
     let html = '';
+    // Anomaly warnings (Fas 7) — visa överst om allvarliga avvikelser finns
+    if (anomalies && Array.isArray(anomalies.items) && anomalies.items.length > 0) {
+      const high = anomalies.items.filter((a) => a.severity === 'high');
+      const medium = anomalies.items.filter((a) => a.severity === 'medium');
+      const low = anomalies.items.filter((a) => a.severity === 'low');
+      const visible = [...high, ...medium, ...low].slice(0, 4);
+      const topSeverity = high.length > 0 ? 'high' : (medium.length > 0 ? 'medium' : 'low');
+      html += `<div class="cco-tsum-anomalies is-sev-${escapeHtml(topSeverity)}">
+        <div class="cco-tsum-anomalies-header">
+          <span class="cco-tsum-anomalies-icon">⚠️</span>
+          <span class="cco-tsum-anomalies-label">${anomalies.items.length} avvikelse${anomalies.items.length === 1 ? '' : 'r'} upptäckt${anomalies.items.length === 1 ? '' : 'a'}</span>
+        </div>
+        <ul class="cco-tsum-anomalies-list">
+          ${visible.map((a) => `<li class="cco-tsum-anomalies-item is-sev-${escapeHtml(a.severity)}">
+            <span class="cco-tsum-anomalies-item-icon">${escapeHtml(a.icon || '⚠️')}</span>
+            <div class="cco-tsum-anomalies-item-body">
+              <div class="cco-tsum-anomalies-item-title">${escapeHtml(a.label || '')}</div>
+              <div class="cco-tsum-anomalies-item-msg">${escapeHtml(a.message || '')}</div>
+            </div>
+            <span class="cco-tsum-anomalies-item-conf">${Math.round((a.confidence || 0) * 100)}%</span>
+          </li>`).join('')}
+        </ul>
+      </div>`;
+    }
     // Next-Best-Action prominent CTA (Fas 6)
     if (nextBestAction && nextBestAction.primary) {
       const p = nextBestAction.primary;

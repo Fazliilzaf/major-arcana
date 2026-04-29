@@ -24,6 +24,7 @@ const { detectConversationLanguage, getLanguageLabel } = require('../risk/langua
 const { detectConversationSentiment, getSentimentLabel } = require('../risk/sentimentDetect');
 const { runDeterministicIntent } = require('../intelligence/intentClassifier');
 const { recommendNextBestAction } = require('../risk/nextBestAction');
+const { detectAnomalies } = require('../risk/anomalyDetect');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -355,6 +356,7 @@ class SummarizeThreadCapability extends BaseCapability {
           'sentiment',
           'intent',
           'nextBestAction',
+          'anomalies',
         ],
         properties: {
           conversationId: { type: 'string', maxLength: 1024 },
@@ -404,6 +406,45 @@ class SummarizeThreadCapability extends BaseCapability {
               code: { type: 'string', maxLength: 32 },
               label: { type: 'string', maxLength: 60 },
               confidence: { type: 'number', minimum: 0, maximum: 1 },
+            },
+          },
+          anomalies: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['items', 'totalScore', 'severityCounts'],
+            properties: {
+              items: {
+                type: 'array',
+                maxItems: 12,
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['code', 'label', 'severity', 'icon', 'confidence', 'message', 'evidence'],
+                  properties: {
+                    code: { type: 'string', maxLength: 60 },
+                    label: { type: 'string', maxLength: 80 },
+                    severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+                    icon: { type: 'string', maxLength: 8 },
+                    confidence: { type: 'number', minimum: 0, maximum: 1 },
+                    message: { type: 'string', maxLength: 280 },
+                    evidence: {
+                      type: 'array',
+                      maxItems: 4,
+                      items: { type: 'string', minLength: 1, maxLength: 280 },
+                    },
+                  },
+                },
+              },
+              totalScore: { type: 'number', minimum: 0, maximum: 1000 },
+              severityCounts: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  low: { type: 'integer', minimum: 0, maximum: 100 },
+                  medium: { type: 'integer', minimum: 0, maximum: 100 },
+                  high: { type: 'integer', minimum: 0, maximum: 100 },
+                },
+              },
             },
           },
           nextBestAction: {
@@ -599,6 +640,22 @@ class SummarizeThreadCapability extends BaseCapability {
         : 0,
     };
 
+    // Anomaly Detection (Fas 7): detektera avvikelser från kundens normala mönster.
+    const anomalyResult = detectAnomalies(messages);
+    const anomalies = {
+      items: asArray(anomalyResult?.anomalies),
+      totalScore: Number.isFinite(anomalyResult?.totalScore) ? anomalyResult.totalScore : 0,
+      severityCounts: anomalyResult?.severityCounts || { low: 0, medium: 0, high: 0 },
+    };
+    if (anomalies.items.length > 0) {
+      const high = anomalies.items.filter((a) => a.severity === 'high').length;
+      if (high > 0) {
+        warnings.push(
+          `Anomaly detection: ${high} avvikelse${high === 1 ? '' : 'r'} med hög allvarlighetsgrad upptäckta.`
+        );
+      }
+    }
+
     // Predictive Next-Best-Action (Fas 6): kombinera sentiment + intent + tråd-state
     // till en konkret föreslagen åtgärd med reasoning.
     const nextActionResult = recommendNextBestAction({
@@ -663,6 +720,7 @@ class SummarizeThreadCapability extends BaseCapability {
         sentiment,
         intent,
         nextBestAction,
+        anomalies,
       },
       metadata: {
         capability: SummarizeThreadCapability.name,
