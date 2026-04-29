@@ -338,6 +338,7 @@ const { createTenantConfigStore } = require('./src/tenant/configStore');
 const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
 const { createTenantsRouter } = require('./src/routes/tenants');
 const { createDashboardRouter } = require('./src/routes/dashboard');
+const { createCcoRuntimeStreamRouter } = require('./src/routes/ccoRuntimeStream');
 const { createRiskRouter } = require('./src/routes/risk');
 const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
@@ -1060,6 +1061,12 @@ process.once('SIGTERM', () => {
       requireRole: auth.requireRole,
     })
   );
+
+  // P7: Real-time stream för CCO frontend (heartbeat + poll-trigger)
+  app.use('/api/v1', createCcoRuntimeStreamRouter({
+    pollIntervalMs: 10000,
+    heartbeatIntervalMs: 30000,
+  }));
 
   app.use(
     '/api/v1',
