@@ -2186,7 +2186,7 @@
       const bodyStyle = "grid-area:body;grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;";
       const footerStyle = "grid-area:footer;grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;";
 
-      return `<article class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
+      return `<!-- v5-final-r3 markup --><article data-v5-version="r3" class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
         <div class="priority-bar" aria-hidden="true" style="${railStyle}"></div>
         <div class="card-strip" style="${stripStyle}">
           <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${v5Icon}${escapeHtml(v5Label)}</span>
