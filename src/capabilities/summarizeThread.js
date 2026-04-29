@@ -20,6 +20,7 @@
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { buildGuardrailReport } = require('../risk/aiGuardrails');
+const { detectConversationLanguage, getLanguageLabel } = require('../risk/languageDetect');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -347,6 +348,7 @@ class SummarizeThreadCapability extends BaseCapability {
           'source',
           'generatedAt',
           'guardrails',
+          'detectedLanguage',
         ],
         properties: {
           conversationId: { type: 'string', maxLength: 1024 },
@@ -361,6 +363,21 @@ class SummarizeThreadCapability extends BaseCapability {
           newMessagesSinceLastVisit: { type: 'integer', minimum: 0, maximum: 1000 },
           source: { type: 'string', enum: ['heuristic', 'openai', 'hybrid'] },
           generatedAt: { type: 'string', minLength: 1, maxLength: 64 },
+          detectedLanguage: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['primary', 'confidence', 'flag', 'native'],
+            properties: {
+              primary: { type: 'string', maxLength: 16 },
+              confidence: { type: 'number', minimum: 0, maximum: 1 },
+              flag: { type: 'string', maxLength: 8 },
+              native: { type: 'string', maxLength: 32 },
+              breakdown: {
+                type: 'object',
+                additionalProperties: { type: 'integer', minimum: 0, maximum: 1000 },
+              },
+            },
+          },
           guardrails: {
             type: 'object',
             additionalProperties: false,
@@ -452,6 +469,22 @@ class SummarizeThreadCapability extends BaseCapability {
       }
     }
 
+    // Multi-language detection (Fas 3): identifiera vilket språk kunden skriver på
+    // så att studio kan föreslå svar på samma språk.
+    const conversationLanguage = detectConversationLanguage(messages, {
+      customerDirection: 'inbound',
+    });
+    const langLabel = getLanguageLabel(conversationLanguage.primaryLanguage);
+    const detectedLanguage = {
+      primary: conversationLanguage.primaryLanguage,
+      confidence: Number.isFinite(conversationLanguage.confidence)
+        ? Math.round(conversationLanguage.confidence * 100) / 100
+        : 0,
+      flag: langLabel.flag,
+      native: langLabel.native,
+      breakdown: conversationLanguage.languageBreakdown || {},
+    };
+
     // Hallucinationsskydd (Fas 2): kontrollera att outputen inte introducerar
     // fakta som inte finns i source-meddelandena.
     const sourceTexts = asArray(messages)
@@ -483,6 +516,7 @@ class SummarizeThreadCapability extends BaseCapability {
         source,
         generatedAt: new Date().toISOString(),
         guardrails,
+        detectedLanguage,
       },
       metadata: {
         capability: SummarizeThreadCapability.name,

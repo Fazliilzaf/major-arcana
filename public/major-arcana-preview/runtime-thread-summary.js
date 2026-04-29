@@ -236,6 +236,23 @@
 .cco-tsum-warnings {
   margin: 12px 0 0; font-size: 11px; color: rgba(180, 100, 40, 0.85);
 }
+.cco-tsum-language {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; margin-bottom: 8px; margin-right: 6px;
+  background: rgba(80, 60, 40, 0.06);
+  color: #5d4a3c;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+}
+.cco-tsum-language-flag { font-size: 14px; }
+.cco-tsum-language-label { font-weight: 600; }
+.cco-tsum-language-hint { color: rgba(80, 60, 40, 0.55); font-size: 10px; }
+[data-cco-theme="dark"] .cco-tsum-language,
+.is-dark .cco-tsum-language,
+html[data-theme="dark"] .cco-tsum-language {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3ece2;
+}
 .cco-tsum-guardrail {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 10px; margin-bottom: 12px;
@@ -395,7 +412,17 @@ html[data-theme="dark"] .cco-tsum-since {
     const newCount = Number(data.newMessagesSinceLastVisit || 0);
 
     const guardrails = data.guardrails || null;
+    const detectedLanguage = data.detectedLanguage || null;
     let html = '';
+    // Språk-badge (Fas 3): visa detekterat språk + flagga
+    if (detectedLanguage && detectedLanguage.primary && detectedLanguage.primary !== 'unknown') {
+      const conf = Math.round((detectedLanguage.confidence || 0) * 100);
+      html += `<div class="cco-tsum-language" title="Konfidens ${conf}%">
+        <span class="cco-tsum-language-flag">${escapeHtml(detectedLanguage.flag || '')}</span>
+        <span class="cco-tsum-language-label">Kund skriver på ${escapeHtml(detectedLanguage.native || detectedLanguage.primary)}</span>
+        <span class="cco-tsum-language-hint">— svara på samma språk</span>
+      </div>`;
+    }
     // Guardrail-badge överst (Verifierad / Ej verifierad)
     if (guardrails && typeof guardrails === 'object') {
       const klass = guardrails.verified ? 'is-verified' : 'is-unverified';
