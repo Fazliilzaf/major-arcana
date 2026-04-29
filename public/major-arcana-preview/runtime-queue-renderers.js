@@ -2174,9 +2174,18 @@
 
       const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
 
-      return `<article class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
-        <div class="priority-bar" aria-hidden="true"></div>
-        <div class="card-strip">
+      // v5: använd inline-styles på varje sektion + grid-style på artikeln så ingen
+      // CSS-override kan vända ordningen (footer-strip-body-buggen). Browser-defaults
+      // för grid + explicit grid-row på children ger garanterad strip→body→footer.
+      const articleStyle = "display:grid;grid-template-columns:12px 1fr;grid-template-rows:auto auto auto;grid-template-areas:\"rail strip\" \"rail body\" \"rail footer\";position:relative;height:auto;min-height:0;max-height:none;padding:0;overflow:visible;";
+      const railStyle = "grid-area:rail;grid-row:1/4;grid-column:1;width:5px;height:100%;align-self:stretch;border-radius:14px 0 0 14px;";
+      const stripStyle = "grid-area:strip;grid-row:1;grid-column:2;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 4px;";
+      const bodyStyle = "grid-area:body;grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;";
+      const footerStyle = "grid-area:footer;grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;";
+
+      return `<article class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
+        <div class="priority-bar" aria-hidden="true" style="${railStyle}"></div>
+        <div class="card-strip" style="${stripStyle}">
           <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${v5Icon}${escapeHtml(v5Label)}</span>
           <div class="meta">
             ${
@@ -2187,7 +2196,7 @@
             <span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${ownerIcon}${escapeHtml(stampLabel)}</span>
           </div>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="${bodyStyle}">
           <div class="avatar-wrap">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
             <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
@@ -2199,7 +2208,7 @@
             ${whatStr ? `<div class="signal-what">${escapeHtml(whatStr)}</div>` : ""}
           </div>
         </div>
-        <div class="card-footer">
+        <div class="card-footer" style="${footerStyle}">
           ${whyMarkup}
           ${mailboxStackMarkup}
           ${actionClusterMarkup}
