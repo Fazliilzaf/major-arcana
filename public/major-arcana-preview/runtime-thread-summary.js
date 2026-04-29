@@ -236,6 +236,66 @@
 .cco-tsum-warnings {
   margin: 12px 0 0; font-size: 11px; color: rgba(180, 100, 40, 0.85);
 }
+.cco-tsum-nba {
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(80, 100, 180, 0.08) 0%, rgba(40, 130, 90, 0.06) 100%);
+  border: 1px solid rgba(80, 100, 180, 0.15);
+  border-radius: 12px;
+}
+.cco-tsum-nba-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.cco-tsum-nba-icon { font-size: 16px; }
+.cco-tsum-nba-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(80, 60, 40, 0.7);
+}
+.cco-tsum-nba-confidence {
+  margin-left: auto;
+  font-size: 10px; font-weight: 600;
+  color: rgba(80, 100, 180, 0.85);
+  background: rgba(80, 100, 180, 0.10);
+  padding: 2px 7px; border-radius: 999px;
+}
+.cco-tsum-nba-title {
+  font-size: 14px; font-weight: 600; color: #2b251f;
+  margin: 6px 0 4px;
+}
+.cco-tsum-nba-desc {
+  font-size: 12px; color: rgba(80, 60, 40, 0.75); line-height: 1.4;
+}
+.cco-tsum-nba-reasoning {
+  margin: 8px 0 0; padding-left: 16px;
+  font-size: 11px; color: rgba(80, 60, 40, 0.60); line-height: 1.5;
+}
+.cco-tsum-nba-reasoning li { margin-bottom: 2px; }
+.cco-tsum-nba-secondary {
+  margin-top: 10px;
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+}
+.cco-tsum-nba-secondary-label {
+  font-size: 10px; font-weight: 600;
+  color: rgba(80, 60, 40, 0.55);
+  margin-right: 4px;
+}
+.cco-tsum-nba-secondary-pill {
+  font-size: 10px; font-weight: 500;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(80, 60, 40, 0.07);
+  color: #5d4a3c;
+}
+[data-cco-theme="dark"] .cco-tsum-nba,
+.is-dark .cco-tsum-nba,
+html[data-theme="dark"] .cco-tsum-nba {
+  background: linear-gradient(135deg, rgba(120, 140, 220, 0.12) 0%, rgba(80, 170, 130, 0.08) 100%);
+  border-color: rgba(120, 140, 220, 0.20);
+}
+[data-cco-theme="dark"] .cco-tsum-nba-title,
+.is-dark .cco-tsum-nba-title,
+html[data-theme="dark"] .cco-tsum-nba-title { color: #f3ece2; }
 .cco-tsum-badges {
   display: flex; gap: 6px; flex-wrap: wrap;
   margin-bottom: 10px;
@@ -442,7 +502,36 @@ html[data-theme="dark"] .cco-tsum-since {
     const detectedLanguage = data.detectedLanguage || null;
     const sentiment = data.sentiment || null;
     const intent = data.intent || null;
+    const nextBestAction = data.nextBestAction || null;
     let html = '';
+    // Next-Best-Action prominent CTA (Fas 6)
+    if (nextBestAction && nextBestAction.primary) {
+      const p = nextBestAction.primary;
+      const conf = Math.round((p.confidence || 0) * 100);
+      const reasoningHtml = Array.isArray(p.reasoning) && p.reasoning.length
+        ? `<ul class="cco-tsum-nba-reasoning">${p.reasoning.slice(0, 4).map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
+        : '';
+      const secondaryHtml = Array.isArray(nextBestAction.secondary) && nextBestAction.secondary.length
+        ? `<div class="cco-tsum-nba-secondary">
+            <span class="cco-tsum-nba-secondary-label">Andra alternativ:</span>
+            ${nextBestAction.secondary
+              .slice(0, 3)
+              .map((s) => `<span class="cco-tsum-nba-secondary-pill" title="${escapeHtml(s.description || '')}">${escapeHtml(s.icon || '')} ${escapeHtml(s.label || '')}</span>`)
+              .join('')}
+          </div>`
+        : '';
+      html += `<div class="cco-tsum-nba" data-nba-code="${escapeHtml(p.code)}">
+        <div class="cco-tsum-nba-header">
+          <span class="cco-tsum-nba-icon">${escapeHtml(p.icon || '')}</span>
+          <span class="cco-tsum-nba-label">Föreslagen åtgärd</span>
+          <span class="cco-tsum-nba-confidence">${conf}% säker</span>
+        </div>
+        <div class="cco-tsum-nba-title">${escapeHtml(p.label || '')}</div>
+        <div class="cco-tsum-nba-desc">${escapeHtml(p.description || '')}</div>
+        ${reasoningHtml}
+        ${secondaryHtml}
+      </div>`;
+    }
     // Sentiment + intent badges (Fas 5)
     if (sentiment || intent) {
       html += '<div class="cco-tsum-badges">';

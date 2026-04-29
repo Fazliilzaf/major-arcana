@@ -23,6 +23,7 @@ const { buildGuardrailReport } = require('../risk/aiGuardrails');
 const { detectConversationLanguage, getLanguageLabel } = require('../risk/languageDetect');
 const { detectConversationSentiment, getSentimentLabel } = require('../risk/sentimentDetect');
 const { runDeterministicIntent } = require('../intelligence/intentClassifier');
+const { recommendNextBestAction } = require('../risk/nextBestAction');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -353,6 +354,7 @@ class SummarizeThreadCapability extends BaseCapability {
           'detectedLanguage',
           'sentiment',
           'intent',
+          'nextBestAction',
         ],
         properties: {
           conversationId: { type: 'string', maxLength: 1024 },
@@ -402,6 +404,58 @@ class SummarizeThreadCapability extends BaseCapability {
               code: { type: 'string', maxLength: 32 },
               label: { type: 'string', maxLength: 60 },
               confidence: { type: 'number', minimum: 0, maximum: 1 },
+            },
+          },
+          nextBestAction: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['primary', 'secondary', 'reasoning'],
+            properties: {
+              primary: {
+                type: ['object', 'null'],
+                additionalProperties: false,
+                required: ['code', 'label', 'icon', 'primaryButton', 'description', 'confidence', 'reasoning'],
+                properties: {
+                  code: { type: 'string', maxLength: 60 },
+                  label: { type: 'string', maxLength: 120 },
+                  icon: { type: 'string', maxLength: 8 },
+                  primaryButton: { type: 'string', maxLength: 60 },
+                  description: { type: 'string', maxLength: 240 },
+                  confidence: { type: 'number', minimum: 0, maximum: 1 },
+                  reasoning: {
+                    type: 'array',
+                    maxItems: 6,
+                    items: { type: 'string', minLength: 1, maxLength: 240 },
+                  },
+                },
+              },
+              secondary: {
+                type: 'array',
+                maxItems: 4,
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['code', 'label', 'icon', 'primaryButton', 'description', 'confidence', 'reasoning'],
+                  properties: {
+                    code: { type: 'string', maxLength: 60 },
+                    label: { type: 'string', maxLength: 120 },
+                    icon: { type: 'string', maxLength: 8 },
+                    primaryButton: { type: 'string', maxLength: 60 },
+                    description: { type: 'string', maxLength: 240 },
+                    confidence: { type: 'number', minimum: 0, maximum: 1 },
+                    reasoning: {
+                      type: 'array',
+                      maxItems: 6,
+                      items: { type: 'string', minLength: 1, maxLength: 240 },
+                    },
+                  },
+                },
+              },
+              reasoning: {
+                type: 'array',
+                maxItems: 6,
+                items: { type: 'string', minLength: 1, maxLength: 240 },
+              },
             },
           },
           guardrails: {
@@ -545,6 +599,19 @@ class SummarizeThreadCapability extends BaseCapability {
         : 0,
     };
 
+    // Predictive Next-Best-Action (Fas 6): kombinera sentiment + intent + tråd-state
+    // till en konkret föreslagen åtgärd med reasoning.
+    const nextActionResult = recommendNextBestAction({
+      sentiment,
+      intent,
+      messages,
+    });
+    const nextBestAction = {
+      primary: nextActionResult?.primaryAction || null,
+      secondary: asArray(nextActionResult?.secondaryActions),
+      reasoning: asArray(nextActionResult?.topLevelReasoning),
+    };
+
     // Multi-language detection (Fas 3): identifiera vilket språk kunden skriver på
     // så att studio kan föreslå svar på samma språk.
     const conversationLanguage = detectConversationLanguage(messages, {
@@ -595,6 +662,7 @@ class SummarizeThreadCapability extends BaseCapability {
         detectedLanguage,
         sentiment,
         intent,
+        nextBestAction,
       },
       metadata: {
         capability: SummarizeThreadCapability.name,
