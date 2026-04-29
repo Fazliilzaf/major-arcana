@@ -27,6 +27,9 @@
 }
 .thread-card.unified-queue-card[data-lane] > .priority-bar {
   grid-area: rail !important;
+  grid-row: 1 / 4 !important;
+  grid-column: 1 !important;
+  order: 0 !important;
   width: 5px !important;
   height: 100% !important;
   border-radius: 14px 0 0 14px !important;
@@ -35,6 +38,9 @@
 }
 .thread-card.unified-queue-card[data-lane] > .card-strip {
   grid-area: strip !important;
+  grid-row: 1 !important;
+  grid-column: 2 !important;
+  order: 1 !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
@@ -44,6 +50,9 @@
 }
 .thread-card.unified-queue-card[data-lane] > .card-body {
   grid-area: body !important;
+  grid-row: 2 !important;
+  grid-column: 2 !important;
+  order: 2 !important;
   display: grid !important;
   grid-template-columns: 42px 1fr !important;
   grid-template-rows: auto !important;
@@ -83,6 +92,9 @@
 }
 .thread-card.unified-queue-card[data-lane] > .card-footer {
   grid-area: footer !important;
+  grid-row: 3 !important;
+  grid-column: 2 !important;
+  order: 3 !important;
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
