@@ -7,6 +7,8 @@ const { CcoConversationActionCapability } = require('./ccoConversationAction');
 const { SummarizeThreadCapability } = require('./summarizeThread');
 const { RecordDraftFeedbackCapability } = require('./recordDraftFeedback');
 const { GdprExportCustomerCapability, GdprAnonymizeCustomerCapability } = require('./gdprCustomer');
+const { TenantListCapability, TenantCreateCapability, TenantDisableCapability } = require('./tenantLifecycle');
+const { TenantUsageMetricsCapability } = require('./tenantUsageMetrics');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
 const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
@@ -25,6 +27,10 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(RecordDraftFeedbackCapability),
   assertCapabilityClass(GdprExportCustomerCapability),
   assertCapabilityClass(GdprAnonymizeCustomerCapability),
+  assertCapabilityClass(TenantListCapability),
+  assertCapabilityClass(TenantCreateCapability),
+  assertCapabilityClass(TenantDisableCapability),
+  assertCapabilityClass(TenantUsageMetricsCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(
