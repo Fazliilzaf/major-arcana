@@ -1,0 +1,14 @@
+node_modules/
+data/
+public/cco-next-release/
+public/cco-next/
+major-arcana-cco-next/
+dist/
+build/
+coverage/
+reports/
+*.min.js
+*.bundle.js
+package-lock.json
+public/major-arcana-preview/app.js
+public/major-arcana-preview/runtime-v5-layout-guard.js

@@ -113,7 +113,12 @@
     "test:a11y": "npx playwright test tests/a11y/",
     "test:load": "k6 run tests/load/k6-runtime-status.js",
     "test:mutation": "npx stryker run",
-    "test:all": "npm test && npm run test:e2e"
+    "test:all": "npm test && npm run test:e2e",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md,yml,yaml,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml,css,html}\"",
+    "prepare": "husky || true"
   },
   "keywords": [],
   "author": "",
@@ -132,6 +137,14 @@
     "@playwright/test": "^1.48.0",
     "@axe-core/playwright": "^4.10.0",
     "@stryker-mutator/core": "^8.6.0",
-    "axe-core": "^4.10.0"
+    "axe-core": "^4.10.0",
+    "eslint": "^9.13.0",
+    "@eslint/js": "^9.13.0",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0"
   }
 }

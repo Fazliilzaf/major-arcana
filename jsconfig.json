@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "checkJs": false,
+    "allowJs": true,
+    "noEmit": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "lib": ["es2022", "dom"]
+  },
+  "include": ["src/**/*", "server.js", "scripts/**/*", "public/major-arcana-preview/runtime-*.js"],
+  "exclude": [
+    "node_modules",
+    "data",
+    "public/cco-next-release",
+    "public/cco-next",
+    "major-arcana-cco-next",
+    "dist",
+    "build",
+    "coverage"
+  ]
+}
