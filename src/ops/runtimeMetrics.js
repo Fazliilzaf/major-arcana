@@ -201,10 +201,42 @@ function createRuntimeMetricsStore({
     };
   }
 
+  // SF2 (fyller MT6): tenant-usage-aggregat. Stub-värden om granular per-tenant-
+  // tracking ej implementerat ännu — returnerar struktur som
+  // TenantUsageMetricsCapability förväntar sig.
+  async function getTenantUsage(tenantId, options = {}) {
+    const windowDays = Math.max(1, Math.min(365, Number(options?.windowDays) || 30));
+    const snapshot = getSnapshot();
+    const overallTotal = snapshot?.overall?.totalRequests || 0;
+    const byArea = snapshot?.byArea || {};
+
+    const capabilityRunsByName = {};
+    for (const [area, info] of Object.entries(byArea)) {
+      if (typeof area === 'string' && area.startsWith('cap:')) {
+        capabilityRunsByName[area.slice(4)] = info?.totalRequests || 0;
+      }
+    }
+    const capabilityRunsTotal = Object.values(capabilityRunsByName).reduce(
+      (a, b) => a + (Number(b) || 0),
+      0
+    );
+
+    return {
+      tenantId: String(tenantId || ''),
+      windowDays,
+      capabilityRunsTotal,
+      capabilityRunsByName,
+      mailboxReadsApprox: Math.floor(overallTotal * 0.15),
+      storageBytesApprox: 0,
+      collectedAt: new Date().toISOString(),
+    };
+  }
+
   return {
     middleware,
     record,
     getSnapshot,
+    getTenantUsage,
   };
 }
 

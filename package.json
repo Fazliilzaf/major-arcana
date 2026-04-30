@@ -108,7 +108,12 @@
     "audit:repair": "node ./scripts/audit-repair.js",
     "test": "npm run test:unit",
     "test:unit": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 node --test",
-    "ops:soak": "node ./scripts/run-load-soak.js"
+    "ops:soak": "node ./scripts/run-load-soak.js",
+    "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.js",
+    "test:a11y": "npx playwright test tests/a11y/",
+    "test:load": "k6 run tests/load/k6-runtime-status.js",
+    "test:mutation": "npx stryker run",
+    "test:all": "npm test && npm run test:e2e"
   },
   "keywords": [],
   "author": "",
@@ -122,5 +127,11 @@
     "playwright": "1.58.2",
     "redis": "^4.7.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@axe-core/playwright": "^4.10.0",
+    "@stryker-mutator/core": "^8.6.0",
+    "axe-core": "^4.10.0"
   }
 }
