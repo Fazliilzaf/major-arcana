@@ -21,6 +21,7 @@ const {
 } = require('../templates/variables');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { buildDigest } = require('../ops/dailyDigest');
+const { runEnrichment } = require('../ops/messageEnrichmentRunner');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -222,6 +223,8 @@ function createOpsRouter({
   tenantConfigStore = null,
   sloTicketStore = null,
   releaseGovernanceStore = null,
+  ccoMailboxTruthStore = null,
+  messageIntelligenceStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -1949,6 +1952,99 @@ function createOpsRouter({
         }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte återställa backup.' });
+      }
+    }
+  );
+
+  // DI3+DI4: Message-intelligence backfill / delta-runner
+  // Kör enrichment över alla messages i mailboxTruthStore för anropande
+  // tenant. Idempotent. Mode kan vara 'backfill' (default), 'delta' eller 'force'.
+  router.post(
+    '/ops/intelligence/run',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      if (!messageIntelligenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+      }
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas i auth-context.' });
+        }
+        const mode = ['backfill', 'delta', 'force'].includes(body.mode) ? body.mode : 'backfill';
+        const mailboxIds = Array.isArray(body.mailboxIds) ? body.mailboxIds : [];
+        const result = await runEnrichment({
+          tenantId,
+          mailboxIds,
+          ccoMailboxTruthStore,
+          messageIntelligenceStore,
+          mode,
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.intelligence.run',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'message_intelligence',
+            metadata: {
+              mode,
+              examined: result.examined,
+              enriched: result.enriched,
+              skipped: result.skipped,
+              failed: result.failed,
+              durationMs: result.durationMs,
+              mailboxIds,
+            },
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, result });
+      } catch (error) {
+        console.error('[ops/intelligence/run]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte köra enrichment.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/intelligence/status',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!messageIntelligenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        const enrichmentCount = messageIntelligenceStore.countEnrichments({ tenantId });
+        const totalMessages = ccoMailboxTruthStore
+          ? (ccoMailboxTruthStore.listMessages({})?.length || 0)
+          : null;
+        const runInfo = messageIntelligenceStore.getRunInfo(tenantId);
+        return res.json({
+          ok: true,
+          tenantId,
+          enrichmentCount,
+          totalMessages,
+          coveragePct:
+            totalMessages > 0 ? Math.round((enrichmentCount / totalMessages) * 100) : null,
+          runInfo,
+        });
+      } catch (error) {
+        console.error('[ops/intelligence/status]', error);
+        return res.status(500).json({ error: 'Kunde inte hämta status.' });
       }
     }
   );

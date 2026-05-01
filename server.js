@@ -404,6 +404,7 @@ const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
+const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
 const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
@@ -833,6 +834,11 @@ process.once('SIGTERM', () => {
   });
   const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
     filePath: config.ccoMailboxTruthStorePath,
+  });
+  const messageIntelligenceStore = await createMessageIntelligenceStore({
+    filePath:
+      config.messageIntelligenceStorePath ||
+      (config.dataDir ? `${config.dataDir}/cco/message-intelligence.json` : './data/cco/message-intelligence.json'),
   });
   const ccoConversationStateStore = await createCcoConversationStateStore({
     filePath: config.ccoConversationStateStorePath,
@@ -1291,6 +1297,8 @@ process.once('SIGTERM', () => {
       tenantConfigStore,
       sloTicketStore,
       releaseGovernanceStore,
+      ccoMailboxTruthStore,
+      messageIntelligenceStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })
