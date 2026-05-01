@@ -2,10 +2,16 @@ services:
   - type: web
     name: arcana-cco
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm ci
     startCommand: npm start
+    disk:
+      name: arcana-cco-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
+      - key: ARCANA_STATE_ROOT
+        value: /var/data
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY
