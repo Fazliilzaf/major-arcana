@@ -118,7 +118,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,json,md,yml,yaml,css,html}\"",
     "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml,css,html}\"",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "i18n:extract": "node scripts/i18n-extract.js",
+    "i18n:cleanup": "node scripts/i18n-cleanup.js",
+    "i18n:merge": "node scripts/i18n-merge.js",
+    "i18n:all": "npm run i18n:extract && npm run i18n:cleanup && npm run i18n:merge"
   },
   "keywords": [],
   "author": "",
