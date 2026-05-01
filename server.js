@@ -405,6 +405,7 @@ const { createPatientConversionStore } = require('./src/ops/patientConversionSto
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
+const { createCustomerPreferenceStore } = require('./src/ops/customerPreferenceStore');
 const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
@@ -839,6 +840,11 @@ process.once('SIGTERM', () => {
     filePath:
       config.messageIntelligenceStorePath ||
       (config.dataDir ? `${config.dataDir}/cco/message-intelligence.json` : './data/cco/message-intelligence.json'),
+  });
+  const customerPreferenceStore = await createCustomerPreferenceStore({
+    filePath:
+      config.customerPreferenceStorePath ||
+      (config.dataDir ? `${config.dataDir}/cco/customer-preferences.json` : './data/cco/customer-preferences.json'),
   });
   const ccoConversationStateStore = await createCcoConversationStateStore({
     filePath: config.ccoConversationStateStorePath,
@@ -1299,6 +1305,7 @@ process.once('SIGTERM', () => {
       releaseGovernanceStore,
       ccoMailboxTruthStore,
       messageIntelligenceStore,
+      customerPreferenceStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })

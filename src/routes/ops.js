@@ -22,6 +22,11 @@ const {
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { buildDigest } = require('../ops/dailyDigest');
 const { runEnrichment } = require('../ops/messageEnrichmentRunner');
+const {
+  aggregateByCustomer,
+  findCrossMailboxCustomers,
+  summarizeAggregation,
+} = require('../ops/crossMailboxAggregator');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -225,9 +230,12 @@ function createOpsRouter({
   releaseGovernanceStore = null,
   ccoMailboxTruthStore = null,
   messageIntelligenceStore = null,
+  customerPreferenceStore = null,
   requireAuth,
   requireRole,
 }) {
+  const DEFAULT_PREFERRED_MAILBOX =
+    String(process.env.CCO_DEFAULT_PREFERRED_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
   const router = express.Router();
   const REQUIRED_SCHEDULER_SUITE_JOB_IDS = Object.freeze([
     'nightly_pilot_report',
@@ -2045,6 +2053,135 @@ function createOpsRouter({
       } catch (error) {
         console.error('[ops/intelligence/status]', error);
         return res.status(500).json({ error: 'Kunde inte hämta status.' });
+      }
+    }
+  );
+
+  // DI5: Cross-mailbox kund-rapport — read-only.
+  // GET-parameter `preferredMailbox` (default contact@hairtpclinic.com) markerar
+  // vilka kunder som behöver konsolideras.
+  router.get(
+    '/ops/customers/cross-mailbox-report',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      try {
+        const preferred = String(
+          req.query?.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
+        ).toLowerCase();
+        const limit = Math.max(1, Math.min(500, Number(req.query?.limit) || 200));
+        const messages = ccoMailboxTruthStore.listMessages({}) || [];
+        const summary = summarizeAggregation(messages, { preferredMailboxId: preferred });
+        const customers = findCrossMailboxCustomers(messages, {
+          preferredMailboxId: preferred,
+        }).slice(0, limit);
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          preferredMailboxId: preferred,
+          summary,
+          customers,
+        });
+      } catch (error) {
+        console.error('[ops/customers/cross-mailbox-report]', error);
+        return res.status(500).json({ error: 'Kunde inte bygga rapporten.' });
+      }
+    }
+  );
+
+  // DI6: Konsolidera kunder till preferred mailbox.
+  // Sätter customerPreference.preferredMailboxId = preferred för varje kund som
+  // skrivit till >1 mailbox. Detta är reversibel (skriver bara metadata, ändrar
+  // inte själva mail-trådarna). Body: { preferredMailbox?, dryRun?, limit? }.
+  router.post(
+    '/ops/customers/consolidate',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      if (!customerPreferenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Customer-preference-store är inte tillgänglig.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas i auth-context.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const preferred = String(
+          body.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
+        ).toLowerCase();
+        const dryRun = Boolean(body.dryRun);
+        const limit = Math.max(0, Number(body.limit) || 0);
+
+        const messages = ccoMailboxTruthStore.listMessages({}) || [];
+        const candidates = findCrossMailboxCustomers(messages, {
+          preferredMailboxId: preferred,
+        });
+        const targets = limit > 0 ? candidates.slice(0, limit) : candidates;
+        let updated = 0;
+        const samples = [];
+        for (const c of targets) {
+          if (!dryRun) {
+            await customerPreferenceStore.setPreferredMailbox({
+              tenantId,
+              customerEmail: c.customerEmail,
+              preferredMailboxId: preferred,
+              reason: c.wroteToPreferred
+                ? 'consolidated_existing_preferred'
+                : 'consolidated_new_preferred',
+            });
+          }
+          updated += 1;
+          if (samples.length < 5) {
+            samples.push({
+              customerEmail: c.customerEmail,
+              customerName: c.customerName,
+              mailboxes: c.mailboxes.map((m) => `${m.mailboxId} (${m.messageCount})`),
+              totalMessages: c.totalMessages,
+            });
+          }
+        }
+        if (!dryRun && typeof customerPreferenceStore.flush === 'function') {
+          await customerPreferenceStore.flush();
+        }
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.customers.consolidate',
+            outcome: 'success',
+            targetType: 'customer_preference',
+            targetId: preferred,
+            metadata: {
+              preferredMailboxId: preferred,
+              candidates: candidates.length,
+              updated,
+              dryRun,
+            },
+          });
+        } catch (_e) {}
+
+        return res.json({
+          ok: true,
+          dryRun,
+          preferredMailboxId: preferred,
+          candidatesFound: candidates.length,
+          updated,
+          samples,
+        });
+      } catch (error) {
+        console.error('[ops/customers/consolidate]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte konsolidera kunder.' });
       }
     }
   );

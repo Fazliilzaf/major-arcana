@@ -267,6 +267,8 @@
           <h2 class="cco-ops-title">Operations dashboard</h2>
           <span class="cco-ops-meta" data-meta>—</span>
           <div class="cco-ops-actions">
+            <button type="button" class="cco-ops-btn" data-action="enrich">Kör intelligence-backfill</button>
+            <button type="button" class="cco-ops-btn" data-action="consolidate">Konsolidera kunder</button>
             <button type="button" class="cco-ops-btn" data-action="digest">Förhandsgranska digest</button>
             <button type="button" class="cco-ops-btn" data-action="refresh">Uppdatera</button>
             <button type="button" class="cco-ops-btn cco-ops-btn--close" data-action="close" aria-label="Stäng">×</button>
@@ -284,6 +286,8 @@
     dialog.querySelector('[data-action="close"]').addEventListener('click', close);
     dialog.querySelector('[data-action="refresh"]').addEventListener('click', refresh);
     dialog.querySelector('[data-action="digest"]').addEventListener('click', previewDigest);
+    dialog.querySelector('[data-action="enrich"]').addEventListener('click', runIntelligenceBackfill);
+    dialog.querySelector('[data-action="consolidate"]').addEventListener('click', consolidateCustomers);
 
     document.body.appendChild(dialog);
     return dialog;
@@ -463,6 +467,76 @@
         </div>
       </div>
     `;
+  }
+
+  async function runIntelligenceBackfill() {
+    try {
+      window.MajorArcanaPreviewToast?.info('Kör intelligence-backfill…');
+      const res = await fetch('/api/v1/ops/intelligence/run', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'backfill' }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const r = data.result || {};
+      window.MajorArcanaPreviewToast?.success(
+        'Backfill klar: ' +
+          r.enriched +
+          ' berikade, ' +
+          r.skipped +
+          ' redan up-to-date, ' +
+          r.failed +
+          ' fel (' +
+          Math.round((r.durationMs || 0) / 1000) +
+          ' s).',
+        { title: 'Intelligence-backfill', duration: 8000 }
+      );
+    } catch (err) {
+      window.MajorArcanaPreviewToast?.error(
+        'Backfill misslyckades: ' + (err?.message || 'okänt'),
+        { title: 'Intelligence-backfill' }
+      );
+    }
+  }
+
+  async function consolidateCustomers() {
+    const confirmed = confirm(
+      'Konsolidera kunder mot contact@hairtpclinic.com?\n\n' +
+        'Detta sätter preferredMailbox=contact@ för alla kunder som skrivit till mer än en mailbox. ' +
+        'Reversibel — påverkar inte själva mail-trådarna.'
+    );
+    if (!confirmed) return;
+    try {
+      window.MajorArcanaPreviewToast?.info('Konsoliderar kunder…');
+      const res = await fetch('/api/v1/ops/customers/consolidate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferredMailbox: 'contact@hairtpclinic.com', dryRun: false }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const sampleText = (data.samples || [])
+        .slice(0, 3)
+        .map((s) => '• ' + (s.customerName || s.customerEmail) + ' (' + s.totalMessages + ' mail)')
+        .join('\n');
+      window.MajorArcanaPreviewToast?.success(
+        'Konsolidering klar: ' +
+          data.updated +
+          ' av ' +
+          data.candidatesFound +
+          ' kunder uppdaterade.\n\n' +
+          (sampleText ? 'Exempel:\n' + sampleText : ''),
+        { title: 'Konsolidering', duration: 12000 }
+      );
+    } catch (err) {
+      window.MajorArcanaPreviewToast?.error(
+        'Konsolidering misslyckades: ' + (err?.message || 'okänt'),
+        { title: 'Konsolidering' }
+      );
+    }
   }
 
   async function previewDigest() {
