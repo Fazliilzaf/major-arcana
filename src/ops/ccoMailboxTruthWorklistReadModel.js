@@ -613,8 +613,10 @@ function buildWorklistRollupRow(rows = []) {
     normalizeText(primaryRow?.from?.address) ||
     normalizeText(primaryRow?.from?.emailAddress?.address) ||
     '';
-  // Sista fallback: använd användarnamn-delen av email (före @) som customerName
-  const customerNameWithFallback = customerName || (customerEmail ? customerEmail.split('@')[0] : '');
+  // Sista fallback: humanize email-delen (john.doe@x → "John Doe"), annars användarnamn
+  const customerNameWithFallback =
+    customerName ||
+    (customerEmail ? humanizeCounterpartyEmail(customerEmail) || customerEmail.split('@')[0] : '');
   const provenanceDetail = uniqueMailboxLabels.join(' · ');
   const provenanceLabel = uniqueMailboxLabels.length > 1 ? `${uniqueMailboxLabels.length} mailboxar` : '';
   return {
@@ -912,6 +914,33 @@ function createCcoMailboxTruthWorklistReadModel({
         const counterparty = deriveCounterparty(message, mailboxId);
         entry.customerEmail = counterparty.email || null;
         entry.customerName = counterparty.name || null;
+      }
+      // FIX6: hård fallback — om deriveCounterparty inte hittade något,
+      // testa alla legacy-fält (senderEmail/senderName/counterpartyEmail/from.address).
+      // Trädet av Graph-ingestion har skiftat över tid och vissa rader saknar
+      // strukturerat from-objekt men har platt sender*-fält.
+      if (!entry.customerEmail) {
+        const flatEmail =
+          normalizeText(message?.senderEmail) ||
+          normalizeText(message?.counterpartyEmail) ||
+          normalizeText(message?.fromEmail) ||
+          normalizeText(message?.from?.address) ||
+          normalizeText(message?.from?.emailAddress?.address) ||
+          normalizeText(message?.sender?.emailAddress?.address) ||
+          '';
+        const flatName =
+          normalizeText(message?.senderName) ||
+          normalizeText(message?.fromName) ||
+          normalizeText(message?.from?.name) ||
+          normalizeText(message?.from?.emailAddress?.name) ||
+          normalizeText(message?.sender?.emailAddress?.name) ||
+          '';
+        if (flatEmail) {
+          entry.customerEmail = flatEmail.toLowerCase();
+        }
+        if (!entry.customerName) {
+          entry.customerName = flatName || null;
+        }
       }
       if (!entry.customerIdentity) {
         const rawIdentityCarrier = normalizeIdentityCarrier(message);
