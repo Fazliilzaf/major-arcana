@@ -220,7 +220,34 @@
       ];
     }
 
+    // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
+    // app.js fixture-init och denna renderer wipar customerName/customerInitials.
+    // Tills vi spårat root cause: lookup direkt på demo-id.
+    const DEMO_FIXTURE_FALLBACKS = {
+      "demo-mb-001": { customerName: "Morten Bak Kristoffersen", customerInitials: "MB" },
+      "demo-jk-002": { customerName: "Johan Karlsson", customerInitials: "JK" },
+      "demo-sh-003": { customerName: "Sara Holm", customerInitials: "SH" },
+      "demo-el-004": { customerName: "Erik Lindqvist", customerInitials: "EL" },
+      "demo-as-005": { customerName: "Anna Svensson", customerInitials: "AS" },
+      "demo-pn-006": { customerName: "Peter Nilsson", customerInitials: "PN" },
+    };
+    function applyDemoFixtureFallback(thread) {
+      if (!thread || typeof thread !== "object") return thread;
+      const fb = DEMO_FIXTURE_FALLBACKS[String(thread.id || "")];
+      if (!fb) return thread;
+      const needsName = !String(thread.customerName || "").trim() ||
+        /^okänd/i.test(String(thread.customerName || "").trim());
+      if (!needsName) return thread;
+      return {
+        ...thread,
+        customerName: fb.customerName,
+        customerInitials: thread.customerInitials || fb.customerInitials,
+        avatarInitials: thread.avatarInitials || fb.customerInitials,
+      };
+    }
+
     function buildRuntimeThreadCardPresentation(thread, selected) {
+      thread = applyDemoFixtureFallback(thread);
       const tags = asArray(thread.tags);
       const normalizeCardValue = (value) => String(value || "").trim().toLowerCase();
       const escapeRegExp = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -664,6 +691,7 @@
     }
 
     function buildThreadCardMarkup(thread, index, selected) {
+      thread = applyDemoFixtureFallback(thread);
       const toHistoryItem =
         typeof buildQueueInlineLaneHistoryItem === "function"
           ? buildQueueInlineLaneHistoryItem
