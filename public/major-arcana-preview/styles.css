@@ -776,6 +776,20 @@
   box-shadow: none;
   overflow-y: auto;
   align-content: start;
+  /* FIX7: hård isolering — varje kort är sin egen stacking-kontext så
+     pseudo-element/transforms inte kan blöda upp i grannkortet vid 4+ mailboxar */
+  isolation: isolate;
+}
+
+/* FIX7: defensiv kort-isolering — säkerställ att varje thread-card är
+   sin egen layout-container och aldrig kan rita ovanpå sin granne. */
+.queue-history-list > .thread-card {
+  contain: layout paint;
+  position: relative;
+  isolation: isolate;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  transform: none;
 }
 
 .queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-story {
