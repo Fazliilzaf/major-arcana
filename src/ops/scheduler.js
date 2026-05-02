@@ -267,6 +267,8 @@ function createScheduler({
   ccoHistoryStore = null,
   ccoCustomerStore = null,
   graphReadConnector = null,
+  graphSendConnector = null,
+  tenantConfigStore = null,
   secretRotationStore = null,
   sloTicketStore = null,
   releaseGovernanceStore = null,
@@ -2483,6 +2485,37 @@ function createScheduler({
     }
   }
 
+  // DD1: Daily digest — kör KPI-aggregat per tenant + skickar email via
+  // Graph sendMail till digestRecipients. Hour-gating + per-day dedupe
+  // hanteras inuti runDailyDigestForAllTenants.
+  async function runDailyDigest() {
+    if (!tenantConfigStore || typeof tenantConfigStore.listTenants !== 'function') {
+      return { skipped: true, reason: 'tenantConfigStore saknas' };
+    }
+    if (!graphSendConnector) {
+      return { skipped: true, reason: 'graphSendConnector saknas' };
+    }
+    try {
+      const { runDailyDigestForAllTenants } = require('./dailyDigestRunner');
+      const result = await runDailyDigestForAllTenants({
+        tenantConfigStore,
+        ccoHistoryStore,
+        graphSendConnector,
+        runtimeMetricsStore,
+        forceSend: false,
+        dryRun: false,
+        logger,
+      });
+      logger?.log?.(
+        `[scheduler] cco_daily_digest sent=${result.sent} skipped=${result.skipped} failed=${result.failed}`
+      );
+      return result;
+    } catch (error) {
+      logger?.error?.('[scheduler] cco_daily_digest failed', sanitizeError(error));
+      throw error;
+    }
+  }
+
   const jobDefinitions = [
     {
       id: 'cco_weekly_brief',
@@ -2507,6 +2540,14 @@ function createScheduler({
       name: 'CCO kons history sync',
       intervalMs: toHoursMs(config.schedulerCcoHistorySyncIntervalHours, 6),
       run: runCcoHistorySync,
+    },
+    {
+      id: 'cco_daily_digest',
+      name: 'CCO daily digest e-mail',
+      // Kör varje timme; runner-funktionen själv kollar att aktuell timme
+      // matchar tenant-config.digest.sendHour och att vi inte redan skickat idag.
+      intervalMs: toMinutesMs(config.schedulerCcoDailyDigestIntervalMinutes, 60),
+      run: runDailyDigest,
     },
     {
       id: 'cco_truth_delta_sync',

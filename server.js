@@ -396,6 +396,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
+const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
 const { runStartupDiskGuard } = require('./src/ops/startupDiskGuard');
@@ -894,6 +895,30 @@ process.once('SIGTERM', () => {
   });
   const graphReadConnector = createRuntimeGraphReadConnector();
 
+  // DD1: shared graphSendConnector så scheduler (daily-digest) och
+  // routes/capabilities (send-mail) använder samma instans.
+  const graphSendConnector = (() => {
+    const enabled = String(process.env.ARCANA_GRAPH_SEND_ENABLED || '').toLowerCase() === 'true';
+    if (!enabled) return null;
+    const tenantId = String(process.env.ARCANA_GRAPH_TENANT_ID || '').trim();
+    const clientId = String(process.env.ARCANA_GRAPH_CLIENT_ID || '').trim();
+    const clientSecret = String(process.env.ARCANA_GRAPH_CLIENT_SECRET || '').trim();
+    if (!tenantId || !clientId || !clientSecret) return null;
+    try {
+      return createMicrosoftGraphSendConnector({
+        tenantId,
+        clientId,
+        clientSecret,
+        authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
+        graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
+        scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.warn('[server] kunde inte skapa graphSendConnector', err?.message);
+      return null;
+    }
+  })();
+
   const scheduler = createScheduler({
     config,
     authStore,
@@ -903,6 +928,8 @@ process.once('SIGTERM', () => {
     ccoHistoryStore,
     ccoCustomerStore,
     graphReadConnector,
+    graphSendConnector,
+    tenantConfigStore,
     secretRotationStore,
     sloTicketStore,
     releaseGovernanceStore,
@@ -1310,6 +1337,9 @@ process.once('SIGTERM', () => {
       ccoMailboxTruthStore,
       messageIntelligenceStore,
       customerPreferenceStore,
+      ccoHistoryStore,
+      graphSendConnector,
+      runtimeMetricsStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })

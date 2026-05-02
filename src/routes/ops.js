@@ -21,6 +21,10 @@ const {
 } = require('../templates/variables');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { buildDigest } = require('../ops/dailyDigest');
+const {
+  runDigestForTenant,
+  runDailyDigestForAllTenants,
+} = require('../ops/dailyDigestRunner');
 const { runEnrichment } = require('../ops/messageEnrichmentRunner');
 const {
   aggregateByCustomer,
@@ -235,6 +239,9 @@ function createOpsRouter({
   ccoMailboxTruthStore = null,
   messageIntelligenceStore = null,
   customerPreferenceStore = null,
+  ccoHistoryStore = null,
+  graphSendConnector = null,
+  runtimeMetricsStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -2248,6 +2255,101 @@ function createOpsRouter({
       return res.status(500).json({ error: 'Kunde inte bygga digest.' });
     }
   });
+
+  // DD2: manuell trigger för daily-digest (skickar e-post via Graph). Body:
+  //   { tenantId?: string, recipients?: string[], dryRun?: boolean, allTenants?: boolean }
+  // Default: skicka för auth-tenanten. Med allTenants=true loopar runnern alla tenants.
+  router.post(
+    '/ops/digest/send',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!tenantConfigStore || typeof tenantConfigStore.getTenantConfig !== 'function') {
+        return res.status(503).json({ error: 'tenantConfigStore är inte tillgänglig.' });
+      }
+      if (!graphSendConnector) {
+        return res
+          .status(503)
+          .json({ error: 'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).' });
+      }
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const dryRun = Boolean(body.dryRun);
+        const recipientsOverride = Array.isArray(body.recipients) && body.recipients.length > 0
+          ? body.recipients
+          : null;
+
+        if (body.allTenants === true) {
+          const result = await runDailyDigestForAllTenants({
+            tenantConfigStore,
+            ccoHistoryStore,
+            graphSendConnector,
+            runtimeMetricsStore,
+            forceSend: true,
+            dryRun,
+            logger: console,
+          });
+          try {
+            await authStore.addAuditEvent({
+              tenantId: req.auth?.tenantId || null,
+              actorUserId: req.auth?.userId,
+              action: 'ops.digest.send.all',
+              outcome: 'success',
+              targetType: 'digest',
+              targetId: 'all_tenants',
+              metadata: {
+                sent: result?.sent,
+                skipped: result?.skipped,
+                failed: result?.failed,
+                dryRun,
+              },
+            });
+          } catch (_e) {}
+          return res.json({ ok: true, result });
+        }
+
+        const tenantId = (body.tenantId && String(body.tenantId).trim()) || req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas.' });
+        }
+        const tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+        const result = await runDigestForTenant({
+          tenantId,
+          tenantConfig: tenantConfig || {},
+          tenantConfigStore,
+          ccoHistoryStore,
+          graphSendConnector,
+          runtimeMetricsStore,
+          forceSend: true,
+          recipientsOverride,
+          dryRun,
+          logger: console,
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.digest.send',
+            outcome: result?.error ? 'failed' : 'success',
+            targetType: 'digest',
+            targetId: 'manual_trigger',
+            metadata: {
+              recipients: result?.recipients,
+              senderMailboxId: result?.senderMailboxId,
+              dryRun,
+              error: result?.error || null,
+            },
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, result });
+      } catch (error) {
+        console.error('[ops/digest/send]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte skicka digest.' });
+      }
+    }
+  );
 
   return router;
 }
