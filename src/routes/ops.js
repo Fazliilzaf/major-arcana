@@ -2207,12 +2207,34 @@ function createOpsRouter({
         const customers = findCrossMailboxCustomers(messages, {
           preferredMailboxId: preferred,
         }).slice(0, limit);
+        // Debug: när inga kunder hittas, returnera shape av första 3 messages
+        const debug =
+          customers.length === 0 && messages.length > 0
+            ? {
+                totalMessages: messages.length,
+                sampleMessageKeys: Object.keys(messages[0] || {}),
+                sampleMessages: messages.slice(0, 3).map((m) => ({
+                  mailboxId: m.mailboxId,
+                  folderType: m.folderType,
+                  customerEmail: m.customerEmail,
+                  senderEmail: m.senderEmail,
+                  from: m.from,
+                  fromName: m.fromName,
+                  fromEmail: m.fromEmail,
+                  toRecipients: Array.isArray(m.toRecipients)
+                    ? m.toRecipients.slice(0, 2)
+                    : m.toRecipients,
+                  subject: (m.subject || '').slice(0, 60),
+                })),
+              }
+            : null;
         return res.json({
           ok: true,
           generatedAt: new Date().toISOString(),
           preferredMailboxId: preferred,
           summary,
           customers,
+          ...(debug ? { debug } : {}),
         });
       } catch (error) {
         console.error('[ops/customers/cross-mailbox-report]', error);
