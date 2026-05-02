@@ -1,4 +1,29 @@
 require('dotenv').config();
+
+// FIX2: Render env-vars syncas inte konsekvent till container. Hårdcoda
+// kritiska bootstrap-vars FÖRE config läses så de garanterat är aktiva.
+// Sätter bara om de inte redan är satta (env-var har fortfarande precedence).
+if (!process.env.ARCANA_STATE_ROOT) process.env.ARCANA_STATE_ROOT = '/var/data';
+if (!process.env.ARCANA_BOOTSTRAP_MAILBOX_BACKFILL) process.env.ARCANA_BOOTSTRAP_MAILBOX_BACKFILL = 'true';
+if (!process.env.ARCANA_BOOTSTRAP_TENANT_ID) process.env.ARCANA_BOOTSTRAP_TENANT_ID = 'hair-tp-clinic';
+if (!process.env.ARCANA_BOOTSTRAP_PREFERRED_MAILBOX) process.env.ARCANA_BOOTSTRAP_PREFERRED_MAILBOX = 'contact@hairtpclinic.com';
+if (!process.env.ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS) process.env.ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS = '90';
+if (!process.env.ARCANA_BOOTSTRAP_DELAY_MS) process.env.ARCANA_BOOTSTRAP_DELAY_MS = '8000';
+if (!process.env.ARCANA_DEFAULT_TENANT) process.env.ARCANA_DEFAULT_TENANT = 'hair-tp-clinic';
+
+// Säkerställ att target-dirn finns (Render mountar /var/data men subkataloger
+// måste skapas av appen)
+try {
+  require('node:fs').mkdirSync('/var/data', { recursive: true });
+  require('node:fs').mkdirSync('/var/data/cco', { recursive: true });
+  require('node:fs').mkdirSync('/var/data/auth', { recursive: true });
+  console.log('[startup] /var/data confirmed writable');
+} catch (e) {
+  console.warn('[startup] /var/data not writable:', e?.message);
+  // Fall tillbaka till lokal sökväg
+  process.env.ARCANA_STATE_ROOT = require('node:path').join(process.cwd(), 'data');
+}
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('node:fs');
