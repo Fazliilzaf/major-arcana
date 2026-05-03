@@ -206,7 +206,30 @@
         '<strong style="color:#7a5e44;font-weight:600;">' + (i + 1) + '.</strong> ' + escHtml(t) + '</li>')
       .join('');
   }
+  // FIX12b: tvinga focus-shell till höger grid-kolumn när auth_required gör att
+  // den hamnar under queue-shell istället för bredvid den.
+  function ensureFocusShellInRightColumn() {
+    const ws = document.querySelector('.preview-workspace');
+    const focusShell = document.querySelector('.focus-shell');
+    const followup = document.querySelector('.cco-followup-row');
+    if (!ws || !focusShell) return;
+    focusShell.style.gridColumn = '2';
+    focusShell.style.gridRow = '1 / span 2';
+    focusShell.style.alignSelf = 'stretch';
+    focusShell.style.justifySelf = 'stretch';
+    focusShell.style.width = '100%';
+    focusShell.style.height = 'auto';
+    focusShell.style.minHeight = '600px';
+    if (followup) {
+      followup.style.gridColumn = '2';
+      followup.style.gridRow = '1';
+      followup.style.alignSelf = 'start';
+    }
+    ws.style.gridTemplateRows = 'auto';
+  }
+
   function renderFocusPanelForFixture(fb) {
+    ensureFocusShellInRightColumn();
     const conversationSection = document.querySelector('.focus-section-conversation');
     const layout = document.querySelector('[data-focus-conversation-layout]');
     const titleEl = document.querySelector('[data-focus-title]');
