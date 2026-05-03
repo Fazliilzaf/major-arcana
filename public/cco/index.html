@@ -1025,8 +1025,34 @@ button { cursor: pointer; }
       thread.conversationLoaded = true;
       // Re-render only if this is still the selected thread
       if (state.selectedId === thread.id) renderThread();
+      // Also kick off AI-summary load (non-blocking)
+      loadConversationSummary(thread);
     } catch (_e) { /* swallow */ }
     finally { thread.conversationLoading = false; }
+  }
+  async function loadConversationSummary(thread) {
+    if (!thread || thread.summaryLoading || thread.summaryLoaded) return;
+    thread.summaryLoading = true;
+    try {
+      const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+      if (!tok || !thread.id) return;
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.id)}/summary`, {
+        headers:{ Authorization:'Bearer '+tok }
+      });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (!j.ok || !j.summary) return;
+      const s = j.summary;
+      // AI-summary block uses aiTldr (headline) + aiPoints (bullets)
+      thread.aiTldr = s.headline || '';
+      thread.aiPoints = Array.isArray(s.bullets) ? s.bullets : [];
+      // Right context panel uses risk + nextStep
+      if (s.risk) thread.risk = s.risk;
+      if (s.nextStep) thread.nextStep = s.nextStep;
+      thread.summaryLoaded = true;
+      if (state.selectedId === thread.id) renderThread();
+    } catch (_e) { /* swallow */ }
+    finally { thread.summaryLoading = false; }
   }
 
   async function init() { bind(); await tryLoadLive(); renderAll(); }
