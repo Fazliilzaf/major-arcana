@@ -38,6 +38,22 @@
   --shadow-sm: 0 1px 3px rgba(20, 18, 32, 0.06), 0 6px 14px -4px rgba(20, 18, 32, 0.08);
   --shadow-glow: 0 0 0 4px rgba(108, 92, 231, 0.12), 0 8px 20px rgba(108, 92, 231, 0.20);
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="dark"] {
+  --bg: #0d0e14;
+  --bg-soft: #161821;
+  --bg-hover: #1d2030;
+  --surface: #161821;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.13);
+  --text: #f4f5f8;
+  --text-2: #a3a8b8;
+  --text-3: #6b7184;
+  --accent-soft: rgba(108, 92, 231, 0.14);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.32), 0 8px 18px -4px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.40), 0 16px 32px -6px rgba(0, 0, 0, 0.50);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -1240,6 +1256,238 @@ button { cursor: pointer; }
 }
 .note-input-bar .post-btn:hover { transform: translateY(-1px); }
 
+/* ===== Command palette ===== */
+.cmdk-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 18, 32, 0.42);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: none;
+  animation: fadeIn 0.18s var(--ease);
+}
+[data-theme="dark"] .cmdk-overlay { background: rgba(0, 0, 0, 0.55); }
+.cmdk-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; }
+.cmdk {
+  width: 100%; max-width: 580px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(255,255,255,0.04);
+  overflow: hidden;
+  animation: cmdkIn 0.2s var(--bounce);
+}
+@keyframes cmdkIn { from { transform: translateY(-12px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.cmdk-search {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.cmdk-search svg { width: 16px; height: 16px; color: var(--text-3); flex-shrink: 0; }
+.cmdk-search input {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.2px;
+}
+.cmdk-search input::placeholder { color: var(--text-3); }
+.cmdk-search kbd {
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  background: var(--bg-soft); padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--line);
+}
+
+.cmdk-results { max-height: 50vh; overflow-y: auto; padding: 6px; }
+.cmdk-section { margin-bottom: 4px; }
+.cmdk-section .label {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 1px; color: var(--text-3);
+  text-transform: uppercase;
+  padding: 8px 10px 4px;
+}
+.cmdk-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  cursor: pointer;
+  width: 100%; text-align: left;
+  transition: background 0.1s;
+}
+.cmdk-item:hover, .cmdk-item.active { background: var(--bg-soft); }
+.cmdk-item.active { background: var(--accent-soft); }
+.cmdk-item .ico {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-soft); color: var(--text-2);
+  flex-shrink: 0;
+}
+.cmdk-item.active .ico { background: var(--accent-grad); color: #fff; }
+.cmdk-item .ico svg { width: 13px; height: 13px; }
+.cmdk-item .body { flex: 1; min-width: 0; }
+.cmdk-item .title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmdk-item .sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.cmdk-item .shortcut { font-size: 10px; font-weight: 600; color: var(--text-3); background: var(--bg-soft); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.cmdk-item.active .shortcut { background: rgba(255,255,255,0.5); }
+.cmdk-empty { padding: 32px 16px; text-align: center; color: var(--text-3); font-size: 12.5px; }
+.cmdk-footer {
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  display: flex; gap: 14px; align-items: center;
+  font-size: 10.5px; color: var(--text-3); font-weight: 500;
+  background: var(--bg-soft);
+}
+.cmdk-footer kbd {
+  font-size: 9.5px; font-weight: 700;
+  background: var(--surface); padding: 1px 5px; border-radius: 3px;
+  border: 1px solid var(--line);
+  margin-right: 3px;
+}
+
+/* ===== Theme toggle ===== */
+.theme-toggle { position: relative; }
+.theme-toggle .sun, .theme-toggle .moon { transition: opacity 0.2s, transform 0.3s var(--bounce); }
+[data-theme="dark"] .theme-toggle .sun { opacity: 0; transform: rotate(180deg) scale(0); position: absolute; }
+[data-theme="dark"] .theme-toggle .moon { opacity: 1; transform: rotate(0) scale(1); }
+.theme-toggle .moon { opacity: 0; transform: rotate(-180deg) scale(0); position: absolute; }
+.theme-toggle .sun { opacity: 1; transform: rotate(0) scale(1); }
+
+/* ===== Notifications popover ===== */
+.notif-trigger { position: relative; }
+.notif-trigger .badge {
+  position: absolute; top: 1px; right: 1px;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 8px rgba(239, 68, 88, 0.4);
+}
+[data-theme="dark"] .notif-trigger .badge { box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(239, 68, 88, 0.5); }
+.notif-popover {
+  position: fixed; top: 48px; right: 14px;
+  width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 150;
+  display: none;
+  overflow: hidden;
+  animation: popIn 0.18s var(--bounce);
+}
+@keyframes popIn { from { transform: translateY(-8px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.notif-popover.open { display: block; }
+.notif-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 8px;
+}
+.notif-head h3 { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+.notif-head .clear { margin-left: auto; font-size: 11px; color: var(--text-3); cursor: pointer; font-weight: 600; }
+.notif-head .clear:hover { color: var(--accent); }
+.notif-summary {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.06), rgba(236, 72, 153, 0.04));
+  border-bottom: 1px solid var(--line);
+  font-size: 12px; color: var(--text-2); line-height: 1.45;
+}
+.notif-summary strong { color: var(--text); font-weight: 700; }
+.notif-list { max-height: 380px; overflow-y: auto; padding: 4px; }
+.notif {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 9px 10px; border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+.notif:hover { background: var(--bg-soft); }
+.notif.unread::before {
+  content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: var(--accent-grad);
+}
+.notif .ico {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-soft); color: var(--text-2);
+}
+.notif.danger .ico { background: rgba(239, 68, 88, 0.12); color: var(--red); }
+.notif.success .ico { background: rgba(26, 168, 108, 0.12); color: var(--green); }
+.notif.info .ico { background: rgba(20, 184, 192, 0.12); color: var(--teal); }
+.notif.ai .ico { background: var(--accent-grad); color: #fff; }
+.notif .ico svg { width: 14px; height: 14px; }
+.notif .body { flex: 1; min-width: 0; }
+.notif .title { font-size: 12.5px; font-weight: 600; color: var(--text); letter-spacing: -0.1px; line-height: 1.35; }
+.notif .meta { font-size: 10.5px; color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); font-weight: 500; }
+
+/* ===== Onboarding ===== */
+.onboard-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 18, 32, 0.50);
+  backdrop-filter: blur(2px);
+  z-index: 250;
+  display: none;
+  animation: fadeIn 0.25s var(--ease);
+}
+.onboard-overlay.open { display: block; }
+.onboard-spotlight {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(20, 18, 32, 0.50), 0 0 0 4px rgba(108, 92, 231, 0.45), 0 12px 40px var(--accent-glow);
+  pointer-events: none;
+  transition: all 0.35s var(--ease);
+  z-index: 251;
+}
+.onboard-card {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-md);
+  width: 320px;
+  z-index: 252;
+  transition: all 0.35s var(--ease);
+}
+.onboard-card .step {
+  font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+}
+.onboard-card h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 5px; }
+.onboard-card p { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.onboard-card .key {
+  display: inline-block; padding: 2px 7px; border-radius: 5px;
+  background: var(--bg-soft); border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: 600;
+  margin: 0 1px;
+}
+.onboard-card .actions {
+  display: flex; gap: 8px; margin-top: 14px; align-items: center;
+}
+.onboard-card .actions .skip {
+  font-size: 11.5px; color: var(--text-3); font-weight: 600;
+  cursor: pointer;
+}
+.onboard-card .actions .skip:hover { color: var(--text); }
+.onboard-card .actions .next {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--accent-grad); color: #fff;
+  font-size: 12px; font-weight: 700;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.onboard-card .actions .next:hover { transform: translateY(-1px); }
+.onboard-card .actions .next svg { width: 11px; height: 11px; }
+.onboard-card .progress {
+  display: inline-flex; gap: 4px;
+}
+.onboard-card .progress .pip {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--line-2);
+  transition: all 0.2s;
+}
+.onboard-card .progress .pip.done { background: var(--accent-grad); }
+.onboard-card .progress .pip.active { background: var(--accent); width: 16px; border-radius: 3px; }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
@@ -1290,6 +1538,10 @@ button { cursor: pointer; }
     <symbol id="i-chevron-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
     <symbol id="i-chevron-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
     <symbol id="i-history-overlay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></symbol>
   </defs>
 </svg>
 
@@ -1303,7 +1555,7 @@ button { cursor: pointer; }
     </div>
     <div class="search">
       <span class="icon"><svg width="14" height="14"><use href="#i-search"/></svg></span>
-      <input type="text" placeholder="Sök trådar, kunder, mailboxar…" id="search-input">
+      <input type="text" placeholder="Sök trådar, kunder, mailboxar… (⌘K)" id="search-input" readonly>
       <kbd>⌘ K</kbd>
     </div>
     <div class="topbar-actions">
@@ -1311,6 +1563,14 @@ button { cursor: pointer; }
         <span class="status-dot demo"></span>
         Demo
       </span>
+      <button class="icon-btn theme-toggle" id="theme-toggle" title="Byt tema (⌘⇧L)">
+        <svg width="15" height="15" class="sun"><use href="#i-sun"/></svg>
+        <svg width="15" height="15" class="moon"><use href="#i-moon"/></svg>
+      </button>
+      <button class="icon-btn notif-trigger" id="notif-trigger" title="Notifikationer">
+        <svg width="15" height="15"><use href="#i-bell"/></svg>
+        <span class="badge" id="notif-badge">3</span>
+      </button>
       <button class="icon-btn" title="Inställningar"><svg width="15" height="15"><use href="#i-settings"/></svg></button>
       <button class="compose-btn">
         <svg><use href="#i-plus"/></svg>
@@ -1420,6 +1680,41 @@ button { cursor: pointer; }
 
     <aside class="ctx-panel" id="ctx-panel"></aside>
   </div>
+</div>
+
+<!-- Command palette -->
+<div class="cmdk-overlay" id="cmdk-overlay">
+  <div class="cmdk" id="cmdk">
+    <div class="cmdk-search">
+      <svg><use href="#i-search"/></svg>
+      <input type="text" id="cmdk-input" placeholder="Sök eller utför action…" autocomplete="off">
+      <kbd>ESC</kbd>
+    </div>
+    <div class="cmdk-results" id="cmdk-results"></div>
+    <div class="cmdk-footer">
+      <span><kbd>↑↓</kbd>navigera</span>
+      <span><kbd>↵</kbd>välj</span>
+      <span><kbd>esc</kbd>stäng</span>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications popover -->
+<div class="notif-popover" id="notif-popover">
+  <div class="notif-head">
+    <h3>Notifikationer</h3>
+    <span class="clear" id="notif-clear">Markera alla lästa</span>
+  </div>
+  <div class="notif-summary">
+    <strong>3 nya mejl</strong> · <strong>1 hög risk</strong> eskalerade · senaste timmen
+  </div>
+  <div class="notif-list" id="notif-list"></div>
+</div>
+
+<!-- Onboarding -->
+<div class="onboard-overlay" id="onboard-overlay">
+  <div class="onboard-spotlight" id="onboard-spotlight"></div>
+  <div class="onboard-card" id="onboard-card"></div>
 </div>
 
 <script>
@@ -2107,6 +2402,225 @@ button { cursor: pointer; }
     ta.value = '';
   }
 
+  // ==== Theme toggle ====
+  function applyTheme(theme) {
+    const html = document.documentElement;
+    if (theme === 'dark') html.setAttribute('data-theme', 'dark');
+    else html.removeAttribute('data-theme');
+    try { localStorage.setItem('cco-theme', theme); } catch {}
+  }
+  function bindTheme() {
+    const saved = (() => { try { return localStorage.getItem('cco-theme'); } catch { return null; } })();
+    if (saved === 'dark' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      applyTheme('dark');
+    }
+    document.getElementById('theme-toggle')?.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(cur);
+      toast(cur === 'dark' ? '🌙 Mörkt tema' : '☀️ Ljust tema');
+    });
+  }
+
+  // ==== Command palette ====
+  const CMD_ACTIONS = [
+    { id:'compose', icon:'i-mail-plus', title:'Skriv nytt mejl', sub:'Öppna composer', shortcut:'C', run:()=>toast('Composer öppnad') },
+    { id:'reply', icon:'i-reply', title:'Svara på vald tråd', sub:'Fokusera composer', shortcut:'R', run:()=>focusComposer() },
+    { id:'snooze', icon:'i-clock', title:'Snooza vald tråd', sub:'Pausa till valt datum', run:()=>toast('Snooze (demo)') },
+    { id:'done', icon:'i-check', title:'Markera klar', sub:'Stäng tråden', shortcut:'E', run:()=>toast('Markerad klar') },
+    { id:'theme', icon:'i-moon', title:'Byt tema · ljus/mörk', sub:'Toggle dark mode', shortcut:'⌘⇧L', run:()=>document.getElementById('theme-toggle')?.click() },
+    { id:'mailboxes', icon:'i-inbox', title:'Visa alla mailboxar', sub:'Egzona, Fazli, Kons, Info, Kontakt, Marknad', run:()=>toast('Mailboxar (demo)') },
+    { id:'customers', icon:'i-users', title:'Gå till Kunder', sub:'Kund-vyn med all historik', shortcut:'⌘8', run:()=>toast('Kunder (demo)') },
+    { id:'analytics', icon:'i-chart', title:'Gå till Analys', sub:'Svartider, lane-fördelning, sentiment', run:()=>toast('Analys (demo)') },
+    { id:'templates', icon:'i-templates', title:'Skapa mall', sub:'Spara svar för återanvändning', run:()=>toast('Ny mall (demo)') },
+    { id:'settings', icon:'i-settings', title:'Inställningar', sub:'Konton, integrationer, notifikationer', run:()=>toast('Inställningar (demo)') },
+  ];
+  let cmdkActiveIdx = 0;
+  let cmdkResults = [];
+  function fuzzy(needle, haystack) {
+    needle = needle.toLowerCase(); haystack = haystack.toLowerCase();
+    if (!needle) return 1;
+    if (haystack.includes(needle)) return 2 + (haystack.startsWith(needle) ? 1 : 0);
+    let i = 0, score = 0;
+    for (const ch of needle) { const idx = haystack.indexOf(ch, i); if (idx < 0) return 0; score += 1 / (idx - i + 1); i = idx + 1; }
+    return score;
+  }
+  function buildCmdkResults(q) {
+    const queries = (q || '').trim();
+    const all = [];
+    // Threads
+    for (const t of state.threads) {
+      const blob = `${t.who} ${t.email} ${t.subject} ${t.preview||''}`;
+      const score = fuzzy(queries, blob);
+      if (queries === '' || score > 0) all.push({ kind:'thread', score: score + 0.5, t });
+    }
+    // Actions
+    for (const a of CMD_ACTIONS) {
+      const score = fuzzy(queries, a.title + ' ' + a.sub);
+      if (queries === '' || score > 0) all.push({ kind:'action', score, a });
+    }
+    if (queries) all.sort((x,y) => y.score - x.score);
+    return all.slice(0, 12);
+  }
+  function renderCmdkResults() {
+    const wrap = document.getElementById('cmdk-results');
+    if (!wrap) return;
+    if (!cmdkResults.length) { wrap.innerHTML = '<div class="cmdk-empty">Inga träffar</div>'; return; }
+    const groups = { thread:[], action:[] };
+    cmdkResults.forEach((r,i) => groups[r.kind].push({...r, i}));
+    let html = '';
+    if (groups.thread.length) {
+      html += '<div class="cmdk-section"><div class="label">Trådar</div>';
+      groups.thread.forEach(r => {
+        const t = r.t;
+        const cls = r.i === cmdkActiveIdx ? ' active' : '';
+        html += `<button class="cmdk-item${cls}" data-idx="${r.i}"><span class="ico">${ico('i-mail-open')}</span><div class="body"><div class="title">${escHtml(t.who)}</div><div class="sub">${escHtml(t.subject)}</div></div></button>`;
+      });
+      html += '</div>';
+    }
+    if (groups.action.length) {
+      html += '<div class="cmdk-section"><div class="label">Actions</div>';
+      groups.action.forEach(r => {
+        const a = r.a;
+        const cls = r.i === cmdkActiveIdx ? ' active' : '';
+        html += `<button class="cmdk-item${cls}" data-idx="${r.i}"><span class="ico">${ico(a.icon)}</span><div class="body"><div class="title">${escHtml(a.title)}</div><div class="sub">${escHtml(a.sub||'')}</div></div>${a.shortcut?`<span class="shortcut">${escHtml(a.shortcut)}</span>`:''}</button>`;
+      });
+      html += '</div>';
+    }
+    wrap.innerHTML = html;
+  }
+  function openCmdk() {
+    const ov = document.getElementById('cmdk-overlay');
+    const inp = document.getElementById('cmdk-input');
+    if (!ov) return;
+    ov.classList.add('open');
+    cmdkActiveIdx = 0;
+    if (inp) { inp.value = ''; inp.focus(); }
+    cmdkResults = buildCmdkResults('');
+    renderCmdkResults();
+  }
+  function closeCmdk() { document.getElementById('cmdk-overlay')?.classList.remove('open'); }
+  function selectCmdk(idx) {
+    const r = cmdkResults[idx];
+    if (!r) return;
+    if (r.kind === 'thread') { state.selectedId = r.t.id; renderRows(); renderThread(); closeCmdk(); }
+    else if (r.kind === 'action') { closeCmdk(); setTimeout(()=>r.a.run?.(), 80); }
+  }
+  function bindCmdk() {
+    const ov = document.getElementById('cmdk-overlay');
+    const inp = document.getElementById('cmdk-input');
+    inp?.addEventListener('input', () => { cmdkActiveIdx = 0; cmdkResults = buildCmdkResults(inp.value); renderCmdkResults(); });
+    inp?.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); closeCmdk(); }
+      else if (ev.key === 'ArrowDown') { ev.preventDefault(); cmdkActiveIdx = Math.min(cmdkResults.length-1, cmdkActiveIdx+1); renderCmdkResults(); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); cmdkActiveIdx = Math.max(0, cmdkActiveIdx-1); renderCmdkResults(); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); selectCmdk(cmdkActiveIdx); }
+    });
+    ov?.addEventListener('click', (ev) => { if (ev.target === ov) closeCmdk(); });
+    document.getElementById('cmdk-results')?.addEventListener('click', (ev) => {
+      const item = ev.target.closest('[data-idx]'); if (!item) return;
+      selectCmdk(Number(item.dataset.idx));
+    });
+  }
+
+  // ==== Notifications ====
+  const NOTIFS = [
+    { kind:'danger', icon:'i-flame', title:'Morten Bak Kristoffersen — eskalerade till hög risk', meta:'5 min sedan', unread:true },
+    { kind:'info', icon:'i-mail-open', title:'Sara Holm bekräftade FUE-konsultation', meta:'12 min sedan', unread:true },
+    { kind:'ai', icon:'i-sparkles', title:'AI-utkast flaggat — pris-avvikelse hos Erik Lindqvist', meta:'18 min sedan', unread:true },
+    { kind:'success', icon:'i-check', title:'Egzona K. svarade på 3 trådar', meta:'34 min sedan' },
+    { kind:'info', icon:'i-calendar', title:'Påminnelse: Peter Nilsson · röntgen fredag 09:00', meta:'1 tim sedan' },
+    { kind:'info', icon:'i-mail-plus', title:'Newsletter skickad till 142 prenumeranter', meta:'2 tim sedan' },
+  ];
+  function renderNotifs() {
+    const list = document.getElementById('notif-list');
+    if (!list) return;
+    list.innerHTML = NOTIFS.map(n => `
+      <div class="notif ${n.kind}${n.unread?' unread':''}">
+        <span class="ico">${ico(n.icon)}</span>
+        <div class="body">
+          <div class="title">${escHtml(n.title)}</div>
+          <div class="meta">${escHtml(n.meta)}</div>
+        </div>
+      </div>`).join('');
+    const unread = NOTIFS.filter(n=>n.unread).length;
+    const badge = document.getElementById('notif-badge');
+    if (badge) { badge.textContent = unread; badge.style.display = unread>0?'inline-flex':'none'; }
+  }
+  function bindNotifs() {
+    const trig = document.getElementById('notif-trigger');
+    const pop = document.getElementById('notif-popover');
+    trig?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      pop?.classList.toggle('open');
+    });
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#notif-popover') && !ev.target.closest('#notif-trigger')) pop?.classList.remove('open');
+    });
+    document.getElementById('notif-clear')?.addEventListener('click', () => {
+      NOTIFS.forEach(n => n.unread = false);
+      renderNotifs();
+    });
+    renderNotifs();
+  }
+
+  // ==== Onboarding ====
+  const ONBOARD_STEPS = [
+    { selector:'.search input', title:'Sök & Command Palette', body:'Tryck <span class="key">⌘K</span> för att öppna kommando-paletten — gå till valfri tråd, kund eller utför actions snabbt.', placement:'below' },
+    { selector:'.row[data-id]:first-child', title:'Navigera med tangentbord', body:'Använd <span class="key">J</span> / <span class="key">K</span> eller piltangenter för att hoppa mellan trådar utan att lyfta händerna från tangentbordet.', placement:'right' },
+    { selector:'#sort-trigger', title:'AI-prioritet', body:'Sortera efter AI-prio så bedömer modellen vad som är mest brådskande just nu — tar hänsyn till risk, lane och deadlines.', placement:'below' },
+    { selector:'.compose-btn', title:'Snabbsvar', body:'Tryck <span class="key">R</span> för att fokusera composer i öppen tråd. <span class="key">⌘↵</span> skickar.', placement:'below-left' },
+  ];
+  let onboardIdx = 0;
+  function showOnboardStep(i) {
+    const step = ONBOARD_STEPS[i];
+    if (!step) return finishOnboard();
+    const el = document.querySelector(step.selector);
+    if (!el) return showOnboardStep(i+1);
+    const r = el.getBoundingClientRect();
+    const spot = document.getElementById('onboard-spotlight');
+    const card = document.getElementById('onboard-card');
+    spot.style.left = (r.left - 6) + 'px';
+    spot.style.top = (r.top - 6) + 'px';
+    spot.style.width = (r.width + 12) + 'px';
+    spot.style.height = (r.height + 12) + 'px';
+    // placement
+    const cardW = 320, cardH = 170;
+    let cx = r.left, cy = r.bottom + 14;
+    if (step.placement === 'right') { cx = r.right + 14; cy = r.top; }
+    if (step.placement === 'below-left') { cx = r.right - cardW; cy = r.bottom + 14; }
+    cx = Math.max(12, Math.min(window.innerWidth - cardW - 12, cx));
+    cy = Math.max(12, Math.min(window.innerHeight - cardH - 12, cy));
+    card.style.left = cx + 'px';
+    card.style.top = cy + 'px';
+    const pips = ONBOARD_STEPS.map((_,k)=>`<span class="pip ${k===i?'active':k<i?'done':''}"></span>`).join('');
+    const isLast = i === ONBOARD_STEPS.length - 1;
+    card.innerHTML = `
+      <div class="step">Steg ${i+1} av ${ONBOARD_STEPS.length}</div>
+      <h3>${escHtml(step.title)}</h3>
+      <p>${step.body}</p>
+      <div class="actions">
+        <span class="progress">${pips}</span>
+        <span class="skip" id="onboard-skip">Hoppa över</span>
+        <button class="next" id="onboard-next">${isLast?'Klar':'Nästa'} ${ico('i-arrow-right')}</button>
+      </div>`;
+    document.getElementById('onboard-next')?.addEventListener('click', () => { onboardIdx++; showOnboardStep(onboardIdx); });
+    document.getElementById('onboard-skip')?.addEventListener('click', finishOnboard);
+  }
+  function finishOnboard() {
+    document.getElementById('onboard-overlay')?.classList.remove('open');
+    try { localStorage.setItem('cco-onboarded', '1'); } catch {}
+  }
+  function startOnboard() {
+    document.getElementById('onboard-overlay')?.classList.add('open');
+    onboardIdx = 0;
+    showOnboardStep(0);
+  }
+  function maybeStartOnboard() {
+    let done = '0';
+    try { done = localStorage.getItem('cco-onboarded') || '0'; } catch {}
+    if (done !== '1') setTimeout(startOnboard, 600);
+  }
+
   // ==== Live-pip flash on simulated new mail ====
   let livePipTimer = null;
   function simulateLiveActivity() {
@@ -2312,8 +2826,11 @@ button { cursor: pointer; }
         }
         return;
       }
+      // Cmd+K → command palette (oavsett var fokus är)
+      if ((ev.metaKey || ev.ctrlKey) && (ev.key === 'k' || ev.key === 'K')) { ev.preventDefault(); openCmdk(); return; }
+      // Cmd+Shift+L → theme toggle
+      if ((ev.metaKey || ev.ctrlKey) && ev.shiftKey && (ev.key === 'l' || ev.key === 'L')) { ev.preventDefault(); document.getElementById('theme-toggle')?.click(); return; }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
-      if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
       // Cmd+[ / Cmd+] för prev/next-tråd
       if ((ev.metaKey||ev.ctrlKey) && (ev.key==='['||ev.key==='Dead')) { ev.preventDefault(); jumpThread('prev'); return; }
       if ((ev.metaKey||ev.ctrlKey) && ev.key===']') { ev.preventDefault(); jumpThread('next'); return; }
@@ -2365,7 +2882,20 @@ button { cursor: pointer; }
     };
   }
 
-  async function init() { bind(); bindPresence(); bindShortcuts(); await tryLoadLive(); renderAll(); simulateLiveActivity(); }
+  async function init() {
+    bindTheme();
+    bind();
+    bindPresence();
+    bindShortcuts();
+    bindCmdk();
+    bindNotifs();
+    document.getElementById('search-input')?.addEventListener('click', openCmdk);
+    document.getElementById('search-input')?.addEventListener('focus', openCmdk);
+    await tryLoadLive();
+    renderAll();
+    simulateLiveActivity();
+    maybeStartOnboard();
+  }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
 })();
