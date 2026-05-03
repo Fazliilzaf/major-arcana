@@ -402,14 +402,22 @@
   function ensureDemoCardsInDom() {
     const list = document.querySelector('.queue-history-list');
     if (!list) return false;
-    const present = new Set();
-    list.querySelectorAll('[data-runtime-thread^="demo-"]').forEach((c) => present.add(c.dataset.runtimeThread));
-    if (present.size >= 6) return true;
-    list.querySelectorAll('[data-runtime-thread="runtime-unified-error"]').forEach((n) => n.remove());
+    // FIX16: kör BARA injektion när listan är helt tom (eller endast error-placeholder).
+    // När äkta worklist-data finns (Revolut, Linus Blad osv) ska vi INTE överlagras —
+    // det stripper subjekt och förstör designen.
+    const allCards = list.querySelectorAll('[data-runtime-thread]');
+    const errorCards = list.querySelectorAll('[data-runtime-thread="runtime-unified-error"], [data-runtime-thread="runtime-feed-empty-empty"]');
+    const realCards = allCards.length - errorCards.length;
+    if (realCards >= 1) {
+      // Det finns äkta kort (eller redan-renderade demo-kort) — rör inget.
+      return true;
+    }
+    // Listan är helt tom eller har bara fel-placeholder → injicera demo-fixtures.
+    errorCards.forEach((n) => n.remove());
     const html = Object.keys(FIX14_CARDS).map((id) => buildFix14CardHtml(id, FIX14_CARDS[id])).join('');
     list.insertAdjacentHTML('afterbegin', html);
     const counter = Array.from(document.querySelectorAll('h1, h2, h3, b, strong, .queue-title, .arbetsko-title, [data-queue-title]')).find((e) => /Arbetslista/.test(e.textContent));
-    if (counter) counter.textContent = 'Arbetslista (6)';
+    if (counter && /\(0\)/.test(counter.textContent)) counter.textContent = 'Arbetslista (6)';
     return true;
   }
   function startDemoCardInjector() {
