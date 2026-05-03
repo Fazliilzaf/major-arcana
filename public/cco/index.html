@@ -651,50 +651,57 @@ button { cursor: pointer; }
 }
 
 .thread-head {
-  padding: 22px 28px 14px;
-  border-bottom: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 24px 8px;
+  border-bottom: 0;
+  display: flex; flex-direction: column; gap: 8px;
   background: var(--surface);
 }
-.thread-head .top { display: flex; gap: 14px; align-items: flex-start; }
-.thread-head .top h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; flex: 1; line-height: 1.3; }
+.thread-head .top { display: flex; gap: 12px; align-items: center; }
+.thread-head .top h2 {
+  font-size: 16px; font-weight: 700; letter-spacing: -0.4px;
+  flex: 1; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
 .thread-head .lane-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--lane-color); background: var(--lane-bg);
   white-space: nowrap; flex-shrink: 0;
 }
-.thread-head .lane-pill svg { width: 10px; height: 10px; }
+.thread-head .lane-pill svg { width: 9px; height: 9px; }
 .thread-head .ai-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--accent-2);
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
+  border: 0.5px solid color-mix(in srgb, var(--accent) 14%, transparent);
   cursor: pointer;
   white-space: nowrap; flex-shrink: 0;
   transition: all 0.15s var(--ease);
 }
-.thread-head .ai-pill:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
-.thread-head .ai-pill svg { width: 10px; height: 10px; }
+.thread-head .ai-pill:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: var(--accent); }
+.thread-head .ai-pill svg { width: 9px; height: 9px; }
 .thread-head .ai-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-2); flex-wrap: wrap; }
+.thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); flex-wrap: nowrap; min-width: 0; }
 .thread-head .ava {
   width: 22px; height: 22px; border-radius: 50%;
   background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 9.5px; font-weight: 800; color: #fff;
   box-shadow: 0 2px 5px var(--avatar-glow, var(--accent-glow));
+  flex-shrink: 0;
 }
-.thread-head .who-line strong { color: var(--text); font-weight: 700; font-size: 12px; }
-.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; }
-.thread-head .who-line .meta-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-size: 11px; }
-.thread-head .who-line .meta-chip svg { width: 10px; height: 10px; color: var(--text-3); }
-.thread-head .who-line .sep { color: var(--text-3); }
+.thread-head .who-line strong { color: var(--text); font-weight: 600; font-size: 11.5px; }
+.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+.thread-head .who-line .meta-chip { display: none; }
+.thread-head .who-line .sep { display: none; }
 
 .lane-act-now { --lane-color: var(--red); --lane-bg: rgba(239, 68, 88, 0.12); --avatar-grad: linear-gradient(135deg,#ef4458,#ff8a3d); --avatar-glow: rgba(239,68,88,0.30); }
 .lane-sprint { --lane-color: var(--green); --lane-bg: rgba(26, 168, 108, 0.12); --avatar-grad: linear-gradient(135deg,#1aa86c,#06d6a0); --avatar-glow: rgba(26,168,108,0.28); }
@@ -704,26 +711,53 @@ button { cursor: pointer; }
 .lane-later { --lane-color: var(--purple); --lane-bg: rgba(139, 92, 246, 0.12); --avatar-grad: linear-gradient(135deg,#8b5cf6,#a78bfa); --avatar-glow: rgba(139,92,246,0.28); }
 
 .thread-actions {
-  padding: 11px 28px;
-  border-bottom: 1px solid var(--line);
-  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 8px 24px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  display: flex; gap: 4px; flex-wrap: nowrap; align-items: center;
   background: var(--surface);
+  position: relative;
 }
 .action {
-  height: 30px; padding: 0 13px; border-radius: 8px;
+  height: 28px; padding: 0 11px; border-radius: 7px;
   background: transparent;
-  font-size: 12.5px; font-weight: 600; color: var(--text-2);
-  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+  display: inline-flex; align-items: center; gap: 5px;
   transition: all 0.15s var(--ease);
+  flex-shrink: 0;
 }
-.action svg { width: 13px; height: 13px; }
+.action svg { width: 12px; height: 12px; }
 .action:hover { background: var(--bg-soft); color: var(--text); }
 .action.primary {
   background: var(--accent-grad); color: #fff;
-  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
+  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.20);
+  height: 30px; padding: 0 13px;
 }
-.action.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.35); }
+.action.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.30); }
 .action.danger:hover { color: var(--red); }
+.action.icon-only { padding: 0; width: 28px; justify-content: center; }
+.action.icon-only svg { width: 13px; height: 13px; }
+
+/* More-menu (kebab) for less-used actions */
+.action-more-wrap { position: relative; margin-left: auto; }
+.action-more-menu {
+  display: none;
+  position: absolute; top: calc(100% + 4px); right: 0;
+  min-width: 180px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+          backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 11px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  padding: 4px;
+  z-index: 20;
+}
+.action-more-menu.open { display: block; animation: menuIn 0.15s var(--ease); }
+.action-more-menu .action {
+  width: 100%; justify-content: flex-start; height: 30px; padding: 0 10px;
+}
+.action-more-menu .action svg { color: var(--text-3); }
+.action-more-menu .sep { height: 1px; background: var(--line); margin: 4px 6px; }
 
 /* Messages — flat, no boxed cards */
 .thread-body {
@@ -1641,6 +1675,7 @@ button { cursor: pointer; }
     <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="i-question" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
     <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
     <symbol id="i-snooze" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M5 3 2 6M22 6l-3-3M9 13h6l-6 5h6"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
@@ -2164,12 +2199,7 @@ button { cursor: pointer; }
         <div class="who-line">
           <span class="ava">${escHtml(t.initials)}</span>
           <strong>${escHtml(t.who)}</strong>
-          <span class="email">${escHtml(t.email)}</span>
-          <span class="sep">·</span>
-          <span class="meta-chip">${ico('i-mail-open')} ${escHtml(t.mailbox)}</span>
-          <span class="sep">·</span>
-          <span class="meta-chip">${ico('i-users')} ${escHtml(t.owner)}</span>
-          <button class="action" data-history-open style="margin-left:auto;height:24px;padding:0 9px;font-size:11px;">${ico('i-history-overlay')} Historik</button>
+          <span class="email" title="${escHtml(t.email)} · ${escHtml(t.mailbox)} · ${escHtml(t.owner)}">${escHtml(t.email)}</span>
         </div>
       </div>
       ${(t.aiTldr || aiPoints) ? `
@@ -2184,11 +2214,18 @@ button { cursor: pointer; }
       ` : ''}
       <div class="thread-actions">
         <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu</button>
-        <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
-        <button class="action">${ico('i-clock')} Senare</button>
         <button class="action">${ico('i-check')} Klar</button>
-        <button class="action">${ico('i-calendar')} Schemalägg</button>
-        <button class="action danger" style="margin-left:auto;">${ico('i-trash')}</button>
+        <div class="action-more-wrap">
+          <button class="action icon-only" id="action-more-trigger" title="Fler åtgärder">${ico('i-more')}</button>
+          <div class="action-more-menu" id="action-more-menu">
+            <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
+            <button class="action">${ico('i-clock')} Senare</button>
+            <button class="action">${ico('i-calendar')} Schemalägg</button>
+            <button class="action" data-history-open>${ico('i-history-overlay')} Historik</button>
+            <div class="sep"></div>
+            <button class="action danger">${ico('i-trash')} Radera</button>
+          </div>
+        </div>
       </div>
       <div class="thread-body">
         <div class="messages">${messages}</div>
@@ -2848,6 +2885,17 @@ button { cursor: pointer; }
       if (ev.target.closest('[data-focus-composer]')) { focusComposer(); return; }
       // Send composer
       if (ev.target.closest('#send-btn')) { sendComposer(); return; }
+      // Action-more (kebab) menu trigger
+      const moreTrig = ev.target.closest('#action-more-trigger');
+      if (moreTrig) {
+        ev.stopPropagation();
+        document.getElementById('action-more-menu')?.classList.toggle('open');
+        return;
+      }
+      // Click outside more-menu closes it
+      if (!ev.target.closest('.action-more-wrap')) {
+        document.getElementById('action-more-menu')?.classList.remove('open');
+      }
       // Sort menu trigger
       const sortTrig = ev.target.closest('#sort-trigger');
       if (sortTrig) { ev.stopPropagation(); toggleSortMenu(); return; }
