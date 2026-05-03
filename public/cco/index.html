@@ -1022,6 +1022,21 @@ button { cursor: pointer; }
   margin-bottom: 10px;
 }
 .ctx-section .head svg { width: 12px; height: 12px; }
+.ctx-section.collapsible .head { cursor: pointer; user-select: none; }
+.ctx-section.collapsible .head .chev {
+  margin-left: auto;
+  transition: transform 0.18s var(--ease);
+  opacity: 0.5;
+}
+.ctx-section.collapsible .head:hover .chev { opacity: 1; }
+.ctx-section.collapsible.open .head .chev { transform: rotate(180deg); }
+.ctx-section.collapsible .body-wrap {
+  display: none;
+}
+.ctx-section.collapsible.open .body-wrap {
+  display: block;
+  animation: pointsIn 0.18s var(--ease);
+}
 
 .identity { display: flex; gap: 10px; align-items: center; }
 .identity .ava {
@@ -1093,7 +1108,7 @@ button { cursor: pointer; }
 }
 .live-stats-row .ls-link:hover { color: var(--accent); }
 .live-stats-row .ls-link strong { color: var(--text); font-weight: 800; }
-.live-stats-row .ls-link svg { width: 11px; height: 11px; opacity: 0.6; }
+.live-stats-row .ls-link svg { width: 11px; height: 11px; opacity: 0.6; display: none; }
 .live-stats-row .sep { color: var(--text-3); user-select: none; }
 
 /* ===== Upcoming booking card ===== */
@@ -1154,13 +1169,17 @@ button { cursor: pointer; }
 }
 .no-booking .book-now:hover { text-decoration: underline; }
 
-/* ===== AI feedback buttons ===== */
+/* ===== AI feedback buttons (hidden until hover) ===== */
 .ai-actions {
   display: flex; gap: 5px; margin-top: 10px;
-  opacity: 0.55;
-  transition: opacity 0.18s var(--ease);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.2s var(--ease), max-height 0.2s var(--ease), margin-top 0.2s var(--ease);
 }
-.ctx-section:hover .ai-actions { opacity: 1; }
+.ctx-section:hover .ai-actions, .ctx-section:focus-within .ai-actions {
+  opacity: 1; max-height: 40px;
+}
 .ai-act {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 7px;
@@ -2110,17 +2129,16 @@ button { cursor: pointer; }
     const rt = t.responseTime || {mine:0,team:4.1};
     const notes = t.notes || [];
 
-    // Live-stats inline (clickable)
-    const liveStats = `
+    // Live-stats inline — diskret rad under namn
+    const liveStats = (h.totalEmails||h.bookings) ? `
       <div class="live-stats-row">
-        <a class="ls-link" data-ls="emails">${ico('i-mail-open')}<strong>${h.totalEmails||0}</strong> mejl</a>
+        <a class="ls-link" data-ls="emails"><strong>${h.totalEmails||0}</strong> mejl</a>
         <span class="sep">·</span>
-        <a class="ls-link" data-ls="bookings">${ico('i-calendar')}<strong>${h.bookings||0}</strong> bokningar</a>
-        <span class="sep">·</span>
-        <a class="ls-link" data-ls="last">senaste <strong>${escHtml(h.lastBooking||h.firstContact||'—')}</strong></a>
-      </div>`;
+        <a class="ls-link" data-ls="bookings"><strong>${h.bookings||0}</strong> bokningar</a>
+        ${h.firstContact?`<span class="sep">·</span><a class="ls-link" data-ls="first">sedan <strong>${escHtml(h.firstContact)}</strong></a>`:''}
+      </div>` : '';
 
-    // Upcoming booking
+    // Upcoming booking — bara om den finns
     const bookingBlock = upcoming
       ? `<div class="ctx-section">
           <div class="head" style="color:var(--teal);">${ico('i-calendar')} Kommande bokning</div>
@@ -2131,45 +2149,31 @@ button { cursor: pointer; }
               <div class="b-when">${escHtml(upcoming.when)}</div>
               <div class="b-meta">Med ${escHtml(upcoming.who)} · ${escHtml(upcoming.loc||'')}</div>
               <div class="b-actions">
-                <button class="b-btn" data-book-action="ics" data-booking-id="${escHtml(upcoming.service)}">${ico('i-calendar')} .ics</button>
+                <button class="b-btn" data-book-action="ics">${ico('i-calendar')} .ics</button>
                 <button class="b-btn" data-book-action="reschedule">${ico('i-clock')} Boka om</button>
               </div>
             </div>
           </div>
-        </div>`
-      : `<div class="ctx-section">
-          <div class="head">${ico('i-calendar')} Kommande bokning</div>
-          <div class="no-booking">
-            ${ico('i-calendar')} Ingen kommande bokning
-            <span class="book-now" data-book-action="new">+ Boka tid</span>
-          </div>
-        </div>`;
+        </div>` : '';
 
-    // AI feedback buttons
-    const aiActions = (key, label) => `
+    // AI feedback buttons (hidden by default, visible on hover)
+    const aiActions = (key) => `
       <div class="ai-actions">
         <button class="ai-act accept" data-ai-feedback="accept" data-ai-key="${key}">${ico('i-check')} Acceptera</button>
         <button class="ai-act adjust" data-ai-feedback="adjust" data-ai-key="${key}">${ico('i-sparkles')} Justera</button>
         <button class="ai-act reject" data-ai-feedback="reject" data-ai-key="${key}">${ico('i-x')} Avvisa</button>
       </div>`;
 
-    // Activity comparison
-    const maxRt = Math.max(rt.mine, rt.team, 1);
-    const minePct = Math.max(8, Math.round((rt.mine / maxRt) * 100));
-    const teamPct = Math.max(8, Math.round((rt.team / maxRt) * 100));
-    const diff = rt.team - rt.mine;
-    const diffPct = rt.team > 0 ? Math.round((Math.abs(diff) / rt.team) * 100) : 0;
+    // Svartider — enkel chart + en summary-rad
+    const bars = [3,5,7,4,6,9,8].map(hh=>`<div class="bar" style="height:${hh*3.5}px"></div>`).join('');
+    const diffPct = rt.team > 0 && rt.mine > 0 ? Math.round((Math.abs(rt.team - rt.mine) / rt.team) * 100) : 0;
     const isFaster = rt.mine > 0 && rt.mine < rt.team;
     const isSlower = rt.mine > rt.team;
-    const compareSummary = rt.mine === 0
-      ? `Inga svar registrerade — team snitt ${rt.team.toString().replace('.',',')}h`
-      : isFaster
-        ? `Du är <strong>${diffPct}% snabbare ↑</strong> än team`
-        : isSlower
-          ? `Du är <strong>${diffPct}% långsammare ↓</strong> än team`
-          : `På par med teamet`;
+    const compareLabel = rt.mine === 0
+      ? `Team snitt: <strong>${rt.team.toString().replace('.',',')}h</strong>`
+      : `Snitt-svar: <strong>${rt.mine.toString().replace('.',',')}h</strong> · Team <strong>${rt.team.toString().replace('.',',')}h</strong> ${isFaster?`· <span style="color:var(--green);font-weight:700">${diffPct}% snabbare ↑</span>`:isSlower?`· <span style="color:var(--orange);font-weight:700">${diffPct}% långsammare ↓</span>`:''}`;
 
-    // Notes
+    // Notes — kollapsbar (default collapsed om inga olästa)
     const notesHtml = notes.map(n=>{
       const cls = n.ai ? ' ai' : '';
       const author = n.ai ? `${ico('i-sparkles')} AI` : escHtml(n.author||'Team');
@@ -2181,6 +2185,11 @@ button { cursor: pointer; }
         <div class="n-body">${escHtml(n.body||'')}</div>
       </div>`;
     }).join('');
+    const notesCount = notes.length;
+    const notesOpen = notesCount > 0 ? '' : '';
+
+    // Tidslinje
+    const tl = (t.timeline||[]).map(s=>`<li><span class="dot"></span><span>${escHtml(s)}</span></li>`).join('');
 
     $('#ctx-panel').innerHTML = `
       <div class="ctx-section lane-${t.lane}">
@@ -2195,32 +2204,33 @@ button { cursor: pointer; }
         ${liveStats}
       </div>
       ${bookingBlock}
-      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk · AI</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk', 'risk')}</div>`:''}
-      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg · AI</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep', 'nästa steg')}</div>`:''}
       <div class="ctx-section">
-        <div class="head">${ico('i-chart')} Svartider · 7 dagar</div>
-        <div class="activity-compare">
-          <div class="compare-row mine">
-            <span class="who mine">Du</span>
-            <div class="bar-wrap"><div class="bar-fill" style="width:${minePct}%"></div></div>
-            <span class="num">${rt.mine.toString().replace('.',',')}h</span>
-          </div>
-          <div class="compare-row">
-            <span class="who">Team</span>
-            <div class="bar-wrap"><div class="bar-fill" style="width:${teamPct}%"></div></div>
-            <span class="num">${rt.team.toString().replace('.',',')}h</span>
-          </div>
-          <div class="compare-summary${isSlower?' slower':''}">${compareSummary}</div>
+        <div class="head">${ico('i-target')} Status</div>
+        <div class="kv-list">
+          <div class="kv-item"><span class="label">${ico('i-history')} Livscykel</span><span class="val">${escHtml(t.lifecycle)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-circle-dot')} Status</span><span class="val">${escHtml(t.laneLabel)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-clock')} Uppföljning</span><span class="val">${escHtml(t.followUp)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-flame')} Risk</span><span class="val">${escHtml(t.riskLevel)}</span></div>
         </div>
       </div>
+      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk')}</div>`:''}
+      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep')}</div>`:''}
       <div class="ctx-section">
-        <div class="head">${ico('i-templates')} Anteckningar · internt</div>
-        <div class="notes-list">${notesHtml || '<div style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 0;">Inga interna anteckningar än.</div>'}</div>
-        <div class="note-input-wrap">
-          <textarea class="note-input" id="note-input-${escHtml(t.id)}" placeholder="Anteckna något internt — bara för teamet"></textarea>
-          <div class="note-input-bar">
-            <span class="hint">Endast synligt för teamet · ⌘↵ för att posta</span>
-            <button class="post-btn" data-post-note="${escHtml(t.id)}">${ico('i-send')} Posta</button>
+        <div class="head">${ico('i-chart')} Aktivitet · 7 dagar</div>
+        <div class="mini-chart">${bars}</div>
+        <div class="activity-meta">${compareLabel}</div>
+      </div>
+      ${tl?`<div class="ctx-section"><div class="head">${ico('i-history')} Tidslinje</div><ul class="timeline">${tl}</ul></div>`:''}
+      <div class="ctx-section collapsible${notesCount>0?' open':''}" data-collapsible>
+        <div class="head" data-toggle-section>${ico('i-templates')} Anteckningar ${notesCount?`<span style="background:var(--bg-soft);color:var(--text-2);padding:1px 7px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:0;">${notesCount}</span>`:''}<span class="chev">${ico('i-arrow-down')}</span></div>
+        <div class="body-wrap">
+          <div class="notes-list">${notesHtml || '<div style="font-size:11px;color:var(--text-3);font-style:italic;padding:4px 0 8px;">Inga interna anteckningar än.</div>'}</div>
+          <div class="note-input-wrap">
+            <textarea class="note-input" id="note-input-${escHtml(t.id)}" placeholder="Anteckna internt — bara för teamet"></textarea>
+            <div class="note-input-bar">
+              <span class="hint">⌘↵ för att posta</span>
+              <button class="post-btn" data-post-note="${escHtml(t.id)}">${ico('i-send')} Posta</button>
+            </div>
           </div>
         </div>
       </div>`;
@@ -2643,6 +2653,13 @@ button { cursor: pointer; }
   function bind() {
     document.addEventListener('click', ev=>{
       // ===== Context column actions =====
+      // Toggle collapsible section
+      const toggleSec = ev.target.closest('[data-toggle-section]');
+      if (toggleSec) {
+        const sec = toggleSec.closest('.ctx-section.collapsible');
+        if (sec) sec.classList.toggle('open');
+        return;
+      }
       // Live-stats links
       const ls = ev.target.closest('[data-ls]');
       if (ls) { toast(`Öppnar ${ls.dataset.ls === 'emails' ? 'mejlhistorik' : ls.dataset.ls === 'bookings' ? 'bokningar' : 'tidslinje'} (demo)`); return; }
