@@ -6,31 +6,37 @@
 <title>CCO — Hair TP Clinic</title>
 <style>
 :root {
-  --bg: #0a0a0d;
-  --bg-2: #131318;
-  --bg-3: #1a1a21;
-  --bg-hover: #1f1f28;
-  --line: rgba(255,255,255,0.06);
-  --line-2: rgba(255,255,255,0.10);
-  --text: #f4f4f6;
-  --text-2: #9ea0a8;
-  --text-3: #5d6068;
-  --accent: #7c5cff;
-  --accent-2: #a78bff;
-  --accent-glow: rgba(124, 92, 255, 0.18);
-  --red: #ff4d6d;
-  --orange: #ff9233;
-  --yellow: #ffcb47;
-  --green: #2dd4a4;
-  --teal: #4cc9f0;
-  --pink: #f472b6;
-  --font: -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-display: -apple-system, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f5f3ee;
+  --surface-3: #efece4;
+  --hover: #efece4;
+  --line: #e6e3d9;
+  --line-2: #d8d4c6;
+  --text: #14151a;
+  --text-2: #5a5e6a;
+  --text-3: #95968d;
+  --accent: #0d7a5b;
+  --accent-2: #166e51;
+  --accent-soft: rgba(13, 122, 91, 0.08);
+  --accent-glow: rgba(13, 122, 91, 0.18);
+  --red: #b8395a;
+  --orange: #c8643a;
+  --yellow: #b89028;
+  --green: #0d7a5b;
+  --teal: #2a8aa3;
+  --pink: #a05088;
+  --purple: #6b5ec3;
+  --font-sans: -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --shadow-sm: 0 1px 2px rgba(35, 31, 24, 0.04);
+  --shadow-md: 0 1px 3px rgba(35, 31, 24, 0.05), 0 8px 24px -8px rgba(35, 31, 24, 0.08);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font-family: var(--font);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
@@ -41,100 +47,102 @@ body {
 }
 button, input, select { font-family: inherit; font-size: inherit; color: inherit; background: transparent; border: 0; }
 button { cursor: pointer; }
-::selection { background: var(--accent-glow); color: var(--text); }
+::selection { background: var(--accent-soft); color: var(--text); }
 
 /* ===== Layout ===== */
 .app {
   display: grid;
-  grid-template-rows: 48px 1fr;
+  grid-template-rows: 56px 1fr;
   height: 100vh;
 }
 
 /* Top bar */
 .topbar {
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 260px 1fr 320px;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 20px;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
-  background: var(--bg);
+  gap: 16px;
 }
 .brand {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 10px;
   font-family: var(--font-display);
-  font-weight: 700; font-size: 15px; letter-spacing: -0.2px;
+  font-weight: 600; font-size: 17px; letter-spacing: -0.3px;
+  color: var(--text);
 }
 .brand .logo {
-  width: 24px; height: 24px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), var(--pink));
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--text);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #fff; font-weight: 800;
-  box-shadow: 0 0 18px var(--accent-glow);
+  font-family: var(--font-display); font-size: 14px; color: var(--surface); font-weight: 700;
+  letter-spacing: -0.5px;
 }
-.brand .sep { color: var(--text-3); margin: 0 6px; font-weight: 400; }
-.brand .ctx { color: var(--text-2); font-weight: 500; }
+.brand .sep { color: var(--text-3); margin: 0 4px; font-weight: 300; }
+.brand .ctx { color: var(--text-2); font-weight: 500; font-size: 13.5px; font-family: var(--font-sans); }
 
-.search {
-  position: relative;
-  max-width: 520px; margin: 0 auto;
-  width: 100%;
-}
+.search { position: relative; max-width: 480px; margin: 0 auto; width: 100%; }
 .search input {
-  width: 100%; height: 32px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  width: 100%; height: 36px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
   border-radius: 10px;
-  padding: 0 12px 0 34px;
+  padding: 0 14px 0 38px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 13.5px;
   outline: none;
-  transition: border 0.15s;
+  transition: all 0.15s;
 }
 .search input::placeholder { color: var(--text-3); }
-.search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.search input:focus {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 .search .icon {
-  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   color: var(--text-3); font-size: 14px; pointer-events: none;
 }
 .search kbd {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  font-family: var(--font); font-size: 10px; color: var(--text-3);
-  background: var(--bg-3); padding: 2px 6px; border-radius: 5px;
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-sans); font-size: 10.5px; color: var(--text-3);
+  background: var(--surface); padding: 2px 6px; border-radius: 5px;
   border: 1px solid var(--line);
 }
 
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .icon-btn {
-  width: 30px; height: 30px; border-radius: 8px;
+  width: 32px; height: 32px; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-2); transition: all 0.15s;
 }
-.icon-btn:hover { background: var(--bg-2); color: var(--text); }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
 .status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--green); box-shadow: 0 0 8px var(--green);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(13, 122, 91, 0.15);
 }
-.status-dot.demo { background: var(--yellow); box-shadow: 0 0 8px rgba(255,203,71,0.5); }
+.status-dot.demo { background: var(--yellow); box-shadow: 0 0 0 3px rgba(184, 144, 40, 0.15); }
 .status-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 0 10px; height: 26px; border-radius: 999px;
-  background: var(--bg-2); border: 1px solid var(--line);
-  font-size: 11.5px; color: var(--text-2); font-weight: 500;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 12px; height: 30px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 12px; color: var(--text-2); font-weight: 500;
 }
 .compose-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 0 12px; height: 30px; border-radius: 8px;
-  background: var(--accent); color: #fff;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 14px; height: 32px; border-radius: 9px;
+  background: var(--text); color: var(--surface);
   font-size: 13px; font-weight: 600;
   transition: all 0.15s;
-  box-shadow: 0 0 0 0 var(--accent-glow);
 }
-.compose-btn:hover { background: var(--accent-2); box-shadow: 0 0 0 4px var(--accent-glow); }
+.compose-btn:hover { background: var(--accent); }
 
 /* Body */
 .body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 240px 1fr;
   overflow: hidden;
 }
 
@@ -144,42 +152,44 @@ button { cursor: pointer; }
   background: var(--bg);
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 12px 0;
+  padding: 18px 0;
 }
-.sidebar-section { padding: 8px 12px; }
+.sidebar-section { padding: 6px 12px; }
+.sidebar-section + .sidebar-section { margin-top: 4px; }
 .sidebar-label {
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px;
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
   color: var(--text-3); text-transform: uppercase;
-  padding: 0 8px 8px; display: flex; justify-content: space-between; align-items: center;
+  padding: 0 10px 8px; display: flex; justify-content: space-between; align-items: center;
 }
 .sidebar-label .add {
-  width: 16px; height: 16px; border-radius: 4px;
+  width: 18px; height: 18px; border-radius: 5px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-3); font-size: 14px;
 }
-.sidebar-label .add:hover { background: var(--bg-2); color: var(--text); }
+.sidebar-label .add:hover { background: var(--surface-2); color: var(--text); }
 
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 6px 10px; border-radius: 7px;
+  padding: 7px 10px; border-radius: 8px;
   color: var(--text-2);
   font-size: 13.5px; font-weight: 500;
   cursor: pointer;
   transition: all 0.1s;
   width: 100%; text-align: left;
 }
-.nav-item:hover { background: var(--bg-2); color: var(--text); }
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active {
-  background: var(--bg-3); color: var(--text);
+  background: var(--text); color: var(--surface);
 }
-.nav-item .icon { width: 16px; height: 16px; opacity: 0.85; flex-shrink: 0; }
+.nav-item.active .count { color: rgba(255,255,255,0.65); }
+.nav-item .icon { width: 16px; flex-shrink: 0; opacity: 0.85; }
 .nav-item .label { flex: 1; }
 .nav-item .count {
-  font-size: 11px; color: var(--text-3); font-weight: 600;
+  font-size: 12px; color: var(--text-3); font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-.nav-item.active .count { color: var(--text-2); }
-.nav-item .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* Inbox column */
 .inbox {
@@ -194,67 +204,70 @@ button { cursor: pointer; }
   background: var(--bg);
 }
 .inbox-header {
-  padding: 14px 18px 10px;
+  padding: 18px 22px 14px;
   border-bottom: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: 14px;
 }
 .inbox-title {
   font-family: var(--font-display);
-  font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
-  display: flex; align-items: baseline; gap: 8px;
+  font-size: 22px; font-weight: 600; letter-spacing: -0.5px;
+  display: flex; align-items: baseline; gap: 10px;
+  color: var(--text);
 }
-.inbox-title .num { color: var(--text-3); font-weight: 500; font-size: 14px; }
-.inbox-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.inbox-title .num { font-family: var(--font-sans); color: var(--text-3); font-weight: 400; font-size: 13px; letter-spacing: 0; }
+.inbox-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
 .tab {
-  padding: 4px 10px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 600; letter-spacing: 0.2px;
-  background: var(--bg-2); color: var(--text-2); border: 1px solid var(--line);
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  background: transparent; color: var(--text-2);
   display: inline-flex; align-items: center; gap: 6px;
   cursor: pointer; transition: all 0.1s;
 }
-.tab:hover { color: var(--text); background: var(--bg-3); }
-.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
-.tab .num { opacity: 0.7; font-weight: 500; }
-.tab.active .num { opacity: 0.9; }
+.tab:hover { background: var(--surface-2); color: var(--text); }
+.tab.active { background: var(--text); color: var(--surface); }
+.tab .num { opacity: 0.6; font-weight: 500; }
+.tab.active .num { opacity: 0.7; }
 
 .inbox-rows { flex: 1; overflow-y: auto; }
 .row {
   display: grid;
-  grid-template-columns: 4px 1fr;
+  grid-template-columns: 3px 1fr;
   gap: 0;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
   transition: background 0.1s;
   position: relative;
+  background: var(--bg);
 }
-.row:hover { background: var(--bg-2); }
-.row.selected { background: var(--bg-3); }
+.row:hover { background: var(--surface); }
+.row.selected { background: var(--surface); }
 .row.selected::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
   background: var(--accent);
 }
-.row .lane-bar { background: var(--lane-color, #999); border-radius: 0; opacity: 0.85; }
+.row .lane-bar { background: var(--lane-color, transparent); opacity: 0.55; }
+.row.selected .lane-bar { opacity: 0; }
 .row .body {
-  padding: 13px 16px;
+  padding: 14px 18px;
   display: flex; flex-direction: column; gap: 6px;
   min-width: 0;
 }
 .row .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .row .lane-tag {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--lane-color, var(--text-2));
 }
-.row .meta-time { margin-left: auto; font-size: 11px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.row .meta-time { margin-left: auto; font-size: 11.5px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .row .who {
   font-family: var(--font-display);
-  font-size: 14.5px; font-weight: 600; letter-spacing: -0.1px;
+  font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
   color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .row.unread .who::after {
   content: ''; display: inline-block; width: 6px; height: 6px;
-  border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle;
+  border-radius: 50%; background: var(--accent); margin-left: 8px; vertical-align: middle;
 }
 .row .subject {
   font-size: 13px; color: var(--text-2);
@@ -266,111 +279,115 @@ button { cursor: pointer; }
   font-size: 12.5px; color: var(--text-3);
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
   overflow: hidden;
+  font-style: italic;
 }
 .row .footer {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-top: 2px;
 }
 .tag {
-  font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
-  background: var(--bg-3); color: var(--text-2); letter-spacing: 0.3px;
+  font-size: 10.5px; font-weight: 500; padding: 2px 8px; border-radius: 4px;
+  background: var(--surface-2); color: var(--text-2); letter-spacing: 0.2px;
   display: inline-flex; align-items: center; gap: 4px;
 }
-.tag.danger { background: rgba(255,77,109,0.12); color: var(--red); }
-.tag.warn { background: rgba(255,146,51,0.12); color: var(--orange); }
-.tag.info { background: rgba(76,201,240,0.12); color: var(--teal); }
-.tag.success { background: rgba(45,212,164,0.12); color: var(--green); }
-.tag.muted { background: var(--bg-3); color: var(--text-3); }
+.tag.danger { background: rgba(184, 57, 90, 0.1); color: var(--red); }
+.tag.warn { background: rgba(200, 100, 58, 0.1); color: var(--orange); }
+.tag.info { background: rgba(42, 138, 163, 0.1); color: var(--teal); }
+.tag.success { background: rgba(13, 122, 91, 0.1); color: var(--green); }
 
 .row .mailbox-trail { display: inline-flex; gap: 0; margin-left: auto; }
 .row .mailbox-trail .mb {
-  width: 16px; height: 16px; border-radius: 50%;
-  background: var(--lane-color, var(--bg-3)); color: #fff;
-  font-size: 9px; font-weight: 700;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--lane-color, var(--surface-3)); color: #fff;
+  font-size: 9.5px; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center;
   border: 2px solid var(--bg);
-  margin-left: -4px;
+  margin-left: -5px;
 }
+.row.selected .mailbox-trail .mb { border-color: var(--surface); }
 
 /* Thread (right side of inbox) */
 .thread {
   display: flex; flex-direction: column;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--surface);
 }
 .thread.empty {
   display: flex; align-items: center; justify-content: center;
   padding: 60px;
 }
-.thread.empty .placeholder {
-  text-align: center; color: var(--text-3); max-width: 360px;
-}
+.thread.empty .placeholder { text-align: center; color: var(--text-3); max-width: 400px; }
 .thread.empty .placeholder .key {
-  display: inline-block; padding: 4px 10px; border-radius: 6px;
-  background: var(--bg-2); border: 1px solid var(--line);
-  font-family: var(--font); font-size: 12px; color: var(--text-2);
-  margin: 0 3px;
+  display: inline-block; padding: 4px 9px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--text-2);
+  margin: 0 2px;
 }
-.thread.empty h3 { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 10px; }
-.thread.empty p { font-size: 14px; line-height: 1.6; }
+.thread.empty h3 { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -0.5px; color: var(--text); margin-bottom: 12px; }
+.thread.empty p { font-size: 14px; line-height: 1.6; color: var(--text-2); }
 
 .thread-head {
-  padding: 18px 24px 14px;
+  padding: 24px 32px 18px;
   border-bottom: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 14px;
 }
-.thread-head .top { display: flex; gap: 14px; align-items: flex-start; }
+.thread-head .top { display: flex; gap: 16px; align-items: flex-start; }
 .thread-head .top h2 {
   font-family: var(--font-display);
-  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
-  flex: 1; color: var(--text);
+  font-size: 26px; font-weight: 600; letter-spacing: -0.6px;
+  flex: 1; color: var(--text); line-height: 1.3;
 }
 .thread-head .lane-pill {
-  padding: 4px 10px; border-radius: 999px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px;
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--lane-color); background: var(--lane-bg);
   white-space: nowrap;
+  border: 1px solid var(--lane-color);
+  border-color: color-mix(in srgb, var(--lane-color) 35%, transparent);
 }
 .thread-head .who-line {
   display: flex; align-items: center; gap: 10px;
-  font-size: 13px;
+  font-size: 13px; color: var(--text-2);
+  flex-wrap: wrap;
 }
 .thread-head .avatar {
   width: 28px; height: 28px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--pink));
+  background: linear-gradient(135deg, var(--accent), var(--teal));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff;
+  font-size: 11px; font-weight: 700; color: var(--surface);
+  font-family: var(--font-display);
 }
-.thread-head .who-line strong { color: var(--text); font-weight: 600; }
-.thread-head .who-line .email { color: var(--text-3); }
-.thread-head .who-line .sep { color: var(--text-3); margin: 0 4px; }
+.thread-head .who-line strong { color: var(--text); font-weight: 600; font-family: var(--font-display); }
+.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 12px; }
+.thread-head .who-line .sep { color: var(--text-3); margin: 0 2px; }
 
 .thread-actions {
-  padding: 10px 24px;
+  padding: 12px 32px;
   border-bottom: 1px solid var(--line);
-  display: flex; gap: 6px; flex-wrap: wrap;
-  background: var(--bg-2);
+  display: flex; gap: 8px; flex-wrap: wrap;
+  background: var(--bg);
 }
 .action {
-  height: 30px; padding: 0 12px; border-radius: 8px;
-  background: var(--bg-3); border: 1px solid var(--line);
-  font-size: 12.5px; font-weight: 500; color: var(--text-2);
-  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  font-size: 13px; font-weight: 500; color: var(--text-2);
+  display: inline-flex; align-items: center; gap: 7px;
   transition: all 0.1s;
 }
-.action:hover { background: var(--bg-hover); color: var(--text); border-color: var(--line-2); }
+.action:hover { background: var(--surface-2); color: var(--text); border-color: var(--line-2); }
 .action.primary {
-  background: var(--accent); color: #fff; border-color: var(--accent);
+  background: var(--accent); color: var(--surface); border-color: var(--accent);
 }
 .action.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
-.action.danger:hover { color: var(--red); border-color: rgba(255,77,109,0.4); }
+.action.danger:hover { color: var(--red); border-color: rgba(184, 57, 90, 0.3); }
 
 .thread-body {
   flex: 1; overflow-y: auto;
-  padding: 18px 24px;
+  padding: 24px 32px;
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 24px;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
   align-items: start;
 }
 @media (max-width: 1180px) {
@@ -378,107 +395,120 @@ button { cursor: pointer; }
   .thread-body .ctx { display: none; }
 }
 
-.messages { display: flex; flex-direction: column; gap: 10px; }
+.messages { display: flex; flex-direction: column; gap: 14px; }
 .msg {
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--bg-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 .msg-head {
-  padding: 11px 16px;
+  padding: 12px 18px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   border-bottom: 1px solid var(--line);
-  background: var(--bg-3);
+  background: var(--bg);
 }
 .msg-head .left { display: flex; align-items: center; gap: 10px; }
 .msg-head .avatar {
-  width: 24px; height: 24px; border-radius: 50%;
-  background: var(--bg-hover); color: var(--text-2);
-  font-size: 10px; font-weight: 700;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-3); color: var(--text-2);
+  font-size: 10.5px; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
 }
-.msg-head .from { font-size: 13px; font-weight: 600; color: var(--text); }
-.msg-head .time { font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.msg-head .from { font-size: 13.5px; font-weight: 600; color: var(--text); font-family: var(--font-display); letter-spacing: -0.1px; }
+.msg-head .time { font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .msg-head .badge {
-  padding: 2px 7px; border-radius: 4px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
 }
-.msg.outbound .msg-head .badge { background: rgba(45,212,164,0.14); color: var(--green); }
-.msg.inbound .msg-head .badge { background: var(--bg-hover); color: var(--text-2); }
-.msg.draft .msg-head .badge { background: rgba(255,146,51,0.14); color: var(--orange); }
-.msg-body { padding: 16px; font-size: 13.5px; line-height: 1.65; color: var(--text); white-space: pre-wrap; }
-.msg.draft { border-color: rgba(255,146,51,0.3); }
+.msg.outbound .msg-head .badge { background: rgba(13, 122, 91, 0.10); color: var(--green); }
+.msg.outbound .msg-head .avatar { background: linear-gradient(135deg, var(--accent), var(--teal)); color: #fff; }
+.msg.inbound .msg-head .badge { background: var(--surface-2); color: var(--text-2); }
+.msg.draft .msg-head .badge { background: rgba(200, 100, 58, 0.10); color: var(--orange); }
+.msg.draft { border-color: rgba(200, 100, 58, 0.25); }
+.msg-body {
+  padding: 18px 22px;
+  font-size: 14px; line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  font-family: var(--font-display);
+}
 
-/* Context sidebar (right side of thread) */
+/* Context sidebar */
 .ctx { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
 .ctx-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--bg-2);
+  background: var(--surface);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .ctx-card .head {
-  padding: 10px 14px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--line);
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; color: var(--text-3);
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-3);
   text-transform: uppercase;
   display: flex; align-items: center; justify-content: space-between;
 }
-.ctx-card .body { padding: 14px; }
-.ctx-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ctx-card .item .label { font-size: 10px; color: var(--text-3); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 3px; }
-.ctx-card .item .val { font-size: 13px; color: var(--text); font-weight: 500; }
-.ctx-card.risk { border-color: rgba(255,146,51,0.25); background: linear-gradient(180deg, rgba(255,146,51,0.06), rgba(255,146,51,0.02)); }
+.ctx-card .body { padding: 16px; }
+.ctx-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ctx-card .item .label { font-family: var(--font-display); font-size: 10px; color: var(--text-3); letter-spacing: 0.7px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+.ctx-card .item .val { font-size: 13.5px; color: var(--text); font-weight: 500; font-family: var(--font-display); letter-spacing: -0.1px; }
+.ctx-card.risk { border-color: rgba(200, 100, 58, 0.3); }
 .ctx-card.risk .head { color: var(--orange); }
-.ctx-card.next { border-color: rgba(45,212,164,0.25); background: linear-gradient(180deg, rgba(45,212,164,0.06), rgba(45,212,164,0.02)); }
+.ctx-card.next { border-color: rgba(13, 122, 91, 0.3); }
 .ctx-card.next .head { color: var(--green); }
-.ctx-card .text { font-size: 13px; line-height: 1.6; color: var(--text); }
+.ctx-card .text { font-size: 13.5px; line-height: 1.65; color: var(--text); font-family: var(--font-display); }
 
 .timeline { list-style: none; }
 .timeline li {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 8px 0;
-  font-size: 12.5px;
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 9px 0;
+  font-size: 13px;
   color: var(--text-2);
   border-bottom: 1px solid var(--line);
 }
-.timeline li:last-child { border-bottom: 0; }
+.timeline li:last-child { border-bottom: 0; padding-bottom: 0; }
+.timeline li:first-child { padding-top: 0; }
 .timeline .num {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--bg-3); color: var(--text-2);
-  font-size: 10px; font-weight: 700;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 11px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   border: 1px solid var(--line);
+  font-family: var(--font-display);
 }
-.timeline li:first-child .num { background: var(--accent-glow); color: var(--accent-2); border-color: var(--accent); }
+.timeline li:first-child .num { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 
 .identity { display: flex; gap: 12px; align-items: center; }
 .identity .ava {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--pink));
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--teal));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; color: #fff;
-  flex-shrink: 0;
+  font-size: 16px; font-weight: 700; color: var(--surface);
+  flex-shrink: 0; font-family: var(--font-display); letter-spacing: -0.5px;
 }
-.identity .who-name { font-size: 14.5px; font-weight: 600; color: var(--text); font-family: var(--font-display); letter-spacing: -0.2px; }
-.identity .email-line { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identity .who-name { font-size: 15.5px; font-weight: 600; color: var(--text); font-family: var(--font-display); letter-spacing: -0.3px; }
+.identity .email-line { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); }
 
 /* Lane colors */
-.row[data-lane="act-now"], .lane-act-now { --lane-color: var(--red); --lane-bg: rgba(255,77,109,0.14); }
-.row[data-lane="sprint"], .lane-sprint { --lane-color: var(--green); --lane-bg: rgba(45,212,164,0.14); }
-.row[data-lane="bookable"], .lane-bookable { --lane-color: var(--teal); --lane-bg: rgba(76,201,240,0.14); }
-.row[data-lane="review"], .lane-review { --lane-color: var(--orange); --lane-bg: rgba(255,146,51,0.14); }
-.row[data-lane="unclear"], .lane-unclear { --lane-color: var(--yellow); --lane-bg: rgba(255,203,71,0.14); }
-.row[data-lane="later"], .lane-later { --lane-color: var(--accent-2); --lane-bg: rgba(167,139,255,0.14); }
-.row[data-lane="medical"], .lane-medical { --lane-color: var(--pink); --lane-bg: rgba(244,114,182,0.14); }
+.row[data-lane="act-now"], .lane-act-now { --lane-color: var(--red); --lane-bg: rgba(184, 57, 90, 0.10); }
+.row[data-lane="sprint"], .lane-sprint { --lane-color: var(--green); --lane-bg: rgba(13, 122, 91, 0.10); }
+.row[data-lane="bookable"], .lane-bookable { --lane-color: var(--teal); --lane-bg: rgba(42, 138, 163, 0.10); }
+.row[data-lane="review"], .lane-review { --lane-color: var(--orange); --lane-bg: rgba(200, 100, 58, 0.10); }
+.row[data-lane="unclear"], .lane-unclear { --lane-color: var(--yellow); --lane-bg: rgba(184, 144, 40, 0.10); }
+.row[data-lane="later"], .lane-later { --lane-color: var(--purple); --lane-bg: rgba(107, 94, 195, 0.10); }
+.row[data-lane="medical"], .lane-medical { --lane-color: var(--pink); --lane-bg: rgba(160, 80, 136, 0.10); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 5px; border: 2px solid var(--bg); }
-::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); border: 2px solid transparent; background-clip: content-box; }
 
 /* Responsive */
 @media (max-width: 1280px) { .body { grid-template-columns: 220px 1fr; } }
@@ -487,8 +517,6 @@ button { cursor: pointer; }
   .body { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .inbox { grid-template-columns: 1fr; }
-  .thread { display: none; }
-  .row.selected ~ .thread { display: flex; }
 }
 </style>
 </head>
@@ -521,26 +549,25 @@ button { cursor: pointer; }
   </header>
 
   <div class="body">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">Vyer</div>
         <button class="nav-item active"><span class="icon">📥</span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
-        <button class="nav-item"><span class="icon">⚡</span><span class="label">Agera nu</span><span class="count" data-lane-count="act-now">1</span></button>
-        <button class="nav-item"><span class="icon">📈</span><span class="label">Sprint</span><span class="count" data-lane-count="sprint">1</span></button>
-        <button class="nav-item"><span class="icon">📅</span><span class="label">Bokningar</span><span class="count" data-lane-count="bookable">1</span></button>
-        <button class="nav-item"><span class="icon">👁</span><span class="label">Granska</span><span class="count" data-lane-count="review">1</span></button>
-        <button class="nav-item"><span class="icon">⏸</span><span class="label">Senare</span><span class="count" data-lane-count="later">1</span></button>
+        <button class="nav-item"><span class="icon">⚡</span><span class="label">Agera nu</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="icon">📈</span><span class="label">Sprint</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="icon">📅</span><span class="label">Bokningar</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="icon">👁</span><span class="label">Granska</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="icon">⏸</span><span class="label">Senare</span><span class="count">1</span></button>
         <button class="nav-item"><span class="icon">✓</span><span class="label">Klara</span><span class="count">12</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">Mailboxar <button class="add">+</button></div>
-        <button class="nav-item"><span class="dot" style="background:#a44a1f"></span><span class="label">Egzona</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:var(--accent)"></span><span class="label">Fazli</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:var(--teal)"></span><span class="label">Kons</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:var(--green)"></span><span class="label">Info</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:var(--orange)"></span><span class="label">Kontakt</span><span class="count">0</span></button>
-        <button class="nav-item"><span class="dot" style="background:var(--pink)"></span><span class="label">Marknad</span><span class="count">0</span></button>
+        <button class="nav-item"><span class="dot" style="background:#c8643a"></span><span class="label">Egzona</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#6b5ec3"></span><span class="label">Fazli</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#2a8aa3"></span><span class="label">Kons</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#0d7a5b"></span><span class="label">Info</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#b89028"></span><span class="label">Kontakt</span><span class="count">0</span></button>
+        <button class="nav-item"><span class="dot" style="background:#a05088"></span><span class="label">Marknad</span><span class="count">0</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">System</div>
@@ -551,7 +578,6 @@ button { cursor: pointer; }
       </div>
     </aside>
 
-    <!-- Inbox -->
     <main class="inbox">
       <section class="inbox-list">
         <div class="inbox-header">
@@ -574,216 +600,173 @@ button { cursor: pointer; }
 <script>
 (() => {
   'use strict';
-
-  // ===== Demo fixtures =====
   const DEMO = [
-    {
-      id: 'demo-mb-001', lane: 'act-now', laneLabel: 'Agera nu', unread: true,
-      who: 'Morten Bak Kristoffersen', email: 'morten.bak@example.com', initials: 'MB',
-      mailbox: 'Egzona',
-      mailboxTrail: [['F','#7c5cff'],['K','#4cc9f0'],['E','#ff9233']],
-      subject: 'Frågar om uppföljning på offerten — behöver svar före måndag',
-      preview: 'Jag har inte hört något sedan vårt möte. Behöver kunna lämna besked till frun...',
-      time: '16:07', tags: [{ label: 'Hög risk', tone: 'danger' }, { label: 'Deadline måndag', tone: 'warn' }],
-      conversation: [
-        { from: 'Morten Bak Kristoffersen', dir: 'inbound', time: 'Idag · 16:07', initials: 'MB',
-          body: 'Hej! Jag har inte hört något sedan vårt konsultationsmöte i förra veckan. Min fru och jag försöker planera detta tillsammans och behöver kunna ge henne ett besked.\n\nKan ni återkomma med nästa steg? Helst vill jag boka tid inom 2 veckor.\n\nMvh\nMorten' },
-        { from: 'Egzona Krasniqi', dir: 'outbound', time: 'Idag · 12:14', initials: 'EK',
-          body: 'Hej Morten!\n\nTack för ditt mejl och för förra veckans samtal. Jag förstår att tidsfönstret är viktigt för er. Jag stämmer av med klinikteamet idag och återkommer senast imorgon med två tidsförslag inom de närmaste 2 veckorna.\n\nVänligen,\nEgzona' },
+    { id:'demo-mb-001', lane:'act-now', laneLabel:'Agera nu', unread:true,
+      who:'Morten Bak Kristoffersen', email:'morten.bak@example.com', initials:'MB',
+      mailbox:'Egzona', mailboxTrail:[['F','#6b5ec3'],['K','#2a8aa3'],['E','#c8643a']],
+      subject:'Frågar om uppföljning på offerten — behöver svar före måndag',
+      preview:'Jag har inte hört något sedan vårt möte. Behöver kunna lämna besked till frun…',
+      time:'16:07', tags:[{label:'Hög risk',tone:'danger'},{label:'Deadline måndag',tone:'warn'}],
+      conversation:[
+        {from:'Morten Bak Kristoffersen',dir:'inbound',time:'Idag · 16:07',initials:'MB',
+         body:'Hej! Jag har inte hört något sedan vårt konsultationsmöte i förra veckan. Min fru och jag försöker planera detta tillsammans och behöver kunna ge henne ett besked.\n\nKan ni återkomma med nästa steg? Helst vill jag boka tid inom 2 veckor.\n\nMvh\nMorten'},
+        {from:'Egzona Krasniqi',dir:'outbound',time:'Idag · 12:14',initials:'EK',
+         body:'Hej Morten!\n\nTack för ditt mejl och för förra veckans samtal. Jag förstår att tidsfönstret är viktigt för er. Jag stämmer av med klinikteamet idag och återkommer senast imorgon med två tidsförslag inom de närmaste 2 veckorna.\n\nVänligen,\nEgzona'},
       ],
-      timeline: ['Påminnelse idag','Tystnad 5 dagar','Offert skickad 9 maj','Konsultation 8 maj'],
-      risk: 'Hög risk — kunden har angett deadline (måndag) och nämner alternativ.',
-      nextStep: 'Svara inom 2h med två konkreta tidsförslag.',
-      lifecycle: 'Aktiv dialog', followUp: 'Idag', riskLevel: 'Miss', owner: '—',
-    },
-    {
-      id: 'demo-jk-002', lane: 'sprint', laneLabel: 'Sprint', unread: false,
-      who: 'Johan Karlsson', email: 'johan.karlsson@example.com', initials: 'JK',
-      mailbox: 'Fazli',
-      mailboxTrail: [['F','#7c5cff']],
-      subject: 'Vill boka möte nästa måndag om den nya integrationen',
-      preview: 'Kan vi ses kl 14 på måndag och gå igenom Cliento-integrationen?',
-      time: '14:22', tags: [{ label: 'Mötesförslag', tone: 'info' }],
-      conversation: [
-        { from: 'Johan Karlsson', dir: 'inbound', time: 'Idag · 14:22', initials: 'JK',
-          body: 'Hej Fazli!\n\nKan vi ses kl 14:00 på måndag och gå igenom Cliento-integrationen? Jag har förberett några frågor om webhook-flödet.\n\nMvh,\nJohan' },
+      timeline:['Påminnelse idag','Tystnad 5 dagar','Offert skickad 9 maj','Konsultation 8 maj'],
+      risk:'Hög risk — kunden har angett deadline (måndag) och nämner alternativ.',
+      nextStep:'Svara inom 2h med två konkreta tidsförslag.',
+      lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—' },
+    { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', unread:false,
+      who:'Johan Karlsson', email:'johan.karlsson@example.com', initials:'JK',
+      mailbox:'Fazli', mailboxTrail:[['F','#6b5ec3']],
+      subject:'Vill boka möte nästa måndag om den nya integrationen',
+      preview:'Kan vi ses kl 14 på måndag och gå igenom Cliento-integrationen?',
+      time:'14:22', tags:[{label:'Mötesförslag',tone:'info'}],
+      conversation:[{from:'Johan Karlsson',dir:'inbound',time:'Idag · 14:22',initials:'JK',
+        body:'Hej Fazli!\n\nKan vi ses kl 14:00 på måndag och gå igenom Cliento-integrationen? Jag har förberett några frågor om webhook-flödet.\n\nMvh,\nJohan'}],
+      timeline:['Mötesförslag idag','Tidigare diskussion 28 april'],
+      risk:'Låg risk — strukturerad förfrågan.',
+      nextStep:'Bekräfta tiden eller föreslå alternativ.',
+      lifecycle:'Aktiv dialog', followUp:'Måndag 14:00', riskLevel:'Låg', owner:'Fazli' },
+    { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', unread:true,
+      who:'Sara Holm', email:'sara.holm@example.com', initials:'SH',
+      mailbox:'Kons', mailboxTrail:[['K','#2a8aa3'],['F','#6b5ec3']],
+      subject:'Klar att boka — har bekräftat tid och typ av konsultation',
+      preview:'Jag har bestämt mig för FUE-konsultation. Kan komma vilken dag som helst kommande vecka 10–15.',
+      time:'Igår', tags:[{label:'Klar att bokas',tone:'success'}],
+      conversation:[
+        {from:'Sara Holm',dir:'inbound',time:'Igår · 09:48',initials:'SH',
+         body:'Hej!\n\nJag har bestämt mig för FUE-konsultation. Jag kan komma vilken dag som helst kommande vecka mellan 10:00 och 15:00. Tar gärna första lediga tid.\n\nTack på förhand,\nSara'},
+        {from:'Egzona Krasniqi',dir:'outbound',time:'Igår · 11:02',initials:'EK',
+         body:'Hej Sara!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga slots tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona'},
       ],
-      timeline: ['Mötesförslag idag','Tidigare diskussion 28 april'],
-      risk: 'Låg risk — strukturerad förfrågan.',
-      nextStep: 'Bekräfta tiden eller föreslå alternativ.',
-      lifecycle: 'Aktiv dialog', followUp: 'Måndag 14:00', riskLevel: 'Låg', owner: 'Fazli',
-    },
-    {
-      id: 'demo-sh-003', lane: 'bookable', laneLabel: 'Bokning', unread: true,
-      who: 'Sara Holm', email: 'sara.holm@example.com', initials: 'SH',
-      mailbox: 'Kons',
-      mailboxTrail: [['K','#4cc9f0'],['F','#7c5cff']],
-      subject: 'Klar att boka — har bekräftat tid och typ av konsultation',
-      preview: 'Jag har bestämt mig för FUE-konsultation. Kan komma vilken dag som helst kommande vecka 10–15.',
-      time: 'Igår', tags: [{ label: 'Klar att bokas', tone: 'success' }],
-      conversation: [
-        { from: 'Sara Holm', dir: 'inbound', time: 'Igår · 09:48', initials: 'SH',
-          body: 'Hej!\n\nJag har bestämt mig för FUE-konsultation. Jag kan komma vilken dag som helst kommande vecka mellan 10:00 och 15:00. Tar gärna första lediga tid.\n\nTack på förhand,\nSara' },
-        { from: 'Egzona Krasniqi', dir: 'outbound', time: 'Igår · 11:02', initials: 'EK',
-          body: 'Hej Sara!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga slots tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona' },
+      timeline:['Bekräftelse igår','Konsultation 28 april','Första kontakt 22 april'],
+      risk:'Låg risk — klart bokningsintresse.',
+      nextStep:'Skicka kalender-inbjudan tisdag 13:00 eller torsdag 11:00.',
+      lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona' },
+    { id:'demo-el-004', lane:'review', laneLabel:'Granska', unread:true,
+      who:'Erik Lindqvist', email:'erik.lindqvist@example.com', initials:'EL',
+      mailbox:'Kontakt', mailboxTrail:[['K','#2a8aa3'],['F','#6b5ec3']],
+      subject:'AI-utkast flaggat — pris-avvikelse',
+      preview:'AI-svaret har angett 32 000 kr men dagens prislista visar 38 500 kr för FUE.',
+      time:'11:36', tags:[{label:'Pris-avvikelse',tone:'danger'},{label:'AI-utkast',tone:'warn'}],
+      conversation:[
+        {from:'Erik Lindqvist',dir:'inbound',time:'Idag · 11:34',initials:'EL',
+         body:'Hej!\n\nJag undrar vad en FUE-behandling kostar hos er? Har sett olika priser på olika sidor.\n\nMvh,\nErik'},
+        {from:'AI-utkast (väntar granskning)',dir:'draft',time:'Idag · 11:36',initials:'AI',
+         body:'Hej Erik!\n\nEn FUE-behandling kostar från 32 000 kr beroende på antal grafts. Vi kan gärna boka in en gratis konsultation där vi tar fram ett exakt pris för just dig.\n\nMvh,\nHair TP Clinic'},
       ],
-      timeline: ['Bekräftelse igår','Konsultation 28 april','Första kontakt 22 april'],
-      risk: 'Låg risk — klart bokningsintresse.',
-      nextStep: 'Skicka kalender-inbjudan tisdag 13:00 eller torsdag 11:00.',
-      lifecycle: 'Klar för bokning', followUp: 'Idag', riskLevel: 'Låg', owner: 'Egzona',
-    },
-    {
-      id: 'demo-el-004', lane: 'review', laneLabel: 'Granska', unread: true,
-      who: 'Erik Lindqvist', email: 'erik.lindqvist@example.com', initials: 'EL',
-      mailbox: 'Kontakt',
-      mailboxTrail: [['K','#4cc9f0'],['F','#7c5cff']],
-      subject: 'AI-utkast flaggat — pris-avvikelse',
-      preview: 'AI-svaret har angett 32 000 kr men dagens prislista visar 38 500 kr för FUE.',
-      time: '11:36', tags: [{ label: 'Pris-avvikelse', tone: 'danger' }, { label: 'AI-utkast', tone: 'warn' }],
-      conversation: [
-        { from: 'Erik Lindqvist', dir: 'inbound', time: 'Idag · 11:34', initials: 'EL',
-          body: 'Hej!\n\nJag undrar vad en FUE-behandling kostar hos er? Har sett olika priser på olika sidor.\n\nMvh,\nErik' },
-        { from: 'AI-utkast (väntar granskning)', dir: 'draft', time: 'Idag · 11:36', initials: 'AI',
-          body: 'Hej Erik!\n\nEn FUE-behandling kostar från 32 000 kr beroende på antal grafts. Vi kan gärna boka in en gratis konsultation där vi tar fram ett exakt pris för just dig.\n\nMvh,\nHair TP Clinic' },
+      timeline:['Flaggat 11:36','AI-utkast 11:36','Förfrågan 11:34'],
+      risk:'Hög risk — fel pris kan skapa tvist.',
+      nextStep:'Korrigera till 38 500 kr eller skicka uppdaterad prislista.',
+      lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—' },
+    { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', unread:false,
+      who:'Anna Svensson', email:'anna.svensson@example.com', initials:'AS',
+      mailbox:'Info', mailboxTrail:[['I','#0d7a5b']],
+      subject:'Kort meddelande — otydligt syfte',
+      preview:'Hej, jag undrar bara hur det går?',
+      time:'Tis', tags:[{label:'Behöver kontext',tone:'info'}],
+      conversation:[{from:'Anna Svensson',dir:'inbound',time:'Tis · 16:18',initials:'AS',body:'Hej, jag undrar bara hur det går?'}],
+      timeline:['Meddelande tisdag','Tidigare konsultation 12 mars'],
+      risk:'Oklart — saknar kontext.',
+      nextStep:'Slå upp tidigare konversation och svara med följdfråga.',
+      lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—' },
+    { id:'demo-pn-006', lane:'later', laneLabel:'Senare', unread:false,
+      who:'Peter Nilsson', email:'peter.nilsson@example.com', initials:'PN',
+      mailbox:'Fazli', mailboxTrail:[['F','#6b5ec3']],
+      subject:'Väntar på röntgenbilder — snooze fredag',
+      preview:'Tack för uppdateringen. Jag väntar på röntgenbilderna och hör av mig så fort jag har dem.',
+      time:'Mån', tags:[{label:'Snooze fre 09:00',tone:'info'}],
+      conversation:[
+        {from:'Peter Nilsson',dir:'inbound',time:'Mån · 09:14',initials:'PN',
+         body:'Tack för uppdateringen! Jag väntar på röntgenbilderna och hör av mig så fort jag har dem, förmodligen på fredag.\n\nHa en bra vecka.\n\nMvh,\nPeter'},
+        {from:'Fazli Krasniqi',dir:'outbound',time:'Mån · 09:32',initials:'FK',
+         body:'Hej Peter!\n\nPerfekt, då pausar jag ditt ärende fram till fredag. Du får automatisk påminnelse 09:00 fredag morgon om jag inte hört från dig.\n\nMvh,\nFazli'},
       ],
-      timeline: ['Flaggat 11:36','AI-utkast 11:36','Förfrågan 11:34'],
-      risk: 'Hög risk — fel pris kan skapa tvist.',
-      nextStep: 'Korrigera till 38 500 kr eller skicka uppdaterad prislista.',
-      lifecycle: 'Ny dialog', followUp: 'Idag', riskLevel: 'Hög', owner: '—',
-    },
-    {
-      id: 'demo-as-005', lane: 'unclear', laneLabel: 'Oklart', unread: false,
-      who: 'Anna Svensson', email: 'anna.svensson@example.com', initials: 'AS',
-      mailbox: 'Info',
-      mailboxTrail: [['I','#2dd4a4']],
-      subject: 'Kort meddelande — otydligt syfte',
-      preview: 'Hej, jag undrar bara hur det går?',
-      time: 'Tis', tags: [{ label: 'Behöver kontext', tone: 'muted' }],
-      conversation: [
-        { from: 'Anna Svensson', dir: 'inbound', time: 'Tis · 16:18', initials: 'AS',
-          body: 'Hej, jag undrar bara hur det går?' },
-      ],
-      timeline: ['Meddelande tisdag','Tidigare konsultation 12 mars'],
-      risk: 'Oklart — saknar kontext.',
-      nextStep: 'Slå upp tidigare konversation och svara med följdfråga.',
-      lifecycle: 'Återupptagen', followUp: '—', riskLevel: 'Låg', owner: '—',
-    },
-    {
-      id: 'demo-pn-006', lane: 'later', laneLabel: 'Senare', unread: false,
-      who: 'Peter Nilsson', email: 'peter.nilsson@example.com', initials: 'PN',
-      mailbox: 'Fazli',
-      mailboxTrail: [['F','#7c5cff']],
-      subject: 'Väntar på röntgenbilder — snooze fredag',
-      preview: 'Tack för uppdateringen. Jag väntar på röntgenbilderna och hör av mig så fort jag har dem.',
-      time: 'Mån', tags: [{ label: 'Snooze fre 09:00', tone: 'info' }],
-      conversation: [
-        { from: 'Peter Nilsson', dir: 'inbound', time: 'Mån · 09:14', initials: 'PN',
-          body: 'Tack för uppdateringen! Jag väntar på röntgenbilderna och hör av mig så fort jag har dem, förmodligen på fredag.\n\nHa en bra vecka.\n\nMvh,\nPeter' },
-        { from: 'Fazli Krasniqi', dir: 'outbound', time: 'Mån · 09:32', initials: 'FK',
-          body: 'Hej Peter!\n\nPerfekt, då pausar jag ditt ärende fram till fredag. Du får automatisk påminnelse 09:00 fredag morgon om jag inte hört från dig.\n\nMvh,\nFazli' },
-      ],
-      timeline: ['Snooze till fredag','Begäran om röntgen 25 april','Konsultation 18 april'],
-      risk: 'Låg risk — väntar på extern faktor.',
-      nextStep: 'Påminnelse fredag 09:00.',
-      lifecycle: 'Pausad', followUp: 'Fre 09:00', riskLevel: 'Låg', owner: 'Fazli',
-    },
+      timeline:['Snooze till fredag','Begäran om röntgen 25 april','Konsultation 18 april'],
+      risk:'Låg risk — väntar på extern faktor.',
+      nextStep:'Påminnelse fredag 09:00.',
+      lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli' },
   ];
 
   const TABS = [
-    { id: 'all', label: 'Alla' },
-    { id: 'unread', label: 'Olästa' },
-    { id: 'mine', label: 'Mina' },
-    { id: 'high-risk', label: 'Hög risk' },
-    { id: 'today', label: 'Idag' },
+    {id:'all',label:'Alla'},{id:'unread',label:'Olästa'},
+    {id:'mine',label:'Mina'},{id:'high-risk',label:'Hög risk'},{id:'today',label:'Idag'}
   ];
+  const state = { threads:[...DEMO], selectedId:DEMO[0].id, tab:'all', live:false };
+  const $ = s => document.querySelector(s);
+  const escHtml = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
-  // ===== State =====
-  const state = { threads: [...DEMO], selectedId: DEMO[0].id, tab: 'all', live: false };
-
-  // ===== Helpers =====
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => Array.from(document.querySelectorAll(s));
-  const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-  // ===== Renderers =====
   function renderTabs() {
     const counts = { all: state.threads.length };
-    counts.unread = state.threads.filter((t) => t.unread).length;
-    counts.mine = state.threads.filter((t) => /Fazli|fazli/.test(t.owner || '')).length;
-    counts['high-risk'] = state.threads.filter((t) => (t.tags || []).some((g) => g.tone === 'danger')).length;
-    counts.today = state.threads.filter((t) => /Idag|idag/.test(t.time) || (t.lane !== 'later')).length;
-    $('#inbox-tabs').innerHTML = TABS.map((tab) => `
-      <button class="tab${state.tab === tab.id ? ' active' : ''}" data-tab="${tab.id}">
-        ${escHtml(tab.label)} <span class="num">${counts[tab.id] || 0}</span>
+    counts.unread = state.threads.filter(t=>t.unread).length;
+    counts.mine = state.threads.filter(t=>/Fazli/i.test(t.owner||'')).length;
+    counts['high-risk'] = state.threads.filter(t=>(t.tags||[]).some(g=>g.tone==='danger')).length;
+    counts.today = state.threads.filter(t=>/Idag/i.test(t.time)).length;
+    $('#inbox-tabs').innerHTML = TABS.map(tab=>`
+      <button class="tab${state.tab===tab.id?' active':''}" data-tab="${tab.id}">
+        ${escHtml(tab.label)} <span class="num">${counts[tab.id]||0}</span>
       </button>`).join('');
   }
-
   function visibleThreads() {
     let v = state.threads;
-    if (state.tab === 'unread') v = v.filter((t) => t.unread);
-    if (state.tab === 'mine') v = v.filter((t) => /Fazli|fazli/.test(t.owner || ''));
-    if (state.tab === 'high-risk') v = v.filter((t) => (t.tags || []).some((g) => g.tone === 'danger'));
-    if (state.tab === 'today') v = v.filter((t) => /Idag|idag/.test(t.time));
+    if (state.tab==='unread') v = v.filter(t=>t.unread);
+    if (state.tab==='mine') v = v.filter(t=>/Fazli/i.test(t.owner||''));
+    if (state.tab==='high-risk') v = v.filter(t=>(t.tags||[]).some(g=>g.tone==='danger'));
+    if (state.tab==='today') v = v.filter(t=>/Idag/i.test(t.time));
     return v;
   }
-
   function renderRows() {
     const list = $('#inbox-rows');
     const visible = visibleThreads();
-    $('#title-num').textContent = `· ${visible.length} ${visible.length === 1 ? 'tråd' : 'trådar'}`;
-    if (!visible.length) {
-      list.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--text-3);">Inga trådar matchar.</div>`;
-      return;
-    }
-    list.innerHTML = visible.map((t) => {
-      const sel = state.selectedId === t.id ? ' selected' : '';
-      const unread = t.unread ? ' unread' : '';
-      const trail = (t.mailboxTrail || []).map(([letter, color]) =>
-        `<span class="mb" style="background:${color}">${letter}</span>`).join('');
-      const tags = (t.tags || []).slice(0, 2).map((g) =>
-        `<span class="tag ${g.tone}">${escHtml(g.label)}</span>`).join('');
-      return `
-        <div class="row${sel}${unread}" data-id="${t.id}" data-lane="${t.lane}">
-          <div class="lane-bar"></div>
-          <div class="body">
-            <div class="top">
-              <span class="lane-tag">${escHtml(t.laneLabel)}</span>
-              <span class="meta-time">${escHtml(t.time)}</span>
-            </div>
-            <div class="who">${escHtml(t.who)}</div>
-            <div class="subject">${escHtml(t.subject)}</div>
-            <div class="preview">${escHtml(t.preview)}</div>
-            <div class="footer">
-              ${tags}
-              ${trail ? `<span class="mailbox-trail">${trail}</span>` : ''}
-            </div>
+    $('#title-num').textContent = `· ${visible.length} ${visible.length===1?'tråd':'trådar'}`;
+    if (!visible.length) { list.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--text-3);font-style:italic;">Inga trådar matchar.</div>`; return; }
+    list.innerHTML = visible.map(t=>{
+      const sel = state.selectedId===t.id?' selected':'';
+      const unread = t.unread?' unread':'';
+      const trail = (t.mailboxTrail||[]).map(([l,c])=>`<span class="mb" style="background:${c}">${l}</span>`).join('');
+      const tags = (t.tags||[]).slice(0,2).map(g=>`<span class="tag ${g.tone}">${escHtml(g.label)}</span>`).join('');
+      return `<div class="row${sel}${unread}" data-id="${t.id}" data-lane="${t.lane}">
+        <div class="lane-bar"></div>
+        <div class="body">
+          <div class="top">
+            <span class="lane-tag">${escHtml(t.laneLabel)}</span>
+            <span class="meta-time">${escHtml(t.time)}</span>
           </div>
-        </div>`;
+          <div class="who">${escHtml(t.who)}</div>
+          <div class="subject">${escHtml(t.subject)}</div>
+          <div class="preview">${escHtml(t.preview)}</div>
+          <div class="footer">
+            ${tags}
+            ${trail?`<span class="mailbox-trail">${trail}</span>`:''}
+          </div>
+        </div>
+      </div>`;
     }).join('');
   }
-
   function renderThread() {
     const root = $('#thread');
-    const t = state.threads.find((x) => x.id === state.selectedId);
+    const t = state.threads.find(x=>x.id===state.selectedId);
     if (!t) {
       root.className = 'thread empty';
-      root.innerHTML = `<div class="placeholder"><h3>Välj en tråd</h3><p>Klicka på en tråd till vänster eller använd <span class="key">J</span> / <span class="key">K</span> för att navigera och <span class="key">↵</span> för att öppna.</p></div>`;
+      root.innerHTML = `<div class="placeholder"><h3>Välj en tråd</h3><p>Klicka på en tråd till vänster eller använd <span class="key">J</span> / <span class="key">K</span> för att navigera.</p></div>`;
       return;
     }
     root.className = 'thread';
-    const messages = t.conversation.map((m) => `
+    const messages = t.conversation.map(m=>`
       <article class="msg ${m.dir}">
         <div class="msg-head">
           <div class="left">
-            <span class="avatar">${escHtml(m.initials || '?')}</span>
+            <span class="avatar">${escHtml(m.initials||'?')}</span>
             <span class="from">${escHtml(m.from)}</span>
-            <span class="badge">${escHtml(m.dir === 'outbound' ? 'Skickat' : m.dir === 'draft' ? 'AI-utkast' : 'Inkommit')}</span>
+            <span class="badge">${escHtml(m.dir==='outbound'?'Skickat':m.dir==='draft'?'AI-utkast':'Inkommit')}</span>
           </div>
           <span class="time">${escHtml(m.time)}</span>
         </div>
         <div class="msg-body">${escHtml(m.body)}</div>
       </article>`).join('');
-    const tl = (t.timeline || []).map((s, i) => `<li><span class="num">${i + 1}</span><span>${escHtml(s)}</span></li>`).join('');
+    const tl = (t.timeline||[]).map((s,i)=>`<li><span class="num">${i+1}</span><span>${escHtml(s)}</span></li>`).join('');
     root.innerHTML = `
       <div class="thread-head lane-${t.lane}">
         <div class="top">
@@ -835,99 +818,68 @@ button { cursor: pointer; }
               </div>
             </div>
           </div>
-          ${t.risk ? `<div class="ctx-card risk"><div class="head">Risk</div><div class="body"><div class="text">${escHtml(t.risk)}</div></div></div>` : ''}
-          ${t.nextStep ? `<div class="ctx-card next"><div class="head">Nästa steg</div><div class="body"><div class="text">${escHtml(t.nextStep)}</div></div></div>` : ''}
-          ${tl ? `<div class="ctx-card"><div class="head">Tidslinje</div><div class="body"><ul class="timeline">${tl}</ul></div></div>` : ''}
+          ${t.risk?`<div class="ctx-card risk"><div class="head">Risk</div><div class="body"><div class="text">${escHtml(t.risk)}</div></div></div>`:''}
+          ${t.nextStep?`<div class="ctx-card next"><div class="head">Nästa steg</div><div class="body"><div class="text">${escHtml(t.nextStep)}</div></div></div>`:''}
+          ${tl?`<div class="ctx-card"><div class="head">Tidslinje</div><div class="body"><ul class="timeline">${tl}</ul></div></div>`:''}
         </aside>
       </div>`;
   }
+  function renderAll() { renderTabs(); renderRows(); renderThread(); }
 
-  function renderAll() {
-    renderTabs();
-    renderRows();
-    renderThread();
-  }
-
-  // ===== Events =====
   function bind() {
-    document.addEventListener('click', (ev) => {
+    document.addEventListener('click', ev=>{
       const tab = ev.target.closest('[data-tab]');
       if (tab) { state.tab = tab.dataset.tab; renderTabs(); renderRows(); return; }
       const row = ev.target.closest('.row[data-id]');
       if (row) { state.selectedId = row.dataset.id; renderRows(); renderThread(); return; }
     });
-
-    document.addEventListener('keydown', (ev) => {
+    document.addEventListener('keydown', ev=>{
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
-      if (ev.metaKey && ev.key === 'k') { ev.preventDefault(); $('#search-input').focus(); return; }
+      if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
       const v = visibleThreads();
-      const idx = v.findIndex((t) => t.id === state.selectedId);
-      if (ev.key === 'j' || ev.key === 'ArrowDown') {
-        ev.preventDefault();
-        const next = v[Math.min(v.length - 1, idx + 1)] || v[0];
-        if (next) { state.selectedId = next.id; renderRows(); renderThread(); }
-      } else if (ev.key === 'k' || ev.key === 'ArrowUp') {
-        ev.preventDefault();
-        const prev = v[Math.max(0, idx - 1)] || v[0];
-        if (prev) { state.selectedId = prev.id; renderRows(); renderThread(); }
-      }
+      const idx = v.findIndex(t=>t.id===state.selectedId);
+      if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
+      else if (ev.key==='k'||ev.key==='ArrowUp') { ev.preventDefault(); const p=v[Math.max(0,idx-1)]||v[0]; if(p){state.selectedId=p.id;renderRows();renderThread();} }
     });
   }
 
-  // ===== API =====
   async function tryLoadLive() {
     try {
-      const tok = (() => { try { return localStorage.getItem('ARCANA_ADMIN_TOKEN') || ''; } catch { return ''; } })();
+      const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
       if (!tok) return false;
-      const r = await fetch('/api/v1/cco/runtime/worklist/consumer?limit=50', { headers: { Authorization: 'Bearer ' + tok } });
+      const r = await fetch('/api/v1/cco/runtime/worklist/consumer?limit=50', { headers:{Authorization:'Bearer '+tok} });
       if (!r.ok) return false;
       const j = await r.json();
-      if (!j.ok || !Array.isArray(j.rows) || j.rows.length === 0) return false;
+      if (!j.ok || !Array.isArray(j.rows) || j.rows.length===0) return false;
       state.threads = j.rows.map(mapApiRow);
       state.selectedId = state.threads[0]?.id;
       state.live = true;
       const status = $('#conn-status');
       status.innerHTML = `<span class="status-dot"></span> Live · ${state.threads.length}`;
       return true;
-    } catch (e) {
-      console.warn('[cco] live load failed:', e);
-      return false;
-    }
+    } catch (e) { return false; }
   }
-
   function mapApiRow(row) {
-    const laneRaw = String(row.lane || '').toLowerCase().replace(/_/g, '-');
-    const lane = ['act-now','sprint','bookable','review','unclear','later','medical'].includes(laneRaw) ? laneRaw : 'unclear';
+    const laneRaw = String(row.lane||'').toLowerCase().replace(/_/g,'-');
+    const lane = ['act-now','sprint','bookable','review','unclear','later','medical'].includes(laneRaw)?laneRaw:'unclear';
     const who = row.customerName || row.customerEmail?.split('@')[0] || 'Okänd';
-    const initials = who.split(/\s+/).filter(Boolean).slice(0,2).map((p) => p[0]).join('').toUpperCase() || '?';
+    const initials = who.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';
     return {
-      id: row.conversationKey || row.mailboxConversationId,
-      lane, laneLabel: lane === 'act-now' ? 'Agera nu' : lane[0].toUpperCase() + lane.slice(1),
-      unread: row.hasUnreadInbound === true,
-      who, email: row.customerEmail || '', initials,
-      mailbox: row.mailboxAddress?.split('@')[0] || 'Inkorg',
-      mailboxTrail: [],
-      subject: row.subject || '(utan ämne)',
-      preview: row.latestPreview || '',
-      time: row.lastInboundAt ? new Date(row.lastInboundAt).toLocaleString('sv', { hour: '2-digit', minute: '2-digit' }) : '',
-      tags: [],
-      conversation: [{ from: who, dir: 'inbound', time: row.lastInboundAt || '', initials, body: row.latestPreview || '' }],
-      timeline: [],
-      risk: '',
-      nextStep: row.hasUnreadInbound ? 'Svara nu' : 'Granska tråden',
-      lifecycle: row.hasUnreadInbound ? 'Olast' : 'Aktiv',
-      followUp: '—', riskLevel: row.hoursSinceInbound > 24 ? 'Hög' : 'Låg',
-      owner: row.ownershipMailbox?.split('@')[0] || '—',
+      id: row.conversationKey||row.mailboxConversationId,
+      lane, laneLabel: lane==='act-now'?'Agera nu':lane[0].toUpperCase()+lane.slice(1),
+      unread: row.hasUnreadInbound===true, who, email: row.customerEmail||'', initials,
+      mailbox: row.mailboxAddress?.split('@')[0]||'Inkorg', mailboxTrail:[],
+      subject: row.subject||'(utan ämne)', preview: row.latestPreview||'',
+      time: row.lastInboundAt?new Date(row.lastInboundAt).toLocaleString('sv',{hour:'2-digit',minute:'2-digit'}):'',
+      tags:[], conversation:[{from:who,dir:'inbound',time:row.lastInboundAt||'',initials,body:row.latestPreview||''}],
+      timeline:[], risk:'', nextStep: row.hasUnreadInbound?'Svara nu':'Granska tråden',
+      lifecycle: row.hasUnreadInbound?'Olast':'Aktiv', followUp:'—',
+      riskLevel: row.hoursSinceInbound>24?'Hög':'Låg', owner: row.ownershipMailbox?.split('@')[0]||'—',
     };
   }
 
-  // ===== Init =====
-  async function init() {
-    bind();
-    await tryLoadLive();
-    renderAll();
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  async function init() { bind(); await tryLoadLive(); renderAll(); }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
 })();
 </script>
