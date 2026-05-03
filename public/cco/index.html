@@ -38,29 +38,13 @@
   --shadow-sm: 0 1px 3px rgba(20, 18, 32, 0.06), 0 6px 14px -4px rgba(20, 18, 32, 0.08);
   --shadow-glow: 0 0 0 4px rgba(108, 92, 231, 0.12), 0 8px 20px rgba(108, 92, 231, 0.20);
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-[data-theme="dark"] {
-  --bg: #0d0e14;
-  --bg-soft: #161821;
-  --bg-hover: #1d2030;
-  --surface: #161821;
-  --line: rgba(255, 255, 255, 0.07);
-  --line-2: rgba(255, 255, 255, 0.13);
-  --text: #f4f5f8;
-  --text-2: #a3a8b8;
-  --text-3: #6b7184;
-  --accent-soft: rgba(108, 92, 231, 0.14);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.32);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.32), 0 8px 18px -4px rgba(0, 0, 0, 0.40);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.40), 0 16px 32px -6px rgba(0, 0, 0, 0.50);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -72,7 +56,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 button { cursor: pointer; }
 ::selection { background: var(--accent-soft); color: var(--accent-2); }
 
-.app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
+.app { display: grid; grid-template-rows: 44px 1fr; height: 100vh; }
 
 /* ===== Top bar ===== */
 .topbar {
@@ -87,28 +71,28 @@ button { cursor: pointer; }
   gap: 16px;
   position: relative; z-index: 50;
 }
-.brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 14px; letter-spacing: -0.3px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; letter-spacing: -0.3px; }
 .brand .logo {
-  width: 28px; height: 28px; border-radius: 8px;
+  width: 24px; height: 24px; border-radius: 7px;
   background: var(--accent-grad);
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff;
   box-shadow: 0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.4);
   position: relative; overflow: hidden;
 }
-.brand .logo svg { width: 14px; height: 14px; }
-.brand .sep { color: var(--text-3); margin: 0 3px; font-weight: 400; }
-.brand .ctx { color: var(--text-2); font-weight: 500; font-size: 13px; }
+.brand .logo svg { width: 13px; height: 13px; }
+.brand .sep { color: var(--text-3); margin: 0 2px; font-weight: 400; }
+.brand .ctx { color: var(--text-2); font-weight: 500; font-size: 12px; }
 
 .search { position: relative; max-width: 480px; margin: 0 auto; width: 100%; }
 .search input {
-  width: 100%; height: 34px;
+  width: 100%; height: 28px;
   background: var(--bg-soft);
   border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 0 14px 0 36px;
+  border-radius: 8px;
+  padding: 0 12px 0 32px;
   color: var(--text);
-  font-size: 13px; outline: none;
+  font-size: 12.5px; outline: none;
   transition: all 0.2s var(--ease);
 }
 .search input::placeholder { color: var(--text-3); }
@@ -123,7 +107,7 @@ button { cursor: pointer; }
 
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .icon-btn {
-  width: 30px; height: 30px; border-radius: 8px;
+  width: 26px; height: 26px; border-radius: 7px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-2);
   transition: all 0.15s var(--ease);
@@ -145,10 +129,10 @@ button { cursor: pointer; }
 @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.85); opacity: 0.7; } }
 
 .compose-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 0 14px; height: 30px; border-radius: 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 26px; border-radius: 8px;
   background: var(--accent-grad); color: #fff;
-  font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+  font-size: 12px; font-weight: 600; letter-spacing: -0.01em;
   transition: all 0.2s var(--ease);
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
 }
@@ -158,7 +142,7 @@ button { cursor: pointer; }
 /* ===== Body — flat 4-column layout, NO nested cards ===== */
 .body {
   display: grid;
-  grid-template-columns: 232px 380px 1fr 296px;
+  grid-template-columns: 200px 340px 1fr 264px;
   overflow: hidden;
 }
 
@@ -168,8 +152,7 @@ button { cursor: pointer; }
   background: var(--bg);
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 14px 10px 12px;
-  min-height: 0;
+  padding: 12px 8px;
 }
 .sidebar-section + .sidebar-section { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .sidebar-label {
@@ -185,10 +168,10 @@ button { cursor: pointer; }
 .sidebar-label .add:hover { background: var(--bg-soft); color: var(--text); }
 
 .nav-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 7px 10px; border-radius: 8px;
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 8px; border-radius: 7px;
   color: var(--text-2);
-  font-size: 13px; font-weight: 500;
+  font-size: 12.5px; font-weight: 500;
   cursor: pointer;
   transition: all 0.15s var(--ease);
   width: 100%; text-align: left;
@@ -203,151 +186,20 @@ button { cursor: pointer; }
 .nav-item.active .count { background: rgba(255,255,255,0.22); color: #fff; }
 .nav-item.active .ico { background: rgba(255,255,255,0.22); color: #fff; }
 .nav-item .ico {
-  width: 24px; height: 24px; border-radius: 7px;
+  width: 20px; height: 20px; border-radius: 5px;
   background: var(--ico-bg, transparent);
   color: var(--ico-color, var(--text-3));
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   transition: all 0.15s var(--ease);
 }
-.nav-item .ico svg { width: 14px; height: 14px; }
+.nav-item .ico svg { width: 12px; height: 12px; }
 .nav-item .label { flex: 1; }
 .nav-item .count {
-  font-size: 11px; color: var(--text-3); font-weight: 600;
+  font-size: 10.5px; color: var(--text-3); font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--bg); }
-
-/* ===== Min-dag mini-stats (top of sidebar) ===== */
-.today-stats {
-  margin: 0 4px 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.06) 0%, rgba(236, 72, 153, 0.04) 100%);
-  border: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 6px;
-  position: relative;
-  overflow: hidden;
-  cursor: default;
-  flex-shrink: 0;
-}
-.sidebar-section { flex-shrink: 0; }
-.presence-block { flex-shrink: 0; }
-.today-stats::before {
-  content: ''; position: absolute; right: -20px; top: -20px;
-  width: 80px; height: 80px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(108, 92, 231, 0.10) 0%, transparent 70%);
-  pointer-events: none;
-}
-.today-stats .label-row {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
-  color: var(--text-3); text-transform: uppercase;
-}
-.today-stats .label-row .alert-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent-grad);
-  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 8px var(--accent-glow);
-  animation: pulse 1.8s ease-in-out infinite;
-}
-.today-stats .stats-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-}
-.today-stats .stat {
-  display: flex; flex-direction: column; gap: 1px;
-  position: relative;
-}
-.today-stats .stat .num {
-  font-size: 19px; font-weight: 800; letter-spacing: -0.5px; line-height: 1;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.today-stats .stat .lbl {
-  font-size: 9.5px; color: var(--text-3); font-weight: 600; letter-spacing: -0.01em;
-}
-.today-stats .stat.urgent .num { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-
-/* ===== Mailbox bars (replaces simple dots) ===== */
-.nav-item.mailbox { gap: 8px; }
-.nav-item.mailbox .mb-bar-wrap {
-  display: flex; align-items: center; gap: 7px;
-  flex: 1; min-width: 0;
-}
-.nav-item.mailbox .mb-color {
-  width: 7px; height: 7px; border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px var(--bg);
-}
-.nav-item.mailbox .mb-label {
-  font-size: 12.5px; flex-shrink: 0;
-}
-.nav-item.mailbox .mb-bar {
-  flex: 1; min-width: 12px;
-  height: 4px; border-radius: 2px;
-  background: var(--bg-soft);
-  position: relative;
-  overflow: hidden;
-}
-.nav-item.mailbox .mb-bar .fill {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  background: var(--mb-color, var(--text-3));
-  border-radius: 2px;
-  transition: width 0.4s var(--ease);
-}
-.nav-item.mailbox.active .mb-bar { background: rgba(255,255,255,0.25); }
-.nav-item.mailbox.active .mb-bar .fill { background: rgba(255,255,255,0.85); }
-.nav-item.mailbox .mb-num {
-  font-size: 10.5px; color: var(--text-3); font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  min-width: 16px; text-align: right;
-}
-.nav-item.mailbox.active .mb-num { color: rgba(255,255,255,0.85); }
-
-/* ===== Presence block (bottom of sidebar) ===== */
-.sidebar-spacer { flex: 1; min-height: 12px; }
-.presence-block {
-  margin: 0 4px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
-  display: flex; align-items: center; gap: 9px;
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
-}
-.presence-block:hover { background: var(--surface); border-color: var(--line-2); }
-.presence-block .pres-ava {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--accent-grad); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800;
-  box-shadow: 0 2px 6px var(--accent-glow);
-  flex-shrink: 0; position: relative;
-}
-.presence-block .pres-ava .pres-status {
-  position: absolute; bottom: -1px; right: -1px;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--green);
-  border: 2px solid var(--bg-soft);
-  box-shadow: 0 0 6px rgba(26, 168, 108, 0.5);
-}
-.presence-block .pres-ava .pres-status.away { background: var(--yellow); box-shadow: 0 0 6px rgba(245, 180, 0, 0.5); }
-.presence-block .pres-ava .pres-status.dnd { background: var(--red); box-shadow: 0 0 6px rgba(239, 68, 88, 0.5); }
-.presence-block .pres-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.presence-block .pres-name { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: -0.15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.presence-block .pres-state { font-size: 10px; color: var(--text-3); font-weight: 500; display: flex; align-items: center; gap: 4px; }
-.presence-block .pres-chevron { color: var(--text-3); flex-shrink: 0; }
-.presence-block .pres-chevron svg { width: 12px; height: 12px; }
-
-.kbd-hint {
-  font-size: 9px; color: var(--text-3); font-weight: 600;
-  font-family: var(--font-sans);
-  background: var(--surface); border: 1px solid var(--line);
-  padding: 1px 4px; border-radius: 3px;
-  margin-left: auto;
-}
-.nav-item.active .kbd-hint { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); border-color: transparent; }
 
 .nav-item[data-ico="inbox"] { --ico-color: var(--accent); }
 .nav-item[data-ico="act-now"] { --ico-color: var(--red); }
@@ -369,18 +221,17 @@ button { cursor: pointer; }
   background: var(--bg);
 }
 .inbox-header {
-  padding: 18px 20px 14px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 10px;
   background: var(--bg);
   position: sticky; top: 0; z-index: 5;
 }
-.inbox-title-row { display: flex; align-items: center; gap: 8px; }
-.inbox-title-row h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
-.inbox-title-row .num { color: var(--text-3); font-weight: 500; font-size: 12px; letter-spacing: 0; margin-right: auto; }
+.inbox-title-row { display: flex; align-items: baseline; gap: 8px; }
+.inbox-title-row h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.4px; line-height: 1; }
+.inbox-title-row .num { color: var(--text-3); font-weight: 500; font-size: 11px; letter-spacing: 0; }
 
-.inbox-tabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; min-width: 0; }
-.inbox-header { position: relative; }
+.inbox-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab {
   padding: 3px 9px; border-radius: 999px;
   font-size: 11px; font-weight: 600;
@@ -393,155 +244,13 @@ button { cursor: pointer; }
 .tab .num { opacity: 0.6; font-weight: 500; }
 .tab.active .num { opacity: 0.75; }
 
-.inbox-rows { flex: 1; overflow-y: auto; padding: 6px 8px 12px; position: relative; }
-
-/* ===== Inbox header — live-pip + sort-trigger ===== */
-.inbox-toolbar { display: flex; align-items: center; gap: 8px; }
-.live-pip {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
-  color: var(--green);
-  background: rgba(26, 168, 108, 0.10);
-  padding: 3px 8px; border-radius: 999px;
-  border: 1px solid rgba(26, 168, 108, 0.20);
-  transition: all 0.2s var(--ease);
-}
-.live-pip .pip-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 2px rgba(26, 168, 108, 0.18), 0 0 6px var(--green);
-  animation: pipPulse 2s ease-in-out infinite;
-}
-.live-pip.flash { animation: pipFlash 1.6s ease-in-out; background: rgba(26, 168, 108, 0.20); }
-@keyframes pipPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.6; } }
-@keyframes pipFlash { 0% { box-shadow: 0 0 0 6px rgba(26,168,108,0.20); } 100% { box-shadow: 0 0 0 0 rgba(26,168,108,0); } }
-
-.sort-trigger {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 600; color: var(--text-2);
-  padding: 4px 8px; border-radius: 7px;
-  background: transparent;
-  cursor: pointer;
-  transition: opacity 0.18s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
-  margin-left: auto;
-  opacity: 0;
-  pointer-events: none;
-}
-.inbox-header:hover .sort-trigger, .inbox-header:focus-within .sort-trigger, .sort-trigger.active { opacity: 1; pointer-events: auto; }
-.sort-trigger:hover { background: var(--bg-soft); color: var(--text); }
-.sort-trigger svg { width: 11px; height: 11px; }
-.sort-trigger .label { letter-spacing: -0.01em; }
-
-.sort-menu {
-  position: absolute; top: 100%; right: 8px;
-  margin-top: 4px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: var(--shadow-md);
-  padding: 4px;
-  min-width: 200px;
-  z-index: 50;
-  display: none;
-}
-.sort-menu.open { display: block; animation: menuIn 0.15s var(--ease); }
-@keyframes menuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-.sort-menu .item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 9px; border-radius: 6px;
-  font-size: 12px; font-weight: 500; color: var(--text-2);
-  cursor: pointer; width: 100%; text-align: left;
-  transition: background 0.1s;
-}
-.sort-menu .item:hover { background: var(--bg-soft); color: var(--text); }
-.sort-menu .item.active { background: var(--accent-soft); color: var(--accent-2); font-weight: 600; }
-.sort-menu .item svg { width: 13px; height: 13px; opacity: 0.7; }
-.sort-menu .item .check { margin-left: auto; opacity: 0; }
-.sort-menu .item.active .check { opacity: 1; color: var(--accent); }
-.sort-menu .item.ai-item { background: linear-gradient(135deg, rgba(108,92,231,0.06), rgba(236,72,153,0.04)); }
-.sort-menu .item.ai-item .ai-badge {
-  margin-left: auto;
-  font-size: 8.5px; font-weight: 700; letter-spacing: 0.5px;
-  background: var(--accent-grad); color: #fff;
-  padding: 1px 5px; border-radius: 4px;
-}
-.sort-menu .item.ai-item.active .check { display: none; }
-
-/* ===== Hover quick-actions on row ===== */
-.row .quick-actions {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-  display: flex; gap: 2px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 3px;
-  box-shadow: var(--shadow-md);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s var(--ease);
-}
-.row:hover .quick-actions { opacity: 1; pointer-events: auto; }
-.row .quick-actions button {
-  width: 26px; height: 26px; border-radius: 5px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--text-2);
-  transition: all 0.1s var(--ease);
-}
-.row .quick-actions button:hover { background: var(--bg-soft); color: var(--text); }
-.row .quick-actions button.danger:hover { color: var(--red); background: rgba(239, 68, 88, 0.08); }
-.row .quick-actions button.success:hover { color: var(--green); background: rgba(26, 168, 108, 0.08); }
-.row .quick-actions button.primary:hover { color: var(--accent); background: var(--accent-soft); }
-.row .quick-actions svg { width: 13px; height: 13px; }
-
-.row { position: relative; }
-.row.row-selected-multi { background: var(--accent-soft) !important; }
-.row.row-selected-multi::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--accent-grad); border-radius: 0 3px 3px 0;
-}
-
-/* ===== Bulk-bar (bottom of inbox-list when multi-selected) ===== */
-.bulk-bar {
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  padding: 8px 12px;
-  display: none;
-  align-items: center; gap: 6px;
-  box-shadow: 0 -4px 14px -4px rgba(20, 18, 32, 0.08);
-  animation: bulkIn 0.25s var(--bounce);
-}
-.bulk-bar.show { display: flex; }
-@keyframes bulkIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.bulk-bar .count-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 999px;
-  background: var(--accent-grad); color: #fff;
-  font-size: 11px; font-weight: 700; letter-spacing: -0.01em;
-  box-shadow: 0 2px 8px var(--accent-glow);
-}
-.bulk-bar .bulk-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 9px; border-radius: 7px;
-  font-size: 11.5px; font-weight: 600; color: var(--text-2);
-  background: transparent;
-  transition: all 0.15s var(--ease);
-}
-.bulk-bar .bulk-btn:hover { background: var(--bg-soft); color: var(--text); }
-.bulk-bar .bulk-btn svg { width: 12px; height: 12px; }
-.bulk-bar .bulk-btn.danger:hover { color: var(--red); background: rgba(239, 68, 88, 0.08); }
-.bulk-bar .bulk-clear {
-  margin-left: auto;
-  font-size: 11px; color: var(--text-3); font-weight: 600;
-  padding: 4px 8px; border-radius: 6px;
-  cursor: pointer;
-}
-.bulk-bar .bulk-clear:hover { color: var(--text); background: var(--bg-soft); }
+.inbox-rows { flex: 1; overflow-y: auto; padding: 4px 6px 10px; }
 .row {
   display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
   cursor: pointer;
   transition: background 0.15s var(--ease);
   position: relative;
@@ -554,19 +263,19 @@ button { cursor: pointer; }
 }
 
 .row .avatar {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 800; color: #fff;
+  font-size: 11px; font-weight: 800; color: #fff;
   letter-spacing: -0.3px; flex-shrink: 0;
   box-shadow: 0 3px 10px var(--avatar-glow, var(--accent-glow));
   position: relative;
 }
 
-.row .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .row .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .row .who {
-  font-size: 13.5px; font-weight: 700; letter-spacing: -0.2px;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
   color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex: 1;
@@ -582,13 +291,13 @@ button { cursor: pointer; }
   font-family: var(--font-mono); font-weight: 500;
 }
 .row .subject {
-  font-size: 12.5px; color: var(--text-2);
+  font-size: 12px; color: var(--text-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-weight: 500;
 }
 .row.unread .subject { color: var(--text); }
 .row .preview {
-  font-size: 12px; color: var(--text-3);
+  font-size: 11px; color: var(--text-3);
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
   margin-top: 1px;
 }
@@ -651,57 +360,35 @@ button { cursor: pointer; }
 }
 
 .thread-head {
-  padding: 16px 24px 8px;
-  border-bottom: 0;
+  padding: 16px 22px 10px;
+  border-bottom: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 8px;
   background: var(--surface);
 }
-.thread-head .top { display: flex; gap: 12px; align-items: center; }
-.thread-head .top h2 {
-  font-size: 16px; font-weight: 700; letter-spacing: -0.4px;
-  flex: 1; line-height: 1.35;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  min-width: 0;
-}
+.thread-head .top { display: flex; gap: 12px; align-items: flex-start; }
+.thread-head .top h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.4px; flex: 1; line-height: 1.3; }
 .thread-head .lane-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 999px;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--lane-color); background: var(--lane-bg);
   white-space: nowrap; flex-shrink: 0;
 }
-.thread-head .lane-pill svg { width: 9px; height: 9px; }
-.thread-head .ai-pill {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 8px; border-radius: 999px;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-          backdrop-filter: blur(8px);
-  border: 0.5px solid color-mix(in srgb, var(--accent) 14%, transparent);
-  cursor: pointer;
-  white-space: nowrap; flex-shrink: 0;
-  transition: all 0.15s var(--ease);
-}
-.thread-head .ai-pill:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: var(--accent); }
-.thread-head .ai-pill svg { width: 9px; height: 9px; }
-.thread-head .ai-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-2); flex-wrap: nowrap; min-width: 0; }
+.thread-head .lane-pill svg { width: 10px; height: 10px; }
+.thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-2); flex-wrap: wrap; }
 .thread-head .ava {
   width: 22px; height: 22px; border-radius: 50%;
   background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 9.5px; font-weight: 800; color: #fff;
   box-shadow: 0 2px 5px var(--avatar-glow, var(--accent-glow));
-  flex-shrink: 0;
 }
-.thread-head .who-line strong { color: var(--text); font-weight: 600; font-size: 11.5px; }
-.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
-.thread-head .who-line .meta-chip { display: none; }
-.thread-head .who-line .sep { display: none; }
+.thread-head .who-line strong { color: var(--text); font-weight: 700; font-size: 12px; }
+.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; }
+.thread-head .who-line .meta-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-size: 11px; }
+.thread-head .who-line .meta-chip svg { width: 10px; height: 10px; color: var(--text-3); }
+.thread-head .who-line .sep { color: var(--text-3); }
 
 .lane-act-now { --lane-color: var(--red); --lane-bg: rgba(239, 68, 88, 0.12); --avatar-grad: linear-gradient(135deg,#ef4458,#ff8a3d); --avatar-glow: rgba(239,68,88,0.30); }
 .lane-sprint { --lane-color: var(--green); --lane-bg: rgba(26, 168, 108, 0.12); --avatar-grad: linear-gradient(135deg,#1aa86c,#06d6a0); --avatar-glow: rgba(26,168,108,0.28); }
@@ -711,31 +398,26 @@ button { cursor: pointer; }
 .lane-later { --lane-color: var(--purple); --lane-bg: rgba(139, 92, 246, 0.12); --avatar-grad: linear-gradient(135deg,#8b5cf6,#a78bfa); --avatar-glow: rgba(139,92,246,0.28); }
 
 .thread-actions {
-  padding: 4px 24px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+  padding: 7px 22px;
+  border-bottom: 1px solid var(--line);
+  display: flex; gap: 4px; flex-wrap: wrap;
   background: var(--surface);
-  position: relative;
 }
 .action {
-  height: 28px; padding: 0 10px; border-radius: 7px;
+  height: 26px; padding: 0 10px; border-radius: 7px;
   background: transparent;
   font-size: 11.5px; font-weight: 600; color: var(--text-2);
   display: inline-flex; align-items: center; gap: 5px;
   transition: all 0.15s var(--ease);
-  flex-shrink: 0;
 }
 .action svg { width: 12px; height: 12px; }
 .action:hover { background: var(--bg-soft); color: var(--text); }
 .action.primary {
   background: var(--accent-grad); color: #fff;
-  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.20);
-  height: 30px; padding: 0 13px;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
 }
-.action.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.30); }
-.action.danger:hover { color: var(--red); background: rgba(239, 68, 88, 0.08); }
-.action.icon-only { padding: 0; width: 28px; justify-content: center; }
-.action.icon-only svg { width: 13px; height: 13px; }
+.action.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.35); }
+.action.danger:hover { color: var(--red); }
 
 /* Messages — flat, no boxed cards */
 .thread-body {
@@ -745,7 +427,7 @@ button { cursor: pointer; }
 }
 .messages { display: flex; flex-direction: column; }
 .msg {
-  padding: 20px 28px;
+  padding: 14px 22px;
   border-bottom: 1px solid var(--line);
   animation: msgIn 0.4s var(--ease) backwards;
   position: relative;
@@ -789,819 +471,83 @@ button { cursor: pointer; }
 .msg.inbound .msg-head .badge { background: var(--bg-soft); color: var(--text-2); }
 .msg.draft .msg-head .badge { background: linear-gradient(135deg, rgba(255,107,157,0.12), rgba(6,214,160,0.12)); color: var(--pink); }
 .msg-body {
-  font-size: 13.5px; line-height: 1.65;
+  font-size: 13px; line-height: 1.6;
   color: var(--text);
   white-space: pre-wrap;
-  padding-left: 42px;
+  padding-left: 36px;
 }
-
-/* ===== AI summary block (visible by default if content exists) ===== */
-.ai-summary {
-  margin: 10px 24px 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-          backdrop-filter: blur(10px) saturate(160%);
-  border: 0.5px solid color-mix(in srgb, var(--accent) 18%, transparent);
-  position: relative;
-  overflow: hidden;
-  transition: padding 0.2s var(--ease), margin 0.2s var(--ease);
-}
-.ai-summary::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.5px;
-  background: var(--ai-grad);
-  background-size: 200% 100%;
-  animation: aiShimmer 3.5s linear infinite;
-}
-.ai-summary .ai-head {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 9.5px; font-weight: 800; letter-spacing: 1px;
-  color: var(--accent-2); text-transform: uppercase;
-  margin-bottom: 8px;
-}
-.ai-summary .ai-head svg { width: 12px; height: 12px; }
-.ai-summary .ai-head .tldr-toggle {
-  margin-left: auto;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
-  color: var(--text-3);
-  background: rgba(255, 255, 255, 0.6);
-  padding: 2px 8px; border-radius: 5px;
-  border: 1px solid var(--line);
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
-  display: inline-flex; align-items: center; gap: 4px;
-}
-.ai-summary .ai-head .tldr-toggle:hover { background: var(--surface); color: var(--text); }
-.ai-summary .ai-head .tldr-toggle svg { width: 10px; height: 10px; transition: transform 0.2s; }
-.ai-summary.expanded .ai-head .tldr-toggle svg { transform: rotate(180deg); }
-.ai-summary .tldr {
-  font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.45;
-  letter-spacing: -0.01em;
-}
-.ai-summary .points {
-  list-style: none;
-  margin-top: 10px;
-  display: none;
-  padding-left: 0;
-}
-.ai-summary.expanded .points { display: flex; flex-direction: column; gap: 6px; animation: pointsIn 0.25s var(--ease); }
-@keyframes pointsIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-.ai-summary .points li {
-  display: flex; gap: 9px; align-items: flex-start;
-  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
-  padding-left: 2px;
-}
-.ai-summary .points li::before {
-  content: ''; display: inline-block;
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--accent-grad);
-  flex-shrink: 0; margin-top: 7px;
-}
-
-/* ===== Composer (hidden by default, expand on Svara nu / R) ===== */
-.composer-wrap {
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  padding: 0 28px 0;
-  position: sticky; bottom: 0;
-  z-index: 4;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.28s var(--ease), padding 0.22s var(--ease), border-color 0.22s var(--ease);
-}
-.composer-wrap.is-open {
-  max-height: 360px;
-  padding: 14px 28px 18px;
-}
-.composer-wrap.is-open.is-active { /* extra space when active */ }
-/* AI-förslag chips — hidden until composer is focused */
-.composer-quick {
-  display: flex; gap: 6px; flex-wrap: wrap;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  margin-bottom: 0;
-  transition: max-height 0.22s var(--ease), opacity 0.22s var(--ease), margin-bottom 0.22s var(--ease);
-}
-.composer-wrap.is-active .composer-quick {
-  max-height: 60px;
-  opacity: 1;
-  margin-bottom: 8px;
-}
-.composer-quick .qr {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 999px;
-  font-size: 11px; font-weight: 600; color: var(--accent-2);
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
-}
-.composer-quick .qr:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
-.composer-quick .qr svg { width: 10px; height: 10px; }
-.composer-quick .qr-label-row { display: none; }
-
-.composer {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
-  display: flex; flex-direction: column;
-}
-.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.composer-input {
-  width: 100%;
-  border: 0; outline: 0;
-  resize: none;
-  padding: 12px 14px;
-  font-family: inherit;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text);
-  background: transparent;
-  min-height: 56px;
-  max-height: 200px;
-}
-.composer-input::placeholder { color: var(--text-3); }
-
-/* Bar — at rest only Skicka shows; tools fade in on focus */
-.composer-bar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 6px 8px 6px 10px;
-  border-top: 1px solid transparent;
-  background: transparent;
-  border-radius: 0 0 11px 11px;
-  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
-}
-.composer-wrap.is-active .composer-bar {
-  border-top-color: var(--line);
-  background: var(--bg-soft);
-}
-.composer-bar .tool {
-  width: 26px; height: 26px; border-radius: 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--text-2);
-  opacity: 0;
-  transform: translateX(-4px);
-  pointer-events: none;
-  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), background 0.1s var(--ease), color 0.1s var(--ease);
-}
-.composer-wrap.is-active .composer-bar .tool {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-.composer-bar .tool:hover { background: var(--surface); color: var(--text); }
-.composer-bar .tool svg { width: 13px; height: 13px; }
-
-.composer-bar .send-btn {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 0 13px; height: 28px; border-radius: 7px;
-  background: var(--accent-grad); color: #fff;
-  font-size: 11.5px; font-weight: 700; letter-spacing: -0.01em;
-  box-shadow: 0 2px 6px rgba(108, 92, 231, 0.18);
-  transition: all 0.15s var(--ease);
-}
-.composer-bar .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.30); }
-.composer-bar .send-btn svg { width: 11px; height: 11px; }
-.composer-bar .send-btn .kbd {
-  font-size: 9px; font-weight: 600; letter-spacing: 0.3px;
-  background: rgba(255, 255, 255, 0.18);
-  padding: 1px 5px; border-radius: 3px;
-  opacity: 0;
-  transition: opacity 0.18s var(--ease);
-}
-.composer-wrap.is-active .composer-bar .send-btn .kbd { opacity: 1; }
-
-/* Sender hint — tiny line below composer, only when active */
-.composer-hint {
-  font-size: 10.5px; color: var(--text-3); padding: 6px 4px 0; font-weight: 500;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: opacity 0.18s var(--ease), max-height 0.18s var(--ease), padding 0.18s var(--ease);
-}
-.composer-wrap.is-active .composer-hint {
-  opacity: 1;
-  max-height: 24px;
-  padding: 6px 4px 0;
-}
-
-/* ===== Thread navigation arrows — hidden, only shown on hover of thread-head ===== */
-.thread-head:hover .thread-nav, .thread-head:focus-within .thread-nav {
-  opacity: 1;
-  pointer-events: auto;
-}
-.thread-nav {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s var(--ease);
-}
-.thread-nav { display: inline-flex; gap: 2px; margin-left: 8px; }
-.thread-nav button {
-  width: 24px; height: 24px; border-radius: 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--text-2);
-  transition: all 0.1s var(--ease);
-}
-.thread-nav button:hover { background: var(--bg-soft); color: var(--text); }
-.thread-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
-.thread-nav button svg { width: 13px; height: 13px; }
-.thread-nav .pos {
-  font-size: 10.5px; color: var(--text-3); font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  display: inline-flex; align-items: center; padding: 0 4px;
-}
-
-/* ===== History drawer overlay ===== */
-.history-overlay {
-  position: fixed; inset: 0;
-  background: rgba(20, 18, 32, 0.42);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  display: none;
-  animation: fadeIn 0.2s ease-out;
-}
-.history-overlay.open { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.history-drawer {
-  position: fixed; right: 0; top: 0; bottom: 0;
-  width: 420px;
-  background: var(--surface);
-  border-left: 1px solid var(--line);
-  box-shadow: -16px 0 40px rgba(20, 18, 32, 0.18);
-  display: flex; flex-direction: column;
-  z-index: 101;
-  transform: translateX(100%);
-  transition: transform 0.32s var(--ease);
-}
-.history-overlay.open + .history-drawer, .history-drawer.open { transform: translateX(0); }
-.history-drawer .hd-head {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--line);
-  display: flex; align-items: center; gap: 12px;
-}
-.history-drawer .hd-head .ava {
-  width: 36px; height: 36px; border-radius: 11px;
-  background: var(--accent-grad);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12.5px; font-weight: 800; color: #fff;
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
-.history-drawer .hd-head h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
-.history-drawer .hd-head .sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
-.history-drawer .hd-close {
-  margin-left: auto;
-  width: 28px; height: 28px; border-radius: 7px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--text-2);
-}
-.history-drawer .hd-close:hover { background: var(--bg-soft); color: var(--text); }
-.history-drawer .hd-close svg { width: 14px; height: 14px; }
-.history-drawer .hd-body {
-  flex: 1; overflow-y: auto;
-  padding: 18px 20px;
-}
-.history-drawer .hd-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  margin-bottom: 18px;
-}
-.history-drawer .hd-stat {
-  background: var(--bg-soft); border-radius: 10px; padding: 10px 12px;
-  text-align: left;
-}
-.history-drawer .hd-stat .num { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; color: var(--text); display: block; }
-.history-drawer .hd-stat .lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; font-weight: 700; letter-spacing: 0.6px; }
-.hd-section-title { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--text-3); margin: 16px 0 10px; }
-.hd-timeline { list-style: none; position: relative; padding-left: 4px; }
-.hd-timeline::before { content: ''; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 1.5px; background: linear-gradient(180deg, var(--accent), var(--line) 80%); }
-.hd-timeline li { display: flex; gap: 12px; padding: 8px 0; font-size: 12.5px; position: relative; align-items: flex-start; }
-.hd-timeline .marker {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--surface); border: 2px solid var(--line);
-  margin-left: 6px; margin-top: 4px; flex-shrink: 0; z-index: 1;
-}
-.hd-timeline li.recent .marker { background: var(--accent-grad); border-color: transparent; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.14); }
-.hd-timeline li.outbound .marker { background: var(--green); border-color: transparent; }
-.hd-timeline .body { flex: 1; min-width: 0; }
-.hd-timeline .body .when { font-size: 10.5px; color: var(--text-3); font-family: var(--font-mono); font-weight: 500; margin-bottom: 2px; }
-.hd-timeline .body .what { font-size: 12.5px; color: var(--text); font-weight: 500; line-height: 1.4; }
-.hd-timeline .body .what strong { font-weight: 700; }
-
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-.composer-input.shake { animation: shake 0.3s ease-in-out; }
 
 /* ===== Context (right column, flat sections, no card-on-card) ===== */
 .ctx-panel {
   background: var(--bg);
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 18px 18px 24px;
-  gap: 14px;
+  padding: 14px 16px;
+  gap: 0;
 }
-.ctx-section { padding: 0 0 14px; margin: 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
-.ctx-section:last-child { border-bottom: 0; padding-bottom: 0; }
-.ctx-panel > .ctx-section + .ctx-section { padding-top: 0; }
+.ctx-section { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+.ctx-section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
 .ctx-section .head {
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.9px; color: var(--text-3);
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--text-3);
   text-transform: uppercase;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 5px;
   margin-bottom: 8px;
 }
-.ctx-section .head svg { display: inline-block; width: 11px; height: 11px; opacity: 0.6; }
-.ctx-section.collapsible .head { cursor: pointer; user-select: none; }
-.ctx-section.collapsible .head .chev {
-  margin-left: auto;
-  transition: transform 0.18s var(--ease);
-  opacity: 0.5;
-}
-.ctx-section.collapsible .head:hover .chev { opacity: 1; }
-.ctx-section.collapsible.open .head .chev { transform: rotate(180deg); }
-.ctx-section.collapsible .body-wrap {
-  display: none;
-}
-.ctx-section.collapsible.open .body-wrap {
-  display: block;
-  animation: pointsIn 0.18s var(--ease);
-}
+.ctx-section .head svg { width: 11px; height: 11px; }
 
 .identity { display: flex; gap: 10px; align-items: center; }
 .identity .ava {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 11px;
   background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12.5px; font-weight: 700; color: #fff;
+  font-size: 12.5px; font-weight: 800; color: #fff;
   flex-shrink: 0; letter-spacing: -0.3px;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--avatar-glow, var(--accent-glow)) 70%, transparent);
-  cursor: pointer;
-  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  box-shadow: 0 4px 12px var(--avatar-glow, var(--accent-glow));
 }
-.identity .ava:hover { transform: scale(1.05); box-shadow: 0 4px 12px var(--avatar-glow, var(--accent-glow)); }
-.identity .who-name { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-.identity .email-line { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identity .who-name { font-size: 12.5px; font-weight: 700; color: var(--text); letter-spacing: -0.25px; }
+.identity .email-line { font-size: 10.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); }
 
-.kv-list { display: flex; flex-direction: column; gap: 8px; }
+.kv-list { display: flex; flex-direction: column; gap: 7px; }
 .kv-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.kv-item .label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); font-weight: 500; }
-.kv-item .label svg { display: inline-block; width: 11px; height: 11px; color: var(--text-3); flex-shrink: 0; opacity: 0.7; }
+.kv-item .label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); font-weight: 500; }
+.kv-item .label svg { width: 11px; height: 11px; color: var(--text-3); }
 .kv-item .val { font-size: 11.5px; color: var(--text); font-weight: 600; letter-spacing: -0.1px; text-align: right; }
 
 .alert-box {
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 12px; line-height: 1.5;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 11.5px; line-height: 1.5;
   color: var(--text);
-  -webkit-backdrop-filter: saturate(160%);
-          backdrop-filter: saturate(160%);
 }
-.alert-box.risk { background: rgba(255, 138, 61, 0.10); border: 0.5px solid rgba(255, 138, 61, 0.20); }
-.alert-box.next { background: rgba(26, 168, 108, 0.10); border: 0.5px solid rgba(26, 168, 108, 0.20); }
-[data-theme="dark"] .alert-box.risk { background: rgba(255, 138, 61, 0.14); border-color: rgba(255, 138, 61, 0.24); }
-[data-theme="dark"] .alert-box.next { background: rgba(26, 168, 108, 0.16); border-color: rgba(26, 168, 108, 0.26); }
+.alert-box.risk { background: rgba(255, 138, 61, 0.08); border: 1px solid rgba(255, 138, 61, 0.20); }
+.alert-box.next { background: rgba(26, 168, 108, 0.08); border: 1px solid rgba(26, 168, 108, 0.20); }
 
-.timeline { list-style: none; position: relative; padding-left: 2px; }
+.timeline { list-style: none; position: relative; padding-left: 4px; }
 .timeline::before {
-  content: ''; position: absolute; left: 6.5px; top: 6px; bottom: 6px;
-  width: 1px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 60%, transparent), color-mix(in srgb, var(--line) 60%, transparent) 70%);
+  content: ''; position: absolute; left: 9px; top: 10px; bottom: 10px;
+  width: 1.5px;
+  background: linear-gradient(180deg, var(--accent), var(--line) 60%);
 }
-.timeline li { display: flex; gap: 9px; align-items: flex-start; padding: 3px 0; font-size: 11.5px; color: var(--text-2); position: relative; }
+.timeline li { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 11px; color: var(--text-2); position: relative; }
 .timeline .dot {
-  width: 6px; height: 6px; border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   background: var(--bg);
-  border: 1.5px solid color-mix(in srgb, var(--line) 80%, transparent);
-  margin-left: 4px;
+  border: 1.5px solid var(--line);
+  margin-left: 6px;
   margin-top: 4px;
   flex-shrink: 0;
   z-index: 1;
 }
-.timeline li:first-child .dot { background: var(--accent); border-color: transparent; box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--accent) 18%, transparent); }
+.timeline li:first-child .dot { background: var(--accent-grad); border-color: transparent; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12); }
 
-.mini-chart { display: flex; gap: 2px; align-items: end; height: 22px; }
+.mini-chart { display: flex; gap: 3px; align-items: end; height: 26px; }
 .mini-chart .bar {
   flex: 1; background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 25%, transparent));
-  border-radius: 2px 2px 1px 1px;
-  min-height: 2px;
-  transition: transform 0.15s var(--ease), filter 0.15s var(--ease);
+  border-radius: 2px;
+  min-height: 3px;
 }
-.mini-chart .bar:hover { filter: brightness(1.1); transform: scaleY(1.06); }
-.activity-meta { font-size: 11.5px; color: var(--text-2); margin-top: 7px; }
+.activity-meta { font-size: 11px; color: var(--text-2); margin-top: 7px; }
 .activity-meta strong { color: var(--text); font-weight: 700; }
-
-/* ===== Live-stats inline (always visible — discreet) ===== */
-.live-stats-row {
-  display: flex; flex-wrap: wrap; gap: 3px 10px;
-  font-size: 11px; color: var(--text-2); line-height: 1.5;
-  margin-top: 9px;
-}
-.live-stats-row .ls-link {
-  color: var(--text-2);
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.15s;
-  display: inline-flex; align-items: center; gap: 4px;
-  cursor: pointer;
-}
-.live-stats-row .ls-link:hover { color: var(--accent); }
-.live-stats-row .ls-link strong { color: var(--text); font-weight: 700; }
-.live-stats-row .ls-link svg { display: none; }
-.live-stats-row .sep { color: var(--text-3); user-select: none; opacity: 0.6; }
-
-/* ===== Upcoming booking card (flat) ===== */
-.booking-card {
-  padding: 0;
-  display: flex; gap: 0; align-items: flex-start;
-  flex-direction: column;
-}
-.booking-card .b-icon { display: none; }
-.booking-card .b-info { flex: 1; min-width: 0; width: 100%; }
-.booking-card .b-svc { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
-.booking-card .b-when { font-size: 11.5px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
-.booking-card .b-meta { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
-.booking-card .b-actions {
-  display: flex; gap: 8px; margin-top: 10px;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: opacity 0.2s var(--ease), max-height 0.2s var(--ease), margin-top 0.2s var(--ease);
-}
-.ctx-section:hover .booking-card .b-actions, .ctx-section:focus-within .booking-card .b-actions {
-  opacity: 1; max-height: 32px;
-}
-.booking-card .b-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 0; border-radius: 0;
-  font-size: 11.5px; font-weight: 600; letter-spacing: -0.01em;
-  background: transparent; color: var(--accent);
-  border: 0;
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
-}
-.booking-card .b-btn:hover { color: var(--accent-2); }
-.booking-card .b-btn svg { width: 11px; height: 11px; }
-
-.no-booking {
-  font-size: 11.5px; color: var(--text-3); font-style: italic;
-  padding: 8px 10px; border-radius: 9px;
-  background: var(--bg-soft);
-  display: flex; align-items: center; gap: 7px;
-}
-.no-booking svg { width: 12px; height: 12px; opacity: 0.6; }
-.no-booking .book-now {
-  margin-left: auto;
-  font-size: 10.5px; font-weight: 700; color: var(--accent);
-  cursor: pointer;
-  font-style: normal;
-}
-.no-booking .book-now:hover { text-decoration: underline; }
-
-/* ===== AI feedback buttons (hidden until hover) ===== */
-.ai-actions {
-  display: flex; gap: 4px; margin-top: 8px;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: opacity 0.2s var(--ease), max-height 0.2s var(--ease), margin-top 0.2s var(--ease);
-}
-.ctx-section:hover .ai-actions, .ctx-section:focus-within .ai-actions {
-  opacity: 1; max-height: 36px;
-}
-.ai-act {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em;
-  cursor: pointer;
-  transition: all 0.15s var(--ease);
-  border: 0.5px solid color-mix(in srgb, var(--line) 60%, transparent);
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-          backdrop-filter: blur(8px);
-  color: var(--text-2);
-}
-.ai-act:hover { transform: translateY(-1px); }
-.ai-act svg { width: 10px; height: 10px; }
-.ai-act.accept:hover { background: rgba(26, 168, 108, 0.10); color: var(--green); border-color: rgba(26, 168, 108, 0.30); }
-.ai-act.adjust:hover { background: rgba(108, 92, 231, 0.10); color: var(--accent-2); border-color: rgba(108, 92, 231, 0.30); }
-.ai-act.reject:hover { background: rgba(239, 68, 88, 0.10); color: var(--red); border-color: rgba(239, 68, 88, 0.30); }
-.ai-act.applied { pointer-events: none; }
-.ai-act.accept.applied { background: rgba(26, 168, 108, 0.14); color: var(--green); border-color: rgba(26, 168, 108, 0.40); }
-
-/* ===== Activity comparison ===== */
-.activity-compare { margin-top: 4px; }
-.compare-row {
-  display: grid; grid-template-columns: 64px 1fr 56px;
-  align-items: center; gap: 10px;
-  font-size: 11.5px; padding: 5px 0;
-}
-.compare-row .who { color: var(--text-2); font-weight: 600; letter-spacing: -0.01em; }
-.compare-row .who.mine { color: var(--accent-2); font-weight: 700; }
-.compare-row .bar-wrap {
-  height: 6px; background: var(--bg-soft); border-radius: 3px; position: relative; overflow: hidden;
-}
-.compare-row .bar-fill {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  border-radius: 3px;
-  background: var(--text-3);
-}
-.compare-row.mine .bar-fill { background: var(--accent-grad); box-shadow: 0 0 8px var(--accent-glow); }
-.compare-row .num { font-size: 11px; color: var(--text-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
-.compare-row.mine .num { color: var(--text); }
-.compare-summary {
-  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line);
-  font-size: 11px; color: var(--text-2);
-}
-.compare-summary strong { color: var(--green); font-weight: 800; }
-.compare-summary.slower strong { color: var(--orange); }
-
-/* ===== Notes / internal-chat (flat) ===== */
-.notes-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
-.note {
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
-  -webkit-backdrop-filter: blur(8px) saturate(140%);
-          backdrop-filter: blur(8px) saturate(140%);
-  border: 0.5px solid color-mix(in srgb, var(--line) 60%, transparent);
-  position: relative;
-}
-.note.ai { background: color-mix(in srgb, var(--accent) 6%, transparent); border-color: color-mix(in srgb, var(--accent) 15%, transparent); }
-.note .n-head {
-  display: flex; align-items: center; gap: 6px;
-  margin-bottom: 2px;
-  font-size: 10.5px; color: var(--text-3); font-weight: 600;
-}
-.note .n-author { color: var(--text-2); font-weight: 600; }
-.note.ai .n-author { color: var(--accent-2); display: inline-flex; align-items: center; gap: 3px; }
-.note.ai .n-author svg { width: 10px; height: 10px; }
-.note .n-time { margin-left: auto; font-weight: 400; font-size: 10px; color: var(--text-3); }
-.note .n-body { font-size: 11.5px; line-height: 1.5; color: var(--text); }
-.note-input-wrap {
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  transition: all 0.15s var(--ease);
-}
-.note-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.note-input {
-  width: 100%;
-  border: 0; outline: 0; resize: none;
-  padding: 7px 9px;
-  font-family: inherit; font-size: 11.5px; line-height: 1.45;
-  color: var(--text);
-  background: transparent;
-  min-height: 40px;
-}
-.note-input::placeholder { color: var(--text-3); }
-.note-input-bar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 6px; border-top: 1px solid var(--line);
-  background: var(--bg-soft);
-  border-radius: 0 0 8px 8px;
-}
-.note-input-bar .hint { font-size: 9.5px; color: var(--text-3); font-weight: 500; padding-left: 4px; }
-.note-input-bar .post-btn {
-  margin-left: auto;
-  padding: 3px 9px; border-radius: 6px;
-  font-size: 10.5px; font-weight: 700;
-  background: var(--accent-grad); color: #fff;
-  display: inline-flex; align-items: center; gap: 4px;
-  box-shadow: 0 2px 6px var(--accent-glow);
-}
-.note-input-bar .post-btn:hover { transform: translateY(-1px); }
-
-/* ===== Command palette ===== */
-.cmdk-overlay {
-  position: fixed; inset: 0;
-  background: rgba(20, 18, 32, 0.42);
-  backdrop-filter: blur(6px);
-  z-index: 200;
-  display: none;
-  animation: fadeIn 0.18s var(--ease);
-}
-[data-theme="dark"] .cmdk-overlay { background: rgba(0, 0, 0, 0.55); }
-.cmdk-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; }
-.cmdk {
-  width: 100%; max-width: 580px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(255,255,255,0.04);
-  overflow: hidden;
-  animation: cmdkIn 0.2s var(--bounce);
-}
-@keyframes cmdkIn { from { transform: translateY(-12px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-.cmdk-search {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
-}
-.cmdk-search svg { width: 16px; height: 16px; color: var(--text-3); flex-shrink: 0; }
-.cmdk-search input {
-  flex: 1; border: 0; outline: 0; background: transparent;
-  font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
-  letter-spacing: -0.2px;
-}
-.cmdk-search input::placeholder { color: var(--text-3); }
-.cmdk-search kbd {
-  font-size: 10px; font-weight: 600; color: var(--text-3);
-  background: var(--bg-soft); padding: 2px 6px; border-radius: 4px;
-  border: 1px solid var(--line);
-}
-
-.cmdk-results { max-height: 50vh; overflow-y: auto; padding: 6px; }
-.cmdk-section { margin-bottom: 4px; }
-.cmdk-section .label {
-  font-size: 9.5px; font-weight: 800; letter-spacing: 1px; color: var(--text-3);
-  text-transform: uppercase;
-  padding: 8px 10px 4px;
-}
-.cmdk-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: 8px;
-  cursor: pointer;
-  width: 100%; text-align: left;
-  transition: background 0.1s;
-}
-.cmdk-item:hover, .cmdk-item.active { background: var(--bg-soft); }
-.cmdk-item.active { background: var(--accent-soft); }
-.cmdk-item .ico {
-  width: 26px; height: 26px; border-radius: 7px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--bg-soft); color: var(--text-2);
-  flex-shrink: 0;
-}
-.cmdk-item.active .ico { background: var(--accent-grad); color: #fff; }
-.cmdk-item .ico svg { width: 13px; height: 13px; }
-.cmdk-item .body { flex: 1; min-width: 0; }
-.cmdk-item .title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cmdk-item .sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-.cmdk-item .shortcut { font-size: 10px; font-weight: 600; color: var(--text-3); background: var(--bg-soft); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
-.cmdk-item.active .shortcut { background: rgba(255,255,255,0.5); }
-.cmdk-empty { padding: 32px 16px; text-align: center; color: var(--text-3); font-size: 12.5px; }
-.cmdk-footer {
-  padding: 8px 14px;
-  border-top: 1px solid var(--line);
-  display: flex; gap: 14px; align-items: center;
-  font-size: 10.5px; color: var(--text-3); font-weight: 500;
-  background: var(--bg-soft);
-}
-.cmdk-footer kbd {
-  font-size: 9.5px; font-weight: 700;
-  background: var(--surface); padding: 1px 5px; border-radius: 3px;
-  border: 1px solid var(--line);
-  margin-right: 3px;
-}
-
-/* ===== Theme toggle ===== */
-.theme-toggle { position: relative; }
-.theme-toggle .sun, .theme-toggle .moon { transition: opacity 0.2s, transform 0.3s var(--bounce); }
-[data-theme="dark"] .theme-toggle .sun { opacity: 0; transform: rotate(180deg) scale(0); position: absolute; }
-[data-theme="dark"] .theme-toggle .moon { opacity: 1; transform: rotate(0) scale(1); }
-.theme-toggle .moon { opacity: 0; transform: rotate(-180deg) scale(0); position: absolute; }
-.theme-toggle .sun { opacity: 1; transform: rotate(0) scale(1); }
-
-/* ===== Notifications popover ===== */
-.notif-trigger { position: relative; }
-.notif-trigger .badge {
-  position: absolute; top: 1px; right: 1px;
-  min-width: 14px; height: 14px; padding: 0 3px;
-  border-radius: 999px;
-  background: var(--red);
-  color: #fff;
-  font-size: 9px; font-weight: 800;
-  display: inline-flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 0 2px var(--surface), 0 0 8px rgba(239, 68, 88, 0.4);
-}
-[data-theme="dark"] .notif-trigger .badge { box-shadow: 0 0 0 2px var(--bg), 0 0 8px rgba(239, 68, 88, 0.5); }
-.notif-popover {
-  position: fixed; top: 48px; right: 14px;
-  width: 360px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
-  z-index: 150;
-  display: none;
-  overflow: hidden;
-  animation: popIn 0.18s var(--bounce);
-}
-@keyframes popIn { from { transform: translateY(-8px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-.notif-popover.open { display: block; }
-.notif-head {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-  display: flex; align-items: center; gap: 8px;
-}
-.notif-head h3 { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
-.notif-head .clear { margin-left: auto; font-size: 11px; color: var(--text-3); cursor: pointer; font-weight: 600; }
-.notif-head .clear:hover { color: var(--accent); }
-.notif-summary {
-  padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.06), rgba(236, 72, 153, 0.04));
-  border-bottom: 1px solid var(--line);
-  font-size: 12px; color: var(--text-2); line-height: 1.45;
-}
-.notif-summary strong { color: var(--text); font-weight: 700; }
-.notif-list { max-height: 380px; overflow-y: auto; padding: 4px; }
-.notif {
-  display: flex; gap: 9px; align-items: flex-start;
-  padding: 9px 10px; border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.1s;
-  position: relative;
-}
-.notif:hover { background: var(--bg-soft); }
-.notif.unread::before {
-  content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%);
-  width: 4px; height: 4px; border-radius: 50%; background: var(--accent-grad);
-}
-.notif .ico {
-  width: 28px; height: 28px; border-radius: 8px;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  background: var(--bg-soft); color: var(--text-2);
-}
-.notif.danger .ico { background: rgba(239, 68, 88, 0.12); color: var(--red); }
-.notif.success .ico { background: rgba(26, 168, 108, 0.12); color: var(--green); }
-.notif.info .ico { background: rgba(20, 184, 192, 0.12); color: var(--teal); }
-.notif.ai .ico { background: var(--accent-grad); color: #fff; }
-.notif .ico svg { width: 14px; height: 14px; }
-.notif .body { flex: 1; min-width: 0; }
-.notif .title { font-size: 12.5px; font-weight: 600; color: var(--text); letter-spacing: -0.1px; line-height: 1.35; }
-.notif .meta { font-size: 10.5px; color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); font-weight: 500; }
-
-/* ===== Onboarding ===== */
-.onboard-overlay {
-  position: fixed; inset: 0;
-  background: rgba(20, 18, 32, 0.50);
-  backdrop-filter: blur(2px);
-  z-index: 250;
-  display: none;
-  animation: fadeIn 0.25s var(--ease);
-}
-.onboard-overlay.open { display: block; }
-.onboard-spotlight {
-  position: fixed;
-  border-radius: 14px;
-  box-shadow: 0 0 0 9999px rgba(20, 18, 32, 0.50), 0 0 0 4px rgba(108, 92, 231, 0.45), 0 12px 40px var(--accent-glow);
-  pointer-events: none;
-  transition: all 0.35s var(--ease);
-  z-index: 251;
-}
-.onboard-card {
-  position: fixed;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-md);
-  width: 320px;
-  z-index: 252;
-  transition: all 0.35s var(--ease);
-}
-.onboard-card .step {
-  font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
-  color: var(--accent-2);
-  margin-bottom: 6px;
-}
-.onboard-card h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 5px; }
-.onboard-card p { font-size: 13px; color: var(--text-2); line-height: 1.5; }
-.onboard-card .key {
-  display: inline-block; padding: 2px 7px; border-radius: 5px;
-  background: var(--bg-soft); border: 1px solid var(--line);
-  font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: 600;
-  margin: 0 1px;
-}
-.onboard-card .actions {
-  display: flex; gap: 8px; margin-top: 14px; align-items: center;
-}
-.onboard-card .actions .skip {
-  font-size: 11.5px; color: var(--text-3); font-weight: 600;
-  cursor: pointer;
-}
-.onboard-card .actions .skip:hover { color: var(--text); }
-.onboard-card .actions .next {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 8px;
-  background: var(--accent-grad); color: #fff;
-  font-size: 12px; font-weight: 700;
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
-.onboard-card .actions .next:hover { transform: translateY(-1px); }
-.onboard-card .actions .next svg { width: 11px; height: 11px; }
-.onboard-card .progress {
-  display: inline-flex; gap: 4px;
-}
-.onboard-card .progress .pip {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--line-2);
-  transition: all 0.2s;
-}
-.onboard-card .progress .pip.done { background: var(--accent-grad); }
-.onboard-card .progress .pip.active { background: var(--accent); width: 16px; border-radius: 3px; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1644,20 +590,6 @@ button { cursor: pointer; }
     <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
     <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="i-question" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
-    <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
-    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
-    <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
-    <symbol id="i-snooze" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M5 3 2 6M22 6l-3-3M9 13h6l-6 5h6"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
-    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
-    <symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
-    <symbol id="i-chevron-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
-    <symbol id="i-chevron-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
-    <symbol id="i-history-overlay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
-    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
-    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></symbol>
   </defs>
 </svg>
 
@@ -1671,7 +603,7 @@ button { cursor: pointer; }
     </div>
     <div class="search">
       <span class="icon"><svg width="14" height="14"><use href="#i-search"/></svg></span>
-      <input type="text" placeholder="Sök trådar, kunder, mailboxar… (⌘K)" id="search-input" readonly>
+      <input type="text" placeholder="Sök trådar, kunder, mailboxar…" id="search-input">
       <kbd>⌘ K</kbd>
     </div>
     <div class="topbar-actions">
@@ -1679,14 +611,6 @@ button { cursor: pointer; }
         <span class="status-dot demo"></span>
         Demo
       </span>
-      <button class="icon-btn theme-toggle" id="theme-toggle" title="Byt tema (⌘⇧L)">
-        <svg width="15" height="15" class="sun"><use href="#i-sun"/></svg>
-        <svg width="15" height="15" class="moon"><use href="#i-moon"/></svg>
-      </button>
-      <button class="icon-btn notif-trigger" id="notif-trigger" title="Notifikationer">
-        <svg width="15" height="15"><use href="#i-bell"/></svg>
-        <span class="badge" id="notif-badge">3</span>
-      </button>
       <button class="icon-btn" title="Inställningar"><svg width="15" height="15"><use href="#i-settings"/></svg></button>
       <button class="compose-btn">
         <svg><use href="#i-plus"/></svg>
@@ -1697,57 +621,32 @@ button { cursor: pointer; }
 
   <div class="body">
     <aside class="sidebar">
-      <!-- Min dag — dynamiska stats -->
-      <div class="today-stats" id="today-stats">
-        <div class="label-row">
-          <span class="alert-dot" id="urgent-dot" style="display:none"></span>
-          Min dag
-        </div>
-        <div class="stats-grid">
-          <div class="stat"><span class="num" id="stat-total">6</span><span class="lbl">trådar idag</span></div>
-          <div class="stat"><span class="num" id="stat-unread">3</span><span class="lbl">olästa</span></div>
-          <div class="stat urgent"><span class="num" id="stat-risk">2</span><span class="lbl">hög risk</span></div>
-        </div>
-      </div>
-
       <div class="sidebar-section">
         <div class="sidebar-label">Vyer</div>
-        <button class="nav-item active" data-ico="inbox" data-shortcut="1"><span class="ico"><svg><use href="#i-inbox"/></svg></span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
-        <button class="nav-item" data-ico="act-now" data-shortcut="2"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Agera nu</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="sprint" data-shortcut="3"><span class="ico"><svg><use href="#i-trend"/></svg></span><span class="label">Sprint</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="bookable" data-shortcut="4"><span class="ico"><svg><use href="#i-calendar"/></svg></span><span class="label">Bokningar</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="review" data-shortcut="5"><span class="ico"><svg><use href="#i-eye"/></svg></span><span class="label">Granska</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="later" data-shortcut="6"><span class="ico"><svg><use href="#i-pause"/></svg></span><span class="label">Senare</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="done" data-shortcut="7"><span class="ico"><svg><use href="#i-check"/></svg></span><span class="label">Klara</span><span class="count">12</span></button>
+        <button class="nav-item active" data-ico="inbox"><span class="ico"><svg><use href="#i-inbox"/></svg></span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
+        <button class="nav-item" data-ico="act-now"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Agera nu</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="sprint"><span class="ico"><svg><use href="#i-trend"/></svg></span><span class="label">Sprint</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="bookable"><span class="ico"><svg><use href="#i-calendar"/></svg></span><span class="label">Bokningar</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="review"><span class="ico"><svg><use href="#i-eye"/></svg></span><span class="label">Granska</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="later"><span class="ico"><svg><use href="#i-pause"/></svg></span><span class="label">Senare</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="done"><span class="ico"><svg><use href="#i-check"/></svg></span><span class="label">Klara</span><span class="count">12</span></button>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-label">Mailboxar · 7 dgn <button class="add">+</button></div>
-        <button class="nav-item mailbox" data-mb-activity="20" data-mb-color="#ff8a3d"><span class="mb-bar-wrap"><span class="mb-color" style="background:#ff8a3d"></span><span class="mb-label">Egzona</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">20</span></button>
-        <button class="nav-item mailbox" data-mb-activity="14" data-mb-color="#6c5ce7"><span class="mb-bar-wrap"><span class="mb-color" style="background:#6c5ce7"></span><span class="mb-label">Fazli</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">14</span></button>
-        <button class="nav-item mailbox" data-mb-activity="9" data-mb-color="#14b8c0"><span class="mb-bar-wrap"><span class="mb-color" style="background:#14b8c0"></span><span class="mb-label">Kons</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">9</span></button>
-        <button class="nav-item mailbox" data-mb-activity="6" data-mb-color="#1aa86c"><span class="mb-bar-wrap"><span class="mb-color" style="background:#1aa86c"></span><span class="mb-label">Info</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">6</span></button>
-        <button class="nav-item mailbox" data-mb-activity="3" data-mb-color="#f5b400"><span class="mb-bar-wrap"><span class="mb-color" style="background:#f5b400"></span><span class="mb-label">Kontakt</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">3</span></button>
-        <button class="nav-item mailbox" data-mb-activity="1" data-mb-color="#ec4899"><span class="mb-bar-wrap"><span class="mb-color" style="background:#ec4899"></span><span class="mb-label">Marknad</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">1</span></button>
+        <div class="sidebar-label">Mailboxar <button class="add">+</button></div>
+        <button class="nav-item"><span class="dot" style="background:#ff8a3d"></span><span class="label">Egzona</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#6c5ce7"></span><span class="label">Fazli</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#14b8c0"></span><span class="label">Kons</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#1aa86c"></span><span class="label">Info</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#f5b400"></span><span class="label">Kontakt</span><span class="count">0</span></button>
+        <button class="nav-item"><span class="dot" style="background:#ec4899"></span><span class="label">Marknad</span><span class="count">0</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">System</div>
-        <button class="nav-item" data-ico="users" data-shortcut="8"><span class="ico"><svg><use href="#i-users"/></svg></span><span class="label">Kunder</span><span class="kbd-hint">⌘8</span></button>
-        <button class="nav-item" data-ico="auto" data-shortcut="9"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Automatisering</span><span class="kbd-hint">⌘9</span></button>
+        <button class="nav-item" data-ico="users"><span class="ico"><svg><use href="#i-users"/></svg></span><span class="label">Kunder</span></button>
+        <button class="nav-item" data-ico="auto"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Automatisering</span></button>
         <button class="nav-item" data-ico="chart"><span class="ico"><svg><use href="#i-chart"/></svg></span><span class="label">Analys</span></button>
         <button class="nav-item" data-ico="templates"><span class="ico"><svg><use href="#i-templates"/></svg></span><span class="label">Mallar</span></button>
       </div>
-
-      <div class="sidebar-spacer"></div>
-
-      <!-- Presence (klickbar) -->
-      <button class="presence-block" id="presence-toggle" title="Klicka för att byta status">
-        <span class="pres-ava">F<span class="pres-status" id="pres-status-dot"></span></span>
-        <span class="pres-info">
-          <span class="pres-name">Fazli Krasniqi</span>
-          <span class="pres-state" id="pres-state-text">● Online · Aktiv nu</span>
-        </span>
-        <span class="pres-chevron"><svg><use href="#i-arrow-down" /></svg></span>
-      </button>
     </aside>
 
     <section class="inbox-list">
@@ -1755,35 +654,10 @@ button { cursor: pointer; }
         <div class="inbox-title-row">
           <h1>Inkorg</h1>
           <span class="num" id="title-num">6 trådar idag</span>
-          <span class="live-pip" id="live-pip" title="Realtidsstatus">
-            <span class="pip-dot"></span>
-            Live
-          </span>
         </div>
-        <div class="inbox-toolbar">
-          <div class="inbox-tabs" id="inbox-tabs"></div>
-          <button class="sort-trigger" id="sort-trigger">
-            <svg><use href="#i-sort"/></svg>
-            <span class="label" id="sort-label">Nyaste</span>
-            <svg><use href="#i-arrow-down"/></svg>
-          </button>
-        </div>
-        <div class="sort-menu" id="sort-menu">
-          <button class="item active" data-sort="newest"><svg><use href="#i-clock"/></svg>Nyaste först<span class="check"><svg><use href="#i-check"/></svg></span></button>
-          <button class="item" data-sort="oldest"><svg><use href="#i-history"/></svg>Äldsta först<span class="check"><svg><use href="#i-check"/></svg></span></button>
-          <button class="item" data-sort="risk"><svg><use href="#i-flame"/></svg>Hög risk först<span class="check"><svg><use href="#i-check"/></svg></span></button>
-          <button class="item ai-item" data-sort="ai"><svg><use href="#i-sparkles"/></svg>AI-prioritet<span class="ai-badge">AI</span></button>
-        </div>
+        <div class="inbox-tabs" id="inbox-tabs"></div>
       </div>
       <div class="inbox-rows" id="inbox-rows"></div>
-      <div class="bulk-bar" id="bulk-bar">
-        <span class="count-badge" id="bulk-count"><svg width="11" height="11"><use href="#i-check"/></svg><span id="bulk-num">0</span> valda</span>
-        <button class="bulk-btn success" data-bulk="done"><svg><use href="#i-check"/></svg>Markera klar</button>
-        <button class="bulk-btn" data-bulk="snooze"><svg><use href="#i-clock"/></svg>Snooza</button>
-        <button class="bulk-btn" data-bulk="assign"><svg><use href="#i-users"/></svg>Tilldela</button>
-        <button class="bulk-btn danger" data-bulk="delete"><svg><use href="#i-trash"/></svg>Radera</button>
-        <button class="bulk-clear" id="bulk-clear">Avbryt</button>
-      </div>
     </section>
 
     <section class="thread empty" id="thread">
@@ -1796,41 +670,6 @@ button { cursor: pointer; }
 
     <aside class="ctx-panel" id="ctx-panel"></aside>
   </div>
-</div>
-
-<!-- Command palette -->
-<div class="cmdk-overlay" id="cmdk-overlay">
-  <div class="cmdk" id="cmdk">
-    <div class="cmdk-search">
-      <svg><use href="#i-search"/></svg>
-      <input type="text" id="cmdk-input" placeholder="Sök eller utför action…" autocomplete="off">
-      <kbd>ESC</kbd>
-    </div>
-    <div class="cmdk-results" id="cmdk-results"></div>
-    <div class="cmdk-footer">
-      <span><kbd>↑↓</kbd>navigera</span>
-      <span><kbd>↵</kbd>välj</span>
-      <span><kbd>esc</kbd>stäng</span>
-    </div>
-  </div>
-</div>
-
-<!-- Notifications popover -->
-<div class="notif-popover" id="notif-popover">
-  <div class="notif-head">
-    <h3>Notifikationer</h3>
-    <span class="clear" id="notif-clear">Markera alla lästa</span>
-  </div>
-  <div class="notif-summary">
-    <strong>3 nya mejl</strong> · <strong>1 hög risk</strong> eskalerade · senaste timmen
-  </div>
-  <div class="notif-list" id="notif-list"></div>
-</div>
-
-<!-- Onboarding -->
-<div class="onboard-overlay" id="onboard-overlay">
-  <div class="onboard-spotlight" id="onboard-spotlight"></div>
-  <div class="onboard-card" id="onboard-card"></div>
 </div>
 
 <script>
@@ -1852,29 +691,7 @@ button { cursor: pointer; }
       timeline:['Påminnelse idag','Tystnad 5 dagar','Offert skickad 9 maj','Konsultation 8 maj'],
       risk:'Hög risk — kunden har angett deadline (måndag) och nämner alternativ.',
       nextStep:'Svara inom 2h med två konkreta tidsförslag.',
-      lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—',
-      aiTldr:'Återkom inom 2h med 2 konkreta tider inom 2 veckor — kunden har deadline måndag.',
-      aiPoints:[
-        'Väntar på offert-uppföljning från möte 8 maj — 5 dagars tystnad',
-        'Hård deadline måndag, behöver besked för att kunna planera med frun',
-        'Hög risk att tappa kunden — han nämner alternativ',
-      ],
-      quickReplies:['Bekräfta tisdag 13:00','Erbjud torsdag 11:00','Be om mer flexibilitet'],
-      customerHistory:{ totalEmails:14, bookings:2, firstContact:'15 mar', lastBooking:'12 apr',
-        events:[
-          {when:'Idag · 16:07', what:'Inkommande mejl — påminnelse om offert', recent:true},
-          {when:'9 maj · 12:14', what:'Skickad — offert (FUE 38 500 kr)', outbound:true},
-          {when:'8 maj · 14:00', what:'Konsultation hos Egzona, 30 min'},
-          {when:'2 maj', what:'Bokning bekräftad'},
-          {when:'28 apr', what:'Första kontakt via Info-mailbox'},
-          {when:'15 mar', what:'Newsletter-prenumerant'},
-        ]},
-      upcomingBooking:null,
-      responseTime:{mine:2.4, team:4.1},
-      notes:[
-        {author:'Egzona K.',time:'Igår 14:30',body:'Ringde sjukhusteamet — kan erbjuda tis 13:00 / tor 11:00. Han prefererar för-lunch.'},
-        {author:'Fazli K.',time:'Mån 09:15',body:'OBS — frun har försökt ringa. Hon är ångestladdad enligt receptionen.'},
-      ] },
+      lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—' },
     { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', laneIcon:'i-trend', unread:false,
       who:'Johan Karlsson', email:'johan.karlsson@example.com', initials:'JK',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -1886,25 +703,7 @@ button { cursor: pointer; }
       timeline:['Mötesförslag idag','Tidigare diskussion 28 april'],
       risk:'Låg risk — strukturerad förfrågan.',
       nextStep:'Bekräfta tiden eller föreslå alternativ.',
-      lifecycle:'Aktiv dialog', followUp:'Mån 14:00', riskLevel:'Låg', owner:'Fazli',
-      aiTldr:'Bekräfta måndag 14:00 — Cliento-integration. Han har förberedda webhook-frågor.',
-      aiPoints:[
-        'Föreslår möte måndag 14:00 om Cliento-integrationen',
-        'Har förberett konkreta frågor om webhook-flödet',
-        'Tidigare produktiv dialog 28 april — etablerad kontakt',
-      ],
-      quickReplies:['Bekräfta måndag 14:00','Föreslå annan tid','Be om agenda först'],
-      customerHistory:{ totalEmails:8, bookings:0, firstContact:'12 mar', lastBooking:'—',
-        events:[
-          {when:'Idag · 14:22', what:'Inkommande mejl — mötesförslag', recent:true},
-          {when:'28 apr · 09:30', what:'Diskussion om partnership-möjligheter'},
-          {when:'12 mar', what:'Första kontakt via LinkedIn-intro'},
-        ]},
-      upcomingBooking:{service:'Cliento-möte',when:'Måndag 5 maj · 14:00',who:'Fazli',loc:'Online (Teams)'},
-      responseTime:{mine:1.8, team:4.1},
-      notes:[
-        {author:'Fazli K.',time:'10:14',body:'Johan vill diskutera webhook-flödet. Han har integrerat 3 kliniker tidigare.'},
-      ] },
+      lifecycle:'Aktiv dialog', followUp:'Mån 14:00', riskLevel:'Låg', owner:'Fazli' },
     { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', laneIcon:'i-calendar', unread:true,
       who:'Sara Holm', email:'sara.holm@example.com', initials:'SH',
       mailbox:'Kons', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1920,26 +719,7 @@ button { cursor: pointer; }
       timeline:['Bekräftelse igår','Konsultation 28 april','Första kontakt 22 april'],
       risk:'Låg risk — klart bokningsintresse.',
       nextStep:'Skicka kalender-inbjudan tisdag 13:00 eller torsdag 11:00.',
-      lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona',
-      aiTldr:'Boka tisdag 13:00 eller torsdag 11:00 — kunden är redo att teckna FUE.',
-      aiPoints:[
-        'Bekräftat val: FUE-konsultation, all-tid-mellan-10-15 nästa vecka',
-        'Tidigare svar från Egzona — föreslog tis 13:00 / tor 11:00',
-        'Lågt avhopps-risk, hög köpintention',
-      ],
-      quickReplies:['Bekräfta tisdag 13:00','Bekräfta torsdag 11:00','Skicka kalender-inbjudan'],
-      customerHistory:{ totalEmails:6, bookings:1, firstContact:'22 apr', lastBooking:'(planerad)',
-        events:[
-          {when:'Igår · 11:02', what:'Skickad — föreslog 2 tider', outbound:true},
-          {when:'Igår · 09:48', what:'Inkommande — bekräftade FUE-val', recent:true},
-          {when:'28 apr', what:'Konsultation hos Egzona'},
-          {when:'22 apr', what:'Första kontakt via Kons-mailbox'},
-        ]},
-      upcomingBooking:{service:'FUE-konsultation',when:'Tisdag 6 maj · 13:00',who:'Egzona',loc:'Stockholm'},
-      responseTime:{mine:1.2, team:4.1},
-      notes:[
-        {author:'Egzona K.',time:'Igår',body:'Sara är second-time. Behandlade 2023, nöjd kund. Plus-1 från henne — har rekommenderat 2 vänner.'},
-      ] },
+      lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona' },
     { id:'demo-el-004', lane:'review', laneLabel:'Granska', laneIcon:'i-eye', unread:true,
       who:'Erik Lindqvist', email:'erik.lindqvist@example.com', initials:'EL',
       mailbox:'Kontakt', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1955,24 +735,7 @@ button { cursor: pointer; }
       timeline:['Flaggat 11:36','AI-utkast 11:36','Förfrågan 11:34'],
       risk:'Hög risk — fel pris kan skapa tvist.',
       nextStep:'Korrigera till 38 500 kr eller skicka uppdaterad prislista.',
-      lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—',
-      aiTldr:'AI-utkast har fel pris (32 000 vs 38 500 kr). Korrigera innan utkastet skickas.',
-      aiPoints:[
-        'Erik frågar bara om pris för FUE-behandling',
-        'AI genererade utkast med 32 000 kr (felaktig — gammalt pris)',
-        'Korrekt pris idag är 38 500 kr — skapar tvist om vi skickar fel',
-      ],
-      quickReplies:['Skicka korrekt pris (38 500 kr)','Erbjud konsultation','Begär mer info'],
-      customerHistory:{ totalEmails:1, bookings:0, firstContact:'Idag', lastBooking:'—',
-        events:[
-          {when:'Idag · 11:36', what:'AI-utkast flaggat — pris-avvikelse', recent:true},
-          {when:'Idag · 11:34', what:'Inkommande — pris-fråga'},
-        ]},
-      upcomingBooking:null,
-      responseTime:{mine:0, team:4.1},
-      notes:[
-        {ai:true,author:'AI',time:'Idag 11:36',body:'⚠ Detekterade prisavvikelse: AI-utkast = 32 000 kr · Aktuell prislista = 38 500 kr. Skillnad 6 500 kr, 20%. Granska före sändning.'},
-      ] },
+      lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—' },
     { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', laneIcon:'i-question', unread:false,
       who:'Anna Svensson', email:'anna.svensson@example.com', initials:'AS',
       mailbox:'Info', mailboxTrail:[['I','#1aa86c']],
@@ -1983,23 +746,7 @@ button { cursor: pointer; }
       timeline:['Meddelande tisdag','Tidigare konsultation 12 mars'],
       risk:'Oklart — saknar kontext.',
       nextStep:'Slå upp tidigare konversation och svara med följdfråga.',
-      lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—',
-      aiTldr:'Otydligt meddelande. Tidigare konsultation 12 mars — fråga vad hon syftar på.',
-      aiPoints:[
-        'Mycket kort meddelande utan kontext: "hur det går"',
-        'Tidigare konsultation 12 mars — kan vara uppföljning på den',
-        'Eller kanske allmän fråga om något annat',
-      ],
-      quickReplies:['Be om förtydligande','Hänvisa till tidigare konsultation','Erbjud nytt möte'],
-      customerHistory:{ totalEmails:3, bookings:1, firstContact:'12 mar', lastBooking:'12 mar',
-        events:[
-          {when:'Tis · 16:18', what:'Inkommande — kort meddelande', recent:true},
-          {when:'12 mar', what:'Konsultation, 30 min'},
-          {when:'10 mar', what:'Första kontakt'},
-        ]},
-      upcomingBooking:null,
-      responseTime:{mine:0, team:4.1},
-      notes:[] },
+      lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—' },
     { id:'demo-pn-006', lane:'later', laneLabel:'Senare', laneIcon:'i-pause', unread:false,
       who:'Peter Nilsson', email:'peter.nilsson@example.com', initials:'PN',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -2015,51 +762,11 @@ button { cursor: pointer; }
       timeline:['Snooze till fredag','Begäran om röntgen 25 april','Konsultation 18 april'],
       risk:'Låg risk — väntar på extern faktor.',
       nextStep:'Påminnelse fredag 09:00.',
-      lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli',
-      aiTldr:'Pausad till fredag 09:00. Påminnelse aktiv om Peter inte hört av sig.',
-      aiPoints:[
-        'Peter väntar på röntgenbilder — förmodligen klara på fredag',
-        'Fazli har redan bekräftat snooze + automatisk påminnelse',
-        'Inget att göra nu — vänta på extern faktor',
-      ],
-      quickReplies:['Påminn redan idag','Erbjud alternativ utan röntgen','Be om uppdatering'],
-      customerHistory:{ totalEmails:5, bookings:1, firstContact:'15 apr', lastBooking:'18 apr',
-        events:[
-          {when:'Mån · 09:32', what:'Skickad — bekräftade snooze fredag', outbound:true},
-          {when:'Mån · 09:14', what:'Inkommande — väntar på röntgen', recent:true},
-          {when:'25 apr', what:'Begäran om röntgenbilder skickad', outbound:true},
-          {when:'18 apr', what:'Konsultation hos Fazli'},
-          {when:'15 apr', what:'Första kontakt'},
-        ]},
-      upcomingBooking:{service:'Uppföljning · röntgen-genomgång',when:'Fredag 9 maj · 09:00',who:'Fazli',loc:'Stockholm'},
-      responseTime:{mine:6.2, team:4.1},
-      notes:[
-        {author:'Fazli K.',time:'Mån 09:32',body:'Snooze klar fre 09:00. Får påminnelse automatiskt. Räkna med 2-3 dagars handläggning hos labbet.'},
-      ] },
+      lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli' },
   ];
 
   const TABS = [{id:'all',label:'Alla'},{id:'unread',label:'Olästa'},{id:'mine',label:'Mina'},{id:'high-risk',label:'Hög risk'},{id:'today',label:'Idag'}];
-  const state = { threads:[...DEMO], selectedId:DEMO[0].id, tab:'all', live:false, sortBy:'newest', multiSelect:new Set(), lastClickedId:null };
-  const SORT_LABELS = { newest:'Nyaste', oldest:'Äldsta', risk:'Hög risk', ai:'AI-prioritet' };
-  // AI-prio är en heuristisk score: hög risk=10, oläst=4, lane act-now=6, lane review=4, lane bookable=3
-  function aiPriorityScore(t) {
-    let s = 0;
-    if ((t.tags||[]).some(g=>g.tone==='danger')) s += 10;
-    if (t.unread) s += 4;
-    if (t.lane==='act-now') s += 6;
-    else if (t.lane==='review') s += 4;
-    else if (t.lane==='bookable') s += 3;
-    else if (t.lane==='sprint') s += 2;
-    if (/deadline|måndag|före/i.test(t.subject||'')) s += 3;
-    return s;
-  }
-  function timeRank(t) {
-    // ungefärlig tid-rank baserat på t.time
-    if (/Idag|^\d/.test(t.time)) return 100;
-    if (/Igår/i.test(t.time)) return 50;
-    if (/Mån|Tis|Ons|Tor|Fre/i.test(t.time)) return 30;
-    return 10;
-  }
+  const state = { threads:[...DEMO], selectedId:DEMO[0].id, tab:'all', live:false };
   const $ = s => document.querySelector(s);
   const escHtml = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const ico = (id) => `<svg><use href="#${id}"/></svg>`;
@@ -2076,16 +783,11 @@ button { cursor: pointer; }
       </button>`).join('');
   }
   function visibleThreads() {
-    let v = state.threads.slice();
+    let v = state.threads;
     if (state.tab==='unread') v = v.filter(t=>t.unread);
     if (state.tab==='mine') v = v.filter(t=>/Fazli/i.test(t.owner||''));
     if (state.tab==='high-risk') v = v.filter(t=>(t.tags||[]).some(g=>g.tone==='danger'));
     if (state.tab==='today') v = v.filter(t=>/Idag/i.test(t.time));
-    // Sort
-    if (state.sortBy==='oldest') v.sort((a,b)=>timeRank(a)-timeRank(b));
-    else if (state.sortBy==='risk') v.sort((a,b)=>{ const ra=(a.tags||[]).some(g=>g.tone==='danger')?1:0; const rb=(b.tags||[]).some(g=>g.tone==='danger')?1:0; if (rb!==ra) return rb-ra; return timeRank(b)-timeRank(a); });
-    else if (state.sortBy==='ai') v.sort((a,b)=>aiPriorityScore(b)-aiPriorityScore(a));
-    else /* newest */ v.sort((a,b)=>timeRank(b)-timeRank(a));
     return v;
   }
   function renderRows() {
@@ -2098,8 +800,7 @@ button { cursor: pointer; }
       const unread = t.unread?' unread':'';
       const trail = (t.mailboxTrail||[]).map(([l,c])=>`<span class="mb" style="background:${c}">${l}</span>`).join('');
       const tags = (t.tags||[]).slice(0,2).map(g=>`<span class="tag ${g.tone}">${g.icon?ico(g.icon):''}${escHtml(g.label)}</span>`).join('');
-      const multi = state.multiSelect.has(t.id) ? ' row-selected-multi' : '';
-      return `<div class="row${sel}${unread}${multi}" data-id="${t.id}" data-lane="${t.lane}">
+      return `<div class="row${sel}${unread}" data-id="${t.id}" data-lane="${t.lane}">
         <span class="avatar">${escHtml(t.initials)}</span>
         <div class="body">
           <div class="top">
@@ -2112,12 +813,6 @@ button { cursor: pointer; }
             ${tags}
             ${trail?`<span class="mailbox-trail">${trail}</span>`:''}
           </div>
-        </div>
-        <div class="quick-actions">
-          <button class="primary" data-quick="reply" data-id="${t.id}" title="Svara">${ico('i-reply')}</button>
-          <button data-quick="snooze" data-id="${t.id}" title="Snooza">${ico('i-clock')}</button>
-          <button class="success" data-quick="done" data-id="${t.id}" title="Markera klar">${ico('i-check')}</button>
-          <button class="danger" data-quick="delete" data-id="${t.id}" title="Radera">${ico('i-trash')}</button>
         </div>
       </div>`;
     }).join('');
@@ -2144,156 +839,50 @@ button { cursor: pointer; }
         </div>
         <div class="msg-body">${escHtml(m.body)}</div>
       </article>`).join('');
-    // Prev/next i visible-listan
-    const v = visibleThreads();
-    const idx = v.findIndex(x=>x.id===t.id);
-    const total = v.length;
-    const prevDis = idx <= 0 ? 'disabled' : '';
-    const nextDis = idx >= total - 1 ? 'disabled' : '';
-
-    const aiPoints = (t.aiPoints||[]).map(p=>`<li>${escHtml(p)}</li>`).join('');
-    const quickReplies = (t.quickReplies||[]).map(q=>`<button class="qr" data-qr="${escHtml(q)}">${ico('i-sparkles')} ${escHtml(q)}</button>`).join('');
-
     root.innerHTML = `
       <div class="thread-head lane-${t.lane}">
         <div class="top">
           <h2>${escHtml(t.subject)}</h2>
-          <div class="thread-nav">
-            <button data-thread-nav="prev" ${prevDis} title="Föregående (⌘[)">${ico('i-chevron-l')}</button>
-            <span class="pos">${idx+1}/${total}</span>
-            <button data-thread-nav="next" ${nextDis} title="Nästa (⌘])">${ico('i-chevron-r')}</button>
-          </div>
-          ${(t.aiTldr || aiPoints) ? `<button class="ai-pill" data-toggle-ai title="AI-sammanfattning">${ico('i-sparkles')} AI</button>` : ''}
           <span class="lane-pill">${ico(t.laneIcon)} ${escHtml(t.laneLabel)}</span>
         </div>
         <div class="who-line">
           <span class="ava">${escHtml(t.initials)}</span>
           <strong>${escHtml(t.who)}</strong>
-          <span class="email" title="${escHtml(t.email)} · ${escHtml(t.mailbox)} · ${escHtml(t.owner)}">${escHtml(t.email)}</span>
+          <span class="email">${escHtml(t.email)}</span>
+          <span class="sep">·</span>
+          <span class="meta-chip">${ico('i-mail-open')} ${escHtml(t.mailbox)}</span>
+          <span class="sep">·</span>
+          <span class="meta-chip">${ico('i-users')} ${escHtml(t.owner)}</span>
         </div>
       </div>
-      ${(t.aiTldr || aiPoints) ? `
-        <div class="ai-summary" id="ai-summary">
-          <div class="ai-head">
-            ${ico('i-sparkles')} AI-sammanfattning
-            <button class="tldr-toggle" id="tldr-toggle">Detaljer ${ico('i-arrow-down')}</button>
-          </div>
-          <div class="tldr">${escHtml(t.aiTldr || '')}</div>
-          ${aiPoints ? `<ul class="points">${aiPoints}</ul>` : ''}
-        </div>
-      ` : ''}
       <div class="thread-actions">
-        <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu</button>
+        <button class="action primary">${ico('i-reply')} Svara nu</button>
         <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
         <button class="action">${ico('i-clock')} Senare</button>
         <button class="action">${ico('i-check')} Klar</button>
         <button class="action">${ico('i-calendar')} Schemalägg</button>
-        <button class="action" data-history-open>${ico('i-history-overlay')} Historik</button>
-        <button class="action danger icon-only" style="margin-left:auto;" title="Radera">${ico('i-trash')}</button>
+        <button class="action">${ico('i-history')} Historik</button>
+        <button class="action danger" style="margin-left:auto;">${ico('i-trash')}</button>
       </div>
       <div class="thread-body">
         <div class="messages">${messages}</div>
-        <div class="composer-wrap" id="composer-wrap">
-          ${quickReplies ? `
-            <div class="composer-quick">
-              ${quickReplies}
-            </div>` : ''}
-          <div class="composer">
-            <textarea class="composer-input" id="composer-input" placeholder="Skriv ditt svar…"></textarea>
-            <div class="composer-bar">
-              <button class="tool" title="Bifoga">${ico('i-paperclip')}</button>
-              <button class="tool" title="Schemalägg">${ico('i-calendar')}</button>
-              <button class="tool" title="Mall">${ico('i-templates')}</button>
-              <button class="tool" title="AI förbättra">${ico('i-sparkles')}</button>
-              <button class="send-btn" id="send-btn">${ico('i-send')} Skicka <span class="kbd">⌘↵</span></button>
-            </div>
-          </div>
-          <div class="composer-hint">Skickas som <strong>${escHtml(t.owner||'Egzona')}</strong> via ${escHtml(t.mailbox)}</div>
-        </div>
       </div>`;
     renderCtx(t);
   }
   function renderCtx(t) {
-    const h = t.customerHistory || {};
-    const upcoming = t.upcomingBooking;
-    const rt = t.responseTime || {mine:0,team:4.1};
-    const notes = t.notes || [];
-
-    // Live-stats inline — diskret rad under namn
-    const liveStats = (h.totalEmails||h.bookings) ? `
-      <div class="live-stats-row">
-        <a class="ls-link" data-ls="emails"><strong>${h.totalEmails||0}</strong> mejl</a>
-        <span class="sep">·</span>
-        <a class="ls-link" data-ls="bookings"><strong>${h.bookings||0}</strong> bokningar</a>
-        ${h.firstContact?`<span class="sep">·</span><a class="ls-link" data-ls="first">sedan <strong>${escHtml(h.firstContact)}</strong></a>`:''}
-      </div>` : '';
-
-    // Upcoming booking — bara om den finns
-    const bookingBlock = upcoming
-      ? `<div class="ctx-section">
-          <div class="head" style="color:var(--teal);">${ico('i-calendar')} Kommande bokning</div>
-          <div class="booking-card">
-            <span class="b-icon">${ico('i-calendar')}</span>
-            <div class="b-info">
-              <div class="b-svc">${escHtml(upcoming.service)}</div>
-              <div class="b-when">${escHtml(upcoming.when)}</div>
-              <div class="b-meta">Med ${escHtml(upcoming.who)} · ${escHtml(upcoming.loc||'')}</div>
-              <div class="b-actions">
-                <button class="b-btn" data-book-action="ics">${ico('i-calendar')} .ics</button>
-                <button class="b-btn" data-book-action="reschedule">${ico('i-clock')} Boka om</button>
-              </div>
-            </div>
-          </div>
-        </div>` : '';
-
-    // AI feedback buttons (hidden by default, visible on hover)
-    const aiActions = (key) => `
-      <div class="ai-actions">
-        <button class="ai-act accept" data-ai-feedback="accept" data-ai-key="${key}">${ico('i-check')} Acceptera</button>
-        <button class="ai-act adjust" data-ai-feedback="adjust" data-ai-key="${key}">${ico('i-sparkles')} Justera</button>
-        <button class="ai-act reject" data-ai-feedback="reject" data-ai-key="${key}">${ico('i-x')} Avvisa</button>
-      </div>`;
-
-    // Svartider — enkel chart + en summary-rad
-    const bars = [3,5,7,4,6,9,8].map(hh=>`<div class="bar" style="height:${hh*3.5}px"></div>`).join('');
-    const diffPct = rt.team > 0 && rt.mine > 0 ? Math.round((Math.abs(rt.team - rt.mine) / rt.team) * 100) : 0;
-    const isFaster = rt.mine > 0 && rt.mine < rt.team;
-    const isSlower = rt.mine > rt.team;
-    const compareLabel = rt.mine === 0
-      ? `Team snitt: <strong>${rt.team.toString().replace('.',',')}h</strong>`
-      : `Snitt-svar: <strong>${rt.mine.toString().replace('.',',')}h</strong> · Team <strong>${rt.team.toString().replace('.',',')}h</strong> ${isFaster?`· <span style="color:var(--green);font-weight:700">${diffPct}% snabbare ↑</span>`:isSlower?`· <span style="color:var(--orange);font-weight:700">${diffPct}% långsammare ↓</span>`:''}`;
-
-    // Notes — kollapsbar (default collapsed om inga olästa)
-    const notesHtml = notes.map(n=>{
-      const cls = n.ai ? ' ai' : '';
-      const author = n.ai ? `${ico('i-sparkles')} AI` : escHtml(n.author||'Team');
-      return `<div class="note${cls}">
-        <div class="n-head">
-          <span class="n-author">${author}</span>
-          <span class="n-time">${escHtml(n.time||'')}</span>
-        </div>
-        <div class="n-body">${escHtml(n.body||'')}</div>
-      </div>`;
-    }).join('');
-    const notesCount = notes.length;
-    const notesOpen = notesCount > 0 ? '' : '';
-
-    // Tidslinje
     const tl = (t.timeline||[]).map(s=>`<li><span class="dot"></span><span>${escHtml(s)}</span></li>`).join('');
-
+    const bars = [3,5,7,4,6,9,8].map(h=>`<div class="bar" style="height:${h*3.5}px"></div>`).join('');
     $('#ctx-panel').innerHTML = `
       <div class="ctx-section lane-${t.lane}">
         <div class="head">${ico('i-users')} Kund</div>
         <div class="identity">
-          <span class="ava" data-open-history title="Öppna full historik">${escHtml(t.initials)}</span>
+          <span class="ava">${escHtml(t.initials)}</span>
           <div style="min-width:0;flex:1;">
             <div class="who-name">${escHtml(t.who)}</div>
             <div class="email-line">${escHtml(t.email)}</div>
           </div>
         </div>
-        ${liveStats}
       </div>
-      ${bookingBlock}
       <div class="ctx-section">
         <div class="head">${ico('i-target')} Status</div>
         <div class="kv-list">
@@ -2303,703 +892,30 @@ button { cursor: pointer; }
           <div class="kv-item"><span class="label">${ico('i-flame')} Risk</span><span class="val">${escHtml(t.riskLevel)}</span></div>
         </div>
       </div>
-      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk')}</div>`:''}
-      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep')}</div>`:''}
+      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div></div>`:''}
+      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div></div>`:''}
       <div class="ctx-section">
         <div class="head">${ico('i-chart')} Aktivitet · 7 dagar</div>
         <div class="mini-chart">${bars}</div>
-        <div class="activity-meta">${compareLabel}</div>
+        <div class="activity-meta">Snitt-svar: <strong>2,4h</strong></div>
       </div>
-      ${tl?`<div class="ctx-section"><div class="head">${ico('i-history')} Tidslinje</div><ul class="timeline">${tl}</ul></div>`:''}
-      <div class="ctx-section collapsible${notesCount>0?' open':''}" data-collapsible>
-        <div class="head" data-toggle-section>${ico('i-templates')} Anteckningar ${notesCount?`<span style="background:transparent;color:var(--text-3);padding:0;border-radius:0;font-size:11px;font-weight:600;letter-spacing:0;margin-left:2px;">· ${notesCount}</span>`:''}<span class="chev">${ico('i-arrow-down')}</span></div>
-        <div class="body-wrap">
-          <div class="notes-list">${notesHtml || '<div style="font-size:12px;color:var(--text-3);font-style:italic;padding:4px 0 8px;">Inga interna anteckningar än.</div>'}</div>
-          <div class="note-input-wrap">
-            <textarea class="note-input" id="note-input-${escHtml(t.id)}" placeholder="Anteckna internt — bara för teamet"></textarea>
-            <div class="note-input-bar">
-              <span class="hint">⌘↵ för att posta</span>
-              <button class="post-btn" data-post-note="${escHtml(t.id)}">${ico('i-send')} Posta</button>
-            </div>
-          </div>
-        </div>
+      <div class="ctx-section">
+        <div class="head">${ico('i-history')} Tidslinje</div>
+        <ul class="timeline">${tl}</ul>
       </div>`;
   }
-  // ===== Sidebar widgets =====
-  function renderTodayStats() {
-    const total = state.threads.length;
-    const unread = state.threads.filter(t=>t.unread).length;
-    const risk = state.threads.filter(t=>(t.tags||[]).some(g=>g.tone==='danger')).length;
-    const totalEl = document.getElementById('stat-total');
-    const unreadEl = document.getElementById('stat-unread');
-    const riskEl = document.getElementById('stat-risk');
-    const dotEl = document.getElementById('urgent-dot');
-    if (totalEl) totalEl.textContent = total;
-    if (unreadEl) unreadEl.textContent = unread;
-    if (riskEl) riskEl.textContent = risk;
-    if (dotEl) dotEl.style.display = (risk > 0 || unread > 2) ? 'inline-block' : 'none';
-  }
-  function renderMailboxBars() {
-    const items = document.querySelectorAll('.nav-item.mailbox');
-    let max = 0;
-    items.forEach(el => { const v = Number(el.dataset.mbActivity || 0); if (v > max) max = v; });
-    if (!max) max = 1;
-    items.forEach(el => {
-      const v = Number(el.dataset.mbActivity || 0);
-      const pct = Math.max(4, Math.round((v / max) * 100));
-      const fill = el.querySelector('.mb-bar .fill');
-      if (fill) {
-        fill.style.width = pct + '%';
-        fill.style.background = el.dataset.mbColor || 'var(--text-3)';
-      }
-    });
-  }
-  function bindPresence() {
-    const PRES = [
-      { code:'online', dot:'', label:'● Online · Aktiv nu' },
-      { code:'away', dot:'away', label:'◐ Borta · 5 min' },
-      { code:'dnd', dot:'dnd', label:'⊘ Stör ej · Fokus' },
-    ];
-    let idx = 0;
-    const btn = document.getElementById('presence-toggle');
-    const dot = document.getElementById('pres-status-dot');
-    const text = document.getElementById('pres-state-text');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      idx = (idx + 1) % PRES.length;
-      const p = PRES[idx];
-      dot.className = 'pres-status' + (p.dot ? ' ' + p.dot : '');
-      text.textContent = p.label;
-    });
-  }
-  function bindShortcuts() {
-    document.addEventListener('keydown', ev => {
-      if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
-      if (!ev.metaKey && !ev.ctrlKey) return;
-      const k = ev.key;
-      if (/^[1-9]$/.test(k)) {
-        const target = document.querySelector(`.nav-item[data-shortcut="${k}"]`);
-        if (target) {
-          ev.preventDefault();
-          target.click();
-          // visa active state
-          document.querySelectorAll('.nav-item.active').forEach(n => n.classList.remove('active'));
-          target.classList.add('active');
-        }
-      }
-    });
-  }
-
-  function renderAll() { renderTabs(); renderRows(); renderThread(); renderTodayStats(); renderMailboxBars(); }
-
-  // ==== Toast ====
-  function toast(msg) {
-    let el = document.getElementById('toast');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'toast';
-      el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.2s, transform 0.2s;';
-      document.body.appendChild(el);
-    }
-    el.textContent = msg;
-    el.style.opacity = '1';
-    el.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(el._t);
-    el._t = setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(8px)'; }, 1800);
-  }
-
-  // ==== Bulk-bar ====
-  function renderBulkBar() {
-    const bar = document.getElementById('bulk-bar');
-    const num = document.getElementById('bulk-num');
-    if (!bar) return;
-    const c = state.multiSelect.size;
-    if (c > 0) { bar.classList.add('show'); if (num) num.textContent = c; }
-    else { bar.classList.remove('show'); }
-  }
-
-  // ==== Sort menu ====
-  function toggleSortMenu(force) {
-    const menu = document.getElementById('sort-menu');
-    if (!menu) return;
-    const open = force !== undefined ? force : !menu.classList.contains('open');
-    menu.classList.toggle('open', open);
-  }
-
-  // ==== Thread nav (prev/next) ====
-  function jumpThread(dir) {
-    const v = visibleThreads();
-    const idx = v.findIndex(x=>x.id===state.selectedId);
-    if (idx < 0) return;
-    const next = dir === 'prev' ? v[idx-1] : v[idx+1];
-    if (!next) return;
-    state.selectedId = next.id;
-    renderRows();
-    renderThread();
-  }
-
-  // ==== History drawer ====
-  function openHistory() {
-    const t = state.threads.find(x=>x.id===state.selectedId);
-    if (!t) return;
-    let overlay = document.getElementById('hist-overlay');
-    let drawer = document.getElementById('hist-drawer');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'hist-overlay';
-      overlay.className = 'history-overlay';
-      drawer = document.createElement('aside');
-      drawer.id = 'hist-drawer';
-      drawer.className = 'history-drawer';
-      document.body.appendChild(overlay);
-      document.body.appendChild(drawer);
-      overlay.addEventListener('click', closeHistory);
-    }
-    const h = t.customerHistory || { totalEmails:0, bookings:0, firstContact:'—', lastBooking:'—', events:[] };
-    const events = (h.events||[]).map(e=>{
-      const cls = (e.recent?'recent':'') + (e.outbound?' outbound':'');
-      return `<li class="${cls}"><span class="marker"></span><div class="body"><div class="when">${escHtml(e.when)}</div><div class="what">${escHtml(e.what)}</div></div></li>`;
-    }).join('');
-    drawer.innerHTML = `
-      <div class="hd-head">
-        <span class="ava">${escHtml(t.initials)}</span>
-        <div>
-          <h3>${escHtml(t.who)}</h3>
-          <div class="sub">${escHtml(t.email)}</div>
-        </div>
-        <button class="hd-close" id="hist-close">${ico('i-x')}</button>
-      </div>
-      <div class="hd-body">
-        <div class="hd-stats">
-          <div class="hd-stat"><span class="num">${h.totalEmails}</span><span class="lbl">Mejl totalt</span></div>
-          <div class="hd-stat"><span class="num">${h.bookings}</span><span class="lbl">Bokningar</span></div>
-          <div class="hd-stat"><span class="num">${escHtml(h.firstContact)}</span><span class="lbl">Första kontakt</span></div>
-        </div>
-        <div class="hd-section-title">Tidslinje · alla händelser</div>
-        <ul class="hd-timeline">${events}</ul>
-      </div>`;
-    overlay.classList.add('open');
-    drawer.classList.add('open');
-    document.getElementById('hist-close')?.addEventListener('click', closeHistory);
-  }
-  function closeHistory() {
-    document.getElementById('hist-overlay')?.classList.remove('open');
-    document.getElementById('hist-drawer')?.classList.remove('open');
-  }
-
-  // ==== Composer helpers ====
-  function focusComposer() {
-    const wrap = document.getElementById('composer-wrap');
-    if (wrap) wrap.classList.add('is-open');
-    // wait for transition before focusing so the textarea is visible
-    setTimeout(()=>{
-      const ta = document.getElementById('composer-input');
-      if (ta) ta.focus();
-    }, 60);
-  }
-  function closeComposer() {
-    const wrap = document.getElementById('composer-wrap');
-    if (!wrap) return;
-    const ta = document.getElementById('composer-input');
-    if (ta && ta.value.trim()) return; // never close if there's a draft
-    wrap.classList.remove('is-open', 'is-active');
-  }
-  function sendComposer() {
-    const ta = document.getElementById('composer-input');
-    if (!ta) return;
-    const text = (ta.value || '').trim();
-    if (!text) {
-      ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake');
-      ta.focus();
-      return;
-    }
-    toast('Mejl skickat (demo) · ' + text.length + ' tecken');
-    ta.value = '';
-    // collapse composer after send
-    closeComposer();
-  }
-
-  // ==== Theme toggle ====
-  function applyTheme(theme) {
-    const html = document.documentElement;
-    if (theme === 'dark') html.setAttribute('data-theme', 'dark');
-    else html.removeAttribute('data-theme');
-    try { localStorage.setItem('cco-theme', theme); } catch {}
-  }
-  function bindTheme() {
-    const saved = (() => { try { return localStorage.getItem('cco-theme'); } catch { return null; } })();
-    if (saved === 'dark' || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      applyTheme('dark');
-    }
-    document.getElementById('theme-toggle')?.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      applyTheme(cur);
-      toast(cur === 'dark' ? '🌙 Mörkt tema' : '☀️ Ljust tema');
-    });
-  }
-
-  // ==== Command palette ====
-  const CMD_ACTIONS = [
-    { id:'compose', icon:'i-mail-plus', title:'Skriv nytt mejl', sub:'Öppna composer', shortcut:'C', run:()=>toast('Composer öppnad') },
-    { id:'reply', icon:'i-reply', title:'Svara på vald tråd', sub:'Fokusera composer', shortcut:'R', run:()=>focusComposer() },
-    { id:'snooze', icon:'i-clock', title:'Snooza vald tråd', sub:'Pausa till valt datum', run:()=>toast('Snooze (demo)') },
-    { id:'done', icon:'i-check', title:'Markera klar', sub:'Stäng tråden', shortcut:'E', run:()=>toast('Markerad klar') },
-    { id:'theme', icon:'i-moon', title:'Byt tema · ljus/mörk', sub:'Toggle dark mode', shortcut:'⌘⇧L', run:()=>document.getElementById('theme-toggle')?.click() },
-    { id:'mailboxes', icon:'i-inbox', title:'Visa alla mailboxar', sub:'Egzona, Fazli, Kons, Info, Kontakt, Marknad', run:()=>toast('Mailboxar (demo)') },
-    { id:'customers', icon:'i-users', title:'Gå till Kunder', sub:'Kund-vyn med all historik', shortcut:'⌘8', run:()=>toast('Kunder (demo)') },
-    { id:'analytics', icon:'i-chart', title:'Gå till Analys', sub:'Svartider, lane-fördelning, sentiment', run:()=>toast('Analys (demo)') },
-    { id:'templates', icon:'i-templates', title:'Skapa mall', sub:'Spara svar för återanvändning', run:()=>toast('Ny mall (demo)') },
-    { id:'settings', icon:'i-settings', title:'Inställningar', sub:'Konton, integrationer, notifikationer', run:()=>toast('Inställningar (demo)') },
-  ];
-  let cmdkActiveIdx = 0;
-  let cmdkResults = [];
-  function fuzzy(needle, haystack) {
-    needle = needle.toLowerCase(); haystack = haystack.toLowerCase();
-    if (!needle) return 1;
-    if (haystack.includes(needle)) return 2 + (haystack.startsWith(needle) ? 1 : 0);
-    let i = 0, score = 0;
-    for (const ch of needle) { const idx = haystack.indexOf(ch, i); if (idx < 0) return 0; score += 1 / (idx - i + 1); i = idx + 1; }
-    return score;
-  }
-  function buildCmdkResults(q) {
-    const queries = (q || '').trim();
-    const all = [];
-    // Threads
-    for (const t of state.threads) {
-      const blob = `${t.who} ${t.email} ${t.subject} ${t.preview||''}`;
-      const score = fuzzy(queries, blob);
-      if (queries === '' || score > 0) all.push({ kind:'thread', score: score + 0.5, t });
-    }
-    // Actions
-    for (const a of CMD_ACTIONS) {
-      const score = fuzzy(queries, a.title + ' ' + a.sub);
-      if (queries === '' || score > 0) all.push({ kind:'action', score, a });
-    }
-    if (queries) all.sort((x,y) => y.score - x.score);
-    return all.slice(0, 12);
-  }
-  function renderCmdkResults() {
-    const wrap = document.getElementById('cmdk-results');
-    if (!wrap) return;
-    if (!cmdkResults.length) { wrap.innerHTML = '<div class="cmdk-empty">Inga träffar</div>'; return; }
-    const groups = { thread:[], action:[] };
-    cmdkResults.forEach((r,i) => groups[r.kind].push({...r, i}));
-    let html = '';
-    if (groups.thread.length) {
-      html += '<div class="cmdk-section"><div class="label">Trådar</div>';
-      groups.thread.forEach(r => {
-        const t = r.t;
-        const cls = r.i === cmdkActiveIdx ? ' active' : '';
-        html += `<button class="cmdk-item${cls}" data-idx="${r.i}"><span class="ico">${ico('i-mail-open')}</span><div class="body"><div class="title">${escHtml(t.who)}</div><div class="sub">${escHtml(t.subject)}</div></div></button>`;
-      });
-      html += '</div>';
-    }
-    if (groups.action.length) {
-      html += '<div class="cmdk-section"><div class="label">Actions</div>';
-      groups.action.forEach(r => {
-        const a = r.a;
-        const cls = r.i === cmdkActiveIdx ? ' active' : '';
-        html += `<button class="cmdk-item${cls}" data-idx="${r.i}"><span class="ico">${ico(a.icon)}</span><div class="body"><div class="title">${escHtml(a.title)}</div><div class="sub">${escHtml(a.sub||'')}</div></div>${a.shortcut?`<span class="shortcut">${escHtml(a.shortcut)}</span>`:''}</button>`;
-      });
-      html += '</div>';
-    }
-    wrap.innerHTML = html;
-  }
-  function openCmdk() {
-    const ov = document.getElementById('cmdk-overlay');
-    const inp = document.getElementById('cmdk-input');
-    if (!ov) return;
-    ov.classList.add('open');
-    cmdkActiveIdx = 0;
-    if (inp) { inp.value = ''; inp.focus(); }
-    cmdkResults = buildCmdkResults('');
-    renderCmdkResults();
-  }
-  function closeCmdk() { document.getElementById('cmdk-overlay')?.classList.remove('open'); }
-  function selectCmdk(idx) {
-    const r = cmdkResults[idx];
-    if (!r) return;
-    if (r.kind === 'thread') { state.selectedId = r.t.id; renderRows(); renderThread(); closeCmdk(); }
-    else if (r.kind === 'action') { closeCmdk(); setTimeout(()=>r.a.run?.(), 80); }
-  }
-  function bindCmdk() {
-    const ov = document.getElementById('cmdk-overlay');
-    const inp = document.getElementById('cmdk-input');
-    inp?.addEventListener('input', () => { cmdkActiveIdx = 0; cmdkResults = buildCmdkResults(inp.value); renderCmdkResults(); });
-    inp?.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') { ev.preventDefault(); closeCmdk(); }
-      else if (ev.key === 'ArrowDown') { ev.preventDefault(); cmdkActiveIdx = Math.min(cmdkResults.length-1, cmdkActiveIdx+1); renderCmdkResults(); }
-      else if (ev.key === 'ArrowUp') { ev.preventDefault(); cmdkActiveIdx = Math.max(0, cmdkActiveIdx-1); renderCmdkResults(); }
-      else if (ev.key === 'Enter') { ev.preventDefault(); selectCmdk(cmdkActiveIdx); }
-    });
-    ov?.addEventListener('click', (ev) => { if (ev.target === ov) closeCmdk(); });
-    document.getElementById('cmdk-results')?.addEventListener('click', (ev) => {
-      const item = ev.target.closest('[data-idx]'); if (!item) return;
-      selectCmdk(Number(item.dataset.idx));
-    });
-  }
-
-  // ==== Notifications ====
-  const NOTIFS = [
-    { kind:'danger', icon:'i-flame', title:'Morten Bak Kristoffersen — eskalerade till hög risk', meta:'5 min sedan', unread:true },
-    { kind:'info', icon:'i-mail-open', title:'Sara Holm bekräftade FUE-konsultation', meta:'12 min sedan', unread:true },
-    { kind:'ai', icon:'i-sparkles', title:'AI-utkast flaggat — pris-avvikelse hos Erik Lindqvist', meta:'18 min sedan', unread:true },
-    { kind:'success', icon:'i-check', title:'Egzona K. svarade på 3 trådar', meta:'34 min sedan' },
-    { kind:'info', icon:'i-calendar', title:'Påminnelse: Peter Nilsson · röntgen fredag 09:00', meta:'1 tim sedan' },
-    { kind:'info', icon:'i-mail-plus', title:'Newsletter skickad till 142 prenumeranter', meta:'2 tim sedan' },
-  ];
-  function renderNotifs() {
-    const list = document.getElementById('notif-list');
-    if (!list) return;
-    list.innerHTML = NOTIFS.map(n => `
-      <div class="notif ${n.kind}${n.unread?' unread':''}">
-        <span class="ico">${ico(n.icon)}</span>
-        <div class="body">
-          <div class="title">${escHtml(n.title)}</div>
-          <div class="meta">${escHtml(n.meta)}</div>
-        </div>
-      </div>`).join('');
-    const unread = NOTIFS.filter(n=>n.unread).length;
-    const badge = document.getElementById('notif-badge');
-    if (badge) { badge.textContent = unread; badge.style.display = unread>0?'inline-flex':'none'; }
-  }
-  function bindNotifs() {
-    const trig = document.getElementById('notif-trigger');
-    const pop = document.getElementById('notif-popover');
-    trig?.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      pop?.classList.toggle('open');
-    });
-    document.addEventListener('click', (ev) => {
-      if (!ev.target.closest('#notif-popover') && !ev.target.closest('#notif-trigger')) pop?.classList.remove('open');
-    });
-    document.getElementById('notif-clear')?.addEventListener('click', () => {
-      NOTIFS.forEach(n => n.unread = false);
-      renderNotifs();
-    });
-    renderNotifs();
-  }
-
-  // ==== Onboarding ====
-  const ONBOARD_STEPS = [
-    { selector:'.search input', title:'Sök & Command Palette', body:'Tryck <span class="key">⌘K</span> för att öppna kommando-paletten — gå till valfri tråd, kund eller utför actions snabbt.', placement:'below' },
-    { selector:'.row[data-id]:first-child', title:'Navigera med tangentbord', body:'Använd <span class="key">J</span> / <span class="key">K</span> eller piltangenter för att hoppa mellan trådar utan att lyfta händerna från tangentbordet.', placement:'right' },
-    { selector:'#sort-trigger', title:'AI-prioritet', body:'Sortera efter AI-prio så bedömer modellen vad som är mest brådskande just nu — tar hänsyn till risk, lane och deadlines.', placement:'below' },
-    { selector:'.compose-btn', title:'Snabbsvar', body:'Tryck <span class="key">R</span> för att fokusera composer i öppen tråd. <span class="key">⌘↵</span> skickar.', placement:'below-left' },
-  ];
-  let onboardIdx = 0;
-  function showOnboardStep(i) {
-    const step = ONBOARD_STEPS[i];
-    if (!step) return finishOnboard();
-    const el = document.querySelector(step.selector);
-    if (!el) return showOnboardStep(i+1);
-    const r = el.getBoundingClientRect();
-    const spot = document.getElementById('onboard-spotlight');
-    const card = document.getElementById('onboard-card');
-    spot.style.left = (r.left - 6) + 'px';
-    spot.style.top = (r.top - 6) + 'px';
-    spot.style.width = (r.width + 12) + 'px';
-    spot.style.height = (r.height + 12) + 'px';
-    // placement
-    const cardW = 320, cardH = 170;
-    let cx = r.left, cy = r.bottom + 14;
-    if (step.placement === 'right') { cx = r.right + 14; cy = r.top; }
-    if (step.placement === 'below-left') { cx = r.right - cardW; cy = r.bottom + 14; }
-    cx = Math.max(12, Math.min(window.innerWidth - cardW - 12, cx));
-    cy = Math.max(12, Math.min(window.innerHeight - cardH - 12, cy));
-    card.style.left = cx + 'px';
-    card.style.top = cy + 'px';
-    const pips = ONBOARD_STEPS.map((_,k)=>`<span class="pip ${k===i?'active':k<i?'done':''}"></span>`).join('');
-    const isLast = i === ONBOARD_STEPS.length - 1;
-    card.innerHTML = `
-      <div class="step">Steg ${i+1} av ${ONBOARD_STEPS.length}</div>
-      <h3>${escHtml(step.title)}</h3>
-      <p>${step.body}</p>
-      <div class="actions">
-        <span class="progress">${pips}</span>
-        <span class="skip" id="onboard-skip">Hoppa över</span>
-        <button class="next" id="onboard-next">${isLast?'Klar':'Nästa'} ${ico('i-arrow-right')}</button>
-      </div>`;
-    document.getElementById('onboard-next')?.addEventListener('click', () => { onboardIdx++; showOnboardStep(onboardIdx); });
-    document.getElementById('onboard-skip')?.addEventListener('click', finishOnboard);
-  }
-  function finishOnboard() {
-    document.getElementById('onboard-overlay')?.classList.remove('open');
-    try { localStorage.setItem('cco-onboarded', '1'); } catch {}
-  }
-  function startOnboard() {
-    document.getElementById('onboard-overlay')?.classList.add('open');
-    onboardIdx = 0;
-    showOnboardStep(0);
-  }
-  function maybeStartOnboard() {
-    let done = '0';
-    try { done = localStorage.getItem('cco-onboarded') || '0'; } catch {}
-    if (done !== '1') setTimeout(startOnboard, 600);
-  }
-
-  // ==== Live-pip flash on simulated new mail ====
-  let livePipTimer = null;
-  function simulateLiveActivity() {
-    if (livePipTimer) clearInterval(livePipTimer);
-    livePipTimer = setInterval(() => {
-      const pip = document.getElementById('live-pip');
-      if (!pip) return;
-      pip.classList.remove('flash');
-      // force reflow + add
-      void pip.offsetWidth;
-      pip.classList.add('flash');
-      pip.firstElementChild.style.background = '#22d36a';
-      setTimeout(()=>{ pip.classList.remove('flash'); pip.firstElementChild.style.background = ''; }, 1600);
-    }, 22000);
-  }
+  function renderAll() { renderTabs(); renderRows(); renderThread(); }
 
   function bind() {
     document.addEventListener('click', ev=>{
-      // ===== Context column actions =====
-      // Toggle collapsible section
-      const toggleSec = ev.target.closest('[data-toggle-section]');
-      if (toggleSec) {
-        const sec = toggleSec.closest('.ctx-section.collapsible');
-        if (sec) sec.classList.toggle('open');
-        return;
-      }
-      // Live-stats links
-      const ls = ev.target.closest('[data-ls]');
-      if (ls) { toast(`Öppnar ${ls.dataset.ls === 'emails' ? 'mejlhistorik' : ls.dataset.ls === 'bookings' ? 'bokningar' : 'tidslinje'} (demo)`); return; }
-      // Booking actions
-      const bookAct = ev.target.closest('[data-book-action]');
-      if (bookAct) {
-        const a = bookAct.dataset.bookAction;
-        if (a === 'ics') {
-          const t = state.threads.find(x=>x.id===state.selectedId);
-          const u = t?.upcomingBooking;
-          if (!u) return;
-          const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:${u.service} - ${t.who}\r\nDESCRIPTION:CCO export\r\nLOCATION:${u.loc||''}\r\nDTSTART:20260506T130000\r\nDTEND:20260506T140000\r\nEND:VEVENT\r\nEND:VCALENDAR`;
-          const blob = new Blob([ics], {type:'text/calendar'});
-          const url = URL.createObjectURL(blob);
-          const a2 = document.createElement('a'); a2.href = url; a2.download = `${t.who.replace(/\s+/g,'-')}-${u.service}.ics`; a2.click();
-          URL.revokeObjectURL(url);
-          toast('.ics-fil exporterad');
-        } else if (a === 'reschedule') toast('Boka om — öppnar kalender (demo)');
-        else if (a === 'new') toast('Ny bokning — öppnar kalender (demo)');
-        return;
-      }
-      // AI feedback
-      const aiFb = ev.target.closest('[data-ai-feedback]');
-      if (aiFb) {
-        const fb = aiFb.dataset.aiFeedback;
-        const key = aiFb.dataset.aiKey;
-        const labels = {accept:'AI-förslag accepterat', adjust:'Markerat för justering', reject:'AI-förslag avvisat'};
-        toast(`${labels[fb]} (${key})`);
-        // visa applied state
-        aiFb.parentElement.querySelectorAll('.ai-act').forEach(b => b.classList.remove('applied'));
-        aiFb.classList.add('applied');
-        return;
-      }
-      // Post note
-      const postNote = ev.target.closest('[data-post-note]');
-      if (postNote) {
-        const tid = postNote.dataset.postNote;
-        const ta = document.getElementById('note-input-' + tid);
-        if (!ta) return;
-        const text = (ta.value || '').trim();
-        if (!text) { ta.focus(); return; }
-        const t = state.threads.find(x=>x.id===tid);
-        if (t) {
-          (t.notes = t.notes || []).unshift({author:'Fazli K.',time:'Just nu',body:text});
-          ta.value = '';
-          renderCtx(t);
-          toast('Anteckning postad');
-        }
-        return;
-      }
-      // Thread nav prev/next
-      const tnav = ev.target.closest('[data-thread-nav]');
-      if (tnav && !tnav.disabled) { jumpThread(tnav.dataset.threadNav); return; }
-      // History drawer
-      if (ev.target.closest('[data-history-open], [data-open-history]')) { openHistory(); return; }
-      // AI-pill in thread-head — scrolls/expands AI-summary details
-      const aiPill = ev.target.closest('[data-toggle-ai]');
-      if (aiPill) {
-        const sum = document.getElementById('ai-summary');
-        if (sum) {
-          sum.classList.toggle('expanded');
-          aiPill.classList.toggle('active', sum.classList.contains('expanded'));
-          if (sum.classList.contains('expanded')) sum.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-        return;
-      }
-      // TLDR toggle (inside ai-summary, expand to show points)
-      if (ev.target.closest('#tldr-toggle')) {
-        document.getElementById('ai-summary')?.classList.toggle('expanded');
-        return;
-      }
-      // Quick-reply pre-fill composer
-      const qr = ev.target.closest('[data-qr]');
-      if (qr) {
-        const ta = document.getElementById('composer-input');
-        if (ta) {
-          ta.value = qr.dataset.qr + '\n\n';
-          ta.focus();
-          ta.setSelectionRange(ta.value.length, ta.value.length);
-        }
-        return;
-      }
-      // Focus composer button
-      if (ev.target.closest('[data-focus-composer]')) { focusComposer(); return; }
-      // Send composer
-      if (ev.target.closest('#send-btn')) { sendComposer(); return; }
-      // Sort menu trigger
-      const sortTrig = ev.target.closest('#sort-trigger');
-      if (sortTrig) { ev.stopPropagation(); toggleSortMenu(); return; }
-      const sortItem = ev.target.closest('.sort-menu .item');
-      if (sortItem) {
-        state.sortBy = sortItem.dataset.sort;
-        document.getElementById('sort-label').textContent = SORT_LABELS[state.sortBy] || 'Nyaste';
-        document.querySelectorAll('.sort-menu .item').forEach(i=>i.classList.toggle('active', i===sortItem));
-        // pin the trigger visible if a non-default sort is active
-        document.getElementById('sort-trigger')?.classList.toggle('active', state.sortBy !== 'newest');
-        toggleSortMenu(false);
-        renderRows();
-        return;
-      }
-      // Click outside menu closes it
-      if (!ev.target.closest('.sort-menu')) toggleSortMenu(false);
-
-      // Bulk actions
-      const bulkBtn = ev.target.closest('[data-bulk]');
-      if (bulkBtn) {
-        const action = bulkBtn.dataset.bulk;
-        const c = state.multiSelect.size;
-        const labels = { done:'klara', snooze:'snoozade', assign:'tilldelade', delete:'raderade' };
-        toast(`${c} trådar ${labels[action]||action}`);
-        if (action === 'delete' || action === 'done') {
-          state.threads = state.threads.filter(t => !state.multiSelect.has(t.id));
-        }
-        state.multiSelect.clear();
-        renderRows();
-        renderBulkBar();
-        renderTodayStats();
-        return;
-      }
-      const bulkClear = ev.target.closest('#bulk-clear');
-      if (bulkClear) { state.multiSelect.clear(); renderRows(); renderBulkBar(); return; }
-
-      // Quick-actions on row
-      const quick = ev.target.closest('[data-quick]');
-      if (quick) {
-        ev.stopPropagation();
-        const action = quick.dataset.quick;
-        const id = quick.dataset.id;
-        const labels = { reply:'Svar öppnat', snooze:'Snoozad', done:'Markerad klar', delete:'Raderad' };
-        toast(labels[action] || action);
-        if (action === 'delete' || action === 'done') {
-          state.threads = state.threads.filter(t => t.id !== id);
-          if (state.selectedId === id) state.selectedId = state.threads[0]?.id;
-        }
-        renderRows();
-        renderThread();
-        renderTodayStats();
-        return;
-      }
-
-      // Tab
       const tab = ev.target.closest('[data-tab]');
       if (tab) { state.tab = tab.dataset.tab; renderTabs(); renderRows(); return; }
-
-      // Row click — handle shift+click for multi-select
       const row = ev.target.closest('.row[data-id]');
-      if (row) {
-        const id = row.dataset.id;
-        if (ev.shiftKey) {
-          // range select from lastClickedId to id
-          const v = visibleThreads();
-          const lastIdx = state.lastClickedId ? v.findIndex(t=>t.id===state.lastClickedId) : -1;
-          const curIdx = v.findIndex(t=>t.id===id);
-          if (lastIdx >= 0 && curIdx >= 0) {
-            const [a, b] = lastIdx < curIdx ? [lastIdx, curIdx] : [curIdx, lastIdx];
-            for (let i=a; i<=b; i++) state.multiSelect.add(v[i].id);
-          } else {
-            state.multiSelect.add(id);
-          }
-          renderRows();
-          renderBulkBar();
-          return;
-        }
-        if (ev.metaKey || ev.ctrlKey) {
-          // toggle selection
-          if (state.multiSelect.has(id)) state.multiSelect.delete(id); else state.multiSelect.add(id);
-          state.lastClickedId = id;
-          renderRows();
-          renderBulkBar();
-          return;
-        }
-        // Normal click
-        state.lastClickedId = id;
-        if (state.multiSelect.size > 0) state.multiSelect.clear();
-        state.selectedId = id;
-        renderRows();
-        renderThread();
-        renderBulkBar();
-        return;
-      }
-    });
-    // Composer focus → reveal toolbar/quick-replies/sender info
-    document.addEventListener('focusin', ev=>{
-      if (ev.target.id === 'composer-input') {
-        document.getElementById('composer-wrap')?.classList.add('is-active');
-      }
-    });
-    document.addEventListener('focusout', ev=>{
-      if (ev.target.id === 'composer-input') {
-        // small delay so click on toolbar buttons can register
-        setTimeout(()=>{
-          const wrap = document.getElementById('composer-wrap');
-          if (!wrap) return;
-          if (!wrap.contains(document.activeElement)) {
-            const ta = document.getElementById('composer-input');
-            // keep active if user has typed content
-            if (ta && ta.value.trim()) return;
-            wrap.classList.remove('is-active');
-          }
-        }, 120);
-      }
+      if (row) { state.selectedId = row.dataset.id; renderRows(); renderThread(); return; }
     });
     document.addEventListener('keydown', ev=>{
-      // Cmd+Enter inom textarea = skicka
-      if (ev.target.id === 'composer-input') {
-        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
-          ev.preventDefault();
-          sendComposer();
-        }
-        if (ev.key === 'Escape') {
-          ev.target.value = '';
-          ev.target.blur();
-          closeComposer();
-        }
-        return;
-      }
-      if (ev.target.classList && ev.target.classList.contains('note-input')) {
-        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
-          ev.preventDefault();
-          const tid = ev.target.id.replace('note-input-','');
-          document.querySelector(`[data-post-note="${tid}"]`)?.click();
-        }
-        return;
-      }
-      // Cmd+K → command palette (oavsett var fokus är)
-      if ((ev.metaKey || ev.ctrlKey) && (ev.key === 'k' || ev.key === 'K')) { ev.preventDefault(); openCmdk(); return; }
-      // Cmd+Shift+L → theme toggle
-      if ((ev.metaKey || ev.ctrlKey) && ev.shiftKey && (ev.key === 'l' || ev.key === 'L')) { ev.preventDefault(); document.getElementById('theme-toggle')?.click(); return; }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
-      // Cmd+[ / Cmd+] för prev/next-tråd
-      if ((ev.metaKey||ev.ctrlKey) && (ev.key==='['||ev.key==='Dead')) { ev.preventDefault(); jumpThread('prev'); return; }
-      if ((ev.metaKey||ev.ctrlKey) && ev.key===']') { ev.preventDefault(); jumpThread('next'); return; }
-      // Esc stänger drawer
-      if (ev.key === 'Escape') { closeHistory(); return; }
-      // R fokuserar composer
-      if (ev.key === 'r' || ev.key === 'R') { ev.preventDefault(); focusComposer(); return; }
+      if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
       const v = visibleThreads();
       const idx = v.findIndex(t=>t.id===state.selectedId);
       if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
@@ -3044,20 +960,7 @@ button { cursor: pointer; }
     };
   }
 
-  async function init() {
-    bindTheme();
-    bind();
-    bindPresence();
-    bindShortcuts();
-    bindCmdk();
-    bindNotifs();
-    document.getElementById('search-input')?.addEventListener('click', openCmdk);
-    document.getElementById('search-input')?.addEventListener('focus', openCmdk);
-    await tryLoadLive();
-    renderAll();
-    simulateLiveActivity();
-    maybeStartOnboard();
-  }
+  async function init() { bind(); await tryLoadLive(); renderAll(); }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
 })();
