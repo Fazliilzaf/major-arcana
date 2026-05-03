@@ -9,15 +9,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* Background gradient (macOS Sequoia / iOS 18 wallpaper feel) */
   --bg-1: #fdfaff;
   --bg-2: #f6f0ff;
   --bg-3: #fef0f6;
+  --bg-4: #ecf3ff;
   --surface: rgba(255, 255, 255, 0.72);
   --surface-solid: #ffffff;
   --surface-2: rgba(255, 255, 255, 0.55);
   --surface-3: rgba(247, 245, 252, 0.85);
-  --surface-hover: rgba(255, 255, 255, 0.92);
   --line: rgba(20, 18, 32, 0.08);
   --line-2: rgba(20, 18, 32, 0.14);
   --text: #0a0612;
@@ -25,10 +24,10 @@
   --text-3: #8b8595;
   --accent: #6c5ce7;
   --accent-2: #5848d6;
-  --accent-3: #4837c8;
   --accent-soft: rgba(108, 92, 231, 0.08);
   --accent-glow: rgba(108, 92, 231, 0.32);
   --accent-grad: linear-gradient(135deg, #6c5ce7 0%, #ec4899 100%);
+  --ai-grad: linear-gradient(135deg, #ff6b9d 0%, #ffd166 50%, #06d6a0 100%);
   --red: #ef4458;
   --orange: #ff8a3d;
   --yellow: #f5b400;
@@ -46,6 +45,7 @@
   --shadow-glow: 0 0 0 4px rgba(108, 92, 231, 0.12), 0 8px 20px rgba(108, 92, 231, 0.20);
   --blur: saturate(180%) blur(20px);
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -55,53 +55,85 @@ body {
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-1);
-  background-image:
-    radial-gradient(at 8% 0%, var(--bg-3) 0px, transparent 55%),
-    radial-gradient(at 100% 0%, var(--bg-2) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, #f0f7ff 0px, transparent 60%);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
   letter-spacing: -0.011em;
+  position: relative;
 }
+
+/* Decorative gradient orbs in background (iOS 18 wallpaper feel) */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.6;
+  z-index: -1;
+  pointer-events: none;
+}
+body::before {
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.4) 0%, transparent 70%);
+  top: -100px; left: -100px;
+  animation: orbDrift 18s ease-in-out infinite;
+}
+body::after {
+  width: 540px; height: 540px;
+  background: radial-gradient(circle, rgba(108, 92, 231, 0.32) 0%, transparent 70%);
+  bottom: -120px; right: -120px;
+  animation: orbDrift 22s ease-in-out infinite reverse;
+}
+.orb-3 {
+  position: fixed; width: 380px; height: 380px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(76, 201, 240, 0.25) 0%, transparent 70%);
+  filter: blur(80px);
+  top: 35%; left: 45%;
+  z-index: -1;
+  pointer-events: none;
+  animation: orbDrift 26s ease-in-out infinite;
+}
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, -40px) scale(1.08); }
+  66% { transform: translate(-40px, 50px) scale(0.95); }
+}
+
 button, input, select { font-family: inherit; font-size: inherit; color: inherit; background: transparent; border: 0; }
 button { cursor: pointer; }
-::selection { background: var(--accent-soft); color: var(--accent-3); }
+::selection { background: var(--accent-soft); color: var(--accent-2); }
 
-/* ===== Layout ===== */
-.app {
-  display: grid;
-  grid-template-rows: 52px 1fr;
-  height: 100vh;
-}
+.app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; position: relative; z-index: 1; }
 
-/* ===== Top bar (frosted) ===== */
+/* ===== Top bar ===== */
 .topbar {
   display: grid;
   grid-template-columns: 240px 1fr 320px;
   align-items: center;
   padding: 0 14px;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.55);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border-bottom: 1px solid var(--line);
   gap: 16px;
-  position: relative;
-  z-index: 50;
+  position: relative; z-index: 50;
 }
-.brand {
-  display: flex; align-items: center; gap: 10px;
-  font-weight: 700; font-size: 14.5px; letter-spacing: -0.3px;
-  color: var(--text);
-}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14.5px; letter-spacing: -0.3px; }
 .brand .logo {
-  width: 28px; height: 28px; border-radius: 9px;
+  width: 30px; height: 30px; border-radius: 9px;
   background: var(--accent-grad);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13px; color: #fff; font-weight: 800;
+  color: #fff;
   box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.4);
+  position: relative;
+  overflow: hidden;
 }
+.brand .logo::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.3) 100%);
+  pointer-events: none;
+}
+.brand .logo svg { width: 16px; height: 16px; position: relative; z-index: 1; }
 .brand .sep { color: var(--text-3); margin: 0 2px; font-weight: 400; }
 .brand .ctx { color: var(--text-2); font-weight: 500; font-size: 12.5px; }
 
@@ -114,27 +146,17 @@ button { cursor: pointer; }
   border-radius: 10px;
   padding: 0 14px 0 38px;
   color: var(--text);
-  font-size: 13px;
-  outline: none;
+  font-size: 13px; outline: none;
   transition: all 0.2s var(--ease);
-  font-weight: 400;
 }
 .search input::placeholder { color: var(--text-3); }
-.search input:focus {
-  background: var(--surface-solid);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-glow);
-}
-.search .icon {
-  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  color: var(--text-3); font-size: 14px; pointer-events: none;
-}
+.search input:focus { background: var(--surface-solid); border-color: var(--accent); box-shadow: var(--shadow-glow); }
+.search .icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; display: flex; }
 .search kbd {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   font-family: var(--font-sans); font-size: 10px; color: var(--text-3);
   background: rgba(255, 255, 255, 0.85); padding: 2px 6px; border-radius: 5px;
-  border: 1px solid var(--line);
-  font-weight: 500;
+  border: 1px solid var(--line); font-weight: 500;
 }
 
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
@@ -145,17 +167,6 @@ button { cursor: pointer; }
   transition: all 0.2s var(--ease);
 }
 .icon-btn:hover { background: rgba(255,255,255,0.8); color: var(--text); transform: scale(1.05); }
-.status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(26, 168, 108, 0.18), 0 0 12px var(--green);
-  animation: pulse 2.4s ease-in-out infinite;
-}
-.status-dot.demo { background: var(--yellow); box-shadow: 0 0 0 3px rgba(245, 180, 0, 0.18), 0 0 12px rgba(245, 180, 0, 0.5); }
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.9); opacity: 0.7; }
-}
 .status-pill {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 0 12px; height: 30px; border-radius: 999px;
@@ -163,38 +174,33 @@ button { cursor: pointer; }
   backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   font-size: 11.5px; color: var(--text-2); font-weight: 600;
-  letter-spacing: -0.01em;
 }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(26, 168, 108, 0.18), 0 0 12px var(--green);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.status-dot.demo { background: var(--yellow); box-shadow: 0 0 0 3px rgba(245, 180, 0, 0.18), 0 0 12px rgba(245, 180, 0, 0.5); }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.85); opacity: 0.7; } }
+
 .compose-btn {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 7px;
   padding: 0 14px; height: 32px; border-radius: 10px;
-  background: var(--accent-grad);
-  color: #fff;
-  font-size: 13px; font-weight: 600;
+  background: var(--accent-grad); color: #fff;
+  font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
   transition: all 0.2s var(--ease);
-  letter-spacing: -0.01em;
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.30), inset 0 1px 0 rgba(255,255,255,0.25);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
-.compose-btn::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent);
-  pointer-events: none;
-}
-.compose-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.40), inset 0 1px 0 rgba(255,255,255,0.30); }
-.compose-btn:active { transform: translateY(0); }
+.compose-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent); pointer-events: none; }
+.compose-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.40); }
+.compose-btn svg { width: 14px; height: 14px; }
 
 /* ===== Body ===== */
-.body {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  overflow: hidden;
-  padding: 12px;
-  gap: 12px;
-}
+.body { display: grid; grid-template-columns: 232px 1fr; overflow: hidden; padding: 12px; gap: 12px; position: relative; z-index: 1; }
 
-/* ===== Sidebar (glass card) ===== */
+/* ===== Sidebar ===== */
 .sidebar {
   background: var(--surface);
   backdrop-filter: var(--blur);
@@ -203,16 +209,15 @@ button { cursor: pointer; }
   border-radius: 16px;
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 10px;
+  padding: 12px;
   gap: 14px;
   box-shadow: var(--shadow-sm);
 }
-.sidebar-section {}
 .sidebar-section + .sidebar-section { padding-top: 12px; border-top: 1px solid var(--line); }
 .sidebar-label {
   font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
   color: var(--text-3); text-transform: uppercase;
-  padding: 0 8px 6px; display: flex; justify-content: space-between; align-items: center;
+  padding: 0 8px 8px; display: flex; justify-content: space-between; align-items: center;
 }
 .sidebar-label .add {
   width: 18px; height: 18px; border-radius: 5px;
@@ -222,38 +227,63 @@ button { cursor: pointer; }
 .sidebar-label .add:hover { background: var(--surface-2); color: var(--text); }
 
 .nav-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 6px 9px; border-radius: 8px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px; border-radius: 9px;
   color: var(--text-2);
   font-size: 12.5px; font-weight: 500;
   cursor: pointer;
   transition: all 0.2s var(--ease);
   width: 100%; text-align: left;
   letter-spacing: -0.01em;
-  position: relative;
 }
-.nav-item:hover { background: rgba(255,255,255,0.7); color: var(--text); }
+.nav-item:hover { background: rgba(255,255,255,0.7); color: var(--text); transform: translateX(2px); }
 .nav-item.active {
   background: var(--accent-grad); color: #fff;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.30), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 .nav-item.active .count { background: rgba(255,255,255,0.22); color: #fff; }
-.nav-item .icon { width: 14px; flex-shrink: 0; opacity: 0.85; font-size: 13px; }
+.nav-item .ico {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: var(--ico-bg, rgba(108, 92, 231, 0.10));
+  color: var(--ico-color, var(--accent));
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s var(--ease);
+}
+.nav-item.active .ico { background: rgba(255,255,255,0.22); color: #fff; }
+.nav-item .ico svg { width: 14px; height: 14px; }
 .nav-item .label { flex: 1; }
 .nav-item .count {
-  font-size: 10.5px; color: var(--text-3); font-weight: 600;
+  font-size: 10.5px; color: var(--text-3); font-weight: 700;
   font-variant-numeric: tabular-nums;
   background: rgba(20, 18, 32, 0.05);
-  padding: 1px 6px; border-radius: 5px;
-  min-width: 22px; text-align: center;
+  padding: 1px 7px; border-radius: 6px;
+  min-width: 24px; text-align: center;
 }
-.nav-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+.nav-item .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 2px 6px var(--dot-glow, rgba(0,0,0,0.1));
+}
 
-/* ===== Inbox + Thread (single glass shell) ===== */
+/* Lane icon colors */
+.nav-item[data-ico="inbox"] { --ico-bg: rgba(108, 92, 231, 0.10); --ico-color: var(--accent); }
+.nav-item[data-ico="act-now"] { --ico-bg: rgba(239, 68, 88, 0.12); --ico-color: var(--red); }
+.nav-item[data-ico="sprint"] { --ico-bg: rgba(26, 168, 108, 0.12); --ico-color: var(--green); }
+.nav-item[data-ico="bookable"] { --ico-bg: rgba(20, 184, 192, 0.12); --ico-color: var(--teal); }
+.nav-item[data-ico="review"] { --ico-bg: rgba(255, 138, 61, 0.14); --ico-color: var(--orange); }
+.nav-item[data-ico="later"] { --ico-bg: rgba(139, 92, 246, 0.12); --ico-color: var(--purple); }
+.nav-item[data-ico="done"] { --ico-bg: rgba(20, 18, 32, 0.06); --ico-color: var(--text-2); }
+.nav-item[data-ico="users"] { --ico-bg: rgba(76, 201, 240, 0.12); --ico-color: var(--teal); }
+.nav-item[data-ico="auto"] { --ico-bg: rgba(245, 180, 0, 0.14); --ico-color: var(--yellow); }
+.nav-item[data-ico="chart"] { --ico-bg: rgba(99, 102, 241, 0.12); --ico-color: var(--indigo); }
+.nav-item[data-ico="templates"] { --ico-bg: rgba(236, 72, 153, 0.12); --ico-color: var(--pink); }
+
+/* ===== Workspace (inbox + thread) ===== */
 .workspace {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 380px 1fr;
   background: var(--surface);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
@@ -262,192 +292,206 @@ button { cursor: pointer; }
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-.inbox-list {
-  border-right: 1px solid var(--line);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  background: rgba(255,255,255,0.35);
-}
+
+/* ===== Inbox list ===== */
+.inbox-list { border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; background: rgba(255,255,255,0.32); }
 .inbox-header {
-  padding: 14px 16px 10px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 10px;
   background: rgba(255,255,255,0.4);
   backdrop-filter: blur(8px);
   position: sticky; top: 0; z-index: 5;
+  display: flex; flex-direction: column; gap: 12px;
 }
-.inbox-title {
-  font-size: 22px; font-weight: 800; letter-spacing: -0.6px;
-  display: flex; align-items: baseline; gap: 8px;
-  color: var(--text);
+.inbox-title-row { display: flex; align-items: center; gap: 10px; }
+.inbox-title-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--accent-grad); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px var(--accent-glow);
 }
-.inbox-title .num { color: var(--text-3); font-weight: 500; font-size: 12.5px; letter-spacing: 0; }
+.inbox-title-icon svg { width: 16px; height: 16px; }
+.inbox-title-text h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+.inbox-title-text .num { color: var(--text-3); font-weight: 500; font-size: 11.5px; letter-spacing: 0; }
+
 .inbox-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab {
-  padding: 4px 10px; border-radius: 7px;
+  padding: 5px 11px; border-radius: 8px;
   font-size: 11.5px; font-weight: 600;
   background: transparent; color: var(--text-2);
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 6px;
   cursor: pointer; transition: all 0.2s var(--ease);
   letter-spacing: -0.01em;
 }
 .tab:hover { background: rgba(255,255,255,0.7); color: var(--text); }
-.tab.active {
-  background: var(--text); color: var(--surface-solid);
-  box-shadow: 0 2px 8px rgba(20, 18, 32, 0.20);
-}
+.tab.active { background: var(--text); color: var(--surface-solid); box-shadow: 0 2px 8px rgba(20, 18, 32, 0.20); }
 .tab .num { opacity: 0.55; font-weight: 500; }
-.tab.active .num { opacity: 0.7; }
+.tab.active .num { opacity: 0.75; }
+.tab.active.danger { background: var(--red); }
+.tab.active.warn { background: var(--orange); }
 
 .inbox-rows { flex: 1; overflow-y: auto; padding: 6px; }
 .row {
   display: grid;
-  grid-template-columns: 3px 1fr;
-  gap: 0;
-  border-radius: 11px;
+  grid-template-columns: 38px 1fr;
+  gap: 10px;
+  padding: 11px 14px 11px 12px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s var(--ease);
   position: relative;
   background: transparent;
   margin-bottom: 3px;
-  overflow: hidden;
 }
-.row:hover {
-  background: rgba(255,255,255,0.85);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-xs);
-}
-.row.selected {
-  background: var(--surface-solid);
-  box-shadow: var(--shadow-md), inset 0 0 0 1px var(--accent-soft);
-  transform: translateY(0);
-}
+.row:hover { background: rgba(255,255,255,0.85); transform: translateY(-1px); box-shadow: var(--shadow-xs); }
+.row.selected { background: var(--surface-solid); box-shadow: var(--shadow-md); }
 .row.selected::before {
-  content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 3px;
-  background: var(--accent-grad); border-radius: 0 3px 3px 0;
+  content: ''; position: absolute; left: -2px; top: 14%; bottom: 14%; width: 4px;
+  background: var(--accent-grad); border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 12px var(--accent-glow);
 }
-.row .lane-bar { background: var(--lane-color, transparent); opacity: 0.55; transition: opacity 0.2s; }
-.row.selected .lane-bar { opacity: 0; }
-.row .body {
-  padding: 11px 14px;
-  display: flex; flex-direction: column; gap: 4px;
-  min-width: 0;
+
+.row .avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--avatar-grad, var(--accent-grad));
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  letter-spacing: -0.3px; flex-shrink: 0;
+  box-shadow: 0 2px 8px var(--avatar-glow, var(--accent-glow));
+  position: relative;
 }
-.row .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.row .lane-tag {
-  font-size: 9.5px; font-weight: 800; letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--lane-color, var(--text-2));
+.row .avatar .lane-badge {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--lane-color, var(--accent));
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface-solid);
+  color: #fff;
 }
-.row .meta-time {
-  margin-left: auto; font-size: 10.5px; color: var(--text-3);
-  flex-shrink: 0; font-variant-numeric: tabular-nums;
-  font-family: var(--font-mono); font-weight: 500;
-}
+.row .avatar .lane-badge svg { width: 9px; height: 9px; }
+
+.row .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row .top { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .row .who {
-  font-size: 14px; font-weight: 700; letter-spacing: -0.25px;
+  font-size: 13.5px; font-weight: 700; letter-spacing: -0.2px;
   color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
   display: flex; align-items: center; gap: 6px;
 }
-.row.unread .who::after {
-  content: ''; display: inline-block; width: 7px; height: 7px;
+.row.unread .who::before {
+  content: ''; display: inline-block; width: 6px; height: 6px;
   border-radius: 50%; background: var(--accent-grad); flex-shrink: 0;
   box-shadow: 0 0 8px var(--accent-glow);
+}
+.row .meta-time {
+  font-size: 10.5px; color: var(--text-3);
+  flex-shrink: 0; font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono); font-weight: 500;
 }
 .row .subject {
   font-size: 12.5px; color: var(--text-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-weight: 400;
+  font-weight: 500;
 }
-.row.unread .subject { color: var(--text); font-weight: 500; }
+.row.unread .subject { color: var(--text); }
 .row .preview {
   font-size: 11.5px; color: var(--text-3);
-  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
-.row .footer {
-  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
-  margin-top: 3px;
-}
+.row .footer { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .tag {
   font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
-  background: var(--surface-3); color: var(--text-2); letter-spacing: -0.01em;
+  background: var(--surface-3); color: var(--text-2);
   display: inline-flex; align-items: center; gap: 4px;
-  text-transform: uppercase; letter-spacing: 0.3px;
+  text-transform: uppercase; letter-spacing: 0.4px;
 }
+.tag svg { width: 9px; height: 9px; }
 .tag.danger { background: rgba(239, 68, 88, 0.10); color: var(--red); }
 .tag.warn { background: rgba(255, 138, 61, 0.12); color: var(--orange); }
 .tag.info { background: rgba(20, 184, 192, 0.12); color: var(--teal); }
 .tag.success { background: rgba(26, 168, 108, 0.10); color: var(--green); }
-
+.tag.ai { background: linear-gradient(135deg, rgba(255,107,157,0.12), rgba(6,214,160,0.12)); color: var(--pink); position: relative; }
 .row .mailbox-trail { display: inline-flex; gap: 0; margin-left: auto; }
 .row .mailbox-trail .mb {
   width: 17px; height: 17px; border-radius: 50%;
-  color: #fff;
-  font-size: 9px; font-weight: 700;
+  color: #fff; font-size: 9px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 2px solid #fff;
-  margin-left: -5px;
+  border: 2px solid #fff; margin-left: -5px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.10);
 }
 
+/* Lane styling */
+.row[data-lane="act-now"] { --lane-color: var(--red); --avatar-grad: linear-gradient(135deg,#ef4458,#ff8a3d); --avatar-glow: rgba(239,68,88,0.32); }
+.row[data-lane="sprint"] { --lane-color: var(--green); --avatar-grad: linear-gradient(135deg,#1aa86c,#06d6a0); --avatar-glow: rgba(26,168,108,0.28); }
+.row[data-lane="bookable"] { --lane-color: var(--teal); --avatar-grad: linear-gradient(135deg,#14b8c0,#4cc9f0); --avatar-glow: rgba(20,184,192,0.28); }
+.row[data-lane="review"] { --lane-color: var(--orange); --avatar-grad: linear-gradient(135deg,#ff8a3d,#f5b400); --avatar-glow: rgba(255,138,61,0.28); }
+.row[data-lane="unclear"] { --lane-color: var(--yellow); --avatar-grad: linear-gradient(135deg,#f5b400,#ffd166); --avatar-glow: rgba(245,180,0,0.28); }
+.row[data-lane="later"] { --lane-color: var(--purple); --avatar-grad: linear-gradient(135deg,#8b5cf6,#a78bfa); --avatar-glow: rgba(139,92,246,0.28); }
+
 /* ===== Thread ===== */
-.thread {
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  background: rgba(255,255,255,0.55);
-}
+.thread { display: flex; flex-direction: column; overflow: hidden; background: rgba(255,255,255,0.45); }
 .thread.empty { display: flex; align-items: center; justify-content: center; padding: 60px; }
 .thread.empty .placeholder { text-align: center; color: var(--text-3); max-width: 360px; }
-.thread.empty .placeholder .key {
+.thread.empty .empty-illustration {
+  width: 120px; height: 120px; margin: 0 auto 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-grad); border-radius: 28px;
+  color: #fff;
+  box-shadow: 0 12px 30px var(--accent-glow);
+  animation: floatY 3.5s ease-in-out infinite;
+}
+.thread.empty .empty-illustration svg { width: 56px; height: 56px; }
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.thread.empty h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.6px; color: var(--text); margin-bottom: 8px; }
+.thread.empty p { font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+.thread.empty .key {
   display: inline-block; padding: 3px 8px; border-radius: 6px;
   background: var(--surface-solid); border: 1px solid var(--line);
   font-family: var(--font-mono); font-size: 11px; color: var(--text-2);
-  margin: 0 2px; font-weight: 500;
-  box-shadow: var(--shadow-xs);
+  margin: 0 2px; font-weight: 600;
 }
-.thread.empty h3 { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; color: var(--text); margin-bottom: 10px; }
-.thread.empty p { font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
 
 .thread-head {
   padding: 18px 22px 14px;
   border-bottom: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 10px;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.55);
   backdrop-filter: blur(8px);
   position: sticky; top: 0; z-index: 5;
 }
 .thread-head .top { display: flex; gap: 14px; align-items: flex-start; }
-.thread-head .top h2 {
-  font-size: 22px; font-weight: 800; letter-spacing: -0.6px;
-  flex: 1; color: var(--text); line-height: 1.25;
-}
+.thread-head .top h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.6px; flex: 1; line-height: 1.25; }
 .thread-head .lane-pill {
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 11px; border-radius: 8px;
   font-size: 10px; font-weight: 800; letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--lane-color); background: var(--lane-bg);
-  white-space: nowrap;
-  flex-shrink: 0;
+  white-space: nowrap; flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--lane-color) 25%, transparent);
 }
-.thread-head .who-line {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; color: var(--text-2);
-  flex-wrap: wrap;
-}
-.thread-head .avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--accent-grad);
+.thread-head .lane-pill svg { width: 10px; height: 10px; }
+.thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); flex-wrap: wrap; }
+.thread-head .ava {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800; color: #fff;
-  letter-spacing: 0;
-  box-shadow: 0 2px 6px var(--accent-glow);
+  font-size: 11px; font-weight: 800; color: #fff;
+  box-shadow: 0 2px 6px var(--avatar-glow, var(--accent-glow));
 }
 .thread-head .who-line strong { color: var(--text); font-weight: 700; font-size: 13px; }
-.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; font-weight: 400; }
-.thread-head .who-line .sep { color: var(--text-3); margin: 0 1px; }
+.thread-head .who-line .email { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+.thread-head .who-line .meta-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.7); font-size: 11px; }
+.thread-head .who-line .meta-chip svg { width: 10px; height: 10px; color: var(--text-3); }
+
+/* Lane bgs */
+.lane-act-now { --lane-color: var(--red); --lane-bg: rgba(239, 68, 88, 0.10); --avatar-grad: linear-gradient(135deg,#ef4458,#ff8a3d); --avatar-glow: rgba(239,68,88,0.32); }
+.lane-sprint { --lane-color: var(--green); --lane-bg: rgba(26, 168, 108, 0.10); --avatar-grad: linear-gradient(135deg,#1aa86c,#06d6a0); --avatar-glow: rgba(26,168,108,0.28); }
+.lane-bookable { --lane-color: var(--teal); --lane-bg: rgba(20, 184, 192, 0.10); --avatar-grad: linear-gradient(135deg,#14b8c0,#4cc9f0); --avatar-glow: rgba(20,184,192,0.28); }
+.lane-review { --lane-color: var(--orange); --lane-bg: rgba(255, 138, 61, 0.12); --avatar-grad: linear-gradient(135deg,#ff8a3d,#f5b400); --avatar-glow: rgba(255,138,61,0.28); }
+.lane-unclear { --lane-color: var(--yellow); --lane-bg: rgba(245, 180, 0, 0.14); }
+.lane-later { --lane-color: var(--purple); --lane-bg: rgba(139, 92, 246, 0.10); --avatar-grad: linear-gradient(135deg,#8b5cf6,#a78bfa); --avatar-glow: rgba(139,92,246,0.28); }
 
 .thread-actions {
   padding: 10px 22px;
@@ -456,37 +500,27 @@ button { cursor: pointer; }
   background: rgba(255,255,255,0.45);
 }
 .action {
-  height: 30px; padding: 0 12px; border-radius: 9px;
-  background: rgba(255,255,255,0.7); border: 1px solid var(--line);
+  height: 32px; padding: 0 12px; border-radius: 9px;
+  background: rgba(255,255,255,0.75); border: 1px solid var(--line);
   font-size: 12px; font-weight: 600; color: var(--text-2);
   display: inline-flex; align-items: center; gap: 6px;
   transition: all 0.2s var(--ease);
   letter-spacing: -0.01em;
   backdrop-filter: blur(6px);
 }
-.action:hover {
-  background: var(--surface-solid); color: var(--text);
-  border-color: var(--line-2);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-xs);
-}
+.action svg { width: 13px; height: 13px; }
+.action:hover { background: var(--surface-solid); color: var(--text); border-color: var(--line-2); transform: translateY(-1px); box-shadow: var(--shadow-xs); }
 .action.primary {
   background: var(--accent-grad); color: #fff; border-color: transparent;
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.30), inset 0 1px 0 rgba(255,255,255,0.20);
 }
-.action.primary:hover {
-  background: var(--accent-grad);
-  box-shadow: 0 8px 20px rgba(108, 92, 231, 0.40), inset 0 1px 0 rgba(255,255,255,0.25);
-  transform: translateY(-1px);
-}
+.action.primary:hover { box-shadow: 0 8px 20px rgba(108, 92, 231, 0.40); transform: translateY(-1px); }
 .action.danger:hover { color: var(--red); border-color: rgba(239, 68, 88, 0.3); }
 
 .thread-body {
   flex: 1; overflow-y: auto;
   padding: 18px 22px;
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 20px;
+  display: grid; grid-template-columns: 1fr 280px; gap: 20px;
   align-items: start;
 }
 @media (max-width: 1180px) {
@@ -501,49 +535,53 @@ button { cursor: pointer; }
   overflow: hidden;
   background: var(--surface-solid);
   box-shadow: var(--shadow-xs);
-  transition: all 0.2s var(--ease);
   animation: msgIn 0.4s var(--ease) backwards;
 }
 .msg:nth-child(1) { animation-delay: 0.05s; }
 .msg:nth-child(2) { animation-delay: 0.15s; }
 .msg:nth-child(3) { animation-delay: 0.25s; }
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.msg:hover { box-shadow: var(--shadow-sm); }
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .msg-head {
   padding: 11px 16px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(247,245,252,0.55));
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(247,245,252,0.55));
 }
 .msg-head .left { display: flex; align-items: center; gap: 10px; }
-.msg-head .avatar {
-  width: 26px; height: 26px; border-radius: 50%;
+.msg-head .ava {
+  width: 28px; height: 28px; border-radius: 50%;
   background: var(--surface-3); color: var(--text-2);
-  font-size: 10px; font-weight: 700;
+  font-size: 10.5px; font-weight: 800;
   display: inline-flex; align-items: center; justify-content: center;
 }
+.msg.outbound .msg-head .ava { background: var(--accent-grad); color: #fff; box-shadow: 0 2px 6px var(--accent-glow); }
+.msg.draft .msg-head .ava { background: var(--ai-grad); color: #fff; box-shadow: 0 2px 8px rgba(255,107,157,0.35); }
 .msg-head .from { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.15px; }
 .msg-head .time { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-weight: 500; }
 .msg-head .badge {
   padding: 2px 8px; border-radius: 5px;
   font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 4px;
 }
+.msg-head .badge svg { width: 9px; height: 9px; }
 .msg.outbound .msg-head .badge { background: rgba(26, 168, 108, 0.12); color: var(--green); }
-.msg.outbound .msg-head .avatar { background: var(--accent-grad); color: #fff; box-shadow: 0 2px 6px var(--accent-glow); }
 .msg.inbound .msg-head .badge { background: rgba(20, 18, 32, 0.06); color: var(--text-2); }
-.msg.draft .msg-head .badge { background: rgba(255, 138, 61, 0.14); color: var(--orange); }
-.msg.draft { border-color: rgba(255, 138, 61, 0.25); }
-.msg-body {
-  padding: 14px 18px;
-  font-size: 13.5px; line-height: 1.65;
-  color: var(--text);
-  white-space: pre-wrap;
+.msg.draft .msg-head .badge {
+  background: linear-gradient(135deg, rgba(255,107,157,0.12), rgba(255,209,102,0.12), rgba(6,214,160,0.12));
+  color: var(--pink);
+  position: relative;
 }
+.msg.draft { border-color: rgba(255, 107, 157, 0.25); position: relative; }
+.msg.draft::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--ai-grad);
+  background-size: 200% 100%;
+  animation: aiShimmer 3s linear infinite;
+}
+@keyframes aiShimmer { from { background-position: 0 0; } to { background-position: -200% 0; } }
+.msg-body { padding: 14px 18px; font-size: 13.5px; line-height: 1.65; color: var(--text); white-space: pre-wrap; }
 
-/* ===== Context cards ===== */
+/* ===== Context ===== */
 .ctx { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 0; }
 .ctx-card {
   border: 1px solid var(--line);
@@ -551,7 +589,6 @@ button { cursor: pointer; }
   background: var(--surface-solid);
   overflow: hidden;
   box-shadow: var(--shadow-xs);
-  transition: all 0.2s var(--ease);
   animation: msgIn 0.4s var(--ease) backwards;
 }
 .ctx-card:nth-child(1) { animation-delay: 0.30s; }
@@ -559,63 +596,94 @@ button { cursor: pointer; }
 .ctx-card:nth-child(3) { animation-delay: 0.40s; }
 .ctx-card:nth-child(4) { animation-delay: 0.45s; }
 .ctx-card:nth-child(5) { animation-delay: 0.50s; }
-.ctx-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .ctx-card .head {
   padding: 9px 14px;
   border-bottom: 1px solid var(--line);
   font-size: 9.5px; font-weight: 800; letter-spacing: 1px; color: var(--text-3);
   text-transform: uppercase;
+  display: flex; align-items: center; justify-content: space-between;
 }
+.ctx-card .head .ico { display: inline-flex; align-items: center; gap: 6px; }
+.ctx-card .head svg { width: 12px; height: 12px; }
 .ctx-card .body { padding: 14px; }
+
+/* Identity card with decorative pattern */
+.ctx-card.identity-card { background: linear-gradient(135deg, var(--surface-solid) 0%, rgba(247,245,252,0.95) 100%); position: relative; overflow: hidden; }
+.ctx-card.identity-card::before {
+  content: ''; position: absolute; right: -40px; top: -40px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+.identity { display: flex; gap: 12px; align-items: center; position: relative; }
+.identity .ava {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--avatar-grad, var(--accent-grad));
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+  flex-shrink: 0; letter-spacing: -0.3px;
+  box-shadow: 0 6px 16px var(--avatar-glow, var(--accent-glow)), inset 0 1px 0 rgba(255,255,255,0.3);
+  position: relative; overflow: hidden;
+}
+.identity .ava::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.20) 100%);
+  pointer-events: none;
+}
+.identity .who-name { font-size: 14.5px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.identity .email-line { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); font-weight: 400; }
+
+/* Status card with icon-prefixed grid items */
 .ctx-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ctx-card .item .label { font-size: 9.5px; color: var(--text-3); letter-spacing: 0.7px; text-transform: uppercase; font-weight: 800; margin-bottom: 3px; }
+.ctx-card .item { display: flex; flex-direction: column; gap: 3px; }
+.ctx-card .item .label-row { display: flex; align-items: center; gap: 5px; }
+.ctx-card .item .label-row svg { width: 10px; height: 10px; color: var(--text-3); }
+.ctx-card .item .label { font-size: 9.5px; color: var(--text-3); letter-spacing: 0.7px; text-transform: uppercase; font-weight: 800; }
 .ctx-card .item .val { font-size: 12.5px; color: var(--text); font-weight: 700; letter-spacing: -0.1px; }
-.ctx-card.risk { background: linear-gradient(180deg, rgba(255, 138, 61, 0.06) 0%, var(--surface-solid) 100%); border-color: rgba(255, 138, 61, 0.3); }
+
+/* Risk + Next gradient cards */
+.ctx-card.risk { background: linear-gradient(180deg, rgba(255, 138, 61, 0.08) 0%, var(--surface-solid) 100%); border-color: rgba(255, 138, 61, 0.3); }
 .ctx-card.risk .head { color: var(--orange); }
-.ctx-card.next { background: linear-gradient(180deg, rgba(26, 168, 108, 0.06) 0%, var(--surface-solid) 100%); border-color: rgba(26, 168, 108, 0.3); }
+.ctx-card.next { background: linear-gradient(180deg, rgba(26, 168, 108, 0.08) 0%, var(--surface-solid) 100%); border-color: rgba(26, 168, 108, 0.3); }
 .ctx-card.next .head { color: var(--green); }
 .ctx-card .text { font-size: 12.5px; line-height: 1.55; color: var(--text); }
 
-.timeline { list-style: none; }
+/* Timeline with vertical line */
+.timeline { list-style: none; position: relative; padding-left: 8px; }
+.timeline::before {
+  content: ''; position: absolute; left: 17px; top: 14px; bottom: 14px;
+  width: 1.5px;
+  background: linear-gradient(180deg, var(--accent), var(--line) 60%);
+}
 .timeline li {
-  display: flex; gap: 10px; align-items: flex-start;
+  display: flex; gap: 12px; align-items: flex-start;
   padding: 7px 0;
   font-size: 12px;
   color: var(--text-2);
-  border-bottom: 1px solid var(--line);
+  position: relative;
 }
-.timeline li:last-child { border-bottom: 0; padding-bottom: 0; }
-.timeline li:first-child { padding-top: 0; }
 .timeline .num {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--surface-3); color: var(--text-2);
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface-solid); color: var(--text-2);
   font-size: 10px; font-weight: 800;
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
+  z-index: 1;
 }
-.timeline li:first-child .num { background: var(--accent-grad); color: #fff; border-color: transparent; box-shadow: 0 2px 6px var(--accent-glow); }
-
-.identity { display: flex; gap: 12px; align-items: center; }
-.identity .ava {
-  width: 42px; height: 42px; border-radius: 50%;
-  background: var(--accent-grad);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 800; color: #fff;
-  flex-shrink: 0; letter-spacing: -0.3px;
-  box-shadow: 0 4px 12px var(--accent-glow);
+.timeline li:first-child .num {
+  background: var(--accent-grad); color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px var(--accent-glow);
 }
-.identity .who-name { font-size: 14.5px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-.identity .email-line { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); font-weight: 400; }
 
-/* ===== Lane colors ===== */
-.row[data-lane="act-now"], .lane-act-now { --lane-color: var(--red); --lane-bg: rgba(239, 68, 88, 0.10); }
-.row[data-lane="sprint"], .lane-sprint { --lane-color: var(--green); --lane-bg: rgba(26, 168, 108, 0.10); }
-.row[data-lane="bookable"], .lane-bookable { --lane-color: var(--teal); --lane-bg: rgba(20, 184, 192, 0.10); }
-.row[data-lane="review"], .lane-review { --lane-color: var(--orange); --lane-bg: rgba(255, 138, 61, 0.12); }
-.row[data-lane="unclear"], .lane-unclear { --lane-color: var(--yellow); --lane-bg: rgba(245, 180, 0, 0.14); }
-.row[data-lane="later"], .lane-later { --lane-color: var(--purple); --lane-bg: rgba(139, 92, 246, 0.10); }
-.row[data-lane="medical"], .lane-medical { --lane-color: var(--pink); --lane-bg: rgba(236, 72, 153, 0.10); }
+/* Mini chart in stat card */
+.mini-chart { display: flex; gap: 3px; align-items: end; height: 24px; margin-top: 4px; }
+.mini-chart .bar {
+  flex: 1; background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
+  border-radius: 2px;
+  min-height: 3px;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -633,17 +701,52 @@ button { cursor: pointer; }
 </style>
 </head>
 <body>
+<div class="orb-3"></div>
+
+<!-- SVG icon definitions -->
+<svg width="0" height="0" style="position:absolute;visibility:hidden;" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2 5 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M5 3v4M19 17v4M3 5h4M17 19h4"/></symbol>
+    <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-5"/></symbol>
+    <symbol id="i-templates" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+    <symbol id="i-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></symbol>
+    <symbol id="i-mail-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><path d="m22 7-10 5L2 7"/><path d="M19 16v6M16 19h6"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+    <symbol id="i-incoming" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-outgoing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-mail-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-10 7L2 10"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+    <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-question" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  </defs>
+</svg>
 
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <span class="logo">C</span>
+      <span class="logo"><svg><use href="#i-sparkles"/></svg></span>
       <span>CCO</span>
       <span class="sep">/</span>
       <span class="ctx">Hair TP Clinic</span>
     </div>
     <div class="search">
-      <span class="icon">⌕</span>
+      <span class="icon"><svg width="14" height="14"><use href="#i-search"/></svg></span>
       <input type="text" placeholder="Sök trådar, kunder, mailboxar…" id="search-input">
       <kbd>⌘ K</kbd>
     </div>
@@ -652,9 +755,9 @@ button { cursor: pointer; }
         <span class="status-dot demo"></span>
         Demo
       </span>
-      <button class="icon-btn" title="Inställningar">⚙</button>
+      <button class="icon-btn" title="Inställningar"><svg width="15" height="15"><use href="#i-settings"/></svg></button>
       <button class="compose-btn">
-        <span style="font-size:14px;line-height:1;">+</span>
+        <svg><use href="#i-plus"/></svg>
         Nytt mejl
       </button>
     </div>
@@ -664,36 +767,42 @@ button { cursor: pointer; }
     <aside class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">Vyer</div>
-        <button class="nav-item active"><span class="icon">📥</span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
-        <button class="nav-item"><span class="icon">⚡</span><span class="label">Agera nu</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="icon">📈</span><span class="label">Sprint</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="icon">📅</span><span class="label">Bokningar</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="icon">👁</span><span class="label">Granska</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="icon">⏸</span><span class="label">Senare</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="icon">✓</span><span class="label">Klara</span><span class="count">12</span></button>
+        <button class="nav-item active" data-ico="inbox"><span class="ico"><svg><use href="#i-inbox"/></svg></span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
+        <button class="nav-item" data-ico="act-now"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Agera nu</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="sprint"><span class="ico"><svg><use href="#i-trend"/></svg></span><span class="label">Sprint</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="bookable"><span class="ico"><svg><use href="#i-calendar"/></svg></span><span class="label">Bokningar</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="review"><span class="ico"><svg><use href="#i-eye"/></svg></span><span class="label">Granska</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="later"><span class="ico"><svg><use href="#i-pause"/></svg></span><span class="label">Senare</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="done"><span class="ico"><svg><use href="#i-check"/></svg></span><span class="label">Klara</span><span class="count">12</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">Mailboxar <button class="add">+</button></div>
-        <button class="nav-item"><span class="dot" style="background:#ff8a3d"></span><span class="label">Egzona</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:#6c5ce7"></span><span class="label">Fazli</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:#14b8c0"></span><span class="label">Kons</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:#1aa86c"></span><span class="label">Info</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:#f5b400"></span><span class="label">Kontakt</span><span class="count">0</span></button>
-        <button class="nav-item"><span class="dot" style="background:#ec4899"></span><span class="label">Marknad</span><span class="count">0</span></button>
+        <button class="nav-item"><span class="dot" style="background:#ff8a3d;--dot-glow:rgba(255,138,61,0.4)"></span><span class="label">Egzona</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#6c5ce7;--dot-glow:rgba(108,92,231,0.4)"></span><span class="label">Fazli</span><span class="count">2</span></button>
+        <button class="nav-item"><span class="dot" style="background:#14b8c0;--dot-glow:rgba(20,184,192,0.4)"></span><span class="label">Kons</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#1aa86c;--dot-glow:rgba(26,168,108,0.4)"></span><span class="label">Info</span><span class="count">1</span></button>
+        <button class="nav-item"><span class="dot" style="background:#f5b400;--dot-glow:rgba(245,180,0,0.4)"></span><span class="label">Kontakt</span><span class="count">0</span></button>
+        <button class="nav-item"><span class="dot" style="background:#ec4899;--dot-glow:rgba(236,72,153,0.4)"></span><span class="label">Marknad</span><span class="count">0</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">System</div>
-        <button class="nav-item"><span class="icon">👥</span><span class="label">Kunder</span></button>
-        <button class="nav-item"><span class="icon">⚡</span><span class="label">Automatisering</span></button>
-        <button class="nav-item"><span class="icon">📊</span><span class="label">Analys</span></button>
-        <button class="nav-item"><span class="icon">📚</span><span class="label">Mallar</span></button>
+        <button class="nav-item" data-ico="users"><span class="ico"><svg><use href="#i-users"/></svg></span><span class="label">Kunder</span></button>
+        <button class="nav-item" data-ico="auto"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Automatisering</span></button>
+        <button class="nav-item" data-ico="chart"><span class="ico"><svg><use href="#i-chart"/></svg></span><span class="label">Analys</span></button>
+        <button class="nav-item" data-ico="templates"><span class="ico"><svg><use href="#i-templates"/></svg></span><span class="label">Mallar</span></button>
       </div>
     </aside>
 
     <main class="workspace">
       <section class="inbox-list">
         <div class="inbox-header">
-          <h1 class="inbox-title">Inkorg <span class="num" id="title-num">· 6 trådar</span></h1>
+          <div class="inbox-title-row">
+            <span class="inbox-title-icon"><svg><use href="#i-inbox"/></svg></span>
+            <div class="inbox-title-text">
+              <h1>Inkorg</h1>
+              <div class="num" id="title-num">6 trådar idag</div>
+            </div>
+          </div>
           <div class="inbox-tabs" id="inbox-tabs"></div>
         </div>
         <div class="inbox-rows" id="inbox-rows"></div>
@@ -701,6 +810,7 @@ button { cursor: pointer; }
 
       <section class="thread empty" id="thread">
         <div class="placeholder">
+          <span class="empty-illustration"><svg><use href="#i-mail-open"/></svg></span>
           <h3>Välj en tråd</h3>
           <p>Klicka på en tråd till vänster eller använd <span class="key">J</span> / <span class="key">K</span> för att navigera och <span class="key">↵</span> för att öppna.</p>
         </div>
@@ -713,12 +823,12 @@ button { cursor: pointer; }
 (() => {
   'use strict';
   const DEMO = [
-    { id:'demo-mb-001', lane:'act-now', laneLabel:'Agera nu', unread:true,
+    { id:'demo-mb-001', lane:'act-now', laneLabel:'Agera nu', laneIcon:'i-bolt', unread:true,
       who:'Morten Bak Kristoffersen', email:'morten.bak@example.com', initials:'MB',
       mailbox:'Egzona', mailboxTrail:[['F','#6c5ce7'],['K','#14b8c0'],['E','#ff8a3d']],
       subject:'Frågar om uppföljning på offerten — behöver svar före måndag',
       preview:'Jag har inte hört något sedan vårt möte. Behöver kunna lämna besked till frun…',
-      time:'16:07', tags:[{label:'Hög risk',tone:'danger'},{label:'Deadline',tone:'warn'}],
+      time:'16:07', tags:[{label:'Hög risk',tone:'danger',icon:'i-flame'},{label:'Deadline mån',tone:'warn',icon:'i-clock'}],
       conversation:[
         {from:'Morten Bak Kristoffersen',dir:'inbound',time:'Idag · 16:07',initials:'MB',
          body:'Hej! Jag har inte hört något sedan vårt konsultationsmöte i förra veckan. Min fru och jag försöker planera detta tillsammans och behöver kunna ge henne ett besked.\n\nKan ni återkomma med nästa steg? Helst vill jag boka tid inom 2 veckor.\n\nMvh\nMorten'},
@@ -729,24 +839,24 @@ button { cursor: pointer; }
       risk:'Hög risk — kunden har angett deadline (måndag) och nämner alternativ.',
       nextStep:'Svara inom 2h med två konkreta tidsförslag.',
       lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—' },
-    { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', unread:false,
+    { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', laneIcon:'i-trend', unread:false,
       who:'Johan Karlsson', email:'johan.karlsson@example.com', initials:'JK',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
       subject:'Vill boka möte nästa måndag om den nya integrationen',
       preview:'Kan vi ses kl 14 på måndag och gå igenom Cliento-integrationen?',
-      time:'14:22', tags:[{label:'Möte',tone:'info'}],
+      time:'14:22', tags:[{label:'Möte',tone:'info',icon:'i-calendar'}],
       conversation:[{from:'Johan Karlsson',dir:'inbound',time:'Idag · 14:22',initials:'JK',
         body:'Hej Fazli!\n\nKan vi ses kl 14:00 på måndag och gå igenom Cliento-integrationen? Jag har förberett några frågor om webhook-flödet.\n\nMvh,\nJohan'}],
       timeline:['Mötesförslag idag','Tidigare diskussion 28 april'],
       risk:'Låg risk — strukturerad förfrågan.',
       nextStep:'Bekräfta tiden eller föreslå alternativ.',
       lifecycle:'Aktiv dialog', followUp:'Mån 14:00', riskLevel:'Låg', owner:'Fazli' },
-    { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', unread:true,
+    { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', laneIcon:'i-calendar', unread:true,
       who:'Sara Holm', email:'sara.holm@example.com', initials:'SH',
       mailbox:'Kons', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
       subject:'Klar att boka — har bekräftat tid och typ av konsultation',
       preview:'Jag har bestämt mig för FUE-konsultation. Kan komma vilken dag som helst kommande vecka 10–15.',
-      time:'Igår', tags:[{label:'Klar att bokas',tone:'success'}],
+      time:'Igår', tags:[{label:'Klar att bokas',tone:'success',icon:'i-check'}],
       conversation:[
         {from:'Sara Holm',dir:'inbound',time:'Igår · 09:48',initials:'SH',
          body:'Hej!\n\nJag har bestämt mig för FUE-konsultation. Jag kan komma vilken dag som helst kommande vecka mellan 10:00 och 15:00. Tar gärna första lediga tid.\n\nTack på förhand,\nSara'},
@@ -757,12 +867,12 @@ button { cursor: pointer; }
       risk:'Låg risk — klart bokningsintresse.',
       nextStep:'Skicka kalender-inbjudan tisdag 13:00 eller torsdag 11:00.',
       lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona' },
-    { id:'demo-el-004', lane:'review', laneLabel:'Granska', unread:true,
+    { id:'demo-el-004', lane:'review', laneLabel:'Granska', laneIcon:'i-eye', unread:true,
       who:'Erik Lindqvist', email:'erik.lindqvist@example.com', initials:'EL',
       mailbox:'Kontakt', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
       subject:'AI-utkast flaggat — pris-avvikelse',
       preview:'AI-svaret har angett 32 000 kr men dagens prislista visar 38 500 kr för FUE.',
-      time:'11:36', tags:[{label:'Pris-fel',tone:'danger'},{label:'AI',tone:'warn'}],
+      time:'11:36', tags:[{label:'Pris-fel',tone:'danger',icon:'i-alert'},{label:'AI-utkast',tone:'ai',icon:'i-sparkles'}],
       conversation:[
         {from:'Erik Lindqvist',dir:'inbound',time:'Idag · 11:34',initials:'EL',
          body:'Hej!\n\nJag undrar vad en FUE-behandling kostar hos er? Har sett olika priser på olika sidor.\n\nMvh,\nErik'},
@@ -773,23 +883,23 @@ button { cursor: pointer; }
       risk:'Hög risk — fel pris kan skapa tvist.',
       nextStep:'Korrigera till 38 500 kr eller skicka uppdaterad prislista.',
       lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—' },
-    { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', unread:false,
+    { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', laneIcon:'i-question', unread:false,
       who:'Anna Svensson', email:'anna.svensson@example.com', initials:'AS',
       mailbox:'Info', mailboxTrail:[['I','#1aa86c']],
       subject:'Kort meddelande — otydligt syfte',
       preview:'Hej, jag undrar bara hur det går?',
-      time:'Tis', tags:[{label:'Behöver kontext',tone:'info'}],
+      time:'Tis', tags:[{label:'Behöver kontext',tone:'info',icon:'i-question'}],
       conversation:[{from:'Anna Svensson',dir:'inbound',time:'Tis · 16:18',initials:'AS',body:'Hej, jag undrar bara hur det går?'}],
       timeline:['Meddelande tisdag','Tidigare konsultation 12 mars'],
       risk:'Oklart — saknar kontext.',
       nextStep:'Slå upp tidigare konversation och svara med följdfråga.',
       lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—' },
-    { id:'demo-pn-006', lane:'later', laneLabel:'Senare', unread:false,
+    { id:'demo-pn-006', lane:'later', laneLabel:'Senare', laneIcon:'i-pause', unread:false,
       who:'Peter Nilsson', email:'peter.nilsson@example.com', initials:'PN',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
       subject:'Väntar på röntgenbilder — snooze fredag',
       preview:'Tack för uppdateringen. Jag väntar på röntgenbilderna och hör av mig så fort jag har dem.',
-      time:'Mån', tags:[{label:'Snooze fre',tone:'info'}],
+      time:'Mån', tags:[{label:'Snooze fre 09:00',tone:'info',icon:'i-clock'}],
       conversation:[
         {from:'Peter Nilsson',dir:'inbound',time:'Mån · 09:14',initials:'PN',
          body:'Tack för uppdateringen! Jag väntar på röntgenbilderna och hör av mig så fort jag har dem, förmodligen på fredag.\n\nHa en bra vecka.\n\nMvh,\nPeter'},
@@ -802,10 +912,17 @@ button { cursor: pointer; }
       lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli' },
   ];
 
-  const TABS = [{id:'all',label:'Alla'},{id:'unread',label:'Olästa'},{id:'mine',label:'Mina'},{id:'high-risk',label:'Hög risk'},{id:'today',label:'Idag'}];
+  const TABS = [
+    {id:'all',label:'Alla'},
+    {id:'unread',label:'Olästa'},
+    {id:'mine',label:'Mina'},
+    {id:'high-risk',label:'Hög risk',tone:'danger'},
+    {id:'today',label:'Idag'},
+  ];
   const state = { threads:[...DEMO], selectedId:DEMO[0].id, tab:'all', live:false };
   const $ = s => document.querySelector(s);
   const escHtml = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const ico = (id) => `<svg><use href="#${id}"/></svg>`;
 
   function renderTabs() {
     const counts = { all: state.threads.length };
@@ -814,7 +931,7 @@ button { cursor: pointer; }
     counts['high-risk'] = state.threads.filter(t=>(t.tags||[]).some(g=>g.tone==='danger')).length;
     counts.today = state.threads.filter(t=>/Idag/i.test(t.time)).length;
     $('#inbox-tabs').innerHTML = TABS.map(tab=>`
-      <button class="tab${state.tab===tab.id?' active':''}" data-tab="${tab.id}">
+      <button class="tab${state.tab===tab.id?' active':''}${tab.tone?' '+tab.tone:''}" data-tab="${tab.id}">
         ${escHtml(tab.label)} <span class="num">${counts[tab.id]||0}</span>
       </button>`).join('');
   }
@@ -829,21 +946,20 @@ button { cursor: pointer; }
   function renderRows() {
     const list = $('#inbox-rows');
     const visible = visibleThreads();
-    $('#title-num').textContent = `· ${visible.length} ${visible.length===1?'tråd':'trådar'}`;
+    $('#title-num').textContent = `${visible.length} ${visible.length===1?'tråd':'trådar'} idag`;
     if (!visible.length) { list.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--text-3);">Inga trådar matchar.</div>`; return; }
     list.innerHTML = visible.map(t=>{
       const sel = state.selectedId===t.id?' selected':'';
       const unread = t.unread?' unread':'';
       const trail = (t.mailboxTrail||[]).map(([l,c])=>`<span class="mb" style="background:${c}">${l}</span>`).join('');
-      const tags = (t.tags||[]).slice(0,2).map(g=>`<span class="tag ${g.tone}">${escHtml(g.label)}</span>`).join('');
+      const tags = (t.tags||[]).slice(0,2).map(g=>`<span class="tag ${g.tone}">${g.icon?ico(g.icon):''}${escHtml(g.label)}</span>`).join('');
       return `<div class="row${sel}${unread}" data-id="${t.id}" data-lane="${t.lane}">
-        <div class="lane-bar"></div>
+        <span class="avatar">${escHtml(t.initials)}<span class="lane-badge">${ico(t.laneIcon)}</span></span>
         <div class="body">
           <div class="top">
-            <span class="lane-tag">${escHtml(t.laneLabel)}</span>
+            <span class="who"><span>${escHtml(t.who)}</span></span>
             <span class="meta-time">${escHtml(t.time)}</span>
           </div>
-          <div class="who"><span>${escHtml(t.who)}</span></div>
           <div class="subject">${escHtml(t.subject)}</div>
           <div class="preview">${escHtml(t.preview)}</div>
           <div class="footer">
@@ -859,53 +975,53 @@ button { cursor: pointer; }
     const t = state.threads.find(x=>x.id===state.selectedId);
     if (!t) {
       root.className = 'thread empty';
-      root.innerHTML = `<div class="placeholder"><h3>Välj en tråd</h3><p>Klicka på en tråd till vänster eller använd <span class="key">J</span> / <span class="key">K</span> för att navigera.</p></div>`;
+      root.innerHTML = `<div class="placeholder"><span class="empty-illustration">${ico('i-mail-open')}</span><h3>Välj en tråd</h3><p>Klicka på en tråd till vänster eller använd <span class="key">J</span> / <span class="key">K</span>.</p></div>`;
       return;
     }
-    root.className = 'thread';
+    root.className = `thread lane-${t.lane}`;
     const messages = t.conversation.map(m=>`
       <article class="msg ${m.dir}">
         <div class="msg-head">
           <div class="left">
-            <span class="avatar">${escHtml(m.initials||'?')}</span>
+            <span class="ava">${escHtml(m.initials||'?')}</span>
             <span class="from">${escHtml(m.from)}</span>
-            <span class="badge">${escHtml(m.dir==='outbound'?'Skickat':m.dir==='draft'?'AI-utkast':'Inkommit')}</span>
+            <span class="badge">${m.dir==='outbound'?ico('i-outgoing')+' Skickat':m.dir==='draft'?ico('i-sparkles')+' AI-utkast':ico('i-incoming')+' Inkommit'}</span>
           </div>
           <span class="time">${escHtml(m.time)}</span>
         </div>
         <div class="msg-body">${escHtml(m.body)}</div>
       </article>`).join('');
     const tl = (t.timeline||[]).map((s,i)=>`<li><span class="num">${i+1}</span><span>${escHtml(s)}</span></li>`).join('');
+    /* Mini activity chart - random demo bars */
+    const bars = [3,5,7,4,6,9,8].map(h=>`<div class="bar" style="height:${h*2.5}px"></div>`).join('');
     root.innerHTML = `
       <div class="thread-head lane-${t.lane}">
         <div class="top">
           <h2>${escHtml(t.subject)}</h2>
-          <span class="lane-pill">${escHtml(t.laneLabel)}</span>
+          <span class="lane-pill">${ico(t.laneIcon)} ${escHtml(t.laneLabel)}</span>
         </div>
         <div class="who-line">
-          <span class="avatar">${escHtml(t.initials)}</span>
+          <span class="ava">${escHtml(t.initials)}</span>
           <strong>${escHtml(t.who)}</strong>
           <span class="email">${escHtml(t.email)}</span>
-          <span class="sep">·</span>
-          <span>Inkorg ${escHtml(t.mailbox)}</span>
-          <span class="sep">·</span>
-          <span>Ägare ${escHtml(t.owner)}</span>
+          <span class="meta-chip">${ico('i-mail-open')} ${escHtml(t.mailbox)}</span>
+          <span class="meta-chip">${ico('i-users')} ${escHtml(t.owner)}</span>
         </div>
       </div>
       <div class="thread-actions">
-        <button class="action primary">↩ Svara nu</button>
-        <button class="action">＋ Nytt mejl</button>
-        <button class="action">⏰ Senare</button>
-        <button class="action">✓ Markera klar</button>
-        <button class="action">📅 Schemalägg</button>
-        <button class="action">📚 Historik</button>
-        <button class="action danger" style="margin-left:auto;">🗑</button>
+        <button class="action primary">${ico('i-reply')} Svara nu</button>
+        <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
+        <button class="action">${ico('i-clock')} Senare</button>
+        <button class="action">${ico('i-check')} Klar</button>
+        <button class="action">${ico('i-calendar')} Schemalägg</button>
+        <button class="action">${ico('i-history')} Historik</button>
+        <button class="action danger" style="margin-left:auto;">${ico('i-trash')}</button>
       </div>
       <div class="thread-body">
         <div class="messages">${messages}</div>
         <aside class="ctx">
-          <div class="ctx-card">
-            <div class="head">Kund</div>
+          <div class="ctx-card identity-card">
+            <div class="head"><span class="ico">${ico('i-users')} Kund</span></div>
             <div class="body">
               <div class="identity">
                 <span class="ava">${escHtml(t.initials)}</span>
@@ -917,19 +1033,26 @@ button { cursor: pointer; }
             </div>
           </div>
           <div class="ctx-card">
-            <div class="head">Status</div>
+            <div class="head"><span class="ico">${ico('i-target')} Status</span></div>
             <div class="body">
               <div class="grid">
-                <div class="item"><div class="label">Livscykel</div><div class="val">${escHtml(t.lifecycle)}</div></div>
-                <div class="item"><div class="label">Status</div><div class="val">${escHtml(t.laneLabel)}</div></div>
-                <div class="item"><div class="label">Uppföljning</div><div class="val">${escHtml(t.followUp)}</div></div>
-                <div class="item"><div class="label">Risk</div><div class="val">${escHtml(t.riskLevel)}</div></div>
+                <div class="item"><div class="label-row">${ico('i-history')}<div class="label">Livscykel</div></div><div class="val">${escHtml(t.lifecycle)}</div></div>
+                <div class="item"><div class="label-row">${ico('i-circle-dot')}<div class="label">Status</div></div><div class="val">${escHtml(t.laneLabel)}</div></div>
+                <div class="item"><div class="label-row">${ico('i-clock')}<div class="label">Uppföljning</div></div><div class="val">${escHtml(t.followUp)}</div></div>
+                <div class="item"><div class="label-row">${ico('i-flame')}<div class="label">Risk</div></div><div class="val">${escHtml(t.riskLevel)}</div></div>
               </div>
             </div>
           </div>
-          ${t.risk?`<div class="ctx-card risk"><div class="head">Risk</div><div class="body"><div class="text">${escHtml(t.risk)}</div></div></div>`:''}
-          ${t.nextStep?`<div class="ctx-card next"><div class="head">Nästa steg</div><div class="body"><div class="text">${escHtml(t.nextStep)}</div></div></div>`:''}
-          ${tl?`<div class="ctx-card"><div class="head">Tidslinje</div><div class="body"><ul class="timeline">${tl}</ul></div></div>`:''}
+          ${t.risk?`<div class="ctx-card risk"><div class="head"><span class="ico">${ico('i-alert')} Risk</span></div><div class="body"><div class="text">${escHtml(t.risk)}</div></div></div>`:''}
+          ${t.nextStep?`<div class="ctx-card next"><div class="head"><span class="ico">${ico('i-target')} Nästa steg</span></div><div class="body"><div class="text">${escHtml(t.nextStep)}</div></div></div>`:''}
+          <div class="ctx-card">
+            <div class="head"><span class="ico">${ico('i-chart')} Aktivitet</span><span style="font-size:9.5px;color:var(--text-3);font-weight:500;">7 dagar</span></div>
+            <div class="body">
+              <div class="mini-chart">${bars}</div>
+              <div style="margin-top:8px;font-size:11.5px;color:var(--text-2);">Snitt-svar: <strong style="color:var(--text)">2,4h</strong></div>
+            </div>
+          </div>
+          ${tl?`<div class="ctx-card"><div class="head"><span class="ico">${ico('i-history')} Tidslinje</span></div><div class="body"><ul class="timeline">${tl}</ul></div></div>`:''}
         </aside>
       </div>`;
   }
@@ -971,11 +1094,13 @@ button { cursor: pointer; }
   function mapApiRow(row) {
     const laneRaw = String(row.lane||'').toLowerCase().replace(/_/g,'-');
     const lane = ['act-now','sprint','bookable','review','unclear','later','medical'].includes(laneRaw)?laneRaw:'unclear';
+    const laneIconMap = {'act-now':'i-bolt','sprint':'i-trend','bookable':'i-calendar','review':'i-eye','unclear':'i-question','later':'i-pause','medical':'i-flame'};
     const who = row.customerName || row.customerEmail?.split('@')[0] || 'Okänd';
     const initials = who.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';
     return {
       id: row.conversationKey||row.mailboxConversationId,
-      lane, laneLabel: lane==='act-now'?'Agera nu':lane[0].toUpperCase()+lane.slice(1),
+      lane, laneIcon: laneIconMap[lane]||'i-circle-dot',
+      laneLabel: lane==='act-now'?'Agera nu':lane[0].toUpperCase()+lane.slice(1),
       unread: row.hasUnreadInbound===true, who, email: row.customerEmail||'', initials,
       mailbox: row.mailboxAddress?.split('@')[0]||'Inkorg', mailboxTrail:[],
       subject: row.subject||'(utan ämne)', preview: row.latestPreview||'',
