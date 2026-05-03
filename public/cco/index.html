@@ -1094,17 +1094,19 @@ button { cursor: pointer; }
   background: var(--bg);
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 28px 24px 32px;
-  gap: 28px;
+  padding: 24px 22px 32px;
+  gap: 22px;
 }
-.ctx-section { padding: 0; margin: 0; border: 0; }
+.ctx-section { padding: 0 0 24px; margin: 0; border-bottom: 1px solid var(--line); }
+.ctx-section:last-child { border-bottom: 0; padding-bottom: 0; }
+.ctx-panel > .ctx-section + .ctx-section { padding-top: 0; }
 .ctx-section .head {
-  font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--text-3);
+  font-size: 10px; font-weight: 800; letter-spacing: 1.2px; color: var(--text-3);
   text-transform: uppercase;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 7px;
   margin-bottom: 12px;
 }
-.ctx-section .head svg { display: none; }
+.ctx-section .head svg { display: inline-block; width: 12px; height: 12px; opacity: 0.7; }
 .ctx-section.collapsible .head { cursor: pointer; user-select: none; }
 .ctx-section.collapsible .head .chev {
   margin-left: auto;
@@ -1121,73 +1123,75 @@ button { cursor: pointer; }
   animation: pointsIn 0.18s var(--ease);
 }
 
-.identity { display: flex; gap: 12px; align-items: center; }
+.identity { display: flex; gap: 11px; align-items: center; }
 .identity .ava {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 42px; height: 42px; border-radius: 50%;
   background: var(--avatar-grad, var(--accent-grad));
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13.5px; font-weight: 700; color: #fff;
+  font-size: 14px; font-weight: 800; color: #fff;
   flex-shrink: 0; letter-spacing: -0.3px;
-  box-shadow: none;
+  box-shadow: 0 4px 12px var(--avatar-glow, var(--accent-glow));
   cursor: pointer;
-  transition: transform 0.15s var(--ease);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
-.identity .ava:hover { transform: scale(1.04); }
+.identity .ava:hover { transform: scale(1.05); box-shadow: 0 6px 16px var(--avatar-glow, var(--accent-glow)); }
 .identity .who-name { font-size: 14.5px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
 .identity .email-line { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.kv-list { display: flex; flex-direction: column; gap: 11px; }
+.kv-list { display: flex; flex-direction: column; gap: 10px; }
 .kv-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .kv-item .label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-2); font-weight: 500; }
-.kv-item .label svg { display: none; }
-.kv-item .val { font-size: 12.5px; color: var(--text); font-weight: 600; letter-spacing: -0.1px; text-align: right; }
+.kv-item .label svg { display: inline-block; width: 12px; height: 12px; color: var(--text-3); flex-shrink: 0; opacity: 0.85; }
+.kv-item .val { font-size: 12.5px; color: var(--text); font-weight: 700; letter-spacing: -0.1px; text-align: right; }
 
 .alert-box {
-  padding: 2px 0 2px 12px;
-  border-left: 2px solid var(--line);
+  padding: 12px 14px;
+  border-radius: 11px;
   font-size: 13px; line-height: 1.55;
   color: var(--text);
 }
-.alert-box.risk { border-left-color: var(--orange); }
-.alert-box.next { border-left-color: var(--green); }
+.alert-box.risk { background: rgba(255, 138, 61, 0.08); border: 1px solid rgba(255, 138, 61, 0.20); }
+.alert-box.next { background: rgba(26, 168, 108, 0.08); border: 1px solid rgba(26, 168, 108, 0.20); }
+[data-theme="dark"] .alert-box.risk { background: rgba(255, 138, 61, 0.12); border-color: rgba(255, 138, 61, 0.28); }
+[data-theme="dark"] .alert-box.next { background: rgba(26, 168, 108, 0.14); border-color: rgba(26, 168, 108, 0.30); }
 
-.timeline { list-style: none; padding: 0; }
-.timeline li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; font-size: 12px; color: var(--text-2); }
+.timeline { list-style: none; position: relative; padding-left: 4px; }
+.timeline::before {
+  content: ''; position: absolute; left: 9px; top: 8px; bottom: 8px;
+  width: 1.5px;
+  background: linear-gradient(180deg, var(--accent), var(--line) 70%);
+}
+.timeline li { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 12px; color: var(--text-2); position: relative; }
 .timeline .dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--text-3);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  margin-left: 6px;
+  margin-top: 4px;
   flex-shrink: 0;
-  margin-top: 1px;
-  align-self: center;
-  opacity: 0.5;
+  z-index: 1;
 }
-.timeline li:first-child .dot { background: var(--accent); opacity: 1; }
+.timeline li:first-child .dot { background: var(--accent-grad); border-color: transparent; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12); }
 
-.mini-chart { display: flex; gap: 3px; align-items: end; height: 22px; opacity: 0.55; transition: opacity 0.2s var(--ease); }
-.ctx-section:hover .mini-chart { opacity: 1; }
+.mini-chart { display: flex; gap: 3px; align-items: end; height: 28px; }
 .mini-chart .bar {
-  flex: 1; background: var(--text-3);
-  border-radius: 2px;
+  flex: 1; background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent));
+  border-radius: 3px 3px 1px 1px;
   min-height: 3px;
+  transition: transform 0.15s var(--ease), filter 0.15s var(--ease);
 }
+.mini-chart .bar:hover { filter: brightness(1.1); transform: scaleY(1.06); }
 .activity-meta { font-size: 12px; color: var(--text-2); margin-top: 9px; }
 .activity-meta strong { color: var(--text); font-weight: 700; }
 
-/* ===== Live-stats inline (hidden by default, hover to reveal) ===== */
+/* ===== Live-stats inline (always visible — discreet) ===== */
 .live-stats-row {
   display: flex; flex-wrap: wrap; gap: 4px 12px;
-  font-size: 11.5px; color: var(--text-3); line-height: 1.5;
+  font-size: 12px; color: var(--text-2); line-height: 1.5;
   margin-top: 12px;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: opacity 0.2s var(--ease), max-height 0.2s var(--ease), margin-top 0.2s var(--ease);
-}
-.ctx-section:hover .live-stats-row, .ctx-section:focus-within .live-stats-row {
-  opacity: 1; max-height: 28px;
 }
 .live-stats-row .ls-link {
-  color: var(--text-3);
+  color: var(--text-2);
   font-weight: 500;
   text-decoration: none;
   transition: color 0.15s;
@@ -1195,9 +1199,9 @@ button { cursor: pointer; }
   cursor: pointer;
 }
 .live-stats-row .ls-link:hover { color: var(--accent); }
-.live-stats-row .ls-link strong { color: var(--text-2); font-weight: 700; }
+.live-stats-row .ls-link strong { color: var(--text); font-weight: 700; }
 .live-stats-row .ls-link svg { display: none; }
-.live-stats-row .sep { color: var(--text-3); user-select: none; opacity: 0.5; }
+.live-stats-row .sep { color: var(--text-3); user-select: none; opacity: 0.6; }
 
 /* ===== Upcoming booking card (flat) ===== */
 .booking-card {
@@ -2271,9 +2275,9 @@ button { cursor: pointer; }
 
     $('#ctx-panel').innerHTML = `
       <div class="ctx-section lane-${t.lane}">
-        <div class="head">Kund</div>
+        <div class="head">${ico('i-users')} Kund</div>
         <div class="identity">
-          <span class="ava" data-open-history>${escHtml(t.initials)}</span>
+          <span class="ava" data-open-history title="Öppna full historik">${escHtml(t.initials)}</span>
           <div style="min-width:0;flex:1;">
             <div class="who-name">${escHtml(t.who)}</div>
             <div class="email-line">${escHtml(t.email)}</div>
@@ -2283,24 +2287,24 @@ button { cursor: pointer; }
       </div>
       ${bookingBlock}
       <div class="ctx-section">
-        <div class="head">Status</div>
+        <div class="head">${ico('i-target')} Status</div>
         <div class="kv-list">
-          <div class="kv-item"><span class="label">Livscykel</span><span class="val">${escHtml(t.lifecycle)}</span></div>
-          <div class="kv-item"><span class="label">Status</span><span class="val">${escHtml(t.laneLabel)}</span></div>
-          <div class="kv-item"><span class="label">Uppföljning</span><span class="val">${escHtml(t.followUp)}</span></div>
-          <div class="kv-item"><span class="label">Risk</span><span class="val">${escHtml(t.riskLevel)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-history')} Livscykel</span><span class="val">${escHtml(t.lifecycle)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-circle-dot')} Status</span><span class="val">${escHtml(t.laneLabel)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-clock')} Uppföljning</span><span class="val">${escHtml(t.followUp)}</span></div>
+          <div class="kv-item"><span class="label">${ico('i-flame')} Risk</span><span class="val">${escHtml(t.riskLevel)}</span></div>
         </div>
       </div>
-      ${t.risk?`<div class="ctx-section"><div class="head">Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk')}</div>`:''}
-      ${t.nextStep?`<div class="ctx-section"><div class="head">Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep')}</div>`:''}
+      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk')}</div>`:''}
+      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep')}</div>`:''}
       <div class="ctx-section">
-        <div class="head">Aktivitet · 7 dagar</div>
+        <div class="head">${ico('i-chart')} Aktivitet · 7 dagar</div>
         <div class="mini-chart">${bars}</div>
         <div class="activity-meta">${compareLabel}</div>
       </div>
-      ${tl?`<div class="ctx-section"><div class="head">Tidslinje</div><ul class="timeline">${tl}</ul></div>`:''}
+      ${tl?`<div class="ctx-section"><div class="head">${ico('i-history')} Tidslinje</div><ul class="timeline">${tl}</ul></div>`:''}
       <div class="ctx-section collapsible${notesCount>0?' open':''}" data-collapsible>
-        <div class="head" data-toggle-section>Anteckningar ${notesCount?`<span style="background:transparent;color:var(--text-3);padding:0;border-radius:0;font-size:11px;font-weight:600;letter-spacing:0;margin-left:2px;">· ${notesCount}</span>`:''}<span class="chev">${ico('i-arrow-down')}</span></div>
+        <div class="head" data-toggle-section>${ico('i-templates')} Anteckningar ${notesCount?`<span style="background:transparent;color:var(--text-3);padding:0;border-radius:0;font-size:11px;font-weight:600;letter-spacing:0;margin-left:2px;">· ${notesCount}</span>`:''}<span class="chev">${ico('i-arrow-down')}</span></div>
         <div class="body-wrap">
           <div class="notes-list">${notesHtml || '<div style="font-size:12px;color:var(--text-3);font-style:italic;padding:4px 0 8px;">Inga interna anteckningar än.</div>'}</div>
           <div class="note-input-wrap">
