@@ -152,7 +152,8 @@ button { cursor: pointer; }
   background: var(--bg);
   display: flex; flex-direction: column;
   overflow-y: auto;
-  padding: 12px 8px;
+  padding: 10px 8px 10px;
+  min-height: 0;
 }
 .sidebar-section + .sidebar-section { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .sidebar-label {
@@ -200,6 +201,134 @@ button { cursor: pointer; }
   font-variant-numeric: tabular-nums;
 }
 .nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--bg); }
+
+/* ===== Min-dag mini-stats (top of sidebar) ===== */
+.today-stats {
+  margin: 0 4px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.06) 0%, rgba(236, 72, 153, 0.04) 100%);
+  border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 6px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+.today-stats::before {
+  content: ''; position: absolute; right: -20px; top: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(108, 92, 231, 0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+.today-stats .label-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-3); text-transform: uppercase;
+}
+.today-stats .label-row .alert-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-grad);
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 8px var(--accent-glow);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.today-stats .stats-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.today-stats .stat {
+  display: flex; flex-direction: column; gap: 1px;
+  position: relative;
+}
+.today-stats .stat .num {
+  font-size: 17px; font-weight: 800; letter-spacing: -0.5px; line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.today-stats .stat .lbl {
+  font-size: 9.5px; color: var(--text-3); font-weight: 600; letter-spacing: -0.01em;
+}
+.today-stats .stat.urgent .num { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* ===== Mailbox bars (replaces simple dots) ===== */
+.nav-item.mailbox { gap: 8px; }
+.nav-item.mailbox .mb-bar-wrap {
+  display: flex; align-items: center; gap: 7px;
+  flex: 1; min-width: 0;
+}
+.nav-item.mailbox .mb-color {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.nav-item.mailbox .mb-label {
+  font-size: 12.5px; flex-shrink: 0;
+}
+.nav-item.mailbox .mb-bar {
+  flex: 1; min-width: 12px;
+  height: 4px; border-radius: 2px;
+  background: var(--bg-soft);
+  position: relative;
+  overflow: hidden;
+}
+.nav-item.mailbox .mb-bar .fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--mb-color, var(--text-3));
+  border-radius: 2px;
+  transition: width 0.4s var(--ease);
+}
+.nav-item.mailbox.active .mb-bar { background: rgba(255,255,255,0.25); }
+.nav-item.mailbox.active .mb-bar .fill { background: rgba(255,255,255,0.85); }
+.nav-item.mailbox .mb-num {
+  font-size: 10.5px; color: var(--text-3); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 16px; text-align: right;
+}
+.nav-item.mailbox.active .mb-num { color: rgba(255,255,255,0.85); }
+
+/* ===== Presence block (bottom of sidebar) ===== */
+.sidebar-spacer { flex: 1; min-height: 12px; }
+.presence-block {
+  margin: 0 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  display: flex; align-items: center; gap: 9px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.presence-block:hover { background: var(--surface); border-color: var(--line-2); }
+.presence-block .pres-ava {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-grad); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  box-shadow: 0 2px 6px var(--accent-glow);
+  flex-shrink: 0; position: relative;
+}
+.presence-block .pres-ava .pres-status {
+  position: absolute; bottom: -1px; right: -1px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--green);
+  border: 2px solid var(--bg-soft);
+  box-shadow: 0 0 6px rgba(26, 168, 108, 0.5);
+}
+.presence-block .pres-ava .pres-status.away { background: var(--yellow); box-shadow: 0 0 6px rgba(245, 180, 0, 0.5); }
+.presence-block .pres-ava .pres-status.dnd { background: var(--red); box-shadow: 0 0 6px rgba(239, 68, 88, 0.5); }
+.presence-block .pres-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.presence-block .pres-name { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: -0.15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.presence-block .pres-state { font-size: 10px; color: var(--text-3); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.presence-block .pres-chevron { color: var(--text-3); flex-shrink: 0; }
+.presence-block .pres-chevron svg { width: 12px; height: 12px; }
+
+.kbd-hint {
+  font-size: 9px; color: var(--text-3); font-weight: 600;
+  font-family: var(--font-sans);
+  background: var(--surface); border: 1px solid var(--line);
+  padding: 1px 4px; border-radius: 3px;
+  margin-left: auto;
+}
+.nav-item.active .kbd-hint { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); border-color: transparent; }
 
 .nav-item[data-ico="inbox"] { --ico-color: var(--accent); }
 .nav-item[data-ico="act-now"] { --ico-color: var(--red); }
@@ -590,6 +719,7 @@ button { cursor: pointer; }
     <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
     <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="i-question" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
   </defs>
 </svg>
 
@@ -621,32 +751,57 @@ button { cursor: pointer; }
 
   <div class="body">
     <aside class="sidebar">
+      <!-- Min dag — dynamiska stats -->
+      <div class="today-stats" id="today-stats">
+        <div class="label-row">
+          <span class="alert-dot" id="urgent-dot" style="display:none"></span>
+          Min dag
+        </div>
+        <div class="stats-grid">
+          <div class="stat"><span class="num" id="stat-total">6</span><span class="lbl">trådar idag</span></div>
+          <div class="stat"><span class="num" id="stat-unread">3</span><span class="lbl">olästa</span></div>
+          <div class="stat urgent"><span class="num" id="stat-risk">2</span><span class="lbl">hög risk</span></div>
+        </div>
+      </div>
+
       <div class="sidebar-section">
         <div class="sidebar-label">Vyer</div>
-        <button class="nav-item active" data-ico="inbox"><span class="ico"><svg><use href="#i-inbox"/></svg></span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
-        <button class="nav-item" data-ico="act-now"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Agera nu</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="sprint"><span class="ico"><svg><use href="#i-trend"/></svg></span><span class="label">Sprint</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="bookable"><span class="ico"><svg><use href="#i-calendar"/></svg></span><span class="label">Bokningar</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="review"><span class="ico"><svg><use href="#i-eye"/></svg></span><span class="label">Granska</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="later"><span class="ico"><svg><use href="#i-pause"/></svg></span><span class="label">Senare</span><span class="count">1</span></button>
-        <button class="nav-item" data-ico="done"><span class="ico"><svg><use href="#i-check"/></svg></span><span class="label">Klara</span><span class="count">12</span></button>
+        <button class="nav-item active" data-ico="inbox" data-shortcut="1"><span class="ico"><svg><use href="#i-inbox"/></svg></span><span class="label">Inkorg</span><span class="count" id="inbox-count">6</span></button>
+        <button class="nav-item" data-ico="act-now" data-shortcut="2"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Agera nu</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="sprint" data-shortcut="3"><span class="ico"><svg><use href="#i-trend"/></svg></span><span class="label">Sprint</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="bookable" data-shortcut="4"><span class="ico"><svg><use href="#i-calendar"/></svg></span><span class="label">Bokningar</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="review" data-shortcut="5"><span class="ico"><svg><use href="#i-eye"/></svg></span><span class="label">Granska</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="later" data-shortcut="6"><span class="ico"><svg><use href="#i-pause"/></svg></span><span class="label">Senare</span><span class="count">1</span></button>
+        <button class="nav-item" data-ico="done" data-shortcut="7"><span class="ico"><svg><use href="#i-check"/></svg></span><span class="label">Klara</span><span class="count">12</span></button>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-label">Mailboxar <button class="add">+</button></div>
-        <button class="nav-item"><span class="dot" style="background:#ff8a3d"></span><span class="label">Egzona</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:#6c5ce7"></span><span class="label">Fazli</span><span class="count">2</span></button>
-        <button class="nav-item"><span class="dot" style="background:#14b8c0"></span><span class="label">Kons</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:#1aa86c"></span><span class="label">Info</span><span class="count">1</span></button>
-        <button class="nav-item"><span class="dot" style="background:#f5b400"></span><span class="label">Kontakt</span><span class="count">0</span></button>
-        <button class="nav-item"><span class="dot" style="background:#ec4899"></span><span class="label">Marknad</span><span class="count">0</span></button>
+        <div class="sidebar-label">Mailboxar · 7 dgn <button class="add">+</button></div>
+        <button class="nav-item mailbox" data-mb-activity="20" data-mb-color="#ff8a3d"><span class="mb-bar-wrap"><span class="mb-color" style="background:#ff8a3d"></span><span class="mb-label">Egzona</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">20</span></button>
+        <button class="nav-item mailbox" data-mb-activity="14" data-mb-color="#6c5ce7"><span class="mb-bar-wrap"><span class="mb-color" style="background:#6c5ce7"></span><span class="mb-label">Fazli</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">14</span></button>
+        <button class="nav-item mailbox" data-mb-activity="9" data-mb-color="#14b8c0"><span class="mb-bar-wrap"><span class="mb-color" style="background:#14b8c0"></span><span class="mb-label">Kons</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">9</span></button>
+        <button class="nav-item mailbox" data-mb-activity="6" data-mb-color="#1aa86c"><span class="mb-bar-wrap"><span class="mb-color" style="background:#1aa86c"></span><span class="mb-label">Info</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">6</span></button>
+        <button class="nav-item mailbox" data-mb-activity="3" data-mb-color="#f5b400"><span class="mb-bar-wrap"><span class="mb-color" style="background:#f5b400"></span><span class="mb-label">Kontakt</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">3</span></button>
+        <button class="nav-item mailbox" data-mb-activity="1" data-mb-color="#ec4899"><span class="mb-bar-wrap"><span class="mb-color" style="background:#ec4899"></span><span class="mb-label">Marknad</span><span class="mb-bar"><span class="fill"></span></span></span><span class="mb-num">1</span></button>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-label">System</div>
-        <button class="nav-item" data-ico="users"><span class="ico"><svg><use href="#i-users"/></svg></span><span class="label">Kunder</span></button>
-        <button class="nav-item" data-ico="auto"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Automatisering</span></button>
+        <button class="nav-item" data-ico="users" data-shortcut="8"><span class="ico"><svg><use href="#i-users"/></svg></span><span class="label">Kunder</span><span class="kbd-hint">⌘8</span></button>
+        <button class="nav-item" data-ico="auto" data-shortcut="9"><span class="ico"><svg><use href="#i-bolt"/></svg></span><span class="label">Automatisering</span><span class="kbd-hint">⌘9</span></button>
         <button class="nav-item" data-ico="chart"><span class="ico"><svg><use href="#i-chart"/></svg></span><span class="label">Analys</span></button>
         <button class="nav-item" data-ico="templates"><span class="ico"><svg><use href="#i-templates"/></svg></span><span class="label">Mallar</span></button>
       </div>
+
+      <div class="sidebar-spacer"></div>
+
+      <!-- Presence (klickbar) -->
+      <button class="presence-block" id="presence-toggle" title="Klicka för att byta status">
+        <span class="pres-ava">F<span class="pres-status" id="pres-status-dot"></span></span>
+        <span class="pres-info">
+          <span class="pres-name">Fazli Krasniqi</span>
+          <span class="pres-state" id="pres-state-text">● Online · Aktiv nu</span>
+        </span>
+        <span class="pres-chevron"><svg><use href="#i-arrow-down" /></svg></span>
+      </button>
     </aside>
 
     <section class="inbox-list">
@@ -904,7 +1059,72 @@ button { cursor: pointer; }
         <ul class="timeline">${tl}</ul>
       </div>`;
   }
-  function renderAll() { renderTabs(); renderRows(); renderThread(); }
+  // ===== Sidebar widgets =====
+  function renderTodayStats() {
+    const total = state.threads.length;
+    const unread = state.threads.filter(t=>t.unread).length;
+    const risk = state.threads.filter(t=>(t.tags||[]).some(g=>g.tone==='danger')).length;
+    const totalEl = document.getElementById('stat-total');
+    const unreadEl = document.getElementById('stat-unread');
+    const riskEl = document.getElementById('stat-risk');
+    const dotEl = document.getElementById('urgent-dot');
+    if (totalEl) totalEl.textContent = total;
+    if (unreadEl) unreadEl.textContent = unread;
+    if (riskEl) riskEl.textContent = risk;
+    if (dotEl) dotEl.style.display = (risk > 0 || unread > 2) ? 'inline-block' : 'none';
+  }
+  function renderMailboxBars() {
+    const items = document.querySelectorAll('.nav-item.mailbox');
+    let max = 0;
+    items.forEach(el => { const v = Number(el.dataset.mbActivity || 0); if (v > max) max = v; });
+    if (!max) max = 1;
+    items.forEach(el => {
+      const v = Number(el.dataset.mbActivity || 0);
+      const pct = Math.max(4, Math.round((v / max) * 100));
+      const fill = el.querySelector('.mb-bar .fill');
+      if (fill) {
+        fill.style.width = pct + '%';
+        fill.style.background = el.dataset.mbColor || 'var(--text-3)';
+      }
+    });
+  }
+  function bindPresence() {
+    const PRES = [
+      { code:'online', dot:'', label:'● Online · Aktiv nu' },
+      { code:'away', dot:'away', label:'◐ Borta · 5 min' },
+      { code:'dnd', dot:'dnd', label:'⊘ Stör ej · Fokus' },
+    ];
+    let idx = 0;
+    const btn = document.getElementById('presence-toggle');
+    const dot = document.getElementById('pres-status-dot');
+    const text = document.getElementById('pres-state-text');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      idx = (idx + 1) % PRES.length;
+      const p = PRES[idx];
+      dot.className = 'pres-status' + (p.dot ? ' ' + p.dot : '');
+      text.textContent = p.label;
+    });
+  }
+  function bindShortcuts() {
+    document.addEventListener('keydown', ev => {
+      if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
+      if (!ev.metaKey && !ev.ctrlKey) return;
+      const k = ev.key;
+      if (/^[1-9]$/.test(k)) {
+        const target = document.querySelector(`.nav-item[data-shortcut="${k}"]`);
+        if (target) {
+          ev.preventDefault();
+          target.click();
+          // visa active state
+          document.querySelectorAll('.nav-item.active').forEach(n => n.classList.remove('active'));
+          target.classList.add('active');
+        }
+      }
+    });
+  }
+
+  function renderAll() { renderTabs(); renderRows(); renderThread(); renderTodayStats(); renderMailboxBars(); }
 
   function bind() {
     document.addEventListener('click', ev=>{
@@ -960,7 +1180,7 @@ button { cursor: pointer; }
     };
   }
 
-  async function init() { bind(); await tryLoadLive(); renderAll(); }
+  async function init() { bind(); bindPresence(); bindShortcuts(); await tryLoadLive(); renderAll(); }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
 })();
