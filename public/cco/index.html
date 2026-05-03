@@ -420,12 +420,15 @@ button { cursor: pointer; }
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-weight: 600; color: var(--text-2);
   padding: 4px 8px; border-radius: 7px;
-  background: var(--bg-soft);
+  background: transparent;
   cursor: pointer;
-  transition: all 0.15s var(--ease);
+  transition: opacity 0.18s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
   margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
 }
-.sort-trigger:hover { background: var(--surface); color: var(--text); }
+.inbox-header:hover .sort-trigger, .inbox-header:focus-within .sort-trigger, .sort-trigger.active { opacity: 1; pointer-events: auto; }
+.sort-trigger:hover { background: var(--bg-soft); color: var(--text); }
 .sort-trigger svg { width: 11px; height: 11px; }
 .sort-trigger .label { letter-spacing: -0.01em; }
 
@@ -664,6 +667,21 @@ button { cursor: pointer; }
   white-space: nowrap; flex-shrink: 0;
 }
 .thread-head .lane-pill svg { width: 10px; height: 10px; }
+.thread-head .ai-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+  transition: all 0.15s var(--ease);
+}
+.thread-head .ai-pill:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
+.thread-head .ai-pill svg { width: 10px; height: 10px; }
+.thread-head .ai-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .thread-head .who-line { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-2); flex-wrap: wrap; }
 .thread-head .ava {
   width: 22px; height: 22px; border-radius: 50%;
@@ -767,15 +785,26 @@ button { cursor: pointer; }
 
 /* ===== AI summary block ===== */
 .ai-summary {
-  margin: 14px 28px 0;
-  padding: 14px 16px;
+  margin: 0 28px;
+  padding: 0;
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, rgba(236, 72, 153, 0.04) 50%, rgba(6, 214, 160, 0.03) 100%);
   border: 1px solid rgba(108, 92, 231, 0.18);
   position: relative;
   overflow: hidden;
+  max-height: 0;
+  border-color: transparent;
+  background: transparent;
+  transition: max-height 0.25s var(--ease), padding 0.2s var(--ease), margin 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
 }
-.ai-summary::before {
+.ai-summary.show {
+  margin: 14px 28px 0;
+  padding: 14px 16px;
+  max-height: 360px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, rgba(236, 72, 153, 0.04) 50%, rgba(6, 214, 160, 0.03) 100%);
+  border-color: rgba(108, 92, 231, 0.18);
+}
+.ai-summary.show::before {
   content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.5px;
   background: var(--ai-grad);
   background-size: 200% 100%;
@@ -826,14 +855,22 @@ button { cursor: pointer; }
   flex-shrink: 0; margin-top: 7px;
 }
 
-/* ===== Composer (calm-by-default, expand on focus) ===== */
+/* ===== Composer (hidden by default, expand on Svara nu / R) ===== */
 .composer-wrap {
   border-top: 1px solid var(--line);
   background: var(--surface);
-  padding: 14px 28px 18px;
+  padding: 0 28px 0;
   position: sticky; bottom: 0;
   z-index: 4;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s var(--ease), padding 0.22s var(--ease), border-color 0.22s var(--ease);
 }
+.composer-wrap.is-open {
+  max-height: 360px;
+  padding: 14px 28px 18px;
+}
+.composer-wrap.is-open.is-active { /* extra space when active */ }
 /* AI-förslag chips — hidden until composer is focused */
 .composer-quick {
   display: flex; gap: 6px; flex-wrap: wrap;
@@ -948,7 +985,16 @@ button { cursor: pointer; }
   padding: 6px 4px 0;
 }
 
-/* ===== Thread navigation arrows ===== */
+/* ===== Thread navigation arrows — hidden, only shown on hover of thread-head ===== */
+.thread-head:hover .thread-nav, .thread-head:focus-within .thread-nav {
+  opacity: 1;
+  pointer-events: auto;
+}
+.thread-nav {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--ease);
+}
 .thread-nav { display: inline-flex; gap: 2px; margin-left: 8px; }
 .thread-nav button {
   width: 24px; height: 24px; border-radius: 6px;
@@ -2101,6 +2147,7 @@ button { cursor: pointer; }
             <span class="pos">${idx+1}/${total}</span>
             <button data-thread-nav="next" ${nextDis} title="Nästa (⌘])">${ico('i-chevron-r')}</button>
           </div>
+          ${(t.aiTldr || aiPoints) ? `<button class="ai-pill" data-toggle-ai title="AI-sammanfattning">${ico('i-sparkles')} AI</button>` : ''}
           <span class="lane-pill">${ico(t.laneIcon)} ${escHtml(t.laneLabel)}</span>
         </div>
         <div class="who-line">
@@ -2125,7 +2172,7 @@ button { cursor: pointer; }
         </div>
       ` : ''}
       <div class="thread-actions">
-        <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu <span style="opacity:.7;font-size:9.5px;background:rgba(255,255,255,0.18);padding:1px 5px;border-radius:3px;margin-left:4px;">R</span></button>
+        <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu</button>
         <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
         <button class="action">${ico('i-clock')} Senare</button>
         <button class="action">${ico('i-check')} Klar</button>
@@ -2430,8 +2477,20 @@ button { cursor: pointer; }
 
   // ==== Composer helpers ====
   function focusComposer() {
+    const wrap = document.getElementById('composer-wrap');
+    if (wrap) wrap.classList.add('is-open');
+    // wait for transition before focusing so the textarea is visible
+    setTimeout(()=>{
+      const ta = document.getElementById('composer-input');
+      if (ta) ta.focus();
+    }, 60);
+  }
+  function closeComposer() {
+    const wrap = document.getElementById('composer-wrap');
+    if (!wrap) return;
     const ta = document.getElementById('composer-input');
-    if (ta) ta.focus();
+    if (ta && ta.value.trim()) return; // never close if there's a draft
+    wrap.classList.remove('is-open', 'is-active');
   }
   function sendComposer() {
     const ta = document.getElementById('composer-input');
@@ -2444,6 +2503,8 @@ button { cursor: pointer; }
     }
     toast('Mejl skickat (demo) · ' + text.length + ' tecken');
     ta.value = '';
+    // collapse composer after send
+    closeComposer();
   }
 
   // ==== Theme toggle ====
@@ -2746,7 +2807,17 @@ button { cursor: pointer; }
       if (tnav && !tnav.disabled) { jumpThread(tnav.dataset.threadNav); return; }
       // History drawer
       if (ev.target.closest('[data-history-open], [data-open-history]')) { openHistory(); return; }
-      // TLDR toggle
+      // AI-pill toggle in thread-head — opens/closes the AI-summary block
+      const aiPill = ev.target.closest('[data-toggle-ai]');
+      if (aiPill) {
+        const sum = document.getElementById('ai-summary');
+        if (sum) {
+          const isOpen = sum.classList.toggle('show');
+          aiPill.classList.toggle('active', isOpen);
+        }
+        return;
+      }
+      // TLDR toggle (inside ai-summary, expand to show points)
       if (ev.target.closest('#tldr-toggle')) {
         document.getElementById('ai-summary')?.classList.toggle('expanded');
         return;
@@ -2774,6 +2845,8 @@ button { cursor: pointer; }
         state.sortBy = sortItem.dataset.sort;
         document.getElementById('sort-label').textContent = SORT_LABELS[state.sortBy] || 'Nyaste';
         document.querySelectorAll('.sort-menu .item').forEach(i=>i.classList.toggle('active', i===sortItem));
+        // pin the trigger visible if a non-default sort is active
+        document.getElementById('sort-trigger')?.classList.toggle('active', state.sortBy !== 'newest');
         toggleSortMenu(false);
         renderRows();
         return;
@@ -2887,7 +2960,11 @@ button { cursor: pointer; }
           ev.preventDefault();
           sendComposer();
         }
-        if (ev.key === 'Escape') ev.target.blur();
+        if (ev.key === 'Escape') {
+          ev.target.value = '';
+          ev.target.blur();
+          closeComposer();
+        }
         return;
       }
       if (ev.target.classList && ev.target.classList.contains('note-input')) {
