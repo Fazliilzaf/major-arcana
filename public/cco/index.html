@@ -1061,6 +1061,185 @@ button { cursor: pointer; }
 .activity-meta { font-size: 11px; color: var(--text-2); margin-top: 7px; }
 .activity-meta strong { color: var(--text); font-weight: 700; }
 
+/* ===== Live-stats inline (replaces 4-grid for top of context) ===== */
+.live-stats-row {
+  display: flex; flex-wrap: wrap; gap: 4px 12px;
+  font-size: 11.5px; color: var(--text-2); line-height: 1.5;
+  margin-top: 6px;
+}
+.live-stats-row .ls-link {
+  color: var(--text-2);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s;
+  display: inline-flex; align-items: center; gap: 4px;
+  cursor: pointer;
+}
+.live-stats-row .ls-link:hover { color: var(--accent); }
+.live-stats-row .ls-link strong { color: var(--text); font-weight: 800; }
+.live-stats-row .ls-link svg { width: 11px; height: 11px; opacity: 0.6; }
+.live-stats-row .sep { color: var(--text-3); user-select: none; }
+
+/* ===== Upcoming booking card ===== */
+.booking-card {
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(20, 184, 192, 0.08) 0%, rgba(108, 92, 231, 0.04) 100%);
+  border: 1px solid rgba(20, 184, 192, 0.25);
+  padding: 11px 12px;
+  display: flex; gap: 10px; align-items: flex-start;
+  position: relative; overflow: hidden;
+}
+.booking-card::before {
+  content: ''; position: absolute; right: -30px; top: -30px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 184, 192, 0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+.booking-card .b-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--teal), #4cc9f0);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(20, 184, 192, 0.30);
+}
+.booking-card .b-icon svg { width: 16px; height: 16px; }
+.booking-card .b-info { flex: 1; min-width: 0; }
+.booking-card .b-svc { font-size: 12.5px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.booking-card .b-when { font-size: 11px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.booking-card .b-meta { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
+.booking-card .b-actions {
+  display: flex; gap: 4px; margin-top: 8px;
+}
+.booking-card .b-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: -0.01em;
+  background: rgba(255, 255, 255, 0.7); color: var(--teal);
+  border: 1px solid rgba(20, 184, 192, 0.25);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.booking-card .b-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+.booking-card .b-btn svg { width: 10px; height: 10px; }
+
+.no-booking {
+  font-size: 11.5px; color: var(--text-3); font-style: italic;
+  padding: 8px 10px; border-radius: 9px;
+  background: var(--bg-soft);
+  display: flex; align-items: center; gap: 7px;
+}
+.no-booking svg { width: 12px; height: 12px; opacity: 0.6; }
+.no-booking .book-now {
+  margin-left: auto;
+  font-size: 10.5px; font-weight: 700; color: var(--accent);
+  cursor: pointer;
+  font-style: normal;
+}
+.no-booking .book-now:hover { text-decoration: underline; }
+
+/* ===== AI feedback buttons ===== */
+.ai-actions {
+  display: flex; gap: 4px; margin-top: 8px;
+}
+.ai-act {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-2);
+}
+.ai-act:hover { transform: translateY(-1px); }
+.ai-act svg { width: 10px; height: 10px; }
+.ai-act.accept:hover { background: rgba(26, 168, 108, 0.10); color: var(--green); border-color: rgba(26, 168, 108, 0.30); }
+.ai-act.adjust:hover { background: rgba(108, 92, 231, 0.10); color: var(--accent-2); border-color: rgba(108, 92, 231, 0.30); }
+.ai-act.reject:hover { background: rgba(239, 68, 88, 0.10); color: var(--red); border-color: rgba(239, 68, 88, 0.30); }
+.ai-act.applied { pointer-events: none; }
+.ai-act.accept.applied { background: rgba(26, 168, 108, 0.14); color: var(--green); border-color: rgba(26, 168, 108, 0.40); }
+
+/* ===== Activity comparison ===== */
+.activity-compare { margin-top: 10px; }
+.compare-row {
+  display: grid; grid-template-columns: 60px 1fr 50px;
+  align-items: center; gap: 8px;
+  font-size: 11px; padding: 4px 0;
+}
+.compare-row .who { color: var(--text-2); font-weight: 600; letter-spacing: -0.01em; }
+.compare-row .who.mine { color: var(--accent-2); font-weight: 700; }
+.compare-row .bar-wrap {
+  height: 6px; background: var(--bg-soft); border-radius: 3px; position: relative; overflow: hidden;
+}
+.compare-row .bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 3px;
+  background: var(--text-3);
+}
+.compare-row.mine .bar-fill { background: var(--accent-grad); box-shadow: 0 0 8px var(--accent-glow); }
+.compare-row .num { font-size: 11px; color: var(--text-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.compare-row.mine .num { color: var(--text); }
+.compare-summary {
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line);
+  font-size: 11px; color: var(--text-2);
+}
+.compare-summary strong { color: var(--green); font-weight: 800; }
+.compare-summary.slower strong { color: var(--orange); }
+
+/* ===== Notes / internal-chat ===== */
+.notes-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.note {
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--bg-soft);
+  position: relative;
+}
+.note.ai { background: linear-gradient(135deg, rgba(108,92,231,0.06), rgba(236,72,153,0.04)); border: 1px solid rgba(108, 92, 231, 0.18); }
+.note .n-head {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 3px;
+  font-size: 10.5px; color: var(--text-3); font-weight: 600;
+}
+.note .n-author { color: var(--text-2); font-weight: 700; }
+.note.ai .n-author { color: var(--accent-2); display: inline-flex; align-items: center; gap: 3px; }
+.note.ai .n-author svg { width: 10px; height: 10px; }
+.note .n-time { margin-left: auto; font-family: var(--font-mono); font-weight: 500; font-size: 10px; }
+.note .n-body { font-size: 11.5px; line-height: 1.5; color: var(--text); }
+.note-input-wrap {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  transition: all 0.15s var(--ease);
+}
+.note-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.note-input {
+  width: 100%;
+  border: 0; outline: 0; resize: none;
+  padding: 7px 9px;
+  font-family: inherit; font-size: 11.5px; line-height: 1.45;
+  color: var(--text);
+  background: transparent;
+  min-height: 40px;
+}
+.note-input::placeholder { color: var(--text-3); }
+.note-input-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 6px; border-top: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 0 0 8px 8px;
+}
+.note-input-bar .hint { font-size: 9.5px; color: var(--text-3); font-weight: 500; padding-left: 4px; }
+.note-input-bar .post-btn {
+  margin-left: auto;
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700;
+  background: var(--accent-grad); color: #fff;
+  display: inline-flex; align-items: center; gap: 4px;
+  box-shadow: 0 2px 6px var(--accent-glow);
+}
+.note-input-bar .post-btn:hover { transform: translateY(-1px); }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
@@ -1278,7 +1457,13 @@ button { cursor: pointer; }
           {when:'2 maj', what:'Bokning bekräftad'},
           {when:'28 apr', what:'Första kontakt via Info-mailbox'},
           {when:'15 mar', what:'Newsletter-prenumerant'},
-        ]} },
+        ]},
+      upcomingBooking:null,
+      responseTime:{mine:2.4, team:4.1},
+      notes:[
+        {author:'Egzona K.',time:'Igår 14:30',body:'Ringde sjukhusteamet — kan erbjuda tis 13:00 / tor 11:00. Han prefererar för-lunch.'},
+        {author:'Fazli K.',time:'Mån 09:15',body:'OBS — frun har försökt ringa. Hon är ångestladdad enligt receptionen.'},
+      ] },
     { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', laneIcon:'i-trend', unread:false,
       who:'Johan Karlsson', email:'johan.karlsson@example.com', initials:'JK',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -1303,7 +1488,12 @@ button { cursor: pointer; }
           {when:'Idag · 14:22', what:'Inkommande mejl — mötesförslag', recent:true},
           {when:'28 apr · 09:30', what:'Diskussion om partnership-möjligheter'},
           {when:'12 mar', what:'Första kontakt via LinkedIn-intro'},
-        ]} },
+        ]},
+      upcomingBooking:{service:'Cliento-möte',when:'Måndag 5 maj · 14:00',who:'Fazli',loc:'Online (Teams)'},
+      responseTime:{mine:1.8, team:4.1},
+      notes:[
+        {author:'Fazli K.',time:'10:14',body:'Johan vill diskutera webhook-flödet. Han har integrerat 3 kliniker tidigare.'},
+      ] },
     { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', laneIcon:'i-calendar', unread:true,
       who:'Sara Holm', email:'sara.holm@example.com', initials:'SH',
       mailbox:'Kons', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1333,7 +1523,12 @@ button { cursor: pointer; }
           {when:'Igår · 09:48', what:'Inkommande — bekräftade FUE-val', recent:true},
           {when:'28 apr', what:'Konsultation hos Egzona'},
           {when:'22 apr', what:'Första kontakt via Kons-mailbox'},
-        ]} },
+        ]},
+      upcomingBooking:{service:'FUE-konsultation',when:'Tisdag 6 maj · 13:00',who:'Egzona',loc:'Stockholm'},
+      responseTime:{mine:1.2, team:4.1},
+      notes:[
+        {author:'Egzona K.',time:'Igår',body:'Sara är second-time. Behandlade 2023, nöjd kund. Plus-1 från henne — har rekommenderat 2 vänner.'},
+      ] },
     { id:'demo-el-004', lane:'review', laneLabel:'Granska', laneIcon:'i-eye', unread:true,
       who:'Erik Lindqvist', email:'erik.lindqvist@example.com', initials:'EL',
       mailbox:'Kontakt', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1361,7 +1556,12 @@ button { cursor: pointer; }
         events:[
           {when:'Idag · 11:36', what:'AI-utkast flaggat — pris-avvikelse', recent:true},
           {when:'Idag · 11:34', what:'Inkommande — pris-fråga'},
-        ]} },
+        ]},
+      upcomingBooking:null,
+      responseTime:{mine:0, team:4.1},
+      notes:[
+        {ai:true,author:'AI',time:'Idag 11:36',body:'⚠ Detekterade prisavvikelse: AI-utkast = 32 000 kr · Aktuell prislista = 38 500 kr. Skillnad 6 500 kr, 20%. Granska före sändning.'},
+      ] },
     { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', laneIcon:'i-question', unread:false,
       who:'Anna Svensson', email:'anna.svensson@example.com', initials:'AS',
       mailbox:'Info', mailboxTrail:[['I','#1aa86c']],
@@ -1385,7 +1585,10 @@ button { cursor: pointer; }
           {when:'Tis · 16:18', what:'Inkommande — kort meddelande', recent:true},
           {when:'12 mar', what:'Konsultation, 30 min'},
           {when:'10 mar', what:'Första kontakt'},
-        ]} },
+        ]},
+      upcomingBooking:null,
+      responseTime:{mine:0, team:4.1},
+      notes:[] },
     { id:'demo-pn-006', lane:'later', laneLabel:'Senare', laneIcon:'i-pause', unread:false,
       who:'Peter Nilsson', email:'peter.nilsson@example.com', initials:'PN',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -1416,7 +1619,12 @@ button { cursor: pointer; }
           {when:'25 apr', what:'Begäran om röntgenbilder skickad', outbound:true},
           {when:'18 apr', what:'Konsultation hos Fazli'},
           {when:'15 apr', what:'Första kontakt'},
-        ]} },
+        ]},
+      upcomingBooking:{service:'Uppföljning · röntgen-genomgång',when:'Fredag 9 maj · 09:00',who:'Fazli',loc:'Stockholm'},
+      responseTime:{mine:6.2, team:4.1},
+      notes:[
+        {author:'Fazli K.',time:'Mån 09:32',body:'Snooze klar fre 09:00. Får påminnelse automatiskt. Räkna med 2-3 dagars handläggning hos labbet.'},
+      ] },
   ];
 
   const TABS = [{id:'all',label:'Alla'},{id:'unread',label:'Olästa'},{id:'mine',label:'Mina'},{id:'high-risk',label:'Hög risk'},{id:'today',label:'Idag'}];
@@ -1599,8 +1807,83 @@ button { cursor: pointer; }
     renderCtx(t);
   }
   function renderCtx(t) {
-    const tl = (t.timeline||[]).map(s=>`<li><span class="dot"></span><span>${escHtml(s)}</span></li>`).join('');
-    const bars = [3,5,7,4,6,9,8].map(h=>`<div class="bar" style="height:${h*3.5}px"></div>`).join('');
+    const h = t.customerHistory || {};
+    const upcoming = t.upcomingBooking;
+    const rt = t.responseTime || {mine:0,team:4.1};
+    const notes = t.notes || [];
+
+    // Live-stats inline (clickable)
+    const liveStats = `
+      <div class="live-stats-row">
+        <a class="ls-link" data-ls="emails">${ico('i-mail-open')}<strong>${h.totalEmails||0}</strong> mejl</a>
+        <span class="sep">·</span>
+        <a class="ls-link" data-ls="bookings">${ico('i-calendar')}<strong>${h.bookings||0}</strong> bokningar</a>
+        <span class="sep">·</span>
+        <a class="ls-link" data-ls="last">senaste <strong>${escHtml(h.lastBooking||h.firstContact||'—')}</strong></a>
+      </div>`;
+
+    // Upcoming booking
+    const bookingBlock = upcoming
+      ? `<div class="ctx-section">
+          <div class="head" style="color:var(--teal);">${ico('i-calendar')} Kommande bokning</div>
+          <div class="booking-card">
+            <span class="b-icon">${ico('i-calendar')}</span>
+            <div class="b-info">
+              <div class="b-svc">${escHtml(upcoming.service)}</div>
+              <div class="b-when">${escHtml(upcoming.when)}</div>
+              <div class="b-meta">Med ${escHtml(upcoming.who)} · ${escHtml(upcoming.loc||'')}</div>
+              <div class="b-actions">
+                <button class="b-btn" data-book-action="ics" data-booking-id="${escHtml(upcoming.service)}">${ico('i-calendar')} .ics</button>
+                <button class="b-btn" data-book-action="reschedule">${ico('i-clock')} Boka om</button>
+              </div>
+            </div>
+          </div>
+        </div>`
+      : `<div class="ctx-section">
+          <div class="head">${ico('i-calendar')} Kommande bokning</div>
+          <div class="no-booking">
+            ${ico('i-calendar')} Ingen kommande bokning
+            <span class="book-now" data-book-action="new">+ Boka tid</span>
+          </div>
+        </div>`;
+
+    // AI feedback buttons
+    const aiActions = (key, label) => `
+      <div class="ai-actions">
+        <button class="ai-act accept" data-ai-feedback="accept" data-ai-key="${key}">${ico('i-check')} Acceptera</button>
+        <button class="ai-act adjust" data-ai-feedback="adjust" data-ai-key="${key}">${ico('i-sparkles')} Justera</button>
+        <button class="ai-act reject" data-ai-feedback="reject" data-ai-key="${key}">${ico('i-x')} Avvisa</button>
+      </div>`;
+
+    // Activity comparison
+    const maxRt = Math.max(rt.mine, rt.team, 1);
+    const minePct = Math.max(8, Math.round((rt.mine / maxRt) * 100));
+    const teamPct = Math.max(8, Math.round((rt.team / maxRt) * 100));
+    const diff = rt.team - rt.mine;
+    const diffPct = rt.team > 0 ? Math.round((Math.abs(diff) / rt.team) * 100) : 0;
+    const isFaster = rt.mine > 0 && rt.mine < rt.team;
+    const isSlower = rt.mine > rt.team;
+    const compareSummary = rt.mine === 0
+      ? `Inga svar registrerade — team snitt ${rt.team.toString().replace('.',',')}h`
+      : isFaster
+        ? `Du är <strong>${diffPct}% snabbare ↑</strong> än team`
+        : isSlower
+          ? `Du är <strong>${diffPct}% långsammare ↓</strong> än team`
+          : `På par med teamet`;
+
+    // Notes
+    const notesHtml = notes.map(n=>{
+      const cls = n.ai ? ' ai' : '';
+      const author = n.ai ? `${ico('i-sparkles')} AI` : escHtml(n.author||'Team');
+      return `<div class="note${cls}">
+        <div class="n-head">
+          <span class="n-author">${author}</span>
+          <span class="n-time">${escHtml(n.time||'')}</span>
+        </div>
+        <div class="n-body">${escHtml(n.body||'')}</div>
+      </div>`;
+    }).join('');
+
     $('#ctx-panel').innerHTML = `
       <div class="ctx-section lane-${t.lane}">
         <div class="head">${ico('i-users')} Kund</div>
@@ -1611,26 +1894,37 @@ button { cursor: pointer; }
             <div class="email-line">${escHtml(t.email)}</div>
           </div>
         </div>
+        ${liveStats}
       </div>
+      ${bookingBlock}
+      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk · AI</div><div class="alert-box risk">${escHtml(t.risk)}</div>${aiActions('risk', 'risk')}</div>`:''}
+      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg · AI</div><div class="alert-box next">${escHtml(t.nextStep)}</div>${aiActions('nextStep', 'nästa steg')}</div>`:''}
       <div class="ctx-section">
-        <div class="head">${ico('i-target')} Status</div>
-        <div class="kv-list">
-          <div class="kv-item"><span class="label">${ico('i-history')} Livscykel</span><span class="val">${escHtml(t.lifecycle)}</span></div>
-          <div class="kv-item"><span class="label">${ico('i-circle-dot')} Status</span><span class="val">${escHtml(t.laneLabel)}</span></div>
-          <div class="kv-item"><span class="label">${ico('i-clock')} Uppföljning</span><span class="val">${escHtml(t.followUp)}</span></div>
-          <div class="kv-item"><span class="label">${ico('i-flame')} Risk</span><span class="val">${escHtml(t.riskLevel)}</span></div>
+        <div class="head">${ico('i-chart')} Svartider · 7 dagar</div>
+        <div class="activity-compare">
+          <div class="compare-row mine">
+            <span class="who mine">Du</span>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${minePct}%"></div></div>
+            <span class="num">${rt.mine.toString().replace('.',',')}h</span>
+          </div>
+          <div class="compare-row">
+            <span class="who">Team</span>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${teamPct}%"></div></div>
+            <span class="num">${rt.team.toString().replace('.',',')}h</span>
+          </div>
+          <div class="compare-summary${isSlower?' slower':''}">${compareSummary}</div>
         </div>
       </div>
-      ${t.risk?`<div class="ctx-section"><div class="head" style="color:var(--orange);">${ico('i-alert')} Risk</div><div class="alert-box risk">${escHtml(t.risk)}</div></div>`:''}
-      ${t.nextStep?`<div class="ctx-section"><div class="head" style="color:var(--green);">${ico('i-target')} Nästa steg</div><div class="alert-box next">${escHtml(t.nextStep)}</div></div>`:''}
       <div class="ctx-section">
-        <div class="head">${ico('i-chart')} Aktivitet · 7 dagar</div>
-        <div class="mini-chart">${bars}</div>
-        <div class="activity-meta">Snitt-svar: <strong>2,4h</strong></div>
-      </div>
-      <div class="ctx-section">
-        <div class="head">${ico('i-history')} Tidslinje</div>
-        <ul class="timeline">${tl}</ul>
+        <div class="head">${ico('i-templates')} Anteckningar · internt</div>
+        <div class="notes-list">${notesHtml || '<div style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 0;">Inga interna anteckningar än.</div>'}</div>
+        <div class="note-input-wrap">
+          <textarea class="note-input" id="note-input-${escHtml(t.id)}" placeholder="Anteckna något internt — bara för teamet"></textarea>
+          <div class="note-input-bar">
+            <span class="hint">Endast synligt för teamet · ⌘↵ för att posta</span>
+            <button class="post-btn" data-post-note="${escHtml(t.id)}">${ico('i-send')} Posta</button>
+          </div>
+        </div>
       </div>`;
   }
   // ===== Sidebar widgets =====
@@ -1831,6 +2125,57 @@ button { cursor: pointer; }
 
   function bind() {
     document.addEventListener('click', ev=>{
+      // ===== Context column actions =====
+      // Live-stats links
+      const ls = ev.target.closest('[data-ls]');
+      if (ls) { toast(`Öppnar ${ls.dataset.ls === 'emails' ? 'mejlhistorik' : ls.dataset.ls === 'bookings' ? 'bokningar' : 'tidslinje'} (demo)`); return; }
+      // Booking actions
+      const bookAct = ev.target.closest('[data-book-action]');
+      if (bookAct) {
+        const a = bookAct.dataset.bookAction;
+        if (a === 'ics') {
+          const t = state.threads.find(x=>x.id===state.selectedId);
+          const u = t?.upcomingBooking;
+          if (!u) return;
+          const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:${u.service} - ${t.who}\r\nDESCRIPTION:CCO export\r\nLOCATION:${u.loc||''}\r\nDTSTART:20260506T130000\r\nDTEND:20260506T140000\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+          const blob = new Blob([ics], {type:'text/calendar'});
+          const url = URL.createObjectURL(blob);
+          const a2 = document.createElement('a'); a2.href = url; a2.download = `${t.who.replace(/\s+/g,'-')}-${u.service}.ics`; a2.click();
+          URL.revokeObjectURL(url);
+          toast('.ics-fil exporterad');
+        } else if (a === 'reschedule') toast('Boka om — öppnar kalender (demo)');
+        else if (a === 'new') toast('Ny bokning — öppnar kalender (demo)');
+        return;
+      }
+      // AI feedback
+      const aiFb = ev.target.closest('[data-ai-feedback]');
+      if (aiFb) {
+        const fb = aiFb.dataset.aiFeedback;
+        const key = aiFb.dataset.aiKey;
+        const labels = {accept:'AI-förslag accepterat', adjust:'Markerat för justering', reject:'AI-förslag avvisat'};
+        toast(`${labels[fb]} (${key})`);
+        // visa applied state
+        aiFb.parentElement.querySelectorAll('.ai-act').forEach(b => b.classList.remove('applied'));
+        aiFb.classList.add('applied');
+        return;
+      }
+      // Post note
+      const postNote = ev.target.closest('[data-post-note]');
+      if (postNote) {
+        const tid = postNote.dataset.postNote;
+        const ta = document.getElementById('note-input-' + tid);
+        if (!ta) return;
+        const text = (ta.value || '').trim();
+        if (!text) { ta.focus(); return; }
+        const t = state.threads.find(x=>x.id===tid);
+        if (t) {
+          (t.notes = t.notes || []).unshift({author:'Fazli K.',time:'Just nu',body:text});
+          ta.value = '';
+          renderCtx(t);
+          toast('Anteckning postad');
+        }
+        return;
+      }
       // Thread nav prev/next
       const tnav = ev.target.closest('[data-thread-nav]');
       if (tnav && !tnav.disabled) { jumpThread(tnav.dataset.threadNav); return; }
@@ -1957,6 +2302,14 @@ button { cursor: pointer; }
           sendComposer();
         }
         if (ev.key === 'Escape') ev.target.blur();
+        return;
+      }
+      if (ev.target.classList && ev.target.classList.contains('note-input')) {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+          ev.preventDefault();
+          const tid = ev.target.id.replace('note-input-','');
+          document.querySelector(`[data-post-note="${tid}"]`)?.click();
+        }
         return;
       }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
