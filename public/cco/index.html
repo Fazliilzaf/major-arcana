@@ -749,6 +749,246 @@ button { cursor: pointer; }
   padding-left: 36px;
 }
 
+/* ===== AI summary block ===== */
+.ai-summary {
+  margin: 12px 22px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, rgba(236, 72, 153, 0.04) 50%, rgba(6, 214, 160, 0.03) 100%);
+  border: 1px solid rgba(108, 92, 231, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+.ai-summary::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.5px;
+  background: var(--ai-grad);
+  background-size: 200% 100%;
+  animation: aiShimmer 3.5s linear infinite;
+}
+.ai-summary .ai-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 1px;
+  color: var(--accent-2); text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.ai-summary .ai-head svg { width: 12px; height: 12px; }
+.ai-summary .ai-head .tldr-toggle {
+  margin-left: auto;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  color: var(--text-3);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 2px 8px; border-radius: 5px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.ai-summary .ai-head .tldr-toggle:hover { background: var(--surface); color: var(--text); }
+.ai-summary .ai-head .tldr-toggle svg { width: 10px; height: 10px; transition: transform 0.2s; }
+.ai-summary.expanded .ai-head .tldr-toggle svg { transform: rotate(180deg); }
+.ai-summary .tldr {
+  font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+.ai-summary .points {
+  list-style: none;
+  margin-top: 10px;
+  display: none;
+  padding-left: 0;
+}
+.ai-summary.expanded .points { display: flex; flex-direction: column; gap: 6px; animation: pointsIn 0.25s var(--ease); }
+@keyframes pointsIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.ai-summary .points li {
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+  padding-left: 2px;
+}
+.ai-summary .points li::before {
+  content: ''; display: inline-block;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent-grad);
+  flex-shrink: 0; margin-top: 7px;
+}
+
+/* ===== Composer ===== */
+.composer-wrap {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  padding: 12px 22px;
+  position: sticky; bottom: 0;
+  z-index: 4;
+}
+.composer-quick {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.composer-quick .qr {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: var(--accent-2);
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.08), rgba(236, 72, 153, 0.06));
+  border: 1px solid rgba(108, 92, 231, 0.20);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.composer-quick .qr:hover { background: var(--accent-soft); border-color: var(--accent); transform: translateY(-1px); }
+.composer-quick .qr svg { width: 10px; height: 10px; }
+.composer-quick .qr-label-row {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; color: var(--text-3);
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 5px;
+  margin-right: 4px;
+}
+.composer-quick .qr-label-row svg { width: 10px; height: 10px; color: var(--accent); }
+
+.composer {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  transition: all 0.15s var(--ease);
+}
+.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.composer-input {
+  width: 100%;
+  border: 0; outline: 0;
+  resize: none;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  background: transparent;
+  min-height: 60px;
+  max-height: 200px;
+}
+.composer-input::placeholder { color: var(--text-3); }
+.composer-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 9px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 0 0 10px 10px;
+}
+.composer-bar .tool {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-2);
+  transition: all 0.1s var(--ease);
+}
+.composer-bar .tool:hover { background: var(--surface); color: var(--text); }
+.composer-bar .tool svg { width: 13px; height: 13px; }
+.composer-bar .send-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 13px; height: 28px; border-radius: 7px;
+  background: var(--accent-grad); color: #fff;
+  font-size: 11.5px; font-weight: 700; letter-spacing: -0.01em;
+  box-shadow: 0 3px 10px rgba(108, 92, 231, 0.25);
+  transition: all 0.15s var(--ease);
+}
+.composer-bar .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.35); }
+.composer-bar .send-btn svg { width: 11px; height: 11px; }
+.composer-bar .send-btn .kbd {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.3px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 1px 5px; border-radius: 3px;
+}
+.composer-hint { font-size: 10px; color: var(--text-3); padding: 0 4px; font-weight: 500; }
+
+/* ===== Thread navigation arrows ===== */
+.thread-nav { display: inline-flex; gap: 2px; margin-left: 8px; }
+.thread-nav button {
+  width: 24px; height: 24px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-2);
+  transition: all 0.1s var(--ease);
+}
+.thread-nav button:hover { background: var(--bg-soft); color: var(--text); }
+.thread-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+.thread-nav button svg { width: 13px; height: 13px; }
+.thread-nav .pos {
+  font-size: 10.5px; color: var(--text-3); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; padding: 0 4px;
+}
+
+/* ===== History drawer overlay ===== */
+.history-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 18, 32, 0.42);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+  animation: fadeIn 0.2s ease-out;
+}
+.history-overlay.open { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.history-drawer {
+  position: fixed; right: 0; top: 0; bottom: 0;
+  width: 420px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -16px 0 40px rgba(20, 18, 32, 0.18);
+  display: flex; flex-direction: column;
+  z-index: 101;
+  transform: translateX(100%);
+  transition: transform 0.32s var(--ease);
+}
+.history-overlay.open + .history-drawer, .history-drawer.open { transform: translateX(0); }
+.history-drawer .hd-head {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+}
+.history-drawer .hd-head .ava {
+  width: 36px; height: 36px; border-radius: 11px;
+  background: var(--accent-grad);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 800; color: #fff;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.history-drawer .hd-head h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.history-drawer .hd-head .sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+.history-drawer .hd-close {
+  margin-left: auto;
+  width: 28px; height: 28px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-2);
+}
+.history-drawer .hd-close:hover { background: var(--bg-soft); color: var(--text); }
+.history-drawer .hd-close svg { width: 14px; height: 14px; }
+.history-drawer .hd-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 20px;
+}
+.history-drawer .hd-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: 18px;
+}
+.history-drawer .hd-stat {
+  background: var(--bg-soft); border-radius: 10px; padding: 10px 12px;
+  text-align: left;
+}
+.history-drawer .hd-stat .num { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; color: var(--text); display: block; }
+.history-drawer .hd-stat .lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; font-weight: 700; letter-spacing: 0.6px; }
+.hd-section-title { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--text-3); margin: 16px 0 10px; }
+.hd-timeline { list-style: none; position: relative; padding-left: 4px; }
+.hd-timeline::before { content: ''; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 1.5px; background: linear-gradient(180deg, var(--accent), var(--line) 80%); }
+.hd-timeline li { display: flex; gap: 12px; padding: 8px 0; font-size: 12.5px; position: relative; align-items: flex-start; }
+.hd-timeline .marker {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--line);
+  margin-left: 6px; margin-top: 4px; flex-shrink: 0; z-index: 1;
+}
+.hd-timeline li.recent .marker { background: var(--accent-grad); border-color: transparent; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.14); }
+.hd-timeline li.outbound .marker { background: var(--green); border-color: transparent; }
+.hd-timeline .body { flex: 1; min-width: 0; }
+.hd-timeline .body .when { font-size: 10.5px; color: var(--text-3); font-family: var(--font-mono); font-weight: 500; margin-bottom: 2px; }
+.hd-timeline .body .what { font-size: 12.5px; color: var(--text); font-weight: 500; line-height: 1.4; }
+.hd-timeline .body .what strong { font-weight: 700; }
+
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.composer-input.shake { animation: shake 0.3s ease-in-out; }
+
 /* ===== Context (right column, flat sections, no card-on-card) ===== */
 .ctx-panel {
   background: var(--bg);
@@ -865,6 +1105,12 @@ button { cursor: pointer; }
     <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></symbol>
     <symbol id="i-snooze" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M5 3 2 6M22 6l-3-3M9 13h6l-6 5h6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-chevron-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="i-chevron-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+    <symbol id="i-history-overlay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
   </defs>
 </svg>
 
@@ -1016,7 +1262,23 @@ button { cursor: pointer; }
       timeline:['Påminnelse idag','Tystnad 5 dagar','Offert skickad 9 maj','Konsultation 8 maj'],
       risk:'Hög risk — kunden har angett deadline (måndag) och nämner alternativ.',
       nextStep:'Svara inom 2h med två konkreta tidsförslag.',
-      lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—' },
+      lifecycle:'Aktiv dialog', followUp:'Idag', riskLevel:'Miss', owner:'—',
+      aiTldr:'Återkom inom 2h med 2 konkreta tider inom 2 veckor — kunden har deadline måndag.',
+      aiPoints:[
+        'Väntar på offert-uppföljning från möte 8 maj — 5 dagars tystnad',
+        'Hård deadline måndag, behöver besked för att kunna planera med frun',
+        'Hög risk att tappa kunden — han nämner alternativ',
+      ],
+      quickReplies:['Bekräfta tisdag 13:00','Erbjud torsdag 11:00','Be om mer flexibilitet'],
+      customerHistory:{ totalEmails:14, bookings:2, firstContact:'15 mar', lastBooking:'12 apr',
+        events:[
+          {when:'Idag · 16:07', what:'Inkommande mejl — påminnelse om offert', recent:true},
+          {when:'9 maj · 12:14', what:'Skickad — offert (FUE 38 500 kr)', outbound:true},
+          {when:'8 maj · 14:00', what:'Konsultation hos Egzona, 30 min'},
+          {when:'2 maj', what:'Bokning bekräftad'},
+          {when:'28 apr', what:'Första kontakt via Info-mailbox'},
+          {when:'15 mar', what:'Newsletter-prenumerant'},
+        ]} },
     { id:'demo-jk-002', lane:'sprint', laneLabel:'Sprint', laneIcon:'i-trend', unread:false,
       who:'Johan Karlsson', email:'johan.karlsson@example.com', initials:'JK',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -1028,7 +1290,20 @@ button { cursor: pointer; }
       timeline:['Mötesförslag idag','Tidigare diskussion 28 april'],
       risk:'Låg risk — strukturerad förfrågan.',
       nextStep:'Bekräfta tiden eller föreslå alternativ.',
-      lifecycle:'Aktiv dialog', followUp:'Mån 14:00', riskLevel:'Låg', owner:'Fazli' },
+      lifecycle:'Aktiv dialog', followUp:'Mån 14:00', riskLevel:'Låg', owner:'Fazli',
+      aiTldr:'Bekräfta måndag 14:00 — Cliento-integration. Han har förberedda webhook-frågor.',
+      aiPoints:[
+        'Föreslår möte måndag 14:00 om Cliento-integrationen',
+        'Har förberett konkreta frågor om webhook-flödet',
+        'Tidigare produktiv dialog 28 april — etablerad kontakt',
+      ],
+      quickReplies:['Bekräfta måndag 14:00','Föreslå annan tid','Be om agenda först'],
+      customerHistory:{ totalEmails:8, bookings:0, firstContact:'12 mar', lastBooking:'—',
+        events:[
+          {when:'Idag · 14:22', what:'Inkommande mejl — mötesförslag', recent:true},
+          {when:'28 apr · 09:30', what:'Diskussion om partnership-möjligheter'},
+          {when:'12 mar', what:'Första kontakt via LinkedIn-intro'},
+        ]} },
     { id:'demo-sh-003', lane:'bookable', laneLabel:'Bokning', laneIcon:'i-calendar', unread:true,
       who:'Sara Holm', email:'sara.holm@example.com', initials:'SH',
       mailbox:'Kons', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1044,7 +1319,21 @@ button { cursor: pointer; }
       timeline:['Bekräftelse igår','Konsultation 28 april','Första kontakt 22 april'],
       risk:'Låg risk — klart bokningsintresse.',
       nextStep:'Skicka kalender-inbjudan tisdag 13:00 eller torsdag 11:00.',
-      lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona' },
+      lifecycle:'Klar för bokning', followUp:'Idag', riskLevel:'Låg', owner:'Egzona',
+      aiTldr:'Boka tisdag 13:00 eller torsdag 11:00 — kunden är redo att teckna FUE.',
+      aiPoints:[
+        'Bekräftat val: FUE-konsultation, all-tid-mellan-10-15 nästa vecka',
+        'Tidigare svar från Egzona — föreslog tis 13:00 / tor 11:00',
+        'Lågt avhopps-risk, hög köpintention',
+      ],
+      quickReplies:['Bekräfta tisdag 13:00','Bekräfta torsdag 11:00','Skicka kalender-inbjudan'],
+      customerHistory:{ totalEmails:6, bookings:1, firstContact:'22 apr', lastBooking:'(planerad)',
+        events:[
+          {when:'Igår · 11:02', what:'Skickad — föreslog 2 tider', outbound:true},
+          {when:'Igår · 09:48', what:'Inkommande — bekräftade FUE-val', recent:true},
+          {when:'28 apr', what:'Konsultation hos Egzona'},
+          {when:'22 apr', what:'Första kontakt via Kons-mailbox'},
+        ]} },
     { id:'demo-el-004', lane:'review', laneLabel:'Granska', laneIcon:'i-eye', unread:true,
       who:'Erik Lindqvist', email:'erik.lindqvist@example.com', initials:'EL',
       mailbox:'Kontakt', mailboxTrail:[['K','#14b8c0'],['F','#6c5ce7']],
@@ -1060,7 +1349,19 @@ button { cursor: pointer; }
       timeline:['Flaggat 11:36','AI-utkast 11:36','Förfrågan 11:34'],
       risk:'Hög risk — fel pris kan skapa tvist.',
       nextStep:'Korrigera till 38 500 kr eller skicka uppdaterad prislista.',
-      lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—' },
+      lifecycle:'Ny dialog', followUp:'Idag', riskLevel:'Hög', owner:'—',
+      aiTldr:'AI-utkast har fel pris (32 000 vs 38 500 kr). Korrigera innan utkastet skickas.',
+      aiPoints:[
+        'Erik frågar bara om pris för FUE-behandling',
+        'AI genererade utkast med 32 000 kr (felaktig — gammalt pris)',
+        'Korrekt pris idag är 38 500 kr — skapar tvist om vi skickar fel',
+      ],
+      quickReplies:['Skicka korrekt pris (38 500 kr)','Erbjud konsultation','Begär mer info'],
+      customerHistory:{ totalEmails:1, bookings:0, firstContact:'Idag', lastBooking:'—',
+        events:[
+          {when:'Idag · 11:36', what:'AI-utkast flaggat — pris-avvikelse', recent:true},
+          {when:'Idag · 11:34', what:'Inkommande — pris-fråga'},
+        ]} },
     { id:'demo-as-005', lane:'unclear', laneLabel:'Oklart', laneIcon:'i-question', unread:false,
       who:'Anna Svensson', email:'anna.svensson@example.com', initials:'AS',
       mailbox:'Info', mailboxTrail:[['I','#1aa86c']],
@@ -1071,7 +1372,20 @@ button { cursor: pointer; }
       timeline:['Meddelande tisdag','Tidigare konsultation 12 mars'],
       risk:'Oklart — saknar kontext.',
       nextStep:'Slå upp tidigare konversation och svara med följdfråga.',
-      lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—' },
+      lifecycle:'Återupptagen', followUp:'—', riskLevel:'Låg', owner:'—',
+      aiTldr:'Otydligt meddelande. Tidigare konsultation 12 mars — fråga vad hon syftar på.',
+      aiPoints:[
+        'Mycket kort meddelande utan kontext: "hur det går"',
+        'Tidigare konsultation 12 mars — kan vara uppföljning på den',
+        'Eller kanske allmän fråga om något annat',
+      ],
+      quickReplies:['Be om förtydligande','Hänvisa till tidigare konsultation','Erbjud nytt möte'],
+      customerHistory:{ totalEmails:3, bookings:1, firstContact:'12 mar', lastBooking:'12 mar',
+        events:[
+          {when:'Tis · 16:18', what:'Inkommande — kort meddelande', recent:true},
+          {when:'12 mar', what:'Konsultation, 30 min'},
+          {when:'10 mar', what:'Första kontakt'},
+        ]} },
     { id:'demo-pn-006', lane:'later', laneLabel:'Senare', laneIcon:'i-pause', unread:false,
       who:'Peter Nilsson', email:'peter.nilsson@example.com', initials:'PN',
       mailbox:'Fazli', mailboxTrail:[['F','#6c5ce7']],
@@ -1087,7 +1401,22 @@ button { cursor: pointer; }
       timeline:['Snooze till fredag','Begäran om röntgen 25 april','Konsultation 18 april'],
       risk:'Låg risk — väntar på extern faktor.',
       nextStep:'Påminnelse fredag 09:00.',
-      lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli' },
+      lifecycle:'Pausad', followUp:'Fre 09:00', riskLevel:'Låg', owner:'Fazli',
+      aiTldr:'Pausad till fredag 09:00. Påminnelse aktiv om Peter inte hört av sig.',
+      aiPoints:[
+        'Peter väntar på röntgenbilder — förmodligen klara på fredag',
+        'Fazli har redan bekräftat snooze + automatisk påminnelse',
+        'Inget att göra nu — vänta på extern faktor',
+      ],
+      quickReplies:['Påminn redan idag','Erbjud alternativ utan röntgen','Be om uppdatering'],
+      customerHistory:{ totalEmails:5, bookings:1, firstContact:'15 apr', lastBooking:'18 apr',
+        events:[
+          {when:'Mån · 09:32', what:'Skickad — bekräftade snooze fredag', outbound:true},
+          {when:'Mån · 09:14', what:'Inkommande — väntar på röntgen', recent:true},
+          {when:'25 apr', what:'Begäran om röntgenbilder skickad', outbound:true},
+          {when:'18 apr', what:'Konsultation hos Fazli'},
+          {when:'15 apr', what:'Första kontakt'},
+        ]} },
   ];
 
   const TABS = [{id:'all',label:'Alla'},{id:'unread',label:'Olästa'},{id:'mine',label:'Mina'},{id:'high-risk',label:'Hög risk'},{id:'today',label:'Idag'}];
@@ -1196,10 +1525,25 @@ button { cursor: pointer; }
         </div>
         <div class="msg-body">${escHtml(m.body)}</div>
       </article>`).join('');
+    // Prev/next i visible-listan
+    const v = visibleThreads();
+    const idx = v.findIndex(x=>x.id===t.id);
+    const total = v.length;
+    const prevDis = idx <= 0 ? 'disabled' : '';
+    const nextDis = idx >= total - 1 ? 'disabled' : '';
+
+    const aiPoints = (t.aiPoints||[]).map(p=>`<li>${escHtml(p)}</li>`).join('');
+    const quickReplies = (t.quickReplies||[]).map(q=>`<button class="qr" data-qr="${escHtml(q)}">${ico('i-sparkles')} ${escHtml(q)}</button>`).join('');
+
     root.innerHTML = `
       <div class="thread-head lane-${t.lane}">
         <div class="top">
           <h2>${escHtml(t.subject)}</h2>
+          <div class="thread-nav">
+            <button data-thread-nav="prev" ${prevDis} title="Föregående (⌘[)">${ico('i-chevron-l')}</button>
+            <span class="pos">${idx+1}/${total}</span>
+            <button data-thread-nav="next" ${nextDis} title="Nästa (⌘])">${ico('i-chevron-r')}</button>
+          </div>
           <span class="lane-pill">${ico(t.laneIcon)} ${escHtml(t.laneLabel)}</span>
         </div>
         <div class="who-line">
@@ -1210,19 +1554,47 @@ button { cursor: pointer; }
           <span class="meta-chip">${ico('i-mail-open')} ${escHtml(t.mailbox)}</span>
           <span class="sep">·</span>
           <span class="meta-chip">${ico('i-users')} ${escHtml(t.owner)}</span>
+          <button class="action" data-history-open style="margin-left:auto;height:24px;padding:0 9px;font-size:11px;">${ico('i-history-overlay')} Historik</button>
         </div>
       </div>
+      ${(t.aiTldr || aiPoints) ? `
+        <div class="ai-summary" id="ai-summary">
+          <div class="ai-head">
+            ${ico('i-sparkles')} AI-sammanfattning
+            <button class="tldr-toggle" id="tldr-toggle">Detaljer ${ico('i-arrow-down')}</button>
+          </div>
+          <div class="tldr">${escHtml(t.aiTldr || '')}</div>
+          ${aiPoints ? `<ul class="points">${aiPoints}</ul>` : ''}
+        </div>
+      ` : ''}
       <div class="thread-actions">
-        <button class="action primary">${ico('i-reply')} Svara nu</button>
+        <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu <span style="opacity:.7;font-size:9.5px;background:rgba(255,255,255,0.18);padding:1px 5px;border-radius:3px;margin-left:4px;">R</span></button>
         <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
         <button class="action">${ico('i-clock')} Senare</button>
         <button class="action">${ico('i-check')} Klar</button>
         <button class="action">${ico('i-calendar')} Schemalägg</button>
-        <button class="action">${ico('i-history')} Historik</button>
         <button class="action danger" style="margin-left:auto;">${ico('i-trash')}</button>
       </div>
       <div class="thread-body">
         <div class="messages">${messages}</div>
+        <div class="composer-wrap">
+          ${quickReplies ? `
+            <div class="composer-quick">
+              <span class="qr-label-row">${ico('i-sparkles')} AI-förslag</span>
+              ${quickReplies}
+            </div>` : ''}
+          <div class="composer">
+            <textarea class="composer-input" id="composer-input" placeholder="Skriv ditt svar… (R för fokus · ⌘↵ för att skicka)"></textarea>
+            <div class="composer-bar">
+              <button class="tool" title="Bifoga">${ico('i-paperclip')}</button>
+              <button class="tool" title="Schemalägg">${ico('i-calendar')}</button>
+              <button class="tool" title="Mall">${ico('i-templates')}</button>
+              <button class="tool" title="AI förbättra">${ico('i-sparkles')}</button>
+              <span class="composer-hint">Skickas som <strong>${escHtml(t.owner||'Egzona')}</strong> via ${escHtml(t.mailbox)}</span>
+              <button class="send-btn" id="send-btn">${ico('i-send')} Skicka <span class="kbd">⌘↵</span></button>
+            </div>
+          </div>
+        </div>
       </div>`;
     renderCtx(t);
   }
@@ -1362,6 +1734,85 @@ button { cursor: pointer; }
     menu.classList.toggle('open', open);
   }
 
+  // ==== Thread nav (prev/next) ====
+  function jumpThread(dir) {
+    const v = visibleThreads();
+    const idx = v.findIndex(x=>x.id===state.selectedId);
+    if (idx < 0) return;
+    const next = dir === 'prev' ? v[idx-1] : v[idx+1];
+    if (!next) return;
+    state.selectedId = next.id;
+    renderRows();
+    renderThread();
+  }
+
+  // ==== History drawer ====
+  function openHistory() {
+    const t = state.threads.find(x=>x.id===state.selectedId);
+    if (!t) return;
+    let overlay = document.getElementById('hist-overlay');
+    let drawer = document.getElementById('hist-drawer');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'hist-overlay';
+      overlay.className = 'history-overlay';
+      drawer = document.createElement('aside');
+      drawer.id = 'hist-drawer';
+      drawer.className = 'history-drawer';
+      document.body.appendChild(overlay);
+      document.body.appendChild(drawer);
+      overlay.addEventListener('click', closeHistory);
+    }
+    const h = t.customerHistory || { totalEmails:0, bookings:0, firstContact:'—', lastBooking:'—', events:[] };
+    const events = (h.events||[]).map(e=>{
+      const cls = (e.recent?'recent':'') + (e.outbound?' outbound':'');
+      return `<li class="${cls}"><span class="marker"></span><div class="body"><div class="when">${escHtml(e.when)}</div><div class="what">${escHtml(e.what)}</div></div></li>`;
+    }).join('');
+    drawer.innerHTML = `
+      <div class="hd-head">
+        <span class="ava">${escHtml(t.initials)}</span>
+        <div>
+          <h3>${escHtml(t.who)}</h3>
+          <div class="sub">${escHtml(t.email)}</div>
+        </div>
+        <button class="hd-close" id="hist-close">${ico('i-x')}</button>
+      </div>
+      <div class="hd-body">
+        <div class="hd-stats">
+          <div class="hd-stat"><span class="num">${h.totalEmails}</span><span class="lbl">Mejl totalt</span></div>
+          <div class="hd-stat"><span class="num">${h.bookings}</span><span class="lbl">Bokningar</span></div>
+          <div class="hd-stat"><span class="num">${escHtml(h.firstContact)}</span><span class="lbl">Första kontakt</span></div>
+        </div>
+        <div class="hd-section-title">Tidslinje · alla händelser</div>
+        <ul class="hd-timeline">${events}</ul>
+      </div>`;
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+    document.getElementById('hist-close')?.addEventListener('click', closeHistory);
+  }
+  function closeHistory() {
+    document.getElementById('hist-overlay')?.classList.remove('open');
+    document.getElementById('hist-drawer')?.classList.remove('open');
+  }
+
+  // ==== Composer helpers ====
+  function focusComposer() {
+    const ta = document.getElementById('composer-input');
+    if (ta) ta.focus();
+  }
+  function sendComposer() {
+    const ta = document.getElementById('composer-input');
+    if (!ta) return;
+    const text = (ta.value || '').trim();
+    if (!text) {
+      ta.classList.remove('shake'); void ta.offsetWidth; ta.classList.add('shake');
+      ta.focus();
+      return;
+    }
+    toast('Mejl skickat (demo) · ' + text.length + ' tecken');
+    ta.value = '';
+  }
+
   // ==== Live-pip flash on simulated new mail ====
   let livePipTimer = null;
   function simulateLiveActivity() {
@@ -1380,6 +1831,31 @@ button { cursor: pointer; }
 
   function bind() {
     document.addEventListener('click', ev=>{
+      // Thread nav prev/next
+      const tnav = ev.target.closest('[data-thread-nav]');
+      if (tnav && !tnav.disabled) { jumpThread(tnav.dataset.threadNav); return; }
+      // History drawer
+      if (ev.target.closest('[data-history-open]')) { openHistory(); return; }
+      // TLDR toggle
+      if (ev.target.closest('#tldr-toggle')) {
+        document.getElementById('ai-summary')?.classList.toggle('expanded');
+        return;
+      }
+      // Quick-reply pre-fill composer
+      const qr = ev.target.closest('[data-qr]');
+      if (qr) {
+        const ta = document.getElementById('composer-input');
+        if (ta) {
+          ta.value = qr.dataset.qr + '\n\n';
+          ta.focus();
+          ta.setSelectionRange(ta.value.length, ta.value.length);
+        }
+        return;
+      }
+      // Focus composer button
+      if (ev.target.closest('[data-focus-composer]')) { focusComposer(); return; }
+      // Send composer
+      if (ev.target.closest('#send-btn')) { sendComposer(); return; }
       // Sort menu trigger
       const sortTrig = ev.target.closest('#sort-trigger');
       if (sortTrig) { ev.stopPropagation(); toggleSortMenu(); return; }
@@ -1474,8 +1950,24 @@ button { cursor: pointer; }
       }
     });
     document.addEventListener('keydown', ev=>{
+      // Cmd+Enter inom textarea = skicka
+      if (ev.target.id === 'composer-input') {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+          ev.preventDefault();
+          sendComposer();
+        }
+        if (ev.key === 'Escape') ev.target.blur();
+        return;
+      }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
       if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
+      // Cmd+[ / Cmd+] för prev/next-tråd
+      if ((ev.metaKey||ev.ctrlKey) && (ev.key==='['||ev.key==='Dead')) { ev.preventDefault(); jumpThread('prev'); return; }
+      if ((ev.metaKey||ev.ctrlKey) && ev.key===']') { ev.preventDefault(); jumpThread('next'); return; }
+      // Esc stänger drawer
+      if (ev.key === 'Escape') { closeHistory(); return; }
+      // R fokuserar composer
+      if (ev.key === 'r' || ev.key === 'R') { ev.preventDefault(); focusComposer(); return; }
       const v = visibleThreads();
       const idx = v.findIndex(t=>t.id===state.selectedId);
       if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
