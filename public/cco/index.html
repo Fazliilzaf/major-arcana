@@ -213,7 +213,10 @@ button { cursor: pointer; }
   position: relative;
   overflow: hidden;
   cursor: default;
+  flex-shrink: 0;
 }
+.sidebar-section { flex-shrink: 0; }
+.presence-block { flex-shrink: 0; }
 .today-stats::before {
   content: ''; position: absolute; right: -20px; top: -20px;
   width: 80px; height: 80px; border-radius: 50%;
