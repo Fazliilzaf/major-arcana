@@ -356,8 +356,9 @@ const config = {
     stateRoot,
     fileName: 'auth.json',
   }),
-  authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 12),
-  authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 180),
+  // Sessioner håller 7 dagar absolut + 24h idle-timeout. Override via env för kortare/längre.
+  authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 168),
+  authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 1440),
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
   authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
   authAuditAppendOnly: isProduction ? true : asBool(process.env.AUTH_AUDIT_APPEND_ONLY, true),
