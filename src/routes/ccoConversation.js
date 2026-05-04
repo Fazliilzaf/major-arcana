@@ -971,6 +971,151 @@ function createCcoConversationRouter({
     }
   );
 
+  // ----- Dashboard: KPI-aggregat -----
+  // GET /cco/runtime/dashboard?days=7
+  router.get(
+    '/cco/runtime/dashboard',
+    authMiddleware,
+    (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const days = Math.max(1, Math.min(90, Number(req.query.days) || 7));
+        const nowMs = Date.now();
+        const dayMs = 24 * 60 * 60 * 1000;
+        const startMs = nowMs - days * dayMs;
+        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+        const yesterdayStart = todayStart.getTime() - dayMs;
+
+        const allMessages = ccoMailboxTruthStore.listMessages({});
+        // Filter: alla i intervallet
+        const inWindow = allMessages.filter((m) => {
+          const safe = asObject(m);
+          const t = Date.parse(safe.sentAt || safe.receivedAt || safe.lastModifiedAt || '');
+          return Number.isFinite(t) && t >= startMs;
+        });
+
+        // Volym per dag (senaste N dagar) — för chart
+        const volumePerDay = {};
+        for (let i = 0; i < days; i += 1) {
+          const dKey = new Date(nowMs - i * dayMs).toISOString().slice(0, 10);
+          volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+        }
+        let inboundCount = 0;
+        let outboundCount = 0;
+        let todayInboundCount = 0;
+        let yesterdayInboundCount = 0;
+        const perMailboxCount = {};
+        const customerActivity = {};
+        for (const raw of inWindow) {
+          const m = asObject(raw);
+          const tIso = m.sentAt || m.receivedAt || m.lastModifiedAt || '';
+          const tMs = Date.parse(tIso);
+          if (!Number.isFinite(tMs)) continue;
+          const dir = deriveDir(m.folderType);
+          const dKey = new Date(tMs).toISOString().slice(0, 10);
+          if (!volumePerDay[dKey]) volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+          if (dir === 'outbound') {
+            volumePerDay[dKey].outbound += 1;
+            outboundCount += 1;
+          } else if (dir === 'inbound') {
+            volumePerDay[dKey].inbound += 1;
+            inboundCount += 1;
+            if (tMs >= todayStart.getTime()) todayInboundCount += 1;
+            else if (tMs >= yesterdayStart) yesterdayInboundCount += 1;
+          }
+          // Per mailbox (sender mailbox)
+          const mailboxAddr = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
+          if (!perMailboxCount[mailboxAddr]) perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
+          perMailboxCount[mailboxAddr].total += 1;
+          if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
+          else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
+          // Per kund (customer email)
+          const customerEmail =
+            normalizeText(asObject(asObject(m.from).emailAddress).address) ||
+            normalizeText(m.senderEmail) ||
+            normalizeText(m.fromAddress);
+          if (customerEmail && dir === 'inbound') {
+            const fromName =
+              normalizeText(asObject(asObject(m.from).emailAddress).name) ||
+              normalizeText(m.senderName) ||
+              customerEmail;
+            if (!customerActivity[customerEmail]) customerActivity[customerEmail] = { email: customerEmail, name: fromName, count: 0, lastAt: null };
+            customerActivity[customerEmail].count += 1;
+            const cur = customerActivity[customerEmail].lastAt ? Date.parse(customerActivity[customerEmail].lastAt) : 0;
+            if (tMs > cur) customerActivity[customerEmail].lastAt = tIso;
+          }
+        }
+
+        // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
+        const conversationLatest = {};
+        for (const raw of allMessages) {
+          const m = asObject(raw);
+          const key = normalizeText(m.mailboxConversationId);
+          if (!key) continue;
+          const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
+          if (!Number.isFinite(tMs)) continue;
+          if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
+          const dir = deriveDir(m.folderType);
+          if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
+          else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
+        }
+        const responseTimes = [];
+        for (const key of Object.keys(conversationLatest)) {
+          const { inbounds, outbounds } = conversationLatest[key];
+          if (!inbounds.length || !outbounds.length) continue;
+          inbounds.sort((a, b) => a - b);
+          outbounds.sort((a, b) => a - b);
+          for (const inb of inbounds) {
+            const reply = outbounds.find((o) => o > inb);
+            if (reply) {
+              const diffH = (reply - inb) / 3600000;
+              if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
+              break;
+            }
+          }
+        }
+        responseTimes.sort((a, b) => a - b);
+        const avgResponseHours = responseTimes.length ? responseTimes.reduce((s, v) => s + v, 0) / responseTimes.length : null;
+        const medianResponseHours = responseTimes.length ? responseTimes[Math.floor(responseTimes.length / 2)] : null;
+
+        // Topp-kunder (efter aktivitet senaste N dagar)
+        const topCustomers = Object.values(customerActivity)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8);
+
+        // Volume-array (sorterad äldst → nyast för chart)
+        const volumeChart = Object.entries(volumePerDay)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, counts]) => ({ date, ...counts }));
+
+        return res.json({
+          ok: true,
+          windowDays: days,
+          generatedAt: new Date().toISOString(),
+          today: { inboundCount: todayInboundCount },
+          yesterday: { inboundCount: yesterdayInboundCount },
+          totals: {
+            inbound: inboundCount,
+            outbound: outboundCount,
+            total: inboundCount + outboundCount,
+          },
+          responseTime: {
+            count: responseTimes.length,
+            avgHours: avgResponseHours,
+            medianHours: medianResponseHours,
+          },
+          perMailbox: perMailboxCount,
+          topCustomers,
+          volumeChart,
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+      }
+    }
+  );
+
   // ----- Settings-info: mailboxar + AI-konfiguration -----
   // GET /cco/runtime/settings/info
   router.get(
