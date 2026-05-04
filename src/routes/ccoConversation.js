@@ -227,6 +227,7 @@ function createCcoConversationRouter({
   syncLookbackDays = 14,
   ccoConversationStateStore = null,
   ccoConversationNotesStore = null,
+  ccoMailTemplateStore = null,
   clientoBookingStore = null,
   defaultTenantId = 'cco',
 } = {}) {
@@ -966,6 +967,70 @@ function createCcoConversationRouter({
           error: 'sync_failed',
           detail: String((err && err.message) || err),
         });
+      }
+    }
+  );
+
+  // ----- Mejl-mallar -----
+  // GET /cco/runtime/mail-templates                          → lista alla
+  // POST /cco/runtime/mail-templates                         → upsert (templateId optional)
+  // DELETE /cco/runtime/mail-templates/:templateId           → ta bort
+  router.get(
+    '/cco/runtime/mail-templates',
+    authMiddleware,
+    (_req, res) => {
+      try {
+        if (!ccoMailTemplateStore) {
+          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+        }
+        const templates = ccoMailTemplateStore.listTemplates();
+        return res.json({ ok: true, count: templates.length, templates });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+      }
+    }
+  );
+  router.post(
+    '/cco/runtime/mail-templates',
+    authMiddleware,
+    express.json({ limit: '32kb' }),
+    async (req, res) => {
+      try {
+        if (!ccoMailTemplateStore) {
+          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+        }
+        const body = asObject(req.body);
+        const saved = await ccoMailTemplateStore.saveTemplate({
+          templateId: normalizeText(body.templateId) || undefined,
+          label: normalizeText(body.label),
+          icon: normalizeText(body.icon),
+          body: normalizeText(body.body),
+        });
+        return res.json({ ok: true, template: saved });
+      } catch (err) {
+        const msg = String((err && err.message) || err);
+        const isValidation = /krävs|max/.test(msg);
+        return res.status(isValidation ? 400 : 500).json({
+          ok: false,
+          error: isValidation ? 'validation' : 'internal_error',
+          detail: msg,
+        });
+      }
+    }
+  );
+  router.delete(
+    '/cco/runtime/mail-templates/:templateId',
+    authMiddleware,
+    async (req, res) => {
+      try {
+        if (!ccoMailTemplateStore) {
+          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
+        }
+        const ok = await ccoMailTemplateStore.deleteTemplate(req.params.templateId);
+        if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
+        return res.json({ ok: true });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
       }
     }
   );

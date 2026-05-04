@@ -415,6 +415,7 @@ const {
 } = require('./src/ops/bootstrapRunner');
 const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
 const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNotesStore');
+const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
@@ -903,6 +904,9 @@ process.once('SIGTERM', () => {
   const ccoConversationNotesStore = await createCcoConversationNotesStore({
     filePath: config.ccoConversationNotesStorePath,
   });
+  const ccoMailTemplateStore = await createCcoMailTemplateStore({
+    filePath: config.ccoMailTemplateStorePath,
+  });
   const ccoNoteStore = await createCcoNoteStore({
     filePath: config.ccoNoteStorePath,
   });
@@ -1245,6 +1249,7 @@ process.once('SIGTERM', () => {
       syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
       ccoConversationStateStore,
       ccoConversationNotesStore,
+      ccoMailTemplateStore,
       clientoBookingStore,
       defaultTenantId: 'cco',
     })

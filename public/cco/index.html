@@ -509,6 +509,50 @@ button { cursor: pointer; }
 }
 .composer-wrap.is-open { max-height: 420px; padding: 10px 22px 14px; }
 
+/* Templates dropdown */
+.template-wrap { position: relative; display: inline-flex; }
+.template-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 26px; padding: 0 9px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; color: var(--text-2);
+  background: var(--bg-soft);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.template-btn:hover { background: var(--accent-soft); color: var(--accent-2); }
+.template-btn svg { width: 11px; height: 11px; }
+.template-menu {
+  display: none;
+  position: absolute; bottom: calc(100% + 6px); left: 0;
+  min-width: 280px; max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.10);
+  padding: 5px;
+  z-index: 30;
+  max-height: 360px; overflow-y: auto;
+}
+.template-menu.open { display: block; animation: menuIn 0.15s var(--ease); }
+.template-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 10px; border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.template-item:hover { background: var(--bg-soft); }
+.template-item .ti-icon {
+  width: 22px; height: 22px; border-radius: 5px;
+  background: var(--accent-soft);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.template-item .ti-info { flex: 1; min-width: 0; }
+.template-item .ti-label { font-size: 11.5px; font-weight: 600; color: var(--text); }
+.template-item .ti-preview { font-size: 10.5px; color: var(--text-3); margin-top: 2px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.template-empty { font-size: 11px; color: var(--text-3); text-align: center; padding: 16px 8px; }
+
 /* AI-utkast-pill ovan composer */
 .ai-draft-bar {
   display: flex; align-items: center; gap: 8px;
@@ -1161,6 +1205,10 @@ button { cursor: pointer; }
           <div class="composer">
             <textarea class="composer-input" id="composer-input" placeholder="Skriv ditt svar… (⌘↵ för att skicka)"></textarea>
             <div class="composer-bar">
+              <span class="template-wrap">
+                <button type="button" class="template-btn" id="template-btn" title="Infoga mall">${ico('i-templates')} Mallar</button>
+                <div class="template-menu" id="template-menu"></div>
+              </span>
               <span class="composer-hint">${state.live ? 'Skickas via Microsoft Graph' : 'Demo-läge — skickar inte på riktigt'}</span>
               <button class="send-btn" id="send-btn">${ico('i-send')} Skicka <span style="font-size:9px;font-weight:600;letter-spacing:0.3px;background:rgba(255,255,255,0.18);padding:1px 5px;border-radius:3px;margin-left:2px;">⌘↵</span></button>
             </div>
@@ -1274,6 +1322,15 @@ button { cursor: pointer; }
       // Cliento booking slot click
       const slotBtn = ev.target.closest('[data-booking-slot]');
       if (slotBtn) { confirmBookingSlot(slotBtn.dataset.bookingSlot, slotBtn); return; }
+      // Templates: open dropdown
+      if (ev.target.closest('#template-btn')) { ev.stopPropagation(); toggleTemplateMenu(); return; }
+      // Templates: select item
+      const tplItem = ev.target.closest('[data-template-id]');
+      if (tplItem) { applyTemplate(tplItem.dataset.templateId); return; }
+      // Templates: click outside closes
+      if (!ev.target.closest('#template-menu')) {
+        document.getElementById('template-menu')?.classList.remove('open');
+      }
     });
     document.addEventListener('keydown', ev=>{
       // Composer keys
@@ -1460,6 +1517,97 @@ button { cursor: pointer; }
     } finally {
       if (btn) btn.disabled = false;
     }
+  }
+
+  // ==== Mejl-mallar: ladda + infoga ====
+  async function loadTemplates() {
+    if (state._templatesLoaded || state._templatesLoading) return;
+    state._templatesLoading = true;
+    try {
+      const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+      if (!tok) { state._templatesLoading = false; return; }
+      const r = await fetch('/api/v1/cco/runtime/mail-templates', { headers:{ Authorization:'Bearer '+tok } });
+      if (!r.ok) { state._templatesLoading = false; return; }
+      const j = await r.json();
+      if (j.ok && Array.isArray(j.templates)) {
+        state._templates = j.templates;
+        state._templatesLoaded = true;
+      }
+    } catch (_e) { /* swallow */ }
+    state._templatesLoading = false;
+  }
+  function renderTemplateMenu() {
+    const menu = document.getElementById('template-menu');
+    if (!menu) return;
+    const list = state._templates || [];
+    if (!list.length) {
+      menu.innerHTML = '<div class="template-empty">Inga mallar än</div>';
+      return;
+    }
+    menu.innerHTML = list.map(t => `
+      <div class="template-item" data-template-id="${escNote(t.templateId)}">
+        <span class="ti-icon">${escNote(t.icon || '✉')}</span>
+        <div class="ti-info">
+          <div class="ti-label">${escNote(t.label)}</div>
+          <div class="ti-preview">${escNote(t.body)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  function toggleTemplateMenu() {
+    const menu = document.getElementById('template-menu');
+    if (!menu) return;
+    const willOpen = !menu.classList.contains('open');
+    if (willOpen) {
+      // Lazy-load if needed
+      if (!state._templatesLoaded) {
+        loadTemplates().then(()=>{ renderTemplateMenu(); menu.classList.add('open'); });
+      } else {
+        renderTemplateMenu();
+        menu.classList.add('open');
+      }
+    } else {
+      menu.classList.remove('open');
+    }
+  }
+  function substituteVariables(body) {
+    const t = state.threads.find(x => x.id === state.selectedId);
+    const customerFullName = t?.who || '';
+    const firstName = customerFullName.split(/\s+/)[0] || customerFullName;
+    const operator = t?.owner || 'Hair TP Clinic';
+    const today = new Date().toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
+    const subject = t?.subject || '';
+    return String(body || '')
+      .replace(/\{\{förnamn\}\}/gi, firstName)
+      .replace(/\{\{namn\}\}/gi, customerFullName)
+      .replace(/\{\{fullt_namn\}\}/gi, customerFullName)
+      .replace(/\{\{operatör\}\}/gi, operator)
+      .replace(/\{\{operator\}\}/gi, operator)
+      .replace(/\{\{klinik\}\}/gi, 'Hair TP Clinic')
+      .replace(/\{\{datum\}\}/gi, today)
+      .replace(/\{\{ämne\}\}/gi, subject)
+      .replace(/\{\{amne\}\}/gi, subject);
+  }
+  function applyTemplate(templateId) {
+    const tpl = (state._templates || []).find(t => t.templateId === templateId);
+    if (!tpl) return;
+    const ta = document.getElementById('composer-input');
+    if (!ta) return;
+    const text = substituteVariables(tpl.body);
+    // Om textarea är tom → ersätt. Annars infoga vid cursor.
+    if (!ta.value.trim()) {
+      ta.value = text;
+    } else {
+      const cursor = ta.selectionStart || ta.value.length;
+      ta.value = ta.value.slice(0, cursor) + (cursor > 0 && ta.value[cursor-1] !== '\n' ? '\n\n' : '') + text + ta.value.slice(cursor);
+    }
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(200, ta.scrollHeight) + 'px';
+    ta.focus();
+    document.getElementById('template-menu')?.classList.remove('open');
+    // Hide AI-draft pill if present (vi har manuellt valt mall)
+    const bar = document.getElementById('ai-draft-bar');
+    if (bar) bar.style.display = 'none';
   }
 
   // ==== Cliento-bokningar: ladda + 1-klick-bekräfta ====

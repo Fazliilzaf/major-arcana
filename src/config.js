@@ -207,6 +207,11 @@ const config = {
     stateRoot,
     fileName: 'cco-conversation-notes.json',
   }),
+  ccoMailTemplateStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_TEMPLATE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mail-templates.json',
+  }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
     stateRoot,
