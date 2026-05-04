@@ -971,6 +971,45 @@ function createCcoConversationRouter({
     }
   );
 
+  // ----- Settings-info: mailboxar + AI-konfiguration -----
+  // GET /cco/runtime/settings/info
+  router.get(
+    '/cco/runtime/settings/info',
+    authMiddleware,
+    (_req, res) => {
+      try {
+        // Sammanställ mailbox-info från allowlist + senaste sync
+        const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
+          .split(',').map((s) => s.trim()).filter(Boolean);
+        const mailboxIds = allowlistRaw.length > 0 ? allowlistRaw : (mailboxIdsForSync || []);
+        const ai = {
+          provider: openai && openaiModel ? 'openai' : 'heuristic',
+          model: openai && openaiModel ? openaiModel : null,
+          status: openai && openaiModel ? 'aktiv' : 'fallback',
+        };
+        const send = {
+          enabled: Boolean(graphSendConnector && typeof graphSendConnector.sendReply === 'function'),
+          status: graphSendConnector && typeof graphSendConnector.sendReply === 'function' ? 'aktiv' : 'avstängd',
+        };
+        const sync = {
+          enabled: Boolean(graphReadConnector),
+          status: graphReadConnector ? 'aktiv' : 'avstängd',
+          lookbackDays: syncLookbackDays || 14,
+        };
+        return res.json({
+          ok: true,
+          mailboxes: mailboxIds.map((id) => ({ mailboxId: id, mailboxAddress: id })),
+          ai,
+          send,
+          sync,
+          tenantId: defaultTenantId,
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+      }
+    }
+  );
+
   // ----- Mejl-mallar -----
   // GET /cco/runtime/mail-templates                          → lista alla
   // POST /cco/runtime/mail-templates                         → upsert (templateId optional)
