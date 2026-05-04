@@ -2467,13 +2467,27 @@ function createScheduler({
     });
 
     try {
+      const startedAt = Date.now();
+      logger?.log?.(
+        `[scheduler] cco_truth_delta_sync START mailboxes=${mailboxIds.join(',')}`
+      );
       const result = await delta.runDeltaSync({
         mailboxIds,
         folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
       });
+      const newMessages = (result?.perMailbox || []).reduce((sum, mb) => {
+        return sum + (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+      }, 0);
       logger?.log?.(
-        `[scheduler] cco_truth_delta_sync ok runId=${result?.runId || ''} mailboxes=${mailboxIds.length} elapsedMs=${result?.elapsedMs ?? ''}`
+        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} elapsedMs=${result?.elapsedMs ?? Date.now()-startedAt}`
       );
+      // Per-mailbox breakdown
+      for (const mb of (result?.perMailbox || [])) {
+        const mbMsgs = (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+        logger?.log?.(
+          `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs}`
+        );
+      }
       return {
         tenantId,
         skipped: false,

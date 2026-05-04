@@ -971,6 +971,44 @@ function createCcoConversationRouter({
     }
   );
 
+  // ----- Mailbox health (PUBLIC, ingen auth — bara aggregat-counts) -----
+  // GET /cco/runtime/health/mailboxes
+  // Visar antal mejl per mailbox + senaste mejlets timestamp.
+  // Inga email-bodies eller customer-data exponeras — bara counts.
+  router.get(
+    '/cco/runtime/health/mailboxes',
+    (_req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const all = ccoMailboxTruthStore.listMessages({});
+        const byMailbox = {};
+        for (const raw of all) {
+          const m = asObject(raw);
+          const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
+          if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
+          byMailbox[mb].count += 1;
+          const tIso = normalizeText(m.sentAt) || normalizeText(m.receivedAt) || normalizeText(m.lastModifiedAt);
+          if (tIso) {
+            const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
+            if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+          }
+        }
+        return res.json({
+          ok: true,
+          totalMessages: all.length,
+          mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
+          generatedAt: new Date().toISOString(),
+          graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
+          syncEnabled: Boolean(graphReadConnector),
+        });
+      } catch (err) {
+        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+      }
+    }
+  );
+
   // ----- Dashboard: KPI-aggregat -----
   // GET /cco/runtime/dashboard?days=7
   router.get(
