@@ -419,6 +419,61 @@ button { cursor: pointer; }
 .action.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.35); }
 .action.danger:hover { color: var(--red); }
 
+/* Composer — hidden by default, revealed on Svara nu */
+.composer-wrap {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0 22px;
+  position: sticky; bottom: 0;
+  z-index: 4;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s var(--ease), padding 0.2s var(--ease);
+}
+.composer-wrap.is-open { max-height: 320px; padding: 12px 22px 14px; }
+.composer {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.composer-input {
+  width: 100%;
+  border: 0; outline: 0; resize: none;
+  padding: 10px 12px;
+  font-family: inherit; font-size: 13px; line-height: 1.5;
+  color: var(--text); background: transparent;
+  min-height: 60px; max-height: 200px;
+}
+.composer-input::placeholder { color: var(--text-3); }
+.composer-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 0 0 9px 9px;
+}
+.composer-bar .composer-hint { font-size: 10px; color: var(--text-3); padding: 0 4px; flex: 1; }
+.composer-bar .send-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 0 12px; height: 28px; border-radius: 7px;
+  background: var(--accent-grad); color: #fff;
+  font-size: 11.5px; font-weight: 700;
+  box-shadow: 0 3px 10px rgba(108, 92, 231, 0.25);
+  cursor: pointer; transition: all 0.15s var(--ease);
+}
+.composer-bar .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(108, 92, 231, 0.30); }
+.composer-bar .send-btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.composer-bar .send-btn svg { width: 11px; height: 11px; }
+.composer-status {
+  font-size: 11px; color: var(--text-2);
+  padding: 4px 4px 0;
+}
+.composer-status.error { color: var(--red); }
+.composer-status.ok { color: var(--green); }
+
 /* Messages — flat, no boxed cards */
 .thread-body {
   flex: 1; overflow-y: auto;
@@ -579,6 +634,7 @@ button { cursor: pointer; }
     <symbol id="i-templates" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
     <symbol id="i-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
     <symbol id="i-mail-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><path d="m22 7-10 5L2 7"/><path d="M19 16v6M16 19h6"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
@@ -860,7 +916,7 @@ button { cursor: pointer; }
         </div>
       </div>
       <div class="thread-actions">
-        <button class="action primary">${ico('i-reply')} Svara nu</button>
+        <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu</button>
         <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
         <button class="action">${ico('i-clock')} Senare</button>
         <button class="action">${ico('i-check')} Klar</button>
@@ -870,6 +926,16 @@ button { cursor: pointer; }
       </div>
       <div class="thread-body">
         <div class="messages">${messages}</div>
+        <div class="composer-wrap" id="composer-wrap">
+          <div class="composer">
+            <textarea class="composer-input" id="composer-input" placeholder="Skriv ditt svar… (⌘↵ för att skicka)"></textarea>
+            <div class="composer-bar">
+              <span class="composer-hint">${state.live ? 'Skickas via Microsoft Graph' : 'Demo-läge — skickar inte på riktigt'}</span>
+              <button class="send-btn" id="send-btn">${ico('i-send')} Skicka <span style="font-size:9px;font-weight:600;letter-spacing:0.3px;background:rgba(255,255,255,0.18);padding:1px 5px;border-radius:3px;margin-left:2px;">⌘↵</span></button>
+            </div>
+          </div>
+          <div class="composer-status" id="composer-status"></div>
+        </div>
       </div>`;
     renderCtx(t);
   }
@@ -916,8 +982,28 @@ button { cursor: pointer; }
       if (tab) { state.tab = tab.dataset.tab; renderTabs(); renderRows(); return; }
       const row = ev.target.closest('.row[data-id]');
       if (row) { state.selectedId = row.dataset.id; renderRows(); renderThread(); return; }
+      // Composer: open on "Svara nu"
+      if (ev.target.closest('[data-focus-composer]')) {
+        const wrap = document.getElementById('composer-wrap');
+        if (wrap) {
+          wrap.classList.add('is-open');
+          setTimeout(()=>{ document.getElementById('composer-input')?.focus(); }, 80);
+        }
+        return;
+      }
+      // Composer: send button
+      if (ev.target.closest('#send-btn')) { sendComposer(); return; }
     });
     document.addEventListener('keydown', ev=>{
+      // Composer keys
+      if (ev.target.id === 'composer-input') {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') { ev.preventDefault(); sendComposer(); }
+        if (ev.key === 'Escape') {
+          const ta = ev.target; const wrap = document.getElementById('composer-wrap');
+          if (ta && !ta.value.trim() && wrap) { wrap.classList.remove('is-open'); ta.blur(); }
+        }
+        return;
+      }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
       if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
       const v = visibleThreads();
@@ -925,6 +1011,64 @@ button { cursor: pointer; }
       if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
       else if (ev.key==='k'||ev.key==='ArrowUp') { ev.preventDefault(); const p=v[Math.max(0,idx-1)]||v[0]; if(p){state.selectedId=p.id;renderRows();renderThread();} }
     });
+  }
+
+  // ==== Composer: send ====
+  async function sendComposer() {
+    const ta = document.getElementById('composer-input');
+    const status = document.getElementById('composer-status');
+    const btn = document.getElementById('send-btn');
+    if (!ta) return;
+    const text = (ta.value || '').trim();
+    if (!text) {
+      if (status) { status.textContent = 'Skriv ett meddelande först.'; status.className = 'composer-status error'; }
+      ta.focus();
+      return;
+    }
+    const t = state.threads.find(x => x.id === state.selectedId);
+    if (!t) return;
+    // Demo-läge: simulera
+    if (!state.live) {
+      if (status) { status.textContent = 'Demo-läge — mejlet skickades inte på riktigt.'; status.className = 'composer-status'; }
+      ta.value = '';
+      setTimeout(()=>{ document.getElementById('composer-wrap')?.classList.remove('is-open'); }, 1200);
+      return;
+    }
+    // Live-läge: POST till backend
+    const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+    if (!tok) {
+      if (status) { status.textContent = 'Saknar admin-token (logga in via admin-flow först).'; status.className = 'composer-status error'; }
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (status) { status.textContent = 'Skickar…'; status.className = 'composer-status'; }
+    try {
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(t.id)}/reply`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: text })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok) {
+        const detail = j.detail || j.error || ('HTTP ' + r.status);
+        if (status) { status.textContent = 'Skickning misslyckades: ' + detail; status.className = 'composer-status error'; }
+        return;
+      }
+      if (status) {
+        const recip = j.recipient ? ' till ' + j.recipient : '';
+        status.textContent = 'Skickat ✓' + recip;
+        status.className = 'composer-status ok';
+      }
+      ta.value = '';
+      setTimeout(()=>{
+        document.getElementById('composer-wrap')?.classList.remove('is-open');
+        if (status) status.textContent = '';
+      }, 1500);
+    } catch (e) {
+      if (status) { status.textContent = 'Nätverksfel: ' + (e?.message || e); status.className = 'composer-status error'; }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   async function tryLoadLive() {

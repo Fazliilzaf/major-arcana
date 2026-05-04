@@ -119,6 +119,7 @@ function createCcoConversationRouter({
   requireAuth,
   openai = null,
   openaiModel = '',
+  graphSendConnector = null,
 } = {}) {
   const router = express.Router();
   const authMiddleware =
@@ -278,6 +279,107 @@ function createCcoConversationRouter({
         return res.status(500).json({
           ok: false,
           error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
+  // ----- Skicka svar (reply) via Microsoft Graph -----
+  // POST /cco/runtime/conversation/:key/reply { body, bodyHtml? }
+  // Hittar senaste inkommande meddelandet i tråden, använder det som
+  // replyToMessageId och låter graphSendConnector skicka svaret.
+  router.post(
+    '/cco/runtime/conversation/:key/reply',
+    authMiddleware,
+    express.json({ limit: '64kb' }),
+    async (req, res) => {
+      try {
+        if (!graphSendConnector || typeof graphSendConnector.sendReply !== 'function') {
+          return res.status(503).json({
+            ok: false,
+            error: 'graph_send_unavailable',
+            detail: 'ARCANA_GRAPH_SEND_ENABLED måste vara true och Graph-credentials konfigurerade.',
+          });
+        }
+        if (
+          !ccoMailboxTruthStore ||
+          typeof ccoMailboxTruthStore.listMessages !== 'function'
+        ) {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res
+            .status(400)
+            .json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const body = normalizeText(asObject(req.body).body);
+        const bodyHtml = normalizeText(asObject(req.body).bodyHtml);
+        if (!body) {
+          return res
+            .status(400)
+            .json({ ok: false, error: 'missing_body' });
+        }
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        if (sorted.length === 0) {
+          return res
+            .status(404)
+            .json({ ok: false, error: 'conversation_not_found' });
+        }
+        // Hitta senaste inkommande meddelande — det är vad vi svarar på
+        const latestInbound = [...sorted]
+          .reverse()
+          .find((m) => deriveDir(asObject(m).folderType) === 'inbound');
+        if (!latestInbound) {
+          return res.status(409).json({
+            ok: false,
+            error: 'no_inbound_message',
+            detail: 'Tråden saknar inkommande meddelande att svara på.',
+          });
+        }
+        const target = asObject(latestInbound);
+        const senderMailboxId =
+          normalizeText(target.mailboxId) || normalizeText(target.mailboxAddress);
+        const replyToMessageId = normalizeText(target.graphMessageId) || normalizeText(target.messageId);
+        const conversationId = normalizeText(target.conversationId) || normalizeText(target.mailboxConversationId);
+        if (!senderMailboxId || !replyToMessageId) {
+          return res.status(409).json({
+            ok: false,
+            error: 'missing_send_metadata',
+            detail: 'Saknar mailboxId eller graphMessageId i tråden.',
+          });
+        }
+        // Resolve customer email (recipient) — för säkerhets skull även när
+        // sendReply mest använder replyToMessageId i samma mailbox
+        const customerEmail =
+          normalizeText(asObject(asObject(target.from).emailAddress).address) ||
+          normalizeText(target.senderEmail) ||
+          normalizeText(target.fromAddress);
+        const result = await graphSendConnector.sendReply({
+          mailboxId: senderMailboxId,
+          sourceMailboxId: senderMailboxId,
+          conversationId,
+          replyToMessageId,
+          body,
+          bodyHtml: bodyHtml || undefined,
+          subject: normalizeText(target.subject),
+          to: customerEmail ? [customerEmail] : [],
+        });
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          replyToMessageId,
+          mailboxId: senderMailboxId,
+          recipient: customerEmail || null,
+          sendResult: result || null,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'send_failed',
           detail: String((err && err.message) || err),
         });
       }
