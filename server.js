@@ -414,6 +414,7 @@ const {
   isEnabled: isMailboxBootstrapEnabled,
 } = require('./src/ops/bootstrapRunner');
 const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
+const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNotesStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
@@ -899,6 +900,9 @@ process.once('SIGTERM', () => {
   const ccoConversationStateStore = await createCcoConversationStateStore({
     filePath: config.ccoConversationStateStorePath,
   });
+  const ccoConversationNotesStore = await createCcoConversationNotesStore({
+    filePath: config.ccoConversationNotesStorePath,
+  });
   const ccoNoteStore = await createCcoNoteStore({
     filePath: config.ccoNoteStorePath,
   });
@@ -1220,7 +1224,7 @@ process.once('SIGTERM', () => {
     heartbeatIntervalMs: 30000,
   }));
 
-  // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare
+  // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes
   app.use(
     '/api/v1',
     createCcoConversationRouter({
@@ -1230,6 +1234,7 @@ process.once('SIGTERM', () => {
       openaiModel: config.openaiModel,
       graphSendConnector,
       ccoConversationStateStore,
+      ccoConversationNotesStore,
       defaultTenantId: 'cco',
     })
   );

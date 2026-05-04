@@ -121,6 +121,7 @@ function createCcoConversationRouter({
   openaiModel = '',
   graphSendConnector = null,
   ccoConversationStateStore = null,
+  ccoConversationNotesStore = null,
   defaultTenantId = 'cco',
 } = {}) {
   const router = express.Router();
@@ -503,6 +504,64 @@ function createCcoConversationRouter({
           ok: false,
           error: 'action_failed',
           detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
+  // ----- Anteckningar (interna, per tråd) -----
+  // GET  /cco/runtime/conversation/:key/notes        → lista nyaste först
+  // POST /cco/runtime/conversation/:key/notes { body }  → lägg till anteckning
+  router.get(
+    '/cco/runtime/conversation/:key/notes',
+    authMiddleware,
+    (req, res) => {
+      try {
+        if (!ccoConversationNotesStore || typeof ccoConversationNotesStore.listNotes !== 'function') {
+          return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
+        return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+  router.post(
+    '/cco/runtime/conversation/:key/notes',
+    authMiddleware,
+    express.json({ limit: '8kb' }),
+    async (req, res) => {
+      try {
+        if (!ccoConversationNotesStore || typeof ccoConversationNotesStore.addNote !== 'function') {
+          return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        const body = normalizeText(asObject(req.body).body);
+        if (!body) return res.status(400).json({ ok: false, error: 'missing_body' });
+        const authorEmail = normalizeText(req?.user?.email || req?.session?.email);
+        const authorName = normalizeText(req?.user?.name || req?.session?.name);
+        const note = await ccoConversationNotesStore.addNote({
+          conversationKey: key,
+          body,
+          authorEmail,
+          authorName,
+        });
+        return res.json({ ok: true, conversationKey: key, note });
+      } catch (err) {
+        const message = String((err && err.message) || err);
+        const isTooLong = message.toLowerCase().includes('för lång');
+        return res.status(isTooLong ? 400 : 500).json({
+          ok: false,
+          error: isTooLong ? 'too_long' : 'internal_error',
+          detail: message,
         });
       }
     }

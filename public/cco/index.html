@@ -595,6 +595,64 @@ button { cursor: pointer; }
 }
 .timeline li:first-child .dot { background: var(--accent-grad); border-color: transparent; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12); }
 
+/* Notes (interna anteckningar per tråd) */
+.notes-count { color: var(--text-3); font-weight: 600; font-size: 10px; margin-left: 4px; }
+.notes-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+.notes-list:empty { display: none; }
+.notes-empty { font-size: 11px; color: var(--text-3); font-style: italic; padding: 4px 0; }
+.note-card {
+  padding: 8px 10px;
+  border-left: 2px solid var(--accent-soft);
+  background: var(--bg-soft);
+  border-radius: 0 6px 6px 0;
+}
+.note-card .n-meta {
+  display: flex; gap: 6px; align-items: center;
+  font-size: 10px; color: var(--text-3); font-weight: 600;
+  margin-bottom: 3px;
+}
+.note-card .n-author { color: var(--text-2); font-weight: 700; }
+.note-card .n-time { margin-left: auto; font-family: var(--font-mono); font-weight: 500; }
+.note-card .n-body { font-size: 12px; line-height: 1.5; color: var(--text); white-space: pre-wrap; }
+.note-input-wrap {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.note-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.note-input {
+  width: 100%;
+  border: 0; outline: 0; resize: none;
+  padding: 8px 10px;
+  font-family: inherit; font-size: 12px; line-height: 1.45;
+  color: var(--text); background: transparent;
+  min-height: 44px; max-height: 120px;
+}
+.note-input::placeholder { color: var(--text-3); }
+.note-input-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 7px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 0 0 7px 7px;
+}
+.note-input-hint { font-size: 10px; color: var(--text-3); flex: 1; }
+.note-input-hint.error { color: var(--red); }
+.note-input-hint.ok { color: var(--green); }
+.note-post-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 10px; height: 24px; border-radius: 6px;
+  background: var(--accent-grad); color: #fff;
+  font-size: 11px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.note-post-btn:hover { transform: translateY(-1px); }
+.note-post-btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
+.note-post-btn svg { width: 10px; height: 10px; }
+
 .mini-chart { display: flex; gap: 3px; align-items: end; height: 26px; }
 .mini-chart .bar {
   flex: 1; background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 25%, transparent));
@@ -635,6 +693,7 @@ button { cursor: pointer; }
     <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
     <symbol id="i-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
     <symbol id="i-mail-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><path d="m22 7-10 5L2 7"/><path d="M19 16v6M16 19h6"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
@@ -972,7 +1031,19 @@ button { cursor: pointer; }
       <div class="ctx-section">
         <div class="head">${ico('i-history')} Tidslinje</div>
         <ul class="timeline">${tl}</ul>
+      </div>
+      <div class="ctx-section">
+        <div class="head">${ico('i-edit')} Anteckningar <span class="notes-count" id="notes-count"></span></div>
+        <div class="notes-list" id="notes-list">${state.live ? '<div class="notes-empty" id="notes-empty">Laddar…</div>' : '<div class="notes-empty">Demo-läge — inga sparade anteckningar.</div>'}</div>
+        <div class="note-input-wrap">
+          <textarea class="note-input" id="note-input" placeholder="Skriv en intern anteckning… (⌘↵ för att spara)"></textarea>
+          <div class="note-input-bar">
+            <span class="note-input-hint" id="note-input-status"></span>
+            <button class="note-post-btn" id="note-post-btn">${ico('i-send')} Spara</button>
+          </div>
+        </div>
       </div>`;
+    if (state.live && t.id) loadNotes(t);
   }
   function renderAll() { renderTabs(); renderRows(); renderThread(); }
 
@@ -996,6 +1067,8 @@ button { cursor: pointer; }
       // Thread actions: Klar / Senare / Schemalägg
       const actionBtn = ev.target.closest('[data-thread-action]');
       if (actionBtn) { applyThreadAction(actionBtn.dataset.threadAction, actionBtn); return; }
+      // Notes: post button
+      if (ev.target.closest('#note-post-btn')) { postNote(); return; }
     });
     document.addEventListener('keydown', ev=>{
       // Composer keys
@@ -1007,6 +1080,11 @@ button { cursor: pointer; }
         }
         return;
       }
+      // Note input keys: Cmd+Enter posts
+      if (ev.target.id === 'note-input') {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') { ev.preventDefault(); postNote(); }
+        return;
+      }
       if (['INPUT','TEXTAREA','SELECT'].includes(ev.target.tagName)) return;
       if (ev.metaKey && ev.key==='k') { ev.preventDefault(); $('#search-input').focus(); return; }
       const v = visibleThreads();
@@ -1014,6 +1092,98 @@ button { cursor: pointer; }
       if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
       else if (ev.key==='k'||ev.key==='ArrowUp') { ev.preventDefault(); const p=v[Math.max(0,idx-1)]||v[0]; if(p){state.selectedId=p.id;renderRows();renderThread();} }
     });
+  }
+
+  // ==== Notes: load + post ====
+  function fmtNoteTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso); if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    const yesterday = new Date(now.getTime()-86400000);
+    const tt = d.toLocaleTimeString('sv',{hour:'2-digit',minute:'2-digit'});
+    if (sameDay) return `Idag · ${tt}`;
+    if (d.toDateString() === yesterday.toDateString()) return `Igår · ${tt}`;
+    return `${d.toLocaleDateString('sv',{day:'numeric',month:'short'})} · ${tt}`;
+  }
+  function escNote(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  function renderNotes(notes) {
+    const list = document.getElementById('notes-list');
+    const count = document.getElementById('notes-count');
+    if (count) count.textContent = notes.length ? `· ${notes.length}` : '';
+    if (!list) return;
+    if (!notes.length) {
+      list.innerHTML = '<div class="notes-empty">Inga interna anteckningar än.</div>';
+      return;
+    }
+    list.innerHTML = notes.map(n => `
+      <div class="note-card">
+        <div class="n-meta">
+          <span class="n-author">${escNote(n.authorName || n.authorEmail || 'Team')}</span>
+          <span class="n-time">${escNote(fmtNoteTime(n.createdAt))}</span>
+        </div>
+        <div class="n-body">${escNote(n.body)}</div>
+      </div>`).join('');
+  }
+  async function loadNotes(thread) {
+    if (!thread || !thread.id) return;
+    const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+    if (!tok) return;
+    try {
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(thread.id)}/notes`, {
+        headers:{ Authorization:'Bearer '+tok }
+      });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (!j.ok || !Array.isArray(j.notes)) return;
+      thread._notes = j.notes;
+      if (state.selectedId === thread.id) renderNotes(j.notes);
+    } catch (_e) { /* swallow */ }
+  }
+  async function postNote() {
+    const ta = document.getElementById('note-input');
+    const status = document.getElementById('note-input-status');
+    const btn = document.getElementById('note-post-btn');
+    if (!ta) return;
+    const text = (ta.value || '').trim();
+    if (!text) {
+      if (status) { status.textContent = 'Skriv något först.'; status.className = 'note-input-hint error'; }
+      ta.focus();
+      return;
+    }
+    const t = state.threads.find(x => x.id === state.selectedId);
+    if (!t) return;
+    if (!state.live) {
+      if (status) { status.textContent = 'Demo-läge — sparas inte.'; status.className = 'note-input-hint'; }
+      return;
+    }
+    const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+    if (!tok) {
+      if (status) { status.textContent = 'Saknar admin-token.'; status.className = 'note-input-hint error'; }
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (status) { status.textContent = 'Sparar…'; status.className = 'note-input-hint'; }
+    try {
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(t.id)}/notes`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: text })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok) {
+        if (status) { status.textContent = 'Fel: ' + (j.detail || j.error || ('HTTP ' + r.status)); status.className = 'note-input-hint error'; }
+        return;
+      }
+      ta.value = '';
+      if (status) { status.textContent = 'Sparat ✓'; status.className = 'note-input-hint ok'; setTimeout(()=>{ if (status) status.textContent = ''; }, 1500); }
+      // Reload notes for this thread
+      loadNotes(t);
+    } catch (e) {
+      if (status) { status.textContent = 'Nätverksfel: ' + (e?.message || e); status.className = 'note-input-hint error'; }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   // ==== Thread actions: Klar / Senare / Schemalägg ====

@@ -202,6 +202,11 @@ const config = {
     stateRoot,
     fileName: 'cco-conversation-state.json',
   }),
+  ccoConversationNotesStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_CONVERSATION_NOTES_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-conversation-notes.json',
+  }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
     stateRoot,
