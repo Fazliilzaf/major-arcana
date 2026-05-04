@@ -1230,9 +1230,30 @@ process.once('SIGTERM', () => {
   app.use('/api/v1', ccoRuntimeStreamRouter);
 
   // Default mailboxar för manuell sync — använd MAILBOX_ALLOWLIST om satt,
-  // annars HairTP-defaults
-  const defaultSyncMailboxIds = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
-    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // annars HairTP-defaults (alla 6 mailboxar). Behåller fallback i sync med
+  // bootstrapRunner.resolveMailboxIds() så vi alltid täcker hela kontot.
+  const allowlistSyncMailboxIds = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
+    .split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const hairTpFallbackMailboxIds = [
+    'contact@hairtpclinic.com',
+    'info@hairtpclinic.com',
+    'kons@hairtpclinic.com',
+    'egzona@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+    'marknad@hairtpclinic.com',
+  ];
+  const schedulerCcoHistoryMailboxIds = Array.isArray(config.schedulerCcoHistoryMailboxIds)
+    ? config.schedulerCcoHistoryMailboxIds
+        .map((s) => String(s || '').trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+  const defaultSyncMailboxIds =
+    allowlistSyncMailboxIds.length > 0
+      ? allowlistSyncMailboxIds
+      : schedulerCcoHistoryMailboxIds.length > 0
+        ? schedulerCcoHistoryMailboxIds
+        : hairTpFallbackMailboxIds;
+  console.log('[server] defaultSyncMailboxIds for /cco/runtime/sync:', defaultSyncMailboxIds);
 
   // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes + sync
   app.use(

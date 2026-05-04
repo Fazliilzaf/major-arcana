@@ -85,16 +85,45 @@ function createMicrosoftGraphMailboxTruthBackfill({
 
     try {
       for (const mailboxId of mailboxIds) {
-        const connector = connectorFactory(mailboxId);
+        const mailboxStartedAt = Date.now();
+        let mailboxConnector;
+        try {
+          mailboxConnector = connectorFactory(mailboxId);
+        } catch (factoryError) {
+          console.warn(
+            `[graph-backfill] mailbox=${mailboxId} connector_factory_failed:`,
+            factoryError?.message || factoryError
+          );
+          perMailbox.push({
+            mailboxId,
+            startedAt: nowIso(),
+            completedAt: nowIso(),
+            accountStatus: 'BROKEN',
+            error: normalizeText(factoryError?.message) || 'connector_factory_failed',
+            folderReports: [],
+          });
+          continue;
+        }
+        const connector = mailboxConnector;
         const mailboxStatus = {
           mailboxId,
           startedAt: nowIso(),
           folderReports: [],
         };
+        let mailboxMessageTotal = 0;
+        let mailboxFolderErrors = 0;
+        console.log(`[graph-backfill] mailbox=${mailboxId} START folders=${folderTypes.join(',')}`);
 
         for (const folderType of folderTypes) {
           if (!resume) {
-            await store.resetFolder(mailboxId, folderType);
+            try {
+              await store.resetFolder(mailboxId, folderType);
+            } catch (resetError) {
+              console.warn(
+                `[graph-backfill] mailbox=${mailboxId} folder=${folderType} reset_failed:`,
+                resetError?.message || resetError
+              );
+            }
           }
           let folderState = resume ? store.getFolderState(mailboxId, folderType) : null;
           let nextPageUrl = normalizeText(folderState?.nextPageUrl) || null;
@@ -110,6 +139,7 @@ function createMicrosoftGraphMailboxTruthBackfill({
               : null;
 
           let pagesFetched = 0;
+          let folderMessageTotal = 0;
           let lastPersistedFolder = folderState || null;
           let lastError = null;
 
@@ -133,6 +163,7 @@ function createMicrosoftGraphMailboxTruthBackfill({
                 retryMaxDelayMs,
               });
               pagesFetched += 1;
+              folderMessageTotal += Array.isArray(payload?.messages) ? payload.messages.length : 0;
               folderMetadata = payload.folder;
               nextPageUrl = normalizeText(payload?.page?.nextPageUrl) || null;
               lastPersistedFolder = await store.recordFolderPage({
@@ -148,6 +179,12 @@ function createMicrosoftGraphMailboxTruthBackfill({
               if (payload?.page?.complete === true) break;
             } catch (error) {
               lastError = error;
+              const errCode = normalizeText(error?.code) || 'fetch_error';
+              const errStatus = error?.status || error?.response?.status || '';
+              const errMsg = normalizeText(error?.message) || 'request_failed';
+              console.warn(
+                `[graph-backfill] mailbox=${mailboxId} folder=${folderType} fetch_error code=${errCode} status=${errStatus} msg=${errMsg.slice(0, 200)}`
+              );
               lastPersistedFolder = await store.recordFolderError({
                 runId: run.runId,
                 account: {
@@ -156,8 +193,8 @@ function createMicrosoftGraphMailboxTruthBackfill({
                   userPrincipalName: mailboxId,
                 },
                 folderType,
-                errorCode: normalizeText(error?.code) || 'fetch_error',
-                errorMessage: normalizeText(error?.message) || 'request_failed',
+                errorCode: errCode,
+                errorMessage: errMsg,
               });
               break;
             }
@@ -183,9 +220,15 @@ function createMicrosoftGraphMailboxTruthBackfill({
             });
           }
 
+          mailboxMessageTotal += folderMessageTotal;
+          if (lastError) mailboxFolderErrors += 1;
+          console.log(
+            `[graph-backfill] mailbox=${mailboxId} folder=${folderType} pages=${pagesFetched} messages=${folderMessageTotal} status=${normalizeText(lastPersistedFolder?.completenessStatus) || 'NOT VERIFIED'}${lastError ? ' error=' + (normalizeText(lastError?.message) || 'unknown').slice(0, 120) : ''}`
+          );
           mailboxStatus.folderReports.push({
             folderType,
             pagesFetched,
+            messageCount: folderMessageTotal,
             status: normalizeText(lastPersistedFolder?.completenessStatus) || 'NOT VERIFIED',
             reasonCode: normalizeText(lastPersistedFolder?.completenessReason) || 'unknown',
             detail: normalizeText(lastPersistedFolder?.completenessDetail) || '',
@@ -199,6 +242,9 @@ function createMicrosoftGraphMailboxTruthBackfill({
           Object.fromEntries(
             mailboxStatus.folderReports.map((entry) => [entry.folderType, entry.status])
           )
+        );
+        console.log(
+          `[graph-backfill] mailbox=${mailboxId} DONE messages=${mailboxMessageTotal} folderErrors=${mailboxFolderErrors} accountStatus=${mailboxStatus.accountStatus} elapsedMs=${Date.now() - mailboxStartedAt}`
         );
         perMailbox.push(mailboxStatus);
       }
