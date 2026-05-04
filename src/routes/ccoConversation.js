@@ -22,6 +22,49 @@
 const express = require('express');
 const { SummarizeThreadCapability } = require('../capabilities/summarizeThread');
 
+// Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
+function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
+  const greeting = customerName ? `Hej ${customerName.split(/\s+/)[0]}!` : 'Hej!';
+  const sign = ownerName ? `Mvh,\n${ownerName}\nHair TP Clinic` : 'Mvh,\nHair TP Clinic';
+  return `${greeting}\n\nTack för ditt mejl. Vi återkommer skyndsamt med nästa steg.\n\n${sign}`;
+}
+
+async function generateOpenAIReply({ openai, model, messages, customerName, ownerName, subject, tone = 'warm' }) {
+  if (!openai || !model) return null;
+  const toneInstruction = (() => {
+    if (tone === 'concise') return 'Skriv kort och rakt på sak. Max 4 meningar.';
+    if (tone === 'professional') return 'Skriv professionellt och formellt. Inga utropstecken.';
+    return 'Skriv varmt och empatiskt. Använd kundens förnamn naturligt.';
+  })();
+  const safeMessages = (Array.isArray(messages) ? messages : [])
+    .slice(-12) // bara senaste 12 för att hålla prompten kort
+    .map((m) => {
+      const dir = String(m.direction || m.dir || '').toLowerCase() === 'outbound' ? 'KLINIK' : 'KUND';
+      const time = String(m.sentAt || m.recordedAt || m.time || '').slice(0, 19);
+      const body = String(m.body || m.bodyPreview || m.text || '').slice(0, 1200);
+      return `[${dir} · ${time}] ${body}`;
+    })
+    .filter(Boolean)
+    .join('\n\n');
+  const sys = `Du är AI-assistent för Hair TP Clinic, en hårtransplantation-klinik i Sverige. Du svarar på kundmejl på svenska. Behåll klinikens röst: kunnig, varm, professionell. Hitta INTE på fakta som inte finns i tråden (priser, datum, tider). Om tråden frågar om något du inte vet — föreslå att kunden bokar konsultation.`;
+  const user = `Kund: ${customerName || '(okänd)'}\nÄmne: ${subject || '(utan ämne)'}\nMejlhistorik (kronologisk):\n\n${safeMessages || '(tom)'}\n\nUppgift: Skriv ett komplett svarsmejl från kliniken till kunden. ${toneInstruction} Avsluta med: "Mvh, ${ownerName || 'Hair TP Clinic'}". Returnera ENDAST mejltext (ingen ämnesrad, inga citat, ingen markdown).`;
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
+      temperature: 0.4,
+      max_tokens: 600,
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: user },
+      ],
+    });
+    const draft = completion?.choices?.[0]?.message?.content;
+    return typeof draft === 'string' && draft.trim() ? draft.trim() : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -286,6 +329,73 @@ function createCcoConversationRouter({
         return res.status(500).json({
           ok: false,
           error: 'internal_error',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
+  // ----- AI-utkast (genererar svar från noll baserat på tråden) -----
+  // POST /cco/runtime/conversation/:key/draft   body: { tone?: 'warm'|'concise'|'professional' }
+  router.post(
+    '/cco/runtime/conversation/:key/draft',
+    authMiddleware,
+    express.json({ limit: '8kb' }),
+    async (req, res) => {
+      try {
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        if (sorted.length === 0) {
+          return res.status(404).json({ ok: false, error: 'conversation_not_found' });
+        }
+        const firstInbound = sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+        const customerName = deriveFromName(firstInbound);
+        const subject = normalizeText(asObject(firstInbound).subject) || '';
+        // Hitta ägaren av aktuell mailbox (sista skickade meddelandet visar oftast vem som svarar)
+        const lastOutbound = [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'outbound');
+        const ownerName = lastOutbound ? deriveFromName(lastOutbound) : '';
+        const tone = normalizeText(asObject(req.body).tone).toLowerCase() || 'warm';
+        const inputMessages = sorted.map(toSummarizeInputMessage);
+
+        let draft = null;
+        let source = 'heuristic';
+        if (openai && openaiModel) {
+          draft = await generateOpenAIReply({
+            openai,
+            model: openaiModel,
+            messages: inputMessages,
+            customerName,
+            ownerName,
+            subject,
+            tone: ['warm', 'concise', 'professional'].includes(tone) ? tone : 'warm',
+          });
+          if (draft) source = 'openai';
+        }
+        if (!draft) {
+          const latestInbound = [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'inbound') || firstInbound;
+          draft = buildHeuristicDraft({
+            customerName,
+            latestInboundBody: deriveBody(latestInbound),
+            ownerName,
+          });
+          source = 'heuristic';
+        }
+        return res.json({
+          ok: true,
+          conversationKey: key,
+          draft,
+          source,
+          tone,
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'draft_failed',
           detail: String((err && err.message) || err),
         });
       }

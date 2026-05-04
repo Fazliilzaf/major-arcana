@@ -433,7 +433,36 @@ button { cursor: pointer; }
   overflow: hidden;
   transition: max-height 0.25s var(--ease), padding 0.2s var(--ease);
 }
-.composer-wrap.is-open { max-height: 320px; padding: 12px 22px 14px; }
+.composer-wrap.is-open { max-height: 420px; padding: 10px 22px 14px; }
+
+/* AI-utkast-pill ovan composer */
+.ai-draft-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 4px 8px;
+  font-size: 11px;
+}
+.ai-draft-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--accent-2);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.ai-draft-pill svg { width: 10px; height: 10px; }
+.ai-draft-pill.loading { background: linear-gradient(90deg, var(--accent-soft), color-mix(in srgb, var(--accent) 18%, transparent), var(--accent-soft)); background-size: 200% 100%; animation: aiShimmer 1.4s linear infinite; }
+.ai-draft-pill.heuristic { color: var(--text-2); background: var(--bg-soft); border-color: var(--line); }
+.ai-draft-actions { display: flex; gap: 4px; margin-left: auto; }
+.ai-draft-btn {
+  font-size: 10.5px; font-weight: 600; color: var(--text-2);
+  padding: 3px 8px; border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.ai-draft-btn:hover { background: var(--bg-soft); color: var(--text); }
+.ai-draft-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.ai-draft-btn.tone { display: inline-flex; align-items: center; gap: 3px; }
 .composer {
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -991,6 +1020,16 @@ button { cursor: pointer; }
       <div class="thread-body">
         <div class="messages">${messages}</div>
         <div class="composer-wrap" id="composer-wrap">
+          <div class="ai-draft-bar" id="ai-draft-bar" style="display:none;">
+            <span class="ai-draft-pill" id="ai-draft-pill">${ico('i-sparkles')} AI-utkast</span>
+            <div class="ai-draft-actions">
+              <button class="ai-draft-btn tone" data-draft-tone="warm" title="Varm ton">Varm</button>
+              <button class="ai-draft-btn tone" data-draft-tone="concise" title="Kort & rakt på sak">Kort</button>
+              <button class="ai-draft-btn tone" data-draft-tone="professional" title="Formell ton">Formell</button>
+              <button class="ai-draft-btn" id="ai-draft-regen" title="Generera nytt utkast">${ico('i-refresh')}</button>
+              <button class="ai-draft-btn" id="ai-draft-clear" title="Rensa & skriv själv">Rensa</button>
+            </div>
+          </div>
           <div class="composer">
             <textarea class="composer-input" id="composer-input" placeholder="Skriv ditt svar… (⌘↵ för att skicka)"></textarea>
             <div class="composer-bar">
@@ -1063,8 +1102,30 @@ button { cursor: pointer; }
         const wrap = document.getElementById('composer-wrap');
         if (wrap) {
           wrap.classList.add('is-open');
+          // Trigger AI-utkast om live-mode och tom textarea
+          if (state.live) {
+            const ta = document.getElementById('composer-input');
+            if (ta && !ta.value.trim()) generateDraft(state.draftTone || 'warm');
+          }
           setTimeout(()=>{ document.getElementById('composer-input')?.focus(); }, 80);
         }
+        return;
+      }
+      // AI-draft: tone byte
+      const toneBtn = ev.target.closest('[data-draft-tone]');
+      if (toneBtn) {
+        state.draftTone = toneBtn.dataset.draftTone;
+        generateDraft(state.draftTone);
+        return;
+      }
+      // AI-draft: regenerate
+      if (ev.target.closest('#ai-draft-regen')) { generateDraft(state.draftTone || 'warm'); return; }
+      // AI-draft: clear (skriv själv)
+      if (ev.target.closest('#ai-draft-clear')) {
+        const ta = document.getElementById('composer-input');
+        if (ta) { ta.value = ''; ta.focus(); }
+        const bar = document.getElementById('ai-draft-bar');
+        if (bar) bar.style.display = 'none';
         return;
       }
       // Composer: send button
@@ -1261,6 +1322,51 @@ button { cursor: pointer; }
       alert('Nätverksfel: ' + (e?.message || e));
     } finally {
       if (btn) btn.disabled = false;
+    }
+  }
+
+  // ==== AI-utkast: hämta + prefill composer ====
+  async function generateDraft(tone) {
+    const t = state.threads.find(x => x.id === state.selectedId);
+    if (!t || !state.live) return;
+    const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+    if (!tok) return;
+    const bar = document.getElementById('ai-draft-bar');
+    const pill = document.getElementById('ai-draft-pill');
+    const ta = document.getElementById('composer-input');
+    if (!ta) return;
+    if (bar) bar.style.display = 'flex';
+    if (pill) { pill.classList.add('loading'); pill.classList.remove('heuristic'); pill.innerHTML = `<svg style="width:10px;height:10px;"><use href="#i-sparkles"/></svg> Genererar…`; }
+    // Markera aktiv tone-knapp
+    document.querySelectorAll('[data-draft-tone]').forEach(b => {
+      b.style.background = b.dataset.draftTone === tone ? 'var(--accent-soft)' : '';
+      b.style.color = b.dataset.draftTone === tone ? 'var(--accent-2)' : '';
+      b.style.fontWeight = b.dataset.draftTone === tone ? '700' : '600';
+    });
+    try {
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(t.id)}/draft`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tone: tone || 'warm' })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok || !j.draft) {
+        if (pill) { pill.classList.remove('loading'); pill.innerHTML = `<svg style="width:10px;height:10px;"><use href="#i-sparkles"/></svg> Kunde inte generera`; pill.classList.add('heuristic'); }
+        return;
+      }
+      ta.value = j.draft;
+      // Resize textarea till innehåll
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(200, ta.scrollHeight) + 'px';
+      if (pill) {
+        pill.classList.remove('loading');
+        const label = j.source === 'openai' ? 'AI-utkast (GPT)' : 'Utkast (heuristisk)';
+        pill.innerHTML = `<svg style="width:10px;height:10px;"><use href="#i-sparkles"/></svg> ${label}`;
+        if (j.source !== 'openai') pill.classList.add('heuristic');
+        else pill.classList.remove('heuristic');
+      }
+    } catch (e) {
+      if (pill) { pill.classList.remove('loading'); pill.innerHTML = `<svg style="width:10px;height:10px;"><use href="#i-sparkles"/></svg> Nätverksfel`; pill.classList.add('heuristic'); }
     }
   }
 
