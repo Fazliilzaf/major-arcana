@@ -918,9 +918,9 @@ button { cursor: pointer; }
       <div class="thread-actions">
         <button class="action primary" data-focus-composer>${ico('i-reply')} Svara nu</button>
         <button class="action">${ico('i-mail-plus')} Nytt mejl</button>
-        <button class="action">${ico('i-clock')} Senare</button>
-        <button class="action">${ico('i-check')} Klar</button>
-        <button class="action">${ico('i-calendar')} Schemalägg</button>
+        <button class="action" data-thread-action="reply_later">${ico('i-clock')} Senare</button>
+        <button class="action" data-thread-action="handled">${ico('i-check')} Klar</button>
+        <button class="action" data-thread-action="schedule">${ico('i-calendar')} Schemalägg</button>
         <button class="action">${ico('i-history')} Historik</button>
         <button class="action danger" style="margin-left:auto;">${ico('i-trash')}</button>
       </div>
@@ -993,6 +993,9 @@ button { cursor: pointer; }
       }
       // Composer: send button
       if (ev.target.closest('#send-btn')) { sendComposer(); return; }
+      // Thread actions: Klar / Senare / Schemalägg
+      const actionBtn = ev.target.closest('[data-thread-action]');
+      if (actionBtn) { applyThreadAction(actionBtn.dataset.threadAction, actionBtn); return; }
     });
     document.addEventListener('keydown', ev=>{
       // Composer keys
@@ -1011,6 +1014,77 @@ button { cursor: pointer; }
       if (ev.key==='j'||ev.key==='ArrowDown') { ev.preventDefault(); const n=v[Math.min(v.length-1,idx+1)]||v[0]; if(n){state.selectedId=n.id;renderRows();renderThread();} }
       else if (ev.key==='k'||ev.key==='ArrowUp') { ev.preventDefault(); const p=v[Math.max(0,idx-1)]||v[0]; if(p){state.selectedId=p.id;renderRows();renderThread();} }
     });
+  }
+
+  // ==== Thread actions: Klar / Senare / Schemalägg ====
+  async function applyThreadAction(actionKind, btn) {
+    const t = state.threads.find(x => x.id === state.selectedId);
+    if (!t) return;
+    let action = actionKind;
+    let followUpDueAt = null;
+    if (actionKind === 'schedule') {
+      // Prompt user for ISO datetime — default tomorrow 09:00
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      const def = tomorrow.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+      const input = prompt('Schemalägg uppföljning till (YYYY-MM-DDTHH:MM):', def);
+      if (input === null) return; // cancelled
+      const parsed = Date.parse(input);
+      if (Number.isNaN(parsed)) { alert('Ogiltigt datum/tid.'); return; }
+      followUpDueAt = new Date(parsed).toISOString();
+      action = 'reply_later';
+    }
+    if (actionKind === 'reply_later') {
+      // Default: imorgon 09:00
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      followUpDueAt = tomorrow.toISOString();
+    }
+    // Demo-läge: simulera (ta bort tråden från listan visuellt)
+    if (!state.live) {
+      const idx = state.threads.findIndex(x => x.id === t.id);
+      if (idx >= 0) {
+        state.threads.splice(idx, 1);
+        state.selectedId = state.threads[0]?.id || null;
+        renderRows(); renderThread();
+      }
+      return;
+    }
+    // Live-läge: POST till backend
+    const tok = (()=>{ try{return localStorage.getItem('ARCANA_ADMIN_TOKEN')||'';}catch{return '';} })();
+    if (!tok) { alert('Saknar admin-token.'); return; }
+    if (btn) btn.disabled = true;
+    try {
+      const r = await fetch(`/api/v1/cco/runtime/conversation/${encodeURIComponent(t.id)}/action`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, followUpDueAt })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok) {
+        alert('Misslyckades: ' + (j.detail || j.error || ('HTTP ' + r.status)));
+        return;
+      }
+      // Markera som handled lokalt → ta bort från visible-listan
+      if (action === 'handled') {
+        const idx = state.threads.findIndex(x => x.id === t.id);
+        if (idx >= 0) {
+          state.threads.splice(idx, 1);
+          state.selectedId = state.threads[0]?.id || null;
+        }
+      } else if (action === 'reply_later') {
+        // Markera tråden som "later" — men kvar i listan tills nästa worklist-refresh
+        t.followUp = followUpDueAt ? new Date(followUpDueAt).toLocaleString('sv', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+        t.lifecycle = 'Senare';
+      }
+      renderRows(); renderThread();
+    } catch (e) {
+      alert('Nätverksfel: ' + (e?.message || e));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   // ==== Composer: send ====

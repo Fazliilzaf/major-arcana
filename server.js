@@ -1220,7 +1220,7 @@ process.once('SIGTERM', () => {
     heartbeatIntervalMs: 30000,
   }));
 
-  // CCO Conversation messages — full tråd-historik + AI-summary + reply på begäran
+  // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare
   app.use(
     '/api/v1',
     createCcoConversationRouter({
@@ -1229,6 +1229,8 @@ process.once('SIGTERM', () => {
       openai,
       openaiModel: config.openaiModel,
       graphSendConnector,
+      ccoConversationStateStore,
+      defaultTenantId: 'cco',
     })
   );
 

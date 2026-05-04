@@ -120,6 +120,8 @@ function createCcoConversationRouter({
   openai = null,
   openaiModel = '',
   graphSendConnector = null,
+  ccoConversationStateStore = null,
+  defaultTenantId = 'cco',
 } = {}) {
   const router = express.Router();
   const authMiddleware =
@@ -380,6 +382,126 @@ function createCcoConversationRouter({
         return res.status(500).json({
           ok: false,
           error: 'send_failed',
+          detail: String((err && err.message) || err),
+        });
+      }
+    }
+  );
+
+  // ----- Klar / Senare / Schemalägg — uppdatera tråd-status -----
+  // POST /cco/runtime/conversation/:key/action
+  // Body: { action: 'handled' | 'reply_later' | 'reopen', followUpDueAt?: ISO, note?: string }
+  //   handled        → tråd markerad som klar (försvinner från Olast/Agera-listan)
+  //   reply_later    → "Senare", kräver followUpDueAt (om saknas: nu+24h)
+  //   reopen         → ångra en tidigare action (superseder befintligt state)
+  router.post(
+    '/cco/runtime/conversation/:key/action',
+    authMiddleware,
+    express.json({ limit: '32kb' }),
+    async (req, res) => {
+      try {
+        if (!ccoConversationStateStore || typeof ccoConversationStateStore.writeConversationState !== 'function') {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'conversation_state_store_unavailable' });
+        }
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res
+            .status(503)
+            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        }
+        const key = normalizeText(req.params.key);
+        if (!key) {
+          return res
+            .status(400)
+            .json({ ok: false, error: 'missing_conversation_key' });
+        }
+        const body = asObject(req.body);
+        const action = normalizeText(body.action).toLowerCase();
+        if (!['handled', 'reply_later', 'reopen'].includes(action)) {
+          return res.status(400).json({
+            ok: false,
+            error: 'invalid_action',
+            detail: 'action måste vara handled | reply_later | reopen',
+          });
+        }
+        const note = normalizeText(body.note).slice(0, 260);
+
+        // Reopen → supersede existing state
+        if (action === 'reopen') {
+          if (typeof ccoConversationStateStore.supersedeConversationState !== 'function') {
+            return res
+              .status(503)
+              .json({ ok: false, error: 'supersede_unavailable' });
+          }
+          const result = await ccoConversationStateStore.supersedeConversationState({
+            tenantId: defaultTenantId,
+            canonicalConversationKey: key,
+            supersededReason: 'manual_clear',
+          });
+          return res.json({ ok: true, action, conversationKey: key, state: result || null });
+        }
+
+        // Hitta första meddelandet i tråden för att lista
+        // underlying mailbox/conversation IDs
+        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+        const firstMessage = asObject(sorted[0] || {});
+        const underlyingMailboxIds = sorted
+          .map((m) => normalizeText(asObject(m).mailboxId))
+          .filter(Boolean);
+        const underlyingConversationIds = sorted
+          .map((m) => normalizeText(asObject(m).conversationId))
+          .filter(Boolean);
+        const primaryConversationId =
+          normalizeText(firstMessage.conversationId) || normalizeText(firstMessage.mailboxConversationId);
+
+        // followUpDueAt: använd från body om finns, annars nu+24h för reply_later
+        let followUpDueAt = null;
+        if (action === 'reply_later') {
+          const requested = normalizeText(body.followUpDueAt);
+          if (requested && !Number.isNaN(Date.parse(requested))) {
+            followUpDueAt = new Date(Date.parse(requested)).toISOString();
+          } else {
+            followUpDueAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          }
+        }
+
+        const actionState = action; // 'handled' | 'reply_later'
+        const needsReplyStatusOverride = action === 'handled' ? 'handled' : 'needs_reply';
+        const nextActionLabel = action === 'handled' ? 'Markerad som klar' : 'Påminnelse senare';
+
+        // Identifiera operatör från req.session/auth
+        const actorUserId = normalizeText(req?.user?.id || req?.user?.userId || req?.session?.userId);
+        const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
+
+        const result = await ccoConversationStateStore.writeConversationState({
+          tenantId: defaultTenantId,
+          canonicalConversationKey: key,
+          canonicalConversationSource: 'mailbox_conversation_fallback',
+          canonicalConversationType: 'conversationKey',
+          primaryConversationId: primaryConversationId || null,
+          underlyingConversationIds: [...new Set(underlyingConversationIds)],
+          underlyingMailboxIds: [...new Set(underlyingMailboxIds.map((id) => id.toLowerCase()))],
+          actionState,
+          needsReplyStatusOverride,
+          followUpDueAt,
+          waitingOn: action === 'reply_later' ? 'customer' : null,
+          nextActionLabel,
+          nextActionSummary: note || null,
+          actionAt: new Date().toISOString(),
+          actionByUserId: actorUserId || null,
+          actionByEmail: actorEmail || null,
+        });
+        return res.json({
+          ok: true,
+          action,
+          conversationKey: key,
+          state: result || null,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: false,
+          error: 'action_failed',
           detail: String((err && err.message) || err),
         });
       }
