@@ -580,10 +580,15 @@
       }
       const countSpan = document.createElement('span');
       countSpan.className = 'shim-mbx-count';
-      countSpan.style.cssText = 'opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;';
+      countSpan.style.cssText = 'opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;white-space:nowrap;';
       countSpan.textContent = count > 0 ? ` · ${count}` : '';
-      // Hitta sista text-element i label (inte input)
-      const labelTextEl = Array.from(label.children).find(c => c.tagName !== 'INPUT' && c.classList?.length > 0)
+      // Föredra .mailbox-option-copy (innehåller namnet) framför .mailbox-option-box (avatar)
+      // Annars fall back till sista non-input child
+      const labelTextEl =
+        label.querySelector('.mailbox-option-copy')
+        || label.querySelector('[class*="copy"]')
+        || label.querySelector('[class*="label"]')
+        || Array.from(label.children).reverse().find(c => c.tagName !== 'INPUT' && !c.className.includes('box'))
         || label;
       labelTextEl.appendChild(countSpan);
     });
