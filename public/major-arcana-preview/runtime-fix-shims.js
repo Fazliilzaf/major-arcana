@@ -997,35 +997,31 @@
     const style = document.createElement('style');
     style.id = 'shim-responsive-layout';
     style.textContent = `
-      /* Responsiv 3-kolumns layout — flex-baserad istället för fixed pixels */
-      .preview-workspace {
-        grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) !important;
+      /* CORE FIX — höger panel tab-grupper overlappade pga flex-shrink:
+         .focus-intel-primary fick 182px medan content var 291px. Body sticker
+         ut underifrån och overlappar .focus-intel-switcher som kommer efter.
+         Lös genom att tvinga primary till content-höjd och tillåta scroll
+         i hela panelen. */
+      .focus-intel-primary {
+        flex: 0 0 auto !important;
+        height: auto !important;
       }
-      .focus-layout {
-        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) !important;
-        gap: 12px;
+      .focus-intel-primary-body {
+        flex: 0 0 auto !important;
       }
-      /* Vid <1400px — minska höger panel */
-      @media (max-width: 1400px) {
-        .focus-layout {
-          grid-template-columns: minmax(0, 1fr) 200px !important;
-        }
+      .focus-intel-switcher {
+        flex: 1 1 auto !important;
+        min-height: 0;
       }
-      /* Vid <1200px — göm höger panel helt så mejlet får plats */
-      @media (max-width: 1200px) {
-        .focus-layout {
-          grid-template-columns: 1fr !important;
-        }
-        .focus-intel {
-          display: none !important;
-        }
+      .focus-intel {
+        overflow-y: auto;
       }
-      /* Mejl-body får inte vara bredare än container — overflow-x när nödvändigt */
+
+      /* Email-content: tillåt scroll horizontalt om mejl-tabell är bredare */
       .conversation-mail-body, .conversation-mail {
         max-width: 100% !important;
         overflow-x: auto;
       }
-      /* Email-tabeller — preserve original layout men cap width */
       .conversation-mail-body table {
         max-width: 100% !important;
       }
@@ -1034,13 +1030,15 @@
         word-break: keep-all;
         overflow-wrap: normal;
       }
-      /* Höger panel internal: stack tab-grupper vid trängsel */
-      .focus-intel-action-row {
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-      .focus-intel-switcher {
-        flex-wrap: wrap;
+
+      /* Vid små viewports — göm höger panel så mejl får plats */
+      @media (max-width: 1100px) {
+        .focus-layout {
+          grid-template-columns: 1fr !important;
+        }
+        .focus-intel {
+          display: none !important;
+        }
       }
     `;
     document.head.appendChild(style);
