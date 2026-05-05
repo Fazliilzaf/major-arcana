@@ -6207,7 +6207,7 @@
       label: state.runtime.sendEnabled ? "Policy OK" : "Skicka spärrat",
       summary:
         thread && state.runtime.sendEnabled
-          ? `${words} ord · ${thread.nextActionLabel}`
+          ? `${words} ord · ${thread.nextActionLabel || "Granska tråden"}`
           : "Livedata saknas eller skicka är spärrat just nu.",
       tone: state.runtime.sendEnabled ? "success" : "warning",
     };
@@ -7401,7 +7401,7 @@
               110
             ),
             `Kontaktväg: ${thread.mailboxesLabel || thread.mailboxLabel}`,
-            `Nu väntar vi på: ${thread.waitingLabel}`,
+            `Nu väntar vi på: ${thread.waitingLabel || "—"}`,
           ],
         },
       ],
@@ -7454,8 +7454,8 @@
             row?.priorityReasons?.[0]
               ? `Prioritetsskäl: ${formatPriorityReason(row.priorityReasons[0])}`
               : `Prioritetsskäl: ${deriveFallbackPriorityReason(row, thread)}`,
-            `Nästa steg: ${thread.nextActionLabel}`,
-            thread.followUpLabel ? `Uppföljning: ${thread.followUpLabel}` : `Väntar på: ${thread.waitingLabel}`,
+            `Nästa steg: ${thread.nextActionLabel || "Granska tråden"}`,
+            thread.followUpLabel ? `Uppföljning: ${thread.followUpLabel || "Ingen planerad uppföljning"}` : `Väntar på: ${thread.waitingLabel || "—"}`,
           ],
         },
         {
@@ -7498,8 +7498,8 @@
             detail: "Livekälla: ägare och väntläge kommer från aktiv tråd- och teamkontext.",
           },
           lines: [
-            `Ägare: ${thread.ownerLabel}`,
-            `Väntar på: ${thread.waitingLabel}`,
+            `Ägare: ${thread.ownerLabel || "Ej tilldelad"}`,
+            `Väntar på: ${thread.waitingLabel || "—"}`,
             compactRuntimeCopy(row?.escalationRule, "Ingen eskalering krävs just nu.", 110),
           ],
         },
@@ -7511,7 +7511,7 @@
           lines: [
             thread.nextActionLabel,
             compactRuntimeCopy(thread.nextActionSummary, "Granska tråden och ta nästa tydliga steg.", 110),
-            thread.followUpLabel ? `Planerad uppföljning: ${thread.followUpLabel}` : "Ingen planerad uppföljning ännu.",
+            thread.followUpLabel ? `Planerad uppföljning: ${thread.followUpLabel || "Ingen planerad uppföljning"}` : "Ingen planerad uppföljning ännu.",
           ],
         },
       ],
@@ -13102,7 +13102,7 @@
       {
         label: "Nu i",
         value: thread.statusLabel,
-        note: `${thread.waitingLabel} · ${thread.riskLabel}`,
+        note: `${thread.waitingLabel || "—"} · ${thread.riskLabel || "Bevaka"}`,
         tone: "action",
       },
       {
