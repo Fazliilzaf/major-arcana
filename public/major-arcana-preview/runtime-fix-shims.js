@@ -614,6 +614,220 @@
   }
 
   // ============================================================
+  // P0-3: Logout-knapp i Mer-meny
+  // ============================================================
+
+  function logout() {
+    try {
+      localStorage.removeItem('ARCANA_ADMIN_TOKEN');
+      localStorage.removeItem('cco.selectedMailboxIds.v1');
+    } catch (_e) {}
+    // Redirect till login eller home — beroende på vad som finns
+    window.location.href = '/';
+  }
+
+  function injectLogoutInMerMenu() {
+    // Hitta Mer-meny-item-list när menyn är öppen
+    const merMenuItems = document.querySelectorAll('.preview-more-menu .preview-more-item, [class*="more-menu"] [class*="more-item"]');
+    if (merMenuItems.length === 0) return;
+    const merMenu = merMenuItems[0].parentElement;
+    if (!merMenu) return;
+    if (merMenu.querySelector('[data-shim-logout]')) return; // Redan tillagd
+    // Bygga logout-item som matchar styling
+    const logoutItem = document.createElement('button');
+    logoutItem.className = merMenuItems[0].className;
+    logoutItem.setAttribute('data-shim-logout', '1');
+    logoutItem.type = 'button';
+    logoutItem.style.cssText = 'border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;color:#b5564b;';
+    logoutItem.textContent = 'Logga ut';
+    logoutItem.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (confirm('Logga ut? Token rensas och du måste logga in igen.')) {
+        logout();
+      }
+    });
+    merMenu.appendChild(logoutItem);
+  }
+
+  function bootstrapLogout() {
+    // Lyssna på Mer-knappen och injicera när menyn öppnas
+    const obs = new MutationObserver(() => {
+      injectLogoutInMerMenu();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    // Kortkommando: Cmd+Shift+L
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        if (confirm('Logga ut? (Cmd+Shift+L)')) logout();
+      }
+    });
+  }
+
+  // ============================================================
+  // P1-A: Theme-switcher — hooka utility-button till runtime-theme
+  // ============================================================
+
+  function bootstrapThemeSwitcher() {
+    // Hitta alla preview-utility-buttons med Ljusläge/Mörkläge aria-label
+    const wireUp = () => {
+      document.querySelectorAll('.preview-utility-button[aria-label*="läge"], button[aria-label="Ljusläge"], button[aria-label="Mörkläge"], button[aria-label="Mörkt läge"]').forEach(btn => {
+        if (btn.dataset.shimThemeWired === '1') return;
+        btn.dataset.shimThemeWired = '1';
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Använd runtime-theme API om tillgängligt
+          if (window.MajorArcanaPreviewTheme?.toggleTheme) {
+            const next = window.MajorArcanaPreviewTheme.toggleTheme();
+            // Uppdatera aria-label baserat på nytt tema
+            const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
+            btn.setAttribute('aria-label', labels[next] || 'Tema');
+          } else {
+            // Fallback: toggla data-theme manuellt
+            const cur = document.documentElement.getAttribute('data-theme') || 'system';
+            const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('cco.theme', next); } catch (_e) {}
+          }
+        }, true);
+      });
+    };
+    wireUp();
+    // Observera DOM för nya knappar
+    const obs = new MutationObserver(wireUp);
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // ============================================================
+  // P1-B: Filter-chips — gör Hög risk/Idag/Imorgon klickbara
+  // ============================================================
+
+  let activeSecondaryFilter = null; // 'high-risk' | 'today' | 'tomorrow' | 'unassigned' | 'followup' | null
+
+  function applySecondaryFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    cards.forEach(card => {
+      if (!activeSecondaryFilter) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+        return;
+      }
+      // Kolla om kortet har en chip med matchande klass
+      const matches = !!card.querySelector(`.queue-secondary-signal-chip--${activeSecondaryFilter}`);
+      if (matches) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+      } else {
+        card.style.display = 'none';
+        card.setAttribute('data-shim-filtered', '1');
+      }
+    });
+    // Uppdatera live-pill med filtered count
+    const visibleCount = document.querySelectorAll('.thread-card:not([data-shim-filtered])').length;
+    const pill = document.getElementById('preview-live-status');
+    if (pill && activeSecondaryFilter) {
+      const lblEl = pill.querySelector('.preview-live-pill-label');
+      if (lblEl) lblEl.textContent = `Live · ${visibleCount}`;
+    }
+  }
+
+  function bootstrapSecondaryFilters() {
+    // Klick-delegation på document för secondary-signal-chips
+    document.addEventListener('click', (e) => {
+      const chip = e.target.closest('.queue-secondary-signal-chip');
+      if (!chip) return;
+      // Identifiera filter från klassen
+      const variantMatch = chip.className.match(/queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/);
+      if (!variantMatch) return;
+      const filterKey = variantMatch[1];
+      e.preventDefault();
+      e.stopPropagation();
+      // Toggla filtret av/på
+      if (activeSecondaryFilter === filterKey) {
+        activeSecondaryFilter = null;
+        chip.classList.remove('shim-active-filter');
+        document.querySelectorAll('.queue-secondary-signal-chip.shim-active-filter').forEach(c => c.classList.remove('shim-active-filter'));
+      } else {
+        activeSecondaryFilter = filterKey;
+        document.querySelectorAll('.queue-secondary-signal-chip.shim-active-filter').forEach(c => c.classList.remove('shim-active-filter'));
+        // Markera ALLA chip:s med samma variant
+        document.querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`).forEach(c => c.classList.add('shim-active-filter'));
+      }
+      applySecondaryFilter();
+    }, true);
+    // Lägg till active-styling
+    if (!document.getElementById('shim-secondary-filter-style')) {
+      const style = document.createElement('style');
+      style.id = 'shim-secondary-filter-style';
+      style.textContent = `
+        .queue-secondary-signal-chip { cursor: pointer; transition: transform 0.1s ease, opacity 0.1s ease; }
+        .queue-secondary-signal-chip:hover { opacity: 0.85; transform: translateY(-1px); }
+        .queue-secondary-signal-chip.shim-active-filter {
+          outline: 2px solid currentColor;
+          outline-offset: 2px;
+          font-weight: 600;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    // Re-apply filter när trådkort renderas om
+    const obs = new MutationObserver(() => {
+      if (activeSecondaryFilter) {
+        if (bootstrapSecondaryFilters._t) return;
+        bootstrapSecondaryFilters._t = setTimeout(() => {
+          applySecondaryFilter();
+          bootstrapSecondaryFilters._t = null;
+        }, 200);
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // ============================================================
+  // P1-C: Sök — hooka "Sök i historik" till live-filter
+  // ============================================================
+
+  let activeSearchQuery = '';
+
+  function applySearchFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    const query = activeSearchQuery.toLowerCase().trim();
+    cards.forEach(card => {
+      if (!query) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+        return;
+      }
+      const text = card.textContent.toLowerCase();
+      if (text.includes(query)) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+      } else {
+        card.style.display = 'none';
+        card.dataset.shimSearchHidden = '1';
+      }
+    });
+  }
+
+  function bootstrapSearchFilter() {
+    // Lyssna på input-events för Sök-input
+    document.addEventListener('input', (e) => {
+      const target = e.target;
+      if (target.tagName !== 'INPUT') return;
+      const placeholder = (target.placeholder || '').toLowerCase();
+      if (!/sök/.test(placeholder)) return;
+      activeSearchQuery = target.value || '';
+      applySearchFilter();
+    }, true);
+  }
+
+  // ============================================================
   // P2-1: Översätt raw status-codes som leakar till DOM
   // ============================================================
   //
@@ -731,6 +945,10 @@
     try { bootstrapLivePill(); } catch (e) { console.warn('[fix-shim] live-pill fel:', e); }
     try { bootstrapStatusLabelFix(); } catch (e) { console.warn('[fix-shim] status-label-fix fel:', e); }
     try { bootstrapMailboxCounts(); } catch (e) { console.warn('[fix-shim] mailbox-counts fel:', e); }
+    try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
+    try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
+    try { bootstrapSecondaryFilters(); } catch (e) { console.warn('[fix-shim] secondary-filters fel:', e); }
+    try { bootstrapSearchFilter(); } catch (e) { console.warn('[fix-shim] search-filter fel:', e); }
     try {
       // Fetcha worklist-API först så namn-kartan finns innan observer scannar
       await fetchWorklistAndBuildMap();
@@ -744,6 +962,6 @@
         updateLivePill();
       }, 60000); // Var 60 sek
     } catch (e) { console.warn('[fix-shim] okänd-avsändare-fix fel:', e); }
-    console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + okänd-avsändare + thread-card-click + live-pill + status-labels + mailbox-counts)');
+    console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + okänd-avsändare + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)');
   }
 })();
