@@ -6220,6 +6220,39 @@
     return humanizeCode(reasonCode || normalized, normalized);
   }
 
+  /**
+   * Härled prioritetsskäl från trådens egenskaper när priorityReasons saknas.
+   * Används som fallback istället för "Inget prioritetsskäl registrerat ännu".
+   */
+  function deriveFallbackPriorityReason(row, thread) {
+    if (!row && !thread) return "";
+    const hoursSince = asNumber(row?.timing?.hoursSinceInbound ?? row?.hoursSinceInbound, 0);
+    const lane = normalizeKey(thread?.laneId || thread?.lane || row?.lane);
+    const isUnread = row?.state?.hasUnreadInbound === true || row?.hasUnreadInbound === true || thread?.unread === true;
+    const hasFollowUp = Boolean(row?.followUpDueAt || row?.followUpSuggestedAt);
+    const riskLabel = normalizeKey(thread?.riskLabel || row?.riskLevel || row?.risk);
+
+    // SLA-bedömning först
+    if (hoursSince > 48) return "SLA-överträdelse — > 48h utan svar";
+    if (hoursSince > 24) return "SLA-risk — närmar sig 24h-gräns";
+
+    // Lane-baserade skäl
+    if (lane === "act-now" || lane === "act_now") return "Hög prioritet — kräver omedelbar åtgärd";
+    if (lane === "sprint") return "Sprint — pågående arbete";
+    if (lane === "bookable") return "Klar för bokning — kund väntar bekräftelse";
+    if (lane === "review") return "Granskning krävs — AI-utkast eller avvikande pris";
+    if (lane === "medical") return "Medicinsk fråga — kräver klinisk bedömning";
+    if (lane === "later" || hasFollowUp) return "Schemalagd uppföljning";
+    if (lane === "unclear") return "Otydlig avsikt — kräver tolkning";
+
+    // Risk-/state-baserade fallback
+    if (riskLabel === "miss" || riskLabel === "hög" || riskLabel === "hog") return "Hög risk-flagga";
+    if (isUnread) return "Obesvarat inkommet meddelande";
+    if (hoursSince > 12) return "Inaktiv > 12h";
+
+    return "Standardprioritet";
+  }
+
   function mapRuntimeLifecycleLabel(row) {
     const raw = asText(row?.customerSummary?.lifecycleStatus);
     if (isConciseRuntimeValue(raw, { maxChars: 28, maxWords: 3 })) {
@@ -7420,7 +7453,7 @@
           lines: [
             row?.priorityReasons?.[0]
               ? `Prioritetsskäl: ${formatPriorityReason(row.priorityReasons[0])}`
-              : "Inget prioritetsskäl registrerat ännu",
+              : `Prioritetsskäl: ${deriveFallbackPriorityReason(row, thread)}`,
             `Nästa steg: ${thread.nextActionLabel}`,
             thread.followUpLabel ? `Uppföljning: ${thread.followUpLabel}` : `Väntar på: ${thread.waitingLabel}`,
           ],
