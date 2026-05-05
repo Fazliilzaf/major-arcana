@@ -200,23 +200,52 @@
   // Map: threadId → { name, email }
   const threadCustomerMap = new Map();
 
+  function buildWorklistConsumerUrl() {
+    // Hämta sparade mailbox-val (eller default-listan)
+    let mailboxIds = [];
+    try {
+      const persisted = localStorage.getItem(LS_KEY_SELECTED);
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          mailboxIds = parsed.map(k => `${k}@hairtpclinic.com`);
+        }
+      }
+    } catch (e) { /* tyst */ }
+    if (mailboxIds.length === 0) {
+      mailboxIds = DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`);
+    }
+    const params = new URLSearchParams();
+    params.set('mailboxIds', mailboxIds.join(','));
+    params.set('limit', '500');
+    return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
+  }
+
   async function fetchWorklistAndBuildMap() {
     try {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
       if (!token) return false;
-      const res = await fetch('/api/v1/cco/runtime/worklist', {
+      const res = await fetch(buildWorklistConsumerUrl(), {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       if (!res.ok) return false;
       const data = await res.json();
-      const rows = Array.isArray(data?.rows) ? data.rows : [];
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
       let added = 0;
       for (const row of rows) {
-        const id = row.id || row.conversationKey || row.conversation?.key || row.conversation?.mailboxConversationId;
+        const id = row.id
+          || row.conversationKey
+          || row.conversation?.key
+          || row.conversation?.mailboxConversationId
+          || row.conversation?.conversationId
+          || row.conversation?.id
+          || row.conversationId;
         if (!id) continue;
-        const customer = row.customer || {};
-        const name = customer.name || row.customerName || '';
-        const email = customer.email || row.customerEmail || '';
+        const customer = row.customer || row.contact || {};
+        const name = customer.name || customer.displayName || row.customerName || row.from?.name || '';
+        const email = customer.email || customer.address || row.customerEmail || row.from?.address || '';
         // Lagra med flera nyckelvarianter eftersom DOM-id kan vara annan format
         const norm = String(id).toLowerCase();
         threadCustomerMap.set(norm, { name, email });
@@ -485,23 +514,29 @@
     mailboxCountMap.clear();
     if (!Array.isArray(rows)) return;
     for (const row of rows) {
-      // Möjliga källor till mailbox-id i raden
+      // worklist/consumer rader har shape { mailbox: { mailboxId, mailboxAddress }, conversation: {...} }
       const candidates = [
-        row?.mailboxId,
+        row?.mailbox?.mailboxId,
+        row?.mailbox?.mailboxAddress,
+        row?.mailbox?.address,
         row?.mailbox?.id,
         row?.mailbox?.key,
-        row?.mailbox?.address,
+        row?.mailboxId,
+        row?.mailboxAddress,
         row?.assignedMailboxId,
         row?.primaryMailboxId,
       ].filter(Boolean);
+      // Räkna bara EN gång per rad — ta första matchande mailbox
+      let counted = false;
       for (const c of candidates) {
+        if (counted) break;
         const norm = String(c).toLowerCase();
-        // Bryt ned email till localpart om det är en address
         const localpart = norm.includes('@') ? norm.split('@')[0] : norm;
-        // Normalisera "kons-svar" → "kons"
-        const key = localpart.replace(/[^a-z0-9]/g, '').replace(/^(contact|egzona|fazli|info|kons|marknad).*$/, '$1');
+        // Hitta vilken DEFAULT_MAILBOXES-prefix som matchar localpart
+        const key = DEFAULT_MAILBOXES.find(m => localpart === m || localpart.startsWith(m));
         if (!key) continue;
         mailboxCountMap.set(key, (mailboxCountMap.get(key) || 0) + 1);
+        counted = true;
       }
     }
   }
@@ -510,12 +545,18 @@
     try {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
       if (!token) return;
-      const res = await fetch('/api/v1/cco/runtime/worklist', {
+      // Bygg URL med ALLA defaultmailboxar så vi får räknare även för ej-valda
+      const params = new URLSearchParams();
+      params.set('mailboxIds', DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`).join(','));
+      params.set('limit', '500');
+      const res = await fetch(`/api/v1/cco/runtime/worklist/consumer?${params.toString()}`, {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       if (!res.ok) return;
       const data = await res.json();
-      const rows = Array.isArray(data?.rows) ? data.rows : [];
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
       rebuildMailboxCounts(rows);
     } catch (e) { /* tyst */ }
   }
