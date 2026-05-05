@@ -348,14 +348,23 @@
     card.classList.add('is-selected', 'thread-card-selected');
     card.setAttribute('aria-pressed', 'true');
 
-    // Dispatcha pointer-event-kedja för att triggra app.js's delegerade handler
-    const eventTypes = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
-    for (const ev of eventTypes) {
-      const e = new PointerEvent(ev, {
-        bubbles: true, cancelable: true,
-        pointerType: 'mouse', button: 0,
-      });
-      card.dispatchEvent(e);
+    // Permanent fix: använd workspace-API direkt om exponerad
+    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || '';
+    if (threadId && window.__ccoWorkspace?.setSelectedThreadId) {
+      try {
+        window.__ccoWorkspace.setSelectedThreadId(threadId);
+        // Dispatcha state-change event som många runtime-moduler lyssnar på
+        window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: threadId } }));
+      } catch (e) { console.warn('[fix-shim] setSelectedThreadId fel:', e); }
+    }
+
+    // Backup: dispatcha pointer-event-kedja om workspace-API saknas
+    if (!window.__ccoWorkspace) {
+      const eventTypes = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+      for (const ev of eventTypes) {
+        const e = new PointerEvent(ev, { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0 });
+        card.dispatchEvent(e);
+      }
     }
 
     setTimeout(() => { delete card.dataset.shimSelectInFlight; }, 200);

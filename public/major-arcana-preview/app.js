@@ -3888,6 +3888,11 @@
     state,
   });
 
+  // Expose workspace-state to runtime-fix-shims for permanent thread-card click-handler.
+  // Behövs eftersom app.js är en sluten IIFE och workspaceSourceOfTruth annars
+  // är oåtkomligt för external shims.
+  try { window.__ccoWorkspace = workspaceSourceOfTruth; } catch (_e) {}
+
   const runtimeReentryState = PREVIEW_REENTRY_STATE.createRuntimeReentryStateApi({
     asArray,
     asText,
