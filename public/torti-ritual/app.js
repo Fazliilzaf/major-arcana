@@ -3271,6 +3271,9 @@
       const pendingCount = sectionProducts.filter((item) => state.pendingCatalogId === item.id).length;
       const ownedCount = sectionProducts.filter((item) => state.customerLibrary.includes(item.id)).length;
       const hasProducts = sectionProducts.length > 0;
+      if (!hasProducts) {
+        return "";
+      }
       const searchAttr = hasProducts
         ? `
           <label class="collection-search">
@@ -3316,20 +3319,16 @@
         })
         .join("");
 
-      const emptyMessage = hasProducts
-        ? `No matching products in ${section.collection}.`
-        : `No products have been added to ${section.label} yet.`;
+      const emptyMessage = `No matching products in ${section.collection}.`;
 
-      const metaRow = hasProducts
-        ? `
-          <div class="collection-meta-row">
-            <span>${escapeHtml(ownedCount)} in library</span>
-            <span>${escapeHtml(pendingCount)} pending</span>
-          </div>
-        `
-        : "";
+      const metaRow = `
+        <div class="collection-meta-row">
+          <span>${escapeHtml(ownedCount)} in library</span>
+          <span>${escapeHtml(pendingCount)} pending</span>
+        </div>
+      `;
 
-      const trackMarkup = cards || (hasProducts ? '<div class="product-empty">No matching products.</div>' : "");
+      const trackMarkup = cards || '<div class="product-empty">No matching products.</div>';
 
       return `
         <section class="collection-section collection-${escapeHtml(slugify(section.key))}" data-collection-section="${escapeHtml(section.key)}">
