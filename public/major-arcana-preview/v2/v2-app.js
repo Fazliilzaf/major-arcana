@@ -57,6 +57,7 @@
   const state = {
     activeView: 'all',
     activeFilter: null, // INGEN aktiv filter som standard — FILTER är toggles
+    activeFokusTab: 'konversation',
     selectedThreadId: null,
     selectedMailboxKeys: ['egzona'], // default: Egzona vald
     threads: [],
@@ -326,16 +327,22 @@
       `</button>`
     );
 
-    // mailbox dropdown (alltid synlig som lista, kompakt)
+    // mailbox-lista med volymbarer (7 dagar)
+    const maxCount = Math.max(1, ...Object.values(state.mailboxCounts));
     html.push('<div class="v2-mailbox-list">');
+    html.push('<div class="v2-mailbox-list-title">Volym · 7 dgn</div>');
     DEFAULT_MAILBOXES.forEach(m => {
       const count = state.mailboxCounts[m.key] || 0;
       const isSelected = state.selectedMailboxKeys.includes(m.key);
+      const barWidth = Math.max(6, Math.round((count / maxCount) * 100));
       html.push(
-        `<div class="v2-mailbox-row ${isSelected ? 'is-selected' : ''}" data-mailbox="${m.key}" style="--mbx-color:${m.color}">` +
+        `<div class="v2-mailbox-row ${isSelected ? 'is-selected' : ''}" data-mailbox="${m.key}" style="--mbx-color:${m.color};--mbx-bar-width:${barWidth}%">` +
+        `<div class="v2-mailbox-row-head">` +
         `<span class="v2-mailbox-dot"></span>` +
         `<span class="v2-mailbox-name">${m.label}</span>` +
         `<span class="v2-mailbox-count">${count}</span>` +
+        `</div>` +
+        `<div class="v2-mailbox-bar"></div>` +
         `</div>`
       );
     });
@@ -574,20 +581,143 @@
     return { beforeFilter, afterFilter: filtered };
   }
 
+  // FOKUSYTA-data
+  const FOKUS_TABS = [
+    { key: 'konversation', label: 'Konversation', color: 'cream' },
+    { key: 'kundhistorik', label: 'Kundhistorik', color: 'blue' },
+    { key: 'historik',     label: 'Historik',     color: 'yellow' },
+    { key: 'anteckningar', label: 'Anteckningar', color: 'green' },
+  ];
+
+  const FOKUS_STATUS_DEFAULTS = [
+    { key: 'aktiv',    label: 'Aktiv tråd',     color: 'green' },
+    { key: 'svar',     label: 'Behöver svar',   color: 'pink' },
+    { key: 'fallback', label: 'Legacy fallback', color: 'indigo' },
+    { key: 'risk',     label: 'Hög risk',       color: 'red' },
+  ];
+
+  const FOKUS_ACTIONS = [
+    { key: 'svara_nu',     label: 'Svara nu',          color: 'pink',   icon: '✉' },
+    { key: 'nytt_mejl',    label: 'Nytt mejl till kunden', color: 'blue',  icon: '✈' },
+    { key: 'svara_senare', label: 'Svara senare',      color: 'cyan',   icon: '⏱' },
+    { key: 'markera_klar', label: 'Markera klar',      color: 'green',  icon: '✓' },
+    { key: 'schemalagg',   label: 'Schemalägg uppföljning', color: 'purple', icon: '📅' },
+    { key: 'oppna_historik', label: 'Öppna historik',  color: 'indigo', icon: '🕓' },
+    { key: 'radera',       label: 'Radera',            color: 'red',    icon: '🗑' },
+  ];
+
+  function deriveFokusStatus(thread) {
+    const out = [];
+    out.push({ key: 'aktiv', label: 'Aktiv tråd', color: 'green' });
+    if (thread?.isUnread || thread?.unread || thread?.unreadInbound) {
+      out.push({ key: 'svar', label: 'Behöver svar', color: 'pink' });
+    }
+    const risk = String(thread?.riskLevel || thread?.dominantRisk || thread?.slaStatus || '').toLowerCase();
+    if (/high|hog|hög|breach/.test(risk)) {
+      out.push({ key: 'risk', label: 'Hög risk', color: 'red' });
+    }
+    if (thread?.legacy || thread?.fallback) {
+      out.push({ key: 'fallback', label: 'Legacy fallback', color: 'indigo' });
+    }
+    return out;
+  }
+
   function renderIntel() {
     const intel = document.getElementById('v2-intel');
     if (!intel) return;
 
     if (!state.selectedThreadId) {
-      intel.innerHTML = `<div class="v2-intel-empty">Välj en tråd för att se kundintelligens.</div>`;
+      intel.innerHTML = (
+        `<div class="v2-fokusyta v2-fokusyta--empty">` +
+        `<div class="v2-fokusyta-empty-icon">📭</div>` +
+        `<div class="v2-fokusyta-empty-title">Välj en tråd</div>` +
+        `<div class="v2-fokusyta-empty-text">Klicka på en tråd i mitten för att se konversation, status och åtgärder.</div>` +
+        `</div>`
+      );
       return;
     }
+
     const thread = state.threads.find(t => (t?.id || t?.conversation?.conversationId) === state.selectedThreadId);
     if (!thread) {
-      intel.innerHTML = `<div class="v2-intel-empty">Tråden hittades inte.</div>`;
+      intel.innerHTML = `<div class="v2-fokusyta v2-fokusyta--empty"><div class="v2-fokusyta-empty-text">Tråden hittades inte.</div></div>`;
       return;
     }
-    intel.innerHTML = `<div class="v2-intel-empty">Kundintelligens kommer i nästa iteration. Tråd: ${escapeHtml(getCustomerName(thread))}</div>`;
+
+    const name = getCustomerName(thread);
+    const subject = thread?.subject || thread?.title || thread?.conversation?.subject || '(Inget ämne)';
+    const preview = thread?.preview || thread?.bodyPreview || thread?.latestMessage?.preview || thread?.aiSummary || 'Ingen sammanfattning än.';
+    const initials = deriveAvatarInitials(name);
+    const avatarColor = deriveAvatarColor(name);
+    const ts = thread?.timing?.lastInboundAt || thread?.timing?.lastActivityAt || thread?.updatedAt;
+    const time = formatTime(ts);
+    const statusList = deriveFokusStatus(thread);
+    const activeTab = state.activeFokusTab || 'konversation';
+
+    intel.innerHTML = (
+      `<div class="v2-fokusyta">` +
+
+      // Header
+      `<div class="v2-fokusyta-head">` +
+      `<div class="v2-fokusyta-head-row">` +
+      `<button type="button" class="v2-pill" data-color="orange"><span class="v2-pill-label">Alla</span></button>` +
+      `<button type="button" class="v2-pill" data-color="purple" data-action="sammanfatta"><span class="v2-pill-label">✨ Sammanfatta</span></button>` +
+      `</div>` +
+      `<div class="v2-fokusyta-subject">${escapeHtml(subject)}</div>` +
+      `</div>` +
+
+      // Tab pills
+      `<div class="v2-fokusyta-tabs">` +
+      FOKUS_TABS.map(t =>
+        `<button type="button" class="v2-pill ${activeTab === t.key ? 'is-active' : ''}" data-color="${t.color}" data-fokus-tab="${t.key}">` +
+        `<span class="v2-pill-label">${t.label}</span>` +
+        `</button>`
+      ).join('') +
+      `</div>` +
+
+      // Status pills row
+      `<div class="v2-fokusyta-status">` +
+      statusList.map(s =>
+        `<span class="v2-fokus-status v2-fokus-status--${s.color}">${escapeHtml(s.label)}</span>`
+      ).join(' · ') +
+      `</div>` +
+
+      // Action pills (bubble row)
+      `<div class="v2-fokusyta-actions">` +
+      FOKUS_ACTIONS.map(a =>
+        `<button type="button" class="v2-pill" data-color="${a.color}" data-fokus-action="${a.key}">` +
+        `<span class="v2-pill-label">${a.icon} ${a.label}</span>` +
+        `</button>`
+      ).join('') +
+      `</div>` +
+
+      // Sender card + content
+      `<div class="v2-fokusyta-thread">` +
+      `<div class="v2-fokusyta-thread-head">` +
+      `<div class="v2-thread-avatar" style="background:${avatarColor};">${initials}</div>` +
+      `<div class="v2-fokusyta-thread-meta">` +
+      `<div class="v2-fokusyta-thread-name">${escapeHtml(name)}</div>` +
+      `<div class="v2-fokusyta-thread-time">${time || ''}</div>` +
+      `</div>` +
+      `<button type="button" class="v2-pill" data-color="cream" data-action="senaste"><span class="v2-pill-label">Senaste</span></button>` +
+      `</div>` +
+      `<div class="v2-fokusyta-thread-body">${escapeHtml(preview)}</div>` +
+      `</div>` +
+
+      `</div>` // .v2-fokusyta
+    );
+
+    // Wire up tab clicks
+    intel.querySelectorAll('[data-fokus-tab]').forEach(el => {
+      el.addEventListener('click', () => {
+        state.activeFokusTab = el.dataset.fokusTab;
+        renderIntel();
+      });
+    });
+    intel.querySelectorAll('[data-fokus-action]').forEach(el => {
+      el.addEventListener('click', () => {
+        console.log('[v2] FOKUSYTA action:', el.dataset.fokusAction, 'för tråd', state.selectedThreadId);
+      });
+    });
   }
 
   function escapeHtml(text) {
