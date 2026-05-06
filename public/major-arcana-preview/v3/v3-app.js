@@ -850,14 +850,19 @@
   ];
 
   const FOKUS_ACTIONS = [
-    { key: 'svara_nu',     label: 'Svara nu',          color: 'pink',   icon: '✉' },
-    { key: 'nytt_mejl',    label: 'Nytt mejl till kunden', color: 'blue',  icon: '✈' },
-    { key: 'svara_senare', label: 'Svara senare',      color: 'cyan',   icon: '⏱' },
-    { key: 'markera_klar', label: 'Markera klar',      color: 'green',  icon: '✓' },
-    { key: 'schemalagg',   label: 'Schemalägg uppföljning', color: 'purple', icon: '📅' },
-    { key: 'oppna_historik', label: 'Öppna historik',  color: 'indigo', icon: '🕓' },
-    { key: 'radera',       label: 'Radera',            color: 'red',    icon: '🗑' },
+    { key: 'svara_nu',     label: 'Svara nu',           variant: 'primary',  icon: 'reply' },
+    { key: 'nytt_mejl',    label: 'Nytt mejl',          variant: 'compose',  icon: 'compose' },
+    { key: 'svara_senare', label: 'Senare',             variant: 'neutral',  icon: 'act_later' },
+    { key: 'schemalagg',   label: 'Schemalägg',         variant: 'neutral',  icon: 'act_schedule' },
+    { key: 'markera_klar', label: 'Klar',               variant: 'success',  icon: 'act_done' },
+    { key: 'oppna_historik', label: 'Historik',         variant: 'neutral',  icon: 'act_history' },
+    { key: 'radera',       label: 'Radera',             variant: 'danger',   icon: 'act_delete' },
   ];
+
+  // Lägg till compose-icon
+  if (!SVG_ICONS.compose) {
+    SVG_ICONS.compose = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+  }
 
   function deriveFokusStatus(thread) {
     const out = [];
@@ -875,16 +880,42 @@
     return out;
   }
 
+  function deriveAiSummary(thread) {
+    if (thread?.aiSummary) return thread.aiSummary;
+    if (thread?.summary) return thread.summary;
+    const name = getCustomerName(thread);
+    const subject = thread?.subject || '';
+    const preview = thread?.preview || thread?.bodyPreview || '';
+    return `${name} skriver om "${subject}". ${preview.slice(0, 200)}`.trim();
+  }
+
+  function deriveAiNextAction(thread) {
+    if (thread?.aiNextAction) return thread.aiNextAction;
+    if (thread?.nextAction) return thread.nextAction;
+    return derivePrimaryAction(thread).label;
+  }
+
+  function deriveAiPriorityReason(thread) {
+    if (thread?.priorityReason) return thread.priorityReason;
+    const why = deriveWhyReason(thread);
+    if (why) return why;
+    const lane = String(thread?.lane || '').toLowerCase();
+    if (lane === 'agera_nu' || lane === 'act-now') return 'Hög prioritet — kräver omedelbar åtgärd';
+    if (lane === 'bokning' || lane === 'booking') return 'Bokningsförfrågan — boka tid';
+    if (lane === 'granska' || lane === 'review') return 'Granska tråden innan svar';
+    return 'Standardprioritet';
+  }
+
   function renderIntel() {
     const intel = document.getElementById('v3-intel');
     if (!intel) return;
 
     if (!state.selectedThreadId) {
       intel.innerHTML = (
-        `<div class="v3-fokusyta v3-fokusyta--empty">` +
-        `<div class="v3-fokusyta-empty-icon">📭</div>` +
-        `<div class="v3-fokusyta-empty-title">Välj en tråd</div>` +
-        `<div class="v3-fokusyta-empty-text">Klicka på en tråd i mitten för att se konversation, status och åtgärder.</div>` +
+        `<div class="v3-reader-empty">` +
+        `<div class="v3-reader-empty-icon">${SVG_ICONS.inquiry || ''}</div>` +
+        `<div class="v3-reader-empty-title">Välj en tråd</div>` +
+        `<div class="v3-reader-empty-text">Klicka på en tråd i mitten för att se konversationen, AI-sammanfattning och åtgärder.</div>` +
         `</div>`
       );
       return;
@@ -892,71 +923,128 @@
 
     const thread = state.threads.find(t => (t?.id || t?.conversation?.conversationId) === state.selectedThreadId);
     if (!thread) {
-      intel.innerHTML = `<div class="v3-fokusyta v3-fokusyta--empty"><div class="v3-fokusyta-empty-text">Tråden hittades inte.</div></div>`;
+      intel.innerHTML = `<div class="v3-reader-empty"><div class="v3-reader-empty-text">Tråden hittades inte.</div></div>`;
       return;
     }
 
     const name = getCustomerName(thread);
+    const email = thread?.customer?.email || thread?.customerEmail || thread?.from?.address || '';
     const subject = thread?.subject || thread?.title || thread?.conversation?.subject || '(Inget ämne)';
-    const preview = thread?.preview || thread?.bodyPreview || thread?.latestMessage?.preview || thread?.aiSummary || 'Ingen sammanfattning än.';
+    const preview = thread?.preview || thread?.bodyPreview || thread?.latestMessage?.preview || '';
     const initials = deriveAvatarInitials(name);
     const avatarColor = deriveAvatarColor(name);
     const ts = thread?.timing?.lastInboundAt || thread?.timing?.lastActivityAt || thread?.updatedAt;
     const time = formatTime(ts);
-    const statusList = deriveFokusStatus(thread);
+    const lane = deriveLane(thread);
+    const sentiment = deriveSentimentInfo(thread);
+    const owner = deriveOwnerLabel(thread);
+    const isUnread = !!(thread?.isUnread || thread?.unread || thread?.unreadInbound);
+    const risk = String(thread?.riskLevel || thread?.dominantRisk || thread?.slaStatus || '').toLowerCase();
+    const isHighRisk = /high|hog|hög|breach|miss/.test(risk);
+    const aiSummary = deriveAiSummary(thread);
+    const aiNextAction = deriveAiNextAction(thread);
+    const aiPriorityReason = deriveAiPriorityReason(thread);
     const activeTab = state.activeFokusTab || 'konversation';
 
     intel.innerHTML = (
-      `<div class="v3-fokusyta">` +
+      `<div class="v3-reader">` +
 
-      // Header
-      `<div class="v3-fokusyta-head">` +
-      `<div class="v3-fokusyta-head-row">` +
-      `<button type="button" class="v3-pill" data-color="orange"><span class="v3-pill-label">Alla</span></button>` +
-      `<button type="button" class="v3-pill" data-color="purple" data-action="sammanfatta"><span class="v3-pill-label">✨ Sammanfatta</span></button>` +
-      `</div>` +
-      `<div class="v3-fokusyta-subject">${escapeHtml(subject)}</div>` +
-      `</div>` +
+        // Header: avatar + namn + email + tid
+        `<div class="v3-reader-header">` +
+          `<div class="v3-reader-avatar-wrap">` +
+            `<span class="v3-reader-avatar" style="background:${avatarColor};">${initials}</span>` +
+            `<span class="v3-reader-sentiment" data-tone="${sentiment.tone}">${SVG_ICONS[sentiment.icon] || ''}</span>` +
+          `</div>` +
+          `<div class="v3-reader-meta">` +
+            `<div class="v3-reader-name">${escapeHtml(name)}</div>` +
+            (email ? `<div class="v3-reader-email">${escapeHtml(email)}</div>` : '') +
+          `</div>` +
+          `<div class="v3-reader-time">${escapeHtml(time)}</div>` +
+        `</div>` +
 
-      // Tab pills
-      `<div class="v3-fokusyta-tabs">` +
-      FOKUS_TABS.map(t =>
-        `<button type="button" class="v3-pill ${activeTab === t.key ? 'is-active' : ''}" data-color="${t.color}" data-fokus-tab="${t.key}">` +
-        `<span class="v3-pill-label">${t.label}</span>` +
-        `</button>`
-      ).join('') +
-      `</div>` +
+        // Subject
+        `<div class="v3-reader-subject">${escapeHtml(subject)}</div>` +
 
-      // Status pills row
-      `<div class="v3-fokusyta-status">` +
-      statusList.map(s =>
-        `<span class="v3-fokus-status v3-fokus-status--${s.color}">${escapeHtml(s.label)}</span>`
-      ).join(' · ') +
-      `</div>` +
+        // Status row: lane-pill + risk + behöver-svar + ägare
+        `<div class="v3-reader-status">` +
+          `<span class="v3-lane-pill" data-color="${lane.color}">` +
+            `<span class="v3-lane-pill-icon">${SVG_ICONS[lane.icon] || ''}</span>` +
+            `<span>${escapeHtml(lane.label)}</span>` +
+          `</span>` +
+          (isHighRisk ? `<span class="v3-status-chip" data-tone="amber">${SVG_ICONS.warn_alert} Hög risk</span>` : '') +
+          (isUnread ? `<span class="v3-status-chip" data-tone="rose">Behöver svar</span>` : '') +
+          `<span class="v3-status-chip" data-tone="${owner === 'Ej tilldelad' ? 'amber' : 'gray'}">${escapeHtml(owner)}</span>` +
+        `</div>` +
 
-      // Action pills (bubble row)
-      `<div class="v3-fokusyta-actions">` +
-      FOKUS_ACTIONS.map(a =>
-        `<button type="button" class="v3-pill" data-color="${a.color}" data-fokus-action="${a.key}">` +
-        `<span class="v3-pill-label">${a.icon} ${a.label}</span>` +
-        `</button>`
-      ).join('') +
-      `</div>` +
+        // AI-sammanfattning card
+        `<div class="v3-ai-card">` +
+          `<div class="v3-ai-card-header">` +
+            `<span class="v3-ai-card-title">AI-sammanfattning</span>` +
+            `<button type="button" class="v3-ai-card-refresh" data-action="ai-refresh" title="Uppdatera">↻</button>` +
+          `</div>` +
+          `<div class="v3-ai-card-body">${escapeHtml(aiSummary)}</div>` +
+          `<div class="v3-ai-card-footer">` +
+            `<div class="v3-ai-card-row">` +
+              `<span class="v3-ai-card-label">Nästa drag</span>` +
+              `<span class="v3-ai-card-value">${escapeHtml(aiNextAction)}</span>` +
+            `</div>` +
+            `<div class="v3-ai-card-row">` +
+              `<span class="v3-ai-card-label">Prioritet</span>` +
+              `<span class="v3-ai-card-value">${escapeHtml(aiPriorityReason)}</span>` +
+            `</div>` +
+          `</div>` +
+        `</div>` +
 
-      // Sender card + content
-      `<div class="v3-fokusyta-thread">` +
-      `<div class="v3-fokusyta-thread-head">` +
-      `<div class="v3-thread-avatar" style="background:${avatarColor};">${initials}</div>` +
-      `<div class="v3-fokusyta-thread-meta">` +
-      `<div class="v3-fokusyta-thread-name">${escapeHtml(name)}</div>` +
-      `<div class="v3-fokusyta-thread-time">${time || ''}</div>` +
-      `</div>` +
-      `<button type="button" class="v3-pill" data-color="cream" data-action="senaste"><span class="v3-pill-label">Senaste</span></button>` +
-      `</div>` +
-      `<div class="v3-fokusyta-thread-body">${escapeHtml(preview)}</div>` +
-      `</div>` +
+        // Tabs
+        `<div class="v3-reader-tabs">` +
+          FOKUS_TABS.map(t =>
+            `<button type="button" class="v3-reader-tab ${activeTab === t.key ? 'is-active' : ''}" data-fokus-tab="${t.key}">` +
+              `<span>${escapeHtml(t.label)}</span>` +
+            `</button>`
+          ).join('') +
+        `</div>` +
 
-      `</div>` // .v3-fokusyta
+        // Body — konversation eller annan tab
+        `<div class="v3-reader-body">` +
+          (activeTab === 'konversation' ? (
+            `<article class="v3-reader-message">` +
+              `<header class="v3-reader-message-head">` +
+                `<span class="v3-reader-message-from">${escapeHtml(name)}</span>` +
+                `<span class="v3-reader-message-sep">·</span>` +
+                `<span class="v3-reader-message-time">${escapeHtml(time)}</span>` +
+              `</header>` +
+              `<div class="v3-reader-message-content">${escapeHtml(preview || aiSummary)}</div>` +
+            `</article>` +
+            (thread?.previousMessages?.length ? thread.previousMessages.map(m =>
+              `<article class="v3-reader-message v3-reader-message-prev">` +
+                `<header class="v3-reader-message-head">` +
+                  `<span class="v3-reader-message-from">${escapeHtml(m.from || '')}</span>` +
+                  `<span class="v3-reader-message-sep">·</span>` +
+                  `<span class="v3-reader-message-time">${escapeHtml(formatTime(m.timestamp || m.ts))}</span>` +
+                `</header>` +
+                `<div class="v3-reader-message-content">${escapeHtml(m.preview || m.body || '')}</div>` +
+              `</article>`
+            ).join('') : '')
+          ) : activeTab === 'kundhistorik' ? (
+            `<div class="v3-reader-tab-empty">Kunddata kommer från CRM (Cliento) — visas här.</div>`
+          ) : activeTab === 'historik' ? (
+            `<div class="v3-reader-tab-empty">Tidigare trådar med ${escapeHtml(name)}.</div>`
+          ) : (
+            `<div class="v3-reader-tab-empty">Inga anteckningar ännu. Klicka för att lägga till.</div>`
+          )) +
+        `</div>` +
+
+        // Action bar (bottom)
+        `<div class="v3-reader-actions">` +
+          FOKUS_ACTIONS.map(a =>
+            `<button type="button" class="v3-reader-action" data-variant="${a.variant}" data-fokus-action="${a.key}" title="${escapeHtml(a.label)}">` +
+              `<span class="v3-reader-action-icon">${SVG_ICONS[a.icon] || ''}</span>` +
+              `<span class="v3-reader-action-label">${escapeHtml(a.label)}</span>` +
+            `</button>`
+          ).join('') +
+        `</div>` +
+
+      `</div>`
     );
 
     // Wire up tab clicks
@@ -968,7 +1056,7 @@
     });
     intel.querySelectorAll('[data-fokus-action]').forEach(el => {
       el.addEventListener('click', () => {
-        console.log('[v3] FOKUSYTA action:', el.dataset.fokusAction, 'för tråd', state.selectedThreadId);
+        console.log('[v3] action:', el.dataset.fokusAction, 'för tråd', state.selectedThreadId);
       });
     });
   }
