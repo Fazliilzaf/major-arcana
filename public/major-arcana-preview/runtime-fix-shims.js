@@ -997,6 +997,25 @@
     const style = document.createElement('style');
     style.id = 'shim-responsive-layout';
     style.textContent = `
+      /* CORE FIX — .cco-followup-row och .focus-shell var båda i grid-cell
+         row 1 / col 2 → filter-raden (Idag/Imorgon/Väntar svar) lade sig
+         OVANPÅ FOKUSYTA-rubriken vid reload. Lös genom att ge dem egna rader. */
+      .preview-workspace {
+        grid-template-rows: auto 1fr !important;
+      }
+      .cco-followup-row {
+        grid-row: 1 !important;
+        grid-column: 2 !important;
+      }
+      .focus-shell {
+        grid-row: 2 !important;
+        grid-column: 2 !important;
+      }
+      .preview-shell {
+        grid-row: 1 / span 2 !important;
+        grid-column: 1 !important;
+      }
+
       /* CORE FIX — höger panel tab-grupper overlappade pga flex-shrink:
          .focus-intel-primary fick 182px medan content var 291px. Body sticker
          ut underifrån och overlappar .focus-intel-switcher som kommer efter.
