@@ -20,6 +20,18 @@
     />
     <link rel="stylesheet" href="./design-tokens.css" />
     <link rel="stylesheet" href="./styles.css?v=v5-final-r5" />
+    <!-- v3 bubble-skin: laddas alltid, aktiveras bara när ?layout=v3 via html.v3-skin-active class -->
+    <link rel="stylesheet" href="./v3-bubble-skin.css?v=v3-skin-r1" />
+    <script>
+      (function () {
+        try {
+          var p = new URLSearchParams(location.search);
+          if (p.get('layout') === 'v3') {
+            document.documentElement.classList.add('v3-skin-active');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <main class="preview-page">

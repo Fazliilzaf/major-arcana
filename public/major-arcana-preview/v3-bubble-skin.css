@@ -1,0 +1,210 @@
+/* ============================================================
+   V3 BUBBLE-SKIN för deployad CCO — aktiveras med ?layout=v3
+   Inga backdrop-filter på thread-cards (för 68 cards = för tungt).
+   Bara på top-bar + 2 paneler.
+   ============================================================ */
+
+/* Bakgrund: cream gradient + radial spotlights */
+html.v3-skin-active body.is-preview-ready,
+html.v3-skin-active main.preview-page {
+  background:
+    radial-gradient(ellipse 800px 500px at 12% -5%, rgba(232,148,90,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 700px 600px at 95% 100%, rgba(197,79,138,0.14) 0%, transparent 50%),
+    linear-gradient(135deg, #f6ede4 0%, #f0e6dc 50%, #ebe1d6 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* TOP-BAR — frosted glass */
+html.v3-skin-active .preview-topbar {
+  background: rgba(255, 252, 248, 0.55) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.50) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    0 4px 18px -10px rgba(60,30,10,0.12) !important;
+}
+html.v3-skin-active .preview-nav-item {
+  border-radius: 999px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+}
+html.v3-skin-active .preview-nav-item.preview-nav-item-active {
+  background: linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(243,227,215,0.95) 100%) !important;
+  color: #6b4226 !important;
+  border-color: rgba(168, 116, 76, 0.20) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 6px -2px rgba(168,116,76,0.25) !important;
+}
+html.v3-skin-active .preview-topbar button:not(.preview-nav-item) {
+  border-radius: 999px !important;
+  padding: 5px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  background: rgba(255, 252, 248, 0.65) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 2px rgba(60,30,10,0.06) !important;
+}
+
+/* QUEUE-TOPZONE filterchips - lite glossy */
+html.v3-skin-active .queue-filter-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* THREAD-CARDS = BUBBLES (INGA backdrop-filter — för många element) */
+html.v3-skin-active .thread-card.thread-card.unified-queue-card,
+html.v3-skin-active .thread-card.thread-card.unified-queue-card[data-lane] {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(60, 30, 10, 0.04),
+    0 4px 14px -4px rgba(60, 30, 10, 0.10) !important;
+  margin-bottom: 8px !important;
+  transition: transform 200ms cubic-bezier(0.22,1,0.36,1), box-shadow 200ms ease, background 200ms ease !important;
+}
+html.v3-skin-active .thread-card.thread-card.unified-queue-card:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: translateY(-2px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 6px 22px -6px rgba(60, 30, 10, 0.18),
+    0 2px 6px -2px rgba(60, 30, 10, 0.10) !important;
+}
+html.v3-skin-active .thread-card.thread-card.is-selected,
+html.v3-skin-active .thread-card.thread-card.thread-card-selected {
+  background: linear-gradient(135deg, rgba(255, 245, 230, 0.95) 0%, rgba(252, 235, 240, 0.85) 100%) !important;
+  border: 1px solid rgba(232, 148, 90, 0.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 28px -6px rgba(232, 148, 90, 0.35),
+    0 2px 8px -2px rgba(60, 30, 10, 0.12) !important;
+}
+
+/* PRIORITY-BAR (vänster lane-stripe) — glossy glow */
+html.v3-skin-active .thread-card.thread-card.unified-queue-card .priority-bar {
+  width: 4px !important;
+  border-radius: 999px !important;
+  margin: 10px 0 10px 4px !important;
+  filter: saturate(1.1);
+}
+
+/* LANE-BADGE i strip — glossy pill */
+html.v3-skin-active .lane-badge {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 1px 2px rgba(60, 30, 10, 0.06) !important;
+}
+
+/* AVATARS i thread-cards — glossy */
+html.v3-skin-active .thread-card .avatar-wrap .avatar {
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.20) 0%, transparent 50%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 1px 3px rgba(60, 30, 10, 0.12) !important;
+}
+html.v3-skin-active .thread-card .status-dot.new {
+  box-shadow: 0 0 6px rgba(85, 155, 213, 0.65), 0 1px 2px rgba(60,30,10,0.20) !important;
+}
+
+/* SENTIMENT-BADGES — glossy soft */
+html.v3-skin-active .cco-card-badge.cco-card-badge-sentiment {
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, transparent 60%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.50),
+    0 1px 3px rgba(60, 30, 10, 0.10) !important;
+}
+
+/* ACTION-ICONS hover — frosted */
+html.v3-skin-active .action-cluster .action-icon {
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease !important;
+}
+html.v3-skin-active .action-cluster .action-icon:hover {
+  background: rgba(255, 255, 255, 0.70) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 3px rgba(60,30,10,0.10) !important;
+}
+
+/* PRIMARY ACTION-BUTTONS (Svara, Bekräfta bokning, etc) — glossy */
+html.v3-skin-active .action-cluster button:not(.action-icon) {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    0 4px 12px -4px rgba(60,30,10,0.30),
+    0 1px 3px rgba(60,30,10,0.18) !important;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 160ms ease !important;
+}
+html.v3-skin-active .action-cluster button:not(.action-icon):hover {
+  transform: translateY(-1px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.40),
+    0 6px 18px -4px rgba(60,30,10,0.40),
+    0 2px 4px rgba(60,30,10,0.22) !important;
+}
+
+/* FOKUSYTA (mid-canvas) — frosted glass card */
+html.v3-skin-active .preview-canvas {
+  background: rgba(255,252,248,0.55) !important;
+  backdrop-filter: blur(20px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+  border: 1px solid rgba(255,255,255,0.50) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 32px -12px rgba(60,30,10,0.18) !important;
+}
+
+/* FOCUS TABS — bubble pills */
+html.v3-skin-active .focus-tab {
+  border-radius: 999px !important;
+  padding: 5px 12px !important;
+}
+html.v3-skin-active .focus-tab.is-active {
+  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, #dde8f5 100%) !important;
+  color: #2e4d80 !important;
+  border: 1px solid #b1c8e3 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 6px -2px rgba(46,77,128,0.20) !important;
+}
+
+/* QUICK-ACTION-PILLS (Svara nu, Nytt mejl, etc) — glossy gradients */
+html.v3-skin-active .quick-action-pill {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.20) 0%, transparent 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.40),
+    0 2px 8px -2px rgba(60,30,10,0.12),
+    0 1px 2px rgba(60,30,10,0.06) !important;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 160ms ease !important;
+}
+html.v3-skin-active .quick-action-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    0 6px 18px -4px rgba(60,30,10,0.20),
+    0 2px 4px rgba(60,30,10,0.10) !important;
+}
+html.v3-skin-active .quick-action-pill--studio {
+  background: linear-gradient(135deg, #c54f8a 0%, #e26f9a 100%) !important;
+  color: #fff !important;
+}
+html.v3-skin-active .quick-action-pill--compose {
+  background: linear-gradient(135deg, #e0a958 0%, #ecc580 100%) !important;
+  color: #4a2f10 !important;
+}
+
+/* INTEL PANEL (höger Operativt stöd) — frosted glass */
+html.v3-skin-active .focus-intel {
+  background: rgba(255,252,248,0.55) !important;
+  backdrop-filter: blur(20px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+  border: 1px solid rgba(255,255,255,0.50) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 32px -12px rgba(60,30,10,0.18) !important;
+}
+html.v3-skin-active .intel-card {
+  background: rgba(255,255,255,0.65) !important;
+  border: 1px solid rgba(255,255,255,0.55) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 3px rgba(60,30,10,0.04) !important;
+}
+
+/* Custom scrollbar — minimal iOS-stil */
+html.v3-skin-active ::-webkit-scrollbar { width: 7px; }
+html.v3-skin-active ::-webkit-scrollbar-thumb { background: rgba(168,116,76,0.20); border-radius: 999px; }
+html.v3-skin-active ::-webkit-scrollbar-thumb:hover { background: rgba(168,116,76,0.35); }
