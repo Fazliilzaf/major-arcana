@@ -443,3 +443,31 @@ html.v3-skin-active .queue-history-list .thread-card .card-strip .meta {
   align-items: center !important;
   gap: 4px !important;
 }
+
+/* ============================================================
+   NO-FLASH: dölj listan tills v3-row-rebuild har körts färdigt
+   ============================================================ */
+html.v3-skin-active:not(.v3-row-ready) .queue-history-list {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+html.v3-skin-active.v3-row-ready .queue-history-list {
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+/* AGGRESSIV dölj av lane-badge + meta-status (ALLA varianter) */
+html.v3-skin-active .queue-history-list .thread-card .lane-badge,
+html.v3-skin-active .queue-history-list .thread-card .card-strip .lane-badge,
+html.v3-skin-active .queue-history-list .thread-card.thread-card .lane-badge,
+html.v3-skin-active .queue-history-list .queue-history-item .lane-badge {
+  display: none !important;
+}
+html.v3-skin-active .queue-history-list .thread-card .meta-status,
+html.v3-skin-active .queue-history-list .thread-card .meta .meta-status,
+html.v3-skin-active .queue-history-list .thread-card.thread-card .meta-status,
+html.v3-skin-active .queue-history-list .queue-history-item .meta-status,
+html.v3-skin-active .queue-history-list .thread-card .meta .meta-sep,
+html.v3-skin-active .queue-history-list .thread-card.thread-card .meta-sep {
+  display: none !important;
+}
