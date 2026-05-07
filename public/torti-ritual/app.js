@@ -3228,7 +3228,7 @@
     const activeQuery = normalize(activeSearchValue);
     const activeProducts = activeQuery
       ? activeSection.products.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(activeQuery))
-      : [];
+      : activeSection.products.slice();
     const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
     const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
     const resultsMarkup = activeQuery
@@ -3263,7 +3263,37 @@
           })
           .join("")
         : '<div class="collection-search-empty collection-search-empty--inline"><strong>No matches</strong><span>Try a shorter product name or another category.</span></div>'
-      : '<div class="collection-search-hint">Pick a category, then type to reveal its products.</div>';
+      : activeProducts.length > 0
+        ? activeProducts
+          .map((item) => {
+            const pending = state.pendingCatalogId === item.id;
+            const owned = state.customerLibrary.includes(item.id);
+            const filterText = normalize([item.name, item.collection, item.type].join(" "));
+
+            return `
+              <button
+                class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
+                type="button"
+                draggable="true"
+                data-product-id="${escapeHtml(item.id)}"
+                data-collection-filter-text="${escapeHtml(filterText)}"
+              >
+                ${renderBottleVisual(item, "collection-result-bottle")}
+                <span class="collection-result-copy">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
+                  <span class="collection-result-flags">
+                    <span class="product-level-badges">
+                      ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+                    </span>
+                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
+                  </span>
+                </span>
+              </button>
+            `;
+          })
+          .join("")
+        : '<div class="collection-search-hint">This collection has no products yet.</div>';
 
     productScroller.innerHTML = `
       <div class="collection-tabs" role="tablist" aria-label="Collections">
@@ -3288,6 +3318,11 @@
         </div>
         <div class="collection-results" data-collection-results="${escapeHtml(activeSection.key)}">
           ${resultsMarkup}
+        </div>
+        <div class="collection-panel-note">
+          ${activeQuery
+            ? `<span>Showing ${escapeHtml(activeProducts.length)} matched products in ${escapeHtml(activeSection.collection)}.</span>`
+            : `<span>Browse all ${escapeHtml(activeSection.products.length)} products in ${escapeHtml(activeSection.collection)}. Search to narrow the list.</span>`}
         </div>
         <div class="collection-panel-meta">
           <span>${escapeHtml(ownedCount)} in library</span>
