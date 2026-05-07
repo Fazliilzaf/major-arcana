@@ -2202,10 +2202,12 @@
 
       const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
 
-      // ====== WARM-ROW v7 markup ======
-      // Två zoner: topp-rad (lane-badge + meta) + mid-rad (avatar | content | actions).
-      // Content innehåller: namn / subject / why-rad. Why-raden har färgad ikon som
-      // visualiserar tone (alert/amber/blue/green).
+      // ====== WARM-ROW v8 markup — Apple Mail / Linear / Arc-stil ======
+      // Layout:
+      //   top:  [Oklart]                            [datum · Ej tilldelad]
+      //   mid:  [avatar] [sender · subject + filer]                 [actions]
+      //                  [2-rads body-preview]
+      //                  [why-rad: ⚠ Miss-risk]
       const dateMarkup = asText(unifiedModel.time)
         ? `<time class="meta-date" datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time>`
         : "";
@@ -2240,10 +2242,48 @@
           </div>`
         : "";
 
-      // Subject = subtitle eller signal-what (varierar)
-      const warmSubject = asText(unifiedModel.subtitle) || whatStr;
+      // ====== Sender / Subject / Body preview-text ======
+      // Sender = motpart (företaget eller kunden som skrivit)
+      // Subject = mejlets ämnesrad (subtitle eller fallback whatStr)
+      // Preview = själva body-texten (previewLine), clampad till 2 rader via CSS
+      const senderText = counterpartyCopy;
+      const rawPreviewBody = asText(unifiedModel.previewLine);
+      const subtitleText = asText(unifiedModel.subtitle);
+      const subjectText = subtitleText || whatStr;
+      const previewBody =
+        rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
+          ? rawPreviewBody
+          : (rawPreviewBody.length > subjectText.length ? rawPreviewBody : "");
 
-      return `<!-- warm-row-v7 markup --><article data-v7-version="warm-r2" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
+      // ====== Bilageikoner: detektera enkelt från subject + preview ======
+      const ATTACH_ICONS = {
+        paperclip: '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+        image:     '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+        pdf:       '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      };
+      const attachHaystack = (subjectText + " " + rawPreviewBody).toLowerCase();
+      const attachIconsArr = [];
+      if (/\.pdf|signerad kopia|bifogad|undertecknats|avtal|kvitto|faktura|offert|dokument/.test(attachHaystack)) {
+        attachIconsArr.push(ATTACH_ICONS.paperclip);
+      }
+      if (/\.jpe?g|\.png|\.gif|\[telefon\]|nyhetsbrev|kundcase|bild |image |screenshot/.test(attachHaystack)) {
+        attachIconsArr.push(ATTACH_ICONS.image);
+      }
+      const attachIconsMarkup = attachIconsArr.length
+        ? `<span class="warm-file-icons" aria-hidden="true">${attachIconsArr.join("")}</span>`
+        : "";
+
+      const senderSubjectMarkup = `<div class="warm-line-1">
+        <span class="warm-sender">${escapeHtml(senderText)}</span>
+        ${subjectText ? `<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="${escapeHtml(subjectText)}">${escapeHtml(subjectText)}</span>` : ""}
+        ${attachIconsMarkup}
+      </div>`;
+
+      const previewMarkup = previewBody
+        ? `<div class="warm-preview">${escapeHtml(previewBody)}</div>`
+        : "";
+
+      return `<!-- warm-row-v8 markup --><article data-v8-version="warm-r8" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
         <span class="warm-rail" aria-hidden="true"></span>
         <div class="warm-top">
           <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
@@ -2257,12 +2297,10 @@
             <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
           </div>
           <div class="warm-content">
-            <div class="warm-name name">${escapeHtml(counterpartyCopy)}</div>
-            ${warmSubject ? `<div class="warm-subject signal-what">${escapeHtml(warmSubject)}</div>` : ""}
+            ${senderSubjectMarkup}
+            ${previewMarkup}
+            ${warmWhyMarkup}
           </div>
-        </div>
-        <div class="warm-bottom">
-          ${warmWhyMarkup}
           <div class="warm-actions action-cluster">
             <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
             <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>

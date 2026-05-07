@@ -1,33 +1,32 @@
 /* ============================================================
-   warm-row.css  v7
-   Helt ny CCO-rad enligt warm-spec.
-
-   Layout (per kort):
-     ┌──────────────────────────────────────────────────┐
-     │ [Oklart]                  6 maj · Ej tilldelad   │  warm-top
-     │                                                  │
-     │  ⓞ   Community           [···][···][···] [Öppna] │  warm-mid
-     │      (Öppen)                                     │
-     │      ⚠ Miss-risk                                 │
-     └──────────────────────────────────────────────────┘
-     · Lila vertikal accent på vänster kant (warm-rail)
+   warm-row.css  v8 — Apple Mail / Linear / Arc-stil
+   Layout per kort:
+     ┌──────────────────────────────────────────────────────────┐
+     │ Oklart                              6 maj · Ⓘ Ej tilldelad│
+     │                                                          │
+     │ ⓞ  Sender · Subject 📎               [○][○][○][○][○]      │
+     │    Hej, dokumentet ...                          [Öppna >]│
+     │    har undertecknats av alla parter ...                  │
+     │    ⚠ Miss-risk                                           │
+     └──────────────────────────────────────────────────────────┘
 
    Tokens:
-     Bakgrund    #FFF6ED  (sidan), #FFFCF8 (kort), #FFF9F3 (alt-rad)
-     Hover       #FFF2E6
-     Border      #F1E5DB  (mycket tunn)
+     Bakgrund:   #FFF6ED  (sidan), #FFFCF8 (kort), #FFF9F3 (alt)
+     Hover:      #FFF2E6
+     Border:     #F1E5DB
 
-     Lila   #7C3AED  Oklart / lane-rail
+     Lila   #7C3AED  Oklart
      Orange #F97316  Miss-risk / Ej tilldelad
      Indigo #4F46E5  Behöver svar
-     Röd    #EF4444  Behöver åtgärd
-     Grön   #16A34A  Klar
+     Röd    #EF4444  Behöver åtgärd / Radera
+     Grön   #16A34A  Klar / Kalender
 
-     Namn:   16px / 600 / #111827
-     Subj:   13px / 400 / #4B5563
-     Why:    12px / 600 / status-färg
-     Tid:    12px / 600 / #374151
-     Ej-til: 12px / 600 / orange
+     Sender:   Semibold 14.5px #111827
+     Subject:  Regular  14.5px #4B5563
+     Preview:  Regular  13px #6B7280  (2-line clamp)
+     Why:      Semibold 11.5px (status-färg)
+     Tid:      Medium   12.5px #374151
+     Tagg:     Medium   11px (status-färg)
    ============================================================ */
 
 :root {
@@ -48,30 +47,32 @@
   --warm-red:    #EF4444;
   --warm-green:  #16A34A;
 
-  --warm-text:   #111827;
-  --warm-text-2: #374151;
-  --warm-text-3: #6B7280;
-  --warm-text-4: #4B5563;
+  --warm-text:    #111827;
+  --warm-text-2:  #374151;
+  --warm-text-3:  #6B7280;
+  --warm-text-4:  #4B5563;
+  --warm-text-5:  #9CA3AF;
 }
 
-/* Listans bakgrund varmt beige */
+/* Listans bakgrund */
 .queue-history-list,
 .runtime-shell .queue-history-list,
 [data-queue-list-mode] {
-  background-color: var(--warm-bg-warmer) !important;
+  background-color: #FAF1E8 !important;
+  background-image: none !important;
 }
 
 /* ============================================================
-   KORTET — warm-row
-   3 rader: top (lane+meta) / mid (avatar+content) / bottom (why+actions)
+   KORTET — warm-row v8
+   2 zoner: top + mid
    ============================================================ */
 .thread-card.unified-queue-card.warm-row {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  grid-template-rows: auto auto auto !important;
-  grid-template-areas: "top" "mid" "bottom" !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "top" "mid" !important;
   gap: 4px !important;
-  padding: 10px 14px 10px 18px !important;
+  padding: 12px 16px 14px 18px !important;
   background-color: var(--warm-card) !important;
   border: 1px solid var(--warm-border) !important;
   border-radius: 14px !important;
@@ -83,7 +84,6 @@
   max-height: none !important;
   transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
 }
-
 .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
   background-color: var(--warm-card-alt) !important;
 }
@@ -101,14 +101,41 @@
   border-color: #E8C9A6 !important;
 }
 
+/* Stäng av peach-gradient ::before/::after från styles.css */
+.thread-card.unified-queue-card.warm-row::before,
+.thread-card.unified-queue-card.warm-row::after,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::before,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::after,
+.thread-card.unified-queue-card.warm-row:hover::before,
+.thread-card.unified-queue-card.warm-row:hover::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+.thread-card.unified-queue-card.warm-row {
+  --thread-card-wash: transparent !important;
+  --mail-card-highlight: none !important;
+  --mail-card-lower-glow: none !important;
+  --mail-card-highlight-selected: none !important;
+  --mail-card-lower-glow-selected: none !important;
+}
+.thread-card.unified-queue-card.warm-row.thread-card-selected {
+  min-height: 0 !important;
+  padding: 12px 16px 14px 18px !important;
+  gap: 4px !important;
+}
+
 /* ============================================================
    RAIL — lila vertikal accent på vänster kant
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-rail {
   position: absolute !important;
   left: 6px !important;
-  top: 8px !important;
-  bottom: 8px !important;
+  top: 10px !important;
+  bottom: 10px !important;
   width: 3px !important;
   border-radius: 999px !important;
   background: var(--warm-violet) !important;
@@ -128,7 +155,7 @@
 .thread-card.unified-queue-card.warm-row[data-lane="booking"] .warm-rail   { background: var(--warm-green) !important; }
 
 /* ============================================================
-   TOP — "Oklart" left + meta right
+   TOP — Oklart vänster + meta höger
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-top {
   grid-area: top !important;
@@ -137,7 +164,7 @@
   justify-content: space-between !important;
   gap: 8px !important;
   padding: 0 0 0 4px !important;
-  min-height: 16px !important;
+  min-height: 14px !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
   display: inline-flex !important;
@@ -171,11 +198,12 @@
 .thread-card.unified-queue-card.warm-row[data-lane="bookable"] .lane-badge,
 .thread-card.unified-queue-card.warm-row[data-lane="booking"] .lane-badge   { color: var(--warm-green) !important; }
 
+/* Top meta: datum + Ej tilldelad */
 .thread-card.unified-queue-card.warm-row .warm-top-meta {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  font-size: 12px !important;
+  font-size: 12.5px !important;
   font-weight: 500 !important;
   color: var(--warm-text-3) !important;
   flex: 0 0 auto !important;
@@ -191,7 +219,6 @@
 }
 .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-sep {
   color: var(--warm-border-2) !important;
-  font-weight: 400 !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status {
   display: inline-flex !important;
@@ -213,20 +240,21 @@
 .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned::before {
   content: "" !important;
   display: inline-block !important;
-  width: 12px !important;
-  height: 12px !important;
+  width: 13px !important;
+  height: 13px !important;
   background-color: currentColor !important;
   -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
           mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
 }
 
 /* ============================================================
-   MID — avatar | content (actions flyttade till bottom-row)
+   MID — avatar | content | actions
+   actions vertikalt centrerade med content
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-mid {
   grid-area: mid !important;
   display: grid !important;
-  grid-template-columns: 36px 1fr !important;
+  grid-template-columns: 36px 1fr auto !important;
   grid-template-rows: auto !important;
   align-items: center !important;
   column-gap: 12px !important;
@@ -236,8 +264,7 @@
 }
 
 /* ============================================================
-   AVATAR — 36px, varm gradient, status-prick.
-   Override styles.css aggressivt med dubbel klassspecificity.
+   AVATAR — 36px peach radial, status-prick blå
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
   position: relative !important;
@@ -245,7 +272,8 @@
   height: 36px !important;
   flex: 0 0 auto !important;
   margin: 0 !important;
-  align-self: center !important;
+  align-self: start !important;
+  margin-top: 2px !important;
   transform: none !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
@@ -278,13 +306,10 @@
   transform: none !important;
   transition: none !important;
 }
-
-/* Stäng av hover-scale-rotate på avatarn */
 .thread-card.unified-queue-card.warm-row:hover .avatar,
 .thread-card.unified-queue-card.warm-row:hover .warm-avatar .avatar {
   transform: none !important;
 }
-
 .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
   position: absolute !important;
   right: -1px !important;
@@ -293,118 +318,146 @@
   height: 9px !important;
   border-radius: 50% !important;
   border: 2px solid var(--warm-card) !important;
-  background: var(--warm-text-3) !important;
+  background: var(--warm-indigo) !important;
   box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.10) !important;
 }
-.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.new   { background: var(--warm-indigo) !important; }
 .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.warn  { background: var(--warm-orange) !important; }
 .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.alert { background: var(--warm-red) !important; }
 .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.done  { background: var(--warm-green) !important; }
 
 /* ============================================================
-   CONTENT — namn / subject / why
+   CONTENT — sender · subject + filer / preview / why
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-content {
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 1px !important;
+  gap: 3px !important;
   overflow: hidden !important;
 }
-.thread-card.unified-queue-card.warm-row .warm-name.name {
-  font-size: 16px !important;
+
+/* Rad 1: Sender · Subject + filikoner */
+.thread-card.unified-queue-card.warm-row .warm-line-1 {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  line-height: 1.25 !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-sender {
+  font-size: 14.5px !important;
   font-weight: 600 !important;
   color: var(--warm-text) !important;
   letter-spacing: -0.005em !important;
-  line-height: 1.25 !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  max-width: 40% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  white-space: nowrap !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-line-1 .warm-sep {
+  color: var(--warm-border-2) !important;
+  font-weight: 400 !important;
+  flex: 0 0 auto !important;
+  font-size: 13px !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
-  font-size: 13px !important;
+  font-size: 14.5px !important;
   font-weight: 400 !important;
   color: var(--warm-text-4) !important;
   letter-spacing: 0 !important;
-  line-height: 1.3 !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
 
-/* Why-rad — färgad ikon + text. 10% mindre, sitter i bottom-rad. */
+/* Filikoner inline */
+.thread-card.unified-queue-card.warm-row .warm-file-icons {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+  margin-left: 4px !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-file-icon {
+  width: 13px !important;
+  height: 13px !important;
+  color: var(--warm-text-5) !important;
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+}
+
+/* Rad 2: Body preview, 2-rader clamp */
+.thread-card.unified-queue-card.warm-row .warm-preview {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--warm-text-3) !important;
+  letter-spacing: 0 !important;
+  line-height: 1.4 !important;
+  margin: 1px 0 0 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+/* Rad 3: Why — färgad ikon + text */
 .thread-card.unified-queue-card.warm-row .warm-why {
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
-  margin: 0 !important;
-  font-size: 11.25px !important;
+  margin: 3px 0 0 0 !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
   line-height: 1.2 !important;
-  flex: 0 1 auto !important;
-  min-width: 0 !important;
+  flex: 0 0 auto !important;
   white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 12.5px !important;
-  height: 12.5px !important;
+  width: 13px !important;
+  height: 13px !important;
   flex: 0 0 auto !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon svg {
-  width: 12.5px !important;
-  height: 12.5px !important;
+  width: 13px !important;
+  height: 13px !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .why-reason {
-  font-size: 11.25px !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
 }
-
-/* Why-färger per kind */
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"]   { color: var(--warm-orange) !important; }
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] { color: var(--warm-indigo) !important; }
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"]    { color: var(--warm-red)    !important; }
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"]   { color: var(--warm-green)  !important; }
 
 /* ============================================================
-   BOTTOM-RAD — why (vänster) + actions (höger)
-   ============================================================ */
-.thread-card.unified-queue-card.warm-row .warm-bottom {
-  grid-area: bottom !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 8px !important;
-  padding: 2px 4px 0 4px !important;
-  min-width: 0 !important;
-}
-
-/* Om why saknas: actions ska fortfarande sitta höger */
-.thread-card.unified-queue-card.warm-row .warm-bottom:not(:has(.warm-why)) {
-  justify-content: flex-end !important;
-}
-
-/* ============================================================
-   ACTIONS — i bottom-rad, 30% mindre, höger-justerad
+   ACTIONS — vertikalt centrerade höger
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  gap: 3px !important;
+  gap: 4px !important;
   padding: 0 !important;
-  margin: 0 0 0 auto !important;
+  margin: 0 !important;
   flex: 0 0 auto !important;
+  align-self: center !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
-  width: 21px !important;
-  height: 21px !important;
-  padding: 4px !important;
+  width: 26px !important;
+  height: 26px !important;
+  padding: 5px !important;
   border-radius: 50% !important;
   background: rgba(255, 252, 248, 0.85) !important;
   border: 1px solid var(--warm-border) !important;
@@ -417,8 +470,8 @@
   box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04) !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
-  width: 10px !important;
-  height: 10px !important;
+  width: 12px !important;
+  height: 12px !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
   background: var(--warm-bg-warmer) !important;
@@ -427,38 +480,38 @@
   box-shadow: 0 2px 6px rgba(120, 80, 40, 0.10) !important;
 }
 
-/* Action-icon färgkodning per typ */
+/* Action-icon färgkodning */
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"]  { color: var(--warm-violet) !important; }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"]    { color: var(--warm-orange) !important; }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] { color: var(--warm-green)  !important; }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green)  !important; }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)    !important; }
 
-/* Primary action — varm pill, lane-tonad, 30% mindre */
+/* Primary action — Öppna pill */
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 4px 10px !important;
+  gap: 5px !important;
+  padding: 5px 12px !important;
+  height: 26px !important;
   border-radius: 999px !important;
   border: 1px solid var(--warm-border-2) !important;
   background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%) !important;
   color: #6B563A !important;
-  font-size: 11px !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   letter-spacing: -0.005em !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  margin-left: 3px !important;
-  height: 21px !important;
+  margin-left: 4px !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.95),
     0 1px 2px rgba(120, 80, 40, 0.06) !important;
   transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action svg {
-  width: 9px !important;
-  height: 9px !important;
+  width: 11px !important;
+  height: 11px !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
   background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%) !important;
@@ -499,73 +552,26 @@
 }
 
 /* ============================================================
-   Stäng AV gammalt: alla orphan-element från tidigare markup
+   Stäng AV gammalt: orphan-element från tidigare versioner
    ============================================================ */
 .warm-row .priority-bar,
 .warm-row .card-strip,
 .warm-row .card-body,
 .warm-row .card-footer,
 .warm-row .mailbox-stack,
-.warm-row .signal-why:not(.warm-why) {
+.warm-row .signal-why:not(.warm-why),
+.warm-row .warm-bottom,
+.warm-row .warm-name,
+.warm-row > .warm-mid > .warm-content > .warm-name {
   display: none !important;
 }
 
-/* Inga hårda svarta kontraster, inga neon-toner */
 .warm-row * { text-shadow: none !important; }
 
-/* ============================================================
-   STÄNG AV peach-gradient-overlay från styles.css
-   ::before och ::after på .thread-card lägger en peach-wash som
-   syns som en orange halo bakom raderna. Vi vill ha rent varmt.
-   ============================================================ */
-.thread-card.unified-queue-card.warm-row::before,
-.thread-card.unified-queue-card.warm-row::after,
-.thread-card.unified-queue-card.warm-row.thread-card-selected::before,
-.thread-card.unified-queue-card.warm-row.thread-card-selected::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  opacity: 0 !important;
-}
-
-/* Selected-state ska inte tvingas till min-height 136px */
-.thread-card.unified-queue-card.warm-row.thread-card-selected,
-.thread-card.unified-queue-card.warm-row.is-selected {
-  min-height: 0 !important;
-  padding: 10px 14px 12px 18px !important;
-  gap: 4px !important;
-}
-
-/* Neutralisera ev. peach-wash-variabel om den ärvs in */
-.thread-card.unified-queue-card.warm-row {
-  --thread-card-wash: transparent !important;
-  --mail-card-highlight: none !important;
-  --mail-card-lower-glow: none !important;
-  --mail-card-highlight-selected: none !important;
-  --mail-card-lower-glow-selected: none !important;
-}
-
-/* List-bakgrunden ska vara ren varm beige, inte starkare */
-.queue-history-list,
-.runtime-shell .queue-history-list,
-[data-queue-list-mode] {
-  background-color: #FAF1E8 !important;
-  background-image: none !important;
-}
-
-/* Hover/selected får inte heller någon ::before/::after-glöd */
-.thread-card.unified-queue-card.warm-row:hover::before,
-.thread-card.unified-queue-card.warm-row:hover::after {
-  display: none !important;
-  content: none !important;
-}
-
-/* Responsivt */
+/* Responsivt — på smala skärmar dölj några actions */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
-    padding: 8px 12px 10px 16px !important;
+    padding: 10px 12px 12px 16px !important;
   }
   .thread-card.unified-queue-card.warm-row .warm-mid {
     grid-template-columns: 32px 1fr auto !important;
@@ -577,7 +583,14 @@
     min-width: 32px !important; min-height: 32px !important;
     max-width: 32px !important; max-height: 32px !important;
   }
-  .thread-card.unified-queue-card.warm-row .warm-name.name { font-size: 15px !important; }
+  .thread-card.unified-queue-card.warm-row .warm-sender,
+  .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+    font-size: 13.5px !important;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    font-size: 12.5px !important;
+    -webkit-line-clamp: 1 !important;
+  }
   .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"],
   .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] {
     display: none !important;
