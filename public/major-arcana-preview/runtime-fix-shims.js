@@ -600,6 +600,8 @@
 
   // ============================================================
   // P0-3: Logout-knapp i Mer-meny
+  // Migrerad: knappen ligger nu direkt i index.html (data-shim-logout="1").
+  // Bara click-handler + Cmd+Shift+L kvar. Ingen setInterval.
   // ============================================================
 
   function logout() {
@@ -607,39 +609,20 @@
       localStorage.removeItem('ARCANA_ADMIN_TOKEN');
       localStorage.removeItem('cco.selectedMailboxIds.v1');
     } catch (_e) {}
-    // Redirect till login eller home — beroende på vad som finns
     window.location.href = '/';
   }
 
-  function injectLogoutInMerMenu() {
-    // Hitta Mer-meny-item-list när menyn är öppen
-    const merMenuItems = document.querySelectorAll('.preview-more-menu .preview-more-item, [class*="more-menu"] [class*="more-item"]');
-    if (merMenuItems.length === 0) return;
-    const merMenu = merMenuItems[0].parentElement;
-    if (!merMenu) return;
-    if (merMenu.querySelector('[data-shim-logout]')) return; // Redan tillagd
-    // Bygga logout-item som matchar styling
-    const logoutItem = document.createElement('button');
-    logoutItem.className = merMenuItems[0].className;
-    logoutItem.setAttribute('data-shim-logout', '1');
-    logoutItem.type = 'button';
-    logoutItem.style.cssText = 'border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;color:#b5564b;';
-    logoutItem.textContent = 'Logga ut';
-    logoutItem.addEventListener('click', (e) => {
+  function bootstrapLogout() {
+    // Delegerad click-handler — fungerar oavsett när knappen mountas
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest && e.target.closest('[data-shim-logout]');
+      if (!btn) return;
       e.preventDefault();
       e.stopPropagation();
       if (confirm('Logga ut? Token rensas och du måste logga in igen.')) {
         logout();
       }
-    });
-    merMenu.appendChild(logoutItem);
-  }
-
-  function bootstrapLogout() {
-    // Fas 2 cleanup: observer ersatt med periodisk injektion var 1500ms.
-    // injectLogoutInMerMenu short-circuit:ar om logout-knappen redan finns.
-    injectLogoutInMerMenu();
-    window.setInterval(injectLogoutInMerMenu, 1500);
+    }, true);
     // Kortkommando: Cmd+Shift+L
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
