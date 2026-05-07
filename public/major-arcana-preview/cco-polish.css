@@ -1,0 +1,89 @@
+/* ============================================================
+   CCO Polish — alltid på (klassisk CCO)
+   1. Komprimerad footer (mindre padding/gap/höjd)
+   2. SVG-symboler för emoji-badges (hide via JS-replacement)
+   ============================================================ */
+
+/* Tight footer */
+.thread-card .card-footer {
+  padding: 5px 14px 7px !important;
+  gap: 8px !important;
+}
+
+/* SVG-badges (innerHTML satt av cco-polish.js) — säkerställ konsekvent storlek */
+.cco-card-badge.cco-card-badge-sentiment svg.cco-svg-icon,
+.cco-card-badge.cco-card-badge-intent svg.cco-svg-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.cco-card-badge.cco-card-badge-sentiment,
+.cco-card-badge.cco-card-badge-intent {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 22px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  line-height: 1;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, transparent 60%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.50), 0 1px 3px rgba(60,30,10,0.10);
+}
+
+/* Tone-färger — matchar lane-rail */
+.cco-card-badge.cco-card-badge-sentiment.is-tone-amber {
+  background-color: rgba(232,148,90,0.20) !important;
+  color: #a85e2c !important;
+}
+.cco-card-badge.cco-card-badge-sentiment.is-tone-red {
+  background-color: rgba(201,86,86,0.20) !important;
+  color: #a83838 !important;
+}
+.cco-card-badge.cco-card-badge-sentiment.is-tone-emerald,
+.cco-card-badge.cco-card-badge-sentiment.is-tone-green {
+  background-color: rgba(115,165,113,0.22) !important;
+  color: #406b3e !important;
+}
+.cco-card-badge.cco-card-badge-sentiment.is-tone-blue,
+.cco-card-badge.cco-card-badge-sentiment.is-tone-gray {
+  background-color: rgba(140,130,120,0.20) !important;
+  color: #5b4a3a !important;
+}
+
+/* Intent-badges — guld/blå/orange beroende på intent */
+.cco-card-badge.cco-card-badge-intent[data-intent="booking"] {
+  background-color: rgba(93,168,158,0.22) !important;
+  color: #2e6e62 !important;
+}
+.cco-card-badge.cco-card-badge-intent[data-intent="pricing"] {
+  background-color: rgba(217,167,60,0.22) !important;
+  color: #7a5a14 !important;
+}
+.cco-card-badge.cco-card-badge-intent[data-intent="complaint"] {
+  background-color: rgba(201,86,86,0.20) !important;
+  color: #a83838 !important;
+}
+.cco-card-badge.cco-card-badge-intent[data-intent="question"] {
+  background-color: rgba(91,134,197,0.20) !important;
+  color: #3a5d96 !important;
+}
+.cco-card-badge.cco-card-badge-intent[data-intent="other"],
+.cco-card-badge.cco-card-badge-intent:not([data-intent]) {
+  background-color: rgba(140,130,120,0.20) !important;
+  color: #5b4a3a !important;
+}
+
+/* Action-cluster: tightare gap mellan ikoner */
+.thread-card .action-cluster {
+  gap: 2px !important;
+}
+.thread-card .action-cluster .action-icon {
+  width: 26px !important;
+  height: 26px !important;
+  padding: 5px !important;
+}
+.thread-card .action-cluster .action-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
