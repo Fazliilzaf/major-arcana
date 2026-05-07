@@ -637,34 +637,30 @@
   // ============================================================
 
   function bootstrapThemeSwitcher() {
-    // Hitta alla preview-utility-buttons med Ljusläge/Mörkläge aria-label
-    const wireUp = () => {
-      document.querySelectorAll('.preview-utility-button[aria-label*="läge"], button[aria-label="Ljusläge"], button[aria-label="Mörkläge"], button[aria-label="Mörkt läge"]').forEach(btn => {
-        if (btn.dataset.shimThemeWired === '1') return;
-        btn.dataset.shimThemeWired = '1';
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          // Använd runtime-theme API om tillgängligt
-          if (window.MajorArcanaPreviewTheme?.toggleTheme) {
-            const next = window.MajorArcanaPreviewTheme.toggleTheme();
-            // Uppdatera aria-label baserat på nytt tema
-            const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
-            btn.setAttribute('aria-label', labels[next] || 'Tema');
-          } else {
-            // Fallback: toggla data-theme manuellt
-            const cur = document.documentElement.getAttribute('data-theme') || 'system';
-            const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
-            document.documentElement.setAttribute('data-theme', next);
-            try { localStorage.setItem('cco.theme', next); } catch (_e) {}
-          }
-        }, true);
-      });
-    };
-    wireUp();
-    // Fas 2 cleanup: observer ersatt med periodisk wireUp var 1500ms.
-    // wireUp short-circuit:ar via dataset.shimThemeWired-flag.
-    window.setInterval(wireUp, 1500);
+    // Migrerad till delegerad click-handler — ingen wireUp-loop, ingen setInterval,
+    // ingen dataset-flag. Träffar alla theme-knappar oavsett när de mountas.
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest && e.target.closest(
+        '.preview-utility-button[aria-label*="läge"], ' +
+        'button[aria-label="Ljusläge"], ' +
+        'button[aria-label="Mörkläge"], ' +
+        'button[aria-label="Mörkt läge"]'
+      );
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.MajorArcanaPreviewTheme?.toggleTheme) {
+        const next = window.MajorArcanaPreviewTheme.toggleTheme();
+        const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
+        btn.setAttribute('aria-label', labels[next] || 'Tema');
+      } else {
+        // Fallback: toggla data-theme manuellt
+        const cur = document.documentElement.getAttribute('data-theme') || 'system';
+        const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('cco.theme', next); } catch (_e) {}
+      }
+    }, true);
   }
 
   // ============================================================
