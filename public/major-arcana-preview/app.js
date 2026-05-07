@@ -2409,6 +2409,13 @@
   //   __getStateStats()             // visa mutations-statistik
   const state = new Proxy(__stateInternal, {
     set(target, key, value) {
+      // Skip no-op mutationer (samma värde) — fas 4 perf-fix.
+      // Detta minskar moreMenuOpen från 208 → 1 mutation vid bootstrap.
+      // Strict equality för primitives + samma referens för objekt.
+      if (target[key] === value) {
+        __stateMutationStats.skipped = (__stateMutationStats.skipped || 0) + 1;
+        return true;
+      }
       __stateMutationStats.count++;
       __stateMutationStats.byKey[key] = (__stateMutationStats.byKey[key] || 0) + 1;
       const flag = (typeof window !== 'undefined') ? window.__DEBUG_STATE : false;
@@ -2421,6 +2428,17 @@
           console.log('[state]', String(key), '=', v);
         } catch (_e) { /* ignore stringify errors */ }
       }
+      // Trace specific keys: aktivera via window.__TRACE_STATE eller localStorage
+      // localStorage.setItem('__TRACE_STATE', 'moreMenuOpen') — överlever reload
+      try {
+        const traceKey = (typeof window !== 'undefined')
+          ? (window.__TRACE_STATE || (typeof localStorage !== 'undefined' ? localStorage.getItem('__TRACE_STATE') : null))
+          : null;
+        if (traceKey === String(key)) {
+          // eslint-disable-next-line no-console
+          console.trace('[state-trace]', String(key), '=', value);
+        }
+      } catch (_e) {}
       target[key] = value;
       return true;
     },
@@ -2428,6 +2446,7 @@
   if (typeof window !== 'undefined') {
     window.__getStateStats = () => ({
       total: __stateMutationStats.count,
+      skipped: __stateMutationStats.skipped || 0,
       top10: Object.entries(__stateMutationStats.byKey)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10),
