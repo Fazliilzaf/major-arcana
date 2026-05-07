@@ -568,6 +568,50 @@
 
 .warm-row * { text-shadow: none !important; }
 
+/* ============================================================
+   Workspace-resizers (drag-handles mellan inkorg / focus / panel)
+   Tona ner: dölj synlig stripe + skugga, behåll col-resize-cursor.
+   Vid hover: subtil mjuk linje som hint.
+   ============================================================ */
+.workspace-resizer,
+.workspace-resizer-left,
+.workspace-resizer-right {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  cursor: col-resize !important;
+}
+.workspace-resizer::before,
+.workspace-resizer::after,
+.workspace-resizer-left::before,
+.workspace-resizer-left::after,
+.workspace-resizer-right::before,
+.workspace-resizer-right::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+.workspace-resizer:hover::before,
+.workspace-resizer-left:hover::before,
+.workspace-resizer-right:hover::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 30% !important;
+  bottom: 30% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(120, 80, 40, 0.18) !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
 /* Responsivt — på smala skärmar dölj några actions */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
