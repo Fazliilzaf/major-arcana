@@ -3321,8 +3321,8 @@
         </div>
         <div class="collection-panel-note">
           ${activeQuery
-            ? `<span>Showing ${escapeHtml(activeProducts.length)} matched products in ${escapeHtml(activeSection.collection)}.</span>`
-            : `<span>Browse all ${escapeHtml(activeSection.products.length)} products in ${escapeHtml(activeSection.collection)}. Search to narrow the list.</span>`}
+            ? `<span>${escapeHtml(activeProducts.length)} matches in ${escapeHtml(activeSection.collection)}.</span>`
+            : `<span>Browse ${escapeHtml(activeSection.products.length)} products in ${escapeHtml(activeSection.collection)}.</span>`}
         </div>
         <div class="collection-panel-meta">
           <span>${escapeHtml(ownedCount)} in library</span>
