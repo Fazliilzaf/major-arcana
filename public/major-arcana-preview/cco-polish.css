@@ -198,3 +198,104 @@
   color: #8b2231 !important;
   border-color: rgba(201,86,86,0.25) !important;
 }
+
+/* ============================================================
+   MATCHA SYMBOL + WHY-TEXT till samma tone-färg
+   Ta bort cirkel-bg på sentiment/intent badges. Symbol + text
+   delar samma färg så de visuellt hänger ihop som en enhet.
+   ============================================================ */
+
+/* Sentiment-badge: gör om från cirkel till bara symbol */
+.thread-card .cco-card-badge.cco-card-badge-sentiment,
+.thread-card .cco-card-badge.cco-card-badge-intent {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.thread-card .cco-card-badge.cco-card-badge-sentiment svg.cco-svg-icon,
+.thread-card .cco-card-badge.cco-card-badge-intent svg.cco-svg-icon {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+/* Container för badges + why-text: tight gap så de ser ut som en enhet */
+.thread-card .card-footer .cco-card-badges {
+  margin-right: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.thread-card .card-footer .signal-why {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.thread-card .card-footer .signal-why .why-reason {
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+/* Färg-matchning: sentiment-tone styr BÅDE symbol och why-text */
+
+/* Anxious (amber) */
+.thread-card[data-quick-sentiment="anxious"] .cco-card-badge-sentiment,
+.thread-card .cco-card-badge-sentiment.is-tone-amber {
+  color: #a85e2c !important;
+}
+.thread-card[data-quick-sentiment="anxious"] .signal-why .why-reason {
+  color: #a85e2c !important;
+}
+
+/* Negative (red) */
+.thread-card[data-quick-sentiment="negative"] .cco-card-badge-sentiment,
+.thread-card .cco-card-badge-sentiment.is-tone-red {
+  color: #a83838 !important;
+}
+.thread-card[data-quick-sentiment="negative"] .signal-why .why-reason {
+  color: #a83838 !important;
+}
+
+/* Happy / positive (green) */
+.thread-card[data-quick-sentiment="happy"] .cco-card-badge-sentiment,
+.thread-card[data-quick-sentiment="positive"] .cco-card-badge-sentiment,
+.thread-card .cco-card-badge-sentiment.is-tone-emerald,
+.thread-card .cco-card-badge-sentiment.is-tone-green {
+  color: #2c6b3a !important;
+}
+.thread-card[data-quick-sentiment="happy"] .signal-why .why-reason,
+.thread-card[data-quick-sentiment="positive"] .signal-why .why-reason {
+  color: #2c6b3a !important;
+}
+
+/* Neutral / gray */
+.thread-card[data-quick-sentiment="neutral"] .cco-card-badge-sentiment,
+.thread-card .cco-card-badge-sentiment.is-tone-blue,
+.thread-card .cco-card-badge-sentiment.is-tone-gray {
+  color: #5b4a3a !important;
+}
+.thread-card[data-quick-sentiment="neutral"] .signal-why .why-reason {
+  color: #5b4a3a !important;
+}
+
+/* Intent-färger: matcha intent-tone på why-text om sentiment saknas */
+.thread-card[data-quick-intent="booking"]:not([data-quick-sentiment]) .cco-card-badge-intent,
+.thread-card[data-quick-intent="booking"]:not([data-quick-sentiment]) .signal-why .why-reason {
+  color: #1f5e66 !important;
+}
+.thread-card[data-quick-intent="pricing"]:not([data-quick-sentiment]) .cco-card-badge-intent,
+.thread-card[data-quick-intent="pricing"]:not([data-quick-sentiment]) .signal-why .why-reason {
+  color: #7a5a14 !important;
+}
+.thread-card[data-quick-intent="complaint"]:not([data-quick-sentiment]) .cco-card-badge-intent,
+.thread-card[data-quick-intent="complaint"]:not([data-quick-sentiment]) .signal-why .why-reason {
+  color: #a83838 !important;
+}
+.thread-card[data-quick-intent="question"]:not([data-quick-sentiment]) .cco-card-badge-intent,
+.thread-card[data-quick-intent="question"]:not([data-quick-sentiment]) .signal-why .why-reason {
+  color: #3a5d96 !important;
+}
