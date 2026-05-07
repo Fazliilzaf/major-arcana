@@ -1017,7 +1017,6 @@
     productLevelSelections: {},
     activeLibraryCatalogId: null,
     activeLibraryBottleId: null,
-    openLibraryLevelPickerId: null,
     layers: [],
     activeLayerId: null,
     bottles: [],
@@ -1295,8 +1294,7 @@
     }
 
     const explicitCatalogId = catalogId || product.id;
-    const selection = explicitCatalogId ? state.productLevelSelections[explicitCatalogId] : null;
-    return sanitizeAllowedLevels(selection || PRODUCT_ALLOWED_LEVELS[explicitCatalogId] || product.allowedLevels, product);
+    return sanitizeAllowedLevels(PRODUCT_ALLOWED_LEVELS[explicitCatalogId] || product.allowedLevels, product);
   }
 
   function getLevelDescription(levels) {
@@ -1470,7 +1468,7 @@
       };
     }
 
-    const libraryCatalogId = state.activeLibraryCatalogId || state.pendingCatalogId || state.openLibraryLevelPickerId || "";
+    const libraryCatalogId = state.activeLibraryCatalogId || state.pendingCatalogId || "";
     if (!libraryCatalogId) {
       return {
         product: null,
@@ -1739,7 +1737,6 @@
 
   function normalizeProductLevelSelections(selections, customerLibrary, layers) {
     const normalizedLibrary = normalizeCustomerLibrary(customerLibrary, layers);
-    const source = selections && typeof selections === "object" ? selections : {};
 
     return normalizedLibrary.reduce((accumulator, catalogId) => {
       const product = getCatalogItem(catalogId);
@@ -1747,7 +1744,7 @@
         return accumulator;
       }
 
-      accumulator[catalogId] = sanitizeAllowedLevels(source[catalogId], product);
+      accumulator[catalogId] = getDefaultAllowedLevels(product);
       return accumulator;
     }, {});
   }
@@ -2117,12 +2114,6 @@
     state.activeLibraryBottleId = matchingBottle ? matchingBottle.id : null;
     state.pendingCatalogId = matchingBottle ? null : catalogId;
     state.selectedBottleId = matchingBottle ? matchingBottle.id : null;
-
-    if (config.openLevels) {
-      state.openLibraryLevelPickerId = catalogId;
-    } else if (config.closeLevels !== false) {
-      state.openLibraryLevelPickerId = null;
-    }
   }
 
   function setPendingCatalog(catalogId) {
@@ -2289,7 +2280,6 @@
     state.activeLibraryCatalogId = state.activeLibraryCatalogId === catalogId ? null : state.activeLibraryCatalogId;
     state.activeLibraryBottleId = state.activeLibraryBottleId && getBottle(state.activeLibraryBottleId) ? state.activeLibraryBottleId : null;
     state.pendingCatalogId = state.pendingCatalogId === catalogId ? null : state.pendingCatalogId;
-    state.openLibraryLevelPickerId = state.openLibraryLevelPickerId === catalogId ? null : state.openLibraryLevelPickerId;
 
     if (activeLayer) {
       state.activeLayerId = activeLayer.id;
@@ -2342,57 +2332,6 @@
 
     syncBottleSeed();
     render();
-  }
-
-  function toggleProductAllowedLevel(catalogId, level) {
-    const product = getCatalogItem(catalogId);
-    if (!product) {
-      return;
-    }
-
-    const currentLevels = getProductAllowedLevels(product, catalogId);
-    const nextLevels = currentLevels.includes(level)
-      ? currentLevels.filter((entry) => entry !== level)
-      : currentLevels.concat(level);
-
-    if (nextLevels.length === 0) {
-      return;
-    }
-
-    setProductAllowedLevels(catalogId, nextLevels);
-  }
-
-  function toggleLibraryLevelPicker(catalogId) {
-    if (!catalogId) {
-      return;
-    }
-
-    if (state.openLibraryLevelPickerId === catalogId) {
-      state.openLibraryLevelPickerId = null;
-      renderCustomerLibrary();
-      return;
-    }
-
-    focusLibraryCatalog(catalogId, { openLevels: true });
-    render();
-  }
-
-  function openLibraryLevelPicker(catalogId) {
-    if (!catalogId) {
-      return;
-    }
-
-    focusLibraryCatalog(catalogId, { openLevels: true });
-    render();
-  }
-
-  function closeLibraryLevelPicker() {
-    if (!state.openLibraryLevelPickerId) {
-      return;
-    }
-
-    state.openLibraryLevelPickerId = null;
-    renderCustomerLibrary();
   }
 
   function updateBottlePosition(bottle, position, fallbackLevel) {
@@ -3137,10 +3076,6 @@
     const activeCatalogId = selectedBottle ? selectedBottle.catalogId : state.activeLibraryCatalogId;
     const activeBottleId = selectedBottle ? selectedBottle.id : state.activeLibraryBottleId;
 
-    if (state.openLibraryLevelPickerId && !ownedItems.some((item) => item.id === state.openLibraryLevelPickerId)) {
-      state.openLibraryLevelPickerId = null;
-    }
-
     customerLibraryPanel.innerHTML = `
       <div class="panel-intro">
         <div class="panel-copy">
@@ -3157,13 +3092,12 @@
               ${ownedItems
                 .map((item) => {
                   const allowedLevels = getProductAllowedLevels(item, item.id);
-                  const isPopoverOpen = state.openLibraryLevelPickerId === item.id;
                   const isActiveProduct = activeCatalogId === item.id;
                   const activeSummary = allowedLevels.length > 0 ? getLevelDescription(allowedLevels) : "No levels selected";
                   const activeSummaryTokens = renderLevelSummaryTokens(allowedLevels);
 
                   return `
-                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isPopoverOpen ? " is-level-open" : ""}${isActiveProduct ? " is-active-product" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
+                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isActiveProduct ? " is-active-product" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
                     <button class="panel-mini-action panel-mini-action-danger owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from customer library">Remove</button>
                     <div class="owned-card-main">
                       <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}" aria-pressed="${isActiveProduct ? "true" : "false"}">
@@ -3175,31 +3109,13 @@
                       </button>
                     </div>
                     <div class="owned-card-meta">
-                      <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
+                      <div class="owned-card-levels-trigger" aria-label="Preset levels for ${escapeHtml(item.name)}">
                         <span class="owned-card-levels-label">Levels</span>
                         <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
                           ${activeSummaryTokens}
                         </span>
-                      </button>
-                    </div>
-                    ${isPopoverOpen ? `
-                      <div class="library-level-popover" role="dialog" aria-label="Choose levels for ${escapeHtml(item.name)}">
-                        <p class="library-level-popover-title">Choose Head, Heart, or Base</p>
-                        <div class="library-level-picker">
-                          ${["high", "middle", "low"]
-                            .map((level) => `
-                                <button
-                                  class="library-level-chip library-level-chip--${escapeHtml(level)}${allowedLevels.includes(level) ? " is-active" : ""}"
-                                  type="button"
-                                  data-toggle-level="${escapeHtml(item.id)}::${escapeHtml(level)}"
-                                >
-                                ${escapeHtml(getLevelLabel(level))}
-                              </button>
-                            `)
-                            .join("")}
-                        </div>
                       </div>
-                    ` : ""}
+                    </div>
                   </article>
                 `;
                 })
@@ -3235,26 +3151,6 @@
     customerLibraryPanel.querySelectorAll("[data-remove-library-product]").forEach((button) => {
       button.addEventListener("click", function () {
         removeCatalogFromLibrary(button.getAttribute("data-remove-library-product"));
-      });
-    });
-
-    customerLibraryPanel.querySelectorAll("[data-open-level-picker]").forEach((button) => {
-      button.addEventListener("click", function () {
-        openLibraryLevelPicker(button.getAttribute("data-open-level-picker"));
-      });
-    });
-
-    customerLibraryPanel.querySelectorAll("[data-toggle-level]").forEach((button) => {
-      button.addEventListener("click", function () {
-        const raw = button.getAttribute("data-toggle-level") || "";
-        const splitIndex = raw.lastIndexOf("::");
-        if (splitIndex <= 0) {
-          return;
-        }
-
-        const catalogId = raw.slice(0, splitIndex);
-        const level = raw.slice(splitIndex + 2);
-        toggleProductAllowedLevel(catalogId, level);
       });
     });
 
@@ -3725,15 +3621,9 @@
   }
 
   document.addEventListener("pointerdown", function (event) {
-    if (!state.openLibraryLevelPickerId) {
-      return;
-    }
-
     if (event.target instanceof Element && event.target.closest("[data-library-level-shell]")) {
       return;
     }
-
-    closeLibraryLevelPicker();
   });
 
   state.savedSheets = loadSavedSheets();
