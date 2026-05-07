@@ -488,6 +488,55 @@
 /* Inga hårda svarta kontraster, inga neon-toner */
 .warm-row * { text-shadow: none !important; }
 
+/* ============================================================
+   STÄNG AV peach-gradient-overlay från styles.css
+   ::before och ::after på .thread-card lägger en peach-wash som
+   syns som en orange halo bakom raderna. Vi vill ha rent varmt.
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row::before,
+.thread-card.unified-queue-card.warm-row::after,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::before,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
+/* Selected-state ska inte tvingas till min-height 136px */
+.thread-card.unified-queue-card.warm-row.thread-card-selected,
+.thread-card.unified-queue-card.warm-row.is-selected {
+  min-height: 0 !important;
+  padding: 10px 14px 12px 18px !important;
+  gap: 4px !important;
+}
+
+/* Neutralisera ev. peach-wash-variabel om den ärvs in */
+.thread-card.unified-queue-card.warm-row {
+  --thread-card-wash: transparent !important;
+  --mail-card-highlight: none !important;
+  --mail-card-lower-glow: none !important;
+  --mail-card-highlight-selected: none !important;
+  --mail-card-lower-glow-selected: none !important;
+}
+
+/* List-bakgrunden ska vara ren varm beige, inte starkare */
+.queue-history-list,
+.runtime-shell .queue-history-list,
+[data-queue-list-mode] {
+  background-color: #FAF1E8 !important;
+  background-image: none !important;
+}
+
+/* Hover/selected får inte heller någon ::before/::after-glöd */
+.thread-card.unified-queue-card.warm-row:hover::before,
+.thread-card.unified-queue-card.warm-row:hover::after {
+  display: none !important;
+  content: none !important;
+}
+
 /* Responsivt */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
