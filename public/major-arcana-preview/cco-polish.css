@@ -649,6 +649,29 @@
   pointer-events: none !important;
 }
 
+/* Mailbox-menyn: byt från position:fixed (som kräver app.js att räkna top/left)
+   till position:absolute relativt .mailbox-dropdown — anchoras automatiskt
+   under triggern. Fungerar oavsett timing eller app.js-state. */
+.mailbox-dropdown {
+  position: relative !important;
+}
+.mailbox-dropdown > .mailbox-menu,
+.mailbox-menu-toggle:checked ~ .mailbox-menu {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  bottom: auto !important;
+  left: 0 !important;
+  right: auto !important;
+  width: min(360px, calc(100vw - 32px)) !important;
+  max-height: min(520px, calc(100vh - 80px)) !important;
+}
+/* Owner-dropdown: höger-anchorerad (fakturarow) */
+.owner-dropdown.mailbox-dropdown > .mailbox-menu {
+  left: auto !important;
+  right: 0 !important;
+  width: min(220px, calc(100vw - 32px)) !important;
+}
+
 /* Responsivt — på smala skärmar dölj några actions */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
