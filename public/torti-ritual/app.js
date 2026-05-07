@@ -1009,6 +1009,7 @@
     firstName: "",
     lastName: "",
     search: "",
+    activeCollectionSection: null,
     collectionSearches: COLLECTION_SECTIONS.reduce((accumulator, section) => {
       accumulator[section.key] = "";
       return accumulator;
@@ -1425,6 +1426,28 @@
 
   function getCatalogItem(catalogId) {
     return catalog.find((item) => item.id === catalogId);
+  }
+
+  function getVisibleCollectionSections() {
+    return COLLECTION_SECTIONS
+      .map((section) => {
+        const products = catalog.filter((item) => normalize(item.collection).includes(normalize(section.collection)));
+        return {
+          ...section,
+          products,
+        };
+      })
+      .filter((section) => section.products.length > 0);
+  }
+
+  function getActiveCollectionSection() {
+    const visibleSections = getVisibleCollectionSections();
+    if (visibleSections.length === 0) {
+      return null;
+    }
+
+    const activeSection = visibleSections.find((section) => section.key === state.activeCollectionSection);
+    return activeSection || visibleSections[0];
   }
 
   function getBottle(bottleId) {
@@ -1874,6 +1897,7 @@
     state.activeLibraryBottleId = null;
     state.pendingCatalogId = snapshot.pendingCatalogId || null;
     state.currentSheetId = snapshot.currentSheetId || null;
+    state.activeCollectionSection = null;
     syncBottleSeed();
     syncFormFields();
   }
@@ -2018,6 +2042,7 @@
       activeLibraryCatalogId: null,
       activeLibraryBottleId: null,
       pendingCatalogId: null,
+      activeCollectionSection: null,
       currentSheetId: null,
     });
     render();
@@ -3161,96 +3186,115 @@
       return;
     }
 
-    const nextHtml = COLLECTION_SECTIONS.map((section) => {
-      const sectionProducts = catalog.filter((item) => normalize(item.collection).includes(normalize(section.collection)));
-      const searchValue = state.collectionSearches[section.key] || "";
-      const query = normalize(searchValue);
-      const visibleProducts = query
-        ? sectionProducts.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(query))
-        : [];
-      const pendingCount = sectionProducts.filter((item) => state.pendingCatalogId === item.id).length;
-      const ownedCount = sectionProducts.filter((item) => state.customerLibrary.includes(item.id)).length;
-      const hasProducts = sectionProducts.length > 0;
-      if (!hasProducts) {
-        return "";
-      }
-      const searchAttr = hasProducts
-        ? `
-          <label class="collection-search">
-            <span>Search ${escapeHtml(section.collection)}</span>
+    const visibleSections = getVisibleCollectionSections();
+    if (!visibleSections.length) {
+      productScroller.innerHTML = `
+        <div class="collection-empty-state">
+          <strong>No collections available</strong>
+          <span>Add product data to show category tabs here.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const activeSection = getActiveCollectionSection() || visibleSections[0];
+    if (!state.activeCollectionSection || !visibleSections.some((section) => section.key === state.activeCollectionSection)) {
+      state.activeCollectionSection = activeSection.key;
+    }
+
+    const tabsMarkup = visibleSections
+      .map((section) => {
+        const isActive = section.key === activeSection.key;
+        const searchValue = state.collectionSearches[section.key] || "";
+        const query = normalize(searchValue);
+        const hasQuery = Boolean(query);
+
+        return `
+          <button
+            class="collection-tab${isActive ? " is-active" : ""}"
+            type="button"
+            data-collection-tab="${escapeHtml(section.key)}"
+            aria-pressed="${isActive ? "true" : "false"}"
+            title="${escapeHtml(section.label)}"
+          >
+            <span class="collection-tab-label">${escapeHtml(section.label.replace(/\s+Collection$/i, ""))}</span>
+            <span class="collection-tab-count${hasQuery ? " is-searching" : ""}">${escapeHtml(section.products.length)}</span>
+          </button>
+        `;
+      })
+      .join("");
+
+    const activeSearchValue = state.collectionSearches[activeSection.key] || "";
+    const activeQuery = normalize(activeSearchValue);
+    const activeProducts = activeQuery
+      ? activeSection.products.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(activeQuery))
+      : [];
+    const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
+    const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
+    const resultsMarkup = activeQuery
+      ? activeProducts.length > 0
+        ? activeProducts
+          .map((item) => {
+            const pending = state.pendingCatalogId === item.id;
+            const owned = state.customerLibrary.includes(item.id);
+            const filterText = normalize([item.name, item.collection, item.type].join(" "));
+
+            return `
+              <button
+                class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
+                type="button"
+                draggable="true"
+                data-product-id="${escapeHtml(item.id)}"
+                data-collection-filter-text="${escapeHtml(filterText)}"
+              >
+                ${renderBottleVisual(item, "collection-result-bottle")}
+                <span class="collection-result-copy">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
+                  <span class="collection-result-flags">
+                    <span class="product-level-badges">
+                      ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+                    </span>
+                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
+                  </span>
+                </span>
+              </button>
+            `;
+          })
+          .join("")
+        : '<div class="collection-search-empty collection-search-empty--inline"><strong>No matches</strong><span>Try a shorter product name or another category.</span></div>'
+      : '<div class="collection-search-hint">Pick a category, then type to reveal its products.</div>';
+
+    productScroller.innerHTML = `
+      <div class="collection-tabs" role="tablist" aria-label="Collections">
+        ${tabsMarkup}
+      </div>
+      <section class="collection-panel collection-${escapeHtml(slugify(activeSection.key))}" data-collection-panel="${escapeHtml(activeSection.key)}">
+        <div class="collection-panel-head">
+          <div class="collection-panel-copy">
+            <p>${escapeHtml(activeSection.label)}</p>
+            <h3>${escapeHtml(activeSection.products.length)} products</h3>
+          </div>
+          <label class="collection-panel-search">
+            <span>Search ${escapeHtml(activeSection.collection)}</span>
             <input
               type="search"
-              data-collection-search="${escapeHtml(section.key)}"
+              data-collection-search="${escapeHtml(activeSection.key)}"
               autocomplete="off"
-              placeholder="Search within ${escapeHtml(section.collection)} collection..."
-              value="${escapeHtml(searchValue)}"
+              placeholder="Search within ${escapeHtml(activeSection.collection)}..."
+              value="${escapeHtml(activeSearchValue)}"
             />
           </label>
-        `
-        : "";
-
-      const resultsMarkup = query
-        ? visibleProducts.length > 0
-          ? visibleProducts
-            .map((item) => {
-          const pending = state.pendingCatalogId === item.id;
-          const owned = state.customerLibrary.includes(item.id);
-          const filterText = normalize([item.name, item.collection, item.type].join(" "));
-
-          return `
-            <button
-              class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
-              type="button"
-              draggable="true"
-              data-product-id="${escapeHtml(item.id)}"
-              data-collection-filter-text="${escapeHtml(filterText)}"
-            >
-              ${renderBottleVisual(item, "collection-result-bottle")}
-              <span class="collection-result-copy">
-                <strong>${escapeHtml(item.name)}</strong>
-                <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
-                <span class="collection-result-flags">
-                  <span class="product-level-badges">
-                    ${renderProductLevelBadges(item, item.id, "product-level-badge")}
-                  </span>
-                  ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
-                </span>
-              </span>
-            </button>
-          `;
-        })
-        .join("")
-          : '<div class="collection-search-empty collection-search-empty--inline"><strong>No matches</strong><span>Try a shorter product name or a different collection.</span></div>'
-        : '<div class="collection-search-hint">Type to reveal products in this collection.</div>';
-
-      const emptyMessage = `No matching products in ${section.collection}.`;
-
-      const metaRow = `
-        <div class="collection-meta-row">
+        </div>
+        <div class="collection-results" data-collection-results="${escapeHtml(activeSection.key)}">
+          ${resultsMarkup}
+        </div>
+        <div class="collection-panel-meta">
           <span>${escapeHtml(ownedCount)} in library</span>
           <span>${escapeHtml(pendingCount)} pending</span>
         </div>
-      `;
-
-      return `
-        <section class="collection-section collection-${escapeHtml(slugify(section.key))}" data-collection-section="${escapeHtml(section.key)}">
-          <div class="collection-section-head">
-            <div class="collection-section-copy">
-              <p>${escapeHtml(section.label)}</p>
-              <h3>${hasProducts ? `${sectionProducts.length} products` : "No products"}</h3>
-            </div>
-            ${searchAttr}
-          </div>
-          <div class="collection-results" data-collection-results="${escapeHtml(section.key)}">
-            ${resultsMarkup}
-          </div>
-          <div class="collection-empty" data-collection-empty="${escapeHtml(section.key)}" hidden>${escapeHtml(emptyMessage)}</div>
-          ${metaRow}
-        </section>
-      `;
-    }).join("");
-
-    productScroller.innerHTML = nextHtml;
+      </section>
+    `;
 
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
@@ -3274,6 +3318,24 @@
         dragCatalogId = null;
         documentStage.classList.remove("is-dragging-catalog");
         renderStageState();
+      });
+    });
+
+    productScroller.querySelectorAll("[data-collection-tab]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const key = button.getAttribute("data-collection-tab");
+        if (!key) {
+          return;
+        }
+
+        state.activeCollectionSection = key;
+        renderProductScroller();
+        window.setTimeout(() => {
+          const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
+          if (input && typeof input.focus === "function") {
+            input.focus();
+          }
+        }, 0);
       });
     });
 
