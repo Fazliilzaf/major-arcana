@@ -310,7 +310,7 @@ test('worklist read model backfyller säker identity från etablerad customer-st
   assert.equal(consumerRowsByConversationId.get('conv-null')?.customerIdentity, null);
 });
 
-test('worklist consumer rollup groups only safe-merge rows and keeps operational provenance visible', () => {
+test('worklist consumer keeps safe-merge rows separated across mailbox boundaries so each inbox keeps its own mailbox ownership', () => {
   const model = createCcoMailboxTruthWorklistReadModel({
     store: {
       listMessages() {
@@ -413,24 +413,25 @@ test('worklist consumer rollup groups only safe-merge rows and keeps operational
 
   assert.equal(readModel.summary.rowCount, 3);
   assert.equal(consumer.summary.rawRowCount, 3);
-  assert.equal(consumer.summary.rowCount, 2);
-  assert.equal(consumer.summary.rollupRowCount, 2);
-  assert.equal(consumer.summary.rollupReductionCount, 1);
+  assert.equal(consumer.summary.rowCount, 3);
+  assert.equal(consumer.summary.rollupRowCount, 3);
+  assert.equal(consumer.summary.rollupReductionCount, 0);
 
-  const rollupRow = consumer.rows.find((row) => row.rollup?.enabled === true);
-  assert.ok(rollupRow, 'Förväntade en rollup-rad för safe-merge-kunden.');
-  assert.equal(rollupRow.rollup.count, 2);
-  assert.equal(rollupRow.rollup.mailboxCount, 2);
-  assert.match(rollupRow.rollup.provenanceLabel, /2 mailboxar/);
-  assert.match(rollupRow.rollup.provenanceDetail, /egzona@hairtpclinic\.com/);
-  assert.match(rollupRow.rollup.provenanceDetail, /contact@hairtpclinic\.com/);
-  assert.equal(rollupRow.rollup.operationalSummary.unreadCount, 2);
-  assert.equal(rollupRow.rollup.operationalSummary.needsReplyCount, 2);
-  assert.equal(rollupRow.rollup.operationalSummary.inboxCount, 2);
-  assert.equal(rollupRow.customerIdentity?.canonicalCustomerId, 'cust-safe-1');
-  assert.equal(rollupRow.provenance?.rollup?.count, 2);
+  const byId = new Map(consumer.rows.map((row) => [row.id, row]));
+  const egzonaRow = byId.get('egzona@hairtpclinic.com:conv-safe-1');
+  const contactRow = byId.get('contact@hairtpclinic.com:conv-safe-2');
+  assert.ok(egzonaRow, 'Förväntade en separat egzona-rad för inkommande mailbox.');
+  assert.ok(contactRow, 'Förväntade en separat contact-rad för inkommande mailbox.');
+  assert.equal(egzonaRow.mailbox.mailboxId, 'egzona@hairtpclinic.com');
+  assert.equal(egzonaRow.mailbox.ownershipMailbox, 'egzona@hairtpclinic.com');
+  assert.equal(contactRow.mailbox.mailboxId, 'contact@hairtpclinic.com');
+  assert.equal(contactRow.mailbox.ownershipMailbox, 'contact@hairtpclinic.com');
+  assert.equal(egzonaRow.rollup?.enabled, false);
+  assert.equal(contactRow.rollup?.enabled, false);
+  assert.equal(egzonaRow.customerIdentity?.canonicalCustomerId, 'cust-safe-1');
+  assert.equal(contactRow.customerIdentity?.canonicalCustomerId, 'cust-safe-1');
 
-  const separateRow = consumer.rows.find((row) => row.id === 'fazli@hairtpclinic.com:conv-separate');
+  const separateRow = byId.get('fazli@hairtpclinic.com:conv-separate');
   assert.ok(separateRow, 'Förväntade en separat rad utan safe merge.');
   assert.equal(separateRow.rollup?.enabled, false);
   assert.equal(separateRow.rollup?.count, 1);
