@@ -98,3 +98,42 @@
   obs.observe(document.body, { childList: true, subtree: true });
   window.__ccoPolishObs = obs;
 })();
+
+/* ============================================================
+   Init: stäng mailbox- och more-menyer som öppnas auto vid load.
+   Användaren måste klicka för att öppna dem.
+   ============================================================ */
+(function closeAutoMenus() {
+  'use strict';
+  function closeAll() {
+    // Mailbox-toggle
+    const t = document.querySelector('#mailbox-menu-toggle');
+    if (t && t.checked) {
+      t.checked = false;
+      t.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    // Preview-more-menu (aria-expanded toggle)
+    document.querySelectorAll('.preview-more-menu').forEach((m) => {
+      m.setAttribute('hidden', '');
+      m.setAttribute('aria-hidden', 'true');
+    });
+    document.querySelectorAll('.preview-more [aria-expanded="true"]').forEach((b) => {
+      b.setAttribute('aria-expanded', 'false');
+    });
+    // Andra checkbox-toggles som öppnar dropdowns
+    document.querySelectorAll('input[type="checkbox"][id*="menu-toggle"]:checked').forEach((c) => {
+      c.checked = false;
+      c.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  // Kör vid DOMContentLoaded + några gånger till för att fånga sent injicerade
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', closeAll);
+  } else {
+    closeAll();
+  }
+  setTimeout(closeAll, 200);
+  setTimeout(closeAll, 800);
+  setTimeout(closeAll, 1800);
+})();
