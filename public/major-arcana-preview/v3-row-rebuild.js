@@ -46,8 +46,18 @@
     }
     const footer = card.querySelector('.card-footer');
     if (footer) {
-      // Footer hidden by default i CSS, men sätt grid-area så den blir hidden via overlay vid hover
-      footer.style.setProperty('grid-area', 'unset', 'important');
+      // Footer hidden — visas på hover som absolut-positionerad overlay via CSS
+      footer.style.setProperty('display', 'none', 'important');
+    }
+    // Card-content (inom body) ska vara flex-row med name + signal-what inline
+    const content = card.querySelector('.card-body .card-content');
+    if (content) {
+      content.style.setProperty('display', 'flex', 'important');
+      content.style.setProperty('flex-direction', 'row', 'important');
+      content.style.setProperty('align-items', 'baseline', 'important');
+      content.style.setProperty('gap', '8px', 'important');
+      content.style.setProperty('min-width', '0', 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
     }
   }
 
