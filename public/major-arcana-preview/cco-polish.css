@@ -1,645 +1,499 @@
 /* ============================================================
-   CCO Polish — alltid på (klassisk CCO)
-   1. Komprimerad footer (mindre padding/gap/höjd)
-   2. SVG-symboler för emoji-badges (hide via JS-replacement)
-   ============================================================ */
+   warm-row.css  (laddas via cco-polish.css?v=warm-r1)
+   En helt ny CCO-rad: 72px kompakt, varm beige, diskret "Oklart".
+   Inget overlay-skal — detta är den enda raden som tillåts existera.
 
-/* Tight footer */
-.thread-card .card-footer {
-  padding: 5px 14px 7px !important;
-  gap: 8px !important;
-}
+   Spec:
+     Skin-bg-warmer #FFF6ED  (sidan)
+     Card-bg        #FFFCF8
+     Card-bg-alt    #FFF9F3  (varannan rad)
+     Hover-bg       #FFF2E6
+     Border         #F1E5DB
+     Border-soft    #F5EAE0
 
-/* SVG-badges (innerHTML satt av cco-polish.js) — säkerställ konsekvent storlek */
-.cco-card-badge.cco-card-badge-sentiment svg.cco-svg-icon,
-.cco-card-badge.cco-card-badge-intent svg.cco-svg-icon {
-  width: 14px;
-  height: 14px;
-  display: block;
-}
-.cco-card-badge.cco-card-badge-sentiment,
-.cco-card-badge.cco-card-badge-intent {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 22px !important;
-  height: 22px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  line-height: 1;
-  background-image: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, transparent 60%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.50), 0 1px 3px rgba(60,30,10,0.10);
-}
+     Lila   #7C3AED  Oklart
+     Orange #F97316  Miss-risk / Ej tilldelad
+     Indigo #4F46E5  Behöver svar
+     Röd    #EF4444  Behöver åtgärd
+     Grön   #16A34A  Klar
 
-/* Tone-färger — matchar lane-rail */
-.cco-card-badge.cco-card-badge-sentiment.is-tone-amber {
-  background-color: rgba(232,148,90,0.20) !important;
-  color: #a85e2c !important;
-}
-.cco-card-badge.cco-card-badge-sentiment.is-tone-red {
-  background-color: rgba(201,86,86,0.20) !important;
-  color: #a83838 !important;
-}
-.cco-card-badge.cco-card-badge-sentiment.is-tone-emerald,
-.cco-card-badge.cco-card-badge-sentiment.is-tone-green {
-  background-color: rgba(115,165,113,0.22) !important;
-  color: #406b3e !important;
-}
-.cco-card-badge.cco-card-badge-sentiment.is-tone-blue,
-.cco-card-badge.cco-card-badge-sentiment.is-tone-gray {
-  background-color: rgba(140,130,120,0.20) !important;
-  color: #5b4a3a !important;
-}
-
-/* Intent-badges — guld/blå/orange beroende på intent */
-.cco-card-badge.cco-card-badge-intent[data-intent="booking"] {
-  background-color: rgba(93,168,158,0.22) !important;
-  color: #2e6e62 !important;
-}
-.cco-card-badge.cco-card-badge-intent[data-intent="pricing"] {
-  background-color: rgba(217,167,60,0.22) !important;
-  color: #7a5a14 !important;
-}
-.cco-card-badge.cco-card-badge-intent[data-intent="complaint"] {
-  background-color: rgba(201,86,86,0.20) !important;
-  color: #a83838 !important;
-}
-.cco-card-badge.cco-card-badge-intent[data-intent="question"] {
-  background-color: rgba(91,134,197,0.20) !important;
-  color: #3a5d96 !important;
-}
-.cco-card-badge.cco-card-badge-intent[data-intent="other"],
-.cco-card-badge.cco-card-badge-intent:not([data-intent]) {
-  background-color: rgba(140,130,120,0.20) !important;
-  color: #5b4a3a !important;
-}
-
-/* Action-cluster: tightare gap mellan ikoner */
-.thread-card .action-cluster {
-  gap: 2px !important;
-}
-.thread-card .action-cluster .action-icon {
-  width: 26px !important;
-  height: 26px !important;
-  padding: 5px !important;
-}
-.thread-card .action-cluster .action-icon svg {
-  width: 14px !important;
-  height: 14px !important;
-}
-
-/* ============================================================
-   Footer-actions i pastel-pill-stil (matchar "Svara nu"-stilen
-   från FOKUSYTA quick-action-pill--studio).
-   ============================================================ */
-
-/* Primary action (Svara/Granska/Bekräfta bokning) — rosa pastel pill */
-.thread-card .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #fce4ec 100%) !important;
-  color: #a3306f !important;
-  border: 1px solid #f3c1d4 !important;
-  border-radius: 999px !important;
-  padding: 5px 12px !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  letter-spacing: -0.005em !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.85),
-    0 2px 6px -2px rgba(197,79,138,0.20),
-    0 1px 2px rgba(60,30,10,0.06) !important;
-  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 160ms ease, background 160ms ease !important;
-}
-.thread-card .action-cluster button:not(.action-icon):hover {
-  transform: translateY(-1px) !important;
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #fbd3df 100%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    0 4px 14px -3px rgba(197,79,138,0.30),
-    0 1px 3px rgba(60,30,10,0.10) !important;
-}
-
-/* Bokning-primary (cyan pastel) */
-.thread-card[data-lane="bookable"] .action-cluster button:not(.action-icon),
-.thread-card[data-lane="booking"] .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #d6eef0 100%) !important;
-  color: #1f5e66 !important;
-  border-color: #a8d3d8 !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 6px -2px rgba(93,168,158,0.25), 0 1px 2px rgba(60,30,10,0.06) !important;
-}
-.thread-card[data-lane="bookable"] .action-cluster button:not(.action-icon):hover,
-.thread-card[data-lane="booking"] .action-cluster button:not(.action-icon):hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #c4e5e8 100%) !important;
-}
-
-/* Granska-primary (indigo pastel) */
-.thread-card[data-lane="review"] .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #e0e6f4 100%) !important;
-  color: #3a4f8a !important;
-  border-color: #b8c5e0 !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 6px -2px rgba(107,109,181,0.25), 0 1px 2px rgba(60,30,10,0.06) !important;
-}
-.thread-card[data-lane="review"] .action-cluster button:not(.action-icon):hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #cdd5ec 100%) !important;
-}
-
-/* Senare-primary (cream pastel) */
-.thread-card[data-lane="later"] .action-cluster button:not(.action-icon),
-.thread-card[data-lane="senare"] .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #fdf8ee 100%) !important;
-  color: #6b563a !important;
-  border-color: #ecdec4 !important;
-}
-
-/* Action-icons: pastel-cirklar färgkodade per typ */
-.thread-card .action-cluster .action-icon {
-  background: rgba(255,252,248,0.65) !important;
-  border: 1px solid rgba(168,116,76,0.10) !important;
-  border-radius: 999px !important;
-  width: 26px !important;
-  height: 26px !important;
-  padding: 5px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 1px 2px rgba(60,30,10,0.04) !important;
-  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease !important;
-  color: #5b4334 !important;
-}
-.thread-card .action-cluster .action-icon:hover {
-  transform: translateY(-1px);
-  background: rgba(255,255,255,0.95) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 4px 10px -3px rgba(60,30,10,0.18) !important;
-}
-
-/* Specifika tone-färger per action-typ (data-quick-action) */
-.thread-card .action-cluster .action-icon[data-quick-action="history"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(220,210,250,0.40) 100%) !important;
-  color: #4a4d8a !important;
-  border-color: rgba(139,109,199,0.22) !important;
-}
-.thread-card .action-cluster .action-icon[data-quick-action="later"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,225,180,0.45) 100%) !important;
-  color: #a85e2c !important;
-  border-color: rgba(232,148,90,0.25) !important;
-}
-.thread-card .action-cluster .action-icon[data-quick-action="schedule"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(214,238,240,0.50) 100%) !important;
-  color: #1f5e66 !important;
-  border-color: rgba(93,168,158,0.25) !important;
-}
-.thread-card .action-cluster .action-icon[data-quick-action="handled"],
-.thread-card .action-cluster .action-icon[data-quick-action="done"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(220,239,222,0.50) 100%) !important;
-  color: #2c6b3a !important;
-  border-color: rgba(115,165,113,0.25) !important;
-}
-.thread-card .action-cluster .action-icon[data-quick-action="delete"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(247,218,221,0.50) 100%) !important;
-  color: #8b2231 !important;
-  border-color: rgba(201,86,86,0.25) !important;
-}
-
-/* ============================================================
-   MATCHA SYMBOL + WHY-TEXT till samma tone-färg
-   Ta bort cirkel-bg på sentiment/intent badges. Symbol + text
-   delar samma färg så de visuellt hänger ihop som en enhet.
-   ============================================================ */
-
-/* Sentiment-badge: gör om från cirkel till bara symbol */
-.thread-card .cco-card-badge.cco-card-badge-sentiment,
-.thread-card .cco-card-badge.cco-card-badge-intent {
-  background: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  width: auto !important;
-  height: auto !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-}
-.thread-card .cco-card-badge.cco-card-badge-sentiment svg.cco-svg-icon,
-.thread-card .cco-card-badge.cco-card-badge-intent svg.cco-svg-icon {
-  width: 15px !important;
-  height: 15px !important;
-}
-
-/* Container för badges + why-text: tight gap så de ser ut som en enhet */
-.thread-card .card-footer .cco-card-badges {
-  margin-right: 4px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-}
-.thread-card .card-footer .signal-why {
-  display: inline-flex !important;
-  align-items: center !important;
-}
-.thread-card .card-footer .signal-why .why-reason {
-  font-weight: 600 !important;
-  font-size: 12px !important;
-}
-
-/* Färg-matchning: sentiment-tone styr BÅDE symbol och why-text */
-
-/* Anxious (amber) */
-.thread-card[data-quick-sentiment="anxious"] .cco-card-badge-sentiment,
-.thread-card .cco-card-badge-sentiment.is-tone-amber {
-  color: #a85e2c !important;
-}
-.thread-card[data-quick-sentiment="anxious"] .signal-why .why-reason {
-  color: #a85e2c !important;
-}
-
-/* Negative (red) */
-.thread-card[data-quick-sentiment="negative"] .cco-card-badge-sentiment,
-.thread-card .cco-card-badge-sentiment.is-tone-red {
-  color: #a83838 !important;
-}
-.thread-card[data-quick-sentiment="negative"] .signal-why .why-reason {
-  color: #a83838 !important;
-}
-
-/* Happy / positive (green) */
-.thread-card[data-quick-sentiment="happy"] .cco-card-badge-sentiment,
-.thread-card[data-quick-sentiment="positive"] .cco-card-badge-sentiment,
-.thread-card .cco-card-badge-sentiment.is-tone-emerald,
-.thread-card .cco-card-badge-sentiment.is-tone-green {
-  color: #2c6b3a !important;
-}
-.thread-card[data-quick-sentiment="happy"] .signal-why .why-reason,
-.thread-card[data-quick-sentiment="positive"] .signal-why .why-reason {
-  color: #2c6b3a !important;
-}
-
-/* Neutral / gray */
-.thread-card[data-quick-sentiment="neutral"] .cco-card-badge-sentiment,
-.thread-card .cco-card-badge-sentiment.is-tone-blue,
-.thread-card .cco-card-badge-sentiment.is-tone-gray {
-  color: #5b4a3a !important;
-}
-.thread-card[data-quick-sentiment="neutral"] .signal-why .why-reason {
-  color: #5b4a3a !important;
-}
-
-/* Intent-färger: matcha intent-tone på why-text om sentiment saknas */
-.thread-card[data-quick-intent="booking"]:not([data-quick-sentiment]) .cco-card-badge-intent,
-.thread-card[data-quick-intent="booking"]:not([data-quick-sentiment]) .signal-why .why-reason {
-  color: #1f5e66 !important;
-}
-.thread-card[data-quick-intent="pricing"]:not([data-quick-sentiment]) .cco-card-badge-intent,
-.thread-card[data-quick-intent="pricing"]:not([data-quick-sentiment]) .signal-why .why-reason {
-  color: #7a5a14 !important;
-}
-.thread-card[data-quick-intent="complaint"]:not([data-quick-sentiment]) .cco-card-badge-intent,
-.thread-card[data-quick-intent="complaint"]:not([data-quick-sentiment]) .signal-why .why-reason {
-  color: #a83838 !important;
-}
-.thread-card[data-quick-intent="question"]:not([data-quick-sentiment]) .cco-card-badge-intent,
-.thread-card[data-quick-intent="question"]:not([data-quick-sentiment]) .signal-why .why-reason {
-  color: #3a5d96 !important;
-}
-
-/* ============================================================
-   FINAL POLISH: tightare gap + Öppna-pill i soft blue
-   ============================================================ */
-
-/* Symbol + why-text super tight (visuellt en enhet) */
-.thread-card .card-footer .cco-card-badges {
-  margin-right: 2px !important;
-  gap: 2px !important;
-}
-.thread-card .card-footer {
-  gap: 6px !important;
-}
-
-/* Default primary action — byt till SOFT BLUE pastel (cool, neutral) */
-.thread-card .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #dde8f5 100%) !important;
-  color: #2e4d80 !important;
-  border: 1px solid #b1c8e3 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.85),
-    0 2px 6px -2px rgba(46,77,128,0.20),
-    0 1px 2px rgba(60,30,10,0.06) !important;
-}
-.thread-card .action-cluster button:not(.action-icon):hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #cdd5ec 100%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    0 4px 14px -3px rgba(46,77,128,0.30),
-    0 1px 3px rgba(60,30,10,0.10) !important;
-}
-
-/* Lane-specifika varianter behåller sina färger (override default soft-blue) */
-.thread-card[data-lane="act-now"] .action-cluster button:not(.action-icon) {
-  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, #fce4ec 100%) !important;
-  color: #a3306f !important;
-  border-color: #f3c1d4 !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 2px 6px -2px rgba(197,79,138,0.20), 0 1px 2px rgba(60,30,10,0.06) !important;
-}
-.thread-card[data-lane="act-now"] .action-cluster button:not(.action-icon):hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #fbd3df 100%) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 4px 14px -3px rgba(197,79,138,0.30), 0 1px 3px rgba(60,30,10,0.10) !important;
-}
-
-/* ============================================================
-   WARM-SPEC OVERLAY — varm, mjuk, inbjudande inkorgskänsla
-   "varm Apple Mail / mjuk Linear / premium pastel dashboard"
-
-   Tokens (officiella):
-     Skin-bg-soft   #FFF8F1   sidans bakgrund
-     Skin-bg-warmer #FFF6ED   sektionsbakgrund
-     Skin-bg-deep   #FAF1E8   tonad container
-     Card-bg        #FFFCF8   normal kort
-     Card-bg-alt    #FFF9F3   varannan rad
-     Hover-bg       #FFF2E6   hover/aktiv rad
-     Border         #F1E5DB   tunn gräns
-     Border-soft    #F5EAE0   mjukare gräns
-
-     Status-färger (text + ikon):
-       Lila   #7C3AED   Oklart
-       Orange #F97316   Miss-risk / Ej tilldelad
-       Blå    #4F46E5   Behöver svar
-       Röd    #EF4444   Behöver åtgärd
-       Grön   #16A34A   Klar
-
-     Typografi:
-       Namn:    Semibold 16px #111827
-       Status:  Regular  13px #374151
-       Tid:     Medium   12px #6B7280
-       Tagg:    Medium   11px (status-färg)
+     Namn:    Semibold 16px #111827
+     Status:  Regular  13px #374151
+     Tid:     Medium   12px #6B7280
+     Tagg:    Medium   11px (status-färg)
    ============================================================ */
 
 :root {
-  --skin-bg-soft:   #FFF8F1;
-  --skin-bg-warmer: #FFF6ED;
-  --skin-bg-deep:   #FAF1E8;
-  --skin-card-bg:   #FFFCF8;
-  --skin-card-alt:  #FFF9F3;
-  --skin-hover:     #FFF2E6;
-  --skin-border:    #F1E5DB;
-  --skin-border-soft: #F5EAE0;
+  --warm-bg-soft:    #FFF8F1;
+  --warm-bg-warmer:  #FFF6ED;
+  --warm-bg-deep:    #FAF1E8;
+  --warm-card:       #FFFCF8;
+  --warm-card-alt:   #FFF9F3;
+  --warm-hover:      #FFF2E6;
+  --warm-selected:   #FFEBD8;
+  --warm-border:     #F1E5DB;
+  --warm-border-soft:#F5EAE0;
+  --warm-border-2:   #E8D4BE;
 
-  --skin-violet: #7C3AED;
-  --skin-orange: #F97316;
-  --skin-indigo: #4F46E5;
-  --skin-red:    #EF4444;
-  --skin-green:  #16A34A;
-  --skin-text:   #111827;
-  --skin-text-2: #374151;
-  --skin-text-3: #6B7280;
+  --warm-violet: #7C3AED;
+  --warm-orange: #F97316;
+  --warm-indigo: #4F46E5;
+  --warm-red:    #EF4444;
+  --warm-green:  #16A34A;
+
+  --warm-text:   #111827;
+  --warm-text-2: #374151;
+  --warm-text-3: #6B7280;
 }
 
-/* Sidans bakgrund — varm beige under hela inkorgsytan */
+/* ============================================================
+   Sidans/listans varma bakgrund
+   ============================================================ */
 .queue-history-list,
 .runtime-shell .queue-history-list,
 [data-queue-list-mode] {
-  background-color: var(--skin-bg-warmer) !important;
+  background-color: var(--warm-bg-warmer) !important;
 }
 
-/* Kortet: varm, mjuk yta + tunn gräns + diskret skugga */
-.thread-card.unified-queue-card[data-lane] {
-  background-color: var(--skin-card-bg) !important;
-  border: 1px solid var(--skin-border) !important;
-  box-shadow: 0 1px 2px rgba(120, 80, 40, 0.04) !important;
+/* ============================================================
+   warm-row — KORTET
+   72px desktop höjd, grid: avatar / main / actions
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row {
+  display: grid !important;
+  grid-template-columns: 36px 1fr auto !important;
+  grid-template-rows: auto !important;
+  grid-template-areas: "avatar main actions" !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+  row-gap: 0 !important;
+  padding: 10px 16px !important;
+  min-height: 72px !important;
+  height: auto !important;
+  max-height: none !important;
+  background-color: var(--warm-card) !important;
+  border: 1px solid var(--warm-border) !important;
   border-radius: 14px !important;
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
+  box-shadow: 0 1px 2px rgba(120, 80, 40, 0.04) !important;
+  position: relative !important;
+  overflow: visible !important;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease !important;
 }
-.thread-card.unified-queue-card[data-lane]:hover {
-  background-color: var(--skin-hover) !important;
-  border-color: #ECDDCD !important;
+
+/* Varannan rad subtilt mörkare */
+.queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
+  background-color: var(--warm-card-alt) !important;
+}
+
+/* Hover */
+.thread-card.unified-queue-card.warm-row:hover {
+  background-color: var(--warm-hover) !important;
+  border-color: var(--warm-border-2) !important;
   box-shadow: 0 2px 8px rgba(120, 80, 40, 0.07) !important;
 }
-
-/* Varannan rad lite mörkare (zebra) — mjuk skiftning */
-.queue-history-list .thread-card.unified-queue-card[data-lane]:nth-child(even) {
-  background-color: var(--skin-card-alt) !important;
-}
-.queue-history-list .thread-card.unified-queue-card[data-lane]:nth-child(even):hover {
-  background-color: var(--skin-hover) !important;
+.queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even):hover {
+  background-color: var(--warm-hover) !important;
 }
 
-/* Priority-bar (rail) — diskret, men följer status-färg */
-.thread-card.unified-queue-card[data-lane] .priority-bar {
-  background: var(--skin-border) !important;
-  opacity: 0.55 !important;
+/* Selected/aktiv */
+.thread-card.unified-queue-card.warm-row[aria-current="true"],
+.thread-card.unified-queue-card.warm-row.thread-card-selected {
+  background-color: var(--warm-selected) !important;
+  border-color: #E8C9A6 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 201, 166, 0.4),
+    0 2px 8px rgba(180, 120, 60, 0.08) !important;
 }
-.thread-card.unified-queue-card[data-lane="unclear"] .priority-bar { background: var(--skin-violet) !important; opacity: 0.30 !important; }
-.thread-card.unified-queue-card[data-lane="act-now"] .priority-bar { background: var(--skin-red)    !important; opacity: 0.30 !important; }
-.thread-card.unified-queue-card[data-lane="review"]  .priority-bar { background: var(--skin-indigo) !important; opacity: 0.30 !important; }
-.thread-card.unified-queue-card[data-lane="later"]   .priority-bar { background: var(--skin-orange) !important; opacity: 0.30 !important; }
-.thread-card.unified-queue-card[data-lane="bookable"] .priority-bar,
-.thread-card.unified-queue-card[data-lane="booking"]  .priority-bar,
-.thread-card.unified-queue-card[data-lane="done"]     .priority-bar { background: var(--skin-green)  !important; opacity: 0.30 !important; }
 
-/* ===== "Oklart" / status-tagg: DISKRET — utan bubbla, utan prick ===== */
-.thread-card.unified-queue-card .lane-badge {
+/* ============================================================
+   AVATAR — 36px med varm gradient + tunn border + status-prick
+   ============================================================ */
+.warm-row .warm-row-avatar {
+  grid-area: avatar !important;
+  width: 36px !important;
+  height: 36px !important;
+  position: relative !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+}
+.warm-row .warm-row-avatar .avatar.queue-history-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--warm-text-2) !important;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--warm-bg-deep) 100%) !important;
+  border: 1px solid var(--warm-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  letter-spacing: 0 !important;
+}
+.warm-row .warm-row-avatar .status-dot {
+  position: absolute !important;
+  right: -2px !important;
+  bottom: -2px !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--warm-card) !important;
+  background: var(--warm-text-3) !important;
+  box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.10) !important;
+}
+.warm-row .warm-row-avatar .status-dot.new { background: var(--warm-indigo) !important; }
+.warm-row .warm-row-avatar .status-dot.warn { background: var(--warm-orange) !important; }
+.warm-row .warm-row-avatar .status-dot.alert { background: var(--warm-red) !important; }
+.warm-row .warm-row-avatar .status-dot.done { background: var(--warm-green) !important; }
+
+/* ============================================================
+   MAIN — två rader inuti
+   ============================================================ */
+.warm-row .warm-row-main {
+  grid-area: main !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+}
+.warm-row .warm-row-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Rad 1: lane-badge · namn · meta(höger) */
+.warm-row .warm-row-line-1 {
+  flex-wrap: nowrap !important;
+}
+
+/* Lane-badge — DISKRET, ingen bubbla, ingen prick */
+.warm-row .lane-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  border: none !important;
   background: transparent !important;
   background-image: none !important;
-  border: none !important;
   box-shadow: none !important;
-  padding: 0 !important;
   border-radius: 0 !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: 0.02em !important;
   text-transform: none !important;
-  gap: 4px !important;
   line-height: 1.2 !important;
-  opacity: 0.92 !important;
+  color: var(--warm-violet) !important;  /* default = oklart-färg */
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  opacity: 0.95 !important;
 }
-.thread-card.unified-queue-card .lane-badge svg {
-  width: 11px !important;
-  height: 11px !important;
-  opacity: 0.85 !important;
+.warm-row .lane-badge svg { display: none !important; }  /* spec: utan ikon, bara text */
+
+/* Lane-badge per status-färg */
+.warm-row .lane-badge[data-lane="oklart"],
+.warm-row .lane-badge[data-lane="unclear"]   { color: var(--warm-violet) !important; }
+.warm-row .lane-badge[data-lane="act-now"],
+.warm-row .lane-badge[data-lane="urgent"]    { color: var(--warm-red)    !important; }
+.warm-row .lane-badge[data-lane="granska"],
+.warm-row .lane-badge[data-lane="review"]    { color: var(--warm-indigo) !important; }
+.warm-row .lane-badge[data-lane="senare"],
+.warm-row .lane-badge[data-lane="later"]     { color: var(--warm-orange) !important; }
+.warm-row .lane-badge[data-lane="bokning"],
+.warm-row .lane-badge[data-lane="booking"],
+.warm-row .lane-badge[data-lane="bookable"]  { color: var(--warm-green)  !important; }
+.warm-row .lane-badge[data-lane="klar"],
+.warm-row .lane-badge[data-lane="done"]      { color: var(--warm-green)  !important; }
+
+/* Liten separator-prick mellan tag och namn */
+.warm-row .warm-row-sep {
+  width: 3px !important;
+  height: 3px !important;
+  border-radius: 50% !important;
+  background: var(--warm-border-2) !important;
+  flex: 0 0 auto !important;
+  opacity: 0.7 !important;
 }
 
-/* Lane-badge text-färger enligt spec */
-.thread-card.unified-queue-card .lane-badge[data-lane="unclear"]  { color: var(--skin-violet) !important; }
-.thread-card.unified-queue-card .lane-badge[data-lane="act-now"]  { color: var(--skin-red)    !important; }
-.thread-card.unified-queue-card .lane-badge[data-lane="review"]   { color: var(--skin-indigo) !important; }
-.thread-card.unified-queue-card .lane-badge[data-lane="later"]    { color: var(--skin-orange) !important; }
-.thread-card.unified-queue-card .lane-badge[data-lane="bookable"],
-.thread-card.unified-queue-card .lane-badge[data-lane="booking"],
-.thread-card.unified-queue-card .lane-badge[data-lane="done"]     { color: var(--skin-green)  !important; }
-
-/* Strip — kompakt topprad, "Oklart" längst till vänster */
-.thread-card.unified-queue-card .card-strip {
-  padding: 8px 16px 0 !important;
-  gap: 8px !important;
-}
-
-/* Meta (tid + ägare) — diskret, ren typo */
-.thread-card.unified-queue-card .card-strip .meta {
-  font-size: 12px !important;
-  color: var(--skin-text-3) !important;
-  font-weight: 500 !important;
-}
-.thread-card.unified-queue-card .card-strip .meta-date {
-  color: var(--skin-text-2) !important;
+/* Namn — Semibold 16px #111827 */
+.warm-row .warm-row-name.name {
+  font-size: 16px !important;
   font-weight: 600 !important;
+  color: var(--warm-text) !important;
+  letter-spacing: -0.005em !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
-.thread-card.unified-queue-card .card-strip .meta-status {
+
+/* Meta höger på rad 1 (Ej tilldelad + tid) */
+.warm-row .warm-row-meta {
+  margin-left: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--warm-text-3) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.warm-row .warm-row-meta .meta-date {
+  color: var(--warm-text-2) !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.warm-row .warm-row-meta .meta-status {
   background: transparent !important;
   background-image: none !important;
-  box-shadow: none !important;
   border: none !important;
+  box-shadow: none !important;
   padding: 0 !important;
   font-size: 11.5px !important;
   font-weight: 500 !important;
-  color: var(--skin-text-3) !important;
+  color: var(--warm-text-3) !important;
 }
-.thread-card.unified-queue-card .card-strip .meta-status.unowned {
-  color: var(--skin-orange) !important;
+.warm-row .warm-row-meta .meta-status.unowned {
+  color: var(--warm-orange) !important;
+  font-weight: 600 !important;
 }
+.warm-row .warm-row-meta .meta-status svg { display: none !important; }
 
-/* Body — kompaktare; avatar 36px enligt spec */
-.thread-card.unified-queue-card .card-body {
-  padding: 4px 16px 6px !important;
-  grid-template-columns: 36px 1fr !important;
-  gap: 12px !important;
-  align-items: center !important;
-}
-.thread-card.unified-queue-card .card-body .avatar-wrap {
-  width: 36px !important;
-  height: 36px !important;
-  flex: 0 0 auto !important;
-}
-.thread-card.unified-queue-card .card-body .avatar.queue-history-avatar {
-  width: 36px !important;
-  height: 36px !important;
+/* ============================================================
+   Rad 2: ärende + why + mailbox-stack
+   ============================================================ */
+.warm-row .warm-row-line-2 {
   font-size: 13px !important;
-  font-weight: 600 !important;
-  background: linear-gradient(180deg, #fff 0%, #FAF1E8 100%) !important;
-  border: 1px solid var(--skin-border) !important;
-  color: var(--skin-text-2) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  color: var(--warm-text-2) !important;
+  font-weight: 400 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
-
-/* Status-prick på avatar — liten, varm */
-.thread-card.unified-queue-card .card-body .status-dot {
-  width: 9px !important;
-  height: 9px !important;
-  border: 2px solid var(--skin-card-bg) !important;
-}
-
-/* Namn + ärende-rad — typografi enligt spec */
-.thread-card.unified-queue-card .card-body .name {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: var(--skin-text) !important;
-  letter-spacing: -0.005em !important;
-}
-.thread-card.unified-queue-card .card-body .signal-what {
+.warm-row .signal-what {
   font-size: 13px !important;
   font-weight: 400 !important;
-  color: var(--skin-text-2) !important;
+  color: var(--warm-text-2) !important;
   letter-spacing: 0 !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
-/* Footer — varmare separator, kompakt */
-.thread-card.unified-queue-card .card-footer {
-  padding: 6px 16px 8px !important;
-  border-top: 1px solid var(--skin-border-soft) !important;
-  gap: 10px !important;
+/* Why — diskret, färgad i status-tonen */
+.warm-row .signal-why {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--warm-text-3) !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
 }
-
-/* Why-text varm grå men behåller tone-matchad färg via tidigare regler */
-.thread-card.unified-queue-card .card-footer .signal-why .why-reason {
+.warm-row .signal-why::before {
+  content: "·" !important;
+  margin-right: 4px !important;
+  color: var(--warm-border-2) !important;
+}
+.warm-row .signal-why .why-reason {
   font-size: 12px !important;
   font-weight: 500 !important;
 }
+.warm-row[data-lane="oklart"]   .signal-why .why-reason,
+.warm-row[data-lane="unclear"]  .signal-why .why-reason { color: var(--warm-violet) !important; }
+.warm-row[data-lane="act-now"]  .signal-why .why-reason { color: var(--warm-red)    !important; }
+.warm-row[data-lane="granska"]  .signal-why .why-reason,
+.warm-row[data-lane="review"]   .signal-why .why-reason { color: var(--warm-indigo) !important; }
+.warm-row[data-lane="senare"]   .signal-why .why-reason,
+.warm-row[data-lane="later"]    .signal-why .why-reason { color: var(--warm-orange) !important; }
 
-/* Mailbox-stack — neutral varm */
-.thread-card.unified-queue-card .card-footer .mailbox-stack {
+/* Mailbox-stack diskret */
+.warm-row .mailbox-stack {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  padding: 0 !important;
+  margin-left: 4px !important;
+  font-size: 11px !important;
+  color: var(--warm-text-3) !important;
 }
-
-/* Inga hårda svarta kontraster — säkerställ */
-.thread-card.unified-queue-card * {
-  text-shadow: none !important;
+.warm-row .mailbox-stack .mailbox-label {
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  color: var(--warm-text-3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
-
-/* Selektion / aktiv rad — varm men tydlig */
-.thread-card.unified-queue-card[aria-selected="true"],
-.thread-card.unified-queue-card.thread-card-selected {
-  background-color: #FFEBD8 !important;
-  border-color: #E8C9A6 !important;
-  box-shadow: 0 1px 0 rgba(232, 201, 166, 0.4) inset, 0 2px 8px rgba(180, 120, 60, 0.08) !important;
+.warm-row .mailbox-stack .mb-avatars { display: inline-flex !important; gap: -3px !important; }
+.warm-row .mailbox-stack .mb-dot {
+  width: 14px !important; height: 14px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid var(--warm-card) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: -3px !important;
 }
+.warm-row .mailbox-stack .mb-dot:first-child { margin-left: 0 !important; }
 
-/* Action-cluster: kompakt och varm */
-.thread-card.unified-queue-card .action-cluster {
+/* ============================================================
+   ACTIONS — kompakt cluster till höger
+   ============================================================ */
+.warm-row .warm-row-actions.action-cluster {
+  grid-area: actions !important;
+  display: inline-flex !important;
+  align-items: center !important;
   gap: 4px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
 }
-.thread-card.unified-queue-card .action-cluster .action-icon {
+.warm-row .action-cluster .action-icon {
   width: 28px !important;
   height: 28px !important;
-  background: rgba(255, 252, 248, 0.9) !important;
-  border-color: var(--skin-border) !important;
+  padding: 5px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 252, 248, 0.85) !important;
+  border: 1px solid var(--warm-border) !important;
+  color: var(--warm-text-2) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
   box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04) !important;
 }
-.thread-card.unified-queue-card .action-cluster .action-icon:hover {
-  background: #FFF6ED !important;
-  border-color: #E8D4BE !important;
+.warm-row .action-cluster .action-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+.warm-row .action-cluster .action-icon:hover {
+  background: var(--warm-bg-warmer) !important;
+  border-color: var(--warm-border-2) !important;
+  transform: translateY(-1px) !important;
   box-shadow: 0 2px 6px rgba(120, 80, 40, 0.10) !important;
 }
 
-/* Default primary action (Öppna/Svara) — varm soft pill */
-.thread-card.unified-queue-card .action-cluster button:not(.action-icon) {
+/* Action-icon färgkodade per typ (subtilt) */
+.warm-row .action-cluster .action-icon[data-quick-action="history"]  { color: #5B4D8A !important; }
+.warm-row .action-cluster .action-icon[data-quick-action="later"]    { color: var(--warm-orange) !important; }
+.warm-row .action-cluster .action-icon[data-quick-action="schedule"] { color: var(--warm-indigo) !important; }
+.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green)  !important; }
+.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)    !important; }
+
+/* Primary action — varm pill, lane-färgad */
+.warm-row .action-cluster .primary-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--warm-border-2) !important;
   background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%) !important;
   color: #6B563A !important;
-  border: 1px solid #E8D4BE !important;
   font-size: 12px !important;
   font-weight: 600 !important;
+  letter-spacing: -0.005em !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  margin-left: 4px !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.95),
     0 1px 2px rgba(120, 80, 40, 0.06) !important;
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
 }
-.thread-card.unified-queue-card .action-cluster button:not(.action-icon):hover {
+.warm-row .action-cluster .primary-action svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+.warm-row .action-cluster .primary-action:hover {
   background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%) !important;
+  transform: translateY(-1px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,1),
     0 2px 8px rgba(120, 80, 40, 0.12) !important;
 }
 
-/* Lane-tinta primary action (subtilt) */
-.thread-card.unified-queue-card[data-lane="act-now"] .action-cluster button:not(.action-icon) {
+/* Lane-tinta primary */
+.warm-row[data-lane="oklart"]   .action-cluster .primary-action,
+.warm-row[data-lane="unclear"]  .action-cluster .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #EFE3FA 100%) !important;
+  color: #5B2EAD !important;
+  border-color: #DDD0F0 !important;
+}
+.warm-row[data-lane="act-now"]  .action-cluster .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #FCE2DE 100%) !important;
   color: #B23B3B !important;
   border-color: #F2C9C2 !important;
 }
-.thread-card.unified-queue-card[data-lane="review"] .action-cluster button:not(.action-icon) {
+.warm-row[data-lane="granska"]  .action-cluster .primary-action,
+.warm-row[data-lane="review"]   .action-cluster .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #DEDEFB 100%) !important;
   color: #4040B0 !important;
   border-color: #C7C7F0 !important;
 }
-.thread-card.unified-queue-card[data-lane="later"] .action-cluster button:not(.action-icon) {
+.warm-row[data-lane="senare"]   .action-cluster .primary-action,
+.warm-row[data-lane="later"]    .action-cluster .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #FCE5CC 100%) !important;
   color: #B85A1F !important;
   border-color: #F2D2B0 !important;
 }
-.thread-card.unified-queue-card[data-lane="bookable"] .action-cluster button:not(.action-icon),
-.thread-card.unified-queue-card[data-lane="booking"]  .action-cluster button:not(.action-icon) {
+.warm-row[data-lane="bokning"]  .action-cluster .primary-action,
+.warm-row[data-lane="bookable"] .action-cluster .primary-action,
+.warm-row[data-lane="booking"]  .action-cluster .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #D6F0DC 100%) !important;
   color: #1F7A3A !important;
   border-color: #B8DFC0 !important;
 }
 
-/* Sentiment/intent why-symbol stroke-färger — låt tidigare regler styra,
-   men säkerställ att vi inte plötsligt får hård svart om sentiment saknas */
-.thread-card.unified-queue-card .cco-card-badge.cco-card-badge-sentiment:not([class*="is-tone"]),
-.thread-card.unified-queue-card .cco-card-badge.cco-card-badge-intent:not([data-intent]) {
-  color: var(--skin-text-3) !important;
+/* ============================================================
+   Stäng AV gammalt: inline grid-template, priority-bar, card-strip,
+   card-body, card-footer som vi inte längre genererar.
+   Säkerställ att äldre rader (om någon orphan finns) inte syns konstigt.
+   ============================================================ */
+.warm-row .priority-bar,
+.warm-row .card-strip,
+.warm-row .card-body,
+.warm-row .card-footer {
+  display: none !important;
 }
 
-/* Responsive: på smala skärmar lite kompaktare */
+/* Responsivt */
 @media (max-width: 720px) {
-  .thread-card.unified-queue-card .card-body .name { font-size: 15px !important; }
-  .thread-card.unified-queue-card .card-strip { padding: 6px 12px 0 !important; }
-  .thread-card.unified-queue-card .card-body { padding: 4px 12px 6px !important; }
-  .thread-card.unified-queue-card .card-footer { padding: 6px 12px 8px !important; }
+  .thread-card.unified-queue-card.warm-row {
+    padding: 8px 12px !important;
+    column-gap: 10px !important;
+    min-height: 64px !important;
+  }
+  .warm-row .warm-row-name.name { font-size: 15px !important; }
+  .warm-row .warm-row-line-2 { font-size: 12px !important; }
+  .warm-row .warm-row-actions .action-icon[data-quick-action="history"],
+  .warm-row .warm-row-actions .action-icon[data-quick-action="schedule"] {
+    display: none !important;
+  }
 }
+
+/* ============================================================
+   Inga hårda svarta kontraster, inga neon-toner — säkerställ
+   ============================================================ */
+.warm-row * { text-shadow: none !important; }

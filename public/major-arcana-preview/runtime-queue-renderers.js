@@ -2202,47 +2202,49 @@
 
       const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
 
-      // v5: använd inline-styles på varje sektion + grid-style på artikeln så ingen
-      // CSS-override kan vända ordningen (footer-strip-body-buggen). Browser-defaults
-      // för grid + explicit grid-row på children ger garanterad strip→body→footer.
-      // OBS: använd single-quotes ('rail strip') i grid-template-areas-värdet
-      // eftersom hela style="..."-attributet redan är inom double-quotes i HTML.
-      // Med double-quotes inuti bryter \" ut ur attributet och styling ignoreras.
-      const articleStyle = "display:grid;grid-template-columns:12px 1fr;grid-template-rows:auto auto auto;grid-template-areas:'rail strip' 'rail body' 'rail footer';position:relative;height:auto;min-height:0;max-height:none;padding:0;overflow:visible;";
-      const railStyle = "grid-area:rail;grid-row:1/4;grid-column:1;width:5px;height:100%;align-self:stretch;border-radius:14px 0 0 14px;";
-      const stripStyle = "grid-area:strip;grid-row:1;grid-column:2;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 4px;";
-      const bodyStyle = "grid-area:body;grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;";
-      const footerStyle = "grid-area:footer;grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;";
+      // ====== WARM-ROW v6 markup ======
+      // Helt ny struktur enligt warm-spec: 72px kompakt rad, "Oklart" diskret
+      // top-left utan bubbla, avatar 36px, varma toner, ingen priority-bar.
+      // Layout: grid [avatar | main | actions] med två textrader inuti main.
+      // INGA inline grid-template-styles — all layout styrs via warm-row.css.
+      const dateMarkup = asText(unifiedModel.time)
+        ? `<time class="meta-date" datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time>`
+        : "";
+      const stampMarkup = stampLabel
+        ? `<span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${escapeHtml(stampLabel)}</span>`
+        : "";
 
-      return `<!-- v5-final-r3 markup --><article data-v5-version="r3" class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
-        <div class="priority-bar" aria-hidden="true" style="${railStyle}"></div>
-        <div class="card-strip" style="${stripStyle}">
-          <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${v5Icon}${escapeHtml(v5Label)}</span>
-          <div class="meta">
-            ${
-              asText(unifiedModel.time)
-                ? `<span class="meta-date"><time datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time></span><span class="meta-sep">·</span>`
-                : ""
-            }
-            <span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${ownerIcon}${escapeHtml(stampLabel)}</span>
+      return `<!-- warm-row-v6 markup --><article data-v6-version="warm-r1" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
+        <div class="warm-row-avatar avatar-wrap">
+          <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
+          <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
+        </div>
+        <div class="warm-row-main">
+          <div class="warm-row-line warm-row-line-1">
+            <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
+            <span class="warm-row-sep" aria-hidden="true"></span>
+            <span class="warm-row-name name">${escapeHtml(counterpartyCopy)}</span>
+            <span class="warm-row-meta">
+              ${stampMarkup}
+              ${dateMarkup}
+            </span>
+          </div>
+          <div class="warm-row-line warm-row-line-2">
+            ${whatStr ? `<span class="signal-what">${escapeHtml(whatStr)}</span>` : ""}
+            ${whyMarkup}
+            ${mailboxStackMarkup}
           </div>
         </div>
-        <div class="card-body" style="${bodyStyle}">
-          <div class="avatar-wrap">
-            <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
-            <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
-          </div>
-          <div class="card-content">
-            <div class="name-row">
-              <span class="name">${escapeHtml(counterpartyCopy)}</span>
-            </div>
-            ${whatStr ? `<div class="signal-what">${escapeHtml(whatStr)}</div>` : ""}
-          </div>
-        </div>
-        <div class="card-footer" style="${footerStyle}">
-          ${whyMarkup}
-          ${mailboxStackMarkup}
-          ${actionClusterMarkup}
+        <div class="warm-row-actions action-cluster">
+          <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
+          <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
+          <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
+          <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
+          <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+          <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+            ${escapeHtml(primaryLabel)}
+            ${V5_ACTION_ICONS.arrowRight}
+          </button>
         </div>
       </article>`;
     }
