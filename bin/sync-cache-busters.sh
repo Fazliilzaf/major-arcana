@@ -37,6 +37,13 @@ perl -i -pe 's/(<html [^>]*?)data-build="[^"]*"/$1data-build="'"$BUILD_TAG"'"/g'
 # Om data-build inte finns ännu, lägg till efter lang-attributet
 perl -i -pe 's/(<html lang="sv")(?! data-build)/$1 data-build="'"$BUILD_TAG"'"/g' "$INDEX"
 
+# Synka @import url(...) cache-busters i .css-filer (legacy-styles-loader.css osv)
+for css in public/major-arcana-preview/*.css; do
+  if grep -q '@import.*?v=' "$css" 2>/dev/null; then
+    perl -i -pe 's/(\@import url\("[^"]*?)\?v=[A-Za-z0-9._-]+/$1?v='"$BUILD_TAG"'/g' "$css"
+  fi
+done
+
 # Räkna efter
 AFTER=$(grep -oE '\?v=[^"]+' "$INDEX" | sort -u | wc -l | tr -d ' ')
 

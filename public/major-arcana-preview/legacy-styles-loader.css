@@ -1,0 +1,8 @@
+/* legacy-styles-loader.css
+ * Wrapper som laddar styles.css i @layer legacy.
+ * Detta gör att modern CSS i cco-polish.css (oklassad eller @layer components)
+ * vinner cascade utan att kräva !important-krig.
+ *
+ * Cache-busters synkas automatiskt av bin/sync-cache-busters.sh.
+ */
+@import url("./styles.css?v=build-dc2417e") layer(legacy);
