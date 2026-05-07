@@ -2168,12 +2168,13 @@ input {
   display: grid;
   gap: 4px;
   padding-top: 1px;
-  width: min(100%, 620px);
+  width: min(100%, 520px);
   max-height: 172px;
   overflow: auto;
   padding-right: 2px;
   scrollbar-width: thin;
   justify-self: start;
+  justify-items: start;
 }
 
 .collection-search-hint,
@@ -2250,10 +2251,11 @@ input {
 
 .collection-result {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, max-content) auto;
   align-items: center;
   gap: 6px;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   min-height: 36px;
   padding: 4px 6px;
   border: 1px solid rgba(88, 63, 46, 0.05);
