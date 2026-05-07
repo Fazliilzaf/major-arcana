@@ -13,6 +13,20 @@
  * Auto: prefers-color-scheme: dark när data-theme="system" (default).
  */
 
+/* === Cascade Layers (Fas 3 Steg B, 2026-05-08) ========================
+ * Definierar global ordning för all CSS i CCO-preview.
+ *   reset       — minimal reset (browser-defaults)
+ *   base        — typografi, basform-styles, body-bg
+ *   legacy      — styles.css (gamla v3/v4/v5-regler, frozen)
+ *   components  — moderna komponentregler (cco-polish.css aka warm-row)
+ *   utilities   — utility-classes som .hidden, .sr-only
+ *   overrides   — sista-utvägs-overrides (sparsamt)
+ *
+ * Senare layer vinner över tidigare oavsett selektor-specificitet,
+ * vilket eliminerar behovet av `!important` mellan layers.
+ * ====================================================================== */
+@layer reset, base, legacy, components, utilities, overrides;
+
 :root {
   /* === COLOR — Light theme (default) === */
   /* Brand */
