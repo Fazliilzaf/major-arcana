@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HairTP Clinic CCO — v3</title>
+    <meta http-equiv="refresh" content="0;url=/major-arcana-preview/?layout=v3" />
+    <script>
+      (function () {
+        try {
+          var dest = '/major-arcana-preview/?layout=v3';
+          if (location.search) {
+            // Behåll andra query-params, lägg till layout=v3
+            var params = new URLSearchParams(location.search);
+            params.set('layout', 'v3');
+            dest = '/major-arcana-preview/?' + params.toString();
+          }
+          location.replace(dest);
+        } catch (e) {
+          location.href = '/major-arcana-preview/?layout=v3';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p style="font-family: system-ui; padding: 40px;">
+      Laddar v3-layout… Om du inte automatiskt omdirigeras,
+      <a href="/major-arcana-preview/?layout=v3">klicka här</a>.
+    </p>
+  </body>
+</html>

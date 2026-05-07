@@ -2279,7 +2279,7 @@
         ${attachIconsMarkup}
       </div>`;
 
-      const previewMarkup = previewBody
+      const warmPreviewMarkup = previewBody
         ? `<div class="warm-preview">${escapeHtml(previewBody)}</div>`
         : "";
 
@@ -2298,7 +2298,7 @@
           </div>
           <div class="warm-content">
             ${senderSubjectMarkup}
-            ${previewMarkup}
+            ${warmPreviewMarkup}
             ${warmWhyMarkup}
           </div>
           <div class="warm-actions action-cluster">
