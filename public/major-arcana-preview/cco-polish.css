@@ -29,31 +29,8 @@
      Tagg:     Medium   11px (status-färg)
    ============================================================ */
 
-:root {
-  --warm-bg-soft:    #FFF8F1;
-  --warm-bg-warmer:  #FFF6ED;
-  --warm-bg-deep:    #FAF1E8;
-  --warm-card:       #FFFCF8;
-  --warm-card-alt:   #FFF9F3;
-  --warm-hover:      #FFF2E6;
-  --warm-selected:   #FFEBD8;
-  --warm-border:     #F1E5DB;
-  --warm-border-soft:#F5EAE0;
-  --warm-border-2:   #E8D4BE;
-
-  --warm-violet: #7C3AED;
-  --warm-orange: #F97316;
-  --warm-indigo: #4F46E5;
-  --warm-red:    #EF4444;
-  --warm-green:  #16A34A;
-
-  /* Mörkare textskala (option 3) — bättre läsbarhet på små skärmar */
-  --warm-text:    #0F172A; /* sender — Slate 900 (mörkare än #111827) */
-  --warm-text-2:  #1F2937; /* primär brödtext / meta-date */
-  --warm-text-3:  #4B5563; /* preview, secondary (mörkare än #6B7280) */
-  --warm-text-4:  #374151; /* subject — mörkare för bättre kontrast */
-  --warm-text-5:  #6B7280; /* file-icons, decoration */
-}
+/* warm-row tokens definierade i design-tokens.css (Fas 3 cleanup).
+ * Ändra färger DÄR — denna fil använder bara var(--warm-*). */
 
 /* Listans bakgrund — transparent så bara korten syns mot yttre container */
 .queue-history-list,

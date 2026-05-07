@@ -146,6 +146,50 @@
   --cco-bp-lg: 1024px;
   --cco-bp-xl: 1280px;
   --cco-bp-2xl: 1536px;
+
+  /* === WARM-ROW TOKENS (Fas 3, 2026-05-08) ============================
+   * Dedikerad palett för CCO inkorgs-rader. Varm beige/peach-stil.
+   * Ändra HÄR för att uppdatera hela inkorgen — INTE i cco-polish.css.
+   * ==================================================================== */
+
+  /* Bakgrunder */
+  --warm-bg-soft:    #FFF8F1;
+  --warm-bg-warmer:  #FFF6ED;
+  --warm-bg-deep:    #FAF1E8;
+  --warm-card:       #FFFCF8;
+  --warm-card-alt:   #FFF9F3;
+  --warm-hover:      #FFF2E6;
+  --warm-selected:   #FFEBD8;
+
+  /* Borders */
+  --warm-border:      #F1E5DB;
+  --warm-border-soft: #F5EAE0;
+  --warm-border-2:    #E8D4BE;
+
+  /* Status-färger */
+  --warm-violet: #7C3AED;  /* Oklart */
+  --warm-orange: #F97316;  /* Miss-risk / Ej tilldelad */
+  --warm-indigo: #4F46E5;  /* Behöver svar */
+  --warm-red:    #EF4444;  /* Behöver åtgärd / Radera */
+  --warm-green:  #16A34A;  /* Klar / Kalender */
+
+  /* Text-skala (mörkare än default för bättre läsbarhet på warm bg) */
+  --warm-text:    #0F172A;  /* sender — Slate 900 */
+  --warm-text-2:  #1F2937;  /* primär brödtext */
+  --warm-text-3:  #4B5563;  /* preview, secondary */
+  --warm-text-4:  #374151;  /* subject */
+  --warm-text-5:  #6B7280;  /* file-icons, decoration */
+
+  /* Avatar-gradient */
+  --warm-avatar-bg: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #FFEFDE 35%, #F7DDC0 75%, #E8C29A 100%);
+  --warm-avatar-border: #ECD3B4;
+  --warm-avatar-text: #6B4A2F;
+
+  /* Skuggor */
+  --warm-shadow-sm: 0 1px 2px rgba(120, 80, 40, 0.05);
+  --warm-shadow-md: 0 2px 8px rgba(120, 80, 40, 0.08);
+  --warm-shadow-lg: 0 6px 16px rgba(120, 80, 40, 0.12);
+  --warm-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 /* === DARK THEME === */
