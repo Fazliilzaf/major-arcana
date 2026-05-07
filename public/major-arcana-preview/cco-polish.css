@@ -1,26 +1,33 @@
 /* ============================================================
-   warm-row.css  (laddas via cco-polish.css?v=warm-r1)
-   En helt ny CCO-rad: 72px kompakt, varm beige, diskret "Oklart".
-   Inget overlay-skal — detta är den enda raden som tillåts existera.
+   warm-row.css  v7
+   Helt ny CCO-rad enligt warm-spec.
 
-   Spec:
-     Skin-bg-warmer #FFF6ED  (sidan)
-     Card-bg        #FFFCF8
-     Card-bg-alt    #FFF9F3  (varannan rad)
-     Hover-bg       #FFF2E6
-     Border         #F1E5DB
-     Border-soft    #F5EAE0
+   Layout (per kort):
+     ┌──────────────────────────────────────────────────┐
+     │ [Oklart]                  6 maj · Ej tilldelad   │  warm-top
+     │                                                  │
+     │  ⓞ   Community           [···][···][···] [Öppna] │  warm-mid
+     │      (Öppen)                                     │
+     │      ⚠ Miss-risk                                 │
+     └──────────────────────────────────────────────────┘
+     · Lila vertikal accent på vänster kant (warm-rail)
 
-     Lila   #7C3AED  Oklart
+   Tokens:
+     Bakgrund    #FFF6ED  (sidan), #FFFCF8 (kort), #FFF9F3 (alt-rad)
+     Hover       #FFF2E6
+     Border      #F1E5DB  (mycket tunn)
+
+     Lila   #7C3AED  Oklart / lane-rail
      Orange #F97316  Miss-risk / Ej tilldelad
      Indigo #4F46E5  Behöver svar
      Röd    #EF4444  Behöver åtgärd
      Grön   #16A34A  Klar
 
-     Namn:    Semibold 16px #111827
-     Status:  Regular  13px #374151
-     Tid:     Medium   12px #6B7280
-     Tagg:    Medium   11px (status-färg)
+     Namn:   16px / 600 / #111827
+     Subj:   13px / 400 / #4B5563
+     Why:    12px / 600 / status-färg
+     Tid:    12px / 600 / #374151
+     Ej-til: 12px / 600 / orange
    ============================================================ */
 
 :root {
@@ -44,11 +51,10 @@
   --warm-text:   #111827;
   --warm-text-2: #374151;
   --warm-text-3: #6B7280;
+  --warm-text-4: #4B5563;
 }
 
-/* ============================================================
-   Sidans/listans varma bakgrund
-   ============================================================ */
+/* Listans bakgrund varmt beige */
 .queue-history-list,
 .runtime-shell .queue-history-list,
 [data-queue-list-mode] {
@@ -56,39 +62,30 @@
 }
 
 /* ============================================================
-   warm-row — KORTET
-   72px desktop höjd, grid: avatar / main / actions
+   KORTET — warm-row
    ============================================================ */
 .thread-card.unified-queue-card.warm-row {
   display: grid !important;
-  grid-template-columns: 36px 1fr auto !important;
-  grid-template-rows: auto !important;
-  grid-template-areas: "avatar main actions" !important;
-  align-items: center !important;
-  column-gap: 12px !important;
-  row-gap: 0 !important;
-  padding: 10px 16px !important;
-  min-height: 72px !important;
-  height: auto !important;
-  max-height: none !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "top" "mid" !important;
+  gap: 4px !important;
+  padding: 10px 14px 12px 18px !important;
   background-color: var(--warm-card) !important;
   border: 1px solid var(--warm-border) !important;
   border-radius: 14px !important;
   box-shadow: 0 1px 2px rgba(120, 80, 40, 0.04) !important;
   position: relative !important;
   overflow: visible !important;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
 }
 
-/* Varannan rad subtilt mörkare */
 .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
   background-color: var(--warm-card-alt) !important;
 }
-
-/* Hover */
 .thread-card.unified-queue-card.warm-row:hover {
   background-color: var(--warm-hover) !important;
   border-color: var(--warm-border-2) !important;
@@ -97,88 +94,54 @@
 .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even):hover {
   background-color: var(--warm-hover) !important;
 }
-
-/* Selected/aktiv */
 .thread-card.unified-queue-card.warm-row[aria-current="true"],
 .thread-card.unified-queue-card.warm-row.thread-card-selected {
   background-color: var(--warm-selected) !important;
   border-color: #E8C9A6 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(232, 201, 166, 0.4),
-    0 2px 8px rgba(180, 120, 60, 0.08) !important;
 }
 
 /* ============================================================
-   AVATAR — 36px med varm gradient + tunn border + status-prick
+   RAIL — lila vertikal accent på vänster kant
    ============================================================ */
-.warm-row .warm-row-avatar {
-  grid-area: avatar !important;
-  width: 36px !important;
-  height: 36px !important;
-  position: relative !important;
-  flex: 0 0 auto !important;
-  align-self: center !important;
-}
-.warm-row .warm-row-avatar .avatar.queue-history-avatar {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: var(--warm-text-2) !important;
-  background: linear-gradient(180deg, #FFFFFF 0%, var(--warm-bg-deep) 100%) !important;
-  border: 1px solid var(--warm-border) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important;
-  letter-spacing: 0 !important;
-}
-.warm-row .warm-row-avatar .status-dot {
+.thread-card.unified-queue-card.warm-row .warm-rail {
   position: absolute !important;
-  right: -2px !important;
-  bottom: -2px !important;
-  width: 9px !important;
-  height: 9px !important;
-  border-radius: 50% !important;
-  border: 2px solid var(--warm-card) !important;
-  background: var(--warm-text-3) !important;
-  box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.10) !important;
+  left: 6px !important;
+  top: 8px !important;
+  bottom: 8px !important;
+  width: 3px !important;
+  border-radius: 999px !important;
+  background: var(--warm-violet) !important;
+  opacity: 0.9 !important;
+  pointer-events: none !important;
 }
-.warm-row .warm-row-avatar .status-dot.new { background: var(--warm-indigo) !important; }
-.warm-row .warm-row-avatar .status-dot.warn { background: var(--warm-orange) !important; }
-.warm-row .warm-row-avatar .status-dot.alert { background: var(--warm-red) !important; }
-.warm-row .warm-row-avatar .status-dot.done { background: var(--warm-green) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .warm-rail   { background: var(--warm-violet) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="urgent"] .warm-rail    { background: var(--warm-red) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .warm-rail    { background: var(--warm-indigo) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .warm-rail     { background: var(--warm-orange) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .warm-rail   { background: var(--warm-green) !important; }
 
 /* ============================================================
-   MAIN — två rader inuti
+   TOP — "Oklart" left + meta right
    ============================================================ */
-.warm-row .warm-row-main {
-  grid-area: main !important;
-  min-width: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 2px !important;
-  overflow: hidden !important;
-}
-.warm-row .warm-row-line {
+.thread-card.unified-queue-card.warm-row .warm-top {
+  grid-area: top !important;
   display: flex !important;
   align-items: center !important;
+  justify-content: space-between !important;
   gap: 8px !important;
-  min-width: 0 !important;
-  white-space: nowrap !important;
+  padding: 0 0 0 4px !important;
+  min-height: 16px !important;
 }
-
-/* Rad 1: lane-badge · namn · meta(höger) */
-.warm-row .warm-row-line-1 {
-  flex-wrap: nowrap !important;
-}
-
-/* Lane-badge — DISKRET, ingen bubbla, ingen prick */
-.warm-row .lane-badge {
+.thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 0 !important;
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
@@ -190,64 +153,34 @@
   letter-spacing: 0.02em !important;
   text-transform: none !important;
   line-height: 1.2 !important;
-  color: var(--warm-violet) !important;  /* default = oklart-färg */
-  flex: 0 0 auto !important;
-  white-space: nowrap !important;
-  opacity: 0.95 !important;
-}
-.warm-row .lane-badge svg { display: none !important; }  /* spec: utan ikon, bara text */
-
-/* Lane-badge per status-färg */
-.warm-row .lane-badge[data-lane="oklart"],
-.warm-row .lane-badge[data-lane="unclear"]   { color: var(--warm-violet) !important; }
-.warm-row .lane-badge[data-lane="act-now"],
-.warm-row .lane-badge[data-lane="urgent"]    { color: var(--warm-red)    !important; }
-.warm-row .lane-badge[data-lane="granska"],
-.warm-row .lane-badge[data-lane="review"]    { color: var(--warm-indigo) !important; }
-.warm-row .lane-badge[data-lane="senare"],
-.warm-row .lane-badge[data-lane="later"]     { color: var(--warm-orange) !important; }
-.warm-row .lane-badge[data-lane="bokning"],
-.warm-row .lane-badge[data-lane="booking"],
-.warm-row .lane-badge[data-lane="bookable"]  { color: var(--warm-green)  !important; }
-.warm-row .lane-badge[data-lane="klar"],
-.warm-row .lane-badge[data-lane="done"]      { color: var(--warm-green)  !important; }
-
-/* Liten separator-prick mellan tag och namn */
-.warm-row .warm-row-sep {
-  width: 3px !important;
-  height: 3px !important;
-  border-radius: 50% !important;
-  background: var(--warm-border-2) !important;
-  flex: 0 0 auto !important;
-  opacity: 0.7 !important;
-}
-
-/* Namn — Semibold 16px #111827 */
-.warm-row .warm-row-name.name {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: var(--warm-text) !important;
-  letter-spacing: -0.005em !important;
-  flex: 0 1 auto !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  color: var(--warm-violet) !important;
   white-space: nowrap !important;
 }
+.thread-card.unified-queue-card.warm-row .warm-top .lane-badge svg { display: none !important; }
 
-/* Meta höger på rad 1 (Ej tilldelad + tid) */
-.warm-row .warm-row-meta {
-  margin-left: auto !important;
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .lane-badge   { color: var(--warm-violet) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="urgent"] .lane-badge    { color: var(--warm-red) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .lane-badge    { color: var(--warm-indigo) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .lane-badge     { color: var(--warm-orange) !important; }
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .lane-badge   { color: var(--warm-green) !important; }
+
+.thread-card.unified-queue-card.warm-row .warm-top-meta {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
-  flex: 0 0 auto !important;
+  gap: 6px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   color: var(--warm-text-3) !important;
+  flex: 0 0 auto !important;
   font-variant-numeric: tabular-nums !important;
 }
-.warm-row .warm-row-meta .meta-date {
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-date {
   color: var(--warm-text-2) !important;
   font-weight: 600 !important;
   background: transparent !important;
@@ -255,123 +188,196 @@
   padding: 0 !important;
   box-shadow: none !important;
 }
-.warm-row .warm-row-meta .meta-status {
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-sep {
+  color: var(--warm-border-2) !important;
+  font-weight: 400 !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
   background: transparent !important;
   background-image: none !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-  font-size: 11.5px !important;
-  font-weight: 500 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
   color: var(--warm-text-3) !important;
 }
-.warm-row .warm-row-meta .meta-status.unowned {
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status svg { display: none !important; }
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned {
   color: var(--warm-orange) !important;
-  font-weight: 600 !important;
 }
-.warm-row .warm-row-meta .meta-status svg { display: none !important; }
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 12px !important;
+  height: 12px !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
+}
 
 /* ============================================================
-   Rad 2: ärende + why + mailbox-stack
+   MID — avatar | content | actions
    ============================================================ */
-.warm-row .warm-row-line-2 {
-  font-size: 13px !important;
-  color: var(--warm-text-2) !important;
-  font-weight: 400 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-.warm-row .signal-what {
-  font-size: 13px !important;
-  font-weight: 400 !important;
-  color: var(--warm-text-2) !important;
-  letter-spacing: 0 !important;
-  flex: 0 1 auto !important;
+.thread-card.unified-queue-card.warm-row .warm-mid {
+  grid-area: mid !important;
+  display: grid !important;
+  grid-template-columns: 36px 1fr auto !important;
+  grid-template-rows: auto !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+  row-gap: 0 !important;
+  padding: 0 0 0 4px !important;
   min-width: 0 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
 }
 
-/* Why — diskret, färgad i status-tonen */
-.warm-row .signal-why {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  color: var(--warm-text-3) !important;
+/* ============================================================
+   AVATAR — 36px, varm gradient, status-prick.
+   Override styles.css aggressivt med dubbel klassspecificity.
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
+  position: relative !important;
+  width: 36px !important;
+  height: 36px !important;
   flex: 0 0 auto !important;
-  white-space: nowrap !important;
+  margin: 0 !important;
+  align-self: center !important;
+  transform: none !important;
 }
-.warm-row .signal-why::before {
-  content: "·" !important;
-  margin-right: 4px !important;
-  color: var(--warm-border-2) !important;
-}
-.warm-row .signal-why .why-reason {
-  font-size: 12px !important;
-  font-weight: 500 !important;
-}
-.warm-row[data-lane="oklart"]   .signal-why .why-reason,
-.warm-row[data-lane="unclear"]  .signal-why .why-reason { color: var(--warm-violet) !important; }
-.warm-row[data-lane="act-now"]  .signal-why .why-reason { color: var(--warm-red)    !important; }
-.warm-row[data-lane="granska"]  .signal-why .why-reason,
-.warm-row[data-lane="review"]   .signal-why .why-reason { color: var(--warm-indigo) !important; }
-.warm-row[data-lane="senare"]   .signal-why .why-reason,
-.warm-row[data-lane="later"]    .signal-why .why-reason { color: var(--warm-orange) !important; }
-
-/* Mailbox-stack diskret */
-.warm-row .mailbox-stack {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin-left: 4px !important;
-  font-size: 11px !important;
-  color: var(--warm-text-3) !important;
-}
-.warm-row .mailbox-stack .mailbox-label {
-  font-size: 10.5px !important;
-  font-weight: 500 !important;
-  color: var(--warm-text-3) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-}
-.warm-row .mailbox-stack .mb-avatars { display: inline-flex !important; gap: -3px !important; }
-.warm-row .mailbox-stack .mb-dot {
-  width: 14px !important; height: 14px !important;
+.thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+.thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar,
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
   border-radius: 50% !important;
-  border: 1.5px solid var(--warm-card) !important;
-  font-size: 8px !important;
-  font-weight: 700 !important;
-  color: #fff !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  margin-left: -3px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--warm-text-2) !important;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--warm-bg-deep) 100%) !important;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, var(--warm-bg-deep) 100%) !important;
+  border: 1px solid var(--warm-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(120, 80, 40, 0.05) !important;
+  letter-spacing: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  transition: none !important;
 }
-.warm-row .mailbox-stack .mb-dot:first-child { margin-left: 0 !important; }
+
+/* Stäng av hover-scale-rotate på avatarn */
+.thread-card.unified-queue-card.warm-row:hover .avatar,
+.thread-card.unified-queue-card.warm-row:hover .warm-avatar .avatar {
+  transform: none !important;
+}
+
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
+  position: absolute !important;
+  right: -1px !important;
+  bottom: -1px !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--warm-card) !important;
+  background: var(--warm-text-3) !important;
+  box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.10) !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.new   { background: var(--warm-indigo) !important; }
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.warn  { background: var(--warm-orange) !important; }
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.alert { background: var(--warm-red) !important; }
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.done  { background: var(--warm-green) !important; }
 
 /* ============================================================
-   ACTIONS — kompakt cluster till höger
+   CONTENT — namn / subject / why
    ============================================================ */
-.warm-row .warm-row-actions.action-cluster {
-  grid-area: actions !important;
+.thread-card.unified-queue-card.warm-row .warm-content {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  overflow: hidden !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-name.name {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--warm-text) !important;
+  letter-spacing: -0.005em !important;
+  line-height: 1.25 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--warm-text-4) !important;
+  letter-spacing: 0 !important;
+  line-height: 1.3 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Why-rad — färgad ikon + text */
+.thread-card.unified-queue-card.warm-row .warm-why {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-top: 3px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 auto !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .why-reason {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+/* Why-färger per kind */
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"]   { color: var(--warm-orange) !important; }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] { color: var(--warm-indigo) !important; }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"]    { color: var(--warm-red)    !important; }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"]   { color: var(--warm-green)  !important; }
+
+/* ============================================================
+   ACTIONS — kompakt cluster höger
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
   padding: 0 !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
+  align-self: center !important;
 }
-.warm-row .action-cluster .action-icon {
-  width: 28px !important;
-  height: 28px !important;
-  padding: 5px !important;
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 6px !important;
   border-radius: 50% !important;
   background: rgba(255, 252, 248, 0.85) !important;
   border: 1px solid var(--warm-border) !important;
@@ -383,35 +389,35 @@
   transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
   box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04) !important;
 }
-.warm-row .action-cluster .action-icon svg {
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
   width: 14px !important;
   height: 14px !important;
 }
-.warm-row .action-cluster .action-icon:hover {
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
   background: var(--warm-bg-warmer) !important;
   border-color: var(--warm-border-2) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 6px rgba(120, 80, 40, 0.10) !important;
 }
 
-/* Action-icon färgkodade per typ (subtilt) */
-.warm-row .action-cluster .action-icon[data-quick-action="history"]  { color: #5B4D8A !important; }
-.warm-row .action-cluster .action-icon[data-quick-action="later"]    { color: var(--warm-orange) !important; }
-.warm-row .action-cluster .action-icon[data-quick-action="schedule"] { color: var(--warm-indigo) !important; }
-.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green)  !important; }
-.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)    !important; }
+/* Action-icon färgkodning per typ */
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"]  { color: var(--warm-violet) !important; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"]    { color: var(--warm-orange) !important; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] { color: var(--warm-green)  !important; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green)  !important; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)    !important; }
 
-/* Primary action — varm pill, lane-färgad */
-.warm-row .action-cluster .primary-action {
+/* Primary action — varm pill, lane-tonad */
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  padding: 6px 12px !important;
+  padding: 7px 14px !important;
   border-radius: 999px !important;
   border: 1px solid var(--warm-border-2) !important;
   background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%) !important;
   color: #6B563A !important;
-  font-size: 12px !important;
+  font-size: 12.5px !important;
   font-weight: 600 !important;
   letter-spacing: -0.005em !important;
   cursor: pointer !important;
@@ -422,78 +428,81 @@
     0 1px 2px rgba(120, 80, 40, 0.06) !important;
   transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
 }
-.warm-row .action-cluster .primary-action svg {
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action svg {
   width: 12px !important;
   height: 12px !important;
 }
-.warm-row .action-cluster .primary-action:hover {
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
   background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%) !important;
   transform: translateY(-1px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,1),
     0 2px 8px rgba(120, 80, 40, 0.12) !important;
 }
-
-/* Lane-tinta primary */
-.warm-row[data-lane="oklart"]   .action-cluster .primary-action,
-.warm-row[data-lane="unclear"]  .action-cluster .primary-action {
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #EFE3FA 100%) !important;
   color: #5B2EAD !important;
   border-color: #DDD0F0 !important;
 }
-.warm-row[data-lane="act-now"]  .action-cluster .primary-action {
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #FCE2DE 100%) !important;
   color: #B23B3B !important;
   border-color: #F2C9C2 !important;
 }
-.warm-row[data-lane="granska"]  .action-cluster .primary-action,
-.warm-row[data-lane="review"]   .action-cluster .primary-action {
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #DEDEFB 100%) !important;
   color: #4040B0 !important;
   border-color: #C7C7F0 !important;
 }
-.warm-row[data-lane="senare"]   .action-cluster .primary-action,
-.warm-row[data-lane="later"]    .action-cluster .primary-action {
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #FCE5CC 100%) !important;
   color: #B85A1F !important;
   border-color: #F2D2B0 !important;
 }
-.warm-row[data-lane="bokning"]  .action-cluster .primary-action,
-.warm-row[data-lane="bookable"] .action-cluster .primary-action,
-.warm-row[data-lane="booking"]  .action-cluster .primary-action {
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .primary-action {
   background: linear-gradient(180deg, #FFFCF7 0%, #D6F0DC 100%) !important;
   color: #1F7A3A !important;
   border-color: #B8DFC0 !important;
 }
 
 /* ============================================================
-   Stäng AV gammalt: inline grid-template, priority-bar, card-strip,
-   card-body, card-footer som vi inte längre genererar.
-   Säkerställ att äldre rader (om någon orphan finns) inte syns konstigt.
+   Stäng AV gammalt: alla orphan-element från tidigare markup
    ============================================================ */
 .warm-row .priority-bar,
 .warm-row .card-strip,
 .warm-row .card-body,
-.warm-row .card-footer {
+.warm-row .card-footer,
+.warm-row .mailbox-stack,
+.warm-row .signal-why:not(.warm-why) {
   display: none !important;
 }
+
+/* Inga hårda svarta kontraster, inga neon-toner */
+.warm-row * { text-shadow: none !important; }
 
 /* Responsivt */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
-    padding: 8px 12px !important;
-    column-gap: 10px !important;
-    min-height: 64px !important;
+    padding: 8px 12px 10px 16px !important;
   }
-  .warm-row .warm-row-name.name { font-size: 15px !important; }
-  .warm-row .warm-row-line-2 { font-size: 12px !important; }
-  .warm-row .warm-row-actions .action-icon[data-quick-action="history"],
-  .warm-row .warm-row-actions .action-icon[data-quick-action="schedule"] {
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    grid-template-columns: 32px 1fr auto !important;
+    column-gap: 10px !important;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap,
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar {
+    width: 32px !important; height: 32px !important;
+    min-width: 32px !important; min-height: 32px !important;
+    max-width: 32px !important; max-height: 32px !important;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-name.name { font-size: 15px !important; }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"],
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] {
     display: none !important;
   }
 }
-
-/* ============================================================
-   Inga hårda svarta kontraster, inga neon-toner — säkerställ
-   ============================================================ */
-.warm-row * { text-shadow: none !important; }

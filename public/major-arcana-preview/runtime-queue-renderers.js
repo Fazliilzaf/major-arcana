@@ -2202,49 +2202,76 @@
 
       const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
 
-      // ====== WARM-ROW v6 markup ======
-      // Helt ny struktur enligt warm-spec: 72px kompakt rad, "Oklart" diskret
-      // top-left utan bubbla, avatar 36px, varma toner, ingen priority-bar.
-      // Layout: grid [avatar | main | actions] med två textrader inuti main.
-      // INGA inline grid-template-styles — all layout styrs via warm-row.css.
+      // ====== WARM-ROW v7 markup ======
+      // Två zoner: topp-rad (lane-badge + meta) + mid-rad (avatar | content | actions).
+      // Content innehåller: namn / subject / why-rad. Why-raden har färgad ikon som
+      // visualiserar tone (alert/amber/blue/green).
       const dateMarkup = asText(unifiedModel.time)
         ? `<time class="meta-date" datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time>`
         : "";
       const stampMarkup = stampLabel
         ? `<span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${escapeHtml(stampLabel)}</span>`
         : "";
+      const dotSep = (dateMarkup && stampMarkup) ? `<span class="meta-sep" aria-hidden="true">·</span>` : "";
 
-      return `<!-- warm-row-v6 markup --><article data-v6-version="warm-r1" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
-        <div class="warm-row-avatar avatar-wrap">
-          <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
-          <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
-        </div>
-        <div class="warm-row-main">
-          <div class="warm-row-line warm-row-line-1">
-            <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
-            <span class="warm-row-sep" aria-hidden="true"></span>
-            <span class="warm-row-name name">${escapeHtml(counterpartyCopy)}</span>
-            <span class="warm-row-meta">
-              ${stampMarkup}
-              ${dateMarkup}
-            </span>
+      // Bygg why-rad med färgad ikon. Mappa text/tone → ikon.
+      const whyText = whyEntries.length ? asText(typeof whyEntries[0] === "string" ? whyEntries[0] : whyEntries[0].text) : "";
+      const whyTone = whyEntries.length && typeof whyEntries[0] === "object" ? asText(whyEntries[0].tone) : "";
+      const whyKey = whyText.toLowerCase();
+      let whyIconKind = "info";
+      if (/miss[\s-]?risk|risk|överskrid|overdue|brand/.test(whyKey)) whyIconKind = "alert";
+      else if (/svar|reply|fråga/.test(whyKey)) whyIconKind = "refresh";
+      else if (/åtgärd|action|brådsk|akut|urgent/.test(whyKey)) whyIconKind = "info";
+      else if (/klar|done|färdig/.test(whyKey)) whyIconKind = "check";
+      else if (whyTone === "alert") whyIconKind = "info";
+      else if (whyTone === "amber") whyIconKind = "alert";
+
+      const WARM_WHY_ICONS = {
+        alert:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></svg>',
+        refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4 3 10 9 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36L3 10"/></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      };
+
+      const warmWhyMarkup = whyText
+        ? `<div class="warm-why" data-why-kind="${escapeHtml(whyIconKind)}">
+            <span class="warm-why-icon" aria-hidden="true">${WARM_WHY_ICONS[whyIconKind]}</span>
+            <span class="why-reason">${escapeHtml(whyText)}</span>
+          </div>`
+        : "";
+
+      // Subject = subtitle eller signal-what (varierar)
+      const warmSubject = asText(unifiedModel.subtitle) || whatStr;
+
+      return `<!-- warm-row-v7 markup --><article data-v7-version="warm-r2" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
+        <span class="warm-rail" aria-hidden="true"></span>
+        <div class="warm-top">
+          <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
+          <div class="warm-top-meta">
+            ${dateMarkup}${dotSep}${stampMarkup}
           </div>
-          <div class="warm-row-line warm-row-line-2">
-            ${whatStr ? `<span class="signal-what">${escapeHtml(whatStr)}</span>` : ""}
-            ${whyMarkup}
-            ${mailboxStackMarkup}
-          </div>
         </div>
-        <div class="warm-row-actions action-cluster">
-          <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
-          <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
-          <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
-          <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
-          <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
-          <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
-            ${escapeHtml(primaryLabel)}
-            ${V5_ACTION_ICONS.arrowRight}
-          </button>
+        <div class="warm-mid">
+          <div class="warm-avatar avatar-wrap">
+            <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
+            <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
+          </div>
+          <div class="warm-content">
+            <div class="warm-name name">${escapeHtml(counterpartyCopy)}</div>
+            ${warmSubject ? `<div class="warm-subject signal-what">${escapeHtml(warmSubject)}</div>` : ""}
+            ${warmWhyMarkup}
+          </div>
+          <div class="warm-actions action-cluster">
+            <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
+            <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
+            <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
+            <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
+            <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+            <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+              ${escapeHtml(primaryLabel)}
+              ${V5_ACTION_ICONS.arrowRight}
+            </button>
+          </div>
         </div>
       </article>`;
     }
