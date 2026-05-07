@@ -63,13 +63,13 @@
 
 /* ============================================================
    KORTET — warm-row
-   3 rader: top (lane+meta) / mid (avatar+content) / actions (bottom)
+   3 rader: top (lane+meta) / mid (avatar+content) / bottom (why+actions)
    ============================================================ */
 .thread-card.unified-queue-card.warm-row {
   display: grid !important;
   grid-template-columns: 1fr !important;
   grid-template-rows: auto auto auto !important;
-  grid-template-areas: "top" "mid" "actions" !important;
+  grid-template-areas: "top" "mid" "bottom" !important;
   gap: 4px !important;
   padding: 10px 14px 10px 18px !important;
   background-color: var(--warm-card) !important;
@@ -332,31 +332,36 @@
   white-space: nowrap !important;
 }
 
-/* Why-rad — färgad ikon + text */
+/* Why-rad — färgad ikon + text. 10% mindre, sitter i bottom-rad. */
 .thread-card.unified-queue-card.warm-row .warm-why {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  margin-top: 3px !important;
-  font-size: 12.5px !important;
+  gap: 5px !important;
+  margin: 0 !important;
+  font-size: 11.25px !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
   line-height: 1.2 !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 14px !important;
-  height: 14px !important;
+  width: 12.5px !important;
+  height: 12.5px !important;
   flex: 0 0 auto !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 12.5px !important;
+  height: 12.5px !important;
 }
 .thread-card.unified-queue-card.warm-row .warm-why .why-reason {
-  font-size: 12.5px !important;
+  font-size: 11.25px !important;
   font-weight: 600 !important;
 }
 
@@ -367,18 +372,34 @@
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"]   { color: var(--warm-green)  !important; }
 
 /* ============================================================
-   ACTIONS — bottom-row, 30% mindre
+   BOTTOM-RAD — why (vänster) + actions (höger)
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-bottom {
+  grid-area: bottom !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 2px 4px 0 4px !important;
+  min-width: 0 !important;
+}
+
+/* Om why saknas: actions ska fortfarande sitta höger */
+.thread-card.unified-queue-card.warm-row .warm-bottom:not(:has(.warm-why)) {
+  justify-content: flex-end !important;
+}
+
+/* ============================================================
+   ACTIONS — i bottom-rad, 30% mindre, höger-justerad
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
-  grid-area: actions !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
   gap: 3px !important;
-  padding: 2px 4px 0 0 !important;
-  margin: 0 !important;
+  padding: 0 !important;
+  margin: 0 0 0 auto !important;
   flex: 0 0 auto !important;
-  width: 100% !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
   width: 21px !important;

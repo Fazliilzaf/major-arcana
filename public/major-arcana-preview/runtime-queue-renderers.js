@@ -2259,8 +2259,10 @@
           <div class="warm-content">
             <div class="warm-name name">${escapeHtml(counterpartyCopy)}</div>
             ${warmSubject ? `<div class="warm-subject signal-what">${escapeHtml(warmSubject)}</div>` : ""}
-            ${warmWhyMarkup}
           </div>
+        </div>
+        <div class="warm-bottom">
+          ${warmWhyMarkup}
           <div class="warm-actions action-cluster">
             <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
             <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
