@@ -1897,7 +1897,15 @@
     right: { min: MIN_INTEL_WIDTH, max: 430 },
   };
 
-  const state = {
+  // ====================================================================
+  // STATE — wrappad i Proxy för Fas 4-debug.
+  // Default: ingen logging, ingen beteendeförändring. Aktivera i devtools:
+  //   window.__DEBUG_STATE = true   // logga alla mutationer
+  //   window.__DEBUG_STATE = 'count' // bara räkna antal mutationer
+  // Se STATE-MODEL.md för bakgrund.
+  // ====================================================================
+  const __stateMutationStats = { count: 0, byKey: Object.create(null) };
+  const __stateInternal = {
     bootstrapped: false,
     bootstrapError: "",
     noteTemplates: [],
@@ -2393,6 +2401,38 @@
       },
     },
   };
+
+  // Proxy runt state för Fas 4-debug. Default: ingen logging, transparent.
+  // Aktivera i devtools-console:
+  //   window.__DEBUG_STATE = true   // logga alla mutationer
+  //   window.__DEBUG_STATE = 'count' // räkna utan att logga
+  //   __getStateStats()             // visa mutations-statistik
+  const state = new Proxy(__stateInternal, {
+    set(target, key, value) {
+      __stateMutationStats.count++;
+      __stateMutationStats.byKey[key] = (__stateMutationStats.byKey[key] || 0) + 1;
+      const flag = (typeof window !== 'undefined') ? window.__DEBUG_STATE : false;
+      if (flag === true) {
+        try {
+          const v = (value && typeof value === 'object')
+            ? JSON.stringify(value).slice(0, 80) + '…'
+            : String(value);
+          // eslint-disable-next-line no-console
+          console.log('[state]', String(key), '=', v);
+        } catch (_e) { /* ignore stringify errors */ }
+      }
+      target[key] = value;
+      return true;
+    },
+  });
+  if (typeof window !== 'undefined') {
+    window.__getStateStats = () => ({
+      total: __stateMutationStats.count,
+      top10: Object.entries(__stateMutationStats.byKey)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10),
+    });
+  }
 
   const asyncRuntimeRefs = {
     bootstrapPromise: null,
