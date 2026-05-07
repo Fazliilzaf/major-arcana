@@ -101,19 +101,26 @@
 
 /* ============================================================
    Init: stäng mailbox- och more-menyer som öppnas auto vid load.
-   Användaren måste klicka för att öppna dem.
+   Körs ENDAST en gång vid load, inte i intervaller — annars stängs
+   menyerna varje gång användaren öppnar dem.
    ============================================================ */
-(function closeAutoMenus() {
+(function closeAutoMenusOnce() {
   'use strict';
+  let didRun = false;
   function closeAll() {
+    if (didRun) return;
+    didRun = true;
     // Mailbox-toggle
     const t = document.querySelector('#mailbox-menu-toggle');
     if (t && t.checked) {
       t.checked = false;
       t.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    // Preview-more-menu (aria-expanded toggle)
+    // Preview-more-menu — sätt hidden bara om användaren inte redan öppnat
     document.querySelectorAll('.preview-more-menu').forEach((m) => {
+      // Om aria-hidden redan är "false" eller hidden-attributet saknas,
+      // har användaren öppnat menyn manuellt — rör inte
+      if (m.getAttribute('aria-hidden') === 'false') return;
       m.setAttribute('hidden', '');
       m.setAttribute('aria-hidden', 'true');
     });
@@ -127,13 +134,9 @@
     });
   }
 
-  // Kör vid DOMContentLoaded + några gånger till för att fånga sent injicerade
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', closeAll);
   } else {
     closeAll();
   }
-  setTimeout(closeAll, 200);
-  setTimeout(closeAll, 800);
-  setTimeout(closeAll, 1800);
 })();
