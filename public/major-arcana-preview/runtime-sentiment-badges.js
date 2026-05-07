@@ -14,7 +14,7 @@
 (() => {
   'use strict';
 
-  let observerBound = false;
+  // (observerBound borttagen i Fas 2 cleanup — observer ersatt av polling)
 
   // Markörer (subset av backend-implementationen — för snabbhet)
   const POSITIVE_MARKERS = ['tack', 'tacksam', 'jättekul', 'perfekt', 'underbar', 'glad', 'nöjd', 'thanks', 'great', 'awesome', '😊', '🙏'];
@@ -121,23 +121,14 @@ html[data-theme="dark"] .cco-card-badge {
     document.head.appendChild(style);
   }
 
-  function bindMutationObserver() {
-    if (observerBound) return;
-    if (typeof MutationObserver !== 'function') return;
-    let scheduled = false;
-    const obs = new MutationObserver(() => {
-      if (scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        applyBadgesToAllCards();
-      });
-    });
-    obs.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-    observerBound = true;
+  // Fas 2 cleanup: MutationObserver ersatt med lättviktig polling.
+  // applyBadgesToCard short-circuit:ar via card.__ccoSentimentApplied så
+  // varje pass bara gör jobb för nya cards. Billigt + deterministiskt.
+  let pollerStarted = false;
+  function startLightweightPoller() {
+    if (pollerStarted) return;
+    pollerStarted = true;
+    setInterval(applyBadgesToAllCards, 2000);
   }
 
   function mount() {
@@ -145,12 +136,12 @@ html[data-theme="dark"] .cco-card-badge {
       document.addEventListener('DOMContentLoaded', () => {
         injectStyles();
         applyBadgesToAllCards();
-        bindMutationObserver();
+        startLightweightPoller();
       }, { once: true });
     } else {
       injectStyles();
       applyBadgesToAllCards();
-      bindMutationObserver();
+      startLightweightPoller();
     }
   }
 
