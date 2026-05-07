@@ -471,3 +471,78 @@ html.v3-skin-active .queue-history-list .thread-card .meta .meta-sep,
 html.v3-skin-active .queue-history-list .thread-card.thread-card .meta-sep {
   display: none !important;
 }
+
+/* ============================================================
+   iOS MAIL-LIST OVERRIDE — tona ner bubble, gör till sammanhängande
+   frostat-glas-lista med tunna separators (Apple Mail-känsla).
+   Behåller lane-rail, hover-actions, selected-tint från CCO.
+   ============================================================ */
+
+/* Hela worklist-containern = en frostat-glas-yta */
+html.v3-skin-active .queue-history-list {
+  background: rgba(255, 252, 248, 0.50) !important;
+  backdrop-filter: blur(20px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.50) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 6px 28px -10px rgba(60, 30, 10, 0.14) !important;
+  overflow: hidden !important;
+  padding: 4px 0 !important;
+}
+
+/* Thread-cards: ta bort bubble, gör till plain rad */
+html.v3-skin-active .queue-history-list .thread-card.thread-card.unified-queue-card,
+html.v3-skin-active .queue-history-list .thread-card.thread-card.unified-queue-card[data-lane] {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(168, 116, 76, 0.07) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 14px !important;
+}
+
+/* Sista raden: ingen border-bottom */
+html.v3-skin-active .queue-history-list .thread-card:last-child {
+  border-bottom: none !important;
+}
+
+/* Hover: subtilt bg-skift, ingen lift, ingen skugga */
+html.v3-skin-active .queue-history-list .thread-card.thread-card.unified-queue-card:hover {
+  background: rgba(255, 255, 255, 0.60) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Selected: soft amber tint, behåll vänsterrail som accent */
+html.v3-skin-active .queue-history-list .thread-card.thread-card.is-selected,
+html.v3-skin-active .queue-history-list .thread-card.thread-card.thread-card-selected {
+  background: linear-gradient(90deg, rgba(232, 148, 90, 0.12) 0%, rgba(255, 252, 248, 0.40) 100%) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(168, 116, 76, 0.07) !important;
+  border-radius: 0 !important;
+  box-shadow: inset 3px 0 0 rgba(232, 148, 90, 0.55) !important;
+  transform: none !important;
+}
+
+/* Hover-actions pill: minska skuggor till mer iOS-subtilt */
+html.v3-skin-active .queue-history-list .thread-card:hover .card-footer {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(168, 116, 76, 0.10) !important;
+  box-shadow: 0 2px 10px -2px rgba(60, 30, 10, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+  gap: 2px !important;
+}
+
+/* Lane-rail: tunnare och mer subtle */
+html.v3-skin-active .queue-history-list .thread-card.thread-card.unified-queue-card .priority-bar {
+  width: 3px !important;
+  border-radius: 0 !important;
+  margin: 8px 0 !important;
+  filter: none !important;
+  opacity: 0.85;
+}
