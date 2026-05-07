@@ -3164,6 +3164,10 @@
     const nextHtml = COLLECTION_SECTIONS.map((section) => {
       const sectionProducts = catalog.filter((item) => normalize(item.collection).includes(normalize(section.collection)));
       const searchValue = state.collectionSearches[section.key] || "";
+      const query = normalize(searchValue);
+      const visibleProducts = query
+        ? sectionProducts.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(query))
+        : [];
       const pendingCount = sectionProducts.filter((item) => state.pendingCatalogId === item.id).length;
       const ownedCount = sectionProducts.filter((item) => state.customerLibrary.includes(item.id)).length;
       const hasProducts = sectionProducts.length > 0;
@@ -3185,35 +3189,39 @@
         `
         : "";
 
-      const cards = sectionProducts
-        .map((item) => {
+      const resultsMarkup = query
+        ? visibleProducts.length > 0
+          ? visibleProducts
+            .map((item) => {
           const pending = state.pendingCatalogId === item.id;
           const owned = state.customerLibrary.includes(item.id);
           const filterText = normalize([item.name, item.collection, item.type].join(" "));
 
           return `
             <button
-              class="product-card${pending ? " is-pending" : ""}"
+              class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
               type="button"
               draggable="true"
               data-product-id="${escapeHtml(item.id)}"
               data-collection-filter-text="${escapeHtml(filterText)}"
             >
-              ${renderBottleVisual(item, "product-bottle")}
-              <span class="product-copy">
+              ${renderBottleVisual(item, "collection-result-bottle")}
+              <span class="collection-result-copy">
                 <strong>${escapeHtml(item.name)}</strong>
-                <p>${renderProductMeta(item, "product-meta product-meta-card")}</p>
-                <span class="product-card-flags">
+                <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
+                <span class="collection-result-flags">
                   <span class="product-level-badges">
                     ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                   </span>
-                  ${owned ? '<span class="product-owned-badge">In library</span>' : ""}
+                  ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
                 </span>
               </span>
             </button>
           `;
         })
-        .join("");
+        .join("")
+          : '<div class="collection-search-empty collection-search-empty--inline"><strong>No matches</strong><span>Try a shorter product name or a different collection.</span></div>'
+        : '<div class="collection-search-hint">Type to reveal products in this collection.</div>';
 
       const emptyMessage = `No matching products in ${section.collection}.`;
 
@@ -3224,8 +3232,6 @@
         </div>
       `;
 
-      const trackMarkup = cards || '<div class="product-empty">No matching products.</div>';
-
       return `
         <section class="collection-section collection-${escapeHtml(slugify(section.key))}" data-collection-section="${escapeHtml(section.key)}">
           <div class="collection-section-head">
@@ -3235,8 +3241,8 @@
             </div>
             ${searchAttr}
           </div>
-          <div class="collection-track" data-collection-track="${escapeHtml(section.key)}">
-            ${trackMarkup}
+          <div class="collection-results" data-collection-results="${escapeHtml(section.key)}">
+            ${resultsMarkup}
           </div>
           <div class="collection-empty" data-collection-empty="${escapeHtml(section.key)}" hidden>${escapeHtml(emptyMessage)}</div>
           ${metaRow}
@@ -3279,47 +3285,8 @@
         }
 
         state.collectionSearches[key] = input.value;
-        applyCollectionFilters();
+        renderProductScroller();
       });
-    });
-
-    applyCollectionFilters();
-  }
-
-  function applyCollectionFilters() {
-    if (!productScroller) {
-      return;
-    }
-
-    COLLECTION_SECTIONS.forEach((section) => {
-      const sectionRoot = productScroller.querySelector(`[data-collection-section="${section.key}"]`);
-      if (!sectionRoot) {
-        return;
-      }
-
-      const query = normalize(state.collectionSearches[section.key] || "");
-      const cards = Array.from(sectionRoot.querySelectorAll("[data-product-id]"));
-      const emptyNode = sectionRoot.querySelector("[data-collection-empty]");
-      let visibleCount = 0;
-
-      cards.forEach((card) => {
-        const cardText = card.getAttribute("data-collection-filter-text") || "";
-        const visible = !query || cardText.includes(query);
-        card.hidden = !visible;
-        if (visible) {
-          visibleCount += 1;
-        }
-      });
-
-      if (emptyNode) {
-        const showEmpty = cards.length === 0 || visibleCount === 0;
-        emptyNode.hidden = !showEmpty;
-      }
-
-      const searchInput = sectionRoot.querySelector("[data-collection-search]");
-      if (searchInput && searchInput.value !== (state.collectionSearches[section.key] || "")) {
-        searchInput.value = state.collectionSearches[section.key] || "";
-      }
     });
   }
 
