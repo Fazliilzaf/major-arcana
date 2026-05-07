@@ -1,36 +1,13 @@
 /* ============================================================
    warm-row.css  v8 — Apple Mail / Linear / Arc-stil
-   Layout per kort:
-     ┌──────────────────────────────────────────────────────────┐
-     │ Oklart                              6 maj · Ⓘ Ej tilldelad│
-     │                                                          │
-     │ ⓞ  Sender · Subject 📎               [○][○][○][○][○]      │
-     │    Hej, dokumentet ...                          [Öppna >]│
-     │    har undertecknats av alla parter ...                  │
-     │    ⚠ Miss-risk                                           │
-     └──────────────────────────────────────────────────────────┘
+   Layout per kort: top (Oklart + meta) + mid (avatar | content | actions)
 
-   Tokens:
-     Bakgrund:   #FFF6ED  (sidan), #FFFCF8 (kort), #FFF9F3 (alt)
-     Hover:      #FFF2E6
-     Border:     #F1E5DB
-
-     Lila   #7C3AED  Oklart
-     Orange #F97316  Miss-risk / Ej tilldelad
-     Indigo #4F46E5  Behöver svar
-     Röd    #EF4444  Behöver åtgärd / Radera
-     Grön   #16A34A  Klar / Kalender
-
-     Sender:   Semibold 14.5px #111827
-     Subject:  Regular  14.5px #4B5563
-     Preview:  Regular  13px #6B7280  (2-line clamp)
-     Why:      Semibold 11.5px (status-färg)
-     Tid:      Medium   12.5px #374151
-     Tagg:     Medium   11px (status-färg)
+   Tokens kommer från design-tokens.css (single source of truth).
+   All CSS wrappad i @layer components för att vinna över @layer legacy
+   (styles.css) utan !important-krig.
    ============================================================ */
 
-/* warm-row tokens definierade i design-tokens.css (Fas 3 cleanup).
- * Ändra färger DÄR — denna fil använder bara var(--warm-*). */
+@layer components {
 
 /* Listans bakgrund — transparent så bara korten syns mot yttre container */
 .queue-history-list,
@@ -677,3 +654,5 @@
     display: none !important;
   }
 }
+
+} /* end @layer components */
