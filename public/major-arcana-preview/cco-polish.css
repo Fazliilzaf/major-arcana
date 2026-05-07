@@ -63,14 +63,15 @@
 
 /* ============================================================
    KORTET — warm-row
+   3 rader: top (lane+meta) / mid (avatar+content) / actions (bottom)
    ============================================================ */
 .thread-card.unified-queue-card.warm-row {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  grid-template-rows: auto auto !important;
-  grid-template-areas: "top" "mid" !important;
+  grid-template-rows: auto auto auto !important;
+  grid-template-areas: "top" "mid" "actions" !important;
   gap: 4px !important;
-  padding: 10px 14px 12px 18px !important;
+  padding: 10px 14px 10px 18px !important;
   background-color: var(--warm-card) !important;
   border: 1px solid var(--warm-border) !important;
   border-radius: 14px !important;
@@ -220,12 +221,12 @@
 }
 
 /* ============================================================
-   MID — avatar | content | actions
+   MID — avatar | content (actions flyttade till bottom-row)
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-mid {
   grid-area: mid !important;
   display: grid !important;
-  grid-template-columns: 36px 1fr auto !important;
+  grid-template-columns: 36px 1fr !important;
   grid-template-rows: auto !important;
   align-items: center !important;
   column-gap: 12px !important;
@@ -366,21 +367,23 @@
 .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"]   { color: var(--warm-green)  !important; }
 
 /* ============================================================
-   ACTIONS — kompakt cluster höger
+   ACTIONS — bottom-row, 30% mindre
    ============================================================ */
 .thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
+  grid-area: actions !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 0 !important;
+  justify-content: flex-end !important;
+  gap: 3px !important;
+  padding: 2px 4px 0 0 !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
-  align-self: center !important;
+  width: 100% !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
-  width: 30px !important;
-  height: 30px !important;
-  padding: 6px !important;
+  width: 21px !important;
+  height: 21px !important;
+  padding: 4px !important;
   border-radius: 50% !important;
   background: rgba(255, 252, 248, 0.85) !important;
   border: 1px solid var(--warm-border) !important;
@@ -393,8 +396,8 @@
   box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04) !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
   background: var(--warm-bg-warmer) !important;
@@ -410,30 +413,31 @@
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green)  !important; }
 .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)    !important; }
 
-/* Primary action — varm pill, lane-tonad */
+/* Primary action — varm pill, lane-tonad, 30% mindre */
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  padding: 7px 14px !important;
+  gap: 4px !important;
+  padding: 4px 10px !important;
   border-radius: 999px !important;
   border: 1px solid var(--warm-border-2) !important;
   background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%) !important;
   color: #6B563A !important;
-  font-size: 12.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: -0.005em !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  margin-left: 4px !important;
+  margin-left: 3px !important;
+  height: 21px !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.95),
     0 1px 2px rgba(120, 80, 40, 0.06) !important;
   transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action svg {
-  width: 12px !important;
-  height: 12px !important;
+  width: 9px !important;
+  height: 9px !important;
 }
 .thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
   background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%) !important;
