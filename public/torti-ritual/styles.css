@@ -2168,11 +2168,12 @@ input {
   display: grid;
   gap: 4px;
   padding-top: 1px;
-  width: 100%;
+  width: min(100%, 620px);
   max-height: 172px;
   overflow: auto;
   padding-right: 2px;
   scrollbar-width: thin;
+  justify-self: start;
 }
 
 .collection-search-hint,
