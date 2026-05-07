@@ -342,3 +342,304 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, #fbd3df 100%) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 4px 14px -3px rgba(197,79,138,0.30), 0 1px 3px rgba(60,30,10,0.10) !important;
 }
+
+/* ============================================================
+   WARM-SPEC OVERLAY — varm, mjuk, inbjudande inkorgskänsla
+   "varm Apple Mail / mjuk Linear / premium pastel dashboard"
+
+   Tokens (officiella):
+     Skin-bg-soft   #FFF8F1   sidans bakgrund
+     Skin-bg-warmer #FFF6ED   sektionsbakgrund
+     Skin-bg-deep   #FAF1E8   tonad container
+     Card-bg        #FFFCF8   normal kort
+     Card-bg-alt    #FFF9F3   varannan rad
+     Hover-bg       #FFF2E6   hover/aktiv rad
+     Border         #F1E5DB   tunn gräns
+     Border-soft    #F5EAE0   mjukare gräns
+
+     Status-färger (text + ikon):
+       Lila   #7C3AED   Oklart
+       Orange #F97316   Miss-risk / Ej tilldelad
+       Blå    #4F46E5   Behöver svar
+       Röd    #EF4444   Behöver åtgärd
+       Grön   #16A34A   Klar
+
+     Typografi:
+       Namn:    Semibold 16px #111827
+       Status:  Regular  13px #374151
+       Tid:     Medium   12px #6B7280
+       Tagg:    Medium   11px (status-färg)
+   ============================================================ */
+
+:root {
+  --skin-bg-soft:   #FFF8F1;
+  --skin-bg-warmer: #FFF6ED;
+  --skin-bg-deep:   #FAF1E8;
+  --skin-card-bg:   #FFFCF8;
+  --skin-card-alt:  #FFF9F3;
+  --skin-hover:     #FFF2E6;
+  --skin-border:    #F1E5DB;
+  --skin-border-soft: #F5EAE0;
+
+  --skin-violet: #7C3AED;
+  --skin-orange: #F97316;
+  --skin-indigo: #4F46E5;
+  --skin-red:    #EF4444;
+  --skin-green:  #16A34A;
+  --skin-text:   #111827;
+  --skin-text-2: #374151;
+  --skin-text-3: #6B7280;
+}
+
+/* Sidans bakgrund — varm beige under hela inkorgsytan */
+.queue-history-list,
+.runtime-shell .queue-history-list,
+[data-queue-list-mode] {
+  background-color: var(--skin-bg-warmer) !important;
+}
+
+/* Kortet: varm, mjuk yta + tunn gräns + diskret skugga */
+.thread-card.unified-queue-card[data-lane] {
+  background-color: var(--skin-card-bg) !important;
+  border: 1px solid var(--skin-border) !important;
+  box-shadow: 0 1px 2px rgba(120, 80, 40, 0.04) !important;
+  border-radius: 14px !important;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
+}
+.thread-card.unified-queue-card[data-lane]:hover {
+  background-color: var(--skin-hover) !important;
+  border-color: #ECDDCD !important;
+  box-shadow: 0 2px 8px rgba(120, 80, 40, 0.07) !important;
+}
+
+/* Varannan rad lite mörkare (zebra) — mjuk skiftning */
+.queue-history-list .thread-card.unified-queue-card[data-lane]:nth-child(even) {
+  background-color: var(--skin-card-alt) !important;
+}
+.queue-history-list .thread-card.unified-queue-card[data-lane]:nth-child(even):hover {
+  background-color: var(--skin-hover) !important;
+}
+
+/* Priority-bar (rail) — diskret, men följer status-färg */
+.thread-card.unified-queue-card[data-lane] .priority-bar {
+  background: var(--skin-border) !important;
+  opacity: 0.55 !important;
+}
+.thread-card.unified-queue-card[data-lane="unclear"] .priority-bar { background: var(--skin-violet) !important; opacity: 0.30 !important; }
+.thread-card.unified-queue-card[data-lane="act-now"] .priority-bar { background: var(--skin-red)    !important; opacity: 0.30 !important; }
+.thread-card.unified-queue-card[data-lane="review"]  .priority-bar { background: var(--skin-indigo) !important; opacity: 0.30 !important; }
+.thread-card.unified-queue-card[data-lane="later"]   .priority-bar { background: var(--skin-orange) !important; opacity: 0.30 !important; }
+.thread-card.unified-queue-card[data-lane="bookable"] .priority-bar,
+.thread-card.unified-queue-card[data-lane="booking"]  .priority-bar,
+.thread-card.unified-queue-card[data-lane="done"]     .priority-bar { background: var(--skin-green)  !important; opacity: 0.30 !important; }
+
+/* ===== "Oklart" / status-tagg: DISKRET — utan bubbla, utan prick ===== */
+.thread-card.unified-queue-card .lane-badge {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  gap: 4px !important;
+  line-height: 1.2 !important;
+  opacity: 0.92 !important;
+}
+.thread-card.unified-queue-card .lane-badge svg {
+  width: 11px !important;
+  height: 11px !important;
+  opacity: 0.85 !important;
+}
+
+/* Lane-badge text-färger enligt spec */
+.thread-card.unified-queue-card .lane-badge[data-lane="unclear"]  { color: var(--skin-violet) !important; }
+.thread-card.unified-queue-card .lane-badge[data-lane="act-now"]  { color: var(--skin-red)    !important; }
+.thread-card.unified-queue-card .lane-badge[data-lane="review"]   { color: var(--skin-indigo) !important; }
+.thread-card.unified-queue-card .lane-badge[data-lane="later"]    { color: var(--skin-orange) !important; }
+.thread-card.unified-queue-card .lane-badge[data-lane="bookable"],
+.thread-card.unified-queue-card .lane-badge[data-lane="booking"],
+.thread-card.unified-queue-card .lane-badge[data-lane="done"]     { color: var(--skin-green)  !important; }
+
+/* Strip — kompakt topprad, "Oklart" längst till vänster */
+.thread-card.unified-queue-card .card-strip {
+  padding: 8px 16px 0 !important;
+  gap: 8px !important;
+}
+
+/* Meta (tid + ägare) — diskret, ren typo */
+.thread-card.unified-queue-card .card-strip .meta {
+  font-size: 12px !important;
+  color: var(--skin-text-3) !important;
+  font-weight: 500 !important;
+}
+.thread-card.unified-queue-card .card-strip .meta-date {
+  color: var(--skin-text-2) !important;
+  font-weight: 600 !important;
+}
+.thread-card.unified-queue-card .card-strip .meta-status {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: var(--skin-text-3) !important;
+}
+.thread-card.unified-queue-card .card-strip .meta-status.unowned {
+  color: var(--skin-orange) !important;
+}
+
+/* Body — kompaktare; avatar 36px enligt spec */
+.thread-card.unified-queue-card .card-body {
+  padding: 4px 16px 6px !important;
+  grid-template-columns: 36px 1fr !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+.thread-card.unified-queue-card .card-body .avatar-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  flex: 0 0 auto !important;
+}
+.thread-card.unified-queue-card .card-body .avatar.queue-history-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  background: linear-gradient(180deg, #fff 0%, #FAF1E8 100%) !important;
+  border: 1px solid var(--skin-border) !important;
+  color: var(--skin-text-2) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+/* Status-prick på avatar — liten, varm */
+.thread-card.unified-queue-card .card-body .status-dot {
+  width: 9px !important;
+  height: 9px !important;
+  border: 2px solid var(--skin-card-bg) !important;
+}
+
+/* Namn + ärende-rad — typografi enligt spec */
+.thread-card.unified-queue-card .card-body .name {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--skin-text) !important;
+  letter-spacing: -0.005em !important;
+}
+.thread-card.unified-queue-card .card-body .signal-what {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--skin-text-2) !important;
+  letter-spacing: 0 !important;
+}
+
+/* Footer — varmare separator, kompakt */
+.thread-card.unified-queue-card .card-footer {
+  padding: 6px 16px 8px !important;
+  border-top: 1px solid var(--skin-border-soft) !important;
+  gap: 10px !important;
+}
+
+/* Why-text varm grå men behåller tone-matchad färg via tidigare regler */
+.thread-card.unified-queue-card .card-footer .signal-why .why-reason {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Mailbox-stack — neutral varm */
+.thread-card.unified-queue-card .card-footer .mailbox-stack {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Inga hårda svarta kontraster — säkerställ */
+.thread-card.unified-queue-card * {
+  text-shadow: none !important;
+}
+
+/* Selektion / aktiv rad — varm men tydlig */
+.thread-card.unified-queue-card[aria-selected="true"],
+.thread-card.unified-queue-card.thread-card-selected {
+  background-color: #FFEBD8 !important;
+  border-color: #E8C9A6 !important;
+  box-shadow: 0 1px 0 rgba(232, 201, 166, 0.4) inset, 0 2px 8px rgba(180, 120, 60, 0.08) !important;
+}
+
+/* Action-cluster: kompakt och varm */
+.thread-card.unified-queue-card .action-cluster {
+  gap: 4px !important;
+}
+.thread-card.unified-queue-card .action-cluster .action-icon {
+  width: 28px !important;
+  height: 28px !important;
+  background: rgba(255, 252, 248, 0.9) !important;
+  border-color: var(--skin-border) !important;
+  box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04) !important;
+}
+.thread-card.unified-queue-card .action-cluster .action-icon:hover {
+  background: #FFF6ED !important;
+  border-color: #E8D4BE !important;
+  box-shadow: 0 2px 6px rgba(120, 80, 40, 0.10) !important;
+}
+
+/* Default primary action (Öppna/Svara) — varm soft pill */
+.thread-card.unified-queue-card .action-cluster button:not(.action-icon) {
+  background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%) !important;
+  color: #6B563A !important;
+  border: 1px solid #E8D4BE !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 1px 2px rgba(120, 80, 40, 0.06) !important;
+}
+.thread-card.unified-queue-card .action-cluster button:not(.action-icon):hover {
+  background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 2px 8px rgba(120, 80, 40, 0.12) !important;
+}
+
+/* Lane-tinta primary action (subtilt) */
+.thread-card.unified-queue-card[data-lane="act-now"] .action-cluster button:not(.action-icon) {
+  background: linear-gradient(180deg, #FFFCF7 0%, #FCE2DE 100%) !important;
+  color: #B23B3B !important;
+  border-color: #F2C9C2 !important;
+}
+.thread-card.unified-queue-card[data-lane="review"] .action-cluster button:not(.action-icon) {
+  background: linear-gradient(180deg, #FFFCF7 0%, #DEDEFB 100%) !important;
+  color: #4040B0 !important;
+  border-color: #C7C7F0 !important;
+}
+.thread-card.unified-queue-card[data-lane="later"] .action-cluster button:not(.action-icon) {
+  background: linear-gradient(180deg, #FFFCF7 0%, #FCE5CC 100%) !important;
+  color: #B85A1F !important;
+  border-color: #F2D2B0 !important;
+}
+.thread-card.unified-queue-card[data-lane="bookable"] .action-cluster button:not(.action-icon),
+.thread-card.unified-queue-card[data-lane="booking"]  .action-cluster button:not(.action-icon) {
+  background: linear-gradient(180deg, #FFFCF7 0%, #D6F0DC 100%) !important;
+  color: #1F7A3A !important;
+  border-color: #B8DFC0 !important;
+}
+
+/* Sentiment/intent why-symbol stroke-färger — låt tidigare regler styra,
+   men säkerställ att vi inte plötsligt får hård svart om sentiment saknas */
+.thread-card.unified-queue-card .cco-card-badge.cco-card-badge-sentiment:not([class*="is-tone"]),
+.thread-card.unified-queue-card .cco-card-badge.cco-card-badge-intent:not([data-intent]) {
+  color: var(--skin-text-3) !important;
+}
+
+/* Responsive: på smala skärmar lite kompaktare */
+@media (max-width: 720px) {
+  .thread-card.unified-queue-card .card-body .name { font-size: 15px !important; }
+  .thread-card.unified-queue-card .card-strip { padding: 6px 12px 0 !important; }
+  .thread-card.unified-queue-card .card-body { padding: 4px 12px 6px !important; }
+  .thread-card.unified-queue-card .card-footer { padding: 6px 12px 8px !important; }
+}
