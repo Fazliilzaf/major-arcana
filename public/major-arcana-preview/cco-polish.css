@@ -612,6 +612,33 @@
   pointer-events: none !important;
 }
 
+/* ============================================================
+   Auto-stäng dropdowns vid sidladdning
+   Respektera hidden / aria-hidden attribut, så menyn inte syns
+   om inte trigger explicit har aria-expanded="true".
+   ============================================================ */
+.preview-more-menu[hidden],
+.preview-more-menu[aria-hidden="true"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.preview-more-menu:not([aria-hidden="false"]):not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* Mailbox-meny: visa endast när toggle :checked */
+.mailbox-menu-toggle:not(:checked) ~ .mailbox-menu,
+.mailbox-dropdown:not(:has(.mailbox-menu-toggle:checked)) .mailbox-menu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Responsivt — på smala skärmar dölj några actions */
 @media (max-width: 720px) {
   .thread-card.unified-queue-card.warm-row {
