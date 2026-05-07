@@ -2111,6 +2111,126 @@ input {
   scrollbar-width: thin;
 }
 
+.collection-results {
+  display: grid;
+  gap: 8px;
+}
+
+.collection-search-hint,
+.collection-search-empty--inline {
+  display: grid;
+  gap: 3px;
+  min-height: 34px;
+  align-content: center;
+  color: var(--muted);
+  font-size: 0.56rem;
+  line-height: 1.35;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.collection-search-hint {
+  padding: 8px 2px 0;
+}
+
+.collection-search-empty--inline {
+  justify-items: start;
+  text-align: left;
+  padding: 6px 2px 0;
+}
+
+.collection-search-empty--inline strong {
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 0.98rem;
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.collection-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 7px 9px;
+  border: 1px solid rgba(88, 63, 46, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 6px 12px rgba(75, 53, 37, 0.025);
+  cursor: grab;
+  text-align: left;
+}
+
+.collection-result:active {
+  cursor: grabbing;
+}
+
+.collection-result.is-pending {
+  border-color: rgba(59, 42, 31, 0.32);
+  background: rgba(255, 252, 246, 0.96);
+  box-shadow: 0 8px 16px rgba(75, 53, 37, 0.04);
+}
+
+.collection-result.is-owned {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.collection-result-bottle {
+  width: 28px;
+  height: 38px;
+}
+
+.collection-result-bottle.has-image {
+  width: 32px;
+  height: 44px;
+}
+
+.collection-result-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.collection-result-copy strong {
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.collection-result-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.collection-result-meta .product-meta-card {
+  margin: 0;
+  font-size: 0.62rem;
+}
+
+.collection-result-flags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.collection-result-owned {
+  color: var(--muted);
+  font-size: 0.52rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
 .product-card,
 .product-empty {
   min-height: 76px;
