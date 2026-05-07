@@ -373,31 +373,85 @@
   };
   function buildFix14CardHtml(id, c) {
     const fb = FIXTURES[id] || {};
-    const trail = (c.mailboxTrail || []).map(([letter, color]) => '<span class="mb-dot" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:' + color + ';color:#fff;font-size:11px;font-weight:600;margin-left:-4px;border:2px solid #fff;">' + letter + '</span>').join('');
-    const railColor = FIX14_RAIL_COLORS[c.laneClass] || '#a44a1f';
-    return '<article class="thread-card queue-history-item unified-queue-card" data-runtime-thread="' + id + '" data-lane="' + c.laneClass + '" data-worklist-source="demo" data-runtime-tags="all,' + c.laneClass + '" tabindex="0" style="position:relative;display:grid;grid-template-columns:12px 1fr;grid-template-rows:auto auto auto;border-radius:14px;background:linear-gradient(180deg,rgba(215,130,90,0.03) 0%,rgba(215,130,90,0.11) 100%),#ffffff;border:1px solid rgba(255,248,232,0.7);box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 1px 2px rgba(195,115,80,0.05),0 8px 18px -2px rgba(195,115,80,0.09);margin-bottom:12px;overflow:hidden;contain:layout paint;isolation:isolate;">' +
-      '<span class="priority-bar" style="grid-row:1/4;grid-column:1;width:5px;height:100%;background:' + railColor + ';border-radius:14px 0 0 14px;align-self:stretch;"></span>' +
-      '<div class="card-strip" style="grid-row:1;grid-column:2;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 4px;">' +
-      '<span class="cco-card-badge cco-card-badge-' + c.laneClass + '" style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(215,130,90,0.12);color:' + railColor + ';">' + c.lane + '</span>' +
-      '<span class="thread-card-stamp" style="font-size:12px;color:#7a5e44;">' + c.stamp + '</span>' +
+    const sender = escHtml(fb.name || id);
+    const subject = escHtml(c.subject || '');
+    const preview = escHtml(fb.preview || '');
+    const initials = escHtml(fb.initials || '??');
+    const stamp = escHtml(c.stamp || '');
+    const laneLabel = escHtml(c.lane || '');
+    const time = escHtml(fb.time || '6 maj');
+    const ownedFlag = !/ej tilldelad|unassigned|otilldelad/i.test(c.stamp || '');
+
+    // Why-ikon: kind enligt text/tone
+    var whyKind = 'info';
+    var whyText = (c.why || '').toLowerCase();
+    if (/miss[\s-]?risk|risk|overdue|brand/.test(whyText)) whyKind = 'alert';
+    else if (/svar|reply|fr.ga/.test(whyText)) whyKind = 'refresh';
+    else if (/.tg.rd|action|br.dsk|akut|urgent/.test(whyText)) whyKind = 'info';
+    else if (/klar|done|f.rdig/.test(whyText)) whyKind = 'check';
+    else if (c.whyTone === 'alert') whyKind = 'info';
+    else if (c.whyTone === 'amber') whyKind = 'alert';
+
+    var WHY_ICONS = {
+      alert:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></svg>',
+      refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4 3 10 9 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36L3 10"/></svg>',
+      info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+      check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    };
+
+    var ATTACH_ICON = {
+      paperclip: '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+      image:     '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+    };
+    var attachIcons = '';
+    var hay = (subject + ' ' + preview).toLowerCase();
+    if (/\.pdf|signerad|bifogad|undertecknats|avtal|kvitto|faktura|offert|dokument/.test(hay)) attachIcons += ATTACH_ICON.paperclip;
+    if (/\.jpe?g|\.png|\.gif|\[telefon\]|nyhetsbrev|kundcase|bild |image |screenshot/.test(hay)) attachIcons += ATTACH_ICON.image;
+
+    // Action ikoner inline (samma som i renderer)
+    var ACTION_ICONS = {
+      history: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      later:   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+      schedule:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+      handled: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      delete:  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+      arrow:   '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+    };
+    var primaryLabel = c.laneClass === 'bookable' ? 'Bekräfta bokning' : c.laneClass === 'review' ? 'Granska' : c.laneClass === 'unclear' ? 'Öppna' : 'Svara';
+
+    return '<article class="thread-card queue-history-item unified-queue-card warm-row" data-v8-version="warm-r8" data-runtime-thread="' + id + '" data-lane="' + c.laneClass + '" data-worklist-source="demo" data-runtime-tags="all,' + c.laneClass + '" tabindex="0">' +
+      '<span class="warm-rail" aria-hidden="true"></span>' +
+      '<div class="warm-top">' +
+        '<span class="lane-badge" data-lane="' + c.laneClass + '">' + laneLabel + '</span>' +
+        '<div class="warm-top-meta">' +
+          '<time class="meta-date">' + time + '</time>' +
+          (stamp ? '<span class="meta-sep" aria-hidden="true">·</span><span class="meta-status ' + (ownedFlag ? 'owned' : 'unowned') + '">' + stamp + '</span>' : '') +
+        '</div>' +
       '</div>' +
-      '<div class="card-body" style="grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;">' +
-      '<div class="avatar-wrap" style="grid-column:1;grid-row:1;position:relative;">' +
-      '<span class="avatar queue-history-avatar" style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f3d9b8 0%,#d6a87a 100%);color:#3b2f25;font-size:14px;font-weight:600;">' + (fb.initials || '??') + '</span>' +
+      '<div class="warm-mid">' +
+        '<div class="warm-avatar avatar-wrap">' +
+          '<span class="avatar queue-history-avatar" aria-hidden="true">' + initials + '</span>' +
+          '<span class="status-dot' + (c.laneClass === 'act-now' ? ' alert' : c.laneClass === 'review' ? ' warn' : '') + '" aria-hidden="true"></span>' +
+        '</div>' +
+        '<div class="warm-content">' +
+          '<div class="warm-line-1">' +
+            '<span class="warm-sender">' + sender + '</span>' +
+            (subject ? '<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="' + subject + '">' + subject + '</span>' : '') +
+            (attachIcons ? '<span class="warm-file-icons" aria-hidden="true">' + attachIcons + '</span>' : '') +
+          '</div>' +
+          (preview ? '<div class="warm-preview">' + preview + '</div>' : '') +
+          (c.why ? '<div class="warm-why" data-why-kind="' + whyKind + '"><span class="warm-why-icon" aria-hidden="true">' + WHY_ICONS[whyKind] + '</span><span class="why-reason">' + escHtml(c.why) + '</span></div>' : '') +
+        '</div>' +
+        '<div class="warm-actions action-cluster">' +
+          '<button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">' + ACTION_ICONS.history + '</button>' +
+          '<button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">' + ACTION_ICONS.later + '</button>' +
+          '<button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">' + ACTION_ICONS.schedule + '</button>' +
+          '<button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">' + ACTION_ICONS.handled + '</button>' +
+          '<button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">' + ACTION_ICONS.delete + '</button>' +
+          '<button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply" data-runtime-studio-open data-runtime-studio-thread-id="' + id + '" aria-controls="studio-shell">' + escHtml(primaryLabel) + ACTION_ICONS.arrow + '</button>' +
+        '</div>' +
       '</div>' +
-      '<div class="card-content" style="grid-column:2;grid-row:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
-      '<div class="name-row" style="display:flex;align-items:baseline;gap:10px;margin:0;"><span class="name" style="font-size:16px;font-weight:600;color:#2b1f15;">' + (fb.name || id) + '</span></div>' +
-      '<div class="signal-what" style="font-size:14px;line-height:1.4;color:#16161a;font-weight:500;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + c.subject + '</div>' +
-      '</div>' +
-      '</div>' +
-      '<div class="card-footer" style="grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;border-top:1px solid rgba(215,130,90,0.16);background:linear-gradient(180deg,rgba(215,130,90,0.05) 0%,rgba(215,130,90,0.03) 100%);">' +
-      (c.sentiment ? '<span style="font-size:14px;">' + c.sentiment + '</span>' : '') +
-      (c.why ? '<span class="why-reason ' + c.whyTone + '" style="font-size:12px;color:' + (c.whyTone === 'alert' ? '#a44a1f' : '#7a5e44') + ';font-weight:600;">' + c.why + '</span>' : '') +
-      '<span class="mailbox-label" style="font-size:11px;color:#8a7460;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">VIA</span>' +
-      '<div class="mailbox-trail" style="display:inline-flex;align-items:center;">' + trail + '</div>' +
-      (c.action ? '<button style="margin-left:auto;padding:8px 16px;border-radius:999px;background:#2b1f15;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;">' + c.action + ' ›</button>' : '') +
-      '</div>' +
-      '</article>';
+    '</article>';
   }
   function ensureDemoCardsInDom() {
     const list = document.querySelector('.queue-history-list');
