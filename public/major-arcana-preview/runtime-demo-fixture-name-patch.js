@@ -143,13 +143,26 @@
     const fb = FIXTURES[id];
     if (!fb) return;
 
-    // .name (kund-namn i kortets huvudrad)
-    const nameEls = card.querySelectorAll('.name, .thread-card-identity-name, .counterparty-name');
+    // .name + warm-row-equivalent (kund-namn i kortets huvudrad)
+    const nameEls = card.querySelectorAll(
+      '.name, .thread-card-identity-name, .counterparty-name, .warm-sender'
+    );
     nameEls.forEach((el) => {
       if (isFallbackName(el.textContent)) {
         el.textContent = fb.name;
       }
     });
+    // Subject (warm-row): patcha även ärnerad om den är default-text
+    if (fb.subject) {
+      const subjEls = card.querySelectorAll('.warm-subject, .signal-what');
+      subjEls.forEach((el) => {
+        const t = String(el.textContent || '').trim();
+        if (!t || /samma kund har skrivit/i.test(t) || /^\(.*\)$/.test(t)) {
+          el.textContent = fb.subject;
+          el.setAttribute('title', fb.subject);
+        }
+      });
+    }
 
     // .avatar (initials — visar "OK" pga "Okänd Kund"-derivat)
     const avatarEls = card.querySelectorAll('.avatar, .queue-history-avatar, .thread-card-avatar');
@@ -334,26 +347,29 @@
     apply();
     [50, 200, 600, 1500, 3000].forEach((ms) => window.setTimeout(apply, ms));
 
-    if (typeof MutationObserver !== 'function') return;
-    const ws = document.querySelector('.preview-workspace');
-    if (!ws) {
-      // Vänta tills workspace finns
-      const waiter = new MutationObserver(() => {
+    // Fas 2 cleanup: 3 observers ersatta med periodiska timer + click-listener.
+    // Wait for workspace via polling istället för observer:
+    if (!document.querySelector('.preview-workspace')) {
+      var attempts = 0;
+      var waitId = window.setInterval(function () {
+        attempts++;
         if (document.querySelector('.preview-workspace')) {
-          waiter.disconnect();
+          window.clearInterval(waitId);
           startFocusShellLayoutGuardian();
+        } else if (attempts >= 60) {
+          window.clearInterval(waitId);
         }
-      });
-      waiter.observe(document.body, { childList: true, subtree: true });
+      }, 100);
       return;
     }
-    const obs = new MutationObserver(apply);
-    obs.observe(ws, { childList: true, attributes: true, attributeFilter: ['style', 'class'], subtree: false });
-
-    // Lyssna också på mailbox-pickerns förändringar (när användaren väljer fler)
-    const picker = document.querySelector('.queue-mailbox-toggle, [data-mailbox-picker]') || document.body;
-    const pickerObs = new MutationObserver(() => window.setTimeout(apply, 50));
-    pickerObs.observe(picker, { childList: true, subtree: true, characterData: true });
+    // Periodisk apply var 1500 ms — fångar både layout-changes och picker-changes
+    window.setInterval(apply, 1500);
+    // Click-listener på mailbox-picker — direkt feedback vid val
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.matches && e.target.matches('.mailbox-option-input, [data-mailbox-picker] input')) {
+        window.setTimeout(apply, 50);
+      }
+    }, true);
   }
 
   // FIX14: Worklist API kraschar (HTML istället för JSON) → state.runtime.threads
@@ -460,7 +476,13 @@
     // När äkta worklist-data finns (Revolut, Linus Blad osv) ska vi INTE överlagras —
     // det stripper subjekt och förstör designen.
     const allCards = list.querySelectorAll('[data-runtime-thread]');
-    const errorCards = list.querySelectorAll('[data-runtime-thread="runtime-unified-error"], [data-runtime-thread="runtime-feed-empty-empty"]');
+    const errorCards = list.querySelectorAll(
+      '[data-runtime-thread="runtime-unified-error"], ' +
+      '[data-runtime-thread="runtime-feed-empty-empty"], ' +
+      '[data-runtime-thread="runtime-offline-empty"], ' +
+      '[data-runtime-thread^="runtime-"][data-runtime-thread*="empty"], ' +
+      '[data-runtime-thread^="runtime-"][data-runtime-thread*="error"]'
+    );
     const realCards = allCards.length - errorCards.length;
     if (realCards >= 1) {
       // Det finns äkta kort (eller redan-renderade demo-kort) — rör inget.
@@ -477,14 +499,8 @@
   function startDemoCardInjector() {
     ensureDemoCardsInDom();
     [200, 600, 1500, 3000].forEach((ms) => window.setTimeout(ensureDemoCardsInDom, ms));
-    if (typeof MutationObserver !== 'function') return;
-    const obs = new MutationObserver(() => ensureDemoCardsInDom());
-    const wait = () => {
-      const list = document.querySelector('.queue-history-list');
-      if (list) obs.observe(list, { childList: true, subtree: false });
-      else window.setTimeout(wait, 500);
-    };
-    wait();
+    // Fas 2 cleanup: redundant MutationObserver borttagen — periodisk
+    // setInterval var 2 s är tillräckligt för att fånga tom-lista-fallet.
     window.setInterval(ensureDemoCardsInDom, 2000);
   }
 
