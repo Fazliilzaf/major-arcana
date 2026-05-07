@@ -442,14 +442,14 @@
           (preview ? '<div class="warm-preview">' + preview + '</div>' : '') +
           (c.why ? '<div class="warm-why" data-why-kind="' + whyKind + '"><span class="warm-why-icon" aria-hidden="true">' + WHY_ICONS[whyKind] + '</span><span class="why-reason">' + escHtml(c.why) + '</span></div>' : '') +
         '</div>' +
-        '<div class="warm-actions action-cluster">' +
-          '<button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">' + ACTION_ICONS.history + '</button>' +
-          '<button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">' + ACTION_ICONS.later + '</button>' +
-          '<button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">' + ACTION_ICONS.schedule + '</button>' +
-          '<button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">' + ACTION_ICONS.handled + '</button>' +
-          '<button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">' + ACTION_ICONS.delete + '</button>' +
-          '<button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply" data-runtime-studio-open data-runtime-studio-thread-id="' + id + '" aria-controls="studio-shell">' + escHtml(primaryLabel) + ACTION_ICONS.arrow + '</button>' +
-        '</div>' +
+      '</div>' +
+      '<div class="warm-actions action-cluster">' +
+        '<button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">' + ACTION_ICONS.history + '</button>' +
+        '<button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">' + ACTION_ICONS.later + '</button>' +
+        '<button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">' + ACTION_ICONS.schedule + '</button>' +
+        '<button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">' + ACTION_ICONS.handled + '</button>' +
+        '<button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">' + ACTION_ICONS.delete + '</button>' +
+        '<button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply" data-runtime-studio-open data-runtime-studio-thread-id="' + id + '" aria-controls="studio-shell">' + escHtml(primaryLabel) + ACTION_ICONS.arrow + '</button>' +
       '</div>' +
     '</article>';
   }
