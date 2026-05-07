@@ -3321,8 +3321,8 @@
         </div>
         <div class="collection-panel-note">
           ${activeQuery
-            ? `<span>${escapeHtml(activeProducts.length)} matches in ${escapeHtml(activeSection.collection)}.</span>`
-            : `<span>Browse ${escapeHtml(activeSection.products.length)} products in ${escapeHtml(activeSection.collection)}.</span>`}
+            ? `<span>${escapeHtml(activeProducts.length)} matches.</span>`
+            : `<span>Browse ${escapeHtml(activeSection.products.length)} products.</span>`}
         </div>
         <div class="collection-panel-meta">
           <span>${escapeHtml(ownedCount)} in library</span>
