@@ -32,9 +32,15 @@ TOTAL=$(grep -oE '\?v=[^"]+' "$INDEX" | wc -l | tr -d ' ')
 # Ersätt alla ?v=... oavsett värde med ?v=$BUILD_TAG
 perl -i -pe 's/\?v=[A-Za-z0-9._-]+/?v='"$BUILD_TAG"'/g' "$INDEX"
 
+# Synka även data-build på <html>-elementet
+perl -i -pe 's/(<html [^>]*?)data-build="[^"]*"/$1data-build="'"$BUILD_TAG"'"/g' "$INDEX"
+# Om data-build inte finns ännu, lägg till efter lang-attributet
+perl -i -pe 's/(<html lang="sv")(?! data-build)/$1 data-build="'"$BUILD_TAG"'"/g' "$INDEX"
+
 # Räkna efter
 AFTER=$(grep -oE '\?v=[^"]+' "$INDEX" | sort -u | wc -l | tr -d ' ')
 
 echo "✓ Synkade $TOTAL cache-busters i $INDEX"
 echo "  Före:  $BEFORE unika versioner"
 echo "  Efter: $AFTER unik version → ?v=$BUILD_TAG"
+echo "  data-build på <html> → $BUILD_TAG"
