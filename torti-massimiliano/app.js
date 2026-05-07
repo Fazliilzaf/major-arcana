@@ -26,6 +26,14 @@
     skin: "low",
   };
 
+  const COLLECTION_SECTIONS = [
+    { key: "bianca", label: "Bianca Collection", collection: "Bianca" },
+    { key: "amber", label: "Amber Collection", collection: "Amber" },
+    { key: "raw", label: "Raw Collection", collection: "Raw" },
+    { key: "skin", label: "Skin Collection", collection: "Skin" },
+    { key: "gift-set", label: "Gift Set", collection: "Gift Set" },
+  ];
+
   const PRODUCT_ALLOWED_LEVELS = {
     // Bianca
     "bianca-perfume-amarena-e-prugna": ["high", "middle"],
@@ -1001,6 +1009,10 @@
     firstName: "",
     lastName: "",
     search: "",
+    collectionSearches: COLLECTION_SECTIONS.reduce((accumulator, section) => {
+      accumulator[section.key] = "";
+      return accumulator;
+    }, {}),
     customerLibrary: [],
     productLevelSelections: {},
     activeLibraryCatalogId: null,
@@ -1034,7 +1046,6 @@
   const bottleLayer = document.querySelector("[data-bottle-layer]");
   const zoneLayer = document.querySelector("[data-zone-layer]");
   const productScroller = document.querySelector("[data-product-scroller]");
-  const searchInput = document.querySelector("[data-product-search]");
   const sheetStatus = document.querySelector("[data-sheet-status]");
   const adjustLabelsButton = document.querySelector("[data-adjust-labels]");
   const removeSelectedButton = document.querySelector("[data-remove-selected]");
@@ -1819,7 +1830,6 @@
   function syncFormFields() {
     firstNameInput.value = state.firstName;
     lastNameInput.value = state.lastName;
-    searchInput.value = state.search;
   }
 
   function getWorkingStateSnapshot() {
@@ -2985,7 +2995,7 @@
       return;
     }
 
-    sheetStatus.textContent = `${activeLayerLabel} is active. Click a bottle in Search collection to add it to the customer library. Products can be marked for one or several levels, such as Head and Heart.`;
+    sheetStatus.textContent = `${activeLayerLabel} is active. Click a bottle in the collections below to add it to the customer library. Products can be marked for one or several levels, such as Head and Heart.`;
     if (adjustLabelsButton) {
       adjustLabelsButton.hidden = true;
       adjustLabelsButton.classList.remove("is-active");
@@ -3141,7 +3151,7 @@
       </div>
       ${
         ownedItems.length === 0
-          ? '<div class="owned-empty">Click a bottle in Search collection to add it here, then build layers from the customer’s own library.</div>'
+          ? '<div class="owned-empty">Click a bottle in the collections below to add it here, then build layers from the customer’s own library.</div>'
           : `
             <div class="library-owned-grid">
               ${ownedItems
@@ -3166,6 +3176,7 @@
                     </div>
                     <div class="owned-card-meta">
                       <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
+                        <span class="owned-card-levels-label">Levels</span>
                         <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
                           ${activeSummaryTokens}
                         </span>
@@ -3250,42 +3261,94 @@
   }
 
   function renderProductScroller() {
-    const query = normalize(state.search);
-    const filtered = catalog.filter((item) => {
-      if (!query) {
-        return true;
-      }
-
-      return [item.name, item.collection, item.type].some((value) => normalize(value).includes(query));
-    });
-
-    if (filtered.length === 0) {
-      productScroller.innerHTML = '<div class="product-empty">No matching products.</div>';
+    if (!productScroller) {
       return;
     }
 
-    productScroller.innerHTML = filtered
-      .map((item) => {
-        const pending = state.pendingCatalogId === item.id;
-        const owned = state.customerLibrary.includes(item.id);
+    const nextHtml = COLLECTION_SECTIONS.map((section) => {
+      const sectionProducts = catalog.filter((item) => normalize(item.collection).includes(normalize(section.collection)));
+      const searchValue = state.collectionSearches[section.key] || "";
+      const pendingCount = sectionProducts.filter((item) => state.pendingCatalogId === item.id).length;
+      const ownedCount = sectionProducts.filter((item) => state.customerLibrary.includes(item.id)).length;
+      const hasProducts = sectionProducts.length > 0;
+      if (!hasProducts) {
+        return "";
+      }
+      const searchAttr = hasProducts
+        ? `
+          <label class="collection-search">
+            <span>Search ${escapeHtml(section.collection)}</span>
+            <input
+              type="search"
+              data-collection-search="${escapeHtml(section.key)}"
+              autocomplete="off"
+              placeholder="Search within ${escapeHtml(section.collection)} collection..."
+              value="${escapeHtml(searchValue)}"
+            />
+          </label>
+        `
+        : "";
 
-        return `
-          <button class="product-card${pending ? " is-pending" : ""}" type="button" draggable="true" data-product-id="${escapeHtml(item.id)}">
-            ${renderBottleVisual(item, "product-bottle")}
-            <span class="product-copy">
-              <strong>${escapeHtml(item.name)}</strong>
-              <p>${renderProductMeta(item, "product-meta product-meta-card")}</p>
-              <span class="product-card-flags">
-                <span class="product-level-badges">
-                  ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+      const cards = sectionProducts
+        .map((item) => {
+          const pending = state.pendingCatalogId === item.id;
+          const owned = state.customerLibrary.includes(item.id);
+          const filterText = normalize([item.name, item.collection, item.type].join(" "));
+
+          return `
+            <button
+              class="product-card${pending ? " is-pending" : ""}"
+              type="button"
+              draggable="true"
+              data-product-id="${escapeHtml(item.id)}"
+              data-collection-filter-text="${escapeHtml(filterText)}"
+            >
+              ${renderBottleVisual(item, "product-bottle")}
+              <span class="product-copy">
+                <strong>${escapeHtml(item.name)}</strong>
+                <p>${renderProductMeta(item, "product-meta product-meta-card")}</p>
+                <span class="product-card-flags">
+                  <span class="product-level-badges">
+                    ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+                  </span>
+                  ${owned ? '<span class="product-owned-badge">In library</span>' : ""}
                 </span>
-                ${owned ? '<span class="product-owned-badge">In library</span>' : ""}
               </span>
-            </span>
-          </button>
-        `;
-      })
-      .join("");
+            </button>
+          `;
+        })
+        .join("");
+
+      const emptyMessage = `No matching products in ${section.collection}.`;
+
+      const metaRow = `
+        <div class="collection-meta-row">
+          <span>${escapeHtml(ownedCount)} in library</span>
+          <span>${escapeHtml(pendingCount)} pending</span>
+        </div>
+      `;
+
+      const trackMarkup = cards || '<div class="product-empty">No matching products.</div>';
+
+      return `
+        <section class="collection-section collection-${escapeHtml(slugify(section.key))}" data-collection-section="${escapeHtml(section.key)}">
+          <div class="collection-section-head">
+            <div class="collection-section-copy">
+              <p>${escapeHtml(section.label)}</p>
+              <h3>${hasProducts ? `${sectionProducts.length} products` : "No products"}</h3>
+            </div>
+            ${searchAttr}
+          </div>
+          <div class="collection-track" data-collection-track="${escapeHtml(section.key)}">
+            ${trackMarkup}
+          </div>
+          <div class="collection-empty" data-collection-empty="${escapeHtml(section.key)}" hidden>${escapeHtml(emptyMessage)}</div>
+          ${metaRow}
+        </section>
+      `;
+    }).join("");
+
+    productScroller.innerHTML = nextHtml;
 
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
@@ -3310,6 +3373,57 @@
         documentStage.classList.remove("is-dragging-catalog");
         renderStageState();
       });
+    });
+
+    productScroller.querySelectorAll("[data-collection-search]").forEach((input) => {
+      input.addEventListener("input", function () {
+        const key = input.getAttribute("data-collection-search");
+        if (!key) {
+          return;
+        }
+
+        state.collectionSearches[key] = input.value;
+        applyCollectionFilters();
+      });
+    });
+
+    applyCollectionFilters();
+  }
+
+  function applyCollectionFilters() {
+    if (!productScroller) {
+      return;
+    }
+
+    COLLECTION_SECTIONS.forEach((section) => {
+      const sectionRoot = productScroller.querySelector(`[data-collection-section="${section.key}"]`);
+      if (!sectionRoot) {
+        return;
+      }
+
+      const query = normalize(state.collectionSearches[section.key] || "");
+      const cards = Array.from(sectionRoot.querySelectorAll("[data-product-id]"));
+      const emptyNode = sectionRoot.querySelector("[data-collection-empty]");
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const cardText = card.getAttribute("data-collection-filter-text") || "";
+        const visible = !query || cardText.includes(query);
+        card.hidden = !visible;
+        if (visible) {
+          visibleCount += 1;
+        }
+      });
+
+      if (emptyNode) {
+        const showEmpty = cards.length === 0 || visibleCount === 0;
+        emptyNode.hidden = !showEmpty;
+      }
+
+      const searchInput = sectionRoot.querySelector("[data-collection-search]");
+      if (searchInput && searchInput.value !== (state.collectionSearches[section.key] || "")) {
+        searchInput.value = state.collectionSearches[section.key] || "";
+      }
     });
   }
 
@@ -3509,11 +3623,6 @@
 
   lastNameInput.addEventListener("input", function () {
     state.lastName = lastNameInput.value;
-  });
-
-  searchInput.addEventListener("input", function () {
-    state.search = searchInput.value;
-    renderProductScroller();
   });
 
   removeSelectedButton.addEventListener("click", function () {
