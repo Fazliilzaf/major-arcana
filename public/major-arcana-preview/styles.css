@@ -4,9 +4,10 @@
    4) 3 yttre skuggor   5) ljus border som smälter in
    ============================================================ */
 /* v5: explicit GRID-AREA layout låser varje sektion i rätt position */
-.thread-card.unified-queue-card[data-lane],
-.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card[data-lane],
-.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card[data-lane] {
+/* warm-row v7 exkluderas — har egen layout i cco-polish.css */
+.thread-card.unified-queue-card[data-lane]:not(.warm-row),
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card[data-lane]:not(.warm-row),
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card[data-lane]:not(.warm-row) {
   display: grid !important;
   grid-template-columns: 12px 1fr !important;
   grid-template-rows: auto auto auto !important;

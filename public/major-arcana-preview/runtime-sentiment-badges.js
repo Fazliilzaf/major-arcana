@@ -67,34 +67,11 @@
       return;
     }
 
-    // Hitta footer-eller meta-element att lägga badges i
-    const footer = card.querySelector('.card-footer') || card.querySelector('.thread-card-footer') || card;
-    const container = document.createElement('span');
-    container.className = 'cco-card-badges';
-    container.setAttribute('data-cco-card-badges', '');
-    if (sentiment) {
-      const span = document.createElement('span');
-      span.className = `cco-card-badge cco-card-badge-sentiment is-tone-${sentiment.tone}`;
-      span.title = sentiment.label;
-      span.textContent = sentiment.icon;
-      container.appendChild(span);
-      card.setAttribute('data-quick-sentiment', sentiment.code);
-    }
-    if (intent) {
-      const span = document.createElement('span');
-      span.className = 'cco-card-badge cco-card-badge-intent';
-      span.title = intent.label;
-      span.textContent = intent.icon;
-      container.appendChild(span);
-      card.setAttribute('data-quick-intent', intent.code);
-    }
-
-    // Sätt in badges först i footer (eller card)
-    if (footer.firstChild) {
-      footer.insertBefore(container, footer.firstChild);
-    } else {
-      footer.appendChild(container);
-    }
+    // warm-row v7: vi visar inte längre sentiment/intent-badges som DOM-element
+    // (de är ersatta av en enskild färgad why-rad i markup). Sätt bara
+    // data-attribut på kortet så CSS/andra delar kan reagera.
+    if (sentiment) card.setAttribute('data-quick-sentiment', sentiment.code);
+    if (intent) card.setAttribute('data-quick-intent', intent.code);
     card.__ccoSentimentApplied = true;
   }
 
