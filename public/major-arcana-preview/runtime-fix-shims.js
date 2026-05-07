@@ -335,18 +335,11 @@
   }
 
   function observeUnknownSenders() {
-    // MutationObserver — fixa nya thread-cards när de renderas
-    const obs = new MutationObserver((mutations) => {
-      let needsScan = false;
-      for (const m of mutations) {
-        if (m.addedNodes.length > 0) needsScan = true;
-        if (m.type === 'characterData' && /Okänd avsändare/.test(m.target.nodeValue || '')) needsScan = true;
-      }
-      if (needsScan) scanAndFixUnknownSenders();
-    });
-    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
-    // Initial scan
+    // Fas 2 cleanup: MutationObserver ersatt med periodisk scan var 1500ms.
+    // scanAndFixUnknownSenders short-circuit:ar om inga "Okänd avsändare"-noder
+    // finns, så cost är försumbar när allt är fixat.
     scanAndFixUnknownSenders();
+    window.setInterval(scanAndFixUnknownSenders, 1500);
   }
 
   // ============================================================
@@ -597,18 +590,10 @@
   function bootstrapMailboxCounts() {
     // Initial fetch
     fetchMailboxCounts().then(applyMailboxCountsToDom);
-    // Re-applicera när DOM ändras (dropdown öppnas/stängs)
-    const obs = new MutationObserver(() => {
-      // Throttle: kör max var 250ms
-      if (bootstrapMailboxCounts._t) return;
-      bootstrapMailboxCounts._t = setTimeout(() => {
-        applyMailboxCountsToDom();
-        bootstrapMailboxCounts._t = null;
-      }, 250);
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
-    // Re-fetcha periodiskt
-    setInterval(() => {
+    // Fas 2 cleanup: observer ersatt med periodisk re-apply var 1500ms
+    window.setInterval(applyMailboxCountsToDom, 1500);
+    // Re-fetcha från servern periodiskt
+    window.setInterval(() => {
       fetchMailboxCounts().then(applyMailboxCountsToDom);
     }, 60000);
   }
@@ -651,11 +636,10 @@
   }
 
   function bootstrapLogout() {
-    // Lyssna på Mer-knappen och injicera när menyn öppnas
-    const obs = new MutationObserver(() => {
-      injectLogoutInMerMenu();
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Fas 2 cleanup: observer ersatt med periodisk injektion var 1500ms.
+    // injectLogoutInMerMenu short-circuit:ar om logout-knappen redan finns.
+    injectLogoutInMerMenu();
+    window.setInterval(injectLogoutInMerMenu, 1500);
     // Kortkommando: Cmd+Shift+L
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
@@ -695,9 +679,9 @@
       });
     };
     wireUp();
-    // Observera DOM för nya knappar
-    const obs = new MutationObserver(wireUp);
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Fas 2 cleanup: observer ersatt med periodisk wireUp var 1500ms.
+    // wireUp short-circuit:ar via dataset.shimThemeWired-flag.
+    window.setInterval(wireUp, 1500);
   }
 
   // ============================================================
@@ -773,16 +757,11 @@
       document.head.appendChild(style);
     }
     // Re-apply filter när trådkort renderas om
-    const obs = new MutationObserver(() => {
-      if (activeSecondaryFilter) {
-        if (bootstrapSecondaryFilters._t) return;
-        bootstrapSecondaryFilters._t = setTimeout(() => {
-          applySecondaryFilter();
-          bootstrapSecondaryFilters._t = null;
-        }, 200);
-      }
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Fas 2 cleanup: observer ersatt med periodisk re-apply var 1500ms,
+    // bara när filter är aktivt
+    window.setInterval(() => {
+      if (activeSecondaryFilter) applySecondaryFilter();
+    }, 1500);
   }
 
   // ============================================================
@@ -918,15 +897,8 @@
 
   function bootstrapStatusLabelFix() {
     fixStatusLabelsInRoot();
-    const obs = new MutationObserver((mutations) => {
-      let needsScan = false;
-      for (const m of mutations) {
-        if (m.addedNodes.length > 0) needsScan = true;
-        if (m.type === 'characterData') needsScan = true;
-      }
-      if (needsScan) fixStatusLabelsInRoot();
-    });
-    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    // Fas 2 cleanup: observer ersatt med periodisk fix var 1500ms.
+    window.setInterval(fixStatusLabelsInRoot, 1500);
   }
 
   // ============================================================
@@ -973,14 +945,8 @@
 
   function bootstrapAggressiveStatusFix() {
     aggressiveStatusAndUndefinedFix();
-    const obs = new MutationObserver(() => {
-      if (bootstrapAggressiveStatusFix._t) return;
-      bootstrapAggressiveStatusFix._t = setTimeout(() => {
-        aggressiveStatusAndUndefinedFix();
-        bootstrapAggressiveStatusFix._t = null;
-      }, 100);
-    });
-    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    // Fas 2 cleanup: observer ersatt med periodisk fix var 1500ms.
+    window.setInterval(aggressiveStatusAndUndefinedFix, 1500);
   }
 
   // ============================================================

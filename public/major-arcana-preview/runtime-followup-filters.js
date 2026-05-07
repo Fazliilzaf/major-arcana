@@ -247,26 +247,14 @@ html[data-theme="dark"] .cco-followup-chip.is-active {
     return true;
   }
 
-  function bindMutationObserver() {
-    if (mutationObserver) return;
-    if (typeof MutationObserver !== 'function') return;
-    const target = document.body;
-    if (!target) return;
-    let scheduled = false;
-    mutationObserver = new MutationObserver(() => {
-      if (scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        if (activeFilterId !== 'all') reapplyActiveFilter();
-      });
-    });
-    mutationObserver.observe(target, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-runtime-tags', 'data-runtime-thread'],
-    });
+  // Fas 2 cleanup: MutationObserver ersatt med periodisk poll.
+  // Filter behöver bara re-applicera när nya cards laddas (worklist-refresh
+  // var ~30s). Polling var 1500 ms är mer än tillräckligt.
+  function bindLightweightPoller() {
+    if (mutationObserver) return; // återanvänd flag-variabel
+    mutationObserver = window.setInterval(() => {
+      if (activeFilterId !== 'all') reapplyActiveFilter();
+    }, 1500);
   }
 
   function tryInjection() {
@@ -281,7 +269,7 @@ html[data-theme="dark"] .cco-followup-chip.is-active {
           activeFilterId = readStorage();
           updateChipsState();
           reapplyActiveFilter();
-          bindMutationObserver();
+          bindLightweightPoller();
         }
       }
     }, 250);
