@@ -1974,14 +1974,14 @@ input {
 }
 
 .library-strip {
-  margin-top: 26px;
-  padding-top: 18px;
+  margin-top: 20px;
+  padding-top: 14px;
   border-top: 1px solid var(--line-soft);
 }
 
 .library-head {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .library-note {
@@ -1996,38 +1996,38 @@ input {
 
 .product-scroller {
   display: grid;
-  gap: 16px;
+  gap: 10px;
   overflow: visible;
-  padding-top: 18px;
+  padding-top: 12px;
 }
 
 .collection-section {
   display: grid;
-  gap: 12px;
-  padding: 16px 16px 14px;
-  border: 1px solid rgba(88, 63, 46, 0.06);
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 8px 18px rgba(75, 53, 37, 0.025);
+  gap: 8px;
+  padding: 10px 12px 10px;
+  border: 1px solid rgba(88, 63, 46, 0.055);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 14px rgba(75, 53, 37, 0.02);
 }
 
 .collection-section-head {
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
 .collection-section-copy {
   display: grid;
-  gap: 1px;
+  gap: 0;
 }
 
 .collection-section-copy p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   line-height: 1.2;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -2036,22 +2036,23 @@ input {
   margin: 0;
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.2rem;
+  font-size: 1rem;
   line-height: 1.05;
   font-weight: 600;
 }
 
 .collection-search {
   display: grid;
-  gap: 6px;
-  min-width: min(280px, 100%);
+  gap: 3px;
+  min-width: min(224px, 100%);
+  justify-items: end;
 }
 
 .collection-search span {
   color: var(--muted);
-  font-size: 0.56rem;
+  font-size: 0.5rem;
   line-height: 1;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -2063,8 +2064,8 @@ input {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.74);
   color: var(--ink);
-  padding: 9px 11px;
-  font-size: 0.78rem;
+  padding: 6px 10px;
+  font-size: 0.72rem;
   line-height: 1.25;
   outline: none;
   box-shadow:
@@ -2088,14 +2089,14 @@ input {
   align-content: center;
   justify-items: end;
   text-align: right;
-  min-height: 54px;
+  min-height: 34px;
   color: var(--muted);
 }
 
 .collection-search-empty strong {
   color: var(--ink);
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.25rem;
+  font-size: 0.98rem;
   line-height: 1.05;
   font-weight: 600;
 }
@@ -2103,26 +2104,26 @@ input {
 .collection-track {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(230px, 240px);
-  gap: 14px;
+  grid-auto-columns: minmax(212px, 222px);
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
   scrollbar-width: thin;
 }
 
 .product-card,
 .product-empty {
-  min-height: 90px;
+  min-height: 76px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.78);
-  padding: 12px 14px;
-  box-shadow: 0 10px 24px rgba(75, 53, 37, 0.04);
+  padding: 9px 10px;
+  box-shadow: 0 7px 15px rgba(75, 53, 37, 0.03);
 }
 
 .product-card {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
   cursor: grab;
 }
 
@@ -2139,19 +2140,19 @@ input {
 .product-copy {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 1px;
 }
 
 .product-copy strong {
   display: block;
   color: var(--ink);
-  font-size: 0.94rem;
+  font-size: 0.82rem;
   line-height: 1.25;
 }
 
 .product-copy p {
   margin: 0;
-  font-size: 0.79rem;
+  font-size: 0.68rem;
   line-height: 1.45;
 }
 
@@ -2159,18 +2160,18 @@ input {
   display: inline-flex;
   align-items: center;
   color: var(--muted);
-  font-size: 0.6rem;
+  font-size: 0.54rem;
   line-height: 1;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   font-weight: 700;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .product-card-flags {
   display: grid;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-top: 3px;
 }
 
 .product-level-badges {
@@ -2195,15 +2196,15 @@ input {
 .product-level-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 20px;
-  padding: 0 8px;
+  min-height: 17px;
+  padding: 0 6px;
   border-radius: 999px;
   border: 1px solid rgba(88, 63, 46, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
   color: var(--ink);
-  font-size: 0.56rem;
+  font-size: 0.5rem;
   line-height: 1;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
   white-space: nowrap;
@@ -2251,11 +2252,11 @@ input {
 .collection-meta-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: 0.5rem;
   line-height: 1;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 700;
   opacity: 0.72;
@@ -2324,6 +2325,7 @@ input {
 
   .collection-search {
     min-width: 100%;
+    justify-items: stretch;
   }
 
   .layer-chip {

@@ -14,7 +14,7 @@
     href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="./styles.css?v=20260414-library-no-plus-bubbles-2" />
+  <link rel="stylesheet" href="./styles.css?v=20260507-collections-compact" />
 </head>
 <body>
   <main class="sheet-app" data-export-root>
@@ -106,9 +106,6 @@
     <section class="sheet-status" data-pdf-exclude>
       <p data-sheet-status>Choose a product below. Then place it in Head, Heart, or Base.</p>
       <div class="sheet-status-actions">
-        <button class="ghost-button" type="button" data-adjust-labels hidden>
-          Adjust labels
-        </button>
         <button class="ghost-button" type="button" data-remove-selected hidden>
           Remove selected product
         </button>
@@ -119,17 +116,9 @@
       <div class="library-head">
         <div class="library-copy">
           <p>Add product</p>
-          <h2>Search collection</h2>
+          <h2>Collections</h2>
+          <span class="library-note">Search within each collection below.</span>
         </div>
-        <label class="search-box">
-          <span>Search by name, format, or collection</span>
-          <input
-            type="search"
-            data-product-search
-            autocomplete="off"
-            placeholder="Search perfume, oil, body lotion, or body cream..."
-          />
-        </label>
       </div>
 
       <div class="product-scroller" data-product-scroller></div>
@@ -138,6 +127,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="./app.js?v=20260414-library-no-plus-bubbles-2"></script>
+  <script src="./app.js?v=20260507-library-levels-readonly"></script>
 </body>
 </html>
