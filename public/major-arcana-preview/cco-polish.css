@@ -54,11 +54,11 @@
   --warm-text-5:  #9CA3AF;
 }
 
-/* Listans bakgrund */
+/* Listans bakgrund — transparent så bara korten syns mot yttre container */
 .queue-history-list,
 .runtime-shell .queue-history-list,
 [data-queue-list-mode] {
-  background-color: #FAF1E8 !important;
+  background-color: transparent !important;
   background-image: none !important;
 }
 
