@@ -45,6 +45,127 @@ function normalizeCsvParam(value) {
     .join(',');
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function pickArrayPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  const safe = asObject(payload);
+  for (const candidate of [safe.slots, safe.data, safe.items, safe.resources]) {
+    if (Array.isArray(candidate) && candidate.length) return candidate;
+  }
+  return [];
+}
+
+function normalizeClientoSlot(input = {}) {
+  const safe = asObject(input);
+  const startsAt = normalizeText(
+    safe.startsAt || safe.start || safe.from || safe.startTime || safe.dateTime
+  );
+  if (!startsAt) return null;
+  const resourceId = normalizeText(safe.resourceId || safe.resId || safe.staffId || safe.resource);
+  const serviceId = normalizeText(safe.serviceId || safe.srvId || safe.service);
+  const slotId =
+    normalizeText(safe.slotId || safe.id) ||
+    [startsAt, resourceId, serviceId].filter(Boolean).join('::');
+  return {
+    slotId,
+    startsAt,
+    endsAt: normalizeText(safe.endsAt || safe.end || safe.to || safe.endTime),
+    resourceId,
+    resourceLabel: normalizeText(
+      safe.resourceLabel || safe.resourceName || safe.staffName || safe.name
+    ),
+    serviceId,
+    serviceLabel: normalizeText(safe.serviceLabel || safe.serviceName),
+    locationLabel: normalizeText(safe.locationLabel || safe.locationName),
+    source: 'cliento',
+  };
+}
+
+function normalizeClientoSlotsPayload(payload) {
+  return pickArrayPayload(payload)
+    .flatMap((item) => {
+      const safe = asObject(item);
+      const nestedSlots = asArray(safe.slots);
+      if (!nestedSlots.length) return [safe];
+      return nestedSlots.map((slot) => ({
+        ...slot,
+        resourceId: slot.resourceId || safe.resourceId || safe.resId || safe.id,
+        resourceLabel: slot.resourceLabel || safe.resourceLabel || safe.name,
+      }));
+    })
+    .map((slot) => normalizeClientoSlot(slot))
+    .filter(Boolean);
+}
+
+function normalizeClientoRefItem(input = {}, fallbackType = '') {
+  const safe = asObject(input);
+  const id = normalizeText(
+    safe.id || safe.resourceId || safe.resId || safe.serviceId || safe.srvId || safe.value
+  );
+  if (!id) return null;
+  const label = normalizeText(
+    safe.label || safe.title || safe.name || safe.resourceLabel || safe.serviceLabel || safe.text
+  ) || id;
+  return {
+    id,
+    label,
+    type: normalizeText(safe.type || fallbackType),
+    durationMinutes: Number.isFinite(Number(safe.durationMinutes || safe.duration))
+      ? Number(safe.durationMinutes || safe.duration)
+      : null,
+    raw: safe,
+  };
+}
+
+function pickRefArray(payload, keys = []) {
+  if (Array.isArray(payload)) return payload;
+  const safe = asObject(payload);
+  for (const key of keys) {
+    if (Array.isArray(safe[key])) return safe[key];
+  }
+  const data = asObject(safe.data);
+  for (const key of keys) {
+    if (Array.isArray(data[key])) return data[key];
+  }
+  return [];
+}
+
+function normalizeClientoRefDataPayload(payload) {
+  const resources = pickRefArray(payload, [
+    'resources',
+    'staff',
+    'employees',
+    'users',
+    'resource',
+  ])
+    .map((item) => normalizeClientoRefItem(item, 'resource'))
+    .filter(Boolean);
+  const services = pickRefArray(payload, [
+    'services',
+    'service',
+    'treatments',
+    'srv',
+    'activities',
+  ])
+    .map((item) => normalizeClientoRefItem(item, 'service'))
+    .filter(Boolean);
+  return {
+    resources,
+    services,
+  };
+}
+
 function appendSearchParams(url, params = {}) {
   const searchParams = new URLSearchParams();
   for (const [key, rawValue] of Object.entries(params)) {
@@ -130,6 +251,9 @@ module.exports = {
   DEFAULT_CLIENTO_API_BASE_URL,
   buildClientoPartnerBaseUrl,
   buildClientoHeaders,
+  normalizeClientoSlot,
+  normalizeClientoRefDataPayload,
+  normalizeClientoSlotsPayload,
   normalizeCsvParam,
   createClientoApi,
 };

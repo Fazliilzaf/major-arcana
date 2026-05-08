@@ -51,6 +51,8 @@
       getRuntimeMailboxCapability,
       getRuntimeStudioTruthState,
       getRuntimeThreadById,
+      getScheduleBookingThread,
+      getScheduleWorkspaceContext,
       isOfflineHistoryContextThread,
       getSelectedRuntimeFocusThread,
       getSelectedRuntimeThread,
@@ -67,10 +69,12 @@
       refreshWorkspaceBootstrapForSelectedThread,
       renderFocusHistorySection,
       renderFocusNotesSection,
+      renderBookingSurface,
       renderNoteDestination,
       renderRuntimeConversationShell,
       renderScheduleDraft,
       renderTemplateButtons,
+      recordBookingFollowUpSaved,
       setButtonBusy,
       setContextCollapsed,
       setFeedback,
@@ -138,6 +142,12 @@
           );
           state.noteDefinitions = payload.noteDefinitions || {};
           state.noteVisibilityRules = payload.visibilityRules || {};
+          state.booking = {
+            ...(state.booking || {}),
+            case: payload.bookingCase || null,
+            readout: payload.bookingReadout || null,
+            statuses: Array.isArray(payload.bookingStatuses) ? payload.bookingStatuses : state.booking?.statuses || [],
+          };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
             ? followUpPayload.followUps
@@ -163,6 +173,9 @@
           renderTemplateButtons();
           renderNoteDestination(requestedActiveKey);
           renderScheduleDraft();
+          if (typeof renderBookingSurface === "function") {
+            renderBookingSurface();
+          }
           renderActiveFocusHistorySection();
           renderFocusNotesSection();
 
@@ -241,7 +254,7 @@
         (item) => item.label === reminderLabel
       );
 
-      state.schedule.draft = buildRuntimeScheduleDraft({
+      const formDraft = {
         customerName: scheduleCustomerInput?.value,
         date: scheduleDateInput?.value,
         time: scheduleTimeInput?.value,
@@ -250,9 +263,18 @@
         reminderLeadMinutes: reminderOption?.minutes || 120,
         reminderLabel,
         notes: scheduleNotesTextarea?.value,
+        metadata: state.schedule.draft?.metadata || {},
         recommendations: state.schedule.draft?.recommendations || {},
         linkedItems: state.schedule.draft?.linkedItems || [],
-      });
+      };
+      const scheduleWorkspaceContext =
+        typeof getScheduleWorkspaceContext === "function"
+          ? getScheduleWorkspaceContext()
+          : {};
+      state.schedule.draft =
+        !getSelectedRuntimeThread() && scheduleWorkspaceContext.conversationId
+          ? createScheduleDraft(formDraft)
+          : buildRuntimeScheduleDraft(formDraft);
 
       return state.schedule.draft;
     }
@@ -346,6 +368,10 @@
       setFeedback(scheduleFeedback, "loading", "Schemalägger uppföljning…");
 
       try {
+        const scheduleWorkspaceContext =
+          typeof getScheduleWorkspaceContext === "function"
+            ? getScheduleWorkspaceContext()
+            : {};
         const validation = await apiRequest("/api/v1/cco-workspace/follow-ups/validate-conflict", {
           method: "POST",
           body: {
@@ -362,6 +388,7 @@
         const payload = await apiRequest("/api/v1/cco-workspace/follow-ups", {
           method: "POST",
           body: {
+            ...scheduleWorkspaceContext,
             date: draft.date,
             time: draft.time,
             doctorName: draft.doctorName,
@@ -371,20 +398,47 @@
           },
         });
 
-        state.schedule.draft = createScheduleDraft(payload.scheduleDraft || payload.followUp || draft);
+        const savedFollowUp = {
+          ...draft,
+          ...(payload.followUp || {}),
+          metadata: draft.metadata || {},
+        };
+        state.schedule.draft = createScheduleDraft(payload.scheduleDraft || savedFollowUp || draft);
         renderScheduleDraft();
         setFeedback(
           scheduleFeedback,
           "success",
           payload.message || "Uppföljningen schemalades."
         );
+        const selectedThread = getSelectedRuntimeThread();
+        const draftMetadata =
+          draft.metadata && typeof draft.metadata === "object" && !Array.isArray(draft.metadata)
+            ? draft.metadata
+            : {};
+        const isBookingSchedule =
+          normalizeKey(draft.category) === "bokning" ||
+          normalizeKey(draftMetadata.bookingFollowUpSource) === "booking_surface";
+        const bookingScheduleThread =
+          typeof getScheduleBookingThread === "function" ? getScheduleBookingThread() : null;
+        const scheduleBookingThread = isBookingSchedule
+          ? bookingScheduleThread
+          : selectedThread || bookingScheduleThread;
+        if (typeof recordBookingFollowUpSaved === "function" && scheduleBookingThread) {
+          await recordBookingFollowUpSaved(scheduleBookingThread, {
+            ...draft,
+            ...(payload.followUp || {}),
+            metadata: draft.metadata || {},
+          });
+          if (typeof renderBookingSurface === "function") {
+            renderBookingSurface();
+          }
+        }
         await loadBootstrap({
           preserveActiveDestination: true,
           applyWorkspacePrefs: false,
           quiet: true,
           forceReload: true,
         });
-        const selectedThread = getSelectedRuntimeThread();
         if (selectedThread) {
           const followUpIso = toIso(
             payload?.followUp?.scheduledForIso || `${draft.date}T${draft.time}:00.000Z`

@@ -203,6 +203,11 @@ const config = {
     stateRoot,
     fileName: 'cco-followups.json',
   }),
+  ccoBookingStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_BOOKING_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-bookings.json',
+  }),
   ccoWorkspacePrefsStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_WORKSPACE_PREFS_STORE_PATH,
     stateRoot,

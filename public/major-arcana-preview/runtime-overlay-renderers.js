@@ -115,6 +115,7 @@
       getRuntimeMailboxCapabilityMeta,
       getRuntimeStudioTruthState,
       getRuntimeThreadById,
+      getScheduleBookingThread,
       isOfflineHistoryContextThread,
       getSelectedRuntimeThread,
       getStudioSenderMailboxOptions,
@@ -1133,6 +1134,10 @@
         reminderLeadMinutes: Number(draft.reminderLeadMinutes) || 120,
         reminderLabel: normalizeText(draft.reminderLabel) || "2 timmar innan",
         notes: normalizeText(draft.notes) || "",
+        metadata:
+          draft.metadata && typeof draft.metadata === "object" && !Array.isArray(draft.metadata)
+            ? { ...draft.metadata }
+            : {},
         recommendations: draft.recommendations || {},
         linkedItems: Array.isArray(draft.linkedItems) ? [...draft.linkedItems] : [],
       };
@@ -1333,7 +1338,18 @@
     }
 
     function buildRuntimeScheduleDraft(baseDraft = {}) {
-      const thread = getSelectedRuntimeThread();
+      const baseMetadata =
+        baseDraft.metadata && typeof baseDraft.metadata === "object" && !Array.isArray(baseDraft.metadata)
+          ? baseDraft.metadata
+          : {};
+      const isBookingDraft =
+        normalizeKey(baseDraft.category) === "bokning" ||
+        normalizeKey(baseMetadata.bookingFollowUpSource) === "booking_surface";
+      const bookingThread =
+        isBookingDraft && typeof getScheduleBookingThread === "function"
+          ? getScheduleBookingThread()
+          : null;
+      const thread = bookingThread || getSelectedRuntimeThread();
       const draft = createScheduleDraft(baseDraft);
       if (!thread) {
         return {
@@ -1361,6 +1377,15 @@
           : normalizeKey(raw.intent) === "follow_up"
             ? "Uppföljning"
             : "Ombokning");
+      const runtimeLinkedItems = getRuntimeLinkedItems(thread, []);
+      const draftLinkedItems = asArray(baseDraft.linkedItems || draft.linkedItems || [])
+        .map((item) => normalizeText(item))
+        .filter(Boolean);
+      const linkedItems = isBookingDraft
+        ? [...runtimeLinkedItems, ...draftLinkedItems].filter(
+            (item, index, items) => items.indexOf(item) === index
+          )
+        : getRuntimeLinkedItems(thread, draftLinkedItems);
       return {
         ...draft,
         customerName: thread.customerName,
@@ -1392,7 +1417,7 @@
             normalizeText(raw.avgReplyHours) ||
             "2h",
         },
-        linkedItems: getRuntimeLinkedItems(thread, baseDraft.linkedItems || draft.linkedItems || []),
+        linkedItems,
       };
     }
 

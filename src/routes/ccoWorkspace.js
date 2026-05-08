@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const express = require('express');
+const { buildBookingCaseBlockerReadout } = require('../ops/ccoBookingStore');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const DEFAULT_CONTEXT = Object.freeze({
@@ -442,6 +443,51 @@ function buildScheduleDraft(latestFollowUp, workspaceContext = null) {
   };
 }
 
+function buildBookingReadout(bookingCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase = bookingCase && typeof bookingCase === 'object' ? bookingCase : null;
+  const selectedSlots = Array.isArray(safeCase?.selectedSlots) ? safeCase.selectedSlots : [];
+  return {
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    status: normalizeText(safeCase?.status) || 'needs_triage',
+    blocker: buildBookingCaseBlockerReadout(safeCase || {}),
+    source: normalizeText(safeCase?.source) || 'operator',
+    requestedTreatment:
+      normalizeText(safeCase?.requestedTreatment) ||
+      contentContext.treatmentName ||
+      'Bokningsdialog',
+    preferredWindow:
+      normalizeText(safeCase?.preferredWindow) ||
+      [contentContext.preferredDayLabel, contentContext.preferredWindowLabel].filter(Boolean).join(' · '),
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver konkreta tider och ett tydligt nästa steg.`
+        : ''),
+    selectedSlots,
+    attention: {
+      what:
+        normalizeText(safeCase?.requestedTreatment) ||
+        contentContext.treatmentName ||
+        'Identifiera rätt behandling eller ärendetyp.',
+      where:
+        normalizeText(safeCase?.ownerName) ||
+        contentContext.ownerName ||
+        'Reception / operatör',
+      when:
+        selectedSlots[0]?.startsAt ||
+        normalizeText(safeCase?.preferredWindow) ||
+        contentContext.suggestedDate ||
+        'Väntar på tidsförslag',
+      confidence: selectedSlots.length ? 'Hög - kandidat-tider valda' : 'Medel - operatören behöver validera tider',
+    },
+    handoffCopy:
+      selectedSlots.length > 0
+        ? 'Tider är valda. Infoga i Svarstudio och låt kunden bekräfta innan extern bokning markeras.'
+        : 'Hämta eller ange tider, validera dem manuellt, och erbjud kunden 1-3 alternativ.',
+  };
+}
+
 function createValidationError(message, statusCode = 400, metadata = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -487,6 +533,7 @@ async function safeAudit(authStore, event) {
 function createCcoWorkspaceRouter({
   noteStore,
   followUpStore,
+  bookingStore,
   workspacePrefsStore,
   authStore,
   config,
@@ -523,9 +570,20 @@ function createCcoWorkspaceRouter({
     try {
       const context = await getRequestContext(req);
       const hasLiveContext = hasWorkspaceConversationContext(context);
-      const [savedNotes, latestFollowUp, prefs] = await Promise.all([
+      const [savedNotes, latestFollowUp, bookingCase, prefs] = await Promise.all([
         hasLiveContext ? noteStore.getNotesByConversation(context) : Promise.resolve([]),
         hasLiveContext ? followUpStore.getLatestFollowUp(context) : Promise.resolve(null),
+        hasLiveContext && bookingStore && typeof bookingStore.ensureCase === 'function'
+          ? bookingStore.ensureCase({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerEmail: context.customerId,
+              customerName: context.customerName,
+              status: 'needs_triage',
+              source: 'workspace_bootstrap',
+            })
+          : Promise.resolve(null),
         workspacePrefsStore.getWorkspacePrefs({
           tenantId: context.tenantId,
           userId: context.userId,
@@ -551,6 +609,8 @@ function createCcoWorkspaceRouter({
         noteDefinitions,
         savedNotes,
         latestFollowUp,
+        bookingCase,
+        bookingReadout: buildBookingReadout(bookingCase, context),
         scheduleDraft,
         scheduleOptions: SCHEDULE_OPTIONS,
         workspacePrefs: prefs

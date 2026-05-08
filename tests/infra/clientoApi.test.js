@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const {
   buildClientoPartnerBaseUrl,
   buildClientoHeaders,
+  normalizeClientoRefDataPayload,
+  normalizeClientoSlotsPayload,
   normalizeCsvParam,
   createClientoApi,
 } = require('../../src/infra/clientoApi');
@@ -39,6 +41,68 @@ test('clientoApi bygger auth-header endast när apiKey finns', () => {
 test('clientoApi normaliserar csv-parametrar från strängar och arrayer', () => {
   assert.equal(normalizeCsvParam('1, 2,3'), '1,2,3');
   assert.equal(normalizeCsvParam(['1', '2, 3', '', null]), '1,2,3');
+});
+
+test('clientoApi normaliserar slots från platta och resursnästlade payloads', () => {
+  assert.deepEqual(
+    normalizeClientoSlotsPayload({
+      resources: [
+        {
+          id: 'res-1',
+          name: 'Dr. Eriksson',
+          slots: [
+            {
+              id: 'slot-1',
+              start: '2026-05-08T09:30:00.000Z',
+              end: '2026-05-08T10:30:00.000Z',
+            },
+          ],
+        },
+      ],
+    }),
+    [
+      {
+        slotId: 'slot-1',
+        startsAt: '2026-05-08T09:30:00.000Z',
+        endsAt: '2026-05-08T10:30:00.000Z',
+        resourceId: 'res-1',
+        resourceLabel: 'Dr. Eriksson',
+        serviceId: '',
+        serviceLabel: '',
+        locationLabel: '',
+        source: 'cliento',
+      },
+    ]
+  );
+});
+
+test('clientoApi normaliserar ref-data för resurser och tjänster', () => {
+  assert.deepEqual(
+    normalizeClientoRefDataPayload({
+      resources: [{ id: 'res-1', name: 'Dr. Eriksson' }],
+      services: [{ id: 'srv-1', title: 'Konsultation', duration: 45 }],
+    }),
+    {
+      resources: [
+        {
+          id: 'res-1',
+          label: 'Dr. Eriksson',
+          type: 'resource',
+          durationMinutes: null,
+          raw: { id: 'res-1', name: 'Dr. Eriksson' },
+        },
+      ],
+      services: [
+        {
+          id: 'srv-1',
+          label: 'Konsultation',
+          type: 'service',
+          durationMinutes: 45,
+          raw: { id: 'srv-1', title: 'Konsultation', duration: 45 },
+        },
+      ],
+    }
+  );
 });
 
 test('clientoApi skickar slots-request med query-parametrar och auth-header', async () => {
