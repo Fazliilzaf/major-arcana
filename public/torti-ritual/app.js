@@ -1010,6 +1010,7 @@
     lastName: "",
     search: "",
     activeCollectionSection: null,
+    hoveredCollectionSection: null,
     collectionSearches: COLLECTION_SECTIONS.reduce((accumulator, section) => {
       accumulator[section.key] = "";
       return accumulator;
@@ -3229,6 +3230,12 @@
     const activeProducts = activeQuery
       ? activeSection.products.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(activeQuery))
       : activeSection.products.slice();
+    const previewSection =
+      state.hoveredCollectionSection &&
+      state.hoveredCollectionSection !== activeSection.key &&
+      visibleSections.find((section) => section.key === state.hoveredCollectionSection) ||
+      null;
+    const previewProducts = previewSection ? previewSection.products.slice(0, 3) : [];
     const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
     const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
     const resultsMarkup = activeQuery
@@ -3294,11 +3301,28 @@
           })
           .join("")
         : '<div class="collection-search-hint">This collection has no products yet.</div>';
+    const previewMarkup = previewSection
+      ? `
+        <div class="collection-preview" aria-live="polite">
+          <div class="collection-preview-copy">
+            <span class="collection-preview-label">Preview ${escapeHtml(previewSection.label.replace(/\s+Collection$/i, ""))}</span>
+            <strong>Top suggestions</strong>
+          </div>
+          <div class="collection-preview-pills">
+            ${previewProducts
+              .map((item) => `<span class="collection-preview-pill">${escapeHtml(item.name)}</span>`)
+              .join("")}
+          </div>
+          <span class="collection-preview-hint">Click the tab to search this category.</span>
+        </div>
+      `
+      : "";
 
     productScroller.innerHTML = `
       <div class="collection-tabs" role="tablist" aria-label="Collections">
         ${tabsMarkup}
       </div>
+      ${previewMarkup}
       <section class="collection-panel collection-${escapeHtml(slugify(activeSection.key))}" data-collection-panel="${escapeHtml(activeSection.key)}">
         <div class="collection-panel-head">
           <div class="collection-panel-copy">
@@ -3357,13 +3381,41 @@
     });
 
     productScroller.querySelectorAll("[data-collection-tab]").forEach((button) => {
+      const tabKey = button.getAttribute("data-collection-tab");
+
+      const showPreview = function () {
+        if (!tabKey) {
+          return;
+        }
+
+        state.hoveredCollectionSection = tabKey;
+        renderProductScroller();
+      };
+
+      const clearPreview = function () {
+        if (!tabKey || state.activeCollectionSection === tabKey) {
+          return;
+        }
+
+        if (state.hoveredCollectionSection === tabKey) {
+          state.hoveredCollectionSection = null;
+          renderProductScroller();
+        }
+      };
+
+      button.addEventListener("mouseenter", showPreview);
+      button.addEventListener("focus", showPreview);
+      button.addEventListener("mouseleave", clearPreview);
+      button.addEventListener("blur", clearPreview);
+
       button.addEventListener("click", function () {
-        const key = button.getAttribute("data-collection-tab");
+        const key = tabKey;
         if (!key) {
           return;
         }
 
         state.activeCollectionSection = key;
+        state.hoveredCollectionSection = null;
         renderProductScroller();
         window.setTimeout(() => {
           const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
