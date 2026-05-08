@@ -722,4 +722,22 @@
   }
 }
 
+/* ============================================================
+   Secondary filter chips (migrerad från P1-B shim 2026-05-07)
+   Klickbara chips för Hög risk / Idag / Imorgon / Otilldelad / Uppföljning.
+   ============================================================ */
+.queue-secondary-signal-chip {
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+.queue-secondary-signal-chip:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.queue-secondary-signal-chip.is-active-filter {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  font-weight: 600;
+}
+
 } /* end @layer components */

@@ -479,85 +479,10 @@
     }, true);
   }
 
-  // ============================================================
-  // P1-B: Filter-chips — gör Hög risk/Idag/Imorgon klickbara
-  // ============================================================
-
-  let activeSecondaryFilter = null; // 'high-risk' | 'today' | 'tomorrow' | 'unassigned' | 'followup' | null
-
-  function applySecondaryFilter() {
-    const cards = document.querySelectorAll('.thread-card');
-    cards.forEach(card => {
-      if (!activeSecondaryFilter) {
-        card.style.removeProperty('display');
-        card.removeAttribute('data-shim-filtered');
-        return;
-      }
-      // Kolla om kortet har en chip med matchande klass
-      const matches = !!card.querySelector(`.queue-secondary-signal-chip--${activeSecondaryFilter}`);
-      if (matches) {
-        card.style.removeProperty('display');
-        card.removeAttribute('data-shim-filtered');
-      } else {
-        card.style.display = 'none';
-        card.setAttribute('data-shim-filtered', '1');
-      }
-    });
-    // Uppdatera live-pill med filtered count
-    const visibleCount = document.querySelectorAll('.thread-card:not([data-shim-filtered])').length;
-    const pill = document.getElementById('preview-live-status');
-    if (pill && activeSecondaryFilter) {
-      const lblEl = pill.querySelector('.preview-live-pill-label');
-      if (lblEl) lblEl.textContent = `Live · ${visibleCount}`;
-    }
-  }
-
-  function bootstrapSecondaryFilters() {
-    // Klick-delegation på document för secondary-signal-chips
-    document.addEventListener('click', (e) => {
-      const chip = e.target.closest('.queue-secondary-signal-chip');
-      if (!chip) return;
-      // Identifiera filter från klassen
-      const variantMatch = chip.className.match(/queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/);
-      if (!variantMatch) return;
-      const filterKey = variantMatch[1];
-      e.preventDefault();
-      e.stopPropagation();
-      // Toggla filtret av/på
-      if (activeSecondaryFilter === filterKey) {
-        activeSecondaryFilter = null;
-        chip.classList.remove('shim-active-filter');
-        document.querySelectorAll('.queue-secondary-signal-chip.shim-active-filter').forEach(c => c.classList.remove('shim-active-filter'));
-      } else {
-        activeSecondaryFilter = filterKey;
-        document.querySelectorAll('.queue-secondary-signal-chip.shim-active-filter').forEach(c => c.classList.remove('shim-active-filter'));
-        // Markera ALLA chip:s med samma variant
-        document.querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`).forEach(c => c.classList.add('shim-active-filter'));
-      }
-      applySecondaryFilter();
-    }, true);
-    // Lägg till active-styling
-    if (!document.getElementById('shim-secondary-filter-style')) {
-      const style = document.createElement('style');
-      style.id = 'shim-secondary-filter-style';
-      style.textContent = `
-        .queue-secondary-signal-chip { cursor: pointer; transition: transform 0.1s ease, opacity 0.1s ease; }
-        .queue-secondary-signal-chip:hover { opacity: 0.85; transform: translateY(-1px); }
-        .queue-secondary-signal-chip.shim-active-filter {
-          outline: 2px solid currentColor;
-          outline-offset: 2px;
-          font-weight: 600;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-    // Re-apply filter när trådkort renderas om
-    // Fas 2 cleanup: observer ersatt med periodisk re-apply var 1500ms,
-    // bara när filter är aktivt
-    window.setInterval(() => {
-      if (activeSecondaryFilter) applySecondaryFilter();
-    }, 1500);
-  }
+  // P1-B: Filter-chips — MIGRERAD till runtime-queue-renderers.js + cco-polish.css
+  // 2026-05-07. Click-handler + state-logik bor nu i renderers (med hook
+  // efter varje render istället för setInterval-poll). CSS:en ligger i
+  // @layer components. Active-flagga renamed: shim-active-filter → is-active-filter.
 
   // ============================================================
   // P1-C: Sök — hooka "Sök i historik" till live-filter
@@ -768,7 +693,7 @@
     try { bootstrapMailboxCounts(); } catch (e) { console.warn('[fix-shim] mailbox-counts fel:', e); }
     try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
     try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
-    try { bootstrapSecondaryFilters(); } catch (e) { console.warn('[fix-shim] secondary-filters fel:', e); }
+    // P1-B: bootstrapSecondaryFilters borttagen — migrerad till runtime-queue-renderers.js + cco-polish.css
     try { bootstrapSearchFilter(); } catch (e) { console.warn('[fix-shim] search-filter fel:', e); }
     // P0-2: okänd-avsändare-fix initieras nu av runtime-queue-renderers.js
     // (window.MajorArcanaCustomerNameResolver) och körs vid varje render.

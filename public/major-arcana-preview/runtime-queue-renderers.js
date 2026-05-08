@@ -210,6 +210,77 @@
     }
   }
 
+  // ============================================================
+  // Secondary filter (Hög risk / Idag / Imorgon / Otilldelad / Uppföljning)
+  // (migrerad från P1-B shim 2026-05-07)
+  // ============================================================
+  // Tidigare en setInterval(1500ms)-shim som re-applicerade filtret efter
+  // varje render. Nu körs filtret direkt efter render via hookarna i
+  // renderQueueHistoryList + renderQueueInlineLaneList.
+
+  let __activeSecondaryFilter = null;
+
+  function __applySecondaryFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    cards.forEach(card => {
+      if (!__activeSecondaryFilter) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+        return;
+      }
+      const matches = !!card.querySelector(`.queue-secondary-signal-chip--${__activeSecondaryFilter}`);
+      if (matches) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+      } else {
+        card.style.display = 'none';
+        card.setAttribute('data-shim-filtered', '1');
+      }
+    });
+    // Uppdatera live-pill med filtered count (bara när filter är aktivt)
+    if (__activeSecondaryFilter) {
+      const visibleCount = document.querySelectorAll('.thread-card:not([data-shim-filtered])').length;
+      const pill = document.getElementById('preview-live-status');
+      if (pill) {
+        const lblEl = pill.querySelector('.preview-live-pill-label');
+        if (lblEl) lblEl.textContent = `Live · ${visibleCount}`;
+      }
+    }
+  }
+
+  function __handleSecondaryFilterClick(event) {
+    const chip = event.target.closest('.queue-secondary-signal-chip');
+    if (!chip) return;
+    const variantMatch = chip.className.match(/queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/);
+    if (!variantMatch) return;
+    const filterKey = variantMatch[1];
+    event.preventDefault();
+    event.stopPropagation();
+    if (__activeSecondaryFilter === filterKey) {
+      __activeSecondaryFilter = null;
+      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
+        .forEach(c => c.classList.remove('is-active-filter'));
+    } else {
+      __activeSecondaryFilter = filterKey;
+      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
+        .forEach(c => c.classList.remove('is-active-filter'));
+      document.querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`)
+        .forEach(c => c.classList.add('is-active-filter'));
+    }
+    __applySecondaryFilter();
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', __handleSecondaryFilterClick, true);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaSecondaryFilter = Object.freeze({
+      reapply: __applySecondaryFilter,
+      getActive: () => __activeSecondaryFilter,
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -3933,6 +4004,8 @@
       enforceUnifiedCardV3Sections(queueHistoryList);
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      // P1-B (migrerad): re-applicera secondary-filter om aktivt
+      try { __applySecondaryFilter(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4002,6 +4075,8 @@
       enforceUnifiedCardV3Sections(queueHistoryList);
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      // P1-B (migrerad): re-applicera secondary-filter om aktivt
+      try { __applySecondaryFilter(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
