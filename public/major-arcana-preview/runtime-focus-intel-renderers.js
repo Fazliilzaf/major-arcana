@@ -167,6 +167,18 @@
       "TR",
       "TD",
     ]);
+
+    function buildConversationAvatarMarkup(thread = {}, fallbackName = "") {
+      const avatar = asText(thread.avatar);
+      const name = asText(thread.customerName || fallbackName, "Kund");
+      if (avatar && avatar !== "undefined" && avatar !== "null") {
+        return `<img class="conversation-avatar" src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" />`;
+      }
+      return `<div class="conversation-avatar conversation-avatar-initials" aria-hidden="true">${escapeHtml(
+        initialsForName(name)
+      )}</div>`;
+    }
+
     const hairTpSignatureProfilesByMailbox = Object.freeze({
       "egzona@hairtpclinic.com": Object.freeze({
         fullName: "Egzona Krasniqi",
@@ -2393,9 +2405,7 @@
                 <article class="conversation-entry conversation-entry-history">
                   ${
                     message.role === "customer"
-                      ? `<img class="conversation-avatar" src="${thread.avatar}" alt="${escapeHtml(
-                          thread.customerName
-                        )}" />`
+                      ? buildConversationAvatarMarkup(thread, message.author)
                       : `<div class="conversation-avatar conversation-avatar-initials" aria-hidden="true">${escapeHtml(
                           initialsForName(thread.ownerLabel)
                         )}</div>`
@@ -2506,9 +2516,7 @@
         <article class="conversation-entry conversation-entry-latest">
           ${
             latestMessage.role === "customer"
-              ? `<img class="conversation-avatar" src="${thread.avatar}" alt="${escapeHtml(
-                  thread.customerName
-                )}" />`
+              ? buildConversationAvatarMarkup(thread, latestMessage.author)
               : `<div class="conversation-avatar conversation-avatar-initials" aria-hidden="true">${escapeHtml(
                   initialsForName(thread.ownerLabel)
                 )}</div>`
