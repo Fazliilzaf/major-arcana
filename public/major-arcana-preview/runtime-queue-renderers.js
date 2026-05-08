@@ -478,6 +478,231 @@
     });
   }
 
+  // ============================================================
+  // Live-pill (Demo / Live · N) — migrerad från P1-4 shim 2026-05-07
+  // ============================================================
+  // Tidigare 1s×30 ticks + 5s setInterval-pollning. Nu: render-hook +
+  // state-events. Pillen uppdateras varje gång listan renderas och
+  // varje gång state ändras — exakt när DOM-trådantal kan ha ändrats.
+
+  const __PILL_LS_KEY = 'cco.selectedMailboxIds.v1';
+  let __lastPillSig = '';
+
+  function __detectLiveState() {
+    let isLive = false;
+    let threadCount = 0;
+    try {
+      const ws = window.__ccoWorkspace;
+      if (ws && typeof ws.getState === 'function') {
+        const st = ws.getState();
+        const runtime = st?.runtime || {};
+        if (runtime.live === true || runtime.mode === 'live') isLive = true;
+        if (Array.isArray(runtime.threads)) {
+          threadCount = runtime.threads.length;
+          if (threadCount > 0) isLive = true;
+        } else if (Array.isArray(st?.threads)) {
+          threadCount = st.threads.length;
+        }
+      }
+    } catch (_e) { /* tyst */ }
+
+    const domCount = document.querySelectorAll('.thread-card').length;
+    if (domCount > 0) {
+      isLive = true;
+      threadCount = Math.max(threadCount, domCount);
+    }
+
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
+      const mailboxes = localStorage.getItem(__PILL_LS_KEY);
+      if (token && mailboxes && JSON.parse(mailboxes)?.length > 0) {
+        isLive = true;
+      }
+    } catch (_e) { /* tyst */ }
+
+    return { isLive, threadCount };
+  }
+
+  function __updateLivePill() {
+    const pill = document.getElementById('preview-live-status');
+    if (!pill) return;
+    const { isLive, threadCount } = __detectLiveState();
+    const labelEl = pill.querySelector('.preview-live-pill-label');
+    if (!labelEl) return;
+    const newLabel = isLive ? `Live · ${threadCount}` : 'Demo';
+    const newDemoClass = !isLive;
+    const sig = `${newLabel}|${newDemoClass}`;
+    if (sig === __lastPillSig) return;
+    __lastPillSig = sig;
+    labelEl.textContent = newLabel;
+    pill.classList.toggle('preview-live-pill--demo', newDemoClass);
+    pill.title = isLive
+      ? `Live-data — ${threadCount} tråd${threadCount === 1 ? '' : 'ar'} i kö`
+      : 'Demo-läge — välj mailboxar för att hämta live-data';
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __updateLivePill);
+    } else {
+      __updateLivePill();
+    }
+    // Mailbox-checkbox change → liten delay för app.js att uppdatera state, sen update
+    document.addEventListener('change', (e) => {
+      if (e.target?.type === 'checkbox') setTimeout(__updateLivePill, 200);
+    }, true);
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('cco:state-change', __updateLivePill);
+    window.addEventListener('cco:runtime-update', __updateLivePill);
+    window.MajorArcanaLivePill = Object.freeze({
+      update: __updateLivePill,
+      detect: __detectLiveState,
+    });
+  }
+
+  // ============================================================
+  // Mailbox-counts (Egzona · 47) — migrerad från P2-3 shim 2026-05-07
+  // ============================================================
+  // Tidigare 2× setInterval: 1500ms DOM-poll + 60s API-fetch.
+  // Nu: 60s API-fetch behållen (lågfrekvent), DOM-polling ersatt med
+  // MutationObserver som triggar apply när nya mailbox-labels mountas.
+
+  const __MAILBOX_DEFAULTS = ['contact','egzona','fazli','info','kons','marknad'];
+  const __mailboxCountMap = new Map();
+
+  function __rebuildMailboxCounts(rows) {
+    __mailboxCountMap.clear();
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      const candidates = [
+        row?.mailbox?.mailboxId,
+        row?.mailbox?.mailboxAddress,
+        row?.mailbox?.address,
+        row?.mailbox?.id,
+        row?.mailbox?.key,
+        row?.mailboxId,
+        row?.mailboxAddress,
+        row?.assignedMailboxId,
+        row?.primaryMailboxId,
+      ].filter(Boolean);
+      let counted = false;
+      for (const c of candidates) {
+        if (counted) break;
+        const norm = String(c).toLowerCase();
+        const localpart = norm.includes('@') ? norm.split('@')[0] : norm;
+        const key = __MAILBOX_DEFAULTS.find(m => localpart === m || localpart.startsWith(m));
+        if (!key) continue;
+        __mailboxCountMap.set(key, (__mailboxCountMap.get(key) || 0) + 1);
+        counted = true;
+      }
+    }
+  }
+
+  async function __fetchMailboxCounts() {
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      if (!token) return;
+      const params = new URLSearchParams();
+      params.set('mailboxIds', __MAILBOX_DEFAULTS.map(k => `${k}@hairtpclinic.com`).join(','));
+      params.set('limit', '500');
+      const res = await fetch(`/api/v1/cco/runtime/worklist/consumer?${params.toString()}`, {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
+      __rebuildMailboxCounts(rows);
+    } catch (_e) { /* tyst */ }
+  }
+
+  let __mailboxCountsApplyScheduled = false;
+  function __applyMailboxCountsToDom() {
+    if (__mailboxCountMap.size === 0) return;
+    const labels = document.querySelectorAll('label');
+    labels.forEach(label => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      const text = (label.textContent || '').toLowerCase();
+      const matched = __MAILBOX_DEFAULTS.find(m => text.includes(m));
+      if (!matched) return;
+      const count = __mailboxCountMap.get(matched) || 0;
+      if (label.querySelector('.shim-mbx-count')) {
+        label.querySelector('.shim-mbx-count').textContent = count > 0 ? ` · ${count}` : '';
+        return;
+      }
+      const countSpan = document.createElement('span');
+      countSpan.className = 'shim-mbx-count';
+      countSpan.style.cssText = 'opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;white-space:nowrap;';
+      countSpan.textContent = count > 0 ? ` · ${count}` : '';
+      const labelTextEl =
+        label.querySelector('.mailbox-option-copy')
+        || label.querySelector('[class*="copy"]')
+        || label.querySelector('[class*="label"]')
+        || Array.from(label.children).reverse().find(c => c.tagName !== 'INPUT' && !c.className.includes('box'))
+        || label;
+      labelTextEl.appendChild(countSpan);
+    });
+  }
+
+  function __scheduleMailboxCountsApply() {
+    if (__mailboxCountsApplyScheduled) return;
+    __mailboxCountsApplyScheduled = true;
+    requestAnimationFrame(() => {
+      __mailboxCountsApplyScheduled = false;
+      __applyMailboxCountsToDom();
+    });
+  }
+
+  // Bootstrap: en gång + lågfrekvent re-fetch + MutationObserver för att fånga
+  // när dropdown öppnas (nya checkbox-labels mountas).
+  (async function bootstrapMailboxCounts() {
+    try {
+      await __fetchMailboxCounts();
+      __applyMailboxCountsToDom();
+    } catch (_e) {}
+    setInterval(async () => {
+      try {
+        await __fetchMailboxCounts();
+        __applyMailboxCountsToDom();
+      } catch (_e) {}
+    }, 60000);
+
+    if (typeof document !== 'undefined') {
+      const start = () => {
+        const observer = new MutationObserver((mutations) => {
+          // Bara reagera om någon mutation lägger till noder med checkbox-input
+          for (const m of mutations) {
+            for (const node of m.addedNodes) {
+              if (node.nodeType !== 1) continue;
+              if (node.matches?.('input[type="checkbox"]')
+                  || node.querySelector?.('input[type="checkbox"]')) {
+                __scheduleMailboxCountsApply();
+                return;
+              }
+            }
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+    }
+  })();
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaMailboxCounts = Object.freeze({
+      apply: __applyMailboxCountsToDom,
+      refetch: __fetchMailboxCounts,
+      getMap: () => new Map(__mailboxCountMap),
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -4207,6 +4432,8 @@
       try { __applySearchFilter(); } catch (_e) {}
       // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
       try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
+      try { __updateLivePill(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4282,6 +4509,8 @@
       try { __applySearchFilter(); } catch (_e) {}
       // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
       try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
+      try { __updateLivePill(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
