@@ -112,8 +112,8 @@
     const persisted = readPersistedMailboxes();
     if (!persisted || persisted.length === 0) return;
 
-    // Vänta först på att appen är någorlunda klar
-    await new Promise(r => setTimeout(r, 1500));
+    // Anropas bara när toggle redan är i DOM (via MutationObserver i
+    // bootstrapMailboxPersistence) — ingen hardcoded sleep behövs.
 
     // Kolla om checkboxes redan finns i DOM (dropdown öppen)
     const existingCheckboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
@@ -175,22 +175,33 @@
   }
 
   function bootstrapMailboxPersistence() {
+    // Spara: delegerad change-handler fångar checkbox-toggles oavsett när de mountas.
     watchMailboxChanges();
-    // Strategi 1: om dropdown råkar vara öppen vid någon polling-tick
-    let attempts = 0;
-    const maxAttempts = 6;
-    const interval = setInterval(() => {
-      attempts += 1;
-      const container = findMailboxRowsInDom();
-      if (container) {
-        clearInterval(interval);
-        applyPersistedMailboxes();
-      } else if (attempts >= maxAttempts) {
-        clearInterval(interval);
+
+    // Återställ: om inget persisted finns, gör inget alls.
+    const persisted = readPersistedMailboxes();
+    if (!persisted || persisted.length === 0) return;
+
+    // Snabbväg: om toggle redan finns i DOM (sällsynt vid bootstrap), kör direkt.
+    if (findMailboxToggleButton()) {
+      autoOpenAndApplyAtBootstrap().catch(e => console.warn('[fix-shim] auto-open fel:', e));
+      return;
+    }
+
+    // Annars: en MutationObserver som triggar EN GÅNG när toggle mountas, sen disconnect.
+    // Ersätter setInterval-pollingen (6×500ms) som missade race-conditions.
+    let triggered = false;
+    const observer = new MutationObserver(() => {
+      if (triggered) return;
+      if (findMailboxToggleButton()) {
+        triggered = true;
+        observer.disconnect();
+        autoOpenAndApplyAtBootstrap().catch(e => console.warn('[fix-shim] auto-open fel:', e));
       }
-    }, 500);
-    // Strategi 2: forcera öppna dropdown och applicera
-    autoOpenAndApplyAtBootstrap().catch(e => console.warn('[fix-shim] auto-open fel:', e));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // Säkerhetsnät: koppla bort efter 30s om toggle aldrig dyker upp.
+    setTimeout(() => { if (!triggered) observer.disconnect(); }, 30000);
   }
 
   // ============================================================
@@ -928,85 +939,9 @@
     window.setInterval(aggressiveStatusAndUndefinedFix, 1500);
   }
 
-  // ============================================================
-  // P1-D: Responsiv layout — fixed grids bryter mejl-content & panel-overlap
-  // ============================================================
-  //
-  // .preview-workspace + .focus-layout har fixed pixel-grids som klämmer
-  // mitten-kolumnen vid medium viewports. Email-content med tabeller får
-  // word-break mitt i ord ("Nyhete r Väsko r"). Höger panel kollapsas
-  // helt vid <1200px för att ge plats åt mejl + fokusyta.
-
-  function injectResponsiveLayoutFix() {
-    if (document.getElementById('shim-responsive-layout')) return;
-    const style = document.createElement('style');
-    style.id = 'shim-responsive-layout';
-    style.textContent = `
-      /* CORE FIX — .cco-followup-row och .focus-shell var båda i grid-cell
-         row 1 / col 2 → filter-raden (Idag/Imorgon/Väntar svar) lade sig
-         OVANPÅ FOKUSYTA-rubriken vid reload. Lös genom att ge dem egna rader. */
-      .preview-workspace {
-        grid-template-rows: auto 1fr !important;
-      }
-      .cco-followup-row {
-        grid-row: 1 !important;
-        grid-column: 2 !important;
-      }
-      .focus-shell {
-        grid-row: 2 !important;
-        grid-column: 2 !important;
-      }
-      .preview-shell {
-        grid-row: 1 / span 2 !important;
-        grid-column: 1 !important;
-      }
-
-      /* CORE FIX — höger panel tab-grupper overlappade pga flex-shrink:
-         .focus-intel-primary fick 182px medan content var 291px. Body sticker
-         ut underifrån och overlappar .focus-intel-switcher som kommer efter.
-         Lös genom att tvinga primary till content-höjd och tillåta scroll
-         i hela panelen. */
-      .focus-intel-primary {
-        flex: 0 0 auto !important;
-        height: auto !important;
-      }
-      .focus-intel-primary-body {
-        flex: 0 0 auto !important;
-      }
-      .focus-intel-switcher {
-        flex: 1 1 auto !important;
-        min-height: 0;
-      }
-      .focus-intel {
-        overflow-y: auto;
-      }
-
-      /* Email-content: tillåt scroll horizontalt om mejl-tabell är bredare */
-      .conversation-mail-body, .conversation-mail {
-        max-width: 100% !important;
-        overflow-x: auto;
-      }
-      .conversation-mail-body table {
-        max-width: 100% !important;
-      }
-      /* Förhindra word-break mitt i ord (t.ex. "Nyhete r Väsko r") */
-      .conversation-mail-body td {
-        word-break: keep-all;
-        overflow-wrap: normal;
-      }
-
-      /* Vid små viewports — göm höger panel så mejl får plats */
-      @media (max-width: 1100px) {
-        .focus-layout {
-          grid-template-columns: 1fr !important;
-        }
-        .focus-intel {
-          display: none !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  // P1-D: Responsiv layout — migrerad till cco-polish.css (@layer components)
+  // 2026-05-07. Funktionen togs bort eftersom CSS:en nu lever permanent i
+  // stylesheet:n istället för att injiceras runtime via <style>-tag.
 
   // ============================================================
   // Bootstrap
@@ -1024,7 +959,7 @@
     try { bootstrapLivePill(); } catch (e) { console.warn('[fix-shim] live-pill fel:', e); }
     try { bootstrapStatusLabelFix(); } catch (e) { console.warn('[fix-shim] status-label-fix fel:', e); }
     try { bootstrapAggressiveStatusFix(); } catch (e) { console.warn('[fix-shim] aggressive-status-fix fel:', e); }
-    try { injectResponsiveLayoutFix(); } catch (e) { console.warn('[fix-shim] responsive-layout fel:', e); }
+    // P1-D: injectResponsiveLayoutFix borttagen — migrerad till cco-polish.css
     try { bootstrapMailboxCounts(); } catch (e) { console.warn('[fix-shim] mailbox-counts fel:', e); }
     try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
     try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }

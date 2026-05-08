@@ -655,4 +655,71 @@
   }
 }
 
+/* ============================================================
+   Responsiv layout (migrerad från P1-D shim 2026-05-07)
+   .preview-workspace + .focus-layout grid-fixes och mejl-content overflow.
+   Inga importance-flaggor behövs — @layer components vinner över @layer legacy.
+   ============================================================ */
+
+/* CORE FIX — .cco-followup-row och .focus-shell var båda i grid-cell row 1
+   col 2, så filter-raden lade sig OVANPÅ Fokusyta-rubriken vid reload.
+   Lös genom att ge dem egna rader. */
+.preview-workspace {
+  grid-template-rows: auto 1fr;
+}
+.cco-followup-row {
+  grid-row: 1;
+  grid-column: 2;
+}
+.focus-shell {
+  grid-row: 2;
+  grid-column: 2;
+}
+.preview-shell {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+/* CORE FIX — höger panel-tabgrupp overlappade pga flex-shrink (primary 182px,
+   content 291px). Tvinga primary till content-höjd och tillåt scroll i panelen. */
+.focus-intel-primary {
+  flex: 0 0 auto;
+  height: auto;
+}
+.focus-intel-primary-body {
+  flex: 0 0 auto;
+}
+.focus-intel-switcher {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.focus-intel {
+  overflow-y: auto;
+}
+
+/* Email-content: tillåt scroll horisontalt om mejl-tabell är bredare */
+.conversation-mail-body,
+.conversation-mail {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.conversation-mail-body table {
+  max-width: 100%;
+}
+/* Förhindra word-break mitt i ord (t.ex. "Nyhete r Väsko r") */
+.conversation-mail-body td {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+/* Vid små viewports — göm höger panel så mejl får plats */
+@media (max-width: 1100px) {
+  .focus-layout {
+    grid-template-columns: 1fr;
+  }
+  .focus-intel {
+    display: none;
+  }
+}
+
 } /* end @layer components */
