@@ -78,8 +78,8 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
 
   assert.match(
     stylesSource,
-    /\.focus-conversation::-webkit-scrollbar\s*\{[\s\S]*display:\s*none;[\s\S]*\}/,
-    'Webkit-scrollbaren ska döljas så den mörka raden inte syns trots att ytan fortsatt kan scrolla.'
+    /\.focus-conversation\s*\{[\s\S]*scrollbar-width:\s*none;[\s\S]*-ms-overflow-style:\s*none;[\s\S]*\}/,
+    'Fokuskonversationen ska fortsatt dölja den visuella scrollbaren även när webkit-regeln lever i en annan overlay.'
   );
 
   assert.match(
@@ -102,7 +102,7 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
 
   assert.match(
     stylesSource,
-    /\.conversation-next-summary\s*\{[\s\S]*grid-template-areas:[\s\S]*"label title"[\s\S]*"text text";[\s\S]*\}/,
+    /\.conversation-next-summary\s*\{[\s\S]*grid-template-areas:[\s\S]*["']label title["'][\s\S]*["']text text["'];[\s\S]*\}/,
     'Summary-zonen ska använda exakt två textrader: label och rubrik på rad ett, stödtext på rad två från samma vänsterkant.'
   );
 
@@ -191,31 +191,31 @@ test('reply-studion visar Från-val separat från composefälten och behåller s
 
   assert.match(
     stylesSource,
-    /\.studio-shell:not\(\[data-mode="compose"\]\)\s+\.studio-compose-fields\s*\{[\s\S]*display:\s*grid;[\s\S]*\}/,
+    /\.studio-shell:not\(\[data-mode=["']compose["']\]\)\s+\.studio-compose-fields\s*\{[\s\S]*display:\s*grid;[\s\S]*\}/,
     'Reply-läget ska göra Från-väljaren synlig även utanför compose.'
   );
 
   assert.match(
     stylesSource,
-    /\.studio-shell:not\(\[data-mode="compose"\]\)\s+\.studio-compose-field:not\(\[data-studio-compose-role="from"\]\)\s*\{[\s\S]*display:\s*none;[\s\S]*\}/,
+    /\.studio-shell:not\(\[data-mode=["']compose["']\]\)\s+\.studio-compose-field:not\(\[data-studio-compose-role=["']from["']\]\)\s*\{[\s\S]*display:\s*none;[\s\S]*\}/,
     'Reply-läget ska hålla To/Ämne dolda när bara avsändarvalet behövs.'
   );
 
   assert.doesNotMatch(
     stylesSource,
-    /\.studio-shell:not\(\[data-mode="compose"\]\)\s+\.studio-signature-card\s*\{[\s\S]*display:\s*none;[\s\S]*\}/,
+    /\.studio-shell:not\(\[data-mode=["']compose["']\]\)\s+\.studio-signature-card\s*\{[\s\S]*display:\s*none;[\s\S]*\}/,
     'Reply-läget ska inte längre dölja signaturkortet när signaturen ska kunna väljas separat från Från-mailboxen.'
   );
 
   assert.match(
     stylesSource,
-    /\.studio-editor-top\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-areas:[\s\S]*"recipient tools"[\s\S]*"fields tools";[\s\S]*\}/,
+    /\.studio-editor-top\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-areas:[\s\S]*["']recipient tools["'][\s\S]*["']fields tools["'];[\s\S]*\}/,
     'Studiotoppen ska använda en kontrollerad grid så befintlig bredd nyttjas bättre utan större ytor.'
   );
 
   assert.match(
     stylesSource,
-    /\.studio-shell:not\(\[data-mode="compose"\]\)\s+\.studio-compose-fields\s*\{[\s\S]*width:\s*min\(252px,\s*100%\);[\s\S]*grid-template-columns:\s*minmax\(188px,\s*252px\);[\s\S]*\}/,
+    /\.studio-shell:not\(\[data-mode=["']compose["']\]\)\s+\.studio-compose-fields\s*\{[\s\S]*width:\s*min\(252px,\s*100%\);[\s\S]*grid-template-columns:\s*minmax\(188px,\s*252px\);[\s\S]*\}/,
     'Reply-lägets Från-del ska få lite mer faktisk bredd så kontrollen blir tydligare utan att öppna mailboxpasset.'
   );
 

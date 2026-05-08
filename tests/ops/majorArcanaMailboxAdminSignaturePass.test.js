@@ -3,23 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const OVERLAY_RENDERERS_PATH = path.join(
   __dirname,
@@ -85,7 +71,7 @@ test('mailbox-admin har en kompakt lokal signatursektion i samma modal', () => {
   assert.match(
     indexSource,
     /data-mailbox-admin-signature-title/,
-    'Mailbox-admin ska ha ett separat fält för roll\/rad i signaturen.'
+    'Mailbox-admin ska ha ett separat fält för roll/rad i signaturen.'
   );
   assert.match(
     indexSource,
@@ -440,7 +426,7 @@ test('mailbox surfaces skiljer live-mailbox med lokal signaturprofil från ren c
   );
   assert.match(
     stylesSource,
-    /\.mailbox-admin-entry-pill-local\s*\{[\s\S]*color:\s*#6A564A;[\s\S]*\}/,
+    /\.mailbox-admin-entry-pill-local\s*\{[\s\S]*color:\s*#6a564a;[\s\S]*\}/i,
     'Mailbox-admin ska ge lokal signaturprofil en egen lågmäld men tydlig meta-nyans.'
   );
 });

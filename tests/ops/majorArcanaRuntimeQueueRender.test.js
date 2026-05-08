@@ -11,14 +11,7 @@ const RENDERERS_PATH = path.join(
   'major-arcana-preview',
   'runtime-queue-renderers.js'
 );
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 const LIVE_COMPOSITION_PATH = path.join(
   __dirname,
   '..',
@@ -43,14 +36,7 @@ const THREAD_OPS_PATH = path.join(
   'major-arcana-preview',
   'runtime-thread-ops.js'
 );
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 const STYLES_PATH = path.join(
   __dirname,
   '..',
@@ -238,24 +224,32 @@ function createBuildThreadCardMarkupHarness() {
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (iconKey) => `<span data-icon="${String(iconKey || '')}"></span>`,
     (value) => String(value || ''),
     (thread = {}, laneId = '') => {
-      const normalizedLaneId = String(laneId || '').trim().toLowerCase();
+      const normalizedLaneId = String(laneId || '')
+        .trim()
+        .toLowerCase();
       if (normalizedLaneId === 'act_now') return 'Svara nu';
       return thread.nextActionLabel || thread.nextActionSummary || 'Granska tråden';
     },
     (thread = {}, laneId = '') => {
-      const normalizedLaneId = String(laneId || '').trim().toLowerCase();
+      const normalizedLaneId = String(laneId || '')
+        .trim()
+        .toLowerCase();
       if (normalizedLaneId === 'act_now') return 'Svar krävs nu';
       if (thread.highRisk === true) return 'Hög risk';
       return thread.whyInFocus || 'Behöver uppmärksamhet';
     },
     (thread = {}, laneId = '') => {
-      const normalizedLaneId = String(laneId || '').trim().toLowerCase();
+      const normalizedLaneId = String(laneId || '')
+        .trim()
+        .toLowerCase();
       if (normalizedLaneId === 'act_now') return 'Svara nu';
       return thread.nextActionSummary || 'Granska tråden';
     },
@@ -281,12 +275,14 @@ test('renderRuntimeQueue renderar alla filtrerade tradar utan hard cap', () => {
 
   harness.renderRuntimeQueue();
 
-  const renderedCount =
-    harness.queueContent.innerHTML.match(/data-thread-id="/g)?.length || 0;
+  const renderedCount = harness.queueContent.innerHTML.match(/data-thread-id="/g)?.length || 0;
 
   assert.equal(renderedCount, filteredThreads.length);
   assert.match(harness.queueContent.innerHTML, /data-thread-id="thread-12"/);
-  assert.match(harness.queueContent.innerHTML, /data-thread-id="thread-9" data-index="8" data-selected="true"/);
+  assert.match(
+    harness.queueContent.innerHTML,
+    /data-thread-id="thread-9" data-index="8" data-selected="true"/
+  );
 });
 
 test('buildThreadCardMarkup använder ett enhetligt livekort utan indexvarianter', () => {
@@ -301,7 +297,7 @@ test('buildThreadCardMarkup använder ett enhetligt livekort utan indexvarianter
   assert.doesNotMatch(
     renderersSource,
     /thread-card--\$\{variant\}|const variant = index === 0 \? "anna" : index === 1 \? "erik" : "maria"/,
-    'Renderern ska inte längre bära gamla anna\/erik\/maria-varianter som kan skapa ojämn geometri mellan mailboxar.'
+    'Renderern ska inte längre bära gamla anna/erik/maria-varianter som kan skapa ojämn geometri mellan mailboxar.'
   );
 });
 
@@ -393,7 +389,7 @@ test('loading-fallbacken i vansterkon stanger av gamla bakgrundsrader', () => {
   assert.match(
     renderersSource,
     /state\.runtime\.loading \|\|[\s\S]*state\.runtime\.live \|\|[\s\S]*state\.runtime\.authRequired[\s\S]*runtimeMode === "offline_history"[\s\S]*!\s*runtimeThread/,
-    'Tradkontext-raden ska dodoljas i loadingfallbacken sa Kons\/Oklart\/Ingen deadline inte bubblar tillbaka.'
+    'Tradkontext-raden ska dodoljas i loadingfallbacken sa Kons/Oklart/Ingen deadline inte bubblar tillbaka.'
   );
 
   assert.match(
@@ -405,7 +401,7 @@ test('loading-fallbacken i vansterkon stanger av gamla bakgrundsrader', () => {
   assert.match(
     appSource,
     /row\.hidden = shouldHideShortcutRows;[\s\S]*if \(shouldHideShortcutRows\) \{[\s\S]*strip\.innerHTML = "";/,
-    'Fallbacklagen ska rensa actionraden helt i stallet for att lamna Alla\/check\/radera bakom bakgrunden.'
+    'Fallbacklagen ska rensa actionraden helt i stallet for att lamna Alla/check/radera bakom bakgrunden.'
   );
 
   assert.match(
@@ -417,8 +413,14 @@ test('loading-fallbacken i vansterkon stanger av gamla bakgrundsrader', () => {
 
 test('queue inline livekort bygger syntetisk ämnesrad när mailboxdata är tunn', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -439,11 +441,16 @@ test('queue inline livekort bygger syntetisk ämnesrad när mailboxdata är tunn
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     () => [],
-    (label) => String(label || '').slice(0, 2).toUpperCase() || '?',
+    (label) =>
+      String(label || '')
+        .slice(0, 2)
+        .toUpperCase() || '?',
     () => false,
     (value) =>
       String(value || '')
@@ -472,8 +479,14 @@ test('queue inline livekort bygger syntetisk ämnesrad när mailboxdata är tunn
 
 test('queue inline livekort prioriterar operativ nästa steg-text för act-now-rader', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -494,11 +507,16 @@ test('queue inline livekort prioriterar operativ nästa steg-text för act-now-r
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     () => [],
-    (label) => String(label || '').slice(0, 2).toUpperCase() || '?',
+    (label) =>
+      String(label || '')
+        .slice(0, 2)
+        .toUpperCase() || '?',
     () => false,
     (value) =>
       String(value || '')
@@ -827,7 +845,9 @@ test('renderRuntimeMailboxMenu markerar valt canonical mailboxscope och renderar
     mailboxMenuGrid,
     mailboxTriggerLabel,
     (value) => {
-      const text = String(value || '').trim().toLowerCase();
+      const text = String(value || '')
+        .trim()
+        .toLowerCase();
       if (!text) return '';
       if (text.includes('@')) return text;
       if (text === 'consult' || text === 'kons') return 'kons@hairtpclinic.com';
@@ -860,10 +880,7 @@ test('renderRuntimeMailboxMenu markerar valt canonical mailboxscope och renderar
     konsOption.innerHTML,
     /mailbox-option-meta">Läs: live · Skicka: aktiv · Signatur: Kons/
   );
-  assert.match(
-    konsOption.innerHTML,
-    /data-runtime-mailbox="kons@hairtpclinic\.com" checked/
-  );
+  assert.match(konsOption.innerHTML, /data-runtime-mailbox="kons@hairtpclinic\.com" checked/);
 });
 
 test('renderRuntimeMailboxMenu behaller Live-status for live-mailboxar med lokal signaturprofil', () => {
@@ -936,7 +953,9 @@ test('renderRuntimeMailboxMenu behaller Live-status for live-mailboxar med lokal
     mailboxMenuGrid,
     mailboxTriggerLabel,
     (value) => {
-      const text = String(value || '').trim().toLowerCase();
+      const text = String(value || '')
+        .trim()
+        .toLowerCase();
       if (!text) return '';
       return text.includes('@') ? text : `${text}@hairtpclinic.com`;
     },
@@ -964,11 +983,23 @@ test('renderRuntimeMailboxMenu behaller Live-status for live-mailboxar med lokal
 
 test('renderQueueHistoryList markerar vald offline-historikruta med selected state och canonical conversation id', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
-  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
-  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryMailboxMeta'
+  );
+  const getQueueHistorySignalIconSource = extractFunctionSource(
+    source,
+    'getQueueHistorySignalIcon'
+  );
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryDirectionMeta'
+  );
   const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
   const queueHistoryList = { innerHTML: '' };
   const state = {
@@ -1017,9 +1048,18 @@ test('renderQueueHistoryList markerar vald offline-historikruta med selected sta
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, ''),
-    (value) => String(value || '').trim().toLowerCase(),
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     queueHistoryList,
-    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+    (left, right) =>
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     state
   );
 
@@ -1071,17 +1111,47 @@ test('renderQueueInlineLaneList använder den befintliga thread-card-live-design
 
 test('queue inline lane cards render operational chips in the bottom meta row instead of a middle signal row', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
-  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
-  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryMailboxMeta'
+  );
+  const getQueueHistorySignalIconSource = extractFunctionSource(
+    source,
+    'getQueueHistorySignalIcon'
+  );
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryDirectionMeta'
+  );
   const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
 
   const buildMarkup = new Function(
     'asArray',
@@ -1116,7 +1186,9 @@ test('queue inline lane cards render operational chips in the bottom meta row in
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) => String(value || ''),
@@ -1138,8 +1210,17 @@ test('queue inline lane cards render operational chips in the bottom meta row in
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, ''),
-    (value) => String(value || '').trim().toLowerCase(),
-    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase()
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
+    (left, right) =>
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase()
   );
 
   const item = buildMarkup.buildQueueInlineLaneHistoryItem({
@@ -1189,17 +1270,32 @@ test('queue inline lane cards render operational chips in the bottom meta row in
   assert.match(markup, /data-pill-icon="layers"/);
   assert.match(markup, /data-pill-icon="clock"/);
   assert.match(markup, /data-pill-icon="bolt"/);
-  assert.match(markup, /queue-history-operational-pill--what[\s\S]*queue-history-pill--mailbox[\s\S]*queue-history-pill--source/);
+  assert.match(
+    markup,
+    /queue-history-operational-pill--what[\s\S]*queue-history-pill--mailbox[\s\S]*queue-history-pill--source/
+  );
   assert.doesNotMatch(markup, /queue-history-pill--direction/);
   assert.doesNotMatch(markup, /queue-history-pill--queue/);
 });
 
 test('queue inline lane cards suppress what chips when they would only repeat the subject text', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
 
   const getQueueInlineLaneSignalWhat = new Function(
     'asText',
@@ -1214,7 +1310,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (label) =>
@@ -1237,7 +1335,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
         return String(value);
       },
       (value, fallback = '', max = 32) => {
-        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        const text = String(value || fallback || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         return text.length > max ? `${text.slice(0, max - 1)}…` : text;
       },
       (value) =>
@@ -1265,7 +1365,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
         return String(value);
       },
       (value, fallback = '', max = 32) => {
-        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        const text = String(value || fallback || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         return text.length > max ? `${text.slice(0, max - 1)}…` : text;
       },
       (value) =>
@@ -1291,7 +1393,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
         return String(value);
       },
       (value, fallback = '', max = 32) => {
-        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        const text = String(value || fallback || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         return text.length > max ? `${text.slice(0, max - 1)}…` : text;
       },
       (value) =>
@@ -1319,11 +1423,15 @@ test('queue inline lane cards suppress what chips when they would only repeat th
         return String(value);
       },
       (value, fallback = '', max = 32) => {
-        const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+        const text = String(value || fallback || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         return text.length > max ? `${text.slice(0, max - 1)}…` : text;
       },
       (thread, laneId) => {
-        const normalizedLaneId = String(laneId || '').trim().toLowerCase();
+        const normalizedLaneId = String(laneId || '')
+          .trim()
+          .toLowerCase();
         const intentLabel = String(thread?.intentLabel || '').trim();
         if (intentLabel && normalizedLaneId !== 'unclear') return intentLabel;
         if (normalizedLaneId === 'medical') return 'Medicinsk fråga';
@@ -1368,7 +1476,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -1394,7 +1504,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -1422,7 +1534,9 @@ test('queue inline lane cards suppress what chips when they would only repeat th
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     getQueueInlineLaneSignalWhat,
@@ -1453,11 +1567,23 @@ test('queue inline lane cards suppress what chips when they would only repeat th
 
 test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsändare + ärendekontext på raden under', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
-  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
-  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryMailboxMeta'
+  );
+  const getQueueHistorySignalIconSource = extractFunctionSource(
+    source,
+    'getQueueHistorySignalIcon'
+  );
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryDirectionMeta'
+  );
   const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
 
   const buildQueueHistoryCardMarkup = new Function(
     'asArray',
@@ -1482,7 +1608,9 @@ test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsän
       return String(value);
     },
     (value, fallback = '', max = 72) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) => String(value || ''),
@@ -1495,8 +1623,17 @@ test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsän
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, ''),
-    (value) => String(value || '').trim().toLowerCase(),
-    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase()
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
+    (left, right) =>
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase()
   );
 
   const markup = buildQueueHistoryCardMarkup({
@@ -1540,17 +1677,47 @@ test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsän
 
 test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge historikkort samma signalhierarki som livekorten', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const getQueueHistoryMailboxMetaSource = extractFunctionSource(source, 'getQueueHistoryMailboxMeta');
-  const getQueueHistorySignalIconSource = extractFunctionSource(source, 'getQueueHistorySignalIcon');
-  const getQueueHistoryDirectionMetaSource = extractFunctionSource(source, 'getQueueHistoryDirectionMeta');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const getQueueHistoryMailboxMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryMailboxMeta'
+  );
+  const getQueueHistorySignalIconSource = extractFunctionSource(
+    source,
+    'getQueueHistorySignalIcon'
+  );
+  const getQueueHistoryDirectionMetaSource = extractFunctionSource(
+    source,
+    'getQueueHistoryDirectionMeta'
+  );
   const getQueueHistoryQueueMetaSource = extractFunctionSource(source, 'getQueueHistoryQueueMeta');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
   const queueHistoryList = { innerHTML: '', dataset: {} };
   const state = {
@@ -1619,7 +1786,9 @@ test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge 
       return String(value);
     },
     (value, fallback = '', max = 72) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) => String(value || ''),
@@ -1643,9 +1812,18 @@ test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge 
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, ''),
-    (value) => String(value || '').trim().toLowerCase(),
+    (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     queueHistoryList,
-    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+    (left, right) =>
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     state
   );
 
@@ -1685,8 +1863,14 @@ test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge 
 
 test('queue inline lane signal items map key lanes to operational why labels', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
 
   const getQueueInlineLaneSignalWhat = new Function(
     'asText',
@@ -1701,7 +1885,9 @@ test('queue inline lane signal items map key lanes to operational why labels', (
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -1729,7 +1915,9 @@ test('queue inline lane signal items map key lanes to operational why labels', (
       return String(value);
     },
     (value, fallback = '', max = 32) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -1743,7 +1931,10 @@ test('queue inline lane signal items map key lanes to operational why labels', (
   );
 
   assert.equal(getQueueInlineLaneSignalWhat({ intentLabel: 'Pricing Question' }, ''), 'Prisfråga');
-  assert.equal(getQueueInlineLaneSignalWhat({ intentLabel: 'Contact Form' }, ''), 'Kontaktformulär');
+  assert.equal(
+    getQueueInlineLaneSignalWhat({ intentLabel: 'Contact Form' }, ''),
+    'Kontaktformulär'
+  );
   assert.equal(getQueueInlineLaneSignalWhy({}, 'act-now'), 'Svar krävs nu');
   assert.equal(getQueueInlineLaneSignalWhy({}, 'review'), 'Behöver granskning');
   assert.equal(getQueueInlineLaneSignalWhy({}, 'medical'), 'Medicinsk bedömning');
@@ -1781,12 +1972,30 @@ test('mail feed cards prioriterar follow-up aging i stampen', () => {
 
 test('queue inline lane cards avoid repeating sender name across sender row, issue row and preview', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -1810,7 +2019,9 @@ test('queue inline lane cards avoid repeating sender name across sender row, iss
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     new Function(
@@ -1831,7 +2042,8 @@ test('queue inline lane cards avoid repeating sender name across sender row, iss
   const item = buildQueueInlineLaneHistoryItem({
     customerName: 'Sivan Bergenstein',
     displaySubject: 'Sivan Bergenstein Kontaktformulär',
-    preview: 'Från: Sivan Bergenstein E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig med konsultation och pris?',
+    preview:
+      'Från: Sivan Bergenstein E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig med konsultation och pris?',
     lastActivityLabel: '26 mars',
     primaryLaneId: 'unclear',
     mailboxLabel: 'Kons',
@@ -1844,12 +2056,30 @@ test('queue inline lane cards avoid repeating sender name across sender row, iss
 
 test('queue inline lane cards suppress preview text when it only repeats the issue line', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -1873,7 +2103,9 @@ test('queue inline lane cards suppress preview text when it only repeats the iss
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     new Function(
@@ -1906,12 +2138,30 @@ test('queue inline lane cards suppress preview text when it only repeats the iss
 
 test('queue inline lane cards drop generic contact-form prompts before building the issue summary', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -1935,7 +2185,9 @@ test('queue inline lane cards drop generic contact-form prompts before building 
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     new Function(
@@ -1968,12 +2220,30 @@ test('queue inline lane cards drop generic contact-form prompts before building 
 
 test('queue inline lane cards keep operational focus out of the issue row when only a contact-form case label is known', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -1997,7 +2267,9 @@ test('queue inline lane cards keep operational focus out of the issue row when o
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     new Function(
@@ -2031,12 +2303,30 @@ test('queue inline lane cards keep operational focus out of the issue row when o
 
 test('queue inline lane cards strip technical QA prefixes before using preview text as the issue line', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
-  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(source, 'buildQueueInlineLaneSignalItems');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
+  const buildQueueInlineLaneSignalItemsSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneSignalItems'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
 
   const buildQueueInlineLaneHistoryItem = new Function(
     'asArray',
@@ -2060,7 +2350,9 @@ test('queue inline lane cards strip technical QA prefixes before using preview t
       return String(value);
     },
     (value, fallback = '', max = 108) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     new Function(
@@ -2094,7 +2386,7 @@ test('queue inline lane cards strip technical QA prefixes before using preview t
 test('major arcana preview exposes a clearly labeled secondary truth worklist surface', () => {
   const html = fs.readFileSync(INDEX_PATH, 'utf8');
   const styles = fs.readFileSync(STYLES_PATH, 'utf8');
-  const pageButtons = Array.from(html.matchAll(/data-truth-worklist-page-button=\"([^\"]+)\"/g)).map(
+  const pageButtons = Array.from(html.matchAll(/data-truth-worklist-page-button="([^"]+)"/g)).map(
     (match) => match[1]
   );
   const truthSectionMatch = html.match(
@@ -2282,7 +2574,9 @@ test('truth worklist rows expose advisory legacy relay without runtime selection
   )(
     (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
     (value, fallback = '', max = 160) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -2412,7 +2706,9 @@ test('truth worklist rows surface customer rollup provenance without hiding oper
   )(
     (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
     (value, fallback = '', max = 160) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -2840,15 +3136,9 @@ test('runtime placeholder helpers behandlar svenska placeholderstrangar som plac
      };`
   )();
 
-  assert.equal(
-    evaluate.isRuntimePlaceholderLine('Ingen förhandsvisning tillgänglig.'),
-    true
-  );
+  assert.equal(evaluate.isRuntimePlaceholderLine('Ingen förhandsvisning tillgänglig.'), true);
   assert.equal(evaluate.isRuntimeUnknownCustomerName('Okänd avsändare'), true);
-  assert.equal(
-    evaluate.isRuntimePlaceholderLine('Du får inte ofta e-post från [email]'),
-    true
-  );
+  assert.equal(evaluate.isRuntimePlaceholderLine('Du får inte ofta e-post från [email]'), true);
   assert.equal(
     evaluate.isRuntimePlaceholderLine(
       'Unread inbound och needs reply läses från mailbox truth i wave 1.'
@@ -2876,7 +3166,10 @@ test('createHistoryEvent rensar bort provider-copy fran historiktitlar och detal
     },
     (definition) => String(definition?.resultType || definition?.type || 'message'),
     () => 'Nu',
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => String(value || '')
   );
 
@@ -3374,7 +3667,10 @@ test('buildPreviewMessages behaller kontaktformularets faktiska fraga i conversa
 
   assert.doesNotMatch(messages[0].conversationBody, /Från:\s*Noha Haj omar/i);
   assert.doesNotMatch(messages[0].conversationBody, /E-post:/i);
-  assert.match(messages[0].conversationBody, /Hej\. Min fråga är, är det möjligt att transplantera ögonbrynshår/i);
+  assert.match(
+    messages[0].conversationBody,
+    /Hej\. Min fråga är, är det möjligt att transplantera ögonbrynshår/i
+  );
 });
 
 test('buildPreviewMessages behaller utgaende signatur i conversationBody men klipper bort citerad reply-kedja', () => {
@@ -3454,8 +3750,7 @@ test('buildPreviewMessages behaller utgaende signatur i conversationBody men kli
         direction: 'outbound',
         sentAt: '2026-03-31T11:25:00.000Z',
         senderName: 'Marknad',
-        body:
-          'Hej Alma, Hoppas allt är bra med dig. Vi tänkte re-posta din video på våra sociala medier.\nTack på förhand!\nHa en fin dag, Mån\nSkickat från Outlook för Mac Från: Alma Persson <alma@example.com> Datum: tisdag, 31 mars 2026 11:38 Till: Marknad | Hair TP Clinic <marknad@hairtpclinic.com> Ämne: Re: 8 månader update',
+        body: 'Hej Alma, Hoppas allt är bra med dig. Vi tänkte re-posta din video på våra sociala medier.\nTack på förhand!\nHa en fin dag, Mån\nSkickat från Outlook för Mac Från: Alma Persson <alma@example.com> Datum: tisdag, 31 mars 2026 11:38 Till: Marknad | Hair TP Clinic <marknad@hairtpclinic.com> Ämne: Re: 8 månader update',
       },
     ]
   );
@@ -3543,8 +3838,7 @@ test('buildPreviewMessages klipper weekday-svarskedja och senare Från-block men
         direction: 'inbound',
         sentAt: '2026-03-31T19:15:00.000Z',
         senderName: 'Mirzet',
-        body:
-          'Hej Ring mig gärna när du har tid MVH tis 31 mars 2026 kl. 19:15 skrev Contact | Hair TP Clinic <contact@hairtpclinic.com>: Hej! Hoppas du har en fin kväll',
+        body: 'Hej Ring mig gärna när du har tid MVH tis 31 mars 2026 kl. 19:15 skrev Contact | Hair TP Clinic <contact@hairtpclinic.com>: Hej! Hoppas du har en fin kväll',
       },
     ]
   );
@@ -3567,8 +3861,7 @@ test('buildPreviewMessages klipper weekday-svarskedja och senare Från-block men
         direction: 'outbound',
         sentAt: '2026-04-06T12:10:00.000Z',
         senderName: 'Egzona Krasniqi',
-        body:
-          'Jag/vi tackar ja till platsen!\nBästa hälsningar, Egzona Krasniqi Hårspecialist | Hårtransplantationer & PRP-injektioner [telefon] [email] Vasaplatsen 2, 411 34 Göteborg ________________________________ Från: Linda Ölander <linda@example.com>',
+        body: 'Jag/vi tackar ja till platsen!\nBästa hälsningar, Egzona Krasniqi Hårspecialist | Hårtransplantationer & PRP-injektioner [telefon] [email] Vasaplatsen 2, 411 34 Göteborg ________________________________ Från: Linda Ölander <linda@example.com>',
       },
     ]
   );
@@ -3661,7 +3954,15 @@ test('history feed entries behaller rik body fidelity sa att quoted chains kan r
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const historyFeedEntries = buildHistoryFeedEntries([
     {
@@ -3671,8 +3972,7 @@ test('history feed entries behaller rik body fidelity sa att quoted chains kan r
       direction: 'inbound',
       senderName: 'Emma Magnusson',
       subject: 'Ombokning av tid',
-      body:
-        'Ja kl 12 hade funkat bra\nMed vänlig hälsning\nEmma Magnusson\nFrom: Contact | Hair TP Clinic <contact@hairtpclinic.com>\nSent: Thursday, April 2, 2026 8:00:50 AM',
+      body: 'Ja kl 12 hade funkat bra\nMed vänlig hälsning\nEmma Magnusson\nFrom: Contact | Hair TP Clinic <contact@hairtpclinic.com>\nSent: Thursday, April 2, 2026 8:00:50 AM',
     },
   ]);
 
@@ -3787,15 +4087,20 @@ test('buildPreviewMessages rensar bort provider-copy och behaller verklig mailte
         messageId: 'message-provider-preview-variant',
         direction: 'inbound',
         sentAt: '2026-04-02T13:24:00.000Z',
-        body:
-          'Vissa som har fått det här meddelandet får inte ofta e-post från [email]. Läs om varför det här är viktigt Hej Se nedan info från Göteborg Energi. Med vänlig hälsning Susanne Lundkvist Wilundia AB',
+        body: 'Vissa som har fått det här meddelandet får inte ofta e-post från [email]. Läs om varför det här är viktigt Hej Se nedan info från Göteborg Energi. Med vänlig hälsning Susanne Lundkvist Wilundia AB',
       },
     ]
   );
 
   assert.doesNotMatch(variantMessages[0].body, /Vissa som har fått det här meddelandet/i);
-  assert.doesNotMatch(variantMessages[0].conversationBody, /Vissa som har fått det här meddelandet/i);
-  assert.match(variantMessages[0].conversationBody, /Med vänlig hälsning Susanne Lundkvist Wilundia AB/i);
+  assert.doesNotMatch(
+    variantMessages[0].conversationBody,
+    /Vissa som har fått det här meddelandet/i
+  );
+  assert.match(
+    variantMessages[0].conversationBody,
+    /Med vänlig hälsning Susanne Lundkvist Wilundia AB/i
+  );
 
   const learnWhyMessages = buildPreviewMessages(
     {
@@ -3808,8 +4113,7 @@ test('buildPreviewMessages rensar bort provider-copy och behaller verklig mailte
         messageId: 'message-provider-preview-learn-why',
         direction: 'inbound',
         sentAt: '2026-04-02T13:24:00.000Z',
-        body:
-          'Learn why this is important Hej, Jag har nu läst på informationen som ni skickade mig och vill därför avboka. Med vänliga hälsningar Anders',
+        body: 'Learn why this is important Hej, Jag har nu läst på informationen som ni skickade mig och vill därför avboka. Med vänliga hälsningar Anders',
       },
     ]
   );
@@ -3826,10 +4130,7 @@ test('buildHistoryFeedEntries och buildPreviewMessages prioriterar canonical mai
     'normalizeRuntimeDisplaySubject'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const isRuntimePlaceholderLineSource = extractFunctionSource(
-    source,
-    'isRuntimePlaceholderLine'
-  );
+  const isRuntimePlaceholderLineSource = extractFunctionSource(source, 'isRuntimePlaceholderLine');
   const isRuntimeUnknownCustomerNameSource = extractFunctionSource(
     source,
     'isRuntimeUnknownCustomerName'
@@ -3904,7 +4205,15 @@ test('buildHistoryFeedEntries och buildPreviewMessages prioriterar canonical mai
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const historyFeedEntries = buildHistoryFeedEntries([
     {
@@ -3950,10 +4259,7 @@ test('buildHistoryFeedEntries och buildPreviewMessages prioriterar canonical mai
     'normalizeRuntimeDisplaySubject'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const isRuntimePlaceholderLineSource = extractFunctionSource(
-    source,
-    'isRuntimePlaceholderLine'
-  );
+  const isRuntimePlaceholderLineSource = extractFunctionSource(source, 'isRuntimePlaceholderLine');
   const isRuntimeUnknownCustomerNameSource = extractFunctionSource(
     source,
     'isRuntimeUnknownCustomerName'
@@ -4028,7 +4334,15 @@ test('buildHistoryFeedEntries och buildPreviewMessages prioriterar canonical mai
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const historyFeedEntries = buildHistoryFeedEntries([
     {
@@ -4052,7 +4366,8 @@ test('buildHistoryFeedEntries och buildPreviewMessages prioriterar canonical mai
         kind: 'mail_thread_message',
         presentation: {
           previewText: 'Hydrator preview från Phase 3',
-          conversationText: 'Hej Exona,\nKan vi boka om till fredag?\n\nMed vänlig hälsning\nVincent',
+          conversationText:
+            'Hej Exona,\nKan vi boka om till fredag?\n\nMed vänlig hälsning\nVincent',
           conversationHtml:
             '<div>Hej Exona,<br>Kan vi boka om till fredag?</div><div>Med vänlig hälsning<br>Vincent</div>',
         },
@@ -4088,10 +4403,7 @@ test('buildPreviewMessages prioriterar top-level threadDocument over legacy feed
     'normalizeRuntimeDisplaySubject'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const isRuntimePlaceholderLineSource = extractFunctionSource(
-    source,
-    'isRuntimePlaceholderLine'
-  );
+  const isRuntimePlaceholderLineSource = extractFunctionSource(source, 'isRuntimePlaceholderLine');
   const isRuntimeUnknownCustomerNameSource = extractFunctionSource(
     source,
     'isRuntimeUnknownCustomerName'
@@ -4144,7 +4456,15 @@ test('buildPreviewMessages prioriterar top-level threadDocument over legacy feed
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const feedEntries = [
     {
@@ -4234,10 +4554,7 @@ test('buildPreviewMessages foredrar MIME-backed canonical body fran mailDocument
     'normalizeRuntimeDisplaySubject'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const isRuntimePlaceholderLineSource = extractFunctionSource(
-    source,
-    'isRuntimePlaceholderLine'
-  );
+  const isRuntimePlaceholderLineSource = extractFunctionSource(source, 'isRuntimePlaceholderLine');
   const isRuntimeUnknownCustomerNameSource = extractFunctionSource(
     source,
     'isRuntimeUnknownCustomerName'
@@ -4290,7 +4607,15 @@ test('buildPreviewMessages foredrar MIME-backed canonical body fran mailDocument
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const messages = buildPreviewMessages(
     {
@@ -4355,10 +4680,7 @@ test('buildPreviewMessages foredrar MIME-backed html och assets for table-heavy 
     'normalizeRuntimeDisplaySubject'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const isRuntimePlaceholderLineSource = extractFunctionSource(
-    source,
-    'isRuntimePlaceholderLine'
-  );
+  const isRuntimePlaceholderLineSource = extractFunctionSource(source, 'isRuntimePlaceholderLine');
   const isRuntimeUnknownCustomerNameSource = extractFunctionSource(
     source,
     'isRuntimeUnknownCustomerName'
@@ -4411,7 +4733,15 @@ test('buildPreviewMessages foredrar MIME-backed html och assets for table-heavy 
      ${getRuntimeCustomerNameFromFeedEntriesSource}
      ${buildPreviewMessagesSource}
      return buildPreviewMessages;`
-  )(asArray, asText, (value) => String(value || 'Nu'), normalizeKey, normalizeText, titleCaseMailbox, toIso);
+  )(
+    asArray,
+    asText,
+    (value) => String(value || 'Nu'),
+    normalizeKey,
+    normalizeText,
+    titleCaseMailbox,
+    toIso
+  );
 
   const messages = buildPreviewMessages(
     {
@@ -4581,8 +4911,14 @@ test('live-rad kan hitta feed-preview via mailbox och subject nar conversationId
     source,
     'resolveRuntimePreviewText'
   );
-  const getUsableRuntimeRowPreviewSource = extractFunctionSource(source, 'getUsableRuntimeRowPreview');
-  const buildRuntimeRowSemanticKeySource = extractFunctionSource(source, 'buildRuntimeRowSemanticKey');
+  const getUsableRuntimeRowPreviewSource = extractFunctionSource(
+    source,
+    'getUsableRuntimeRowPreview'
+  );
+  const buildRuntimeRowSemanticKeySource = extractFunctionSource(
+    source,
+    'buildRuntimeRowSemanticKey'
+  );
   const buildFeedIndexSource = extractFunctionSource(source, 'buildFeedIndex');
   const getFeedEntriesForRuntimeRowSource = extractFunctionSource(
     source,
@@ -4607,7 +4943,10 @@ test('live-rad kan hitta feed-preview via mailbox och subject nar conversationId
       .replace(/^_+|_+$/g, '');
   const normalizeText = (value = '') =>
     typeof value === 'string' ? value.trim() : String(value || '').trim();
-  const canonicalizeRuntimeMailboxId = (value = '') => String(value || '').trim().toLowerCase();
+  const canonicalizeRuntimeMailboxId = (value = '') =>
+    String(value || '')
+      .trim()
+      .toLowerCase();
 
   const isRuntimePlaceholderLine = new Function(
     'normalizeText',
@@ -4815,7 +5154,10 @@ test('deriveHistoryCustomerName kan lasa avsandare fran replyhuvud i historikbod
     'isRuntimeUnknownCustomerName'
   );
   const looksLikeMailboxIdentitySource = extractFunctionSource(source, 'looksLikeMailboxIdentity');
-  const deriveHistoryCustomerNameSource = extractFunctionSource(source, 'deriveHistoryCustomerName');
+  const deriveHistoryCustomerNameSource = extractFunctionSource(
+    source,
+    'deriveHistoryCustomerName'
+  );
 
   const deriveHistoryCustomerName = new Function(
     'asArray',
@@ -4859,8 +5201,7 @@ test('deriveHistoryCustomerName kan lasa avsandare fran replyhuvud i historikbod
     {
       direction: 'inbound',
       senderName: 'Okänd avsändare',
-      body:
-        'Stort tack! Skickat från Outlook för Mac Från: Alma Persson <alma@example.com> Datum: tisdag, 31 mars 2026 11:38 Till: Marknad | Hair TP Clinic <marknad@hairtpclinic.com> Ämne: Re: 8 månader update',
+      body: 'Stort tack! Skickat från Outlook för Mac Från: Alma Persson <alma@example.com> Datum: tisdag, 31 mars 2026 11:38 Till: Marknad | Hair TP Clinic <marknad@hairtpclinic.com> Ämne: Re: 8 månader update',
       subject: '8 månader update',
     },
   ]);
@@ -4982,6 +5323,7 @@ test('buildHistoryBackedRuntimeRow behaller live-row-mailbox som primar provenie
     'deriveHistoryThreadTags',
     'extractCustomerEmail',
     'extractHistoryCustomerEmail',
+    'extractPreviewTextFromHtml',
     'getRuntimeCustomerName',
     'isRuntimePlaceholderLine',
     'normalizeKey',
@@ -5007,7 +5349,8 @@ test('buildHistoryBackedRuntimeRow behaller live-row-mailbox som primar provenie
       const text = String(value || '').trim();
       return text || fallback;
     },
-    (left, right) => Date.parse(String(right?.sentAt || '')) - Date.parse(String(left?.sentAt || '')),
+    (left, right) =>
+      Date.parse(String(right?.sentAt || '')) - Date.parse(String(left?.sentAt || '')),
     () => 'QA Reply Kons Send [telefon]',
     () => 0.42,
     () => 'low',
@@ -5015,6 +5358,7 @@ test('buildHistoryBackedRuntimeRow behaller live-row-mailbox som primar provenie
     () => ['all'],
     () => '',
     () => '',
+    (value) => String(value || ''),
     () => 'QA Reply Kons Send [telefon]',
     isRuntimePlaceholderLine,
     (value = '') =>
@@ -5059,7 +5403,12 @@ test('buildHistoryBackedRuntimeRow behaller live-row-mailbox som primar provenie
           },
         },
         hardConflictSignals: [
-          { type: 'email', left: 'patient@example.com', right: 'patient@example.com', reason: 'match' },
+          {
+            type: 'email',
+            left: 'patient@example.com',
+            right: 'patient@example.com',
+            reason: 'match',
+          },
         ],
         mergeReviewDecisionsByPairId: {
           'pair-1': { decision: 'dismissed' },
@@ -5120,6 +5469,7 @@ test('buildHistoryBackedRuntimeRow prioriterar canonical preview fran mail found
     'deriveHistoryThreadTags',
     'extractCustomerEmail',
     'extractHistoryCustomerEmail',
+    'extractPreviewTextFromHtml',
     'getRuntimeCustomerName',
     'isRuntimePlaceholderLine',
     'normalizeKey',
@@ -5145,7 +5495,8 @@ test('buildHistoryBackedRuntimeRow prioriterar canonical preview fran mail found
       const text = String(value || '').trim();
       return text || fallback;
     },
-    (left, right) => Date.parse(String(right?.sentAt || '')) - Date.parse(String(left?.sentAt || '')),
+    (left, right) =>
+      Date.parse(String(right?.sentAt || '')) - Date.parse(String(left?.sentAt || '')),
     () => 'Vincent',
     () => 0.42,
     () => 'low',
@@ -5153,6 +5504,7 @@ test('buildHistoryBackedRuntimeRow prioriterar canonical preview fran mail found
     () => ['all'],
     () => '',
     () => '',
+    (value) => String(value || ''),
     () => 'Vincent',
     isRuntimePlaceholderLine,
     (value = '') =>
@@ -5213,7 +5565,9 @@ test('buildHistoryConversationKey prioriterar mailboxConversationId for live-pre
       return normalized || fallback;
     },
     (value = '') => {
-      const text = String(value || '').trim().toLowerCase();
+      const text = String(value || '')
+        .trim()
+        .toLowerCase();
       const match = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
       return match ? match[0] : '';
     },
@@ -5228,7 +5582,8 @@ test('buildHistoryConversationKey prioriterar mailboxConversationId for live-pre
   const key = buildHistoryConversationKey({
     mailboxConversationId:
       'marknad@hairtpclinic.com:AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
-    conversationId: 'AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
+    conversationId:
+      'AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
     mailboxId: 'marknad@hairtpclinic.com',
   });
 
@@ -5285,7 +5640,9 @@ test('buildLiveThreads historikbackfillar live-rader nar conversationId bara ski
       const mailboxConversationId = String(message?.mailboxConversationId || '').trim();
       if (mailboxConversationId) return mailboxConversationId;
       const conversationId = String(message?.conversationId || '').trim();
-      const mailboxId = String(message?.mailboxId || '').trim().toLowerCase();
+      const mailboxId = String(message?.mailboxId || '')
+        .trim()
+        .toLowerCase();
       return mailboxId && conversationId && !conversationId.includes(':')
         ? `${mailboxId}:${conversationId}`
         : conversationId;
@@ -5294,22 +5651,34 @@ test('buildLiveThreads historikbackfillar live-rader nar conversationId bara ski
     (events = []) => events,
     (row = {}) => {
       const tags = ['all'];
-      const workflowLane = String(row?.workflowLane || '').trim().toLowerCase();
-      const priorityLevel = String(row?.priorityLevel || '').trim().toLowerCase();
-      const slaStatus = String(row?.slaStatus || '').trim().toLowerCase();
+      const workflowLane = String(row?.workflowLane || '')
+        .trim()
+        .toLowerCase();
+      const priorityLevel = String(row?.priorityLevel || '')
+        .trim()
+        .toLowerCase();
+      const slaStatus = String(row?.slaStatus || '')
+        .trim()
+        .toLowerCase();
       if (
         workflowLane === 'waiting_reply' ||
-        String(row?.waitingOn || '').trim().toLowerCase() === 'customer'
+        String(row?.waitingOn || '')
+          .trim()
+          .toLowerCase() === 'customer'
       ) {
         tags.push('later', 'followup');
       }
       if (
         workflowLane === 'booking_ready' ||
-        String(row?.bookingState || '').trim().toLowerCase().includes('ready')
+        String(row?.bookingState || '')
+          .trim()
+          .toLowerCase()
+          .includes('ready')
       ) {
         tags.push('bookable');
       }
-      if (workflowLane === 'medical_review' || row?.needsMedicalReview === true) tags.push('medical');
+      if (workflowLane === 'medical_review' || row?.needsMedicalReview === true)
+        tags.push('medical');
       if (workflowLane === 'admin_low') tags.push('admin');
       if (['critical', 'high'].includes(priorityLevel)) tags.push('sprint');
       if (slaStatus === 'breach' || workflowLane === 'action_now') tags.push('act-now', 'today');
@@ -5334,7 +5703,10 @@ test('buildLiveThreads historikbackfillar live-rader nar conversationId bara ski
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, ''),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => String(value || '').trim()
   );
 
@@ -5409,11 +5781,21 @@ test('truth primary row anvander detail som preview fallback nar preview saknas'
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -5564,7 +5946,9 @@ test('buildRuntimeThread backfyller customerName fran feedEntries nar raden anna
     (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max),
     () => 'human_mail',
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const normalized = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -5595,7 +5979,11 @@ test('buildRuntimeThread backfyller customerName fran feedEntries nar raden anna
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
     (value) => String(value || '')
@@ -5625,7 +6013,12 @@ test('buildRuntimeThread backfyller customerName fran feedEntries nar raden anna
         },
       },
       hardConflictSignals: [
-        { type: 'email', left: 'vincent@example.com', right: 'vincent@example.com', reason: 'match' },
+        {
+          type: 'email',
+          left: 'vincent@example.com',
+          right: 'vincent@example.com',
+          reason: 'match',
+        },
       ],
       mergeReviewDecisionsByPairId: {
         'pair-rt-1': { decision: 'dismissed' },
@@ -5766,7 +6159,9 @@ test('buildRuntimeThread markerar åldrad reply som följ upp nu', () => {
     (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max),
     () => 'human_mail',
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const normalized = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -5797,7 +6192,11 @@ test('buildRuntimeThread markerar åldrad reply som följ upp nu', () => {
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
     (value) => String(value || '')
@@ -5963,7 +6362,9 @@ test('buildRuntimeThread backfyller customerName fran radens senaste messagebody
     (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max),
     () => 'human_mail',
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const normalized = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -5994,7 +6395,11 @@ test('buildRuntimeThread backfyller customerName fran radens senaste messagebody
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
     (value) => String(value || '')
@@ -6138,7 +6543,9 @@ test('buildRuntimeThread prioriterar canonical preview och senaste aktivitet fra
     (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max),
     () => 'human_mail',
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const normalized = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -6169,7 +6576,11 @@ test('buildRuntimeThread prioriterar canonical preview och senaste aktivitet fra
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
     (value) => String(value || '')
@@ -6331,7 +6742,9 @@ test('buildRuntimeThread materialiserar client threadDocument fran canonical pre
     (value, min, max) => Math.min(Math.max(Number(value) || 0, min), max),
     () => 'human_mail',
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const normalized = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -6362,7 +6775,11 @@ test('buildRuntimeThread materialiserar client threadDocument fran canonical pre
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
     (value) => String(value || '')
@@ -6432,11 +6849,21 @@ test('truth primary row anvander latestInboundPreview nar den finns pa raden', (
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -6513,11 +6940,21 @@ test('truth primary row anvander latestMessage-bodyHtml nar ovriga previewfalt a
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -6768,7 +7205,9 @@ test('truth worklist relay note keeps legacy steering explicit', () => {
      return buildTruthWorklistRelayNoteMarkup;`
   )(
     (value, fallback = '', max = 92) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       return text.length > max ? `${text.slice(0, max - 1)}…` : text;
     },
     (value) =>
@@ -6808,8 +7247,16 @@ test('truth worklist assist view waits for admin auth before loading consumer js
   const waitIndex = loadSource.indexOf('await waitForTruthWorklistAuthToken()');
   const requestIndex = loadSource.indexOf('apiRequest(');
 
-  assert.notEqual(waitIndex, -1, 'Truth Worklist Assist View måste vänta in admin-token före consumer-request.');
-  assert.notEqual(requestIndex, -1, 'Kunde inte hitta consumer-requesten för Truth Worklist Assist View.');
+  assert.notEqual(
+    waitIndex,
+    -1,
+    'Truth Worklist Assist View måste vänta in admin-token före consumer-request.'
+  );
+  assert.notEqual(
+    requestIndex,
+    -1,
+    'Kunde inte hitta consumer-requesten för Truth Worklist Assist View.'
+  );
   assert.ok(
     waitIndex < requestIndex,
     'Truth Worklist Assist View ska vänta in admin-token innan consumer-requesten skickas.'
@@ -6938,14 +7385,14 @@ test('truth primary worklist mailbox ids honor wave-1 allowlist and rollback kil
       },
       {
         enabled: true,
-        mailboxIds: [
-          'egzona@hairtpclinic.com',
-          'contact@hairtpclinic.com',
-        ],
+        mailboxIds: ['egzona@hairtpclinic.com', 'contact@hairtpclinic.com'],
       },
       'cco.truthPrimaryWorklist.disabled',
       (value) => (Array.isArray(value) ? value : value == null ? [] : [value]),
-      (value = '') => String(value || '').trim().toLowerCase()
+      (value = '') =>
+        String(value || '')
+          .trim()
+          .toLowerCase()
     );
 
   const activeHarness = buildHarness(null);
@@ -6998,8 +7445,14 @@ test('truth primary worklist merge replaces matched wave-1 mailbox rows but pres
     source,
     'resolveRuntimePreviewText'
   );
-  const getUsableRuntimeRowPreviewSource = extractFunctionSource(source, 'getUsableRuntimeRowPreview');
-  const buildRuntimeRowSemanticKeySource = extractFunctionSource(source, 'buildRuntimeRowSemanticKey');
+  const getUsableRuntimeRowPreviewSource = extractFunctionSource(
+    source,
+    'getUsableRuntimeRowPreview'
+  );
+  const buildRuntimeRowSemanticKeySource = extractFunctionSource(
+    source,
+    'buildRuntimeRowSemanticKey'
+  );
   const mergeTruthPrimaryRuntimeRowWithLegacyRowSource = extractFunctionSource(
     source,
     'mergeTruthPrimaryRuntimeRowWithLegacyRow'
@@ -7042,11 +7495,21 @@ test('truth primary worklist merge replaces matched wave-1 mailbox rows but pres
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -7106,10 +7569,7 @@ test('truth primary worklist merge replaces matched wave-1 mailbox rows but pres
       ],
     },
     {
-      truthPrimaryMailboxIds: [
-        'egzona@hairtpclinic.com',
-        'contact@hairtpclinic.com',
-      ],
+      truthPrimaryMailboxIds: ['egzona@hairtpclinic.com', 'contact@hairtpclinic.com'],
     }
   );
 
@@ -7117,7 +7577,10 @@ test('truth primary worklist merge replaces matched wave-1 mailbox rows but pres
   assert.deepEqual(mergedSubjects, ['Legacy fazli row', 'Truth contact row']);
   assert.equal(merged.conversationWorklist[1].worklistSource, 'truth_primary');
   assert.equal(merged.conversationWorklist[1].worklistWave, 'wave_1');
-  assert.deepEqual(merged.needsReplyToday.map((row) => row.subject), ['Legacy egzona row']);
+  assert.deepEqual(
+    merged.needsReplyToday.map((row) => row.subject),
+    ['Legacy egzona row']
+  );
 });
 
 test('truth primary worklist merge preserves unmatched legacy rows for truth mailboxes in conversation worklist', () => {
@@ -7146,8 +7609,14 @@ test('truth primary worklist merge preserves unmatched legacy rows for truth mai
     source,
     'resolveRuntimePreviewText'
   );
-  const getUsableRuntimeRowPreviewSource = extractFunctionSource(source, 'getUsableRuntimeRowPreview');
-  const buildRuntimeRowSemanticKeySource = extractFunctionSource(source, 'buildRuntimeRowSemanticKey');
+  const getUsableRuntimeRowPreviewSource = extractFunctionSource(
+    source,
+    'getUsableRuntimeRowPreview'
+  );
+  const buildRuntimeRowSemanticKeySource = extractFunctionSource(
+    source,
+    'buildRuntimeRowSemanticKey'
+  );
   const mergeTruthPrimaryRuntimeRowWithLegacyRowSource = extractFunctionSource(
     source,
     'mergeTruthPrimaryRuntimeRowWithLegacyRow'
@@ -7190,11 +7659,21 @@ test('truth primary worklist merge preserves unmatched legacy rows for truth mai
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -7279,8 +7758,14 @@ test('truth primary worklist merge backfyller preview fran legacy-rad nar truth-
     source,
     'resolveRuntimePreviewText'
   );
-  const getUsableRuntimeRowPreviewSource = extractFunctionSource(source, 'getUsableRuntimeRowPreview');
-  const buildRuntimeRowSemanticKeySource = extractFunctionSource(source, 'buildRuntimeRowSemanticKey');
+  const getUsableRuntimeRowPreviewSource = extractFunctionSource(
+    source,
+    'getUsableRuntimeRowPreview'
+  );
+  const buildRuntimeRowSemanticKeySource = extractFunctionSource(
+    source,
+    'buildRuntimeRowSemanticKey'
+  );
   const mergeTruthPrimaryRuntimeRowWithLegacyRowSource = extractFunctionSource(
     source,
     'mergeTruthPrimaryRuntimeRowWithLegacyRow'
@@ -7323,7 +7808,10 @@ test('truth primary worklist merge backfyller preview fran legacy-rad nar truth-
       const normalized = String(value ?? '').trim();
       return normalized || fallback;
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') =>
       String(value || '')
         .trim()
@@ -7334,7 +7822,11 @@ test('truth primary worklist merge backfyller preview fran legacy-rad nar truth-
         .replace(/^_+|_+$/g, ''),
     (value = '') => (typeof value === 'string' ? value.trim() : String(value || '').trim()),
     (value = '') => {
-      const local = String(value || '').trim().toLowerCase().split('@')[0] || '';
+      const local =
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
   );
@@ -7400,9 +7892,18 @@ test('truth primary worklist merge backfyller preview fran legacy-rad nar truth-
 test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7524,9 +8025,18 @@ test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI'
 test('buildThreadCardMarkup kan visa preview fran raw latestMessage bodyHtml nar preview ar tom', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7616,9 +8126,18 @@ test('buildThreadCardMarkup kan visa preview fran raw latestMessage bodyHtml nar
 test('buildThreadCardMarkup kan falla tillbaka till raw customerSummary lastCaseSummary nar preview saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7707,9 +8226,18 @@ test('buildThreadCardMarkup kan falla tillbaka till raw customerSummary lastCase
 test('buildThreadCardMarkup prioriterar canonical threadDocument preview over raw bodyHtml i legacy sunset-pass', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7787,8 +8315,7 @@ test('buildThreadCardMarkup prioriterar canonical threadDocument preview over ra
           {
             role: 'customer',
             presentation: {
-              previewText:
-                'Canonical preview från threadDocument som ska vinna över legacy HTML',
+              previewText: 'Canonical preview från threadDocument som ska vinna över legacy HTML',
             },
           },
         ],
@@ -7812,9 +8339,18 @@ test('buildThreadCardMarkup prioriterar canonical threadDocument preview over ra
 test('buildThreadCardMarkup markerar legacy fallback tydligt nar canonical foundation saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7898,9 +8434,18 @@ test('buildThreadCardMarkup markerar legacy fallback tydligt nar canonical found
 test('vald mailruta visar en kort varfor-nu-rad utan att duplicera hela operativt stod', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -7983,9 +8528,18 @@ test('vald mailruta visar en kort varfor-nu-rad utan att duplicera hela operativ
       unread: true,
       cards: {
         actions: [{ chip: 'Nästa drag', lines: ['Svara nu', 'Ingen planerad uppföljning ännu.'] }],
-        customer: [{ chip: 'Kundläge', lines: ['Kontaktväg: Kons', 'Nu väntar vi på: Behöver åtgärd'] }],
-        history: [{ chip: 'Historikmönster', lines: ['Historiken visar bäst respons på tydliga CTA.'] }],
-        signals: [{ chip: 'Prioriteringssignal', lines: ['Prioritetsskäl: Oläst kundrad', 'Nästa steg: Svara nu'] }],
+        customer: [
+          { chip: 'Kundläge', lines: ['Kontaktväg: Kons', 'Nu väntar vi på: Behöver åtgärd'] },
+        ],
+        history: [
+          { chip: 'Historikmönster', lines: ['Historiken visar bäst respons på tydliga CTA.'] },
+        ],
+        signals: [
+          {
+            chip: 'Prioriteringssignal',
+            lines: ['Prioritetsskäl: Oläst kundrad', 'Nästa steg: Svara nu'],
+          },
+        ],
         medicine: [],
         team: [{ chip: 'Teamläge', lines: ['Ägare: Egzona', 'Ingen eskalering krävs just nu.'] }],
       },
@@ -8007,9 +8561,18 @@ test('vald mailruta visar en kort varfor-nu-rad utan att duplicera hela operativ
 test('vald mailruta visar fortfarande varfor-nu-signalen nar cards saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8120,9 +8683,18 @@ test('vald mailruta visar fortfarande varfor-nu-signalen nar cards saknas', () =
 test('mejlraden visar rensad kundpreview utan formulärfält när mailtext finns', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8211,9 +8783,18 @@ test('mejlraden visar rensad kundpreview utan formulärfält när mailtext finns
 test('mejlraden visar ingen previewrad när preview bara är placeholder-copy', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8299,9 +8880,18 @@ test('mejlraden visar ingen previewrad när preview bara är placeholder-copy', 
 test('mejlraden faller tillbaka till forsta riktiga kundtexten nar preview saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8371,8 +8961,7 @@ test('mejlraden faller tillbaka till forsta riktiga kundtexten nar preview sakna
         {
           id: 'message-1',
           role: 'customer',
-          body:
-            'Hej. Min fråga är, är det möjligt att transplantera ögonbrynshår, och hur mycket kostar det?',
+          body: 'Hej. Min fråga är, är det möjligt att transplantera ögonbrynshår, och hur mycket kostar det?',
         },
       ],
       lastActivityAt: '2026-04-02T13:24:00.000Z',
@@ -8395,9 +8984,18 @@ test('mejlraden faller tillbaka till forsta riktiga kundtexten nar preview sakna
 test('mejlraden faller tillbaka till raw detail nar preview och messages saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8431,7 +9029,10 @@ test('mejlraden faller tillbaka till raw detail nar preview och messages saknas'
       return String(value);
     },
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || '').replace(/\s+/g, ' ').trim() || fallback;
+      const normalized =
+        String(value || '')
+          .replace(/\s+/g, ' ')
+          .trim() || fallback;
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -8499,9 +9100,18 @@ test('mejlraden faller tillbaka till raw detail nar preview och messages saknas'
 test('mejlraden filtrerar provider-copy fran previewrad men behaller faktisk kundtext', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8587,9 +9197,18 @@ test('mejlraden filtrerar provider-copy fran previewrad men behaller faktisk kun
 test('mailrubriken kollapsar dubbelnamn och visar kontaktformular som sekundar kontext', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8673,9 +9292,18 @@ test('mailrubriken kollapsar dubbelnamn och visar kontaktformular som sekundar k
 test('booking-systemmail renderar kompakt previewrad utan inline-kontext i headern', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
-  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhat');
-  const getQueueInlineLaneSignalWhySource = extractFunctionSource(source, 'getQueueInlineLaneSignalWhy');
-  const getQueueInlineLaneSignalNextSource = extractFunctionSource(source, 'getQueueInlineLaneSignalNext');
+  const getQueueInlineLaneSignalWhatSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhat'
+  );
+  const getQueueInlineLaneSignalWhySource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalWhy'
+  );
+  const getQueueInlineLaneSignalNextSource = extractFunctionSource(
+    source,
+    'getQueueInlineLaneSignalNext'
+  );
   const threadSmartSummarySource = extractFunctionSource(source, 'buildThreadSmartSummary');
   const threadIntelAuditMarkupSource = extractFunctionSource(source, 'buildThreadIntelAuditMarkup');
   const threadMarkupSource = extractFunctionSource(source, 'buildThreadCardMarkup');
@@ -8705,7 +9333,10 @@ test('booking-systemmail renderar kompakt previewrad utan inline-kontext i heade
       return String(value);
     },
     (value, fallback = '', maxChars = 120) => {
-      const normalized = String(value || '').replace(/\s+/g, ' ').trim() || fallback;
+      const normalized =
+        String(value || '')
+          .replace(/\s+/g, ' ')
+          .trim() || fallback;
       if (!normalized) return '';
       return normalized.length <= maxChars
         ? normalized
@@ -8773,12 +9404,12 @@ test('worklistkortens mejlrad visar bara nodvandig copy och fyra oppna intellige
   );
   const liveHeadRule = extractCssBlock(
     stylesSource,
-    '.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-head'
+    '.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-head'
   );
   const storyRule = extractCssBlock(stylesSource, '\n.thread-story {\n');
   const liveStoryRule = extractCssBlock(
     stylesSource,
-    '.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-story'
+    '.queue-history-list > .thread-card:not(.unified-queue-card) .thread-story'
   );
   const intelligenceRowRule = extractCssBlock(stylesSource, '\n.thread-intelligence-row {\n');
   const intelligenceIconRule = extractCssBlock(stylesSource, '.thread-intelligence-item-icon');
@@ -8804,7 +9435,7 @@ test('worklistkortens mejlrad visar bara nodvandig copy och fyra oppna intellige
   const unreadRule = extractCssBlock(stylesSource, '.thread-unread-indicator');
   const liveAvatarRule = extractCssBlock(
     stylesSource,
-    '.queue-history-list[data-queue-list-mode="live"] > .thread-card .avatar'
+    '.queue-history-list > .thread-card:not(.unified-queue-card) .avatar'
   );
   const liveSupportStackRule = extractCssBlock(
     stylesSource,
@@ -8827,15 +9458,15 @@ test('worklistkortens mejlrad visar bara nodvandig copy och fyra oppna intellige
   assert.match(liveCardRule, /display:\s*grid;/);
   assert.match(liveCardRule, /grid-template-rows:\s*minmax\(0,\s*auto\)\s+auto;/);
   assert.match(liveCardRule, /align-content:\s*start;/);
-  assert.match(liveHeadRule, /padding:\s*2px 10px 11px 0;/);
-  assert.match(liveHeadRule, /border-bottom:\s*1px solid rgba\(222,\s*211,\s*203,\s*0\.46\);/);
+  assert.match(liveHeadRule, /padding:\s*0;/);
+  assert.match(liveHeadRule, /border:\s*0;/);
   assert.match(storyRule, /font-size:\s*13px;/);
   assert.match(storyRule, /line-height:\s*18px;/);
   assert.match(storyRule, /font-weight:\s*540;/);
   assert.match(storyRule, /-webkit-line-clamp:\s*1;/);
 
-  assert.match(liveStoryRule, /color:\s*rgba\(58,\s*52,\s*48,\s*0\.98\);/);
-  assert.match(liveStoryRule, /font-weight:\s*540;/);
+  assert.match(liveStoryRule, /color:\s*rgba\(118,\s*110,\s*102,\s*0\.95\);/);
+  assert.match(liveStoryRule, /font-weight:\s*400;/);
 
   assert.match(intelligenceRowRule, /display:\s*flex;/);
   assert.match(intelligenceRowRule, /flex-wrap:\s*wrap;/);
@@ -8873,7 +9504,7 @@ test('worklistkortens mejlrad visar bara nodvandig copy och fyra oppna intellige
   assert.match(storyPlaceholderRule, /font-weight:\s*580;/);
   assert.match(unreadRule, /background:\s*#4d69d6;/);
   assert.match(unreadRule, /margin-top:\s*5px;/);
-  assert.match(liveAvatarRule, /margin-top:\s*1px;/);
+  assert.match(liveAvatarRule, /flex-shrink:\s*0;/);
   assert.match(liveSupportStackRule, /margin-top:\s*auto;/);
   assert.match(actionIconRule, /width:\s*18px;/);
   assert.match(actionIconRule, /height:\s*18px;/);
