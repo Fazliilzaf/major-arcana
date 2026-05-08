@@ -742,6 +742,75 @@
 }
 
 /* ============================================================
+   Floating shells (modaler) — CSS-only synlighet via [data-open]
+   (migrerad från setFloatingShellOpen inline-styles 2026-05-08)
+   JS sätter bara data-open=""-attributet, CSS hanterar opacity/
+   visibility/pointer-events/transform. Synkrona attribut-skrivningar
+   reagerar i samma frame — ingen rAF-delay för open/close.
+   ============================================================ */
+#mailbox-admin-shell,
+#shell-confirm-shell,
+#customers-merge-shell,
+#customers-settings-shell,
+#macro-editor-shell,
+#settings-profile-shell,
+#note-mode-shell,
+#truth-worklist-shell,
+#customers-import-shell,
+#customers-split-shell {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s ease;
+}
+#mailbox-admin-shell[data-open],
+#shell-confirm-shell[data-open],
+#customers-merge-shell[data-open],
+#customers-settings-shell[data-open],
+#macro-editor-shell[data-open],
+#settings-profile-shell[data-open],
+#note-mode-shell[data-open],
+#truth-worklist-shell[data-open],
+#customers-import-shell[data-open],
+#customers-split-shell[data-open] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+/* Surface-transform: körs ned från ovan när stängd, glider in när öppen */
+#mailbox-admin-shell .mailbox-admin-surface,
+#shell-confirm-shell .shell-modal-surface,
+#customers-merge-shell .customers-modal-surface,
+#customers-settings-shell .customers-modal-surface,
+#macro-editor-shell .shell-modal-surface,
+#settings-profile-shell .shell-modal-surface,
+#note-mode-shell .note-mode-surface,
+#customers-import-shell .customers-modal-surface,
+#customers-split-shell .customers-modal-surface {
+  transform: translateX(-50%) translateY(14px);
+  transition: transform 0.22s ease;
+}
+#mailbox-admin-shell[data-open] .mailbox-admin-surface,
+#shell-confirm-shell[data-open] .shell-modal-surface,
+#customers-merge-shell[data-open] .customers-modal-surface,
+#customers-settings-shell[data-open] .customers-modal-surface,
+#macro-editor-shell[data-open] .shell-modal-surface,
+#settings-profile-shell[data-open] .shell-modal-surface,
+#note-mode-shell[data-open] .note-mode-surface,
+#customers-import-shell[data-open] .customers-modal-surface,
+#customers-split-shell[data-open] .customers-modal-surface {
+  transform: translateX(-50%) translateY(0);
+}
+/* Truth-worklist: ingen translateX-centrering (sidpanel) */
+#truth-worklist-shell {
+  transform: translateY(14px);
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+#truth-worklist-shell[data-open] {
+  transform: translateY(0);
+}
+
+/* ============================================================
    Secondary filter chips (migrerad från P1-B shim 2026-05-07)
    Klickbara chips för Hög risk / Idag / Imorgon / Otilldelad / Uppföljning.
    ============================================================ */

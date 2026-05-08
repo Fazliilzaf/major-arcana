@@ -2724,31 +2724,18 @@
     // Stora ytor (renderInbox, renderFocusPane) kvarstår — egna iterationer.
   }
 
-  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler
-  // (mailbox-admin, confirm, customers-merge, customers-settings, etc).
-  // Samma DOM-mutationer som setFloatingShellOpen — men idempotenta så
-  // multipla anrop med samma state inte slår hjulet runt.
-  function __renderFloatingShell(shell, isOpen, offsetY) {
+  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler.
+  // Synlighet + transform driven av CSS via [data-open] (cco-polish.css).
+  // JS sätter bara aria-hidden + data-open — inga inline-styles.
+  function __renderFloatingShell(shell, isOpen, _offsetY) {
     if (!shell) return;
     const ariaHidden = isOpen ? 'false' : 'true';
     if (shell.getAttribute('aria-hidden') !== ariaHidden) {
       shell.setAttribute('aria-hidden', ariaHidden);
     }
-    const opacity = isOpen ? '1' : '0';
-    if (shell.style.opacity !== opacity) shell.style.opacity = opacity;
-    const visibility = isOpen ? 'visible' : 'hidden';
-    if (shell.style.visibility !== visibility) shell.style.visibility = visibility;
-    const pointer = isOpen ? 'auto' : 'none';
-    if (shell.style.pointerEvents !== pointer) shell.style.pointerEvents = pointer;
-    const surface = shell.querySelector(
-      '.customers-modal-surface, .mailbox-admin-surface, .note-mode-surface, .shell-modal-surface'
-    );
-    if (surface) {
-      const transform = isOpen
-        ? 'translateX(-50%) translateY(0)'
-        : `translateX(-50%) translateY(${offsetY != null ? offsetY : 14}px)`;
-      if (surface.style.transform !== transform) surface.style.transform = transform;
-    }
+    const hasOpen = shell.hasAttribute('data-open');
+    if (isOpen && !hasOpen) shell.setAttribute('data-open', '');
+    else if (!isOpen && hasOpen) shell.removeAttribute('data-open');
   }
 
   function renderMailboxAdmin(state) {
@@ -14297,10 +14284,17 @@
     if (!truthWorklistShell) return;
     truthWorklistShell.hidden = !isOpen;
     truthWorklistShell.setAttribute("aria-hidden", isOpen ? "false" : "true");
-    truthWorklistShell.style.opacity = isOpen ? "1" : "0";
-    truthWorklistShell.style.pointerEvents = isOpen ? "auto" : "none";
-    truthWorklistShell.style.visibility = isOpen ? "visible" : "hidden";
-    truthWorklistShell.style.transform = isOpen ? "translateY(0)" : "translateY(14px)";
+    // Steg state-konsolidering: synlighet driven av CSS via [data-open]
+    // (cco-polish.css). 4 inline-styles ersatta med 1 attribut-toggle.
+    if (isOpen) {
+      if (!truthWorklistShell.hasAttribute("data-open")) {
+        truthWorklistShell.setAttribute("data-open", "");
+      }
+    } else {
+      if (truthWorklistShell.hasAttribute("data-open")) {
+        truthWorklistShell.removeAttribute("data-open");
+      }
+    }
   }
 
   function buildTruthWorklistConsumerHref(mailboxIds = [], limit = getTruthWorklistViewLimit()) {
@@ -15769,19 +15763,17 @@
     state.moreMenuOpen = isOpen;
   }
 
-  function setFloatingShellOpen(shell, open, offsetY = 14) {
+  function setFloatingShellOpen(shell, open, _offsetY) {
     if (!shell) return;
-    shell.setAttribute("aria-hidden", open ? "false" : "true");
-    shell.style.opacity = open ? "1" : "0";
-    shell.style.visibility = open ? "visible" : "hidden";
-    shell.style.pointerEvents = open ? "auto" : "none";
-    const surface = shell.querySelector(
-      ".customers-modal-surface, .mailbox-admin-surface, .note-mode-surface, .shell-modal-surface"
-    );
-    if (surface) {
-      surface.style.transform = open
-        ? "translateX(-50%) translateY(0)"
-        : `translateX(-50%) translateY(${offsetY}px)`;
+    // Steg state-konsolidering: synlighet + transform driven av CSS via
+    // [data-open] (cco-polish.css). JS sätter bara attribut. _offsetY är
+    // en legacy-parameter — CSS använder default 14px (matchar tidigare beteende).
+    const isOpen = Boolean(open);
+    shell.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    if (isOpen) {
+      if (!shell.hasAttribute("data-open")) shell.setAttribute("data-open", "");
+    } else {
+      if (shell.hasAttribute("data-open")) shell.removeAttribute("data-open");
     }
     syncCanvasFloatingShellState();
   }
