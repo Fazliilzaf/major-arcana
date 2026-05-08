@@ -23062,7 +23062,25 @@
     if (scheduleNotesTextarea) scheduleNotesTextarea.value = asText(draft.notes);
   }
 
-  function buildManualBookingCandidateSlots(thread) {
+  function getBookingSelectedOptionLabel(selectNode, fallback = "") {
+    if (!selectNode) return asText(fallback);
+    if (!asText(selectNode.value)) return asText(fallback);
+    const selectedOption = selectNode.options?.[selectNode.selectedIndex] || null;
+    return asText(selectedOption?.textContent, fallback);
+  }
+
+  function addMinutesToTimeLabel(timeLabel = "", minutesToAdd = 60) {
+    const [hoursRaw, minutesRaw] = asText(timeLabel).split(":");
+    const hours = Number(hoursRaw);
+    const minutes = Number(minutesRaw);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return "10:30";
+    const totalMinutes = Math.max(0, hours * 60 + minutes + minutesToAdd);
+    const nextHours = Math.floor(totalMinutes / 60) % 24;
+    const nextMinutes = totalMinutes % 60;
+    return `${String(nextHours).padStart(2, "0")}:${String(nextMinutes).padStart(2, "0")}`;
+  }
+
+  function buildManualBookingCandidateSlots(thread, bookingDom = getBookingDom()) {
     const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
     const baseDate = asText(raw.suggestedDate || raw.followUpDate || "").slice(0, 10);
     const today = new Date();
@@ -23073,16 +23091,26 @@
     ))
       .toISOString()
       .slice(0, 10);
-    const date = baseDate || fallbackDate;
-    const serviceLabel = asText(raw.plannedTreatment || raw.treatmentContext || "Konsultation");
+    const requestedDate = asText(bookingDom?.slotFrom?.value).slice(0, 10);
+    const date = requestedDate || baseDate || fallbackDate;
+    const selectedResourceLabel = getBookingSelectedOptionLabel(bookingDom?.resourceSelect);
+    const selectedServiceLabel = getBookingSelectedOptionLabel(bookingDom?.serviceSelect);
+    const resourceFallback = asText(bookingDom?.slotResIds?.value)
+      ? `Resurs ${asText(bookingDom.slotResIds.value)}`
+      : "Valideras manuellt";
+    const serviceFallback = asText(bookingDom?.slotSrvIds?.value)
+      ? `Tjänst ${asText(bookingDom.slotSrvIds.value)}`
+      : asText(raw.plannedTreatment || raw.treatmentContext || "Konsultation");
+    const resourceLabel = selectedResourceLabel || resourceFallback;
+    const serviceLabel = selectedServiceLabel || serviceFallback;
     return ["09:30", "13:30", "15:00"].map((time, index) => ({
       slotId: `${asText(thread?.id, "booking")}:${date}:${time}`,
-      startsAt: `${date}T${time}:00.000Z`,
-      endsAt: `${date}T${String(Number(time.slice(0, 2)) + 1).padStart(2, "0")}:${time.slice(3)}:00.000Z`,
-      resourceLabel: index === 1 ? "Dr. Sara" : "Dr. Eriksson",
+      startsAt: `${date}T${time}:00`,
+      endsAt: `${date}T${addMinutesToTimeLabel(time, index === 2 ? 45 : 60)}:00`,
+      resourceLabel,
       serviceLabel,
       locationLabel: "Hair TP Clinic",
-      source: "operator_candidate",
+      source: "Manuell kandidat",
     }));
   }
 
@@ -23406,8 +23434,8 @@
       if (action === "candidate_slots") {
         await persistBookingSelectedSlots(
           thread,
-          buildManualBookingCandidateSlots(thread),
-          "Tre kandidat-tider lades i bokningsytan."
+          buildManualBookingCandidateSlots(thread, bookingDom),
+          "Tre manuella kandidat-tider lades i bokningsytan utifrån valt datum och behandling."
         );
       }
 
