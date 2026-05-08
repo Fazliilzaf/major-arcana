@@ -2402,13 +2402,129 @@
     },
   };
 
+  // ============================================================
+  // state.ui — flat namespace för alla UI-flaggor (steg 3 av state-konsolidering)
+  // ============================================================
+  // Detta är en VIRTUELL VY. Storage:n ligger fortfarande på sina ursprungliga
+  // platser (top-level + runtime-sub-objekt). Renderers/handlers kan välja att
+  // läsa via state.ui.moreMenuOpen ELLER state.moreMenuOpen — båda funkar.
+  // När alla call sites migrerats flyttas storage:n hit.
+  //
+  // Aktiv test: kör `__testStateUi()` i devtools för att verifiera att alla
+  // paths pekar på existerande storage.
+
+  const __UI_KEY_PATHS = Object.freeze({
+    // Top-level UI-flaggor
+    moreMenuOpen: ['moreMenuOpen'],
+    mailboxAdminOpen: ['mailboxAdminOpen'],
+    mailboxAdminEditingId: ['mailboxAdminEditingId'],
+    automationCollaborationOpen: ['automationCollaborationOpen'],
+    automationRailCollapsed: ['automationRailCollapsed'],
+    customerMergeModalOpen: ['customerMergeModalOpen'],
+    customerSettingsOpen: ['customerSettingsOpen'],
+    customerSuggestionsHidden: ['customerSuggestionsHidden'],
+    // Nested top-level
+    noteModeOpen: ['noteMode', 'open'],
+    macroModalOpen: ['macroModal', 'open'],
+    settingsProfileModalOpen: ['settingsProfileModal', 'open'],
+    confirmDialogOpen: ['confirmDialog', 'open'],
+    pendingMailFeedDeleteActive: ['pendingMailFeedDelete', 'active'],
+    // Runtime-nested
+    queueInlinePanelOpen: ['runtime', 'queueInlinePanel', 'open'],
+    queueHistoryOpen: ['runtime', 'queueHistory', 'open'],
+    queueCategoriesCompact: ['runtime', 'queueCategoriesCompact'],
+    truthWorklistViewHidden: ['runtime', 'truthWorklistView', 'hidden'],
+    historyExpanded: ['runtime', 'historyExpanded'],
+    // Navigation (vilken stor vy/pane är aktiv)
+    view: ['view'],
+    activeFocusSection: ['runtime', 'activeFocusSection'],
+  });
+
+  function __readUiPath(path) {
+    let cur = __stateInternal;
+    for (const seg of path) {
+      if (cur == null) return undefined;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+
+  function __writeUiPath(path, value) {
+    if (path.length === 1) {
+      // Top-level write går via state-Proxy → mutation tracking fungerar
+      // (state är inte definierad än här, så vi använder forward-ref via __stateRefs)
+      __stateRefs.proxy[path[0]] = value;
+      return;
+    }
+    // Nested write: navigera till parent och skriv leaf direkt.
+    // (state-Proxy fångar bara top-level writes — nested writes på sub-objekt
+    // har aldrig spårats av Proxyn, så ingen regression här.)
+    let cur = __stateInternal;
+    for (let i = 0; i < path.length - 1; i++) {
+      cur = cur[path[i]];
+      if (cur == null) return;
+    }
+    const lastKey = path[path.length - 1];
+    if (cur[lastKey] !== value) cur[lastKey] = value;
+  }
+
+  // Forward-ref så __writeUiPath kan komma åt state-Proxyn innan den deklareras.
+  const __stateRefs = { proxy: null };
+
+  const stateUiView = new Proxy(Object.create(null), {
+    get(_, key) {
+      if (typeof key === 'symbol') return undefined;
+      const path = __UI_KEY_PATHS[key];
+      if (!path) return undefined;
+      return __readUiPath(path);
+    },
+    set(_, key, value) {
+      if (typeof key === 'symbol') return true;
+      const path = __UI_KEY_PATHS[key];
+      if (!path) {
+        if (typeof console !== 'undefined') {
+          console.warn('[state.ui] Okänd UI-key:', key, '— lägg till i __UI_KEY_PATHS');
+        }
+        return true;
+      }
+      __writeUiPath(path, value);
+      return true;
+    },
+    has(_, key) {
+      return Object.prototype.hasOwnProperty.call(__UI_KEY_PATHS, key);
+    },
+    ownKeys(_) {
+      return Object.keys(__UI_KEY_PATHS);
+    },
+    getOwnPropertyDescriptor(_, key) {
+      if (Object.prototype.hasOwnProperty.call(__UI_KEY_PATHS, key)) {
+        return {
+          enumerable: true,
+          configurable: true,
+          value: __readUiPath(__UI_KEY_PATHS[key]),
+        };
+      }
+      return undefined;
+    },
+  });
+
   // Proxy runt state för Fas 4-debug. Default: ingen logging, transparent.
   // Aktivera i devtools-console:
   //   window.__DEBUG_STATE = true   // logga alla mutationer
   //   window.__DEBUG_STATE = 'count' // räkna utan att logga
   //   __getStateStats()             // visa mutations-statistik
   const state = new Proxy(__stateInternal, {
+    get(target, key) {
+      if (key === 'ui') return stateUiView;
+      return target[key];
+    },
     set(target, key, value) {
+      if (key === 'ui') {
+        if (typeof console !== 'undefined') {
+          console.warn('[state] state.ui är en vy och kan inte ersättas direkt');
+        }
+        return true;
+      }
       // Skip no-op mutationer (samma värde) — fas 4 perf-fix.
       // Detta minskar moreMenuOpen från 208 → 1 mutation vid bootstrap.
       // Strict equality för primitives + samma referens för objekt.
@@ -2443,6 +2559,8 @@
       return true;
     },
   });
+  __stateRefs.proxy = state;
+
   if (typeof window !== 'undefined') {
     window.__getStateStats = () => ({
       total: __stateMutationStats.count,
@@ -2451,6 +2569,25 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10),
     });
+    // Verifierar att alla paths i __UI_KEY_PATHS pekar på existerande storage
+    // (ingen typo). Returnerar lista med {key, path, value, exists}.
+    window.__testStateUi = () => {
+      const results = [];
+      for (const key of Object.keys(__UI_KEY_PATHS)) {
+        const path = __UI_KEY_PATHS[key];
+        const value = __readUiPath(path);
+        results.push({
+          key,
+          path: path.join('.'),
+          value,
+          exists: value !== undefined,
+        });
+      }
+      const missing = results.filter(r => !r.exists).map(r => r.key);
+      console.log('[state.ui] testar', results.length, 'paths,', missing.length, 'missing');
+      if (missing.length) console.warn('[state.ui] saknas:', missing);
+      return results;
+    };
   }
 
   const asyncRuntimeRefs = {
