@@ -1,4 +1,167 @@
 (() => {
+  // ============================================================
+  // Customer-name resolver (migrerad från P0-2 shim 2026-05-07)
+  // ============================================================
+  // Hämtar ?fallback-namn för trådar där app.js har "Okänd avsändare".
+  // Tidigare en setInterval(1500ms)-shim som scannade hela DOM:en konstant.
+  // Nu körs det bara när renderern faktiskt kör (renderQueueHistoryList +
+  // renderQueueInlineLaneList anropar scanAndFixUnknownSenders på sin egen
+  // container) plus en lågfrekvent re-fetch var 60s av API-data.
+
+  const __CUSTOMER_LS_KEY = 'cco.selectedMailboxIds.v1';
+  const __CUSTOMER_DEFAULT_MAILBOXES = ['contact','egzona','fazli','info','kons','marknad'];
+  const __threadCustomerMap = new Map();
+
+  function __buildWorklistConsumerUrl() {
+    let mailboxIds = [];
+    try {
+      const persisted = localStorage.getItem(__CUSTOMER_LS_KEY);
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          mailboxIds = parsed.map(k => `${k}@hairtpclinic.com`);
+        }
+      }
+    } catch (_e) { /* tyst */ }
+    if (mailboxIds.length === 0) {
+      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`);
+    }
+    const params = new URLSearchParams();
+    params.set('mailboxIds', mailboxIds.join(','));
+    params.set('limit', '500');
+    return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
+  }
+
+  async function __fetchWorklistAndBuildMap() {
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      if (!token) return false;
+      const res = await fetch(__buildWorklistConsumerUrl(), {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
+      let added = 0;
+      for (const row of rows) {
+        const id = row.id
+          || row.conversationKey
+          || row.conversation?.key
+          || row.conversation?.mailboxConversationId
+          || row.conversation?.conversationId
+          || row.conversation?.id
+          || row.conversationId;
+        if (!id) continue;
+        const customer = row.customer || row.contact || {};
+        const name = customer.name || customer.displayName || row.customerName || row.from?.name || '';
+        const email = customer.email || customer.address || row.customerEmail || row.from?.address || '';
+        const norm = String(id).toLowerCase();
+        __threadCustomerMap.set(norm, { name, email });
+        const stripped = norm.replace(/[^a-z0-9]/g, '');
+        __threadCustomerMap.set(stripped, { name, email });
+        added += 1;
+      }
+      return added > 0;
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[name-resolver] worklist-fetch fel:', e);
+      return false;
+    }
+  }
+
+  function __lookupCustomerForCard(cardEl) {
+    const tid = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || cardEl.dataset.threadId;
+    if (!tid) return null;
+    const norm = String(tid).toLowerCase();
+    if (__threadCustomerMap.has(norm)) return __threadCustomerMap.get(norm);
+    const stripped = norm.replace(/[^a-z0-9]/g, '');
+    if (__threadCustomerMap.has(stripped)) return __threadCustomerMap.get(stripped);
+    return null;
+  }
+
+  function __humanizeLocalpart(localpart) {
+    if (!localpart) return '';
+    return localpart
+      .replace(/[._-]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  function __fixUnknownSenderInCard(cardEl) {
+    if (!cardEl) return;
+    const walker = document.createTreeWalker(cardEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => /Okänd avsändare/i.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+    });
+    const targets = [];
+    let n;
+    while ((n = walker.nextNode())) targets.push(n);
+    if (targets.length === 0) return;
+
+    let humanName = '';
+    const customer = __lookupCustomerForCard(cardEl);
+    if (customer?.name) {
+      humanName = customer.name;
+    } else if (customer?.email) {
+      humanName = __humanizeLocalpart(customer.email.split('@')[0]);
+    }
+
+    if (!humanName) {
+      let email = '';
+      const allElements = [cardEl, ...cardEl.querySelectorAll('*')];
+      for (const el of allElements) {
+        for (const attr of el.attributes || []) {
+          const m = (attr.value || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (m) { email = m[0]; break; }
+        }
+        if (email) break;
+      }
+      if (!email) {
+        const m = cardEl.textContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (m) email = m[0];
+      }
+      if (email) humanName = __humanizeLocalpart(email.split('@')[0]);
+    }
+
+    if (!humanName) return;
+
+    targets.forEach(textNode => {
+      textNode.nodeValue = textNode.nodeValue.replace(/Okänd avsändare/gi, humanName);
+    });
+    cardEl.dataset.shimNameFixed = 'true';
+  }
+
+  function __scanAndFixUnknownSenders(root) {
+    const cards = (root || document).querySelectorAll('.thread-card:not([data-shim-name-fixed])');
+    cards.forEach(__fixUnknownSenderInCard);
+  }
+
+  // Bootstrap: en gång vid load + lågfrekvent re-fetch (var 60s) för att fånga
+  // nya trådar. Tidigare 1500ms-pollingen är borta — scan körs istället
+  // direkt efter render (se renderQueueHistoryList / renderQueueInlineLaneList).
+  (async function bootstrapCustomerNameResolver() {
+    try { await __fetchWorklistAndBuildMap(); } catch (_e) {}
+    try { __scanAndFixUnknownSenders(); } catch (_e) {}
+    setInterval(async () => {
+      try {
+        await __fetchWorklistAndBuildMap();
+        // Rensa fixed-flag så nästa render-scan tar med ev. nya trådar
+        document.querySelectorAll('.thread-card[data-shim-name-fixed]').forEach(c => delete c.dataset.shimNameFixed);
+        __scanAndFixUnknownSenders();
+      } catch (_e) {}
+    }, 60000);
+  })();
+
+  // Exponera till globalt scope så ev. externa anropare kan trigga rescan
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaCustomerNameResolver = Object.freeze({
+      scanAndFix: __scanAndFixUnknownSenders,
+      refetch: __fetchWorklistAndBuildMap,
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -3720,6 +3883,8 @@
         )
         .join("");
       enforceUnifiedCardV3Sections(queueHistoryList);
+      // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
+      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -3787,6 +3952,8 @@
         )
         .join("");
       enforceUnifiedCardV3Sections(queueHistoryList);
+      // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
+      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 

@@ -2,7 +2,8 @@
  * runtime-fix-shims.js — körs efter app.js för att patcha P0-buggar i preview
  *
  * P0-1: Persistera selectedMailboxIds mellan sessions (localStorage)
- * P0-2: Fallback för "Okänd avsändare" — extrahera namn från email-localpart
+ * P0-2: Fallback för "Okänd avsändare" — MIGRERAD till runtime-queue-renderers.js
+ *       (window.MajorArcanaCustomerNameResolver) 2026-05-07
  *
  * Dessa är non-invasive shims som hookar DOM + storage utan att ändra app.js.
  * När fixen byggs in i app.js permanent kan denna fil tas bort.
@@ -204,154 +205,9 @@
     setTimeout(() => { if (!triggered) observer.disconnect(); }, 30000);
   }
 
-  // ============================================================
-  // P0-2: "Okänd avsändare" fallback från worklist-API
-  // ============================================================
-
-  // Map: threadId → { name, email }
-  const threadCustomerMap = new Map();
-
-  function buildWorklistConsumerUrl() {
-    // Hämta sparade mailbox-val (eller default-listan)
-    let mailboxIds = [];
-    try {
-      const persisted = localStorage.getItem(LS_KEY_SELECTED);
-      if (persisted) {
-        const parsed = JSON.parse(persisted);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          mailboxIds = parsed.map(k => `${k}@hairtpclinic.com`);
-        }
-      }
-    } catch (e) { /* tyst */ }
-    if (mailboxIds.length === 0) {
-      mailboxIds = DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`);
-    }
-    const params = new URLSearchParams();
-    params.set('mailboxIds', mailboxIds.join(','));
-    params.set('limit', '500');
-    return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
-  }
-
-  async function fetchWorklistAndBuildMap() {
-    try {
-      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
-      if (!token) return false;
-      const res = await fetch(buildWorklistConsumerUrl(), {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      const rows = Array.isArray(data?.rows)
-        ? data.rows
-        : (Array.isArray(data?.items) ? data.items : []);
-      let added = 0;
-      for (const row of rows) {
-        const id = row.id
-          || row.conversationKey
-          || row.conversation?.key
-          || row.conversation?.mailboxConversationId
-          || row.conversation?.conversationId
-          || row.conversation?.id
-          || row.conversationId;
-        if (!id) continue;
-        const customer = row.customer || row.contact || {};
-        const name = customer.name || customer.displayName || row.customerName || row.from?.name || '';
-        const email = customer.email || customer.address || row.customerEmail || row.from?.address || '';
-        // Lagra med flera nyckelvarianter eftersom DOM-id kan vara annan format
-        const norm = String(id).toLowerCase();
-        threadCustomerMap.set(norm, { name, email });
-        // Spara även lowercase utan symboler för fuzzy match
-        const stripped = norm.replace(/[^a-z0-9]/g, '');
-        threadCustomerMap.set(stripped, { name, email });
-        added += 1;
-      }
-      console.log('[fix-shim] Hämtade', added, 'trådar från worklist-API → kund-namn-karta');
-      return added > 0;
-    } catch (e) {
-      console.warn('[fix-shim] worklist-fetch fel:', e);
-      return false;
-    }
-  }
-
-  function lookupCustomerForCard(cardEl) {
-    const tid = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || cardEl.dataset.threadId;
-    if (!tid) return null;
-    const norm = String(tid).toLowerCase();
-    if (threadCustomerMap.has(norm)) return threadCustomerMap.get(norm);
-    const stripped = norm.replace(/[^a-z0-9]/g, '');
-    if (threadCustomerMap.has(stripped)) return threadCustomerMap.get(stripped);
-    return null;
-  }
-
-  function humanizeLocalpart(localpart) {
-    if (!localpart) return '';
-    // foo.bar → Foo Bar, john_doe → John Doe
-    return localpart
-      .replace(/[._-]+/g, ' ')
-      .split(' ')
-      .filter(Boolean)
-      .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  }
-
-  function fixUnknownSenderInCard(cardEl) {
-    if (!cardEl) return;
-    // Sök efter "Okänd avsändare" text i kortet
-    const walker = document.createTreeWalker(cardEl, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) => /Okänd avsändare/i.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
-    });
-    const targets = [];
-    let n;
-    while ((n = walker.nextNode())) targets.push(n);
-    if (targets.length === 0) return;
-
-    // Slå upp kund-data i karta byggd från worklist-API
-    let humanName = '';
-    const customer = lookupCustomerForCard(cardEl);
-    if (customer?.name) {
-      humanName = customer.name;
-    } else if (customer?.email) {
-      humanName = humanizeLocalpart(customer.email.split('@')[0]);
-    }
-
-    // Fallback: leta efter email i DOM (om kortet ändå har email någonstans)
-    if (!humanName) {
-      let email = '';
-      const allElements = [cardEl, ...cardEl.querySelectorAll('*')];
-      for (const el of allElements) {
-        for (const attr of el.attributes || []) {
-          const m = (attr.value || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          if (m) { email = m[0]; break; }
-        }
-        if (email) break;
-      }
-      if (!email) {
-        const m = cardEl.textContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-        if (m) email = m[0];
-      }
-      if (email) humanName = humanizeLocalpart(email.split('@')[0]);
-    }
-
-    if (!humanName) return; // Vi har inget att ersätta med
-
-    targets.forEach(textNode => {
-      textNode.nodeValue = textNode.nodeValue.replace(/Okänd avsändare/gi, humanName);
-    });
-    cardEl.dataset.shimNameFixed = 'true';
-  }
-
-  function scanAndFixUnknownSenders(root) {
-    const cards = (root || document).querySelectorAll('.thread-card:not([data-shim-name-fixed])');
-    cards.forEach(fixUnknownSenderInCard);
-  }
-
-  function observeUnknownSenders() {
-    // Fas 2 cleanup: MutationObserver ersatt med periodisk scan var 1500ms.
-    // scanAndFixUnknownSenders short-circuit:ar om inga "Okänd avsändare"-noder
-    // finns, så cost är försumbar när allt är fixat.
-    scanAndFixUnknownSenders();
-    window.setInterval(scanAndFixUnknownSenders, 1500);
-  }
+  // P0-2: "Okänd avsändare"-fallback — MIGRERAD till runtime-queue-renderers.js
+  // 2026-05-07. Hela koden (worklist-fetch, customer-map, scan-and-fix) lever
+  // nu i renderern och körs vid varje render istället för setInterval(1500ms).
 
   // ============================================================
   // P1-1: Klick på thread-card uppdaterar inte FOKUSYTA
@@ -965,19 +821,8 @@
     try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
     try { bootstrapSecondaryFilters(); } catch (e) { console.warn('[fix-shim] secondary-filters fel:', e); }
     try { bootstrapSearchFilter(); } catch (e) { console.warn('[fix-shim] search-filter fel:', e); }
-    try {
-      // Fetcha worklist-API först så namn-kartan finns innan observer scannar
-      await fetchWorklistAndBuildMap();
-      observeUnknownSenders();
-      // Re-fetcha kartan + re-scan periodiskt så nya trådar får namn
-      setInterval(async () => {
-        await fetchWorklistAndBuildMap();
-        // Forcera re-scan på alla kort genom att rensa shim-fixed-flag
-        document.querySelectorAll('.thread-card[data-shim-name-fixed]').forEach(c => delete c.dataset.shimNameFixed);
-        scanAndFixUnknownSenders();
-        updateLivePill();
-      }, 60000); // Var 60 sek
-    } catch (e) { console.warn('[fix-shim] okänd-avsändare-fix fel:', e); }
-    console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + okänd-avsändare + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)');
+    // P0-2: okänd-avsändare-fix initieras nu av runtime-queue-renderers.js
+    // (window.MajorArcanaCustomerNameResolver) och körs vid varje render.
+    console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)');
   }
 })();
