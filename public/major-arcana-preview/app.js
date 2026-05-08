@@ -2447,165 +2447,24 @@
   // Aktiv test: kör `__testStateUi()` i devtools för att verifiera att alla
   // paths pekar på existerande storage.
 
-  const __UI_KEY_PATHS = Object.freeze({
-    // Top-level UI-flaggor
-    moreMenuOpen: ['moreMenuOpen'],
-    mailboxAdminOpen: ['mailboxAdminOpen'],
-    mailboxAdminEditingId: ['mailboxAdminEditingId'],
-    automationCollaborationOpen: ['automationCollaborationOpen'],
-    automationRailCollapsed: ['automationRailCollapsed'],
-    customerMergeModalOpen: ['customerMergeModalOpen'],
-    customerSettingsOpen: ['customerSettingsOpen'],
-    customerSuggestionsHidden: ['customerSuggestionsHidden'],
-    // Nested top-level
-    noteModeOpen: ['noteMode', 'open'],
-    macroModalOpen: ['macroModal', 'open'],
-    settingsProfileModalOpen: ['settingsProfileModal', 'open'],
-    confirmDialogOpen: ['confirmDialog', 'open'],
-    pendingMailFeedDeleteActive: ['pendingMailFeedDelete', 'active'],
-    // Runtime-nested
-    queueInlinePanelOpen: ['runtime', 'queueInlinePanel', 'open'],
-    queueHistoryOpen: ['runtime', 'queueHistory', 'open'],
-    queueCategoriesCompact: ['runtime', 'queueCategoriesCompact'],
-    truthWorklistViewHidden: ['runtime', 'truthWorklistView', 'hidden'],
-    historyExpanded: ['runtime', 'historyExpanded'],
-    // Navigation (vilken stor vy/pane är aktiv)
-    view: ['view'],
-    activeFocusSection: ['runtime', 'activeFocusSection'],
-  });
-
-  // state.selection — flat namespace för all selection-state (16 + 6 keys).
-  const __SELECTION_KEY_PATHS = Object.freeze({
-    // Top-level
-    customerIdentity: ['selectedCustomerIdentity'],
-    analyticsPeriod: ['selectedAnalyticsPeriod'],
-    automationLibrary: ['selectedAutomationLibrary'],
-    automationNode: ['selectedAutomationNode'],
-    automationSection: ['selectedAutomationSection'],
-    automationTemplate: ['selectedAutomationTemplate'],
-    automationVersion: ['selectedAutomationVersion'],
-    automationAutopilotProposal: ['selectedAutomationAutopilotProposal'],
-    integrationCategory: ['selectedIntegrationCategory'],
-    showcaseFeature: ['selectedShowcaseFeature'],
-    customerMergePrimaryKey: ['customerMergePrimaryKey'],
-    // Nested top-level
-    mailFeedKeyLater: ['selectedMailFeedKey', 'later'],
-    mailFeedKeySent: ['selectedMailFeedKey', 'sent'],
-    // Runtime-nested
-    threadId: ['runtime', 'selectedThreadId'],
-    mailboxIds: ['runtime', 'selectedMailboxIds'],
-    ownerKey: ['runtime', 'selectedOwnerKey'],
-    laneId: ['runtime', 'activeLaneId'],
-    historyContextThreadId: ['runtime', 'historyContextThreadId'],
-    historyConversationId: ['runtime', 'queueHistory', 'selectedConversationId'],
-  });
-
-  // state.status — flat namespace för loading/error-flaggor (28 keys).
-  const __STATUS_KEY_PATHS = Object.freeze({
-    bootstrapped: ['bootstrapped'],
-    bootstrapError: ['bootstrapError'],
-    // Runtime status
-    loading: ['runtime', 'loading'],
-    loaded: ['runtime', 'loaded'],
-    hasReachedSteadyState: ['runtime', 'hasReachedSteadyState'],
-    hasRemovedRuntimeLoading: ['runtime', 'hasRemovedRuntimeLoading'],
-    authRecoveryArmed: ['runtime', 'authRecoveryArmed'],
-    pendingFullRefresh: ['runtime', 'pendingFullRefresh'],
-    isBackgroundRefresh: ['runtime', 'isBackgroundRefresh'],
-    backgroundRefreshSelectedThreadId: ['runtime', 'backgroundRefreshSelectedThreadId'],
-    mode: ['runtime', 'mode'],
-    live: ['runtime', 'live'],
-    authRequired: ['runtime', 'authRequired'],
-    offline: ['runtime', 'offline'],
-    offlineWorkingSetSource: ['runtime', 'offlineWorkingSetSource'],
-    offlineWorkingSetMeta: ['runtime', 'offlineWorkingSetMeta'],
-    error: ['runtime', 'error'],
-    lastSyncAt: ['runtime', 'lastSyncAt'],
-    historyDeleting: ['runtime', 'historyDeleting'],
-    deletingThreadId: ['runtime', 'deletingThreadId'],
-    restoringMail: ['runtime', 'restoringMail'],
-    // Sub-runtime status
-    queueHistoryLoading: ['runtime', 'queueHistory', 'loading'],
-    queueHistoryLoaded: ['runtime', 'queueHistory', 'loaded'],
-    queueHistoryError: ['runtime', 'queueHistory', 'error'],
-    truthWorklistViewLoading: ['runtime', 'truthWorklistView', 'loading'],
-    truthWorklistViewLoaded: ['runtime', 'truthWorklistView', 'loaded'],
-    truthWorklistViewAuthRequired: ['runtime', 'truthWorklistView', 'authRequired'],
-    truthWorklistViewError: ['runtime', 'truthWorklistView', 'error'],
-  });
-
-  // state.data — flat namespace för domain-data (server-levererat).
-  const __DATA_KEY_PATHS = Object.freeze({
-    threads: ['runtime', 'threads'],
-    mailboxes: ['runtime', 'mailboxes'],
-    mailboxCapabilities: ['runtime', 'mailboxCapabilities'],
-    queueHistoryItems: ['runtime', 'queueHistory', 'items'],
-    truthPrimaryLegacyThreads: ['runtime', 'truthPrimaryLegacyThreads'],
-    noteTemplates: ['noteTemplates'],
-    noteDefinitions: ['noteDefinitions'],
-    customMailboxes: ['customMailboxes'],
-    macros: ['macros'],
-  });
-
-  // state.forms — flat namespace för live form/draft-state.
-  const __FORMS_KEY_PATHS = Object.freeze({
-    // Studio (compose / reply)
-    studioMode: ['studio', 'mode'],
-    studioThreadId: ['studio', 'threadId'],
-    studioComposeMailboxId: ['studio', 'composeMailboxId'],
-    studioComposeTo: ['studio', 'composeTo'],
-    studioComposeSubject: ['studio', 'composeSubject'],
-    studioDraftBody: ['studio', 'draftBody'],
-    studioActiveTemplate: ['studio', 'activeTemplateKey'],
-    studioActiveTrack: ['studio', 'activeTrackKey'],
-    studioActiveTone: ['studio', 'activeToneKey'],
-    studioSignature: ['studio', 'selectedSignatureId'],
-    studioSending: ['studio', 'sending'],
-    // Note
-    noteActiveKey: ['note', 'activeKey'],
-    noteDrafts: ['note', 'drafts'],
-    noteSaving: ['note', 'saving'],
-    // Schedule
-    scheduleDraft: ['schedule', 'draft'],
-    scheduleOptions: ['schedule', 'options'],
-    scheduleSaving: ['schedule', 'saving'],
-    // Later
-    laterOption: ['later', 'option'],
-    laterBulkSelectionKeys: ['later', 'bulkSelectionKeys'],
-    laterContextThreadId: ['later', 'contextThreadId'],
-    // Customer-vyn
-    customerSearch: ['customerSearch'],
-    customerFilter: ['customerFilter'],
-    customerBatchSelection: ['customerBatchSelection'],
-    customerMergeOptions: ['customerMergeOptions'],
-    // History-filter
-    historySearch: ['runtime', 'historySearch'],
-    historyMailboxFilter: ['runtime', 'historyMailboxFilter'],
-    historyResultTypeFilter: ['runtime', 'historyResultTypeFilter'],
-    historyRangeFilter: ['runtime', 'historyRangeFilter'],
-  });
-
-  // state.prefs — flat namespace för preferences (persisted-värden).
-  const __PREFS_KEY_PATHS = Object.freeze({
-    // Top-level
-    automationAutopilotEnabled: ['automationAutopilotEnabled'],
-    automationScale: ['automationScale'],
-    workspacePrefsApplied: ['workspacePrefsApplied'],
-    // Runtime-nested
-    preferredMailboxId: ['runtime', 'preferredMailboxId'],
-    defaultSenderMailbox: ['runtime', 'defaultSenderMailbox'],
-    defaultSignatureProfile: ['runtime', 'defaultSignatureProfile'],
-    sendEnabled: ['runtime', 'sendEnabled'],
-    deleteEnabled: ['runtime', 'deleteEnabled'],
-    graphReadEnabled: ['runtime', 'graphReadEnabled'],
-    graphReadConnectorAvailable: ['runtime', 'graphReadConnectorAvailable'],
-    mailboxScopePinned: ['runtime', 'mailboxScopePinned'],
-    // Settings runtime
-    themeChoice: ['settingsRuntime', 'choices', 'theme'],
-    densityChoice: ['settingsRuntime', 'choices', 'density'],
-    profileName: ['settingsRuntime', 'profileName'],
-    profileEmail: ['settingsRuntime', 'profileEmail'],
-  });
+  // ====================================================================
+  // STATE-VIEW PATH MAPPINGS — extraherade till app/state-paths.js
+  // (Steg 1 av app.js modulrefactor per APP-JS-MODULE-PLAN.md, 2026-05-08)
+  //
+  // app/state-paths.js MÅSTE laddas FÖRE app.js via <script>-tag i index.html.
+  // Den exponerar window.__AppPaths.{UI,SELECTION,STATUS,DATA,FORMS,PREFS}.
+  // Vi importerar dem som lokala konstanter här för att inte bryta resten av
+  // koden som referenser via dessa namn.
+  // ====================================================================
+  if (!window.__AppPaths) {
+    throw new Error('[app.js] window.__AppPaths saknas — säkerställ att app/state-paths.js laddas före app.js i index.html');
+  }
+  const __UI_KEY_PATHS = window.__AppPaths.UI;
+  const __SELECTION_KEY_PATHS = window.__AppPaths.SELECTION;
+  const __STATUS_KEY_PATHS = window.__AppPaths.STATUS;
+  const __DATA_KEY_PATHS = window.__AppPaths.DATA;
+  const __FORMS_KEY_PATHS = window.__AppPaths.FORMS;
+  const __PREFS_KEY_PATHS = window.__AppPaths.PREFS;
 
   function __readUiPath(path) {
     let cur = __stateInternal;
@@ -2812,7 +2671,7 @@
     renderMoreMenu(state);
     renderMailboxAdmin(state);
     renderConfirmDialog(state);
-    renderCustomerMergeModal(state);
+    renderCustomerMergeShell(state);
     renderCustomerSettings(state);
     renderMacroModal(state);
     renderSettingsProfileModal(state);
@@ -2872,7 +2731,10 @@
     __renderFloatingShell(shell, state.ui.confirmDialogOpen === true, 16);
   }
 
-  function renderCustomerMergeModal(state) {
+  function renderCustomerMergeShell(state) {
+    // Notera: namn renamed från renderCustomerMergeModal eftersom det fanns en
+    // andra funktion med samma namn (renderar modal-innehåll) som overrode
+    // denna i hoisting. Denna sköter bara open/close-visibility via shell.
     const shell = document.getElementById('customers-merge-shell');
     if (!shell) return;
     __renderFloatingShell(shell, state.ui.customerMergeModalOpen === true, 16);
