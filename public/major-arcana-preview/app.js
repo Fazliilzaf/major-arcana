@@ -15098,6 +15098,18 @@
     }
   }
 
+  function formatBookingOperatorError(error, fallback = "Bokningsåtgärden misslyckades.") {
+    const message = asText(error?.message || error || fallback);
+    const normalized = normalizeKey(message);
+    if (normalized === "cliento_partner_id_missing") {
+      return "Cliento är inte färdigkonfigurerat: saknar partner-id. Använd manuella kandidat-tider eller komplettera Cliento-inställningarna.";
+    }
+    if (normalized === "cliento_booking_disabled") {
+      return "Cliento-integration är avstängd. Använd manuella kandidat-tider tills integrationen är aktiverad.";
+    }
+    return message || fallback;
+  }
+
   function setButtonBusy(button, busy, idleLabel, busyLabel) {
     if (!button) return;
     if (!button.dataset.idleLabel) {
@@ -23101,7 +23113,10 @@
         `Cliento-val hämtade: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
       );
     } catch (error) {
-      state.booking.refDataError = error?.message || "Cliento-val kunde inte hämtas.";
+      state.booking.refDataError = formatBookingOperatorError(
+        error,
+        "Cliento-val kunde inte hämtas."
+      );
       setFeedback(getBookingDom().feedback, "error", state.booking.refDataError);
     } finally {
       state.booking.loadingRefData = false;
@@ -23525,10 +23540,14 @@
       }
       renderBookingSurface();
     } catch (error) {
+      const message = formatBookingOperatorError(error);
       if (action === "fetch_slots") {
-        state.booking.slotsError = error?.message || "Cliento-slots kunde inte hämtas.";
+        state.booking.slotsError = formatBookingOperatorError(
+          error,
+          "Cliento-slots kunde inte hämtas."
+        );
       }
-      setFeedback(getBookingDom().feedback, "error", error?.message || "Bokningsåtgärden misslyckades.");
+      setFeedback(getBookingDom().feedback, "error", message);
     } finally {
       state.booking.saving = false;
       state.booking.loadingSlots = false;
