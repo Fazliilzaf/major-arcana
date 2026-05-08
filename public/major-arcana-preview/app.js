@@ -2440,8 +2440,9 @@
   // ============================================================
   // Detta är en VIRTUELL VY. Storage:n ligger fortfarande på sina ursprungliga
   // platser (top-level + runtime-sub-objekt). Renderers/handlers kan välja att
-  // läsa via state.ui.moreMenuOpen ELLER state.moreMenuOpen — båda funkar.
-  // När alla call sites migrerats flyttas storage:n hit.
+  // läsa via flat-namespace (state.ui.moreMenuOpen) — vyn skickar till storage.
+  // 2026-05-08: 265 read-sites migrerade via tools/coverage/migrate-flat-namespaces.py.
+  // När storage flyttas hit kan view-Proxyn dropas helt.
   //
   // Aktiv test: kör `__testStateUi()` i devtools för att verifiera att alla
   // paths pekar på existerande storage.
@@ -2773,7 +2774,7 @@
   //   - try/catch: en kraschad runtime-shell hänger inte hela renderApp
   function renderRuntimeShellHook(state) {
     if (!__renderHooks.runtimeShell) return;
-    if (state.bootstrapped !== true) return;
+    if (state.status.bootstrapped !== true) return;
     if (__runtimeShellInProgress) {
       __renderStats.runtimeShellSkipped++;
       return;
@@ -3056,21 +3057,21 @@
 
   function getPreferredOperationalMailboxId() {
     return normalizeMailboxId(
-      state.runtime.preferredMailboxId ||
-        state.runtime.defaultSenderMailbox ||
+      state.prefs.preferredMailboxId ||
+        state.prefs.defaultSenderMailbox ||
         CCO_OPERATIONAL_START_MAILBOX
     );
   }
 
   function getOperationalImportMailboxId() {
-    const selectedMailboxIds = asArray(state.runtime.selectedMailboxIds)
+    const selectedMailboxIds = asArray(state.selection.mailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter(Boolean);
     return selectedMailboxIds[0] || getPreferredOperationalMailboxId();
   }
 
   function getRequestedRuntimeMailboxIds({ includePreferredFallback = true } = {}) {
-    const selectedMailboxIds = asArray(state.runtime.selectedMailboxIds)
+    const selectedMailboxIds = asArray(state.selection.mailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter(Boolean);
     if (selectedMailboxIds.length) {
@@ -4499,16 +4500,16 @@
         state.runtime.queueHistory?.open ||
         asText(state.runtime.queueHistory?.selectedConversationId) ||
         state.runtime.queueInlinePanel?.open ||
-        normalizeKey(state.runtime.activeLaneId || "all") !== "all" ||
-        normalizeKey(state.runtime.selectedOwnerKey || "all") !== "all" ||
-        normalizeKey(state.runtime.activeFocusSection || "conversation") !== "conversation" ||
-        state.runtime.historyExpanded !== true ||
+        normalizeKey(state.selection.laneId || "all") !== "all" ||
+        normalizeKey(state.selection.ownerKey || "all") !== "all" ||
+        normalizeKey(state.ui.activeFocusSection || "conversation") !== "conversation" ||
+        state.ui.historyExpanded !== true ||
         asText(state.runtime.historySearch) ||
         normalizeKey(state.runtime.historyMailboxFilter || "all") !== "all" ||
         normalizeKey(state.runtime.historyResultTypeFilter || "all") !== "all" ||
         normalizeKey(state.runtime.historyRangeFilter || "all") !== "all" ||
-        state.runtime.live === true ||
-        state.runtime.offline === true
+        state.status.live === true ||
+        state.status.offline === true
     );
   }
 
@@ -4687,9 +4688,9 @@
   }
 
   function buildShellViewStateForUrl() {
-    const requestedView = normalizeKey(state.view) || "conversations";
+    const requestedView = normalizeKey(state.ui.view) || "conversations";
     const shellView = resolveShellView(requestedView);
-    const selectedAutomationSection = normalizeKey(state.selectedAutomationSection) || "byggare";
+    const selectedAutomationSection = normalizeKey(state.selection.automationSection) || "byggare";
 
     if (shellView === "conversations") {
       return { view: "", automationSection: "" };
@@ -4736,8 +4737,8 @@
   }
 
   function buildReauthUrl(reason = "session_expired") {
-    if (state.runtime && state.runtime.authRequired === true) {
-      state.runtime.authRecoveryArmed = true;
+    if (state.runtime && state.status.authRequired === true) {
+      state.status.authRecoveryArmed = true;
     }
     const params = new URLSearchParams();
     params.set(AUTH_RETURN_TO_QUERY_PARAM, buildAdminReturnPath());
@@ -4843,20 +4844,20 @@
     state.runtime.visualState = visualState;
 
     if (visualState === "auth_required" && activeRuntimeVisualState !== "auth_required") {
-      state.runtime.mode = "auth_required";
-      state.runtime.authRecoveryArmed = false;
+      state.status.mode = "auth_required";
+      state.status.authRecoveryArmed = false;
     }
 
     if (
-      state.runtime.hasReachedSteadyState !== true &&
+      state.status.hasReachedSteadyState !== true &&
       (visualState === "ready" || visualState === "offline_history")
     ) {
-      state.runtime.hasReachedSteadyState = true;
+      state.status.hasReachedSteadyState = true;
     }
 
-    if (state.runtime.hasRemovedRuntimeLoading !== true) {
+    if (state.status.hasRemovedRuntimeLoading !== true) {
       document.body.classList.remove("is-runtime-loading");
-      state.runtime.hasRemovedRuntimeLoading = true;
+      state.status.hasRemovedRuntimeLoading = true;
     }
 
     RUNTIME_VISUAL_STATES.forEach((candidate) => {
@@ -5642,7 +5643,7 @@
 
   function getFallbackIntegrationActorProfile() {
     const signature = getStudioSignatureProfile(
-      state.runtime.defaultSignatureProfile ||
+      state.prefs.defaultSignatureProfile ||
         state.studio.selectedSignatureId ||
         CCO_DEFAULT_SIGNATURE_PROFILE
     );
@@ -5659,7 +5660,7 @@
   }
 
   function buildIntegrationSalesMessage() {
-    const categoryLabel = getIntegrationCategoryLabel(state.selectedIntegrationCategory || "all");
+    const categoryLabel = getIntegrationCategoryLabel(state.selection.integrationCategory || "all");
     const connectedKeys = getIntegrationConnectedKeys();
     return [
       `Enterpriseförfrågan från Major Arcana-integrationsytan.`,
@@ -5922,7 +5923,7 @@
     const senderMailboxId = normalizeMailboxId(
       normalizedMailFoundationDefaults.senderMailboxId ||
         normalizedMailFoundationDefaults.composeSenderMailboxId ||
-        state.runtime.defaultSenderMailbox
+        state.prefs.defaultSenderMailbox
     );
     const composeSenderMailboxId = normalizeMailboxId(
       normalizedMailFoundationDefaults.composeSenderMailboxId || senderMailboxId
@@ -5932,14 +5933,14 @@
     );
     const signatureProfileId = normalizeKey(
       normalizedMailFoundationDefaults.signatureProfileId ||
-        state.runtime.defaultSignatureProfile ||
+        state.prefs.defaultSignatureProfile ||
         CCO_DEFAULT_SIGNATURE_PROFILE
     );
     return {
-      theme: state.settingsRuntime.choices.theme,
-      density: state.settingsRuntime.choices.density,
-      profileName: state.settingsRuntime.profileName,
-      profileEmail: state.settingsRuntime.profileEmail,
+      theme: state.prefs.themeChoice,
+      density: state.prefs.densityChoice,
+      profileName: state.prefs.profileName,
+      profileEmail: state.prefs.profileEmail,
       deleteRequestedAt: state.settingsRuntime.deleteRequestedAt || null,
       sidebarSections: SETTINGS_SIDEBAR_SECTIONS.map((section) => ({
         id: section.id,
@@ -5964,10 +5965,10 @@
 
   function applySettingsViewState(nextState = {}) {
     const mapped = mapSettingsPayloadToView(nextState);
-    state.settingsRuntime.choices.theme = mapped.theme;
-    state.settingsRuntime.choices.density = mapped.density;
-    state.settingsRuntime.profileName = mapped.profileName;
-    state.settingsRuntime.profileEmail = mapped.profileEmail;
+    state.prefs.themeChoice = mapped.theme;
+    state.prefs.densityChoice = mapped.density;
+    state.prefs.profileName = mapped.profileName;
+    state.prefs.profileEmail = mapped.profileEmail;
     state.settingsRuntime.deleteRequestedAt = mapped.deleteRequestedAt;
     state.settingsRuntime.mailFoundationDefaults = {
       ...state.settingsRuntime.mailFoundationDefaults,
@@ -6226,7 +6227,7 @@
   function getStudioSignatureProfile(signatureId = "") {
     const normalizedId = normalizeKey(signatureId);
     const normalizedDefaultId = normalizeKey(
-      state.runtime.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
+      state.prefs.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
     );
     return (
       resolveStudioSignatureProfile(normalizedId) ||
@@ -6253,7 +6254,7 @@
     const mailboxSignatureProfile =
       resolveStudioSignatureProfile(runtimeCapabilityProfileId) ||
       resolveStudioSignatureProfile(sourceMailboxId) ||
-      getStudioSignatureProfile(state.runtime.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE);
+      getStudioSignatureProfile(state.prefs.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE);
     if (operatorSignatureProfile) return operatorSignatureProfile;
     return mailboxSignatureProfile;
   }
@@ -6276,7 +6277,7 @@
       const sourceMailboxId = normalizeMailboxId(getStudioSourceMailboxId(thread));
       if (sourceMailboxId) return sourceMailboxId;
     }
-    const runtimeDefaultSender = normalizeMailboxId(state.runtime.defaultSenderMailbox);
+    const runtimeDefaultSender = normalizeMailboxId(state.prefs.defaultSenderMailbox);
     if (runtimeDefaultSender) return runtimeDefaultSender;
     const sourceMailboxId = normalizeMailboxId(getStudioSourceMailboxId(thread));
     if (sourceMailboxId) return sourceMailboxId;
@@ -6749,12 +6750,12 @@
       };
     }
     return {
-      label: state.runtime.sendEnabled ? "Policy OK" : "Skicka spärrat",
+      label: state.prefs.sendEnabled ? "Policy OK" : "Skicka spärrat",
       summary:
-        thread && state.runtime.sendEnabled
+        thread && state.prefs.sendEnabled
           ? `${words} ord · ${thread.nextActionLabel || "Granska tråden"}`
           : "Livedata saknas eller skicka är spärrat just nu.",
-      tone: state.runtime.sendEnabled ? "success" : "warning",
+      tone: state.prefs.sendEnabled ? "success" : "warning",
     };
   }
 
@@ -11323,7 +11324,7 @@
     const operatorSignatureProfile = getStudioOperatorSignatureProfile();
     const selectedSignature = (
       operatorSignatureProfile ||
-      getStudioSignatureProfile(state.runtime.defaultSignatureProfile)
+      getStudioSignatureProfile(state.prefs.defaultSignatureProfile)
     ).id;
     const composeTo = "";
     const baseDraft = "";
@@ -12446,7 +12447,7 @@
 
   function getMailboxScopedRuntimeThreads() {
     const availableMailboxes = getAvailableRuntimeMailboxes();
-    const selectedMailboxIds = asArray(state.runtime.selectedMailboxIds)
+    const selectedMailboxIds = asArray(state.selection.mailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value, availableMailboxes))
       .filter(Boolean);
     const threads = Array.isArray(state.runtime.threads) ? state.runtime.threads : [];
@@ -12561,7 +12562,7 @@
       items.push({ id: "unassigned", label: "Oägd" });
     }
     const listed = items.concat(Array.from(owners.values()));
-    const selectedOwnerKey = normalizeKey(state.runtime.selectedOwnerKey || "all");
+    const selectedOwnerKey = normalizeKey(state.selection.ownerKey || "all");
     if (selectedOwnerKey !== "all" && !listed.some((item) => item.id === selectedOwnerKey)) {
       const fallbackOwner = asArray(state.runtime.threads).find(
         (thread) => normalizeKey(thread.ownerKey || thread.ownerLabel) === selectedOwnerKey
@@ -12608,7 +12609,7 @@
   }
 
   function getQueueScopedRuntimeThreads() {
-    const ownerKey = normalizeKey(state.runtime.selectedOwnerKey || "all");
+    const ownerKey = normalizeKey(state.selection.ownerKey || "all");
     const threads = getMailboxScopedRuntimeThreads();
     if (!threads.length || ownerKey === "all") return threads;
     if (ownerKey === "unassigned") {
@@ -12630,7 +12631,7 @@
   }
 
   function getFilteredRuntimeThreads() {
-    return getQueueLaneThreads(normalizePrimaryQueueLaneId(state.runtime.activeLaneId || "all"));
+    return getQueueLaneThreads(normalizePrimaryQueueLaneId(state.selection.laneId || "all"));
   }
 
   function getOrderedQueueLaneIds() {
@@ -12653,7 +12654,7 @@
       state.runtime && typeof state.runtime.queueHistory === "object"
         ? state.runtime.queueHistory
         : {};
-    const activeLaneId = normalizePrimaryQueueLaneId(state.runtime.activeLaneId || "all");
+    const activeLaneId = normalizePrimaryQueueLaneId(state.selection.laneId || "all");
     const feedKey = normalizeKey(inlinePanelState.feedKey || "");
     const laneId = normalizeKey(inlinePanelState.laneId || activeLaneId || "all") || activeLaneId;
 
@@ -12871,7 +12872,7 @@
     if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "lane") {
       runtimeThread = pickThread(
         getQueueLaneThreads(
-          leftColumnState.laneId || state.runtime.activeLaneId || "all",
+          leftColumnState.laneId || state.selection.laneId || "all",
           getQueueScopedRuntimeThreads()
         )
       );
@@ -12890,7 +12891,7 @@
     if (
       !runtimeThread &&
       !offlineHistoryWithoutSelection &&
-      (!state.runtime.live || state.runtime.authRequired || state.runtime.loading)
+      (!state.status.live || state.status.authRequired || state.status.loading)
     ) {
       runtimeSource =
         leftColumnState.mode === "offline_history"
@@ -13237,11 +13238,11 @@
     if (changed) {
       workspaceSourceOfTruth.setSelectedThreadId(nextThreadId);
       if (options.resetHistoryOnChange) {
-        state.runtime.historyContextThreadId = "";
+        state.selection.historyContextThreadId = "";
         resetRuntimeHistoryFilters();
       }
     }
-    const preserveMailboxScope = state.runtime.mailboxScopePinned === true || Boolean(options.preserveMailboxSelection);
+    const preserveMailboxScope = state.prefs.mailboxScopePinned === true || Boolean(options.preserveMailboxSelection);
     if (mailboxScopeChanged && !preserveMailboxScope) {
       workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
     }
@@ -13288,7 +13289,7 @@
 
     if (leftColumnState.mode === "lane") {
       return reconcileRuntimeSelection(
-        getQueueLaneThreads(leftColumnState.laneId || state.runtime.activeLaneId || "all", getQueueScopedRuntimeThreads())
+        getQueueLaneThreads(leftColumnState.laneId || state.selection.laneId || "all", getQueueScopedRuntimeThreads())
       );
     }
 
@@ -13922,7 +13923,7 @@
   }
 
   function getSelectedRuntimeMailboxScopeIds() {
-    return asArray(state.runtime.selectedMailboxIds)
+    return asArray(state.selection.mailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter(Boolean);
   }
@@ -14014,7 +14015,7 @@
   // Tas bort när backend stöder mailboxTrail och vi kan testa
   // med riktig data. Se docs/design-specs/CURSOR_PROMPT.md.
   function shouldApplyOfflineQueueHistorySeed() {
-    return getRuntimeMode() === "offline_history" || state.runtime.offline === true;
+    return getRuntimeMode() === "offline_history" || state.status.offline === true;
   }
 
   function applyOfflineQueueHistorySeedEnrichment(builtItems = [], rawSeeds = []) {
@@ -14221,9 +14222,9 @@
         rawResults
       );
       const nextSelectedConversationId = items.some((item) =>
-        runtimeConversationIdsMatch(item?.conversationId, state.runtime.queueHistory.selectedConversationId)
+        runtimeConversationIdsMatch(item?.conversationId, state.selection.historyConversationId)
       )
-        ? asText(state.runtime.queueHistory.selectedConversationId)
+        ? asText(state.selection.historyConversationId)
         : "";
       state.runtime.queueHistory = {
         ...state.runtime.queueHistory,
@@ -14235,7 +14236,7 @@
         limit: nextLimit,
         hasMore: items.length >= nextLimit,
         scopeKey,
-        open: prefetch ? state.runtime.queueHistory.open : true,
+        open: prefetch ? state.ui.queueHistoryOpen : true,
       };
       renderQueueHistorySection();
     } catch (error) {
@@ -14259,7 +14260,7 @@
         selectedConversationId: "",
         hasMore: false,
         scopeKey,
-        open: prefetch ? state.runtime.queueHistory.open : true,
+        open: prefetch ? state.ui.queueHistoryOpen : true,
       };
       renderQueueHistorySection();
     }
@@ -15739,7 +15740,7 @@
       window.clearTimeout(pendingMailFeedDeleteTimer);
       pendingMailFeedDeleteTimer = null;
     }
-    state.pendingMailFeedDelete.active = false;
+    state.ui.pendingMailFeedDeleteActive = false;
     state.pendingMailFeedDelete.feed = "";
     state.pendingMailFeedDelete.count = 0;
     state.pendingMailFeedDelete.committing = false;
@@ -15812,7 +15813,7 @@
   function stageMailFeedDelete(feedKey, threads) {
     const runtimeThreads = asArray(threads).filter((thread) => thread?.id);
     if (!runtimeThreads.length) return false;
-    if (!state.runtime.deleteEnabled) {
+    if (!state.prefs.deleteEnabled) {
       setAuxStatus(
         getMailFeedStatusNode(feedKey),
         "Delete är inte aktiverat i live runtime.",
@@ -15820,7 +15821,7 @@
       );
       return false;
     }
-    if (state.pendingMailFeedDelete.active) {
+    if (state.ui.pendingMailFeedDeleteActive) {
       setAuxStatus(
         getMailFeedStatusNode(feedKey),
         "Slutför eller ångra den pågående raderingen först.",
@@ -15830,13 +15831,13 @@
     }
     const normalizedFeed = normalizeKey(feedKey) === "later" ? "later" : "sent";
     const removedIds = new Set(runtimeThreads.map((thread) => asText(thread.id)).filter(Boolean));
-    state.pendingMailFeedDelete.active = true;
+    state.ui.pendingMailFeedDeleteActive = true;
     state.pendingMailFeedDelete.feed = normalizedFeed;
     state.pendingMailFeedDelete.count = runtimeThreads.length;
     state.pendingMailFeedDelete.committing = false;
     state.pendingMailFeedDelete.threadsSnapshot = cloneJson(runtimeThreads);
     state.pendingMailFeedDelete.previousThreadsSnapshot = cloneJson(state.runtime.threads);
-    state.pendingMailFeedDelete.previousSelectedThreadId = asText(state.runtime.selectedThreadId);
+    state.pendingMailFeedDelete.previousSelectedThreadId = asText(state.selection.threadId);
     state.pendingMailFeedDelete.previousSelections = {
       later: [...asArray(getMailFeedRuntimeState("later").selectedKeys)],
       sent: [...asArray(getMailFeedRuntimeState("sent").selectedKeys)],
@@ -15864,10 +15865,10 @@
   function setMoreMenuOpen(open) {
     // Steg 5 (state-konsolidering): visibility hanteras nu av CSS via
     // [data-open] på .preview-more-wrappern, satt av renderMoreMenu(state)
-    // när state.moreMenuOpen muteras. Vi sätter bara state — Proxy:n
+    // när state.ui.moreMenuOpen muteras. Vi sätter bara state — Proxy:n
     // schemalägger render via rAF.
     const isOpen = workspaceSourceOfTruth.setOverlayOpen("moreMenu", open);
-    state.moreMenuOpen = isOpen;
+    state.ui.moreMenuOpen = isOpen;
   }
 
   function setFloatingShellOpen(shell, open, _offsetY) {
@@ -15887,22 +15888,22 @@
 
   function hasFloatingShellOpen() {
     return Boolean(
-      state.macroModal.open ||
-      state.settingsProfileModal.open ||
-      state.confirmDialog.open ||
-      state.customerMergeModalOpen ||
-      state.customerSettingsOpen ||
+      state.ui.macroModalOpen ||
+      state.ui.settingsProfileModalOpen ||
+      state.ui.confirmDialogOpen ||
+      state.ui.customerMergeModalOpen ||
+      state.ui.customerSettingsOpen ||
       state.customerRuntime.splitModalOpen ||
       state.customerImport.open ||
-      state.mailboxAdminOpen ||
-      state.noteMode.open
+      state.ui.mailboxAdminOpen ||
+      state.ui.noteModeOpen
     );
   }
 
   function syncCanvasFloatingShellState() {
     if (!canvas) return;
     canvas.classList.toggle("has-floating-modal", hasFloatingShellOpen());
-    canvas.classList.toggle("is-confirm-open", Boolean(state.confirmDialog.open));
+    canvas.classList.toggle("is-confirm-open", Boolean(state.ui.confirmDialogOpen));
   }
 
   function getConfirmDialogTitle(options = {}) {
@@ -15944,7 +15945,7 @@
   }
 
   function setMacroModalOpen(open, options = {}) {
-    state.macroModal.open = Boolean(open);
+    state.ui.macroModalOpen = Boolean(open);
     if (open) {
       state.macroModal.mode = normalizeKey(options.mode) === "edit" ? "edit" : "create";
       state.macroModal.macroId = asText(options.macroId);
@@ -15983,25 +15984,25 @@
       state.macroModal.macroId = "";
       setFeedback(macroModalFeedback, "", "");
     }
-    setFloatingShellOpen(macroEditorShell, state.macroModal.open, 16);
+    setFloatingShellOpen(macroEditorShell, state.ui.macroModalOpen, 16);
   }
 
   function setSettingsProfileModalOpen(open) {
-    state.settingsProfileModal.open = Boolean(open);
+    state.ui.settingsProfileModalOpen = Boolean(open);
     if (open) {
       if (settingsProfileModalNameInput) {
         settingsProfileModalNameInput.value =
-          state.settingsRuntime.profileName || "Ditt namn";
+          state.prefs.profileName || "Ditt namn";
       }
       if (settingsProfileModalEmailInput) {
         settingsProfileModalEmailInput.value =
-          state.settingsRuntime.profileEmail || "din.email@hairtp.com";
+          state.prefs.profileEmail || "din.email@hairtp.com";
       }
       setFeedback(settingsProfileModalFeedback, "", "");
     } else {
       setFeedback(settingsProfileModalFeedback, "", "");
     }
-    setFloatingShellOpen(settingsProfileShell, state.settingsProfileModal.open, 16);
+    setFloatingShellOpen(settingsProfileShell, state.ui.settingsProfileModalOpen, 16);
   }
 
   function setConfirmDialogOpen(open, options = {}) {
@@ -16010,7 +16011,7 @@
       console.warn("Bekräftelsedialogen blockerade okänd actionKey:", options.actionKey);
       return;
     }
-    state.confirmDialog.open = Boolean(open);
+    state.ui.confirmDialogOpen = Boolean(open);
     if (open) {
       state.confirmDialog.actionKey = normalizedActionKey;
       state.confirmDialog.tone = normalizeKey(options.tone) || "danger";
@@ -16037,7 +16038,7 @@
       state.confirmDialog.tone = "danger";
       setFeedback(confirmFeedback, "", "");
     }
-    setFloatingShellOpen(shellConfirmShell, state.confirmDialog.open, 16);
+    setFloatingShellOpen(shellConfirmShell, state.ui.confirmDialogOpen, 16);
   }
 
   function getCustomerDetail(key) {
@@ -16358,7 +16359,7 @@
       findCustomerKeyByName(thread?.customerName) ||
       "";
     if (!resolvedCustomerKey) return false;
-    if (normalizeKey(state.selectedCustomerIdentity) !== resolvedCustomerKey) {
+    if (normalizeKey(state.selection.customerIdentity) !== resolvedCustomerKey) {
       setSelectedCustomerIdentity(resolvedCustomerKey);
       return true;
     }
@@ -16614,11 +16615,11 @@
       .filter(
         (key) =>
           !state.customerRuntime.mergedInto[key] &&
-          key !== state.selectedCustomerIdentity &&
+          key !== state.selection.customerIdentity &&
           !customerRows.find((row) => normalizeKey(row.dataset.customerRow) === key)?.hidden
       );
 
-    return Array.from(new Set([state.selectedCustomerIdentity, ...visibleFallback])).slice(0, 2);
+    return Array.from(new Set([state.selection.customerIdentity, ...visibleFallback])).slice(0, 2);
   }
 
   function renderCustomerBatchSelection() {
@@ -16635,7 +16636,7 @@
       customerBulkCount.textContent = `(${activeKeys.size})`;
     }
 
-    const isSelectedInBatch = activeKeys.has(state.selectedCustomerIdentity);
+    const isSelectedInBatch = activeKeys.has(state.selection.customerIdentity);
     customerDetailActionButtons.forEach((button) => {
       if (button.dataset.customerDetailAction === "toggle_batch") {
         button.textContent = isSelectedInBatch ? "Avmarkera från batch" : "Markera för batch";
@@ -16644,7 +16645,7 @@
   }
 
   function renderCustomerDetailTools() {
-    const detail = getCustomerDetail(state.selectedCustomerIdentity);
+    const detail = getCustomerDetail(state.selection.customerIdentity);
     const primaryEmail =
       state.customerPrimaryEmailByKey[detail.key] || detail.emails[0] || "";
 
@@ -16695,10 +16696,10 @@
   function renderCustomerMergeModal() {
     if (!customerMergePreview || !customerMergePrimaryOptions) return;
     const mergeKeys = getMergeSelectionKeys();
-    const activePrimary = mergeKeys.includes(state.customerMergePrimaryKey)
-      ? state.customerMergePrimaryKey
-      : mergeKeys[0] || state.selectedCustomerIdentity;
-    state.customerMergePrimaryKey = activePrimary;
+    const activePrimary = mergeKeys.includes(state.selection.customerMergePrimaryKey)
+      ? state.selection.customerMergePrimaryKey
+      : mergeKeys[0] || state.selection.customerIdentity;
+    state.selection.customerMergePrimaryKey = activePrimary;
 
     customerMergePreview.innerHTML = "";
     mergeKeys.forEach((key) => {
@@ -16726,20 +16727,20 @@
   }
 
   function setCustomerMergeOpen(open) {
-    state.customerMergeModalOpen = Boolean(open);
+    state.ui.customerMergeModalOpen = Boolean(open);
     renderCustomerMergeModal();
-    setFloatingShellOpen(customerMergeShell, state.customerMergeModalOpen, 16);
+    setFloatingShellOpen(customerMergeShell, state.ui.customerMergeModalOpen, 16);
     if (!open) {
       setFeedback(customerMergeFeedback, "", "");
     }
   }
 
   function setCustomerSettingsOpen(open) {
-    state.customerSettingsOpen = Boolean(open);
+    state.ui.customerSettingsOpen = Boolean(open);
     customerSettingToggleInputs.forEach((input) => {
       input.checked = Boolean(state.customerSettings[normalizeKey(input.dataset.customerSettingToggle)]);
     });
-    setFloatingShellOpen(customerSettingsShell, state.customerSettingsOpen, 16);
+    setFloatingShellOpen(customerSettingsShell, state.ui.customerSettingsOpen, 16);
     if (!open) {
       setFeedback(customerSettingsFeedback, "", "");
     }
@@ -16748,7 +16749,7 @@
   function renderCustomerSplitModal() {
     if (!customerSplitOptions) return;
     const sourceKey = normalizeKey(
-      state.customerRuntime.splitSourceKey || state.selectedCustomerIdentity
+      state.customerRuntime.splitSourceKey || state.selection.customerIdentity
     );
     const detail = getCustomerDetail(sourceKey);
     const primaryEmail =
@@ -16779,7 +16780,7 @@
       .join("");
   }
 
-  function setCustomerSplitOpen(open, sourceKey = state.selectedCustomerIdentity) {
+  function setCustomerSplitOpen(open, sourceKey = state.selection.customerIdentity) {
     state.customerRuntime.splitModalOpen = Boolean(open);
     if (open) {
       const detail = getCustomerDetail(sourceKey);
@@ -17374,7 +17375,7 @@
   async function deleteMailFeedThreads(feedKey, threads) {
     const runtimeThreads = asArray(threads).filter((thread) => thread?.id);
     if (!runtimeThreads.length) return false;
-    if (!state.runtime.deleteEnabled) {
+    if (!state.prefs.deleteEnabled) {
       setAuxStatus(
         normalizeKey(feedKey) === "later" ? laterStatus : sentStatus,
         "Delete är inte aktiverat i live runtime.",
@@ -17562,7 +17563,7 @@
 
   function renderIntegrations() {
     if (!integrationsGrid) return;
-    const activeCategory = state.selectedIntegrationCategory;
+    const activeCategory = state.selection.integrationCategory;
     const visibleItems = INTEGRATION_CATALOG.filter(
       (item) => activeCategory === "all" || item.category === activeCategory
     );
@@ -17915,13 +17916,13 @@
     ].filter(Boolean).length;
 
     if (settingsSummaryThemeValue) {
-      settingsSummaryThemeValue.textContent = `${themeLabels[state.settingsRuntime.choices.theme] || "Ljust"} + ${densityLabels[state.settingsRuntime.choices.density] || "Kompakt"}`;
+      settingsSummaryThemeValue.textContent = `${themeLabels[state.prefs.themeChoice] || "Ljust"} + ${densityLabels[state.prefs.densityChoice] || "Kompakt"}`;
     }
     if (settingsSummaryThemeCopy) {
       settingsSummaryThemeCopy.textContent =
-        state.settingsRuntime.choices.density === "airy"
+        state.prefs.densityChoice === "airy"
           ? "Mer luft för fokuserat arbete"
-          : state.settingsRuntime.choices.density === "balanced"
+          : state.prefs.densityChoice === "balanced"
             ? "Balanserad rytm för hela teamet"
             : "Bäst för snabba arbetsköer";
     }
@@ -17946,15 +17947,15 @@
     }
 
     if (settingsProfileName) {
-      settingsProfileName.textContent = state.settingsRuntime.profileName || "Ditt namn";
+      settingsProfileName.textContent = state.prefs.profileName || "Ditt namn";
     }
     if (settingsProfileEmail) {
       settingsProfileEmail.textContent =
-        state.settingsRuntime.profileEmail || "din.email@hairtp.com";
+        state.prefs.profileEmail || "din.email@hairtp.com";
     }
     if (settingsProfileAvatar) {
       settingsProfileAvatar.textContent = initialsForName(
-        state.settingsRuntime.profileName || state.settingsRuntime.profileEmail || "CCO"
+        state.prefs.profileName || state.prefs.profileEmail || "CCO"
       );
     }
 
@@ -17986,16 +17987,16 @@
       if (mePayload.status === "fulfilled") {
         const profile = parseIntegrationActorProfile(mePayload.value);
         if (
-          !normalizeText(state.settingsRuntime.profileName) ||
-          state.settingsRuntime.profileName === "Ditt namn"
+          !normalizeText(state.prefs.profileName) ||
+          state.prefs.profileName === "Ditt namn"
         ) {
-          state.settingsRuntime.profileName = profile.name;
+          state.prefs.profileName = profile.name;
         }
         if (
-          !normalizeText(state.settingsRuntime.profileEmail) ||
-          state.settingsRuntime.profileEmail === "din.email@hairtp.com"
+          !normalizeText(state.prefs.profileEmail) ||
+          state.prefs.profileEmail === "din.email@hairtp.com"
         ) {
-          state.settingsRuntime.profileEmail = profile.email;
+          state.prefs.profileEmail = profile.email;
         }
       }
       state.settingsRuntime.loaded = true;
@@ -18128,8 +18129,8 @@
       setFeedback(settingsProfileModalFeedback, "error", "Ange en giltig e-postadress.");
       return;
     }
-    state.settingsRuntime.profileName = nextName;
-    state.settingsRuntime.profileEmail = nextEmail;
+    state.prefs.profileName = nextName;
+    state.prefs.profileEmail = nextEmail;
     renderSettings();
     setFeedback(settingsProfileModalFeedback, "loading", "Sparar profil…");
     const saved = await saveSettingsRuntime("Profilen uppdaterades i nya CCO.");
@@ -18217,10 +18218,10 @@
   }
 
   function renderShowcase() {
-    const feature = buildShowcaseFeatureRuntime(state.selectedShowcaseFeature);
+    const feature = buildShowcaseFeatureRuntime(state.selection.showcaseFeature);
     showcaseFeatureButtons.forEach((button) => {
       const isActive =
-        normalizeKey(button.dataset.showcaseFeature) === state.selectedShowcaseFeature;
+        normalizeKey(button.dataset.showcaseFeature) === state.selection.showcaseFeature;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -18247,57 +18248,57 @@
   }
 
   function setSelectedShowcaseFeature(featureKey) {
-    state.selectedShowcaseFeature = normalizeKey(featureKey) || "command_palette";
+    state.selection.showcaseFeature = normalizeKey(featureKey) || "command_palette";
     renderShowcase();
   }
 
   function setAutomationCollaborationOpen(open) {
-    state.automationCollaborationOpen = Boolean(open);
+    state.ui.automationCollaborationOpen = Boolean(open);
     if (automationCollaborationPanel) {
-      automationCollaborationPanel.hidden = !state.automationCollaborationOpen;
+      automationCollaborationPanel.hidden = !state.ui.automationCollaborationOpen;
     }
     automationCollaborationToggleButtons.forEach((button) => {
       button.setAttribute(
         "aria-pressed",
-        state.automationCollaborationOpen ? "true" : "false"
+        state.ui.automationCollaborationOpen ? "true" : "false"
       );
     });
   }
 
   function getSelectedTemplateConfig() {
     return (
-      AUTOMATION_TEMPLATE_CONFIGS[state.selectedAutomationTemplate] ||
+      AUTOMATION_TEMPLATE_CONFIGS[state.selection.automationTemplate] ||
       AUTOMATION_TEMPLATE_CONFIGS.churn_guard
     );
   }
 
-  function getAutomationTemplateRecordName(templateKey = state.selectedAutomationTemplate) {
+  function getAutomationTemplateRecordName(templateKey = state.selection.automationTemplate) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     const template =
       AUTOMATION_TEMPLATE_CONFIGS[normalizedKey] || AUTOMATION_TEMPLATE_CONFIGS.churn_guard;
     return `CCO Automation · ${template.flowTitle} · ${normalizedKey}`;
   }
 
-  function getAutomationVersions(templateKey = state.selectedAutomationTemplate) {
+  function getAutomationVersions(templateKey = state.selection.automationTemplate) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     return asArray(state.automationRuntime.versionsByKey[normalizedKey]);
   }
 
-  function getAutomationTemplateRecord(templateKey = state.selectedAutomationTemplate) {
+  function getAutomationTemplateRecord(templateKey = state.selection.automationTemplate) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     return state.automationRuntime.templateRecordsByKey[normalizedKey] || null;
   }
 
   function getPreferredAutomationVersionId(
-    templateKey = state.selectedAutomationTemplate
+    templateKey = state.selection.automationTemplate
   ) {
     const versions = getAutomationVersions(templateKey);
-    const selectedVersionId = normalizeKey(state.selectedAutomationVersion);
+    const selectedVersionId = normalizeKey(state.selection.automationVersion);
     const selectedExists = versions.some(
       (version) => normalizeKey(version.id) === selectedVersionId
     );
     if (selectedExists) {
-      return state.selectedAutomationVersion;
+      return state.selection.automationVersion;
     }
 
     const activeVersionId = normalizeText(
@@ -18310,7 +18311,7 @@
     return versions[0]?.id || "placeholder";
   }
 
-  function buildAutomationTemplateContent(templateKey = state.selectedAutomationTemplate) {
+  function buildAutomationTemplateContent(templateKey = state.selection.automationTemplate) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     const template =
       AUTOMATION_TEMPLATE_CONFIGS[normalizedKey] || AUTOMATION_TEMPLATE_CONFIGS.churn_guard;
@@ -18330,11 +18331,11 @@
     return [
       `Automation key: ${normalizedKey}`,
       `Flow title: ${template.flowTitle}`,
-      `Library: ${state.selectedAutomationLibrary}`,
-      `Focused node: ${state.selectedAutomationNode}`,
-      `Focused section: ${state.selectedAutomationSection}`,
-      `Canvas scale: ${state.automationScale}%`,
-      `Autopilot: ${state.automationAutopilotEnabled ? "enabled" : "paused"}`,
+      `Library: ${state.selection.automationLibrary}`,
+      `Focused node: ${state.selection.automationNode}`,
+      `Focused section: ${state.selection.automationSection}`,
+      `Canvas scale: ${state.prefs.automationScale}%`,
+      `Autopilot: ${state.prefs.automationAutopilotEnabled ? "enabled" : "paused"}`,
       `Testing scenario: ${testingScenario}`,
       "",
       "Nodes:",
@@ -18345,14 +18346,14 @@
     ].join("\n");
   }
 
-  function buildAutomationInstruction(templateKey = state.selectedAutomationTemplate, actionKey = "save") {
+  function buildAutomationInstruction(templateKey = state.selection.automationTemplate, actionKey = "save") {
     const template =
       AUTOMATION_TEMPLATE_CONFIGS[normalizeKey(templateKey)] || AUTOMATION_TEMPLATE_CONFIGS.churn_guard;
     const actionLabel =
       normalizeKey(actionKey) === "run"
         ? "Utvärdera automationen mot live risk/policy."
         : "Spara aktuell builder-snapshot som arbetsutkast.";
-    return `${actionLabel} Flöde: ${template.flowTitle}. Fokussteg: ${state.selectedAutomationNode}.`;
+    return `${actionLabel} Flöde: ${template.flowTitle}. Fokussteg: ${state.selection.automationNode}.`;
   }
 
   function getAutomationDecisionTone(decision) {
@@ -18428,7 +18429,7 @@
     });
   }
 
-  async function ensureAutomationTemplateRecord(templateKey = state.selectedAutomationTemplate, options = {}) {
+  async function ensureAutomationTemplateRecord(templateKey = state.selection.automationTemplate, options = {}) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     const createIfMissing = options.createIfMissing === true;
     const cached = getAutomationTemplateRecord(normalizedKey);
@@ -18463,9 +18464,9 @@
   }
 
   function renderAutomationVersions() {
-    const templateKey = normalizeKey(state.selectedAutomationTemplate) || "churn_guard";
+    const templateKey = normalizeKey(state.selection.automationTemplate) || "churn_guard";
     const versions = getAutomationVersions(templateKey).slice(0, automationVersionCards.length);
-    const selectedVersionId = normalizeKey(state.selectedAutomationVersion);
+    const selectedVersionId = normalizeKey(state.selection.automationVersion);
     const authRequired = state.automationRuntime.authRequired;
     const syncError = normalizeText(state.automationRuntime.error);
     const activeVersionId = normalizeKey(state.automationRuntime.activeVersionIdByKey[templateKey]);
@@ -18686,7 +18687,7 @@
     renderAutomationTrustNotes();
   }
 
-  async function loadAutomationVersions(templateKey = state.selectedAutomationTemplate, options = {}) {
+  async function loadAutomationVersions(templateKey = state.selection.automationTemplate, options = {}) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     const createIfMissing = options.createIfMissing === true;
     state.automationRuntime.loading = true;
@@ -18699,7 +18700,7 @@
       if (!templateRecord) {
         state.automationRuntime.versionsByKey[normalizedKey] = [];
         state.automationRuntime.activeVersionIdByKey[normalizedKey] = "";
-        if (normalizedKey === state.selectedAutomationTemplate) {
+        if (normalizedKey === state.selection.automationTemplate) {
           renderAutomationVersions();
         }
         return [];
@@ -18716,14 +18717,14 @@
         versions[0] ||
         null;
       state.automationRuntime.activeVersionIdByKey[normalizedKey] = activeVersion?.id || "";
-      if (normalizedKey === state.selectedAutomationTemplate) {
+      if (normalizedKey === state.selection.automationTemplate) {
         const selectedStillExists = versions.some(
-          (version) => normalizeKey(version.id) === normalizeKey(state.selectedAutomationVersion)
+          (version) => normalizeKey(version.id) === normalizeKey(state.selection.automationVersion)
         );
         if (versions.length && !selectedStillExists) {
-          state.selectedAutomationVersion = activeVersion?.id || versions[0].id;
+          state.selection.automationVersion = activeVersion?.id || versions[0].id;
         } else if (!versions.length) {
-          state.selectedAutomationVersion = "placeholder";
+          state.selection.automationVersion = "placeholder";
         }
         renderAutomationVersions();
       }
@@ -18736,7 +18737,7 @@
       }
       state.automationRuntime.versionsByKey[normalizedKey] = [];
       state.automationRuntime.activeVersionIdByKey[normalizedKey] = "";
-      if (normalizedKey === state.selectedAutomationTemplate) {
+      if (normalizedKey === state.selection.automationTemplate) {
         renderAutomationVersions();
       }
       throw error;
@@ -18746,7 +18747,7 @@
     }
   }
 
-  async function saveAutomationDraft(templateKey = state.selectedAutomationTemplate) {
+  async function saveAutomationDraft(templateKey = state.selection.automationTemplate) {
     const normalizedKey = normalizeKey(templateKey) || "churn_guard";
     const templateRecord = await ensureAutomationTemplateRecord(normalizedKey, { createIfMissing: true });
     const currentVersions = await loadAutomationVersions(normalizedKey, { createIfMissing: true }).catch(
@@ -18913,7 +18914,7 @@
       .map((key) => {
         const record = getCustomerRecord(key);
         return `
-          <button class="customer-record${record.key === state.selectedCustomerIdentity ? " is-selected" : ""}" type="button" data-customer-row="${escapeAttribute(record.key)}" aria-pressed="${record.key === state.selectedCustomerIdentity ? "true" : "false"}">
+          <button class="customer-record${record.key === state.selection.customerIdentity ? " is-selected" : ""}" type="button" data-customer-row="${escapeAttribute(record.key)}" aria-pressed="${record.key === state.selection.customerIdentity ? "true" : "false"}">
             <span class="customer-record-check${getBatchSelectionKeys().includes(record.key) ? " is-batch-selected" : ""}" aria-hidden="true"></span>
             <div class="customer-record-main">
               <div class="customer-record-head">
@@ -18945,7 +18946,7 @@
     customerDetailStack.innerHTML = getVisibleCustomerPoolKeys()
       .map((key) => {
         const record = getCustomerRecord(key);
-        const active = record.key === state.selectedCustomerIdentity;
+        const active = record.key === state.selection.customerIdentity;
         return `
           <article class="customers-rail-card${active ? " is-active" : ""}" data-customer-detail="${escapeAttribute(record.key)}"${active ? "" : " hidden"}>
             <div class="customers-rail-card-head">
@@ -19008,7 +19009,7 @@
               </article>
             `;
 
-        return `<div class="customers-merge-group${key === state.selectedCustomerIdentity ? " is-active" : ""}" data-customer-merge-group="${escapeAttribute(key)}"${key === state.selectedCustomerIdentity ? "" : " hidden"}>${content}</div>`;
+        return `<div class="customers-merge-group${key === state.selection.customerIdentity ? " is-active" : ""}" data-customer-merge-group="${escapeAttribute(key)}"${key === state.selection.customerIdentity ? "" : " hidden"}>${content}</div>`;
       })
       .join("");
     refreshCustomerNodeRefs();
@@ -19048,15 +19049,15 @@
       setCustomersStatus("", "");
     }
 
-    if (!visibleKeys.includes(state.selectedCustomerIdentity)) {
+    if (!visibleKeys.includes(state.selection.customerIdentity)) {
       setSelectedCustomerIdentity(visibleKeys[0]);
       return;
     }
 
-    setSelectedCustomerIdentity(state.selectedCustomerIdentity);
+    setSelectedCustomerIdentity(state.selection.customerIdentity);
   }
 
-  function getAnalyticsDaysForPeriod(periodKey = state.selectedAnalyticsPeriod) {
+  function getAnalyticsDaysForPeriod(periodKey = state.selection.analyticsPeriod) {
     const normalizedKey = normalizeKey(periodKey || "week");
     if (normalizedKey === "today") return 1;
     if (normalizedKey === "month") return 30;
@@ -19077,7 +19078,7 @@
   }
 
   function getAnalyticsOwnerScopeLabel() {
-    const selectedOwnerKey = normalizeKey(state.runtime.selectedOwnerKey || "all");
+    const selectedOwnerKey = normalizeKey(state.selection.ownerKey || "all");
     if (selectedOwnerKey === "all") return "Alla ägare";
     if (selectedOwnerKey === "unassigned") return "Oägd";
     const owner = getAvailableRuntimeOwners().find((item) => item.id === selectedOwnerKey);
@@ -19258,7 +19259,7 @@
     renderAnalyticsTrustNotes();
   }
 
-  function buildAnalyticsAuthBlockedPeriodData(periodKey = state.selectedAnalyticsPeriod) {
+  function buildAnalyticsAuthBlockedPeriodData(periodKey = state.selection.analyticsPeriod) {
     const fallback =
       ANALYTICS_PERIOD_DATA[normalizeKey(periodKey)] || ANALYTICS_PERIOD_DATA.week;
     return {
@@ -19322,7 +19323,7 @@
   }
 
   function renderAnalyticsTrustNotes(
-    periodData = buildDerivedAnalyticsPeriodData(state.selectedAnalyticsPeriod)
+    periodData = buildDerivedAnalyticsPeriodData(state.selection.analyticsPeriod)
   ) {
     const analytics = state.analyticsRuntime;
     const authRequired = analytics.authRequired === true;
@@ -19479,7 +19480,7 @@
     renderAnalyticsPeriod();
   }
 
-  function buildDerivedAnalyticsPeriodData(periodKey = state.selectedAnalyticsPeriod) {
+  function buildDerivedAnalyticsPeriodData(periodKey = state.selection.analyticsPeriod) {
     const fallback =
       ANALYTICS_PERIOD_DATA[normalizeKey(periodKey)] || ANALYTICS_PERIOD_DATA.week;
     if (state.analyticsRuntime.authRequired && !state.analyticsRuntime.loaded) {
@@ -19675,7 +19676,7 @@
   }
 
   function renderAnalyticsPeriod() {
-    const periodData = buildDerivedAnalyticsPeriodData(state.selectedAnalyticsPeriod);
+    const periodData = buildDerivedAnalyticsPeriodData(state.selection.analyticsPeriod);
 
     analyticsMetricValueNodes.forEach((node) => {
       const metric = periodData.metrics[node.dataset.analyticsMetricValue];
@@ -19808,7 +19809,7 @@
       const isActiveVersion =
         versionKey &&
         versionKey !== "placeholder" &&
-        versionKey === normalizeKey(state.automationRuntime.activeVersionIdByKey[state.selectedAutomationTemplate]);
+        versionKey === normalizeKey(state.automationRuntime.activeVersionIdByKey[state.selection.automationTemplate]);
       restoreButton.disabled = isActiveVersion;
     });
   }
@@ -19848,7 +19849,7 @@
   function renderAutomationTestingState() {
     const liveScenario =
       state.automationRuntime.lastEvaluationByKey[
-        normalizeKey(state.selectedAutomationTemplate) || "churn_guard"
+        normalizeKey(state.selection.automationTemplate) || "churn_guard"
       ] || null;
     const scenario =
       liveScenario ||
@@ -19904,10 +19905,10 @@
       const resolution = state.automationRuntime.autopilotResolved[key];
       const hidden = resolution === "approved" || resolution === "dismissed";
       card.hidden = hidden;
-      card.classList.toggle("is-selected", !hidden && key === state.selectedAutomationAutopilotProposal);
+      card.classList.toggle("is-selected", !hidden && key === state.selection.automationAutopilotProposal);
       card
         .querySelectorAll("[data-automation-autopilot-action]")
-        .forEach((button) => (button.disabled = !state.automationAutopilotEnabled));
+        .forEach((button) => (button.disabled = !state.prefs.automationAutopilotEnabled));
     });
 
     if (automationAutopilotMetricCards[0]) {
@@ -20187,17 +20188,17 @@
   }
 
   function setCustomerSuggestionsHidden(hidden) {
-    state.customerSuggestionsHidden = Boolean(hidden);
+    state.ui.customerSuggestionsHidden = Boolean(hidden);
     if (customerSuggestionsPanel) {
-      customerSuggestionsPanel.classList.toggle("is-collapsed", state.customerSuggestionsHidden);
+      customerSuggestionsPanel.classList.toggle("is-collapsed", state.ui.customerSuggestionsHidden);
     }
     if (customerSuggestionsToggle) {
-      customerSuggestionsToggle.textContent = state.customerSuggestionsHidden
+      customerSuggestionsToggle.textContent = state.ui.customerSuggestionsHidden
         ? "Visa förslag"
         : "Dölj förslag";
       customerSuggestionsToggle.setAttribute(
         "aria-pressed",
-        state.customerSuggestionsHidden ? "true" : "false"
+        state.ui.customerSuggestionsHidden ? "true" : "false"
       );
     }
   }
@@ -20223,16 +20224,16 @@
             method: "POST",
             headers: {
               "x-idempotency-key": createIdempotencyKey(
-                `automation-evaluate-${normalizeKey(state.selectedAutomationTemplate)}`
+                `automation-evaluate-${normalizeKey(state.selection.automationTemplate)}`
               ),
             },
             body: {
-              instruction: buildAutomationInstruction(state.selectedAutomationTemplate, "run"),
+              instruction: buildAutomationInstruction(state.selection.automationTemplate, "run"),
             },
           }
         );
         state.automationRuntime.lastEvaluationByKey[
-          normalizeKey(state.selectedAutomationTemplate) || "churn_guard"
+          normalizeKey(state.selection.automationTemplate) || "churn_guard"
         ] = buildAutomationTestingStateFromEvaluation(
           payload?.version,
           payload?.variableValidation
@@ -20240,7 +20241,7 @@
         state.automationRuntime.testingScenario = "run";
         renderAutomationTestingState();
         setAutomationSubnav("testing");
-        await loadAutomationVersions(state.selectedAutomationTemplate, { createIfMissing: true });
+        await loadAutomationVersions(state.selection.automationTemplate, { createIfMissing: true });
         if (payload?.version?.id) {
           setSelectedAutomationVersion(payload.version.id);
         }
@@ -20276,7 +20277,7 @@
 
   function setAutomationCanvasScale(nextScale) {
     const clampedScale = Math.min(115, Math.max(85, Number(nextScale) || 100));
-    state.automationScale = clampedScale;
+    state.prefs.automationScale = clampedScale;
     if (automationCanvasScaleReadout) {
       automationCanvasScaleReadout.textContent = `${clampedScale}%`;
     }
@@ -20286,19 +20287,19 @@
   }
 
   function setAutomationRailCollapsed(collapsed) {
-    state.automationRailCollapsed = Boolean(collapsed);
+    state.ui.automationRailCollapsed = Boolean(collapsed);
     if (automationRail) {
-      automationRail.classList.toggle("is-collapsed", state.automationRailCollapsed);
+      automationRail.classList.toggle("is-collapsed", state.ui.automationRailCollapsed);
     }
     if (automationRailToggle) {
-      automationRailToggle.textContent = state.automationRailCollapsed ? "+" : "×";
+      automationRailToggle.textContent = state.ui.automationRailCollapsed ? "+" : "×";
       automationRailToggle.setAttribute(
         "aria-label",
-        state.automationRailCollapsed ? "Visa förslag" : "Stäng förslag"
+        state.ui.automationRailCollapsed ? "Visa förslag" : "Stäng förslag"
       );
       automationRailToggle.setAttribute(
         "aria-pressed",
-        state.automationRailCollapsed ? "true" : "false"
+        state.ui.automationRailCollapsed ? "true" : "false"
       );
     }
   }
@@ -20354,7 +20355,7 @@
   }
 
   function handleAnalyticsCoachingAction() {
-    const coaching = buildDerivedAnalyticsPeriodData(state.selectedAnalyticsPeriod)?.coaching || {};
+    const coaching = buildDerivedAnalyticsPeriodData(state.selection.analyticsPeriod)?.coaching || {};
     const target = normalizeKey(coaching.target);
 
     if (target === "auth") {
@@ -20460,7 +20461,7 @@
         return;
       }
       try {
-        const templateRecord = await ensureAutomationTemplateRecord(state.selectedAutomationTemplate, {
+        const templateRecord = await ensureAutomationTemplateRecord(state.selection.automationTemplate, {
           createIfMissing: false,
         });
         if (!templateRecord) {
@@ -20474,13 +20475,13 @@
             method: "POST",
             headers: {
               "x-idempotency-key": createIdempotencyKey(
-                `automation-activate-${normalizeKey(state.selectedAutomationTemplate)}`
+                `automation-activate-${normalizeKey(state.selection.automationTemplate)}`
               ),
             },
             body: {},
           }
         );
-        await loadAutomationVersions(state.selectedAutomationTemplate, { createIfMissing: true });
+        await loadAutomationVersions(state.selection.automationTemplate, { createIfMissing: true });
         if (payload?.version?.id) {
           setSelectedAutomationVersion(payload.version.id);
         }
@@ -20563,7 +20564,7 @@
 
   async function handleCustomerDetailAction(actionKey) {
     const key = normalizeKey(actionKey);
-    const detail = getCustomerDetail(state.selectedCustomerIdentity);
+    const detail = getCustomerDetail(state.selection.customerIdentity);
     if (key === "primary_email") {
       const emails = detail.emails;
       if (!emails.length) return;
@@ -20635,7 +20636,7 @@
       return;
     }
 
-    const primaryKey = state.customerMergePrimaryKey || mergeKeys[0];
+    const primaryKey = state.selection.customerMergePrimaryKey || mergeKeys[0];
     const secondaryKeys = mergeKeys.filter((key) => key !== primaryKey);
     const mergedParts = customerMergeOptionInputs
       .filter((input) => input.checked)
@@ -20687,7 +20688,7 @@
   }
 
   async function confirmCustomerSplit() {
-    const sourceKey = normalizeKey(state.customerRuntime.splitSourceKey || state.selectedCustomerIdentity);
+    const sourceKey = normalizeKey(state.customerRuntime.splitSourceKey || state.selection.customerIdentity);
     const splitEmail = normalizeText(state.customerRuntime.splitEmail);
     if (!sourceKey || !splitEmail) {
       setFeedback(customerSplitFeedback, "error", "Välj en e-postadress att dela ut.");
@@ -20747,7 +20748,7 @@
   }
 
   function renderMailboxAdminFormState() {
-    const isEditing = Boolean(normalizeMailboxId(state.mailboxAdminEditingId));
+    const isEditing = Boolean(normalizeMailboxId(state.ui.mailboxAdminEditingId));
     if (mailboxAdminFormTitle) {
       mailboxAdminFormTitle.textContent = isEditing ? "Redigera mailbox" : "Lägg till mailbox";
     }
@@ -20760,7 +20761,7 @@
   }
 
   function resetMailboxAdminForm({ preserveFeedback = false } = {}) {
-    state.mailboxAdminEditingId = "";
+    state.ui.mailboxAdminEditingId = "";
     if (mailboxAdminNameInput) mailboxAdminNameInput.value = "";
     if (mailboxAdminEmailInput) mailboxAdminEmailInput.value = "";
     if (mailboxAdminOwnerSelect) mailboxAdminOwnerSelect.value = "Fazli";
@@ -20781,7 +20782,7 @@
       resetMailboxAdminForm({ preserveFeedback: true });
       return;
     }
-    state.mailboxAdminEditingId = mailbox.id;
+    state.ui.mailboxAdminEditingId = mailbox.id;
     if (mailboxAdminNameInput) mailboxAdminNameInput.value = mailbox.label || "";
     if (mailboxAdminEmailInput) mailboxAdminEmailInput.value = mailbox.email || "";
     if (mailboxAdminOwnerSelect) {
@@ -20823,7 +20824,7 @@
     const signatureTitle = normalizeText(mailboxAdminSignatureTitleInput?.value);
     const signatureHtml = sanitizeMailboxSignatureHtml(mailboxAdminSignatureEditor?.innerHTML || "");
     const mailboxLabel = mailboxName || deriveMailboxLabel(mailboxEmail);
-    const editingId = normalizeMailboxId(state.mailboxAdminEditingId);
+    const editingId = normalizeMailboxId(state.ui.mailboxAdminEditingId);
     if (!mailboxEmail || !mailboxEmail.includes("@")) {
       setFeedback(mailboxAdminFeedback, "error", "Ange en giltig mailboxadress.");
       return;
@@ -20982,7 +20983,7 @@
 
   function handleMailFeedCommand(commandKey) {
     const key = normalizeKey(commandKey);
-    const activeFeedKey = state.view === "later" ? "later" : state.view === "sent" ? "sent" : "";
+    const activeFeedKey = state.ui.view === "later" ? "later" : state.ui.view === "sent" ? "sent" : "";
     const selectedFeedThread = activeFeedKey ? getSelectedMailFeedThread(activeFeedKey) : null;
     if (key === "resume") {
       exitAuxViewToConversations({
@@ -21007,7 +21008,7 @@
       });
       return;
     }
-    if (state.view === "later") {
+    if (state.ui.view === "later") {
       exitAuxViewToConversations({
         feedKey: activeFeedKey,
         statusNode: laterStatus,
@@ -21018,7 +21019,7 @@
       });
       return;
     }
-    if (state.view === "sent") {
+    if (state.ui.view === "sent") {
       exitAuxViewToConversations({
         feedKey: activeFeedKey,
         statusNode: sentStatus,
@@ -24321,7 +24322,7 @@ renderStudioShell();
       if (focusNotesHeading) {
         focusNotesHeading.textContent = selectedFocusThread
           ? `Anteckningar för ${selectedFocusThread.customerName}`
-          : state.runtime.authRequired
+          : state.status.authRequired
             ? "Anteckningar kräver inloggning"
             : "Anteckningar";
       }
@@ -24330,7 +24331,7 @@ renderStudioShell();
         ? []
         : (() => {
               const base = [...FOCUS_ACTIONS];
-              if (state.runtime.pendingGraphRestore && state.runtime.deleteEnabled) {
+              if (state.runtime.pendingGraphRestore && state.prefs.deleteEnabled) {
                 base.push({
                   label: "Återställ",
                   tone: "compose",
@@ -24372,7 +24373,7 @@ renderStudioShell();
     const isPreviewReady =
       runtimeVisualState === "ready" ||
       runtimeVisualState === "offline_history" ||
-      (state.runtime.hasReachedSteadyState === true && runtimeVisualState === "syncing");
+      (state.status.hasReachedSteadyState === true && runtimeVisualState === "syncing");
     if (isPreviewReady) {
       document.body.classList.add("is-preview-ready");
     }
@@ -24498,7 +24499,7 @@ renderStudioShell();
 
   function renderQuickActionRows(rows, items) {
     const selectedThread = getSelectedRuntimeThread();
-    const isDeletingThread = Boolean(asText(state.runtime.deletingThreadId));
+    const isDeletingThread = Boolean(asText(state.status.deletingThreadId));
     rows.forEach((row) => {
       row.innerHTML = "";
       items.forEach((item) => {
@@ -24516,15 +24517,15 @@ renderStudioShell();
         }
         if (isDeleteAction) {
           const deleteDisabled =
-            !selectedThread || !state.runtime.deleteEnabled || isDeletingThread;
+            !selectedThread || !state.prefs.deleteEnabled || isDeletingThread;
           button.disabled = deleteDisabled;
           button.setAttribute("aria-disabled", String(deleteDisabled));
         }
         if (isRestoreAction) {
           const restoreDisabled =
             !state.runtime.pendingGraphRestore ||
-            !state.runtime.deleteEnabled ||
-            state.runtime.restoringMail === true;
+            !state.prefs.deleteEnabled ||
+            state.status.restoringMail === true;
           button.disabled = restoreDisabled;
           button.setAttribute("aria-disabled", String(restoreDisabled));
         }
@@ -24534,7 +24535,7 @@ renderStudioShell();
           document.createTextNode(
             isDeleteAction && isDeletingThread
               ? "Raderar…"
-              : isRestoreAction && state.runtime.restoringMail
+              : isRestoreAction && state.status.restoringMail
                 ? "Återställer…"
                 : item.label
           )
@@ -24546,16 +24547,16 @@ renderStudioShell();
 
   function renderQueueLaneShortcutRows(rows) {
     const selectedThread = getSelectedRuntimeThread();
-    const isDeletingThread = Boolean(asText(state.runtime.deletingThreadId));
-    const runtimeMode = normalizeKey(state.runtime.mode || "");
+    const isDeletingThread = Boolean(asText(state.status.deletingThreadId));
+    const runtimeMode = normalizeKey(state.status.mode || "");
     const leftColumnState = getRuntimeLeftColumnState();
     const shouldHideShortcutRows =
       runtimeMode === "offline_history" ||
       !hasRuntimeQueueThreads() &&
-      (state.runtime.loading === true ||
-        state.runtime.authRequired === true ||
-        Boolean(asText(state.runtime.error)));
-    const activeLaneId = normalizePrimaryQueueLaneId(state.runtime.activeLaneId || "all");
+      (state.status.loading === true ||
+        state.status.authRequired === true ||
+        Boolean(asText(state.status.error)));
+    const activeLaneId = normalizePrimaryQueueLaneId(state.selection.laneId || "all");
     const activeViewLaneId = normalizeKey(
       leftColumnState.mode === "lane" ? leftColumnState.laneId || activeLaneId || "all" : activeLaneId
     ) || "all";
@@ -24621,7 +24622,7 @@ renderStudioShell();
         const shortcutDisabled =
           !selectedThread ||
           (isDeleteAction &&
-            (!state.runtime.deleteEnabled || isDeletingThread)) ||
+            (!state.prefs.deleteEnabled || isDeletingThread)) ||
           (isHandledAction && isHandledRuntimeThread(selectedThread));
         button.disabled = shortcutDisabled;
         button.setAttribute("aria-disabled", String(shortcutDisabled));
@@ -24753,7 +24754,7 @@ renderStudioShell();
       renderAutomationTemplateConfig();
       renderAutomationTestingState();
       renderAutomationVersions();
-      loadAutomationVersions(state.selectedAutomationTemplate).catch((error) => {
+      loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
         console.warn("Automation live-laddning misslyckades.", error);
       });
     }
@@ -24798,11 +24799,11 @@ renderStudioShell();
 
   function setSelectedAnalyticsPeriod(periodKey) {
     const normalizedKey = normalizeKey(periodKey) || "week";
-    state.selectedAnalyticsPeriod = normalizedKey;
+    state.selection.analyticsPeriod = normalizedKey;
 
     analyticsPeriodButtons.forEach((button) => {
       const isActive =
-        normalizeKey(button.dataset.analyticsPeriod) === state.selectedAnalyticsPeriod;
+        normalizeKey(button.dataset.analyticsPeriod) === state.selection.analyticsPeriod;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -24810,7 +24811,7 @@ renderStudioShell();
     renderAnalyticsPeriod();
     renderAnalyticsRuntime();
 
-    if (state.view === "analytics") {
+    if (state.ui.view === "analytics") {
       loadAnalyticsRuntime({ force: true }).catch((error) => {
         console.warn("Analytics period-laddning misslyckades.", error);
       });
@@ -24824,31 +24825,31 @@ renderStudioShell();
   }
 
   function setSelectedIntegrationCategory(categoryKey) {
-    state.selectedIntegrationCategory = normalizeKey(categoryKey) || "all";
+    state.selection.integrationCategory = normalizeKey(categoryKey) || "all";
     renderIntegrations();
   }
 
   function setSelectedCustomerIdentity(customerKey) {
     const normalizedKey = normalizeKey(customerKey);
-    state.selectedCustomerIdentity =
+    state.selection.customerIdentity =
       normalizedKey || getVisibleCustomerPoolKeys()[0] || "";
 
     customerRows.forEach((row) => {
-      const isActive = normalizeKey(row.dataset.customerRow) === state.selectedCustomerIdentity;
+      const isActive = normalizeKey(row.dataset.customerRow) === state.selection.customerIdentity;
       row.classList.toggle("is-selected", isActive);
       row.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
 
     customerMergeGroups.forEach((group) => {
       const isActive =
-        normalizeKey(group.dataset.customerMergeGroup) === state.selectedCustomerIdentity;
+        normalizeKey(group.dataset.customerMergeGroup) === state.selection.customerIdentity;
       group.hidden = !isActive;
       group.classList.toggle("is-active", isActive);
     });
 
     customerDetailCards.forEach((card) => {
       const isActive =
-        normalizeKey(card.dataset.customerDetail) === state.selectedCustomerIdentity;
+        normalizeKey(card.dataset.customerDetail) === state.selection.customerIdentity;
       card.hidden = !isActive;
       card.classList.toggle("is-active", isActive);
     });
@@ -24860,11 +24861,11 @@ renderStudioShell();
 
   function setSelectedAutomationLibrary(libraryKey) {
     const normalizedKey = normalizeKey(libraryKey);
-    state.selectedAutomationLibrary = normalizedKey || "email";
+    state.selection.automationLibrary = normalizedKey || "email";
 
     automationLibraryItems.forEach((item) => {
       const isActive =
-        normalizeKey(item.dataset.automationLibrary) === state.selectedAutomationLibrary;
+        normalizeKey(item.dataset.automationLibrary) === state.selection.automationLibrary;
       item.classList.toggle("is-active", isActive);
       item.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -24872,13 +24873,13 @@ renderStudioShell();
 
   function setSelectedAutomationNode(nodeKey) {
     const normalizedKey = normalizeKey(nodeKey);
-    state.selectedAutomationNode = normalizedKey || "trigger";
+    state.selection.automationNode = normalizedKey || "trigger";
     const selectedSuggestionKey =
-      AUTOMATION_NODE_TO_SUGGESTION[state.selectedAutomationNode] || "";
+      AUTOMATION_NODE_TO_SUGGESTION[state.selection.automationNode] || "";
 
     automationNodes.forEach((node) => {
       const isActive =
-        normalizeKey(node.dataset.automationNode) === state.selectedAutomationNode;
+        normalizeKey(node.dataset.automationNode) === state.selection.automationNode;
       node.classList.toggle("is-selected", isActive);
       node.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -24913,14 +24914,14 @@ renderStudioShell();
                 ? "autopilot"
               : "byggare";
     const activePillKey = supportsOwnView ? normalizedLabel : activeView;
-    state.selectedAutomationSection = activeView;
-    const currentView = normalizeKey(state.view) || "conversations";
+    state.selection.automationSection = activeView;
+    const currentView = normalizeKey(state.ui.view) || "conversations";
     if (
       (currentView === "templates" && activeView !== "mallar") ||
       (currentView === "workflows" && activeView !== "byggare")
     ) {
       workspaceSourceOfTruth.setView("automation");
-      state.view = "automation";
+      state.ui.view = "automation";
     }
 
     automationSubnavPills.forEach((pill) => {
@@ -24941,11 +24942,11 @@ renderStudioShell();
 
   function setSelectedAutomationTemplate(templateKey) {
     const normalizedKey = normalizeKey(templateKey);
-    state.selectedAutomationTemplate = normalizedKey || "churn_guard";
+    state.selection.automationTemplate = normalizedKey || "churn_guard";
 
     automationTemplateCards.forEach((card) => {
       const isActive =
-        normalizeKey(card.dataset.automationTemplate) === state.selectedAutomationTemplate;
+        normalizeKey(card.dataset.automationTemplate) === state.selection.automationTemplate;
       card.classList.toggle("is-selected", isActive);
       card.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -24953,18 +24954,18 @@ renderStudioShell();
     renderAutomationTemplateConfig();
     renderAutomationTestingState();
     renderAutomationVersions();
-    loadAutomationVersions(state.selectedAutomationTemplate).catch((error) => {
+    loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
       console.warn("Automation template-laddning misslyckades.", error);
     });
   }
 
   function setSelectedAutomationVersion(versionKey) {
     const normalizedKey = normalizeKey(versionKey);
-    state.selectedAutomationVersion = normalizedKey || "v3_0";
+    state.selection.automationVersion = normalizedKey || "v3_0";
 
     automationVersionCards.forEach((card) => {
       const isActive =
-        normalizeKey(card.dataset.automationVersion) === state.selectedAutomationVersion;
+        normalizeKey(card.dataset.automationVersion) === state.selection.automationVersion;
       card.classList.toggle("is-selected", isActive);
       card.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -24972,7 +24973,7 @@ renderStudioShell();
     automationVersionDetails.forEach((detail) => {
       const isActive =
         normalizeKey(detail.dataset.automationVersionDetail) ===
-        state.selectedAutomationVersion;
+        state.selection.automationVersion;
       detail.hidden = !isActive;
       detail.classList.toggle("is-active", isActive);
       detail.setAttribute("aria-hidden", isActive ? "false" : "true");
@@ -24981,7 +24982,7 @@ renderStudioShell();
 
   function setAutomationAutopilotEnabled(enabled) {
     const isEnabled = Boolean(enabled);
-    state.automationAutopilotEnabled = isEnabled;
+    state.prefs.automationAutopilotEnabled = isEnabled;
 
     if (automationAutopilotToggle) {
       automationAutopilotToggle.classList.toggle("is-active", isEnabled);
@@ -25007,12 +25008,12 @@ renderStudioShell();
 
   function setSelectedAutomationAutopilotProposal(proposalKey) {
     const normalizedKey = normalizeKey(proposalKey);
-    state.selectedAutomationAutopilotProposal = normalizedKey || "merge_duplicates";
+    state.selection.automationAutopilotProposal = normalizedKey || "merge_duplicates";
 
     automationAutopilotProposalCards.forEach((card) => {
       const isActive =
         normalizeKey(card.dataset.automationAutopilotProposal) ===
-        state.selectedAutomationAutopilotProposal;
+        state.selection.automationAutopilotProposal;
       card.classList.toggle("is-selected", isActive);
       card.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
@@ -25702,8 +25703,8 @@ renderStudioShell();
         setMoreMenuOpen(false);
       }
       const targetView = normalizeKey(button.dataset.navView);
-      if (targetView === "conversations" && (state.view === "sent" || state.view === "later")) {
-        const activeFeedKey = state.view === "later" ? "later" : "sent";
+      if (targetView === "conversations" && (state.ui.view === "sent" || state.ui.view === "later")) {
+        const activeFeedKey = state.ui.view === "later" ? "later" : "sent";
         const selectedFeedThread = getSelectedMailFeedThread(activeFeedKey);
         exitAuxViewToConversations({
           feedKey: activeFeedKey,
@@ -25720,7 +25721,7 @@ renderStudioShell();
   if (moreMenuToggle) {
     moreMenuToggle.addEventListener("click", (event) => {
       event.stopPropagation();
-      setMoreMenuOpen(!state.moreMenuOpen);
+      setMoreMenuOpen(!state.ui.moreMenuOpen);
     });
   }
 
@@ -25757,14 +25758,14 @@ renderStudioShell();
       const isHidden =
         state.runtime?.truthWorklistView &&
         typeof state.runtime.truthWorklistView === "object" &&
-        state.runtime.truthWorklistView.hidden === true;
+        state.ui.truthWorklistViewHidden === true;
       setTruthWorklistViewHidden(!isHidden);
     });
   }
 
   if (queueCategoryToggleButton) {
     queueCategoryToggleButton.addEventListener("click", () => {
-      state.runtime.queueCategoriesCompact = !(state.runtime.queueCategoriesCompact === true);
+      state.ui.queueCategoriesCompact = !(state.ui.queueCategoriesCompact === true);
       renderQueueCategoryStripMode();
     });
   }
@@ -25999,14 +26000,14 @@ renderStudioShell();
     if (!event.target.closest(".mailbox-dropdown")) {
       closeMailboxDropdowns();
     }
-    if (state.moreMenuOpen && !event.target.closest(".preview-more")) {
+    if (state.ui.moreMenuOpen && !event.target.closest(".preview-more")) {
       setMoreMenuOpen(false);
     }
   });
 
   window.addEventListener("blur", () => {
     closeMailboxDropdowns();
-    if (state.moreMenuOpen) {
+    if (state.ui.moreMenuOpen) {
       setMoreMenuOpen(false);
     }
   });
@@ -26015,14 +26016,14 @@ renderStudioShell();
     if (document.hidden) {
       closeMailboxDropdowns();
     }
-    if (document.hidden && state.moreMenuOpen) {
+    if (document.hidden && state.ui.moreMenuOpen) {
       setMoreMenuOpen(false);
     }
   });
 
   window.addEventListener("resize", () => {
     syncOpenMailboxDropdownOverlays();
-    if (state.moreMenuOpen) {
+    if (state.ui.moreMenuOpen) {
       setMoreMenuOpen(false);
     }
   });
@@ -26031,7 +26032,7 @@ renderStudioShell();
     "scroll",
     () => {
       syncOpenMailboxDropdownOverlays();
-      if (state.moreMenuOpen) {
+      if (state.ui.moreMenuOpen) {
         setMoreMenuOpen(false);
       }
     },
@@ -26095,7 +26096,7 @@ renderStudioShell();
   customerMergePrimaryOptions?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-customer-merge-primary]");
     if (!button) return;
-    state.customerMergePrimaryKey = normalizeKey(button.dataset.customerMergePrimary);
+    state.selection.customerMergePrimaryKey = normalizeKey(button.dataset.customerMergePrimary);
     renderCustomerMergeModal();
   });
 
@@ -26198,7 +26199,7 @@ renderStudioShell();
 
   if (customerSuggestionsToggle) {
     customerSuggestionsToggle.addEventListener("click", () => {
-      const nextHidden = !state.customerSuggestionsHidden;
+      const nextHidden = !state.ui.customerSuggestionsHidden;
       setCustomerSuggestionsHidden(nextHidden);
       setCustomersStatus(
         nextHidden
@@ -26278,7 +26279,7 @@ renderStudioShell();
   automationCanvasScaleButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const delta = button.dataset.automationScale === "in" ? 5 : -5;
-      setAutomationCanvasScale(state.automationScale + delta);
+      setAutomationCanvasScale(state.prefs.automationScale + delta);
     });
   });
 
@@ -26293,7 +26294,7 @@ renderStudioShell();
 
   if (automationRailToggle) {
     automationRailToggle.addEventListener("click", () => {
-      const nextCollapsed = !state.automationRailCollapsed;
+      const nextCollapsed = !state.ui.automationRailCollapsed;
       setAutomationRailCollapsed(nextCollapsed);
       setAutomationStatus(
         nextCollapsed
@@ -26385,7 +26386,7 @@ renderStudioShell();
 
   if (automationAutopilotToggle) {
     automationAutopilotToggle.addEventListener("click", () => {
-      setAutomationAutopilotEnabled(!state.automationAutopilotEnabled);
+      setAutomationAutopilotEnabled(!state.prefs.automationAutopilotEnabled);
     });
   }
 
@@ -26549,9 +26550,9 @@ renderStudioShell();
 
   automationCollaborationToggleButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      setAutomationCollaborationOpen(!state.automationCollaborationOpen);
+      setAutomationCollaborationOpen(!state.ui.automationCollaborationOpen);
       setAutomationStatus(
-        state.automationCollaborationOpen
+        state.ui.automationCollaborationOpen
           ? "Samarbetsläget visas i automationens högerpanel."
           : "Samarbetsläget doldes för att ge buildern mer arbetsro.",
         "success"
@@ -26561,7 +26562,7 @@ renderStudioShell();
 
   document.addEventListener("click", (event) => {
     if (
-      state.moreMenuOpen &&
+      state.ui.moreMenuOpen &&
       !event.target.closest(".preview-more")
     ) {
       setMoreMenuOpen(false);
@@ -26639,22 +26640,22 @@ renderStudioShell();
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && state.confirmDialog.open) {
+    if (event.key === "Escape" && state.ui.confirmDialogOpen) {
       setConfirmDialogOpen(false);
       return;
     }
 
-    if (event.key === "Escape" && state.settingsProfileModal.open) {
+    if (event.key === "Escape" && state.ui.settingsProfileModalOpen) {
       setSettingsProfileModalOpen(false);
       return;
     }
 
-    if (event.key === "Escape" && state.macroModal.open) {
+    if (event.key === "Escape" && state.ui.macroModalOpen) {
       setMacroModalOpen(false);
       return;
     }
 
-    if (event.key === "Escape" && state.moreMenuOpen) {
+    if (event.key === "Escape" && state.ui.moreMenuOpen) {
       setMoreMenuOpen(false);
       return;
     }
@@ -26663,12 +26664,12 @@ renderStudioShell();
       return;
     }
 
-    if (event.key === "Escape" && state.customerMergeModalOpen) {
+    if (event.key === "Escape" && state.ui.customerMergeModalOpen) {
       setCustomerMergeOpen(false);
       return;
     }
 
-    if (event.key === "Escape" && state.customerSettingsOpen) {
+    if (event.key === "Escape" && state.ui.customerSettingsOpen) {
       setCustomerSettingsOpen(false);
       return;
     }
@@ -26754,11 +26755,11 @@ renderStudioShell();
       capturedAt: new Date().toISOString(),
       runtimeMode: getRuntimeMode(),
       flags: {
-        loading: state.runtime.loading === true,
-        live: state.runtime.live === true,
-        offline: state.runtime.offline === true,
-        authRequired: state.runtime.authRequired === true,
-        error: asText(state.runtime.error),
+        loading: state.status.loading === true,
+        live: state.status.live === true,
+        offline: state.status.offline === true,
+        authRequired: state.status.authRequired === true,
+        error: asText(state.status.error),
       },
       selection: {
         selectedMailboxIds: workspaceSourceOfTruth.getSelectedMailboxIds(),
