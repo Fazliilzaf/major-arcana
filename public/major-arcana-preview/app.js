@@ -3121,14 +3121,14 @@
   }
 
   function getOperationalImportMailboxId() {
-    const selectedMailboxIds = asArray(state.selection.mailboxIds)
+    const selectedMailboxIds = asArray(state.selection?.mailboxIds || state.runtime?.selectedMailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter(Boolean);
     return selectedMailboxIds[0] || getPreferredOperationalMailboxId();
   }
 
   function getRequestedRuntimeMailboxIds({ includePreferredFallback = true } = {}) {
-    const selectedMailboxIds = asArray(state.selection.mailboxIds)
+    const selectedMailboxIds = asArray(state.selection?.mailboxIds || state.runtime?.selectedMailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
       .filter(Boolean);
     if (selectedMailboxIds.length) {
@@ -4317,7 +4317,9 @@
       identityTokens.forEach((token) => seenTokens.add(token));
       profiles.push(normalizedProfile);
     };
-    asArray(state.data.customMailboxes).forEach((mailbox, index) => {
+    asArray(
+      state.data?.customMailboxes || state.customMailboxes
+    ).forEach((mailbox, index) => {
       addProfile(buildStudioSignatureProfileFromMailbox(mailbox, index));
     });
     STUDIO_SIGNATURE_PROFILES.forEach((profile) => {
@@ -6284,7 +6286,7 @@
   function getStudioSignatureProfile(signatureId = "") {
     const normalizedId = normalizeKey(signatureId);
     const normalizedDefaultId = normalizeKey(
-      state.prefs.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
+      state.runtime?.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
     );
     return (
       resolveStudioSignatureProfile(normalizedId) ||
@@ -6311,7 +6313,7 @@
     const mailboxSignatureProfile =
       resolveStudioSignatureProfile(runtimeCapabilityProfileId) ||
       resolveStudioSignatureProfile(sourceMailboxId) ||
-      getStudioSignatureProfile(state.prefs.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE);
+      getStudioSignatureProfile(state.runtime?.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE);
     if (operatorSignatureProfile) return operatorSignatureProfile;
     return mailboxSignatureProfile;
   }
@@ -11381,7 +11383,7 @@
     const operatorSignatureProfile = getStudioOperatorSignatureProfile();
     const selectedSignature = (
       operatorSignatureProfile ||
-      getStudioSignatureProfile(state.prefs.defaultSignatureProfile)
+      getStudioSignatureProfile(state.runtime.defaultSignatureProfile)
     ).id;
     const composeTo = "";
     const baseDraft = "";
@@ -11440,11 +11442,11 @@
         buildStudioTrackDraft(thread, state.forms.studioActiveTrack);
     }
     const resolvedSignatureProfile =
-      resolveStudioSignatureProfile(state.forms.studioSignature) ||
+      resolveStudioSignatureProfile(state.studio.selectedSignatureId) ||
       getStudioReplyDefaultSignatureProfile(thread);
     state.forms.studioSignature = resolvedSignatureProfile.id;
-    state.forms.studioComposeMailboxId = canonicalizeRuntimeMailboxId(
-      state.forms.studioComposeMailboxId || getStudioDefaultSenderMailboxId(thread)
+    state.studio.composeMailboxId = canonicalizeRuntimeMailboxId(
+      state.studio.composeMailboxId || getStudioDefaultSenderMailboxId(thread)
     );
     state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
@@ -12327,7 +12329,7 @@
     } catch {}
   }
 
-  state.data.customMailboxes = loadPersistedCustomMailboxes();
+  state.customMailboxes = loadPersistedCustomMailboxes();
   persistCustomMailboxes();
 
   function findCustomMailboxDefinition(mailboxId = "") {
@@ -12369,7 +12371,10 @@
       });
     });
 
-    asArray(state.data.mailboxes).forEach((mailbox, index) => {
+    const runtimeMailboxes = state.data?.mailboxes || state.runtime?.mailboxes;
+    const customMailboxes = state.data?.customMailboxes || state.customMailboxes;
+
+    asArray(runtimeMailboxes).forEach((mailbox, index) => {
       const id = normalizeMailboxId(mailbox?.id || mailbox?.email);
       if (!id) return;
       const runtimeMailbox = {
@@ -12411,7 +12416,7 @@
       merged.set(key, runtimeMailbox);
     });
 
-    asArray(state.data.customMailboxes).forEach((mailbox, index) => {
+    asArray(customMailboxes).forEach((mailbox, index) => {
       const normalized = normalizeCustomMailboxDefinition(mailbox, index);
       if (!normalized) return;
       const key = findExistingMailboxKey(merged, normalized) || normalized.id;
@@ -12451,7 +12456,7 @@
       const customMailbox = {
         ...normalized,
         id: key,
-        order: LEGACY_RUNTIME_MAILBOXES.length + asArray(state.data.mailboxes).length + index,
+        order: LEGACY_RUNTIME_MAILBOXES.length + asArray(runtimeMailboxes).length + index,
         toneClass: normalized.toneClass || "",
         hasLiveSource: false,
         liveSourceKind: "custom",
@@ -12504,10 +12509,10 @@
 
   function getMailboxScopedRuntimeThreads() {
     const availableMailboxes = getAvailableRuntimeMailboxes();
-    const selectedMailboxIds = asArray(state.selection.mailboxIds)
+    const selectedMailboxIds = asArray(state.selection?.mailboxIds || state.runtime?.selectedMailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value, availableMailboxes))
       .filter(Boolean);
-    const threads = Array.isArray(state.data.threads) ? state.data.threads : [];
+    const threads = Array.isArray(state.data?.threads) ? state.data.threads : asArray(state.runtime?.threads);
     if (!selectedMailboxIds.length) {
       return availableMailboxes.length ? [] : threads;
     }
@@ -12535,7 +12540,11 @@
   }
 
   function normalizeVisibleRuntimeScope(options = {}) {
-    const allThreads = Array.isArray(state.data.threads) ? state.data.threads : [];
+    const allThreads = Array.isArray(state.data?.threads)
+      ? state.data.threads
+      : Array.isArray(state.runtime?.threads)
+        ? state.runtime.threads
+        : [];
     const selectionOptions = {
       preferredThreadId: Object.prototype.hasOwnProperty.call(options, "preferredThreadId")
         ? options.preferredThreadId
@@ -12915,7 +12924,7 @@
           runtimeSource = runtimeThread ? "history_mailbox_scope" : runtimeSource;
         }
         if (!runtimeThread) {
-          runtimeThread = pickThread(state.data.threads);
+          runtimeThread = pickThread(state.data?.threads || state.runtime?.threads);
           runtimeSource = runtimeThread ? "history_runtime_scope" : "history_empty";
         }
       }
@@ -12929,7 +12938,7 @@
     if (!runtimeThread && !offlineHistoryWithoutSelection && leftColumnState.mode === "lane") {
       runtimeThread = pickThread(
         getQueueLaneThreads(
-          leftColumnState.laneId || state.selection.laneId || "all",
+          leftColumnState.laneId || state.selection?.laneId || state.runtime?.activeLaneId || "all",
           getQueueScopedRuntimeThreads()
         )
       );
@@ -12948,7 +12957,11 @@
     if (
       !runtimeThread &&
       !offlineHistoryWithoutSelection &&
-      (!state.status.live || state.status.authRequired || state.status.loading)
+      (
+        !(state.status?.live ?? state.runtime?.live) ||
+        (state.status?.authRequired ?? state.runtime?.authRequired) ||
+        (state.status?.loading ?? state.runtime?.loading)
+      )
     ) {
       runtimeSource =
         leftColumnState.mode === "offline_history"
@@ -12965,7 +12978,7 @@
       runtimeSource = runtimeThread ? "mailbox_scope_fallback" : runtimeSource;
     }
     if (!runtimeThread && !offlineHistoryWithoutSelection) {
-      runtimeThread = pickThread(state.data.threads);
+      runtimeThread = pickThread(state.data?.threads || state.runtime?.threads);
       runtimeSource = runtimeThread ? "runtime_scope_fallback" : runtimeSource;
     }
 
@@ -13295,11 +13308,18 @@
     if (changed) {
       workspaceSourceOfTruth.setSelectedThreadId(nextThreadId);
       if (options.resetHistoryOnChange) {
-        state.selection.historyContextThreadId = "";
+        if (state.selection) {
+          state.selection.historyContextThreadId = "";
+        } else if (state.runtime) {
+          state.runtime.historyContextThreadId = "";
+        }
         resetRuntimeHistoryFilters();
       }
     }
-    const preserveMailboxScope = state.prefs.mailboxScopePinned === true || Boolean(options.preserveMailboxSelection);
+    const preserveMailboxScope =
+      state.prefs?.mailboxScopePinned === true ||
+      state.runtime?.mailboxScopePinned === true ||
+      Boolean(options.preserveMailboxSelection);
     if (mailboxScopeChanged && !preserveMailboxScope) {
       workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
     }
@@ -20941,16 +20961,16 @@
           }),
       },
     });
-    const previousCustomMailboxes = state.data.customMailboxes.slice();
+    const previousCustomMailboxes = state.customMailboxes.slice();
     if (editingId) {
-      state.data.customMailboxes = state.data.customMailboxes.map((entry, index) => {
+      state.customMailboxes = state.customMailboxes.map((entry, index) => {
         const normalized = normalizeCustomMailboxDefinition(entry, index);
         return normalized?.id === editingId ? mailbox : entry;
       });
     } else {
-      state.data.customMailboxes.push(mailbox);
+      state.customMailboxes.push(mailbox);
     }
-    const nextCustomMailboxes = state.data.customMailboxes;
+    const nextCustomMailboxes = state.customMailboxes;
 
     try {
       const payload = await apiRequest("/api/v1/cco/settings", {
@@ -20967,17 +20987,17 @@
         state.settingsRuntime.loaded = true;
         state.settingsRuntime.lastLoadedAt = new Date().toISOString();
       } else {
-        state.data.customMailboxes = nextCustomMailboxes;
+        state.customMailboxes = nextCustomMailboxes;
         persistCustomMailboxes();
       }
     } catch (error) {
       if (isAuthFailure(error?.statusCode, error?.message)) {
         state.settingsRuntime.authRequired = true;
-        state.data.customMailboxes = previousCustomMailboxes;
+        state.customMailboxes = previousCustomMailboxes;
         window.location.assign(buildReauthUrl());
         return;
       }
-      state.data.customMailboxes = previousCustomMailboxes;
+      state.customMailboxes = previousCustomMailboxes;
       setFeedback(
         mailboxAdminFeedback,
         "error",
@@ -24605,14 +24625,14 @@ renderStudioShell();
   function renderQueueLaneShortcutRows(rows) {
     const selectedThread = getSelectedRuntimeThread();
     const isDeletingThread = Boolean(asText(state.status.deletingThreadId));
-    const runtimeMode = normalizeKey(state.status.mode || "");
+    const runtimeMode = normalizeKey(state.runtime.mode || "");
     const leftColumnState = getRuntimeLeftColumnState();
     const shouldHideShortcutRows =
       runtimeMode === "offline_history" ||
       !hasRuntimeQueueThreads() &&
-      (state.status.loading === true ||
-        state.status.authRequired === true ||
-        Boolean(asText(state.status.error)));
+      (state.runtime.loading === true ||
+        state.runtime.authRequired === true ||
+        Boolean(asText(state.runtime.error)));
     const activeLaneId = normalizePrimaryQueueLaneId(state.selection.laneId || "all");
     const activeViewLaneId = normalizeKey(
       leftColumnState.mode === "lane" ? leftColumnState.laneId || activeLaneId || "all" : activeLaneId
@@ -25180,7 +25200,7 @@ renderStudioShell();
     { closeStudio = false, refresh = true } = {}
   ) {
     if (!thread) return false;
-    const followUpIso = resolveLaterOptionDueAt(state.forms.laterOption);
+    const followUpIso = resolveLaterOptionDueAt(state.forms?.laterOption ?? state.later?.option);
     await requestConversationAction("/api/v1/cco/reply-later", thread, {
       idempotencyScope: "major-arcana-reply-later",
       errorMessage: "Kunde inte parkera tråden.",
