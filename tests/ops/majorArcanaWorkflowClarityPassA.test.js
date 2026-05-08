@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 
 const STYLES_PATH = path.join(
   __dirname,
@@ -21,14 +14,7 @@ const STYLES_PATH = path.join(
   'styles.css'
 );
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const RENDERERS_PATH = path.join(
   __dirname,
@@ -53,12 +39,12 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
 
   assert.match(
     indexSource,
-    /<section class="focus-conversation"[\s\S]*?data-focus-conversation[\s\S]*?<\/section>\s*<div class="focus-workrail"[^>]*data-focus-workrail>/,
+    /<section\b[^>]*class="focus-conversation"[\s\S]*?data-focus-conversation[\s\S]*?<\/section\s*>\s*<div\b[^>]*class="focus-workrail"[^>]*data-focus-workrail>/,
     'Bottom railen ska ligga som syskon efter konversationssektionen i DOM, inte inne i scrollcontainern.'
   );
 
   const conversationSectionMatch = indexSource.match(
-    /<section class="focus-conversation"[\s\S]*?data-focus-conversation[\s\S]*?<\/section>/
+    /<section\b[^>]*class="focus-conversation"[\s\S]*?data-focus-conversation[\s\S]*?<\/section\s*>/
   );
 
   assert.ok(
@@ -331,6 +317,6 @@ test('arbetsytans tre huvudkolumner använder samma stabila panehojd och vänste
   assert.match(
     appSource,
     /const runtimeMode = normalizeKey\(state\.runtime\.mode \|\| ""\);[\s\S]*runtimeMode === "offline_history"/,
-    'Snabbactions-stripen ska döljas helt i offline_history så att inga extra check\/radera-ikoner läcker ovanpå historikcopy.'
+    'Snabbactions-stripen ska döljas helt i offline_history så att inga extra check/radera-ikoner läcker ovanpå historikcopy.'
   );
 });
