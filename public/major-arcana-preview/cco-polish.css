@@ -723,6 +723,25 @@
 }
 
 /* ============================================================
+   More-menu CSS-only visibility (steg 5 state-konsolidering 2026-05-08)
+   Wrappern .preview-more bär data-open="" när menyn är öppen.
+   JS sätter bara attributet via renderMoreMenu — inga inline-styles.
+   ============================================================ */
+.preview-more-menu {
+  /* Default hidden — overrides styles.css base som hade display:grid */
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.preview-more[data-open] .preview-more-menu {
+  display: grid;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
    Secondary filter chips (migrerad från P1-B shim 2026-05-07)
    Klickbara chips för Hög risk / Idag / Imorgon / Otilldelad / Uppföljning.
    ============================================================ */

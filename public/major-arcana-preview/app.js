@@ -2621,24 +2621,24 @@
   }
 
   function renderMoreMenu(state) {
+    const wrapper = document.querySelector('.preview-more');
     const menu = document.getElementById('preview-more-menu');
     const toggle = document.querySelector('[data-more-toggle]');
-    if (!menu) return;
+    if (!wrapper) return;
     const isOpen = state.ui.moreMenuOpen === true;
-    // Idempotent: applicera bara om något ändrats
-    if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
-    const ariaHidden = isOpen ? 'false' : 'true';
-    if (menu.getAttribute('aria-hidden') !== ariaHidden) {
-      menu.setAttribute('aria-hidden', ariaHidden);
+    // Steg 5: CSS driver synlighet via [data-open]-attributet på wrappern.
+    // JS sätter bara attribut — inga inline-styles, inga 6 redundanta props.
+    const hasOpen = wrapper.hasAttribute('data-open');
+    if (isOpen && !hasOpen) wrapper.setAttribute('data-open', '');
+    else if (!isOpen && hasOpen) wrapper.removeAttribute('data-open');
+    if (menu) {
+      // Synka [hidden] + aria-hidden för screen readers + tab-flow.
+      if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
+      const ariaHidden = isOpen ? 'false' : 'true';
+      if (menu.getAttribute('aria-hidden') !== ariaHidden) {
+        menu.setAttribute('aria-hidden', ariaHidden);
+      }
     }
-    const display = isOpen ? 'grid' : 'none';
-    if (menu.style.display !== display) menu.style.display = display;
-    const visibility = isOpen ? 'visible' : 'hidden';
-    if (menu.style.visibility !== visibility) menu.style.visibility = visibility;
-    const opacity = isOpen ? '1' : '0';
-    if (menu.style.opacity !== opacity) menu.style.opacity = opacity;
-    const pointer = isOpen ? 'auto' : 'none';
-    if (menu.style.pointerEvents !== pointer) menu.style.pointerEvents = pointer;
     if (toggle) {
       const ariaExpanded = isOpen ? 'true' : 'false';
       if (toggle.getAttribute('aria-expanded') !== ariaExpanded) {
@@ -15581,19 +15581,12 @@
   }
 
   function setMoreMenuOpen(open) {
+    // Steg 5 (state-konsolidering): visibility hanteras nu av CSS via
+    // [data-open] på .preview-more-wrappern, satt av renderMoreMenu(state)
+    // när state.moreMenuOpen muteras. Vi sätter bara state — Proxy:n
+    // schemalägger render via rAF.
     const isOpen = workspaceSourceOfTruth.setOverlayOpen("moreMenu", open);
     state.moreMenuOpen = isOpen;
-    if (moreMenu) {
-      moreMenu.hidden = !isOpen;
-      moreMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
-      moreMenu.style.display = isOpen ? "grid" : "none";
-      moreMenu.style.visibility = isOpen ? "visible" : "hidden";
-      moreMenu.style.opacity = isOpen ? "1" : "0";
-      moreMenu.style.pointerEvents = isOpen ? "auto" : "none";
-    }
-    if (moreMenuToggle) {
-      moreMenuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    }
   }
 
   function setFloatingShellOpen(shell, open, offsetY = 14) {
