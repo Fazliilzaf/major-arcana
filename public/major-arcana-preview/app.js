@@ -2440,6 +2440,88 @@
     activeFocusSection: ['runtime', 'activeFocusSection'],
   });
 
+  // state.selection — flat namespace för all selection-state (16 + 6 keys).
+  const __SELECTION_KEY_PATHS = Object.freeze({
+    // Top-level
+    customerIdentity: ['selectedCustomerIdentity'],
+    analyticsPeriod: ['selectedAnalyticsPeriod'],
+    automationLibrary: ['selectedAutomationLibrary'],
+    automationNode: ['selectedAutomationNode'],
+    automationSection: ['selectedAutomationSection'],
+    automationTemplate: ['selectedAutomationTemplate'],
+    automationVersion: ['selectedAutomationVersion'],
+    automationAutopilotProposal: ['selectedAutomationAutopilotProposal'],
+    integrationCategory: ['selectedIntegrationCategory'],
+    showcaseFeature: ['selectedShowcaseFeature'],
+    customerMergePrimaryKey: ['customerMergePrimaryKey'],
+    // Nested top-level
+    mailFeedKeyLater: ['selectedMailFeedKey', 'later'],
+    mailFeedKeySent: ['selectedMailFeedKey', 'sent'],
+    // Runtime-nested
+    threadId: ['runtime', 'selectedThreadId'],
+    mailboxIds: ['runtime', 'selectedMailboxIds'],
+    ownerKey: ['runtime', 'selectedOwnerKey'],
+    laneId: ['runtime', 'activeLaneId'],
+    historyContextThreadId: ['runtime', 'historyContextThreadId'],
+    historyConversationId: ['runtime', 'queueHistory', 'selectedConversationId'],
+  });
+
+  // state.status — flat namespace för loading/error-flaggor (28 keys).
+  const __STATUS_KEY_PATHS = Object.freeze({
+    bootstrapped: ['bootstrapped'],
+    bootstrapError: ['bootstrapError'],
+    // Runtime status
+    loading: ['runtime', 'loading'],
+    loaded: ['runtime', 'loaded'],
+    hasReachedSteadyState: ['runtime', 'hasReachedSteadyState'],
+    hasRemovedRuntimeLoading: ['runtime', 'hasRemovedRuntimeLoading'],
+    authRecoveryArmed: ['runtime', 'authRecoveryArmed'],
+    pendingFullRefresh: ['runtime', 'pendingFullRefresh'],
+    isBackgroundRefresh: ['runtime', 'isBackgroundRefresh'],
+    backgroundRefreshSelectedThreadId: ['runtime', 'backgroundRefreshSelectedThreadId'],
+    mode: ['runtime', 'mode'],
+    live: ['runtime', 'live'],
+    authRequired: ['runtime', 'authRequired'],
+    offline: ['runtime', 'offline'],
+    offlineWorkingSetSource: ['runtime', 'offlineWorkingSetSource'],
+    offlineWorkingSetMeta: ['runtime', 'offlineWorkingSetMeta'],
+    error: ['runtime', 'error'],
+    lastSyncAt: ['runtime', 'lastSyncAt'],
+    historyDeleting: ['runtime', 'historyDeleting'],
+    deletingThreadId: ['runtime', 'deletingThreadId'],
+    restoringMail: ['runtime', 'restoringMail'],
+    // Sub-runtime status
+    queueHistoryLoading: ['runtime', 'queueHistory', 'loading'],
+    queueHistoryLoaded: ['runtime', 'queueHistory', 'loaded'],
+    queueHistoryError: ['runtime', 'queueHistory', 'error'],
+    truthWorklistViewLoading: ['runtime', 'truthWorklistView', 'loading'],
+    truthWorklistViewLoaded: ['runtime', 'truthWorklistView', 'loaded'],
+    truthWorklistViewAuthRequired: ['runtime', 'truthWorklistView', 'authRequired'],
+    truthWorklistViewError: ['runtime', 'truthWorklistView', 'error'],
+  });
+
+  // state.prefs — flat namespace för preferences (persisted-värden).
+  const __PREFS_KEY_PATHS = Object.freeze({
+    // Top-level
+    automationAutopilotEnabled: ['automationAutopilotEnabled'],
+    automationScale: ['automationScale'],
+    workspacePrefsApplied: ['workspacePrefsApplied'],
+    // Runtime-nested
+    preferredMailboxId: ['runtime', 'preferredMailboxId'],
+    defaultSenderMailbox: ['runtime', 'defaultSenderMailbox'],
+    defaultSignatureProfile: ['runtime', 'defaultSignatureProfile'],
+    sendEnabled: ['runtime', 'sendEnabled'],
+    deleteEnabled: ['runtime', 'deleteEnabled'],
+    graphReadEnabled: ['runtime', 'graphReadEnabled'],
+    graphReadConnectorAvailable: ['runtime', 'graphReadConnectorAvailable'],
+    mailboxScopePinned: ['runtime', 'mailboxScopePinned'],
+    // Settings runtime
+    themeChoice: ['settingsRuntime', 'choices', 'theme'],
+    densityChoice: ['settingsRuntime', 'choices', 'density'],
+    profileName: ['settingsRuntime', 'profileName'],
+    profileEmail: ['settingsRuntime', 'profileEmail'],
+  });
+
   function __readUiPath(path) {
     let cur = __stateInternal;
     for (const seg of path) {
@@ -2471,57 +2553,70 @@
   // Forward-ref så __writeUiPath kan komma åt state-Proxyn innan den deklareras.
   const __stateRefs = { proxy: null };
 
-  const stateUiView = new Proxy(Object.create(null), {
-    get(_, key) {
-      if (typeof key === 'symbol') return undefined;
-      const path = __UI_KEY_PATHS[key];
-      if (!path) return undefined;
-      return __readUiPath(path);
-    },
-    set(_, key, value) {
-      if (typeof key === 'symbol') return true;
-      const path = __UI_KEY_PATHS[key];
-      if (!path) {
-        if (typeof console !== 'undefined') {
-          console.warn('[state.ui] Okänd UI-key:', key, '— lägg till i __UI_KEY_PATHS');
+  // Generisk factory: bygger en virtuell vy ovanpå en path-mapping.
+  // Används av state.ui, state.selection, state.status, state.prefs.
+  function __makeStateView(viewName, pathMap) {
+    return new Proxy(Object.create(null), {
+      get(_, key) {
+        if (typeof key === 'symbol') return undefined;
+        const path = pathMap[key];
+        if (!path) return undefined;
+        return __readUiPath(path);
+      },
+      set(_, key, value) {
+        if (typeof key === 'symbol') return true;
+        const path = pathMap[key];
+        if (!path) {
+          if (typeof console !== 'undefined') {
+            console.warn(`[state.${viewName}] Okänd key: ${key} — lägg till i path-mapping`);
+          }
+          return true;
         }
+        __writeUiPath(path, value);
         return true;
-      }
-      __writeUiPath(path, value);
-      return true;
-    },
-    has(_, key) {
-      return Object.prototype.hasOwnProperty.call(__UI_KEY_PATHS, key);
-    },
-    ownKeys(_) {
-      return Object.keys(__UI_KEY_PATHS);
-    },
-    getOwnPropertyDescriptor(_, key) {
-      if (Object.prototype.hasOwnProperty.call(__UI_KEY_PATHS, key)) {
-        return {
-          enumerable: true,
-          configurable: true,
-          value: __readUiPath(__UI_KEY_PATHS[key]),
-        };
-      }
-      return undefined;
-    },
-  });
+      },
+      has(_, key) {
+        return Object.prototype.hasOwnProperty.call(pathMap, key);
+      },
+      ownKeys(_) {
+        return Object.keys(pathMap);
+      },
+      getOwnPropertyDescriptor(_, key) {
+        if (Object.prototype.hasOwnProperty.call(pathMap, key)) {
+          return {
+            enumerable: true,
+            configurable: true,
+            value: __readUiPath(pathMap[key]),
+          };
+        }
+        return undefined;
+      },
+    });
+  }
+
+  const stateUiView = __makeStateView('ui', __UI_KEY_PATHS);
+  const stateSelectionView = __makeStateView('selection', __SELECTION_KEY_PATHS);
+  const stateStatusView = __makeStateView('status', __STATUS_KEY_PATHS);
+  const statePrefsView = __makeStateView('prefs', __PREFS_KEY_PATHS);
 
   // Proxy runt state för Fas 4-debug. Default: ingen logging, transparent.
   // Aktivera i devtools-console:
   //   window.__DEBUG_STATE = true   // logga alla mutationer
   //   window.__DEBUG_STATE = 'count' // räkna utan att logga
   //   __getStateStats()             // visa mutations-statistik
+  const __VIEW_NAMES = ['ui', 'selection', 'status', 'prefs'];
   const state = new Proxy(__stateInternal, {
     get(target, key) {
       if (key === 'ui') return stateUiView;
+      if (key === 'selection') return stateSelectionView;
+      if (key === 'status') return stateStatusView;
+      if (key === 'prefs') return statePrefsView;
       return target[key];
     },
     set(target, key, value) {
-      if (key === 'ui') {
+      if (__VIEW_NAMES.includes(key)) {
         if (typeof console !== 'undefined') {
-          console.warn('[state] state.ui är en vy och kan inte ersättas direkt');
+          console.warn(`[state] state.${key} är en vy och kan inte ersättas direkt`);
         }
         return true;
       }
@@ -2738,24 +2833,31 @@
       __doRender();
       return __renderStats;
     };
-    // Verifierar att alla paths i __UI_KEY_PATHS pekar på existerande storage
-    // (ingen typo). Returnerar lista med {key, path, value, exists}.
-    window.__testStateUi = () => {
+    // Verifierar att alla paths i alla state-vyer pekar på existerande storage.
+    // Returnerar lista med {view, key, path, value, exists}.
+    function __testOneView(viewName, pathMap) {
       const results = [];
-      for (const key of Object.keys(__UI_KEY_PATHS)) {
-        const path = __UI_KEY_PATHS[key];
+      for (const key of Object.keys(pathMap)) {
+        const path = pathMap[key];
         const value = __readUiPath(path);
         results.push({
-          key,
-          path: path.join('.'),
-          value,
+          view: viewName, key, path: path.join('.'), value,
           exists: value !== undefined,
         });
       }
-      const missing = results.filter(r => !r.exists).map(r => r.key);
-      console.log('[state.ui] testar', results.length, 'paths,', missing.length, 'missing');
-      if (missing.length) console.warn('[state.ui] saknas:', missing);
       return results;
+    }
+    window.__testStateUi = () => {
+      const all = [
+        ...__testOneView('ui', __UI_KEY_PATHS),
+        ...__testOneView('selection', __SELECTION_KEY_PATHS),
+        ...__testOneView('status', __STATUS_KEY_PATHS),
+        ...__testOneView('prefs', __PREFS_KEY_PATHS),
+      ];
+      const missing = all.filter(r => !r.exists);
+      console.log(`[state-views] testar ${all.length} paths över 4 vyer, ${missing.length} missing`);
+      if (missing.length) console.warn('[state-views] saknas:', missing.map(m => `${m.view}.${m.key}`));
+      return all;
     };
   }
 
