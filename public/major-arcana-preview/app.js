@@ -2705,91 +2705,25 @@
     }
   }
 
-  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler.
-  // Synlighet + transform driven av CSS via [data-open] (cco-polish.css).
-  // JS sätter bara aria-hidden + data-open — inga inline-styles.
-  function __renderFloatingShell(shell, isOpen, _offsetY) {
-    if (!shell) return;
-    const ariaHidden = isOpen ? 'false' : 'true';
-    if (shell.getAttribute('aria-hidden') !== ariaHidden) {
-      shell.setAttribute('aria-hidden', ariaHidden);
-    }
-    const hasOpen = shell.hasAttribute('data-open');
-    if (isOpen && !hasOpen) shell.setAttribute('data-open', '');
-    else if (!isOpen && hasOpen) shell.removeAttribute('data-open');
+  // ====================================================================
+  // Component-renderers — extraherade till app/render-components.js (Steg 4).
+  // Måste laddas FÖRE app.js i index.html. Vi tar in dem som lokala alias
+  // för att inte bryta call sites i renderApp.
+  // ====================================================================
+  if (!window.__AppRenderComponents) {
+    throw new Error('[app.js] window.__AppRenderComponents saknas — säkerställ att app/render-components.js laddas före app.js');
   }
-
-  function renderMailboxAdmin(state) {
-    const shell = document.getElementById('mailbox-admin-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.mailboxAdminOpen === true, 14);
-  }
-
-  function renderConfirmDialog(state) {
-    const shell = document.getElementById('shell-confirm-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.confirmDialogOpen === true, 16);
-  }
-
-  function renderCustomerMergeShell(state) {
-    // Notera: namn renamed från renderCustomerMergeModal eftersom det fanns en
-    // andra funktion med samma namn (renderar modal-innehåll) som overrode
-    // denna i hoisting. Denna sköter bara open/close-visibility via shell.
-    const shell = document.getElementById('customers-merge-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.customerMergeModalOpen === true, 16);
-  }
-
-  function renderCustomerSettings(state) {
-    const shell = document.getElementById('customers-settings-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.customerSettingsOpen === true, 16);
-  }
-
-  function renderMacroModal(state) {
-    const shell = document.getElementById('macro-editor-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.macroModalOpen === true, 16);
-  }
-
-  function renderSettingsProfileModal(state) {
-    const shell = document.getElementById('settings-profile-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.settingsProfileModalOpen === true, 16);
-  }
-
-  function renderNoteModeShell(state) {
-    const shell = document.getElementById('note-mode-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.noteModeOpen === true, 14);
-  }
-
-  function renderMoreMenu(state) {
-    const wrapper = document.querySelector('.preview-more');
-    const menu = document.getElementById('preview-more-menu');
-    const toggle = document.querySelector('[data-more-toggle]');
-    if (!wrapper) return;
-    const isOpen = state.ui.moreMenuOpen === true;
-    // Steg 5: CSS driver synlighet via [data-open]-attributet på wrappern.
-    // JS sätter bara attribut — inga inline-styles, inga 6 redundanta props.
-    const hasOpen = wrapper.hasAttribute('data-open');
-    if (isOpen && !hasOpen) wrapper.setAttribute('data-open', '');
-    else if (!isOpen && hasOpen) wrapper.removeAttribute('data-open');
-    if (menu) {
-      // Synka [hidden] + aria-hidden för screen readers + tab-flow.
-      if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
-      const ariaHidden = isOpen ? 'false' : 'true';
-      if (menu.getAttribute('aria-hidden') !== ariaHidden) {
-        menu.setAttribute('aria-hidden', ariaHidden);
-      }
-    }
-    if (toggle) {
-      const ariaExpanded = isOpen ? 'true' : 'false';
-      if (toggle.getAttribute('aria-expanded') !== ariaExpanded) {
-        toggle.setAttribute('aria-expanded', ariaExpanded);
-      }
-    }
-  }
+  const {
+    renderFloatingShell: __renderFloatingShell,
+    renderMailboxAdmin,
+    renderConfirmDialog,
+    renderCustomerMergeShell,
+    renderCustomerSettings,
+    renderMacroModal,
+    renderSettingsProfileModal,
+    renderNoteModeShell,
+    renderMoreMenu,
+  } = window.__AppRenderComponents;
 
   if (typeof window !== 'undefined') {
     window.__getStateStats = () => ({
