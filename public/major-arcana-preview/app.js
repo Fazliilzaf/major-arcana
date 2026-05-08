@@ -2617,7 +2617,62 @@
   // side effects bortom DOM-mutationer.
   function renderApp(state) {
     renderMoreMenu(state);
-    // Framtida: renderMailboxAdmin, renderQueueInlinePanel, renderInbox, ...
+    renderMailboxAdmin(state);
+    renderConfirmDialog(state);
+    renderCustomerMergeModal(state);
+    renderCustomerSettings(state);
+    // Framtida: renderQueueInlinePanel, renderQueueHistoryPanel, renderInbox, ...
+  }
+
+  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler
+  // (mailbox-admin, confirm, customers-merge, customers-settings, etc).
+  // Samma DOM-mutationer som setFloatingShellOpen — men idempotenta så
+  // multipla anrop med samma state inte slår hjulet runt.
+  function __renderFloatingShell(shell, isOpen, offsetY) {
+    if (!shell) return;
+    const ariaHidden = isOpen ? 'false' : 'true';
+    if (shell.getAttribute('aria-hidden') !== ariaHidden) {
+      shell.setAttribute('aria-hidden', ariaHidden);
+    }
+    const opacity = isOpen ? '1' : '0';
+    if (shell.style.opacity !== opacity) shell.style.opacity = opacity;
+    const visibility = isOpen ? 'visible' : 'hidden';
+    if (shell.style.visibility !== visibility) shell.style.visibility = visibility;
+    const pointer = isOpen ? 'auto' : 'none';
+    if (shell.style.pointerEvents !== pointer) shell.style.pointerEvents = pointer;
+    const surface = shell.querySelector(
+      '.customers-modal-surface, .mailbox-admin-surface, .note-mode-surface, .shell-modal-surface'
+    );
+    if (surface) {
+      const transform = isOpen
+        ? 'translateX(-50%) translateY(0)'
+        : `translateX(-50%) translateY(${offsetY != null ? offsetY : 14}px)`;
+      if (surface.style.transform !== transform) surface.style.transform = transform;
+    }
+  }
+
+  function renderMailboxAdmin(state) {
+    const shell = document.getElementById('mailbox-admin-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.mailboxAdminOpen === true, 14);
+  }
+
+  function renderConfirmDialog(state) {
+    const shell = document.getElementById('shell-confirm-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.confirmDialogOpen === true, 16);
+  }
+
+  function renderCustomerMergeModal(state) {
+    const shell = document.getElementById('customers-merge-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.customerMergeModalOpen === true, 16);
+  }
+
+  function renderCustomerSettings(state) {
+    const shell = document.getElementById('customers-settings-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.customerSettingsOpen === true, 16);
   }
 
   function renderMoreMenu(state) {
