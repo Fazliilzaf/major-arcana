@@ -2534,6 +2534,57 @@
     truthWorklistViewError: ['runtime', 'truthWorklistView', 'error'],
   });
 
+  // state.data — flat namespace för domain-data (server-levererat).
+  const __DATA_KEY_PATHS = Object.freeze({
+    threads: ['runtime', 'threads'],
+    mailboxes: ['runtime', 'mailboxes'],
+    mailboxCapabilities: ['runtime', 'mailboxCapabilities'],
+    queueHistoryItems: ['runtime', 'queueHistory', 'items'],
+    truthPrimaryLegacyThreads: ['runtime', 'truthPrimaryLegacyThreads'],
+    noteTemplates: ['noteTemplates'],
+    noteDefinitions: ['noteDefinitions'],
+    customMailboxes: ['customMailboxes'],
+    macros: ['macros'],
+  });
+
+  // state.forms — flat namespace för live form/draft-state.
+  const __FORMS_KEY_PATHS = Object.freeze({
+    // Studio (compose / reply)
+    studioMode: ['studio', 'mode'],
+    studioThreadId: ['studio', 'threadId'],
+    studioComposeMailboxId: ['studio', 'composeMailboxId'],
+    studioComposeTo: ['studio', 'composeTo'],
+    studioComposeSubject: ['studio', 'composeSubject'],
+    studioDraftBody: ['studio', 'draftBody'],
+    studioActiveTemplate: ['studio', 'activeTemplateKey'],
+    studioActiveTrack: ['studio', 'activeTrackKey'],
+    studioActiveTone: ['studio', 'activeToneKey'],
+    studioSignature: ['studio', 'selectedSignatureId'],
+    studioSending: ['studio', 'sending'],
+    // Note
+    noteActiveKey: ['note', 'activeKey'],
+    noteDrafts: ['note', 'drafts'],
+    noteSaving: ['note', 'saving'],
+    // Schedule
+    scheduleDraft: ['schedule', 'draft'],
+    scheduleOptions: ['schedule', 'options'],
+    scheduleSaving: ['schedule', 'saving'],
+    // Later
+    laterOption: ['later', 'option'],
+    laterBulkSelectionKeys: ['later', 'bulkSelectionKeys'],
+    laterContextThreadId: ['later', 'contextThreadId'],
+    // Customer-vyn
+    customerSearch: ['customerSearch'],
+    customerFilter: ['customerFilter'],
+    customerBatchSelection: ['customerBatchSelection'],
+    customerMergeOptions: ['customerMergeOptions'],
+    // History-filter
+    historySearch: ['runtime', 'historySearch'],
+    historyMailboxFilter: ['runtime', 'historyMailboxFilter'],
+    historyResultTypeFilter: ['runtime', 'historyResultTypeFilter'],
+    historyRangeFilter: ['runtime', 'historyRangeFilter'],
+  });
+
   // state.prefs — flat namespace för preferences (persisted-värden).
   const __PREFS_KEY_PATHS = Object.freeze({
     // Top-level
@@ -2632,19 +2683,23 @@
   const stateSelectionView = __makeStateView('selection', __SELECTION_KEY_PATHS);
   const stateStatusView = __makeStateView('status', __STATUS_KEY_PATHS);
   const statePrefsView = __makeStateView('prefs', __PREFS_KEY_PATHS);
+  const stateDataView = __makeStateView('data', __DATA_KEY_PATHS);
+  const stateFormsView = __makeStateView('forms', __FORMS_KEY_PATHS);
 
   // Proxy runt state för Fas 4-debug. Default: ingen logging, transparent.
   // Aktivera i devtools-console:
   //   window.__DEBUG_STATE = true   // logga alla mutationer
   //   window.__DEBUG_STATE = 'count' // räkna utan att logga
   //   __getStateStats()             // visa mutations-statistik
-  const __VIEW_NAMES = ['ui', 'selection', 'status', 'prefs'];
+  const __VIEW_NAMES = ['ui', 'selection', 'status', 'prefs', 'data', 'forms'];
   const state = new Proxy(__stateInternal, {
     get(target, key) {
       if (key === 'ui') return stateUiView;
       if (key === 'selection') return stateSelectionView;
       if (key === 'status') return stateStatusView;
       if (key === 'prefs') return statePrefsView;
+      if (key === 'data') return stateDataView;
+      if (key === 'forms') return stateFormsView;
       return target[key];
     },
     set(target, key, value) {
@@ -2907,9 +2962,11 @@
         ...__testOneView('selection', __SELECTION_KEY_PATHS),
         ...__testOneView('status', __STATUS_KEY_PATHS),
         ...__testOneView('prefs', __PREFS_KEY_PATHS),
+        ...__testOneView('data', __DATA_KEY_PATHS),
+        ...__testOneView('forms', __FORMS_KEY_PATHS),
       ];
       const missing = all.filter(r => !r.exists);
-      console.log(`[state-views] testar ${all.length} paths över 4 vyer, ${missing.length} missing`);
+      console.log(`[state-views] testar ${all.length} paths över 6 vyer, ${missing.length} missing`);
       if (missing.length) console.warn('[state-views] saknas:', missing.map(m => `${m.view}.${m.key}`));
       return all;
     };
@@ -4260,7 +4317,7 @@
       identityTokens.forEach((token) => seenTokens.add(token));
       profiles.push(normalizedProfile);
     };
-    asArray(state.customMailboxes).forEach((mailbox, index) => {
+    asArray(state.data.customMailboxes).forEach((mailbox, index) => {
       addProfile(buildStudioSignatureProfileFromMailbox(mailbox, index));
     });
     STUDIO_SIGNATURE_PROFILES.forEach((profile) => {
@@ -4504,10 +4561,10 @@
         normalizeKey(state.selection.ownerKey || "all") !== "all" ||
         normalizeKey(state.ui.activeFocusSection || "conversation") !== "conversation" ||
         state.ui.historyExpanded !== true ||
-        asText(state.runtime.historySearch) ||
-        normalizeKey(state.runtime.historyMailboxFilter || "all") !== "all" ||
-        normalizeKey(state.runtime.historyResultTypeFilter || "all") !== "all" ||
-        normalizeKey(state.runtime.historyRangeFilter || "all") !== "all" ||
+        asText(state.forms.historySearch) ||
+        normalizeKey(state.forms.historyMailboxFilter || "all") !== "all" ||
+        normalizeKey(state.forms.historyResultTypeFilter || "all") !== "all" ||
+        normalizeKey(state.forms.historyRangeFilter || "all") !== "all" ||
         state.status.live === true ||
         state.status.offline === true
     );
@@ -4999,7 +5056,7 @@
       }).map(normalizeMailboxId)
     );
     return (
-      asArray(state.runtime.mailboxCapabilities).find((capability) =>
+      asArray(state.data.mailboxCapabilities).find((capability) =>
         getMailboxIdentityTokens(capability).some((token) => requestedTokens.has(normalizeMailboxId(token)))
       ) || null
     );
@@ -5644,7 +5701,7 @@
   function getFallbackIntegrationActorProfile() {
     const signature = getStudioSignatureProfile(
       state.prefs.defaultSignatureProfile ||
-        state.studio.selectedSignatureId ||
+        state.forms.studioSignature ||
         CCO_DEFAULT_SIGNATURE_PROFILE
     );
     return {
@@ -5804,7 +5861,7 @@
     };
   }
 
-  function serializeCustomMailboxesForSettings(customMailboxes = state.customMailboxes) {
+  function serializeCustomMailboxesForSettings(customMailboxes = state.data.customMailboxes) {
     return asArray(customMailboxes)
       .map((mailbox, index) => normalizeCustomMailboxDefinition(mailbox, index))
       .filter(Boolean)
@@ -5957,7 +6014,7 @@
           signatureProfileId,
         },
         customMailboxes: serializeCustomMailboxesForSettings(
-          customMailboxes || state.customMailboxes
+          customMailboxes || state.data.customMailboxes
         ),
       },
     };
@@ -5982,9 +6039,9 @@
       nextState?.mailFoundation &&
       Object.prototype.hasOwnProperty.call(nextState.mailFoundation, "customMailboxes")
     ) {
-      state.customMailboxes = mergeDefaultCustomMailboxDefinitions([
+      state.data.customMailboxes = mergeDefaultCustomMailboxDefinitions([
         ...mapped.mailFoundationCustomMailboxes,
-        ...asArray(state.customMailboxes),
+        ...asArray(state.data.customMailboxes),
       ]);
       persistCustomMailboxes();
     }
@@ -11367,29 +11424,29 @@
     if (!thread) return null;
     const replyContextThreadId = asText(state.studio.replyContextThreadId);
     const hasReplyContextMismatch =
-      normalizeKey(state.studio.mode) !== "compose" &&
+      normalizeKey(state.forms.studioMode) !== "compose" &&
       replyContextThreadId &&
       !runtimeConversationIdsMatch(replyContextThreadId, thread.id);
     if (
-      normalizeKey(state.studio.mode) === "compose" ||
-      !runtimeConversationIdsMatch(state.studio.threadId, thread.id) ||
+      normalizeKey(state.forms.studioMode) === "compose" ||
+      !runtimeConversationIdsMatch(state.forms.studioThreadId, thread.id) ||
       hasReplyContextMismatch
     ) {
       state.studio = createStudioState(thread);
     }
-    if (!normalizeText(state.studio.draftBody)) {
-      state.studio.draftBody =
+    if (!normalizeText(state.forms.studioDraftBody)) {
+      state.forms.studioDraftBody =
         state.studio.baseDraftBody ||
-        buildStudioTrackDraft(thread, state.studio.activeTrackKey);
+        buildStudioTrackDraft(thread, state.forms.studioActiveTrack);
     }
     const resolvedSignatureProfile =
-      resolveStudioSignatureProfile(state.studio.selectedSignatureId) ||
+      resolveStudioSignatureProfile(state.forms.studioSignature) ||
       getStudioReplyDefaultSignatureProfile(thread);
-    state.studio.selectedSignatureId = resolvedSignatureProfile.id;
-    state.studio.composeMailboxId = canonicalizeRuntimeMailboxId(
-      state.studio.composeMailboxId || getStudioDefaultSenderMailboxId(thread)
+    state.forms.studioSignature = resolvedSignatureProfile.id;
+    state.forms.studioComposeMailboxId = canonicalizeRuntimeMailboxId(
+      state.forms.studioComposeMailboxId || getStudioDefaultSenderMailboxId(thread)
     );
-    state.studio.mode = "reply";
+    state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
     return applyTruthPrimaryStudioState(state.studio, thread);
   }
@@ -12265,12 +12322,12 @@
 
   function persistCustomMailboxes() {
     try {
-      const payload = serializeCustomMailboxesForSettings(state.customMailboxes);
+      const payload = serializeCustomMailboxesForSettings(state.data.customMailboxes);
       window.localStorage.setItem(CUSTOM_MAILBOXES_STORAGE_KEY, JSON.stringify(payload));
     } catch {}
   }
 
-  state.customMailboxes = loadPersistedCustomMailboxes();
+  state.data.customMailboxes = loadPersistedCustomMailboxes();
   persistCustomMailboxes();
 
   function findCustomMailboxDefinition(mailboxId = "") {
@@ -12285,7 +12342,7 @@
     );
     if (!requestedTokens.size) return null;
     return (
-      asArray(state.customMailboxes)
+      asArray(state.data.customMailboxes)
         .map((mailbox, index) => normalizeCustomMailboxDefinition(mailbox, index))
         .find(
           (mailbox) =>
@@ -12312,7 +12369,7 @@
       });
     });
 
-    asArray(state.runtime.mailboxes).forEach((mailbox, index) => {
+    asArray(state.data.mailboxes).forEach((mailbox, index) => {
       const id = normalizeMailboxId(mailbox?.id || mailbox?.email);
       if (!id) return;
       const runtimeMailbox = {
@@ -12354,7 +12411,7 @@
       merged.set(key, runtimeMailbox);
     });
 
-    asArray(state.customMailboxes).forEach((mailbox, index) => {
+    asArray(state.data.customMailboxes).forEach((mailbox, index) => {
       const normalized = normalizeCustomMailboxDefinition(mailbox, index);
       if (!normalized) return;
       const key = findExistingMailboxKey(merged, normalized) || normalized.id;
@@ -12394,7 +12451,7 @@
       const customMailbox = {
         ...normalized,
         id: key,
-        order: LEGACY_RUNTIME_MAILBOXES.length + asArray(state.runtime.mailboxes).length + index,
+        order: LEGACY_RUNTIME_MAILBOXES.length + asArray(state.data.mailboxes).length + index,
         toneClass: normalized.toneClass || "",
         hasLiveSource: false,
         liveSourceKind: "custom",
@@ -12450,7 +12507,7 @@
     const selectedMailboxIds = asArray(state.selection.mailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value, availableMailboxes))
       .filter(Boolean);
-    const threads = Array.isArray(state.runtime.threads) ? state.runtime.threads : [];
+    const threads = Array.isArray(state.data.threads) ? state.data.threads : [];
     if (!selectedMailboxIds.length) {
       return availableMailboxes.length ? [] : threads;
     }
@@ -12478,7 +12535,7 @@
   }
 
   function normalizeVisibleRuntimeScope(options = {}) {
-    const allThreads = Array.isArray(state.runtime.threads) ? state.runtime.threads : [];
+    const allThreads = Array.isArray(state.data.threads) ? state.data.threads : [];
     const selectionOptions = {
       preferredThreadId: Object.prototype.hasOwnProperty.call(options, "preferredThreadId")
         ? options.preferredThreadId
@@ -12564,7 +12621,7 @@
     const listed = items.concat(Array.from(owners.values()));
     const selectedOwnerKey = normalizeKey(state.selection.ownerKey || "all");
     if (selectedOwnerKey !== "all" && !listed.some((item) => item.id === selectedOwnerKey)) {
-      const fallbackOwner = asArray(state.runtime.threads).find(
+      const fallbackOwner = asArray(state.data.threads).find(
         (thread) => normalizeKey(thread.ownerKey || thread.ownerLabel) === selectedOwnerKey
       );
       listed.push({
@@ -12642,7 +12699,7 @@
   }
 
   function hasRuntimeQueueThreads() {
-    return Array.isArray(state.runtime?.threads) && state.runtime.threads.length > 0;
+    return Array.isArray(state.runtime?.threads) && state.data.threads.length > 0;
   }
 
   function getRuntimeLeftColumnState() {
@@ -12858,7 +12915,7 @@
           runtimeSource = runtimeThread ? "history_mailbox_scope" : runtimeSource;
         }
         if (!runtimeThread) {
-          runtimeThread = pickThread(state.runtime.threads);
+          runtimeThread = pickThread(state.data.threads);
           runtimeSource = runtimeThread ? "history_runtime_scope" : "history_empty";
         }
       }
@@ -12908,7 +12965,7 @@
       runtimeSource = runtimeThread ? "mailbox_scope_fallback" : runtimeSource;
     }
     if (!runtimeThread && !offlineHistoryWithoutSelection) {
-      runtimeThread = pickThread(state.runtime.threads);
+      runtimeThread = pickThread(state.data.threads);
       runtimeSource = runtimeThread ? "runtime_scope_fallback" : runtimeSource;
     }
 
@@ -13448,10 +13505,10 @@
   }
 
   function resetRuntimeHistoryFilters() {
-    state.runtime.historySearch = "";
-    state.runtime.historyMailboxFilter = "all";
-    state.runtime.historyResultTypeFilter = "all";
-    state.runtime.historyRangeFilter = "all";
+    state.forms.historySearch = "";
+    state.forms.historyMailboxFilter = "all";
+    state.forms.historyResultTypeFilter = "all";
+    state.forms.historyRangeFilter = "all";
     if (focusHistorySearchInput) {
       focusHistorySearchInput.value = "";
     }
@@ -13891,18 +13948,18 @@
 
     const mailboxIds = customerScoped
       ? getCustomerHistoryMailboxOptions(thread).map((option) => option.id)
-      : state.runtime.historyMailboxFilter !== "all"
-        ? [state.runtime.historyMailboxFilter]
+      : state.forms.historyMailboxFilter !== "all"
+        ? [state.forms.historyMailboxFilter]
         : getThreadHistoryMailboxOptions(thread).map((option) => option.id);
 
     if (mailboxIds.length) {
       params.set("mailboxIds", mailboxIds.join(","));
     }
-    if (!customerScoped && normalizeText(state.runtime.historySearch)) {
-      params.set("q", normalizeText(state.runtime.historySearch));
+    if (!customerScoped && normalizeText(state.forms.historySearch)) {
+      params.set("q", normalizeText(state.forms.historySearch));
     }
-    if (!customerScoped && normalizeKey(state.runtime.historyResultTypeFilter) !== "all") {
-      params.set("resultTypes", normalizeKey(state.runtime.historyResultTypeFilter));
+    if (!customerScoped && normalizeKey(state.forms.historyResultTypeFilter) !== "all") {
+      params.set("resultTypes", normalizeKey(state.forms.historyResultTypeFilter));
     }
     return `/api/v1/cco/runtime/calibration/readout?${params.toString()}`;
   }
@@ -15757,7 +15814,7 @@
   function restorePendingMailFeedDelete(message = "", tone = "success") {
     const pending = state.pendingMailFeedDelete;
     if (!pending.active) return false;
-    state.runtime.threads = cloneJson(pending.previousThreadsSnapshot);
+    state.data.threads = cloneJson(pending.previousThreadsSnapshot);
     workspaceSourceOfTruth.setSelectedThreadId(asText(pending.previousSelectedThreadId));
     getMailFeedRuntimeState("later").selectedKeys = [...asArray(pending.previousSelections.later)];
     getMailFeedRuntimeState("sent").selectedKeys = [...asArray(pending.previousSelections.sent)];
@@ -15836,13 +15893,13 @@
     state.pendingMailFeedDelete.count = runtimeThreads.length;
     state.pendingMailFeedDelete.committing = false;
     state.pendingMailFeedDelete.threadsSnapshot = cloneJson(runtimeThreads);
-    state.pendingMailFeedDelete.previousThreadsSnapshot = cloneJson(state.runtime.threads);
+    state.pendingMailFeedDelete.previousThreadsSnapshot = cloneJson(state.data.threads);
     state.pendingMailFeedDelete.previousSelectedThreadId = asText(state.selection.threadId);
     state.pendingMailFeedDelete.previousSelections = {
       later: [...asArray(getMailFeedRuntimeState("later").selectedKeys)],
       sent: [...asArray(getMailFeedRuntimeState("sent").selectedKeys)],
     };
-    state.runtime.threads = state.runtime.threads.filter((thread) => !removedIds.has(asText(thread.id)));
+    state.data.threads = state.data.threads.filter((thread) => !removedIds.has(asText(thread.id)));
     getMailFeedRuntimeState(normalizedFeed).selectedKeys = [];
     ensureRuntimeSelection();
     renderRuntimeConversationShell();
@@ -15951,7 +16008,7 @@
       state.macroModal.macroId = asText(options.macroId);
       const macro =
         state.macroModal.mode === "edit"
-          ? state.macros.find(
+          ? state.data.macros.find(
               (item) =>
                 normalizeKey(item.id || item.key) === normalizeKey(state.macroModal.macroId)
             ) || null
@@ -16592,8 +16649,8 @@
   }
 
   function getBatchSelectionKeys() {
-    const current = Array.isArray(state.customerBatchSelection)
-      ? state.customerBatchSelection
+    const current = Array.isArray(state.forms.customerBatchSelection)
+      ? state.forms.customerBatchSelection
       : [];
     return Array.from(
       new Set(
@@ -16722,7 +16779,7 @@
     });
 
     customerMergeOptionInputs.forEach((input) => {
-      input.checked = Boolean(state.customerMergeOptions[normalizeKey(input.dataset.customerMergeOption)]);
+      input.checked = Boolean(state.forms.customerMergeOptions[normalizeKey(input.dataset.customerMergeOption)]);
     });
   }
 
@@ -17225,7 +17282,7 @@
       .querySelectorAll(".mailbox-option-custom")
       .forEach((node) => node.remove());
 
-    state.customMailboxes.forEach((mailbox) => {
+    state.data.customMailboxes.forEach((mailbox) => {
       const mailboxTokens = new Set(
         getMailboxIdentityTokens(mailbox).map((token) => normalizeMailboxId(token)).filter(Boolean)
       );
@@ -17408,7 +17465,7 @@
       .filter((_, index) => settled[index]?.status === "fulfilled")
       .map((thread) => thread.id);
     if (successfulIds.length) {
-      state.runtime.threads = state.runtime.threads.filter(
+      state.data.threads = state.data.threads.filter(
         (thread) => !successfulIds.includes(thread.id)
       );
     }
@@ -17770,7 +17827,7 @@
   function renderMacros() {
     if (!macrosList) return;
     macrosList.innerHTML = "";
-    const macroCards = state.macros.length ? state.macros : getFallbackMacroCards();
+    const macroCards = state.data.macros.length ? state.data.macros : getFallbackMacroCards();
     macroCards.forEach((macro) => {
       const isPending =
         normalizeKey(state.macrosRuntime.pendingMacroId) === normalizeKey(macro.id || macro.key);
@@ -17829,10 +17886,10 @@
   }
 
   async function loadMacrosRuntime({ force = false } = {}) {
-    if (state.macrosRuntime.loading && !force) return state.macros;
+    if (state.macrosRuntime.loading && !force) return state.data.macros;
     if (state.macrosRuntime.loaded && !force && !state.macrosRuntime.error) {
       renderMacros();
-      return state.macros;
+      return state.data.macros;
     }
 
     state.macrosRuntime.loading = true;
@@ -17841,7 +17898,7 @@
     renderMacros();
     try {
       const payload = await apiRequest("/api/v1/cco/macros");
-      state.macros = asArray(payload?.macros).map((macro, index) => createMacroCardFromRecord(macro, index));
+      state.data.macros = asArray(payload?.macros).map((macro, index) => createMacroCardFromRecord(macro, index));
       state.macrosRuntime.loaded = true;
       state.macrosRuntime.lastLoadedAt = new Date().toISOString();
     } catch (error) {
@@ -17851,14 +17908,14 @@
         state.macrosRuntime.error = error?.message || "Kunde inte läsa makrobiblioteket.";
       }
       if (!state.macrosRuntime.loaded) {
-        state.macros = getFallbackMacroCards();
+        state.data.macros = getFallbackMacroCards();
       }
     } finally {
       state.macrosRuntime.loading = false;
       renderMacros();
       renderShowcase();
     }
-    return state.macros;
+    return state.data.macros;
   }
 
   function renderSettingsRuntimeStatus() {
@@ -18034,7 +18091,7 @@
     const mode = state.macroModal.mode === "edit" ? "edit" : "create";
     const macro =
       mode === "edit"
-        ? state.macros.find(
+        ? state.data.macros.find(
             (item) =>
               normalizeKey(item.id || item.key) === normalizeKey(state.macroModal.macroId)
           ) || null
@@ -18081,13 +18138,13 @@
       if (payload?.macro) {
         const nextMacro = createMacroCardFromRecord(payload.macro, 0);
         if (mode === "edit") {
-          state.macros = state.macros.map((item) =>
+          state.data.macros = state.data.macros.map((item) =>
             normalizeKey(item.id || item.key) === normalizeKey(macro.id || macro.key)
               ? nextMacro
               : item
           );
         } else {
-          state.macros.unshift(nextMacro);
+          state.data.macros.unshift(nextMacro);
         }
       }
       renderShowcase();
@@ -18158,11 +18215,11 @@
   function buildShowcaseFeatureRuntime(featureKey) {
     const feature =
       SHOWCASE_FEATURES[normalizeKey(featureKey)] || SHOWCASE_FEATURES.command_palette;
-    const macroCount = state.macros.length || getFallbackMacroCards().length;
-    const autoMacroCount = state.macros.filter((item) => item.mode === "auto").length;
+    const macroCount = state.data.macros.length || getFallbackMacroCards().length;
+    const autoMacroCount = state.data.macros.filter((item) => item.mode === "auto").length;
     const connectedIntegrations = getIntegrationConnectedKeys().length;
     const activeThreadCount = getFilteredRuntimeThreads().length;
-    const customerBatchCount = state.customerBatchSelection.length;
+    const customerBatchCount = state.forms.customerBatchSelection.length;
     const laterCount = getMailFeedItems("later").length;
 
     if (normalizeKey(featureKey) === "macros") {
@@ -18880,8 +18937,8 @@
   }
 
   function getVisibleCustomerKeys() {
-    const query = normalizeKey(state.customerSearch);
-    const filter = normalizeKey(state.customerFilter);
+    const query = normalizeKey(state.forms.customerSearch);
+    const filter = normalizeKey(state.forms.customerFilter);
     const directory = getCustomerDirectoryMap();
     const details = getCustomerDetailsMap();
 
@@ -19027,9 +19084,9 @@
     renderCustomerBatchSelection();
 
     if (!visibleKeys.length) {
-      const hasSearch = Boolean(normalizeKey(state.customerSearch));
+      const hasSearch = Boolean(normalizeKey(state.forms.customerSearch));
       const hasNonDefaultFilter =
-        normalizeKey(state.customerFilter) && normalizeKey(state.customerFilter) !== "alla kunder";
+        normalizeKey(state.forms.customerFilter) && normalizeKey(state.forms.customerFilter) !== "alla kunder";
       if (state.customerRuntime.error) {
         setCustomersStatus(state.customerRuntime.error, "error");
       } else if (hasSearch || hasNonDefaultFilter) {
@@ -19514,7 +19571,7 @@
     const incidentOpen =
       asNumber(state.analyticsRuntime.incidentSummary?.totals?.openUnresolved, 0) ||
       asNumber(state.analyticsRuntime.ownerDashboard?.incidents?.summary?.totals?.openUnresolved, 0);
-    const macrosCount = state.macros.length || getFallbackMacroCards().length;
+    const macrosCount = state.data.macros.length || getFallbackMacroCards().length;
     const templateBase = Math.max(1, macrosCount * 5);
     const templateUsagePercent = Math.min(
       99,
@@ -20552,13 +20609,13 @@
   function toggleCustomerBatchSelection(customerKey) {
     const normalizedKey = normalizeKey(customerKey);
     if (!normalizedKey) return;
-    const nextSelection = new Set(state.customerBatchSelection);
+    const nextSelection = new Set(state.forms.customerBatchSelection);
     if (nextSelection.has(normalizedKey)) {
       nextSelection.delete(normalizedKey);
     } else {
       nextSelection.add(normalizedKey);
     }
-    state.customerBatchSelection = Array.from(nextSelection);
+    state.forms.customerBatchSelection = Array.from(nextSelection);
     renderCustomerBatchSelection();
   }
 
@@ -20621,7 +20678,7 @@
     if (key === "toggle_batch") {
       toggleCustomerBatchSelection(detail.key);
       setCustomersStatus(
-        state.customerBatchSelection.includes(detail.key)
+        state.forms.customerBatchSelection.includes(detail.key)
           ? `${detail.name} lades till i batchurvalet.`
           : `${detail.name} togs bort från batchurvalet.`,
         "success"
@@ -20665,7 +20722,7 @@
         },
         "Massammanfogningen sparades i backend."
       );
-      state.customerBatchSelection = [primaryKey];
+      state.forms.customerBatchSelection = [primaryKey];
       setSelectedCustomerIdentity(primaryKey);
       setFeedback(
         customerMergeFeedback,
@@ -20884,16 +20941,16 @@
           }),
       },
     });
-    const previousCustomMailboxes = state.customMailboxes.slice();
+    const previousCustomMailboxes = state.data.customMailboxes.slice();
     if (editingId) {
-      state.customMailboxes = state.customMailboxes.map((entry, index) => {
+      state.data.customMailboxes = state.data.customMailboxes.map((entry, index) => {
         const normalized = normalizeCustomMailboxDefinition(entry, index);
         return normalized?.id === editingId ? mailbox : entry;
       });
     } else {
-      state.customMailboxes.push(mailbox);
+      state.data.customMailboxes.push(mailbox);
     }
-    const nextCustomMailboxes = state.customMailboxes;
+    const nextCustomMailboxes = state.data.customMailboxes;
 
     try {
       const payload = await apiRequest("/api/v1/cco/settings", {
@@ -20910,17 +20967,17 @@
         state.settingsRuntime.loaded = true;
         state.settingsRuntime.lastLoadedAt = new Date().toISOString();
       } else {
-        state.customMailboxes = nextCustomMailboxes;
+        state.data.customMailboxes = nextCustomMailboxes;
         persistCustomMailboxes();
       }
     } catch (error) {
       if (isAuthFailure(error?.statusCode, error?.message)) {
         state.settingsRuntime.authRequired = true;
-        state.customMailboxes = previousCustomMailboxes;
+        state.data.customMailboxes = previousCustomMailboxes;
         window.location.assign(buildReauthUrl());
         return;
       }
-      state.customMailboxes = previousCustomMailboxes;
+      state.data.customMailboxes = previousCustomMailboxes;
       setFeedback(
         mailboxAdminFeedback,
         "error",
@@ -21188,7 +21245,7 @@
   async function handleMacroCardAction(actionKey, macroKey) {
     const normalizedAction = normalizeKey(actionKey);
     const normalizedKey = normalizeKey(macroKey);
-    const macro = state.macros.find((item) => normalizeKey(item.id || item.key) === normalizedKey);
+    const macro = state.data.macros.find((item) => normalizeKey(item.id || item.key) === normalizedKey);
     if (!macro) return;
 
     if (normalizedAction === "open") {
@@ -21234,7 +21291,7 @@
             if (payload?.deleted !== true) {
               throw new Error("Makrot kunde inte bekräftas som raderat.");
             }
-            state.macros = state.macros.filter(
+            state.data.macros = state.data.macros.filter(
               (item) => normalizeKey(item.id || item.key) !== normalizedKey
             );
             renderShowcase();
@@ -21276,7 +21333,7 @@
         });
         if (payload?.macro) {
           const nextMacro = createMacroCardFromRecord(payload.macro, 0);
-          state.macros = state.macros.map((item) =>
+          state.data.macros = state.data.macros.map((item) =>
             normalizeKey(item.id || item.key) === normalizedKey ? nextMacro : item
           );
         }
@@ -23550,9 +23607,9 @@
   function getBookingScheduleWorkspaceContext() {
     const scheduleMetadata =
       state.schedule?.draft?.metadata &&
-      typeof state.schedule.draft.metadata === "object" &&
-      !Array.isArray(state.schedule.draft.metadata)
-        ? state.schedule.draft.metadata
+      typeof state.forms.scheduleDraft.metadata === "object" &&
+      !Array.isArray(state.forms.scheduleDraft.metadata)
+        ? state.forms.scheduleDraft.metadata
         : {};
     if (
       normalizeKey(state.schedule?.draft?.category) === "bokning" ||
@@ -23585,8 +23642,8 @@
   }
 
   function getScheduleBookingThread() {
-    const draft = state.schedule?.draft && typeof state.schedule.draft === "object"
-      ? state.schedule.draft
+    const draft = state.schedule?.draft && typeof state.forms.scheduleDraft === "object"
+      ? state.forms.scheduleDraft
       : {};
     const metadata =
       draft.metadata && typeof draft.metadata === "object" && !Array.isArray(draft.metadata)
@@ -23903,7 +23960,7 @@
         bookingCustomerName: asText(thread?.customerName),
       },
     });
-    state.schedule.draft = scheduleDraft;
+    state.forms.scheduleDraft = scheduleDraft;
     renderScheduleDraft();
     syncManualBookingScheduleForm(scheduleDraft);
     setScheduleOpen(true);
@@ -25123,7 +25180,7 @@ renderStudioShell();
     { closeStudio = false, refresh = true } = {}
   ) {
     if (!thread) return false;
-    const followUpIso = resolveLaterOptionDueAt(state.later.option);
+    const followUpIso = resolveLaterOptionDueAt(state.forms.laterOption);
     await requestConversationAction("/api/v1/cco/reply-later", thread, {
       idempotencyScope: "major-arcana-reply-later",
       errorMessage: "Kunde inte parkera tråden.",
@@ -25199,23 +25256,23 @@ renderStudioShell();
   }
 
   async function applyLaterOption(optionKey) {
-    state.later.option = normalizeKey(optionKey) || "one_hour";
-    renderLaterOptions(state.later.option);
+    state.forms.laterOption = normalizeKey(optionKey) || "one_hour";
+    renderLaterOptions(state.forms.laterOption);
     setLaterOpen(false);
     try {
-      const bulkSelectionKeys = asArray(state.later.bulkSelectionKeys)
+      const bulkSelectionKeys = asArray(state.forms.laterBulkSelectionKeys)
         .map((key) => normalizeKey(key))
         .filter(Boolean);
       if (bulkSelectionKeys.length) {
-        const label = getLaterOptionLabel(state.later.option);
+        const label = getLaterOptionLabel(state.forms.laterOption);
         const selectedThreads = bulkSelectionKeys
           .map((threadId) =>
-            asArray(state.runtime.threads).find(
+            asArray(state.data.threads).find(
               (thread) => normalizeKey(thread?.id) === normalizeKey(threadId)
             )
           )
           .filter(Boolean);
-        state.later.bulkSelectionKeys = [];
+        state.forms.laterBulkSelectionKeys = [];
         if (selectedThreads.length) {
           await Promise.all(
             selectedThreads.map((thread) =>
@@ -25223,7 +25280,7 @@ renderStudioShell();
                 idempotencyScope: "major-arcana-reply-later",
                 errorMessage: "Kunde inte parkera trådarna.",
                 body: {
-                  followUpDueAt: resolveLaterOptionDueAt(state.later.option),
+                  followUpDueAt: resolveLaterOptionDueAt(state.forms.laterOption),
                   waitingOn: "owner",
                   nextActionLabel: "Återuppta senare",
                   nextActionSummary: `Tråden är parkerad till ${label}.`,
@@ -25248,7 +25305,7 @@ renderStudioShell();
       }
       const selectedThread = getSelectedRuntimeThread();
       if (selectedThread) {
-        await applyReplyLaterToThread(selectedThread, getLaterOptionLabel(state.later.option), {
+        await applyReplyLaterToThread(selectedThread, getLaterOptionLabel(state.forms.laterOption), {
           closeStudio: canvas.classList.contains("is-studio-open"),
         });
         applyFocusSection("conversation");
@@ -25266,21 +25323,21 @@ renderStudioShell();
   }
 
   function syncCurrentNoteDraftFromForm() {
-    const activeKey = normalizeKey(state.note.activeKey);
-    const definition = state.noteDefinitions[activeKey];
+    const activeKey = normalizeKey(state.forms.noteActiveKey);
+    const definition = state.data.noteDefinitions[activeKey];
     if (!activeKey || !definition) return null;
 
-    const currentDraft = state.note.drafts[activeKey] || createNoteDraft(definition);
+    const currentDraft = state.forms.noteDrafts[activeKey] || createNoteDraft(definition);
     currentDraft.text = normalizeText(noteText?.value);
     currentDraft.priority = normalizeText(notePrioritySelect?.value) || currentDraft.priority;
     currentDraft.visibility = normalizeText(noteVisibilitySelect?.value) || currentDraft.visibility;
-    state.note.drafts[activeKey] = currentDraft;
+    state.forms.noteDrafts[activeKey] = currentDraft;
     return currentDraft;
   }
 
   function getActiveNoteDraft() {
     syncCurrentNoteDraftFromForm();
-    return state.note.drafts[normalizeKey(state.note.activeKey)] || null;
+    return state.forms.noteDrafts[normalizeKey(state.forms.noteActiveKey)] || null;
   }
 
   function addTagToActiveDraft(rawValue) {
@@ -25313,7 +25370,7 @@ renderStudioShell();
     draft.text = normalizeText(template.text);
     draft.tags = tagsFrom(template.tags);
     draft.templateKey = template.key;
-    renderNoteDestination(state.note.activeKey);
+    renderNoteDestination(state.forms.noteActiveKey);
   }
 
   async function apiRequest(path, options = {}) {
@@ -25398,7 +25455,7 @@ renderStudioShell();
   }
 
   function applyStudioTemplateSelection(templateKey) {
-    if (normalizeKey(state.studio.mode) === "compose") {
+    if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
       studioState.activeTemplateKey = normalizeKey(templateKey);
       studioState.activeRefineKey = "";
@@ -25428,7 +25485,7 @@ renderStudioShell();
   }
 
   function applyStudioTrackSelection(trackKey) {
-    if (normalizeKey(state.studio.mode) === "compose") {
+    if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
       studioState.activeTrackKey = normalizeKey(trackKey) || "booking";
       studioState.activeTemplateKey = "";
@@ -25459,7 +25516,7 @@ renderStudioShell();
   }
 
   function applyStudioToneSelection(toneKey) {
-    if (normalizeKey(state.studio.mode) === "compose") {
+    if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
       studioState.activeToneKey = normalizeKey(toneKey) || "professional";
       studioState.draftBody = buildComposeToneDraft(
@@ -25487,7 +25544,7 @@ renderStudioShell();
   }
 
   function applyStudioRefineSelection(refineKey) {
-    if (normalizeKey(state.studio.mode) === "compose") {
+    if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
       studioState.activeRefineKey = normalizeKey(refineKey);
       studioState.draftBody = buildComposeRefinedDraft(
@@ -25513,7 +25570,7 @@ renderStudioShell();
   }
 
   function handleStudioToolAction(toolKey) {
-    if (normalizeKey(state.studio.mode) === "compose") {
+    if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
       const normalizedTool = normalizeKey(toolKey);
       if (normalizedTool === "gift") {
@@ -26102,7 +26159,7 @@ renderStudioShell();
 
   customerMergeOptionInputs.forEach((input) => {
     input.addEventListener("change", () => {
-      state.customerMergeOptions[normalizeKey(input.dataset.customerMergeOption)] = input.checked;
+      state.forms.customerMergeOptions[normalizeKey(input.dataset.customerMergeOption)] = input.checked;
     });
   });
 
@@ -26212,14 +26269,14 @@ renderStudioShell();
 
   if (customerSearchInput) {
     customerSearchInput.addEventListener("input", () => {
-      state.customerSearch = customerSearchInput.value;
+      state.forms.customerSearch = customerSearchInput.value;
       applyCustomerFilters();
     });
   }
 
   if (customerFilterSelect) {
     customerFilterSelect.addEventListener("change", () => {
-      state.customerFilter = customerFilterSelect.value;
+      state.forms.customerFilter = customerFilterSelect.value;
       applyCustomerFilters();
     });
   }
@@ -26689,7 +26746,7 @@ renderStudioShell();
   window.addEventListener("resize", normalizeWorkspaceState);
   void (async () => {
     await ensurePreviewBootstrapSession();
-    state.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
+    state.forms.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
     setSelectedCustomerIdentity("");
     setSelectedAnalyticsPeriod("week");
     setSelectedAutomationLibrary("email");
@@ -27048,7 +27105,7 @@ renderStudioShell();
       loading: false,
       loaded: historyItems.length > 0 || historyError !== "",
       error: historyError,
-      items: historyItems.length > 0 ? historyItems : state.runtime.queueHistory.items,
+      items: historyItems.length > 0 ? historyItems : state.data.queueHistoryItems,
       selectedConversationId: nextConversationId,
       scopeKey: scopedMailboxIds.length
         ? getQueueHistoryScopeKey(scopedMailboxIds)

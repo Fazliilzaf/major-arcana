@@ -87,6 +87,47 @@ STATUS = {
     'bootstrapped': ['bootstrapped'],
     'bootstrapError': ['bootstrapError'],
 }
+DATA = {
+    'queueHistoryItems': ['runtime', 'queueHistory', 'items'],
+    'truthPrimaryLegacyThreads': ['runtime', 'truthPrimaryLegacyThreads'],
+    'mailboxCapabilities': ['runtime', 'mailboxCapabilities'],
+    'threads': ['runtime', 'threads'],
+    'mailboxes': ['runtime', 'mailboxes'],
+    'noteTemplates': ['noteTemplates'],
+    'noteDefinitions': ['noteDefinitions'],
+    'customMailboxes': ['customMailboxes'],
+    'macros': ['macros'],
+}
+FORMS = {
+    'studioActiveTemplate': ['studio', 'activeTemplateKey'],
+    'studioActiveTrack': ['studio', 'activeTrackKey'],
+    'studioActiveTone': ['studio', 'activeToneKey'],
+    'studioComposeMailboxId': ['studio', 'composeMailboxId'],
+    'studioComposeSubject': ['studio', 'composeSubject'],
+    'studioSignature': ['studio', 'selectedSignatureId'],
+    'studioComposeTo': ['studio', 'composeTo'],
+    'studioDraftBody': ['studio', 'draftBody'],
+    'studioThreadId': ['studio', 'threadId'],
+    'studioSending': ['studio', 'sending'],
+    'studioMode': ['studio', 'mode'],
+    'noteActiveKey': ['note', 'activeKey'],
+    'noteDrafts': ['note', 'drafts'],
+    'noteSaving': ['note', 'saving'],
+    'scheduleDraft': ['schedule', 'draft'],
+    'scheduleOptions': ['schedule', 'options'],
+    'scheduleSaving': ['schedule', 'saving'],
+    'laterOption': ['later', 'option'],
+    'laterBulkSelectionKeys': ['later', 'bulkSelectionKeys'],
+    'laterContextThreadId': ['later', 'contextThreadId'],
+    'historySearch': ['runtime', 'historySearch'],
+    'historyMailboxFilter': ['runtime', 'historyMailboxFilter'],
+    'historyResultTypeFilter': ['runtime', 'historyResultTypeFilter'],
+    'historyRangeFilter': ['runtime', 'historyRangeFilter'],
+    'customerSearch': ['customerSearch'],
+    'customerFilter': ['customerFilter'],
+    'customerBatchSelection': ['customerBatchSelection'],
+    'customerMergeOptions': ['customerMergeOptions'],
+}
 PREFS = {
     'graphReadConnectorAvailable': ['runtime', 'graphReadConnectorAvailable'],
     'defaultSignatureProfile': ['runtime', 'defaultSignatureProfile'],
@@ -120,7 +161,7 @@ def main():
 
     total_replaces = 0
     per_view = {}
-    for view_name, mapping in [('ui', UI), ('selection', SEL), ('status', STATUS), ('prefs', PREFS)]:
+    for view_name, mapping in [('ui', UI), ('selection', SEL), ('status', STATUS), ('prefs', PREFS), ('data', DATA), ('forms', FORMS)]:
         view_replaces = 0
         for pat, repl in make_replacements(view_name, mapping):
             new_src, n = pat.subn(repl, src)
