@@ -2679,7 +2679,16 @@
     executed: 0,
     lastDurationMs: 0,
     lastReason: '',
+    runtimeShellSkipped: 0,
   };
+
+  // Hook-ref för stora ytor (renderInbox + renderFocusPane). Sätts av
+  // bootstrap när createQueueRenderers / renderRuntimeConversationShell
+  // är på plats. renderApp anropar dem via ref för loose coupling.
+  const __renderHooks = {
+    runtimeShell: null,
+  };
+  let __runtimeShellInProgress = false;
 
   let __renderScheduled = false;
   function scheduleRender(reason) {
@@ -2719,9 +2728,33 @@
     renderMacroModal(state);
     renderSettingsProfileModal(state);
     renderNoteModeShell(state);
-    // queueInlinePanel + queueHistoryPanel renderas redan via
-    // renderQueueHistorySection i runtime-queue-renderers.js (state-driven).
-    // Stora ytor (renderInbox, renderFocusPane) kvarstår — egna iterationer.
+    renderRuntimeShellHook(state);
+  }
+
+  // Stora ytan: renderInbox + renderFocusPane sköts av renderRuntimeConversationShell
+  // som är inkapslad i app.js bootstrap-scope. Vi hookar in den via __renderHooks
+  // när bootstrap har kört (sätts efter createQueueRenderers).
+  // Skydd:
+  //   - bootstrapped-check: kör inte före appen är klar
+  //   - in-progress-flag: skyddar mot render-loops om shell muterar state
+  //   - try/catch: en kraschad runtime-shell hänger inte hela renderApp
+  function renderRuntimeShellHook(state) {
+    if (!__renderHooks.runtimeShell) return;
+    if (state.bootstrapped !== true) return;
+    if (__runtimeShellInProgress) {
+      __renderStats.runtimeShellSkipped++;
+      return;
+    }
+    __runtimeShellInProgress = true;
+    try {
+      __renderHooks.runtimeShell();
+    } catch (e) {
+      if (typeof console !== 'undefined') {
+        console.warn('[render] runtimeShell fel:', e);
+      }
+    } finally {
+      __runtimeShellInProgress = false;
+    }
   }
 
   // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler.
@@ -21477,6 +21510,13 @@ renderStudioShell();
     }
     if (state.runtime?.pendingFullRefresh === true) {
       return;
+    }
+    // Hooka in shell:en till renderApp (engångs, idempotent). Detta gör att
+    // framtida state-mutationer triggar shell-render via rAF-coalesced
+    // renderApp(state) — inte bara via manuella call sites. Tag-along till
+    // existerande call sites (de fungerar oförändrat).
+    if (__renderHooks.runtimeShell !== renderRuntimeConversationShell) {
+      __renderHooks.runtimeShell = renderRuntimeConversationShell;
     }
     ensureRuntimeSelection();
     renderRuntimeQueue();
