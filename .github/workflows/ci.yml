@@ -58,6 +58,7 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:3000/healthz >/dev/null
+          npm run owner:mfa:setup
           npm run ops:suite:strict
 
       - name: Finalization sweep guard (local runtime)
