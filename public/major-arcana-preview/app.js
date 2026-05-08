@@ -13349,6 +13349,15 @@
     ).toLowerCase();
   }
 
+  function getBookingCustomerContactLabel(thread) {
+    const email = getRuntimeCustomerEmail(thread);
+    if (email) return email;
+    const fallbackId = asText(thread?.customerEmail || thread?.raw?.customerId || thread?.id);
+    const customerName = asText(thread?.customerName);
+    if (customerName && fallbackId) return `${customerName} · ${fallbackId}`;
+    return customerName || fallbackId || "Ingen verifierad e-post";
+  }
+
   function getSelectedRuntimeMailboxScopeIds() {
     return asArray(state.runtime.selectedMailboxIds)
       .map((mailboxId) => canonicalizeRuntimeMailboxId(mailboxId))
@@ -21373,7 +21382,7 @@
       {
         label: "Kund",
         value: asText(thread?.customerName, "Bokningskön"),
-        meta: asText(getRuntimeCustomerEmail(thread) || thread?.customerEmail, "Ingen vald kund"),
+        meta: getBookingCustomerContactLabel(thread),
       },
       {
         label: "Cliento-identitet",
@@ -23284,7 +23293,8 @@
         bookingFollowUpSource: "booking_surface",
         bookingSelectedSlotCount: selectedSlots.length,
         bookingConversationId: asText(thread?.id),
-        bookingCustomerEmail: getRuntimeCustomerEmail(thread) || asText(thread?.customerEmail),
+        bookingCustomerEmail:
+          getRuntimeCustomerEmail(thread) || asText(thread?.customerEmail || thread?.id),
         bookingCustomerName: asText(thread?.customerName),
       },
     });
@@ -23425,7 +23435,8 @@
         studioState.activeTrackKey = "booking";
         studioState.activeTemplateKey = "confirm_booking";
         if (isManualBookingThread) {
-          studioState.composeTo = getRuntimeCustomerEmail(thread) || asText(thread.customerEmail);
+          studioState.composeTo =
+            getRuntimeCustomerEmail(thread) || asText(thread.customerEmail || thread.id);
           studioState.composeSubject = "Bokningsförslag";
         }
         studioState.draftBody = asText(payload.draft, studioState.draftBody);
