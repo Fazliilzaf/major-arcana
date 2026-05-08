@@ -2621,7 +2621,12 @@
     renderConfirmDialog(state);
     renderCustomerMergeModal(state);
     renderCustomerSettings(state);
-    // Framtida: renderQueueInlinePanel, renderQueueHistoryPanel, renderInbox, ...
+    renderMacroModal(state);
+    renderSettingsProfileModal(state);
+    renderNoteModeShell(state);
+    // queueInlinePanel + queueHistoryPanel renderas redan via
+    // renderQueueHistorySection i runtime-queue-renderers.js (state-driven).
+    // Stora ytor (renderInbox, renderFocusPane) kvarstår — egna iterationer.
   }
 
   // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler
@@ -2673,6 +2678,24 @@
     const shell = document.getElementById('customers-settings-shell');
     if (!shell) return;
     __renderFloatingShell(shell, state.ui.customerSettingsOpen === true, 16);
+  }
+
+  function renderMacroModal(state) {
+    const shell = document.getElementById('macro-editor-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.macroModalOpen === true, 16);
+  }
+
+  function renderSettingsProfileModal(state) {
+    const shell = document.getElementById('settings-profile-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.settingsProfileModalOpen === true, 16);
+  }
+
+  function renderNoteModeShell(state) {
+    const shell = document.getElementById('note-mode-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.noteModeOpen === true, 14);
   }
 
   function renderMoreMenu(state) {
