@@ -162,6 +162,54 @@
     });
   }
 
+  // ============================================================
+  // Thread-card click delegering (migrerad från P1-1 shim 2026-05-07)
+  // ============================================================
+  // App.js's egen click-delegering träffar inte konsekvent. Vi binder en
+  // delegerad click-handler på document som fångar klick på .thread-card,
+  // ger visuell feedback direkt och anropar workspace-API:t för permanent
+  // selection. Re-render från state-change ger sedan korrekt is-selected.
+
+  function __handleThreadCardClick(event) {
+    const card = event.target.closest('.thread-card');
+    if (!card) return;
+    // Skippa om klicket var på en knapp/action inom kortet (egna handlers).
+    if (event.target.closest('button, [role="button"], [data-quick-action], a, input, label')) return;
+    // Förhindra dubbel-trigger om handlers fyrar på flera event-typer.
+    if (card.dataset.shimSelectInFlight === '1') return;
+    card.dataset.shimSelectInFlight = '1';
+
+    // Visuell feedback direkt (innan re-render hinner ske).
+    document.querySelectorAll('.thread-card.is-selected, .thread-card.thread-card-selected').forEach(c => {
+      if (c !== card) c.classList.remove('is-selected', 'thread-card-selected');
+    });
+    card.classList.add('is-selected', 'thread-card-selected');
+    card.setAttribute('aria-pressed', 'true');
+
+    // Uppdatera workspace-state — re-render kommer ge permanent visuell feedback.
+    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || '';
+    if (threadId && window.__ccoWorkspace?.setSelectedThreadId) {
+      try {
+        window.__ccoWorkspace.setSelectedThreadId(threadId);
+        window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: threadId } }));
+      } catch (e) {
+        if (typeof console !== 'undefined') console.warn('[card-click] setSelectedThreadId fel:', e);
+      }
+    }
+
+    setTimeout(() => { delete card.dataset.shimSelectInFlight; }, 200);
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', __handleThreadCardClick, false);
+      });
+    } else {
+      document.addEventListener('click', __handleThreadCardClick, false);
+    }
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},

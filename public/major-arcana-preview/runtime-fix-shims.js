@@ -209,61 +209,10 @@
   // 2026-05-07. Hela koden (worklist-fetch, customer-map, scan-and-fix) lever
   // nu i renderern och körs vid varje render istället för setInterval(1500ms).
 
-  // ============================================================
-  // P1-1: Klick på thread-card uppdaterar inte FOKUSYTA
-  // ============================================================
-  //
-  // App.js har en delegerad click-handler någonstans men träffas inte konsekvent
-  // av enkelt click. Vi lyssnar globalt på click som bubblar upp till
-  // .thread-card och dispatchar en kedja av events som app.js sannolikt lyssnar
-  // på (pointerdown + pointerup + click + mousedown). Plus markerar kortet som
-  // selected via DOM-class så användaren ser visuell feedback omedelbart.
-
-  function handleThreadCardClick(event) {
-    const card = event.target.closest('.thread-card');
-    if (!card) return;
-    // Skippa om klicket var på en knapp/action inom kortet (de har egna handlers)
-    if (event.target.closest('button, [role="button"], [data-quick-action], a, input, label')) return;
-    // Förhindra dubbel-trigger
-    if (card.dataset.shimSelectInFlight === '1') return;
-    card.dataset.shimSelectInFlight = '1';
-
-    // Visuell feedback omedelbart: markera detta som selected, avmarkera andra
-    document.querySelectorAll('.thread-card.is-selected, .thread-card.thread-card-selected').forEach(c => {
-      if (c !== card) {
-        c.classList.remove('is-selected', 'thread-card-selected');
-      }
-    });
-    card.classList.add('is-selected', 'thread-card-selected');
-    card.setAttribute('aria-pressed', 'true');
-
-    // Permanent fix: använd workspace-API direkt om exponerad
-    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || '';
-    if (threadId && window.__ccoWorkspace?.setSelectedThreadId) {
-      try {
-        window.__ccoWorkspace.setSelectedThreadId(threadId);
-        // Dispatcha state-change event som många runtime-moduler lyssnar på
-        window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: threadId } }));
-      } catch (e) { console.warn('[fix-shim] setSelectedThreadId fel:', e); }
-    }
-
-    // Backup: dispatcha pointer-event-kedja om workspace-API saknas
-    if (!window.__ccoWorkspace) {
-      const eventTypes = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
-      for (const ev of eventTypes) {
-        const e = new PointerEvent(ev, { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0 });
-        card.dispatchEvent(e);
-      }
-    }
-
-    setTimeout(() => { delete card.dataset.shimSelectInFlight; }, 200);
-  }
-
-  function bootstrapThreadCardClickFix() {
-    // Lyssna på capture-fas så vi får eventet innan app.js
-    document.addEventListener('click', handleThreadCardClick, false);
-    console.log('[fix-shim] thread-card click-handler aktiv');
-  }
+  // P1-1: Klick på thread-card — MIGRERAD till runtime-queue-renderers.js
+  // 2026-05-07. Den delegerade click-handlern lever nu nära renderern som
+  // bygger korten. Pointer-event-backup borttagen (workspace-API alltid
+  // exponerad via app.js).
 
   // ============================================================
   // P1-4: Live-räknare i topbar (preview-live-pill)
@@ -811,7 +760,7 @@
 
   async function init() {
     try { bootstrapMailboxPersistence(); } catch (e) { console.warn('[fix-shim] mailbox-persistens fel:', e); }
-    try { bootstrapThreadCardClickFix(); } catch (e) { console.warn('[fix-shim] thread-card-click fel:', e); }
+    // P1-1: bootstrapThreadCardClickFix borttagen — migrerad till runtime-queue-renderers.js
     try { bootstrapLivePill(); } catch (e) { console.warn('[fix-shim] live-pill fel:', e); }
     try { bootstrapStatusLabelFix(); } catch (e) { console.warn('[fix-shim] status-label-fix fel:', e); }
     try { bootstrapAggressiveStatusFix(); } catch (e) { console.warn('[fix-shim] aggressive-status-fix fel:', e); }
