@@ -1249,7 +1249,7 @@ button {
   top: 0;
   bottom: auto;
   height: var(--workspace-pane-max-height);
-  width: 30px;
+  width: 16px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1284,16 +1284,13 @@ button {
 }
 
 .workspace-resizer-left {
-  left: calc(var(--workspace-left-width) + (var(--workspace-gap) / 2) - 15px);
+  left: calc(var(--workspace-left-width) + (var(--workspace-gap) / 2) - 8px);
   top: calc(-1 * var(--workspace-left-column-offset));
   height: var(--workspace-left-pane-max-height);
 }
 
 .workspace-resizer-right {
-  left: calc(
-    var(--workspace-left-width) + var(--workspace-gap) + var(--workspace-main-width) +
-      (var(--workspace-focus-gap) / 2) - 15px
-  );
+  left: calc(100% - var(--workspace-right-width) + (var(--workspace-focus-gap) / 2) - 8px);
 }
 
 .customers-shell {

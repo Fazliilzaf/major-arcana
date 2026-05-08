@@ -76,29 +76,65 @@ test('clientoApi normaliserar slots från platta och resursnästlade payloads', 
   );
 });
 
+test('clientoApi normaliserar Cliento resourceSlots med numeriska id:n', () => {
+  assert.deepEqual(
+    normalizeClientoSlotsPayload({
+      resourceSlots: [
+        {
+          hashId: 'Q988J3',
+          slots: [
+            {
+              key: 'slot-key-1',
+              date: '2026-05-15',
+              time: '14:00:00',
+              length: 45,
+              resourceId: 9259,
+              serviceIds: [44939],
+              resourceHashId: 'Q988J3',
+            },
+          ],
+        },
+      ],
+    }),
+    [
+      {
+        slotId: 'slot-key-1',
+        startsAt: '2026-05-15T14:00:00',
+        endsAt: '2026-05-15T14:45:00',
+        resourceId: '9259',
+        resourceLabel: '',
+        serviceId: '44939',
+        serviceLabel: '',
+        locationLabel: '',
+        source: 'cliento',
+      },
+    ]
+  );
+});
+
 test('clientoApi normaliserar ref-data för resurser och tjänster', () => {
   assert.deepEqual(
     normalizeClientoRefDataPayload({
-      resources: [{ id: 'res-1', name: 'Dr. Eriksson' }],
-      services: [{ id: 'srv-1', title: 'Konsultation', duration: 45 }],
+      resources: [{ id: 9259, name: 'Online konsultation' }],
+      services: [{ serviceId: 44939, title: 'Konsultation', duration: 45 }],
     }),
     {
       resources: [
         {
-          id: 'res-1',
-          label: 'Dr. Eriksson',
+          id: '9259',
+          label: 'Online konsultation',
           type: 'resource',
           durationMinutes: null,
-          raw: { id: 'res-1', name: 'Dr. Eriksson' },
+          raw: { id: 9259, name: 'Online konsultation' },
         },
       ],
       services: [
         {
-          id: 'srv-1',
+          id: '44939',
           label: 'Konsultation',
           type: 'service',
           durationMinutes: 45,
-          raw: { id: 'srv-1', title: 'Konsultation', duration: 45 },
+          raw: { serviceId: 44939, title: 'Konsultation', duration: 45 },
         },
       ],
     }
@@ -165,9 +201,6 @@ test('clientoApi ytar upp vendor-fel med statuskod och payload', async () => {
   await assert.rejects(
     () => api.getSettings(),
     (error) =>
-      error &&
-      error.statusCode === 401 &&
-      error.details &&
-      error.details.message === 'Unauthorized'
+      error && error.statusCode === 401 && error.details && error.details.message === 'Unauthorized'
   );
 });

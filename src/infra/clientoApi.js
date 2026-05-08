@@ -14,7 +14,11 @@ function buildClientoPartnerBaseUrl({ apiBaseUrl = DEFAULT_CLIENTO_API_BASE_URL,
   return `${normalizedBaseUrl}/${encodeURIComponent(normalizedPartnerId)}/`;
 }
 
-function buildClientoHeaders({ apiKey = '', authHeader = 'Authorization', authScheme = 'Bearer' } = {}) {
+function buildClientoHeaders({
+  apiKey = '',
+  authHeader = 'Authorization',
+  authScheme = 'Bearer',
+} = {}) {
   const headers = {
     Accept: 'application/json',
   };
@@ -26,7 +30,9 @@ function buildClientoHeaders({ apiKey = '', authHeader = 'Authorization', authSc
 
   const normalizedHeader = String(authHeader ?? '').trim() || 'Authorization';
   const normalizedScheme = String(authScheme ?? '').trim();
-  headers[normalizedHeader] = normalizedScheme ? `${normalizedScheme} ${normalizedKey}` : normalizedKey;
+  headers[normalizedHeader] = normalizedScheme
+    ? `${normalizedScheme} ${normalizedKey}`
+    : normalizedKey;
   return headers;
 }
 
@@ -54,7 +60,23 @@ function asObject(value) {
 }
 
 function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function padTimePart(value) {
+  return String(value).padStart(2, '0');
+}
+
+function addMinutesToLocalDateTime(value = '', minutesToAdd = 0) {
+  const match = normalizeText(value).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  const minutes = Number(minutesToAdd);
+  if (!match || !Number.isFinite(minutes) || minutes <= 0) return '';
+  const [, date, hoursRaw, minutesRaw, secondsRaw = '00'] = match;
+  const totalMinutes = Number(hoursRaw) * 60 + Number(minutesRaw) + minutes;
+  const nextHours = Math.floor(totalMinutes / 60) % 24;
+  const nextMinutes = totalMinutes % 60;
+  return `${date}T${padTimePart(nextHours)}:${padTimePart(nextMinutes)}:${secondsRaw}`;
 }
 
 function pickArrayPayload(payload) {
@@ -69,18 +91,26 @@ function pickArrayPayload(payload) {
 function normalizeClientoSlot(input = {}) {
   const safe = asObject(input);
   const startsAt = normalizeText(
-    safe.startsAt || safe.start || safe.from || safe.startTime || safe.dateTime
+    safe.startsAt ||
+      safe.start ||
+      safe.from ||
+      safe.startTime ||
+      safe.dateTime ||
+      (safe.date && safe.time ? `${safe.date}T${safe.time}` : '')
   );
   if (!startsAt) return null;
   const resourceId = normalizeText(safe.resourceId || safe.resId || safe.staffId || safe.resource);
-  const serviceId = normalizeText(safe.serviceId || safe.srvId || safe.service);
+  const serviceIds = asArray(safe.serviceIds);
+  const serviceId = normalizeText(safe.serviceId || safe.srvId || safe.service || serviceIds[0]);
+  const lengthMinutes = Number(safe.length || safe.duration || safe.durationMinutes || 0);
+  const computedEndsAt = addMinutesToLocalDateTime(startsAt, lengthMinutes);
   const slotId =
-    normalizeText(safe.slotId || safe.id) ||
+    normalizeText(safe.slotId || safe.id || safe.key) ||
     [startsAt, resourceId, serviceId].filter(Boolean).join('::');
   return {
     slotId,
     startsAt,
-    endsAt: normalizeText(safe.endsAt || safe.end || safe.to || safe.endTime),
+    endsAt: normalizeText(safe.endsAt || safe.end || safe.to || safe.endTime) || computedEndsAt,
     resourceId,
     resourceLabel: normalizeText(
       safe.resourceLabel || safe.resourceName || safe.staffName || safe.name
@@ -93,7 +123,11 @@ function normalizeClientoSlot(input = {}) {
 }
 
 function normalizeClientoSlotsPayload(payload) {
-  return pickArrayPayload(payload)
+  const safePayload = asObject(payload);
+  const slotGroups = asArray(safePayload.resourceSlots).length
+    ? asArray(safePayload.resourceSlots)
+    : pickArrayPayload(payload);
+  return slotGroups
     .flatMap((item) => {
       const safe = asObject(item);
       const nestedSlots = asArray(safe.slots);
@@ -114,9 +148,10 @@ function normalizeClientoRefItem(input = {}, fallbackType = '') {
     safe.id || safe.resourceId || safe.resId || safe.serviceId || safe.srvId || safe.value
   );
   if (!id) return null;
-  const label = normalizeText(
-    safe.label || safe.title || safe.name || safe.resourceLabel || safe.serviceLabel || safe.text
-  ) || id;
+  const label =
+    normalizeText(
+      safe.label || safe.title || safe.name || safe.resourceLabel || safe.serviceLabel || safe.text
+    ) || id;
   return {
     id,
     label,
@@ -142,22 +177,10 @@ function pickRefArray(payload, keys = []) {
 }
 
 function normalizeClientoRefDataPayload(payload) {
-  const resources = pickRefArray(payload, [
-    'resources',
-    'staff',
-    'employees',
-    'users',
-    'resource',
-  ])
+  const resources = pickRefArray(payload, ['resources', 'staff', 'employees', 'users', 'resource'])
     .map((item) => normalizeClientoRefItem(item, 'resource'))
     .filter(Boolean);
-  const services = pickRefArray(payload, [
-    'services',
-    'service',
-    'treatments',
-    'srv',
-    'activities',
-  ])
+  const services = pickRefArray(payload, ['services', 'service', 'treatments', 'srv', 'activities'])
     .map((item) => normalizeClientoRefItem(item, 'service'))
     .filter(Boolean);
   return {
