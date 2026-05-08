@@ -20,6 +20,22 @@ const {
   applyChannelSignature,
 } = require('../templates/variables');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
+const { buildDigest } = require('../ops/dailyDigest');
+const {
+  runDigestForTenant,
+  runDailyDigestForAllTenants,
+} = require('../ops/dailyDigestRunner');
+const { runEnrichment } = require('../ops/messageEnrichmentRunner');
+const { seedFromMailboxTruth: seedClientoMockBookings } = require('../ops/clientoMockSeeder');
+const {
+  aggregateByCustomer,
+  findCrossMailboxCustomers,
+  summarizeAggregation,
+} = require('../ops/crossMailboxAggregator');
+const {
+  getBootstrapStatus,
+  isEnabled: isBootstrapEnabled,
+} = require('../ops/bootstrapRunner');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -221,9 +237,18 @@ function createOpsRouter({
   tenantConfigStore = null,
   sloTicketStore = null,
   releaseGovernanceStore = null,
+  ccoMailboxTruthStore = null,
+  messageIntelligenceStore = null,
+  customerPreferenceStore = null,
+  ccoHistoryStore = null,
+  graphSendConnector = null,
+  runtimeMetricsStore = null,
+  clientoBookingStore = null,
   requireAuth,
   requireRole,
 }) {
+  const DEFAULT_PREFERRED_MAILBOX =
+    String(process.env.CCO_DEFAULT_PREFERRED_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
   const router = express.Router();
   const REQUIRED_SCHEDULER_SUITE_JOB_IDS = Object.freeze([
     'nightly_pilot_report',
@@ -1948,6 +1973,501 @@ function createOpsRouter({
         }
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte återställa backup.' });
+      }
+    }
+  );
+
+  // CL4: Cliento bookings — list + summary + import + mock-seed.
+  router.get(
+    '/ops/cliento/bookings/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!clientoBookingStore) {
+        return res.status(503).json({ error: 'clientoBookingStore saknas.' });
+      }
+      try {
+        return res.json({ ok: true, summary: clientoBookingStore.summarize({ tenantId: req.auth?.tenantId }) });
+      } catch (error) {
+        console.error('[ops/cliento/summary]', error);
+        return res.status(500).json({ error: 'Kunde inte hämta summary.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cliento/import-bookings',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!clientoBookingStore) {
+        return res.status(503).json({ error: 'clientoBookingStore saknas.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(400).json({ error: 'tenantId saknas.' });
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const bookings = Array.isArray(body.bookings) ? body.bookings : [];
+        if (bookings.length === 0) {
+          return res.status(400).json({ error: 'bookings[] saknas i body.' });
+        }
+        const result = await clientoBookingStore.importBatch({
+          tenantId,
+          bookings,
+          source: body.source || 'manual',
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.cliento.import',
+            outcome: 'success',
+            targetType: 'cliento_bookings',
+            targetId: 'batch_import',
+            metadata: { ...result, source: body.source || 'manual' },
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, ...result });
+      } catch (error) {
+        console.error('[ops/cliento/import-bookings]', error);
+        return res.status(500).json({ error: 'Kunde inte importera bokningar.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cliento/mock-seed',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!clientoBookingStore || !ccoMailboxTruthStore) {
+        return res
+          .status(503)
+          .json({ error: 'clientoBookingStore eller ccoMailboxTruthStore saknas.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(400).json({ error: 'tenantId saknas.' });
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const result = await seedClientoMockBookings({
+          tenantId,
+          ccoMailboxTruthStore,
+          clientoBookingStore,
+          maxCustomers: Number(body.maxCustomers) || 200,
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.cliento.mock_seed',
+            outcome: 'success',
+            targetType: 'cliento_bookings',
+            targetId: 'mock_seed',
+            metadata: result,
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, ...result });
+      } catch (error) {
+        console.error('[ops/cliento/mock-seed]', error);
+        return res.status(500).json({ error: error?.message || 'Kunde inte seeda mockdata.' });
+      }
+    }
+  );
+
+  // DI9: Auto-bootstrap status. Read-only.
+  router.get(
+    '/ops/bootstrap/status',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      try {
+        return res.json({
+          ok: true,
+          enabled: isBootstrapEnabled(),
+          ...getBootstrapStatus(),
+        });
+      } catch (error) {
+        console.error('[ops/bootstrap/status]', error);
+        return res.status(500).json({ error: 'Kunde inte hämta bootstrap-status.' });
+      }
+    }
+  );
+
+  // DI3+DI4: Message-intelligence backfill / delta-runner
+  // Kör enrichment över alla messages i mailboxTruthStore för anropande
+  // tenant. Idempotent. Mode kan vara 'backfill' (default), 'delta' eller 'force'.
+  router.post(
+    '/ops/intelligence/run',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      if (!messageIntelligenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+      }
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas i auth-context.' });
+        }
+        const mode = ['backfill', 'delta', 'force'].includes(body.mode) ? body.mode : 'backfill';
+        const mailboxIds = Array.isArray(body.mailboxIds) ? body.mailboxIds : [];
+        const result = await runEnrichment({
+          tenantId,
+          mailboxIds,
+          ccoMailboxTruthStore,
+          messageIntelligenceStore,
+          mode,
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.intelligence.run',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'message_intelligence',
+            metadata: {
+              mode,
+              examined: result.examined,
+              enriched: result.enriched,
+              skipped: result.skipped,
+              failed: result.failed,
+              durationMs: result.durationMs,
+              mailboxIds,
+            },
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, result });
+      } catch (error) {
+        console.error('[ops/intelligence/run]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte köra enrichment.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/intelligence/status',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!messageIntelligenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        const enrichmentCount = messageIntelligenceStore.countEnrichments({ tenantId });
+        const totalMessages = ccoMailboxTruthStore
+          ? (ccoMailboxTruthStore.listMessages({})?.length || 0)
+          : null;
+        const runInfo = messageIntelligenceStore.getRunInfo(tenantId);
+        return res.json({
+          ok: true,
+          tenantId,
+          enrichmentCount,
+          totalMessages,
+          coveragePct:
+            totalMessages > 0 ? Math.round((enrichmentCount / totalMessages) * 100) : null,
+          runInfo,
+        });
+      } catch (error) {
+        console.error('[ops/intelligence/status]', error);
+        return res.status(500).json({ error: 'Kunde inte hämta status.' });
+      }
+    }
+  );
+
+  // DI5: Cross-mailbox kund-rapport — read-only.
+  // GET-parameter `preferredMailbox` (default contact@hairtpclinic.com) markerar
+  // vilka kunder som behöver konsolideras.
+  router.get(
+    '/ops/customers/cross-mailbox-report',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      try {
+        const preferred = String(
+          req.query?.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
+        ).toLowerCase();
+        const limit = Math.max(1, Math.min(500, Number(req.query?.limit) || 200));
+        const messages = ccoMailboxTruthStore.listMessages({}) || [];
+        const summary = summarizeAggregation(messages, { preferredMailboxId: preferred });
+        const customers = findCrossMailboxCustomers(messages, {
+          preferredMailboxId: preferred,
+        }).slice(0, limit);
+        // Debug: när inga kunder hittas, returnera shape av första 3 messages
+        const debug =
+          customers.length === 0 && messages.length > 0
+            ? {
+                totalMessages: messages.length,
+                sampleMessageKeys: Object.keys(messages[0] || {}),
+                sampleMessages: messages.slice(0, 3).map((m) => ({
+                  mailboxId: m.mailboxId,
+                  folderType: m.folderType,
+                  customerEmail: m.customerEmail,
+                  senderEmail: m.senderEmail,
+                  from: m.from,
+                  fromName: m.fromName,
+                  fromEmail: m.fromEmail,
+                  toRecipients: Array.isArray(m.toRecipients)
+                    ? m.toRecipients.slice(0, 2)
+                    : m.toRecipients,
+                  subject: (m.subject || '').slice(0, 60),
+                })),
+              }
+            : null;
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          preferredMailboxId: preferred,
+          summary,
+          customers,
+          ...(debug ? { debug } : {}),
+        });
+      } catch (error) {
+        console.error('[ops/customers/cross-mailbox-report]', error);
+        return res.status(500).json({ error: 'Kunde inte bygga rapporten.' });
+      }
+    }
+  );
+
+  // DI6: Konsolidera kunder till preferred mailbox.
+  // Sätter customerPreference.preferredMailboxId = preferred för varje kund som
+  // skrivit till >1 mailbox. Detta är reversibel (skriver bara metadata, ändrar
+  // inte själva mail-trådarna). Body: { preferredMailbox?, dryRun?, limit? }.
+  router.post(
+    '/ops/customers/consolidate',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
+      }
+      if (!customerPreferenceStore) {
+        return res
+          .status(503)
+          .json({ error: 'Customer-preference-store är inte tillgänglig.' });
+      }
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas i auth-context.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const preferred = String(
+          body.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
+        ).toLowerCase();
+        const dryRun = Boolean(body.dryRun);
+        const limit = Math.max(0, Number(body.limit) || 0);
+
+        const messages = ccoMailboxTruthStore.listMessages({}) || [];
+        const candidates = findCrossMailboxCustomers(messages, {
+          preferredMailboxId: preferred,
+        });
+        const targets = limit > 0 ? candidates.slice(0, limit) : candidates;
+        let updated = 0;
+        const samples = [];
+        for (const c of targets) {
+          if (!dryRun) {
+            await customerPreferenceStore.setPreferredMailbox({
+              tenantId,
+              customerEmail: c.customerEmail,
+              preferredMailboxId: preferred,
+              reason: c.wroteToPreferred
+                ? 'consolidated_existing_preferred'
+                : 'consolidated_new_preferred',
+            });
+          }
+          updated += 1;
+          if (samples.length < 5) {
+            samples.push({
+              customerEmail: c.customerEmail,
+              customerName: c.customerName,
+              mailboxes: c.mailboxes.map((m) => `${m.mailboxId} (${m.messageCount})`),
+              totalMessages: c.totalMessages,
+            });
+          }
+        }
+        if (!dryRun && typeof customerPreferenceStore.flush === 'function') {
+          await customerPreferenceStore.flush();
+        }
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.customers.consolidate',
+            outcome: 'success',
+            targetType: 'customer_preference',
+            targetId: preferred,
+            metadata: {
+              preferredMailboxId: preferred,
+              candidates: candidates.length,
+              updated,
+              dryRun,
+            },
+          });
+        } catch (_e) {}
+
+        return res.json({
+          ok: true,
+          dryRun,
+          preferredMailboxId: preferred,
+          candidatesFound: candidates.length,
+          updated,
+          samples,
+        });
+      } catch (error) {
+        console.error('[ops/customers/consolidate]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte konsolidera kunder.' });
+      }
+    }
+  );
+
+  // OI3: Daily digest preview — bygger HTML-email från KPI-payload som
+  // klienten redan hämtat. Tar `{ kpis, locale }` i bodyn, returnerar
+  // antingen JSON {subject, html, text} eller direkt HTML när
+  // `?format=html` skickas.
+  router.post('/ops/digest/preview', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const kpis = body.kpis && typeof body.kpis === 'object' ? body.kpis : {};
+      const locale = typeof body.locale === 'string' ? body.locale : 'sv';
+      const tenantId = req.auth?.tenantId || kpis?.data?.tenantId || '';
+      let tenantBrand = body.tenantBrand && typeof body.tenantBrand === 'object' ? body.tenantBrand : null;
+      if (!tenantBrand && tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function') {
+        try {
+          const cfg = await tenantConfigStore.getTenantConfig(tenantId);
+          tenantBrand = cfg?.brand || null;
+        } catch (_e) {}
+      }
+      const digest = buildDigest({ tenantBrand: tenantBrand || {}, kpis, locale });
+      try {
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth?.userId,
+          action: 'ops.digest.preview',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'daily_digest',
+          metadata: { locale, hasAlerts: Array.isArray(kpis?.data?.alerts) && kpis.data.alerts.length > 0 },
+        });
+      } catch (_e) {}
+      if (String(req.query?.format || '').toLowerCase() === 'html') {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(digest.html);
+      }
+      return res.json({ ok: true, digest });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte bygga digest.' });
+    }
+  });
+
+  // DD2: manuell trigger för daily-digest (skickar e-post via Graph). Body:
+  //   { tenantId?: string, recipients?: string[], dryRun?: boolean, allTenants?: boolean }
+  // Default: skicka för auth-tenanten. Med allTenants=true loopar runnern alla tenants.
+  router.post(
+    '/ops/digest/send',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!tenantConfigStore || typeof tenantConfigStore.getTenantConfig !== 'function') {
+        return res.status(503).json({ error: 'tenantConfigStore är inte tillgänglig.' });
+      }
+      if (!graphSendConnector) {
+        return res
+          .status(503)
+          .json({ error: 'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).' });
+      }
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const dryRun = Boolean(body.dryRun);
+        const recipientsOverride = Array.isArray(body.recipients) && body.recipients.length > 0
+          ? body.recipients
+          : null;
+
+        if (body.allTenants === true) {
+          const result = await runDailyDigestForAllTenants({
+            tenantConfigStore,
+            ccoHistoryStore,
+            graphSendConnector,
+            runtimeMetricsStore,
+            forceSend: true,
+            dryRun,
+            logger: console,
+          });
+          try {
+            await authStore.addAuditEvent({
+              tenantId: req.auth?.tenantId || null,
+              actorUserId: req.auth?.userId,
+              action: 'ops.digest.send.all',
+              outcome: 'success',
+              targetType: 'digest',
+              targetId: 'all_tenants',
+              metadata: {
+                sent: result?.sent,
+                skipped: result?.skipped,
+                failed: result?.failed,
+                dryRun,
+              },
+            });
+          } catch (_e) {}
+          return res.json({ ok: true, result });
+        }
+
+        const tenantId = (body.tenantId && String(body.tenantId).trim()) || req.auth?.tenantId;
+        if (!tenantId) {
+          return res.status(400).json({ error: 'tenantId saknas.' });
+        }
+        const tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+        const result = await runDigestForTenant({
+          tenantId,
+          tenantConfig: tenantConfig || {},
+          tenantConfigStore,
+          ccoHistoryStore,
+          graphSendConnector,
+          runtimeMetricsStore,
+          forceSend: true,
+          recipientsOverride,
+          dryRun,
+          logger: console,
+        });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.digest.send',
+            outcome: result?.error ? 'failed' : 'success',
+            targetType: 'digest',
+            targetId: 'manual_trigger',
+            metadata: {
+              recipients: result?.recipients,
+              senderMailboxId: result?.senderMailboxId,
+              dryRun,
+              error: result?.error || null,
+            },
+          });
+        } catch (_e) {}
+        return res.json({ ok: true, result });
+      } catch (error) {
+        console.error('[ops/digest/send]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte skicka digest.' });
       }
     }
   );

@@ -2132,7 +2132,149 @@
       offlineWorkingSetSource: "",
       offlineWorkingSetMeta: "",
       error: "",
-      threads: [],
+      // v5 demo-fixtures — varje tråd har mailboxAddress matchande HairTP Clinic-mailboxes
+      // så de syns oavsett vilken mailbox som är vald i scope-filtret.
+      threads: [
+        {
+          id: "demo-mb-001",
+          customerName: "Morten Bak Kristoffersen",
+          customerInitials: "MB",
+          laneId: "act_now",
+          intentLabel: "follow_up",
+          statusLabel: "needs_reply",
+          ownerLabel: "",
+          displayOwnerLabel: "Ej tilldelad",
+          riskLabel: "Hög risk",
+          tags: ["all", "act-now", "high-risk"],
+          time: "16:07",
+          recordedAt: new Date().toISOString(),
+          mailboxAddress: "egzona@hairtpclinic.com",
+          mailboxId: "egzona@hairtpclinic.com",
+          mailboxLabel: "Egzona",
+          mailboxTrail: ["Fazli", "Kontakt", "Egzona"],
+          subject: "Frågar om uppföljning på offerten — behöver svar före måndag.",
+          preview: "Frågar om uppföljning på offerten — behöver svar före måndag.",
+          nextActionLabel: "Svara nu",
+          isUnread: true,
+          unread: true,
+          worklistSource: "demo",
+        },
+        {
+          id: "demo-jk-002",
+          customerName: "Johan Karlsson",
+          customerInitials: "JK",
+          laneId: "sprint",
+          intentLabel: "consultation",
+          statusLabel: "in_progress",
+          ownerLabel: "Fazli",
+          displayOwnerLabel: "Fazli",
+          tags: ["all", "sprint"],
+          time: "14:22",
+          recordedAt: new Date().toISOString(),
+          mailboxAddress: "fazli@hairtpclinic.com",
+          mailboxId: "fazli@hairtpclinic.com",
+          mailboxLabel: "Fazli",
+          mailboxTrail: ["Fazli"],
+          subject: "Vill boka möte nästa måndag om den nya integrationen.",
+          preview: "Vill boka möte nästa måndag om den nya integrationen.",
+          nextActionLabel: "Svara",
+          isUnread: false,
+          worklistSource: "demo",
+        },
+        {
+          id: "demo-sh-003",
+          customerName: "Sara Holm",
+          customerInitials: "SH",
+          laneId: "bookable",
+          intentLabel: "booking",
+          statusLabel: "ready_to_book",
+          ownerLabel: "Egzona",
+          displayOwnerLabel: "Egzona",
+          tags: ["all", "bookable"],
+          time: "Igår",
+          recordedAt: new Date(Date.now() - 86400000).toISOString(),
+          mailboxAddress: "kons@hairtpclinic.com",
+          mailboxId: "kons@hairtpclinic.com",
+          mailboxLabel: "Kons",
+          mailboxTrail: ["Kons", "Fazli"],
+          subject: "Klar att boka — har bekräftat tid och typ av konsultation.",
+          preview: "Klar att boka — har bekräftat tid och typ av konsultation.",
+          nextActionLabel: "Bekräfta bokning",
+          isUnread: true,
+          unread: true,
+          worklistSource: "demo",
+        },
+        {
+          id: "demo-el-004",
+          customerName: "Erik Lindqvist",
+          customerInitials: "EL",
+          laneId: "review",
+          intentLabel: "pricing",
+          statusLabel: "needs_review",
+          ownerLabel: "",
+          displayOwnerLabel: "Ej tilldelad",
+          tags: ["all", "review", "high-risk"],
+          time: "11:34",
+          recordedAt: new Date().toISOString(),
+          mailboxAddress: "contact@hairtpclinic.com",
+          mailboxId: "contact@hairtpclinic.com",
+          mailboxLabel: "Kontakt",
+          mailboxTrail: ["Kontakt", "Fazli", "Egzona", "Marknad", "Info", "Kvitto"],
+          subject: "AI-utkast flaggat för granskning — innehåller prisuppgift som avviker.",
+          preview: "AI-utkast flaggat för granskning — innehåller prisuppgift som avviker.",
+          nextActionLabel: "Granska tråden",
+          isUnread: true,
+          unread: true,
+          worklistSource: "demo",
+        },
+        {
+          id: "demo-as-005",
+          customerName: "Anna Svensson",
+          customerInitials: "AS",
+          laneId: "unclear",
+          intentLabel: "",
+          statusLabel: "low_confidence",
+          ownerLabel: "",
+          displayOwnerLabel: "Ej tilldelad",
+          tags: ["all", "unclear"],
+          time: "Tis",
+          recordedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+          mailboxAddress: "info@hairtpclinic.com",
+          mailboxId: "info@hairtpclinic.com",
+          mailboxLabel: "Info",
+          mailboxTrail: ["Info", "Kontakt"],
+          subject: "Kort meddelande — otydligt om det är fråga, klagomål eller uppföljning.",
+          preview: "Kort meddelande — otydligt om det är fråga, klagomål eller uppföljning.",
+          nextActionLabel: "Granska tråden",
+          isUnread: false,
+          worklistSource: "demo",
+        },
+        {
+          id: "demo-pn-006",
+          customerName: "Peter Nilsson",
+          customerInitials: "PN",
+          laneId: "later",
+          intentLabel: "follow_up",
+          statusLabel: "waiting",
+          ownerLabel: "Fazli",
+          displayOwnerLabel: "Fazli",
+          followUpLabel: "Fre 09:00",
+          followUpAgeLabel: "Snooze till fredag",
+          tags: ["all", "later"],
+          time: "Fre 09:00",
+          recordedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+          mailboxAddress: "fazli@hairtpclinic.com",
+          mailboxId: "fazli@hairtpclinic.com",
+          mailboxLabel: "Fazli",
+          mailboxTrail: ["Fazli"],
+          subject: "Väntar på kund — behöver återkomma när dokument är klart.",
+          preview: "Väntar på kund — behöver återkomma när dokument är klart.",
+          nextActionLabel: "Svara nu",
+          waitingLabel: "Väntar på kund",
+          isUnread: false,
+          worklistSource: "demo",
+        },
+      ],
       mailboxes: [],
       mailboxCapabilities: [],
       selectedMailboxIds: [],
@@ -3934,8 +4076,9 @@
 
     // Prevent background auth-recovery loops until user explicitly initiates reauth.
     if (
-      state.runtime?.authRequired === true &&
-      state.runtime?.authRecoveryArmed !== true
+      typeof state === "object" &&
+      state?.runtime?.authRequired === true &&
+      state?.runtime?.authRecoveryArmed !== true
     ) {
       return "";
     }
@@ -6486,6 +6629,28 @@
   }
 
   function buildPreviewMessages(row, feedEntries, threadDocument = null) {
+    const compareMessagesDesc =
+      typeof compareRuntimeMessagesDesc === "function"
+        ? compareRuntimeMessagesDesc
+        : (left, right) =>
+            Date.parse(
+              asText(
+                right?.sentAt,
+                right?.createdAt,
+                right?.receivedAt,
+                right?.timestamp,
+                right?.recordedAt
+              )
+            ) -
+            Date.parse(
+              asText(
+                left?.sentAt,
+                left?.createdAt,
+                left?.receivedAt,
+                left?.timestamp,
+                left?.recordedAt
+              )
+            );
     const getMailThreadMessage = (entry = {}) =>
       buildClientMailThreadMessageFromEntry(entry, {
         sourceStore: "client_preview_runtime",
@@ -6830,7 +6995,7 @@
     );
     const canonicalThreadMessages = asArray(threadDocument?.messages)
       .filter((message) => message && typeof message === "object")
-      .sort(compareRuntimeMessagesDesc);
+      .sort(compareMessagesDesc);
     const feedEntriesByMessageId = new Map(
       asArray(feedEntries)
         .map((entry) => [asText(entry?.messageId), entry])
@@ -6932,7 +7097,7 @@
           },
         ])
       .slice()
-      .sort(compareRuntimeMessagesDesc);
+      .sort(compareMessagesDesc);
     const customerName = getRuntimeCustomerNameFromFeedEntries(entries, rowCustomerName);
     return entries.slice(0, 8).map((entry, index) => {
       const mailThreadMessage = getMailThreadMessage(entry);
@@ -9093,6 +9258,51 @@
   }
 
   function buildRuntimeThread(row, { feedEntries = [], historyEvents = [], threadDocument = null } = {}) {
+    const normalizeThreadDocumentOrder =
+      typeof normalizeThreadDocumentMessageOrder === "function"
+        ? normalizeThreadDocumentMessageOrder
+        : (candidate = null) => {
+            if (!candidate || typeof candidate !== "object") return candidate;
+            return {
+              ...candidate,
+              messages: asArray(candidate.messages)
+                .filter((message) => message && typeof message === "object")
+                .slice()
+                .sort((left, right) => {
+                  const rightIso = asText(
+                    right?.sentAt,
+                    right?.createdAt,
+                    right?.receivedAt,
+                    right?.timestamp,
+                    right?.recordedAt
+                  );
+                  const leftIso = asText(
+                    left?.sentAt,
+                    left?.createdAt,
+                    left?.receivedAt,
+                    left?.timestamp,
+                    left?.recordedAt
+                  );
+                  return Date.parse(rightIso) - Date.parse(leftIso);
+                }),
+            };
+          };
+    const resolveQueuePreviewText =
+      typeof resolveRuntimeQueuePreviewText === "function"
+        ? resolveRuntimeQueuePreviewText
+        : (value = "", { fallback = "" } = {}) => {
+            const sanitized = asText(value)
+              .replace(/\s+/g, " ")
+              .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
+              .replace(/^You\s+don['’]t\s+often\s+get\s+email\s+from\s+\S+\.?\s*/i, "")
+              .replace(/^Power up your productivity with Microsoft 365\.?\s*/i, "")
+              .replace(/^Get more done with apps like Word\.?\s*/i, "")
+              .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
+              .replace(/^Read more about why this is important\.?\s*/i, "")
+              .replace(/^[\s_—–-]{6,}/, "")
+              .trim();
+            return sanitized || asText(fallback);
+          };
     const customerName = getRuntimeCustomerNameFromFeedEntries(feedEntries, getRuntimeCustomerName(row));
     const customerEmail = extractCustomerEmail(row);
     const identityEnvelope = (() => {
@@ -9180,7 +9390,7 @@
     const messages = buildPreviewMessages(row, feedEntries, threadDocument);
     const resolvedThreadDocument =
       threadDocument && typeof threadDocument === "object"
-        ? normalizeThreadDocumentMessageOrder(threadDocument)
+        ? normalizeThreadDocumentOrder(threadDocument)
         : buildClientThreadDocumentFromPreviewMessages(messages, {
             conversationId: asText(row?.conversationId),
             customerEmail,
@@ -9254,7 +9464,7 @@
         fallback: "",
       }
     );
-    const queuePreviewText = resolveRuntimeQueuePreviewText(queuePreviewFromThreadDocument || preview, {
+    const queuePreviewText = resolveQueuePreviewText(queuePreviewFromThreadDocument || preview, {
       fallback: "Ingen senaste kundsignal ännu.",
     });
     const latestInboundPreview = preview;
@@ -13222,6 +13432,161 @@
       .sort(compareHistoryEventsDesc);
   }
 
+  // ⚠️ OFFLINE ONLY — Seed-data för lokal design-verifiering.
+  // Denna helper anropas bara när runtime körs i offline-läge.
+  // Tas bort när backend stöder mailboxTrail och vi kan testa
+  // med riktig data. Se docs/design-specs/CURSOR_PROMPT.md.
+  function shouldApplyOfflineQueueHistorySeed() {
+    return getRuntimeMode() === "offline_history" || state.runtime.offline === true;
+  }
+
+  function applyOfflineQueueHistorySeedEnrichment(builtItems = [], rawSeeds = []) {
+    const rawByConversation = new Map(
+      asArray(rawSeeds).map((row) => [asText(row.conversationId), row])
+    );
+    return asArray(builtItems).map((item) => {
+      const raw = rawByConversation.get(asText(item.conversationId));
+      if (!raw || typeof raw !== "object") return item;
+      const next = { ...item };
+      if (Array.isArray(raw.mailboxTrail)) {
+        next.mailboxTrail = raw.mailboxTrail.map((entry) => asText(entry).trim()).filter(Boolean);
+      }
+      if (Array.isArray(raw.signalItems)) {
+        next.signalItems = raw.signalItems.map((signal) => ({
+          role: signal.role,
+          value: asText(
+            signal.value !== undefined && signal.value !== null ? signal.value : signal.label || ""
+          ),
+        }));
+      }
+      if (Object.prototype.hasOwnProperty.call(raw, "ownerLabel")) {
+        next.ownerLabel = raw.ownerLabel;
+      }
+      return next;
+    });
+  }
+
+  function getOfflineQueueHistorySeedResults() {
+    const isoAtLocal = (hours, minutes, dayOffset = 0) => {
+      const d = new Date();
+      if (dayOffset) d.setDate(d.getDate() + dayOffset);
+      d.setHours(hours, minutes, 0, 0);
+      return d.toISOString();
+    };
+
+    return [
+      {
+        messageId: "offline-seed-msg-1",
+        conversationId: "offline-seed-conv-1",
+        customerEmail: "morten.bak@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Morten Bak Kristoffersen",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(16, 7),
+        workflowLane: "action_now",
+        ownerLabel: "Sara L.",
+        mailboxTrail: ["Fazli", "Contact", "Egzona"],
+        signalItems: [
+          { role: "why", value: "Behöver uppmärksamhet" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-2",
+        conversationId: "offline-seed-conv-2",
+        customerEmail: "erik.lindqvist@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Erik Lindqvist",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Har skickat förfrågan via flera kanaler, behöver få allt konsoliderat.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(11, 34),
+        workflowLane: "action_now",
+        ownerLabel: "Egzona K.",
+        mailboxTrail: ["Contact", "Fazli", "Egzona", "Support", "Sales", "Info", "Admin", "Feedback"],
+        signalItems: [
+          { role: "why", value: "Hög risk" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-3",
+        conversationId: "offline-seed-conv-3",
+        customerEmail: "anna.svensson@example.com",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Anna Svensson",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Hej, jag skrev tidigare om konsultation men har nu en uppföljande fråga om priser.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(14, 22),
+        ownerLabel: "",
+        mailboxTrail: ["Contact", "Fazli"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-4",
+        conversationId: "offline-seed-conv-4",
+        customerEmail: "alexander.svensson@example.com",
+        mailboxId: "kons@hairtpclinic.com",
+        customerName: "Alexander Svensson",
+        subject: "Hur kan vi hjälpa dig",
+        detail:
+          "Hej, jag undrar om ni har tider nästa vecka för en konsultation.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(9, 15),
+        ownerLabel: "Sara L.",
+        mailboxTrail: ["Kons"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-5",
+        conversationId: "offline-seed-conv-5",
+        customerEmail: "kontakt@hairclinicstockholm.se",
+        mailboxId: "contact@hairtpclinic.com",
+        customerName: "Hair Clinic Stockholm AB",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail:
+          "Vi vill gärna diskutera ett samarbete kring remissförfarande för våra patienter.",
+        direction: "inbound",
+        recordedAt: isoAtLocal(15, 47, -1),
+        ownerLabel: "",
+        mailboxTrail: ["Contact", "Partners"],
+        signalItems: [
+          { role: "why", value: "Hög risk" },
+          { role: "next", value: "Fortsätt från samma" },
+        ],
+      },
+      {
+        messageId: "offline-seed-msg-6",
+        conversationId: "offline-seed-conv-6",
+        customerEmail: "alexander.jl@example.com",
+        mailboxId: "kons@hairtpclinic.com",
+        customerName: "Alexander Jonatanson-Lindström",
+        subject: "Samma kund har skrivit från flera mailboxar",
+        detail: "Kan ni hjälpa mig? Jag funderar på PRP-behandling och vill veta mer.",
+        direction: "inbound",
+        recordedAt: "2026-04-20T07:49:00.000Z",
+        ownerLabel: "Fazli K.",
+        mailboxTrail: ["Kons", "Contact", "Fazli", "Support"],
+        signalItems: [
+          { role: "why", value: "Svar krävs" },
+          { role: "next", value: "Svara nu" },
+        ],
+      },
+    ];
+  }
+
   async function loadQueueHistory({ append = false, force = false, prefetch = false } = {}) {
     const scopeIds = getQueueHistoryScopeIds();
     const scopeKey = getQueueHistoryScopeKey(scopeIds);
@@ -13269,7 +13634,15 @@
       const payload = await apiRequest(`/api/v1/cco/runtime/history/search?${params.toString()}`);
       if (requestSequence !== queueHistoryRequestSequence) return;
 
-      const items = buildQueueHistoryItems(payload?.results);
+      let rawResults = asArray(payload?.results);
+      if (shouldApplyOfflineQueueHistorySeed() && rawResults.length === 0) {
+        console.log("[offline] Seeding 6 mock history items");
+        rawResults = getOfflineQueueHistorySeedResults();
+      }
+      const items = applyOfflineQueueHistorySeedEnrichment(
+        buildQueueHistoryItems(rawResults),
+        rawResults
+      );
       const nextSelectedConversationId = items.some((item) =>
         runtimeConversationIdsMatch(item?.conversationId, state.runtime.queueHistory.selectedConversationId)
       )
@@ -13290,12 +13663,22 @@
       renderQueueHistorySection();
     } catch (error) {
       if (requestSequence !== queueHistoryRequestSequence) return;
+      let items = [];
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      if (shouldApplyOfflineQueueHistorySeed()) {
+        console.log("[offline] Seeding 6 mock history items");
+        const rawResults = getOfflineQueueHistorySeedResults();
+        items = applyOfflineQueueHistorySeedEnrichment(buildQueueHistoryItems(rawResults), rawResults);
+        if (items.length) {
+          errorMessage = "";
+        }
+      }
       state.runtime.queueHistory = {
         ...state.runtime.queueHistory,
         loading: false,
         loaded: true,
-        error: error instanceof Error ? error.message : String(error),
-        items: [],
+        error: errorMessage,
+        items,
         selectedConversationId: "",
         hasMore: false,
         scopeKey,
@@ -23263,6 +23646,12 @@
   }
 
   function renderRuntimeConversationShell() {
+    if (false) {
+renderStudioShell();
+    renderWorkspaceRuntimeContext();
+    renderAnalyticsRuntime();
+    renderRuntimeIntel(selectedFocusThread, focusReadState);
+    }
     if (state.runtime?.pendingFullRefresh === true) {
       return;
     }
@@ -23287,9 +23676,10 @@
       );
     const selectedThread = getSelectedRuntimeThread();
     const selectedFocusThread = getSelectedRuntimeFocusThread();
+    let focusReadState = getRuntimeFocusReadState(selectedFocusThread);
     if (!shouldSkipFocusRefresh) {
       syncSelectedCustomerIdentityForThread(selectedFocusThread || selectedThread);
-      const focusReadState = getRuntimeFocusReadState(selectedFocusThread);
+      focusReadState = getRuntimeFocusReadState(selectedFocusThread);
       const focusNotesHeading = document.querySelector(".focus-notes-head h3");
       if (focusNotesHeading) {
         focusNotesHeading.textContent = selectedFocusThread
@@ -23322,12 +23712,24 @@
       renderQuickActionRows(intelActionRows, INTEL_ACTIONS);
       renderRuntimeIntel(selectedFocusThread, focusReadState);
     }
-    renderStudioShell();
-    renderWorkspaceRuntimeContext();
-    renderBookingSurface();
-    renderAnalyticsRuntime();
     if (!shouldSkipFocusRefresh) {
-      renderRuntimeIntel(selectedFocusThread, getRuntimeFocusReadState(selectedFocusThread));
+      renderStudioShell();
+      renderWorkspaceRuntimeContext();
+      renderBookingSurface();
+      renderAnalyticsRuntime();
+      renderRuntimeIntel(selectedFocusThread, focusReadState);
+      if (false) {
+        renderStudioShell();
+        renderWorkspaceRuntimeContext();
+        renderBookingSurface();
+        renderAnalyticsRuntime();
+        renderRuntimeIntel(selectedFocusThread, focusReadState);
+      }
+    } else {
+      renderStudioShell();
+      renderWorkspaceRuntimeContext();
+      renderBookingSurface();
+      renderAnalyticsRuntime();
     }
     const runtimeVisualState = syncRuntimeVisualStateMachine();
     const isPreviewReady =
@@ -25737,7 +26139,12 @@
       dom: {
         queueListMode,
         cardCount: domCards.length,
-        liveCardCount: domCards.filter((node) => node.classList?.contains("thread-card-live")).length,
+        liveCardCount: domCards.filter((node) => {
+          const runtimeThreadId = asText(node.getAttribute?.("data-runtime-thread"));
+          if (!runtimeThreadId) return false;
+          const historyConversationId = asText(node.getAttribute?.("data-history-conversation"));
+          return !historyConversationId;
+        }).length,
         historyCardCount: domCards.filter((node) => node.classList?.contains("queue-history-item")).length,
         selectedCardCount: domCards.filter((node) => node.classList?.contains("is-selected")).length,
         firstCards: domCards.slice(0, 6).map((node) => ({

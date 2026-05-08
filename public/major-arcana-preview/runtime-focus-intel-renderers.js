@@ -2363,13 +2363,17 @@
       focusBadgeRow.innerHTML = "";
       focusBadgeRow.hidden = true;
 
-      const latestMessage = thread.messages[0] || {
+      // v5 fix: skydda mot threads utan messages-array (t.ex. demo-fixtures eller
+      // backend-threads där messages aldrig populerats). Annars kraschar focus-renderaren
+      // i en transient recovery-cykel som re-renderar arbetskön i fel ordning.
+      const safeMessages = Array.isArray(thread.messages) ? thread.messages : [];
+      const latestMessage = safeMessages[0] || {
         author: thread.customerName,
         time: thread.lastActivityLabel,
         body: thread.preview,
         role: "customer",
       };
-      const olderMessages = thread.messages.slice(1, 3);
+      const olderMessages = safeMessages.slice(1, 3);
       const olderHistoryMarkup = olderMessages.length
         ? `
         <button class="conversation-collapse" type="button" aria-expanded="${

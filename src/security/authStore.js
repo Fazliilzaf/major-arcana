@@ -1043,6 +1043,18 @@ async function createAuthStore({
       return null;
     }
     session.lastSeenAt = nowIso();
+    // Rolling session: om mindre än halva TTL återstår, förläng expiresAt
+    // till full TTL igen. Förhindrar att aktiv användare blir utloggad mitt i jobbet.
+    const expiresAtMs = Date.parse(session.expiresAt || '');
+    const createdAtMs = Date.parse(session.createdAt || '');
+    if (Number.isFinite(expiresAtMs) && Number.isFinite(createdAtMs)) {
+      const totalTtlMs = expiresAtMs - createdAtMs;
+      const remainingMs = expiresAtMs - Date.now();
+      // Förläng om mindre än halva TTL återstår
+      if (totalTtlMs > 0 && remainingMs < totalTtlMs / 2) {
+        session.expiresAt = new Date(Date.now() + totalTtlMs).toISOString();
+      }
+    }
     await save();
     return toSafeSession(session);
   }

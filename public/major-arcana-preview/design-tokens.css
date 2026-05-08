@@ -1,0 +1,265 @@
+/**
+ * Major Arcana — Design Tokens (D1)
+ *
+ * Single source of truth för färger, spacing, radii, shadows, typography.
+ * Alla CSS-variabler exponeras på :root och dark-variant via [data-theme="dark"].
+ *
+ * Usage:
+ *   color: var(--cco-text-primary);
+ *   padding: var(--cco-space-3);
+ *   border-radius: var(--cco-radius-md);
+ *
+ * Tema-byte: document.documentElement.setAttribute('data-theme', 'dark' | 'light' | 'system');
+ * Auto: prefers-color-scheme: dark när data-theme="system" (default).
+ */
+
+:root {
+  /* === COLOR — Light theme (default) === */
+  /* Brand */
+  --cco-color-brand: #2b251f;
+  --cco-color-brand-soft: #4a4036;
+  --cco-color-accent: #4a8268;
+  --cco-color-accent-soft: #6fa68a;
+  --cco-color-accent-strong: #2e5a47;
+
+  /* Surfaces */
+  --cco-bg-page: #fbf7f1;
+  --cco-bg-surface: #ffffff;
+  --cco-bg-surface-raised: #ffffff;
+  --cco-bg-surface-sunken: #f5efe6;
+  --cco-bg-overlay: rgba(43, 37, 31, 0.55);
+
+  /* Text */
+  --cco-text-primary: #2b251f;
+  --cco-text-secondary: #5d544a;
+  --cco-text-tertiary: #8a8174;
+  --cco-text-on-accent: #ffffff;
+  --cco-text-on-brand: #fbf7f1;
+
+  /* Borders */
+  --cco-border-subtle: rgba(43, 37, 31, 0.08);
+  --cco-border-default: rgba(43, 37, 31, 0.15);
+  --cco-border-strong: rgba(43, 37, 31, 0.3);
+
+  /* Status */
+  --cco-status-success: #4a8268;
+  --cco-status-success-bg: rgba(74, 130, 104, 0.12);
+  --cco-status-warning: #c8821e;
+  --cco-status-warning-bg: rgba(200, 130, 30, 0.12);
+  --cco-status-danger: #b94a4a;
+  --cco-status-danger-bg: rgba(185, 74, 74, 0.12);
+  --cco-status-info: #4a7ba8;
+  --cco-status-info-bg: rgba(74, 123, 168, 0.12);
+
+  /* Focus ring */
+  --cco-focus-ring: #4a8268;
+  --cco-focus-ring-offset: var(--cco-bg-page);
+
+  /* === SPACING (8pt grid med 4pt offset) === */
+  --cco-space-0: 0;
+  --cco-space-1: 4px;
+  --cco-space-2: 8px;
+  --cco-space-3: 12px;
+  --cco-space-4: 16px;
+  --cco-space-5: 20px;
+  --cco-space-6: 24px;
+  --cco-space-8: 32px;
+  --cco-space-10: 40px;
+  --cco-space-12: 48px;
+  --cco-space-16: 64px;
+  --cco-space-20: 80px;
+
+  /* === RADII === */
+  --cco-radius-xs: 2px;
+  --cco-radius-sm: 4px;
+  --cco-radius-md: 8px;
+  --cco-radius-lg: 12px;
+  --cco-radius-xl: 16px;
+  --cco-radius-2xl: 24px;
+  --cco-radius-full: 9999px;
+
+  /* === SHADOWS === */
+  --cco-shadow-xs: 0 1px 2px rgba(43, 37, 31, 0.05);
+  --cco-shadow-sm: 0 1px 3px rgba(43, 37, 31, 0.08), 0 1px 2px rgba(43, 37, 31, 0.04);
+  --cco-shadow-md: 0 4px 8px rgba(43, 37, 31, 0.08), 0 2px 4px rgba(43, 37, 31, 0.04);
+  --cco-shadow-lg: 0 10px 24px rgba(43, 37, 31, 0.12), 0 4px 8px rgba(43, 37, 31, 0.06);
+  --cco-shadow-xl: 0 20px 48px rgba(43, 37, 31, 0.16), 0 8px 16px rgba(43, 37, 31, 0.08);
+  --cco-shadow-2xl: 0 32px 80px rgba(43, 37, 31, 0.22);
+  --cco-shadow-focus: 0 0 0 3px rgba(74, 130, 104, 0.32);
+
+  /* === TYPOGRAPHY === */
+  --cco-font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --cco-font-mono:
+    "JetBrains Mono", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --cco-font-display: "Inter", system-ui, sans-serif;
+
+  /* Font sizes (modular scale, ratio 1.125) */
+  --cco-text-xs: 11px;
+  --cco-text-sm: 12px;
+  --cco-text-base: 14px;
+  --cco-text-md: 15px;
+  --cco-text-lg: 17px;
+  --cco-text-xl: 19px;
+  --cco-text-2xl: 24px;
+  --cco-text-3xl: 30px;
+  --cco-text-4xl: 38px;
+
+  /* Line heights */
+  --cco-leading-tight: 1.2;
+  --cco-leading-snug: 1.35;
+  --cco-leading-normal: 1.5;
+  --cco-leading-relaxed: 1.7;
+
+  /* Font weights */
+  --cco-weight-regular: 400;
+  --cco-weight-medium: 500;
+  --cco-weight-semibold: 600;
+  --cco-weight-bold: 700;
+
+  /* === MOTION === */
+  --cco-duration-instant: 80ms;
+  --cco-duration-fast: 150ms;
+  --cco-duration-normal: 240ms;
+  --cco-duration-slow: 380ms;
+  --cco-duration-slower: 560ms;
+
+  --cco-ease-linear: cubic-bezier(0, 0, 1, 1);
+  --cco-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --cco-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --cco-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --cco-ease-spring: cubic-bezier(0.5, 1.6, 0.4, 1);
+
+  /* === Z-INDEX === */
+  --cco-z-base: 0;
+  --cco-z-elevated: 10;
+  --cco-z-sticky: 100;
+  --cco-z-overlay: 1000;
+  --cco-z-modal: 10000;
+  --cco-z-toast: 100000;
+  --cco-z-tooltip: 1000000;
+
+  /* Layout breakpoints (för referens i media queries) */
+  --cco-bp-sm: 480px;
+  --cco-bp-md: 768px;
+  --cco-bp-lg: 1024px;
+  --cco-bp-xl: 1280px;
+  --cco-bp-2xl: 1536px;
+}
+
+/* === DARK THEME === */
+:root[data-theme="dark"] {
+  /* Brand */
+  --cco-color-brand: #fbf7f1;
+  --cco-color-brand-soft: #d4cdc1;
+  --cco-color-accent: #6fa68a;
+  --cco-color-accent-soft: #92c2a8;
+  --cco-color-accent-strong: #4a8268;
+
+  /* Surfaces */
+  --cco-bg-page: #1a1714;
+  --cco-bg-surface: #24201c;
+  --cco-bg-surface-raised: #2d2823;
+  --cco-bg-surface-sunken: #15120f;
+  --cco-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Text */
+  --cco-text-primary: #fbf7f1;
+  --cco-text-secondary: #c5bdb1;
+  --cco-text-tertiary: #8a8174;
+  --cco-text-on-accent: #fbf7f1;
+  --cco-text-on-brand: #2b251f;
+
+  /* Borders */
+  --cco-border-subtle: rgba(251, 247, 241, 0.06);
+  --cco-border-default: rgba(251, 247, 241, 0.12);
+  --cco-border-strong: rgba(251, 247, 241, 0.25);
+
+  /* Status (något ljusare i dark) */
+  --cco-status-success: #92c2a8;
+  --cco-status-success-bg: rgba(146, 194, 168, 0.12);
+  --cco-status-warning: #e0a848;
+  --cco-status-warning-bg: rgba(224, 168, 72, 0.14);
+  --cco-status-danger: #e07878;
+  --cco-status-danger-bg: rgba(224, 120, 120, 0.14);
+  --cco-status-info: #7eaad4;
+  --cco-status-info-bg: rgba(126, 170, 212, 0.14);
+
+  --cco-focus-ring: #92c2a8;
+  --cco-focus-ring-offset: var(--cco-bg-page);
+
+  /* Shadows i dark blir djupare */
+  --cco-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --cco-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --cco-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+  --cco-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --cco-shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.35);
+  --cco-shadow-2xl: 0 32px 80px rgba(0, 0, 0, 0.65);
+  --cco-shadow-focus: 0 0 0 3px rgba(146, 194, 168, 0.4);
+}
+
+/* === SYSTEM-FÖLJ-PREFERENCE === */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --cco-color-brand: #fbf7f1;
+    --cco-color-brand-soft: #d4cdc1;
+    --cco-color-accent: #6fa68a;
+    --cco-color-accent-soft: #92c2a8;
+    --cco-color-accent-strong: #4a8268;
+    --cco-bg-page: #1a1714;
+    --cco-bg-surface: #24201c;
+    --cco-bg-surface-raised: #2d2823;
+    --cco-bg-surface-sunken: #15120f;
+    --cco-bg-overlay: rgba(0, 0, 0, 0.7);
+    --cco-text-primary: #fbf7f1;
+    --cco-text-secondary: #c5bdb1;
+    --cco-text-tertiary: #8a8174;
+    --cco-text-on-accent: #fbf7f1;
+    --cco-text-on-brand: #2b251f;
+    --cco-border-subtle: rgba(251, 247, 241, 0.06);
+    --cco-border-default: rgba(251, 247, 241, 0.12);
+    --cco-border-strong: rgba(251, 247, 241, 0.25);
+    --cco-status-success: #92c2a8;
+    --cco-status-success-bg: rgba(146, 194, 168, 0.12);
+    --cco-status-warning: #e0a848;
+    --cco-status-warning-bg: rgba(224, 168, 72, 0.14);
+    --cco-status-danger: #e07878;
+    --cco-status-danger-bg: rgba(224, 120, 120, 0.14);
+    --cco-status-info: #7eaad4;
+    --cco-status-info-bg: rgba(126, 170, 212, 0.14);
+    --cco-focus-ring: #92c2a8;
+    --cco-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --cco-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --cco-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+    --cco-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+    --cco-shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.35);
+    --cco-shadow-2xl: 0 32px 80px rgba(0, 0, 0, 0.65);
+    --cco-shadow-focus: 0 0 0 3px rgba(146, 194, 168, 0.4);
+  }
+}
+
+/* Smooth theme transition (respekterar reduced-motion) */
+:root {
+  color-scheme: light;
+  transition: background-color var(--cco-duration-normal) var(--cco-ease-out);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+  }
+}
+
+/* När reduced-motion är på: stäng av theme-transition */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+}
+html[data-cco-reduced-motion="on"] :root,
+html[data-cco-reduced-motion="on"] * {
+  transition-duration: 0.01ms !important;
+}

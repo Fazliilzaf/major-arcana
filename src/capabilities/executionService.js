@@ -566,6 +566,8 @@ function createCapabilityExecutor({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  runtimeMetricsStore = null,
+  clientoBookingStore = null,
   buildVersion = 'dev',
 }) {
   const runCapabilityThroughGateway = bindGatewayRunCapability(executionGateway);
@@ -1184,6 +1186,17 @@ function createCapabilityExecutor({
               requestId: runId,
               input: validatedInput,
               systemStateSnapshot: injectedSnapshot,
+              // SF5/MT6: injicera stores så capabilities kan läsa riktigt data
+              tenantConfigStore,
+              ccoCustomerStore,
+              ccoHistoryStore,
+              ccoConversationStateStore,
+              ccoMailboxTruthStore,
+              ccoSettingsStore,
+              capabilityAnalysisStore,
+              authStore,
+              runtimeMetricsStore,
+              clientoBookingStore,
             });
             ensureSchemaValidity({
               schema: CapabilityClass.outputSchema,

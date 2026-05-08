@@ -1,11 +1,11 @@
 {
-  "name": "HairTP Clinic CRM",
+  "name": "HairTP Clinic CCO",
   "short_name": "HairTP",
-  "description": "Premium bokningshantering och CRM för HairTP Clinic",
+  "description": "Premium bokningshantering och CCO för HairTP Clinic",
   "start_url": "/cco-next/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ec4899",
+  "theme_color": "#a8744c",
   "orientation": "portrait-primary",
   "icons": [
     {

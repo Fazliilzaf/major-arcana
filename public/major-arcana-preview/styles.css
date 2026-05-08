@@ -1,3 +1,866 @@
+/* ============================================================
+   THREAD CARD v5 — peach-amber recipe (matchar --intel-panel-tint familjen)
+   1) 2 bg-toner   2) topp-highlight   3) inset bottenskugga
+   4) 3 yttre skuggor   5) ljus border som smälter in
+   ============================================================ */
+/* v5: explicit GRID-AREA layout låser varje sektion i rätt position */
+.thread-card.unified-queue-card[data-lane],
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card[data-lane],
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card[data-lane] {
+  display: grid !important;
+  grid-template-columns: 12px 1fr !important;
+  grid-template-rows: auto auto auto !important;
+  grid-template-areas:
+    "rail strip"
+    "rail body"
+    "rail footer" !important;
+  position: relative !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin-bottom: 14px !important;
+  overflow: visible !important;
+  flex-direction: unset !important;
+  align-items: unset !important;
+  justify-content: unset !important;
+}
+.thread-card.unified-queue-card[data-lane] > .priority-bar {
+  grid-area: rail !important;
+  grid-row: 1 / 4 !important;
+  grid-column: 1 !important;
+  order: 0 !important;
+  width: 5px !important;
+  height: 100% !important;
+  border-radius: 14px 0 0 14px !important;
+  align-self: stretch !important;
+  position: relative !important;
+}
+.thread-card.unified-queue-card[data-lane] > .card-strip {
+  grid-area: strip !important;
+  grid-row: 1 !important;
+  grid-column: 2 !important;
+  order: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 12px 16px 4px !important;
+}
+.thread-card.unified-queue-card[data-lane] > .card-body {
+  grid-area: body !important;
+  grid-row: 2 !important;
+  grid-column: 2 !important;
+  order: 2 !important;
+  display: grid !important;
+  grid-template-columns: 42px 1fr !important;
+  grid-template-rows: auto !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 6px 16px 12px !important;
+}
+.thread-card.unified-queue-card[data-lane] .card-body .avatar-wrap {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  position: relative !important;
+}
+.thread-card.unified-queue-card[data-lane] .card-body .card-content {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+.thread-card.unified-queue-card[data-lane] .card-body .card-content .name-row {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+.thread-card.unified-queue-card[data-lane] .card-body .card-content .signal-what {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  color: #16161a !important;
+  font-weight: 600 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+.thread-card.unified-queue-card[data-lane] > .card-footer {
+  grid-area: footer !important;
+  grid-row: 3 !important;
+  grid-column: 2 !important;
+  order: 3 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 10px 16px 12px !important;
+  border-top: 1px solid rgba(215, 130, 90, 0.16) !important;
+  background: linear-gradient(180deg, rgba(215, 130, 90, 0.05) 0%, rgba(215, 130, 90, 0.03) 100%) !important;
+}
+.thread-card.unified-queue-card[data-lane] .card-footer .action-cluster {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.thread-card.unified-queue-card {
+  position: relative;
+  /* (1) 2 bakgrundsnyanser — peach-amber wash */
+  background: linear-gradient(180deg,
+    rgba(215, 130, 90, 0.03) 0%,
+    rgba(215, 130, 90, 0.11) 100%
+  ), #ffffff;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  /* (5) Ljus border som smälter in */
+  border: 1px solid rgba(255, 248, 232, 0.7);
+  box-shadow:
+    /* (2) Topp-highlight — glossy bubbel-känsla */
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    /* (3) Inset bottenskugga — uppblåst känsla */
+    inset 0 -1px 0 rgba(215, 130, 90, 0.16),
+    /* (4) 3 yttre skuggor i peach-cinnamon */
+    0 1px 2px rgba(195, 115, 80, 0.05),
+    0 8px 18px -2px rgba(195, 115, 80, 0.09),
+    0 22px 44px -12px rgba(195, 115, 80, 0.1);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  outline: none;
+}
+
+.thread-card.unified-queue-card::before {
+  display: none;
+}
+
+.thread-card::before {
+  height: 60px;
+  pointer-events: none;
+}
+
+/* v5: ingen glossig reflektion — bara mjuk vandring topp-till-botten via gradient + inset */
+.thread-card.unified-queue-card::after {
+  display: none;
+}
+
+.thread-card.unified-queue-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.thread-card.unified-queue-card:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(215, 130, 90, 0.16),
+    0 2px 4px rgba(195, 115, 80, 0.07),
+    0 12px 24px -4px rgba(195, 115, 80, 0.13),
+    0 28px 56px -14px rgba(195, 115, 80, 0.14);
+}
+
+.thread-card.unified-queue-card .card-top {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px 15px;
+  align-items: flex-start;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
+}
+
+.thread-card.unified-queue-card .avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.thread-card.unified-queue-card .avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #ffffff 0%, #f7e4d0 30%, #e8c9a8 80%, #c99c73 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a4520;
+  letter-spacing: 0.3px;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    inset -2px -3px 6px rgba(140, 85, 40, 0.22),
+    0 4px 10px -2px rgba(140, 85, 40, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.thread-card.unified-queue-card:hover .avatar {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+/* v5: status-dot är unread-indikator (ljusblå, mail-konvention) — försvinner när läst */
+.thread-card.unified-queue-card .status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2.5px solid #fffdfa;
+  background: #38bdf8;
+  box-shadow: 0 1px 3px rgba(56, 189, 248, 0.4);
+}
+
+/* Pulserar när nytt sedan senaste öppning */
+.thread-card.unified-queue-card .status-dot.new {
+  animation: unreadPulse 2.2s ease-in-out infinite;
+}
+
+/* Bakåtkompatibelt: gamla state-klasser mappas också till unread-look */
+.thread-card.unified-queue-card .status-dot.urgent,
+.thread-card.unified-queue-card .status-dot.active,
+.thread-card.unified-queue-card .status-dot.waiting {
+  background: #38bdf8;
+}
+.thread-card.unified-queue-card .status-dot.urgent {
+  animation: unreadPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes unreadPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55), 0 1px 3px rgba(56, 189, 248, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(56, 189, 248, 0), 0 1px 3px rgba(56, 189, 248, 0.4);
+  }
+}
+
+.thread-card.unified-queue-card .card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thread-card.unified-queue-card .row-1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.thread-card.unified-queue-card .name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+
+.thread-card.unified-queue-card .subtitle {
+  font-size: 13px;
+  color: #8a8a8a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.thread-card.unified-queue-card .meta {
+  margin-left: auto;
+  text-align: right;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.thread-card.unified-queue-card .meta-date {
+  color: #6b6b6b;
+  font-weight: 500;
+}
+
+.thread-card.unified-queue-card .meta-status {
+  color: #9a9a9a;
+}
+
+.thread-card.unified-queue-card .row-2 {
+  font-size: 14px;
+  color: #4a4a4a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.45;
+}
+
+/* v5: footer i samma peach-amber familj som kortet */
+.thread-card.unified-queue-card .card-footer {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 20px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  position: relative;
+  background: linear-gradient(180deg,
+    rgba(215, 130, 90, 0.05) 0%,
+    rgba(215, 130, 90, 0.03) 100%
+  );
+  box-shadow:
+    inset 0 2px 4px -1px rgba(195, 115, 80, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(215, 130, 90, 0.16);
+}
+
+.thread-card.unified-queue-card .card-footer::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 1) 50%, transparent 100%);
+}
+
+.thread-card.unified-queue-card .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: default;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  min-height: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.thread-card.unified-queue-card .chip svg {
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 1px 1px rgba(100, 60, 20, 0.15));
+}
+
+/* v5: hover är bara skala + färgglow, ingen rotation */
+.thread-card.unified-queue-card .chip:hover svg {
+  transform: scale(1.18);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.thread-card.unified-queue-card .chip-gray {
+  color: #7a7a7a;
+}
+
+.thread-card.unified-queue-card .chip-blue {
+  color: #3b82f6;
+}
+
+/* v5: ingen rosa — använd brand-orange från --ma-status-orange istället */
+.thread-card.unified-queue-card .chip-pink {
+  color: #a8744c;
+}
+
+.thread-card.unified-queue-card .chip-green {
+  color: #16a34a;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.thread-card.unified-queue-card .chip-green:hover {
+  text-shadow: 0 0 20px rgba(22, 163, 74, 0.4);
+}
+
+.thread-card.unified-queue-card .chip-green:hover svg {
+  transform: translateX(3px) scale(1.15);
+}
+
+/* v5: mailbox-trail i peach-amber familjen istället för kall lila */
+.thread-card.unified-queue-card .mailbox-trail {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px 13px;
+  font-size: 12px;
+  color: #6b5848;
+  position: relative;
+  background: linear-gradient(180deg,
+    rgba(215, 130, 90, 0.04) 0%,
+    rgba(215, 130, 90, 0.02) 100%
+  );
+  box-shadow:
+    inset 0 2px 4px -2px rgba(195, 115, 80, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(215, 130, 90, 0.14);
+}
+
+.thread-card.unified-queue-card .mailbox-trail::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%);
+}
+
+/* v5: trail-bar och trail-label i peach-amber istället för lila */
+.thread-card.unified-queue-card .trail-bar {
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(215, 130, 90, 0.5), rgba(195, 115, 80, 0.95));
+  border-radius: 2px;
+  margin-right: 2px;
+  box-shadow: 0 0 8px rgba(195, 115, 80, 0.4);
+}
+
+.thread-card.unified-queue-card .trail-label {
+  color: rgba(155, 90, 55, 0.95);
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  font-size: 10.5px;
+}
+
+.thread-card.unified-queue-card .trail-separator {
+  color: rgba(215, 130, 90, 0.4);
+  margin: 0 1px;
+}
+
+.thread-card.unified-queue-card .trail-item {
+  color: #6b5848;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.thread-card.unified-queue-card .trail-item:hover {
+  color: rgba(155, 90, 55, 1);
+}
+
+.thread-card.unified-queue-card .trail-more {
+  color: rgba(155, 90, 55, 1);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 9px;
+  background: rgba(215, 130, 90, 0.12);
+  border-radius: 10px;
+  font-size: 11px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.thread-card.unified-queue-card .trail-more:hover {
+  background: rgba(215, 130, 90, 0.22);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* ============================================================
+   v5 LAYOUT — lane-badge, signal-what, signal-why, mailbox-stack,
+   action-cluster, primary-action.
+   Aktiveras när buildUnifiedCardMarkup emiterar v5 DOM med data-lane.
+   ============================================================ */
+
+/* Lane-färger — matchar QUEUE_LANE_ORDER */
+.thread-card.unified-queue-card[data-lane] {
+  --v5-lane-color: var(--ink-soft, #5c5c66);
+}
+.thread-card.unified-queue-card[data-lane="act-now"]   { --v5-lane-color: #e3342f; }
+.thread-card.unified-queue-card[data-lane="sprint"]    { --v5-lane-color: #16a34a; }
+.thread-card.unified-queue-card[data-lane="senare"]    { --v5-lane-color: #2563eb; }
+.thread-card.unified-queue-card[data-lane="admin"]     { --v5-lane-color: #64748b; }
+.thread-card.unified-queue-card[data-lane="granska"]   { --v5-lane-color: #d97706; }
+.thread-card.unified-queue-card[data-lane="oklart"]    { --v5-lane-color: #7c3aed; }
+.thread-card.unified-queue-card[data-lane="bokning"]   { --v5-lane-color: #0d9488; }
+.thread-card.unified-queue-card[data-lane="medicinsk"] { --v5-lane-color: #b85f5a; }
+
+/* Priority-bar i vänsterkanten — driftar från lane-färg */
+.thread-card.unified-queue-card .priority-bar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--v5-lane-color) 0%, color-mix(in oklab, var(--v5-lane-color) 70%, white) 100%);
+  border-radius: 14px 0 0 14px;
+  z-index: 0;
+}
+.thread-card.unified-queue-card[data-lane="act-now"] .priority-bar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: inherit;
+  filter: blur(6px);
+  opacity: 0.5;
+  animation: laneBarPulse 2.2s ease-in-out infinite;
+}
+@keyframes laneBarPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* Lane-badge — vit pill, ikon + text i lane-färg via currentColor */
+.thread-card.unified-queue-card .lane-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  padding: 5px 12px 5px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffefa 0%, #fbf5ea 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(180, 150, 110, 0.2),
+    0 1px 2px rgba(80, 60, 40, 0.06),
+    0 3px 8px -3px rgba(80, 60, 40, 0.1);
+  color: var(--v5-lane-color);
+  white-space: nowrap;
+}
+.thread-card.unified-queue-card .lane-badge svg {
+  width: 13px; height: 13px;
+  flex-shrink: 0;
+}
+
+/* Strip — lane-badge + meta */
+.thread-card.unified-queue-card .card-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px 2px;
+  position: relative;
+  z-index: 1;
+}
+.thread-card.unified-queue-card .card-strip .meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.thread-card.unified-queue-card .card-strip .meta-date {
+  color: #16161a;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.thread-card.unified-queue-card .card-strip .meta-sep { color: #9a9aa3; }
+.thread-card.unified-queue-card .card-strip .meta-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffefa 0%, #fbf5ea 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(180, 150, 110, 0.18),
+    0 1px 2px rgba(80, 60, 40, 0.05);
+  color: #8e8e98;
+}
+.thread-card.unified-queue-card .card-strip .meta-status svg { width: 12px; height: 12px; flex-shrink: 0; }
+.thread-card.unified-queue-card .card-strip .meta-status.owned   { color: #0d9488; }
+.thread-card.unified-queue-card .card-strip .meta-status.unowned { color: #d97706; }
+
+/* Signal-what — bold huvudrad */
+.thread-card.unified-queue-card .signal-what {
+  font-size: 14px;
+  font-weight: 600;
+  color: #16161a;
+  line-height: 1.4;
+  margin-top: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Signal-why — pillars i footer */
+.thread-card.unified-queue-card .signal-why {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: #55555f;
+  line-height: 1.4;
+}
+.thread-card.unified-queue-card .signal-why .why-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.thread-card.unified-queue-card .signal-why .why-reason::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+}
+.thread-card.unified-queue-card .signal-why .why-reason:first-child::before { display: none; }
+.thread-card.unified-queue-card .signal-why .why-reason.alert { color: #e3342f; font-weight: 600; }
+.thread-card.unified-queue-card .signal-why .why-reason.amber { color: #d97706; font-weight: 600; }
+
+/* Mailbox stack — färgade avatar-prickar med initialer */
+.thread-card.unified-queue-card .mailbox-stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 14px;
+  border-left: 1px solid rgba(180, 150, 110, 0.22);
+}
+.thread-card.unified-queue-card .mailbox-stack .mailbox-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #8e8e98;
+}
+.thread-card.unified-queue-card .mb-avatars {
+  display: flex;
+  align-items: center;
+}
+.thread-card.unified-queue-card .mb-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid #fffdfa;
+  margin-left: -6px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: default;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.thread-card.unified-queue-card .mb-dot:first-child { margin-left: 0; }
+.thread-card.unified-queue-card .mb-dot:hover {
+  transform: translateY(-3px) scale(1.12);
+  z-index: 2;
+}
+.thread-card.unified-queue-card .mb-dot.more { background: #16161a; color: #fff; font-size: 10px; }
+
+/* Action cluster — ikoner + primary */
+.thread-card.unified-queue-card .action-cluster {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.thread-card.unified-queue-card .action-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #8e8e98;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.25s;
+}
+.thread-card.unified-queue-card .action-icon:hover { transform: scale(1.18); }
+.thread-card.unified-queue-card .action-icon[data-quick-action="history"]:hover  { color: #7c3aed; }
+.thread-card.unified-queue-card .action-icon[data-quick-action="later"]:hover    { color: #2563eb; }
+.thread-card.unified-queue-card .action-icon[data-quick-action="schedule"]:hover { color: #0d9488; }
+.thread-card.unified-queue-card .action-icon[data-quick-action="handled"]:hover  { color: #16a34a; }
+.thread-card.unified-queue-card .action-icon[data-quick-action="delete"]:hover   { color: #e3342f; }
+
+.thread-card.unified-queue-card .primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #3d2f22 0%, #211810 100%);
+  color: #fff5e3;
+  padding: 7px 14px 7px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  border: none;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 220, 0.14),
+    0 1px 2px rgba(40, 28, 16, 0.18),
+    0 4px 10px -2px rgba(40, 28, 16, 0.22);
+}
+.thread-card.unified-queue-card .primary-action svg { transition: transform 0.2s; }
+.thread-card.unified-queue-card .primary-action:hover { transform: translateX(2px); }
+.thread-card.unified-queue-card .primary-action:hover svg { transform: translateX(2px); }
+.thread-card.unified-queue-card[data-lane="act-now"] .primary-action:hover {
+  background: linear-gradient(180deg, #ef5d57 0%, #c41e1a 100%);
+}
+.thread-card.unified-queue-card[data-lane="sprint"] .primary-action:hover {
+  background: linear-gradient(180deg, #2bc66c 0%, #128a44 100%);
+}
+.thread-card.unified-queue-card[data-lane="bokning"] .primary-action:hover {
+  background: linear-gradient(180deg, #1eb6a4 0%, #0a7e71 100%);
+}
+.thread-card.unified-queue-card[data-lane="granska"] .primary-action:hover {
+  background: linear-gradient(180deg, #ec9114 0%, #b56102 100%);
+}
+
+/* När v5-DOM är aktiv (data-lane satt) — rensa gamla footer/trail-styles
+   så de inte krockar */
+.thread-card.unified-queue-card[data-lane] .card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px 11px;
+  background: linear-gradient(180deg, rgba(215, 130, 90, 0.05) 0%, rgba(215, 130, 90, 0.03) 100%);
+}
+.thread-card.unified-queue-card[data-lane] .card-footer .signal-why,
+.thread-card.unified-queue-card[data-lane] .card-footer .mailbox-stack {
+  flex: 0 0 auto;
+}
+.thread-card.unified-queue-card[data-lane] .card-body {
+  padding: 4px 16px 12px;
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 14px;
+}
+.thread-card.unified-queue-card[data-lane] .card-content {
+  min-width: 0;
+}
+.thread-card.unified-queue-card[data-lane] .name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card {
+  display: grid;
+  grid-template-rows: minmax(0, auto) auto;
+  align-content: start;
+  width: 100%;
+  margin: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(249, 244, 239, 0.86) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 2px 6px rgba(66, 45, 32, 0.06);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 16px;
+  padding: 2px 10px 11px 0;
+  border-bottom: 1px solid rgba(222, 211, 203, 0.46);
+}
+
+.queue-history-list[data-queue-list-mode="live"] {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow-y: auto;
+  align-content: start;
+  /* FIX7: hård isolering — varje kort är sin egen stacking-kontext så
+     pseudo-element/transforms inte kan blöda upp i grannkortet vid 4+ mailboxar */
+  isolation: isolate;
+}
+
+/* FIX7: defensiv kort-isolering — säkerställ att varje thread-card är
+   sin egen layout-container och aldrig kan rita ovanpå sin granne. */
+.queue-history-list > .thread-card {
+  contain: layout paint;
+  position: relative;
+  isolation: isolate;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  transform: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-story {
+  margin-top: 4px;
+  color: rgba(58, 52, 48, 0.98);
+  font-weight: 540;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  margin-top: 1px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card {
+  border: 1px solid rgba(223, 212, 204, 0.62);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(252, 248, 244, 0.92) 0%, rgba(248, 241, 236, 0.54) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(228, 216, 206, 0.2);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card::before {
+  height: 0;
+  opacity: 0;
+  background: none;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack {
+  margin-top: auto;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 8px 0;
+  background: linear-gradient(90deg, rgba(255, 252, 249, 0.78) 0%, rgba(250, 244, 239, 0.34) 56%, rgba(250, 244, 239, 0) 100%);
+  border-bottom: 1px solid rgba(221, 210, 202, 0.42);
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-value {
+  margin-top: 1px;
+  font-size: 10.25px;
+  line-height: 13px;
+  font-weight: 660;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card-selected {
+  min-height: 126px;
+  border-color: rgba(214, 198, 184, 0.92);
+  border-radius: 12px;
+}
+
+@media (max-width: 620px) {
+  .thread-card.unified-queue-card .subtitle {
+    font-size: 12px;
+  }
+
+  .thread-card.unified-queue-card .card-footer {
+    gap: 14px;
+    font-size: 12px;
+  }
+
+  .thread-card.unified-queue-card .mailbox-trail {
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+}
 :root {
   --page-gradient:
     linear-gradient(
@@ -53,7 +916,7 @@
   --gold-pill-glow: rgba(210, 183, 102, 0.24);
   --rose-pill-top: rgba(252, 233, 240, 0.98);
   --rose-pill-bottom: rgba(241, 207, 220, 0.95);
-  --rose-pill-glow: rgba(191, 115, 147, 0.24);
+  --rose-pill-glow: rgba(160, 115, 80, 0.24);
   --panel-shell-top: rgba(248, 244, 240, 0.92);
   --panel-shell-bottom: rgba(242, 236, 231, 0.84);
   --panel-shell-shadow:
@@ -101,57 +964,68 @@
       rgba(250, 246, 242, 0.92) 0%,
       rgba(244, 238, 233, 0.9) 100%
     );
+  /* v5 peach-amber recept — aligned mot --cco-tint familjen */
   --mail-card-radius: 14px;
-  --mail-card-border: rgba(214, 202, 193, 0.76);
-  --mail-card-border-selected: rgba(208, 194, 183, 0.9);
+  --mail-card-border: rgba(255, 248, 232, 0.7);
+  --mail-card-border-selected: rgba(215, 130, 90, 0.32);
   --mail-card-surface:
     linear-gradient(
       180deg,
-      rgba(252, 248, 244, 0.96) 0%,
-      rgba(247, 241, 236, 0.92) 100%
-    );
+      rgba(215, 130, 90, 0.03) 0%,
+      rgba(215, 130, 90, 0.11) 100%
+    ),
+    #ffffff;
   --mail-card-surface-selected:
     linear-gradient(
       180deg,
-      rgba(253, 249, 245, 0.98) 0%,
-      rgba(248, 241, 236, 0.95) 100%
-    );
+      rgba(215, 130, 90, 0.05) 0%,
+      rgba(215, 130, 90, 0.14) 100%
+    ),
+    #ffffff;
   --mail-card-shadow:
-    0 10px 18px rgba(89, 70, 55, 0.048),
-    0 2px 4px rgba(89, 70, 55, 0.03);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(215, 130, 90, 0.16),
+    0 1px 2px rgba(195, 115, 80, 0.05),
+    0 8px 18px -2px rgba(195, 115, 80, 0.09),
+    0 22px 44px -12px rgba(195, 115, 80, 0.1);
   --mail-card-shadow-selected:
-    0 16px 26px rgba(89, 70, 55, 0.068),
-    0 4px 9px rgba(89, 70, 55, 0.042),
-    0 0 0 1px rgba(214, 201, 188, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(215, 130, 90, 0.18),
+    0 2px 4px rgba(195, 115, 80, 0.07),
+    0 12px 24px -4px rgba(195, 115, 80, 0.13),
+    0 28px 56px -14px rgba(195, 115, 80, 0.14),
+    0 0 0 1px rgba(215, 130, 90, 0.22);
+  /* v5: highlight + lower-glow nedtonade — receptet förlitar sig nu på inset shadows
+     istället för stora gradient-overlays. Behåller variablerna för bakåtkompatibilitet. */
   --mail-card-highlight:
     linear-gradient(
       90deg,
-      rgba(240, 230, 221, 0.34) 0%,
-      rgba(255, 255, 255, 0.26) 28%,
-      rgba(255, 255, 255, 0.06) 60%,
+      rgba(215, 130, 90, 0.04) 0%,
+      rgba(255, 255, 255, 0.18) 28%,
+      rgba(255, 255, 255, 0.04) 60%,
       rgba(255, 255, 255, 0) 100%
     );
   --mail-card-lower-glow:
     linear-gradient(
       180deg,
       rgba(255, 248, 243, 0) 0%,
-      rgba(247, 239, 233, 0.04) 62%,
-      rgba(238, 228, 221, 0.12) 100%
+      rgba(215, 130, 90, 0.03) 62%,
+      rgba(215, 130, 90, 0.08) 100%
     );
   --mail-card-highlight-selected:
     linear-gradient(
       90deg,
-      rgba(236, 225, 216, 0.4) 0%,
-      rgba(255, 255, 255, 0.3) 32%,
-      rgba(255, 255, 255, 0.08) 62%,
+      rgba(215, 130, 90, 0.06) 0%,
+      rgba(255, 255, 255, 0.2) 32%,
+      rgba(255, 255, 255, 0.06) 62%,
       rgba(255, 255, 255, 0) 100%
     );
   --mail-card-lower-glow-selected:
     linear-gradient(
       180deg,
       rgba(255, 248, 243, 0) 0%,
-      rgba(246, 238, 232, 0.05) 62%,
-      rgba(237, 227, 220, 0.14) 100%
+      rgba(215, 130, 90, 0.04) 62%,
+      rgba(215, 130, 90, 0.1) 100%
     );
   --nested-surface:
     linear-gradient(
@@ -182,7 +1056,7 @@
   --topbar-height: 64px;
   --workspace-edge-left: 12px;
   --workspace-edge-right: 12px;
-  --workspace-left-width: 440px;
+  --workspace-left-width: 700px;
   --workspace-main-width: 564px;
   --workspace-right-width: 360px;
   --workspace-gap: 18px;
@@ -197,6 +1071,22 @@
   --workspace-pane-max-height: calc(100vh - var(--workspace-sticky-top) - 12px);
   --workspace-left-pane-max-height: calc(100vh - var(--workspace-left-sticky-top) - 12px);
   --automation-flow-scale: 1;
+
+  /* ===========================================================
+     CCO v5 design tokens — peach-amber palette (mirror av
+     skin-tokens.css så preview-CSS:en är självförsörjande)
+     =========================================================== */
+  --cco-tint-soft: rgba(215, 130, 90, 0.03);
+  --cco-tint-strong: rgba(215, 130, 90, 0.11);
+  --cco-tint-bottom: rgba(215, 130, 90, 0.16);
+  --cco-hl: rgba(255, 255, 255, 0.7);
+  --cco-border-melt: rgba(255, 248, 232, 0.7);
+  --cco-shadow-close: rgba(195, 115, 80, 0.05);
+  --cco-shadow-mid: rgba(195, 115, 80, 0.09);
+  --cco-shadow-deep: rgba(195, 115, 80, 0.1);
+  --cco-unread: #38bdf8;
+  --cco-primary-bg: linear-gradient(180deg, #3d2f22 0%, #211810 100%);
+  --cco-primary-text: #fff5e3;
 }
 
 * {
@@ -1160,7 +2050,7 @@ button {
 .customer-record.is-selected {
   border-color: rgba(227, 184, 199, 0.82);
   box-shadow:
-    0 12px 26px rgba(120, 92, 109, 0.08),
+    0 12px 26px rgba(120, 90, 60, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
@@ -1179,9 +2069,9 @@ button {
 }
 
 .customer-record.is-selected .customer-record-check {
-  border-color: rgba(184, 121, 153, 0.84);
+  border-color: rgba(165, 130, 100, 0.84);
   background:
-    radial-gradient(circle at 50% 50%, rgba(184, 82, 132, 0.84) 0%, rgba(184, 82, 132, 0.84) 42%, rgba(255, 255, 255, 0) 46%),
+    radial-gradient(circle at 50% 50%, rgba(140, 90, 60, 0.84) 0%, rgba(140, 90, 60, 0.84) 42%, rgba(255, 255, 255, 0) 46%),
     linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.94) 0%,
@@ -1422,16 +2312,16 @@ button {
 }
 
 .customers-merge-accept {
-  border: 1px solid rgba(228, 91, 140, 0.72);
+  border: 1px solid rgba(168, 116, 76, 0.72);
   background:
     linear-gradient(
       180deg,
-      rgba(235, 85, 138, 0.96) 0%,
-      rgba(219, 58, 118, 0.94) 100%
+      rgba(168, 116, 76, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   color: #fff7fb;
   box-shadow:
-    0 8px 16px rgba(190, 82, 126, 0.18),
+    0 8px 16px rgba(140, 90, 60, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
@@ -1654,15 +2544,15 @@ button {
 }
 
 .analytics-period-pill.is-active {
-  border-color: rgba(228, 91, 140, 0.72);
+  border-color: rgba(168, 116, 76, 0.72);
   background:
     linear-gradient(
       180deg,
-      rgba(235, 85, 138, 0.96) 0%,
-      rgba(219, 58, 118, 0.94) 100%
+      rgba(168, 116, 76, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   box-shadow:
-    0 8px 16px rgba(190, 82, 126, 0.18),
+    0 8px 16px rgba(140, 90, 60, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
   color: #fff7fb;
 }
@@ -2127,8 +3017,8 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(235, 85, 138, 0.96) 0%,
-      rgba(219, 58, 118, 0.94) 100%
+      rgba(168, 116, 76, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   color: #fff7fb;
   font-size: 12px;
@@ -2172,7 +3062,7 @@ button {
   min-height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(228, 91, 140, 0.52);
+  border: 1px solid rgba(168, 116, 76, 0.52);
   background:
     linear-gradient(
       180deg,
@@ -2363,16 +3253,16 @@ button {
 }
 
 .automation-save-button {
-  border: 1px solid rgba(232, 115, 161, 0.72);
+  border: 1px solid rgba(190, 130, 90, 0.72);
   background:
     linear-gradient(
       180deg,
-      rgba(238, 99, 154, 0.96) 0%,
-      rgba(223, 73, 131, 0.94) 100%
+      rgba(180, 124, 82, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   color: #fff8fb;
   box-shadow:
-    0 8px 16px rgba(182, 86, 127, 0.18),
+    0 8px 16px rgba(140, 90, 60, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
@@ -2601,12 +3491,12 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(239, 109, 160, 0.96) 0%,
-      rgba(223, 78, 134, 0.94) 100%
+      rgba(180, 122, 82, 0.96) 0%,
+      rgba(140, 92, 58, 0.94) 100%
     );
   color: #fff9fb;
   box-shadow:
-    0 8px 16px rgba(175, 82, 123, 0.18),
+    0 8px 16px rgba(140, 90, 60, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
@@ -2945,12 +3835,12 @@ button {
 }
 
 .automation-suggestion-apply {
-  border: 1px solid rgba(229, 106, 154, 0.72);
+  border: 1px solid rgba(170, 115, 80, 0.72);
   background:
     linear-gradient(
       180deg,
-      rgba(238, 96, 150, 0.96) 0%,
-      rgba(220, 70, 128, 0.94) 100%
+      rgba(180, 124, 82, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   color: #fff8fb;
 }
@@ -3535,12 +4425,12 @@ button {
 }
 
 .automation-template-quickstart-actions button[data-automation-template-action="apply"] {
-  border: 1px solid rgba(230, 103, 151, 0.72);
+  border: 1px solid rgba(170, 115, 80, 0.72);
   background:
     linear-gradient(
       180deg,
-      rgba(237, 93, 148, 0.96) 0%,
-      rgba(220, 71, 128, 0.94) 100%
+      rgba(178, 122, 80, 0.96) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   color: #fff8fb;
 }
@@ -3571,7 +4461,7 @@ button {
 .automation-template-card.is-selected {
   border-color: rgba(234, 187, 206, 0.82);
   box-shadow:
-    0 12px 24px rgba(125, 94, 109, 0.1),
+    0 12px 24px rgba(125, 92, 60, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
@@ -3626,11 +4516,11 @@ button {
   background:
     linear-gradient(
       90deg,
-      rgba(237, 95, 149, 0.98) 0%,
-      rgba(221, 68, 124, 0.94) 100%
+      rgba(170, 115, 80, 0.98) 0%,
+      rgba(140, 90, 56, 0.94) 100%
     );
   box-shadow:
-    0 6px 14px rgba(188, 84, 127, 0.16),
+    0 6px 14px rgba(140, 90, 60, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -3954,9 +4844,9 @@ button {
 }
 
 .automation-version-card.is-selected {
-  border-color: rgba(221, 116, 160, 0.26);
+  border-color: rgba(180, 122, 82, 0.26);
   box-shadow:
-    0 10px 24px rgba(179, 118, 152, 0.14),
+    0 10px 24px rgba(160, 130, 100, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
@@ -4002,11 +4892,11 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(231, 86, 146, 0.96) 0%,
-      rgba(203, 52, 121, 0.94) 100%
+      rgba(160, 110, 70, 0.96) 0%,
+      rgba(140, 88, 56, 0.94) 100%
     );
   box-shadow:
-    0 5px 12px rgba(194, 81, 136, 0.2),
+    0 5px 12px rgba(150, 100, 65, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
@@ -4014,8 +4904,8 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(236, 82, 141, 0.98) 0%,
-      rgba(212, 53, 126, 0.96) 100%
+      rgba(165, 110, 70, 0.98) 0%,
+      rgba(150, 90, 56, 0.96) 100%
     );
 }
 
@@ -4369,7 +5259,7 @@ button {
 .automation-autopilot-proposal.is-selected {
   border-color: rgba(222, 183, 199, 0.86);
   box-shadow:
-    0 12px 24px rgba(125, 94, 109, 0.1),
+    0 12px 24px rgba(125, 92, 60, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
@@ -6953,9 +7843,10 @@ button {
   --intel-panel-tint: rgba(204, 136, 83, 0.1);
 }
 
+/* v5: kund-grupp byter från rosa-rosé till grundad terra-cotta (matchar --ma-status-red) */
 .intel-panel-group-customer {
-  --intel-panel-accent: rgba(191, 92, 126, 0.86);
-  --intel-panel-tint: rgba(191, 92, 126, 0.1);
+  --intel-panel-accent: rgba(184, 95, 90, 0.86);
+  --intel-panel-tint: rgba(184, 95, 90, 0.1);
 }
 
 .intel-panel-group-history {
@@ -7681,12 +8572,12 @@ button {
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 22px;
-  border: 1px solid rgba(178, 91, 126, 0.72);
+  border: 1px solid rgba(160, 110, 80, 0.72);
   border-radius: 999px;
   background:
     linear-gradient(
       180deg,
-      rgba(193, 96, 135, 0.94) 0%,
+      rgba(150, 100, 65, 0.94) 0%,
       rgba(164, 70, 112, 0.96) 100%
     );
   box-shadow:
@@ -9742,11 +10633,11 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(240, 105, 160, 0.98) 0%,
-      rgba(224, 79, 138, 0.96) 100%
+      rgba(180, 122, 82, 0.98) 0%,
+      rgba(150, 100, 65, 0.96) 100%
     );
   box-shadow:
-    0 10px 16px rgba(196, 90, 135, 0.16),
+    0 10px 16px rgba(155, 105, 70, 0.16),
     inset 0 1px 1px rgba(255, 255, 255, 0.34),
     inset 0 -2px 5px rgba(171, 61, 104, 0.14);
   color: rgba(255, 250, 252, 0.98);
@@ -10849,11 +11740,11 @@ button {
   background:
     linear-gradient(
       180deg,
-      rgba(239, 95, 151, 0.94) 0%,
-      rgba(224, 74, 135, 0.92) 100%
+      rgba(170, 115, 80, 0.94) 0%,
+      rgba(150, 100, 65, 0.92) 100%
     );
   box-shadow:
-    0 8px 16px rgba(186, 78, 124, 0.14),
+    0 8px 16px rgba(140, 90, 60, 0.14),
     inset 0 1px 1px rgba(255, 255, 255, 0.28);
   color: rgba(255, 250, 252, 0.98);
   font-size: 10.5px;
@@ -11965,6 +12856,7 @@ button {
   border-top: 1px solid rgba(195, 183, 175, 0.8);
 }
 
+/* v5: Studio-send byter från rosa-rosé till varm espresso (matchar --cco-primary-bg) */
 .studio-send-button {
   min-height: 32px;
   width: auto;
@@ -11975,19 +12867,25 @@ button {
   justify-content: center;
   gap: 6px;
   padding: 0 22px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(239, 91, 149, 0.94) 0%,
-      rgba(222, 66, 126, 0.9) 100%
-    );
+  background: linear-gradient(180deg, #3d2f22 0%, #211810 100%);
   box-shadow:
-    0 9px 18px rgba(184, 71, 118, 0.13),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24);
-  color: rgba(255, 251, 252, 0.99);
+    inset 0 1px 0 rgba(255, 240, 220, 0.14),
+    0 1px 2px rgba(40, 28, 16, 0.18),
+    0 4px 10px -2px rgba(40, 28, 16, 0.22);
+  color: #fff5e3;
   font-size: 11.5px;
   line-height: 13px;
   font-weight: 700;
+  letter-spacing: 0.1px;
+  transition: background 0.25s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.studio-send-button:hover {
+  background: linear-gradient(180deg, #c97548 0%, #a8744c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(168, 116, 76, 0.2),
+    0 8px 18px -4px rgba(168, 116, 76, 0.3);
 }
 
 .studio-send-button svg {
@@ -14309,11 +15207,11 @@ button {
     linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.98) 0%,
-      rgba(246, 238, 244, 0.94) 100%
+      rgba(244, 236, 228, 0.94) 100%
     );
-  color: #ec4b92;
+  color: #a8744c;
   box-shadow:
-    0 5px 12px rgba(166, 145, 166, 0.18),
+    0 5px 12px rgba(168, 116, 76, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.96);
 }
 
@@ -14383,6 +15281,7 @@ button {
   display: none;
 }
 
+/* v5 bubble-stil: vit pill med peach-amber border-tint + skugga, ikon+text via currentColor */
 .queue-filter-chip {
   appearance: none;
   -webkit-appearance: none;
@@ -14394,18 +15293,14 @@ button {
   max-width: none;
   min-height: 23px;
   padding: 0 7px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(215, 130, 90, 0.15);
   border-radius: 999px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(244, 238, 232, 0.88) 100%
-    );
+  background: linear-gradient(180deg, #fffefa 0%, #fbf5ea 100%);
   box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
-  color: var(--queue-filter-color, #6b7080);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(195, 115, 80, 0.05),
+    0 3px 8px -3px rgba(195, 115, 80, 0.1);
+  color: var(--queue-filter-color, #7c6557);
   font-size: 8.5px;
   line-height: 10px;
   font-weight: 600;
@@ -14459,16 +15354,14 @@ button {
   font-weight: 600;
 }
 
+/* v5 active state — något ljusare topp + starkare amber-skugga */
 .queue-filter-chip.is-active {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(240, 232, 226, 0.96) 100%
-    );
+  background: linear-gradient(180deg, #fffffe 0%, #fdf5e8 100%);
+  border-color: rgba(215, 130, 90, 0.28);
   box-shadow:
-    0 5px 12px rgba(56, 40, 28, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 2px 4px rgba(195, 115, 80, 0.08),
+    0 5px 12px rgba(195, 115, 80, 0.12);
   transform: translateY(-1px);
 }
 
@@ -14498,8 +15391,8 @@ button {
 
 .queue-filter-chip--rose {
   --queue-filter-color: var(--accent-rose);
-  --queue-filter-wash: rgba(194, 63, 112, 0.11);
-  --queue-filter-wash-strong: rgba(194, 63, 112, 0.14);
+  --queue-filter-wash: rgba(140, 88, 56, 0.11);
+  --queue-filter-wash-strong: rgba(140, 88, 56, 0.14);
 }
 
 .queue-filter-chip--green {
@@ -14570,8 +15463,8 @@ button {
 
 .queue-filter-chip--studio {
   --queue-filter-color: var(--accent-studio);
-  --queue-filter-wash: rgba(187, 71, 121, 0.11);
-  --queue-filter-wash-strong: rgba(187, 71, 121, 0.14);
+  --queue-filter-wash: rgba(140, 90, 60, 0.11);
+  --queue-filter-wash-strong: rgba(140, 90, 60, 0.14);
 }
 
 .queue-filter-chip--done {
@@ -14968,7 +15861,7 @@ button {
 }
 
 .thread-card-act-now {
-  border-color: rgba(205, 109, 132, 0.28);
+  border-color: rgba(160, 110, 75, 0.28);
   --thread-card-wash: rgba(221, 94, 97, 0.14);
   --thread-card-rail:
     linear-gradient(
@@ -15196,6 +16089,7 @@ button {
 
 .thread-intelligence-item-value {
   display: inline-block;
+  margin-top: 1px;
   min-width: 0;
   max-width: 100%;
   color: currentColor;
@@ -15451,7 +16345,7 @@ button {
 .chip-rose {
   background: rgba(255, 255, 255, 0.58);
   color: var(--accent-rose);
-  --thread-chip-border: rgba(177, 92, 120, 0.28);
+  --thread-chip-border: rgba(160, 110, 80, 0.28);
 }
 
 .queue-truth-view-kicker,
@@ -15621,7 +16515,7 @@ button {
 
 .lane-tag.is-active,
 .collapsed-row.is-active {
-  border-color: rgba(230, 191, 207, 0.92);
+  border-color: rgba(214, 198, 184, 0.92);
   box-shadow:
     0 4px 10px rgba(111, 83, 67, 0.09),
     inset 0 1px 0 rgba(255, 255, 255, 1);
@@ -15837,8 +16731,9 @@ button {
   overscroll-behavior: contain;
 }
 
-.queue-history-list[data-queue-list-mode="live"] {
-  gap: 6px;
+.queue-history-list[data-queue-list-mode="live"],
+.queue-history-list[data-queue-list-mode="history"] {
+  gap: 8px;
   margin-top: 4px;
   padding: 0;
   border: 0;
@@ -15851,84 +16746,8 @@ button {
 }
 
 
-/* =============================================================================
-   Kö-kort — queue list thread cards (reference)
-   Kort: vit, 4px vänster rosa kant, lätt skugga, 8px hörn, kompakt padding
-   Rad 1: 28px avatar (ljusgrå), namn + preview en rad, tid + ägare höger
-   Rad 2: separator, text-chips utan box (mailbox grå, what lila, why rosa, next grön)
-   Rad 3: | MAILBOXSPÅR (lila caps) + detalj grå
-   ============================================================================= */
-
-.queue-history-list > .thread-card {
-  position: relative;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
-  gap: 5px;
-  align-items: stretch;
-  width: 100%;
-  min-width: 0;
-  min-height: 72px;
-  height: auto;
-  margin: 0;
-  padding: 6px 12px 6px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(224, 216, 210, 0.92);
-  border-left: 4px solid rgba(232, 152, 168, 0.95);
-  background: #fff;
-  box-shadow:
-    0 1px 3px rgba(45, 38, 32, 0.07),
-    0 6px 18px rgba(45, 38, 32, 0.06);
-  overflow: hidden;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.queue-history-list > .thread-card::before,
-.queue-history-list > .thread-card::after {
-  content: none !important;
-  display: none !important;
-}
-
-.queue-history-list > .thread-card.thread-card-cross-mailbox,
-.queue-history-list > .thread-card.thread-card-cross-mailbox.thread-card-selected {
-  min-height: 72px;
-  padding: 6px 12px 6px 8px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid rgba(224, 216, 210, 0.92);
-  border-left: 4px solid rgba(232, 152, 168, 0.95);
-}
-
-.queue-history-list > .thread-card + .thread-card {
-  border-top: 0;
-}
-
-.queue-history-list > .thread-card:not(.thread-card-selected):hover {
-  border-color: rgba(214, 206, 200, 0.98);
-  border-left-color: rgba(228, 145, 162, 0.98);
-  box-shadow:
-    0 2px 4px rgba(45, 38, 32, 0.09),
-    0 10px 24px rgba(45, 38, 32, 0.07);
-}
-
-.queue-history-list > .thread-card-selected {
-  min-height: 72px !important;
-  padding: 6px 12px 6px 8px !important;
-  border-radius: 8px !important;
-  border: 1px solid rgba(208, 198, 190, 0.95) !important;
-  border-left: 4px solid rgba(220, 130, 150, 0.95) !important;
-  background: #fff !important;
-  box-shadow:
-    0 2px 5px rgba(45, 38, 32, 0.08),
-    0 8px 22px rgba(45, 38, 32, 0.09) !important;
-}
-
 /* Rad 1 */
-.queue-history-list > .thread-card .thread-card-head {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-head {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -15943,14 +16762,14 @@ button {
   box-shadow: none !important;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-card-head {
+.queue-history-list > .thread-card.thread-card-cross-mailbox:not(.unified-queue-card) .thread-card-head {
   padding: 0;
   border: 0;
   background: transparent !important;
   box-shadow: none !important;
 }
 
-.queue-history-list > .thread-card .thread-card-identity {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-identity {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -15960,7 +16779,7 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card .avatar {
+.queue-history-list > .thread-card:not(.unified-queue-card) .avatar {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
@@ -15971,7 +16790,7 @@ button {
   box-shadow: none;
 }
 
-.queue-history-list > .thread-card .thread-card-head-copy {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-head-copy {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -15982,13 +16801,13 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-card-head-copy {
+.queue-history-list > .thread-card.thread-card-cross-mailbox:not(.unified-queue-card) .thread-card-head-copy {
   flex-direction: row;
   flex-wrap: nowrap;
 }
 
-.queue-history-list > .thread-card .thread-heading,
-.queue-history-list > .thread-card .thread-heading-merged {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-heading,
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-heading-merged {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -15999,12 +16818,12 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-heading-merged {
+.queue-history-list > .thread-card.thread-card-cross-mailbox:not(.unified-queue-card) .thread-heading-merged {
   display: flex;
   flex-wrap: nowrap;
 }
 
-.queue-history-list > .thread-card .thread-subject {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-subject {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
@@ -16014,7 +16833,7 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card .thread-subject-primary {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-subject-primary {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -16026,7 +16845,7 @@ button {
   color: rgba(42, 36, 32, 0.98);
 }
 
-.queue-history-list > .thread-card .thread-subject-context {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-subject-context {
   flex: 0 2 auto;
   min-width: 0;
   overflow: hidden;
@@ -16038,13 +16857,13 @@ button {
   color: rgba(110, 100, 92, 0.88);
 }
 
-.queue-history-list > .thread-card .thread-unread-indicator {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-unread-indicator {
   flex-shrink: 0;
 }
 
-.queue-history-list > .thread-card .thread-story,
-.queue-history-list > .thread-card .thread-story-inline,
-.queue-history-list > .thread-card .queue-history-item-text {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-story,
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-story-inline,
+.queue-history-list > .thread-card:not(.unified-queue-card) .queue-history-item-text {
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
@@ -16058,17 +16877,17 @@ button {
   color: rgba(118, 110, 102, 0.95);
 }
 
-.queue-history-list > .thread-card[data-row-family="booking_system_mail"] .thread-story,
-.queue-history-list > .thread-card[data-row-family="notification/system_notice"] .thread-story {
+.queue-history-list > .thread-card[data-row-family="booking_system_mail"]:not(.unified-queue-card) .thread-story,
+.queue-history-list > .thread-card[data-row-family="notification/system_notice"]:not(.unified-queue-card) .thread-story {
   color: rgba(100, 92, 86, 0.94);
 }
 
-.queue-history-list > .thread-card .thread-story-placeholder {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-story-placeholder {
   color: rgba(130, 122, 114, 0.82);
   font-weight: 500;
 }
 
-.queue-history-list > .thread-card .thread-card-stamp {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-stamp {
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -16082,7 +16901,7 @@ button {
   padding-top: 0;
 }
 
-.queue-history-list > .thread-card .thread-card-stamp-top {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-stamp-top {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -16093,8 +16912,8 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card .thread-card-stamp time,
-.queue-history-list > .thread-card .thread-owner {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-stamp time,
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-owner {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -16106,14 +16925,14 @@ button {
   color: rgba(130, 122, 116, 0.92);
 }
 
-.queue-history-list > .thread-card .thread-owner {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-owner {
   font-weight: 500;
   color: rgba(130, 122, 116, 0.88);
 }
 
 /* Rad 2 + 3 */
-.queue-history-list > .thread-card .thread-support-stack,
-.queue-history-list > .thread-card .thread-support-stack-selected {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-support-stack,
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-support-stack-selected {
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -16128,7 +16947,7 @@ button {
   box-shadow: none !important;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-row {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -16138,12 +16957,12 @@ button {
   overflow: hidden;
 }
 
-.queue-history-list > .thread-card.thread-card-cross-mailbox .thread-intelligence-row {
+.queue-history-list > .thread-card.thread-card-cross-mailbox:not(.unified-queue-card) .thread-intelligence-row {
   flex-wrap: nowrap;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item,
-.queue-history-list > .thread-card button.thread-intelligence-item {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item,
+.queue-history-list > .thread-card:not(.unified-queue-card) button.thread-intelligence-item {
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -16163,7 +16982,7 @@ button {
   box-shadow: none;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item-value {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -16174,28 +16993,28 @@ button {
   font-weight: 600;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--mailbox .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item--mailbox .thread-intelligence-item-value {
   color: rgba(72, 66, 60, 0.92);
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--what .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item--what .thread-intelligence-item-value {
   color: #5a58b0;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--why .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item--why .thread-intelligence-item-value {
   color: #b8567a;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--next .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item--next .thread-intelligence-item-value {
   color: #2f8f56;
 }
 
-.queue-history-list > .thread-card .thread-intelligence-item--source .thread-intelligence-item-value {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-intelligence-item--source .thread-intelligence-item-value {
   color: #6b5a9a;
 }
 
-.queue-history-list > .thread-card .intel-card-provenance,
-.queue-history-list > .thread-card .thread-card-provenance {
+.queue-history-list > .thread-card:not(.unified-queue-card) .intel-card-provenance,
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-provenance {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
@@ -16208,11 +17027,11 @@ button {
   border: 0;
 }
 
-.queue-history-list > .thread-card .thread-card-provenance {
+.queue-history-list > .thread-card:not(.unified-queue-card) .thread-card-provenance {
   margin-top: 0;
 }
 
-.queue-history-list > .thread-card .intel-card-provenance-label {
+.queue-history-list > .thread-card:not(.unified-queue-card) .intel-card-provenance-label {
   flex: 0 0 auto;
   color: #7a6bab;
   font-size: 9px;
@@ -16222,7 +17041,7 @@ button {
   text-transform: uppercase;
 }
 
-.queue-history-list > .thread-card .intel-card-provenance-label::before {
+.queue-history-list > .thread-card:not(.unified-queue-card) .intel-card-provenance-label::before {
   content: "|";
   display: inline;
   margin-right: 5px;
@@ -16235,7 +17054,7 @@ button {
   font-weight: 700;
 }
 
-.queue-history-list > .thread-card .intel-card-provenance-detail {
+.queue-history-list > .thread-card:not(.unified-queue-card) .intel-card-provenance-detail {
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
@@ -17512,7 +18331,7 @@ button {
 }
 
 .aux-filter-pill.is-active {
-  border-color: rgba(230, 191, 207, 0.86);
+  border-color: rgba(214, 198, 184, 0.86);
   color: #a24f79;
   background:
     linear-gradient(
@@ -17952,7 +18771,7 @@ button {
 }
 
 .settings-choice-card.is-active {
-  border-color: rgba(230, 191, 207, 0.86);
+  border-color: rgba(214, 198, 184, 0.86);
   background:
     linear-gradient(
       180deg,
@@ -17960,7 +18779,7 @@ button {
       rgba(245, 223, 232, 0.94) 100%
     );
   box-shadow:
-    0 8px 18px rgba(172, 128, 148, 0.12),
+    0 8px 18px rgba(160, 130, 100, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.96);
 }
 
@@ -18153,7 +18972,7 @@ button {
 }
 
 .showcase-feature.is-active {
-  border-color: rgba(230, 191, 207, 0.86);
+  border-color: rgba(214, 198, 184, 0.86);
   color: #a34f79;
 }
 
@@ -18174,7 +18993,7 @@ button {
   min-height: 24px;
   padding: 0 10px;
   border-radius: 999px;
-  border: 1px solid rgba(230, 191, 207, 0.76);
+  border: 1px solid rgba(214, 198, 184, 0.76);
   color: #a44f79;
   background: rgba(255, 245, 248, 0.8);
   font-size: 10px;
@@ -18650,9 +19469,9 @@ button {
 
 .customers-merge-primary button.is-active,
 .note-mode-option.is-active {
-  border-color: rgba(230, 191, 207, 0.84);
+  border-color: rgba(214, 198, 184, 0.84);
   box-shadow:
-    0 8px 18px rgba(172, 128, 148, 0.12),
+    0 8px 18px rgba(160, 130, 100, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
@@ -19576,7 +20395,7 @@ button {
 .mailbox-admin-surface .customers-merge-accept {
   min-height: 31px;
   padding: 0 15px;
-  border-color: rgba(226, 97, 145, 0.78);
+  border-color: rgba(160, 110, 75, 0.78);
   box-shadow: none;
 }
 
@@ -19716,6 +20535,112 @@ button {
   font-size: 11px;
   line-height: 15px;
   font-weight: 500;
+}
+
+@media (max-width: 1180px) {
+  .aux-mail-layout,
+  .integrations-layout,
+  .showcase-layout,
+  .showcase-top-row,
+  .settings-layout,
+  .settings-summary-grid,
+  .settings-grid-2,
+  .settings-choice-columns,
+  .settings-choice-grid,
+  .automation-collaboration-grid,
+  .customers-modal-grid,
+  .showcase-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mailbox-admin-signature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mailbox-admin-identity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mailbox-admin-list-card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .mailbox-admin-list-card .mailbox-admin-section-head {
+    max-width: none;
+  }
+
+  .mailbox-admin-head-main,
+  .mailbox-admin-head-inline {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Force exact v3 card rendering across all queue modes */
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  border-radius: 16px;
+  border-left-width: 0;
+  overflow: hidden;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .card-top,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px 15px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .avatar,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  margin-top: 0;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .card-body,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .row-1,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .row-1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .card-footer,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .card-footer {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .mailbox-trail,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .mailbox-trail {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px 13px;
+}
+
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .thread-support-stack,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .thread-intelligence-row,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .thread-card-provenance,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .thread-card-head-secondary {
+  display: none !important;
 }
 
 .booking-operator-surface {

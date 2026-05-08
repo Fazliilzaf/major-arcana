@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker",
+    "streetsidesoftware.code-spell-checker-swedish",
+    "eamodio.gitlens",
+    "wayou.vscode-todo-highlight",
+    "ms-azuretools.vscode-docker",
+    "github.vscode-github-actions",
+    "yoavbls.pretty-ts-errors"
+  ]
+}

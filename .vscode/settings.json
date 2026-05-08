@@ -1,0 +1,63 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [100],
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.validate": ["javascript"],
+
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "javascript.suggest.completeFunctionCalls": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.wordWrap": "on"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/data": true,
+    "**/coverage": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/public/cco-next-release": true,
+    "**/public/cco-next": true,
+    "**/major-arcana-cco-next": true,
+    "**/package-lock.json": true,
+    "**/.next": true
+  },
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/data/**": true,
+    "**/coverage/**": true
+  },
+
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": false
+}

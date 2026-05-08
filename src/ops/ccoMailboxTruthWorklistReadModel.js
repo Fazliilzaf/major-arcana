@@ -410,8 +410,9 @@ function getWorklistMergeIdentityKey(row = {}) {
     extractEmail(row.customer?.email) ||
     extractEmail(identity.customerEmail);
   if (emailFallback) {
+    const mailboxScope = normalizeMailboxId(row.ownershipMailbox || row.mailboxId || '');
     return {
-      key: `customerEmail:${emailFallback}`,
+      key: mailboxScope ? `customerEmail:${emailFallback}:${mailboxScope}` : `customerEmail:${emailFallback}`,
       type: 'customerEmail',
       value: emailFallback,
     };
@@ -499,6 +500,19 @@ function buildQueueExplanatoryLine(row = {}) {
   return '';
 }
 
+function getWorklistMailboxScopeKey(row = {}) {
+  return normalizeMailboxId(
+    row?.ownershipMailbox ||
+      row?.mailbox?.ownershipMailbox ||
+      row?.mailbox?.mailboxId ||
+      row?.mailboxId ||
+      row?.mailbox?.mailboxAddress ||
+      row?.mailboxAddress ||
+      row?.mailbox?.userPrincipalName ||
+      row?.userPrincipalName
+  );
+}
+
 function buildWorklistRollupRow(rows = []) {
   const safeRows = asArray(rows).filter((row) => row && typeof row === 'object');
   const primaryRow = [...safeRows].sort(compareWorklistRollupRows)[0] || null;
@@ -558,10 +572,10 @@ function buildWorklistRollupRow(rows = []) {
   };
   const customerIdentity = normalizeIdentityCarrier(primaryRow).customerIdentity;
   const mergedCount = safeRows.length;
-  const publicConversationKey =
-    rollupIdentity.type === 'customerEmail' && mergedCount === 1
-      ? normalizeText(primaryRow?.conversationKey || primaryRow?.id || '') || rollupIdentity.key
-      : rollupIdentity.key;
+  const effectiveConversationKey =
+    mergedCount > 1
+      ? rollupIdentity.key
+      : normalizeText(primaryRow?.conversationKey || primaryRow?.id || '') || rollupIdentity.key;
   const hasUnreadInbound = safeRows.some((row) => row?.hasUnreadInbound === true);
   const needsReply = safeRows.some((row) => row?.needsReply === true);
   const unreadCount = safeRows.filter((row) => row?.hasUnreadInbound === true).length;
@@ -592,13 +606,35 @@ function buildWorklistRollupRow(rows = []) {
         : 'all';
   const subject = normalizeText(primaryRow?.subject) || '(utan ämne)';
   const preview = normalizeText(primaryRow?.latestPreview || '');
-  const customerName = normalizeText(primaryRow?.customerName || '');
-  const customerEmail = normalizeText(primaryRow?.customerEmail || '');
+  // FIX4: utökad fallback-kedja för customerName så vi inte faller till
+  // "Okänd avsändare" när Graph har namnet i ett annat fält
+  const customerName =
+    normalizeText(primaryRow?.customerName) ||
+    normalizeText(primaryRow?.fromName) ||
+    normalizeText(primaryRow?.senderName) ||
+    normalizeText(primaryRow?.from?.name) ||
+    normalizeText(primaryRow?.from?.emailAddress?.name) ||
+    normalizeText(primaryRow?.sender?.name) ||
+    normalizeText(primaryRow?.sender?.emailAddress?.name) ||
+    normalizeText(primaryRow?.counterpartyLabel) ||
+    normalizeText(primaryRow?.identity?.customerName) ||
+    '';
+  const customerEmail =
+    normalizeText(primaryRow?.customerEmail) ||
+    normalizeText(primaryRow?.senderEmail) ||
+    normalizeText(primaryRow?.fromEmail) ||
+    normalizeText(primaryRow?.from?.address) ||
+    normalizeText(primaryRow?.from?.emailAddress?.address) ||
+    '';
+  // Sista fallback: humanize email-delen (john.doe@x → "John Doe"), annars användarnamn
+  const customerNameWithFallback =
+    customerName ||
+    (customerEmail ? humanizeCounterpartyEmail(customerEmail) || customerEmail.split('@')[0] : '');
   const provenanceDetail = uniqueMailboxLabels.join(' · ');
   const provenanceLabel = uniqueMailboxLabels.length > 1 ? `${uniqueMailboxLabels.length} mailboxar` : '';
   return {
     ...primaryRow,
-    conversationKey: publicConversationKey,
+    conversationKey: effectiveConversationKey,
     conversationId: primaryRow?.conversationId || uniqueConversationIds[0] || null,
     mailboxConversationId: primaryRow?.mailboxConversationId || uniqueConversationIds[0] || null,
     subject,
@@ -612,7 +648,7 @@ function buildWorklistRollupRow(rows = []) {
     lane,
     messageCount: safeRows.reduce((sum, row) => sum + Number(row?.messageCount || 0), 0),
     customerEmail: customerEmail || null,
-    customerName: customerName || null,
+    customerName: customerNameWithFallback || null,
     customerIdentity,
     hardConflictSignals: normalizeIdentityCarrier(primaryRow).hardConflictSignals,
     mergeReviewDecisionsByPairId: normalizeIdentityCarrier(primaryRow).mergeReviewDecisionsByPairId,
@@ -685,9 +721,14 @@ function buildCustomerRollupRows(rows = []) {
     const matchingGroup = groups.find((group) => {
       const firstRow = group[0];
       const firstKey = getWorklistMergeIdentityKey(firstRow);
+      const firstMailboxScopeKey = getWorklistMailboxScopeKey(firstRow);
+      const rowMailboxScopeKey = getWorklistMailboxScopeKey(row);
       return (
         firstKey &&
         firstKey.key === mergeKey.key &&
+        firstMailboxScopeKey &&
+        rowMailboxScopeKey &&
+        firstMailboxScopeKey === rowMailboxScopeKey &&
         group.every((existingRow) => !hasWorklistHardMergeConflict(existingRow, row))
       );
     });
@@ -891,6 +932,36 @@ function createCcoMailboxTruthWorklistReadModel({
         const counterparty = deriveCounterparty(message, mailboxId);
         entry.customerEmail = counterparty.email || null;
         entry.customerName = counterparty.name || null;
+      }
+      // FIX6: hård fallback (UNCONDITIONAL) — kör ALLTID denna även om customerEmail
+      // är satt, eftersom customerName kan vara null även när email finns.
+      // Testa alla legacy-fält (senderEmail/senderName/counterpartyEmail/from.address).
+      if (!entry.customerName || !entry.customerEmail) {
+        const flatEmail =
+          normalizeText(message?.senderEmail) ||
+          normalizeText(message?.counterpartyEmail) ||
+          normalizeText(message?.fromEmail) ||
+          normalizeText(message?.from?.address) ||
+          normalizeText(message?.from?.emailAddress?.address) ||
+          normalizeText(message?.sender?.emailAddress?.address) ||
+          '';
+        const flatName =
+          normalizeText(message?.senderName) ||
+          normalizeText(message?.fromName) ||
+          normalizeText(message?.from?.name) ||
+          normalizeText(message?.from?.emailAddress?.name) ||
+          normalizeText(message?.sender?.emailAddress?.name) ||
+          '';
+        if (!entry.customerEmail && flatEmail) {
+          entry.customerEmail = flatEmail.toLowerCase();
+        }
+        if (!entry.customerName && flatName) {
+          entry.customerName = flatName;
+        }
+        // Sista utvägen: om vi har email men ingen name, humanize email.
+        if (!entry.customerName && entry.customerEmail) {
+          entry.customerName = humanizeCounterpartyEmail(entry.customerEmail) || null;
+        }
       }
       if (!entry.customerIdentity) {
         const rawIdentityCarrier = normalizeIdentityCarrier(message);

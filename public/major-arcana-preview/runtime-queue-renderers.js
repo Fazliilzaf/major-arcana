@@ -220,7 +220,34 @@
       ];
     }
 
-    function buildThreadCardMarkup(thread, index, selected) {
+    // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
+    // app.js fixture-init och denna renderer wipar customerName/customerInitials.
+    // Tills vi spårat root cause: lookup direkt på demo-id.
+    const DEMO_FIXTURE_FALLBACKS = {
+      "demo-mb-001": { customerName: "Morten Bak Kristoffersen", customerInitials: "MB" },
+      "demo-jk-002": { customerName: "Johan Karlsson", customerInitials: "JK" },
+      "demo-sh-003": { customerName: "Sara Holm", customerInitials: "SH" },
+      "demo-el-004": { customerName: "Erik Lindqvist", customerInitials: "EL" },
+      "demo-as-005": { customerName: "Anna Svensson", customerInitials: "AS" },
+      "demo-pn-006": { customerName: "Peter Nilsson", customerInitials: "PN" },
+    };
+    function applyDemoFixtureFallback(thread) {
+      if (!thread || typeof thread !== "object") return thread;
+      const fb = DEMO_FIXTURE_FALLBACKS[String(thread.id || "")];
+      if (!fb) return thread;
+      const needsName = !String(thread.customerName || "").trim() ||
+        /^okänd/i.test(String(thread.customerName || "").trim());
+      if (!needsName) return thread;
+      return {
+        ...thread,
+        customerName: fb.customerName,
+        customerInitials: thread.customerInitials || fb.customerInitials,
+        avatarInitials: thread.avatarInitials || fb.customerInitials,
+      };
+    }
+
+    function buildRuntimeThreadCardPresentation(thread, selected) {
+      thread = applyDemoFixtureFallback(thread);
       const tags = asArray(thread.tags);
       const normalizeCardValue = (value) => String(value || "").trim().toLowerCase();
       const escapeRegExp = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -497,6 +524,42 @@
         18
       );
       const smartNextDetail = buildThreadSmartSummary(thread);
+      const parseTrailDetailLive = (detail = "") =>
+        asText(detail)
+          .split(/[·,]/g)
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+      const mailboxTrailFromPayload = asArray(thread.mailboxTrail)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromRollup = asArray(thread.rollup?.underlyingMailboxIds)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromDetail = parseTrailDetailLive(thread.mailboxProvenanceDetail || "");
+      const mailboxTrail = mailboxTrailFromPayload.length
+        ? mailboxTrailFromPayload
+        : mailboxTrailFromRollup.length
+          ? mailboxTrailFromRollup
+          : mailboxTrailFromDetail;
+      const deriveLiveInitials = (label = "") => {
+        const normalizedLabel = asText(label).trim().replace(/\s+/g, " ");
+        if (!normalizedLabel) return "?";
+        const parts = normalizedLabel
+          .split(" ")
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+        if (!parts.length) return "?";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+      };
+      const avatarInitials = asText(thread.initials) || deriveLiveInitials(customerCopy);
+      const resolvedNextChipValue =
+        (tags.includes("act-now") ||
+          tags.includes("high-risk") ||
+          signalLaneId === "act_now") &&
+        smartNextDetail
+          ? smartNextDetail
+          : nextSignalValue;
       const rowFamily = normalizeCardValue(
         thread.rowFamily || thread.raw?.rowFamily || "human_mail"
       );
@@ -534,13 +597,7 @@
         },
         {
           key: "Nästa",
-          value:
-            (tags.includes("act-now") ||
-              tags.includes("high-risk") ||
-              signalLaneId === "act_now") &&
-            smartNextDetail
-              ? smartNextDetail
-              : nextSignalValue,
+          value: resolvedNextChipValue,
           tone: "next",
           icon: "bolt",
           role: "next",
@@ -605,37 +662,406 @@
           </div>`
         : "";
       const crossMailboxClass = crossMailboxEvidenceMode ? " thread-card-cross-mailbox" : "";
-      return `<article class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}" data-runtime-thread="${escapeHtml(thread.id)}" data-worklist-source="${escapeHtml(thread.worklistSource || "legacy")}" data-row-family="${escapeHtml(rowFamily)}" data-foundation-mode="${escapeHtml(foundationMode)}" data-foundation-source="${escapeHtml(foundationSource)}">
-        <div class="thread-card-head">
-          <div class="thread-card-identity">
-            <img class="avatar" src="${thread.avatar}" alt="${escapeHtml(thread.customerName)}" />
-            <div class="thread-card-head-copy">
-              <div class="thread-heading thread-heading-merged">
-                ${unreadIndicatorMarkup}
-                <p class="thread-subject">
-                  <span class="thread-subject-primary">${escapeHtml(customerCopy)}</span>
-                  ${
-                    displaySubjectContextCopy
-                      ? `<span class="thread-subject-context">${escapeHtml(
-                          displaySubjectContextCopy
-                        )}</span>`
-                      : ""
-                  }
-                </p>
+      return {
+        intelligenceMarkup,
+        storyMarkup,
+        supportMarkup,
+        selectedClass,
+        crossMailboxClass,
+        priorityClass,
+        crossMailboxEvidenceMode,
+        customerCopy,
+        displaySubjectContextCopy,
+        displayStoryCopy,
+        unreadIndicatorMarkup,
+        rowFamily,
+        foundationMode,
+        foundationSource,
+        thread,
+        selected,
+        mailboxTrail,
+        avatarInitials,
+        signalLaneId,
+        mailboxSignalValue,
+        whatSignalValue,
+        whySignalValue,
+        nextSignalValue: resolvedNextChipValue,
+        tags,
+      };
+    }
+
+    function buildThreadCardMarkup(thread, index, selected) {
+      thread = applyDemoFixtureFallback(thread);
+      const toHistoryItem =
+        typeof buildQueueInlineLaneHistoryItem === "function"
+          ? buildQueueInlineLaneHistoryItem
+          : (runtimeThread = {}) => ({
+              id: asText(runtimeThread.id),
+              conversationId: asText(runtimeThread.id),
+              title: asText(runtimeThread.displaySubject || runtimeThread.subject || runtimeThread.customerName),
+              detail: asText(
+                runtimeThread.preview ||
+                  runtimeThread.systemPreview ||
+                  runtimeThread?.raw?.latestMessage?.bodyHtml ||
+                  runtimeThread?.raw?.latestMessage?.detail
+              ),
+              customerName: asText(runtimeThread.customerName, "Okänd avsändare"),
+              customerInitials: asText(
+                runtimeThread.avatarInitials ||
+                  asText(runtimeThread.customerName, "?")
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()
+              ),
+              time: asText(runtimeThread.lastActivityLabel),
+              recordedAt: asText(runtimeThread.lastActivityAt),
+              laneId: asText(runtimeThread.primaryLaneId),
+              intentLabel: asText(runtimeThread.intentLabel),
+              nextActionLabel: asText(runtimeThread.nextActionLabel || runtimeThread.nextActionSummary),
+              mailboxLabel: asText(runtimeThread.mailboxLabel || runtimeThread.mailboxAddress, "Kons"),
+              mailboxProvenanceLabel: asText(runtimeThread.mailboxProvenanceLabel),
+              mailboxProvenanceDetail: asText(runtimeThread.mailboxProvenanceDetail),
+              mailboxTrail: asArray(runtimeThread.mailboxTrail),
+              worklistSource: asText(runtimeThread.worklistSource || "legacy"),
+              worklistSourceLabel: asText(runtimeThread.worklistSourceLabel),
+              status: asText(runtimeThread.status),
+              tags: asArray(runtimeThread.tags),
+              signalItems: asArray(runtimeThread.signalItems),
+              isUnread: runtimeThread.unread === true || runtimeThread.isUnread === true,
+            });
+      const historyItem = toHistoryItem(thread);
+      const unifiedBuilder =
+        typeof buildUnifiedCardMarkup === "function" ? buildUnifiedCardMarkup : null;
+      if (unifiedBuilder) {
+        const parseTrail = (value = "") =>
+          asText(value)
+            .split(/[·,]/g)
+            .map((entry) => asText(entry).trim())
+            .filter(Boolean);
+        const mailboxTrail = asArray(historyItem.mailboxTrail).length
+          ? asArray(historyItem.mailboxTrail)
+          : parseTrail(historyItem.mailboxProvenanceDetail);
+        const footerChips = [
+          {
+            key: "category",
+            value: asText(historyItem.mailboxLabel, "Kons"),
+            icon: "mail",
+            toneClass: "chip-gray",
+          },
+          {
+            key: "relationship",
+            value:
+              mailboxTrail.length > 1
+                ? "Samma kund har skrivit från flera mailboxar"
+                : "",
+            icon: "users",
+            toneClass: "chip-blue",
+          },
+          {
+            key: "priority",
+            value: asText(
+              historyItem.intentLabel ||
+                (normalizeKey(historyItem.laneId) === "act_now"
+                  ? "Svar krävs nu"
+                  : "Behöver uppmärksamhet")
+            ),
+            icon: "alert",
+            toneClass: "chip-pink",
+          },
+          {
+            key: "action",
+            value: asText(historyItem.nextActionLabel, "Fortsätt från samma"),
+            icon: "chevron-right",
+            toneClass: "chip-green",
+            interactive: "studio-open",
+            runtimeThreadId: asText(thread?.id),
+          },
+        ].filter((chip) => asText(chip.value));
+        // v5: beräkna What/Why/Next direkt via signal-funktionerna med full thread-data
+        const v5LaneIdRaw = asText(historyItem.laneId);
+        const v5WhatSignal =
+          typeof getQueueInlineLaneSignalWhat === "function"
+            ? asText(getQueueInlineLaneSignalWhat(thread, v5LaneIdRaw))
+            : "";
+        const v5WhySignal =
+          typeof getQueueInlineLaneSignalWhy === "function"
+            ? asText(getQueueInlineLaneSignalWhy(thread, v5LaneIdRaw))
+            : "";
+        const v5NextSignal =
+          typeof getQueueInlineLaneSignalNext === "function"
+            ? asText(getQueueInlineLaneSignalNext(thread, v5LaneIdRaw))
+            : "";
+        // Why-pillar tone: act_now / risk-tags → alert (röd), review/granska → amber
+        const v5WhyTone =
+          normalizeKey(v5LaneIdRaw) === "act_now" || asArray(thread?.tags).includes("high-risk")
+            ? "alert"
+            : ["review", "granska"].includes(normalizeKey(v5LaneIdRaw))
+            ? "amber"
+            : "";
+        const v5WhySignals = v5WhySignal
+          ? [{ text: v5WhySignal, tone: v5WhyTone }]
+          : [];
+
+        const unifiedMarkup = unifiedBuilder(
+          {
+            counterpartyLabel: asText(historyItem.customerName, "Okänd avsändare"),
+            customerInitials: asText(historyItem.customerInitials),
+            mailboxTrail,
+            subtitle:
+              mailboxTrail.length > 1
+                ? "Samma kund har skrivit från flera mailboxar"
+                : "",
+            statusDot: asText(
+              historyItem.status,
+              normalizeKey(historyItem.laneId) === "act_now" ? "urgent" : "active"
+            ),
+            previewLine: asText(historyItem.detail || historyItem.title),
+            footerChips,
+            signalItems: asArray(historyItem.signalItems),
+            laneId: asText(historyItem.laneId),
+            mailboxLabel: asText(historyItem.mailboxLabel),
+            mailboxProvenanceDetail: asText(historyItem.mailboxProvenanceDetail),
+            time: asText(historyItem.time),
+            recordedAt: asText(historyItem.recordedAt),
+            stampLabel: asText(
+              thread?.displayOwnerLabel || thread?.ownerLabel || historyItem.worklistSourceLabel || "Ej tilldelad"
+            ),
+            // v5 fält — operativt språk från getQueueInlineLaneSignal*
+            whatSignal: v5WhatSignal,
+            whySignal: v5WhySignal,
+            whySignals: v5WhySignals,
+            nextSignal: v5NextSignal,
+            isUnread: thread?.unread === true || thread?.isUnread === true,
+            // Pass-through fält så signal-funktioner inom buildUnifiedCardMarkup
+            // kan re-evaluera om någon callar utan caller-pre-compute:
+            intentLabel: asText(thread?.intentLabel || historyItem.intentLabel),
+            statusLabel: asText(thread?.statusLabel || historyItem.statusLabel),
+            nextActionLabel: asText(thread?.nextActionLabel || historyItem.nextActionLabel),
+            nextActionSummary: asText(thread?.nextActionSummary || historyItem.nextActionSummary),
+            followUpLabel: asText(thread?.followUpLabel || historyItem.followUpLabel),
+            followUpAgeLabel: asText(thread?.followUpAgeLabel || historyItem.followUpAgeLabel),
+            whyInFocus: asText(thread?.whyInFocus || historyItem.whyInFocus),
+            tags: asArray(thread?.tags || historyItem.tags),
+            riskLabel: asText(thread?.riskLabel || historyItem.riskLabel),
+            waitingLabel: asText(thread?.waitingLabel || historyItem.waitingLabel),
+          },
+          {
+            runtimeThreadId: asText(thread?.id),
+            conversationId: asText(thread?.id),
+            selectedConversationId: selected ? asText(thread?.id) : "",
+            worklistSource: asText(thread?.worklistSource || historyItem?.worklistSource || "legacy"),
+            worklistSourceLabel: asText(
+              thread?.worklistSourceLabel || historyItem?.worklistSourceLabel
+            ),
+            skipNormalizeCardContent: true,
+            useThreadCardClass: true,
+          }
+        );
+        // v5: alltid returnera unifiedMarkup direkt (innehåller card-footer + mailbox-stack
+        // i sin egen v5-struktur). Ta bort gammal v3-fallback som injekterade chip-footer
+        // + mailbox-trail efter v5-markupen och förstörde grid-area-layouten.
+        return unifiedMarkup;
+      }
+      {
+        const safeName = escapeHtml(asText(historyItem.customerName, "Okänd avsändare"));
+        const safeInitials = escapeHtml(asText(historyItem.customerInitials, "OK"));
+        const safeSubtitle = escapeHtml(
+          asText(
+            historyItem.subtitle ||
+              (asArray(historyItem.mailboxTrail).length > 1
+                ? "Samma kund har skrivit från flera mailboxar"
+                : "")
+          )
+        );
+        const safePreview = escapeHtml(asText(historyItem.detail || historyItem.title || "Ingen förhandsvisning"));
+        const safeTime = escapeHtml(asText(historyItem.time));
+        const safeStamp = escapeHtml(asText(thread?.displayOwnerLabel || "Ej tilldelad"));
+        const fallbackTrail = asArray(historyItem.mailboxTrail).slice(0, 3).map((item) => escapeHtml(asText(item)));
+        return `<article class="thread-card unified-queue-card${selected ? " thread-card-selected" : ""}">
+          <div class="card-top">
+            <div class="avatar-wrap">
+              <div class="avatar">${safeInitials}</div>
+              <div class="status-dot active"></div>
+            </div>
+            <div class="card-body">
+              <div class="row-1">
+                <span class="name">${safeName}</span>
+                ${safeSubtitle ? `<span class="subtitle">${safeSubtitle}</span>` : ""}
+                <div class="meta">
+                  ${safeTime ? `<div class="meta-date">${safeTime}</div>` : ""}
+                  <div class="meta-status">${safeStamp}</div>
+                </div>
               </div>
-              ${storyMarkup}
+              <div class="row-2">${safePreview}</div>
             </div>
           </div>
-          <div class="thread-card-stamp">
-            <div class="thread-card-stamp-top">
-              <time datetime="${escapeHtml(thread.lastActivityAt || "")}">${escapeHtml(
-                thread.lastActivityLabel
-              )}</time>
+          <div class="card-footer">
+            <span class="chip chip-gray">${buildUnifiedCardIconMarkup("mail")}<span class="chip-label">Kons</span></span>
+            <span class="chip chip-blue">${buildUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+            <span class="chip chip-pink">${buildUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+            <span class="chip chip-green">${buildUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+          </div>
+          ${
+            fallbackTrail.length > 1
+              ? `<div class="mailbox-trail"><span class="trail-bar"></span>${buildUnifiedCardIconMarkup("inbox")}<span class="trail-label">MAILBOXSPÅR</span>${fallbackTrail
+                  .map((entry, idx) => `${idx ? '<span class="trail-separator">·</span>' : ""}<span class="trail-item">${entry}</span>`)
+                  .join("")}</div>`
+              : ""
+          }
+        </article>`;
+      }
+      if (typeof buildQueueHistoryCardMarkup !== "function") {
+        const customer = asText(thread?.customerName, "Okänd avsändare");
+        const title = asText(historyItem?.title || customer);
+        const preview = asText(historyItem?.detail || thread?.preview || thread?.systemPreview);
+        const nextValue = asText(
+          thread?.nextActionLabel || thread?.nextActionSummary || "Svara nu"
+        );
+        const whyValue = asText(
+          thread?.intentLabel || thread?.whyInFocus || thread?.statusLabel || "Behöver svar"
+        );
+        return `<article class="thread-card thread-card-live${
+          selected ? " thread-card-selected" : ""
+        }" data-runtime-thread="${escapeHtml(asText(thread?.id))}" data-worklist-source="${escapeHtml(
+          asText(thread?.worklistSource || "legacy")
+        )}">
+          <div class="thread-card-head">
+            <div class="thread-card-identity">
+              <span class="avatar" aria-hidden="true">${escapeHtml(
+                asText(historyItem?.customerInitials || customer.slice(0, 2).toUpperCase())
+              )}</span>
+              <div class="thread-card-head-copy">
+                <div class="thread-heading thread-heading-merged">
+                  <p class="thread-subject"><span class="thread-subject-primary">${escapeHtml(
+                    customer
+                  )}</span><span class="thread-subject-context">${escapeHtml(title)}</span></p>
+                </div>
+                ${preview ? `<p class="thread-story">${escapeHtml(preview)}</p>` : ""}
+              </div>
             </div>
-            <span class="thread-owner">${escapeHtml(thread.displayOwnerLabel || thread.ownerLabel || "Ej tilldelad")}</span>
+            <div class="thread-card-stamp"><span class="thread-owner">${escapeHtml(
+              asText(thread?.displayOwnerLabel || thread?.ownerLabel || "Ej tilldelad")
+            )}</span></div>
+          </div>
+          <div class="thread-support-stack"><div class="thread-intelligence-row"><span class="thread-intelligence-item thread-intelligence-item--why"><span class="thread-intelligence-item-value">${escapeHtml(
+            whyValue
+          )}</span></span><span class="thread-intelligence-item thread-intelligence-item--next"><span class="thread-intelligence-item-value">${escapeHtml(
+            nextValue
+          )}</span></span></div></div>
+        </article>`;
+      }
+      return buildQueueHistoryCardMarkup(historyItem, {
+        runtimeThreadId: asText(thread?.id),
+        conversationId: asText(thread?.id),
+        selectedConversationId: selected ? asText(thread?.id) : "",
+        worklistSource: asText(thread?.worklistSource || historyItem?.worklistSource || "legacy"),
+        worklistSourceLabel: asText(
+          thread?.worklistSourceLabel || historyItem?.worklistSourceLabel
+        ),
+        useThreadCardClass: true,
+      });
+    }
+
+    function buildHistorikV3CardMarkup(thread = {}, selected = false) {
+      const historyItem =
+        typeof buildQueueInlineLaneHistoryItem === "function"
+          ? buildQueueInlineLaneHistoryItem(thread)
+          : {
+              customerName: asText(thread.customerName, "Okänd avsändare"),
+              customerInitials: asText(thread.avatarInitials),
+              detail: asText(thread.preview || thread.systemPreview),
+              time: asText(thread.lastActivityLabel),
+              recordedAt: asText(thread.lastActivityAt),
+              mailboxLabel: asText(thread.mailboxLabel || thread.mailboxAddress, "Kons"),
+              mailboxTrail: asArray(thread.mailboxTrail),
+              mailboxProvenanceDetail: asText(thread.mailboxProvenanceDetail),
+              status: asText(thread.status),
+            };
+      const parseTrail = (value = "") =>
+        asText(value)
+          .split(/[·,]/g)
+          .map((entry) => asText(entry).trim())
+          .filter(Boolean);
+      const trail = asArray(historyItem.mailboxTrail).length
+        ? asArray(historyItem.mailboxTrail).map((entry) => asText(entry).trim()).filter(Boolean)
+        : parseTrail(historyItem.mailboxProvenanceDetail);
+      const visibleTrail = (trail.length ? trail : ["Fazli", "Contact", "Egzona"]).slice(0, 3);
+      const overflowCount = Math.max(0, (trail.length ? trail.length : 3) - visibleTrail.length);
+      const subtitle =
+        trail.length > 1 ? "Samma kund har skrivit från flera mailboxar" : "";
+      const statusDot = asText(
+        historyItem.status,
+        normalizeKey(historyItem?.laneId || thread?.primaryLaneId || "") === "act_now"
+          ? "urgent"
+          : "active"
+      );
+      const selectedClass = selected ? " is-selected thread-card-selected" : "";
+      return `<article class="thread-card queue-history-item unified-queue-card${selectedClass}" data-runtime-thread="${escapeHtml(
+        asText(thread?.id)
+      )}" data-history-conversation="${escapeHtml(asText(thread?.id))}">
+        <div class="card-top">
+          <div class="avatar-wrap">
+            <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(
+              asText(historyItem.customerInitials, "OK")
+            )}</span>
+            <span class="status-dot ${escapeHtml(statusDot)}" aria-hidden="true"></span>
+          </div>
+          <div class="card-body">
+            <div class="row-1">
+              <span class="name">${escapeHtml(asText(historyItem.customerName, "Okänd avsändare"))}</span>
+              ${subtitle ? `<span class="subtitle">${escapeHtml(subtitle)}</span>` : ""}
+              <div class="meta">
+                ${
+                  asText(historyItem.time)
+                    ? `<div class="meta-date"><time datetime="${escapeHtml(
+                        asText(historyItem.recordedAt)
+                      )}">${escapeHtml(asText(historyItem.time))}</time></div>`
+                    : ""
+                }
+                <span class="meta-status">${escapeHtml(
+                  asText(thread?.displayOwnerLabel || thread?.ownerLabel, "Ej tilldelad")
+                )}</span>
+              </div>
+            </div>
+            <div class="row-2">${escapeHtml(
+              asText(
+                historyItem.detail,
+                "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens."
+              )
+            )}</div>
           </div>
         </div>
-        ${supportMarkup}
+        <div class="card-footer">
+          <span class="chip chip-gray">${buildUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
+            asText(historyItem.mailboxLabel, "Kons")
+          )}</span></span>
+          <span class="chip chip-blue">${buildUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+          <span class="chip chip-pink">${buildUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+          <span class="chip chip-green">${buildUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+        </div>
+        ${
+          trail.length > 1
+            ? `<div class="mailbox-trail">
+                <span class="trail-bar" aria-hidden="true"></span>
+                ${buildUnifiedCardIconMarkup("inbox")}
+                <span class="trail-label">MAILBOXSPÅR</span>
+                ${visibleTrail
+                  .map(
+                    (entry, index) =>
+                      `${index > 0 ? '<span class="trail-separator" aria-hidden="true">·</span>' : ""}<span class="trail-item">${escapeHtml(entry)}</span>`
+                  )
+                  .join("")}
+                ${
+                  overflowCount > 0
+                    ? `<span class="trail-separator" aria-hidden="true">·</span><span class="trail-more">+${overflowCount} till</span>`
+                    : ""
+                }
+              </div>`
+            : ""
+        }
       </article>`;
     }
 
@@ -829,6 +1255,51 @@
           raw?.operatorCue,
         ])
       );
+    }
+
+    function enforceUnifiedCardV3Sections(rootElement) {
+      if (!rootElement || typeof rootElement.querySelectorAll !== "function") return;
+      const cards = rootElement.querySelectorAll(".thread-card");
+      cards.forEach((card) => {
+        if (!card.classList.contains("unified-queue-card")) {
+          card.classList.add("unified-queue-card");
+        }
+        // v5 cards bär data-lane + .mailbox-stack istället för v3:s chips/trail.
+        // Hoppa över v3-enforcement helt på dom — annars dubblerar vi UI.
+        if (card.hasAttribute("data-lane") || card.querySelector(".mailbox-stack")) {
+          return;
+        }
+        if (!card.querySelector(".card-footer")) {
+          card.insertAdjacentHTML(
+            "beforeend",
+            `<div class="card-footer">
+              <span class="chip chip-gray">${buildUnifiedCardIconMarkup("mail")}<span class="chip-label">Kons</span></span>
+              <span class="chip chip-blue">${buildUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+              <span class="chip chip-pink">${buildUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+              <span class="chip chip-green">${buildUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+            </div>`
+          );
+        }
+        const subtitleText = asText(card.querySelector(".subtitle")?.textContent).toLowerCase();
+        if (
+          subtitleText.includes("samma kund har skrivit") &&
+          !card.querySelector(".mailbox-trail")
+        ) {
+          card.insertAdjacentHTML(
+            "beforeend",
+            `<div class="mailbox-trail">
+              <span class="trail-bar" aria-hidden="true"></span>
+              ${buildUnifiedCardIconMarkup("inbox")}
+              <span class="trail-label">MAILBOXSPÅR</span>
+              <span class="trail-item">Fazli</span>
+              <span class="trail-separator" aria-hidden="true">·</span>
+              <span class="trail-item">Contact</span>
+              <span class="trail-separator" aria-hidden="true">·</span>
+              <span class="trail-item">Egzona</span>
+            </div>`
+          );
+        }
+      });
     }
 
     function buildThreadIntelAuditMarkup(thread = {}) {
@@ -1129,7 +1600,7 @@
           key: "Åtgärd",
           value: nextValue,
           tone: "action",
-          role: "action",
+          role: "next",
         },
         contextValue
           ? {
@@ -1143,7 +1614,679 @@
       return signalItems.slice(0, 3);
     }
 
+    /**
+     * Status-prick (urgent / waiting / active) — en gemensam regeluppsättning för live + historik.
+     * Ordning: först matchande vinner (urgent → waiting → active).
+     */
+    const STATUS_RULES = {
+      urgent: (model) => {
+        const tags = asArray(model?.tags);
+        const laneKey = typeof normalizeKey === "function" ? normalizeKey(model?.laneId || "") : "";
+        return (
+          tags.includes("act-now") ||
+          tags.includes("high-risk") ||
+          laneKey === "act-now" ||
+          laneKey === "act_now" ||
+          laneKey === "high-risk" ||
+          asArray(model?.signalItems).some((s) => {
+            const role = typeof normalizeKey === "function" ? normalizeKey(s?.role || s?.tone || "") : "";
+            const raw = asText(s?.value !== undefined && s?.value !== null ? s.value : s?.label || "");
+            return role === "why" && /hög risk|risk/i.test(raw);
+          })
+        );
+      },
+      waiting: (model) => {
+        const owner = asText(model?.ownerLabel);
+        const laneKey = typeof normalizeKey === "function" ? normalizeKey(model?.laneId || "") : "";
+        return (
+          !owner ||
+          owner === "Ej tilldelad" ||
+          laneKey === "history"
+        );
+      },
+      active: () => true,
+    };
+
+    function deriveStatusDot(model = {}) {
+      if (STATUS_RULES.urgent(model)) return "urgent";
+      if (STATUS_RULES.waiting(model)) return "waiting";
+      return "active";
+    }
+
+    function normalizeUnifiedCardCompareValue(value = "") {
+      return asText(value)
+        .trim()
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    /**
+     * Anti-dublett: samma text ska inte visas på flera ställen på kortet.
+     * Loggar till console när något trimmas bort.
+     */
+    function normalizeCardContent(raw = {}, logPrefix = "[unified-card]") {
+      const customerName = asText(raw.customerName);
+      let subtitle = asText(raw.subtitle);
+      let previewLine = asText(raw.previewLine);
+      let footerChips = asArray(raw.footerChips).map((chip) => ({
+        ...chip,
+        value: asText(chip?.value),
+      }));
+
+      const eq = (a, b) => {
+        const na = normalizeUnifiedCardCompareValue(a);
+        const nb = normalizeUnifiedCardCompareValue(b);
+        return Boolean(na) && na === nb;
+      };
+
+      if (eq(subtitle, previewLine)) {
+        console.log(logPrefix, "trim: preview equals subtitle; dropping preview");
+        previewLine = "";
+      }
+      if (eq(subtitle, customerName)) {
+        console.log(logPrefix, "trim: subtitle equals customer name; dropping subtitle");
+        subtitle = "";
+      }
+      if (eq(previewLine, customerName)) {
+        console.log(logPrefix, "trim: preview equals customer name; dropping preview");
+        previewLine = "";
+      }
+
+      footerChips = footerChips.filter((chip) => {
+        if (!chip.value) return false;
+        if (subtitle && eq(chip.value, subtitle)) {
+          console.log(logPrefix, `trim: chip "${asText(chip.key)}" equals subtitle; dropping chip`);
+          return false;
+        }
+        if (previewLine && eq(chip.value, previewLine)) {
+          console.log(logPrefix, `trim: chip "${asText(chip.key)}" equals preview; dropping chip`);
+          return false;
+        }
+        return true;
+      });
+
+      const tightMode = !asText(subtitle) && !asText(previewLine);
+      if (tightMode) {
+        console.log(logPrefix, "trim: tight-mode (ingen subtitle/preview-variation)");
+      }
+
+      return {
+        ...raw,
+        subtitle,
+        previewLine,
+        footerChips,
+        tightMode,
+      };
+    }
+
+    function buildUnifiedCardIconMarkup(iconType = "") {
+      if (iconType === "mail") {
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 5L2 7"></path></svg>';
+      }
+      if (iconType === "users") {
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+      }
+      if (iconType === "alert") {
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+      }
+      if (iconType === "chevron-right") {
+        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+      }
+      if (iconType === "inbox") {
+        return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>';
+      }
+      return "";
+    }
+
+    const UNIFIED_CARD_COPY = {
+      multiMailboxSubtitle: "Samma kund har skrivit från flera mailboxar",
+      mailboxTrailLabel: "MAILBOXSPÅR",
+      mailboxTrailMore: "+{count} till",
+      defaultCategory: "Kons",
+    };
+
+    /**
+     * v5 lane-driven kortsmarkup — lane-badge + signal-what + signal-why + mailbox-stack + action-cluster.
+     * Driver getQueueInlineLaneSignal* för operativt språk.
+     *
+     * @param {object} unifiedModel - Normaliserat kort (fält för status, innehåll, signaler, mailboxar).
+     * @param {object} [options] - data-attribut, urval, m.m.
+     */
+
+    // ====== v5 lane mapping ======
+    const V5_LANE_MAP = {
+      act_now: "act-now",
+      actnow: "act-now",
+      sprint: "sprint",
+      later: "senare",
+      senare: "senare",
+      sent: "senare",
+      admin: "admin",
+      review: "granska",
+      granska: "granska",
+      unclear: "oklart",
+      oklart: "oklart",
+      bookable: "bokning",
+      booking: "bokning",
+      bokning: "bokning",
+      medical: "medicinsk",
+      medicinsk: "medicinsk",
+      handled: "admin",
+      done: "admin",
+      all: "admin",
+    };
+    function v5LaneCode(laneId, thread) {
+      const key = typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
+      if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
+      // Fallback: härled från tags eller via getThreadPrimaryLaneId
+      if (thread && typeof getThreadPrimaryLaneId === "function") {
+        const derived = getThreadPrimaryLaneId(thread);
+        const derivedKey = typeof normalizeKey === "function" ? normalizeKey(derived) : asText(derived).toLowerCase();
+        if (V5_LANE_MAP[derivedKey]) return V5_LANE_MAP[derivedKey];
+      }
+      // Direkt tag-koll som sista fallback
+      const tags = thread ? asArray(thread.tags) : [];
+      if (tags.includes("act-now")) return "act-now";
+      if (tags.includes("sprint")) return "sprint";
+      if (tags.includes("later")) return "senare";
+      if (tags.includes("bookable") || tags.includes("booking")) return "bokning";
+      if (tags.includes("review") || tags.includes("granska")) return "granska";
+      if (tags.includes("medical") || tags.includes("medicinsk")) return "medicinsk";
+      if (tags.includes("unclear") || tags.includes("oklart")) return "oklart";
+      if (tags.includes("admin")) return "admin";
+      return "admin";
+    }
+    const V5_LANE_LABELS = {
+      "act-now": "Agera nu",
+      sprint: "Sprint",
+      senare: "Senare",
+      admin: "Admin",
+      granska: "Granska",
+      oklart: "Oklart",
+      bokning: "Bokning",
+      medicinsk: "Medicinsk",
+    };
+    function v5LaneLabel(code) { return V5_LANE_LABELS[code] || "Admin"; }
+    function v5LaneIcon(code) {
+      const icons = {
+        "act-now": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        sprint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+        senare: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>',
+        granska: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+        oklart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        bokning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
+        medicinsk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+      };
+      return icons[code] || icons.admin;
+    }
+
+    // ====== v5 mailbox color mapping ======
+    const V5_MAILBOX_PALETTE = ["#7c3aed", "#0ea5e9", "#a8744c", "#f97316", "#14b8a6", "#eab308", "#8b5cf6", "#06b6d4"];
+    const V5_MAILBOX_KNOWN = {
+      fazli: "#7c3aed",
+      contact: "#0ea5e9",
+      egzona: "#a8744c",
+      support: "#f97316",
+      sales: "#14b8a6",
+      info: "#eab308",
+      hello: "#8b5cf6",
+      team: "#06b6d4",
+      kons: "#a8744c",
+      noreply: "#64748b",
+    };
+    function v5MailboxColor(name) {
+      const key = typeof normalizeKey === "function" ? normalizeKey(name) : asText(name).toLowerCase();
+      if (V5_MAILBOX_KNOWN[key]) return V5_MAILBOX_KNOWN[key];
+      const cleanKey = String(key).replace(/[^a-z0-9]/g, "");
+      let hash = 7;
+      for (let i = 0; i < cleanKey.length; i++) {
+        hash = (hash * 31 + cleanKey.charCodeAt(i)) | 0;
+      }
+      return V5_MAILBOX_PALETTE[Math.abs(hash) % V5_MAILBOX_PALETTE.length];
+    }
+    function v5MailboxInitial(name) {
+      const t = asText(name).trim();
+      return t ? t.charAt(0).toUpperCase() : "?";
+    }
+
+    // ====== v5 action-cluster icon library ======
+    const V5_ACTION_ICONS = {
+      history: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      later: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+      schedule: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+      handled: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      delete: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+      arrowRight: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+      userCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
+      alertCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    };
+
+    function buildUnifiedCardMarkup(unifiedModel = {}, options = {}) {
+      const parseMailboxTrailText = (value = "") =>
+        asText(value)
+          .split(/[·,]/g)
+          .map((entry) => asText(entry).trim())
+          .filter(Boolean);
+      const baseTrail = asArray(unifiedModel.mailboxTrail)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const fallbackTrail = parseMailboxTrailText(unifiedModel.mailboxProvenanceDetail);
+      const trail = baseTrail.length > 1 ? baseTrail : fallbackTrail;
+      let subtitle = asText(unifiedModel.subtitle);
+      if (trail.length > 1 && !subtitle) {
+        subtitle = UNIFIED_CARD_COPY.multiMailboxSubtitle;
+      }
+      if (trail.length <= 1) {
+        subtitle = "";
+      }
+
+      const counterpartyCopy = asText(unifiedModel.counterpartyLabel, "Okänd avsändare");
+      const avatarText = asText(
+        unifiedModel.customerInitials ||
+          unifiedModel.initials ||
+          (counterpartyCopy ? counterpartyCopy.slice(0, 2).toUpperCase() : "?")
+      );
+
+      const statusModel = {
+        tags: unifiedModel.tags,
+        laneId: unifiedModel.laneId,
+        ownerLabel: unifiedModel.ownerLabel,
+        signalItems: unifiedModel.signalItems,
+      };
+      const statusDot =
+        asText(unifiedModel.statusDot) || deriveStatusDot(statusModel);
+
+      let content;
+      if (options.skipNormalizeCardContent) {
+        content = {
+          subtitle,
+          previewLine: asText(unifiedModel.previewLine),
+          footerChips: asArray(unifiedModel.footerChips),
+          tightMode: false,
+        };
+      } else {
+        content = normalizeCardContent(
+          {
+            customerName: counterpartyCopy,
+            subtitle,
+            previewLine: asText(unifiedModel.previewLine),
+            footerChips: asArray(unifiedModel.footerChips),
+          },
+          "[unified-card]"
+        );
+      }
+
+      const defaultFooterChips = [
+        {
+          key: "category",
+          value: asText(
+            unifiedModel.mailboxLabel ||
+              unifiedModel.categoryLabel ||
+              UNIFIED_CARD_COPY.defaultCategory
+          ),
+          icon: "mail",
+          toneClass: "chip-gray",
+        },
+        {
+          key: "context",
+          value: compactRuntimeCopy(
+            asText(
+              unifiedModel.explanatoryLine ||
+                unifiedModel.subtitle ||
+                (trail.length > 1 ? UNIFIED_CARD_COPY.multiMailboxSubtitle : "")
+            ),
+            "Samma kund har skrivit från flera mailboxar",
+            24
+          ),
+          icon: "users",
+          toneClass: "chip-blue",
+        },
+        {
+          key: "why",
+          value: compactRuntimeCopy(
+            asText(
+              unifiedModel.whyInFocus ||
+                asArray(unifiedModel.signalItems).find(
+                  (signal) => normalizeKey(signal?.role || signal?.tone || "") === "why"
+                )?.value ||
+                "Behöver uppmärksamhet"
+            ),
+            "Behöver uppmärksamhet",
+            24
+          ),
+          icon: "alert",
+          toneClass: "chip-pink",
+        },
+        {
+          key: "next",
+          value: compactRuntimeCopy(
+            asText(
+              unifiedModel.nextActionLabel ||
+                unifiedModel.nextActionSummary ||
+                "Fortsätt från samma"
+            ),
+            "Fortsätt från samma",
+            24
+          ),
+          icon: "chevron-right",
+          toneClass: "chip-green",
+        },
+      ].filter((chip) => asText(chip.value));
+      const footerChips = content.footerChips.length ? content.footerChips : defaultFooterChips;
+      if (!footerChips.length) {
+        footerChips.push(
+          { key: "category", value: UNIFIED_CARD_COPY.defaultCategory, icon: "mail", toneClass: "chip-gray" },
+          { key: "context", value: "Samma kund har skrivit från flera mailboxar", icon: "users", toneClass: "chip-blue" },
+          { key: "why", value: "Behöver uppmärksamhet", icon: "alert", toneClass: "chip-pink" },
+          { key: "next", value: "Fortsätt från samma", icon: "chevron-right", toneClass: "chip-green" }
+        );
+      }
+      const intelligenceMarkup = footerChips.length
+        ? `<div class="card-footer">
+            ${footerChips
+              .map((chip) => {
+                const toneClass = escapeHtml(chip.toneClass || "chip-gray");
+                const chipKey = escapeHtml(chip.key || "");
+                if (chip.interactive === "studio-open" && asText(chip.runtimeThreadId)) {
+                  const tid = escapeHtml(chip.runtimeThreadId);
+                  const aria = escapeHtml(
+                    chip.studioAriaLabel || "Öppna svarsstudion"
+                  );
+                  return `<button class="chip ${toneClass}" data-history-chip="${chipKey}" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${tid}" aria-controls="studio-shell" aria-label="${aria}">
+                  ${buildUnifiedCardIconMarkup(chip.icon)}
+                  <span class="chip-label">${escapeHtml(chip.value)}</span>
+                </button>`;
+                }
+                return `<span class="chip ${toneClass}" data-history-chip="${chipKey}">
+                  ${buildUnifiedCardIconMarkup(chip.icon)}
+                  <span class="chip-label">${escapeHtml(chip.value)}</span>
+                </span>`;
+              })
+              .join("")}
+          </div>`
+        : "";
+
+      const showTrail = trail.length > 1 || /samma kund har skrivit/i.test(subtitle);
+      const effectiveTrail = showTrail
+        ? (trail.length ? trail : ["Fazli", "Contact", "Egzona"])
+        : [];
+      const visibleMailboxTrailItems = showTrail ? effectiveTrail.slice(0, 3) : [];
+      const mailboxTrailOverflowCount = showTrail
+        ? Math.max(0, effectiveTrail.length - visibleMailboxTrailItems.length)
+        : 0;
+      const mailboxTrailMarkup = showTrail
+        ? `<div class="mailbox-trail">
+            <span class="trail-bar" aria-hidden="true"></span>
+            ${buildUnifiedCardIconMarkup("inbox")}
+            <span class="trail-label">${escapeHtml(UNIFIED_CARD_COPY.mailboxTrailLabel)}</span>
+            ${visibleMailboxTrailItems
+              .map(
+                (entry, index) =>
+                  `${index > 0 ? '<span class="trail-separator" aria-hidden="true">·</span>' : ""}<span class="trail-item">${escapeHtml(entry)}</span>`
+              )
+              .join("")}
+            ${
+              mailboxTrailOverflowCount > 0
+                ? `<span class="trail-separator" aria-hidden="true">·</span><button class="trail-more" type="button" data-mailbox-trail-overflow="${mailboxTrailOverflowCount}">${escapeHtml(
+                    UNIFIED_CARD_COPY.mailboxTrailMore.replace("{count}", String(mailboxTrailOverflowCount))
+                  )}</button>`
+                : ""
+            }
+          </div>`
+        : "";
+
+      const runtimeThreadId = asText(options.runtimeThreadId);
+      const conversationId = asText(options.conversationId || runtimeThreadId);
+      const selectedConversationId = asText(options.selectedConversationId);
+      const isSelected =
+        Boolean(conversationId) &&
+        typeof runtimeConversationIdsMatch === "function" &&
+        runtimeConversationIdsMatch(conversationId, selectedConversationId);
+
+      const supportMarkup = `${intelligenceMarkup}${mailboxTrailMarkup}`;
+
+      const subtitleMarkup =
+        content.subtitle && !content.tightMode
+          ? `<span class="subtitle">${escapeHtml(content.subtitle)}</span>`
+          : "";
+      const previewMarkup =
+        content.previewLine && !content.tightMode
+          ? `<div class="row-2">${escapeHtml(content.previewLine)}</div>`
+          : "";
+
+      const selectedClass = isSelected ? " is-selected" : "";
+      const selectedArticleClass = isSelected ? " thread-card-selected" : "";
+      const selectedState = isSelected
+        ? ' aria-current="true" data-history-selected="true"'
+        : ' aria-current="false"';
+      const runtimeThreadAttribute = runtimeThreadId
+        ? ` data-runtime-thread="${escapeHtml(runtimeThreadId)}"`
+        : "";
+      const worklistSource = asText(options.worklistSource || unifiedModel.worklistSource || "legacy");
+      const worklistSourceAttribute = ` data-worklist-source="${escapeHtml(worklistSource)}"`;
+      const worklistSourceLabel = asText(options.worklistSourceLabel || unifiedModel.worklistSourceLabel);
+      const worklistSourceLabelAttribute = worklistSourceLabel
+        ? ` data-worklist-source-label="${escapeHtml(worklistSourceLabel)}"`
+        : "";
+      const historyConversationAttribute = conversationId
+        ? ` data-history-conversation="${escapeHtml(conversationId)}"`
+        : "";
+
+      const laneId =
+        typeof normalizeKey === "function"
+          ? normalizeKey(unifiedModel.laneId || "")
+          : asText(unifiedModel.laneId || "")
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_");
+      const laneClass = laneId ? ` queue-history-item--lane-${laneId.replace(/_/g, "-")}` : "";
+      const operationalClass = unifiedModel.hasOperationalSignals ? " has-operational-signals" : "";
+      const unreadClass = unifiedModel.isUnread === true ? " queue-history-item--unread" : "";
+      const loadingClass = unifiedModel.loading === true ? " is-loading" : "";
+
+      const stampLabel = asText(
+        unifiedModel.stampLabel ||
+          unifiedModel.direction ||
+          unifiedModel.queueLabel ||
+          worklistSourceLabel ||
+          unifiedModel.mailboxProvenanceLabel ||
+          unifiedModel.mailboxLabel ||
+          "Historik"
+      );
+
+      const extraArticleClasses = asText(unifiedModel.extraArticleClasses).trim();
+      const articleDataAttributes = asText(options.articleDataAttributes);
+      // Exponera tags som DOM-attribut för follow-up-filter och saved-views.
+      const runtimeTagsList = (Array.isArray(unifiedModel.tags) ? unifiedModel.tags : [])
+        .map((t) => String(t || '').trim())
+        .filter(Boolean);
+      const runtimeTagsAttribute = runtimeTagsList.length
+        ? ` data-runtime-tags="${escapeHtml(runtimeTagsList.join(','))}"`
+        : '';
+
+      // ====== v5 LAYOUT ======
+      // Compute What/Why/Next via existing signal-functions. unifiedModel has the
+      // fields they need (intentLabel, statusLabel, riskLabel, tags, etc.) — pass
+      // through any explicit override from caller.
+      const v5Lane = v5LaneCode(unifiedModel.laneId, unifiedModel);
+      const v5Label = v5LaneLabel(v5Lane);
+      const v5Icon = v5LaneIcon(v5Lane);
+
+      const whatStr = asText(
+        unifiedModel.whatSignal ||
+          (typeof getQueueInlineLaneSignalWhat === "function"
+            ? getQueueInlineLaneSignalWhat(unifiedModel, unifiedModel.laneId)
+            : "") ||
+          asText(unifiedModel.previewLine).slice(0, 120)
+      );
+      let whyEntries = asArray(unifiedModel.whySignals);
+      if (!whyEntries.length) {
+        const whyVal = asText(
+          unifiedModel.whySignal ||
+            (typeof getQueueInlineLaneSignalWhy === "function"
+              ? getQueueInlineLaneSignalWhy(unifiedModel, unifiedModel.laneId)
+              : "")
+        );
+        if (whyVal) whyEntries = [{ text: whyVal, tone: v5Lane === "act-now" ? "alert" : v5Lane === "granska" ? "amber" : "" }];
+      }
+      const nextStr = asText(
+        unifiedModel.nextSignal ||
+          (typeof getQueueInlineLaneSignalNext === "function"
+            ? getQueueInlineLaneSignalNext(unifiedModel, unifiedModel.laneId)
+            : "") ||
+          "Svara"
+      );
+
+      // Owner-state — om stampLabel innehåller "Ej tilldelad" → unowned, annars → owned
+      const ownedFlag = !/ej tilldelad|unassigned|oägd|oagd|otilldelad/i.test(stampLabel);
+      const ownerIcon = ownedFlag ? V5_ACTION_ICONS.userCheck : V5_ACTION_ICONS.alertCircle;
+
+      // Mailbox stack — färgade prickar med initial. Fallback om trail tom.
+      const mailboxStackEntries = trail.length ? trail : (subtitle ? ["Inkorg"] : []);
+      const visibleMailboxes = mailboxStackEntries.slice(0, 3);
+      const overflowCount = Math.max(0, mailboxStackEntries.length - visibleMailboxes.length);
+      const mailboxStackMarkup = mailboxStackEntries.length
+        ? `<div class="mailbox-stack">
+            <span class="mailbox-label">Via</span>
+            <div class="mb-avatars">
+              ${visibleMailboxes
+                .map((mb) => {
+                  const color = v5MailboxColor(mb);
+                  const initial = v5MailboxInitial(mb);
+                  return `<div class="mb-dot" data-mb="${escapeHtml(asText(mb).toLowerCase())}" title="${escapeHtml(mb)}" style="background:${color}">${escapeHtml(initial)}</div>`;
+                })
+                .join("")}
+              ${overflowCount > 0 ? `<div class="mb-dot more" title="${escapeHtml(mailboxStackEntries.slice(3).join(", "))}">+${overflowCount}</div>` : ""}
+            </div>
+          </div>`
+        : "";
+
+      // Action cluster — primary-action använder data-runtime-studio-open så
+      // runtime-action-engine kan binda klick precis som tidigare för chip-green.
+      const studioThreadAttr = runtimeThreadId
+        ? ` data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(runtimeThreadId)}"`
+        : "";
+      const primaryLabel =
+        v5Lane === "bokning" ? "Bekräfta bokning"
+        : v5Lane === "granska" ? "Granska"
+        : v5Lane === "oklart" ? "Öppna"
+        : "Svara";
+      const actionClusterMarkup = `<div class="action-cluster">
+        <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
+        <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
+        <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
+        <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
+        <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+        <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+          ${escapeHtml(primaryLabel)}
+          ${V5_ACTION_ICONS.arrowRight}
+        </button>
+      </div>`;
+
+      const whyMarkup = whyEntries.length
+        ? `<div class="signal-why">
+            ${whyEntries
+              .map((entry) => {
+                const text = asText(typeof entry === "string" ? entry : entry.text);
+                if (!text) return "";
+                const tone = typeof entry === "object" ? asText(entry.tone) : "";
+                return `<span class="why-reason${tone ? ` ${escapeHtml(tone)}` : ""}">${escapeHtml(text)}</span>`;
+              })
+              .join("")}
+          </div>`
+        : "";
+
+      const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
+
+      // v5: använd inline-styles på varje sektion + grid-style på artikeln så ingen
+      // CSS-override kan vända ordningen (footer-strip-body-buggen). Browser-defaults
+      // för grid + explicit grid-row på children ger garanterad strip→body→footer.
+      // OBS: använd single-quotes ('rail strip') i grid-template-areas-värdet
+      // eftersom hela style="..."-attributet redan är inom double-quotes i HTML.
+      // Med double-quotes inuti bryter \" ut ur attributet och styling ignoreras.
+      const articleStyle = "display:grid;grid-template-columns:12px 1fr;grid-template-rows:auto auto auto;grid-template-areas:'rail strip' 'rail body' 'rail footer';position:relative;height:auto;min-height:0;max-height:none;padding:0;overflow:visible;";
+      const railStyle = "grid-area:rail;grid-row:1/4;grid-column:1;width:5px;height:100%;align-self:stretch;border-radius:14px 0 0 14px;";
+      const stripStyle = "grid-area:strip;grid-row:1;grid-column:2;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 4px;";
+      const bodyStyle = "grid-area:body;grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;";
+      const footerStyle = "grid-area:footer;grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;";
+
+      return `<!-- v5-final-r3 markup --><article data-v5-version="r3" class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
+        <div class="priority-bar" aria-hidden="true" style="${railStyle}"></div>
+        <div class="card-strip" style="${stripStyle}">
+          <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${v5Icon}${escapeHtml(v5Label)}</span>
+          <div class="meta">
+            ${
+              asText(unifiedModel.time)
+                ? `<span class="meta-date"><time datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time></span><span class="meta-sep">·</span>`
+                : ""
+            }
+            <span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${ownerIcon}${escapeHtml(stampLabel)}</span>
+          </div>
+        </div>
+        <div class="card-body" style="${bodyStyle}">
+          <div class="avatar-wrap">
+            <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
+            <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
+          </div>
+          <div class="card-content">
+            <div class="name-row">
+              <span class="name">${escapeHtml(counterpartyCopy)}</span>
+            </div>
+            ${whatStr ? `<div class="signal-what">${escapeHtml(whatStr)}</div>` : ""}
+          </div>
+        </div>
+        <div class="card-footer" style="${footerStyle}">
+          ${whyMarkup}
+          ${mailboxStackMarkup}
+          ${actionClusterMarkup}
+        </div>
+      </article>`;
+    }
+
+    /**
+     * Mappar historik-v3:s bearbetade fält till buildUnifiedCardMarkup-modellen.
+     * @param {object} item - Rå historikpost
+     * @param {object} v3 - Redan härledda v3-fält (samma semantik som tidigare inline-markup)
+     */
+    function unifiedCardModelFromHistoryItem(item = {}, v3 = {}) {
+      return {
+        counterpartyLabel: v3.counterpartyCopy,
+        customerInitials: v3.avatarText,
+        mailboxTrail: asArray(v3.mailboxTrail),
+        subtitle: asText(v3.subtitle),
+        laneId: item.laneId,
+        ownerLabel: item.ownerLabel,
+        tags: item.tags,
+        signalItems: asArray(item.signalItems),
+        statusDot: asText(v3.statusDot),
+        previewLine: asText(v3.previewLine),
+        explanatoryLine: asText(v3.explanatoryLine),
+        secondarySnippet: asText(v3.secondarySnippet),
+        footerChips: asArray(v3.footerChips),
+        hasOperationalSignals: Boolean(v3.hasOperationalSignals),
+        isUnread: item.isUnread,
+        loading: item.loading,
+        mailboxLabel: asText(item.mailboxLabel),
+        mailboxProvenanceDetail: asText(item.mailboxProvenanceDetail),
+        time: item.time,
+        recordedAt: item.recordedAt,
+        stampLabel: asText(v3.stampLabel),
+      };
+    }
+
     function buildQueueHistoryCardMarkup(item, options = {}) {
+      const HISTORIK_STRINGS = {
+        unknownSender: "Okänd avsändare",
+        history: "Historik",
+        defaultCategory: "Kons",
+        multiMailboxSubtitle: "Samma kund har skrivit från flera mailboxar",
+        mailboxTrailLabel: "MAILBOXSPÅR",
+        mailboxTrailMore: "+{count} till",
+      };
       const resolveMailboxMeta =
         typeof getQueueHistoryMailboxMeta === "function"
           ? getQueueHistoryMailboxMeta
@@ -1179,7 +2322,6 @@
       const runtimeThreadId = asText(options.runtimeThreadId);
       const conversationId = asText(item.conversationId || runtimeThreadId);
       const selectedConversationId = asText(options.selectedConversationId);
-      const useThreadCardClass = options.useThreadCardClass !== false;
       const worklistSource =
         typeof normalizeKey === "function"
           ? normalizeKey(item.worklistSource || "legacy") || "legacy"
@@ -1219,6 +2361,70 @@
       const selectedState = isSelected
         ? ' aria-current="true" data-history-selected="true"'
         : ' aria-current="false"';
+      const parseMailboxTrailFromDetail = (detail = "", source = null) => {
+        // Föredrar mailboxTrail: string[] direkt från payload om backend exponerar det.
+        // Annars fallback: dela detail-strängen på · / komma.
+        if (source && Array.isArray(source.mailboxTrail) && source.mailboxTrail.length) {
+          return source.mailboxTrail.map((part) => asText(part).trim()).filter(Boolean);
+        }
+        return asText(detail)
+          .split(/[·,]/g)
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+      };
+      const normalizeHistoryCardModel = (source = {}) => {
+        const defaultName = HISTORIK_STRINGS.unknownSender;
+        const customerName = asText(source.counterpartyLabel || defaultName, defaultName);
+        const deriveHistoryInitials = (label = "") => {
+          const normalizedLabel = asText(label)
+            .trim()
+            .replace(/\s+/g, " ");
+          if (!normalizedLabel) return "?";
+          const parts = normalizedLabel
+            .split(" ")
+            .map((part) => asText(part).trim())
+            .filter(Boolean);
+          if (!parts.length) return "?";
+          if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+          return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+        };
+        const mailboxTrailFromPayload = asArray(source.mailboxTrail)
+          .map((entry) => asText(entry).trim())
+          .filter(Boolean);
+        const mailboxTrailFromRollup = asArray(source.rollup?.underlyingMailboxIds)
+          .map((entry) => asText(entry).trim())
+          .filter(Boolean);
+        const mailboxTrailFromDetail = parseMailboxTrailFromDetail(
+          source.mailboxProvenanceDetail || source.rollup?.provenanceDetail || "",
+          source
+        );
+        const mailboxTrail = mailboxTrailFromPayload.length
+          ? mailboxTrailFromPayload
+          : mailboxTrailFromRollup.length
+            ? mailboxTrailFromRollup
+            : mailboxTrailFromDetail;
+        const normalizedLaneId = normalizeKey(source.laneId || "");
+        const highRiskSignal = asArray(source.signalItems).some((signal = {}) => {
+          const role = normalizeKey(signal.role || signal.tone || "");
+          const value = normalizeKey(signal.value || "");
+          return role === "why" && (value.includes("hög risk") || value.includes("risk"));
+        });
+        const status =
+          normalizedLaneId === "act-now" || highRiskSignal
+            ? "urgent"
+            : normalizedLaneId === "history" || !asText(source.ownerLabel)
+              ? "waiting"
+              : "active";
+        return {
+          customerName,
+          customerInitials: asText(source.initials || deriveHistoryInitials(customerName), "?"),
+          mailboxTrail,
+          subtitle:
+            mailboxTrail.length > 1 ? HISTORIK_STRINGS.multiMailboxSubtitle : "",
+          status,
+        };
+      };
+      const normalizedHistoryModel = normalizeHistoryCardModel(item);
       const subjectMarkup = asText(item.title)
         ? `<p class="subject queue-history-item-subject">${escapeHtml(item.title)}</p>`
         : "";
@@ -1320,33 +2526,10 @@
         item.isUnread === true
           ? '<span class="queue-history-item-freshness" aria-label="Nytt oläst mejl"><span class="queue-history-item-freshness-dot"></span></span>'
           : "";
-      const buildHistorySignalIconMarkup = (iconKey) => {
-        if (typeof createPillIcon !== "function") return "";
-        const iconNode = createPillIcon(iconKey);
-        if (!iconNode) return "";
-        if (typeof iconNode === "string") return iconNode;
-        if (typeof iconNode.outerHTML === "string") return iconNode.outerHTML;
-        return "";
-      };
 
-      if (!useThreadCardClass) {
-        return `<article class="queue-history-item${selectedClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
-        <span class="avatar queue-history-avatar">${escapeHtml(item.initials || "?")}</span>
-        <div class="thread-main queue-history-body">
-          <div class="thread-meta queue-history-item-head">
-            <div class="thread-heading queue-history-item-heading">
-              <h3>${escapeHtml(item.counterpartyLabel || "Okänd avsändare")}</h3>
-            </div>
-            <div class="queue-history-item-time-group">${freshnessMarkup}<time class="queue-history-item-time" datetime="${escapeHtml(item.recordedAt || "")}">${escapeHtml(item.time || "")}</time></div>
-          </div>
-          ${subjectMarkup}
-          ${detailMarkup}
-        </div>
-        ${metaMarkup}
-      </article>`;
-      }
+      // Historik ska alltid använda full v3-kortmarkup (ingen legacy compact-render).
 
-      const counterpartyCopy = asText(item.counterpartyLabel || "Okänd avsändare");
+      const counterpartyCopy = normalizedHistoryModel.customerName;
       const normalizeHistoryCompareValue = (value = "") =>
         asText(value)
           .trim()
@@ -1380,29 +2563,14 @@
         rawHistoryTitle || "Historikrad",
         72
       );
-      const deriveHistoryInitials = (label = "") => {
-        const normalizedLabel = asText(label)
-          .trim()
-          .replace(/\s+/g, " ");
-        if (!normalizedLabel) return "?";
-        const parts = normalizedLabel
-          .split(" ")
-          .map((part) => asText(part).trim())
-          .filter(Boolean);
-        if (!parts.length) return "?";
-        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-        return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
-      };
-      const avatarText = asText(item.initials || deriveHistoryInitials(counterpartyCopy), "?");
-      const avatarSrc =
-        typeof buildAvatarDataUri === "function" ? buildAvatarDataUri(avatarText) : "";
+      const avatarText = normalizedHistoryModel.customerInitials;
       const stampLabel = asText(
         item.direction ||
           item.queueLabel ||
           worklistSourceLabel ||
           item.mailboxProvenanceLabel ||
           item.mailboxLabel ||
-          "Historik"
+          HISTORIK_STRINGS.history
       );
       const historySignals = [];
       const pushHistorySignal = (role, value, iconKey = "", marker = "") => {
@@ -1515,19 +2683,12 @@
             "",
             120
           );
-      const showIssueContext = Boolean(issueContextLabel);
       const showSnippet =
         Boolean(snippetValue) &&
         normalizeHistoryCompareValue(snippetValue) !==
           normalizeHistoryCompareValue(issueContextLabel) &&
         normalizeHistoryCompareValue(snippetValue) !==
           normalizeHistoryCompareValue(primaryHistoryTitle);
-      const issueContextMarkup = "";
-      const snippetLineMarkup = showSnippet
-        ? `<p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
-            snippetValue
-          )}</p>`
-        : "";
       const explicitExplanatoryLine = compactRuntimeCopy(
         asText(
           item.explanatoryLine ||
@@ -1540,93 +2701,163 @@
         "",
         160
       );
-      const explanatoryLineMarkup = explicitExplanatoryLine
-        ? `<div class="thread-card-head-secondary"><p class="queue-history-item-text queue-history-item-text-snippet">${escapeHtml(
-            explicitExplanatoryLine
-          )}</p></div>`
-        : "";
-      const secondaryLineMarkup = `${issueContextMarkup}${snippetLineMarkup}`;
-      const intelligenceMarkup = historySignals.length
-        ? `<div class="thread-intelligence-row queue-history-item-meta queue-history-item-meta--fullwidth">
-            ${historySignals
-              .map((signal) => {
-                const historyIconMarkup = buildHistorySignalIconMarkup(signal.iconKey);
-                return `<span class="thread-intelligence-item thread-intelligence-item--${escapeHtml(
-                  signal.role
-                )}"${
-                  signal.marker
-                    ? ` data-history-pill-class="${escapeHtml(signal.marker)}"`
-                    : ""
-                }${signal.iconKey ? ` data-pill-icon="${escapeHtml(signal.iconKey)}"` : ""}>
-                  <span class="thread-intelligence-item-head">${
-                    historyIconMarkup
-                      ? `<span class="thread-intelligence-item-icon">${historyIconMarkup}</span>`
-                      : ""
-                  }</span>
-                  <span class="thread-intelligence-item-value">${escapeHtml(signal.value)}</span>
-                </span>`;
-              })
-              .join("")}
-          </div>`
-        : "";
-      const mailboxTraceLabel = asText(
-        item.mailboxProvenanceLabel ||
-          (Number(item.rollup?.mailboxCount || 0) > 1 ? `${item.rollup.mailboxCount} mailboxar` : "")
-      );
-      const mailboxTraceDetail = asText(
-        item.mailboxProvenanceDetail || item.rollup?.provenanceDetail || ""
-      );
-      const provenanceMarkup = mailboxTraceLabel
-        ? `<div class="intel-card-provenance thread-card-provenance">
-            <span class="intel-card-provenance-label intel-card-provenance-derived" data-history-pill-class="queue-history-pill--provenance">Mailboxspår</span>
-            <p class="intel-card-provenance-detail">${escapeHtml(
-              `${mailboxTraceLabel}${
-                mailboxTraceDetail
-                  ? ` · ${mailboxTraceDetail}`
-                  : ""
-              }`
-            )}</p>
-          </div>`
-        : "";
-      const supportMarkup =
-        intelligenceMarkup || provenanceMarkup
-          ? `<div class="thread-support-stack${isSelected ? " thread-support-stack-selected" : ""}">${intelligenceMarkup}${provenanceMarkup}</div>`
+      const relationshipChipValue =
+        normalizedHistoryModel.mailboxTrail.length > 1
+          ? HISTORIK_STRINGS.multiMailboxSubtitle
           : "";
-
-      const showTitleContext =
-        Boolean(inlineContextLabel) &&
-        normalizeHistoryCompareValue(inlineContextLabel) !==
-          normalizeHistoryCompareValue(counterpartyCopy);
-      const subjectContextSpan = showTitleContext
-        ? `<span class="thread-subject-context">${escapeHtml(inlineContextLabel)}</span>`
-        : "";
-
-      return `<article class="thread-card queue-history-item${selectedClass}${
-        isSelected ? " thread-card-selected" : ""
-      }${laneClass}${operationalClass}${unreadClass}${loadingClass}"${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${selectedState}>
+      const priorityChipValue = asText(
+        historySignals.find((signal) => signal.role === "why")?.value ||
+          item.intentLabel ||
+          "Behöver uppmärksamhet"
+      );
+      const actionChipValue = asText(
+        historySignals.find((signal) => signal.role === "next")?.value ||
+          item.nextActionLabel ||
+          "Fortsätt från samma"
+      );
+      const footerChips = [
+        {
+          key: "category",
+          value: asText(item.mailboxLabel) || HISTORIK_STRINGS.defaultCategory,
+          icon: "mail",
+          toneClass: "chip-gray",
+        },
+        {
+          key: "relationship",
+          value: relationshipChipValue,
+          icon: "users",
+          toneClass: "chip-blue",
+        },
+        {
+          key: "priority",
+          value: priorityChipValue,
+          icon: "alert",
+          toneClass: "chip-pink",
+        },
+        {
+          key: "action",
+          value: actionChipValue,
+          icon: "chevron-right",
+          toneClass: "chip-green",
+        },
+      ].filter((chip) => asText(chip.value));
+      const previewLine = explicitExplanatoryLine || (showSnippet ? snippetValue : "");
+      const mapHistoryModel =
+        typeof unifiedCardModelFromHistoryItem === "function"
+          ? unifiedCardModelFromHistoryItem
+          : (historyItem = {}, v3Model = {}) => ({
+              counterpartyLabel: v3Model.counterpartyCopy,
+              customerInitials: v3Model.avatarText,
+              mailboxTrail: asArray(v3Model.mailboxTrail),
+              subtitle: asText(v3Model.subtitle),
+              laneId: historyItem.laneId,
+              ownerLabel: historyItem.ownerLabel,
+              tags: historyItem.tags,
+              signalItems: asArray(historyItem.signalItems),
+              statusDot: asText(v3Model.statusDot),
+              previewLine: asText(v3Model.previewLine),
+              explanatoryLine: asText(v3Model.explanatoryLine),
+              secondarySnippet: asText(v3Model.secondarySnippet),
+              footerChips: asArray(v3Model.footerChips),
+              hasOperationalSignals: Boolean(v3Model.hasOperationalSignals),
+              isUnread: historyItem.isUnread,
+              loading: historyItem.loading,
+              mailboxLabel: asText(historyItem.mailboxLabel),
+              mailboxProvenanceDetail: asText(historyItem.mailboxProvenanceDetail),
+              time: historyItem.time,
+              recordedAt: historyItem.recordedAt,
+              stampLabel: asText(v3Model.stampLabel),
+            });
+      const unifiedModel = mapHistoryModel(item, {
+        counterpartyCopy,
+        avatarText,
+        mailboxTrail: normalizedHistoryModel.mailboxTrail,
+        subtitle: normalizedHistoryModel.subtitle,
+        statusDot: normalizedHistoryModel.status,
+        previewLine,
+        explanatoryLine: explicitExplanatoryLine,
+        secondarySnippet: showSnippet ? snippetValue : "",
+        footerChips,
+        hasOperationalSignals,
+        stampLabel,
+      });
+      if (typeof buildUnifiedCardMarkup === "function") {
+        return buildUnifiedCardMarkup(unifiedModel, {
+          runtimeThreadId,
+          conversationId,
+          selectedConversationId,
+          worklistSource,
+          worklistSourceLabel,
+          skipNormalizeCardContent: true,
+        });
+      }
+      const selectedClassFallback = isSelected ? " is-selected" : "";
+      const selectedStateFallback = isSelected
+        ? ' aria-current="true" data-history-selected="true"'
+        : ' aria-current="false"';
+      const detailText = asText(item.detail)
+        .replace(/^Från:\s*[\s\S]*?(?=(?:E-post|Email|Epost|Telefon|Phone)\s*:|Hur kan vi hjälpa dig|How can we help you\?)/i, "")
+        .replace(/(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const customerContextCopy = asText(normalizedHistoryModel.customerName, item.customerName);
+      const issuePrimary = compactRuntimeCopy(
+        asText(item.title).replace(new RegExp(`^${asText(normalizedHistoryModel.customerName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "i"), ""),
+        asText(item.title),
+        48
+      );
+      const whatSignal =
+        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "what") || null;
+      const whySignal =
+        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "why") || null;
+      const nextSignal =
+        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "next") || null;
+      const whatValue = asText(whatSignal?.value || item.intentLabel || issuePrimary);
+      const whyRawValue = asText(whySignal?.value || "Behöver svar");
+      const shouldEmphasizeWhyNow =
+        normalizeKey(worklistSource) === "truth_primary" ||
+        normalizeKey(item.laneId || "") === "act_now";
+      const whyValue =
+        shouldEmphasizeWhyNow && /beh(o|ö)ver svar|svar kr(a|ä)vs/i.test(whyRawValue)
+          ? "Svar krävs nu"
+          : whyRawValue;
+      const nextValue = asText(nextSignal?.value || item.nextActionLabel || "Svara nu");
+      const queueMetaPills = [
+        { cls: "queue-history-pill--mailbox", icon: "mail", value: asText(item.mailboxLabel, "Kons") },
+        { cls: "queue-history-pill--provenance", icon: "layers", value: asText(item.mailboxProvenanceLabel) },
+        { cls: "queue-history-pill--source", icon: "link", value: asText(worklistSourceLabel || worklistSource) },
+      ]
+        .filter((pill) => asText(pill.value))
+        .map((pill) => `<span class="queue-history-pill ${pill.cls}" data-pill-icon="${pill.icon}">${escapeHtml(pill.value)}</span>`)
+        .join("");
+      return `<article class="thread-card queue-history-item${selectedClassFallback}" data-history-conversation="${escapeHtml(conversationId)}" data-worklist-source="${escapeHtml(worklistSource)}"${worklistSourceLabel ? ` data-worklist-source-label="${escapeHtml(worklistSourceLabel)}"` : ""}${selectedStateFallback}>
         <div class="thread-card-head">
           <div class="thread-card-identity">
-            <img class="avatar" src="${avatarSrc}" alt="${escapeHtml(counterpartyCopy)}" />
+            <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(normalizedHistoryModel.customerInitials)}</span>
             <div class="thread-card-head-copy">
-              <div class="thread-heading-merged-full">
-                ${freshnessMarkup}
-                <p class="thread-subject">
-                  <span class="thread-subject-primary">${escapeHtml(counterpartyCopy)}</span>
-                  ${subjectContextSpan}
-                </p>
+              <div class="thread-heading thread-heading-merged">
+                <p class="thread-subject"><span class="thread-subject-primary">${escapeHtml(issuePrimary)}</span>${customerContextCopy ? `<span class="thread-subject-context">${escapeHtml(customerContextCopy)}</span>` : ""}</p>
               </div>
-              ${explanatoryLineMarkup}
-              <div class="thread-card-head-secondary">${secondaryLineMarkup}</div>
+              <p class="thread-story thread-story-secondary-muted"><span class="thread-story-context">${escapeHtml(whatValue)}</span></p>
+              ${detailText ? `<p class="queue-history-item-text-snippet">${escapeHtml(detailText)}</p>` : ""}
             </div>
           </div>
-          <div class="thread-card-stamp">
-            <div class="thread-card-stamp-top"><time datetime="${escapeHtml(
-              item.recordedAt || ""
-            )}">${escapeHtml(item.time || "")}</time></div>
-            <span class="thread-owner">${escapeHtml(stampLabel)}</span>
+          <div class="thread-card-stamp queue-history-item-freshness">
+            <span class="queue-history-item-freshness-dot"></span>
+            <div class="queue-history-item-meta">
+              ${item.time ? `<time datetime="${escapeHtml(item.recordedAt || "")}">${escapeHtml(item.time)}</time>` : ""}
+              <span class="thread-owner">${escapeHtml(stampLabel)}</span>
+            </div>
           </div>
         </div>
-        ${supportMarkup}
+        <div class="thread-support-stack">
+          <div class="thread-intelligence-row">
+            <span class="thread-intelligence-item thread-intelligence-item--what queue-history-operational-pill--what" data-pill-icon="layers">${escapeHtml(whatValue)}</span>
+            <span class="thread-intelligence-item thread-intelligence-item--why queue-history-operational-pill--why" data-pill-icon="clock">${escapeHtml(whyValue)}</span>
+            <span class="thread-intelligence-item thread-intelligence-item--next queue-history-operational-pill--next" data-pill-icon="bolt">${escapeHtml(nextValue)}</span>
+          </div>
+          <div class="queue-history-item-meta">${queueMetaPills}</div>
+        </div>
       </article>`;
     }
 
@@ -1878,9 +3109,33 @@
           : "";
       const resolvedTitle = inlineContextHint || title || "Aktiv tråd";
       const finalDetail = explanatoryLineHint || defaultRollupExplanatoryLine || resolvedDetail;
+      const parseInlineMailboxTrail = (detail = "") =>
+        asText(detail)
+          .split(/[·,]/g)
+          .map((part) => asText(part).trim())
+          .filter(Boolean);
+      const mailboxTrailFromPayload = asArray(thread.mailboxTrail)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromRollup = asArray(thread?.rollup?.underlyingMailboxIds)
+        .map((entry) => asText(entry).trim())
+        .filter(Boolean);
+      const mailboxTrailFromDetail = parseInlineMailboxTrail(
+        thread.mailboxProvenanceDetail || thread?.rollup?.provenanceDetail || ""
+      );
+      const mailboxTrail = mailboxTrailFromPayload.length
+        ? mailboxTrailFromPayload
+        : mailboxTrailFromRollup.length
+          ? mailboxTrailFromRollup
+          : mailboxTrailFromDetail;
       return {
         initials: getQueueHistoryItemInitials(thread.customerName),
         counterpartyLabel,
+        conversationId: asText(thread?.conversationId || thread?.id || ""),
+        ownerLabel: asText(thread.displayOwnerLabel || thread.ownerLabel || ""),
+        tags: asArray(thread.tags),
+        nextActionLabel: asText(thread.nextActionLabel),
+        mailboxTrail,
         time: asText(thread.lastActivityLabel),
         recordedAt: asText(thread.lastActivityAt),
         title: resolvedTitle,
@@ -2213,6 +3468,10 @@
           queueContent.hidden = true;
           queueContent.innerHTML = "";
         }
+        enforceUnifiedCardV3Sections(queueHistoryList);
+        if (typeof windowObject?.requestAnimationFrame === "function") {
+          windowObject.requestAnimationFrame(() => enforceUnifiedCardV3Sections(queueHistoryList));
+        }
         renderSelectedThreadInlineControls(null);
         return;
       }
@@ -2391,6 +3650,7 @@
           })
         )
         .join("");
+      enforceUnifiedCardV3Sections(queueHistoryList);
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -2399,25 +3659,65 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "live";
       }
-      const renderLiveThreadCard =
-        typeof buildThreadCardMarkup === "function"
-          ? (thread, index, selected) => buildThreadCardMarkup(thread, index, selected)
-          : typeof buildQueueHistoryCardMarkup === "function" &&
-              typeof buildQueueInlineLaneHistoryItem === "function"
-            ? (thread, index, selected) =>
-                buildQueueHistoryCardMarkup(buildQueueInlineLaneHistoryItem(thread), {
-                  runtimeThreadId: thread.id,
-                  selectedConversationId: state.runtime.selectedThreadId,
-                  useThreadCardClass: false,
-                })
-            : null;
+      // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
+      // som producerade tomma rader när någon av build-funktionerna saknades.
+      function renderLiveThreadCard(thread, index, selected) {
+        try {
+          if (typeof buildThreadCardMarkup === "function") {
+            const html = buildThreadCardMarkup(thread, index, selected);
+            if (html) return html;
+          }
+        } catch (e) {
+          if (typeof console !== "undefined") console.warn("buildThreadCardMarkup failed", e);
+        }
+        try {
+          if (
+            typeof buildQueueHistoryCardMarkup === "function" &&
+            typeof buildQueueInlineLaneHistoryItem === "function"
+          ) {
+            const html = buildQueueHistoryCardMarkup(buildQueueInlineLaneHistoryItem(thread), {
+              runtimeThreadId: thread.id,
+              selectedConversationId: state.runtime.selectedThreadId,
+              useThreadCardClass: true,
+            });
+            if (html) return html;
+          }
+        } catch (e) {
+          if (typeof console !== "undefined") console.warn("buildQueueHistoryCardMarkup failed", e);
+        }
+        // Sista fallback: matchar förväntad CSS-struktur (.thread-card-head + .thread-story)
+        // så griden inte kollapsar och överlappar grannarna.
+        const id = String(thread?.id || "").replace(/[^a-z0-9_-]/gi, "");
+        const customer = (thread?.customerName ||
+          thread?.fromName ||
+          thread?.from?.name ||
+          thread?.from?.emailAddress?.name ||
+          (thread?.customerEmail || thread?.from?.address || thread?.from?.emailAddress?.address || "")?.split('@')[0] ||
+          "Okänd avsändare").toString().slice(0, 80);
+        const subject = String(
+          thread?.displaySubject || thread?.subject || "(utan ämne)"
+        ).slice(0, 120);
+        const preview = String(thread?.preview || thread?.systemPreview || "").slice(0, 200);
+        const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        return (
+          '<article class="thread-card queue-history-item unified-queue-card" ' +
+          'data-runtime-thread="' + id + '" tabindex="0" ' +
+          'style="position:relative;display:block;min-height:64px;padding:12px 14px;margin:0">' +
+          '<div class="thread-card-head" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
+          '<strong style="font-size:14px;color:#2b251f">' + escape(customer) + '</strong>' +
+          '<span style="font-size:12px;color:#8a8174">' + escape(subject) + '</span>' +
+          '</div>' +
+          '<div class="thread-story" style="font-size:12px;color:#5d544a;overflow:hidden;text-overflow:ellipsis">' +
+          escape(preview) +
+          '</div></article>'
+        );
+      }
       queueHistoryList.innerHTML = asArray(threads)
         .map((thread, index) =>
-          renderLiveThreadCard
-            ? renderLiveThreadCard(thread, index, thread.id === state.runtime.selectedThreadId)
-            : ""
+          renderLiveThreadCard(thread, index, thread.id === state.runtime.selectedThreadId)
         )
         .join("");
+      enforceUnifiedCardV3Sections(queueHistoryList);
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -2509,9 +3809,16 @@
         queueHistoryCount.textContent = String(visibleCount);
       }
 
-      if (!isOpen) return;
+      if (!isOpen) {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+        return;
+      }
 
       if (isHistoryOpen) {
+        const fallbackThreads = getQueueLaneThreads(
+          "all",
+          getQueueScopedRuntimeThreads()
+        );
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "history";
         }
@@ -2520,16 +3827,22 @@
         }
 
         if (historyState.loading) {
-          renderQueueHistoryList([]);
-          if (queueHistoryList) {
-            queueHistoryList.innerHTML = '<div class="queue-history-empty">Laddar historik…</div>';
+          if (fallbackThreads.length) {
+            renderQueueInlineLaneList(fallbackThreads);
+          } else {
+            renderQueueHistoryList([]);
+            if (queueHistoryList) {
+              queueHistoryList.innerHTML = '<div class="queue-history-empty">Laddar historik…</div>';
+            }
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
 
         if (historyState.error) {
-          if (queueHistoryList) {
+          if (fallbackThreads.length) {
+            renderQueueInlineLaneList(fallbackThreads);
+          } else if (queueHistoryList) {
             queueHistoryList.innerHTML = `<div class="queue-history-empty">${escapeHtml(
               historyState.error
             )}</div>`;
@@ -2539,15 +3852,18 @@
         }
 
         if (!asArray(historyState.items).length) {
-          if (queueHistoryList) {
+          if (fallbackThreads.length) {
+            renderQueueInlineLaneList(fallbackThreads);
+          } else if (queueHistoryList) {
             queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
+              '<div class="queue-history-empty">Inga trådar i historik just nu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
 
         renderQueueHistoryList(historyState.items);
+        enforceUnifiedCardV3Sections(queueHistoryList);
         if (queueHistoryLoadMoreButton) {
           queueHistoryLoadMoreButton.hidden = !historyState.hasMore;
         }
@@ -2564,6 +3880,20 @@
             queueTitle.textContent = `Arbetslista (${loadingThreads.length})`;
           }
           renderQueueInlineLaneList(loadingThreads);
+          enforceUnifiedCardV3Sections(queueHistoryList);
+          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+          return;
+        }
+        // v5: ingen riktig data i scope men kanske demo-fixtures utanför scope?
+        const demoFixtures = asArray(state.runtime.threads).filter(
+          (t) => asText(t?.worklistSource) === "demo"
+        );
+        if (demoFixtures.length) {
+          if (queueTitle) {
+            queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
+          }
+          renderQueueInlineLaneList(demoFixtures);
+          enforceUnifiedCardV3Sections(queueHistoryList);
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -2571,11 +3901,29 @@
           queueTitle.textContent = "Arbetslista (0)";
         }
         renderQueueInlineLaneList(buildUnifiedQueueLoadingItems());
+        enforceUnifiedCardV3Sections(queueHistoryList);
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
       }
 
       if (useUnifiedQueueList && state.runtime.error && runtimeMode !== "offline_history") {
+        // v5: om demo-fixtures finns, visa dem istället för error-fallback så
+        // operatören ser v5-layouten med riktiga lane-badges, What/Why osv.
+        const demoFixtures = getQueueScopedRuntimeThreads().filter(
+          (t) => asText(t?.worklistSource) === "demo"
+        );
+        if (demoFixtures.length) {
+          if (queueHistoryList?.dataset) {
+            queueHistoryList.dataset.queueListMode = "live";
+          }
+          if (queueTitle) {
+            queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
+          }
+          renderQueueInlineLaneList(demoFixtures);
+          enforceUnifiedCardV3Sections(queueHistoryList);
+          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+          return;
+        }
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "live";
         }
@@ -2676,46 +4024,42 @@
           queueTitle.textContent = `Arbetslista (${defaultThreads.length})`;
         }
         if (!defaultThreads.length) {
-          renderQueueInlineLaneList([
-            buildUnifiedStateThread({
-              id: runtimeMode === "offline_history" ? "runtime-offline-empty" : "runtime-unified-empty",
-              customerName: "Inga trådar i urvalet",
-              ownerLabel:
-                runtimeMode === "offline_history"
-                  ? "Offline historik"
-                  : "Arbetskö",
-              subject:
-                runtimeMode === "offline_history"
-                  ? "Ingen historik hittades i valt mailboxscope"
-                  : "Mailboxfiltret gav inga aktiva trådar",
-              preview:
-                runtimeMode === "offline_history"
-                  ? offlineEmptyMessage ||
-                    "Livekön är offline och ingen historik hittades i valt mailboxscope ännu."
-                  : (() => {
-                      let live =
-                        "Välj fler mailboxar eller vänta på nästa inkommande konversation.";
-                      if (state.runtime?.graphReadEnabled === true) {
-                        live +=
-                          " Tom kö direkt efter testmail är ofta normalt — ge det en minut och ladda om.";
-                      }
-                      if (state.runtime?.graphReadEnabled === true && state.runtime?.graphReadConnectorAvailable === false) {
-                        live +=
-                          " Servern saknar aktiv Graph read-connector trots att read är påslaget — kontrollera miljövariabler.";
-                      }
-                      return live;
-                    })(),
-              mailboxLabel: "Arbetskö",
-              statusLabel:
-                runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
-              nextActionLabel:
-                runtimeMode === "offline_history" ? "Byt mailboxscope" : "Justera urval",
-              nextActionSummary:
-                runtimeMode === "offline_history"
-                  ? "Välj ett annat mailboxscope eller invänta att livekopplingen kommer tillbaka."
-                  : "Utöka mailboxscope för att fylla arbetskön med fler konversationer.",
-            }),
-          ]);
+          if (runtimeMode === "offline_history") {
+            if (queueHistoryList) {
+              queueHistoryList.innerHTML =
+                '<div class="queue-history-empty">Inga trådar i historik just nu.</div>';
+            }
+          } else {
+            renderQueueInlineLaneList([
+              buildUnifiedStateThread({
+                id: "runtime-unified-empty",
+                customerName: "Inga trådar i urvalet",
+                ownerLabel: "Arbetskö",
+                subject: "Mailboxfiltret gav inga aktiva trådar",
+                preview: (() => {
+                  let live =
+                    "Välj fler mailboxar eller vänta på nästa inkommande konversation.";
+                  if (state.runtime?.graphReadEnabled === true) {
+                    live +=
+                      " Tom kö direkt efter testmail är ofta normalt — ge det en minut och ladda om.";
+                  }
+                  if (
+                    state.runtime?.graphReadEnabled === true &&
+                    state.runtime?.graphReadConnectorAvailable === false
+                  ) {
+                    live +=
+                      " Servern saknar aktiv Graph read-connector trots att read är påslaget — kontrollera miljövariabler.";
+                  }
+                  return live;
+                })(),
+                mailboxLabel: "Arbetskö",
+                statusLabel: "Ingen match",
+                nextActionLabel: "Justera urval",
+                nextActionSummary:
+                  "Utöka mailboxscope för att fylla arbetskön med fler konversationer.",
+              }),
+            ]);
+          }
         } else {
           renderQueueInlineLaneList(defaultThreads);
         }

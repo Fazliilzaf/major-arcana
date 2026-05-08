@@ -108,7 +108,21 @@
     "audit:repair": "node ./scripts/audit-repair.js",
     "test": "npm run test:unit",
     "test:unit": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 node --test",
-    "ops:soak": "node ./scripts/run-load-soak.js"
+    "ops:soak": "node ./scripts/run-load-soak.js",
+    "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.js",
+    "test:a11y": "npx playwright test tests/a11y/",
+    "test:load": "k6 run tests/load/k6-runtime-status.js",
+    "test:mutation": "npx stryker run",
+    "test:all": "npm test && npm run test:e2e",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md,yml,yaml,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml,css,html}\"",
+    "prepare": "husky || true",
+    "i18n:extract": "node scripts/i18n-extract.js",
+    "i18n:cleanup": "node scripts/i18n-cleanup.js",
+    "i18n:merge": "node scripts/i18n-merge.js",
+    "i18n:all": "npm run i18n:extract && npm run i18n:cleanup && npm run i18n:merge"
   },
   "keywords": [],
   "author": "",
@@ -122,5 +136,19 @@
     "playwright": "1.58.2",
     "redis": "^4.7.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@axe-core/playwright": "^4.10.0",
+    "@stryker-mutator/core": "^8.6.0",
+    "axe-core": "^4.10.0",
+    "eslint": "^9.13.0",
+    "@eslint/js": "^9.13.0",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0"
   }
 }

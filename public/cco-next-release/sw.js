@@ -1,5 +1,5 @@
 // Service Worker for offline support
-const CACHE_NAME = 'hairtp-v2';
+const CACHE_NAME = 'hairtp-v3-cco-amber';
 const RUNTIME_CACHE = 'hairtp-runtime';
 const IS_LOCALHOST = ['localhost', '127.0.0.1'].includes(self.location.hostname);
 

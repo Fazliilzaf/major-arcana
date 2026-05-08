@@ -803,6 +803,38 @@ async function createTenantConfigStore({
     return history.find((item) => Number(item?.version || 0) === targetVersion) || null;
   }
 
+  // SF1 (fyller MT2): lista alla tenants med kort sammanfattning per
+  async function listTenants() {
+    const out = [];
+    for (const [tenantId, raw] of Object.entries(state.tenants)) {
+      if (!raw || typeof raw !== 'object') continue;
+      out.push({
+        tenantId,
+        brand: raw.brand || '',
+        planTier: raw.planTier || 'free',
+        disabled: raw.disabled === true,
+        disabledAt: raw.disabledAt || null,
+        disabledReason: raw.disabledReason || null,
+        ownerEmail: raw.ownerEmail || '',
+        defaultMailbox: raw.defaultMailbox || '',
+        createdAt: raw.createdAt || null,
+        lastSeenAt: raw.lastSeenAt || null,
+        featureFlags:
+          raw.featureFlags && typeof raw.featureFlags === 'object'
+            ? { ...raw.featureFlags }
+            : {},
+      });
+    }
+    // Sortera: aktiva först, sedan på createdAt desc
+    out.sort((a, b) => {
+      if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+    return out;
+  }
+
   return {
     filePath,
     findTenantConfig,
@@ -810,6 +842,7 @@ async function createTenantConfigStore({
     updateTenantConfig,
     listRiskThresholdVersions,
     getRiskThresholdVersion,
+    listTenants,
   };
 }
 

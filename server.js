@@ -258,6 +258,53 @@ app.use((req, res, next) => {
   return next();
 });
 
+// S4: Säkerhets-headers (CSP, X-Content-Type-Options, X-Frame-Options,
+// Referrer-Policy, Permissions-Policy, HSTS för HTTPS).
+// Strikt CSP eftersom 0 inline-scripts finns i major-arcana-preview/index.html.
+app.use((req, res, next) => {
+  const path = String(req.path || '').trim().toLowerCase();
+  const isApi = path.startsWith('/api/');
+  const isStream = path.endsWith('/runtime/stream');
+
+  // CSP — endast för HTML-svar, inte för JSON-API eller SSE-streams
+  if (!isApi && !isStream) {
+    const cspDirectives = [
+      "default-src 'self'",
+      // 'unsafe-inline' för style behövs för existing CSS-injection från modulerna
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "script-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "connect-src 'self' https:",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "media-src 'self'",
+      "manifest-src 'self'",
+      "worker-src 'self' blob:",
+    ].join('; ');
+    res.setHeader('Content-Security-Policy', cspDirectives);
+  }
+
+  // Generella säkerhets-headers (alla svar)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
+  // HSTS — endast för HTTPS-anslutningar (Render serverar HTTPS i prod)
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    );
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const path = String(req.path || '').trim().toLowerCase();
   const disableCachePaths = new Set([
@@ -283,7 +330,29 @@ app.use((req, res, next) => {
 });
 
 app.get('/admin.html', (_req, res) => sendAdminHtml(res));
-app.use(express.static("public"));
+app.use(
+  express.static("public", {
+    setHeaders: (res, filePath) => {
+      // P4: cache-strategi för major-arcana-preview/-assets.
+      // - Aggressiv cache med stale-while-revalidate så browser kan visa
+      //   cached version medan en ny laddas i bakgrunden vid nästa besök.
+      // - HTML har kort cache så ny deploy syns snabbt.
+      const safe = String(filePath || '').toLowerCase();
+      if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
+        res.setHeader(
+          'Cache-Control',
+          'public, max-age=300, stale-while-revalidate=86400'
+        );
+      } else if (/\.(woff2?|ttf|otf|eot|ico|png|jpe?g|svg|webp|gif)$/i.test(safe)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+      } else if (/\.(js|css)$/i.test(safe)) {
+        res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=3600');
+      } else if (/\.html?$/i.test(safe)) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      }
+    },
+  })
+);
 const activeCcoNextBuild = getCcoNextBuild();
 if (activeCcoNextBuild) {
   app.use(
@@ -316,6 +385,8 @@ const { createTenantConfigStore } = require('./src/tenant/configStore');
 const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
 const { createTenantsRouter } = require('./src/routes/tenants');
 const { createDashboardRouter } = require('./src/routes/dashboard');
+const { createCcoRuntimeStreamRouter } = require('./src/routes/ccoRuntimeStream');
+const { createCcoConversationRouter } = require('./src/routes/ccoConversation');
 const { createRiskRouter } = require('./src/routes/risk');
 const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
@@ -326,6 +397,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
+const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
 const { runStartupDiskGuard } = require('./src/ops/startupDiskGuard');
@@ -334,7 +406,16 @@ const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
+const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
+const { createCustomerPreferenceStore } = require('./src/ops/customerPreferenceStore');
+const { createClientoBookingStore } = require('./src/ops/clientoBookingStore');
+const {
+  scheduleBootstrap: scheduleMailboxBootstrap,
+  isEnabled: isMailboxBootstrapEnabled,
+} = require('./src/ops/bootstrapRunner');
 const { createCcoConversationStateStore } = require('./src/ops/ccoConversationStateStore');
+const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNotesStore');
+const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
@@ -461,7 +542,10 @@ app.get("/admin", (req, res) => {
 });
 
 app.get('/cco', (req, res) => {
-  sendAdminHtml(res);
+  // Legacy /cco-vyn (admin.html-baserad) ersatt av /major-arcana-preview/
+  // som har full feature-paritet plus Cmd+K, sökning, AI-summary, follow-up filters,
+  // soft-break och density-toggle. Behåller redirect för bookmarks.
+  res.redirect(302, '/major-arcana-preview/');
 });
 
 app.get(/^\/cco-next(?:\/.*)?$/, (_req, res) => {
@@ -473,11 +557,49 @@ app.get('/unanswered', (req, res) => {
 });
 
 app.get(['/ccp', '/admin/cco'], (req, res) => {
-  res.redirect(302, '/cco');
+  res.redirect(302, '/major-arcana-preview/');
 });
 
 app.get('/admin/unanswered', (req, res) => {
   res.redirect(302, '/unanswered');
+});
+
+// FIX2: publik diag-endpoint — visar vilka ARCANA_*-env är satta + bootstrap-status
+app.get('/api/v1/_diag/env', (req, res) => {
+  const flags = [
+    'ARCANA_STATE_ROOT',
+    'ARCANA_BOOTSTRAP_MAILBOX_BACKFILL',
+    'ARCANA_BOOTSTRAP_TENANT_ID',
+    'ARCANA_BOOTSTRAP_PREFERRED_MAILBOX',
+    'ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS',
+    'ARCANA_BOOTSTRAP_DELAY_MS',
+    'ARCANA_GRAPH_READ_ENABLED',
+    'ARCANA_GRAPH_SEND_ENABLED',
+    'ARCANA_DEFAULT_TENANT',
+  ];
+  const env = {};
+  for (const k of flags) {
+    const v = process.env[k];
+    env[k] = v === undefined ? null : v.length > 80 ? v.slice(0, 30) + '...' : v;
+  }
+  return res.json({
+    ok: true,
+    env,
+    cwd: process.cwd(),
+    nodeVersion: process.version,
+  });
+});
+
+// Commit-sha endpoint — så vi kan verifiera vilken version som är deployad
+app.get('/api/v1/_diag/version', (req, res) => {
+  return res.json({
+    ok: true,
+    commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
+    branch: process.env.RENDER_GIT_BRANCH || 'unknown',
+    deployedAt: process.env.RENDER_DEPLOY_AT || null,
+    serverStartedAt: runtimeState.startedAt,
+    fixes: ['FIX3', 'FIX4', 'FIX5', 'FIX6', 'FIX7', 'FIX8'],
+  });
 });
 
 app.get('/healthz', (req, res) => {
@@ -732,6 +854,23 @@ process.once('SIGTERM', () => {
   app.use('/api/v1/orchestrator', orchestratorRateLimiter);
   app.use('/api/public', publicClinicRateLimiter);
 
+  // SF3: Multi-layer rate-limit på sensitive endpoints (GDPR + 2FA + Tenant-mgmt)
+  const { createMultiLayerRateLimit } = require('./src/security/multiLayerRateLimit');
+  const sensitiveLimiter = createMultiLayerRateLimit({
+    store: rateLimitStore,
+    name: 'sensitive',
+    layers: {
+      ip: { points: 50, durationSec: 60 },
+      user: { points: 30, durationSec: 60 },
+      tenant: { points: 200, durationSec: 60 },
+    },
+  });
+  app.use('/api/v1/capabilities/GdprExportCustomer', sensitiveLimiter);
+  app.use('/api/v1/capabilities/GdprAnonymizeCustomer', sensitiveLimiter);
+  app.use('/api/v1/capabilities/TenantCreate', sensitiveLimiter);
+  app.use('/api/v1/capabilities/TenantDisable', sensitiveLimiter);
+  app.use('/api/v1/auth/2fa', sensitiveLimiter);
+
   const templateStore = await createTemplateStore({
     filePath: config.templateStorePath,
     maxEvaluations: config.templateEvalMaxEntries,
@@ -746,8 +885,29 @@ process.once('SIGTERM', () => {
   const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
     filePath: config.ccoMailboxTruthStorePath,
   });
+  const messageIntelligenceStore = await createMessageIntelligenceStore({
+    filePath:
+      config.messageIntelligenceStorePath ||
+      (config.dataDir ? `${config.dataDir}/cco/message-intelligence.json` : './data/cco/message-intelligence.json'),
+  });
+  const customerPreferenceStore = await createCustomerPreferenceStore({
+    filePath:
+      config.customerPreferenceStorePath ||
+      (config.dataDir ? `${config.dataDir}/cco/customer-preferences.json` : './data/cco/customer-preferences.json'),
+  });
+  const clientoBookingStore = await createClientoBookingStore({
+    filePath:
+      config.clientoBookingStorePath ||
+      (config.dataDir ? `${config.dataDir}/cco/cliento-bookings.json` : './data/cco/cliento-bookings.json'),
+  });
   const ccoConversationStateStore = await createCcoConversationStateStore({
     filePath: config.ccoConversationStateStorePath,
+  });
+  const ccoConversationNotesStore = await createCcoConversationNotesStore({
+    filePath: config.ccoConversationNotesStorePath,
+  });
+  const ccoMailTemplateStore = await createCcoMailTemplateStore({
+    filePath: config.ccoMailTemplateStorePath,
   });
   const ccoNoteStore = await createCcoNoteStore({
     filePath: config.ccoNoteStorePath,
@@ -793,6 +953,30 @@ process.once('SIGTERM', () => {
   });
   const graphReadConnector = createRuntimeGraphReadConnector();
 
+  // DD1: shared graphSendConnector så scheduler (daily-digest) och
+  // routes/capabilities (send-mail) använder samma instans.
+  const graphSendConnector = (() => {
+    const enabled = String(process.env.ARCANA_GRAPH_SEND_ENABLED || '').toLowerCase() === 'true';
+    if (!enabled) return null;
+    const tenantId = String(process.env.ARCANA_GRAPH_TENANT_ID || '').trim();
+    const clientId = String(process.env.ARCANA_GRAPH_CLIENT_ID || '').trim();
+    const clientSecret = String(process.env.ARCANA_GRAPH_CLIENT_SECRET || '').trim();
+    if (!tenantId || !clientId || !clientSecret) return null;
+    try {
+      return createMicrosoftGraphSendConnector({
+        tenantId,
+        clientId,
+        clientSecret,
+        authorityHost: String(process.env.ARCANA_GRAPH_AUTHORITY_HOST || '').trim() || undefined,
+        graphBaseUrl: String(process.env.ARCANA_GRAPH_BASE_URL || '').trim() || undefined,
+        scope: String(process.env.ARCANA_GRAPH_SCOPE || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.warn('[server] kunde inte skapa graphSendConnector', err?.message);
+      return null;
+    }
+  })();
+
   const scheduler = createScheduler({
     config,
     authStore,
@@ -802,6 +986,8 @@ process.once('SIGTERM', () => {
     ccoHistoryStore,
     ccoCustomerStore,
     graphReadConnector,
+    graphSendConnector,
+    tenantConfigStore,
     secretRotationStore,
     sloTicketStore,
     releaseGovernanceStore,
@@ -1041,6 +1227,39 @@ process.once('SIGTERM', () => {
     })
   );
 
+  // P7: Real-time stream för CCO frontend (heartbeat + poll-trigger)
+  const ccoRuntimeStreamRouter = createCcoRuntimeStreamRouter({
+    pollIntervalMs: 10000,
+    heartbeatIntervalMs: 30000,
+  });
+  app.use('/api/v1', ccoRuntimeStreamRouter);
+
+  // Default mailboxar för manuell sync — använd MAILBOX_ALLOWLIST om satt,
+  // annars HairTP-defaults
+  const defaultSyncMailboxIds = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+  // CCO Conversation messages — full tråd-historik + AI-summary + reply + Klar/Senare + notes + sync
+  app.use(
+    '/api/v1',
+    createCcoConversationRouter({
+      ccoMailboxTruthStore,
+      requireAuth: auth.requireAuth,
+      openai,
+      openaiModel: config.openaiModel,
+      graphSendConnector,
+      graphReadConnector,
+      runtimeStreamRouter: ccoRuntimeStreamRouter,
+      mailboxIdsForSync: defaultSyncMailboxIds,
+      syncLookbackDays: Number(process.env.ARCANA_CCO_SYNC_LOOKBACK_DAYS) || 14,
+      ccoConversationStateStore,
+      ccoConversationNotesStore,
+      ccoMailTemplateStore,
+      clientoBookingStore,
+      defaultTenantId: 'cco',
+    })
+  );
+
   app.use(
     '/api/v1',
     createRiskRouter({
@@ -1151,6 +1370,8 @@ process.once('SIGTERM', () => {
       ccoHistoryStore,
       ccoMailboxTruthStore,
       ccoCustomerStore,
+      runtimeMetricsStore,
+      clientoBookingStore,
       scheduler,
       graphReadConnector,
     })
@@ -1209,6 +1430,13 @@ process.once('SIGTERM', () => {
       tenantConfigStore,
       sloTicketStore,
       releaseGovernanceStore,
+      ccoMailboxTruthStore,
+      messageIntelligenceStore,
+      customerPreferenceStore,
+      ccoHistoryStore,
+      graphSendConnector,
+      runtimeMetricsStore,
+      clientoBookingStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })
@@ -1227,6 +1455,23 @@ process.once('SIGTERM', () => {
   } else {
     console.log('[scheduler] inaktiv (ARCANA_SCHEDULER_ENABLED=false)');
   }
+
+  // DI9 + FIX2: auto-bootstrap mailbox-backfill ALLTID (om hair-tp-clinic).
+  // Tidigare berodde på ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true men Render
+  // env-vars syncas inte alltid till container. Hårdcodar nu för Hair TP
+  // så data garanterat fylls vid varje server-start.
+  process.env.ARCANA_BOOTSTRAP_MAILBOX_BACKFILL = 'true';
+  console.log('[bootstrap] FIX2: hårdcodar bootstrap-aktivering, schemalägger…');
+  scheduleMailboxBootstrap({
+    tenantId:
+      process.env.ARCANA_BOOTSTRAP_TENANT_ID ||
+      process.env.ARCANA_DEFAULT_TENANT ||
+      'hair-tp-clinic',
+    graphReadConnector,
+    ccoMailboxTruthStore,
+    messageIntelligenceStore,
+    customerPreferenceStore,
+  });
 })().catch((error) => {
   runtimeState.ready = false;
   runtimeState.lastError = error?.message || 'startup_failed';

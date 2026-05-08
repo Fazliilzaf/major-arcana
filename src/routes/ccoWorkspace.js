@@ -362,7 +362,7 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
     },
     uppfoljning: {
       targetLabel: 'Uppföljning',
-      livePreview: 'Uppföljningskö · Skapar automatisk CRM-påminnelse',
+      livePreview: 'Uppföljningskö · Skapar automatisk CCO-påminnelse',
       defaultText: followUpNotes,
       defaultTags: ['uppföljning', 'prp-2/3', 'schemaläggning'],
       dataCards: [

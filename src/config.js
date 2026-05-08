@@ -139,6 +139,14 @@ const stateRoot = resolveDirectoryPath(
 const brand = asNonEmptyString(process.env.ARCANA_BRAND, 'hair-tp-clinic');
 const brandByHost = asJsonObject(process.env.ARCANA_BRAND_BY_HOST, null);
 
+// S3: Multi-tenant default-mailbox alias. Default-värde överrids via env:
+//   • CCO_DEFAULT_MAILBOX (eller ARCANA_DEFAULT_MAILBOX)
+// defaultTenantId definieras nedan i config-objektet med samma alias-stöd.
+const defaultMailbox = asNonEmptyString(
+  process.env.CCO_DEFAULT_MAILBOX || process.env.ARCANA_DEFAULT_MAILBOX,
+  asNonEmptyString(process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID, 'kons@hairtpclinic.com')
+);
+
 const config = {
   port,
   publicBaseUrl,
@@ -146,6 +154,7 @@ const config = {
   ccoNextRedirectHosts,
   brand,
   brandByHost,
+  defaultMailbox,
   publicClinicIdAliases: asJsonObject(process.env.ARCANA_PUBLIC_CLINIC_ALIASES, null),
   nodeEnv,
   isProduction,
@@ -192,6 +201,16 @@ const config = {
     explicitPath: process.env.ARCANA_CCO_CONVERSATION_STATE_STORE_PATH,
     stateRoot,
     fileName: 'cco-conversation-state.json',
+  }),
+  ccoConversationNotesStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_CONVERSATION_NOTES_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-conversation-notes.json',
+  }),
+  ccoMailTemplateStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_TEMPLATE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mail-templates.json',
   }),
   ccoNoteStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_NOTE_STORE_PATH,
@@ -347,8 +366,9 @@ const config = {
     stateRoot,
     fileName: 'auth.json',
   }),
-  authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 12),
-  authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 180),
+  // Sessioner håller 7 dagar absolut + 24h idle-timeout. Override via env för kortare/längre.
+  authSessionTtlHours: asInt(process.env.AUTH_SESSION_TTL_HOURS, 168),
+  authSessionIdleMinutes: asInt(process.env.AUTH_SESSION_IDLE_MINUTES, 1440),
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
   authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
   authAuditAppendOnly: isProduction ? true : asBool(process.env.AUTH_AUDIT_APPEND_ONLY, true),
@@ -424,7 +444,12 @@ const config = {
     process.env.ARCANA_PUBLIC_CHAT_PROMPT_INJECTION_MESSAGE,
     'Jag kan inte hjälpa till med den typen av instruktion. Kontakta kliniken direkt för fortsatt hjälp.'
   ),
-  defaultTenantId: asNonEmptyString(process.env.ARCANA_DEFAULT_TENANT, brand),
+  defaultTenantId: asNonEmptyString(
+    process.env.CCO_DEFAULT_TENANT_ID ||
+      process.env.ARCANA_DEFAULT_TENANT_ID ||
+      process.env.ARCANA_DEFAULT_TENANT,
+    brand
+  ),
   bootstrapOwnerEmail: asNonEmptyString(process.env.ARCANA_OWNER_EMAIL),
   bootstrapOwnerPassword: asNonEmptyString(process.env.ARCANA_OWNER_PASSWORD),
   bootstrapOwnerResetPassword: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_PASSWORD, false),
@@ -501,7 +526,14 @@ const config = {
       .filter(Boolean);
     return configured.length > 0
       ? configured
-      : ['kons@hairtpclinic.com', 'info@hairtpclinic.com', 'contact@hairtpclinic.com', 'egzona@hairtpclinic.com'];
+      : [
+          'kons@hairtpclinic.com',
+          'info@hairtpclinic.com',
+          'contact@hairtpclinic.com',
+          'egzona@hairtpclinic.com',
+          'fazli@hairtpclinic.com',
+          'marknad@hairtpclinic.com',
+        ];
   })(),
   schedulerCcoHistoryRecentWindowDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_RECENT_WINDOW_DAYS,
@@ -645,7 +677,11 @@ const config = {
   clientoApiTimeoutMs: asInt(process.env.CLIENTO_API_TIMEOUT_MS, 10000),
 };
 
-if (config.aiProvider === 'openai' && !config.openaiApiKey) {
+if (
+  config.aiProvider === 'openai' &&
+  !config.openaiApiKey &&
+  String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production'
+) {
   throw new Error('Missing env var: OPENAI_API_KEY');
 }
 

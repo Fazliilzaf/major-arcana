@@ -255,4 +255,63 @@
   --cco-pass1-worklist-meta-size: 14px;
   --cco-pass1-worklist-meta-line: 1.25;
   --cco-pass1-worklist-gap: 8px;
+
+  /* ===========================================================
+     CCO v5 design tokens — peach-amber palette
+     Bygger på samma cc8853-amber-familj som --intel-panel-tint
+     med skift mot 215,130,90 för varmare peach-ton.
+     Använd dessa tokens för alla nya komponenter så hela CCO
+     håller sammanhängande kromatiskt språk.
+     =========================================================== */
+  --cco-tint: rgba(215, 130, 90, 0.1);
+  --cco-tint-soft: rgba(215, 130, 90, 0.03);
+  --cco-tint-strong: rgba(215, 130, 90, 0.11);
+  --cco-tint-bottom: rgba(215, 130, 90, 0.16);
+
+  --cco-hl: rgba(255, 255, 255, 0.7);
+  --cco-hl-soft: rgba(255, 255, 255, 0.95);
+  --cco-border-melt: rgba(255, 248, 232, 0.7);
+
+  --cco-shadow-close: rgba(195, 115, 80, 0.05);
+  --cco-shadow-mid: rgba(195, 115, 80, 0.09);
+  --cco-shadow-deep: rgba(195, 115, 80, 0.1);
+
+  /* Card recipe — preset stack för snabb återanvändning */
+  --cco-card-bg:
+    linear-gradient(180deg, var(--cco-tint-soft) 0%, var(--cco-tint-strong) 100%),
+    #ffffff;
+  --cco-card-border: 1px solid var(--cco-border-melt);
+  --cco-card-radius: 14px;
+  --cco-card-shadow:
+    inset 0 1px 0 var(--cco-hl),
+    inset 0 -1px 0 var(--cco-tint-bottom),
+    0 1px 2px var(--cco-shadow-close),
+    0 8px 18px -2px var(--cco-shadow-mid),
+    0 22px 44px -12px var(--cco-shadow-deep);
+  --cco-card-shadow-hover:
+    inset 0 1px 0 var(--cco-hl),
+    inset 0 -1px 0 var(--cco-tint-bottom),
+    0 2px 4px rgba(195, 115, 80, 0.07),
+    0 12px 24px -4px rgba(195, 115, 80, 0.13),
+    0 28px 56px -14px rgba(195, 115, 80, 0.14);
+
+  /* Bubble preset — vit pill med mjuk skugga, ikon + text i samma färg */
+  --cco-bubble-bg: linear-gradient(180deg, #fffefa 0%, #fbf5ea 100%);
+  --cco-bubble-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(180, 150, 110, 0.18),
+    0 1px 2px rgba(80, 60, 40, 0.05),
+    0 3px 8px -3px rgba(80, 60, 40, 0.1);
+
+  /* Unread-indikator (mail-konvention) */
+  --cco-unread: #38bdf8;
+  --cco-unread-glow: rgba(56, 189, 248, 0.4);
+
+  /* Primary action — varm espresso istället för pure black */
+  --cco-primary-bg: linear-gradient(180deg, #3d2f22 0%, #211810 100%);
+  --cco-primary-text: #fff5e3;
+  --cco-primary-shadow:
+    inset 0 1px 0 rgba(255, 240, 220, 0.14),
+    0 1px 2px rgba(40, 28, 16, 0.18),
+    0 4px 10px -2px rgba(40, 28, 16, 0.22);
 }

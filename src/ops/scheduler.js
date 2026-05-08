@@ -267,6 +267,8 @@ function createScheduler({
   ccoHistoryStore = null,
   ccoCustomerStore = null,
   graphReadConnector = null,
+  graphSendConnector = null,
+  tenantConfigStore = null,
   secretRotationStore = null,
   sloTicketStore = null,
   releaseGovernanceStore = null,
@@ -511,11 +513,14 @@ function createScheduler({
       for (const item of Array.isArray(restore?.stores) ? restore.stores : []) {
         const restored = item?.restored === true;
         if (!restored) {
-          missingCount += 1;
+          const missingReason = normalizeText(item?.reason) || 'missing_in_backup';
+          if (missingReason !== 'missing_in_backup') {
+            missingCount += 1;
+          }
           stores.push({
             name: normalizeText(item?.name) || null,
             restored: false,
-            reason: normalizeText(item?.reason) || 'missing_in_backup',
+            reason: missingReason,
             validated: false,
           });
           continue;
@@ -2462,13 +2467,27 @@ function createScheduler({
     });
 
     try {
+      const startedAt = Date.now();
+      logger?.log?.(
+        `[scheduler] cco_truth_delta_sync START mailboxes=${mailboxIds.join(',')}`
+      );
       const result = await delta.runDeltaSync({
         mailboxIds,
         folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
       });
+      const newMessages = (result?.perMailbox || []).reduce((sum, mb) => {
+        return sum + (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+      }, 0);
       logger?.log?.(
-        `[scheduler] cco_truth_delta_sync ok runId=${result?.runId || ''} mailboxes=${mailboxIds.length} elapsedMs=${result?.elapsedMs ?? ''}`
+        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} elapsedMs=${result?.elapsedMs ?? Date.now()-startedAt}`
       );
+      // Per-mailbox breakdown
+      for (const mb of (result?.perMailbox || [])) {
+        const mbMsgs = (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+        logger?.log?.(
+          `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs}`
+        );
+      }
       return {
         tenantId,
         skipped: false,
@@ -2476,6 +2495,37 @@ function createScheduler({
       };
     } catch (error) {
       logger?.error?.('[scheduler] cco_truth_delta_sync failed', sanitizeError(error));
+      throw error;
+    }
+  }
+
+  // DD1: Daily digest — kör KPI-aggregat per tenant + skickar email via
+  // Graph sendMail till digestRecipients. Hour-gating + per-day dedupe
+  // hanteras inuti runDailyDigestForAllTenants.
+  async function runDailyDigest() {
+    if (!tenantConfigStore || typeof tenantConfigStore.listTenants !== 'function') {
+      return { skipped: true, reason: 'tenantConfigStore saknas' };
+    }
+    if (!graphSendConnector) {
+      return { skipped: true, reason: 'graphSendConnector saknas' };
+    }
+    try {
+      const { runDailyDigestForAllTenants } = require('./dailyDigestRunner');
+      const result = await runDailyDigestForAllTenants({
+        tenantConfigStore,
+        ccoHistoryStore,
+        graphSendConnector,
+        runtimeMetricsStore,
+        forceSend: false,
+        dryRun: false,
+        logger,
+      });
+      logger?.log?.(
+        `[scheduler] cco_daily_digest sent=${result.sent} skipped=${result.skipped} failed=${result.failed}`
+      );
+      return result;
+    } catch (error) {
+      logger?.error?.('[scheduler] cco_daily_digest failed', sanitizeError(error));
       throw error;
     }
   }
@@ -2504,6 +2554,14 @@ function createScheduler({
       name: 'CCO kons history sync',
       intervalMs: toHoursMs(config.schedulerCcoHistorySyncIntervalHours, 6),
       run: runCcoHistorySync,
+    },
+    {
+      id: 'cco_daily_digest',
+      name: 'CCO daily digest e-mail',
+      // Kör varje timme; runner-funktionen själv kollar att aktuell timme
+      // matchar tenant-config.digest.sendHour och att vi inte redan skickat idag.
+      intervalMs: toMinutesMs(config.schedulerCcoDailyDigestIntervalMinutes, 60),
+      run: runDailyDigest,
     },
     {
       id: 'cco_truth_delta_sync',
