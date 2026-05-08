@@ -281,6 +281,59 @@
     });
   }
 
+  // ============================================================
+  // Sök-filter (Sök i historik) — migrerad från P1-C shim 2026-05-07
+  // ============================================================
+  // Tidigare shim på document. Re-apply körs nu efter varje render via
+  // hookarna i renderQueueHistoryList + renderQueueInlineLaneList så
+  // typningen "håller" även när korten re-renderas.
+
+  let __activeSearchQuery = '';
+
+  function __applySearchFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    const query = __activeSearchQuery.toLowerCase().trim();
+    cards.forEach(card => {
+      if (!query) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+        return;
+      }
+      const text = card.textContent.toLowerCase();
+      if (text.includes(query)) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+      } else {
+        card.style.display = 'none';
+        card.dataset.shimSearchHidden = '1';
+      }
+    });
+  }
+
+  function __handleSearchInput(event) {
+    const target = event.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    const placeholder = (target.placeholder || '').toLowerCase();
+    if (!/sök/.test(placeholder)) return;
+    __activeSearchQuery = target.value || '';
+    __applySearchFilter();
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('input', __handleSearchInput, true);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaSearchFilter = Object.freeze({
+      reapply: __applySearchFilter,
+      getQuery: () => __activeSearchQuery,
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -4006,6 +4059,8 @@
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
       try { __applySecondaryFilter(); } catch (_e) {}
+      // P1-C (migrerad): re-applicera sök-filter om aktivt
+      try { __applySearchFilter(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4077,6 +4132,8 @@
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
       try { __applySecondaryFilter(); } catch (_e) {}
+      // P1-C (migrerad): re-applicera sök-filter om aktivt
+      try { __applySearchFilter(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 

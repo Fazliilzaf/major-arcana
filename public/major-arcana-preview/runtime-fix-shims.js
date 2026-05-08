@@ -484,47 +484,8 @@
   // efter varje render istället för setInterval-poll). CSS:en ligger i
   // @layer components. Active-flagga renamed: shim-active-filter → is-active-filter.
 
-  // ============================================================
-  // P1-C: Sök — hooka "Sök i historik" till live-filter
-  // ============================================================
-
-  let activeSearchQuery = '';
-
-  function applySearchFilter() {
-    const cards = document.querySelectorAll('.thread-card');
-    const query = activeSearchQuery.toLowerCase().trim();
-    cards.forEach(card => {
-      if (!query) {
-        if (card.dataset.shimSearchHidden === '1') {
-          card.style.removeProperty('display');
-          delete card.dataset.shimSearchHidden;
-        }
-        return;
-      }
-      const text = card.textContent.toLowerCase();
-      if (text.includes(query)) {
-        if (card.dataset.shimSearchHidden === '1') {
-          card.style.removeProperty('display');
-          delete card.dataset.shimSearchHidden;
-        }
-      } else {
-        card.style.display = 'none';
-        card.dataset.shimSearchHidden = '1';
-      }
-    });
-  }
-
-  function bootstrapSearchFilter() {
-    // Lyssna på input-events för Sök-input
-    document.addEventListener('input', (e) => {
-      const target = e.target;
-      if (target.tagName !== 'INPUT') return;
-      const placeholder = (target.placeholder || '').toLowerCase();
-      if (!/sök/.test(placeholder)) return;
-      activeSearchQuery = target.value || '';
-      applySearchFilter();
-    }, true);
-  }
+  // P1-C: Sök-filter — MIGRERAD till runtime-queue-renderers.js 2026-05-07
+  // Re-apply körs nu efter varje render så filtret "håller" mellan re-renders.
 
   // ============================================================
   // P2-1: Översätt raw status-codes som leakar till DOM
@@ -694,7 +655,7 @@
     try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
     try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
     // P1-B: bootstrapSecondaryFilters borttagen — migrerad till runtime-queue-renderers.js + cco-polish.css
-    try { bootstrapSearchFilter(); } catch (e) { console.warn('[fix-shim] search-filter fel:', e); }
+    // P1-C: bootstrapSearchFilter borttagen — migrerad till runtime-queue-renderers.js
     // P0-2: okänd-avsändare-fix initieras nu av runtime-queue-renderers.js
     // (window.MajorArcanaCustomerNameResolver) och körs vid varje render.
     console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)');
