@@ -20,7 +20,7 @@
  */
 
 const express = require('express');
-const { SummarizeThreadCapability } = require('../capabilities/summarizeThread');
+const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
 function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
@@ -327,8 +327,7 @@ function createCcoConversationRouter({
 
         const inputMessages = sorted.map(toSummarizeInputMessage);
 
-        const capability = new SummarizeThreadCapability();
-        const result = await capability.execute({
+        const result = await runSummarizeThreadCapability({
           channel: 'admin',
           tenantId: normalizeText(req.tenantId) || 'cco',
           // OpenAI passas in om servern har en konfigurerad client; annars

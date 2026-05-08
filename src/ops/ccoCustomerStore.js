@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { isDeepStrictEqual } = require('node:util');
-const XLSX = require('xlsx');
+const XLSX = require('@e965/xlsx');
 
 const DEFAULT_CUSTOMER_SETTINGS = Object.freeze({
   auto_merge: true,
@@ -122,7 +122,9 @@ function normalizeDetails(values) {
         return [
           normalizedKey,
           {
-            emails: normalizeStringArray(value.emails, (entry) => normalizeText(entry).toLowerCase()),
+            emails: normalizeStringArray(value.emails, (entry) =>
+              normalizeText(entry).toLowerCase()
+            ),
             phone: normalizeText(value.phone),
             mailboxes: normalizeStringArray(value.mailboxes, normalizeKey),
           },
@@ -219,7 +221,9 @@ function normalizeIdentityEnvelope(input = {}) {
   const identitySource = normalizeText(input.identitySource).toLowerCase();
   const allowCanonical = identitySource === 'backend' || identitySource === 'cliento';
   const allowExplicitMergeGroup =
-    identitySource === 'backend' || identitySource === 'explicit_merge' || identitySource === 'cliento';
+    identitySource === 'backend' ||
+    identitySource === 'explicit_merge' ||
+    identitySource === 'cliento';
   return {
     customerKey: normalizeIdentityScalar(input.customerKey),
     customerName: normalizeIdentityScalar(input.customerName),
@@ -232,9 +236,14 @@ function normalizeIdentityEnvelope(input = {}) {
       : null,
     verifiedPersonalEmailNormalized: normalizeEmail(input.verifiedPersonalEmailNormalized) || null,
     verifiedPhoneE164: normalizePhone(input.verifiedPhoneE164) || null,
-    identitySource: ['backend', 'cliento', 'derived', 'explicit_merge', 'history', 'unknown'].includes(
-      identitySource
-    )
+    identitySource: [
+      'backend',
+      'cliento',
+      'derived',
+      'explicit_merge',
+      'history',
+      'unknown',
+    ].includes(identitySource)
       ? identitySource
       : 'unknown',
     identityConfidence: ['strong', 'review', 'uncertain', 'derived', 'weak', 'unknown'].includes(
@@ -263,7 +272,10 @@ function normalizeIdentityByKey(values = {}) {
       .map(([key, value]) => {
         const normalizedKey = normalizeKey(key);
         if (!normalizedKey) return null;
-        return [normalizedKey, normalizeIdentityEnvelope({ ...asObject(value), customerKey: normalizedKey })];
+        return [
+          normalizedKey,
+          normalizeIdentityEnvelope({ ...asObject(value), customerKey: normalizedKey }),
+        ];
       })
       .filter(Boolean)
   );
@@ -291,7 +303,10 @@ function normalizeMergeReviewDecisionMap(values = {}) {
       .map(([key, value]) => {
         const normalizedKey = normalizeText(key).toLowerCase();
         if (!normalizedKey) return null;
-        const normalizedDecision = normalizeMergeReviewDecision({ ...asObject(value), pairId: normalizedKey });
+        const normalizedDecision = normalizeMergeReviewDecision({
+          ...asObject(value),
+          pairId: normalizedKey,
+        });
         if (!normalizedDecision) return null;
         return [normalizedKey, normalizedDecision];
       })
@@ -309,32 +324,31 @@ function buildIdentityEnvelopeFromRecord(customerState, customerKey) {
   const resolvedKey = resolveCustomerKey(customerState, customerKey);
   const directoryEntry = customerState.directory?.[resolvedKey] || {};
   const detailEntry = customerState.details?.[resolvedKey] || {};
-  const existingEnvelope = normalizeIdentityEnvelope(customerState.identityByKey?.[resolvedKey] || {});
-  const detailsEmails = normalizeStringArray(detailEntry.emails, normalizeEmail).map(normalizeEmail);
+  const existingEnvelope = normalizeIdentityEnvelope(
+    customerState.identityByKey?.[resolvedKey] || {}
+  );
+  const detailsEmails = normalizeStringArray(detailEntry.emails, normalizeEmail).map(
+    normalizeEmail
+  );
   const detailsMailboxes = normalizeStringArray(detailEntry.mailboxes, normalizeMailboxLabel);
   const primaryEmail =
     normalizeEmail(customerState.primaryEmailByKey?.[resolvedKey]) || detailsEmails[0] || null;
   const latestMailboxIds = normalizeStringArray(
-    [
-      ...asArray(existingEnvelope.provenance.mailboxIds),
-      ...detailsMailboxes,
-    ],
+    [...asArray(existingEnvelope.provenance.mailboxIds), ...detailsMailboxes],
     normalizeMailboxLabel
   );
   return normalizeIdentityEnvelope({
     ...existingEnvelope,
     customerKey: resolvedKey,
-    customerName: normalizeText(directoryEntry.name) || existingEnvelope.customerName || resolvedKey,
+    customerName:
+      normalizeText(directoryEntry.name) || existingEnvelope.customerName || resolvedKey,
     customerEmail: existingEnvelope.customerEmail || primaryEmail || null,
     customerPhone: existingEnvelope.customerPhone || normalizePhone(detailEntry.phone) || null,
     provenance: {
       source: existingEnvelope.provenance.source || 'derived',
       mailboxIds: latestMailboxIds,
       conversationIds: existingEnvelope.provenance.conversationIds,
-      sourceRecordIds: [
-        ...asArray(existingEnvelope.provenance.sourceRecordIds),
-        resolvedKey,
-      ],
+      sourceRecordIds: [...asArray(existingEnvelope.provenance.sourceRecordIds), resolvedKey],
     },
   });
 }
@@ -348,7 +362,10 @@ function buildBootstrapSourceRecordId(importedRow, sourceSystem = 'cliento') {
     normalizeText(sourceSystem).toLowerCase(),
     normalizeText(importedRow.personnummer),
     normalizeStringArray(importedRow.emails, normalizeEmail).map(normalizeEmail).sort().join('|'),
-    normalizeStringArray(asArray(importedRow.phones), normalizePhone).map(normalizePhone).sort().join('|'),
+    normalizeStringArray(asArray(importedRow.phones), normalizePhone)
+      .map(normalizePhone)
+      .sort()
+      .join('|'),
     normalizePhone(importedRow.phone),
     normalizeText(importedRow.name),
   ]
@@ -390,7 +407,9 @@ function buildClientoReviewPairId(primaryKey, secondaryKeys, importedRow) {
   const tokens = [
     `source:${normalizeText(importedRow.sourceSystem).toLowerCase() || 'cliento'}`,
     `canonical:${normalizeText(primaryKey).toLowerCase()}`,
-    ...normalizeStringArray(secondaryKeys, normalizeText).map((entry) => `candidate:${entry.toLowerCase()}`),
+    ...normalizeStringArray(secondaryKeys, normalizeText).map(
+      (entry) => `candidate:${entry.toLowerCase()}`
+    ),
   ].sort();
   return crypto.createHash('sha256').update(tokens.join('|')).digest('hex').slice(0, 32);
 }
@@ -454,9 +473,15 @@ function buildMergePairId(primaryRecord, secondaryRecord) {
     normalizePhone
   );
   if (sharedVerifiedPhone) {
-    contactTokens.push(`verifiedPhoneE164:${normalizePhone(primaryRecord.identity?.verifiedPhoneE164)}`);
+    contactTokens.push(
+      `verifiedPhoneE164:${normalizePhone(primaryRecord.identity?.verifiedPhoneE164)}`
+    );
   }
-  const sharedExactPhone = sameNormalizedValue(primaryRecord.phone, secondaryRecord.phone, normalizePhone);
+  const sharedExactPhone = sameNormalizedValue(
+    primaryRecord.phone,
+    secondaryRecord.phone,
+    normalizePhone
+  );
   if (sharedExactPhone) {
     contactTokens.push(`phone:${normalizePhone(primaryRecord.phone)}`);
   }
@@ -559,7 +584,9 @@ function scoreMergeReviewCandidate(primaryRecord, secondaryRecord) {
   if (sharedVerifiedEmail) {
     identityAdjacent += 24;
     contactIdentitySignal = true;
-    reasons.push(`Verifierad e-post: ${normalizeEmail(primaryRecord.identity?.verifiedPersonalEmailNormalized)}`);
+    reasons.push(
+      `Verifierad e-post: ${normalizeEmail(primaryRecord.identity?.verifiedPersonalEmailNormalized)}`
+    );
   }
 
   const sharedEmail = primaryRecord.emails.some((email) =>
@@ -568,9 +595,15 @@ function scoreMergeReviewCandidate(primaryRecord, secondaryRecord) {
   if (sharedEmail) {
     identityAdjacent += 20;
     contactIdentitySignal = true;
-    reasons.push(`Delad e-post: ${normalizeEmail(primaryRecord.emails.find((email) =>
-      secondaryRecord.emails.some((candidate) => normalizeEmail(candidate) === normalizeEmail(email))
-    ))}`);
+    reasons.push(
+      `Delad e-post: ${normalizeEmail(
+        primaryRecord.emails.find((email) =>
+          secondaryRecord.emails.some(
+            (candidate) => normalizeEmail(candidate) === normalizeEmail(email)
+          )
+        )
+      )}`
+    );
   }
 
   const sharedVerifiedPhone =
@@ -582,30 +615,46 @@ function scoreMergeReviewCandidate(primaryRecord, secondaryRecord) {
   if (sharedVerifiedPhone) {
     identityAdjacent += 24;
     contactIdentitySignal = true;
-    reasons.push(`Verifierad telefon: ${normalizePhone(primaryRecord.identity?.verifiedPhoneE164)}`);
+    reasons.push(
+      `Verifierad telefon: ${normalizePhone(primaryRecord.identity?.verifiedPhoneE164)}`
+    );
   }
 
-  const sharedPhone = sameNormalizedValue(primaryRecord.phone, secondaryRecord.phone, normalizePhone);
+  const sharedPhone = sameNormalizedValue(
+    primaryRecord.phone,
+    secondaryRecord.phone,
+    normalizePhone
+  );
   if (sharedPhone) {
     identityAdjacent += 20;
     contactIdentitySignal = true;
     reasons.push(`Samma telefon: ${normalizePhone(primaryRecord.phone)}`);
   }
 
-  const sharedName = sameNormalizedValue(primaryRecord.name, secondaryRecord.name, normalizeNameSignature);
+  const sharedName = sameNormalizedValue(
+    primaryRecord.name,
+    secondaryRecord.name,
+    normalizeNameSignature
+  );
   if (sharedName) {
     identityAdjacent += 4;
     reasons.push('Samma kundnamn');
   }
 
-  const sharedCustomerKey = sameNormalizedValue(primaryRecord.key, secondaryRecord.key, normalizeKey);
+  const sharedCustomerKey = sameNormalizedValue(
+    primaryRecord.key,
+    secondaryRecord.key,
+    normalizeKey
+  );
   if (sharedCustomerKey) {
     identityAdjacent += 2;
     reasons.push('Samma kundnyckel');
   }
 
   const sharedMailbox = primaryRecord.mailboxes.filter((mailbox) =>
-    secondaryRecord.mailboxes.some((candidate) => normalizeMailboxLabel(candidate) === normalizeMailboxLabel(mailbox))
+    secondaryRecord.mailboxes.some(
+      (candidate) => normalizeMailboxLabel(candidate) === normalizeMailboxLabel(mailbox)
+    )
   );
   if (sharedMailbox.length) {
     provenance += 8;
@@ -628,10 +677,9 @@ function scoreMergeReviewCandidate(primaryRecord, secondaryRecord) {
     reasons.push('Delad historik');
   }
 
-  const operationalHints = [
-    primaryRecord.operationalHint,
-    secondaryRecord.operationalHint,
-  ].filter(Boolean);
+  const operationalHints = [primaryRecord.operationalHint, secondaryRecord.operationalHint].filter(
+    Boolean
+  );
   if (operationalHints.length) {
     operational += 0;
   }
@@ -696,7 +744,11 @@ function determineMergeDisposition(primaryRecord, secondaryRecord, customerState
     };
   }
 
-  if (scoreSnapshot.score < 30 || scoreSnapshot.categories.length < 2 || !scoreSnapshot.contactIdentitySignal) {
+  if (
+    scoreSnapshot.score < 30 ||
+    scoreSnapshot.categories.length < 2 ||
+    !scoreSnapshot.contactIdentitySignal
+  ) {
     return {
       decision: 'DO_NOT_MERGE',
       pairId,
@@ -726,7 +778,9 @@ function recordMergeReviewDecision(customerState, decisionPayload = {}) {
 function isMergeReviewDecisionDismissed(customerState, pairId) {
   const normalizedPairId = normalizeText(pairId).toLowerCase();
   if (!normalizedPairId) return false;
-  const existing = normalizeMergeReviewDecision(customerState?.mergeReviewDecisionsByPairId?.[normalizedPairId]);
+  const existing = normalizeMergeReviewDecision(
+    customerState?.mergeReviewDecisionsByPairId?.[normalizedPairId]
+  );
   return Boolean(existing && existing.decision === 'dismissed');
 }
 
@@ -901,11 +955,7 @@ function buildImportedRow(input = {}, rowNumber = 1, options = {}) {
     normalizeText(record.fullName) ||
     normalizeText(record.full_name);
   const vipCandidate =
-    record.vip ??
-    record.isVip ??
-    record.is_vip ??
-    record.priority ??
-    record.segment;
+    record.vip ?? record.isVip ?? record.is_vip ?? record.priority ?? record.segment;
 
   return {
     rowNumber,
@@ -970,7 +1020,10 @@ function parseStructuredImportRows(rows, options = {}) {
   return asArray(rows).map((row, index) => {
     const record = row && typeof row === 'object' ? row : {};
     const source = record.record && typeof record.record === 'object' ? record.record : record;
-    const rowNumber = Math.max(1, Number(record.rowNumber || source.rowNumber || index + 1) || index + 1);
+    const rowNumber = Math.max(
+      1,
+      Number(record.rowNumber || source.rowNumber || index + 1) || index + 1
+    );
     return buildImportedRow(source, rowNumber, options);
   });
 }
@@ -992,7 +1045,9 @@ function parseSpreadsheetImportRows(binaryBase64, options = {}) {
     throw new Error('Kalkylbladsfilen kunde inte läsas.');
   }
 
-  const firstSheetName = asArray(workbook?.SheetNames).find((sheetName) => workbook?.Sheets?.[sheetName]);
+  const firstSheetName = asArray(workbook?.SheetNames).find(
+    (sheetName) => workbook?.Sheets?.[sheetName]
+  );
   if (!firstSheetName) {
     throw new Error('Kalkylbladsfilen innehåller inga blad.');
   }
@@ -1044,7 +1099,9 @@ function parseCustomerImportRows({
   }
 
   const looksLikeJson =
-    normalizedFileName.endsWith('.json') || sourceText.startsWith('{') || sourceText.startsWith('[');
+    normalizedFileName.endsWith('.json') ||
+    sourceText.startsWith('{') ||
+    sourceText.startsWith('[');
   if (looksLikeJson) {
     return {
       format: 'json',
@@ -1098,7 +1155,9 @@ function findMatchingCustomerKeys(customerState, importedRow, { strictEmail = fa
       const existingRecord = createIdentityRecord(customerState, customerKey);
       if (
         importedRow.emails.some((email) =>
-          existingRecord.emails.some((candidate) => normalizeEmail(candidate) === normalizeEmail(email))
+          existingRecord.emails.some(
+            (candidate) => normalizeEmail(candidate) === normalizeEmail(email)
+          )
         )
       ) {
         matches.add(resolveCustomerKey(customerState, customerKey));
@@ -1277,8 +1336,14 @@ function splitCustomerProfile(customerState, customerKey, emailToSplit) {
   if (!splitAlias || emails.length < 2) return '';
 
   const remainingEmails = emails.filter((entry) => normalizeEmail(entry) !== normalizedEmail);
-  const splitShare = Math.max(1, Math.round(normalizeCount(record.totalConversations, 1) / emails.length));
-  const splitMessages = Math.max(1, Math.round(normalizeCount(record.totalMessages, 1) / emails.length));
+  const splitShare = Math.max(
+    1,
+    Math.round(normalizeCount(record.totalConversations, 1) / emails.length)
+  );
+  const splitMessages = Math.max(
+    1,
+    Math.round(normalizeCount(record.totalMessages, 1) / emails.length)
+  );
   const splitLtv = Math.max(0, Math.round(normalizeCount(record.customerValue, 0) / emails.length));
   const rootName = splitAlias.split('@')[0] || record.name;
   const normalizedName = rootName
@@ -1296,7 +1361,10 @@ function splitCustomerProfile(customerState, customerKey, emailToSplit) {
 
   record.profileCount = Math.max(1, normalizeCount(record.profileCount, emails.length) - 1);
   record.emailCoverage = remainingEmails.length;
-  record.totalConversations = Math.max(1, normalizeCount(record.totalConversations, 1) - splitShare);
+  record.totalConversations = Math.max(
+    1,
+    normalizeCount(record.totalConversations, 1) - splitShare
+  );
   record.totalMessages = Math.max(1, normalizeCount(record.totalMessages, 1) - splitMessages);
   record.customerValue = Math.max(0, normalizeCount(record.customerValue, 0) - splitLtv);
   record.duplicateCandidate = remainingEmails.length > 1;
@@ -1465,10 +1533,7 @@ function applyImportedRowToCustomerState(customerState, importedRow, options = {
   if (!normalizeText(detail.phone) && normalizeText(importedRow.phone)) {
     detail.phone = importedRow.phone;
   }
-  record.emailCoverage = Math.max(
-    normalizeCount(record.emailCoverage, 0),
-    detail.emails.length
-  );
+  record.emailCoverage = Math.max(normalizeCount(record.emailCoverage, 0), detail.emails.length);
   record.profileCount = Math.max(
     1,
     normalizeCount(record.profileCount, 1),
@@ -1521,7 +1586,9 @@ function applyImportedRowToCustomerState(customerState, importedRow, options = {
 function findClientoBootstrapCandidateKeys(customerState, importedRow, targetKey) {
   const matches = new Set();
   const activeKeys = getActiveCustomerKeys(customerState);
-  const normalizedEmails = normalizeStringArray(importedRow.emails, normalizeEmail).map(normalizeEmail);
+  const normalizedEmails = normalizeStringArray(importedRow.emails, normalizeEmail).map(
+    normalizeEmail
+  );
   const normalizedPhones = normalizeStringArray(
     [...asArray(importedRow.phones), normalizeText(importedRow.phone)],
     normalizePhone
@@ -1551,7 +1618,9 @@ function findClientoBootstrapCandidateKeys(customerState, importedRow, targetKey
     }
 
     if (
-      normalizedEmails.some((email) => existingEmails.some((candidate) => normalizeEmail(candidate) === email))
+      normalizedEmails.some((email) =>
+        existingEmails.some((candidate) => normalizeEmail(candidate) === email)
+      )
     ) {
       matches.add(resolvedKey);
       return;
@@ -1569,15 +1638,22 @@ function findClientoBootstrapCandidateKeys(customerState, importedRow, targetKey
   return Array.from(matches).filter(Boolean);
 }
 
-function buildClientoIdentityEnvelope(customerState, targetKey, importedRow, { certainty = 'review' } = {}) {
+function buildClientoIdentityEnvelope(
+  customerState,
+  targetKey,
+  importedRow,
+  { certainty = 'review' } = {}
+) {
   const seed = buildClientoBootstrapSeed(importedRow);
   const canonicalCustomerId = targetKey || buildClientoCanonicalCustomerId(importedRow);
   const sourceRecordId = buildBootstrapSourceRecordId(importedRow, 'cliento');
-  const primaryEmail = normalizeStringArray(importedRow.emails, normalizeEmail).map(normalizeEmail)[0] || '';
-  const primaryPhone = normalizeStringArray(
-    [...asArray(importedRow.phones), normalizeText(importedRow.phone)],
-    normalizePhone
-  ).map(normalizePhone)[0] || '';
+  const primaryEmail =
+    normalizeStringArray(importedRow.emails, normalizeEmail).map(normalizeEmail)[0] || '';
+  const primaryPhone =
+    normalizeStringArray(
+      [...asArray(importedRow.phones), normalizeText(importedRow.phone)],
+      normalizePhone
+    ).map(normalizePhone)[0] || '';
   return normalizeIdentityEnvelope({
     customerKey: targetKey,
     customerName: normalizeText(importedRow.name) || primaryEmail || targetKey,
@@ -1727,10 +1803,7 @@ function applyClientoImportedRowToCustomerState(customerState, importedRow, opti
     detail.phone = importedRow.phone;
   }
 
-  record.emailCoverage = Math.max(
-    normalizeCount(record.emailCoverage, 0),
-    detail.emails.length
-  );
+  record.emailCoverage = Math.max(normalizeCount(record.emailCoverage, 0), detail.emails.length);
   record.profileCount = Math.max(
     1,
     normalizeCount(record.profileCount, 1),
@@ -1749,8 +1822,10 @@ function applyClientoImportedRowToCustomerState(customerState, importedRow, opti
   const hasPersonnummer = Boolean(normalizePersonnummer(importedRow.personnummer));
   const hasEmail = normalizeStringArray(importedRow.emails, normalizeEmail).length > 0;
   const hasPhone =
-    normalizeStringArray([...asArray(importedRow.phones), normalizeText(importedRow.phone)], normalizePhone)
-      .length > 0;
+    normalizeStringArray(
+      [...asArray(importedRow.phones), normalizeText(importedRow.phone)],
+      normalizePhone
+    ).length > 0;
   const certainty = hasPersonnummer || (hasEmail && hasPhone) ? 'strong' : 'review';
   customerState.identityByKey[targetKey] = buildClientoIdentityEnvelope(
     customerState,
@@ -1795,7 +1870,9 @@ function applyClientoImportedRowToCustomerState(customerState, importedRow, opti
       customerValue: normalizeCount(record.customerValue, 0),
       totalConversations: normalizeCount(record.totalConversations, 0),
       totalMessages: normalizeCount(record.totalMessages, 0),
-      canonicalCustomerId: normalizeText(customerState.identityByKey[targetKey]?.canonicalCustomerId),
+      canonicalCustomerId: normalizeText(
+        customerState.identityByKey[targetKey]?.canonicalCustomerId
+      ),
       identitySource: normalizeText(customerState.identityByKey[targetKey]?.identitySource),
       identityConfidence: normalizeText(customerState.identityByKey[targetKey]?.identityConfidence),
     },
@@ -1837,8 +1914,8 @@ function buildCustomerImportCoverageReadout(customerState = {}) {
   const canonicalCount = identityEntries.filter((entry) =>
     Boolean(
       normalizeText(entry?.canonicalCustomerId) ||
-        normalizeText(entry?.canonicalContactId) ||
-        normalizeText(entry?.explicitMergeGroupId)
+      normalizeText(entry?.canonicalContactId) ||
+      normalizeText(entry?.explicitMergeGroupId)
     )
   ).length;
   const sourceCounts = identityEntries.reduce((acc, entry) => {
@@ -1885,7 +1962,10 @@ function planCustomerImport({
   const normalizedSourceSystem = normalizeText(sourceSystem).toLowerCase();
   const previewRows = parsedRows.map((row) =>
     normalizedSourceSystem === 'cliento'
-      ? applyClientoImportedRowToCustomerState(baseState, { ...row, sourceSystem: normalizedSourceSystem })
+      ? applyClientoImportedRowToCustomerState(baseState, {
+          ...row,
+          sourceSystem: normalizedSourceSystem,
+        })
       : applyImportedRowToCustomerState(baseState, row, { strictEmail })
   );
   const importSummary = buildImportSummary(previewRows, format, fileName);
@@ -1915,7 +1995,10 @@ function normalizeCustomerState(input = {}) {
   const defaults = buildDefaultCustomerState();
   return {
     mergedInto: normalizeLookup(input.mergedInto, normalizeKey),
-    dismissedSuggestionIds: normalizeStringArray(input.dismissedSuggestionIds, normalizeSuggestionId),
+    dismissedSuggestionIds: normalizeStringArray(
+      input.dismissedSuggestionIds,
+      normalizeSuggestionId
+    ),
     acceptedSuggestionIds: normalizeStringArray(input.acceptedSuggestionIds, normalizeSuggestionId),
     mergeReviewDecisionsByPairId: normalizeMergeReviewDecisionMap(
       input.mergeReviewDecisionsByPairId
@@ -1924,13 +2007,14 @@ function normalizeCustomerState(input = {}) {
     directory: Object.keys(input.directory || {}).length
       ? normalizeDirectory(input.directory)
       : defaults.directory,
-    details: Object.keys(input.details || {}).length ? normalizeDetails(input.details) : defaults.details,
+    details: Object.keys(input.details || {}).length
+      ? normalizeDetails(input.details)
+      : defaults.details,
     profileCounts: Object.keys(input.profileCounts || {}).length
       ? normalizeProfileCounts(input.profileCounts)
       : defaults.profileCounts,
-    primaryEmailByKey: normalizeLookup(
-      input.primaryEmailByKey,
-      (value) => normalizeText(value).toLowerCase()
+    primaryEmailByKey: normalizeLookup(input.primaryEmailByKey, (value) =>
+      normalizeText(value).toLowerCase()
     ),
     customerSettings: normalizeCustomerSettings(input.customerSettings),
     updatedAt: normalizeText(input.updatedAt) || nowIso(),
@@ -1962,7 +2046,8 @@ function syncDerivedCustomerState(customerState) {
       totalMessages: 0,
     };
     directory[customerKey] = directoryEntry;
-    directoryEntry.name = normalizeText(directoryEntry.name) || details[customerKey].emails[0] || customerKey;
+    directoryEntry.name =
+      normalizeText(directoryEntry.name) || details[customerKey].emails[0] || customerKey;
     directoryEntry.emailCoverage = Math.max(
       normalizeCount(directoryEntry.emailCoverage, 0),
       details[customerKey].emails.length
@@ -2007,7 +2092,10 @@ function createIdentityRecord(customerState, customerKey) {
     mailboxes: normalizeStringArray(detailEntry.mailboxes, normalizeMailboxLabel),
     profileCount: Math.max(
       1,
-      normalizeCount(customerState.profileCounts?.[resolvedKey], normalizeCount(directoryEntry.profileCount, 1))
+      normalizeCount(
+        customerState.profileCounts?.[resolvedKey],
+        normalizeCount(directoryEntry.profileCount, 1)
+      )
     ),
     identity: buildIdentityEnvelopeFromRecord(customerState, resolvedKey),
   };
@@ -2044,9 +2132,7 @@ function buildCustomerIdentitySuggestions(customerState) {
         decision,
         confidence: Math.min(
           98,
-          decision === 'AUTO_MERGE'
-            ? 98
-            : Math.max(30, normalizeCount(scoreSnapshot.score, 0))
+          decision === 'AUTO_MERGE' ? 98 : Math.max(30, normalizeCount(scoreSnapshot.score, 0))
         ),
         score: normalizeCount(scoreSnapshot.score, 0),
         reasons: normalizeStringArray(scoreSnapshot.reasons, normalizeText),
@@ -2149,9 +2235,10 @@ function mergeHistoryProfilesIntoCustomerState(customerState, historyProfiles = 
     }
 
     const detail = details[targetKey];
-    detail.emails = normalizeStringArray([...asArray(detail.emails), ...emails], normalizeEmail).map(
+    detail.emails = normalizeStringArray(
+      [...asArray(detail.emails), ...emails],
       normalizeEmail
-    );
+    ).map(normalizeEmail);
     detail.mailboxes = normalizeStringArray(
       [
         ...asArray(detail.mailboxes),
@@ -2205,8 +2292,7 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
   state = {
     ...emptyState(),
     ...(state && typeof state === 'object' ? state : {}),
-    tenants:
-      state && typeof state.tenants === 'object' && state.tenants ? state.tenants : {},
+    tenants: state && typeof state.tenants === 'object' && state.tenants ? state.tenants : {},
   };
 
   async function save() {
@@ -2214,10 +2300,7 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
     await writeJsonAtomic(filePath, state);
   }
 
-  async function materializeTenantCustomerState({
-    tenantId,
-    customerState = null,
-  }) {
+  async function materializeTenantCustomerState({ tenantId, customerState = null }) {
     const tenantState = ensureTenantState(tenantId);
     const baseState =
       customerState && typeof customerState === 'object'
@@ -2337,7 +2420,9 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
         coverageReadout: buildCustomerImportCoverageReadout(tenantState.customerState),
       };
     }
-    tenantState.customerState = buildCustomerIdentitySuggestions(planned.customerState).customerState;
+    tenantState.customerState = buildCustomerIdentitySuggestions(
+      planned.customerState
+    ).customerState;
     tenantState.updatedAt = nowIso();
     await save();
     return {
@@ -2449,11 +2534,7 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
     return JSON.parse(JSON.stringify(payload));
   }
 
-  async function dismissTenantCustomerSuggestion({
-    tenantId,
-    customerState = null,
-    suggestionId,
-  }) {
+  async function dismissTenantCustomerSuggestion({ tenantId, customerState = null, suggestionId }) {
     const tenantState = ensureTenantState(tenantId);
     const nextState = await materializeTenantCustomerState({ tenantId, customerState });
     const preview = buildCustomerIdentitySuggestions(nextState);
@@ -2461,7 +2542,8 @@ async function createCcoCustomerStore({ filePath, historyStore = null }) {
       .flatMap((group) => asArray(group))
       .find(
         (entry) =>
-          normalizeText(entry?.pairId || entry?.id).toLowerCase() === normalizeText(suggestionId).toLowerCase()
+          normalizeText(entry?.pairId || entry?.id).toLowerCase() ===
+          normalizeText(suggestionId).toLowerCase()
       );
     if (!dismissCustomerSuggestion(nextState, matchingSuggestion?.pairId || suggestionId)) {
       throw new Error('Förslaget kunde inte markeras.');

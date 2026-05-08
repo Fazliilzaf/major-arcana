@@ -255,15 +255,21 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
       graphMessageId,
     });
 
-  // SLIMMA — body-fält tas aldrig in i truth-store (lagras separat eller fetchas
-  // on-demand). Detta håller filen liten så vi inte får OOM vid JSON.parse.
+  // SLIMMA — rå body-text tas aldrig in i truth-store. Rik HTML med inline-
+  // assets behålls däremot som reparationshint för CCO:s läsyta.
   // bodyPreview cap:as till 500 tecken (räcker för worklist-preview).
   const {
-    body, bodyHtml, uniqueBody, body_text, body_html, mailDocument,
+    body, uniqueBody, body_text, body_html, mailDocument,
     ...rest
   } = safeMessage;
   if (rest.bodyPreview && typeof rest.bodyPreview === 'string' && rest.bodyPreview.length > 500) {
     rest.bodyPreview = rest.bodyPreview.slice(0, 500);
+  }
+  const richBodyHtml = normalizeText(safeMessage.bodyHtml || safeMessage.body_html);
+  if (/<img\b|cid:|data:image\/|<table\b/i.test(richBodyHtml)) {
+    rest.bodyHtml = richBodyHtml;
+  } else {
+    delete rest.bodyHtml;
   }
 
   return {
