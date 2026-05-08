@@ -1,12 +1,15 @@
 /**
- * Major Arcana Preview — FIX10: Demo-fixture name patch.
+ * Major Arcana Preview — Demo-fixture data + focus-pane bypass.
  *
- * Demo-fixtures (worklistSource: "demo") definieras i app.js med customerName
- * ("Morten Bak Kristoffersen" m.fl.) men något i pipelinen mellan fixture-init
- * och rendering wipar fältet, så alla kort visar "Okänd avsändare".
+ * Tidigare hade denna fil en separat DOM-patcher för "Okänd avsändare" (FIX10)
+ * som körde via MutationObserver + setInterval(1500). Per postmortem 2026-05-08
+ * (steg "Refactor demo-fixture") routas demo-kund-namn nu genom samma
+ * render-time-patcher som live-data via window.MajorArcanaCustomerNameResolver.
  *
- * Tills root-cause är spårad: hård DOM-patch via MutationObserver som ersätter
- * .name + avatar med rätt värde när data-runtime-thread börjar med "demo-".
+ * Kvarstående arbete i denna fil (separata problem):
+ *  - FIX12: demo-card click → custom focus-pane content (bypassar auth-required)
+ *  - FIX12b/13: layout-guardian som tvingar focus-shell till höger kolumn
+ *  - FIX14: card-injektor som lägger in 6 demo-kort när listan är tom
  */
 (() => {
   'use strict';
@@ -120,64 +123,14 @@
     },
   };
 
-  const FALLBACK_NAMES = new Set([
-    'okänd avsändare',
-    'okänd kund',
-    'okand avsandare',
-    'okand kund',
-    'unknown',
-    'unknown sender',
-    'unknown customer',
-  ]);
-
-  function isFallbackName(text) {
-    if (!text) return true;
-    const norm = String(text).trim().toLowerCase();
-    return !norm || FALLBACK_NAMES.has(norm);
-  }
-
-  function patchCard(card) {
-    if (!card || card.nodeType !== 1) return;
-    const id = card.dataset && card.dataset.runtimeThread;
-    if (!id) return;
-    const fb = FIXTURES[id];
-    if (!fb) return;
-
-    // .name + warm-row-equivalent (kund-namn i kortets huvudrad)
-    const nameEls = card.querySelectorAll(
-      '.name, .thread-card-identity-name, .counterparty-name, .warm-sender'
-    );
-    nameEls.forEach((el) => {
-      if (isFallbackName(el.textContent)) {
-        el.textContent = fb.name;
-      }
-    });
-    // Subject (warm-row): patcha även ärnerad om den är default-text
-    if (fb.subject) {
-      const subjEls = card.querySelectorAll('.warm-subject, .signal-what');
-      subjEls.forEach((el) => {
-        const t = String(el.textContent || '').trim();
-        if (!t || /samma kund har skrivit/i.test(t) || /^\(.*\)$/.test(t)) {
-          el.textContent = fb.subject;
-          el.setAttribute('title', fb.subject);
-        }
-      });
-    }
-
-    // .avatar (initials — visar "OK" pga "Okänd Kund"-derivat)
-    const avatarEls = card.querySelectorAll('.avatar, .queue-history-avatar, .thread-card-avatar');
-    avatarEls.forEach((el) => {
-      const txt = String(el.textContent || '').trim().toUpperCase();
-      if (txt === 'OK' || txt === '?' || !txt) {
-        el.textContent = fb.initials;
-      }
-    });
-  }
-
-  function patchAllDemoCards(root) {
-    const scope = root && root.querySelectorAll ? root : document;
-    const cards = scope.querySelectorAll('[data-runtime-thread^="demo-"]');
-    cards.forEach(patchCard);
+  // FIX10 (DOM-patcher) borttagen 2026-05-08. Demo-kunder seedas nu till
+  // window.MajorArcanaCustomerNameResolver via seedDemoCustomers() nedan.
+  // P0-2-resolvern (i runtime-queue-renderers.js) patchar "Okänd avsändare"-
+  // texten direkt efter render — samma path som live-data.
+  function seedDemoCustomers() {
+    const resolver = window.MajorArcanaCustomerNameResolver;
+    if (!resolver || typeof resolver.seed !== 'function') return false;
+    return resolver.seed(FIXTURES) > 0;
   }
 
   // FIX12: Renderar fokusytan med demo-konversation när ett demo-kort klickas.
@@ -505,58 +458,26 @@
   }
 
   function bootstrap() {
-    patchAllDemoCards(document);
+    // Demo-kunder seedas till P0-2-resolvern. Försök direkt + retry tills
+    // resolvern är på plats (runtime-queue-renderers.js laddas före denna fil
+    // men IIFE-ordningen kan variera).
+    if (!seedDemoCustomers()) {
+      let attempts = 0;
+      const seedRetry = window.setInterval(() => {
+        attempts += 1;
+        if (seedDemoCustomers() || attempts >= 20) {
+          window.clearInterval(seedRetry);
+        }
+      }, 100);
+    }
+
     bindDemoCardClickToFocus();
     startFocusShellLayoutGuardian();
     startDemoCardInjector();
-    if (typeof MutationObserver !== 'function') return;
 
-    const observer = new MutationObserver((mutations) => {
-      let needsScan = false;
-      for (const m of mutations) {
-        if (m.type === 'childList') {
-          for (const node of m.addedNodes) {
-            if (node && node.nodeType === 1) {
-              if (
-                (node.matches && node.matches('[data-runtime-thread^="demo-"]')) ||
-                (node.querySelector && node.querySelector('[data-runtime-thread^="demo-"]'))
-              ) {
-                needsScan = true;
-                break;
-              }
-            }
-          }
-        } else if (m.type === 'characterData' || m.type === 'attributes') {
-          const target = m.target.nodeType === 1 ? m.target : m.target.parentElement;
-          if (target && target.closest && target.closest('[data-runtime-thread^="demo-"]')) {
-            needsScan = true;
-          }
-        }
-        if (needsScan) break;
-      }
-      if (needsScan) {
-        // Defer så all DOM-uppdatering hinner färdigställas innan vi patchar.
-        if (typeof window.requestAnimationFrame === 'function') {
-          window.requestAnimationFrame(() => patchAllDemoCards(document));
-        } else {
-          patchAllDemoCards(document);
-        }
-      }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-
-    // Backup: kör skanning var 1.5s i 30s i fall MutationObserver missar något.
-    let count = 0;
-    const interval = window.setInterval(() => {
-      patchAllDemoCards(document);
-      count += 1;
-      if (count >= 20) window.clearInterval(interval);
-    }, 1500);
+    // FIX10:s MutationObserver + setInterval(1500ms × 20 ticks) är borttagen.
+    // P0-2-resolvern i runtime-queue-renderers.js patchar nu demo-kund-namn
+    // vid varje render via __scanAndFixUnknownSenders.
   }
 
   if (document.readyState === 'loading') {

@@ -154,11 +154,46 @@
     }, 60000);
   })();
 
+  // Seed-funktion för demo-data (eller andra externa källor) som vill registrera
+  // customer-namn för specifika thread-IDs utan att gå via worklist-API.
+  // Demo-fixturer använder detta för att rikta sina kund-namn genom samma
+  // render-time-patcher som live-data.
+  function __seedCustomers(entries) {
+    if (!entries) return 0;
+    let added = 0;
+    const list = Array.isArray(entries) ? entries : Object.entries(entries);
+    for (const item of list) {
+      let id, info;
+      if (Array.isArray(item)) {
+        id = item[0];
+        info = item[1];
+      } else if (item && item.id) {
+        id = item.id;
+        info = item;
+      } else {
+        continue;
+      }
+      if (!id || !info) continue;
+      const name = info.name || info.customerName || info.displayName || '';
+      const email = info.email || info.customerEmail || '';
+      const norm = String(id).toLowerCase();
+      __threadCustomerMap.set(norm, { name, email });
+      const stripped = norm.replace(/[^a-z0-9]/g, '');
+      __threadCustomerMap.set(stripped, { name, email });
+      added += 1;
+    }
+    if (added > 0) {
+      try { __scanAndFixUnknownSenders(); } catch (_e) {}
+    }
+    return added;
+  }
+
   // Exponera till globalt scope så ev. externa anropare kan trigga rescan
   if (typeof window !== 'undefined') {
     window.MajorArcanaCustomerNameResolver = Object.freeze({
       scanAndFix: __scanAndFixUnknownSenders,
       refetch: __fetchWorklistAndBuildMap,
+      seed: __seedCustomers,
     });
   }
 
