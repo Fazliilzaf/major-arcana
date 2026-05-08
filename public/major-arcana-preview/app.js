@@ -20939,6 +20939,8 @@
       ? state.booking.case
       : null;
     if (asText(state.booking?.focusCaseId) && focusedCase) {
+      const linkedThread = findRuntimeThreadForBookingCase(focusedCase);
+      if (linkedThread && isBookingRuntimeThread(linkedThread)) return linkedThread;
       const focusedThread = buildBookingThreadFromCase(focusedCase);
       if (focusedThread) return focusedThread;
     }
@@ -22948,11 +22950,15 @@
   }
 
   function buildBookingRequestBody(thread, extra = {}) {
-    const customerEmail = getRuntimeCustomerEmail(thread) || asText(thread?.customerEmail);
+    const customerEmail =
+      getRuntimeCustomerEmail(thread) ||
+      asText(thread?.customerEmail) ||
+      asText(thread?.id);
     return {
       workspaceId: WORKSPACE_ID,
       conversationId: asText(thread?.id),
       customerEmail,
+      customerId: customerEmail,
       customerName: asText(thread?.customerName),
       ...extra,
     };
