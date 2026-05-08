@@ -1907,7 +1907,15 @@
     right: { min: MIN_INTEL_WIDTH, max: 430 },
   };
 
-  const state = {
+  // ====================================================================
+  // STATE — wrappad i Proxy för Fas 4-debug.
+  // Default: ingen logging, ingen beteendeförändring. Aktivera i devtools:
+  //   window.__DEBUG_STATE = true   // logga alla mutationer
+  //   window.__DEBUG_STATE = 'count' // bara räkna antal mutationer
+  // Se STATE-MODEL.md för bakgrund.
+  // ====================================================================
+  const __stateMutationStats = { count: 0, byKey: Object.create(null) };
+  const __stateInternal = {
     bootstrapped: false,
     bootstrapError: "",
     noteTemplates: [],
@@ -2426,6 +2434,485 @@
       },
     },
   };
+
+  // ============================================================
+  // state.ui — flat namespace för alla UI-flaggor (steg 3 av state-konsolidering)
+  // ============================================================
+  // Detta är en VIRTUELL VY. Storage:n ligger fortfarande på sina ursprungliga
+  // platser (top-level + runtime-sub-objekt). Renderers/handlers kan välja att
+  // läsa via state.ui.moreMenuOpen ELLER state.moreMenuOpen — båda funkar.
+  // När alla call sites migrerats flyttas storage:n hit.
+  //
+  // Aktiv test: kör `__testStateUi()` i devtools för att verifiera att alla
+  // paths pekar på existerande storage.
+
+  const __UI_KEY_PATHS = Object.freeze({
+    // Top-level UI-flaggor
+    moreMenuOpen: ['moreMenuOpen'],
+    mailboxAdminOpen: ['mailboxAdminOpen'],
+    mailboxAdminEditingId: ['mailboxAdminEditingId'],
+    automationCollaborationOpen: ['automationCollaborationOpen'],
+    automationRailCollapsed: ['automationRailCollapsed'],
+    customerMergeModalOpen: ['customerMergeModalOpen'],
+    customerSettingsOpen: ['customerSettingsOpen'],
+    customerSuggestionsHidden: ['customerSuggestionsHidden'],
+    // Nested top-level
+    noteModeOpen: ['noteMode', 'open'],
+    macroModalOpen: ['macroModal', 'open'],
+    settingsProfileModalOpen: ['settingsProfileModal', 'open'],
+    confirmDialogOpen: ['confirmDialog', 'open'],
+    pendingMailFeedDeleteActive: ['pendingMailFeedDelete', 'active'],
+    // Runtime-nested
+    queueInlinePanelOpen: ['runtime', 'queueInlinePanel', 'open'],
+    queueHistoryOpen: ['runtime', 'queueHistory', 'open'],
+    queueCategoriesCompact: ['runtime', 'queueCategoriesCompact'],
+    truthWorklistViewHidden: ['runtime', 'truthWorklistView', 'hidden'],
+    historyExpanded: ['runtime', 'historyExpanded'],
+    // Navigation (vilken stor vy/pane är aktiv)
+    view: ['view'],
+    activeFocusSection: ['runtime', 'activeFocusSection'],
+  });
+
+  // state.selection — flat namespace för all selection-state (16 + 6 keys).
+  const __SELECTION_KEY_PATHS = Object.freeze({
+    // Top-level
+    customerIdentity: ['selectedCustomerIdentity'],
+    analyticsPeriod: ['selectedAnalyticsPeriod'],
+    automationLibrary: ['selectedAutomationLibrary'],
+    automationNode: ['selectedAutomationNode'],
+    automationSection: ['selectedAutomationSection'],
+    automationTemplate: ['selectedAutomationTemplate'],
+    automationVersion: ['selectedAutomationVersion'],
+    automationAutopilotProposal: ['selectedAutomationAutopilotProposal'],
+    integrationCategory: ['selectedIntegrationCategory'],
+    showcaseFeature: ['selectedShowcaseFeature'],
+    customerMergePrimaryKey: ['customerMergePrimaryKey'],
+    // Nested top-level
+    mailFeedKeyLater: ['selectedMailFeedKey', 'later'],
+    mailFeedKeySent: ['selectedMailFeedKey', 'sent'],
+    // Runtime-nested
+    threadId: ['runtime', 'selectedThreadId'],
+    mailboxIds: ['runtime', 'selectedMailboxIds'],
+    ownerKey: ['runtime', 'selectedOwnerKey'],
+    laneId: ['runtime', 'activeLaneId'],
+    historyContextThreadId: ['runtime', 'historyContextThreadId'],
+    historyConversationId: ['runtime', 'queueHistory', 'selectedConversationId'],
+  });
+
+  // state.status — flat namespace för loading/error-flaggor (28 keys).
+  const __STATUS_KEY_PATHS = Object.freeze({
+    bootstrapped: ['bootstrapped'],
+    bootstrapError: ['bootstrapError'],
+    // Runtime status
+    loading: ['runtime', 'loading'],
+    loaded: ['runtime', 'loaded'],
+    hasReachedSteadyState: ['runtime', 'hasReachedSteadyState'],
+    hasRemovedRuntimeLoading: ['runtime', 'hasRemovedRuntimeLoading'],
+    authRecoveryArmed: ['runtime', 'authRecoveryArmed'],
+    pendingFullRefresh: ['runtime', 'pendingFullRefresh'],
+    isBackgroundRefresh: ['runtime', 'isBackgroundRefresh'],
+    backgroundRefreshSelectedThreadId: ['runtime', 'backgroundRefreshSelectedThreadId'],
+    mode: ['runtime', 'mode'],
+    live: ['runtime', 'live'],
+    authRequired: ['runtime', 'authRequired'],
+    offline: ['runtime', 'offline'],
+    offlineWorkingSetSource: ['runtime', 'offlineWorkingSetSource'],
+    offlineWorkingSetMeta: ['runtime', 'offlineWorkingSetMeta'],
+    error: ['runtime', 'error'],
+    lastSyncAt: ['runtime', 'lastSyncAt'],
+    historyDeleting: ['runtime', 'historyDeleting'],
+    deletingThreadId: ['runtime', 'deletingThreadId'],
+    restoringMail: ['runtime', 'restoringMail'],
+    // Sub-runtime status
+    queueHistoryLoading: ['runtime', 'queueHistory', 'loading'],
+    queueHistoryLoaded: ['runtime', 'queueHistory', 'loaded'],
+    queueHistoryError: ['runtime', 'queueHistory', 'error'],
+    truthWorklistViewLoading: ['runtime', 'truthWorklistView', 'loading'],
+    truthWorklistViewLoaded: ['runtime', 'truthWorklistView', 'loaded'],
+    truthWorklistViewAuthRequired: ['runtime', 'truthWorklistView', 'authRequired'],
+    truthWorklistViewError: ['runtime', 'truthWorklistView', 'error'],
+  });
+
+  // state.prefs — flat namespace för preferences (persisted-värden).
+  const __PREFS_KEY_PATHS = Object.freeze({
+    // Top-level
+    automationAutopilotEnabled: ['automationAutopilotEnabled'],
+    automationScale: ['automationScale'],
+    workspacePrefsApplied: ['workspacePrefsApplied'],
+    // Runtime-nested
+    preferredMailboxId: ['runtime', 'preferredMailboxId'],
+    defaultSenderMailbox: ['runtime', 'defaultSenderMailbox'],
+    defaultSignatureProfile: ['runtime', 'defaultSignatureProfile'],
+    sendEnabled: ['runtime', 'sendEnabled'],
+    deleteEnabled: ['runtime', 'deleteEnabled'],
+    graphReadEnabled: ['runtime', 'graphReadEnabled'],
+    graphReadConnectorAvailable: ['runtime', 'graphReadConnectorAvailable'],
+    mailboxScopePinned: ['runtime', 'mailboxScopePinned'],
+    // Settings runtime
+    themeChoice: ['settingsRuntime', 'choices', 'theme'],
+    densityChoice: ['settingsRuntime', 'choices', 'density'],
+    profileName: ['settingsRuntime', 'profileName'],
+    profileEmail: ['settingsRuntime', 'profileEmail'],
+  });
+
+  function __readUiPath(path) {
+    let cur = __stateInternal;
+    for (const seg of path) {
+      if (cur == null) return undefined;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+
+  function __writeUiPath(path, value) {
+    if (path.length === 1) {
+      // Top-level write går via state-Proxy → mutation tracking fungerar
+      // (state är inte definierad än här, så vi använder forward-ref via __stateRefs)
+      __stateRefs.proxy[path[0]] = value;
+      return;
+    }
+    // Nested write: navigera till parent och skriv leaf direkt.
+    // (state-Proxy fångar bara top-level writes — nested writes på sub-objekt
+    // har aldrig spårats av Proxyn, så ingen regression här.)
+    let cur = __stateInternal;
+    for (let i = 0; i < path.length - 1; i++) {
+      cur = cur[path[i]];
+      if (cur == null) return;
+    }
+    const lastKey = path[path.length - 1];
+    if (cur[lastKey] !== value) cur[lastKey] = value;
+  }
+
+  // Forward-ref så __writeUiPath kan komma åt state-Proxyn innan den deklareras.
+  const __stateRefs = { proxy: null };
+
+  // Generisk factory: bygger en virtuell vy ovanpå en path-mapping.
+  // Används av state.ui, state.selection, state.status, state.prefs.
+  function __makeStateView(viewName, pathMap) {
+    return new Proxy(Object.create(null), {
+      get(_, key) {
+        if (typeof key === 'symbol') return undefined;
+        const path = pathMap[key];
+        if (!path) return undefined;
+        return __readUiPath(path);
+      },
+      set(_, key, value) {
+        if (typeof key === 'symbol') return true;
+        const path = pathMap[key];
+        if (!path) {
+          if (typeof console !== 'undefined') {
+            console.warn(`[state.${viewName}] Okänd key: ${key} — lägg till i path-mapping`);
+          }
+          return true;
+        }
+        __writeUiPath(path, value);
+        return true;
+      },
+      has(_, key) {
+        return Object.prototype.hasOwnProperty.call(pathMap, key);
+      },
+      ownKeys(_) {
+        return Object.keys(pathMap);
+      },
+      getOwnPropertyDescriptor(_, key) {
+        if (Object.prototype.hasOwnProperty.call(pathMap, key)) {
+          return {
+            enumerable: true,
+            configurable: true,
+            value: __readUiPath(pathMap[key]),
+          };
+        }
+        return undefined;
+      },
+    });
+  }
+
+  const stateUiView = __makeStateView('ui', __UI_KEY_PATHS);
+  const stateSelectionView = __makeStateView('selection', __SELECTION_KEY_PATHS);
+  const stateStatusView = __makeStateView('status', __STATUS_KEY_PATHS);
+  const statePrefsView = __makeStateView('prefs', __PREFS_KEY_PATHS);
+
+  // Proxy runt state för Fas 4-debug. Default: ingen logging, transparent.
+  // Aktivera i devtools-console:
+  //   window.__DEBUG_STATE = true   // logga alla mutationer
+  //   window.__DEBUG_STATE = 'count' // räkna utan att logga
+  //   __getStateStats()             // visa mutations-statistik
+  const __VIEW_NAMES = ['ui', 'selection', 'status', 'prefs'];
+  const state = new Proxy(__stateInternal, {
+    get(target, key) {
+      if (key === 'ui') return stateUiView;
+      if (key === 'selection') return stateSelectionView;
+      if (key === 'status') return stateStatusView;
+      if (key === 'prefs') return statePrefsView;
+      return target[key];
+    },
+    set(target, key, value) {
+      if (__VIEW_NAMES.includes(key)) {
+        if (typeof console !== 'undefined') {
+          console.warn(`[state] state.${key} är en vy och kan inte ersättas direkt`);
+        }
+        return true;
+      }
+      // Skip no-op mutationer (samma värde) — fas 4 perf-fix.
+      // Detta minskar moreMenuOpen från 208 → 1 mutation vid bootstrap.
+      // Strict equality för primitives + samma referens för objekt.
+      if (target[key] === value) {
+        __stateMutationStats.skipped = (__stateMutationStats.skipped || 0) + 1;
+        return true;
+      }
+      __stateMutationStats.count++;
+      __stateMutationStats.byKey[key] = (__stateMutationStats.byKey[key] || 0) + 1;
+      const flag = (typeof window !== 'undefined') ? window.__DEBUG_STATE : false;
+      if (flag === true) {
+        try {
+          const v = (value && typeof value === 'object')
+            ? JSON.stringify(value).slice(0, 80) + '…'
+            : String(value);
+          // eslint-disable-next-line no-console
+          console.log('[state]', String(key), '=', v);
+        } catch (_e) { /* ignore stringify errors */ }
+      }
+      // Trace specific keys: aktivera via window.__TRACE_STATE eller localStorage
+      // localStorage.setItem('__TRACE_STATE', 'moreMenuOpen') — överlever reload
+      try {
+        const traceKey = (typeof window !== 'undefined')
+          ? (window.__TRACE_STATE || (typeof localStorage !== 'undefined' ? localStorage.getItem('__TRACE_STATE') : null))
+          : null;
+        if (traceKey === String(key)) {
+          // eslint-disable-next-line no-console
+          console.trace('[state-trace]', String(key), '=', value);
+        }
+      } catch (_e) {}
+      target[key] = value;
+      // Schemalägg render — coalesced via requestAnimationFrame så multipla
+      // mutationer i samma tick → en render.
+      try { scheduleRender(String(key)); } catch (_e) {}
+      return true;
+    },
+  });
+  __stateRefs.proxy = state;
+
+  // ============================================================
+  // renderApp(state) → DOM (steg 4 av state-konsolidering)
+  // ============================================================
+  // Pure render-funktioner per komponent. Anropas via scheduleRender()
+  // som är hookad till state-Proxyns set-handler — varje state-mutation
+  // schemalägger en render via requestAnimationFrame (coalesced).
+  //
+  // Viktigt: detta KÖR PARALLELLT med befintlig imperativ kod under
+  // migrationen. När en komponent helt är render-driven kan motsvarande
+  // imperativa setter förenklas eller tas bort helt.
+  //
+  // Inspektion i devtools:
+  //   window.__getRenderStats() — antal renders + senaste varaktighet
+  //   window.__renderApp() — manuell trigg
+
+  const __renderStats = {
+    scheduled: 0,
+    executed: 0,
+    lastDurationMs: 0,
+    lastReason: '',
+    runtimeShellSkipped: 0,
+  };
+
+  // Hook-ref för stora ytor (renderInbox + renderFocusPane). Sätts av
+  // bootstrap när createQueueRenderers / renderRuntimeConversationShell
+  // är på plats. renderApp anropar dem via ref för loose coupling.
+  const __renderHooks = {
+    runtimeShell: null,
+  };
+  let __runtimeShellInProgress = false;
+
+  let __renderScheduled = false;
+  function scheduleRender(reason) {
+    if (__renderScheduled) return;
+    __renderScheduled = true;
+    __renderStats.scheduled++;
+    __renderStats.lastReason = reason || '';
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(__doRender);
+    } else {
+      setTimeout(__doRender, 0);
+    }
+  }
+
+  function __doRender() {
+    __renderScheduled = false;
+    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    try {
+      renderApp(state);
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[render] fel:', e);
+    }
+    const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    __renderStats.lastDurationMs = t1 - t0;
+    __renderStats.executed++;
+  }
+
+  // Top-level orchestrator. Kallar varje component-renderer som migrerats.
+  // Component-renderers är PURE: läser från state, skriver till DOM, inga
+  // side effects bortom DOM-mutationer.
+  function renderApp(state) {
+    renderMoreMenu(state);
+    renderMailboxAdmin(state);
+    renderConfirmDialog(state);
+    renderCustomerMergeModal(state);
+    renderCustomerSettings(state);
+    renderMacroModal(state);
+    renderSettingsProfileModal(state);
+    renderNoteModeShell(state);
+    renderRuntimeShellHook(state);
+  }
+
+  // Stora ytan: renderInbox + renderFocusPane sköts av renderRuntimeConversationShell
+  // som är inkapslad i app.js bootstrap-scope. Vi hookar in den via __renderHooks
+  // när bootstrap har kört (sätts efter createQueueRenderers).
+  // Skydd:
+  //   - bootstrapped-check: kör inte före appen är klar
+  //   - in-progress-flag: skyddar mot render-loops om shell muterar state
+  //   - try/catch: en kraschad runtime-shell hänger inte hela renderApp
+  function renderRuntimeShellHook(state) {
+    if (!__renderHooks.runtimeShell) return;
+    if (state.bootstrapped !== true) return;
+    if (__runtimeShellInProgress) {
+      __renderStats.runtimeShellSkipped++;
+      return;
+    }
+    __runtimeShellInProgress = true;
+    try {
+      __renderHooks.runtimeShell();
+    } catch (e) {
+      if (typeof console !== 'undefined') {
+        console.warn('[render] runtimeShell fel:', e);
+      }
+    } finally {
+      __runtimeShellInProgress = false;
+    }
+  }
+
+  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler.
+  // Synlighet + transform driven av CSS via [data-open] (cco-polish.css).
+  // JS sätter bara aria-hidden + data-open — inga inline-styles.
+  function __renderFloatingShell(shell, isOpen, _offsetY) {
+    if (!shell) return;
+    const ariaHidden = isOpen ? 'false' : 'true';
+    if (shell.getAttribute('aria-hidden') !== ariaHidden) {
+      shell.setAttribute('aria-hidden', ariaHidden);
+    }
+    const hasOpen = shell.hasAttribute('data-open');
+    if (isOpen && !hasOpen) shell.setAttribute('data-open', '');
+    else if (!isOpen && hasOpen) shell.removeAttribute('data-open');
+  }
+
+  function renderMailboxAdmin(state) {
+    const shell = document.getElementById('mailbox-admin-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.mailboxAdminOpen === true, 14);
+  }
+
+  function renderConfirmDialog(state) {
+    const shell = document.getElementById('shell-confirm-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.confirmDialogOpen === true, 16);
+  }
+
+  function renderCustomerMergeModal(state) {
+    const shell = document.getElementById('customers-merge-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.customerMergeModalOpen === true, 16);
+  }
+
+  function renderCustomerSettings(state) {
+    const shell = document.getElementById('customers-settings-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.customerSettingsOpen === true, 16);
+  }
+
+  function renderMacroModal(state) {
+    const shell = document.getElementById('macro-editor-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.macroModalOpen === true, 16);
+  }
+
+  function renderSettingsProfileModal(state) {
+    const shell = document.getElementById('settings-profile-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.settingsProfileModalOpen === true, 16);
+  }
+
+  function renderNoteModeShell(state) {
+    const shell = document.getElementById('note-mode-shell');
+    if (!shell) return;
+    __renderFloatingShell(shell, state.ui.noteModeOpen === true, 14);
+  }
+
+  function renderMoreMenu(state) {
+    const wrapper = document.querySelector('.preview-more');
+    const menu = document.getElementById('preview-more-menu');
+    const toggle = document.querySelector('[data-more-toggle]');
+    if (!wrapper) return;
+    const isOpen = state.ui.moreMenuOpen === true;
+    // Steg 5: CSS driver synlighet via [data-open]-attributet på wrappern.
+    // JS sätter bara attribut — inga inline-styles, inga 6 redundanta props.
+    const hasOpen = wrapper.hasAttribute('data-open');
+    if (isOpen && !hasOpen) wrapper.setAttribute('data-open', '');
+    else if (!isOpen && hasOpen) wrapper.removeAttribute('data-open');
+    if (menu) {
+      // Synka [hidden] + aria-hidden för screen readers + tab-flow.
+      if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
+      const ariaHidden = isOpen ? 'false' : 'true';
+      if (menu.getAttribute('aria-hidden') !== ariaHidden) {
+        menu.setAttribute('aria-hidden', ariaHidden);
+      }
+    }
+    if (toggle) {
+      const ariaExpanded = isOpen ? 'true' : 'false';
+      if (toggle.getAttribute('aria-expanded') !== ariaExpanded) {
+        toggle.setAttribute('aria-expanded', ariaExpanded);
+      }
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.__getStateStats = () => ({
+      total: __stateMutationStats.count,
+      skipped: __stateMutationStats.skipped || 0,
+      top10: Object.entries(__stateMutationStats.byKey)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10),
+    });
+    window.__getRenderStats = () => ({ ...__renderStats });
+    window.__renderApp = () => {
+      __doRender();
+      return __renderStats;
+    };
+    // Verifierar att alla paths i alla state-vyer pekar på existerande storage.
+    // Returnerar lista med {view, key, path, value, exists}.
+    function __testOneView(viewName, pathMap) {
+      const results = [];
+      for (const key of Object.keys(pathMap)) {
+        const path = pathMap[key];
+        const value = __readUiPath(path);
+        results.push({
+          view: viewName, key, path: path.join('.'), value,
+          exists: value !== undefined,
+        });
+      }
+      return results;
+    }
+    window.__testStateUi = () => {
+      const all = [
+        ...__testOneView('ui', __UI_KEY_PATHS),
+        ...__testOneView('selection', __SELECTION_KEY_PATHS),
+        ...__testOneView('status', __STATUS_KEY_PATHS),
+        ...__testOneView('prefs', __PREFS_KEY_PATHS),
+      ];
+      const missing = all.filter(r => !r.exists);
+      console.log(`[state-views] testar ${all.length} paths över 4 vyer, ${missing.length} missing`);
+      if (missing.length) console.warn('[state-views] saknas:', missing.map(m => `${m.view}.${m.key}`));
+      return all;
+    };
+  }
 
   const asyncRuntimeRefs = {
     bootstrapPromise: null,
@@ -3921,6 +4408,11 @@
     state,
   });
 
+  // Expose workspace-state to runtime-fix-shims for permanent thread-card click-handler.
+  // Behövs eftersom app.js är en sluten IIFE och workspaceSourceOfTruth annars
+  // är oåtkomligt för external shims.
+  try { window.__ccoWorkspace = workspaceSourceOfTruth; } catch (_e) {}
+
   const runtimeReentryState = PREVIEW_REENTRY_STATE.createRuntimeReentryStateApi({
     asArray,
     asText,
@@ -5037,6 +5529,26 @@
       repeat: "Återkommande",
       needs_reply: "Behöver svar",
       response_needed: "Svar krävs",
+      in_progress: "Pågår",
+      in_review: "Under granskning",
+      low_confidence: "Låg konfidens",
+      high_confidence: "Hög konfidens",
+      waiting: "Väntar",
+      waiting_reply: "Väntar på svar",
+      waiting_customer: "Väntar på kund",
+      closed: "Stängd",
+      resolved: "Löst",
+      done: "Klar",
+      paused: "Pausad",
+      snoozed: "Senare",
+      escalated: "Eskalerad",
+      open: "Öppen",
+      reopened: "Återöppnad",
+      pending: "Väntar",
+      scheduled: "Schemalagd",
+      booked: "Bokad",
+      cancelled: "Avbokad",
+      no_show: "Uteblev",
       awaiting_customer: "Väntar på kund",
       awaiting_owner: "Behöver åtgärd",
       awaiting_confirmation: "Väntar på bekräftelse",
@@ -6240,7 +6752,7 @@
       label: state.runtime.sendEnabled ? "Policy OK" : "Skicka spärrat",
       summary:
         thread && state.runtime.sendEnabled
-          ? `${words} ord · ${thread.nextActionLabel}`
+          ? `${words} ord · ${thread.nextActionLabel || "Granska tråden"}`
           : "Livedata saknas eller skicka är spärrat just nu.",
       tone: state.runtime.sendEnabled ? "success" : "warning",
     };
@@ -6251,6 +6763,39 @@
     if (!normalized) return "Inget prioritetsskäl registrerat ännu";
     const [reasonCode] = normalized.split(":");
     return humanizeCode(reasonCode || normalized, normalized);
+  }
+
+  /**
+   * Härled prioritetsskäl från trådens egenskaper när priorityReasons saknas.
+   * Används som fallback istället för "Inget prioritetsskäl registrerat ännu".
+   */
+  function deriveFallbackPriorityReason(row, thread) {
+    if (!row && !thread) return "";
+    const hoursSince = asNumber(row?.timing?.hoursSinceInbound ?? row?.hoursSinceInbound, 0);
+    const lane = normalizeKey(thread?.laneId || thread?.lane || row?.lane);
+    const isUnread = row?.state?.hasUnreadInbound === true || row?.hasUnreadInbound === true || thread?.unread === true;
+    const hasFollowUp = Boolean(row?.followUpDueAt || row?.followUpSuggestedAt);
+    const riskLabel = normalizeKey(thread?.riskLabel || row?.riskLevel || row?.risk);
+
+    // SLA-bedömning först
+    if (hoursSince > 48) return "SLA-överträdelse — > 48h utan svar";
+    if (hoursSince > 24) return "SLA-risk — närmar sig 24h-gräns";
+
+    // Lane-baserade skäl
+    if (lane === "act-now" || lane === "act_now") return "Hög prioritet — kräver omedelbar åtgärd";
+    if (lane === "sprint") return "Sprint — pågående arbete";
+    if (lane === "bookable") return "Klar för bokning — kund väntar bekräftelse";
+    if (lane === "review") return "Granskning krävs — AI-utkast eller avvikande pris";
+    if (lane === "medical") return "Medicinsk fråga — kräver klinisk bedömning";
+    if (lane === "later" || hasFollowUp) return "Schemalagd uppföljning";
+    if (lane === "unclear") return "Otydlig avsikt — kräver tolkning";
+
+    // Risk-/state-baserade fallback
+    if (riskLabel === "miss" || riskLabel === "hög" || riskLabel === "hog") return "Hög risk-flagga";
+    if (isUnread) return "Obesvarat inkommet meddelande";
+    if (hoursSince > 12) return "Inaktiv > 12h";
+
+    return "Standardprioritet";
   }
 
   function mapRuntimeLifecycleLabel(row) {
@@ -7407,7 +7952,7 @@
               110
             ),
             `Kontaktväg: ${thread.mailboxesLabel || thread.mailboxLabel}`,
-            `Nu väntar vi på: ${thread.waitingLabel}`,
+            `Nu väntar vi på: ${thread.waitingLabel || "—"}`,
           ],
         },
       ],
@@ -7459,9 +8004,9 @@
           lines: [
             row?.priorityReasons?.[0]
               ? `Prioritetsskäl: ${formatPriorityReason(row.priorityReasons[0])}`
-              : "Inget prioritetsskäl registrerat ännu",
-            `Nästa steg: ${thread.nextActionLabel}`,
-            thread.followUpLabel ? `Uppföljning: ${thread.followUpLabel}` : `Väntar på: ${thread.waitingLabel}`,
+              : `Prioritetsskäl: ${deriveFallbackPriorityReason(row, thread)}`,
+            `Nästa steg: ${thread.nextActionLabel || "Granska tråden"}`,
+            thread.followUpLabel ? `Uppföljning: ${thread.followUpLabel || "Ingen planerad uppföljning"}` : `Väntar på: ${thread.waitingLabel || "—"}`,
           ],
         },
         {
@@ -7504,8 +8049,8 @@
             detail: "Livekälla: ägare och väntläge kommer från aktiv tråd- och teamkontext.",
           },
           lines: [
-            `Ägare: ${thread.ownerLabel}`,
-            `Väntar på: ${thread.waitingLabel}`,
+            `Ägare: ${thread.ownerLabel || "Ej tilldelad"}`,
+            `Väntar på: ${thread.waitingLabel || "—"}`,
             compactRuntimeCopy(row?.escalationRule, "Ingen eskalering krävs just nu.", 110),
           ],
         },
@@ -7517,7 +8062,7 @@
           lines: [
             thread.nextActionLabel,
             compactRuntimeCopy(thread.nextActionSummary, "Granska tråden och ta nästa tydliga steg.", 110),
-            thread.followUpLabel ? `Planerad uppföljning: ${thread.followUpLabel}` : "Ingen planerad uppföljning ännu.",
+            thread.followUpLabel ? `Planerad uppföljning: ${thread.followUpLabel || "Ingen planerad uppföljning"}` : "Ingen planerad uppföljning ännu.",
           ],
         },
       ],
@@ -9076,9 +9621,27 @@
         compactRuntimeCopy(
           latestOutcome?.detail ||
             latestAction?.summary ||
-            (normalizeKey(latestMessage?.direction) === "outbound"
-              ? "Senaste händelsen i tråden var ett utgående svar från kliniken."
-              : "Senaste händelsen i tråden var ett inkommande mail från kunden."),
+            // P2-2: Använd faktisk mejl-preview innan generisk fallback
+            (() => {
+              const messagePreview = asText(
+                latestMessage?.preview,
+                asText(
+                  latestMessage?.bodyPreview,
+                  asText(
+                    extractPreviewTextFromHtml(latestMessage?.bodyHtml),
+                    asText(latestMessage?.body, "")
+                  )
+                )
+              );
+              if (messagePreview && messagePreview.length > 8) {
+                return messagePreview.length > 120
+                  ? `${messagePreview.slice(0, 117)}…`
+                  : messagePreview;
+              }
+              return normalizeKey(latestMessage?.direction) === "outbound"
+                ? "Senaste händelsen i tråden var ett utgående svar från kliniken."
+                : "Senaste händelsen i tråden var ett inkommande mail från kunden.";
+            })(),
           "Ingen dominant risk identifierad.",
           140
         )
@@ -13117,7 +13680,7 @@
       {
         label: "Nu i",
         value: thread.statusLabel,
-        note: `${thread.waitingLabel} · ${thread.riskLabel}`,
+        note: `${thread.waitingLabel || "—"} · ${thread.riskLabel || "Bevaka"}`,
         tone: "action",
       },
       {
@@ -13816,10 +14379,17 @@
     if (!truthWorklistShell) return;
     truthWorklistShell.hidden = !isOpen;
     truthWorklistShell.setAttribute("aria-hidden", isOpen ? "false" : "true");
-    truthWorklistShell.style.opacity = isOpen ? "1" : "0";
-    truthWorklistShell.style.pointerEvents = isOpen ? "auto" : "none";
-    truthWorklistShell.style.visibility = isOpen ? "visible" : "hidden";
-    truthWorklistShell.style.transform = isOpen ? "translateY(0)" : "translateY(14px)";
+    // Steg state-konsolidering: synlighet driven av CSS via [data-open]
+    // (cco-polish.css). 4 inline-styles ersatta med 1 attribut-toggle.
+    if (isOpen) {
+      if (!truthWorklistShell.hasAttribute("data-open")) {
+        truthWorklistShell.setAttribute("data-open", "");
+      }
+    } else {
+      if (truthWorklistShell.hasAttribute("data-open")) {
+        truthWorklistShell.removeAttribute("data-open");
+      }
+    }
   }
 
   function buildTruthWorklistConsumerHref(mailboxIds = [], limit = getTruthWorklistViewLimit()) {
@@ -15292,34 +15862,25 @@
   }
 
   function setMoreMenuOpen(open) {
+    // Steg 5 (state-konsolidering): visibility hanteras nu av CSS via
+    // [data-open] på .preview-more-wrappern, satt av renderMoreMenu(state)
+    // när state.moreMenuOpen muteras. Vi sätter bara state — Proxy:n
+    // schemalägger render via rAF.
     const isOpen = workspaceSourceOfTruth.setOverlayOpen("moreMenu", open);
     state.moreMenuOpen = isOpen;
-    if (moreMenu) {
-      moreMenu.hidden = !isOpen;
-      moreMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
-      moreMenu.style.display = isOpen ? "grid" : "none";
-      moreMenu.style.visibility = isOpen ? "visible" : "hidden";
-      moreMenu.style.opacity = isOpen ? "1" : "0";
-      moreMenu.style.pointerEvents = isOpen ? "auto" : "none";
-    }
-    if (moreMenuToggle) {
-      moreMenuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    }
   }
 
-  function setFloatingShellOpen(shell, open, offsetY = 14) {
+  function setFloatingShellOpen(shell, open, _offsetY) {
     if (!shell) return;
-    shell.setAttribute("aria-hidden", open ? "false" : "true");
-    shell.style.opacity = open ? "1" : "0";
-    shell.style.visibility = open ? "visible" : "hidden";
-    shell.style.pointerEvents = open ? "auto" : "none";
-    const surface = shell.querySelector(
-      ".customers-modal-surface, .mailbox-admin-surface, .note-mode-surface, .shell-modal-surface"
-    );
-    if (surface) {
-      surface.style.transform = open
-        ? "translateX(-50%) translateY(0)"
-        : `translateX(-50%) translateY(${offsetY}px)`;
+    // Steg state-konsolidering: synlighet + transform driven av CSS via
+    // [data-open] (cco-polish.css). JS sätter bara attribut. _offsetY är
+    // en legacy-parameter — CSS använder default 14px (matchar tidigare beteende).
+    const isOpen = Boolean(open);
+    shell.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    if (isOpen) {
+      if (!shell.hasAttribute("data-open")) shell.setAttribute("data-open", "");
+    } else {
+      if (shell.hasAttribute("data-open")) shell.removeAttribute("data-open");
     }
     syncCanvasFloatingShellState();
   }
@@ -23723,6 +24284,13 @@ renderStudioShell();
     }
     if (state.runtime?.pendingFullRefresh === true) {
       return;
+    }
+    // Hooka in shell:en till renderApp (engångs, idempotent). Detta gör att
+    // framtida state-mutationer triggar shell-render via rAF-coalesced
+    // renderApp(state) — inte bara via manuella call sites. Tag-along till
+    // existerande call sites (de fungerar oförändrat).
+    if (__renderHooks.runtimeShell !== renderRuntimeConversationShell) {
+      __renderHooks.runtimeShell = renderRuntimeConversationShell;
     }
     ensureRuntimeSelection();
     renderRuntimeQueue();

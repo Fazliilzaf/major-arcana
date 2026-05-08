@@ -1,0 +1,831 @@
+/* ============================================================
+   warm-row.css  v8 — Apple Mail / Linear / Arc-stil
+   Layout per kort: top (Oklart + meta) + mid (avatar | content | actions)
+
+   Tokens kommer från design-tokens.css (single source of truth).
+   All CSS wrappad i @layer components för att vinna över @layer legacy
+   (styles.css) utan-krig.
+   ============================================================ */
+
+@layer components {
+
+/* Listans bakgrund — transparent så bara korten syns mot yttre container */
+.queue-history-list,
+.runtime-shell .queue-history-list,
+[data-queue-list-mode] {
+  background-color: transparent;
+  background-image: none;
+}
+
+/* ============================================================
+   KORTET — warm-row v8
+   2 zoner: top + mid
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas: "top" "mid";
+  gap: 4px;
+  padding: 12px 16px 12px 18px;
+  background-color: var(--warm-card);
+  border: 1px solid var(--warm-border);
+  border-radius: 14px;
+  /* Tydligare elevation (option 2): kort lyfter visuellt från bg */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(120, 80, 40, 0.05),
+    0 2px 8px rgba(120, 80, 40, 0.08);
+  position: relative;
+  overflow: visible;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
+  background-color: var(--warm-card-alt);
+}
+.thread-card.unified-queue-card.warm-row:hover {
+  background-color: var(--warm-hover);
+  border-color: var(--warm-border-2);
+  /* Hover: starkare elevation, kortet "lyfter" */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 4px rgba(120, 80, 40, 0.08),
+    0 6px 16px rgba(120, 80, 40, 0.12);
+  transform: translateY(-1px);
+}
+.queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even):hover {
+  background-color: var(--warm-hover);
+}
+.thread-card.unified-queue-card.warm-row[aria-current="true"],
+.thread-card.unified-queue-card.warm-row.thread-card-selected {
+  background-color: var(--warm-selected);
+  border-color: #E8C9A6;
+}
+
+/* Stäng av peach-gradient ::before/::after från styles.css */
+.thread-card.unified-queue-card.warm-row::before,
+.thread-card.unified-queue-card.warm-row::after,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::before,
+.thread-card.unified-queue-card.warm-row.thread-card-selected::after,
+.thread-card.unified-queue-card.warm-row:hover::before,
+.thread-card.unified-queue-card.warm-row:hover::after {
+  content: none;
+  display: none;
+  background: none;
+  background-image: none;
+  box-shadow: none;
+  opacity: 0;
+}
+.thread-card.unified-queue-card.warm-row {
+  --thread-card-wash: transparent;
+  --mail-card-highlight: none;
+  --mail-card-lower-glow: none;
+  --mail-card-highlight-selected: none;
+  --mail-card-lower-glow-selected: none;
+}
+.thread-card.unified-queue-card.warm-row.thread-card-selected {
+  min-height: 0;
+  padding: 12px 16px 12px 18px;
+  gap: 4px;
+}
+
+/* ============================================================
+   RAIL — lila vertikal accent på vänster kant
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-rail {
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--warm-violet);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .warm-rail   { background: var(--warm-violet); }
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="urgent"] .warm-rail    { background: var(--warm-red); }
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .warm-rail    { background: var(--warm-indigo); }
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .warm-rail     { background: var(--warm-orange); }
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .warm-rail,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .warm-rail   { background: var(--warm-green); }
+
+/* ============================================================
+   TOP — Oklart vänster + meta höger
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 0 4px;
+  min-height: 14px;
+}
+.thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  line-height: 1.2;
+  color: var(--warm-violet);
+  white-space: nowrap;
+}
+.thread-card.unified-queue-card.warm-row .warm-top .lane-badge svg { display: none; }
+
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .lane-badge   { color: var(--warm-violet); }
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="urgent"] .lane-badge    { color: var(--warm-red); }
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .lane-badge    { color: var(--warm-indigo); }
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .lane-badge     { color: var(--warm-orange); }
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .lane-badge,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .lane-badge   { color: var(--warm-green); }
+
+/* Top meta: datum + Ej tilldelad */
+.thread-card.unified-queue-card.warm-row .warm-top-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--warm-text-3);
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-date {
+  color: var(--warm-text-2);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-sep {
+  color: var(--warm-border-2);
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warm-text-3);
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status svg { display: none; }
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned {
+  color: var(--warm-orange);
+}
+.thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>") no-repeat center / contain;
+}
+
+/* ============================================================
+   MID — avatar | content | actions
+   actions vertikalt centrerade med content
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-mid {
+  grid-area: mid;
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  grid-template-rows: auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
+  padding: 0 0 0 4px;
+  min-width: 0;
+}
+
+/* ============================================================
+   AVATAR — 36px peach radial, status-prick blå
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  margin: 0;
+  align-self: start;
+  margin-top: 2px;
+  transform: none;
+}
+.thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+.thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar,
+.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  max-width: 36px;
+  max-height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6B4A2F;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #FFEFDE 35%, #F7DDC0 75%, #E8C29A 100%);
+  background-image: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #FFEFDE 35%, #F7DDC0 75%, #E8C29A 100%);
+  border: 1px solid #ECD3B4;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset -1px -2px 4px rgba(180, 120, 60, 0.18),
+    0 1px 2px rgba(120, 80, 40, 0.10);
+  letter-spacing: 0.2px;
+  margin: 0;
+  padding: 0;
+  transform: none;
+  transition: none;
+}
+.thread-card.unified-queue-card.warm-row:hover .avatar,
+.thread-card.unified-queue-card.warm-row:hover .warm-avatar .avatar {
+  transform: none;
+}
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--warm-card);
+  background: var(--warm-indigo);
+  box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.10);
+}
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.warn  { background: var(--warm-orange); }
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.alert { background: var(--warm-red); }
+.thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.done  { background: var(--warm-green); }
+
+/* ============================================================
+   CONTENT — sender · subject + filer / preview / why
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+/* Rad 1: Sender · Subject + filikoner */
+.thread-card.unified-queue-card.warm-row .warm-line-1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.thread-card.unified-queue-card.warm-row .warm-sender {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--warm-text);
+  letter-spacing: -0.005em;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.thread-card.unified-queue-card.warm-row .warm-line-1 .warm-sep {
+  color: var(--warm-border-2);
+  font-weight: 400;
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+.thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+  font-size: 14.5px;
+  font-weight: 400;
+  color: var(--warm-text-4);
+  letter-spacing: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Filikoner inline */
+.thread-card.unified-queue-card.warm-row .warm-file-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  margin-left: 4px;
+}
+.thread-card.unified-queue-card.warm-row .warm-file-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--warm-text-5);
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+/* Rad 2: Body preview, 2-rader clamp */
+.thread-card.unified-queue-card.warm-row .warm-preview {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--warm-text-3);
+  letter-spacing: 0;
+  line-height: 1.4;
+  margin: 1px 0 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Rad 3: Why — färgad ikon + text */
+.thread-card.unified-queue-card.warm-row .warm-why {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon svg {
+  width: 13px;
+  height: 13px;
+}
+.thread-card.unified-queue-card.warm-row .warm-why .why-reason {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"]   { color: var(--warm-orange); }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] { color: var(--warm-indigo); }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"]    { color: var(--warm-red)   ; }
+.thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"]   { color: var(--warm-green) ; }
+
+/* ============================================================
+   ACTIONS — vertikalt centrerade höger
+   ============================================================ */
+.thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  align-self: end;
+}
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border-radius: 50%;
+  background: rgba(255, 252, 248, 0.85);
+  border: 1px solid var(--warm-border);
+  color: var(--warm-text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04);
+}
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
+  background: var(--warm-bg-warmer);
+  border-color: var(--warm-border-2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(120, 80, 40, 0.10);
+}
+
+/* Action-icon färgkodning */
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"]  { color: var(--warm-violet); }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"]    { color: var(--warm-orange); }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] { color: var(--warm-green) ; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"]  { color: var(--warm-green) ; }
+.thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"]   { color: var(--warm-red)   ; }
+
+/* Primary action — Öppna pill */
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--warm-border-2);
+  background: linear-gradient(180deg, #FFFCF7 0%, #F4E9DC 100%);
+  color: #6B563A;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 1px 2px rgba(120, 80, 40, 0.06);
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action svg {
+  width: 11px;
+  height: 11px;
+}
+.thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
+  background: linear-gradient(180deg, #FFFEFB 0%, #EBDDC9 100%);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 2px 8px rgba(120, 80, 40, 0.12);
+}
+.thread-card.unified-queue-card.warm-row[data-lane="oklart"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="unclear"] .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #EFE3FA 100%);
+  color: #5B2EAD;
+  border-color: #DDD0F0;
+}
+.thread-card.unified-queue-card.warm-row[data-lane="act-now"] .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #FCE2DE 100%);
+  color: #B23B3B;
+  border-color: #F2C9C2;
+}
+.thread-card.unified-queue-card.warm-row[data-lane="granska"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="review"] .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #DEDEFB 100%);
+  color: #4040B0;
+  border-color: #C7C7F0;
+}
+.thread-card.unified-queue-card.warm-row[data-lane="senare"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="later"] .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #FCE5CC 100%);
+  color: #B85A1F;
+  border-color: #F2D2B0;
+}
+.thread-card.unified-queue-card.warm-row[data-lane="bokning"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="bookable"] .primary-action,
+.thread-card.unified-queue-card.warm-row[data-lane="booking"] .primary-action {
+  background: linear-gradient(180deg, #FFFCF7 0%, #D6F0DC 100%);
+  color: #1F7A3A;
+  border-color: #B8DFC0;
+}
+
+/* ============================================================
+   Stäng AV gammalt: orphan-element från tidigare versioner
+   ============================================================ */
+.warm-row .priority-bar,
+.warm-row .card-strip,
+.warm-row .card-body,
+.warm-row .card-footer,
+.warm-row .mailbox-stack,
+.warm-row .signal-why:not(.warm-why),
+.warm-row .warm-bottom,
+.warm-row .warm-name,
+.warm-row > .warm-mid > .warm-content > .warm-name {
+  display: none;
+}
+
+.warm-row * { text-shadow: none; }
+
+/* ============================================================
+   Workspace-resizers (drag-handles mellan inkorg / focus / panel)
+   Tona ner: dölj synlig stripe + skugga, behåll col-resize-cursor.
+   Vid hover: subtil mjuk linje som hint.
+   ============================================================ */
+.workspace-resizer,
+.workspace-resizer-left,
+.workspace-resizer-right {
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+  cursor: col-resize;
+}
+.workspace-resizer::before,
+.workspace-resizer::after,
+.workspace-resizer-left::before,
+.workspace-resizer-left::after,
+.workspace-resizer-right::before,
+.workspace-resizer-right::after {
+  content: none;
+  display: none;
+  background: none;
+  background-image: none;
+  box-shadow: none;
+  opacity: 0;
+}
+.workspace-resizer:hover::before,
+.workspace-resizer-left:hover::before,
+.workspace-resizer-right:hover::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 30%;
+  bottom: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(120, 80, 40, 0.18);
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Auto-stäng dropdowns vid sidladdning
+   Respektera hidden / aria-hidden attribut, så menyn inte syns
+   om inte trigger explicit har aria-expanded="true".
+   ============================================================ */
+.preview-more-menu[hidden],
+.preview-more-menu[aria-hidden="true"] {
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.preview-more-menu:not([aria-hidden="false"]):not(.is-open) {
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Mailbox-meny: visa endast när toggle :checked */
+.mailbox-menu-toggle:not(:checked) ~ .mailbox-menu,
+.mailbox-dropdown:not(:has(.mailbox-menu-toggle:checked)) .mailbox-menu {
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Mailbox-menyn: byt från position:fixed (som kräver app.js att räkna top/left)
+   till position:absolute relativt .mailbox-dropdown — anchoras automatiskt
+   under triggern. Fungerar oavsett timing eller app.js-state. */
+.mailbox-dropdown {
+  position: relative;
+}
+.mailbox-dropdown > .mailbox-menu,
+.mailbox-menu-toggle:checked ~ .mailbox-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 0;
+  right: auto;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 80px));
+}
+/* Owner-dropdown: höger-anchorerad (fakturarow) */
+.owner-dropdown.mailbox-dropdown > .mailbox-menu {
+  left: auto;
+  right: 0;
+  width: min(220px, calc(100vw - 32px));
+}
+
+/* Responsivt — på smala skärmar dölj några actions */
+@media (max-width: 720px) {
+  .thread-card.unified-queue-card.warm-row {
+    padding: 10px 12px 12px 16px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    grid-template-columns: 32px 1fr auto;
+    column-gap: 10px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap,
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar {
+    width: 32px; height: 32px;
+    min-width: 32px; min-height: 32px;
+    max-width: 32px; max-height: 32px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-sender,
+  .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+    font-size: 13.5px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    font-size: 12.5px;
+    -webkit-line-clamp: 1;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"],
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Responsiv layout (migrerad från P1-D shim 2026-05-07)
+   .preview-workspace + .focus-layout grid-fixes och mejl-content overflow.
+   Inga importance-flaggor behövs — @layer components vinner över @layer legacy.
+   ============================================================ */
+
+/* CORE FIX — .cco-followup-row och .focus-shell var båda i grid-cell row 1
+   col 2, så filter-raden lade sig OVANPÅ Fokusyta-rubriken vid reload.
+   Lös genom att ge dem egna rader. */
+.preview-workspace {
+  grid-template-rows: auto 1fr;
+}
+.cco-followup-row {
+  grid-row: 1;
+  grid-column: 2;
+}
+.focus-shell {
+  grid-row: 2;
+  grid-column: 2;
+}
+.preview-shell {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+/* CORE FIX — höger panel-tabgrupp overlappade pga flex-shrink (primary 182px,
+   content 291px). Tvinga primary till content-höjd och tillåt scroll i panelen. */
+.focus-intel-primary {
+  flex: 0 0 auto;
+  height: auto;
+}
+.focus-intel-primary-body {
+  flex: 0 0 auto;
+}
+.focus-intel-switcher {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.focus-intel {
+  overflow-y: auto;
+}
+
+/* Email-content: tillåt scroll horisontalt om mejl-tabell är bredare */
+.conversation-mail-body,
+.conversation-mail {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.conversation-mail-body table {
+  max-width: 100%;
+}
+/* Förhindra word-break mitt i ord (t.ex. "Nyhete r Väsko r") */
+.conversation-mail-body td {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+/* Vid små viewports — göm höger panel så mejl får plats */
+@media (max-width: 1100px) {
+  .focus-layout {
+    grid-template-columns: 1fr;
+  }
+  .focus-intel {
+    display: none;
+  }
+}
+
+/* ============================================================
+   More-menu CSS-only visibility (steg 5 state-konsolidering 2026-05-08)
+   Wrappern .preview-more bär data-open="" när menyn är öppen.
+   JS sätter bara attributet via renderMoreMenu — inga inline-styles.
+   ============================================================ */
+.preview-more-menu {
+  /* Default hidden — overrides styles.css base som hade display:grid */
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.preview-more[data-open] .preview-more-menu {
+  display: grid;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
+   Floating shells (modaler) — CSS-only synlighet via [data-open]
+   (migrerad från setFloatingShellOpen inline-styles 2026-05-08)
+   JS sätter bara data-open=""-attributet, CSS hanterar opacity/
+   visibility/pointer-events/transform. Synkrona attribut-skrivningar
+   reagerar i samma frame — ingen rAF-delay för open/close.
+   ============================================================ */
+#mailbox-admin-shell,
+#shell-confirm-shell,
+#customers-merge-shell,
+#customers-settings-shell,
+#macro-editor-shell,
+#settings-profile-shell,
+#note-mode-shell,
+#truth-worklist-shell,
+#customers-import-shell,
+#customers-split-shell {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s ease;
+}
+#mailbox-admin-shell[data-open],
+#shell-confirm-shell[data-open],
+#customers-merge-shell[data-open],
+#customers-settings-shell[data-open],
+#macro-editor-shell[data-open],
+#settings-profile-shell[data-open],
+#note-mode-shell[data-open],
+#truth-worklist-shell[data-open],
+#customers-import-shell[data-open],
+#customers-split-shell[data-open] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+/* Surface-transform: körs ned från ovan när stängd, glider in när öppen */
+#mailbox-admin-shell .mailbox-admin-surface,
+#shell-confirm-shell .shell-modal-surface,
+#customers-merge-shell .customers-modal-surface,
+#customers-settings-shell .customers-modal-surface,
+#macro-editor-shell .shell-modal-surface,
+#settings-profile-shell .shell-modal-surface,
+#note-mode-shell .note-mode-surface,
+#customers-import-shell .customers-modal-surface,
+#customers-split-shell .customers-modal-surface {
+  transform: translateX(-50%) translateY(14px);
+  transition: transform 0.22s ease;
+}
+#mailbox-admin-shell[data-open] .mailbox-admin-surface,
+#shell-confirm-shell[data-open] .shell-modal-surface,
+#customers-merge-shell[data-open] .customers-modal-surface,
+#customers-settings-shell[data-open] .customers-modal-surface,
+#macro-editor-shell[data-open] .shell-modal-surface,
+#settings-profile-shell[data-open] .shell-modal-surface,
+#note-mode-shell[data-open] .note-mode-surface,
+#customers-import-shell[data-open] .customers-modal-surface,
+#customers-split-shell[data-open] .customers-modal-surface {
+  transform: translateX(-50%) translateY(0);
+}
+/* Truth-worklist: ingen translateX-centrering (sidpanel) */
+#truth-worklist-shell {
+  transform: translateY(14px);
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+#truth-worklist-shell[data-open] {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   Secondary filter chips (migrerad från P1-B shim 2026-05-07)
+   Klickbara chips för Hög risk / Idag / Imorgon / Otilldelad / Uppföljning.
+   ============================================================ */
+.queue-secondary-signal-chip {
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+.queue-secondary-signal-chip:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.queue-secondary-signal-chip.is-active-filter {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  font-weight: 600;
+}
+
+} /* end @layer components */

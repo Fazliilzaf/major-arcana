@@ -14,7 +14,7 @@
 (() => {
   'use strict';
 
-  let observerBound = false;
+  // (observerBound borttagen i Fas 2 cleanup — observer ersatt av polling)
 
   // Markörer (subset av backend-implementationen — för snabbhet)
   const POSITIVE_MARKERS = ['tack', 'tacksam', 'jättekul', 'perfekt', 'underbar', 'glad', 'nöjd', 'thanks', 'great', 'awesome', '😊', '🙏'];
@@ -67,34 +67,11 @@
       return;
     }
 
-    // Hitta footer-eller meta-element att lägga badges i
-    const footer = card.querySelector('.card-footer') || card.querySelector('.thread-card-footer') || card;
-    const container = document.createElement('span');
-    container.className = 'cco-card-badges';
-    container.setAttribute('data-cco-card-badges', '');
-    if (sentiment) {
-      const span = document.createElement('span');
-      span.className = `cco-card-badge cco-card-badge-sentiment is-tone-${sentiment.tone}`;
-      span.title = sentiment.label;
-      span.textContent = sentiment.icon;
-      container.appendChild(span);
-      card.setAttribute('data-quick-sentiment', sentiment.code);
-    }
-    if (intent) {
-      const span = document.createElement('span');
-      span.className = 'cco-card-badge cco-card-badge-intent';
-      span.title = intent.label;
-      span.textContent = intent.icon;
-      container.appendChild(span);
-      card.setAttribute('data-quick-intent', intent.code);
-    }
-
-    // Sätt in badges först i footer (eller card)
-    if (footer.firstChild) {
-      footer.insertBefore(container, footer.firstChild);
-    } else {
-      footer.appendChild(container);
-    }
+    // warm-row v7: vi visar inte längre sentiment/intent-badges som DOM-element
+    // (de är ersatta av en enskild färgad why-rad i markup). Sätt bara
+    // data-attribut på kortet så CSS/andra delar kan reagera.
+    if (sentiment) card.setAttribute('data-quick-sentiment', sentiment.code);
+    if (intent) card.setAttribute('data-quick-intent', intent.code);
     card.__ccoSentimentApplied = true;
   }
 
@@ -144,23 +121,14 @@ html[data-theme="dark"] .cco-card-badge {
     document.head.appendChild(style);
   }
 
-  function bindMutationObserver() {
-    if (observerBound) return;
-    if (typeof MutationObserver !== 'function') return;
-    let scheduled = false;
-    const obs = new MutationObserver(() => {
-      if (scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        applyBadgesToAllCards();
-      });
-    });
-    obs.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-    observerBound = true;
+  // Fas 2 cleanup: MutationObserver ersatt med lättviktig polling.
+  // applyBadgesToCard short-circuit:ar via card.__ccoSentimentApplied så
+  // varje pass bara gör jobb för nya cards. Billigt + deterministiskt.
+  let pollerStarted = false;
+  function startLightweightPoller() {
+    if (pollerStarted) return;
+    pollerStarted = true;
+    setInterval(applyBadgesToAllCards, 2000);
   }
 
   function mount() {
@@ -168,12 +136,12 @@ html[data-theme="dark"] .cco-card-badge {
       document.addEventListener('DOMContentLoaded', () => {
         injectStyles();
         applyBadgesToAllCards();
-        bindMutationObserver();
+        startLightweightPoller();
       }, { once: true });
     } else {
       injectStyles();
       applyBadgesToAllCards();
-      bindMutationObserver();
+      startLightweightPoller();
     }
   }
 

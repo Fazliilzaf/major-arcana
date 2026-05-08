@@ -47,7 +47,7 @@
       const currentOverlays =
         current.overlays && typeof current.overlays === "object" ? current.overlays : {};
 
-      state.workspace = {
+      const next = {
         appView: normalizeView(current.appView || state.view || "conversations"),
         focusSection:
           normalizeKey(current.focusSection || state.runtime.activeFocusSection || "conversation") ||
@@ -85,6 +85,17 @@
         },
       };
 
+      // Fas 4 perf-fix: memoize workspace-objektet via JSON-jämförelse.
+      // Om data är identisk med nuvarande, behåll samma referens — Proxy:s
+      // no-op-skip kommer då hoppa över hela mutationen.
+      try {
+        if (state.workspace && JSON.stringify(state.workspace) === JSON.stringify(next)) {
+          // Inga ändringar — behåll samma referens, Proxy hoppar över.
+          return state.workspace;
+        }
+      } catch (_e) { /* fallback to assign */ }
+
+      state.workspace = next;
       syncLegacyState();
       return state.workspace;
     }

@@ -1,4 +1,743 @@
 (() => {
+  // ============================================================
+  // Customer-name resolver (migrerad från P0-2 shim 2026-05-07)
+  // ============================================================
+  // Hämtar ?fallback-namn för trådar där app.js har "Okänd avsändare".
+  // Tidigare en setInterval(1500ms)-shim som scannade hela DOM:en konstant.
+  // Nu körs det bara när renderern faktiskt kör (renderQueueHistoryList +
+  // renderQueueInlineLaneList anropar scanAndFixUnknownSenders på sin egen
+  // container) plus en lågfrekvent re-fetch var 60s av API-data.
+
+  const __CUSTOMER_LS_KEY = 'cco.selectedMailboxIds.v1';
+  const __CUSTOMER_DEFAULT_MAILBOXES = ['contact','egzona','fazli','info','kons','marknad'];
+  const __threadCustomerMap = new Map();
+
+  function __buildWorklistConsumerUrl() {
+    let mailboxIds = [];
+    try {
+      const persisted = localStorage.getItem(__CUSTOMER_LS_KEY);
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          mailboxIds = parsed.map(k => `${k}@hairtpclinic.com`);
+        }
+      }
+    } catch (_e) { /* tyst */ }
+    if (mailboxIds.length === 0) {
+      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`);
+    }
+    const params = new URLSearchParams();
+    params.set('mailboxIds', mailboxIds.join(','));
+    params.set('limit', '500');
+    return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
+  }
+
+  async function __fetchWorklistAndBuildMap() {
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      if (!token) return false;
+      const res = await fetch(__buildWorklistConsumerUrl(), {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
+      let added = 0;
+      for (const row of rows) {
+        const id = row.id
+          || row.conversationKey
+          || row.conversation?.key
+          || row.conversation?.mailboxConversationId
+          || row.conversation?.conversationId
+          || row.conversation?.id
+          || row.conversationId;
+        if (!id) continue;
+        const customer = row.customer || row.contact || {};
+        const name = customer.name || customer.displayName || row.customerName || row.from?.name || '';
+        const email = customer.email || customer.address || row.customerEmail || row.from?.address || '';
+        const norm = String(id).toLowerCase();
+        __threadCustomerMap.set(norm, { name, email });
+        const stripped = norm.replace(/[^a-z0-9]/g, '');
+        __threadCustomerMap.set(stripped, { name, email });
+        added += 1;
+      }
+      return added > 0;
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[name-resolver] worklist-fetch fel:', e);
+      return false;
+    }
+  }
+
+  function __lookupCustomerForCard(cardEl) {
+    const tid = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || cardEl.dataset.threadId;
+    if (!tid) return null;
+    const norm = String(tid).toLowerCase();
+    if (__threadCustomerMap.has(norm)) return __threadCustomerMap.get(norm);
+    const stripped = norm.replace(/[^a-z0-9]/g, '');
+    if (__threadCustomerMap.has(stripped)) return __threadCustomerMap.get(stripped);
+    return null;
+  }
+
+  function __humanizeLocalpart(localpart) {
+    if (!localpart) return '';
+    return localpart
+      .replace(/[._-]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  function __fixUnknownSenderInCard(cardEl) {
+    if (!cardEl) return;
+    const walker = document.createTreeWalker(cardEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => /Okänd avsändare/i.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+    });
+    const targets = [];
+    let n;
+    while ((n = walker.nextNode())) targets.push(n);
+    if (targets.length === 0) return;
+
+    let humanName = '';
+    const customer = __lookupCustomerForCard(cardEl);
+    if (customer?.name) {
+      humanName = customer.name;
+    } else if (customer?.email) {
+      humanName = __humanizeLocalpart(customer.email.split('@')[0]);
+    }
+
+    if (!humanName) {
+      let email = '';
+      const allElements = [cardEl, ...cardEl.querySelectorAll('*')];
+      for (const el of allElements) {
+        for (const attr of el.attributes || []) {
+          const m = (attr.value || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (m) { email = m[0]; break; }
+        }
+        if (email) break;
+      }
+      if (!email) {
+        const m = cardEl.textContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (m) email = m[0];
+      }
+      if (email) humanName = __humanizeLocalpart(email.split('@')[0]);
+    }
+
+    if (!humanName) return;
+
+    targets.forEach(textNode => {
+      textNode.nodeValue = textNode.nodeValue.replace(/Okänd avsändare/gi, humanName);
+    });
+    cardEl.dataset.shimNameFixed = 'true';
+  }
+
+  function __scanAndFixUnknownSenders(root) {
+    const cards = (root || document).querySelectorAll('.thread-card:not([data-shim-name-fixed])');
+    cards.forEach(__fixUnknownSenderInCard);
+  }
+
+  // Bootstrap: en gång vid load + lågfrekvent re-fetch (var 60s) för att fånga
+  // nya trådar. Tidigare 1500ms-pollingen är borta — scan körs istället
+  // direkt efter render (se renderQueueHistoryList / renderQueueInlineLaneList).
+  (async function bootstrapCustomerNameResolver() {
+    try { await __fetchWorklistAndBuildMap(); } catch (_e) {}
+    try { __scanAndFixUnknownSenders(); } catch (_e) {}
+    setInterval(async () => {
+      try {
+        await __fetchWorklistAndBuildMap();
+        // Rensa fixed-flag så nästa render-scan tar med ev. nya trådar
+        document.querySelectorAll('.thread-card[data-shim-name-fixed]').forEach(c => delete c.dataset.shimNameFixed);
+        __scanAndFixUnknownSenders();
+      } catch (_e) {}
+    }, 60000);
+  })();
+
+  // Seed-funktion för demo-data (eller andra externa källor) som vill registrera
+  // customer-namn för specifika thread-IDs utan att gå via worklist-API.
+  // Demo-fixturer använder detta för att rikta sina kund-namn genom samma
+  // render-time-patcher som live-data.
+  function __seedCustomers(entries) {
+    if (!entries) return 0;
+    let added = 0;
+    const list = Array.isArray(entries) ? entries : Object.entries(entries);
+    for (const item of list) {
+      let id, info;
+      if (Array.isArray(item)) {
+        id = item[0];
+        info = item[1];
+      } else if (item && item.id) {
+        id = item.id;
+        info = item;
+      } else {
+        continue;
+      }
+      if (!id || !info) continue;
+      const name = info.name || info.customerName || info.displayName || '';
+      const email = info.email || info.customerEmail || '';
+      const norm = String(id).toLowerCase();
+      __threadCustomerMap.set(norm, { name, email });
+      const stripped = norm.replace(/[^a-z0-9]/g, '');
+      __threadCustomerMap.set(stripped, { name, email });
+      added += 1;
+    }
+    if (added > 0) {
+      try { __scanAndFixUnknownSenders(); } catch (_e) {}
+    }
+    return added;
+  }
+
+  // Exponera till globalt scope så ev. externa anropare kan trigga rescan
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaCustomerNameResolver = Object.freeze({
+      scanAndFix: __scanAndFixUnknownSenders,
+      refetch: __fetchWorklistAndBuildMap,
+      seed: __seedCustomers,
+    });
+  }
+
+  // ============================================================
+  // Thread-card click delegering (migrerad från P1-1 shim 2026-05-07)
+  // ============================================================
+  // App.js's egen click-delegering träffar inte konsekvent. Vi binder en
+  // delegerad click-handler på document som fångar klick på .thread-card,
+  // ger visuell feedback direkt och anropar workspace-API:t för permanent
+  // selection. Re-render från state-change ger sedan korrekt is-selected.
+
+  function __handleThreadCardClick(event) {
+    const card = event.target.closest('.thread-card');
+    if (!card) return;
+    // Skippa om klicket var på en knapp/action inom kortet (egna handlers).
+    if (event.target.closest('button, [role="button"], [data-quick-action], a, input, label')) return;
+    // Förhindra dubbel-trigger om handlers fyrar på flera event-typer.
+    if (card.dataset.shimSelectInFlight === '1') return;
+    card.dataset.shimSelectInFlight = '1';
+
+    // Visuell feedback direkt (innan re-render hinner ske).
+    document.querySelectorAll('.thread-card.is-selected, .thread-card.thread-card-selected').forEach(c => {
+      if (c !== card) c.classList.remove('is-selected', 'thread-card-selected');
+    });
+    card.classList.add('is-selected', 'thread-card-selected');
+    card.setAttribute('aria-pressed', 'true');
+
+    // Uppdatera workspace-state — re-render kommer ge permanent visuell feedback.
+    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || '';
+    if (threadId && window.__ccoWorkspace?.setSelectedThreadId) {
+      try {
+        window.__ccoWorkspace.setSelectedThreadId(threadId);
+        window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: threadId } }));
+      } catch (e) {
+        if (typeof console !== 'undefined') console.warn('[card-click] setSelectedThreadId fel:', e);
+      }
+    }
+
+    setTimeout(() => { delete card.dataset.shimSelectInFlight; }, 200);
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', __handleThreadCardClick, false);
+      });
+    } else {
+      document.addEventListener('click', __handleThreadCardClick, false);
+    }
+  }
+
+  // ============================================================
+  // Secondary filter (Hög risk / Idag / Imorgon / Otilldelad / Uppföljning)
+  // (migrerad från P1-B shim 2026-05-07)
+  // ============================================================
+  // Tidigare en setInterval(1500ms)-shim som re-applicerade filtret efter
+  // varje render. Nu körs filtret direkt efter render via hookarna i
+  // renderQueueHistoryList + renderQueueInlineLaneList.
+
+  let __activeSecondaryFilter = null;
+
+  function __applySecondaryFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    cards.forEach(card => {
+      if (!__activeSecondaryFilter) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+        return;
+      }
+      const matches = !!card.querySelector(`.queue-secondary-signal-chip--${__activeSecondaryFilter}`);
+      if (matches) {
+        card.style.removeProperty('display');
+        card.removeAttribute('data-shim-filtered');
+      } else {
+        card.style.display = 'none';
+        card.setAttribute('data-shim-filtered', '1');
+      }
+    });
+    // Uppdatera live-pill med filtered count (bara när filter är aktivt)
+    if (__activeSecondaryFilter) {
+      const visibleCount = document.querySelectorAll('.thread-card:not([data-shim-filtered])').length;
+      const pill = document.getElementById('preview-live-status');
+      if (pill) {
+        const lblEl = pill.querySelector('.preview-live-pill-label');
+        if (lblEl) lblEl.textContent = `Live · ${visibleCount}`;
+      }
+    }
+  }
+
+  function __handleSecondaryFilterClick(event) {
+    const chip = event.target.closest('.queue-secondary-signal-chip');
+    if (!chip) return;
+    const variantMatch = chip.className.match(/queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/);
+    if (!variantMatch) return;
+    const filterKey = variantMatch[1];
+    event.preventDefault();
+    event.stopPropagation();
+    if (__activeSecondaryFilter === filterKey) {
+      __activeSecondaryFilter = null;
+      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
+        .forEach(c => c.classList.remove('is-active-filter'));
+    } else {
+      __activeSecondaryFilter = filterKey;
+      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
+        .forEach(c => c.classList.remove('is-active-filter'));
+      document.querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`)
+        .forEach(c => c.classList.add('is-active-filter'));
+    }
+    __applySecondaryFilter();
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', __handleSecondaryFilterClick, true);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaSecondaryFilter = Object.freeze({
+      reapply: __applySecondaryFilter,
+      getActive: () => __activeSecondaryFilter,
+    });
+  }
+
+  // ============================================================
+  // Sök-filter (Sök i historik) — migrerad från P1-C shim 2026-05-07
+  // ============================================================
+  // Tidigare shim på document. Re-apply körs nu efter varje render via
+  // hookarna i renderQueueHistoryList + renderQueueInlineLaneList så
+  // typningen "håller" även när korten re-renderas.
+
+  let __activeSearchQuery = '';
+
+  function __applySearchFilter() {
+    const cards = document.querySelectorAll('.thread-card');
+    const query = __activeSearchQuery.toLowerCase().trim();
+    cards.forEach(card => {
+      if (!query) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+        return;
+      }
+      const text = card.textContent.toLowerCase();
+      if (text.includes(query)) {
+        if (card.dataset.shimSearchHidden === '1') {
+          card.style.removeProperty('display');
+          delete card.dataset.shimSearchHidden;
+        }
+      } else {
+        card.style.display = 'none';
+        card.dataset.shimSearchHidden = '1';
+      }
+    });
+  }
+
+  function __handleSearchInput(event) {
+    const target = event.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    const placeholder = (target.placeholder || '').toLowerCase();
+    if (!/sök/.test(placeholder)) return;
+    __activeSearchQuery = target.value || '';
+    __applySearchFilter();
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('input', __handleSearchInput, true);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaSearchFilter = Object.freeze({
+      reapply: __applySearchFilter,
+      getQuery: () => __activeSearchQuery,
+    });
+  }
+
+  // ============================================================
+  // Status-label översättning + "undefined"-rensning
+  // (migrerad från P2-1 shim 2026-05-07)
+  // ============================================================
+  // Tidigare två setInterval(1500ms)-loopar som scannade DOM:en konstant.
+  // Nu körs båda direkt efter render samt vid cco:state-change events.
+  // Defensiv backstop ifall någon render-path går runt humanizeCode i app.js.
+
+  const __STATUS_LABEL_MAP = {
+    needs_reply: 'Behöver svar',
+    needs_action: 'Behöver åtgärd',
+    needs_review: 'Behöver granskning',
+    in_progress: 'Pågår',
+    in_review: 'Under granskning',
+    ready_to_book: 'Redo att boka',
+    ready_now: 'Redo att boka',
+    low_confidence: 'Låg konfidens',
+    high_confidence: 'Hög konfidens',
+    waiting: 'Väntar',
+    waiting_reply: 'Väntar på svar',
+    waiting_customer: 'Väntar på kund',
+    awaiting_customer: 'Väntar på kund',
+    awaiting_owner: 'Behöver åtgärd',
+    awaiting_confirmation: 'Väntar på bekräftelse',
+    closed: 'Stängd',
+    resolved: 'Löst',
+    done: 'Klar',
+    paused: 'Pausad',
+    snoozed: 'Senare',
+    escalated: 'Eskalerad',
+    open: 'Öppen',
+    reopened: 'Återöppnad',
+    pending: 'Väntar',
+    scheduled: 'Schemalagd',
+    booked: 'Bokad',
+    cancelled: 'Avbokad',
+    no_show: 'Uteblev',
+    response_needed: 'Svar krävs',
+    follow_up_pending: 'Återbesök väntar',
+    booking_ready: 'Redo att boka',
+    blocked_medical: 'Medicinsk kontroll',
+    not_relevant: 'Ej relevant',
+    active_dialogue: 'Aktiv dialog',
+  };
+
+  const __STATUS_LABEL_TITLECASE = {};
+  for (const [k, v] of Object.entries(__STATUS_LABEL_MAP)) {
+    const titleCased = k.split(/[_-]+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    __STATUS_LABEL_TITLECASE[titleCased] = v;
+  }
+
+  function __translateStatusText(text) {
+    if (!text || typeof text !== 'string') return null;
+    const trimmed = text.trim();
+    const lower = trimmed.toLowerCase();
+    if (__STATUS_LABEL_MAP[lower]) return __STATUS_LABEL_MAP[lower];
+    if (__STATUS_LABEL_TITLECASE[trimmed]) return __STATUS_LABEL_TITLECASE[trimmed];
+    return null;
+  }
+
+  function __fixStatusLabelsInRoot(root) {
+    const target = root || document.body;
+    if (!target) return;
+    const candidates = target.querySelectorAll(
+      '[class*="status"], [data-status], [class*="tag"], [class*="badge"], [class*="chip"], [class*="pill"]'
+    );
+    candidates.forEach(el => {
+      if (el.children.length > 0) {
+        for (const node of el.childNodes) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const translated = __translateStatusText(node.nodeValue);
+            if (translated && translated !== node.nodeValue.trim()) {
+              node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), translated);
+            }
+          }
+        }
+        return;
+      }
+      const translated = __translateStatusText(el.textContent);
+      if (translated && translated !== el.textContent.trim()) {
+        el.textContent = translated;
+      }
+    });
+  }
+
+  function __aggressiveStatusAndUndefinedFix(root) {
+    const target = root || document.body;
+    if (!target) return;
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        const txt = (n.nodeValue || '').trim();
+        if (!txt) return NodeFilter.FILTER_REJECT;
+        if (__STATUS_LABEL_MAP[txt.toLowerCase()]) return NodeFilter.FILTER_ACCEPT;
+        if (__STATUS_LABEL_TITLECASE[txt]) return NodeFilter.FILTER_ACCEPT;
+        if (/\bundefined\b/.test(txt)) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(node => {
+      const original = node.nodeValue;
+      let updated = original;
+      const trimmed = updated.trim();
+      const lower = trimmed.toLowerCase();
+      if (__STATUS_LABEL_MAP[lower]) {
+        updated = updated.replace(trimmed, __STATUS_LABEL_MAP[lower]);
+      } else if (__STATUS_LABEL_TITLECASE[trimmed]) {
+        updated = updated.replace(trimmed, __STATUS_LABEL_TITLECASE[trimmed]);
+      }
+      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, '—');
+      updated = updated.replace(/\bundefined\s*·/gi, '— ·');
+      updated = updated.replace(/·\s*undefined\b/gi, '· —');
+      updated = updated.replace(/^undefined$/gi, '—');
+      if (updated !== original) {
+        node.nodeValue = updated;
+      }
+    });
+  }
+
+  function __runAllStatusFixes(root) {
+    try { __fixStatusLabelsInRoot(root); } catch (_e) {}
+    try { __aggressiveStatusAndUndefinedFix(root); } catch (_e) {}
+  }
+
+  // Bootstrap: scanna en gång efter DOM är klar + lyssna på state-change events.
+  // Den 1500ms-pollingen är borta — render-hooks nedan + dessa events räcker.
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => __runAllStatusFixes());
+    } else {
+      __runAllStatusFixes();
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('cco:state-change', () => __runAllStatusFixes());
+    window.addEventListener('cco:runtime-update', () => __runAllStatusFixes());
+    window.MajorArcanaStatusFixer = Object.freeze({
+      run: __runAllStatusFixes,
+      translate: __translateStatusText,
+    });
+  }
+
+  // ============================================================
+  // Live-pill (Demo / Live · N) — migrerad från P1-4 shim 2026-05-07
+  // ============================================================
+  // Tidigare 1s×30 ticks + 5s setInterval-pollning. Nu: render-hook +
+  // state-events. Pillen uppdateras varje gång listan renderas och
+  // varje gång state ändras — exakt när DOM-trådantal kan ha ändrats.
+
+  const __PILL_LS_KEY = 'cco.selectedMailboxIds.v1';
+  let __lastPillSig = '';
+
+  function __detectLiveState() {
+    let isLive = false;
+    let threadCount = 0;
+    try {
+      const ws = window.__ccoWorkspace;
+      if (ws && typeof ws.getState === 'function') {
+        const st = ws.getState();
+        const runtime = st?.runtime || {};
+        if (runtime.live === true || runtime.mode === 'live') isLive = true;
+        if (Array.isArray(runtime.threads)) {
+          threadCount = runtime.threads.length;
+          if (threadCount > 0) isLive = true;
+        } else if (Array.isArray(st?.threads)) {
+          threadCount = st.threads.length;
+        }
+      }
+    } catch (_e) { /* tyst */ }
+
+    const domCount = document.querySelectorAll('.thread-card').length;
+    if (domCount > 0) {
+      isLive = true;
+      threadCount = Math.max(threadCount, domCount);
+    }
+
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
+      const mailboxes = localStorage.getItem(__PILL_LS_KEY);
+      if (token && mailboxes && JSON.parse(mailboxes)?.length > 0) {
+        isLive = true;
+      }
+    } catch (_e) { /* tyst */ }
+
+    return { isLive, threadCount };
+  }
+
+  function __updateLivePill() {
+    const pill = document.getElementById('preview-live-status');
+    if (!pill) return;
+    const { isLive, threadCount } = __detectLiveState();
+    const labelEl = pill.querySelector('.preview-live-pill-label');
+    if (!labelEl) return;
+    const newLabel = isLive ? `Live · ${threadCount}` : 'Demo';
+    const newDemoClass = !isLive;
+    const sig = `${newLabel}|${newDemoClass}`;
+    if (sig === __lastPillSig) return;
+    __lastPillSig = sig;
+    labelEl.textContent = newLabel;
+    pill.classList.toggle('preview-live-pill--demo', newDemoClass);
+    pill.title = isLive
+      ? `Live-data — ${threadCount} tråd${threadCount === 1 ? '' : 'ar'} i kö`
+      : 'Demo-läge — välj mailboxar för att hämta live-data';
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __updateLivePill);
+    } else {
+      __updateLivePill();
+    }
+    // Mailbox-checkbox change → liten delay för app.js att uppdatera state, sen update
+    document.addEventListener('change', (e) => {
+      if (e.target?.type === 'checkbox') setTimeout(__updateLivePill, 200);
+    }, true);
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('cco:state-change', __updateLivePill);
+    window.addEventListener('cco:runtime-update', __updateLivePill);
+    window.MajorArcanaLivePill = Object.freeze({
+      update: __updateLivePill,
+      detect: __detectLiveState,
+    });
+  }
+
+  // ============================================================
+  // Mailbox-counts (Egzona · 47) — migrerad från P2-3 shim 2026-05-07
+  // ============================================================
+  // Tidigare 2× setInterval: 1500ms DOM-poll + 60s API-fetch.
+  // Nu: 60s API-fetch behållen (lågfrekvent), DOM-polling ersatt med
+  // MutationObserver som triggar apply när nya mailbox-labels mountas.
+
+  const __MAILBOX_DEFAULTS = ['contact','egzona','fazli','info','kons','marknad'];
+  const __mailboxCountMap = new Map();
+
+  function __rebuildMailboxCounts(rows) {
+    __mailboxCountMap.clear();
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      const candidates = [
+        row?.mailbox?.mailboxId,
+        row?.mailbox?.mailboxAddress,
+        row?.mailbox?.address,
+        row?.mailbox?.id,
+        row?.mailbox?.key,
+        row?.mailboxId,
+        row?.mailboxAddress,
+        row?.assignedMailboxId,
+        row?.primaryMailboxId,
+      ].filter(Boolean);
+      let counted = false;
+      for (const c of candidates) {
+        if (counted) break;
+        const norm = String(c).toLowerCase();
+        const localpart = norm.includes('@') ? norm.split('@')[0] : norm;
+        const key = __MAILBOX_DEFAULTS.find(m => localpart === m || localpart.startsWith(m));
+        if (!key) continue;
+        __mailboxCountMap.set(key, (__mailboxCountMap.get(key) || 0) + 1);
+        counted = true;
+      }
+    }
+  }
+
+  async function __fetchMailboxCounts() {
+    try {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      if (!token) return;
+      const params = new URLSearchParams();
+      params.set('mailboxIds', __MAILBOX_DEFAULTS.map(k => `${k}@hairtpclinic.com`).join(','));
+      params.set('limit', '500');
+      const res = await fetch(`/api/v1/cco/runtime/worklist/consumer?${params.toString()}`, {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : (Array.isArray(data?.items) ? data.items : []);
+      __rebuildMailboxCounts(rows);
+    } catch (_e) { /* tyst */ }
+  }
+
+  let __mailboxCountsApplyScheduled = false;
+  function __applyMailboxCountsToDom() {
+    if (__mailboxCountMap.size === 0) return;
+    const labels = document.querySelectorAll('label');
+    labels.forEach(label => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      const text = (label.textContent || '').toLowerCase();
+      const matched = __MAILBOX_DEFAULTS.find(m => text.includes(m));
+      if (!matched) return;
+      const count = __mailboxCountMap.get(matched) || 0;
+      if (label.querySelector('.shim-mbx-count')) {
+        label.querySelector('.shim-mbx-count').textContent = count > 0 ? ` · ${count}` : '';
+        return;
+      }
+      const countSpan = document.createElement('span');
+      countSpan.className = 'shim-mbx-count';
+      countSpan.style.cssText = 'opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;white-space:nowrap;';
+      countSpan.textContent = count > 0 ? ` · ${count}` : '';
+      const labelTextEl =
+        label.querySelector('.mailbox-option-copy')
+        || label.querySelector('[class*="copy"]')
+        || label.querySelector('[class*="label"]')
+        || Array.from(label.children).reverse().find(c => c.tagName !== 'INPUT' && !c.className.includes('box'))
+        || label;
+      labelTextEl.appendChild(countSpan);
+    });
+  }
+
+  function __scheduleMailboxCountsApply() {
+    if (__mailboxCountsApplyScheduled) return;
+    __mailboxCountsApplyScheduled = true;
+    requestAnimationFrame(() => {
+      __mailboxCountsApplyScheduled = false;
+      __applyMailboxCountsToDom();
+    });
+  }
+
+  // Bootstrap: en gång + lågfrekvent re-fetch + MutationObserver för att fånga
+  // när dropdown öppnas (nya checkbox-labels mountas).
+  (async function bootstrapMailboxCounts() {
+    try {
+      await __fetchMailboxCounts();
+      __applyMailboxCountsToDom();
+    } catch (_e) {}
+    setInterval(async () => {
+      try {
+        await __fetchMailboxCounts();
+        __applyMailboxCountsToDom();
+      } catch (_e) {}
+    }, 60000);
+
+    if (typeof document !== 'undefined') {
+      const start = () => {
+        const observer = new MutationObserver((mutations) => {
+          // Bara reagera om någon mutation lägger till noder med checkbox-input
+          for (const m of mutations) {
+            for (const node of m.addedNodes) {
+              if (node.nodeType !== 1) continue;
+              if (node.matches?.('input[type="checkbox"]')
+                  || node.querySelector?.('input[type="checkbox"]')) {
+                __scheduleMailboxCountsApply();
+                return;
+              }
+            }
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+    }
+  })();
+
+  if (typeof window !== 'undefined') {
+    window.MajorArcanaMailboxCounts = Object.freeze({
+      apply: __applyMailboxCountsToDom,
+      refetch: __fetchMailboxCounts,
+      getMap: () => new Map(__mailboxCountMap),
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -2298,47 +3037,116 @@
 
       const v5DataLane = ` data-lane="${escapeHtml(v5Lane)}"`;
 
-      // v5: använd inline-styles på varje sektion + grid-style på artikeln så ingen
-      // CSS-override kan vända ordningen (footer-strip-body-buggen). Browser-defaults
-      // för grid + explicit grid-row på children ger garanterad strip→body→footer.
-      // OBS: använd single-quotes ('rail strip') i grid-template-areas-värdet
-      // eftersom hela style="..."-attributet redan är inom double-quotes i HTML.
-      // Med double-quotes inuti bryter \" ut ur attributet och styling ignoreras.
-      const articleStyle = "display:grid;grid-template-columns:12px 1fr;grid-template-rows:auto auto auto;grid-template-areas:'rail strip' 'rail body' 'rail footer';position:relative;height:auto;min-height:0;max-height:none;padding:0;overflow:visible;";
-      const railStyle = "grid-area:rail;grid-row:1/4;grid-column:1;width:5px;height:100%;align-self:stretch;border-radius:14px 0 0 14px;";
-      const stripStyle = "grid-area:strip;grid-row:1;grid-column:2;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 4px;";
-      const bodyStyle = "grid-area:body;grid-row:2;grid-column:2;display:grid;grid-template-columns:42px 1fr;align-items:flex-start;gap:14px;padding:6px 16px 12px;";
-      const footerStyle = "grid-area:footer;grid-row:3;grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px 12px;";
+      // ====== WARM-ROW v8 markup — Apple Mail / Linear / Arc-stil ======
+      // Layout:
+      //   top:  [Oklart]                            [datum · Ej tilldelad]
+      //   mid:  [avatar] [sender · subject + filer]                 [actions]
+      //                  [2-rads body-preview]
+      //                  [why-rad: ⚠ Miss-risk]
+      const dateMarkup = asText(unifiedModel.time)
+        ? `<time class="meta-date" datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time>`
+        : "";
+      const stampMarkup = stampLabel
+        ? `<span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${escapeHtml(stampLabel)}</span>`
+        : "";
+      const dotSep = (dateMarkup && stampMarkup) ? `<span class="meta-sep" aria-hidden="true">·</span>` : "";
 
-      return `<!-- v5-final-r3 markup --><article data-v5-version="r3" class="thread-card queue-history-item unified-queue-card${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState} style="${articleStyle}">
-        <div class="priority-bar" aria-hidden="true" style="${railStyle}"></div>
-        <div class="card-strip" style="${stripStyle}">
-          <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${v5Icon}${escapeHtml(v5Label)}</span>
-          <div class="meta">
-            ${
-              asText(unifiedModel.time)
-                ? `<span class="meta-date"><time datetime="${escapeHtml(unifiedModel.recordedAt || "")}">${escapeHtml(unifiedModel.time || "")}</time></span><span class="meta-sep">·</span>`
-                : ""
-            }
-            <span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${ownerIcon}${escapeHtml(stampLabel)}</span>
+      // Bygg why-rad med färgad ikon. Mappa text/tone → ikon.
+      const whyText = whyEntries.length ? asText(typeof whyEntries[0] === "string" ? whyEntries[0] : whyEntries[0].text) : "";
+      const whyTone = whyEntries.length && typeof whyEntries[0] === "object" ? asText(whyEntries[0].tone) : "";
+      const whyKey = whyText.toLowerCase();
+      let whyIconKind = "info";
+      if (/miss[\s-]?risk|risk|överskrid|overdue|brand/.test(whyKey)) whyIconKind = "alert";
+      else if (/svar|reply|fråga/.test(whyKey)) whyIconKind = "refresh";
+      else if (/åtgärd|action|brådsk|akut|urgent/.test(whyKey)) whyIconKind = "info";
+      else if (/klar|done|färdig/.test(whyKey)) whyIconKind = "check";
+      else if (whyTone === "alert") whyIconKind = "info";
+      else if (whyTone === "amber") whyIconKind = "alert";
+
+      const WARM_WHY_ICONS = {
+        alert:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></svg>',
+        refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4 3 10 9 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36L3 10"/></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      };
+
+      const warmWhyMarkup = whyText
+        ? `<div class="warm-why" data-why-kind="${escapeHtml(whyIconKind)}">
+            <span class="warm-why-icon" aria-hidden="true">${WARM_WHY_ICONS[whyIconKind]}</span>
+            <span class="why-reason">${escapeHtml(whyText)}</span>
+          </div>`
+        : "";
+
+      // ====== Sender / Subject / Body preview-text ======
+      // Sender = motpart (företaget eller kunden som skrivit)
+      // Subject = mejlets ämnesrad (subtitle eller fallback whatStr)
+      // Preview = själva body-texten (previewLine), clampad till 2 rader via CSS
+      const senderText = counterpartyCopy;
+      const rawPreviewBody = asText(unifiedModel.previewLine);
+      const subtitleText = asText(unifiedModel.subtitle);
+      const subjectText = subtitleText || whatStr;
+      const previewBody =
+        rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
+          ? rawPreviewBody
+          : (rawPreviewBody.length > subjectText.length ? rawPreviewBody : "");
+
+      // ====== Bilageikoner: detektera enkelt från subject + preview ======
+      const ATTACH_ICONS = {
+        paperclip: '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+        image:     '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+        pdf:       '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      };
+      const attachHaystack = (subjectText + " " + rawPreviewBody).toLowerCase();
+      const attachIconsArr = [];
+      if (/\.pdf|signerad kopia|bifogad|undertecknats|avtal|kvitto|faktura|offert|dokument/.test(attachHaystack)) {
+        attachIconsArr.push(ATTACH_ICONS.paperclip);
+      }
+      if (/\.jpe?g|\.png|\.gif|\[telefon\]|nyhetsbrev|kundcase|bild |image |screenshot/.test(attachHaystack)) {
+        attachIconsArr.push(ATTACH_ICONS.image);
+      }
+      const attachIconsMarkup = attachIconsArr.length
+        ? `<span class="warm-file-icons" aria-hidden="true">${attachIconsArr.join("")}</span>`
+        : "";
+
+      const senderSubjectMarkup = `<div class="warm-line-1">
+        <span class="warm-sender">${escapeHtml(senderText)}</span>
+        ${subjectText ? `<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="${escapeHtml(subjectText)}">${escapeHtml(subjectText)}</span>` : ""}
+        ${attachIconsMarkup}
+      </div>`;
+
+      const warmPreviewMarkup = previewBody
+        ? `<div class="warm-preview">${escapeHtml(previewBody)}</div>`
+        : "";
+
+      return `<!-- warm-row-v8 markup --><article data-v8-version="warm-r8" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
+        <span class="warm-rail" aria-hidden="true"></span>
+        <div class="warm-top">
+          <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
+          <div class="warm-top-meta">
+            ${dateMarkup}${dotSep}${stampMarkup}
           </div>
         </div>
-        <div class="card-body" style="${bodyStyle}">
-          <div class="avatar-wrap">
+        <div class="warm-mid">
+          <div class="warm-avatar avatar-wrap">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
             <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
           </div>
-          <div class="card-content">
-            <div class="name-row">
-              <span class="name">${escapeHtml(counterpartyCopy)}</span>
-            </div>
-            ${whatStr ? `<div class="signal-what">${escapeHtml(whatStr)}</div>` : ""}
+          <div class="warm-content">
+            ${senderSubjectMarkup}
+            ${warmPreviewMarkup}
+            ${warmWhyMarkup}
           </div>
-        </div>
-        <div class="card-footer" style="${footerStyle}">
-          ${whyMarkup}
-          ${mailboxStackMarkup}
-          ${actionClusterMarkup}
+          <div class="warm-actions action-cluster">
+            <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
+            <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
+            <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
+            <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
+            <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+            <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+              ${escapeHtml(primaryLabel)}
+              ${V5_ACTION_ICONS.arrowRight}
+            </button>
+          </div>
         </div>
       </article>`;
     }
@@ -3756,6 +4564,16 @@
       if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
       }
+      // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
+      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      // P1-B (migrerad): re-applicera secondary-filter om aktivt
+      try { __applySecondaryFilter(); } catch (_e) {}
+      // P1-C (migrerad): re-applicera sök-filter om aktivt
+      try { __applySearchFilter(); } catch (_e) {}
+      // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
+      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
+      try { __updateLivePill(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -3825,6 +4643,16 @@
       if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
       }
+      // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
+      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      // P1-B (migrerad): re-applicera secondary-filter om aktivt
+      try { __applySecondaryFilter(); } catch (_e) {}
+      // P1-C (migrerad): re-applicera sök-filter om aktivt
+      try { __applySearchFilter(); } catch (_e) {}
+      // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
+      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
+      try { __updateLivePill(); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
