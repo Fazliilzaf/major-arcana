@@ -487,148 +487,9 @@
   // P1-C: Sök-filter — MIGRERAD till runtime-queue-renderers.js 2026-05-07
   // Re-apply körs nu efter varje render så filtret "håller" mellan re-renders.
 
-  // ============================================================
-  // P2-1: Översätt raw status-codes som leakar till DOM
-  // ============================================================
-  //
-  // app.js har nu utökad humanizeCode-mapping (commit P2-1) men om någon
-  // render-path går runt humanizeCode kan koden fortfarande synas. Detta är
-  // en defensiv DOM-replace som fångar raw codes och översätter.
-
-  const STATUS_LABEL_MAP = {
-    needs_reply: 'Behöver svar',
-    needs_action: 'Behöver åtgärd',
-    needs_review: 'Behöver granskning',
-    in_progress: 'Pågår',
-    in_review: 'Under granskning',
-    ready_to_book: 'Redo att boka',
-    ready_now: 'Redo att boka',
-    low_confidence: 'Låg konfidens',
-    high_confidence: 'Hög konfidens',
-    waiting: 'Väntar',
-    waiting_reply: 'Väntar på svar',
-    waiting_customer: 'Väntar på kund',
-    awaiting_customer: 'Väntar på kund',
-    awaiting_owner: 'Behöver åtgärd',
-    awaiting_confirmation: 'Väntar på bekräftelse',
-    closed: 'Stängd',
-    resolved: 'Löst',
-    done: 'Klar',
-    paused: 'Pausad',
-    snoozed: 'Senare',
-    escalated: 'Eskalerad',
-    open: 'Öppen',
-    reopened: 'Återöppnad',
-    pending: 'Väntar',
-    scheduled: 'Schemalagd',
-    booked: 'Bokad',
-    cancelled: 'Avbokad',
-    no_show: 'Uteblev',
-    response_needed: 'Svar krävs',
-    follow_up_pending: 'Återbesök väntar',
-    booking_ready: 'Redo att boka',
-    blocked_medical: 'Medicinsk kontroll',
-    not_relevant: 'Ej relevant',
-    active_dialogue: 'Aktiv dialog',
-  };
-
-  // Title-cased English varianter (humanizeCode-fallbacks)
-  const STATUS_LABEL_TITLECASE = {};
-  for (const [k, v] of Object.entries(STATUS_LABEL_MAP)) {
-    const titleCased = k.split(/[_-]+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-    STATUS_LABEL_TITLECASE[titleCased] = v;
-  }
-
-  function translateStatusText(text) {
-    if (!text || typeof text !== 'string') return null;
-    const trimmed = text.trim();
-    // Exakt match på snake_case raw
-    const lower = trimmed.toLowerCase();
-    if (STATUS_LABEL_MAP[lower]) return STATUS_LABEL_MAP[lower];
-    // Exakt match på title-cased English ("In Progress")
-    if (STATUS_LABEL_TITLECASE[trimmed]) return STATUS_LABEL_TITLECASE[trimmed];
-    return null;
-  }
-
-  function fixStatusLabelsInRoot(root) {
-    const target = root || document.body;
-    if (!target) return;
-    // Begränsa till element som troligen är status-pills (inte hela body)
-    const candidates = target.querySelectorAll('[class*="status"], [data-status], [class*="tag"], [class*="badge"], [class*="chip"], [class*="pill"]');
-    candidates.forEach(el => {
-      // Bara om elementet bara har text-innehåll (inga child-element)
-      if (el.children.length > 0) {
-        // Kolla bara direkt-text noder
-        for (const node of el.childNodes) {
-          if (node.nodeType === Node.TEXT_NODE) {
-            const translated = translateStatusText(node.nodeValue);
-            if (translated && translated !== node.nodeValue.trim()) {
-              node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), translated);
-            }
-          }
-        }
-        return;
-      }
-      const translated = translateStatusText(el.textContent);
-      if (translated && translated !== el.textContent.trim()) {
-        el.textContent = translated;
-      }
-    });
-  }
-
-  function bootstrapStatusLabelFix() {
-    fixStatusLabelsInRoot();
-    // Fas 2 cleanup: observer ersatt med periodisk fix var 1500ms.
-    window.setInterval(fixStatusLabelsInRoot, 1500);
-  }
-
-  // ============================================================
-  // P2-1+ : Aggressiv text-walker som fångar raw codes och "undefined"
-  // i nestlade element (focus-intel-item-status > strong, dl/dd, etc)
-  // ============================================================
-
-  function aggressiveStatusAndUndefinedFix() {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => {
-        const txt = (n.nodeValue || '').trim();
-        if (!txt) return NodeFilter.FILTER_REJECT;
-        // Bara acceptera leaf-textnoder med raw codes ELLER "undefined"
-        if (STATUS_LABEL_MAP[txt.toLowerCase()]) return NodeFilter.FILTER_ACCEPT;
-        if (STATUS_LABEL_TITLECASE[txt]) return NodeFilter.FILTER_ACCEPT;
-        if (/\bundefined\b/.test(txt)) return NodeFilter.FILTER_ACCEPT;
-        return NodeFilter.FILTER_REJECT;
-      }
-    });
-    const nodes = [];
-    let n;
-    while ((n = walker.nextNode())) nodes.push(n);
-    nodes.forEach(node => {
-      const original = node.nodeValue;
-      let updated = original;
-      const trimmed = updated.trim();
-      const lower = trimmed.toLowerCase();
-      // Translate raw status code (om hela textnoden är ett raw kod)
-      if (STATUS_LABEL_MAP[lower]) {
-        updated = updated.replace(trimmed, STATUS_LABEL_MAP[lower]);
-      } else if (STATUS_LABEL_TITLECASE[trimmed]) {
-        updated = updated.replace(trimmed, STATUS_LABEL_TITLECASE[trimmed]);
-      }
-      // Hantera "undefined · X" och "X · undefined"
-      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, '—');
-      updated = updated.replace(/\bundefined\s*·/gi, '— ·');
-      updated = updated.replace(/·\s*undefined\b/gi, '· —');
-      updated = updated.replace(/^undefined$/gi, '—');
-      if (updated !== original) {
-        node.nodeValue = updated;
-      }
-    });
-  }
-
-  function bootstrapAggressiveStatusFix() {
-    aggressiveStatusAndUndefinedFix();
-    // Fas 2 cleanup: observer ersatt med periodisk fix var 1500ms.
-    window.setInterval(aggressiveStatusAndUndefinedFix, 1500);
-  }
+  // P2-1: Status-label översättning + "undefined"-rensning — MIGRERAD till
+  // runtime-queue-renderers.js 2026-05-07. Två setInterval(1500ms)-loopar
+  // borta. Exponerad via window.MajorArcanaStatusFixer.run() för manuell trigg.
 
   // P1-D: Responsiv layout — migrerad till cco-polish.css (@layer components)
   // 2026-05-07. Funktionen togs bort eftersom CSS:en nu lever permanent i
@@ -648,8 +509,7 @@
     try { bootstrapMailboxPersistence(); } catch (e) { console.warn('[fix-shim] mailbox-persistens fel:', e); }
     // P1-1: bootstrapThreadCardClickFix borttagen — migrerad till runtime-queue-renderers.js
     try { bootstrapLivePill(); } catch (e) { console.warn('[fix-shim] live-pill fel:', e); }
-    try { bootstrapStatusLabelFix(); } catch (e) { console.warn('[fix-shim] status-label-fix fel:', e); }
-    try { bootstrapAggressiveStatusFix(); } catch (e) { console.warn('[fix-shim] aggressive-status-fix fel:', e); }
+    // P2-1: bootstrapStatusLabelFix + bootstrapAggressiveStatusFix borttagna — migrerade till runtime-queue-renderers.js
     // P1-D: injectResponsiveLayoutFix borttagen — migrerad till cco-polish.css
     try { bootstrapMailboxCounts(); } catch (e) { console.warn('[fix-shim] mailbox-counts fel:', e); }
     try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }

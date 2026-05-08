@@ -334,6 +334,150 @@
     });
   }
 
+  // ============================================================
+  // Status-label översättning + "undefined"-rensning
+  // (migrerad från P2-1 shim 2026-05-07)
+  // ============================================================
+  // Tidigare två setInterval(1500ms)-loopar som scannade DOM:en konstant.
+  // Nu körs båda direkt efter render samt vid cco:state-change events.
+  // Defensiv backstop ifall någon render-path går runt humanizeCode i app.js.
+
+  const __STATUS_LABEL_MAP = {
+    needs_reply: 'Behöver svar',
+    needs_action: 'Behöver åtgärd',
+    needs_review: 'Behöver granskning',
+    in_progress: 'Pågår',
+    in_review: 'Under granskning',
+    ready_to_book: 'Redo att boka',
+    ready_now: 'Redo att boka',
+    low_confidence: 'Låg konfidens',
+    high_confidence: 'Hög konfidens',
+    waiting: 'Väntar',
+    waiting_reply: 'Väntar på svar',
+    waiting_customer: 'Väntar på kund',
+    awaiting_customer: 'Väntar på kund',
+    awaiting_owner: 'Behöver åtgärd',
+    awaiting_confirmation: 'Väntar på bekräftelse',
+    closed: 'Stängd',
+    resolved: 'Löst',
+    done: 'Klar',
+    paused: 'Pausad',
+    snoozed: 'Senare',
+    escalated: 'Eskalerad',
+    open: 'Öppen',
+    reopened: 'Återöppnad',
+    pending: 'Väntar',
+    scheduled: 'Schemalagd',
+    booked: 'Bokad',
+    cancelled: 'Avbokad',
+    no_show: 'Uteblev',
+    response_needed: 'Svar krävs',
+    follow_up_pending: 'Återbesök väntar',
+    booking_ready: 'Redo att boka',
+    blocked_medical: 'Medicinsk kontroll',
+    not_relevant: 'Ej relevant',
+    active_dialogue: 'Aktiv dialog',
+  };
+
+  const __STATUS_LABEL_TITLECASE = {};
+  for (const [k, v] of Object.entries(__STATUS_LABEL_MAP)) {
+    const titleCased = k.split(/[_-]+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    __STATUS_LABEL_TITLECASE[titleCased] = v;
+  }
+
+  function __translateStatusText(text) {
+    if (!text || typeof text !== 'string') return null;
+    const trimmed = text.trim();
+    const lower = trimmed.toLowerCase();
+    if (__STATUS_LABEL_MAP[lower]) return __STATUS_LABEL_MAP[lower];
+    if (__STATUS_LABEL_TITLECASE[trimmed]) return __STATUS_LABEL_TITLECASE[trimmed];
+    return null;
+  }
+
+  function __fixStatusLabelsInRoot(root) {
+    const target = root || document.body;
+    if (!target) return;
+    const candidates = target.querySelectorAll(
+      '[class*="status"], [data-status], [class*="tag"], [class*="badge"], [class*="chip"], [class*="pill"]'
+    );
+    candidates.forEach(el => {
+      if (el.children.length > 0) {
+        for (const node of el.childNodes) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const translated = __translateStatusText(node.nodeValue);
+            if (translated && translated !== node.nodeValue.trim()) {
+              node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), translated);
+            }
+          }
+        }
+        return;
+      }
+      const translated = __translateStatusText(el.textContent);
+      if (translated && translated !== el.textContent.trim()) {
+        el.textContent = translated;
+      }
+    });
+  }
+
+  function __aggressiveStatusAndUndefinedFix(root) {
+    const target = root || document.body;
+    if (!target) return;
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        const txt = (n.nodeValue || '').trim();
+        if (!txt) return NodeFilter.FILTER_REJECT;
+        if (__STATUS_LABEL_MAP[txt.toLowerCase()]) return NodeFilter.FILTER_ACCEPT;
+        if (__STATUS_LABEL_TITLECASE[txt]) return NodeFilter.FILTER_ACCEPT;
+        if (/\bundefined\b/.test(txt)) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(node => {
+      const original = node.nodeValue;
+      let updated = original;
+      const trimmed = updated.trim();
+      const lower = trimmed.toLowerCase();
+      if (__STATUS_LABEL_MAP[lower]) {
+        updated = updated.replace(trimmed, __STATUS_LABEL_MAP[lower]);
+      } else if (__STATUS_LABEL_TITLECASE[trimmed]) {
+        updated = updated.replace(trimmed, __STATUS_LABEL_TITLECASE[trimmed]);
+      }
+      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, '—');
+      updated = updated.replace(/\bundefined\s*·/gi, '— ·');
+      updated = updated.replace(/·\s*undefined\b/gi, '· —');
+      updated = updated.replace(/^undefined$/gi, '—');
+      if (updated !== original) {
+        node.nodeValue = updated;
+      }
+    });
+  }
+
+  function __runAllStatusFixes(root) {
+    try { __fixStatusLabelsInRoot(root); } catch (_e) {}
+    try { __aggressiveStatusAndUndefinedFix(root); } catch (_e) {}
+  }
+
+  // Bootstrap: scanna en gång efter DOM är klar + lyssna på state-change events.
+  // Den 1500ms-pollingen är borta — render-hooks nedan + dessa events räcker.
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => __runAllStatusFixes());
+    } else {
+      __runAllStatusFixes();
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('cco:state-change', () => __runAllStatusFixes());
+    window.addEventListener('cco:runtime-update', () => __runAllStatusFixes());
+    window.MajorArcanaStatusFixer = Object.freeze({
+      run: __runAllStatusFixes,
+      translate: __translateStatusText,
+    });
+  }
+
   function createQueueRenderers({
     dom = {},
     helpers = {},
@@ -4061,6 +4205,8 @@
       try { __applySecondaryFilter(); } catch (_e) {}
       // P1-C (migrerad): re-applicera sök-filter om aktivt
       try { __applySearchFilter(); } catch (_e) {}
+      // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
+      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4134,6 +4280,8 @@
       try { __applySecondaryFilter(); } catch (_e) {}
       // P1-C (migrerad): re-applicera sök-filter om aktivt
       try { __applySearchFilter(); } catch (_e) {}
+      // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
+      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
