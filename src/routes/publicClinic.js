@@ -5,7 +5,11 @@ const {
   getClientoConfigForBrand,
   getClientoApiConfigForBrand,
 } = require('../brand/runtimeConfig');
-const { createClientoApi, normalizeCsvParam } = require('../infra/clientoApi');
+const {
+  createClientoApi,
+  normalizeClientoSlotsPayload,
+  normalizeCsvParam,
+} = require('../infra/clientoApi');
 const {
   buildDefaultPublicSiteProfile,
   normalizePublicSiteProfile,
@@ -151,14 +155,18 @@ function createPublicClinicRouter({ tenantConfigStore, config }) {
       });
     }
 
-    return handleClientoRequest(req, res, config, (clientoApi) =>
-      clientoApi.getSlots({
+    return handleClientoRequest(req, res, config, async (clientoApi) => {
+      const payload = await clientoApi.getSlots({
         fromDate,
         toDate,
         resIds,
         srvIds,
-      })
-    );
+      });
+      return {
+        raw: payload,
+        slots: normalizeClientoSlotsPayload(payload),
+      };
+    });
   });
 
   router.get('/public/cliento/reviews', async (req, res) =>

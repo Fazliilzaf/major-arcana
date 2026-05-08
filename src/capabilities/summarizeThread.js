@@ -735,9 +735,15 @@ class SummarizeThreadCapability extends BaseCapability {
   }
 }
 
+async function runSummarizeThreadCapability(context = {}) {
+  const capability = new SummarizeThreadCapability();
+  return capability.execute(context);
+}
+
 module.exports = {
   SummarizeThreadCapability,
   summarizeThreadCapability: SummarizeThreadCapability,
+  runSummarizeThreadCapability,
   // Exporteras för testning
   buildHeuristicSummary,
   detectKeyTokens,

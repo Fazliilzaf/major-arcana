@@ -500,6 +500,19 @@ function buildQueueExplanatoryLine(row = {}) {
   return '';
 }
 
+function getWorklistMailboxScopeKey(row = {}) {
+  return normalizeMailboxId(
+    row?.ownershipMailbox ||
+      row?.mailbox?.ownershipMailbox ||
+      row?.mailbox?.mailboxId ||
+      row?.mailboxId ||
+      row?.mailbox?.mailboxAddress ||
+      row?.mailboxAddress ||
+      row?.mailbox?.userPrincipalName ||
+      row?.userPrincipalName
+  );
+}
+
 function buildWorklistRollupRow(rows = []) {
   const safeRows = asArray(rows).filter((row) => row && typeof row === 'object');
   const primaryRow = [...safeRows].sort(compareWorklistRollupRows)[0] || null;
@@ -559,10 +572,10 @@ function buildWorklistRollupRow(rows = []) {
   };
   const customerIdentity = normalizeIdentityCarrier(primaryRow).customerIdentity;
   const mergedCount = safeRows.length;
-  const publicConversationKey =
-    rollupIdentity.type === 'customerEmail' && mergedCount === 1
-      ? normalizeText(primaryRow?.conversationKey || primaryRow?.id || '') || rollupIdentity.key
-      : rollupIdentity.key;
+  const effectiveConversationKey =
+    mergedCount > 1
+      ? rollupIdentity.key
+      : normalizeText(primaryRow?.conversationKey || primaryRow?.id || '') || rollupIdentity.key;
   const hasUnreadInbound = safeRows.some((row) => row?.hasUnreadInbound === true);
   const needsReply = safeRows.some((row) => row?.needsReply === true);
   const unreadCount = safeRows.filter((row) => row?.hasUnreadInbound === true).length;
@@ -621,7 +634,7 @@ function buildWorklistRollupRow(rows = []) {
   const provenanceLabel = uniqueMailboxLabels.length > 1 ? `${uniqueMailboxLabels.length} mailboxar` : '';
   return {
     ...primaryRow,
-    conversationKey: publicConversationKey,
+    conversationKey: effectiveConversationKey,
     conversationId: primaryRow?.conversationId || uniqueConversationIds[0] || null,
     mailboxConversationId: primaryRow?.mailboxConversationId || uniqueConversationIds[0] || null,
     subject,
@@ -708,9 +721,14 @@ function buildCustomerRollupRows(rows = []) {
     const matchingGroup = groups.find((group) => {
       const firstRow = group[0];
       const firstKey = getWorklistMergeIdentityKey(firstRow);
+      const firstMailboxScopeKey = getWorklistMailboxScopeKey(firstRow);
+      const rowMailboxScopeKey = getWorklistMailboxScopeKey(row);
       return (
         firstKey &&
         firstKey.key === mergeKey.key &&
+        firstMailboxScopeKey &&
+        rowMailboxScopeKey &&
+        firstMailboxScopeKey === rowMailboxScopeKey &&
         group.every((existingRow) => !hasWorklistHardMergeConflict(existingRow, row))
       );
     });

@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const DOM_LIVE_COMPOSITION_PATH = path.join(
   __dirname,
@@ -30,14 +23,7 @@ const FOCUS_RENDERERS_PATH = path.join(
   'runtime-focus-intel-renderers.js'
 );
 
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 
 const STYLES_PATH = path.join(
   __dirname,
@@ -68,7 +54,7 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   assert.match(
     source,
     /const focusReadState = getRuntimeFocusReadState\(selectedFocusThread\);/,
-    'Förväntade att fokusytan bygger ett separat focusReadState för truth\/legacy-proveniens.'
+    'Förväntade att fokusytan bygger ett separat focusReadState för truth/legacy-proveniens.'
   );
   assert.match(
     source,
@@ -91,7 +77,9 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
     'Förväntade att operativt stöd läser från samma focus-tråd i det här passet.'
   );
   assert.ok(
-    source.includes('renderStudioShell();\n    renderWorkspaceRuntimeContext();\n    renderAnalyticsRuntime();\n    renderRuntimeIntel(selectedFocusThread, focusReadState);'),
+    source.includes(
+      'renderStudioShell();\n    renderWorkspaceRuntimeContext();\n    renderAnalyticsRuntime();\n    renderRuntimeIntel(selectedFocusThread, focusReadState);'
+    ),
     'Förväntade att fokusintelligensen renderas en sista gång efter övriga shell-renders så selectedFocusThread får sista ordet.'
   );
 });
@@ -286,7 +274,7 @@ test('app.js skickar in no-thread-shell-noder till focus/intel-renderern för ex
   assert.match(
     source,
     /function renderRuntimeFocusSignals\(\)\s*\{\s*renderSignalRows\(focusSignalRows,\s*\[\]\);\s*\}/,
-    'Förväntade att den separata fokus-signalraden nu stängs helt så att Mail foundation\/Svar krävs\/Behöver åtgärd\/Hög risk inte dupliceras som bubblor.'
+    'Förväntade att den separata fokus-signalraden nu stängs helt så att Mail foundation/Svar krävs/Behöver åtgärd/Hög risk inte dupliceras som bubblor.'
   );
   assert.match(
     source,
@@ -400,7 +388,7 @@ test('app.js skickar in sanitizeConversationHtmlForDisplay till focus-renderern 
   );
   assert.ok(
     source.includes('const convertConversationLengthToPx = (value = 0, unit = "px") =>') &&
-      source.includes("return `${serializedValue}px`;"),
+      source.includes('return `${serializedValue}px`;'),
     'Förväntade att HTML-sanitizern normaliserar aggressiva rem/em/pt-längder till px så att rich-html-mail inte kan blåsa upp text till gigantiska storlekar i document mode.'
   );
   assert.match(
@@ -454,7 +442,7 @@ test('capture-live-thread-samples bygger en tydlig regression summary for founda
       source.includes('familiesChecked') &&
       source.includes('foundationDrivenCount') &&
       source.includes('fallbackDrivenCount') &&
-      source.includes("overallVerdict"),
+      source.includes('overallVerdict'),
     'Förväntade att regression-capturen sammanfattar vilka konton/familjer som kördes och hur många fall som öppnades foundation-vs-fallback.'
   );
   assert.ok(
@@ -483,19 +471,24 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
   );
   assert.ok(
     source.includes('function buildConversationStructuredSections(message, mailThreadMessage)') &&
-      source.includes('const structuredSections = buildConversationStructuredSections(message, mailThreadMessage);'),
+      source.includes(
+        'const structuredSections = buildConversationStructuredSections(message, mailThreadMessage);'
+      ),
     'Förväntade att focus-renderern nu sektionerar mail-html innan document-renderingen så att body, signatur och quoted-content kan bära olika struktur.'
   );
   assert.ok(
-    source.includes('function buildConversationSignatureDisplay(message, structuredSections = {})') &&
+    source.includes(
+      'function buildConversationSignatureDisplay(message, structuredSections = {})'
+    ) &&
       source.includes('function deriveConversationSignatureTruth({ text = "", html = "" } = {})') &&
       source.includes('function normalizeConversationSignatureTruth(signatureBlock = null)') &&
       source.includes('signatureTruth.visibleInReadSurface !== true'),
     'Förväntade att focus-renderern nu konsumerar canonical signatur-truth först och bara faller tillbaka till lokal bedömning när truth saknas.'
   );
   assert.ok(
-    source.includes("const canonicalSectionMode = normalizeKey(mailThreadMessage?.contentSections?.mode);") &&
-      source.includes("canonicalSectionMode === \"html_structured\""),
+    source.includes(
+      'const canonicalSectionMode = normalizeKey(mailThreadMessage?.contentSections?.mode);'
+    ) && source.includes('canonicalSectionMode === "html_structured"'),
     'Förväntade att focus-renderern nu prioriterar canonical html-sektioner från hydratorn före lokal fallback-gissning.'
   );
   assert.ok(
@@ -518,7 +511,9 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att document-renderern delar upp öppnade mail i providerinfo, signatur och tidigare tråd.'
   );
   assert.ok(
-    source.includes('function summarizeConversationSecondaryCopy(value = "", fallback = "Visa mer", limit = 72)') &&
+    source.includes(
+      'function summarizeConversationSecondaryCopy(value = "", fallback = "Visa mer", limit = 72)'
+    ) &&
       source.includes('const systemSummary =') &&
       source.includes('collapsible: true,') &&
       source.includes('summary: systemSummary'),
@@ -530,8 +525,12 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att signaturdelen nu hålls summary-first även när den visas, så att läsvyn inte blåser upp sekundärinnehåll.'
   );
   assert.ok(
-    source.includes('const lifecycleSummary = [thread.lifecycleLabel, thread.followUpLabel || thread.lastActivityLabel]') &&
-      source.includes('function buildFocusStatusTokenMarkup({ label = "", tone = "neutral", icon = "" } = {})') &&
+    source.includes(
+      'const lifecycleSummary = [thread.lifecycleLabel, thread.followUpLabel || thread.lastActivityLabel]'
+    ) &&
+      source.includes(
+        'function buildFocusStatusTokenMarkup({ label = "", tone = "neutral", icon = "" } = {})'
+      ) &&
       source.includes('const focusStatusItems = [') &&
       source.includes('data-pill-icon="${escapeHtml(normalizedIcon)}"') &&
       source.includes('const focusStatusMarkup = buildFocusStatusRowMarkup(focusStatusItems);') &&
@@ -548,19 +547,24 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att öppnade mail bär vidare primary-, signature-, system- och quoted-html samt canonical signatur-truth när sektionerna redan finns.'
   );
   assert.ok(
-    source.includes('function buildConversationAssetSectionMarkup(message, { history = false } = {})') &&
-      source.includes('return "";'),
+    source.includes(
+      'function buildConversationAssetSectionMarkup(message, { history = false } = {})'
+    ) && source.includes('return "";'),
     'Förväntade att bodyns Bilagor & tillgångar-sektion nu är borttagen så att assets bara lever i headerinteraktionen.'
   );
   assert.ok(
-    source.includes('function buildConversationAssetActionsMarkup(asset, { history = false, mailboxId = "", messageId = "" } = {})') &&
+    source.includes(
+      'function buildConversationAssetActionsMarkup(asset, { history = false, mailboxId = "", messageId = "" } = {})'
+    ) &&
       source.includes('data-mail-asset-action="${escapeHtml(') &&
       source.includes('data-mail-asset-attachment-id="${escapeHtml(') &&
       source.includes('const label = action === "open" ? "Öppna" : "Ladda ner";'),
     'Förväntade att focus-renderern nu bygger riktiga Öppna/Ladda ner-actions ovanpå foundationens downloadable assets.'
   );
   assert.ok(
-    source.includes('const assetMarkup = buildConversationAssetSectionMarkup(message, { history });') &&
+    source.includes(
+      'const assetMarkup = buildConversationAssetSectionMarkup(message, { history });'
+    ) &&
       source.includes('${assetMarkup}') &&
       source.includes('buildConversationHeaderAssetStripMarkup(latestMessage, {'),
     'Förväntade att assets nu flyttas till headerinteraktionen medan document-renderern fortfarande kan bära samma flöde för body, signatur och quoted content.'
@@ -570,7 +574,9 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att arbetsraden åter använder Öppna Svarstudio som tydlig primär knappetikett.'
   );
   assert.ok(
-    source.includes('function buildConversationHeaderAssetStripMarkup(message, { history = false } = {})') &&
+    source.includes(
+      'function buildConversationHeaderAssetStripMarkup(message, { history = false } = {})'
+    ) &&
       source.includes('data-conversation-header-assets-toggle') &&
       source.includes('buildConversationHeaderAssetStripMarkup(latestMessage, {') &&
       source.includes('buildConversationHeaderAssetStripMarkup(message, { history: true })'),
@@ -584,9 +590,13 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
   assert.ok(
     source.includes('const hairTpSignatureProfilesByMailbox = Object.freeze({') &&
       source.includes('const hairTpSignatureProfilesByIdentity = Object.freeze({') &&
-      source.includes('function extractConversationHairTpProfileHint(message = {}, signatureBlock = {})') &&
+      source.includes(
+        'function extractConversationHairTpProfileHint(message = {}, signatureBlock = {})'
+      ) &&
       source.includes('function extractConversationHairTpSignatureFromPrimaryBody(') &&
-      source.includes('function normalizeConversationHairTpSignaturePresentation(message = {}, signatureBlock = {})') &&
+      source.includes(
+        'function normalizeConversationHairTpSignaturePresentation(message = {}, signatureBlock = {})'
+      ) &&
       source.includes('function trimConversationPrimaryBodyBeforeSignature(') &&
       source.includes('img2.gimm.io/9e99c2fb-11b4-402b-8a43-6022ede8aa2b/image.png') &&
       source.includes('data:image/svg+xml;charset=utf-8') &&
@@ -784,8 +794,12 @@ test('styles.css ger rich-html i fokusytan ett kompakt renderkontrakt utan att t
   );
   assert.ok(
     focusRendererSource.includes('asArray(mailDocument?.assets).length') &&
-      focusRendererSource.includes('allAssets.filter((asset) => getConversationAssetFamily(asset) === "attachment")') &&
-      focusRendererSource.includes('allAssets.filter((asset) => getConversationAssetFamily(asset) === "external")'),
+      focusRendererSource.includes(
+        'allAssets.filter((asset) => getConversationAssetFamily(asset) === "attachment")'
+      ) &&
+      focusRendererSource.includes(
+        'allAssets.filter((asset) => getConversationAssetFamily(asset) === "external")'
+      ),
     'Förväntade att fokusrendern nu konsumerar canonical assetlistan när den finns i stället för att bara räkna på sena attachments/inline-fallbacks.'
   );
   assert.ok(
@@ -816,7 +830,9 @@ test('styles.css ger rich-html i fokusytan ett kompakt renderkontrakt utan att t
   );
   assert.ok(
     focusRendererSource.includes('data-mail-asset-family="${escapeHtml(family)}"') &&
-      focusRendererSource.includes('data-mail-asset-family="${escapeHtml(\n        kind\n      )}"'),
+      focusRendererSource.includes(
+        'data-mail-asset-family="${escapeHtml(\n        kind\n      )}"'
+      ),
     'Förväntade att både header-tokens och detaljrader bär explicit assetfamilj så att CCO kan hålla isär typerna konsekvent.'
   );
   assert.match(
@@ -871,7 +887,7 @@ test('kundintelligens-fallbacken har fyra lugnare kategorier i stället för sex
 
   assert.match(
     source,
-    /for="intel-view-actions"[^>]*>Nu<\/label>[\s\S]*for="intel-view-customer"[^>]*>Kund<\/label>[\s\S]*for="intel-view-history"[^>]*>Historik<\/label>[\s\S]*for="intel-view-team"[^>]*>Team<\/label>/,
+    /for="intel-view-actions"[^>]*>Nu<\/label\s*>[\s\S]*for="intel-view-customer"[^>]*>Kund<\/label\s*>[\s\S]*for="intel-view-history"[^>]*>Historik<\/label\s*>[\s\S]*for="intel-view-team"[^>]*>Team<\/label\s*>/,
     'Förväntade att fallback-shellen visar fyra huvudkategorier: Nu, Kund, Historik och Team.'
   );
   assert.doesNotMatch(
@@ -884,7 +900,11 @@ test('kundintelligens-fallbacken har fyra lugnare kategorier i stället för sex
 test('runtime focus-intel lämnar Nu utan separata medicinska kort', () => {
   const source = fs.readFileSync(FOCUS_RENDERERS_PATH, 'utf8');
 
-  assert.doesNotMatch(source, /buildIntelMedicalNowCard/, 'Medicinskt nu-kortet ska inte längre byggas i runtime.');
+  assert.doesNotMatch(
+    source,
+    /buildIntelMedicalNowCard/,
+    'Medicinskt nu-kortet ska inte längre byggas i runtime.'
+  );
   assert.match(
     source,
     /actions:\s*normalizeIntelDisplayCards\(\s*\[[\s\S]*\.\.\.asArray\(baseCards\.actions\),[\s\S]*\.\.\.asArray\(baseCards\.signals\)\]/,

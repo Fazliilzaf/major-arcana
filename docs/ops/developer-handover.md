@@ -513,4 +513,3 @@ npm run dev
 ```
 
 Om data ska nollstallas i lokal sandlada, verifiera forst `ARCANA_STATE_ROOT` och ta backup innan rensning.
-

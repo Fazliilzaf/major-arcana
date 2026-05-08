@@ -12,7 +12,7 @@
  *   window.MajorArcanaPreviewTenantConfig.getTheme()
  *   window.MajorArcanaPreviewTenantConfig.refresh()
  *
- * Backend hämtas från /api/v1/tenants/me eller liknande — om endpoint saknas
+ * Backend hämtas från /api/v1/tenants/my — om endpoint saknas
  * faller modulen tillbaka till runtime-config defaults utan att krascha.
  */
 (() => {
@@ -68,6 +68,8 @@
 
   async function fetchTenantConfig() {
     const tokenSources = [
+      window.localStorage?.getItem?.('ARCANA_ADMIN_TOKEN'),
+      window.sessionStorage?.getItem?.('ARCANA_ADMIN_TOKEN'),
       window.localStorage?.getItem?.('cco.adminToken'),
       window.sessionStorage?.getItem?.('cco.adminToken'),
       window.__CCO_DEV_TOKEN__,
@@ -80,7 +82,7 @@
       if (token && token !== '__preview_local__') {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await fetch('/api/v1/tenants/me', {
+      const response = await fetch('/api/v1/tenants/my', {
         method: 'GET',
         credentials: 'same-origin',
         headers,
@@ -88,7 +90,15 @@
       if (!response.ok) return null;
       const text = await response.text();
       if (!text) return null;
-      return JSON.parse(text);
+      const payload = JSON.parse(text);
+      if (Array.isArray(payload?.tenants)) {
+        return (
+          payload.tenants.find((tenant) => tenant.tenantId === payload.currentTenantId) ||
+          payload.tenants[0] ||
+          null
+        );
+      }
+      return payload;
     } catch (_e) {
       return null;
     }

@@ -418,6 +418,7 @@ const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNo
 const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
+const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
@@ -427,6 +428,7 @@ const { createCapabilityAnalysisStore } = require('./src/capabilities/analysisSt
 const { createSloTicketStore } = require('./src/ops/sloTicketStore');
 const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceStore');
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
+const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
@@ -913,6 +915,9 @@ process.once('SIGTERM', () => {
   const ccoFollowUpStore = await createCcoFollowUpStore({
     filePath: config.ccoFollowUpStorePath,
   });
+  const ccoBookingStore = await createCcoBookingStore({
+    filePath: config.ccoBookingStorePath,
+  });
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1314,7 +1319,17 @@ process.once('SIGTERM', () => {
     createCcoWorkspaceRouter({
       noteStore: ccoNoteStore,
       followUpStore: ccoFollowUpStore,
+      bookingStore: ccoBookingStore,
       workspacePrefsStore: ccoWorkspacePrefsStore,
+      authStore,
+      config,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore: ccoBookingStore,
       authStore,
       config,
     })

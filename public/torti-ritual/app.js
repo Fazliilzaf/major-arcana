@@ -26,6 +26,14 @@
     skin: "low",
   };
 
+  const COLLECTION_SECTIONS = [
+    { key: "bianca", label: "Bianca Collection", collection: "Bianca" },
+    { key: "amber", label: "Amber Collection", collection: "Amber" },
+    { key: "raw", label: "Raw Collection", collection: "Raw" },
+    { key: "skin", label: "Skin Collection", collection: "Skin" },
+    { key: "gift-set", label: "Gift Set", collection: "Gift Set" },
+  ];
+
   const PRODUCT_ALLOWED_LEVELS = {
     // Bianca
     "bianca-perfume-amarena-e-prugna": ["high", "middle"],
@@ -1001,11 +1009,15 @@
     firstName: "",
     lastName: "",
     search: "",
+    activeCollectionSection: null,
+    collectionSearches: COLLECTION_SECTIONS.reduce((accumulator, section) => {
+      accumulator[section.key] = "";
+      return accumulator;
+    }, {}),
     customerLibrary: [],
     productLevelSelections: {},
     activeLibraryCatalogId: null,
     activeLibraryBottleId: null,
-    openLibraryLevelPickerId: null,
     layers: [],
     activeLayerId: null,
     bottles: [],
@@ -1034,7 +1046,6 @@
   const bottleLayer = document.querySelector("[data-bottle-layer]");
   const zoneLayer = document.querySelector("[data-zone-layer]");
   const productScroller = document.querySelector("[data-product-scroller]");
-  const searchInput = document.querySelector("[data-product-search]");
   const sheetStatus = document.querySelector("[data-sheet-status]");
   const adjustLabelsButton = document.querySelector("[data-adjust-labels]");
   const removeSelectedButton = document.querySelector("[data-remove-selected]");
@@ -1284,8 +1295,7 @@
     }
 
     const explicitCatalogId = catalogId || product.id;
-    const selection = explicitCatalogId ? state.productLevelSelections[explicitCatalogId] : null;
-    return sanitizeAllowedLevels(selection || PRODUCT_ALLOWED_LEVELS[explicitCatalogId] || product.allowedLevels, product);
+    return sanitizeAllowedLevels(PRODUCT_ALLOWED_LEVELS[explicitCatalogId] || product.allowedLevels, product);
   }
 
   function getLevelDescription(levels) {
@@ -1418,6 +1428,28 @@
     return catalog.find((item) => item.id === catalogId);
   }
 
+  function getVisibleCollectionSections() {
+    return COLLECTION_SECTIONS
+      .map((section) => {
+        const products = catalog.filter((item) => normalize(item.collection).includes(normalize(section.collection)));
+        return {
+          ...section,
+          products,
+        };
+      })
+      .filter((section) => section.products.length > 0);
+  }
+
+  function getActiveCollectionSection() {
+    const visibleSections = getVisibleCollectionSections();
+    if (visibleSections.length === 0) {
+      return null;
+    }
+
+    const activeSection = visibleSections.find((section) => section.key === state.activeCollectionSection);
+    return activeSection || visibleSections[0];
+  }
+
   function getBottle(bottleId) {
     return state.bottles.find((item) => item.id === bottleId);
   }
@@ -1459,7 +1491,7 @@
       };
     }
 
-    const libraryCatalogId = state.activeLibraryCatalogId || state.pendingCatalogId || state.openLibraryLevelPickerId || "";
+    const libraryCatalogId = state.activeLibraryCatalogId || state.pendingCatalogId || "";
     if (!libraryCatalogId) {
       return {
         product: null,
@@ -1728,7 +1760,6 @@
 
   function normalizeProductLevelSelections(selections, customerLibrary, layers) {
     const normalizedLibrary = normalizeCustomerLibrary(customerLibrary, layers);
-    const source = selections && typeof selections === "object" ? selections : {};
 
     return normalizedLibrary.reduce((accumulator, catalogId) => {
       const product = getCatalogItem(catalogId);
@@ -1736,7 +1767,7 @@
         return accumulator;
       }
 
-      accumulator[catalogId] = sanitizeAllowedLevels(source[catalogId], product);
+      accumulator[catalogId] = getDefaultAllowedLevels(product);
       return accumulator;
     }, {});
   }
@@ -1819,7 +1850,6 @@
   function syncFormFields() {
     firstNameInput.value = state.firstName;
     lastNameInput.value = state.lastName;
-    searchInput.value = state.search;
   }
 
   function getWorkingStateSnapshot() {
@@ -1867,6 +1897,7 @@
     state.activeLibraryBottleId = null;
     state.pendingCatalogId = snapshot.pendingCatalogId || null;
     state.currentSheetId = snapshot.currentSheetId || null;
+    state.activeCollectionSection = null;
     syncBottleSeed();
     syncFormFields();
   }
@@ -2011,6 +2042,7 @@
       activeLibraryCatalogId: null,
       activeLibraryBottleId: null,
       pendingCatalogId: null,
+      activeCollectionSection: null,
       currentSheetId: null,
     });
     render();
@@ -2107,12 +2139,6 @@
     state.activeLibraryBottleId = matchingBottle ? matchingBottle.id : null;
     state.pendingCatalogId = matchingBottle ? null : catalogId;
     state.selectedBottleId = matchingBottle ? matchingBottle.id : null;
-
-    if (config.openLevels) {
-      state.openLibraryLevelPickerId = catalogId;
-    } else if (config.closeLevels !== false) {
-      state.openLibraryLevelPickerId = null;
-    }
   }
 
   function setPendingCatalog(catalogId) {
@@ -2279,7 +2305,6 @@
     state.activeLibraryCatalogId = state.activeLibraryCatalogId === catalogId ? null : state.activeLibraryCatalogId;
     state.activeLibraryBottleId = state.activeLibraryBottleId && getBottle(state.activeLibraryBottleId) ? state.activeLibraryBottleId : null;
     state.pendingCatalogId = state.pendingCatalogId === catalogId ? null : state.pendingCatalogId;
-    state.openLibraryLevelPickerId = state.openLibraryLevelPickerId === catalogId ? null : state.openLibraryLevelPickerId;
 
     if (activeLayer) {
       state.activeLayerId = activeLayer.id;
@@ -2332,57 +2357,6 @@
 
     syncBottleSeed();
     render();
-  }
-
-  function toggleProductAllowedLevel(catalogId, level) {
-    const product = getCatalogItem(catalogId);
-    if (!product) {
-      return;
-    }
-
-    const currentLevels = getProductAllowedLevels(product, catalogId);
-    const nextLevels = currentLevels.includes(level)
-      ? currentLevels.filter((entry) => entry !== level)
-      : currentLevels.concat(level);
-
-    if (nextLevels.length === 0) {
-      return;
-    }
-
-    setProductAllowedLevels(catalogId, nextLevels);
-  }
-
-  function toggleLibraryLevelPicker(catalogId) {
-    if (!catalogId) {
-      return;
-    }
-
-    if (state.openLibraryLevelPickerId === catalogId) {
-      state.openLibraryLevelPickerId = null;
-      renderCustomerLibrary();
-      return;
-    }
-
-    focusLibraryCatalog(catalogId, { openLevels: true });
-    render();
-  }
-
-  function openLibraryLevelPicker(catalogId) {
-    if (!catalogId) {
-      return;
-    }
-
-    focusLibraryCatalog(catalogId, { openLevels: true });
-    render();
-  }
-
-  function closeLibraryLevelPicker() {
-    if (!state.openLibraryLevelPickerId) {
-      return;
-    }
-
-    state.openLibraryLevelPickerId = null;
-    renderCustomerLibrary();
   }
 
   function updateBottlePosition(bottle, position, fallbackLevel) {
@@ -2985,7 +2959,7 @@
       return;
     }
 
-    sheetStatus.textContent = `${activeLayerLabel} is active. Click a bottle in Search collection to add it to the customer library. Products can be marked for one or several levels, such as Head and Heart.`;
+    sheetStatus.textContent = `${activeLayerLabel} is active. Click a bottle in the collections below to add it to the customer library. Products can be marked for one or several levels, such as Head and Heart.`;
     if (adjustLabelsButton) {
       adjustLabelsButton.hidden = true;
       adjustLabelsButton.classList.remove("is-active");
@@ -3127,10 +3101,6 @@
     const activeCatalogId = selectedBottle ? selectedBottle.catalogId : state.activeLibraryCatalogId;
     const activeBottleId = selectedBottle ? selectedBottle.id : state.activeLibraryBottleId;
 
-    if (state.openLibraryLevelPickerId && !ownedItems.some((item) => item.id === state.openLibraryLevelPickerId)) {
-      state.openLibraryLevelPickerId = null;
-    }
-
     customerLibraryPanel.innerHTML = `
       <div class="panel-intro">
         <div class="panel-copy">
@@ -3141,19 +3111,18 @@
       </div>
       ${
         ownedItems.length === 0
-          ? '<div class="owned-empty">Click a bottle in Search collection to add it here, then build layers from the customer’s own library.</div>'
+          ? '<div class="owned-empty">Click a bottle in the collections below to add it here, then build layers from the customer’s own library.</div>'
           : `
             <div class="library-owned-grid">
               ${ownedItems
                 .map((item) => {
                   const allowedLevels = getProductAllowedLevels(item, item.id);
-                  const isPopoverOpen = state.openLibraryLevelPickerId === item.id;
                   const isActiveProduct = activeCatalogId === item.id;
                   const activeSummary = allowedLevels.length > 0 ? getLevelDescription(allowedLevels) : "No levels selected";
                   const activeSummaryTokens = renderLevelSummaryTokens(allowedLevels);
 
                   return `
-                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isPopoverOpen ? " is-level-open" : ""}${isActiveProduct ? " is-active-product" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
+                  <article class="owned-card${state.pendingCatalogId === item.id ? " is-pending" : ""}${isActiveProduct ? " is-active-product" : ""}" data-library-level-shell="${escapeHtml(item.id)}">
                     <button class="panel-mini-action panel-mini-action-danger owned-card-remove" type="button" data-remove-library-product="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from customer library">Remove</button>
                     <div class="owned-card-main">
                       <button class="owned-card-select" type="button" draggable="true" data-library-product-id="${escapeHtml(item.id)}" aria-pressed="${isActiveProduct ? "true" : "false"}">
@@ -3165,31 +3134,13 @@
                       </button>
                     </div>
                     <div class="owned-card-meta">
-                      <button class="owned-card-levels-trigger" type="button" data-open-level-picker="${escapeHtml(item.id)}" aria-expanded="${isPopoverOpen ? "true" : "false"}" aria-label="Choose Head, Heart, or Base for ${escapeHtml(item.name)}">
+                      <div class="owned-card-levels-trigger" aria-label="Preset levels for ${escapeHtml(item.name)}">
                         <span class="owned-card-levels-label">Levels</span>
                         <span class="owned-card-levels-summary" aria-label="${escapeHtml(activeSummary)}">
                           ${activeSummaryTokens}
                         </span>
-                      </button>
-                    </div>
-                    ${isPopoverOpen ? `
-                      <div class="library-level-popover" role="dialog" aria-label="Choose levels for ${escapeHtml(item.name)}">
-                        <p class="library-level-popover-title">Choose Head, Heart, or Base</p>
-                        <div class="library-level-picker">
-                          ${["high", "middle", "low"]
-                            .map((level) => `
-                                <button
-                                  class="library-level-chip library-level-chip--${escapeHtml(level)}${allowedLevels.includes(level) ? " is-active" : ""}"
-                                  type="button"
-                                  data-toggle-level="${escapeHtml(item.id)}::${escapeHtml(level)}"
-                                >
-                                ${escapeHtml(getLevelLabel(level))}
-                              </button>
-                            `)
-                            .join("")}
-                        </div>
                       </div>
-                    ` : ""}
+                    </div>
                   </article>
                 `;
                 })
@@ -3228,65 +3179,157 @@
       });
     });
 
-    customerLibraryPanel.querySelectorAll("[data-open-level-picker]").forEach((button) => {
-      button.addEventListener("click", function () {
-        openLibraryLevelPicker(button.getAttribute("data-open-level-picker"));
-      });
-    });
-
-    customerLibraryPanel.querySelectorAll("[data-toggle-level]").forEach((button) => {
-      button.addEventListener("click", function () {
-        const raw = button.getAttribute("data-toggle-level") || "";
-        const splitIndex = raw.lastIndexOf("::");
-        if (splitIndex <= 0) {
-          return;
-        }
-
-        const catalogId = raw.slice(0, splitIndex);
-        const level = raw.slice(splitIndex + 2);
-        toggleProductAllowedLevel(catalogId, level);
-      });
-    });
-
   }
 
   function renderProductScroller() {
-    const query = normalize(state.search);
-    const filtered = catalog.filter((item) => {
-      if (!query) {
-        return true;
-      }
-
-      return [item.name, item.collection, item.type].some((value) => normalize(value).includes(query));
-    });
-
-    if (filtered.length === 0) {
-      productScroller.innerHTML = '<div class="product-empty">No matching products.</div>';
+    if (!productScroller) {
       return;
     }
 
-    productScroller.innerHTML = filtered
-      .map((item) => {
-        const pending = state.pendingCatalogId === item.id;
-        const owned = state.customerLibrary.includes(item.id);
+    const visibleSections = getVisibleCollectionSections();
+    if (!visibleSections.length) {
+      productScroller.innerHTML = `
+        <div class="collection-empty-state">
+          <strong>No collections available</strong>
+          <span>Add product data to show category tabs here.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const activeSection = getActiveCollectionSection() || visibleSections[0];
+    if (!state.activeCollectionSection || !visibleSections.some((section) => section.key === state.activeCollectionSection)) {
+      state.activeCollectionSection = activeSection.key;
+    }
+
+    const tabsMarkup = visibleSections
+      .map((section) => {
+        const isActive = section.key === activeSection.key;
+        const searchValue = state.collectionSearches[section.key] || "";
+        const query = normalize(searchValue);
+        const hasQuery = Boolean(query);
 
         return `
-          <button class="product-card${pending ? " is-pending" : ""}" type="button" draggable="true" data-product-id="${escapeHtml(item.id)}">
-            ${renderBottleVisual(item, "product-bottle")}
-            <span class="product-copy">
-              <strong>${escapeHtml(item.name)}</strong>
-              <p>${renderProductMeta(item, "product-meta product-meta-card")}</p>
-              <span class="product-card-flags">
-                <span class="product-level-badges">
-                  ${renderProductLevelBadges(item, item.id, "product-level-badge")}
-                </span>
-                ${owned ? '<span class="product-owned-badge">In library</span>' : ""}
-              </span>
-            </span>
+          <button
+            class="collection-tab${isActive ? " is-active" : ""}"
+            type="button"
+            data-collection-tab="${escapeHtml(section.key)}"
+            aria-pressed="${isActive ? "true" : "false"}"
+            title="${escapeHtml(section.label)}"
+          >
+            <span class="collection-tab-label">${escapeHtml(section.label.replace(/\s+Collection$/i, ""))}</span>
+            <span class="collection-tab-count${hasQuery ? " is-searching" : ""}">${escapeHtml(section.products.length)}</span>
           </button>
         `;
       })
       .join("");
+
+    const activeSearchValue = state.collectionSearches[activeSection.key] || "";
+    const activeQuery = normalize(activeSearchValue);
+    const activeProducts = activeQuery
+      ? activeSection.products.filter((item) => normalize([item.name, item.collection, item.type].join(" ")).includes(activeQuery))
+      : activeSection.products.slice();
+    const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
+    const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
+    const resultsMarkup = activeQuery
+      ? activeProducts.length > 0
+        ? activeProducts
+          .map((item) => {
+            const pending = state.pendingCatalogId === item.id;
+            const owned = state.customerLibrary.includes(item.id);
+            const filterText = normalize([item.name, item.collection, item.type].join(" "));
+
+            return `
+              <button
+                class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
+                type="button"
+                draggable="true"
+                data-product-id="${escapeHtml(item.id)}"
+                data-collection-filter-text="${escapeHtml(filterText)}"
+              >
+                ${renderBottleVisual(item, "collection-result-bottle")}
+                <span class="collection-result-copy">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
+                  <span class="collection-result-flags">
+                    <span class="product-level-badges">
+                      ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+                    </span>
+                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
+                  </span>
+                </span>
+              </button>
+            `;
+          })
+          .join("")
+        : '<div class="collection-search-empty collection-search-empty--inline"><strong>No matches</strong><span>Try a shorter product name or another category.</span></div>'
+      : activeProducts.length > 0
+        ? activeProducts
+          .map((item) => {
+            const pending = state.pendingCatalogId === item.id;
+            const owned = state.customerLibrary.includes(item.id);
+            const filterText = normalize([item.name, item.collection, item.type].join(" "));
+
+            return `
+              <button
+                class="collection-result${pending ? " is-pending" : ""}${owned ? " is-owned" : ""}"
+                type="button"
+                draggable="true"
+                data-product-id="${escapeHtml(item.id)}"
+                data-collection-filter-text="${escapeHtml(filterText)}"
+              >
+                ${renderBottleVisual(item, "collection-result-bottle")}
+                <span class="collection-result-copy">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
+                  <span class="collection-result-flags">
+                    <span class="product-level-badges">
+                      ${renderProductLevelBadges(item, item.id, "product-level-badge")}
+                    </span>
+                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
+                  </span>
+                </span>
+              </button>
+            `;
+          })
+          .join("")
+        : '<div class="collection-search-hint">This collection has no products yet.</div>';
+
+    productScroller.innerHTML = `
+      <div class="collection-tabs" role="tablist" aria-label="Collections">
+        ${tabsMarkup}
+      </div>
+      <section class="collection-panel collection-${escapeHtml(slugify(activeSection.key))}" data-collection-panel="${escapeHtml(activeSection.key)}">
+        <div class="collection-panel-head">
+          <div class="collection-panel-copy">
+            <p>${escapeHtml(activeSection.label)}</p>
+            <h3>${escapeHtml(activeSection.products.length)} products</h3>
+          </div>
+          <label class="collection-panel-search">
+            <span>Search ${escapeHtml(activeSection.collection)}</span>
+            <input
+              type="search"
+              data-collection-search="${escapeHtml(activeSection.key)}"
+              autocomplete="off"
+              placeholder="Search within ${escapeHtml(activeSection.collection)}..."
+              value="${escapeHtml(activeSearchValue)}"
+            />
+          </label>
+        </div>
+        <div class="collection-results" data-collection-results="${escapeHtml(activeSection.key)}">
+          ${resultsMarkup}
+        </div>
+        <div class="collection-panel-note">
+          ${activeQuery
+            ? `<span>${escapeHtml(activeProducts.length)} matches.</span>`
+            : `<span>Browse ${escapeHtml(activeSection.products.length)} products.</span>`}
+        </div>
+        <div class="collection-panel-meta">
+          <span>${escapeHtml(ownedCount)} in library</span>
+          <span>${escapeHtml(pendingCount)} pending</span>
+        </div>
+      </section>
+    `;
 
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
@@ -3310,6 +3353,36 @@
         dragCatalogId = null;
         documentStage.classList.remove("is-dragging-catalog");
         renderStageState();
+      });
+    });
+
+    productScroller.querySelectorAll("[data-collection-tab]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const key = button.getAttribute("data-collection-tab");
+        if (!key) {
+          return;
+        }
+
+        state.activeCollectionSection = key;
+        renderProductScroller();
+        window.setTimeout(() => {
+          const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
+          if (input && typeof input.focus === "function") {
+            input.focus();
+          }
+        }, 0);
+      });
+    });
+
+    productScroller.querySelectorAll("[data-collection-search]").forEach((input) => {
+      input.addEventListener("input", function () {
+        const key = input.getAttribute("data-collection-search");
+        if (!key) {
+          return;
+        }
+
+        state.collectionSearches[key] = input.value;
+        renderProductScroller();
       });
     });
   }
@@ -3512,11 +3585,6 @@
     state.lastName = lastNameInput.value;
   });
 
-  searchInput.addEventListener("input", function () {
-    state.search = searchInput.value;
-    renderProductScroller();
-  });
-
   removeSelectedButton.addEventListener("click", function () {
     removeSelectedBottle();
   });
@@ -3617,15 +3685,9 @@
   }
 
   document.addEventListener("pointerdown", function (event) {
-    if (!state.openLibraryLevelPickerId) {
-      return;
-    }
-
     if (event.target instanceof Element && event.target.closest("[data-library-level-shell]")) {
       return;
     }
-
-    closeLibraryLevelPicker();
   });
 
   state.savedSheets = loadSavedSheets();

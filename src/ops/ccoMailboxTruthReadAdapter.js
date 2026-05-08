@@ -260,8 +260,8 @@ function createCcoMailboxTruthReadAdapter({ store = null } = {}) {
     const messages = store
       .listMessages({
         mailboxIds,
-        sinceIso,
-        untilIso,
+        sinceIso: normalizeText(conversationId) ? null : sinceIso,
+        untilIso: normalizeText(conversationId) ? null : untilIso,
       })
       .map(toHistoryMessage)
       .filter((message) =>

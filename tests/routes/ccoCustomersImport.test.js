@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const express = require('express');
-const XLSX = require('xlsx');
+const XLSX = require('@e965/xlsx');
 
 const { createCcoCustomersRouter } = require('../../src/routes/ccoCustomers');
 const { createCcoCustomerStore } = require('../../src/ops/ccoCustomerStore');
@@ -177,7 +177,10 @@ test('cco customers import preview and commit använder samma regler för CSV-up
     });
 
     await withServer(fixture.app, async (baseUrl) => {
-      const csvText = ['name,email,mailbox,total_messages', 'Anna Karlsson,anna@example.com,Kons,9'].join('\n');
+      const csvText = [
+        'name,email,mailbox,total_messages',
+        'Anna Karlsson,anna@example.com,Kons,9',
+      ].join('\n');
 
       const previewResponse = await fetch(`${baseUrl}/cco/customers/import/preview`, {
         method: 'POST',
@@ -458,10 +461,7 @@ test('cco customers import med sourceSystem=cliento skapar stabil canonical iden
       assert.ok(firstIdentity.canonicalCustomerId.startsWith('cliento_'));
       assert.equal(firstIdentity.verifiedPersonalEmailNormalized, 'cliento.person@example.com');
       assert.equal(firstIdentity.verifiedPhoneE164, '0701234567');
-      assert.equal(
-        JSON.stringify(firstStatePayload.customerState).includes('198001019876'),
-        false
-      );
+      assert.equal(JSON.stringify(firstStatePayload.customerState).includes('198001019876'), false);
 
       const secondCommitResponse = await fetch(`${baseUrl}/cco/customers/import/commit`, {
         method: 'POST',
@@ -619,11 +619,11 @@ test('cco customers import med flera kandidater går till review och sparar besl
         statePayload.customerState.mergeReviewDecisionsByPairId || {}
       );
       assert.ok(reviewDecisionEntries.length >= 1);
-      assert.equal(reviewDecisionEntries.some((entry) => entry.decision === 'review_required'), true);
       assert.equal(
-        JSON.stringify(statePayload.customerState).includes('198501019999'),
-        false
+        reviewDecisionEntries.some((entry) => entry.decision === 'review_required'),
+        true
       );
+      assert.equal(JSON.stringify(statePayload.customerState).includes('198501019999'), false);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

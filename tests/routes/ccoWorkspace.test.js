@@ -9,6 +9,7 @@ const express = require('express');
 const { createCcoWorkspaceRouter } = require('../../src/routes/ccoWorkspace');
 const { createCcoNoteStore } = require('../../src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('../../src/ops/ccoFollowUpStore');
+const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
 const { createCcoWorkspacePrefsStore } = require('../../src/ops/ccoWorkspacePrefsStore');
 
 async function withServer(app, run) {
@@ -31,6 +32,9 @@ async function createRouterFixture() {
   const followUpStore = await createCcoFollowUpStore({
     filePath: path.join(tempDir, 'followups.json'),
   });
+  const bookingStore = await createCcoBookingStore({
+    filePath: path.join(tempDir, 'bookings.json'),
+  });
   const workspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: path.join(tempDir, 'prefs.json'),
   });
@@ -43,6 +47,7 @@ async function createRouterFixture() {
     createCcoWorkspaceRouter({
       noteStore,
       followUpStore,
+      bookingStore,
       workspacePrefsStore,
       authStore: {
         async getSessionContextByToken() {
@@ -195,6 +200,11 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
       assert.equal(bootstrapPayload.workspacePrefs.rightWidth, 398);
       assert.equal(bootstrapPayload.scheduleDraft.date, '2026-03-27');
       assert.equal(bootstrapPayload.scheduleDraft.time, '10:30');
+      assert.equal(bootstrapPayload.bookingCase.status, 'needs_triage');
+      assert.equal(bootstrapPayload.bookingReadout.status, 'needs_triage');
+      assert.equal(bootstrapPayload.bookingCase.blocker.key, 'candidate_slots');
+      assert.equal(bootstrapPayload.bookingReadout.blocker.key, 'candidate_slots');
+      assert.equal(bootstrapPayload.bookingReadout.blocker.action, 'candidate_slots');
 
       const resetResponse = await fetch(`${baseUrl}/cco-workspace/preferences?workspaceId=major-arcana-preview`, {
         method: 'DELETE',

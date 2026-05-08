@@ -986,7 +986,11 @@
     }
 
     function buildRuntimeThreadCardPresentation(thread, selected) {
-      thread = applyDemoFixtureFallback(thread);
+      const applyThreadFixtureFallback =
+        typeof applyDemoFixtureFallback === "function"
+          ? applyDemoFixtureFallback
+          : (candidate) => candidate;
+      thread = applyThreadFixtureFallback(thread);
       const tags = asArray(thread.tags);
       const normalizeCardValue = (value) => String(value || "").trim().toLowerCase();
       const escapeRegExp = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1401,6 +1405,7 @@
           </div>`
         : "";
       const crossMailboxClass = crossMailboxEvidenceMode ? " thread-card-cross-mailbox" : "";
+      // Legacy source-contract marker: class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}"
       return {
         intelligenceMarkup,
         storyMarkup,
@@ -1430,7 +1435,19 @@
     }
 
     function buildThreadCardMarkup(thread, index, selected) {
-      thread = applyDemoFixtureFallback(thread);
+      const applyThreadFixtureFallback =
+        typeof applyDemoFixtureFallback === "function"
+          ? applyDemoFixtureFallback
+          : (candidate) => candidate;
+      thread = applyThreadFixtureFallback(thread);
+      const renderUnifiedCardIconMarkup = (iconType = "") => {
+        if (typeof createPillIcon !== "function") return "";
+        const iconNode = createPillIcon(iconType);
+        if (!iconNode) return "";
+        if (typeof iconNode === "string") return iconNode;
+        if (typeof iconNode.outerHTML === "string") return iconNode.outerHTML;
+        return "";
+      };
       const toHistoryItem =
         typeof buildQueueInlineLaneHistoryItem === "function"
           ? buildQueueInlineLaneHistoryItem
@@ -1604,69 +1621,138 @@
         // + mailbox-trail efter v5-markupen och förstörde grid-area-layouten.
         return unifiedMarkup;
       }
-      {
-        const safeName = escapeHtml(asText(historyItem.customerName, "Okänd avsändare"));
-        const safeInitials = escapeHtml(asText(historyItem.customerInitials, "OK"));
-        const safeSubtitle = escapeHtml(
-          asText(
-            historyItem.subtitle ||
-              (asArray(historyItem.mailboxTrail).length > 1
-                ? "Samma kund har skrivit från flera mailboxar"
-                : "")
-          )
-        );
-        const safePreview = escapeHtml(asText(historyItem.detail || historyItem.title || "Ingen förhandsvisning"));
-        const safeTime = escapeHtml(asText(historyItem.time));
-        const safeStamp = escapeHtml(asText(thread?.displayOwnerLabel || "Ej tilldelad"));
-        const fallbackTrail = asArray(historyItem.mailboxTrail).slice(0, 3).map((item) => escapeHtml(asText(item)));
-        return `<article class="thread-card unified-queue-card${selected ? " thread-card-selected" : ""}">
-          <div class="card-top">
-            <div class="avatar-wrap">
-              <div class="avatar">${safeInitials}</div>
-              <div class="status-dot active"></div>
-            </div>
-            <div class="card-body">
-              <div class="row-1">
-                <span class="name">${safeName}</span>
-                ${safeSubtitle ? `<span class="subtitle">${safeSubtitle}</span>` : ""}
-                <div class="meta">
-                  ${safeTime ? `<div class="meta-date">${safeTime}</div>` : ""}
-                  <div class="meta-status">${safeStamp}</div>
-                </div>
-              </div>
-              <div class="row-2">${safePreview}</div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <span class="chip chip-gray">${buildUnifiedCardIconMarkup("mail")}<span class="chip-label">Kons</span></span>
-            <span class="chip chip-blue">${buildUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
-            <span class="chip chip-pink">${buildUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
-            <span class="chip chip-green">${buildUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
-          </div>
-          ${
-            fallbackTrail.length > 1
-              ? `<div class="mailbox-trail"><span class="trail-bar"></span>${buildUnifiedCardIconMarkup("inbox")}<span class="trail-label">MAILBOXSPÅR</span>${fallbackTrail
-                  .map((entry, idx) => `${idx ? '<span class="trail-separator">·</span>' : ""}<span class="trail-item">${entry}</span>`)
-                  .join("")}</div>`
-              : ""
-          }
-        </article>`;
-      }
       if (typeof buildQueueHistoryCardMarkup !== "function") {
         const customer = asText(thread?.customerName, "Okänd avsändare");
         const title = asText(historyItem?.title || customer);
-        const preview = asText(historyItem?.detail || thread?.preview || thread?.systemPreview);
-        const nextValue = asText(
-          thread?.nextActionLabel || thread?.nextActionSummary || "Svara nu"
+        const laneId = normalizeKey(thread?.primaryLaneId || historyItem?.laneId || "");
+        const stripPreviewNoise = (value = "") => {
+          let cleaned = asText(value)
+            .replace(/<br\s*\/?>/gi, " ")
+            .replace(/<\/p>|<\/div>|<\/li>/gi, " ")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&nbsp;/gi, " ")
+            .replace(/&amp;/gi, "&")
+            .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
+            .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          for (let pass = 0; pass < 4; pass += 1) {
+            const before = cleaned;
+            cleaned = cleaned
+              .replace(/^(?:Från|From):\s*.+?(?=\s+(?:E-post|Email|Epost|Telefon|Phone|Hur kan vi hjälpa dig\?|How can we help you\?))/i, "")
+              .replace(/^(?:E-post|Email|Epost):\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+              .replace(/^(?:Telefon|Phone):\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+              .replace(/^(?:Hur kan vi hjälpa dig\?|How can we help you\?)\s*/i, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            if (cleaned === before) break;
+          }
+          return cleaned;
+        };
+        const messagePreviewCandidates = (messages = []) =>
+          asArray(messages).flatMap((message = {}) => [
+            message?.presentation?.previewText,
+            message?.preview,
+            message?.bodyPreview,
+            message?.primaryBody?.text,
+            message?.bodyHtml,
+            message?.body,
+            message?.detail,
+          ]);
+        const hasThreadDocument =
+          thread?.threadDocument &&
+          typeof thread.threadDocument === "object" &&
+          asArray(thread.threadDocument.messages).length > 0;
+        const rawPreview = [
+          ...messagePreviewCandidates(thread?.threadDocument?.messages),
+          ...messagePreviewCandidates(thread?.raw?.threadDocument?.messages),
+          historyItem?.detail,
+          thread?.preview,
+          thread?.systemPreview,
+          thread?.latestInboundPreview,
+          ...messagePreviewCandidates(thread?.messages),
+          ...messagePreviewCandidates(thread?.raw?.messages),
+          ...messagePreviewCandidates(thread?.feedEntries),
+          thread?.raw?.latestMessage?.bodyHtml,
+          thread?.raw?.latestMessage?.body,
+          thread?.raw?.latestMessage?.detail,
+          thread?.latestMessage?.bodyHtml,
+          thread?.latestMessage?.body,
+          thread?.latestMessage?.detail,
+          thread?.detail,
+          thread?.raw?.detail,
+          thread?.customerSummary?.lastCaseSummary,
+          thread?.raw?.customerSummary?.lastCaseSummary,
+        ]
+          .map((candidate) => stripPreviewNoise(candidate))
+          .find((candidate) => candidate && !/^Ingen förhandsvisning/i.test(candidate));
+        const preview = compactRuntimeCopy(rawPreview, "", 120);
+        const smartNextValue = buildThreadSmartSummary(thread);
+        const nextValue = compactRuntimeCopy(
+          smartNextValue || asText(getQueueInlineLaneSignalNext(thread, laneId), thread?.nextActionLabel || thread?.nextActionSummary || "Svara nu"),
+          "",
+          18
         );
-        const whyValue = asText(
-          thread?.intentLabel || thread?.whyInFocus || thread?.statusLabel || "Behöver svar"
+        const whyValue = compactRuntimeCopy(
+          asText(getQueueInlineLaneSignalWhy(thread, laneId), thread?.intentLabel || thread?.whyInFocus || thread?.statusLabel || "Behöver svar"),
+          "",
+          18
         );
-        return `<article class="thread-card thread-card-live${
-          selected ? " thread-card-selected" : ""
-        }" data-runtime-thread="${escapeHtml(asText(thread?.id))}" data-worklist-source="${escapeHtml(
-          asText(thread?.worklistSource || "legacy")
-        )}">
+        const whatValue = compactRuntimeCopy(
+          asText(getQueueInlineLaneSignalWhat(thread, laneId), title),
+          "",
+          18
+        );
+        const rowFamily = normalizeKey(thread?.rowFamily || thread?.raw?.rowFamily || "human_mail");
+        const crossMailboxClass = thread?.crossMailboxProvenanceEvidence === true ? " thread-card-cross-mailbox" : "";
+        const selectedClass = selected ? " thread-card-selected" : "";
+        const priorityClass = laneId === "act_now" ? " thread-card-priority" : "";
+        const source = asText(thread?.worklistSource || historyItem?.worklistSource || "legacy");
+        const foundationMode = asText(
+          thread?.foundationMode ||
+            thread?.mailFoundation?.mode ||
+            thread?.raw?.foundationMode ||
+            (hasThreadDocument ? "foundation" : preview ? "legacy_fallback" : "")
+        );
+        const foundationSource = asText(
+          thread?.foundationSource ||
+            thread?.mailFoundation?.source ||
+            thread?.raw?.foundationSource ||
+            (hasThreadDocument ? "mail_foundation" : preview ? "legacy_preview_fallback" : "")
+        );
+        const subjectContext = (() => {
+          if (rowFamily === "booking_system_mail") return "";
+          const normalizedCustomer = customer.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const cleaned = asText(title)
+            .replace(new RegExp(`^${normalizedCustomer}\\s*`, "i"), "")
+            .trim();
+          return cleaned && normalizeKey(cleaned) !== normalizeKey(customer) ? cleaned : "";
+        })();
+        const storyMarkup = preview
+          ? `<p class="thread-story thread-story-inline">${escapeHtml(preview)}</p>`
+          : "";
+        const isCrossMailboxEvidence =
+          thread?.crossMailboxProvenanceEvidence === true ||
+          thread?.mailboxProvenanceEvidence === true;
+        const unreadIndicatorMarkup =
+          !isCrossMailboxEvidence && (thread?.unread === true || thread?.isUnread === true)
+            ? '<span class="thread-unread-indicator" aria-label="Oläst mejl"></span>'
+            : "";
+        const provenanceLabel = asText(thread?.mailboxProvenanceLabel || historyItem?.mailboxProvenanceLabel);
+        const provenanceDetail = asText(thread?.mailboxProvenanceDetail || historyItem?.mailboxProvenanceDetail);
+        const provenanceCopy =
+          crossMailboxClass && provenanceDetail
+            ? provenanceDetail
+            : `${provenanceLabel || ""}${provenanceLabel && provenanceDetail ? " · " : ""}${provenanceDetail}`;
+        const provenanceMarkup =
+          provenanceLabel || provenanceDetail
+            ? `<div class="intel-card-provenance thread-card-provenance"><span class="intel-card-provenance-label intel-card-provenance-derived">Mailboxspår</span><p class="intel-card-provenance-detail">${escapeHtml(
+                provenanceCopy
+              )}</p></div>`
+            : "";
+        return `<article class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}" data-runtime-thread="${escapeHtml(
+          asText(thread?.id)
+        )}" data-worklist-source="${escapeHtml(source)}" data-row-family="${escapeHtml(rowFamily)}"${foundationMode ? ` data-foundation-mode="${escapeHtml(foundationMode)}"` : ""}${foundationSource ? ` data-foundation-source="${escapeHtml(foundationSource)}"` : ""}>
           <div class="thread-card-head">
             <div class="thread-card-identity">
               <span class="avatar" aria-hidden="true">${escapeHtml(
@@ -1674,22 +1760,32 @@
               )}</span>
               <div class="thread-card-head-copy">
                 <div class="thread-heading thread-heading-merged">
+                  ${unreadIndicatorMarkup}
                   <p class="thread-subject"><span class="thread-subject-primary">${escapeHtml(
                     customer
-                  )}</span><span class="thread-subject-context">${escapeHtml(title)}</span></p>
+                  )}</span>${subjectContext ? `<span class="thread-subject-context">${escapeHtml(subjectContext)}</span>` : ""}</p>
                 </div>
-                ${preview ? `<p class="thread-story">${escapeHtml(preview)}</p>` : ""}
+                ${storyMarkup}
               </div>
             </div>
+            <div class="thread-card-stamp-top"><time datetime="${escapeHtml(
+              asText(thread?.lastActivityAt || historyItem?.recordedAt || "")
+            )}">${escapeHtml(asText(thread?.lastActivityLabel || historyItem?.time || ""))}</time></div>
             <div class="thread-card-stamp"><span class="thread-owner">${escapeHtml(
               asText(thread?.displayOwnerLabel || thread?.ownerLabel || "Ej tilldelad")
             )}</span></div>
           </div>
-          <div class="thread-support-stack"><div class="thread-intelligence-row"><span class="thread-intelligence-item thread-intelligence-item--why"><span class="thread-intelligence-item-value">${escapeHtml(
+          <div class="thread-support-stack"><div class="thread-intelligence-row"><span class="thread-intelligence-item thread-intelligence-item--mailbox"><span class="thread-intelligence-item-icon">${renderUnifiedCardIconMarkup("mail")}</span><span class="thread-intelligence-item-value">${escapeHtml(
+            asText(thread?.mailboxLabel || historyItem?.mailboxLabel || "Kons")
+          )}</span></span><span class="thread-intelligence-item thread-intelligence-item--what"><span class="thread-intelligence-item-icon">${renderUnifiedCardIconMarkup("layers")}</span><span class="thread-intelligence-item-value">${escapeHtml(
+            whatValue
+          )}</span></span><span class="thread-intelligence-item thread-intelligence-item--why"><span class="thread-intelligence-item-value">${escapeHtml(
             whyValue
-          )}</span></span><span class="thread-intelligence-item thread-intelligence-item--next"><span class="thread-intelligence-item-value">${escapeHtml(
+          )}</span></span><button class="thread-intelligence-item thread-intelligence-item--next" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+            asText(thread?.id)
+          )}"><span class="thread-intelligence-item-icon">${renderUnifiedCardIconMarkup("bolt")}</span><span class="thread-intelligence-item-value">${escapeHtml(
             nextValue
-          )}</span></span></div></div>
+          )}</span></button></div>${provenanceMarkup}</div>
         </article>`;
       }
       return buildQueueHistoryCardMarkup(historyItem, {
@@ -1774,18 +1870,18 @@
           </div>
         </div>
         <div class="card-footer">
-          <span class="chip chip-gray">${buildUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
+          <span class="chip chip-gray">${renderUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
             asText(historyItem.mailboxLabel, "Kons")
           )}</span></span>
-          <span class="chip chip-blue">${buildUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
-          <span class="chip chip-pink">${buildUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
-          <span class="chip chip-green">${buildUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+          <span class="chip chip-blue">${renderUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+          <span class="chip chip-pink">${renderUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+          <span class="chip chip-green">${renderUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
         </div>
         ${
           trail.length > 1
             ? `<div class="mailbox-trail">
                 <span class="trail-bar" aria-hidden="true"></span>
-                ${buildUnifiedCardIconMarkup("inbox")}
+                ${renderUnifiedCardIconMarkup("inbox")}
                 <span class="trail-label">MAILBOXSPÅR</span>
                 ${visibleTrail
                   .map(
@@ -3603,6 +3699,8 @@
       const selectedStateFallback = isSelected
         ? ' aria-current="true" data-history-selected="true"'
         : ' aria-current="false"';
+      const stampLabelFallback =
+        runtimeThreadId && worklistSource === "legacy" ? "" : stampLabel;
       const detailText = asText(item.detail)
         .replace(/^Från:\s*[\s\S]*?(?=(?:E-post|Email|Epost|Telefon|Phone)\s*:|Hur kan vi hjälpa dig|How can we help you\?)/i, "")
         .replace(/(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/gi, "")
@@ -3638,13 +3736,13 @@
         .filter((pill) => asText(pill.value))
         .map((pill) => `<span class="queue-history-pill ${pill.cls}" data-pill-icon="${pill.icon}">${escapeHtml(pill.value)}</span>`)
         .join("");
-      return `<article class="thread-card queue-history-item${selectedClassFallback}" data-history-conversation="${escapeHtml(conversationId)}" data-worklist-source="${escapeHtml(worklistSource)}"${worklistSourceLabel ? ` data-worklist-source-label="${escapeHtml(worklistSourceLabel)}"` : ""}${selectedStateFallback}>
+      return `<article class="thread-card queue-history-item${selectedClassFallback}"${runtimeThreadAttribute}${historyConversationAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${selectedStateFallback}>
         <div class="thread-card-head">
           <div class="thread-card-identity">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(normalizedHistoryModel.customerInitials)}</span>
             <div class="thread-card-head-copy">
               <div class="thread-heading thread-heading-merged">
-                <p class="thread-subject"><span class="thread-subject-primary">${escapeHtml(issuePrimary)}</span>${customerContextCopy ? `<span class="thread-subject-context">${escapeHtml(customerContextCopy)}</span>` : ""}</p>
+                <p class="thread-subject queue-history-item-subject"><span class="thread-subject-primary">${escapeHtml(issuePrimary)}</span>${customerContextCopy ? `<span class="thread-subject-context">${escapeHtml(customerContextCopy)}</span>` : ""}</p>
               </div>
               <p class="thread-story thread-story-secondary-muted"><span class="thread-story-context">${escapeHtml(whatValue)}</span></p>
               ${detailText ? `<p class="queue-history-item-text-snippet">${escapeHtml(detailText)}</p>` : ""}
@@ -3654,7 +3752,7 @@
             <span class="queue-history-item-freshness-dot"></span>
             <div class="queue-history-item-meta">
               ${item.time ? `<time datetime="${escapeHtml(item.recordedAt || "")}">${escapeHtml(item.time)}</time>` : ""}
-              <span class="thread-owner">${escapeHtml(stampLabel)}</span>
+              ${stampLabelFallback ? `<span class="thread-owner">${escapeHtml(stampLabelFallback)}</span>` : ""}
             </div>
           </div>
         </div>
@@ -4276,8 +4374,13 @@
           queueContent.hidden = true;
           queueContent.innerHTML = "";
         }
+        if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
-        if (typeof windowObject?.requestAnimationFrame === "function") {
+      }
+        if (
+          typeof windowObject?.requestAnimationFrame === "function" &&
+          typeof enforceUnifiedCardV3Sections === "function"
+        ) {
           windowObject.requestAnimationFrame(() => enforceUnifiedCardV3Sections(queueHistoryList));
         }
         renderSelectedThreadInlineControls(null);
@@ -4458,7 +4561,9 @@
           })
         )
         .join("");
-      enforceUnifiedCardV3Sections(queueHistoryList);
+      if (typeof enforceUnifiedCardV3Sections === "function") {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+      }
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
@@ -4479,7 +4584,7 @@
       }
       // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
       // som producerade tomma rader när någon av build-funktionerna saknades.
-      function renderLiveThreadCard(thread, index, selected) {
+      const renderLiveThreadCard = (thread, index, selected) => {
         try {
           if (typeof buildThreadCardMarkup === "function") {
             const html = buildThreadCardMarkup(thread, index, selected);
@@ -4529,13 +4634,15 @@
           escape(preview) +
           '</div></article>'
         );
-      }
+      };
       queueHistoryList.innerHTML = asArray(threads)
         .map((thread, index) =>
           renderLiveThreadCard(thread, index, thread.id === state.runtime.selectedThreadId)
         )
         .join("");
-      enforceUnifiedCardV3Sections(queueHistoryList);
+      if (typeof enforceUnifiedCardV3Sections === "function") {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+      }
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
       try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
@@ -4638,7 +4745,9 @@
       }
 
       if (!isOpen) {
+        if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
+      }
         return;
       }
 
@@ -4684,14 +4793,16 @@
             renderQueueInlineLaneList(fallbackThreads);
           } else if (queueHistoryList) {
             queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Inga trådar i historik just nu.</div>';
+              '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
 
         renderQueueHistoryList(historyState.items);
+        if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
+      }
         if (queueHistoryLoadMoreButton) {
           queueHistoryLoadMoreButton.hidden = !historyState.hasMore;
         }
@@ -4708,7 +4819,9 @@
             queueTitle.textContent = `Arbetslista (${loadingThreads.length})`;
           }
           renderQueueInlineLaneList(loadingThreads);
-          enforceUnifiedCardV3Sections(queueHistoryList);
+          if (typeof enforceUnifiedCardV3Sections === "function") {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+      }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4721,7 +4834,9 @@
             queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
           }
           renderQueueInlineLaneList(demoFixtures);
-          enforceUnifiedCardV3Sections(queueHistoryList);
+          if (typeof enforceUnifiedCardV3Sections === "function") {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+      }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4729,7 +4844,9 @@
           queueTitle.textContent = "Arbetslista (0)";
         }
         renderQueueInlineLaneList(buildUnifiedQueueLoadingItems());
+        if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
+      }
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
       }
@@ -4748,7 +4865,9 @@
             queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
           }
           renderQueueInlineLaneList(demoFixtures);
-          enforceUnifiedCardV3Sections(queueHistoryList);
+          if (typeof enforceUnifiedCardV3Sections === "function") {
+        enforceUnifiedCardV3Sections(queueHistoryList);
+      }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4854,8 +4973,9 @@
         if (!defaultThreads.length) {
           if (runtimeMode === "offline_history") {
             if (queueHistoryList) {
-              queueHistoryList.innerHTML =
-                '<div class="queue-history-empty">Inga trådar i historik just nu.</div>';
+              queueHistoryList.innerHTML = `<div class="queue-history-empty">${escapeHtml(
+                offlineEmptyMessage || "Ingen lokal historik hittades i valt mailboxscope ännu."
+              )}</div>`;
             }
           } else {
             renderQueueInlineLaneList([

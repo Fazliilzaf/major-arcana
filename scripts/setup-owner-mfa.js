@@ -33,6 +33,8 @@ function parseArgs(argv) {
     mfaSecret: process.env.ARCANA_OWNER_MFA_SECRET || '',
     mfaRecoveryCode: process.env.ARCANA_OWNER_MFA_RECOVERY_CODE || '',
     authStorePath: process.env.AUTH_STORE_PATH || './data/auth.json',
+    forceMfaChallenge: parseBoolean(process.env.ARCANA_OWNER_MFA_FORCE_CHALLENGE, false),
+    quietSecrets: parseBoolean(process.env.ARCANA_OWNER_MFA_QUIET_SECRETS, false),
     showRecoveryCodes: parseBoolean(process.env.ARCANA_OWNER_MFA_SHOW_RECOVERY_CODES, false),
     printToken: parseBoolean(process.env.ARCANA_OWNER_MFA_PRINT_TOKEN, false),
   };
@@ -77,6 +79,22 @@ function parseArgs(argv) {
     if (item === '--auth-store-path') {
       args.authStorePath = normalizeText(argv[index + 1] || '');
       index += 1;
+      continue;
+    }
+    if (item === '--force-mfa-challenge') {
+      args.forceMfaChallenge = true;
+      continue;
+    }
+    if (item === '--no-force-mfa-challenge') {
+      args.forceMfaChallenge = false;
+      continue;
+    }
+    if (item === '--quiet-secrets') {
+      args.quietSecrets = true;
+      continue;
+    }
+    if (item === '--no-quiet-secrets') {
+      args.quietSecrets = false;
       continue;
     }
     if (item === '--show-recovery-codes') {
@@ -131,14 +149,14 @@ function generateTotpCode(secretRaw) {
 
   const hmac = crypto.createHmac('sha1', key).update(msg).digest();
   const offset = hmac[hmac.length - 1] & 0x0f;
-  const code = ((hmac.readUInt32BE(offset) & 0x7fffffff) % 1000000)
-    .toString()
-    .padStart(6, '0');
+  const code = ((hmac.readUInt32BE(offset) & 0x7fffffff) % 1000000).toString().padStart(6, '0');
   return code;
 }
 
 async function readMfaSecretFromStore({ email = '', authStorePath = './data/auth.json' } = {}) {
-  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedEmail = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!normalizedEmail) return '';
   const filePath = path.resolve(String(authStorePath || './data/auth.json'));
   try {
@@ -146,7 +164,10 @@ async function readMfaSecretFromStore({ email = '', authStorePath = './data/auth
     const users = raw && raw.users && typeof raw.users === 'object' ? Object.values(raw.users) : [];
     const user =
       users.find(
-        (item) => String(item?.email || '').trim().toLowerCase() === normalizedEmail
+        (item) =>
+          String(item?.email || '')
+            .trim()
+            .toLowerCase() === normalizedEmail
       ) || null;
     return String(user?.mfaSecret || '').trim();
   } catch {
@@ -154,9 +175,14 @@ async function readMfaSecretFromStore({ email = '', authStorePath = './data/auth
   }
 }
 
-async function fetchJson(baseUrl, routePath, { method = 'GET', token = '', body } = {}) {
+async function fetchJson(
+  baseUrl,
+  routePath,
+  { method = 'GET', token = '', body, headers: extraHeaders = {} } = {}
+) {
   const headers = {
     'Content-Type': 'application/json',
+    ...extraHeaders,
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -213,16 +239,16 @@ async function completeMfaFlow({
     throw new Error('MFA krävs men mfaTicket saknas i login-svaret.');
   }
 
-  const setup = loginResponse?.mfa && typeof loginResponse.mfa === 'object' ? loginResponse.mfa : null;
+  const setup =
+    loginResponse?.mfa && typeof loginResponse.mfa === 'object' ? loginResponse.mfa : null;
   const setupSecret = normalizeText(setup?.secret || '');
   let resolvedCode = normalizeText(mfaCode || '');
   const resolvedRecoveryCode = normalizeText(mfaRecoveryCode || '');
   let usedSetupSecret = false;
 
   if (!resolvedCode) {
-    let resolvedSecret = normalizeText(mfaSecret || '');
-    if (!resolvedSecret && setupSecret) {
-      resolvedSecret = setupSecret;
+    let resolvedSecret = setupSecret ? setupSecret : normalizeText(mfaSecret || '');
+    if (setupSecret) {
       usedSetupSecret = true;
     }
     if (!resolvedSecret) {
@@ -290,6 +316,11 @@ async function main() {
 
   const loginResponse = await fetchJson(baseUrl, '/api/v1/auth/login', {
     method: 'POST',
+    headers: args.forceMfaChallenge
+      ? {
+          'x-forwarded-host': 'arcana.hairtpclinic.se',
+        }
+      : {},
     body: {
       email,
       password,
@@ -347,13 +378,20 @@ async function main() {
     process.stdout.write('⚠️ MFA secret/recovery genererades i denna körning.\n');
     process.stdout.write('   Spara dessa säkert och rensa terminalhistorik vid behov.\n');
     process.stdout.write('   Kör inte detta i osäkra CI/logg-flöden utan sekretshantering.\n');
-    if (secret) process.stdout.write(`   secret=${secret}\n`);
-    if (otpauthUrl) process.stdout.write(`   otpauthUrl=${otpauthUrl}\n`);
+    if (args.quietSecrets) {
+      process.stdout.write('   secret=<hidden>\n');
+      process.stdout.write('   otpauthUrl=<hidden>\n');
+    } else {
+      if (secret) process.stdout.write(`   secret=${secret}\n`);
+      if (otpauthUrl) process.stdout.write(`   otpauthUrl=${otpauthUrl}\n`);
+    }
     process.stdout.write(`   recoveryCodes=${recoveryCodes.length}\n`);
-    if (args.showRecoveryCodes && recoveryCodes.length > 0) {
+    if (!args.quietSecrets && args.showRecoveryCodes && recoveryCodes.length > 0) {
       for (const code of recoveryCodes) {
         process.stdout.write(`   recoveryCode=${code}\n`);
       }
+    } else if (args.quietSecrets && recoveryCodes.length > 0) {
+      process.stdout.write('   recoveryCodesOutput=<hidden>\n');
     } else if (recoveryCodes.length > 0) {
       process.stdout.write('   (lägg till --show-recovery-codes för att skriva ut koder)\n');
     }
