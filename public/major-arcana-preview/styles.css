@@ -4,6 +4,19 @@
    4) 3 yttre skuggor   5) ljus border som smälter in
    ============================================================ */
 /* v5: explicit GRID-AREA layout låser varje sektion i rätt position */
+.queue-history-list[data-queue-list-mode="live"] > .thread-card {
+  display: grid;
+  grid-template-rows: minmax(0, auto) auto;
+  align-content: start;
+  width: 100%;
+  margin: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(249, 244, 239, 0.86) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 2px 6px rgba(66, 45, 32, 0.06);
+}
+
 .thread-card.unified-queue-card[data-lane],
 .queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card[data-lane],
 .queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card[data-lane] {
@@ -8572,7 +8585,7 @@ button {
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 22px;
-  border: 1px solid rgba(160, 110, 80, 0.72);
+  border: 1px solid rgba(178, 91, 126, 0.72);
   border-radius: 999px;
   background:
     linear-gradient(
@@ -8586,6 +8599,8 @@ button {
     inset 0 -2px 0 rgba(108, 40, 71, 0.24);
   color: rgba(255, 248, 251, 0.98);
   font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
   line-height: 16px;
   font-weight: 800;
   white-space: nowrap;

@@ -4075,10 +4075,15 @@
     if (sessionToken) return sessionToken;
 
     // Prevent background auth-recovery loops until user explicitly initiates reauth.
+    let runtimeState = null;
+    try {
+      runtimeState = typeof state === "object" ? state : null;
+    } catch {
+      runtimeState = null;
+    }
     if (
-      typeof state === "object" &&
-      state?.runtime?.authRequired === true &&
-      state?.runtime?.authRecoveryArmed !== true
+      runtimeState?.runtime?.authRequired === true &&
+      runtimeState?.runtime?.authRecoveryArmed !== true
     ) {
       return "";
     }
@@ -6629,28 +6634,34 @@
   }
 
   function buildPreviewMessages(row, feedEntries, threadDocument = null) {
-    const compareMessagesDesc =
-      typeof compareRuntimeMessagesDesc === "function"
-        ? compareRuntimeMessagesDesc
-        : (left, right) =>
-            Date.parse(
-              asText(
-                right?.sentAt,
-                right?.createdAt,
-                right?.receivedAt,
-                right?.timestamp,
-                right?.recordedAt
-              )
-            ) -
-            Date.parse(
-              asText(
-                left?.sentAt,
-                left?.createdAt,
-                left?.receivedAt,
-                left?.timestamp,
-                left?.recordedAt
-              )
-            );
+    const compareMessagesDesc = (left, right) => {
+      const rightIso = asText(
+        right?.sentAt,
+        right?.createdAt,
+        right?.receivedAt,
+        right?.timestamp,
+        right?.recordedAt,
+        right?.mailDocument?.sentAt,
+        right?.mailDocument?.receivedAt
+      );
+      const leftIso = asText(
+        left?.sentAt,
+        left?.createdAt,
+        left?.receivedAt,
+        left?.timestamp,
+        left?.recordedAt,
+        left?.mailDocument?.sentAt,
+        left?.mailDocument?.receivedAt
+      );
+      const rightTime = Date.parse(rightIso);
+      const leftTime = Date.parse(leftIso);
+      if (Number.isFinite(rightTime) && Number.isFinite(leftTime) && rightTime !== leftTime) {
+        return rightTime - leftTime;
+      }
+      if (Number.isFinite(rightTime) && !Number.isFinite(leftTime)) return -1;
+      if (!Number.isFinite(rightTime) && Number.isFinite(leftTime)) return 1;
+      return asText(right?.messageId || right?.id).localeCompare(asText(left?.messageId || left?.id));
+    };
     const getMailThreadMessage = (entry = {}) =>
       buildClientMailThreadMessageFromEntry(entry, {
         sourceStore: "client_preview_runtime",
@@ -9258,51 +9269,45 @@
   }
 
   function buildRuntimeThread(row, { feedEntries = [], historyEvents = [], threadDocument = null } = {}) {
-    const normalizeThreadDocumentOrder =
-      typeof normalizeThreadDocumentMessageOrder === "function"
-        ? normalizeThreadDocumentMessageOrder
-        : (candidate = null) => {
-            if (!candidate || typeof candidate !== "object") return candidate;
-            return {
-              ...candidate,
-              messages: asArray(candidate.messages)
-                .filter((message) => message && typeof message === "object")
-                .slice()
-                .sort((left, right) => {
-                  const rightIso = asText(
-                    right?.sentAt,
-                    right?.createdAt,
-                    right?.receivedAt,
-                    right?.timestamp,
-                    right?.recordedAt
-                  );
-                  const leftIso = asText(
-                    left?.sentAt,
-                    left?.createdAt,
-                    left?.receivedAt,
-                    left?.timestamp,
-                    left?.recordedAt
-                  );
-                  return Date.parse(rightIso) - Date.parse(leftIso);
-                }),
-            };
-          };
-    const resolveQueuePreviewText =
-      typeof resolveRuntimeQueuePreviewText === "function"
-        ? resolveRuntimeQueuePreviewText
-        : (value = "", { fallback = "" } = {}) => {
-            const sanitized = asText(value)
-              .replace(/\s+/g, " ")
-              .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
-              .replace(/^You\s+don['’]t\s+often\s+get\s+email\s+from\s+\S+\.?\s*/i, "")
-              .replace(/^Power up your productivity with Microsoft 365\.?\s*/i, "")
-              .replace(/^Get more done with apps like Word\.?\s*/i, "")
-              .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
-              .replace(/^Read more about why this is important\.?\s*/i, "")
-              .replace(/^[\s_—–-]{6,}/, "")
-              .trim();
-            return sanitized || asText(fallback);
-          };
+    const normalizeThreadDocumentOrder = (candidate = null) => {
+      if (!candidate || typeof candidate !== "object") return candidate;
+      return {
+        ...candidate,
+        messages: asArray(candidate.messages)
+          .filter((message) => message && typeof message === "object")
+          .slice()
+          .sort((left, right) => {
+            const rightIso = asText(
+              right?.sentAt,
+              right?.createdAt,
+              right?.receivedAt,
+              right?.timestamp,
+              right?.recordedAt
+            );
+            const leftIso = asText(
+              left?.sentAt,
+              left?.createdAt,
+              left?.receivedAt,
+              left?.timestamp,
+              left?.recordedAt
+            );
+            return Date.parse(rightIso) - Date.parse(leftIso);
+          }),
+      };
+    };
+    const resolveQueuePreviewText = (value = "", { fallback = "" } = {}) => {
+      const sanitized = asText(value)
+        .replace(/\s+/g, " ")
+        .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
+        .replace(/^You\s+don['’]t\s+often\s+get\s+email\s+from\s+\S+\.?\s*/i, "")
+        .replace(/^Power up your productivity with Microsoft 365\.?\s*/i, "")
+        .replace(/^Get more done with apps like Word\.?\s*/i, "")
+        .replace(/^L[aä]s om varf[oö]r det h[aä]r [aä]r viktigt\.?\s*/i, "")
+        .replace(/^Read more about why this is important\.?\s*/i, "")
+        .replace(/^[\s_—–-]{6,}/, "")
+        .trim();
+      return sanitized || asText(fallback);
+    };
     const customerName = getRuntimeCustomerNameFromFeedEntries(feedEntries, getRuntimeCustomerName(row));
     const customerEmail = extractCustomerEmail(row);
     const identityEnvelope = (() => {
