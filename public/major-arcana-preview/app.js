@@ -2556,10 +2556,96 @@
         }
       } catch (_e) {}
       target[key] = value;
+      // Schemalägg render — coalesced via requestAnimationFrame så multipla
+      // mutationer i samma tick → en render.
+      try { scheduleRender(String(key)); } catch (_e) {}
       return true;
     },
   });
   __stateRefs.proxy = state;
+
+  // ============================================================
+  // renderApp(state) → DOM (steg 4 av state-konsolidering)
+  // ============================================================
+  // Pure render-funktioner per komponent. Anropas via scheduleRender()
+  // som är hookad till state-Proxyns set-handler — varje state-mutation
+  // schemalägger en render via requestAnimationFrame (coalesced).
+  //
+  // Viktigt: detta KÖR PARALLELLT med befintlig imperativ kod under
+  // migrationen. När en komponent helt är render-driven kan motsvarande
+  // imperativa setter förenklas eller tas bort helt.
+  //
+  // Inspektion i devtools:
+  //   window.__getRenderStats() — antal renders + senaste varaktighet
+  //   window.__renderApp() — manuell trigg
+
+  const __renderStats = {
+    scheduled: 0,
+    executed: 0,
+    lastDurationMs: 0,
+    lastReason: '',
+  };
+
+  let __renderScheduled = false;
+  function scheduleRender(reason) {
+    if (__renderScheduled) return;
+    __renderScheduled = true;
+    __renderStats.scheduled++;
+    __renderStats.lastReason = reason || '';
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(__doRender);
+    } else {
+      setTimeout(__doRender, 0);
+    }
+  }
+
+  function __doRender() {
+    __renderScheduled = false;
+    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    try {
+      renderApp(state);
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[render] fel:', e);
+    }
+    const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    __renderStats.lastDurationMs = t1 - t0;
+    __renderStats.executed++;
+  }
+
+  // Top-level orchestrator. Kallar varje component-renderer som migrerats.
+  // Component-renderers är PURE: läser från state, skriver till DOM, inga
+  // side effects bortom DOM-mutationer.
+  function renderApp(state) {
+    renderMoreMenu(state);
+    // Framtida: renderMailboxAdmin, renderQueueInlinePanel, renderInbox, ...
+  }
+
+  function renderMoreMenu(state) {
+    const menu = document.getElementById('preview-more-menu');
+    const toggle = document.querySelector('[data-more-toggle]');
+    if (!menu) return;
+    const isOpen = state.ui.moreMenuOpen === true;
+    // Idempotent: applicera bara om något ändrats
+    if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
+    const ariaHidden = isOpen ? 'false' : 'true';
+    if (menu.getAttribute('aria-hidden') !== ariaHidden) {
+      menu.setAttribute('aria-hidden', ariaHidden);
+    }
+    const display = isOpen ? 'grid' : 'none';
+    if (menu.style.display !== display) menu.style.display = display;
+    const visibility = isOpen ? 'visible' : 'hidden';
+    if (menu.style.visibility !== visibility) menu.style.visibility = visibility;
+    const opacity = isOpen ? '1' : '0';
+    if (menu.style.opacity !== opacity) menu.style.opacity = opacity;
+    const pointer = isOpen ? 'auto' : 'none';
+    if (menu.style.pointerEvents !== pointer) menu.style.pointerEvents = pointer;
+    if (toggle) {
+      const ariaExpanded = isOpen ? 'true' : 'false';
+      if (toggle.getAttribute('aria-expanded') !== ariaExpanded) {
+        toggle.setAttribute('aria-expanded', ariaExpanded);
+      }
+    }
+  }
 
   if (typeof window !== 'undefined') {
     window.__getStateStats = () => ({
@@ -2569,6 +2655,11 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10),
     });
+    window.__getRenderStats = () => ({ ...__renderStats });
+    window.__renderApp = () => {
+      __doRender();
+      return __renderStats;
+    };
     // Verifierar att alla paths i __UI_KEY_PATHS pekar på existerande storage
     // (ingen typo). Returnerar lista med {key, path, value, exists}.
     window.__testStateUi = () => {
