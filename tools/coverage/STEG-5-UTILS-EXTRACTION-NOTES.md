@@ -1,0 +1,98 @@
+# Steg 5 utils.js extraktion — försök 1 (rullad tillbaka)
+
+*2026-05-08*
+
+## Vad som hände
+
+Försökte extrahera 8 pure utility-funktioner till `app/utils.js`:
+- normalizeText, normalizeKey, slugifyMailboxId
+- asArray, asText
+- escapeHtml, createIdempotencyKey
+- humanizeCode (67-rader stor mapping)
+
+Replace med `const { ... } = window.__AppUtils;` på samma ställe i app.js
+där originalen var (rad 2890+).
+
+JS-syntax OK, pre-commit OK. **Coverage 76% → 51.6%** = visuell regression.
+
+## Snabb rollback
+
+```bash
+git checkout -- public/major-arcana-preview/app.js public/major-arcana-preview/index.html
+rm public/major-arcana-preview/app/utils.js
+# Coverage tillbaka till 76% baseline
+```
+
+## Varför misslyckades det
+
+**Hoisting-problem.** `function name() {}` declarations hoistas till TOP
+av sin scope (IIFE). `const X = ...` declarations hoistas INTE — de
+"finns" från sin position framåt.
+
+Innan extraktion (allt är `function`):
+```js
+(() => {
+  // function declarations hoistas till TOP — alla call sites har tillgång
+  // till alla funktioner oavsett deklarationsordning.
+  someFunctionUsingHumanizeCode();  // Works — humanizeCode hoisted
+  function humanizeCode() { ... }   // declared lower in file
+})();
+```
+
+Efter extraktion (humanizeCode är `const` från `window.__AppUtils`):
+```js
+(() => {
+  someFunctionUsingHumanizeCode();  // ReferenceError? Maybe not — function decl hoisted
+  const humanizeCode = window.__AppUtils.humanizeCode;  // declared lower
+  function someFunctionUsingHumanizeCode() {
+    return humanizeCode(...)  // ReferenceError when called BEFORE const init
+  }
+})();
+```
+
+I praktiken: vid IIFE-load körs alla `function`-deklarationer (hoistas)
+men `const`-deklarationer initieras i ordning. Om någon `function`
+körs i topp-IIFE-scope (t.ex. en `const X = createY()` på top-level)
+INNAN `const humanizeCode = ...`-raden, kan den misslyckas.
+
+App.js har många top-level `const X = createXxxRuntime()`-anrop som
+kan hänvisa till humanizeCode indirekt.
+
+## Lärdomar för framtida iterationer
+
+1. **Pure-data-extraktion fungerar** (Steg 1: state-paths.js — pure data).
+2. **Pure-leaf-funktion-extraktion fungerar** (Steg 4: render-components —
+   funktioner kallas BARA via renderApp som kallas via scheduleRender,
+   alltså långt efter IIFE-bootstrap).
+3. **Utility-funktion-extraktion misslyckas** om utilities används i
+   top-level IIFE-bootstrap-flow (som humanizeCode/asText/escapeHtml).
+
+## Strategier för försök 2
+
+a) **Behåll lokala kopior av utilities i app.js** men ALSO exponera dem
+   som window.__AppUtils. Dvs duplicera istället för flytta. Andra moduler
+   kan importera via window.__AppUtils. App.js använder sina egna lokala
+   originals. **Net win:** 0 LOC bort, men andra moduler kan återanvända.
+
+b) **Wrappa hela app.js IIFE i en async-bootstrap** som väntar på alla
+   moduler innan top-level kod körs. Komplext, kräver bigger refactor.
+
+c) **Definiera utilities innan ALL annan kod i IIFE** med `var` (function-
+   hoisted som functions, inte const). Sen ersätt declarations med
+   `var X = window.__AppUtils.X` på TOP av IIFE. var-deklarationer
+   hoistas till top of scope (initieras till undefined), så top-level
+   bootstrap-kod skulle få undefined för utilities → kraschar.
+
+Inget av alternativen är trivialt. **Pragmatisk slutsats:** utility-
+funktioner som används bredt i app.js IIFE bör STANNA där de är.
+Modulrefactor levererar bäst värde för leaf-funktioner som körs efter
+bootstrap (renderers, event-handlers).
+
+## Status efter rollback
+
+- Steg 1 (state-paths.js): ✅ live
+- Steg 4 (render-components.js): ✅ live
+- Steg 5 (utils.js): ❌ rullad tillbaka
+
+App.js är ~26945 rader. Inga utilities flyttade — humanizeCode och
+asText/asArray/etc. lever vidare i app.js där de hoistas korrekt.
