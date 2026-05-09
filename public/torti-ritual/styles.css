@@ -2227,16 +2227,19 @@ input {
 }
 
 .collection-results {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
   padding-top: 1px;
-  width: min(100%, 520px);
-  max-height: 172px;
-  overflow: auto;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-right: 2px;
+  padding-bottom: 4px;
   scrollbar-width: thin;
-  justify-self: start;
-  justify-items: start;
+  justify-self: stretch;
+  align-items: stretch;
 }
 
 .collection-search-hint,
@@ -2313,13 +2316,15 @@ input {
 
 .collection-result {
   display: grid;
-  grid-template-columns: auto minmax(0, max-content) auto;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  max-width: 100%;
-  min-height: 36px;
-  padding: 4px 6px;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto;
+  align-items: start;
+  justify-items: start;
+  gap: 4px;
+  width: 172px;
+  flex: 0 0 172px;
+  min-height: 126px;
+  padding: 8px 8px 7px;
   border: 1px solid rgba(88, 63, 46, 0.05);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.76);
@@ -2328,10 +2333,39 @@ input {
   text-align: left;
 }
 
+.collection-result-bottle {
+  width: 26px;
+  height: 36px;
+}
+
+.collection-result-bottle.has-image {
+  width: 28px;
+  height: 38px;
+}
+
 .collection-result-copy strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.67rem;
+  line-height: 1.02;
+  font-weight: 700;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+}
+
+.collection-result-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.collection-result-flags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .collection-result:active {
@@ -2346,16 +2380,6 @@ input {
 
 .collection-result.is-owned {
   background: rgba(255, 255, 255, 0.88);
-}
-
-.collection-result-bottle {
-  width: 20px;
-  height: 28px;
-}
-
-.collection-result-bottle.has-image {
-  width: 22px;
-  height: 30px;
 }
 
 .collection-result-bottle img {

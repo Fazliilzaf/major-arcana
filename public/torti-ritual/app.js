@@ -3313,7 +3313,7 @@
               .map((item) => `<span class="collection-preview-pill">${escapeHtml(item.name)}</span>`)
               .join("")}
           </div>
-          <span class="collection-preview-hint">Click the tab to search this category.</span>
+          <span class="collection-preview-hint">Click the tab to search this category. Scroll sideways to browse.</span>
         </div>
       `
       : "";
@@ -3346,7 +3346,7 @@
         <div class="collection-panel-note">
           ${activeQuery
             ? `<span>${escapeHtml(activeProducts.length)} matches.</span>`
-            : `<span>Browse ${escapeHtml(activeSection.products.length)} products.</span>`}
+            : `<span>Scroll sideways to browse ${escapeHtml(activeSection.products.length)} products.</span>`}
         </div>
         <div class="collection-panel-meta">
           <span>${escapeHtml(ownedCount)} in library</span>
