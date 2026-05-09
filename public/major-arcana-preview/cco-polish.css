@@ -1014,4 +1014,126 @@
   margin: 0 2px;
 }
 
+/* ============================================================
+   Tangentbordsnav (app/keyboard-nav.js, 2026-05-08)
+   ============================================================ */
+
+/* Highlighted thread-card (j/k navigation) — visuell distinkt från click-selected */
+.thread-card.is-keyboard-focused {
+  box-shadow:
+    0 0 0 2px #c97a4d,
+    0 4px 14px rgba(201, 122, 77, 0.22);
+  outline: none;
+  position: relative;
+  z-index: 2;
+}
+
+/* Help-overlay (?-genväg) */
+#keyboard-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;  /* under cmd-k-overlay (9999) */
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+#keyboard-help-overlay[data-open] {
+  display: flex;
+}
+#keyboard-help-overlay .kbd-help-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(40, 25, 15, 0.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#keyboard-help-overlay .kbd-help-panel {
+  position: relative;
+  width: min(520px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+  border: 1px solid rgba(165, 105, 60, 0.18);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 60px rgba(60, 35, 20, 0.28),
+    0 4px 12px rgba(60, 35, 20, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+}
+#keyboard-help-overlay .kbd-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(165, 105, 60, 0.14);
+}
+#keyboard-help-overlay .kbd-help-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b1f15;
+}
+#keyboard-help-overlay .kbd-help-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: #8a6f55;
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+#keyboard-help-overlay .kbd-help-close:hover {
+  background: rgba(165, 105, 60, 0.1);
+  color: #2b1f15;
+}
+#keyboard-help-overlay .kbd-help-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#keyboard-help-overlay .kbd-help-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 13.5px;
+  color: #2b1f15;
+}
+#keyboard-help-overlay .kbd-help-label {
+  flex: 1;
+}
+#keyboard-help-overlay .kbd-help-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+#keyboard-help-overlay kbd {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #6b5340;
+  border: 1px solid rgba(165, 105, 60, 0.22);
+  box-shadow: inset 0 -1px 0 rgba(165, 105, 60, 0.12);
+  min-width: 18px;
+  text-align: center;
+}
+#keyboard-help-overlay .kbd-help-footer {
+  padding: 12px 22px;
+  font-size: 11.5px;
+  color: #8a6f55;
+  border-top: 1px solid rgba(165, 105, 60, 0.14);
+  background: rgba(248, 240, 230, 0.5);
+  text-align: center;
+}
+
 } /* end @layer components */
