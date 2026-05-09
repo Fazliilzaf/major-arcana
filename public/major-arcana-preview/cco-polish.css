@@ -722,6 +722,31 @@
   }
 }
 
+/* Focus-shell layout-guardian — migrerad från FIX13 i runtime-demo-fixture
+   (eliminerar setInterval-pollingen + inline-styles). Tvingar focus-shell till
+   höger grid-kolumn och spannar två rader så panelen syns även när auth_required
+   skulle ha flyttat den till en ny rad. */
+.focus-shell {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  justify-self: stretch;
+  width: 100%;
+  height: auto;
+  min-height: 600px;
+}
+.cco-followup-row {
+  align-self: start;
+}
+.preview-workspace {
+  grid-template-rows: auto;
+}
+/* Mail-content-area får 2/3, intel-area 1/3 (var 348px lika delar = för smalt) */
+.focus-layout {
+  grid-template-columns: minmax(420px, 2fr) minmax(260px, 1fr);
+  gap: 14px;
+}
+
 /* ============================================================
    More-menu CSS-only visibility (steg 5 state-konsolidering 2026-05-08)
    Wrappern .preview-more bär data-open="" när menyn är öppen.

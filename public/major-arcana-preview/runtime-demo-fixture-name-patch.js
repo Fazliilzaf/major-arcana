@@ -286,44 +286,11 @@
     }, true);
   }
 
-  // FIX13: Höger panel försvinner när 4+ mailboxar valts. Layout-koden flyttar
-  // focus-shell till en ny rad istället för höger kolumn. Tvinga kontinuerligt.
-  function startFocusShellLayoutGuardian() {
-    let lastApplyAt = 0;
-    function apply() {
-      const now = Date.now();
-      if (now - lastApplyAt < 100) return; // throttle
-      lastApplyAt = now;
-      ensureFocusShellInRightColumn();
-    }
-    // Initial + flera försök efter laddning (DOM är klar i etapper)
-    apply();
-    [50, 200, 600, 1500, 3000].forEach((ms) => window.setTimeout(apply, ms));
-
-    // Fas 2 cleanup: 3 observers ersatta med periodiska timer + click-listener.
-    // Wait for workspace via polling istället för observer:
-    if (!document.querySelector('.preview-workspace')) {
-      var attempts = 0;
-      var waitId = window.setInterval(function () {
-        attempts++;
-        if (document.querySelector('.preview-workspace')) {
-          window.clearInterval(waitId);
-          startFocusShellLayoutGuardian();
-        } else if (attempts >= 60) {
-          window.clearInterval(waitId);
-        }
-      }, 100);
-      return;
-    }
-    // Periodisk apply var 1500 ms — fångar både layout-changes och picker-changes
-    window.setInterval(apply, 1500);
-    // Click-listener på mailbox-picker — direkt feedback vid val
-    document.addEventListener('change', function (e) {
-      if (e.target && e.target.matches && e.target.matches('.mailbox-option-input, [data-mailbox-picker] input')) {
-        window.setTimeout(apply, 50);
-      }
-    }, true);
-  }
+  // FIX13 (layout-guardian) ELIMINERAD 2026-05-08 — motsvarande layout-styles
+  // flyttade till cco-polish.css @layer components. setInterval(1500ms) +
+  // setInterval(100ms) + 5 setTimeout-ticks borta. CSS hanterar grid permanent.
+  // ensureFocusShellInRightColumn() behålls för att FIX12 (renderFocusPanelForFixture)
+  // anropar den; den är nu en no-op men vi lämnar tomt skal för bakåtkompabilitet.
 
   // FIX14: Worklist API kraschar (HTML istället för JSON) → state.runtime.threads
   // hamnar i error-state utan demo-fixtures. Injicera 6 demo-kort direkt i DOM
@@ -472,7 +439,7 @@
     }
 
     bindDemoCardClickToFocus();
-    startFocusShellLayoutGuardian();
+    // FIX13 startFocusShellLayoutGuardian eliminerad — CSS i cco-polish.css gör jobbet
     startDemoCardInjector();
 
     // FIX10:s MutationObserver + setInterval(1500ms × 20 ticks) är borttagen.
