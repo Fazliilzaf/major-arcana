@@ -31,6 +31,8 @@ const SCRIPT_RE = /<script\s+src="\.\/([^"?]+)(?:\?[^"]*)?"\s*><\/script>/g;
 const scripts = [];
 let m;
 while ((m = SCRIPT_RE.exec(html)) !== null) {
+  // Skippa självreferens till tidigare bundle (annars dubbel-bundling)
+  if (/^app\.bundle(\.min)?\.js$/.test(m[1])) continue;
   scripts.push(m[1]);
 }
 

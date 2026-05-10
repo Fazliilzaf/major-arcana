@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv" data-build="build-20260510-booking-merge">
+<html lang="sv" data-build="build-9a4eabe">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,10 +21,10 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important) -->
-    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-20260510-booking-merge" />
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-9a4eabe" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-20260510-booking-merge" />
-    <script src="./cco-polish.js?v=build-20260510-booking-merge" defer></script>
+    <link rel="stylesheet" href="./cco-polish.css?v=build-9a4eabe" />
+    <script src="./cco-polish.js?v=build-9a4eabe" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <main class="preview-page">
@@ -234,17 +234,7 @@
                   >
                     Showcase
                   </button>
-                  <button
-                    class="preview-nav-item preview-more-item"
-                    type="button"
-                    role="menuitem"
-                    data-shim-logout="1"
-                    style="
-                      border-top: 1px solid rgba(0, 0, 0, 0.08);
-                      margin-top: 4px;
-                      color: #b5564b;
-                    "
-                  >
+                  <button class="preview-nav-item preview-more-item" type="button" role="menuitem" data-shim-logout="1" style="border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;color:#b5564b;">
                     Logga ut
                   </button>
                 </div>
@@ -258,7 +248,7 @@
               id="preview-live-status"
               role="status"
               aria-live="polite"
-              title="Anslutningsstatus mot mejlsanning"
+              title="Anslutningsstatus mot mailbox-truth-store"
             >
               <span class="preview-live-pill-dot"></span>
               <span class="preview-live-pill-label">Demo</span>
@@ -301,7 +291,7 @@
                   stroke-width="1.4"
                 />
               </svg>
-              <span>Fokuspass 3</span>
+              <span>Sprint 3</span>
             </button>
 
             <div class="preview-utility-cluster" aria-label="Verktyg">
@@ -422,29 +412,8 @@
           </div>
         </header>
 
-        <div class="mobile-workspace-switch" data-mobile-workspace-switch aria-label="Arbetsyta">
-          <button
-            class="mobile-workspace-switch-button"
-            type="button"
-            data-mobile-workspace-view="queue"
-            aria-controls="workspace-queue"
-            aria-pressed="true"
-          >
-            Arbetskö
-          </button>
-          <button
-            class="mobile-workspace-switch-button"
-            type="button"
-            data-mobile-workspace-view="focus"
-            aria-controls="workspace-focus"
-            aria-pressed="false"
-          >
-            Fokus/Bokning
-          </button>
-        </div>
-
         <div class="preview-workspace">
-          <section class="preview-shell" id="workspace-queue" aria-labelledby="preview-title">
+          <section class="preview-shell" aria-labelledby="preview-title">
             <div class="queue-topzone">
               <div class="preview-head">
                 <div class="preview-title-group">
@@ -459,7 +428,7 @@
                     aria-controls="truth-worklist-shell"
                     hidden
                   >
-                    Visa sanningsvy för arbetslista
+                    Visa Truth Worklist Assist View
                   </button>
                 </div>
               </div>
@@ -541,7 +510,7 @@
                         <svg viewBox="0 0 16 16" aria-hidden="true">
                           <path d="M5 4.5 11.5 8 5 11.5Z" fill="currentColor" />
                         </svg>
-                        Fokuspass
+                        Sprint
                       </span>
                       <strong data-queue-lane-count="sprint">0</strong>
                     </button>
@@ -646,8 +615,8 @@
                       type="button"
                       data-quick-action="studio"
                       data-quick-mode="reply"
-                      aria-label="Öppna Svarstudio"
-                      title="Öppna Svarstudio"
+                      aria-label="Öppna Studio"
+                      title="Öppna Studio"
                     >
                       <span>
                         <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -659,7 +628,7 @@
                             stroke-width="1.2"
                           />
                         </svg>
-                        Svarstudio
+                        Studio
                       </span>
                     </button>
 
@@ -841,13 +810,13 @@
                         class="control-pill control-pill-wide mailbox-trigger"
                         for="mailbox-menu-toggle"
                       >
-                        <span data-mailbox-trigger-label>Hair TP Clinic - Alla mejlkonton</span>
+                        <span data-mailbox-trigger-label>Hair TP Clinic - Alla mailboxar</span>
                         <span class="pill-caret" aria-hidden="true">v</span>
                       </label>
 
-                      <div class="mailbox-menu" aria-label="Välj mejlkonton">
+                      <div class="mailbox-menu" aria-label="Välj mailboxar">
                         <p class="mailbox-menu-title" data-i18n="ui.valj_mailboxar.a1f61d">
-                          VÄLJ MEJLKONTON
+                          VÄLJ MAILBOXAR
                         </p>
 
                         <div class="mailbox-menu-grid" data-mailbox-menu-grid>
@@ -868,7 +837,7 @@
                             <span class="mailbox-option-copy">
                               <span class="mailbox-option-primary">
                                 <span class="mailbox-option-name">Egzona</span>
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">egzona@hairtpclinic.com</span>
@@ -900,7 +869,7 @@
                                 <span class="mailbox-option-name" data-i18n="ui.kontakt.92316d"
                                   >Kontakt</span
                                 >
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">contact@hairtpclinic.com</span>
@@ -928,7 +897,7 @@
                             <span class="mailbox-option-copy">
                               <span class="mailbox-option-primary">
                                 <span class="mailbox-option-name">Fazli</span>
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">fazli@hairtpclinic.com</span>
@@ -960,7 +929,7 @@
                                 <span class="mailbox-option-name" data-i18n="ui.kvitto.435f83"
                                   >Kvitto</span
                                 >
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">receipt@hairtpclinic.com</span>
@@ -990,7 +959,7 @@
                                 <span class="mailbox-option-name" data-i18n="ui.info.4059b0"
                                   >Info</span
                                 >
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">info@hairtpclinic.com</span>
@@ -1020,7 +989,7 @@
                                 <span class="mailbox-option-name" data-i18n="ui.kons.c301d0"
                                   >Kons</span
                                 >
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">kons@hairtpclinic.com</span>
@@ -1050,7 +1019,7 @@
                                 <span class="mailbox-option-name" data-i18n="ui.marknad.cf864f"
                                   >Marknad</span
                                 >
-                                <span class="mailbox-option-status">Aktiv</span>
+                                <span class="mailbox-option-status">Live</span>
                               </span>
                               <span class="mailbox-option-secondary">
                                 <span class="mailbox-option-email">marknad@hairtpclinic.com</span>
@@ -1179,13 +1148,13 @@
                   class="queue-bubble-row queue-bubble-row-meta"
                   data-thread-context
                   data-thread-key="anna"
-                  aria-label="Mejlkontometadata"
+                  aria-label="Mailboxmetadata"
                 ></div>
               </div>
             </div>
           </section>
 
-          <section class="focus-shell" id="workspace-focus" aria-labelledby="focus-title">
+          <section class="focus-shell" aria-labelledby="focus-title">
             <div class="focus-layout">
               <div class="focus-main">
                 <div class="focus-surface">
@@ -1519,7 +1488,7 @@
                             <div class="booking-operator-head">
                               <div>
                                 <span class="booking-operator-kicker">BOKNING</span>
-                                <h3>Bokningsarbete</h3>
+                                <h3>Operatörsyta</h3>
                               </div>
                               <span class="booking-status-pill" data-booking-status
                                 >Behöver triage</span
@@ -1535,7 +1504,7 @@
                               Nästa: välj kandidat-tider
                             </p>
                             <p class="booking-decision-source-line" data-booking-decision-source>
-                              Beslutskälla: lokal bedömning
+                              Beslutskälla: lokal fallback
                             </p>
                             <button
                               class="booking-next-action-jump"
@@ -1602,28 +1571,28 @@
                             <ul
                               class="booking-handoff-checklist"
                               data-booking-handoff-checklist
-                              aria-label="Överlämningschecklista"
+                              aria-label="Handoff-checklista"
                             ></ul>
 
                             <div
                               class="booking-handoff-summary"
                               data-booking-handoff-summary
-                              aria-label="Bokningsöverlämning"
+                              aria-label="Bokningshandoff"
                             ></div>
 
                             <section
                               class="booking-audit-preview"
                               data-booking-audit-preview
-                              aria-label="Loggförhandsvisning"
+                              aria-label="Audit preview"
                             >
                               <div class="booking-audit-preview-head">
                                 <div>
-                                  <span>Loggförhandsvisning</span>
+                                  <span>Audit preview</span>
                                   <strong>Intern ärendesammanfattning</strong>
                                 </div>
                                 <div
                                   class="booking-audit-preview-toggle"
-                                  aria-label="Loggförhandsvisningsläge"
+                                  aria-label="Audit preview-läge"
                                 >
                                   <button
                                     type="button"
@@ -1654,7 +1623,7 @@
                                 class="booking-audit-preview-copy"
                                 data-booking-audit-preview-copy
                               >
-                                Bokningslogg visas här när ett ärende är valt.
+                                Bokningsaudit visas här när ett ärende är valt.
                               </div>
                             </section>
 
@@ -1720,11 +1689,11 @@
                                 type="button"
                                 data-booking-action="fetch_slots"
                               >
-                                Hämta tider
+                                Hämta slots
                               </button>
                             </div>
                             <p class="booking-ref-status" data-booking-ref-status>
-                              Hämta externa val eller skriv id manuellt.
+                              Hämta Cliento-val eller skriv id manuellt.
                             </p>
 
                             <ul
@@ -1732,17 +1701,15 @@
                               data-booking-available-slot-list
                             >
                               <li class="booking-slot-empty">
-                                <strong>Inga externa tider hämtade</strong>
-                                <span
-                                  >Ange resurs och service, eller använd manuella reservtider.</span
-                                >
+                                <strong>Inga live-slots hämtade</strong>
+                                <span>Ange resurs och service, eller använd manuell fallback.</span>
                               </li>
                             </ul>
 
                             <ul class="booking-slot-list" data-booking-slot-list>
                               <li class="booking-slot-empty">
                                 <strong>Inga tider valda</strong>
-                                <span>Hämta externa tider eller välj kandidater manuellt.</span>
+                                <span>Hämta Cliento-slots eller välj kandidater manuellt.</span>
                               </li>
                             </ul>
 
@@ -1779,9 +1746,9 @@
                                 type="button"
                                 data-booking-action="insert_studio"
                                 data-booking-requires-slots="true"
-                                title="Välj minst en tid innan förslaget infogas i Svarstudio."
+                                title="Välj minst en tid innan förslaget infogas i Studio."
                               >
-                                Infoga i Svarstudio
+                                Infoga i Studio
                               </button>
                               <button
                                 class="booking-action booking-action-secondary"
@@ -1809,21 +1776,21 @@
                                 type="button"
                                 data-booking-action="copy_handoff"
                                 data-booking-requires-slots="true"
-                                title="Välj minst en tid innan överlämningen kopieras."
+                                title="Välj minst en tid innan handoff kopieras."
                               >
-                                Kopiera överlämning
+                                Kopiera handoff
                               </button>
                               <button
                                 class="booking-action booking-action-secondary"
                                 type="button"
                                 data-booking-action="copy_audit_summary"
-                                title="Kopiera strukturerad bokningslogg för intern ärendeöverlämning."
+                                title="Kopiera strukturerad bokningsaudit för intern ärendeöverlämning."
                               >
-                                Kopiera logg
+                                Kopiera audit
                               </button>
                             </div>
                             <p class="booking-action-hint" data-booking-action-hint>
-                              Välj minst en tid för att aktivera Svarstudio och överlämning.
+                              Välj minst en tid för att aktivera Studio och handoff.
                             </p>
                             <p
                               class="booking-feedback"
@@ -1901,7 +1868,7 @@
                           <h4 data-i18n="ui.mailhistorik.7ab3f5">Mailhistorik</h4>
                           <dl>
                             <div>
-                              <dt data-i18n="ui.mailboxar.6bcd2b">Mejlkonton</dt>
+                              <dt data-i18n="ui.mailboxar.6bcd2b">Mailboxar</dt>
                               <dd data-i18n="ui.kons_info_contact_4_till.b9af09">
                                 Kons, Info, Contact +4 till
                               </dd>
@@ -1931,7 +1898,7 @@
                               </dd>
                             </div>
                             <div>
-                              <dt data-i18n="ui.mailbox.2dcff8">Mejlkonto</dt>
+                              <dt data-i18n="ui.mailbox.2dcff8">Mailbox</dt>
                               <dd data-i18n="ui.kons.c301d0">Kons</dd>
                             </div>
                             <div>
@@ -1977,7 +1944,7 @@
                               <dd
                                 data-i18n="ui.historik_visar_tidigare_bokningsdialog_over_3_mailboxar.a4324f"
                               >
-                                Historik visar tidigare bokningsdialog över 3 mejlkonton.
+                                Historik visar tidigare bokningsdialog över 3 mailboxar.
                               </dd>
                             </div>
                             <div>
@@ -1997,13 +1964,13 @@
                               data-focus-customer-history-title
                               data-i18n="ui.kundhistorik_over_mailboxar.041070"
                             >
-                              Kundhistorik över mejlkonton
+                              Kundhistorik över mailboxar
                             </h3>
                             <p
                               data-focus-customer-history-description
                               data-i18n="ui.samlad_aktivitet_for_kunden_over_valda_mailboxar.ecaef5"
                             >
-                              Samlad aktivitet för kunden över valda mejlkonton.
+                              Samlad aktivitet för kunden över valda mailboxar.
                             </p>
                             <div class="focus-history-head-state-row">
                               <span
@@ -2030,12 +1997,12 @@
                               data-focus-customer-history-readout
                               data-i18n="ui.oppna_readout.9ad835"
                             >
-                              Öppna läsning
+                              Öppna readout
                             </button>
                             <span
                               data-focus-customer-history-meta
                               data-i18n="ui.inga_mailboxar_valda_annu.54a55d"
-                              >Inga mejlkonton valda ännu</span
+                              >Inga mailboxar valda ännu</span
                             >
                           </div>
                         </div>
@@ -2120,7 +2087,7 @@
                             data-focus-history-readout
                             data-i18n="ui.oppna_readout.9ad835"
                           >
-                            Öppna läsning
+                            Öppna readout
                           </button>
                           <button
                             class="focus-history-readout focus-history-delete"
@@ -2130,9 +2097,7 @@
                           >
                             Radera
                           </button>
-                          <span data-focus-history-meta
-                            >4 mejlkonton · senaste mejl idag 21:39</span
-                          >
+                          <span data-focus-history-meta>4 mailboxar · senaste mail idag 21:39</span>
                         </div>
                       </div>
 
@@ -2724,7 +2689,7 @@
                             data-i18n="ui.visa_bara_det_som_paverkar_vem_som_svarar_eller_om_nagot_beh.68b564"
                           >
                             Visa bara det som påverkar vem som svarar eller om något behöver
-                            överlämnas.
+                            handoff.
                           </p>
                         </div>
                         <dl class="intel-card-lines">
@@ -2734,7 +2699,7 @@
                           </div>
                           <div class="intel-card-line">
                             <dt class="intel-card-line-label" data-i18n="ui.handoff.ffb809">
-                              Överlämning
+                              Handoff
                             </dt>
                             <dd class="intel-card-line-value" data-i18n="ui.ingen_just_nu.8b86ec">
                               Ingen just nu
@@ -3213,7 +3178,7 @@
                             <b>82%</b>
                           </div>
                           <ul>
-                            <li>Delad kontaktkedja i mejlkontot</li>
+                            <li>Delad kontaktkedja i mailboxen</li>
                             <li>Överlappande kundvärde</li>
                             <li>Liknande bokningsmönster</li>
                           </ul>
@@ -3674,7 +3639,7 @@
                   <div class="customer-import-summary" data-customer-import-summary>
                     <article class="customers-merge-card customers-merge-card-muted">
                       <div class="customers-merge-empty">
-                        <strong>Ingen förhandsvisning ännu</strong>
+                        <strong>Ingen preview ännu</strong>
                         <p
                           data-i18n="ui.ladda_upp_en_fil_eller_klistra_in_json_csv_och_kor_sedan_for.1e8fa4"
                         >
@@ -3763,7 +3728,7 @@
                     data-automation-trust-note="global"
                     data-i18n="ui.live_save_test_och_versioner_verifieras_separat_fran_shell_l.b1c275"
                   >
-                    Aktiv sparning, test och versioner verifieras separat från arbetsytan.
+                    Live save, test och versioner verifieras separat från shell-lagret.
                   </p>
                 </div>
               </div>
@@ -3826,7 +3791,7 @@
                       Collaboration
                     </p>
                     <h2 data-i18n="ui.live_koordinering_runt_flodet.4d05cc">
-                      Aktiv koordinering runt flödet
+                      Live-koordinering runt flödet
                     </h2>
                   </div>
                   <button
@@ -3846,23 +3811,23 @@
                     <p
                       data-i18n="ui.sara_granskar_fallback_logik_och_egzona_foljer_diffen_i_vers.29d8d5"
                     >
-                      Sara granskar reservlogik och Egzona följer diffen i versioner.
+                      Sara granskar fallback-logik och Egzona följer diffen i versioner.
                     </p>
                   </article>
                   <article class="automation-collaboration-card">
                     <span data-i18n="ui.senaste_kommentar.a6f382">Senaste kommentar</span>
-                    <strong>“Öppna reservsteg först efter 48h”</strong>
+                    <strong>“Öppna fallback-slot först efter 48h”</strong>
                     <p data-i18n="ui.kommentar_fran_sara_l_for_2_min_sedan.c7e36e">
                       Kommentar från Sara L. · för 2 min sedan
                     </p>
                   </article>
                   <article class="automation-collaboration-card">
                     <span data-i18n="ui.behover_beslut.1f74fb">Behöver beslut</span>
-                    <strong>2 öppna granskningsåtgärder</strong>
+                    <strong>2 öppna reviewer-åtgärder</strong>
                     <p
                       data-i18n="ui.timeout_policy_och_ai_copy_kraver_godkannande_innan_publicer.ccd713"
                     >
-                      Timeout-policy och AI-text kräver godkännande innan publicering.
+                      Timeout-policy och AI-copy kräver godkännande innan publicering.
                     </p>
                   </article>
                 </div>
@@ -4309,7 +4274,7 @@
                       data-automation-trust-note="analysis"
                       data-i18n="ui.analyskortens_kalla_verifieras_separat_fran_live_template_da.d8d990"
                     >
-                      Analyskortens källa verifieras separat från aktiv mall-data.
+                      Analyskortens källa verifieras separat från live template-data.
                     </p>
                   </div>
                   <button
@@ -4366,7 +4331,7 @@
                         <article class="automation-agenda-card">
                           <span data-i18n="ui.basta_havstang.b82570">BÄSTA HÄVSTÅNG</span>
                           <strong
-                            >Snabbast vinst fås genom att öppna reservsteget efter 48h
+                            >Snabbast vinst fås genom att öppna fallback-slot efter 48h
                             inaktivitet.</strong
                           >
                           <p data-i18n="ui.kan_lyfta_engagemang_direkt.29dd40">
@@ -4475,7 +4440,8 @@
                           <p
                             data-i18n="ui.lag_risk_om_fallback_slot_oppnas_automatiskt_forst_efter_48h.6d39c0"
                           >
-                            Låg risk om reservsteget öppnas automatiskt först efter 48h inaktivitet.
+                            Låg risk om fallback-slot öppnas automatiskt först efter 48h
+                            inaktivitet.
                           </p>
                         </div>
                       </div>
@@ -4531,7 +4497,7 @@
                     </p>
                     <div class="automation-template-tag-row">
                       <span data-i18n="ui.sla_vakt.a67e8d">SLA-vakt</span>
-                      <span data-i18n="ui.fallback_paminnelse.a83ed2">Reservpåminnelse</span>
+                      <span data-i18n="ui.fallback_paminnelse.a83ed2">Fallback-påminnelse</span>
                       <span data-i18n="ui.eskaleringregel.81d4c9">Eskaleringregel</span>
                     </div>
                   </section>
@@ -4541,7 +4507,7 @@
                     <ol>
                       <li>Duplicera mallen och behåll trigger och grundlogik.</li>
                       <li>
-                        Testa på ett scenario med väntetid, reservspår och uppföljning före
+                        Testa på ett scenario med väntetid, fallback och uppföljning före
                         aktivering.
                       </li>
                     </ol>
@@ -4580,7 +4546,7 @@
                     <p
                       data-i18n="ui.fardig_mall_for_retention_med_tydlig_cta_fallback_och_uppfol.1f6b8f"
                     >
-                      Färdig mall för retention med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för retention med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.9</strong>
@@ -4594,12 +4560,12 @@
                       <h3 data-i18n="ui.merforsaljningsautomatisering.b2bf50">
                         Merförsäljningsautomatisering
                       </h3>
-                      <span data-i18n="ui.revenue.54358a">Intäkt</span>
+                      <span data-i18n="ui.revenue.54358a">Revenue</span>
                     </div>
                     <p
                       data-i18n="ui.fardig_mall_for_revenue_med_tydlig_cta_fallback_och_uppfoljn.04e341"
                     >
-                      Färdig mall för revenue med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för revenue med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.7</strong>
@@ -4611,12 +4577,12 @@
                   <article class="automation-template-card" data-automation-template="sla_guardian">
                     <div class="automation-template-card-top">
                       <h3 data-i18n="ui.sla_vaktare.1f2540">SLA-väktare</h3>
-                      <span data-i18n="ui.operations.456d0d">Drift</span>
+                      <span data-i18n="ui.operations.456d0d">Operations</span>
                     </div>
                     <p
                       data-i18n="ui.fardig_mall_for_operations_med_tydlig_cta_fallback_och_uppfo.4162c5"
                     >
-                      Färdig mall för operations med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för operations med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.8</strong>
@@ -4631,12 +4597,12 @@
                   >
                     <div class="automation-template-card-top">
                       <h3 data-i18n="ui.helg_autosvar.8e431e">Helg-autosvar</h3>
-                      <span data-i18n="ui.support.db5eb8">Stöd</span>
+                      <span data-i18n="ui.support.db5eb8">Support</span>
                     </div>
                     <p
                       data-i18n="ui.fardig_mall_for_support_med_tydlig_cta_fallback_och_uppfoljn.863a6c"
                     >
-                      Färdig mall för support med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för support med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.9</strong>
@@ -4653,12 +4619,12 @@
                       <h3 data-i18n="ui.betalningspaminnelsesekvens.c04158">
                         Betalningspåminnelsesekvens
                       </h3>
-                      <span data-i18n="ui.finance.c48298">Ekonomi</span>
+                      <span data-i18n="ui.finance.c48298">Finance</span>
                     </div>
                     <p
                       data-i18n="ui.fardig_mall_for_finance_med_tydlig_cta_fallback_och_uppfoljn.252f6f"
                     >
-                      Färdig mall för finance med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för finance med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.7</strong>
@@ -4672,13 +4638,13 @@
                     data-automation-template="vip_fast_track"
                   >
                     <div class="automation-template-card-top">
-                      <h3 data-i18n="ui.vip_fast_track.2adda7">VIP-snabbspår</h3>
+                      <h3 data-i18n="ui.vip_fast_track.2adda7">VIP Fast Track</h3>
                       <span>VIP</span>
                     </div>
                     <p
                       data-i18n="ui.fardig_mall_for_vip_med_tydlig_cta_fallback_och_uppfoljning.c1d2b2"
                     >
-                      Färdig mall för vip med tydlig CTA, reservspår och uppföljning.
+                      Färdig mall för vip med tydlig CTA, fallback och uppföljning.
                     </p>
                     <div class="automation-template-card-metrics">
                       <strong>4.8</strong>
@@ -4741,7 +4707,7 @@
                       data-automation-trust-note="testing"
                       data-i18n="ui.live_evaluate_och_lokal_skip_simulering_redovisas_separat_ha.45c801"
                     >
-                      Aktiv utvärdering och lokal hoppa-över-simulering redovisas separat här.
+                      Live evaluate och lokal skip-simulering redovisas separat här.
                     </p>
                   </div>
                 </div>
@@ -5071,8 +5037,8 @@
                           <p
                             data-i18n="ui.se_att_oppningsgrad_och_fallback_eskalering_haller_sig_inom_.eda838"
                           >
-                            Se att öppningsgrad och reserveskalering håller sig inom samma intervall
-                            första 48h.
+                            Se att öppningsgrad och fallback-eskalering håller sig inom samma
+                            intervall första 48h.
                           </p>
                         </div>
                       </article>
@@ -5088,7 +5054,7 @@
                         <pre>
 - Timeout webhook = 6h
 + Timeout webhook = 24h
-	+ Nytt reservsteg för betalningspåminnelse
++ Ny fallback för betalningspåminnelse
 
 - Felhantering endast vid API-fel
 + Felhantering även vid uteblivet kvitto</pre
@@ -5141,7 +5107,7 @@
                           <p
                             data-i18n="ui.webhook_timeout_fallback_steg_och_felhantering_i_betalningss.06554f"
                           >
-                            Webhook-timeout, reservsteg och felhantering i betalningssekvensen
+                            Webhook-timeout, fallback-steg och felhantering i betalningssekvensen
                             uppdaterades.
                           </p>
                         </div>
@@ -5264,7 +5230,7 @@
                       data-automation-trust-note="autopilot"
                       data-i18n="ui.autopilotkortens_proveniens_verifieras_separat_fran_live_tem.ffb011"
                     >
-                      Autopilotkortens proveniens verifieras separat från aktiv mall-data.
+                      Autopilotkortens proveniens verifieras separat från live template-data.
                     </p>
                   </div>
 
@@ -5432,7 +5398,7 @@
                         </div>
                         <div class="automation-autopilot-proposal-meta">
                           <span data-i18n="ui.okar_driftsakerhet.98e837">Ökar driftsäkerhet</span>
-                          <span data-i18n="ui.skyddar_fallback.064861">Skyddar reservspår</span>
+                          <span data-i18n="ui.skyddar_fallback.064861">Skyddar fallback</span>
                           <span data-i18n="ui.99_sakerhet.373a01">99% säkerhet</span>
                         </div>
                         <div class="automation-autopilot-proposal-actions">
@@ -5485,7 +5451,7 @@
                         <p
                           data-i18n="ui.alla_andringar_som_paverkar_kundcopy_sla_mot_kund_eller_beta.25340f"
                         >
-                          alla ändringar som påverkar kundtext, SLA mot kund eller betalningslogik.
+                          alla ändringar som påverkar kundcopy, SLA mot kund eller betalningslogik.
                         </p>
                       </div>
                       <div>
@@ -5606,13 +5572,13 @@
                 <div class="analytics-section-head analytics-section-head-live">
                   <h2 data-i18n="ui.operativ_telemetry.e20317">Operativ telemetry</h2>
                   <p data-i18n="ui.live_fran_arcana_monitor_och_cco_runtime.d8df2e">
-                    Aktivt från Arcana, monitor och CCO-körning.
+                    Live från Arcana, monitor och CCO runtime.
                   </p>
                 </div>
 
                 <div
                   class="analytics-metric-row analytics-metric-row-live"
-                  aria-label="Aktiv telemetri"
+                  aria-label="Live telemetry"
                 >
                   <article
                     class="analytics-metric-card analytics-metric-card-green"
@@ -5620,7 +5586,7 @@
                   >
                     <div class="analytics-metric-card-top">
                       <span data-analytics-live-label data-i18n="ui.readiness_score.81cca9"
-                        >Beredskapspoäng</span
+                        >Readiness-score</span
                       >
                       <b
                         class="analytics-metric-trend analytics-metric-trend-positive"
@@ -5634,7 +5600,7 @@
                       data-analytics-live-meta
                       data-i18n="ui.vantar_pa_live_data.ba7321"
                     >
-                      Väntar på aktiv data.
+                      Väntar på live-data.
                     </p>
                   </article>
 
@@ -5644,7 +5610,7 @@
                   >
                     <div class="analytics-metric-card-top">
                       <span data-analytics-live-label data-i18n="ui.runtime_p95.28de96"
-                        >Körning p95</span
+                        >Runtime p95</span
                       >
                       <b
                         class="analytics-metric-trend analytics-metric-trend-negative"
@@ -5692,7 +5658,7 @@
                   >
                     <div class="analytics-metric-card-top">
                       <span data-analytics-live-label data-i18n="ui.mail_insights.72c6be"
-                        >Mejlinsikter</span
+                        >Mail insights</span
                       >
                       <b
                         class="analytics-metric-trend analytics-metric-trend-positive"
@@ -5700,7 +5666,7 @@
                         >Väntar</b
                       >
                     </div>
-                    <strong data-analytics-live-value>Väntar</strong>
+                    <strong data-analytics-live-value>Pending</strong>
                     <p
                       class="analytics-live-meta"
                       data-analytics-live-meta
@@ -5745,7 +5711,7 @@
                       <b
                         class="analytics-metric-trend analytics-metric-trend-positive"
                         data-analytics-live-trend
-                        >Mejlurval</b
+                        >Mailboxscope</b
                       >
                     </div>
                     <strong data-analytics-live-value>0</strong>
@@ -5754,7 +5720,7 @@
                       data-analytics-live-meta
                       data-i18n="ui.vantar_pa_runtime_scope.002f8f"
                     >
-                      Väntar på körningsurval.
+                      Väntar på runtime-scope.
                     </p>
                   </article>
                 </div>
@@ -5762,7 +5728,7 @@
 
               <section class="analytics-panel analytics-live-panel">
                 <div class="analytics-panel-head">
-                  <h3 data-i18n="ui.live_lagesbild.6a46bc">Aktiv lägesbild</h3>
+                  <h3 data-i18n="ui.live_lagesbild.6a46bc">Live-lägesbild</h3>
                 </div>
 
                 <div class="analytics-live-list" data-analytics-live-narratives>
@@ -5774,7 +5740,7 @@
                       class="analytics-live-story-body"
                       data-i18n="ui.vantar_pa_att_lasa_live_analytics_kallorna.92b320"
                     >
-                      Väntar på att läsa aktiva analyskällor.
+                      Väntar på att läsa live analytics-källorna.
                     </p>
                   </article>
 
@@ -5786,7 +5752,7 @@
                       class="analytics-live-story-body"
                       data-i18n="ui.nar_live_data_finns_visas_riskoppningar_och_owner_beslut_har.240e7d"
                     >
-                      När aktiv data finns visas risköppningar och ägarbeslut här.
+                      När live-data finns visas risköppningar och owner-beslut här.
                     </p>
                   </article>
 
@@ -5798,7 +5764,7 @@
                       class="analytics-live-story-body"
                       data-i18n="ui.oppna_incidenter_mail_insights_och_runtime_scope_sammanfatta.532ce1"
                     >
-                      Öppna incidenter, mejlinsikter och körningsurval sammanfattas här.
+                      Öppna incidenter, mail insights och runtime-scope sammanfattas här.
                     </p>
                   </article>
                 </div>
@@ -5812,7 +5778,7 @@
                     data-analytics-trust-note="team"
                     data-i18n="ui.teamprestanda_bygger_pa_harledd_analytics_sammanstallning.2792f9"
                   >
-                    Teamprestanda bygger på härledd analyssammanställning.
+                    Teamprestanda bygger på härledd analytics-sammanställning.
                   </p>
                 </div>
 
@@ -5855,7 +5821,7 @@
                     data-analytics-trust-note="self"
                     data-i18n="ui.din_prestation_bygger_pa_samma_harledda_scopebild_som_teamko.ecd693"
                   >
-                    Din prestation bygger på samma härledda urvalsbild som teamkortet.
+                    Din prestation bygger på samma härledda scopebild som teamkortet.
                   </p>
                 </div>
 
@@ -5941,7 +5907,7 @@
                       data-analytics-trust-note="templates"
                       data-i18n="ui.mallandelar_visas_som_harledd_usage_tills_separat_performanc.1bcd77"
                     >
-                      Mallandelar visas som härledd användning tills separat prestandaflöde finns.
+                      Mallandelar visas som härledd usage tills separat performance-feed finns.
                     </p>
                   </div>
 
@@ -5998,7 +5964,7 @@
                     data-analytics-trust-note="coaching"
                     data-i18n="ui.coachningen_verifieras_mot_live_telemetry_och_scope_innan_de.62b8c7"
                   >
-                    Coachningen verifieras mot aktiv telemetri och urval innan den tolkas som
+                    Coachningen verifieras mot live telemetry och scope innan den tolkas som
                     sanning.
                   </p>
                 </div>
@@ -6375,7 +6341,7 @@
                 </article>
                 <article class="aux-metric-card aux-metric-card-green">
                   <span data-sent-metric-label="scope" data-i18n="ui.mailboxscope.1071f0"
-                    >Mejlurval</span
+                    >Mailboxscope</span
                   >
                   <strong data-sent-metric-value="scope">78%</strong>
                 </article>
@@ -6441,7 +6407,7 @@
                     data-i18n="ui.lagg_till_kalendrar_betalningar_kommunikation_och_externa_au.99c2d0"
                   >
                     Lägg till kalendrar, betalningar, kommunikation och externa automationer utan
-                    att lämna arbetsytan.
+                    att lämna shellen.
                   </p>
                 </div>
                 <p class="shell-status aux-shell-status" data-integrations-status hidden></p>
@@ -6518,7 +6484,7 @@
 
                 <aside class="aux-side-panel">
                   <article class="aux-note-card">
-                    <span data-i18n="ui.guardrails.ebff72">Skyddsregler</span>
+                    <span data-i18n="ui.guardrails.ebff72">Guardrails</span>
                     <strong
                       >Koppla bara in sådant som faktiskt hjälper operatören i vardagen.</strong
                     >
@@ -6638,7 +6604,7 @@
                     data-settings-summary-guard-copy
                     data-i18n="ui.flera_skydd_aktiva_i_shellen.c25c0b"
                   >
-                    Flera skydd aktiva i arbetsytan
+                    Flera skydd aktiva i shellen
                   </p>
                 </article>
                 <article class="settings-summary-card">
@@ -6983,7 +6949,7 @@
                     <div class="settings-panel-head">
                       <h2 data-i18n="ui.analys.84e7e0">Analys</h2>
                       <p data-i18n="ui.datainsikter_och_rapportering_fran_shellen.52ca39">
-                        Datainsikter och rapportering från arbetsytan.
+                        Datainsikter och rapportering från shellen.
                       </p>
                     </div>
                     <div class="settings-toggle-list">
@@ -7330,7 +7296,7 @@
                 <div class="aux-title-group">
                   <p class="aux-kicker" data-i18n="ui.visa_funktioner.aaa3b5">Visa funktioner</p>
                   <h1 id="showcase-title" data-i18n="ui.power_features_i_nya_shellen.824cbf">
-                    Kraftfunktioner i nya arbetsytan
+                    Power features i nya shellen
                   </h1>
                   <p
                     data-i18n="ui.oversikt_over_de_funktioner_som_ska_kunna_lyftas_vidare_in_i.048943"
@@ -7491,7 +7457,7 @@
                         data-showcase-next-copy
                         data-i18n="ui.use_case_byten_harifran_ska_hoppa_vidare_till_shellens_rikti.ab636b"
                       >
-                        Use-case-byten härifrån ska hoppa vidare till arbetsytans riktiga vyer.
+                        Use-case-byten härifrån ska hoppa vidare till shellens riktiga vyer.
                       </p>
                     </article>
                   </div>
@@ -7512,24 +7478,24 @@
                 <div class="mailbox-admin-head-main">
                   <div class="mailbox-admin-head-title">
                     <p class="customers-modal-kicker" data-i18n="ui.mailbox_admin.c155a9">
-                      Mejlkonto admin
+                      Mailbox admin
                     </p>
                     <h2 id="mailbox-admin-title" data-i18n="ui.custom_mailboxar.616c93">
-                      Egna mejlkonton
+                      Custom mailboxar
                     </h2>
                   </div>
                   <div class="mailbox-admin-head-inline" aria-hidden="true">
                     <div class="mailbox-admin-head-note mailbox-admin-head-note-form">
                       <div class="mailbox-admin-head-note-top">
                         <span data-mailbox-admin-form-title data-i18n="ui.lagg_till_mailbox.f54871"
-                          >Lägg till mejlkonto</span
+                          >Lägg till mailbox</span
                         >
                       </div>
                       <p
                         class="mailbox-admin-form-note"
                         data-i18n="ui.lokal_signatur_sparas_bara_for_denna_custom_mailbox.ec9d68"
                       >
-                        Lokal signatur sparas bara för detta egna mejlkonto.
+                        Lokal signatur sparas bara för denna custom mailbox.
                       </p>
                     </div>
                   </div>
@@ -7542,13 +7508,13 @@
                     hidden
                     data-i18n="ui.ny_mailbox.d0adcd"
                   >
-                    Nytt mejlkonto
+                    Ny mailbox
                   </button>
                   <button
                     class="customers-modal-close mailbox-admin-head-close"
                     type="button"
                     data-mailbox-admin-close
-                    aria-label="Stäng mejlkonto-admin"
+                    aria-label="Stäng mailbox-admin"
                   >
                     ×
                   </button>
@@ -7561,7 +7527,7 @@
                 </section>
 
                 <section class="customers-modal-card mailbox-admin-editor-card">
-                  <section class="mailbox-admin-identity-section" aria-label="Mejlkontoidentitet">
+                  <section class="mailbox-admin-identity-section" aria-label="Mailboxidentitet">
                     <div class="mailbox-admin-identity-grid">
                       <label class="mailbox-admin-field">
                         <span data-i18n="ui.namn.c9a10c">Namn</span>
@@ -7699,12 +7665,12 @@
                     ></div>
                     <div class="mailbox-admin-bottom-notes" aria-hidden="true">
                       <div class="mailbox-admin-inline-note mailbox-admin-inline-note-mailboxes">
-                        <span data-i18n="ui.aktiva_mailboxar.ed9585">Aktiva mejlkonton</span>
+                        <span data-i18n="ui.aktiva_mailboxar.ed9585">Aktiva mailboxar</span>
                         <p
-                          title="Aktiva källor och egna mejlkonton delar samma lista, men identitet och signaturstatus hålls isär."
+                          title="Livekällor och custom mailboxar delar samma lista, men identitet och signaturstatus hålls isär."
                           data-i18n="ui.livekallor_och_custom_mailboxar_delar_samma_lista_men_identi.a6ebbc"
                         >
-                          Aktiva källor och egna mejlkonton delar samma lista, men identitet och
+                          Livekällor och custom mailboxar delar samma lista, men identitet och
                           signaturstatus hålls isär.
                         </p>
                       </div>
@@ -8061,7 +8027,7 @@
                     </svg>
                   </span>
                   <h2 id="truth-worklist-title" data-i18n="ui.truth_worklist_assist_view.06ee8b">
-                    Sanningsvy för arbetslista
+                    Truth Worklist Assist View
                   </h2>
                   <span
                     class="truth-worklist-toolbar-pill truth-worklist-toolbar-pill-secondary"
@@ -8071,7 +8037,7 @@
                   <span
                     class="truth-worklist-toolbar-pill truth-worklist-toolbar-pill-truth"
                     data-i18n="ui.truth_driven.0958c6"
-                    >Sanningsstyrd</span
+                    >Truth-driven</span
                   >
                 </div>
 
@@ -8084,13 +8050,13 @@
                     rel="noreferrer"
                     data-i18n="ui.oppna_full_readout.fbf255"
                   >
-                    Öppna full läsning
+                    Öppna full readout
                   </a>
                   <button
                     class="truth-worklist-close-button"
                     type="button"
                     data-truth-worklist-close
-                    aria-label="Stäng sanningsvy för arbetslista"
+                    aria-label="Stäng Truth Worklist Assist View"
                   >
                     <svg viewBox="0 0 16 16" aria-hidden="true">
                       <path
@@ -8113,13 +8079,13 @@
                         class="truth-worklist-band-kicker"
                         data-i18n="ui.truth_driven_arbetsyta.3b4287"
                       >
-                        Sanningsstyrd arbetsyta
+                        Truth-driven arbetsyta
                       </p>
                       <div class="queue-truth-view-provenance">
                         <span
                           class="queue-truth-view-chip queue-truth-view-chip--truth"
                           data-i18n="ui.truth_driven.0958c6"
-                          >Sanningsstyrd</span
+                          >Truth-driven</span
                         >
                         <span
                           class="queue-truth-view-chip queue-truth-view-chip--secondary"
@@ -8127,12 +8093,12 @@
                           >Sekundär vy</span
                         >
                         <span class="queue-truth-view-chip queue-truth-view-chip--legacy"
-                          >Ordinarie kö styr fortfarande</span
+                          >Legacy queue fortfarande styrande</span
                         >
                         <span
                           class="queue-truth-view-chip queue-truth-view-chip--guardrail"
                           data-i18n="ui.shadow_guardrail_aktiv.1ceb1f"
-                          >Jämförelseskydd aktiv</span
+                          >Shadow guardrail aktiv</span
                         >
                       </div>
                     </div>
@@ -8141,14 +8107,14 @@
                       data-truth-worklist-meta
                       data-i18n="ui.laddar_truth_driven_arbetskosignal_for_valt_mailboxscope.a895e5"
                     >
-                      Laddar sanningsdriven arbetskösignal för valt mejlurval.
+                      Laddar truth-driven arbetskösignal för valt mailboxscope.
                     </p>
                   </div>
                 </section>
 
                 <nav
                   class="truth-worklist-page-nav"
-                  aria-label="Sanningsvy-sektioner"
+                  aria-label="Truth Worklist-sektioner"
                   data-truth-worklist-page-nav
                   role="tablist"
                 >
@@ -8206,7 +8172,7 @@
                     role="tab"
                     data-i18n="ui.mailbox_parity.0443c6"
                   >
-                    Mejlkonto-paritet
+                    Mailbox parity
                   </button>
                   <button
                     class="truth-worklist-page-tab"
@@ -8353,15 +8319,15 @@
                         class="queue-truth-view-section-kicker"
                         data-i18n="ui.mailbox_parity.0443c6"
                       >
-                        Mejlkonto-paritet
+                        Mailbox parity
                       </p>
-                      <h3 data-i18n="ui.baseline_per_mailbox.b2d6d6">Baslinje per mejlkonto</h3>
+                      <h3 data-i18n="ui.baseline_per_mailbox.b2d6d6">Baseline per mailbox</h3>
                     </div>
                     <p
                       class="truth-worklist-band-note"
                       data-i18n="ui.mailboxarna_halls_jamforbara_ej_jamforbara_eller_utan_legacy.536766"
                     >
-                      Mejlkontona hålls jämförbara, ej jämförbara eller utan legacy-baseline.
+                      Mailboxarna hålls jämförbara, ej jämförbara eller utan legacy-baseline.
                     </p>
                   </div>
                   <div class="queue-truth-view-mailboxes" data-truth-worklist-mailboxes></div>
@@ -8581,7 +8547,7 @@
                           <span
                             data-studio-source-lock-note
                             data-i18n="ui.reply_context_last_till_vald_mailbox.7fcc74"
-                            >Svarskontext låst till valt mejlkonto</span
+                            >Reply-context låst till vald mailbox</span
                           >
                         </div>
                       </div>
@@ -10125,22 +10091,24 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Bundlade scripts: 40 filer → 1, byggt av bin/build-bundle.js -->
     <script src="./app.bundle.min.js"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
-    <script src="./app/mock-worklist-api.js?v=build-20260510-booking-merge"></script>
-    <script src="./app/state-paths.js?v=build-20260510-booking-merge"></script>
-    <script src="./app/render-components.js?v=build-20260510-booking-merge"></script>
-    <script src="./app.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/mock-worklist-api.js?v=build-9a4eabe"></script>
+    <script src="./app/state-paths.js?v=build-9a4eabe"></script>
+    <script src="./app/render-components.js?v=build-9a4eabe"></script>
+    <script src="./app.js?v=build-9a4eabe"></script>
     <!-- runtime-v5-layout-guard.js raderad i Fas 1 cleanup (2026-05-08) — tvingade gammal v5-grid via MutationObserver mot warm-row-markup -->
     <!-- runtime-fix-shims.js raderad — 3 kvarvarande shims flyttade till app/cco-shims.js -->
-    <script src="./app/cco-shims.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/cco-shims.js?v=build-9a4eabe"></script>
     <!-- Cmd+K snabbsök — laddas sist eftersom den behöver __ccoWorkspace + state -->
-    <script src="./app/cmd-k.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/cmd-k.js?v=build-9a4eabe"></script>
     <!-- Tangentbordsnav (j/k/e/r/s/?) — fungerar utanför andra overlays -->
-    <script src="./app/keyboard-nav.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/keyboard-nav.js?v=build-9a4eabe"></script>
     <!-- Bulk-actions: x togglar val, *a/*n select all/none, Shift+E/S/D batch -->
-    <script src="./app/bulk-actions.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/bulk-actions.js?v=build-9a4eabe"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
-    <script src="./app/inbox-streak.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/inbox-streak.js?v=build-9a4eabe"></script>
     <!-- AI-utkast inline-edit: klicka i utkast direkt i thread-card -->
-    <script src="./app/inline-draft-edit.js?v=build-20260510-booking-merge"></script>
+    <script src="./app/inline-draft-edit.js?v=build-9a4eabe"></script>
+    <!-- Snooze: snooza tråd till specifik tid med auto-återkomst -->
+    <script src="./app/snooze.js?v=build-9a4eabe"></script>
   </body>
 </html>

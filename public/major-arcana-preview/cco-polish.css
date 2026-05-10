@@ -1536,4 +1536,160 @@
   .inline-draft-btn-primary:hover {
     background: linear-gradient(180deg, #de9268 0%, #d2825a 100%);
   }
+
+  /* ============================================================
+     Snooze (app/snooze.js, 2026-05-10)
+     ============================================================ */
+  .thread-card.is-snoozed {
+    opacity: 0.55;
+    filter: saturate(0.7);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+  .thread-card.is-snoozed:hover {
+    opacity: 0.85;
+  }
+  .thread-card.is-just-returned {
+    animation: snooze-return-pulse 2s ease-out;
+    box-shadow: 0 0 0 2px rgba(215, 130, 90, 0.45);
+  }
+  @keyframes snooze-return-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(215, 130, 90, 0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(215, 130, 90, 0); }
+    100% { box-shadow: 0 0 0 2px rgba(215, 130, 90, 0.45); }
+  }
+  .snooze-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 240, 220, 0.95) 0%, rgba(255, 220, 180, 0.92) 100%);
+    border: 1px solid rgba(215, 130, 90, 0.28);
+    font-size: 11px;
+    font-weight: 600;
+    color: #a44a1f;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(180, 100, 50, 0.08);
+  }
+  .snooze-pill-icon {
+    font-size: 10px;
+    opacity: 0.75;
+  }
+  .snooze-pill-returned {
+    background: linear-gradient(180deg, #fff5e8 0%, #ffe5c4 100%);
+    color: #7a3a14;
+    border-color: rgba(180, 90, 40, 0.45);
+    animation: snooze-pill-pulse 2s ease-out;
+  }
+  @keyframes snooze-pill-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  /* Overlay för tidsval */
+  .snooze-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: transparent;
+    pointer-events: auto;
+  }
+  .snooze-overlay-card {
+    width: 280px;
+    background: linear-gradient(180deg, rgba(255, 252, 246, 0.99) 0%, rgba(252, 245, 235, 0.99) 100%);
+    border: 1px solid rgba(215, 130, 90, 0.32);
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(60, 30, 10, 0.22), 0 2px 8px rgba(60, 30, 10, 0.08);
+    padding: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .snooze-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 2px;
+  }
+  .snooze-overlay-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #7a4a20;
+  }
+  .snooze-overlay-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #a08068;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .snooze-overlay-close:hover {
+    color: #5a3a18;
+  }
+  .snooze-overlay-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .snooze-preset {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(180, 130, 90, 0.18);
+    border-radius: 9px;
+    font-size: 13px;
+    color: #3b2615;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .snooze-preset:hover {
+    background: rgba(255, 220, 180, 0.55);
+    border-color: rgba(215, 130, 90, 0.4);
+    transform: translateX(2px);
+  }
+  .snooze-preset-when {
+    font-size: 11px;
+    color: #8a6a4a;
+    font-weight: 500;
+  }
+  .snooze-overlay-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(180, 130, 90, 0.2);
+  }
+  .snooze-custom-label {
+    font-size: 11px;
+    color: #7a5a3a;
+    font-weight: 600;
+  }
+  .snooze-custom-input {
+    padding: 7px 10px;
+    border: 1px solid rgba(180, 130, 90, 0.32);
+    border-radius: 8px;
+    font-size: 13px;
+    background: white;
+  }
+  .snooze-custom-apply {
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #d2825a 0%, #b8693f 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .snooze-custom-apply:hover {
+    background: linear-gradient(180deg, #de9268 0%, #c2734a 100%);
+  }
 } /* end @layer components */
