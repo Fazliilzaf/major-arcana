@@ -206,9 +206,12 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
       assert.equal(bootstrapPayload.bookingReadout.blocker.key, 'candidate_slots');
       assert.equal(bootstrapPayload.bookingReadout.blocker.action, 'candidate_slots');
 
-      const resetResponse = await fetch(`${baseUrl}/cco-workspace/preferences?workspaceId=major-arcana-preview`, {
-        method: 'DELETE',
-      });
+      const resetResponse = await fetch(
+        `${baseUrl}/cco-workspace/preferences?workspaceId=major-arcana-preview`,
+        {
+          method: 'DELETE',
+        }
+      );
       assert.equal(resetResponse.status, 200);
 
       const afterResetResponse = await fetch(
@@ -250,7 +253,10 @@ test('cco workspace router faller inte tillbaka till preview-kontext när live-t
       assert.equal(bootstrapPayload.scheduleDraft.customerName, '');
       assert.equal(bootstrapPayload.scheduleDraft.date, '');
       assert.equal(bootstrapPayload.scheduleDraft.time, '');
-      assert.equal(bootstrapPayload.noteDefinitions.konversation.linkedItems.includes('Anna Karlsson'), false);
+      assert.equal(
+        bootstrapPayload.noteDefinitions.konversation.linkedItems.includes('Anna Karlsson'),
+        false
+      );
 
       const notesResponse = await fetch(
         `${baseUrl}/cco-workspace/notes?workspaceId=major-arcana-preview`
@@ -280,7 +286,7 @@ test('cco workspace router faller inte tillbaka till preview-kontext när live-t
       });
       assert.equal(saveNoteResponse.status, 400);
       const saveNotePayload = await saveNoteResponse.json();
-      assert.equal(saveNotePayload.error, 'Välj en live-tråd först.');
+      assert.equal(saveNotePayload.error, 'Välj en aktiv tråd först.');
 
       const followUpResponse = await fetch(`${baseUrl}/cco-workspace/follow-ups`, {
         method: 'POST',
@@ -296,7 +302,7 @@ test('cco workspace router faller inte tillbaka till preview-kontext när live-t
       });
       assert.equal(followUpResponse.status, 400);
       const followUpPayload = await followUpResponse.json();
-      assert.equal(followUpPayload.error, 'Välj en live-tråd först.');
+      assert.equal(followUpPayload.error, 'Välj en aktiv tråd först.');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

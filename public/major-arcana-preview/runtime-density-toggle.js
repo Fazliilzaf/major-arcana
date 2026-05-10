@@ -13,47 +13,49 @@
  * ändra padding/font/spacing.
  */
 (() => {
-  'use strict';
+  "use strict";
 
-  const STORAGE_KEY = 'cco.density.v1';
-  const DENSITIES = Object.freeze(['regular', 'compact']);
+  const STORAGE_KEY = "cco.density.v1";
+  const DENSITIES = Object.freeze(["regular", "compact"]);
   let toggleButton = null;
 
   function readStorage() {
     try {
       const raw = window.localStorage?.getItem(STORAGE_KEY);
-      const value = String(raw || '').trim();
-      return DENSITIES.includes(value) ? value : 'regular';
+      const value = String(raw || "").trim();
+      return DENSITIES.includes(value) ? value : "regular";
     } catch (_e) {
-      return 'regular';
+      return "regular";
     }
   }
 
   function writeStorage(density) {
     try {
-      if (density === 'regular') {
+      if (density === "regular") {
         window.localStorage?.removeItem(STORAGE_KEY);
       } else {
         window.localStorage?.setItem(STORAGE_KEY, density);
       }
-    } catch (_e) { /* tyst */ }
+    } catch (_e) {
+      /* tyst */
+    }
   }
 
   function applyDensity(density) {
     const root = document.documentElement;
     if (!root) return;
-    if (density === 'compact') {
-      root.setAttribute('data-cco-density', 'compact');
+    if (density === "compact") {
+      root.setAttribute("data-cco-density", "compact");
     } else {
-      root.setAttribute('data-cco-density', 'regular');
+      root.setAttribute("data-cco-density", "regular");
     }
     updateButton();
   }
 
   function getActiveDensity() {
-    return document.documentElement?.getAttribute('data-cco-density') === 'compact'
-      ? 'compact'
-      : 'regular';
+    return document.documentElement?.getAttribute("data-cco-density") === "compact"
+      ? "compact"
+      : "regular";
   }
 
   function setDensity(density) {
@@ -63,15 +65,15 @@
   }
 
   function toggleDensity() {
-    const next = getActiveDensity() === 'compact' ? 'regular' : 'compact';
+    const next = getActiveDensity() === "compact" ? "regular" : "compact";
     setDensity(next);
   }
 
   // ---------- Styles ----------
   function injectStyles() {
-    if (document.getElementById('cco-density-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'cco-density-styles';
+    if (document.getElementById("cco-density-styles")) return;
+    const style = document.createElement("style");
+    style.id = "cco-density-styles";
     style.textContent = `
 .cco-density-toggle {
   display: inline-flex; align-items: center; gap: 6px;
@@ -128,33 +130,33 @@ html[data-cco-density="compact"] .focus-head {
 
   // ---------- Topbar-knapp ----------
   function buildToggleButton() {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'cco-density-toggle';
-    btn.setAttribute('data-cco-density-toggle', '');
-    btn.setAttribute('aria-label', 'Växla densitet');
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cco-density-toggle";
+    btn.setAttribute("data-cco-density-toggle", "");
+    btn.setAttribute("aria-label", "Växla densitet");
     btn.innerHTML = `
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path d="M2 4h12M2 8h12M2 12h12"
           fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
       </svg>
-      <span data-cco-density-label>Regular</span>
+      <span data-cco-density-label>Standard</span>
     `;
-    btn.addEventListener('click', toggleDensity);
+    btn.addEventListener("click", toggleDensity);
     return btn;
   }
 
   function updateButton() {
     if (!toggleButton) return;
-    const label = toggleButton.querySelector('[data-cco-density-label]');
-    if (label) label.textContent = getActiveDensity() === 'compact' ? 'Kompakt' : 'Regular';
+    const label = toggleButton.querySelector("[data-cco-density-label]");
+    if (label) label.textContent = getActiveDensity() === "compact" ? "Kompakt" : "Standard";
   }
 
   function findTopbarAnchor() {
     return (
-      document.querySelector('.preview-utility-cluster') ||
-      document.querySelector('.preview-topbar-right') ||
-      document.querySelector('.preview-topbar')
+      document.querySelector(".preview-utility-cluster") ||
+      document.querySelector(".preview-topbar-right") ||
+      document.querySelector(".preview-topbar")
     );
   }
 
@@ -164,7 +166,7 @@ html[data-cco-density="compact"] .focus-head {
     if (!anchor) return false;
     injectStyles();
     toggleButton = buildToggleButton();
-    if (anchor.classList.contains('preview-utility-cluster')) {
+    if (anchor.classList.contains("preview-utility-cluster")) {
       anchor.insertBefore(toggleButton, anchor.firstChild);
     } else {
       anchor.appendChild(toggleButton);
@@ -187,14 +189,14 @@ html[data-cco-density="compact"] .focus-head {
   function mount() {
     injectStyles();
     applyDensity(readStorage());
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', tryInjection, { once: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", tryInjection, { once: true });
     } else {
       tryInjection();
     }
   }
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.MajorArcanaPreviewDensityToggle = Object.freeze({
       mount,
       setDensity,
@@ -202,8 +204,8 @@ html[data-cco-density="compact"] .focus-head {
       getActiveDensity,
     });
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', mount, { once: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", mount, { once: true });
     } else {
       mount();
     }

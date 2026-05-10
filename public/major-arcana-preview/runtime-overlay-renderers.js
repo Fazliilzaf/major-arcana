@@ -1,10 +1,5 @@
 (() => {
-  function createOverlayRenderers({
-    dom = {},
-    helpers = {},
-    state,
-    windowObject = window,
-  }) {
+  function createOverlayRenderers({ dom = {}, helpers = {}, state, windowObject = window }) {
     const documentObject = windowObject.document;
 
     const {
@@ -144,14 +139,15 @@
 
     function normalizeStudioBusyState() {
       const studioState = state.studio;
-      const isComposeMode = normalizeKey(studioState?.mode || studioShell?.dataset.mode) === "compose";
+      const isComposeMode =
+        normalizeKey(studioState?.mode || studioShell?.dataset.mode) === "compose";
       const selectedThread = getSelectedRuntimeThread();
       const hasThread = Boolean(selectedThread);
       const isOfflineHistoryReply =
         !isComposeMode &&
         Boolean(
           typeof isOfflineHistoryContextThread === "function" &&
-            isOfflineHistoryContextThread(selectedThread)
+          isOfflineHistoryContextThread(selectedThread)
         );
       if (!studioSendButton || !studioSaveDraftButton || !studioDeleteButton || !studioSendLabel) {
         return;
@@ -300,22 +296,17 @@
         !isComposeMode &&
         Boolean(
           state.studio?.readOnly === true ||
-            (typeof isOfflineHistoryContextThread === "function" &&
-              isOfflineHistoryContextThread(thread))
+          (typeof isOfflineHistoryContextThread === "function" &&
+            isOfflineHistoryContextThread(thread))
         );
       const isAuthBlocked =
         state.runtime.authRequired || (!thread && !state.runtime.loading && !isComposeMode);
-      const studioState = isComposeMode
-        ? state.studio
-        : thread
-          ? ensureStudioState(thread)
-          : null;
+      const studioState = isComposeMode ? state.studio : thread ? ensureStudioState(thread) : null;
       const studioTruthState =
         !isComposeMode && thread && typeof getRuntimeStudioTruthState === "function"
           ? getRuntimeStudioTruthState(thread)
           : {};
-      const isTruthDrivenStudio =
-        !isComposeMode && studioTruthState?.truthDriven === true;
+      const isTruthDrivenStudio = !isComposeMode && studioTruthState?.truthDriven === true;
       const isTruthScopeRollback =
         !isComposeMode &&
         studioTruthState?.inConfiguredScope === true &&
@@ -334,9 +325,10 @@
       const selectedSenderLabel =
         getStudioSourceMailboxLabel(selectedSenderMailboxId) ||
         composeMailboxLabel ||
-        "Vald mailbox";
+        "Valt mejlkonto";
       const signatureProfiles = getStudioSignatureProfiles();
-      const studioSignatureRow = studioShell?.querySelector("[data-studio-signature-options]") || null;
+      const studioSignatureRow =
+        studioShell?.querySelector("[data-studio-signature-options]") || null;
       const nextSignatureButtonsMarkup = signatureProfiles
         .map(
           (profile) =>
@@ -359,8 +351,7 @@
       const studioContextTabs = {
         ai: studioShell?.querySelector('label[for="studio-context-ai"]') || null,
         history: studioShell?.querySelector('label[for="studio-context-history"]') || null,
-        preferences:
-          studioShell?.querySelector('label[for="studio-context-preferences"]') || null,
+        preferences: studioShell?.querySelector('label[for="studio-context-preferences"]') || null,
         recommendations:
           studioShell?.querySelector('label[for="studio-context-recommendations"]') || null,
       };
@@ -386,8 +377,8 @@
         studioToolbarPills.intent.textContent = isComposeMode
           ? selectedSenderLabel
           : isTruthDrivenStudio
-            ? studioTruthState.label || "Truth-driven studio"
-          : thread?.intentLabel || "Ingen tråd";
+            ? studioTruthState.label || "Sanningsstyrd svarstudio"
+            : thread?.intentLabel || "Ingen tråd";
       }
       if (studioToolbarPills.priority) {
         studioToolbarPills.priority.textContent = isComposeMode
@@ -396,23 +387,27 @@
             : "Utan kundkontext"
           : isTruthDrivenStudio
             ? studioWaveLabel
-          : thread?.isVIP
-            ? "VIP"
-            : thread?.riskLabel || "Normal";
+            : thread?.isVIP
+              ? "VIP"
+              : thread?.riskLabel || "Normal";
       }
       if (studioToolbarPills.value) {
         studioToolbarPills.value.textContent = isComposeMode
           ? signatureProfile?.label || "Signatur"
           : isTruthDrivenStudio
             ? `Källa: ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "-"}`
-          : thread?.engagementLabel || "0% engagemang";
+            : thread?.engagementLabel || "0% engagemang";
       }
       if (studioAvatar) {
-        studioAvatar.src = thread?.avatar || buildAvatarDataUri(composeRecipient || signatureProfile?.label || "CCO");
-        studioAvatar.alt = thread?.customerName || composeRecipient || signatureProfile?.label || "CCO";
+        studioAvatar.src =
+          thread?.avatar ||
+          buildAvatarDataUri(composeRecipient || signatureProfile?.label || "CCO");
+        studioAvatar.alt =
+          thread?.customerName || composeRecipient || signatureProfile?.label || "CCO";
       }
       if (studioCustomerName) {
-        studioCustomerName.textContent = thread?.customerName || (isComposeMode ? "Nytt mejl" : "Ingen vald kund");
+        studioCustomerName.textContent =
+          thread?.customerName || (isComposeMode ? "Nytt mejl" : "Ingen vald kund");
       }
       if (studioCustomerMood) {
         studioCustomerMood.textContent = isComposeMode
@@ -420,44 +415,49 @@
             ? `Vald kund · nytt mejl från ${selectedSenderLabel}`
             : `Fristående nytt mejl från ${selectedSenderLabel}`
           : isOfflineHistoryReply
-            ? `Offline historik · läsläge · live-actions spärrade · ${thread.mailboxLabel || selectedSenderLabel}`
-          : isTruthDrivenStudio
-            ? `${studioTruthState.label || "Truth-driven studio"} · ${studioWaveLabel} · reply-context låst · ${composeMailboxLabel || thread.mailboxLabel || selectedSenderLabel}`
-          : isTruthScopeRollback
-            ? `${studioTruthState.waveLabel || "Wave 1 rollback"} · studio fallback till legacy · ${composeMailboxLabel || thread?.mailboxLabel || selectedSenderLabel}`
-          : thread
-            ? `${thread.lifecycleLabel} · ${thread.waitingLabel}`
-            : state.runtime.loading
-              ? "Laddar live-kontext"
-              : isAuthBlocked
-                ? "Logga in för att låsa upp studion"
-                : "Välj en live-tråd i arbetskön";
+            ? `Offline historik · läsläge · aktiva åtgärder spärrade · ${thread.mailboxLabel || selectedSenderLabel}`
+            : isTruthDrivenStudio
+              ? `${studioTruthState.label || "Sanningsstyrd svarstudio"} · ${studioWaveLabel} · svarskontext låst · ${composeMailboxLabel || thread.mailboxLabel || selectedSenderLabel}`
+              : isTruthScopeRollback
+                ? `${studioTruthState.waveLabel || "Wave 1 rollback"} · svarsstudio-fallback till legacy · ${composeMailboxLabel || thread?.mailboxLabel || selectedSenderLabel}`
+                : thread
+                  ? `${thread.lifecycleLabel} · ${thread.waitingLabel}`
+                  : state.runtime.loading
+                    ? "Laddar aktiv kontext"
+                    : isAuthBlocked
+                      ? "Logga in för att låsa upp svarsstudion"
+                      : "Välj en aktiv tråd i arbetskön";
       }
       if (studioCustomerEmail) {
         studioCustomerEmail.textContent =
-          thread?.customerEmail || composeRecipient || (isComposeMode ? "Ange mottagare" : "Ingen e-post");
+          thread?.customerEmail ||
+          composeRecipient ||
+          (isComposeMode ? "Ange mottagare" : "Ingen e-post");
       }
       if (studioCustomerPhone) {
         studioCustomerPhone.textContent = signatureProfile.phone;
       }
       if (studioSourceLockLabel) {
         studioSourceLockLabel.textContent = isComposeMode
-          ? composeMailboxLabel || selectedSenderLabel || "Vald mailbox"
+          ? composeMailboxLabel || selectedSenderLabel || "Valt mejlkonto"
           : isOfflineHistoryReply
-            ? thread?.mailboxLabel || selectedSenderLabel || "Vald mailbox"
+            ? thread?.mailboxLabel || selectedSenderLabel || "Valt mejlkonto"
             : isTruthDrivenStudio
-              ? composeMailboxLabel || studioTruthState?.sourceMailboxLabel || selectedSenderLabel || "Vald mailbox"
-              : thread?.mailboxLabel || selectedSenderLabel || "Vald mailbox";
+              ? composeMailboxLabel ||
+                studioTruthState?.sourceMailboxLabel ||
+                selectedSenderLabel ||
+                "Valt mejlkonto"
+              : thread?.mailboxLabel || selectedSenderLabel || "Valt mejlkonto";
       }
       if (studioSourceLockNote) {
         studioSourceLockNote.textContent = isComposeMode
           ? composeMailboxLabel
-            ? `Från ${composeMailboxLabel} · reply-context låst`
-            : `Från ${selectedSenderLabel} · reply-context låst`
+            ? `Från ${composeMailboxLabel} · svarskontext låst`
+            : `Från ${selectedSenderLabel} · svarskontext låst`
           : isOfflineHistoryReply
             ? `Källa låst till ${thread?.mailboxLabel || selectedSenderLabel} · läsläge`
             : isTruthDrivenStudio
-              ? `Källa låst till ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || selectedSenderLabel} · reply-context låst`
+              ? `Källa låst till ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || selectedSenderLabel} · svarskontext låst`
               : `Källa låst till ${thread?.mailboxLabel || selectedSenderLabel}`;
       }
       if (studioNextActionTitle) {
@@ -466,8 +466,8 @@
           : isOfflineHistoryReply
             ? "Offline historik · läsläge"
             : isTruthDrivenStudio
-              ? `${studioWaveLabel} · Svara från ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "låst mailbox"}`
-          : thread?.nextActionLabel || "Välj en tråd";
+              ? `${studioWaveLabel} · Svara från ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "låst mejlkonto"}`
+              : thread?.nextActionLabel || "Välj en tråd";
       }
       if (studioNextActionNote) {
         studioNextActionNote.textContent = isComposeMode
@@ -475,20 +475,24 @@
             ? `Startar en ny kontakt med ${thread.customerName}. Vi förifyller mottagaren åt dig.`
             : `Fristående compose från ${selectedSenderLabel}. Välj mall, ton och signatur innan du skickar.`
           : isOfflineHistoryReply
-            ? "Historikkontexten är läsbar här, men svar, förhandsvisning, senare, klar och radera kräver live-tråd."
-          : isTruthDrivenStudio
-            ? asText(
-                studioTruthState?.detail,
-                "Truth-driven studio låser reply-context, source mailbox och canonical thread identity i wave 1."
-              )
-          : isTruthScopeRollback
-            ? asText(
-                studioTruthState?.detail,
-                "Wave 1 ligger i legacy fallback tills truth-driven studio kan återaktiveras."
-              )
-          : thread
-            ? compactRuntimeCopy(thread.nextActionSummary, "Ta nästa tydliga steg i samma tråd.", 72)
-            : "Ingen live-tråd vald";
+            ? "Historikkontexten är läsbar här, men svar, förhandsvisning, senare, klar och radera kräver aktiv tråd."
+            : isTruthDrivenStudio
+              ? asText(
+                  studioTruthState?.detail,
+                  "Sanningsstyrd svarstudio låser svarskontext, källmejlkonto och canonical thread identity i wave 1."
+                )
+              : isTruthScopeRollback
+                ? asText(
+                    studioTruthState?.detail,
+                    "Wave 1 ligger i legacy fallback tills sanningsstyrd svarstudio kan återaktiveras."
+                  )
+                : thread
+                  ? compactRuntimeCopy(
+                      thread.nextActionSummary,
+                      "Ta nästa tydliga steg i samma tråd.",
+                      72
+                    )
+                  : "Ingen aktiv tråd vald";
       }
       if (studioPrimarySuggestionLabel) {
         studioPrimarySuggestionLabel.textContent = isComposeMode
@@ -497,11 +501,11 @@
             : "Fyll i mottagare"
           : isOfflineHistoryReply
             ? "Läs historiken"
-          : isTruthDrivenStudio
-            ? thread?.nextActionLabel || "Öppna tråd"
-          : thread?.followUpLabel
-            ? `Återuppta ${thread.followUpLabel}`
-            : thread?.nextActionLabel || "Öppna tråd";
+            : isTruthDrivenStudio
+              ? thread?.nextActionLabel || "Öppna tråd"
+              : thread?.followUpLabel
+                ? `Återuppta ${thread.followUpLabel}`
+                : thread?.nextActionLabel || "Öppna tråd";
       }
       if (studioPrimarySuggestion) {
         studioPrimarySuggestion.disabled =
@@ -510,22 +514,26 @@
       if (studioWhyInFocus) {
         studioWhyInFocus.textContent = isComposeMode
           ? thread
-            ? compactRuntimeCopy(thread.whyInFocus, "Vald kundkontext ger extra stöd för ett nytt mejl.", 88)
+            ? compactRuntimeCopy(
+                thread.whyInFocus,
+                "Vald kundkontext ger extra stöd för ett nytt mejl.",
+                88
+              )
             : "Det här är ett fristående nytt mejl. Lägg till mottagare, välj mall och håll tonen tydlig."
           : isOfflineHistoryReply
-            ? `${thread?.whyInFocus || "Historiken är tillgänglig i läsläge."} Operativa actions kräver live-tråd.`
-          : isTruthDrivenStudio
-            ? `${compactRuntimeCopy(
-                thread?.whyInFocus,
-                "Truth-driven studio är aktiv för wave 1.",
-                88
-              )} Source mailbox, reply-context och thread-shape hålls låsta till mailbox truth.`
-          : isTruthScopeRollback
-            ? asText(
-                studioTruthState?.detail,
-                "Wave 1 ligger i legacy fallback i studion tills truth-driven pathen är tillbaka."
-              )
-          : thread?.whyInFocus || state.runtime.error || "Ingen fokusmotivering ännu.";
+            ? `${thread?.whyInFocus || "Historiken är tillgänglig i läsläge."} Operativa actions kräver aktiv tråd.`
+            : isTruthDrivenStudio
+              ? `${compactRuntimeCopy(
+                  thread?.whyInFocus,
+                  "Sanningsstyrd svarstudio är aktiv för wave 1.",
+                  88
+                )} Källmejlkonto, svarskontext och trådform hålls låsta till mejlsanning.`
+              : isTruthScopeRollback
+                ? asText(
+                    studioTruthState?.detail,
+                    "Wave 1 ligger i ordinarie fallback i svarsstudion tills den sanningsstyrda vägen är tillbaka."
+                  )
+                : thread?.whyInFocus || state.runtime.error || "Ingen fokusmotivering ännu.";
       }
       if (studioStatusValueNodes.owner) {
         studioStatusValueNodes.owner.textContent = thread?.ownerLabel || "-";
@@ -548,10 +556,9 @@
       }
 
       if (studioContextSummaryNodes.ai) {
-        studioContextSummaryNodes.ai.textContent =
-          isTruthDrivenStudio
-            ? `${studioTruthState.label || "Truth-driven studio"} · ${studioWaveLabel} · ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} · reply-context låst`
-            : thread?.whyInFocus || "Ingen AI-sammanfattning tillgänglig ännu.";
+        studioContextSummaryNodes.ai.textContent = isTruthDrivenStudio
+          ? `${studioTruthState.label || "Sanningsstyrd svarstudio"} · ${studioWaveLabel} · ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "valt mejlkonto"} · svarskontext låst`
+          : thread?.whyInFocus || "Ingen AI-sammanfattning tillgänglig ännu.";
       }
       renderStudioContextAiList(thread ? buildStudioContextAiItems(thread) : []);
       renderStudioContextHistoryList(thread);
@@ -559,28 +566,34 @@
       renderStudioContextRecommendationsList(thread);
 
       if (studioIncomingAvatar) {
-        studioIncomingAvatar.src = thread?.avatar || buildAvatarDataUri(thread?.customerName || "CCO");
+        studioIncomingAvatar.src =
+          thread?.avatar || buildAvatarDataUri(thread?.customerName || "CCO");
         studioIncomingAvatar.alt = thread?.customerName || "CCO";
       }
       if (studioIncomingName) {
-        studioIncomingName.textContent = thread?.customerName || (isComposeMode ? "Nytt mejl" : "Ingen vald kund");
+        studioIncomingName.textContent =
+          thread?.customerName || (isComposeMode ? "Nytt mejl" : "Ingen vald kund");
       }
       if (studioIncomingTime) {
         studioIncomingTime.textContent =
           latestCustomerMessage?.time ||
           thread?.lastActivityLabel ||
-          (isComposeMode ? "Nu" : isOfflineHistoryReply ? "Offline historik" : "Ingen live-tråd vald");
+          (isComposeMode
+            ? "Nu"
+            : isOfflineHistoryReply
+              ? "Offline historik"
+              : "Ingen aktiv tråd vald");
       }
       if (studioIncomingLabel) {
         studioIncomingLabel.textContent = isComposeMode
-          ? "Compose-kontext:"
+          ? "Skrivkontext:"
           : isOfflineHistoryReply
             ? "Historik i offline-läge:"
-          : isTruthDrivenStudio
-            ? "Truth-driven trådkontext:"
-          : thread
-            ? "Konversation i tråden:"
-            : "Live-kontext:";
+            : isTruthDrivenStudio
+              ? "Sanningsstyrd trådkontext:"
+              : thread
+                ? "Konversation i tråden:"
+                : "Aktiv kontext:";
       }
       if (studioIncomingBody) {
         renderStudioConversation(thread);
@@ -617,7 +630,7 @@
           (!isComposeMode && !thread) ||
           isTruthDrivenStudio;
         studioComposeFromSelect.title = isTruthDrivenStudio
-          ? `Truth-driven studio låser source mailbox till ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} i ${studioWaveLabel}.`
+          ? `Sanningsstyrd svarstudio låser källmejlkonto till ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} i ${studioWaveLabel}.`
           : "";
       }
       if (studioComposeSubjectInput) {
@@ -636,8 +649,10 @@
       }
       if (studioEditorSummary) {
         const senderLabel =
-          composeMailboxLabel || studioTruthState?.sourceMailboxLabel || selectedSenderLabel ||
-          "Vald mailbox";
+          composeMailboxLabel ||
+          studioTruthState?.sourceMailboxLabel ||
+          selectedSenderLabel ||
+          "Valt mejlkonto";
         const nextStepLabel = isComposeMode
           ? "Skicka mejl"
           : compactRuntimeCopy(
@@ -645,10 +660,7 @@
               "Skicka svar",
               48
             );
-        const replySummaryParts = [
-          `Från: ${senderLabel}`,
-          `Signatur: ${signatureProfile.label}`,
-        ];
+        const replySummaryParts = [`Från: ${senderLabel}`, `Signatur: ${signatureProfile.label}`];
         if (normalizeText(nextStepLabel)) {
           replySummaryParts.push(`Nästa steg: ${nextStepLabel}`);
         }
@@ -706,7 +718,7 @@
         button.disabled = disableSignatureControls;
         button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
         button.title = isTruthDrivenStudio
-          ? `${buttonLabel} · låst av truth-driven studio`
+          ? `${buttonLabel} · låst av sanningsstyrd svarstudio`
           : buttonLabel;
       });
       studioInlineToolButtons.forEach((button) => {
@@ -716,9 +728,7 @@
         );
         button.disabled = disableChoiceControls;
         button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
-        button.title = isOfflineHistoryReply
-          ? `${buttonLabel} · spärrad i läsläge`
-          : buttonLabel;
+        button.title = isOfflineHistoryReply ? `${buttonLabel} · spärrad i läsläge` : buttonLabel;
       });
       Object.entries(studioContextTabs).forEach(([key, tab]) => {
         if (!tab) return;
@@ -738,16 +748,16 @@
           studioPrimarySuggestion.disabled ? "true" : "false"
         );
         studioPrimarySuggestion.title = isOfflineHistoryReply
-          ? "Offline historik · live-tråd krävs för att använda förslaget"
+          ? "Offline historik · aktiv tråd krävs för att använda förslaget"
           : asText(studioPrimarySuggestionLabel?.textContent, "Primärt förslag");
       }
       const defaultStudioFeedback = state.runtime.authRequired
-        ? "Logga in igen i admin för att skicka, spara eller radera från studion."
+        ? "Logga in igen i admin för att skicka, spara eller radera från svarsstudion."
         : isOfflineHistoryReply
-          ? "Offline historik är läsläge. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd."
+          ? "Offline historik är läsläge. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver aktiv tråd."
           : isTruthDrivenStudio
-            ? `${studioTruthState.label || "Truth-driven studio"} · ${studioWaveLabel} · ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} · reply-context låst.`
-          : "";
+            ? `${studioTruthState.label || "Sanningsstyrd svarstudio"} · ${studioWaveLabel} · ${composeMailboxLabel || studioTruthState?.sourceMailboxLabel || "vald mailbox"} · svarskontext låst.`
+            : "";
       setStudioFeedback(
         defaultStudioFeedback,
         state.runtime.authRequired || isOfflineHistoryReply
@@ -848,13 +858,11 @@
       );
       const mailboxLabel = asText(
         selectedThread.mailboxLabel || selectedThread.mailboxesLabel,
-        "Vald mailbox"
+        "Valt mejlkonto"
       );
       const subjectSummary = compactRuntimeCopy(
         asText(
-          selectedThread.subject ||
-            selectedThread.preview ||
-            selectedThread.nextActionSummary,
+          selectedThread.subject || selectedThread.preview || selectedThread.nextActionSummary,
           "Tråden väljs från aktiv arbetskö."
         ),
         "Tråden väljs från aktiv arbetskö.",
@@ -930,8 +938,11 @@
       mailboxAdminList.innerHTML = "";
       rows.forEach((mailbox) => {
         const row = documentObject.createElement("div");
-        const isEditing = normalizeKey(state.mailboxAdminEditingId || "") === normalizeKey(mailbox.id);
-        const ownerCopy = mailbox.ownerCopy || (mailbox.custom ? `Ägare: ${mailbox.owner}` : `Källa: ${mailbox.owner}`);
+        const isEditing =
+          normalizeKey(state.mailboxAdminEditingId || "") === normalizeKey(mailbox.id);
+        const ownerCopy =
+          mailbox.ownerCopy ||
+          (mailbox.custom ? `Ägare: ${mailbox.owner}` : `Källa: ${mailbox.owner}`);
         const signatureCopy =
           mailbox.signatureCopy ||
           (mailbox.signatureLabel
@@ -1146,8 +1157,8 @@
     function getRuntimeNoteContextSummary(thread) {
       if (!thread) {
         return state.runtime.authRequired
-          ? "Logga in igen för att läsa live kontext."
-          : "Ingen live-tråd vald ännu.";
+          ? "Logga in igen för att läsa aktiv kontext."
+          : "Ingen aktiv tråd vald ännu.";
       }
       const subject = compactRuntimeCopy(thread.subject, "Aktiv konversation", 48);
       const nextAction = compactRuntimeCopy(
@@ -1160,11 +1171,14 @@
 
     function getRuntimeConversationSignal(thread) {
       if (!thread) return "";
-      const summary = [thread.customerName, normalizeText(thread.subject) || thread.intentLabel || "Aktiv live-tråd"]
+      const summary = [
+        thread.customerName,
+        normalizeText(thread.subject) || thread.intentLabel || "Aktiv tråd",
+      ]
         .map((value) => normalizeText(value))
         .filter(Boolean)
         .join(" · ");
-      return compactRuntimeCopy(summary, `${thread.customerName || "Vald kund"} · aktiv live-tråd`, 112);
+      return compactRuntimeCopy(summary, `${thread.customerName || "Vald kund"} · aktiv tråd`, 112);
     }
 
     function getRuntimeLinkedItems(thread, fallbackItems = []) {
@@ -1174,7 +1188,7 @@
         normalizeText(thread.subject)
           ? `Ärende · ${compactRuntimeCopy(thread.subject, thread.intentLabel || "Aktiv tråd", 72)}`
           : "",
-        normalizeText(thread.mailboxLabel) ? `Mailbox · ${thread.mailboxLabel}` : "",
+        normalizeText(thread.mailboxLabel) ? `Mejlkonto · ${thread.mailboxLabel}` : "",
         normalizeText(thread.ownerLabel) ? `Ansvar · ${thread.ownerLabel}` : "",
         normalizeText(thread.followUpLabel || thread.nextActionLabel)
           ? `Nästa steg · ${thread.followUpLabel || thread.nextActionLabel}`
@@ -1206,7 +1220,7 @@
         {
           label: "Vad ärendet gäller",
           value: thread.intentLabel || humanizeCode(raw.intent, "Oklart"),
-          meta: "Tolkad från live-tråden",
+          meta: "Tolkad från aktiv tråd",
         },
         {
           label: "Nästa steg",
@@ -1292,11 +1306,11 @@
           ...definition,
           targetLabel: target,
           livePreview: state.runtime.authRequired
-            ? "Logga in igen för att läsa live kontext."
-            : `${target} · välj en live-tråd för att aktivera anteckningen`,
+            ? "Logga in igen för att läsa aktiv kontext."
+            : `${target} · välj en aktiv tråd för att aktivera anteckningen`,
           defaultText: state.runtime.authRequired
-            ? "Logga in igen för att läsa live kontext innan du skriver anteckningen."
-            : `Välj en live-tråd i arbetskön innan du skapar en anteckning i ${target.toLowerCase()}.`,
+            ? "Logga in igen för att läsa aktiv kontext innan du skriver anteckningen."
+            : `Välj en aktiv tråd i arbetskön innan du skapar en anteckning i ${target.toLowerCase()}.`,
           dataCards: [],
           linkedItems: [],
         };
@@ -1339,7 +1353,9 @@
 
     function buildRuntimeScheduleDraft(baseDraft = {}) {
       const baseMetadata =
-        baseDraft.metadata && typeof baseDraft.metadata === "object" && !Array.isArray(baseDraft.metadata)
+        baseDraft.metadata &&
+        typeof baseDraft.metadata === "object" &&
+        !Array.isArray(baseDraft.metadata)
           ? baseDraft.metadata
           : {};
       const isBookingDraft =
@@ -1358,7 +1374,7 @@
           date: "",
           time: "",
           notes: state.runtime.authRequired
-            ? "Logga in igen för att läsa live kontext innan du schemalägger uppföljning."
+            ? "Logga in igen för att läsa aktiv kontext innan du schemalägger uppföljning."
             : "",
           recommendations: {
             preferredDay: "",
@@ -1407,7 +1423,8 @@
           timeWindow:
             normalizeText(baseDraft.recommendations?.timeWindow) ||
             normalizeText(raw.preferredWindowLabel) ||
-            (thread.followUpLabel || "09:00-12:00"),
+            thread.followUpLabel ||
+            "09:00-12:00",
           doctorName:
             normalizeText(baseDraft.recommendations?.doctorName) ||
             normalizeText(raw.doctorName) ||
@@ -1427,11 +1444,11 @@
         noteModeContext.textContent = getRuntimeNoteContextSummary(thread);
       }
       if (scheduleCustomerPill) {
-        scheduleCustomerPill.textContent = thread?.customerName || "Ingen live-tråd vald";
+        scheduleCustomerPill.textContent = thread?.customerName || "Ingen aktiv tråd vald";
       }
       if (scheduleCategoryPill) {
         scheduleCategoryPill.textContent =
-          thread?.followUpLabel || thread?.nextActionLabel || "Ingen live-tråd vald";
+          thread?.followUpLabel || thread?.nextActionLabel || "Ingen aktiv tråd vald";
       }
     }
 
@@ -1450,32 +1467,29 @@
         return {
           templateKey: null,
           text: state.runtime.authRequired
-            ? "Logga in igen för att läsa live kontext innan AI-läget används."
-            : "Välj en live-tråd i arbetskön innan du använder AI-läget.",
-          tags: ["AI", "Väntar på live-tråd"],
+            ? "Logga in igen för att läsa aktiv kontext innan AI-läget används."
+            : "Välj en aktiv tråd i arbetskön innan du använder AI-läget.",
+          tags: ["AI", "Väntar på aktiv tråd"],
         };
       }
       if (normalizedOption === "ai-summary") {
         return {
           templateKey: null,
-          text:
-            `AI-sammanfattning:\n- Kund: ${thread.customerName}\n- Nu i: ${thread.statusLabel}\n- Nästa steg: ${thread.nextActionLabel}\n- Fokus: ${compactRuntimeCopy(thread.whyInFocus, "Ingen fokusmotivering.", 96)}`,
+          text: `AI-sammanfattning:\n- Kund: ${thread.customerName}\n- Nu i: ${thread.statusLabel}\n- Nästa steg: ${thread.nextActionLabel}\n- Fokus: ${compactRuntimeCopy(thread.whyInFocus, "Ingen fokusmotivering.", 96)}`,
           tags: ["AI", "Sammanfattning", thread.intentLabel || "Signal"],
         };
       }
       if (normalizedOption === "ai-extract") {
         return {
           templateKey: null,
-          text:
-            `Extraherade detaljer:\n- Mailbox: ${thread.mailboxLabel}\n- Ägare: ${thread.ownerLabel}\n- Väntar på: ${thread.waitingLabel}\n- Uppföljning: ${thread.followUpLabel || "Ingen planerad"}`,
+          text: `Extraherade detaljer:\n- Mailbox: ${thread.mailboxLabel}\n- Ägare: ${thread.ownerLabel}\n- Väntar på: ${thread.waitingLabel}\n- Uppföljning: ${thread.followUpLabel || "Ingen planerad"}`,
           tags: ["AI", "Detaljer", thread.mailboxLabel],
         };
       }
       if (normalizedOption === "ai-action-items") {
         return {
           templateKey: null,
-          text:
-            `Åtgärdspunkter:\n1. ${thread.nextActionLabel}.\n2. ${compactRuntimeCopy(thread.nextActionSummary, "Ta nästa tydliga steg i tråden.", 72)}\n3. ${thread.followUpLabel ? `Säkra uppföljning: ${thread.followUpLabel}.` : "Schemalägg uppföljning om kunden inte svarar."}`,
+          text: `Åtgärdspunkter:\n1. ${thread.nextActionLabel}.\n2. ${compactRuntimeCopy(thread.nextActionSummary, "Ta nästa tydliga steg i tråden.", 72)}\n3. ${thread.followUpLabel ? `Säkra uppföljning: ${thread.followUpLabel}.` : "Schemalägg uppföljning om kunden inte svarar."}`,
           tags: ["AI", "Åtgärder", thread.followUpLabel ? "Uppföljning" : "Nästa steg"],
         };
       }
@@ -1570,30 +1584,30 @@
       );
 
       if (scheduleDateHint) {
-        scheduleDateHint.textContent = thread ? "Nästa fredag" : "Välj live-tråd för datumförslag";
+        scheduleDateHint.textContent = thread ? "Nästa fredag" : "Välj aktiv tråd för datumförslag";
       }
       if (scheduleTimeHint) {
         scheduleTimeHint.textContent = thread
           ? "Baserat på preferenser"
-          : "Välj live-tråd för tidsfönster";
+          : "Välj aktiv tråd för tidsfönster";
       }
       if (scheduleDoctorHint) {
         scheduleDoctorHint.textContent = thread
           ? "Kundpreferens"
-          : "Välj live-tråd för behandlare";
+          : "Välj aktiv tråd för behandlare";
       }
       if (scheduleCategoryHint) {
-        scheduleCategoryHint.textContent = thread ? "Från kontext" : "Välj live-tråd för kategori";
+        scheduleCategoryHint.textContent = thread ? "Från kontext" : "Välj aktiv tråd för kategori";
       }
       if (scheduleReminderHint) {
         scheduleReminderHint.textContent = thread
           ? "Baserat på kundbeteende"
-          : "Aktiveras med live-kontext";
+          : "Aktiveras med aktiv kontext";
       }
       if (scheduleNotesHint) {
         scheduleNotesHint.textContent = thread
           ? "Auto-genererat från behandlingsserie"
-          : "Lägg till live-kontext för att förifylla noteringar";
+          : "Lägg till aktiv kontext för att förifylla noteringar";
       }
 
       const recommendations = draft.recommendations || {};
@@ -1603,17 +1617,18 @@
         if (!strong) return;
         if (key === "preferredDay") {
           strong.textContent =
-            recommendations.preferredDay || (thread ? "Fredag" : "Välj live-tråd");
+            recommendations.preferredDay || (thread ? "Fredag" : "Välj aktiv tråd");
         }
         if (key === "timeWindow") {
           strong.textContent =
-            recommendations.timeWindow || (thread ? "09:00-12:00" : "Välj live-tråd");
+            recommendations.timeWindow || (thread ? "09:00-12:00" : "Välj aktiv tråd");
         }
         if (key === "doctorName") {
           strong.textContent = recommendations.doctorName || "Dr. Eriksson";
         }
         if (key === "avgReplyHours") {
-          strong.textContent = recommendations.avgReplyHours || (thread ? "2.5h" : "Live-data krävs");
+          strong.textContent =
+            recommendations.avgReplyHours || (thread ? "2.5h" : "Live-data krävs");
         }
       });
 

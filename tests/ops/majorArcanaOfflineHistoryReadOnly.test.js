@@ -30,26 +30,19 @@ const OVERLAY_PATH = path.join(
   'runtime-overlay-renderers.js'
 );
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 test('runtime action engine blockerar anteckning och schemalaggning i offline historik', () => {
   const source = fs.readFileSync(ACTION_ENGINE_PATH, 'utf8');
 
   assert.match(
     source,
-    /Offline historik är läsläge\. Öppna live-tråden för att skapa anteckningar\./,
+    /Offline historik är läsläge\. Öppna den aktiva tråden för att skapa anteckningar\./,
     'Anteckningsöppning ska blockeras ärligt i offline historik.'
   );
   assert.match(
     source,
-    /Offline historik är läsläge\. Öppna live-tråden för att schemalägga uppföljning\./,
+    /Offline historik är läsläge\. Öppna den aktiva tråden för att schemalägga uppföljning\./,
     'Schemaläggning ska blockeras ärligt i offline historik.'
   );
 });
@@ -58,12 +51,12 @@ test('async orchestration blockerar operativa studioactions i offline historik',
   const source = fs.readFileSync(ASYNC_PATH, 'utf8');
 
   [
-    'Öppna live-tråden för att förhandsvisa eller svara.',
-    'Öppna live-tråden för att spara utkast.',
-    'Öppna live-tråden för att parkera konversationen.',
-    'Öppna live-tråden för att markera konversationen som klar.',
-    'Öppna live-tråden för att radera konversationen.',
-    'Öppna live-tråden för att skicka svar.',
+    'Öppna den aktiva tråden för att förhandsvisa eller svara.',
+    'Öppna den aktiva tråden för att spara utkast.',
+    'Öppna den aktiva tråden för att parkera konversationen.',
+    'Öppna den aktiva tråden för att markera konversationen som klar.',
+    'Öppna den aktiva tråden för att radera konversationen.',
+    'Öppna den aktiva tråden för att skicka svar.',
   ].forEach((message) => {
     assert.match(
       source,
@@ -88,7 +81,7 @@ test('overlay renderern satter studion i read-only lage for offline historik', (
   );
   assert.match(
     source,
-    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd\./,
+    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver aktiv tråd\./,
     'Studion ska visa en tydlig read-only-förklaring i offline historik.'
   );
   assert.match(

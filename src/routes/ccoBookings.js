@@ -1,9 +1,6 @@
 const express = require('express');
 
-const {
-  getClientoApiConfigForBrand,
-  getClientoConfigForBrand,
-} = require('../brand/runtimeConfig');
+const { getClientoApiConfigForBrand, getClientoConfigForBrand } = require('../brand/runtimeConfig');
 const { resolveBrandForHost } = require('../brand/resolveBrand');
 const {
   createClientoApi,
@@ -28,7 +25,9 @@ function asObject(value) {
 }
 
 function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host')).split(':')[0].toLowerCase();
+  const host = normalizeText(req.hostname || req.get('host'))
+    .split(':')[0]
+    .toLowerCase();
   const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
   return (
     ['localhost', '127.0.0.1', '::1'].includes(host) ||
@@ -103,27 +102,22 @@ function buildContext(req, actor) {
   return {
     tenantId: actor.tenantId,
     workspaceId:
-      normalizeText(req.query.workspaceId) ||
-      normalizeText(req.body?.workspaceId) ||
-      WORKSPACE_ID,
+      normalizeText(req.query.workspaceId) || normalizeText(req.body?.workspaceId) || WORKSPACE_ID,
     conversationId:
-      normalizeText(req.query.conversationId) ||
-      normalizeText(req.body?.conversationId),
+      normalizeText(req.query.conversationId) || normalizeText(req.body?.conversationId),
     customerEmail:
       normalizeText(req.query.customerEmail) ||
       normalizeText(req.body?.customerEmail) ||
       normalizeText(req.query.customerId) ||
       normalizeText(req.body?.customerId),
-    customerName:
-      normalizeText(req.query.customerName) ||
-      normalizeText(req.body?.customerName),
+    customerName: normalizeText(req.query.customerName) || normalizeText(req.body?.customerName),
     actor,
   };
 }
 
 function requireBookingContext(context) {
   if (context.conversationId && context.customerEmail) return;
-  const error = new Error('Välj en live-tråd med kund innan bokningsytan används.');
+  const error = new Error('Välj en aktiv tråd med kund innan bokningsytan används.');
   error.statusCode = 400;
   throw error;
 }
@@ -146,7 +140,7 @@ function toCaseInput(context, body = {}) {
   };
 }
 
-function buildOfferDraft({ bookingCase, bookingUrl = '' }) {
+function buildOfferDraft({ bookingCase }) {
   const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
   const lines = slots.map((slot, index) => {
     const label = slot.resourceLabel ? ` hos ${slot.resourceLabel}` : '';
@@ -156,10 +150,7 @@ function buildOfferDraft({ bookingCase, bookingUrl = '' }) {
   const slotCopy = lines.length
     ? lines.join('\n')
     : 'Jag kan ta fram konkreta tider åt dig direkt.';
-  const linkCopy = bookingUrl
-    ? `\n\nOm du vill kan du även boka själv här: ${bookingUrl}`
-    : '';
-  return `Hej,\n\nJag hjälper dig gärna med bokningen. Här är tiderna jag kan erbjuda just nu:\n\n${slotCopy}\n\nSvara gärna med vilken tid som passar bäst, så hjälper vi dig vidare.${linkCopy}`;
+  return `Hej,\n\nJag hjälper dig gärna med bokningen. Här är tiderna jag kan erbjuda just nu:\n\n${slotCopy}\n\nSvara gärna med vilken tid som passar bäst, så hjälper vi dig vidare.`;
 }
 
 function createCcoBookingsRouter({ bookingStore, authStore, config }) {
@@ -173,7 +164,9 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {
-        return res.status(statusCode).json({ error: error.message, metadata: error.metadata || null });
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte hantera bokningsytan.' });
@@ -274,14 +267,9 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
         ...toCaseInput(context, req.body),
         status: 'offered',
       });
-      const brand = resolveBrandFromRequest(req, config);
-      const cliento = getClientoConfigForBrand(brand, config);
       return res.json({
         bookingCase,
-        draft: buildOfferDraft({
-          bookingCase,
-          bookingUrl: cliento.bookingUrl || '',
-        }),
+        draft: buildOfferDraft({ bookingCase }),
       });
     })
   );

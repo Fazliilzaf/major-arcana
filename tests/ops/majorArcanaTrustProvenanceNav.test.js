@@ -3,23 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const OVERLAY_PATH = path.join(
   __dirname,
@@ -83,7 +69,9 @@ test('owner-scope visar arlig fixturebegransning i stallet for ett diffust filte
     'Appen ska ha en helper som kan uttrycka nar owner-scope bara ar Alla agare eller Oagd.'
   );
   assert.ok(
-    queueSource.includes('ownerTriggerLabel.textContent = asText(selectedOwner?.label, "Alla ägare");'),
+    queueSource.includes(
+      'ownerTriggerLabel.textContent = asText(selectedOwner?.label, "Alla ägare");'
+    ),
     'Owner-triggern ska visa vald sanning direkt i stallet for den generiska texten "Ägarvy".'
   );
   assert.ok(
@@ -134,19 +122,25 @@ test('automation trust-gating markerar shelllokala delar och auth-laser liveacti
     'Automation-shellen ska ha en dedikerad renderer for trust/provenance-notiser.'
   );
   assert.ok(
-    appSource.includes('automationRunButton.disabled = authRequired || state.automationRuntime.loading;'),
+    appSource.includes(
+      'automationRunButton.disabled = authRequired || state.automationRuntime.loading;'
+    ),
     'Top-level Testkor ska truth-gatas nar auth saknas for live evaluate.'
   );
   assert.ok(
-    appSource.includes('automationSaveButton.disabled = authRequired || state.automationRuntime.loading;'),
+    appSource.includes(
+      'automationSaveButton.disabled = authRequired || state.automationRuntime.loading;'
+    ),
     'Spara ska truth-gatas nar auth saknas for live templatesystemet.'
   );
   assert.ok(
-    appSource.includes("const restoreButton = card.querySelector('[data-automation-version-action=\"restore\"]');"),
+    appSource.includes(
+      'const restoreButton = card.querySelector(\'[data-automation-version-action="restore"]\');'
+    ),
     'Automation auth-gating ska ocksa kunna lasa synliga version-aterstallningar nar auth saknas.'
   );
   assert.ok(
-    appSource.includes('Hoppa över väntan är shell-lokal simulering'),
+    appSource.includes('Hoppa över väntan är arbetsyte-lokal simulering'),
     'Testing skip ska uttryckligen beskrivas som lokal simulering i trust-copy.'
   );
 
@@ -212,7 +206,7 @@ test('slutpasset harmoniserar offline-copy, capability-spärrar och trust-språk
     'Capability-copy ska uttryckligen säga nar signaturprofilen saknas i det aktuella laget.'
   );
   assert.ok(
-    overlaySource.includes('Offline historik · läsläge · live-actions spärrade'),
+    overlaySource.includes('Offline historik · läsläge · aktiva åtgärder spärrade'),
     'Studio-copy ska göra offline historik som läsläge tydlig utan att ge sken av operativt läge.'
   );
   assert.ok(
@@ -228,15 +222,15 @@ test('slutpasset harmoniserar offline-copy, capability-spärrar och trust-språk
     'Fokusyta och kundintelligens ska märka offline historik som läsläge i mitten/höger.'
   );
   assert.ok(
-    appSource.includes('Härledd från livekällor: KPI-raden bygger på live telemetry'),
-    'Analytics trust-copy ska uttryckligen skilja derived live-sammanställning från separat live-feed.'
+    appSource.includes('Härledd från aktiva källor: KPI-raden bygger på aktiv telemetri'),
+    'Analysens trust-copy ska uttryckligen skilja härledd aktiv sammanställning från separat flöde.'
   );
   assert.ok(
-    appSource.includes('Shell-lokal: analyskort och copy är härledd UI'),
-    'Automation trust-copy ska uttryckligen märka shell-lokala analysytor.'
+    appSource.includes('Arbetsyte-lokal: analyskort och text är härledd UI'),
+    'Automation trust-copy ska uttryckligen märka arbetsyte-lokala analysytor.'
   );
   assert.ok(
-    appSource.includes('Livekälla i valt mailboxscope: bygger på tidigare kundinteraktioner'),
+    appSource.includes('Aktiv källa i valt mejlurval: bygger på tidigare kundinteraktioner'),
     'Kundintelligensens proveniensdetaljer ska harmonisera mot samma live/derived-vokabular.'
   );
 });

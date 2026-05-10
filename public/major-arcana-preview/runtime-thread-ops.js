@@ -76,7 +76,7 @@
         current.nextActionLabel = "Invänta svar";
         current.nextActionSummary = nextActionSummary;
         current.whyInFocus =
-          "Senaste svar skickades från studion. Följ upp om kunden inte återkommer.";
+          "Senaste svar skickades från svarsstudion. Följ upp om kunden inte återkommer.";
         current.tags = Array.from(
           new Set(current.tags.filter((tag) => tag !== "act-now").concat(["later", "followup"]))
         );
@@ -104,7 +104,7 @@
         targetAt.setDate(targetAt.getDate() + 1);
         targetAt.setHours(9, 0, 0, 0);
       } else if (normalizedLabel === "måndag 09:00") {
-        const delta = ((8 - targetAt.getDay()) % 7) || 7;
+        const delta = (8 - targetAt.getDay()) % 7 || 7;
         targetAt.setDate(targetAt.getDate() + delta);
         targetAt.setHours(9, 0, 0, 0);
       } else {

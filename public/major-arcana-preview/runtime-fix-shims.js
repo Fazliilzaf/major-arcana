@@ -9,10 +9,10 @@
  * När fixen byggs in i app.js permanent kan denna fil tas bort.
  */
 (() => {
-  'use strict';
+  "use strict";
 
-  const LS_KEY_SELECTED = 'cco.selectedMailboxIds.v1';
-  const DEFAULT_MAILBOXES = ['contact','egzona','fazli','info','kons','marknad'];
+  const LS_KEY_SELECTED = "cco.selectedMailboxIds.v1";
+  const DEFAULT_MAILBOXES = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
 
   // ============================================================
   // P0-1: Mailbox-val persistens
@@ -24,7 +24,9 @@
       if (!raw) return null;
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr : null;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
 
   function writePersistedMailboxes(ids) {
@@ -35,9 +37,11 @@
   }
 
   function getCurrentlyCheckedMailboxes() {
-    const checks = document.querySelectorAll('input[type="checkbox"][data-mailbox-id], input[type="checkbox"][data-mailbox-key]');
+    const checks = document.querySelectorAll(
+      'input[type="checkbox"][data-mailbox-id], input[type="checkbox"][data-mailbox-key]'
+    );
     const ids = [];
-    checks.forEach(cb => {
+    checks.forEach((cb) => {
       if (cb.checked) {
         const id = cb.dataset.mailboxId || cb.dataset.mailboxKey;
         if (id) ids.push(id);
@@ -49,10 +53,10 @@
   function findMailboxRowsInDom() {
     // Mailbox-options container kan ha olika klassnamn — försök flera
     const containers = [
-      '.mailbox-options',
-      '[data-mailbox-options]',
-      '[data-mailbox-list]',
-      '[data-mailbox-picker]',
+      ".mailbox-options",
+      "[data-mailbox-options]",
+      "[data-mailbox-list]",
+      "[data-mailbox-picker]",
     ];
     for (const sel of containers) {
       const el = document.querySelector(sel);
@@ -68,10 +72,10 @@
     let applied = 0;
     // Strategi: hitta alla mailbox-checkboxes och markera de som matchar persisted-listan
     const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-    allCheckboxes.forEach(cb => {
-      const labelEl = cb.closest('label') || cb.parentElement;
-      const labelText = (labelEl?.textContent || '').toLowerCase();
-      const matchedKey = persisted.find(k => labelText.includes(k.toLowerCase()));
+    allCheckboxes.forEach((cb) => {
+      const labelEl = cb.closest("label") || cb.parentElement;
+      const labelText = (labelEl?.textContent || "").toLowerCase();
+      const matchedKey = persisted.find((k) => labelText.includes(k.toLowerCase()));
       if (matchedKey && !cb.checked) {
         // Trigga click istället för bara setChecked så app.js sin event-handler körs
         cb.click();
@@ -79,7 +83,7 @@
       }
     });
     if (applied > 0) {
-      console.log('[fix-shim] Återställde', applied, 'mailbox-val från localStorage');
+      console.log("[fix-shim] Återställde", applied, "mailbox-val från localStorage");
     }
     return applied > 0;
   }
@@ -87,22 +91,24 @@
   function findMailboxToggleButton() {
     // Försök olika selektorer
     const selectors = [
-      '[data-mailbox-toggle]',
-      '[data-mailbox-picker-toggle]',
-      '[data-truth-mailbox-toggle]',
-      '.mailbox-toggle',
-      '.mailbox-picker-toggle',
+      "[data-mailbox-toggle]",
+      "[data-mailbox-picker-toggle]",
+      "[data-truth-mailbox-toggle]",
+      ".mailbox-toggle",
+      ".mailbox-picker-toggle",
     ];
     for (const sel of selectors) {
       const el = document.querySelector(sel);
       if (el) return el;
     }
-    // Fallback: text-baserad sökning. Mailbox-väljaren har label som "Hair TP Clinic - Inga mailboxar"
+    // Fallback: text-baserad sökning. Mejlkontoväljaren har label som "Hair TP Clinic - Inga mejlkonton"
     // eller "Hair TP Clinic - Egzona +5"
-    const candidates = document.querySelectorAll('button, label, [role="button"], [role="combobox"]');
+    const candidates = document.querySelectorAll(
+      'button, label, [role="button"], [role="combobox"]'
+    );
     for (const el of candidates) {
-      const txt = (el.textContent || '').trim();
-      if (txt.length > 0 && txt.length < 80 && /Hair TP Clinic|mailboxar|mailboxes/i.test(txt)) {
+      const txt = (el.textContent || "").trim();
+      if (txt.length > 0 && txt.length < 80 && /Hair TP Clinic|mejlkonton|mailboxes/i.test(txt)) {
         return el;
       }
     }
@@ -117,11 +123,12 @@
     // bootstrapMailboxPersistence) — ingen hardcoded sleep behövs.
 
     // Kolla om checkboxes redan finns i DOM (dropdown öppen)
-    const existingCheckboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
-      .filter(cb => {
-        const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-        return DEFAULT_MAILBOXES.some(m => lbl.includes(m));
-      });
+    const existingCheckboxes = Array.from(
+      document.querySelectorAll('input[type="checkbox"]')
+    ).filter((cb) => {
+      const lbl = (cb.closest("label")?.textContent || "").toLowerCase();
+      return DEFAULT_MAILBOXES.some((m) => lbl.includes(m));
+    });
     if (existingCheckboxes.length > 0) {
       // Kanske redan öppen — försök applicera direkt
       applyPersistedMailboxes();
@@ -131,48 +138,54 @@
     // Annars: hitta toggle och öppna
     const toggle = findMailboxToggleButton();
     if (!toggle) {
-      console.warn('[fix-shim] Hittar inte mailbox-toggle vid bootstrap — kan inte återställa val automatiskt');
+      console.warn(
+        "[fix-shim] Hittar inte mailbox-toggle vid bootstrap — kan inte återställa val automatiskt"
+      );
       return;
     }
 
     // Klicka för att öppna dropdown
     toggle.click();
-    await new Promise(r => setTimeout(r, 600)); // Vänta på render
+    await new Promise((r) => setTimeout(r, 600)); // Vänta på render
 
     // Klicka checkboxes
     const applied = applyPersistedMailboxes();
 
     // Stäng dropdown genom att klicka utanför
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     const outside = document.body;
     outside.click();
     // Klick på Escape som backup
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
     if (applied) {
-      console.log('[fix-shim] Auto-återställde', persisted.length, 'mailbox-val vid bootstrap');
+      console.log("[fix-shim] Auto-återställde", persisted.length, "mailbox-val vid bootstrap");
     }
   }
 
   function watchMailboxChanges() {
     // Lyssna på alla checkbox-changes globalt och spara tillstånd
-    document.addEventListener('change', (e) => {
-      if (e.target?.type !== 'checkbox') return;
-      const labelEl = e.target.closest('label') || e.target.parentElement;
-      const labelText = (labelEl?.textContent || '').toLowerCase();
-      // Bara om det ser ut som en mailbox-checkbox
-      const isMailboxCheckbox = DEFAULT_MAILBOXES.some(m => labelText.includes(m));
-      if (!isMailboxCheckbox) return;
+    document.addEventListener(
+      "change",
+      (e) => {
+        if (e.target?.type !== "checkbox") return;
+        const labelEl = e.target.closest("label") || e.target.parentElement;
+        const labelText = (labelEl?.textContent || "").toLowerCase();
+        // Bara om det ser ut som en mailbox-checkbox
+        const isMailboxCheckbox = DEFAULT_MAILBOXES.some((m) => labelText.includes(m));
+        if (!isMailboxCheckbox) return;
 
-      // Samla alla nu-checkade mailbox-namn
-      const checked = [];
-      document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-        const matched = DEFAULT_MAILBOXES.find(m => lbl.includes(m));
-        if (matched) checked.push(matched);
-      });
-      writePersistedMailboxes([...new Set(checked)]);
-    }, true);
+        // Samla alla nu-checkade mailbox-namn
+        const checked = [];
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
+          const lbl = (cb.closest("label")?.textContent || "").toLowerCase();
+          const matched = DEFAULT_MAILBOXES.find((m) => lbl.includes(m));
+          if (matched) checked.push(matched);
+        });
+        writePersistedMailboxes([...new Set(checked)]);
+      },
+      true
+    );
   }
 
   function bootstrapMailboxPersistence() {
@@ -185,7 +198,7 @@
 
     // Snabbväg: om toggle redan finns i DOM (sällsynt vid bootstrap), kör direkt.
     if (findMailboxToggleButton()) {
-      autoOpenAndApplyAtBootstrap().catch(e => console.warn('[fix-shim] auto-open fel:', e));
+      autoOpenAndApplyAtBootstrap().catch((e) => console.warn("[fix-shim] auto-open fel:", e));
       return;
     }
 
@@ -197,12 +210,14 @@
       if (findMailboxToggleButton()) {
         triggered = true;
         observer.disconnect();
-        autoOpenAndApplyAtBootstrap().catch(e => console.warn('[fix-shim] auto-open fel:', e));
+        autoOpenAndApplyAtBootstrap().catch((e) => console.warn("[fix-shim] auto-open fel:", e));
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
     // Säkerhetsnät: koppla bort efter 30s om toggle aldrig dyker upp.
-    setTimeout(() => { if (!triggered) observer.disconnect(); }, 30000);
+    setTimeout(() => {
+      if (!triggered) observer.disconnect();
+    }, 30000);
   }
 
   // P0-2: "Okänd avsändare"-fallback — MIGRERAD till runtime-queue-renderers.js
@@ -229,28 +244,32 @@
 
   function logout() {
     try {
-      localStorage.removeItem('ARCANA_ADMIN_TOKEN');
-      localStorage.removeItem('cco.selectedMailboxIds.v1');
+      localStorage.removeItem("ARCANA_ADMIN_TOKEN");
+      localStorage.removeItem("cco.selectedMailboxIds.v1");
     } catch (_e) {}
-    window.location.href = '/';
+    window.location.href = "/";
   }
 
   function bootstrapLogout() {
     // Delegerad click-handler — fungerar oavsett när knappen mountas
-    document.addEventListener('click', (e) => {
-      const btn = e.target && e.target.closest && e.target.closest('[data-shim-logout]');
-      if (!btn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (confirm('Logga ut? Token rensas och du måste logga in igen.')) {
-        logout();
-      }
-    }, true);
-    // Kortkommando: Cmd+Shift+L
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+    document.addEventListener(
+      "click",
+      (e) => {
+        const btn = e.target && e.target.closest && e.target.closest("[data-shim-logout]");
+        if (!btn) return;
         e.preventDefault();
-        if (confirm('Logga ut? (Cmd+Shift+L)')) logout();
+        e.stopPropagation();
+        if (confirm("Logga ut? Token rensas och du måste logga in igen.")) {
+          logout();
+        }
+      },
+      true
+    );
+    // Kortkommando: Cmd+Shift+L
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        if (confirm("Logga ut? (Cmd+Shift+L)")) logout();
       }
     });
   }
@@ -262,28 +281,37 @@
   function bootstrapThemeSwitcher() {
     // Migrerad till delegerad click-handler — ingen wireUp-loop, ingen setInterval,
     // ingen dataset-flag. Träffar alla theme-knappar oavsett när de mountas.
-    document.addEventListener('click', (e) => {
-      const btn = e.target && e.target.closest && e.target.closest(
-        '.preview-utility-button[aria-label*="läge"], ' +
-        'button[aria-label="Ljusläge"], ' +
-        'button[aria-label="Mörkläge"], ' +
-        'button[aria-label="Mörkt läge"]'
-      );
-      if (!btn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (window.MajorArcanaPreviewTheme?.toggleTheme) {
-        const next = window.MajorArcanaPreviewTheme.toggleTheme();
-        const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
-        btn.setAttribute('aria-label', labels[next] || 'Tema');
-      } else {
-        // Fallback: toggla data-theme manuellt
-        const cur = document.documentElement.getAttribute('data-theme') || 'system';
-        const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
-        document.documentElement.setAttribute('data-theme', next);
-        try { localStorage.setItem('cco.theme', next); } catch (_e) {}
-      }
-    }, true);
+    document.addEventListener(
+      "click",
+      (e) => {
+        const btn =
+          e.target &&
+          e.target.closest &&
+          e.target.closest(
+            '.preview-utility-button[aria-label*="läge"], ' +
+              'button[aria-label="Ljusläge"], ' +
+              'button[aria-label="Mörkläge"], ' +
+              'button[aria-label="Mörkt läge"]'
+          );
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.MajorArcanaPreviewTheme?.toggleTheme) {
+          const next = window.MajorArcanaPreviewTheme.toggleTheme();
+          const labels = { light: "Mörkläge", dark: "Systemläge", system: "Ljusläge" };
+          btn.setAttribute("aria-label", labels[next] || "Tema");
+        } else {
+          // Fallback: toggla data-theme manuellt
+          const cur = document.documentElement.getAttribute("data-theme") || "system";
+          const next = cur === "light" ? "dark" : cur === "dark" ? "system" : "light";
+          document.documentElement.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem("cco.theme", next);
+          } catch (_e) {}
+        }
+      },
+      true
+    );
   }
 
   // P1-B: Filter-chips — MIGRERAD till runtime-queue-renderers.js + cco-polish.css
@@ -306,25 +334,39 @@
   // Bootstrap
   // ============================================================
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
 
   async function init() {
-    try { bootstrapMailboxPersistence(); } catch (e) { console.warn('[fix-shim] mailbox-persistens fel:', e); }
+    try {
+      bootstrapMailboxPersistence();
+    } catch (e) {
+      console.warn("[fix-shim] mailbox-persistens fel:", e);
+    }
     // P1-1: bootstrapThreadCardClickFix borttagen — migrerad till runtime-queue-renderers.js
     // P1-4: bootstrapLivePill borttagen — migrerad till runtime-queue-renderers.js
     // P2-1: bootstrapStatusLabelFix + bootstrapAggressiveStatusFix borttagna — migrerade till runtime-queue-renderers.js
     // P1-D: injectResponsiveLayoutFix borttagen — migrerad till cco-polish.css
     // P2-3: bootstrapMailboxCounts borttagen — migrerad till runtime-queue-renderers.js
-    try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
-    try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
+    try {
+      bootstrapLogout();
+    } catch (e) {
+      console.warn("[fix-shim] logout fel:", e);
+    }
+    try {
+      bootstrapThemeSwitcher();
+    } catch (e) {
+      console.warn("[fix-shim] theme-switcher fel:", e);
+    }
     // P1-B: bootstrapSecondaryFilters borttagen — migrerad till runtime-queue-renderers.js + cco-polish.css
     // P1-C: bootstrapSearchFilter borttagen — migrerad till runtime-queue-renderers.js
     // P0-2: okänd-avsändare-fix initieras nu av runtime-queue-renderers.js
     // (window.MajorArcanaCustomerNameResolver) och körs vid varje render.
-    console.log('[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)');
+    console.log(
+      "[fix-shim] runtime-fix-shims aktiv (mailbox-persistens + thread-card-click + live-pill + status-labels + mailbox-counts + logout + theme + filter + search)"
+    );
   }
 })();

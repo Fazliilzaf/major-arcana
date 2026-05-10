@@ -11,22 +11,8 @@ const STYLES_PATH = path.join(
   'major-arcana-preview',
   'styles.css'
 );
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 const ACTION_ENGINE_PATH = path.join(
   __dirname,
   '..',
@@ -153,7 +139,7 @@ test('arbetsko-toppen har expanded 3x5-lage och lokalt kompakt bubbellage utan l
   assert.match(
     indexSource,
     /data-quick-action="studio"/,
-    'Studio ska ligga tillbaka i den andra raden av toppsegmentet.'
+    'Svarstudio ska ligga tillbaka i den andra raden av toppsegmentet.'
   );
 
   assert.match(
@@ -176,7 +162,7 @@ test('arbetsko-toppen har expanded 3x5-lage och lokalt kompakt bubbellage utan l
 
   assert.match(
     indexSource,
-    /Skickade[\s\S]*Historik[\s\S]*Studio[\s\S]*Klar[\s\S]*Radera[\s\S]*Admin[\s\S]*Granska[\s\S]*Oklart[\s\S]*Bokning[\s\S]*Medicinsk/,
+    /Skickade[\s\S]*Historik[\s\S]*Svarstudio[\s\S]*Klar[\s\S]*Radera[\s\S]*Admin[\s\S]*Granska[\s\S]*Oklart[\s\S]*Bokning[\s\S]*Medicinsk/,
     'Expanded-laget ska ateranvanda tre rader med fem bubblor i ratt ordning.'
   );
 

@@ -125,7 +125,7 @@ test('focus renderers låser truth-driven focus i read-only gren utan studio-kna
   );
   assert.match(
     source,
-    /Truth-driven läsläge i fokusytan för wave 1\. Reply- och studioflödet ligger kvar utanför detta pass\./,
+    /Sanningsstyrt läsläge i fokusytan för wave 1\. Svarflödet och svarsstudion ligger kvar utanför detta pass\./,
     'Förväntade tydlig provenancecopy för truth-driven focus.'
   );
 
@@ -153,8 +153,8 @@ test('focus renderers låser truth-driven focus i read-only gren utan studio-kna
   );
   assert.match(
     source,
-    /mailbox truth historik/,
-    'Förväntade att historiken märker ut mailbox truth-proveniens i focusytan.'
+    /mejlsanningshistorik/,
+    'Förväntade att historiken märker ut mejlsanningsproveniens i focusytan.'
   );
   assert.match(
     source,
@@ -525,8 +525,8 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att signaturdelen nu hålls summary-first även när den visas, så att läsvyn inte blåser upp sekundärinnehåll.'
   );
   assert.ok(
-    source.includes(
-      'const lifecycleSummary = [thread.lifecycleLabel, thread.followUpLabel || thread.lastActivityLabel]'
+    /const lifecycleSummary = \[\s*thread\.lifecycleLabel,\s*thread\.followUpLabel \|\| thread\.lastActivityLabel,?\s*\]/.test(
+      source
     ) &&
       source.includes(
         'function buildFocusStatusTokenMarkup({ label = "", tone = "neutral", icon = "" } = {})'
@@ -553,8 +553,8 @@ test('focus-renderern anvander sanitiserad rich html i conversation-bubblan inna
     'Förväntade att bodyns Bilagor & tillgångar-sektion nu är borttagen så att assets bara lever i headerinteraktionen.'
   );
   assert.ok(
-    source.includes(
-      'function buildConversationAssetActionsMarkup(asset, { history = false, mailboxId = "", messageId = "" } = {})'
+    /function buildConversationAssetActionsMarkup\(\s*asset,\s*\{\s*history = false,\s*mailboxId = "",\s*messageId = ""\s*\} = \{\}\s*\)/.test(
+      source
     ) &&
       source.includes('data-mail-asset-action="${escapeHtml(') &&
       source.includes('data-mail-asset-attachment-id="${escapeHtml(') &&
@@ -830,9 +830,7 @@ test('styles.css ger rich-html i fokusytan ett kompakt renderkontrakt utan att t
   );
   assert.ok(
     focusRendererSource.includes('data-mail-asset-family="${escapeHtml(family)}"') &&
-      focusRendererSource.includes(
-        'data-mail-asset-family="${escapeHtml(\n        kind\n      )}"'
-      ),
+      /data-mail-asset-family="\$\{escapeHtml\(\s*kind\s*\)\}"/.test(focusRendererSource),
     'Förväntade att både header-tokens och detaljrader bär explicit assetfamilj så att CCO kan hålla isär typerna konsekvent.'
   );
   assert.match(

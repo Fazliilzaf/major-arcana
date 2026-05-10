@@ -95,7 +95,7 @@ test('mailbox-admin har en kompakt lokal signatursektion i samma modal', () => {
   );
   assert.match(
     indexSource,
-    /mailbox-admin-bottom-notes[\s\S]*Aktiva mailboxar[\s\S]*Signatur/,
+    /mailbox-admin-bottom-notes[\s\S]*Aktiva mejlkonton[\s\S]*Signatur/,
     'Mailbox-admin ska bära aktiva mailboxar-copy och signatur-copy i samma kompakta fotrad i editorytan.'
   );
   assert.match(
@@ -254,7 +254,7 @@ test('custom mailbox-definitioner bär lokal ton och signaturdata utan att öppn
   );
   assert.match(
     appSource,
-    /mailbox-option-status">Custom/,
+    /mailbox-option-status">Eget/,
     'Custom mailboxar ska bära samma lilla statusstruktur i dropdownen som övriga mailboxar.'
   );
 });
@@ -342,7 +342,7 @@ test('mailbox-dropdownen separerar namn, e-post och capability-info i samma komp
 
   assert.match(
     indexSource,
-    /mailbox-option-status">Live/,
+    /mailbox-option-status">Aktiv/,
     'Preset-mailboxarna ska ha en tydlig liten statusmarkör direkt i dropdownen.'
   );
   assert.match(
@@ -386,7 +386,7 @@ test('mailbox surfaces skiljer live-mailbox med lokal signaturprofil från ren c
   );
   assert.match(
     appSource,
-    /statusLabel:\s*isCustomMailbox\s*\?\s*"Custom"\s*:\s*"Live"/,
+    /statusLabel:\s*isCustomMailbox\s*\?\s*"Eget"\s*:\s*"Aktiv"/,
     'Sanningsmodellen ska skilja mellan ren custom-mailbox och live-mailbox med lokal signaturprofil.'
   );
   assert.match(
@@ -487,7 +487,7 @@ test('mailbox-admin använder bredden bättre än höjden i editorpanelen', () =
   assert.match(
     stylesSource,
     /\.mailbox-admin-list-card\s*\{[\s\S]*grid-area:\s*list;[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*border-top:\s*1px solid rgba\(221,\s*210,\s*202,\s*0\.74\);[\s\S]*\}/,
-    'Aktiva mailboxar ska ligga i botten som ett eget horisontellt segment utan separat vänsterspalt när copy flyttats upp till signaturdelen.'
+    'Aktiva mejlkonton ska ligga i botten som ett eget horisontellt segment utan separat vänsterspalt när copy flyttats upp till signaturdelen.'
   );
   assert.match(
     stylesSource,

@@ -78,6 +78,7 @@
       setButtonBusy,
       setContextCollapsed,
       setFeedback,
+      setWorkspaceManualSizing,
       setStudioFeedback,
       setStudioOpen,
       suggestHandledOutcome,
@@ -96,9 +97,7 @@
           ? getSelectedRuntimeFocusThread()
           : getSelectedRuntimeThread();
       const focusReadState =
-        typeof getRuntimeFocusReadState === "function"
-          ? getRuntimeFocusReadState(focusThread)
-          : {};
+        typeof getRuntimeFocusReadState === "function" ? getRuntimeFocusReadState(focusThread) : {};
       renderFocusHistorySection(focusThread, focusReadState);
     }
 
@@ -146,7 +145,9 @@
             ...(state.booking || {}),
             case: payload.bookingCase || null,
             readout: payload.bookingReadout || null,
-            statuses: Array.isArray(payload.bookingStatuses) ? payload.bookingStatuses : state.booking?.statuses || [],
+            statuses: Array.isArray(payload.bookingStatuses)
+              ? payload.bookingStatuses
+              : state.booking?.statuses || [],
           };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
@@ -245,6 +246,9 @@
 
       workspaceState.left = DEFAULT_WORKSPACE.left;
       workspaceState.right = DEFAULT_WORKSPACE.right;
+      if (typeof setWorkspaceManualSizing === "function") {
+        setWorkspaceManualSizing(false);
+      }
       normalizeWorkspaceState();
     }
 
@@ -268,9 +272,7 @@
         linkedItems: state.schedule.draft?.linkedItems || [],
       };
       const scheduleWorkspaceContext =
-        typeof getScheduleWorkspaceContext === "function"
-          ? getScheduleWorkspaceContext()
-          : {};
+        typeof getScheduleWorkspaceContext === "function" ? getScheduleWorkspaceContext() : {};
       state.schedule.draft =
         !getSelectedRuntimeThread() && scheduleWorkspaceContext.conversationId
           ? createScheduleDraft(formDraft)
@@ -369,9 +371,7 @@
 
       try {
         const scheduleWorkspaceContext =
-          typeof getScheduleWorkspaceContext === "function"
-            ? getScheduleWorkspaceContext()
-            : {};
+          typeof getScheduleWorkspaceContext === "function" ? getScheduleWorkspaceContext() : {};
         const validation = await apiRequest("/api/v1/cco-workspace/follow-ups/validate-conflict", {
           method: "POST",
           body: {
@@ -405,11 +405,7 @@
         };
         state.schedule.draft = createScheduleDraft(payload.scheduleDraft || savedFollowUp || draft);
         renderScheduleDraft();
-        setFeedback(
-          scheduleFeedback,
-          "success",
-          payload.message || "Uppföljningen schemalades."
-        );
+        setFeedback(scheduleFeedback, "success", payload.message || "Uppföljningen schemalades.");
         const selectedThread = getSelectedRuntimeThread();
         const draftMetadata =
           draft.metadata && typeof draft.metadata === "object" && !Array.isArray(draft.metadata)
@@ -452,7 +448,9 @@
             current.nextActionSummary = nextActionSummary;
             current.tags = Array.from(
               new Set(
-                asArray(current.tags).concat(["followup", "later"]).filter((tag) => tag !== "act-now")
+                asArray(current.tags)
+                  .concat(["followup", "later"])
+                  .filter((tag) => tag !== "act-now")
               )
             );
             current.raw = {
@@ -497,7 +495,11 @@
       return asText(studioState?.composeMailboxId || getStudioSourceMailboxId(thread));
     }
 
-    function buildStudioPreviewUrl(studioState, thread, { isComposeMode = false, studioTruthState = {} } = {}) {
+    function buildStudioPreviewUrl(
+      studioState,
+      thread,
+      { isComposeMode = false, studioTruthState = {} } = {}
+    ) {
       const params = new URLSearchParams();
       const selectedProfile = getStudioSignatureProfile(studioState?.selectedSignatureId);
       const senderMailboxId = resolveStudioSenderMailboxId(studioState, thread, {
@@ -516,10 +518,7 @@
         params.set("signatureOverrideLabel", asText(signatureOverride.label));
         params.set("signatureOverrideFullName", asText(signatureOverride.fullName));
         params.set("signatureOverrideTitle", asText(signatureOverride.title));
-        params.set(
-          "signatureOverrideSenderMailboxId",
-          asText(signatureOverride.senderMailboxId)
-        );
+        params.set("signatureOverrideSenderMailboxId", asText(signatureOverride.senderMailboxId));
         if (asText(signatureOverride.html)) {
           params.set("signatureOverrideHtml", asText(signatureOverride.html));
         }
@@ -593,7 +592,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att förhandsvisa eller svara.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att förhandsvisa eller svara.",
           "studio"
         )
       ) {
@@ -607,7 +606,7 @@
         }
         previewWindow.document.open();
         previewWindow.document.write(
-          "<!doctype html><html><head><title>Laddar förhandsvisning…</title></head><body style=\"font-family:Arial,sans-serif;padding:24px;background:#f7f1ea;color:#4b433d;\">Laddar förhandsvisning…</body></html>"
+          '<!doctype html><html><head><title>Laddar förhandsvisning…</title></head><body style="font-family:Arial,sans-serif;padding:24px;background:#f7f1ea;color:#4b433d;">Laddar förhandsvisning…</body></html>'
         );
         previewWindow.document.close();
         const authToken = getAdminToken();
@@ -647,7 +646,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att spara utkast.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att spara utkast.",
           "studio"
         )
       ) {
@@ -659,7 +658,7 @@
       try {
         if (isComposeMode) {
           studioState.baseDraftBody = studioState.draftBody;
-          setStudioFeedback("Compose-utkastet sparades lokalt i studion.", "success");
+          setStudioFeedback("Mejlutkastet sparades lokalt i svarsstudion.", "success");
           return;
         }
         await apiRequest("/api/v1/cco/studio/draft", {
@@ -704,7 +703,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att parkera konversationen.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att parkera konversationen.",
           "studio"
         )
       ) {
@@ -733,7 +732,7 @@
       );
 
       if (!conversationId || !mailboxId) {
-        throw new Error("Saknar conversation- eller mailbox-id för att markera klar.");
+        throw new Error("Saknar konversations- eller mejlkonto-id för att markera klar.");
       }
 
       await apiRequest("/api/v1/capabilities/CcoConversationAction/run", {
@@ -764,7 +763,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att markera konversationen som klar.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att markera konversationen som klar.",
           "studio"
         )
       ) {
@@ -866,7 +865,7 @@
       if (!thread || !studioState) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att radera konversationen.",
           "studio"
         )
       ) {
@@ -894,7 +893,7 @@
       if (!thread || !state.runtime.deleteEnabled || asText(state.runtime.deletingThreadId)) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att radera konversationen.",
           "focusStatus"
         )
       ) {
@@ -922,7 +921,7 @@
       if (!thread) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att markera konversationen som klar.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att markera konversationen som klar.",
           "focusStatus"
         )
       ) {
@@ -943,7 +942,7 @@
       if (!thread || state.runtime.historyDeleting) return;
       if (
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att radera konversationen.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att radera konversationen.",
           "focusHistory"
         )
       ) {
@@ -982,7 +981,7 @@
       if (
         !isComposeMode &&
         blockOfflineHistoryAction(
-          "Offline historik är läsläge. Öppna live-tråden för att skicka svar.",
+          "Offline historik är läsläge. Öppna den aktiva tråden för att skicka svar.",
           "studio"
         )
       ) {
@@ -1018,10 +1017,7 @@
       const signatureOverride =
         studioTruthState?.truthDriven === true
           ? null
-          : getStudioSignatureOverride(
-              selectedSignatureProfile.id,
-              composeSenderMailboxId
-            );
+          : getStudioSignatureOverride(selectedSignatureProfile.id, composeSenderMailboxId);
       if (
         studioTruthState?.truthDriven === true &&
         normalizeKey(studioState.selectedSignatureId) !==
@@ -1037,7 +1033,7 @@
         );
         normalizeStudioBusyState();
         setStudioFeedback(
-          `Truth-driven studio låser signatur och source mailbox till ${asText(
+          `Sanningsstyrd svarstudio låser signatur och källmejlkonto till ${asText(
             studioTruthState.sourceMailboxLabel,
             composeSenderMailboxId
           )} i ${asText(studioTruthState.waveLabel, "Wave 1")}.`,
@@ -1046,21 +1042,18 @@
         return;
       }
       const senderCapability =
-        typeof getRuntimeMailboxCapability === 'function'
+        typeof getRuntimeMailboxCapability === "function"
           ? getRuntimeMailboxCapability(composeSenderMailboxId)
           : null;
       if (senderCapability && senderCapability.sendAvailable !== true) {
         setStudioFeedback(
           `Skicka är inte aktivt för ${senderCapability.label || composeSenderMailboxId}.`,
-          'error'
+          "error"
         );
         return;
       }
       if (!selectedSignatureProfile?.id) {
-        setStudioFeedback(
-          "Välj en signatur innan du skickar från studion.",
-          "error"
-        );
+        setStudioFeedback("Välj en signatur innan du skickar från svarsstudion.", "error");
         return;
       }
       studioState.sending = true;
@@ -1077,14 +1070,22 @@
             channel: "admin",
             mode: isComposeMode ? "compose" : "reply",
             mailboxId: isComposeMode
-              ? asText(studioState.composeMailboxId || composeSenderMailboxId || getStudioSourceMailboxId(thread))
+              ? asText(
+                  studioState.composeMailboxId ||
+                    composeSenderMailboxId ||
+                    getStudioSourceMailboxId(thread)
+                )
               : asText(
                   studioTruthState?.truthDriven
                     ? studioTruthState.sourceMailboxId || thread.mailboxAddress
                     : thread.mailboxAddress
                 ),
             sourceMailboxId: isComposeMode
-              ? asText(studioState.composeMailboxId || composeSenderMailboxId || getStudioSourceMailboxId(thread))
+              ? asText(
+                  studioState.composeMailboxId ||
+                    composeSenderMailboxId ||
+                    getStudioSourceMailboxId(thread)
+                )
               : asText(
                   studioTruthState?.truthDriven
                     ? studioTruthState.sourceMailboxId || thread.mailboxAddress
@@ -1107,7 +1108,9 @@
                   const customerEmail = getRuntimeCustomerEmail(thread);
                   return customerEmail ? [customerEmail] : [];
                 })(),
-            subject: isComposeMode ? normalizeText(studioState.composeSubject) : asText(thread.subject),
+            subject: isComposeMode
+              ? normalizeText(studioState.composeSubject)
+              : asText(thread.subject),
             body: studioState.draftBody,
           },
         });
@@ -1131,7 +1134,7 @@
         patchStudioThreadAfterSend(thread, studioState.draftBody, sendResult);
         setStudioFeedback(
           studioTruthState?.truthDriven === true
-            ? `Truth-driven studio skickade svar från ${asText(
+            ? `Sanningsstyrd svarstudio skickade svar från ${asText(
                 studioTruthState.sourceMailboxLabel,
                 composeSenderMailboxId
               )} i ${asText(studioTruthState.waveLabel, "Wave 1")}.`

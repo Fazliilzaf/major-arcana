@@ -81,7 +81,8 @@ test('ccoBookingStore skapar ärenden idempotent och begränsar kandidat-tider t
     assert.equal(confirmed.status, 'confirmed_external');
     assert.ok(confirmed.confirmedExternalAt);
     assert.equal(confirmed.events.at(-1).type, 'external_confirmation_marked');
-    assert.match(confirmed.events.at(-1).detail, /Ingen direkt Cliento-write/);
+    assert.match(confirmed.events.at(-1).detail, /Ingen direkt kalenderskrivning/);
+    assert.doesNotMatch(confirmed.events.at(-1).detail, /Cliento/i);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -118,12 +119,15 @@ test('ccoBookingStore kan sortera bokningsärenden efter blockeringsgrad', async
       status: 'needs_triage',
     });
 
-    store._state.cases.find((bookingCase) => bookingCase.conversationId === 'conv-offered').updatedAt =
-      '2026-05-07T10:00:00.000Z';
-    store._state.cases.find((bookingCase) => bookingCase.conversationId === 'conv-slots').updatedAt =
-      '2026-05-07T11:00:00.000Z';
-    store._state.cases.find((bookingCase) => bookingCase.conversationId === 'conv-empty').updatedAt =
-      '2026-05-07T09:00:00.000Z';
+    store._state.cases.find(
+      (bookingCase) => bookingCase.conversationId === 'conv-offered'
+    ).updatedAt = '2026-05-07T10:00:00.000Z';
+    store._state.cases.find(
+      (bookingCase) => bookingCase.conversationId === 'conv-slots'
+    ).updatedAt = '2026-05-07T11:00:00.000Z';
+    store._state.cases.find(
+      (bookingCase) => bookingCase.conversationId === 'conv-empty'
+    ).updatedAt = '2026-05-07T09:00:00.000Z';
 
     const blocked = await store.listCases({ tenantId: 'tenant-a', sort: 'blocked' });
     assert.deepEqual(

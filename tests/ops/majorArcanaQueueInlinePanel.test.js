@@ -83,7 +83,10 @@ function createElementStub() {
 
 test('renderRuntimeQueueLaneState kopplar kategoribubblor till samma inline-panel-shell', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const renderRuntimeQueueLaneStateSource = extractFunctionSource(source, 'renderRuntimeQueueLaneState');
+  const renderRuntimeQueueLaneStateSource = extractFunctionSource(
+    source,
+    'renderRuntimeQueueLaneState'
+  );
 
   const queueLaneButtons = [
     {
@@ -158,12 +161,27 @@ test('renderRuntimeQueueLaneState kopplar kategoribubblor till samma inline-pane
 
 test('renderQueueHistorySection visar lane-panelen i samma inline-shell som historik', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -286,12 +304,27 @@ test('renderQueueHistorySection visar lane-panelen i samma inline-shell som hist
 
 test('renderQueueHistorySection behåller historik som eget läge', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -392,12 +425,27 @@ test('renderQueueHistorySection behåller historik som eget läge', () => {
 
 test('renderQueueHistorySection visar vanlig arbetslista i queue-history-list nar ingen panel ar oppen', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -520,13 +568,31 @@ test('renderQueueHistorySection visar vanlig arbetslista i queue-history-list na
 
 test('renderQueueHistorySection visar loading i samma kortsystem som live-kön', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const buildUnifiedQueueLoadingItemsSource = extractFunctionSource(source, 'buildUnifiedQueueLoadingItems');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const buildUnifiedQueueLoadingItemsSource = extractFunctionSource(
+    source,
+    'buildUnifiedQueueLoadingItems'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -623,18 +689,33 @@ test('renderQueueHistorySection visar loading i samma kortsystem som live-kön',
   assert.equal(queueTitle.textContent, 'Arbetslista (0)');
   assert.equal(queueHistoryList.dataset.queueListMode, 'live');
   assert.match(queueHistoryList.innerHTML, /data-runtime-thread="runtime-loading-1"/);
-  assert.match(queueHistoryList.innerHTML, /Synkar live-kö/);
+  assert.match(queueHistoryList.innerHTML, /Synkar aktiv kö/);
   assert.doesNotMatch(queueHistoryList.innerHTML, /queue-history-empty/);
 });
 
 test('renderQueueHistorySection visar live-tomlage i samma kortsystem som övriga mailrutor', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -733,20 +814,38 @@ test('renderQueueHistorySection visar live-tomlage i samma kortsystem som övrig
   assert.match(queueHistoryList.innerHTML, /data-runtime-thread="runtime-unified-empty"/);
   assert.match(
     queueHistoryList.innerHTML,
-    /Välj fler mailboxar eller vänta på nästa inkommande konversation\.|Mailboxfiltret gav inga aktiva trådar/
+    /Välj fler mejlkonton eller vänta på nästa inkommande konversation\.|Mejlurvalet gav inga aktiva trådar/
   );
   assert.doesNotMatch(queueHistoryList.innerHTML, /queue-history-empty/);
 });
 
 test('renderQueueHistorySection visar redan kända livekort under loading när kön ännu har trådar', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const buildUnifiedQueueLoadingItemsSource = extractFunctionSource(source, 'buildUnifiedQueueLoadingItems');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const buildUnifiedQueueLoadingItemsSource = extractFunctionSource(
+    source,
+    'buildUnifiedQueueLoadingItems'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -883,13 +982,31 @@ test('renderQueueInlineLaneList använder befintlig thread-card-live-design i li
 
 test('renderQueueHistorySection visar skickade i samma inline-shell som historik', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const getMailFeedRuntimeThreadsSource = extractFunctionSource(source, 'getMailFeedRuntimeThreads');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const getMailFeedRuntimeThreadsSource = extractFunctionSource(
+    source,
+    'getMailFeedRuntimeThreads'
+  );
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -1007,12 +1124,27 @@ test('renderQueueHistorySection visar skickade i samma inline-shell som historik
 
 test('renderQueueHistorySection prioriterar historik over live-fel nar historikpanelen ar oppen', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -1127,12 +1259,27 @@ test('renderQueueHistorySection prioriterar historik over live-fel nar historikp
 
 test('renderQueueHistorySection visar offline fallback-arbetslista i defaultlaget', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -1247,12 +1394,27 @@ test('renderQueueHistorySection visar offline fallback-arbetslista i defaultlage
 
 test('renderQueueHistorySection visar arlig offline-meta nar lokal historik saknas', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();
@@ -1327,7 +1489,8 @@ test('renderQueueHistorySection visar arlig offline-meta nar lokal historik sakn
         live: false,
         authRequired: false,
         loading: false,
-        error: 'Ingen lokal historik hittades i valt mailboxscope ännu. Livekön är fortsatt offline.',
+        error:
+          'Ingen lokal historik hittades i valt mailboxscope ännu. Livekön är fortsatt offline.',
         offlineWorkingSetMeta:
           'Offline historikläge. Ingen lokal historik hittades i valt mailboxscope ännu.',
         activeLaneId: 'all',
@@ -1351,18 +1514,36 @@ test('renderQueueHistorySection visar arlig offline-meta nar lokal historik sakn
 
   assert.equal(queueHistoryPanel.hidden, false);
   assert.equal(queueTitle.textContent, 'Arbetslista (0)');
-  assert.match(queueHistoryList.innerHTML, /Ingen lokal historik hittades i valt mailboxscope ännu\./);
+  assert.match(
+    queueHistoryList.innerHTML,
+    /Ingen lokal historik hittades i valt mailboxscope ännu\./
+  );
   assert.doesNotMatch(queueHistoryList.innerHTML, /Livekön kunde inte läsas just nu/i);
 });
 
 test('renderQueueHistorySection kan inte återvisa legacy queue-content när unified queue-list är aktiv', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
-  const getQueueHistoryItemInitialsSource = extractFunctionSource(source, 'getQueueHistoryItemInitials');
-  const buildQueueHistoryCardMarkupSource = extractFunctionSource(source, 'buildQueueHistoryCardMarkup');
-  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(source, 'buildQueueInlineLaneHistoryItem');
-  const renderQueueInlineLaneListSource = extractFunctionSource(source, 'renderQueueInlineLaneList');
+  const getQueueHistoryItemInitialsSource = extractFunctionSource(
+    source,
+    'getQueueHistoryItemInitials'
+  );
+  const buildQueueHistoryCardMarkupSource = extractFunctionSource(
+    source,
+    'buildQueueHistoryCardMarkup'
+  );
+  const buildQueueInlineLaneHistoryItemSource = extractFunctionSource(
+    source,
+    'buildQueueInlineLaneHistoryItem'
+  );
+  const renderQueueInlineLaneListSource = extractFunctionSource(
+    source,
+    'renderQueueInlineLaneList'
+  );
   const renderQueueHistoryListSource = extractFunctionSource(source, 'renderQueueHistoryList');
-  const renderQueueHistorySectionSource = extractFunctionSource(source, 'renderQueueHistorySection');
+  const renderQueueHistorySectionSource = extractFunctionSource(
+    source,
+    'renderQueueHistorySection'
+  );
 
   const queueHistoryPanel = createElementStub();
   const queueHistoryToggle = createElementStub();

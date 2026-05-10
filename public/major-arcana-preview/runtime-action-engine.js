@@ -40,7 +40,10 @@
     }
 
     function openRuntimeStudio(mode = "reply", preferredThreadId = "", options = {}) {
-      const normalizedMode = String(mode || "").trim().toLowerCase() || "reply";
+      const normalizedMode =
+        String(mode || "")
+          .trim()
+          .toLowerCase() || "reply";
       const selectedThread = getSelectedRuntimeThread();
       const readOnly =
         normalizedMode !== "compose" &&
@@ -73,7 +76,7 @@
         setFeedback(
           noteFeedback,
           "error",
-          "Offline historik är läsläge. Öppna live-tråden för att skapa anteckningar."
+          "Offline historik är läsläge. Öppna den aktiva tråden för att skapa anteckningar."
         );
         return Promise.resolve(false);
       }
@@ -92,7 +95,7 @@
         setFeedback(
           scheduleFeedback,
           "error",
-          "Offline historik är läsläge. Öppna live-tråden för att schemalägga uppföljning."
+          "Offline historik är läsläge. Öppna den aktiva tråden för att schemalägga uppföljning."
         );
         return Promise.resolve(false);
       }
@@ -152,9 +155,7 @@
         }
         return Promise.resolve(
           handleRuntimeDeleteAction(
-            isQueueDeleteContext
-              ? "major-arcana-queue-delete"
-              : "major-arcana-focus-delete"
+            isQueueDeleteContext ? "major-arcana-queue-delete" : "major-arcana-focus-delete"
           )
         ).then(() => true);
       }
@@ -171,21 +172,13 @@
 
       if (action === "later_feed") {
         setAppView("later");
-        setAuxStatus(
-          laterStatus,
-          "Snoozade konversationer öppnades från arbetskön.",
-          "success"
-        );
+        setAuxStatus(laterStatus, "Snoozade konversationer öppnades från arbetskön.", "success");
         return Promise.resolve(true);
       }
 
       if (action === "sent_feed") {
         setAppView("sent");
-        setAuxStatus(
-          sentStatus,
-          "Skickade meddelanden öppnades från arbetskön.",
-          "success"
-        );
+        setAuxStatus(sentStatus, "Skickade meddelanden öppnades från arbetskön.", "success");
         return Promise.resolve(true);
       }
 

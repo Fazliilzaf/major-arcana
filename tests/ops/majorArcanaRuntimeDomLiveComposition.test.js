@@ -32,11 +32,7 @@ function extractFunctionSource(source, functionName) {
       break;
     }
   }
-  assert.notEqual(
-    bodyStart,
-    -1,
-    `Kunde inte hitta funktionskroppen för ${functionName}.`
-  );
+  assert.notEqual(bodyStart, -1, `Kunde inte hitta funktionskroppen för ${functionName}.`);
 
   let depth = 0;
   for (let index = bodyStart; index < source.length; index += 1) {
@@ -48,9 +44,7 @@ function extractFunctionSource(source, functionName) {
     }
   }
 
-  throw new Error(
-    `Kunde inte extrahera ${functionName} från runtime-dom-live-composition.js.`
-  );
+  throw new Error(`Kunde inte extrahera ${functionName} från runtime-dom-live-composition.js.`);
 }
 
 function createElementStub() {
@@ -76,10 +70,7 @@ function createElementStub() {
 
 test('bindWorkspaceInteractions kan bindas utan ReferenceError när queueHistoryList finns i domet', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
-  const createDomLiveCompositionSource = extractFunctionSource(
-    source,
-    'createDomLiveComposition'
-  );
+  const createDomLiveCompositionSource = extractFunctionSource(source, 'createDomLiveComposition');
 
   const createDomLiveComposition = new Function(
     `${createDomLiveCompositionSource}; return createDomLiveComposition;`
@@ -149,7 +140,14 @@ test('bindWorkspaceInteractions kan bindas utan ReferenceError när queueHistory
         return String(value).trim().toLowerCase();
       },
       runtimeConversationIdsMatch(left, right) {
-        return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+        return (
+          String(left || '')
+            .trim()
+            .toLowerCase() ===
+          String(right || '')
+            .trim()
+            .toLowerCase()
+        );
       },
       normalizeVisibleRuntimeScope() {
         return {};
@@ -318,10 +316,9 @@ test('runtime-dom-live-composition bär vidare customerIdentity genom live-threa
     ),
     'Förväntade att merged worklist threads bär samma envelope utan ny härledning.'
   );
-  assert.ok(
-    source.includes(
-      'const threads = carryRuntimeCustomerIdentity(\n          buildLiveThreads(mergedWorklistData, {\n            historyMessages: [],\n            historyEvents: [],\n          })'
-    ),
+  assert.match(
+    source,
+    /(?:const|let) threads = carryRuntimeCustomerIdentity\(\s*buildLiveThreads\(mergedWorklistData,\s*\{\s*historyMessages:\s*\[\],\s*historyEvents:\s*\[\],\s*\}\)/,
     'Förväntade att live-load utan historik också behåller identity-envelope om den redan finns i worklist payloaden.'
   );
 });
@@ -360,10 +357,20 @@ test('loadLiveRuntime väntar in admin-token innan runtime-status hämtas', () =
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
 
   const waitTokenIndex = source.indexOf('const adminToken = await waitForRuntimeAuthToken();');
-  const runtimeStatusIndex = source.indexOf('const status = await apiRequest("/api/v1/cco/runtime/status");');
+  const runtimeStatusIndex = source.indexOf(
+    'const status = await apiRequest("/api/v1/cco/runtime/status");'
+  );
 
-  assert.notEqual(waitTokenIndex, -1, 'loadLiveRuntime måste vänta in admin-token före runtime-status.');
-  assert.notEqual(runtimeStatusIndex, -1, 'Kunde inte hitta runtime-statusanropet i loadLiveRuntime.');
+  assert.notEqual(
+    waitTokenIndex,
+    -1,
+    'loadLiveRuntime måste vänta in admin-token före runtime-status.'
+  );
+  assert.notEqual(
+    runtimeStatusIndex,
+    -1,
+    'Kunde inte hitta runtime-statusanropet i loadLiveRuntime.'
+  );
   assert.ok(
     waitTokenIndex < runtimeStatusIndex,
     'Admin-token måste inväntas innan /api/v1/cco/runtime/status anropas.'
@@ -382,7 +389,10 @@ test('loadLiveRuntime väntar in admin-token innan runtime-status hämtas', () =
   assert.match(source, /requestedMailboxIds: runtimeMailboxIds,/);
   assert.match(source, /preferredThreadId: getRuntimeReentryThreadId\(\),/);
   assert.match(source, /resetHistoryOnChange: false,/);
-  assert.match(source, /clearRuntimeAuthRecoveryTimer\(\);[\s\S]*scheduleRuntimeAuthRecovery\(\{\s*requestedMailboxIds:\s*runtimeMailboxIds,\s*\}\);/);
+  assert.match(
+    source,
+    /clearRuntimeAuthRecoveryTimer\(\);[\s\S]*scheduleRuntimeAuthRecovery\(\{\s*requestedMailboxIds:\s*runtimeMailboxIds,\s*\}\);/
+  );
 });
 
 test('loadLiveRuntime sparar mailboxdiagnostik för loading, auth, offline, live och runtime error', () => {
@@ -753,7 +763,7 @@ test('runtime-dom-live-composition hanterar focusytans bilageactions via authad 
   assert.match(
     source,
     /function buildRuntimeMailAssetContentHref\(/,
-    'Förväntade en smal helper som bygger runtime-vägen för öppna\/ladda-ner-bilagor från fokusytan.'
+    'Förväntade en smal helper som bygger runtime-vägen för öppna/ladda-ner-bilagor från fokusytan.'
   );
   assert.match(
     source,
@@ -790,6 +800,6 @@ test('runtime-dom-live-composition bär selectedThreadTruth genom open-flow-diag
   assert.match(
     source,
     /selectedThreadTruthBefore,[\s\S]*selectedThreadTruthAfter:\s*summarizeSelectedRuntimeThreadTruthForDiagnostics\(\)/,
-    'Selection-eventet ska få before\/after-provenance så att vi kan se om open-flowet skiftar källa mellan runtime-, offline- och focus-spår.'
+    'Selection-eventet ska få before/after-provenance så att vi kan se om open-flowet skiftar källa mellan runtime-, offline- och focus-spår.'
   );
 });

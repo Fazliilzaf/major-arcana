@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const CONFIG_PATH = path.join(
   __dirname,
@@ -64,11 +57,11 @@ test('runtime-config låser Studio wave 1 till egzona och contact med egen kill 
   assert.match(
     source,
     /disableStorageKey:\s*"cco\.truthPrimaryStudio\.disabled"/,
-    'Förväntade en separat kill switch för truth-driven studio.'
+    'Förväntade en separat kill switch för sanningsstyrd svarstudio.'
   );
 });
 
-test('app.js håller separat studio truth-state och låser studio-state till truth-driven source mailbox', () => {
+test('app.js håller separat studio truth-state och låser studio-state till truth-driven källmejlkonto', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
 
   assert.match(
@@ -79,12 +72,12 @@ test('app.js håller separat studio truth-state och låser studio-state till tru
   assert.match(
     source,
     /function isTruthPrimaryStudioFeatureEnabled\(\)/,
-    'Förväntade en separat feature-gate för truth-driven studio.'
+    'Förväntade en separat feature-gate för sanningsstyrd svarstudio.'
   );
   assert.match(
     source,
     /function getTruthPrimaryStudioMailboxIds\(\{ mailboxIds = \[\] \} = \{\}\)/,
-    'Förväntade en separat mailbox-allowlist för truth-driven studio.'
+    'Förväntade en separat mailbox-allowlist för sanningsstyrd svarstudio.'
   );
   assert.match(
     source,
@@ -94,17 +87,17 @@ test('app.js håller separat studio truth-state och låser studio-state till tru
   assert.match(
     source,
     /function applyTruthPrimaryStudioState\(studioState,\s*thread = null\)/,
-    'Förväntade ett separat lås som applicerar truth-driven studio-state på reply-studion.'
+    'Förväntade ett separat lås som applicerar sanningsstyrd svarstudio-state på reply-studion.'
   );
   assert.match(
     source,
     /studioState\.selectedSignatureId = asText\([\s\S]*studioTruthState\.selectedSignatureId/,
-    'Förväntade att truth-driven studio låser signaturprofilen till source mailbox.'
+    'Förväntade att sanningsstyrd svarstudio låser signaturprofilen till källmejlkonto.'
   );
   assert.match(
     source,
     /studioState\.composeMailboxId = asText\([\s\S]*studioTruthState\.sourceMailboxId/,
-    'Förväntade att truth-driven studio låser composeMailboxId till source mailbox i wave 1.'
+    'Förväntade att sanningsstyrd svarstudio låser composeMailboxId till källmejlkonto i wave 1.'
   );
 });
 
@@ -135,7 +128,7 @@ test('app.js återställer vänsterspaltens AI-kontext med tre data-drivna kort'
   );
   assert.match(
     source,
-    /renderStudioContextAiList\(items\)[\s\S]*Ingen kontext ännu[\s\S]*Välj en live-tråd för att ladda svarsstudion/,
+    /renderStudioContextAiList\(items\)[\s\S]*Ingen kontext ännu[\s\S]*Välj en aktiv tråd för att ladda svarsstudion/,
     'Förväntade en tydlig tom-state om AI-kontexten saknar tråddata.'
   );
 });
@@ -188,15 +181,21 @@ test('app.js återställer svarsstudiots operativa vänsterspalt med källa, gö
     'Förväntade att vänsterspaltens operativa fokusblock återfår prioritetsfältet.'
   );
   assert.ok(
-    source.includes('const studioSourceLockLabel = document.querySelector("[data-studio-source-lock-label]");'),
+    source.includes(
+      'const studioSourceLockLabel = document.querySelector("[data-studio-source-lock-label]");'
+    ),
     'Förväntade att source lock bindes till ett dedikerat DOM-node i app.js.'
   );
   assert.ok(
-    source.includes('const studioSourceLockNote = document.querySelector("[data-studio-source-lock-note]");'),
+    source.includes(
+      'const studioSourceLockNote = document.querySelector("[data-studio-source-lock-note]");'
+    ),
     'Förväntade att source lock note bindes till ett dedikerat DOM-node i app.js.'
   );
 
-  const sourceLockIndex = htmlSource.indexOf('<article class="studio-card studio-card-source-lock">');
+  const sourceLockIndex = htmlSource.indexOf(
+    '<article class="studio-card studio-card-source-lock">'
+  );
   const actionIndex = htmlSource.indexOf('<article class="studio-card studio-card-action">');
   const focusIndex = htmlSource.indexOf('<article class="studio-card studio-card-focus">');
   const metricRowIndex = htmlSource.indexOf('<div class="studio-metric-row">');
@@ -205,10 +204,19 @@ test('app.js återställer svarsstudiots operativa vänsterspalt med källa, gö
   assert.ok(sourceLockIndex !== -1, 'Förväntade att källa-låset finns i vänsterspalten.');
   assert.ok(actionIndex !== -1, 'Förväntade att gör detta nu-blocket finns i vänsterspalten.');
   assert.ok(focusIndex !== -1, 'Förväntade att varför i fokus-blocket finns i vänsterspalten.');
-  assert.ok(metricRowIndex !== -1, 'Förväntade att risk- och engagemangsytan finns kvar i vänsterspalten.');
-  assert.ok(contextIndex !== -1, 'Förväntade att AI-kontexten finns kvar längre ned i vänsterspalten.');
   assert.ok(
-    sourceLockIndex < actionIndex && actionIndex < focusIndex && focusIndex < metricRowIndex && metricRowIndex < contextIndex,
+    metricRowIndex !== -1,
+    'Förväntade att risk- och engagemangsytan finns kvar i vänsterspalten.'
+  );
+  assert.ok(
+    contextIndex !== -1,
+    'Förväntade att AI-kontexten finns kvar längre ned i vänsterspalten.'
+  );
+  assert.ok(
+    sourceLockIndex < actionIndex &&
+      actionIndex < focusIndex &&
+      focusIndex < metricRowIndex &&
+      metricRowIndex < contextIndex,
     'Förväntade att Svarsstudiots vänsterspalt behåller den operativa blockordningen före AI-kontexten.'
   );
 });
@@ -226,7 +234,7 @@ test('styles.css placerar svarsstudions contextblock direkt under risk och engag
   );
 });
 
-test('runtime-dom-live-composition håller separat studio runtime-state och blockerar sender-switch i truth-driven studio', () => {
+test('runtime-dom-live-composition håller separat studio runtime-state och blockerar sender-switch i sanningsstyrd svarstudio', () => {
   const source = fs.readFileSync(DOM_LIVE_COMPOSITION_PATH, 'utf8');
 
   assert.match(
@@ -241,43 +249,43 @@ test('runtime-dom-live-composition håller separat studio runtime-state och bloc
   );
   assert.match(
     source,
-    /Truth-driven studio låser källmailbox och signatur till/,
-    'Förväntade att senderväxling blockeras med tydlig provenancecopy i truth-driven studio.'
+    /Sanningsstyrd svarstudio låser källmejlkonto och signatur till/,
+    'Förväntade att senderväxling blockeras med tydlig provenancecopy i sanningsstyrd svarstudio.'
   );
   assert.match(
     source,
-    /Truth-driven studio låser signaturen till/,
-    'Förväntade att klickbara signaturval också blockeras i truth-driven studio.'
+    /Sanningsstyrd svarstudio låser signaturen till/,
+    'Förväntade att klickbara signaturval också blockeras i sanningsstyrd svarstudio.'
   );
 });
 
-test('overlay-renderern visar truth-driven studio-proveniens och låser sender-kontroller utan att låsa hela utkastytan', () => {
+test('overlay-renderern visar sanningsstyrd svarstudio-proveniens och låser sender-kontroller utan att låsa hela utkastytan', () => {
   const source = fs.readFileSync(OVERLAY_RENDERERS_PATH, 'utf8');
 
   assert.match(
     source,
     /const isTruthDrivenStudio =[\s\S]*studioTruthState\?\.truthDriven === true;/,
-    'Förväntade att overlay-renderern känner igen truth-driven studio som eget läge.'
+    'Förväntade att overlay-renderern känner igen sanningsstyrd svarstudio som eget läge.'
   );
   assert.match(
     source,
     /studioShell\.dataset\.truthPrimary = isTruthDrivenStudio \? "true" : "false";/,
-    'Förväntade ett explicit data-attribut för truth-driven studio i runtime.'
+    'Förväntade ett explicit data-attribut för sanningsstyrd svarstudio i runtime.'
   );
   assert.match(
     source,
     /studioShell\.dataset\.replyContextLocked = isTruthDrivenStudio \? "true" : "false";/,
-    'Förväntade ett explicit runtime-attribut när reply-context är låst.'
+    'Förväntade ett explicit runtime-attribut när svarskontext är låst.'
   );
   assert.match(
     source,
-    /reply-context låst/i,
-    'Förväntade tydlig provenancecopy för låst reply-context i studion.'
+    /svarskontext låst/i,
+    'Förväntade tydlig provenancecopy för låst svarskontext i svarsstudion.'
   );
   assert.match(
     source,
     /Truth guardrail aktiv/,
-    'Förväntade att studion visar en guardrail-pill när truth-driven studio är aktiv.'
+    'Förväntade att studion visar en guardrail-pill när sanningsstyrd svarstudio är aktiv.'
   );
   assert.match(
     source,
@@ -287,11 +295,11 @@ test('overlay-renderern visar truth-driven studio-proveniens och låser sender-k
   assert.match(
     source,
     /studioComposeFromSelect\.disabled =[\s\S]*isTruthDrivenStudio;/,
-    'Förväntade att From-väljaren låses i truth-driven studio.'
+    'Förväntade att From-väljaren låses i sanningsstyrd svarstudio.'
   );
 });
 
-test('async send-pathen skickar truth-driven studio med låst mailbox, wave-label och reply-context-guardrail', () => {
+test('async send-pathen skickar sanningsstyrd svarstudio med låst mejlkonto, wave-label och reply-context-guardrail', () => {
   const source = fs.readFileSync(ASYNC_PATH, 'utf8');
 
   assert.match(
@@ -301,23 +309,23 @@ test('async send-pathen skickar truth-driven studio med låst mailbox, wave-labe
   );
   assert.match(
     source,
-    /Truth-driven studio låser signatur och source mailbox till/,
+    /Sanningsstyrd svarstudio låser signatur och källmejlkonto till/,
     'Förväntade en hård guardrail om senderidentiteten försöker glida i wave 1.'
   );
   assert.match(
     source,
     /mailboxId:\s*isComposeMode[\s\S]*studioTruthState\.sourceMailboxId \|\| thread\.mailboxAddress/,
-    'Förväntade att reply-send låser mailboxId till truth-driven source mailbox i wave 1.'
+    'Förväntade att reply-send låser mailboxId till truth-driven källmejlkonto i wave 1.'
   );
   assert.match(
     source,
     /sourceMailboxId:\s*isComposeMode[\s\S]*studioTruthState\.sourceMailboxId \|\| thread\.mailboxAddress/,
-    'Förväntade att sourceMailboxId följer samma låsta truth-mailbox.'
+    'Förväntade att sourceMailboxId följer samma låsta sanningsmejlkonto.'
   );
   assert.match(
     source,
     /truthPrimaryStudio:\s*studioTruthState\?\.truthDriven === true,/,
-    'Förväntade att send-pathen märker ut truth-driven studio i payloaden.'
+    'Förväntade att send-pathen märker ut sanningsstyrd svarstudio i payloaden.'
   );
   assert.match(
     source,
@@ -326,7 +334,7 @@ test('async send-pathen skickar truth-driven studio med låst mailbox, wave-labe
   );
   assert.match(
     source,
-    /Truth-driven studio skickade svar från/,
+    /Sanningsstyrd svarstudio skickade svar från/,
     'Förväntade tydlig successcopy när wave-1-studion faktiskt skickar i truth-driven läge.'
   );
 });
