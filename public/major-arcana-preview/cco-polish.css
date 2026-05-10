@@ -1538,6 +1538,51 @@
   }
 
   /* ============================================================
+     Vellum Triage polish — matcha canvas-mockup (2026-05-11)
+     ------------------------------------------------------------
+     Action-ikon-färger + storlek matchar mockupens spec exakt:
+     lila alarm, amber timer, moss kalender/check, crimson trash.
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    background: #FFFAF0;
+    border-color: #ECDDC4;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"] {
+    color: #7E5BD9;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"] {
+    color: #C77D2A;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"],
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"] {
+    color: #4F8A55;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"] {
+    color: #B43A3A;
+  }
+  /* Status-rad (warm-why) färgmättning enligt mockup */
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"] .warm-why-icon {
+    color: #C77D2A;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] .warm-why-icon {
+    color: #1F66A8;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"] .warm-why-icon {
+    color: #B43A3A;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"] .warm-why-icon {
+    color: #4F8A55;
+  }
+
+  /* ============================================================
      Konsistent thread-card-proportioner (2026-05-11)
      ------------------------------------------------------------
      Spec från användarens mockup: 88–110px höjd, 16px horisontell
