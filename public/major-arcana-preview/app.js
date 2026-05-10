@@ -21850,7 +21850,7 @@
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
       return {
         label: "Nästa: stäng ärendet efter kontroll",
-        meta: "Verifiera audit och kundsvar innan status sätts till stängd.",
+        meta: "Verifiera intern logg och kundsvar innan status sätts till stängd.",
         action: "set_status:closed",
         tone: "ready",
       };
@@ -22301,7 +22301,7 @@
         <button class="booking-case-list-main" type="button" data-booking-case-id="${escapeHtml(caseId)}">
           <strong>${escapeHtml(asText(bookingCase.customerName || bookingCase.customerEmail, "Bokningskund"))}</strong>
           <span>${escapeHtml(formatBookingStatus(bookingCase.status))} · ${slotCount} tider · ${escapeHtml(formatBookingEventTime(bookingCase.updatedAt || latestEvent?.createdAt))}</span>
-          <p>${escapeHtml(latestEvent?.label || bookingCase.requestedTreatment || "Bokningsärende")}</p>
+          <p>${escapeHtml(formatBookingVisibleLogText(latestEvent?.label || bookingCase.requestedTreatment, "Bokningsärende"))}</p>
           <span class="booking-case-signal-row">
             <small class="booking-case-blocker" data-tone="${escapeHtml(blockerTone)}">${escapeHtml(blockerLabel)} · ${escapeHtml(nextActionLabel)}</small>
             <small class="booking-case-audit-state" data-tone="${escapeHtml(auditExportState.tone)}">${escapeHtml(auditExportState.label)}</small>
@@ -22560,7 +22560,7 @@
       : "Äldre data saknar backend-blocker";
     const blockerAuditEvent = getBookingBlockerAuditEvent(readout);
     const blockerAudit = blockerAuditEvent
-      ? `Logg: ${blockerAuditEvent.label || blockerAuditEvent.type} · ${formatBookingEventTime(
+      ? `Logg: ${formatBookingVisibleLogText(blockerAuditEvent.label || blockerAuditEvent.type)} · ${formatBookingEventTime(
           blockerAuditEvent.createdAt
         )}`
       : "Logg: ingen stödjande händelse ännu";
@@ -22613,7 +22613,7 @@
           ? `${statusTransition.previous} → ${statusTransition.next}`
           : formatBookingStatus(readout.status),
         meta: statusEvent
-          ? `${statusEvent.label || "Status ändrad"} · ${formatBookingEventTime(statusEvent.createdAt)}`
+          ? `${formatBookingVisibleLogText(statusEvent.label, "Status ändrad")} · ${formatBookingEventTime(statusEvent.createdAt)}`
           : "Ingen statusrörelse loggad ännu",
         badge: customerWait.label,
         badgeMeta: customerWait.meta,
@@ -22628,7 +22628,7 @@
       {
         label: "Senast ändrat",
         value: latestTime ? formatBookingEventTime(latestTime) : "Nyss",
-        meta: latestEvent?.label || "Bokningsärendet är öppet för operatörsval",
+        meta: formatBookingVisibleLogText(latestEvent?.label, "Bokningsärendet är öppet för operatörsval"),
         tone: "latest",
       },
     ];
@@ -22958,7 +22958,7 @@
       latestEvent
         ? {
             label: "Senast",
-            value: `${latestEvent.label || latestEvent.type} · ${formatBookingEventTime(latestEvent.createdAt)}`,
+            value: `${formatBookingVisibleLogText(latestEvent.label || latestEvent.type)} · ${formatBookingEventTime(latestEvent.createdAt)}`,
             action: "filter_event",
             filter: normalizeKey(latestEvent.type),
           }
@@ -22990,7 +22990,7 @@
       asText(followUpMetadata.scheduledDate || followUpMetadata.scheduledTime)
         ? `Schemalagd: ${[followUpMetadata.scheduledDate, followUpMetadata.scheduledTime].filter(Boolean).join(" ")}`
         : "",
-      latestEvent ? `Senast: ${latestEvent.label || latestEvent.type} · ${formatBookingEventTime(latestEvent.createdAt)}` : "",
+      latestEvent ? `Senast: ${formatBookingVisibleLogText(latestEvent.label || latestEvent.type)} · ${formatBookingEventTime(latestEvent.createdAt)}` : "",
     ].filter(Boolean).join("\n");
   }
 
@@ -22998,7 +22998,7 @@
     const latestEvent = asArray(readout.allEvents || readout.events).at(-1) || null;
     return [
       `Bokningslogg - ${asText(thread?.customerName, "Bokningskund")}`,
-      `Senaste händelse: ${latestEvent ? `${latestEvent.label || latestEvent.type} · ${formatBookingEventTime(latestEvent.createdAt)}` : "ingen"}`,
+      `Senaste händelse: ${latestEvent ? `${formatBookingVisibleLogText(latestEvent.label || latestEvent.type)} · ${formatBookingEventTime(latestEvent.createdAt)}` : "ingen"}`,
       ...buildBookingStructuredAuditLines(thread, readout),
     ].join("\n");
   }
@@ -23029,7 +23029,21 @@
   function getBookingEventFilterLabel(eventType = "", readout = {}) {
     const normalized = normalizeKey(eventType);
     const event = getLatestBookingEvent(readout, [normalized]);
-    return asText(event?.label || humanizeCode(normalized, "audit-event"));
+    return formatBookingVisibleLogText(event?.label || humanizeCode(normalized, "logg-händelse"));
+  }
+
+  function formatBookingVisibleLogText(value = "", fallback = "") {
+    const text = asText(value, fallback);
+    if (!text) return "";
+    return text
+      .replace(/\bAudit\b/g, "Logg")
+      .replace(/\baudit\b/g, "logg")
+      .replace(/\bHandoff\b/g, "Överlämning")
+      .replace(/\bhandoff\b/g, "överlämning")
+      .replace(/\bSlots\b/g, "Tider")
+      .replace(/\bslots\b/g, "tider")
+      .replace(/\bSlot\b/g, "Tid")
+      .replace(/\bslot\b/g, "tid");
   }
 
   function getBookingEventTypeChip(eventType = "") {
@@ -23184,8 +23198,8 @@
       : "";
     bookingDom.eventList.innerHTML = filterHeader + events
       .map((event) => {
-        const label = asText(event.label || event.detail, "Bokningshändelse");
-        const detail = asText(event.detail || event.type);
+        const label = formatBookingVisibleLogText(event.label || event.detail, "Bokningshändelse");
+        const detail = formatBookingVisibleLogText(event.detail || event.type);
         const actor = asText(event.actorName || event.actorUserId);
         const meta = [formatBookingEventTime(event.createdAt), actor].filter(Boolean).join(" · ");
         const chip = getBookingEventTypeChip(event.type);
@@ -23275,10 +23289,10 @@
         <span>Service-id</span>
         <input class="booking-slot-input" type="text" data-booking-slot-srvids placeholder="28232" />
       </label>
-      <button class="booking-action booking-action-secondary" type="button" data-booking-action="load_ref_data">Hämta val</button>
+      <button class="booking-action booking-action-secondary" type="button" data-booking-action="load_ref_data">Hämta externa tider</button>
       <button class="booking-action booking-action-secondary" type="button" data-booking-action="fetch_slots">Hämta tider</button>
     </div>
-    <p class="booking-ref-status" data-booking-ref-status>Hämta externa val eller skriv id manuellt.</p>`;
+    <p class="booking-ref-status" data-booking-ref-status>Hämta externa tider eller skriv id manuellt.</p>`;
   }
 
   function renderBookingRefSelect(selectNode, items = [], placeholder = "Manuell") {
@@ -23320,7 +23334,7 @@
       bookingDom.refStatus.dataset.tone = "success";
       return;
     }
-    bookingDom.refStatus.textContent = "Hämta externa val eller skriv id manuellt.";
+    bookingDom.refStatus.textContent = "Hämta externa tider eller skriv id manuellt.";
     bookingDom.refStatus.dataset.tone = "";
   }
 
@@ -23896,12 +23910,12 @@
       setFeedback(
         getBookingDom().feedback,
         "success",
-        `Externa val hämtade: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
+        `Extern tidkälla: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar hämtade.`
       );
     } catch (error) {
       state.booking.refDataError = formatBookingOperatorError(
         error,
-        "Externa val kunde inte hämtas."
+        "Extern tidkälla kunde inte hämtas."
       );
       setFeedback(getBookingDom().feedback, "error", state.booking.refDataError);
     } finally {

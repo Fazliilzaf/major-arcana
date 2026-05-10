@@ -15155,6 +15155,123 @@ button.booking-handoff-card-blocker:focus-visible {
   .preview-canvas[data-mobile-workspace-view="focus"] .focus-conversation {
     max-height: 108px;
   }
+
+  .preview-canvas.is-studio-open,
+  .preview-canvas.is-studio-open .preview-workspace {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .preview-canvas.is-studio-open .cco-followup-row,
+  .preview-canvas.is-studio-open .focus-action-row,
+  .preview-canvas.is-studio-open .bulk-action-bar,
+  .preview-canvas.is-studio-open .bulk-count,
+  .preview-canvas.is-studio-open .bulk-btn {
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .studio-shell {
+    top: 12px;
+    right: 12px;
+    bottom: 0;
+    left: 12px;
+  }
+
+  .studio-surface {
+    padding: 10px;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .studio-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-inline: 2px;
+  }
+
+  .studio-toolbar-main {
+    flex: 1 1 230px;
+  }
+
+  .studio-toolbar-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .studio-layout,
+  .studio-shell[data-mode="compose"] .studio-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .studio-layout::before {
+    display: none;
+  }
+
+  .studio-sidebar,
+  .studio-main-panel {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    padding-inline: 2px;
+  }
+
+  .studio-sidebar {
+    max-height: 230px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(195, 183, 175, 0.48);
+  }
+
+  .studio-editor-card,
+  .studio-editor-body,
+  .studio-editor-textarea {
+    min-width: 0;
+  }
+
+  .studio-editor-top {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "recipient"
+      "fields"
+      "tools";
+  }
+
+  .studio-editor-tools {
+    justify-self: start;
+  }
+
+  .studio-shell:not([data-mode="compose"]) .studio-compose-fields,
+  .studio-shell:not([data-mode="compose"]) .studio-compose-field[data-studio-compose-role="from"] {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio-editor-body {
+    padding: 10px;
+  }
+
+  .studio-editor-textarea {
+    min-height: 220px;
+  }
+
+  .studio-primary-actions {
+    gap: 8px;
+    padding-top: 10px;
+  }
+
+  .studio-send-button {
+    flex: 1 1 150px;
+  }
+
+  .studio-secondary-actions {
+    flex: 1 1 100%;
+  }
 }
 
 @media (max-width: 430px) {

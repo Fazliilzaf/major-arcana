@@ -16,6 +16,11 @@ const PREVIEW_FILES = [
   path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'demo-fixtures-data.js'),
   path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-shims.js'),
 ];
+const BOOKING_VISIBLE_FILES = [
+  path.join(ROOT, 'public', 'major-arcana-preview', 'index.html'),
+  path.join(ROOT, 'public', 'major-arcana-preview', 'app.js'),
+  path.join(ROOT, 'public', 'major-arcana-preview', 'app.bundle.min.js'),
+];
 
 const REQUIRED_TERMS = [
   'Svarstudio',
@@ -26,6 +31,8 @@ const REQUIRED_TERMS = [
   'Mejlsanning',
   'Aktiv tråd',
   'Extern kalender',
+  'Logg',
+  'Överlämning',
 ];
 
 const FORBIDDEN_VISIBLE_TERMS = [
@@ -41,6 +48,32 @@ const FORBIDDEN_VISIBLE_TERMS = [
   'Reply-context',
   'Öppna readout',
   'Öppna full readout',
+];
+const FORBIDDEN_BOOKING_VISIBLE_TERMS = [
+  'Cliento-val',
+  'Cliento-slots',
+  'Hämta Cliento',
+  'Hämtar Cliento',
+  'Hämta val',
+  'Hämta externa val',
+  'Hämta slots',
+  'Inga live-slots',
+  'Infoga i Studio',
+  'Kopiera handoff',
+  'Kopiera audit',
+  'Kopiera full audit',
+  'Audit kopierad',
+  'Audit behövs',
+  'Audit-kö klar',
+  'Bokningshandoff',
+  'Studio och handoff',
+  'Extern kalender-slot',
+  'Extern kalender-slots',
+  'lediga slots',
+  'Slot togs',
+  'audit och kundsvar',
+  'Ingen direkt Cliento',
+  'Väntar på kund/Cliento',
 ];
 
 test('CCO-ordlistan låser godkända operatörstermer för boknings- och mailytan', () => {
@@ -74,4 +107,24 @@ test('major-arcana-preview läcker inte gamla tekniska operatörslabels', () => 
   assert.match(combinedSource, /Fokuspass/, 'Previewn ska använda Fokuspass som synlig term.');
   assert.match(combinedSource, /Mejlkonto/, 'Previewn ska använda Mejlkonto som synlig term.');
   assert.match(combinedSource, /Mejlurval/, 'Previewn ska använda Mejlurval som synlig term.');
+});
+
+test('bokningsytans synliga copy använder CCO-termer före integrations- och teknikord', () => {
+  const combinedSource = BOOKING_VISIBLE_FILES.map((filePath) =>
+    fs.readFileSync(filePath, 'utf8')
+  ).join('\n');
+
+  for (const term of FORBIDDEN_BOOKING_VISIBLE_TERMS) {
+    assert.doesNotMatch(
+      combinedSource,
+      new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `Bokningsytan ska inte visa den gamla tekniska termen "${term}".`
+    );
+  }
+
+  assert.match(combinedSource, /Infoga i Svarstudio/, 'Bokningsytan ska säga Svarstudio.');
+  assert.match(combinedSource, /Kopiera överlämning/, 'Bokningsytan ska säga överlämning.');
+  assert.match(combinedSource, /Kopiera logg/, 'Bokningsytan ska säga logg.');
+  assert.match(combinedSource, /Hämta externa tider/, 'Bokningsytan ska säga externa tider.');
+  assert.match(combinedSource, /Extern tidkälla/, 'Bokningsytan ska säga Extern tidkälla.');
 });
