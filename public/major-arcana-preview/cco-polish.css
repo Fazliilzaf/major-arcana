@@ -1538,23 +1538,40 @@
   }
 
   /* ============================================================
-     Konsistent thread-card-höjd (2026-05-10)
+     Konsistent thread-card-höjd: trunka preview (2026-05-10)
      ------------------------------------------------------------
-     Kort med preview = 128px, utan = 88px gjorde listan visuellt
-     orytmisk. min-height ger samma minimum, flex centrerar innehåll
-     vertikalt när preview saknas.
+     Mål: ALLA kort lika kompakta som det utan preview (~88px).
+     Lösning: trunka preview-text till 1 rad med ellipsis (Gmail/
+     Outlook-stil). Full text bevarad i title-attribut för hover.
+     Inget innehåll elimineras — bara visningen klipps med "...".
      ============================================================ */
   .thread-card.unified-queue-card.warm-row {
-    min-height: 128px;
+    min-height: 88px;
+    max-height: 100px;
   }
-  .thread-card.unified-queue-card.warm-row .warm-mid {
-    align-items: stretch;
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
-  .thread-card.unified-queue-card.warm-row .warm-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
+  /* Subject också på 1 rad så lång subject inte breddar kort onödigt */
+  .thread-card.unified-queue-card.warm-row .warm-subject,
+  .thread-card.unified-queue-card.warm-row .signal-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  /* Why-pill: alltid en rad, ingen wrapping */
+  .thread-card.unified-queue-card.warm-row .warm-why,
+  .thread-card.unified-queue-card.warm-row .why-reason {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ============================================================
