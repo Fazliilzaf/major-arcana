@@ -90,6 +90,8 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       assert.equal(offerPayload.bookingCase.events.at(-1).type, 'offer_draft_inserted');
       assert.match(offerPayload.draft, /Här är tiderna jag kan erbjuda/);
       assert.match(offerPayload.draft, /Dr\. Eriksson/);
+      assert.match(offerPayload.draft, /fre 8 maj kl\. \d{2}:\d{2}/);
+      assert.doesNotMatch(offerPayload.draft, /2026-05-08T09:30:00\.000Z/);
       assert.doesNotMatch(offerPayload.draft, /cliento\.com/i);
       assert.doesNotMatch(offerPayload.draft, /boka själv/i);
 
