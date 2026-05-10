@@ -1538,28 +1538,6 @@
   }
 
   /* ============================================================
-     Konsistent thread-card-höjd (2026-05-10)
-     ------------------------------------------------------------
-     Alla kort ska ha samma min-höjd så listan blir visuellt rytmisk
-     oavsett om preview-text/why-pill finns eller inte.
-     ============================================================ */
-  .thread-card.warm-row,
-  .thread-card.queue-history-item {
-    min-height: 128px;
-  }
-  /* Inom kortet: låt warm-content fyllas med flex så innehållet
-     centreras vertikalt om preview saknas */
-  .thread-card.warm-row .warm-mid {
-    align-items: stretch;
-  }
-  .thread-card.warm-row .warm-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-  }
-
-  /* ============================================================
      Snooze (app/snooze.js, 2026-05-10)
      ============================================================ */
   .thread-card.is-snoozed {
