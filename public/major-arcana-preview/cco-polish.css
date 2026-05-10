@@ -1538,6 +1538,26 @@
   }
 
   /* ============================================================
+     Konsistent thread-card-höjd (2026-05-10)
+     ------------------------------------------------------------
+     Kort med preview = 128px, utan = 88px gjorde listan visuellt
+     orytmisk. min-height ger samma minimum, flex centrerar innehåll
+     vertikalt när preview saknas.
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row {
+    min-height: 128px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    align-items: stretch;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  /* ============================================================
      Snooze (app/snooze.js, 2026-05-10)
      ============================================================ */
   .thread-card.is-snoozed {
