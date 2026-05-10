@@ -96,3 +96,56 @@ bootstrap (renderers, event-handlers).
 
 App.js är ~26945 rader. Inga utilities flyttade — humanizeCode och
 asText/asArray/etc. lever vidare i app.js där de hoistas korrekt.
+
+---
+
+## 2026-05-10 — formell DEFERRAL av Steg 2/3/5
+
+Efter tre rollback (försök 1, försök 2, samt Steg 2+3-försök i #58)
+markeras modulrefactor av app.js-monoliten som **DEFERRED tills annan
+strategi finns**.
+
+### Varför vi stannar
+
+1. **Tre olika försök, samma rotorsak:** hoisting-asymmetri mellan
+   `function`-deklarationer (hoistas) och `const = window.__X.Y`
+   (initieras i ordning). Top-level IIFE-bootstrap-kod refererar
+   till utilities innan const-init.
+2. **Coverage-regression:** 76% → 51.6% efter försök 1. Mätbart
+   visuellt fel utan klar diagnostik per regel.
+3. **Kostnad/nytta:** app.js är 21k+ rader men FUNGERAR. Modulrefactor
+   är arkitekturell skuld, inte funktionell skuld. Ingen användare
+   ser den. Skadan att försöka och misslyckas är högre än värdet.
+
+### Vad som krävs för att fortsätta
+
+**Inte fler manuella attempts.** Behöver fundamentalt ny tooling:
+
+a) **esbuild/rollup-pipeline** — bundla moduler till EN fil i build-tid.
+   IIFE-scope bevaras, hoisting fungerar som monolit. Kostnad: introducera
+   build-step (idag är det rena statiska filer som serveras direkt).
+
+b) **AST-transform** — använd babel/jscodeshift att automatiskt
+   identifiera dependency-graf och flytta utilities till en initial
+   "utils-block" överst i IIFE som körs FÖRE alla `const X = createY()`.
+   Kostnad: skriva transformer + verifiera per body-state.
+
+c) **Stegvis micro-extraktion av leaf-funktioner** — bara funktioner
+   som BEVISLIGT körs efter bootstrap (event-handlers, click-handlers).
+   Coverage-runner mäter exakt vilka funktioner som triggas i bootstrap-
+   tid vs senare. Risk: små batchar (5-10 funktioner) ger lite värde
+   per insats.
+
+### Rekommendation
+
+**Prioritera inte modulrefactor utan bundler.** App.js fungerar. Ny
+features bygger vi i `app/`-mappen som separata moduler. När en bundler
+introduceras (för bundle-size-optimering, treeshaking osv), då kan vi
+parallellt göra en stor extraktion med esbuild som validerar.
+
+### Mätbart värde av att låta vara
+
+- Inga rollback-cyklar (~2h per försök)
+- Ingen risk för coverage-regression
+- Ingen blockering av feature-utveckling
+- Klar exit-kriterie dokumenterad ovan
