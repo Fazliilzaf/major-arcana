@@ -2190,140 +2190,6 @@ button {
   box-sizing: border-box;
 }
 
-.conversation-mail-document {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-.conversation-mail-section {
-  display: grid;
-  gap: 3px;
-  padding: 6px 0 0;
-  border: 0;
-  border-top: 1px solid rgba(214, 203, 194, 0.64);
-  background: transparent;
-  box-shadow: none;
-}
-
-.conversation-mail-section-label,
-.conversation-mail-section-summary {
-  text-transform: uppercase;
-}
-
-.conversation-mail-section-copy {
-  white-space: pre-line;
-}
-
-.conversation-mail-section-copy-rich {
-  white-space: normal;
-}
-
-.conversation-mail-section-system,
-.conversation-mail-section-signature,
-.conversation-mail-section-quoted,
-.conversation-mail-section-assets,
-.conversation-mail-section-assets-compact,
-.conversation-mail-asset-header,
-.conversation-mail-asset-list,
-.conversation-mail-asset-pill,
-.conversation-mail-asset-item,
-.conversation-mail-asset-state,
-.conversation-mail-asset-actions,
-.conversation-mail-asset-action,
-.conversation-mail-asset-side,
-.conversation-header-assets {
-  min-width: 0;
-}
-
-.conversation-mail-section-system {
-  min-width: 0;
-}
-
-.conversation-mail-section-signature {
-  min-width: 0;
-}
-
-.conversation-mail-section-quoted {
-  min-width: 0;
-}
-
-.conversation-mail-section-assets {
-  min-width: 0;
-}
-
-.conversation-mail-section-assets-compact {
-  min-width: 0;
-}
-
-.conversation-mail-asset-header {
-  min-width: 0;
-}
-
-.conversation-mail-asset-list {
-  min-width: 0;
-}
-
-.conversation-mail-asset-pill {
-  min-width: 0;
-}
-
-.conversation-mail-asset-item {
-  min-width: 0;
-}
-
-.conversation-mail-asset-state {
-  min-width: 0;
-}
-
-.conversation-mail-asset-actions {
-  min-width: 0;
-}
-
-.conversation-mail-asset-action {
-  min-width: 0;
-}
-
-.conversation-mail-asset-side {
-  min-width: 0;
-}
-
-.conversation-header-assets {
-  min-width: 0;
-}
-
-.conversation-header-assets-summary {
-  min-width: 0;
-}
-
-.conversation-header-asset-token {
-  min-width: 0;
-  border: 0;
-  background: transparent;
-}
-
-.conversation-header-asset-token-label {
-  min-width: 0;
-}
-
-.conversation-header-assets-popover {
-  min-width: 0;
-  position: static;
-  background: transparent;
-  box-shadow: none;
-}
-
-.conversation-header-assets[open] {
-  flex-basis: 100%;
-}
-
-.conversation-mail-asset-action {
-  min-width: 0;
-  text-decoration: underline;
-  background: transparent;
-}
-
 .conversation-mail-asset-item:first-child {
   border-top: 0;
 }
@@ -2337,122 +2203,6 @@ button {
   max-width: none;
   padding: 0;
   border-radius: 0;
-}
-
-.conversation-rich-compact .conversation-html-structured-block,
-.conversation-rich-compact table {
-  max-width: min(100%, 520px) !important;
-}
-
-.conversation-rich-tabular .conversation-html-structured-block,
-.conversation-rich-tabular table {
-  display: inline-table;
-  max-width: min(100%, 460px) !important;
-  table-layout: auto;
-  margin: 0 !important;
-}
-
-.conversation-rich-tabular tbody,
-.conversation-rich-tabular tr {
-  display: block;
-}
-
-.conversation-rich-tabular td:only-child,
-.conversation-rich-tabular th:only-child {
-  display: block;
-  width: auto !important;
-}
-
-.conversation-mail-body-rich img,
-.conversation-mail-body-rich picture {
-  max-width: min(220px, 100%);
-}
-
-.conversation-mail-document-primary .conversation-mail-body-rich img {
-  max-width: min(380px, 100%);
-}
-
-.conversation-mail-section-signature .conversation-mail-body-rich img {
-  max-width: min(220px, 100%);
-}
-
-.conversation-mail-body.conversation-rich-tabular {
-  overflow-x: auto;
-  padding: 0 0 2px;
-  border-radius: 0;
-}
-
-.conversation-mail-body.conversation-rich-tabular .conversation-html-structured-block,
-.conversation-mail-body.conversation-rich-tabular table {
-  display: table;
-  width: auto !important;
-  min-width: min(100%, 360px);
-  table-layout: auto;
-}
-
-.conversation-mail-body.conversation-rich-tabular tbody {
-  display: table-row-group;
-}
-
-.conversation-mail-body.conversation-rich-tabular tr {
-  display: table-row;
-}
-
-.conversation-mail-body.conversation-rich-tabular td,
-.conversation-mail-body.conversation-rich-tabular th {
-  display: table-cell;
-  width: auto !important;
-  padding-right: 10px !important;
-  vertical-align: top !important;
-}
-
-.conversation-header-asset-token-label {
-  font-size: 12px;
-  line-height: 14px;
-}
-
-.conversation-header-asset-token-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.conversation-header-asset-token-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.conversation-header-asset-token-count {
-  font-size: 15px;
-}
-
-.conversation-header-asset-token-neutral {
-  color: var(--accent-violet);
-}
-
-.conversation-header-asset-token-available {
-  color: var(--accent-cyan);
-}
-
-.conversation-header-asset-token-attention {
-  color: var(--accent-indigo);
-}
-
-.conversation-rich-identity .conversation-html-footer-fragment {
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.conversation-header-assets-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  min-width: 260px;
-  border: 1px solid rgba(214, 201, 191, 0.78);
-}
-
-.conversation-html-link-fallback {
-  display: inline-flex;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .focus-status-token,
@@ -2470,18 +2220,6 @@ button {
 }
 
 .focus-status-token-status {
-  min-width: 0;
-}
-
-.focus-status-token-waiting {
-  min-width: 0;
-}
-
-.focus-status-token-foundation {
-  min-width: 0;
-}
-
-.focus-status-token-lifecycle {
   min-width: 0;
 }
 
@@ -5484,10 +5222,6 @@ button {
   visibility: hidden;
 }
 
-.preview-canvas.is-truth-worklist-open .preview-workspace > .preview-shell {
-  visibility: hidden;
-}
-
 .preview-canvas.is-studio-open .preview-workspace {
   left: 0;
   right: 0;
@@ -7086,12 +6820,6 @@ button {
   justify-content: center;
 }
 
-.queue-scope-strip.is-compact .queue-filter-chip--segment-toggle {
-  width: 28px;
-  min-width: 28px;
-  min-height: 28px;
-}
-
 .queue-filter-chip--segment-toggle > span {
   justify-content: center;
   gap: 0;
@@ -7103,31 +6831,8 @@ button {
   height: 14px;
 }
 
-.queue-scope-strip.is-compact .collapsed-list {
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.queue-scope-strip.is-compact .collapsed-list .queue-filter-chip {
-  width: 28px;
-  min-width: 28px;
-  min-height: 28px;
-  justify-content: center;
-  justify-self: center;
-}
-
 .queue-scope-strip.is-compact .collapsed-list .queue-filter-chip::before {
   display: none;
-}
-
-.queue-scope-strip.is-compact .collapsed-list .queue-filter-chip > strong {
-  display: none;
-}
-
-.queue-scope-strip.is-compact .collapsed-list .queue-filter-chip > span {
-  font-size: 0;
-  justify-content: center;
 }
 
 .queue-bottom-control {
@@ -7268,30 +6973,6 @@ button {
 .queue-truth-view-guidance {
   display: grid;
   gap: 12px;
-}
-
-.truth-worklist-shell .queue-truth-view-row-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.truth-worklist-shell .queue-truth-view-row-head-trail {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-#truth-worklist-page-scope .queue-truth-view-row {
-  padding-block: 5px;
-  padding-inline-end: 18px;
-}
-
-#truth-worklist-page-scope .queue-truth-view-row-preview {
-  margin: 0;
 }
 
 .queue-truth-view-toggle:hover {
@@ -8022,134 +7703,6 @@ button {
   min-height: 118px;
 }
 
-.thread-story {
-  min-width: 0;
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 540;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-
-.thread-story-inline {
-  margin-top: 4px;
-}
-
-.thread-support-stack {
-  display: grid;
-  gap: 6px;
-  padding: 8px 10px 8px 0;
-  background: linear-gradient(180deg, rgba(255, 252, 249, 0.78) 0%, rgba(250, 244, 239, 0.34) 100%);
-  border-bottom: 1px solid rgba(221, 210, 202, 0.42);
-}
-
-.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-support-stack {
-  display: grid;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.thread-intelligence-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px 14px;
-}
-
-.thread-intelligence-item-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.thread-intelligence-item-icon .pill-icon {
-  width: 16px;
-  height: 16px;
-  color: currentColor;
-}
-
-.thread-intelligence-item-value {
-  color: currentColor;
-  font-size: 10px;
-}
-
-.queue-history-list[data-queue-list-mode="live"] > .thread-card .thread-intelligence-item-value {
-  font-size: 10.25px;
-  font-weight: 660;
-}
-
-.queue-history-item-meta--fullwidth > .queue-history-pill,
-.queue-history-operational-pill.queue-filter-chip {
-  flex: 0 0 auto;
-  width: auto;
-  max-width: max-content;
-}
-
-.thread-intelligence-item--mailbox {
-  color: #6a564a;
-}
-
-.thread-intelligence-item--what {
-  color: var(--accent-indigo);
-}
-
-.thread-intelligence-item--why {
-  color: var(--accent-magenta);
-}
-
-.thread-intelligence-item--next {
-  color: var(--accent-green);
-}
-
-.thread-card-identity {
-  padding-top: 1px;
-}
-
-.thread-card-head-copy {
-  display: grid;
-  grid-template-rows: auto auto;
-  padding-top: 1px;
-}
-
-.thread-heading-merged {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  min-height: 19px;
-}
-
-.thread-subject {
-  align-items: baseline;
-  min-height: 19px;
-}
-
-.thread-subject-primary {
-  font-size: 15px;
-  line-height: 19px;
-  font-weight: 700;
-}
-
-.thread-subject-context {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 620;
-}
-
-.thread-story-placeholder {
-  font-weight: 580;
-}
-
-.thread-unread-indicator {
-  margin-top: 5px;
-  background: #4d69d6;
-}
-
-.conversation-bubble-rich,
-.conversation-bubble-rich .conversation-document {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-wrap: anywhere;
-}
-
 .intel-card-chip::before {
   width: 2px;
   height: 11px;
@@ -8713,34 +8266,6 @@ button {
 
 .queue-history-operational-pill.queue-filter-chip:hover {
   transform: none;
-}
-
-.queue-history-pill--source {
-  color: var(--accent-violet);
-}
-
-.queue-history-pill--mailbox {
-  color: var(--accent-rose);
-}
-
-.queue-history-pill--direction {
-  color: var(--accent-cyan);
-}
-
-.queue-history-pill--queue {
-  color: var(--accent-amber);
-}
-
-.queue-history-operational-pill--what.queue-filter-chip {
-  color: var(--accent-indigo);
-}
-
-.queue-history-operational-pill--why.queue-filter-chip {
-  color: var(--accent-red);
-}
-
-.queue-history-operational-pill--next.queue-filter-chip {
-  color: var(--accent-green);
 }
 
 .queue-history-load-more {
@@ -10704,54 +10229,6 @@ button {
   margin-top: 0;
 }
 
-.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .card-body,
-.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .row-1,
-.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .row-1 {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .card-footer,
-.queue-history-list[data-queue-list-mode="history"] > .thread-card.unified-queue-card .card-footer {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  padding: 12px 20px;
-  flex-wrap: wrap;
-}
-
-.queue-history-list[data-queue-list-mode="live"] > .thread-card.unified-queue-card .mailbox-trail,
-.queue-history-list[data-queue-list-mode="history"]
-  > .thread-card.unified-queue-card
-  .mailbox-trail {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 11px 20px 13px;
-}
-
-.queue-history-list[data-queue-list-mode="history"]
-  > .thread-card.unified-queue-card
-  .thread-support-stack,
-.queue-history-list[data-queue-list-mode="history"]
-  > .thread-card.unified-queue-card
-  .thread-intelligence-row,
-.queue-history-list[data-queue-list-mode="history"]
-  > .thread-card.unified-queue-card
-  .thread-card-provenance,
-.queue-history-list[data-queue-list-mode="history"]
-  > .thread-card.unified-queue-card
-  .thread-card-head-secondary {
-  display: none !important;
-}
-
 .booking-operator-surface {
   margin-top: 24px;
   max-height: min(760px, calc(100vh - 168px));
@@ -10849,13 +10326,6 @@ button {
   color: #6a3d25;
   border-color: rgba(165, 92, 44, 0.28);
   background: rgba(255, 248, 238, 0.84);
-}
-
-.booking-health-line[data-tone="waiting"],
-.booking-next-action-line[data-tone="waiting"] {
-  color: #4f4033;
-  border-color: rgba(120, 105, 90, 0.2);
-  background: rgba(255, 255, 255, 0.82);
 }
 
 .booking-next-action-jump {
@@ -11066,16 +10536,6 @@ button {
   background: rgba(252, 248, 244, 0.9);
 }
 
-.booking-case-list-done {
-  border-color: rgba(65, 94, 54, 0.24);
-  background: rgba(243, 250, 238, 0.86);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.booking-case-list-done strong {
-  color: #415e36;
-}
-
 .booking-case-list-item {
   padding: 0;
 }
@@ -11104,20 +10564,6 @@ button {
   line-height: 1;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.booking-case-list-thread-muted {
-  display: inline-block;
-  cursor: default;
-  color: rgba(70, 60, 50, 0.55);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.booking-case-list-item.is-active {
-  border-color: rgba(91, 61, 43, 0.34);
-  box-shadow:
-    0 6px 14px rgba(35, 22, 15, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .booking-case-list-item strong,
@@ -11242,12 +10688,6 @@ button {
   height: 8px;
   border-radius: 999px;
   background: currentColor;
-}
-
-.booking-handoff-checklist li.is-done > span {
-  color: #f8fff4;
-  border-color: rgba(65, 94, 54, 0.32);
-  background: linear-gradient(180deg, rgba(65, 94, 54, 0.94), rgba(38, 64, 35, 0.98));
 }
 
 .booking-handoff-checklist strong {
@@ -11460,57 +10900,6 @@ button {
   display: none;
 }
 
-.booking-audit-preview-tool {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
-  color: rgba(70, 60, 50, 0.72);
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 650;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.booking-audit-preview-tool strong {
-  min-width: 22px;
-  min-height: 22px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(252, 248, 244, 0.9);
-  color: #4c4035;
-  font-size: 13px;
-  line-height: 1;
-}
-
-.booking-audit-preview-tool-primary {
-  color: #fff8f0;
-  border-color: rgba(55, 35, 24, 0.22);
-  background: linear-gradient(180deg, rgba(91, 61, 43, 0.94), rgba(55, 35, 24, 0.98));
-  box-shadow:
-    0 4px 10px rgba(45, 28, 18, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.14);
-}
-
-.booking-audit-preview-tool-status {
-  color: #65421f;
-  border-color: rgba(137, 91, 42, 0.22);
-  background: rgba(255, 248, 237, 0.84);
-}
-
-.booking-audit-preview-tool-followup {
-  color: #53613a;
-  border-color: rgba(83, 97, 58, 0.22);
-  background: rgba(247, 250, 240, 0.84);
-}
-
 .booking-audit-preview-tool:focus-visible {
   outline: 2px solid rgba(106, 61, 37, 0.42);
   outline-offset: 3px;
@@ -11637,52 +11026,10 @@ button.booking-handoff-card-blocker:focus-visible {
   white-space: nowrap;
 }
 
-.booking-handoff-badge-customer {
-  color: #61502f;
-  background: rgba(255, 252, 238, 0.86);
-  border-color: rgba(154, 122, 52, 0.2);
-}
-
 .booking-handoff-badge-operator {
   color: #6a3d25;
   background: rgba(255, 248, 238, 0.86);
   border-color: rgba(165, 92, 44, 0.22);
-}
-
-.booking-handoff-badge-attention {
-  color: #8b3b2e;
-  background: rgba(255, 244, 240, 0.86);
-  border-color: rgba(139, 59, 46, 0.22);
-}
-
-.booking-handoff-badge-external,
-.booking-handoff-badge-ready {
-  color: #34532d;
-  background: rgba(245, 251, 241, 0.86);
-  border-color: rgba(78, 112, 62, 0.22);
-}
-
-.booking-handoff-badge-closed {
-  color: rgba(70, 60, 50, 0.55);
-  background: rgba(252, 248, 244, 0.9);
-}
-
-.booking-handoff-inline-action {
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(102, 74, 50, 0.94), rgba(74, 48, 31, 0.98));
-  color: #fff8f0;
-  font-size: 13px;
-  line-height: 1;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow:
-    0 4px 10px rgba(45, 28, 18, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.14);
 }
 
 .booking-handoff-inline-action:focus-visible {
@@ -11781,50 +11128,6 @@ button.booking-handoff-card-blocker:focus-visible {
   overflow: auto;
 }
 
-.booking-live-slot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.booking-live-slot.is-selected {
-  color: #fff8f0;
-  background: linear-gradient(180deg, rgba(91, 61, 43, 0.94), rgba(55, 35, 24, 0.98));
-  box-shadow:
-    0 6px 14px rgba(35, 22, 15, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-.booking-live-slot.is-selected strong,
-.booking-live-slot.is-selected span {
-  color: inherit;
-}
-
-.booking-slot-select {
-  flex: 0 0 auto;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #4c4035;
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.booking-live-slot.is-selected .booking-slot-select {
-  color: #fff8f0;
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.booking-slot-error strong {
-  color: #8b3b2e;
-}
-
 .booking-slot-empty strong {
   color: rgba(70, 60, 50, 0.55);
 }
@@ -11906,28 +11209,6 @@ button.booking-handoff-card-blocker:focus-visible {
   min-width: 0;
 }
 
-.booking-event-filter-state {
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  align-items: center !important;
-  padding: 10px 12px;
-  border: 1px solid rgba(165, 92, 44, 0.2);
-  border-radius: 14px;
-  background: rgba(255, 248, 238, 0.86);
-}
-
-.booking-event-filter-state button {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #6a3d25;
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .booking-event-filter-state button:focus-visible {
   outline: 2px solid rgba(106, 61, 37, 0.42);
   outline-offset: 3px;
@@ -11985,37 +11266,6 @@ button.booking-handoff-card-blocker:focus-visible {
   white-space: nowrap;
 }
 
-.booking-event-chip-slots {
-  color: #6a3d25;
-  background: rgba(255, 248, 238, 0.86);
-  border-color: rgba(165, 92, 44, 0.22);
-}
-
-.booking-event-chip-studio {
-  color: #4a4f72;
-  background: rgba(244, 245, 252, 0.86);
-  border-color: rgba(80, 88, 142, 0.18);
-}
-
-.booking-event-chip-followup,
-.booking-event-chip-status {
-  color: #61502f;
-  background: rgba(255, 252, 238, 0.86);
-  border-color: rgba(154, 122, 52, 0.18);
-}
-
-.booking-event-chip-confirmed {
-  color: #34532d;
-  background: rgba(245, 251, 241, 0.86);
-  border-color: rgba(78, 112, 62, 0.22);
-}
-
-.booking-event-chip-attention {
-  color: #8b3b2e;
-  background: rgba(255, 244, 240, 0.86);
-  border-color: rgba(139, 59, 46, 0.2);
-}
-
 .booking-event-timeline span,
 .booking-event-timeline p {
   display: block;
@@ -12030,50 +11280,6 @@ button.booking-handoff-card-blocker:focus-visible {
 .booking-event-timeline p {
   color: #6c6259;
   line-height: 1.3;
-}
-
-.booking-event-structured-reason {
-  display: inline-flex !important;
-  width: fit-content;
-  max-width: 100%;
-  padding: 6px 10px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #4c4035 !important;
-  font-size: 13px !important;
-  line-height: 1.2 !important;
-  font-weight: 650 !important;
-}
-
-.booking-event-transition {
-  display: flex !important;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px !important;
-}
-
-.booking-event-transition span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  margin: 0;
-  padding: 0 8px;
-  border: 1px solid rgba(120, 105, 90, 0.16);
-  border-radius: 12px;
-  background: rgba(252, 248, 244, 0.9);
-  color: #4c4035;
-  font-size: 13px;
-  line-height: 1;
-  font-weight: 650;
-}
-
-.booking-event-transition b {
-  color: rgba(70, 60, 50, 0.55);
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 700;
 }
 
 .booking-event-empty {

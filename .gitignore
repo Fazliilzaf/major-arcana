@@ -8,3 +8,7 @@ data/
 mail-exports/
 *.swp
 *.swo
+
+# Nested separat repo — parallell "next"-version av CCO med egen .git/package.json.
+# Skapad 24 april 2026. Ignoreras från denna repo eftersom den ska köras self-contained.
+major-arcana-cco-next/
