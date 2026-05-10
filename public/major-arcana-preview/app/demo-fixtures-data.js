@@ -1,21 +1,22 @@
 /**
  * app/demo-fixtures-data.js — ren demo-data + customer-name-seed.
  *
- * Ersätter den FIXTURES-konstant som tidigare bodde i
- * runtime-demo-fixture-name-patch.js. Här finns BARA data + seedning till
- * P0-2-resolvern. Inga DOM-shims, inga MutationObservers, inga setIntervals.
+ * STATUS 2026-05-09: FIX12 + FIX14 shims ELIMINERADE. Den primära demo-
+ * datakällan ligger inbäddad i app.js state-init (rad ~2145-2285) som
+ * state.runtime.threads med worklistSource: "demo". Mock-worklist-API
+ * (app/mock-worklist-api.js) serverar /auth/me + /integrations/status med
+ * 200 OK i demo-mode → state.runtime.authRequired = false → focus-pane
+ * renderar normalt utan att behöva FIX12-overriden.
  *
- * FIX12 (focus-pane override) och FIX14 (card-injektor) bor i separata
- * shim-filer som BÅDA importerar denna fils FIXTURES via
- * window.__DemoFixtures.data:
- *   - app/demo-fixture-focus-shim.js  (FIX12)
- *   - app/demo-fixture-card-shim.js   (FIX14)
+ * Den här filen behålls för:
+ *   - Customer-name-seed: P0-2-resolvern (runtime-queue-renderers.js) kan
+ *     vid edge-cases behöva extra namn-mappning för demo-trådar
+ *   - window.__DemoFixtures.data: konsumerad av tools/coverage/verify-demo-fixtures.js
+ *     och kan användas av framtida features som vill ha demo-conversations
  *
- * Slutmålet är att eliminera båda shims genom att utöka
- * app/mock-worklist-api.js att returnera dessa fixtures som worklist-rows
- * + conversation-detail. När det är gjort kan både shim-filerna och denna
- * fils seed-funktion plockas bort — kvar blir bara ren demo-data
- * konsumerad av mock-API:t.
+ * FIXTURES-data är delvis duplicerad mot app.js state-init — det är medvetet
+ * för att hålla data isolerad från bootstrap-pathen och konsumerbar via
+ * window.__DemoFixtures.
  */
 (() => {
   'use strict';
