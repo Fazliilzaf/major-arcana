@@ -12,3 +12,7 @@ mail-exports/
 # Nested separat repo — parallell "next"-version av CCO med egen .git/package.json.
 # Skapad 24 april 2026. Ignoreras från denna repo eftersom den ska köras self-contained.
 major-arcana-cco-next/
+
+# Bundlade scripts: bundle.js (debug, ej committad) ignoreras, men
+# bundle.min.js committas så Render kan deploya utan extra build-step.
+public/major-arcana-preview/app.bundle.js
