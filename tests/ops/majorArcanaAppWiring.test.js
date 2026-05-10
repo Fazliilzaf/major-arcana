@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 const RUNTIME_ACTION_ENGINE_PATH = path.join(
   __dirname,
@@ -30,14 +23,7 @@ const RUNTIME_OVERLAY_RENDERERS_PATH = path.join(
   'runtime-overlay-renderers.js'
 );
 
-const INDEX_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'index.html'
-);
+const INDEX_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'index.html');
 
 const STYLES_PATH = path.join(
   __dirname,
@@ -176,7 +162,9 @@ test('compose-läget behåller studiovalen men döljer kundkontextspalten', () =
   );
 
   assert.ok(
-    stylesSource.includes('.studio-shell[data-mode="compose"] .studio-layout {\n  grid-template-columns: minmax(0, 1fr);'),
+    stylesSource.includes(
+      '.studio-shell[data-mode="compose"] .studio-layout {\n  grid-template-columns: minmax(0, 1fr);'
+    ),
     'Compose-läget ska använda en enkolumnslayout när kundkontexten är dold.'
   );
 
@@ -235,7 +223,9 @@ test('reply-studio öppnar på aktiv tråd i stället för stale studio-lock och
   );
 
   assert.ok(
-    actionEngineSource.includes('function openRuntimeStudio(mode = "reply", preferredThreadId = "", options = {})'),
+    actionEngineSource.includes(
+      'function openRuntimeStudio(mode = "reply", preferredThreadId = "", options = {})'
+    ),
     'Runtime action engine ska kunna ta emot en explicit thread-id när reply-studion öppnas.'
   );
   assert.ok(
@@ -255,7 +245,9 @@ test('reply-studio öppnar på aktiv tråd i stället för stale studio-lock och
     'Reply-studion ska kunna bära med sig ett explicit read-only-lås när fokusytan öppnar offline historik i läsläge.'
   );
   assert.ok(
-    overlaySource.includes('if (!isComposeMode && runtimeSelectedThread && (!lockedReplyThreadId || !lockedReplyThread))'),
+    overlaySource.includes(
+      'if (!isComposeMode && runtimeSelectedThread && (!lockedReplyThreadId || !lockedReplyThread))'
+    ),
     'Overlay-renderern ska falla tillbaka till aktuell runtime-tråd när ett gammalt studio-lock inte längre kan resolveas.'
   );
   assert.ok(
@@ -269,7 +261,9 @@ test('reply-studio öppnar på aktiv tråd i stället för stale studio-lock och
     'Fokusytans studio-knapp ska bära explicit thread-id för sann handoff till reply-studion.'
   );
   assert.ok(
-    domCompositionSource.includes('runtimeActionEngine.openRuntimeStudio("reply", runtimeStudioThreadId, {'),
+    domCompositionSource.includes(
+      'runtimeActionEngine.openRuntimeStudio("reply", runtimeStudioThreadId, {'
+    ),
     'DOM live composition ska öppna reply-studion med explicit thread-id från fokusytan.'
   );
 });
@@ -396,7 +390,9 @@ test('fokusrenderern får offline-historikhelpers och studion visar read-only co
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
   const overlaySource = fs.readFileSync(RUNTIME_OVERLAY_RENDERERS_PATH, 'utf8');
 
-  const focusRendererStart = appSource.indexOf('PREVIEW_FOCUS_INTEL_RENDERERS.createFocusIntelRenderers({');
+  const focusRendererStart = appSource.indexOf(
+    'PREVIEW_FOCUS_INTEL_RENDERERS.createFocusIntelRenderers({'
+  );
   const focusRendererEnd = appSource.indexOf('\n\n  const {', focusRendererStart);
   const focusRendererCall = appSource.slice(focusRendererStart, focusRendererEnd);
 
@@ -410,7 +406,7 @@ test('fokusrenderern får offline-historikhelpers och studion visar read-only co
   );
   assert.match(
     overlaySource,
-    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver live-tråd\./,
+    /Offline historik är läsläge\. Svar, förhandsvisning, senare, klar, radera och anteckningar kräver aktiv tråd\./,
     'Studion ska visa tydlig read-only copy när den öppnas från offline historik.'
   );
 });
@@ -418,9 +414,8 @@ test('fokusrenderern får offline-historikhelpers och studion visar read-only co
 test('bara de godkända personsignaturerna finns kvar i appen och i overlay-HTML', () => {
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
   const indexSource = fs.readFileSync(INDEX_PATH, 'utf8');
-  const studioSignatureProfilesBlock = appSource.match(
-    /const STUDIO_SIGNATURE_PROFILES = Object\.freeze\(\[(.*?)\]\);/s
-  )?.[1] || '';
+  const studioSignatureProfilesBlock =
+    appSource.match(/const STUDIO_SIGNATURE_PROFILES = Object\.freeze\(\[(.*?)\]\);/s)?.[1] || '';
 
   assert.match(
     studioSignatureProfilesBlock,

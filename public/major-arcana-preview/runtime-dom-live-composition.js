@@ -1,10 +1,5 @@
 (() => {
-  function createDomLiveComposition({
-    dom = {},
-    helpers = {},
-    state,
-    windowObject = window,
-  }) {
+  function createDomLiveComposition({ dom = {}, helpers = {}, state, windowObject = window }) {
     const {
       canvas,
       closeButtons = [],
@@ -250,8 +245,9 @@
       snapshot = typeof getRuntimeReentrySnapshotState === "function"
         ? getRuntimeReentrySnapshotState()
         : null,
-      outcome =
-        typeof getRuntimeReentryOutcomeState === "function" ? getRuntimeReentryOutcomeState() : null
+      outcome = typeof getRuntimeReentryOutcomeState === "function"
+        ? getRuntimeReentryOutcomeState()
+        : null
     ) {
       if (!isPipelineDebugEnabled()) return null;
       const payload = {
@@ -300,7 +296,8 @@
         ["filtered", filtered.length],
       ];
       const firstZeroStageIndex = stages.findIndex(
-        ([, count], index) => count === 0 && stages.slice(0, index).some(([, previous]) => previous > 0)
+        ([, count], index) =>
+          count === 0 && stages.slice(0, index).some(([, previous]) => previous > 0)
       );
       const payload = {
         threads: threads.length,
@@ -366,27 +363,29 @@
       if (utfMatch?.[1]) {
         try {
           return decodeURIComponent(utfMatch[1]) || fallbackName;
-        } catch (_error) {
-        }
+        } catch (_error) {}
       }
-      const plainMatch = rawHeader.match(/filename\s*=\s*"([^"]+)"/i) || rawHeader.match(/filename\s*=\s*([^;]+)/i);
+      const plainMatch =
+        rawHeader.match(/filename\s*=\s*"([^"]+)"/i) || rawHeader.match(/filename\s*=\s*([^;]+)/i);
       return asText(plainMatch?.[1], fallbackName).trim() || fallbackName;
     }
 
     function cloneIdentityEnvelope(value = null) {
       const safeValue = value && typeof value === "object" ? value : {};
-      const customerIdentity = safeValue.customerIdentity && typeof safeValue.customerIdentity === "object"
-        ? safeValue.customerIdentity
-        : safeValue.identity && typeof safeValue.identity === "object"
-          ? safeValue.identity
-          : null;
+      const customerIdentity =
+        safeValue.customerIdentity && typeof safeValue.customerIdentity === "object"
+          ? safeValue.customerIdentity
+          : safeValue.identity && typeof safeValue.identity === "object"
+            ? safeValue.identity
+            : null;
       return {
         customerIdentity: customerIdentity ? JSON.parse(JSON.stringify(customerIdentity)) : null,
         hardConflictSignals: Array.isArray(safeValue.hardConflictSignals)
           ? JSON.parse(JSON.stringify(safeValue.hardConflictSignals))
           : [],
         mergeReviewDecisionsByPairId:
-          safeValue.mergeReviewDecisionsByPairId && typeof safeValue.mergeReviewDecisionsByPairId === "object"
+          safeValue.mergeReviewDecisionsByPairId &&
+          typeof safeValue.mergeReviewDecisionsByPairId === "object"
             ? JSON.parse(JSON.stringify(safeValue.mergeReviewDecisionsByPairId))
             : {},
         identityProvenance:
@@ -451,11 +450,14 @@
 
     async function fetchRuntimeMailAssetBlob(path) {
       const authToken = getAdminToken();
-      const response = await windowObject.fetch(new URL(path, windowObject.location.origin).toString(), {
-        method: "GET",
-        credentials: "same-origin",
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-      });
+      const response = await windowObject.fetch(
+        new URL(path, windowObject.location.origin).toString(),
+        {
+          method: "GET",
+          credentials: "same-origin",
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        }
+      );
       if (!response.ok) {
         let errorMessage = "Bilagan kunde inte hämtas.";
         try {
@@ -465,8 +467,7 @@
           try {
             const payloadText = await response.text();
             errorMessage = asText(payloadText, errorMessage) || errorMessage;
-          } catch (_nestedError) {
-          }
+          } catch (_nestedError) {}
         }
         throw new Error(errorMessage);
       }
@@ -543,13 +544,11 @@
       const latestMessage =
         messages.find((message) => message?.latest === true) || messages[0] || null;
       const canonicalMessage =
-        latestMessage?.mailThreadMessage &&
-        typeof latestMessage.mailThreadMessage === "object"
+        latestMessage?.mailThreadMessage && typeof latestMessage.mailThreadMessage === "object"
           ? latestMessage.mailThreadMessage
           : null;
       const mailDocument =
-        latestMessage?.mailDocument &&
-        typeof latestMessage.mailDocument === "object"
+        latestMessage?.mailDocument && typeof latestMessage.mailDocument === "object"
           ? latestMessage.mailDocument
           : null;
       const threadDocument =
@@ -564,7 +563,8 @@
       if (
         !foundationState &&
         ((threadDocument &&
-          (normalizeKey(threadDocument?.sourceStore) || asArray(threadDocument?.messages).length > 0)) ||
+          (normalizeKey(threadDocument?.sourceStore) ||
+            asArray(threadDocument?.messages).length > 0)) ||
           (mailDocument &&
             (normalizeKey(mailDocument?.sourceStore) ||
               asText(mailDocument?.previewText).trim().length > 0 ||
@@ -633,8 +633,7 @@
         signatureHtmlLength: asText(canonicalMessage?.signatureBlock?.html).length,
         quotedCount: asArray(canonicalMessage?.quotedBlocks).length,
         systemCount: asArray(canonicalMessage?.systemBlocks).length,
-        mimeBacked:
-          canonicalMessage?.mimeBacked === true || mailDocument?.mimeBacked === true,
+        mimeBacked: canonicalMessage?.mimeBacked === true || mailDocument?.mimeBacked === true,
         foundationState: foundationState
           ? {
               source: normalizeKey(foundationState?.source),
@@ -814,9 +813,7 @@
         skipped: true,
         reason: normalizeKey(reason || "hydrate_skipped"),
         details:
-          details && typeof details === "object"
-            ? JSON.parse(JSON.stringify(details))
-            : null,
+          details && typeof details === "object" ? JSON.parse(JSON.stringify(details)) : null,
       };
       ensureRuntimeOpenFlowDiagnostics().lastHydration = hydrationDiagnostics;
       recordRuntimeOpenFlowEvent(normalizeKey(reason || "hydrate_skipped"), hydrationDiagnostics);
@@ -848,9 +845,8 @@
         .map((item) => {
           const mailboxId = asText(item?.mailboxId).toLowerCase();
           const customerEmail = asText(item?.customerEmail).toLowerCase();
-          const direction = normalizeKey(item?.direction || "inbound") === "outbound"
-            ? "outbound"
-            : "inbound";
+          const direction =
+            normalizeKey(item?.direction || "inbound") === "outbound" ? "outbound" : "inbound";
           return {
             messageId: asText(item?.messageId || `${item?.conversationId}-${item?.recordedAt}`),
             conversationId: asText(item?.conversationId),
@@ -869,7 +865,10 @@
                 item?.contactLabel
             ),
             subject: asText(item?.subject || item?.summary || item?.title, "E-post"),
-            bodyPreview: asText(item?.detail || item?.summary, "Ingen förhandsvisning tillgänglig."),
+            bodyPreview: asText(
+              item?.detail || item?.summary,
+              "Ingen förhandsvisning tillgänglig."
+            ),
             sentAt: asText(item?.recordedAt),
             recordedAt: asText(item?.recordedAt),
             direction,
@@ -897,7 +896,9 @@
       state.runtime.deleteEnabled = graph?.deleteEnabled === true;
       state.runtime.graphReadEnabled = graph?.readEnabled === true;
       state.runtime.graphReadConnectorAvailable = graph?.readConnectorAvailable === true;
-      state.runtime.graphAllowlistMailboxCount = Number.isFinite(Number(graph?.allowlistMailboxCount))
+      state.runtime.graphAllowlistMailboxCount = Number.isFinite(
+        Number(graph?.allowlistMailboxCount)
+      )
         ? Number(graph.allowlistMailboxCount)
         : 0;
       state.runtime.mailboxCapabilities =
@@ -932,9 +933,7 @@
             : 12000;
       const deadline = Date.now() + resolvedTimeout;
       while (Date.now() < deadline) {
-        await new Promise((resolve) =>
-          windowObject.setTimeout(resolve, intervalMs)
-        );
+        await new Promise((resolve) => windowObject.setTimeout(resolve, intervalMs));
         const nextToken = readToken();
         if (nextToken) return nextToken;
       }
@@ -1066,15 +1065,15 @@
         .slice()
         .sort((left, right) => {
           const timestampDiff =
-            getRuntimeThreadSortTimestamp(right) -
-            getRuntimeThreadSortTimestamp(left);
+            getRuntimeThreadSortTimestamp(right) - getRuntimeThreadSortTimestamp(left);
           if (timestampDiff !== 0) return timestampDiff;
           return asText(left?.id).localeCompare(asText(right?.id));
         });
     }
 
     function mergeRuntimeThreadsPreferNewer(existingThreads = [], incomingThreads = []) {
-      const getThreadKey = (thread = {}) => normalizeKey(thread?.id || thread?.conversationId || "");
+      const getThreadKey = (thread = {}) =>
+        normalizeKey(thread?.id || thread?.conversationId || "");
       const getThreadPhaseRank = (thread = {}) => {
         const phase = asText(thread?.dataPhase).toUpperCase();
         if (phase === "B") return 2;
@@ -1155,7 +1154,7 @@
           resetHistoryOnChange: false,
           allowAuthRecovery: true,
         }).catch((error) => {
-          console.warn("CCO live runtime kunde inte återställas efter auth-recovery.", error);
+          console.warn("CCO aktiv körning kunde inte återställas efter auth-recovery.", error);
           bumpRuntimeAuthRecoveryBackoff();
           if (runtimeAuthRecoveryPollingEnabled && state.runtime?.authRequired === true) {
             runtimeAuthRecoveryTimer = windowObject.setTimeout(poll, runtimeAuthRecoveryDelayMs);
@@ -1202,7 +1201,7 @@
             isBackgroundRefresh: true,
           });
         } catch (error) {
-          console.warn("CCO live runtime kunde inte uppdateras i bakgrunden.", error);
+          console.warn("CCO aktiv körning kunde inte uppdateras i bakgrunden.", error);
         }
         if (state.runtime?.mode === "live") {
           runtimeLiveRefreshTimer = windowObject.setTimeout(poll, intervalMs);
@@ -1236,7 +1235,7 @@
         applyWorkspacePrefs: false,
         quiet: true,
       }).catch((error) => {
-        console.warn("CCO workspace bootstrap misslyckades efter live runtime.", error);
+        console.warn("CCO workspace bootstrap misslyckades efter aktiv körning.", error);
       });
       renderRuntimeConversationShell();
     }
@@ -1360,12 +1359,8 @@
     }
 
     async function resolveRuntimeHistoryHydrationConversationId(thread, mailboxIds = []) {
-      const {
-        customerEmail,
-        messageIds,
-        normalizedNeedles,
-        queryTexts,
-      } = buildRuntimeThreadHydrationSearchCandidates(thread);
+      const { customerEmail, messageIds, normalizedNeedles, queryTexts } =
+        buildRuntimeThreadHydrationSearchCandidates(thread);
       if (!queryTexts.length) return "";
 
       for (const queryText of queryTexts) {
@@ -1416,10 +1411,7 @@
       return "";
     }
 
-    async function fetchRuntimeThreadHistoryPayload({
-      mailboxIds = [],
-      conversationId = "",
-    } = {}) {
+    async function fetchRuntimeThreadHistoryPayload({ mailboxIds = [], conversationId = "" } = {}) {
       const targetConversationId = asText(conversationId);
       if (!mailboxIds.length || !targetConversationId) return null;
       const params = new URLSearchParams();
@@ -1482,14 +1474,8 @@
       return updated;
     }
 
-    async function hydrateRuntimeThreadHistory(
-      conversationId = "",
-      { mailboxIds = [] } = {}
-    ) {
-      const targetConversationId = asText(
-        conversationId,
-        asText(getSelectedRuntimeThread()?.id)
-      );
+    async function hydrateRuntimeThreadHistory(conversationId = "", { mailboxIds = [] } = {}) {
+      const targetConversationId = asText(conversationId, asText(getSelectedRuntimeThread()?.id));
       if (!targetConversationId) {
         return recordRuntimeHydrationSkip("hydrate_skipped_missing_target", {
           requestedConversationId: conversationId,
@@ -1600,10 +1586,7 @@
           return;
         }
 
-        let updated = applyHydratedRuntimeThreadHistory(
-          targetConversationId,
-          historyPayload
-        );
+        let updated = applyHydratedRuntimeThreadHistory(targetConversationId, historyPayload);
         hydrationDiagnostics.directApplied = updated;
         hydrationDiagnostics.selectedThreadAfter = summarizeRuntimeOpenFlowThread(
           asArray(state.runtime?.threads).find((thread) =>
@@ -1715,10 +1698,7 @@
           targetConversationId,
           error: hydrationDiagnostics.error,
         });
-        console.warn(
-          "CCO kunde inte hydrera rik trådhistorik för vald live-konversation.",
-          error
-        );
+        console.warn("CCO kunde inte hydrera rik trådhistorik för vald live-konversation.", error);
         return {
           status: "error",
           reason: "hydrate_error",
@@ -1726,14 +1706,8 @@
       }
     }
 
-    async function hydrateOfflineHistoryThread(
-      conversationId = "",
-      { mailboxIds = [] } = {}
-    ) {
-      const targetConversationId = asText(
-        conversationId,
-        asText(getSelectedRuntimeThread()?.id)
-      );
+    async function hydrateOfflineHistoryThread(conversationId = "", { mailboxIds = [] } = {}) {
+      const targetConversationId = asText(conversationId, asText(getSelectedRuntimeThread()?.id));
       if (!targetConversationId) {
         return recordRuntimeHydrationSkip("offline_canonical_skipped_missing_target", {
           requestedConversationId: conversationId,
@@ -1831,9 +1805,7 @@
           ) || null
         );
         recordRuntimeOpenFlowEvent(
-          updated
-            ? "offline_canonical_direct_applied"
-            : "offline_canonical_direct_not_applied",
+          updated ? "offline_canonical_direct_applied" : "offline_canonical_direct_not_applied",
           {
             sequence: hydrationSequence,
             targetConversationId,
@@ -1882,9 +1854,7 @@
               ) || null
             );
             recordRuntimeOpenFlowEvent(
-              updated
-                ? "offline_canonical_search_applied"
-                : "offline_canonical_search_not_applied",
+              updated ? "offline_canonical_search_applied" : "offline_canonical_search_not_applied",
               {
                 sequence: hydrationSequence,
                 targetConversationId,
@@ -1941,10 +1911,7 @@
           targetConversationId,
           error: hydrationDiagnostics.error,
         });
-        console.warn(
-          "CCO kunde inte grafta rik canonical historik för vald offline-tråd.",
-          error
-        );
+        console.warn("CCO kunde inte grafta rik canonical historik för vald offline-tråd.", error);
         return {
           status: "error",
           reason: "offline_canonical_error",
@@ -1956,10 +1923,7 @@
       conversationId = "",
       { mailboxIds = [], attempt = 0, maxAttempts = 8 } = {}
     ) {
-      const targetConversationId = asText(
-        conversationId,
-        asText(getSelectedRuntimeThread()?.id)
-      );
+      const targetConversationId = asText(conversationId, asText(getSelectedRuntimeThread()?.id));
       if (!targetConversationId) return null;
 
       if (
@@ -2092,10 +2056,7 @@
             {
               ...metadata,
               sourceMailboxIds: Array.from(
-                new Set([
-                  ...requestedMailboxIds,
-                  ...asArray(metadata?.sourceMailboxIds),
-                ])
+                new Set([...requestedMailboxIds, ...asArray(metadata?.sourceMailboxIds)])
               ),
               mailboxCapabilities: state.runtime.mailboxCapabilities,
             }
@@ -2184,10 +2145,9 @@
       let historyEvents = [];
       let offlineWorkingSetSource = "history_store";
       let offlineWorkingSetMeta =
-        "Offline historikläge. Arbetskön bygger just nu på senast kända mailboxhistorik.";
+        "Offline historikläge. Arbetskön bygger just nu på senast kända mejlhistorik.";
       let resolvedOfflineMessage =
-        offlineMessage ||
-        "Livekön är offline. Visar senast kända historik i stället.";
+        offlineMessage || "Den aktiva kön är offline. Visar senast kända historik i stället.";
 
       try {
         const historyPayload = await apiRequest(
@@ -2210,22 +2170,20 @@
             `/api/v1/cco/runtime/history/search?${searchParams.toString()}`
           );
           if (!isCurrentRequest()) return;
-          historyMessages = buildOfflineWorkingSetMessagesFromSearchResults(
-            searchPayload?.results
-          );
+          historyMessages = buildOfflineWorkingSetMessagesFromSearchResults(searchPayload?.results);
           historyEvents = [];
           if (historyMessages.length) {
             offlineWorkingSetSource = "search_partial";
             offlineWorkingSetMeta =
               "Offline working set bygger på lokal historik och kan vara ofullständig tills livekön är tillbaka.";
             resolvedOfflineMessage =
-              "Livekön är offline. Arbetskön bygger på lokal historik i valt mailboxscope.";
+              "Den aktiva kön är offline. Arbetskön bygger på lokal historik i valt mejlurval.";
           } else {
             offlineWorkingSetSource = "search_empty";
             offlineWorkingSetMeta =
-              "Offline historikläge. Ingen lokal historik hittades i valt mailboxscope ännu.";
+              "Offline historikläge. Ingen lokal historik hittades i valt mejlurval ännu.";
             resolvedOfflineMessage =
-              "Ingen lokal historik hittades i valt mailboxscope ännu. Livekön är fortsatt offline.";
+              "Ingen lokal historik hittades i valt mejlurval ännu. Den aktiva kön är fortsatt offline.";
           }
         } catch (searchError) {
           if (!isCurrentRequest()) return;
@@ -2235,10 +2193,10 @@
           );
           offlineWorkingSetSource = "search_empty";
           offlineWorkingSetMeta =
-            "Offline historikläge. Ingen lokal historik hittades i valt mailboxscope ännu.";
+            "Offline historikläge. Ingen lokal historik hittades i valt mejlurval ännu.";
           resolvedOfflineMessage =
             historyErrorMessage ||
-            "Ingen lokal historik hittades i valt mailboxscope ännu. Livekön är fortsatt offline.";
+            "Ingen lokal historik hittades i valt mejlurval ännu. Den aktiva kön är fortsatt offline.";
         }
       }
 
@@ -2247,12 +2205,14 @@
         inboundFeed: [],
         outboundFeed: [],
       };
-      const threads = sortRuntimeThreadsDeterministic(carryRuntimeCustomerIdentity(
-        buildLiveThreads(mergedWorklistData, {
-          historyMessages,
-          historyEvents,
-        })
-      ));
+      const threads = sortRuntimeThreadsDeterministic(
+        carryRuntimeCustomerIdentity(
+          buildLiveThreads(mergedWorklistData, {
+            historyMessages,
+            historyEvents,
+          })
+        )
+      );
       state.runtime.truthPrimaryLegacyThreads = [];
       state.runtime.truthPrimaryCutover = {
         enabled: false,
@@ -2268,7 +2228,8 @@
             ? getTruthPrimaryFocusMailboxIds({ mailboxIds: runtimeMailboxIds })
             : [],
         activeMailboxIds: [],
-        fallbackReason: "Offline historikläge. Fokusytan läser inte truth-driven focus i detta läge.",
+        fallbackReason:
+          "Offline historikläge. Fokusytan läser inte sanningsstyrt fokus i detta läge.",
         readOnly: true,
         lastAppliedAt: new Date().toISOString(),
       };
@@ -2297,8 +2258,11 @@
       });
       // v5: bevara demo-fixtures om history-load returnerar tomt (utan backend)
       // så v5-layouten visas snyggt även när servern inte kan nås.
-      if (threads.length === 0 && Array.isArray(state.runtime.threads) &&
-          state.runtime.threads.some((t) => asText(t?.worklistSource) === "demo")) {
+      if (
+        threads.length === 0 &&
+        Array.isArray(state.runtime.threads) &&
+        state.runtime.threads.some((t) => asText(t?.worklistSource) === "demo")
+      ) {
         // Threads-arrayen innehåller redan demo-fixtures — överskriv inte.
       } else {
         state.runtime.threads = threads;
@@ -2361,7 +2325,10 @@
           applyWorkspacePrefs: false,
           quiet: true,
         }).catch((error) => {
-          console.warn("CCO workspace bootstrap misslyckades efter att offline-historikval rensades.", error);
+          console.warn(
+            "CCO workspace bootstrap misslyckades efter att offline-historikval rensades.",
+            error
+          );
         });
       }
     }
@@ -2373,7 +2340,10 @@
       const nextConversationId = asText(conversationId);
       if (!nextConversationId) return;
       const currentConversationId = asText(state.runtime.queueHistory?.selectedConversationId);
-      const selectionChanged = !runtimeConversationIdsMatch(currentConversationId, nextConversationId);
+      const selectionChanged = !runtimeConversationIdsMatch(
+        currentConversationId,
+        nextConversationId
+      );
       state.runtime.queueInlinePanel = {
         ...state.runtime.queueInlinePanel,
         open: false,
@@ -2408,7 +2378,10 @@
             .map((value) => normalizeMailboxId(value))
             .filter(Boolean),
         }).catch((error) => {
-          console.warn("CCO kunde inte grafta vald offline-historiktråd till canonical source.", error);
+          console.warn(
+            "CCO kunde inte grafta vald offline-historiktråd till canonical source.",
+            error
+          );
         });
       }
       if (reloadBootstrap) {
@@ -2417,7 +2390,10 @@
           applyWorkspacePrefs: false,
           quiet: true,
         }).catch((error) => {
-          console.warn("CCO workspace bootstrap misslyckades för vald offline-historiktråd.", error);
+          console.warn(
+            "CCO workspace bootstrap misslyckades för vald offline-historiktråd.",
+            error
+          );
         });
       }
     }
@@ -2473,18 +2449,20 @@
         selectedCard.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
       }
       requestRuntimeThreadHydration(threadId).catch((error) => {
-        console.warn("CCO kunde inte hydrera vald live-tråd efter selection.", error);
+        console.warn("CCO kunde inte hydrera vald aktiv tråd efter selection.", error);
       });
       if (reloadBootstrap) {
         loadBootstrap({
           preserveActiveDestination: true,
           applyWorkspacePrefs: false,
           quiet: true,
-        }).catch((error) => {
-          console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
-        }).finally(() => {
-          renderRuntimeConversationShell();
-        });
+        })
+          .catch((error) => {
+            console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
+          })
+          .finally(() => {
+            renderRuntimeConversationShell();
+          });
       }
     }
 
@@ -2501,8 +2479,7 @@
       if (!card) return false;
       if (queueHistoryList && !queueHistoryList.contains(card)) return false;
       const isHistoryConversationCard =
-        card.hasAttribute("data-history-conversation") &&
-        !card.hasAttribute("data-runtime-thread");
+        card.hasAttribute("data-history-conversation") && !card.hasAttribute("data-runtime-thread");
       if (requireHistoryPanel && isHistoryConversationCard && !state.runtime.queueHistory?.open) {
         return false;
       }
@@ -2527,8 +2504,9 @@
       const wasSameInlinePanel =
         state.runtime.queueInlinePanel.open &&
         normalizeKey(state.runtime.queueInlinePanel.feedKey || "") === "" &&
-        normalizeKey(state.runtime.queueInlinePanel.laneId || state.runtime.activeLaneId || "all") ===
-          normalizedLaneId;
+        normalizeKey(
+          state.runtime.queueInlinePanel.laneId || state.runtime.activeLaneId || "all"
+        ) === normalizedLaneId;
       const nextOpen = !wasSameInlinePanel;
       if (nextOpen) {
         reconcileRuntimeSelection(getQueueLaneThreads(normalizedLaneId), {
@@ -2592,9 +2570,7 @@
     }
 
     function refreshQueueInlineHistoryIfOpen() {
-      if (
-        !state.runtime.queueHistory.open
-      ) {
+      if (!state.runtime.queueHistory.open) {
         return;
       }
       loadQueueHistory({ force: true }).catch((error) => {
@@ -2670,16 +2646,14 @@
           state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
             phase: "auth_required",
             requestedMailboxIds: runtimeMailboxIds,
-            error:
-              "Logga in igen i admin för att läsa livekö, historikfallback och mailboxstatus.",
+            error: "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.",
           });
           if (hasMeaningfulRuntimeReentryState()) {
             captureRuntimeReentrySnapshot("auth_required");
           }
           setRuntimeModeState("auth_required", {
             authRequired: true,
-            error:
-              "Logga in igen i admin för att läsa livekö, historikfallback och mailboxstatus.",
+            error: "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.",
           });
           setRuntimeAuthRecoveryPollingEnabled(false);
           resetRuntimeAuthRecoveryBackoff();
@@ -2742,7 +2716,7 @@
             preferredThreadId,
             resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
             offlineMessage:
-              "Livekön är offline. Visar senaste historiken för valt mailboxscope.",
+              "Den aktiva kön är offline. Visar senaste historiken för valt mejlurval.",
             isCurrentRequest,
           });
           return;
@@ -2769,7 +2743,7 @@
             ? analysisPayload.output.data
             : null;
         if (!liveData || typeof liveData !== "object") {
-          throw new Error("AnalyzeInbox returnerade ingen live-data.");
+          throw new Error("AnalyzeInbox returnerade ingen aktiv data.");
         }
 
         const configuredTruthPrimaryMailboxIds =
@@ -2833,10 +2807,10 @@
             };
           });
         let legacyThreads = carryRuntimeCustomerIdentity(
-            buildLiveThreads(liveData, {
-              historyMessages: [],
-              historyEvents: [],
-            })
+          buildLiveThreads(liveData, {
+            historyMessages: [],
+            historyEvents: [],
+          })
         );
         legacyThreads = sortRuntimeThreadsDeterministic(
           preserveBackgroundQueuePreviewText(legacyThreads, "A")
@@ -2847,24 +2821,13 @@
                 truthPrimaryMailboxIds: activeTruthPrimaryMailboxIds,
               })
             : liveData;
-        if (false) {
-const threads = carryRuntimeCustomerIdentity(
-          buildLiveThreads(mergedWorklistData, {
-            historyMessages: [],
-            historyEvents: [],
-          })
-        );
-          void threads;
-        }
         let threads = carryRuntimeCustomerIdentity(
           buildLiveThreads(mergedWorklistData, {
             historyMessages: [],
             historyEvents: [],
           })
         );
-        threads = sortRuntimeThreadsDeterministic(
-          preserveBackgroundQueuePreviewText(threads, "A")
-        );
+        threads = sortRuntimeThreadsDeterministic(preserveBackgroundQueuePreviewText(threads, "A"));
         const activeFocusTruthMailboxIds = configuredFocusTruthMailboxIds.filter((mailboxId) =>
           activeTruthPrimaryMailboxIds.includes(mailboxId)
         );
@@ -2883,12 +2846,12 @@ const threads = carryRuntimeCustomerIdentity(
           ? truthPrimaryFallbackReason
           : focusTruthEnabled
             ? ""
-            : "Truth-driven focus är avstängd för wave 1. Fokusytan läser legacy-tråden medan worklisten fortsatt kan vara truth-primary.";
+            : "Sanningsstyrt fokus är avstängt för wave 1. Fokusytan läser ordinarie tråd medan arbetslistan fortsatt kan vara sanningsstyrd.";
         const studioTruthFallbackReason = !activeStudioTruthMailboxIds.length
           ? truthPrimaryFallbackReason
           : studioTruthEnabled
             ? ""
-            : "Truth-driven studio är avstängd för wave 1. Studion läser och skriver via legacy-kedjan medan worklist och fokus kan vara truth-driven.";
+            : "Sanningsstyrd svarstudio är avstängd för wave 1. Svarsstudion läser och skriver via legacy-kedjan medan arbetslista och fokus kan vara sanningsstyrda.";
         const metadata = analysisPayload?.output?.metadata || {};
         recordRuntimeThreadAssignment("live_load", {
           stage: "before_apply",
@@ -3183,7 +3146,7 @@ const threads = carryRuntimeCustomerIdentity(
           const nextMailboxId = canonicalizeRuntimeMailboxId(event.target.value);
           const senderLabel = asText(
             event.target.selectedOptions?.[0]?.textContent,
-            nextMailboxId || "vald mailbox"
+            nextMailboxId || "valt mejlkonto"
           );
           if (normalizeKey(state.studio.mode) === "compose") {
             state.studio.composeMailboxId = nextMailboxId;
@@ -3200,7 +3163,7 @@ const threads = carryRuntimeCustomerIdentity(
           if (studioTruthState?.truthDriven === true) {
             renderStudioShell();
             setStudioFeedback(
-              `Truth-driven studio låser källmailbox och signatur till ${asText(
+              `Sanningsstyrd svarstudio låser källmejlkonto och signatur till ${asText(
                 studioTruthState.sourceMailboxLabel,
                 senderLabel
               )} i ${asText(studioTruthState.waveLabel, "Wave 1")}.`,
@@ -3276,7 +3239,7 @@ const threads = carryRuntimeCustomerIdentity(
           if (studioTruthState?.truthDriven === true) {
             renderStudioShell();
             setStudioFeedback(
-              `Truth-driven studio låser signaturen till ${asText(
+              `Sanningsstyrd svarstudio låser signaturen till ${asText(
                 studioTruthState.sourceMailboxLabel,
                 signatureProfile.label
               )} i ${asText(studioTruthState.waveLabel, "Wave 1")}.`,
@@ -3483,7 +3446,7 @@ const threads = carryRuntimeCustomerIdentity(
             preferredThreadId: "",
             resetHistoryOnChange: true,
           }).catch((error) => {
-            console.warn("CCO live runtime misslyckades efter mailboxbyte.", error);
+            console.warn("CCO aktiv körning misslyckades efter mejlkontobyte.", error);
           });
         });
       }
@@ -3564,9 +3527,7 @@ const threads = carryRuntimeCustomerIdentity(
           const previousThreadId = workspaceSourceOfTruth.getSelectedThreadId();
           const selectedRuntimeThread =
             typeof getSelectedRuntimeThread === "function" ? getSelectedRuntimeThread() : null;
-          const selectedRuntimeThreadId = asText(
-            selectedRuntimeThread?.id || previousThreadId
-          );
+          const selectedRuntimeThreadId = asText(selectedRuntimeThread?.id || previousThreadId);
           state.runtime.queueInlinePanel = {
             ...state.runtime.queueInlinePanel,
             open: false,
@@ -3591,7 +3552,10 @@ const threads = carryRuntimeCustomerIdentity(
               applyWorkspacePrefs: false,
               quiet: true,
             }).catch((error) => {
-              console.warn("CCO workspace bootstrap misslyckades efter att historikpanelen stängdes.", error);
+              console.warn(
+                "CCO workspace bootstrap misslyckades efter att historikpanelen stängdes.",
+                error
+              );
             });
             renderQueueHistorySection();
             return;
@@ -3801,8 +3765,7 @@ const threads = carryRuntimeCustomerIdentity(
           const removingLocalSignatureOnly =
             availableMailbox?.hasLiveSource === true && availableMailbox?.custom !== true;
           state.customMailboxes = state.customMailboxes.filter(
-            (mailbox, index) =>
-              normalizeCustomMailboxDefinition(mailbox, index)?.id !== mailboxId
+            (mailbox, index) => normalizeCustomMailboxDefinition(mailbox, index)?.id !== mailboxId
           );
           if (typeof persistCustomMailboxes === "function") {
             persistCustomMailboxes();
@@ -3824,7 +3787,9 @@ const threads = carryRuntimeCustomerIdentity(
           setFeedback(
             mailboxAdminFeedback,
             "success",
-            removingLocalSignatureOnly ? "Den lokala signaturen togs bort." : "Mailboxen togs bort."
+            removingLocalSignatureOnly
+              ? "Den lokala signaturen togs bort."
+              : "Mejlkontot togs bort."
           );
         });
       }
@@ -3862,9 +3827,7 @@ const threads = carryRuntimeCustomerIdentity(
       if (runtimeStudioOpenButton) {
         const runtimeStudioReadOnly =
           normalizeKey(runtimeStudioOpenButton.dataset.runtimeStudioReadOnly) === "true";
-        const runtimeStudioThreadId = asText(
-          runtimeStudioOpenButton.dataset.runtimeStudioThreadId
-        );
+        const runtimeStudioThreadId = asText(runtimeStudioOpenButton.dataset.runtimeStudioThreadId);
         if (runtimeStudioThreadId && runtimeStudioReadOnly) {
           selectOfflineHistoryConversation(runtimeStudioThreadId, { reloadBootstrap: false });
         } else if (runtimeStudioThreadId) {
@@ -3945,10 +3908,7 @@ const threads = carryRuntimeCustomerIdentity(
               schedule: "Runtime-schemaläggning från snabbactions misslyckades.",
               readout: "Runtime-readout från snabbactions misslyckades.",
             };
-            console.warn(
-              warningByAction[action] || "Runtime-snabbaction misslyckades.",
-              error
-            );
+            console.warn(warningByAction[action] || "Runtime-snabbaction misslyckades.", error);
           });
           return true;
         }
@@ -4050,8 +4010,8 @@ const threads = carryRuntimeCustomerIdentity(
       if (historyThreadButton) {
         const conversationId = asText(historyThreadButton.dataset.historyConversationId);
         if (conversationId) {
-          const mailboxScopedTarget = getMailboxScopedRuntimeThreads().find(
-            (thread) => runtimeConversationIdsMatch(thread.id, conversationId)
+          const mailboxScopedTarget = getMailboxScopedRuntimeThreads().find((thread) =>
+            runtimeConversationIdsMatch(thread.id, conversationId)
           );
           if (!mailboxScopedTarget || state.runtime.live !== true) {
             selectOfflineHistoryConversation(conversationId, { reloadBootstrap: true });
@@ -4183,7 +4143,7 @@ const threads = carryRuntimeCustomerIdentity(
       });
 
       loadLiveRuntime().catch((error) => {
-        console.warn("CCO live runtime misslyckades.", error);
+        console.warn("CCO aktiv körning misslyckades.", error);
       });
     }
 

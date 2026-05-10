@@ -32,6 +32,20 @@ module.exports = [
   },
   js.configs.recommended,
   {
+    files: ['eslint.config.js', 'commitlint.config.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      'no-undef': 'error',
+    },
+  },
+  {
     files: ['src/**/*.js', 'server.js', 'scripts/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
@@ -41,11 +55,14 @@ module.exports = [
       },
     },
     rules: {
-      'no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-      }],
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-empty': ['warn', { allowEmptyCatch: true }],
       'no-console': 'off',
       'no-undef': 'error',
@@ -57,7 +74,7 @@ module.exports = [
       'no-async-promise-executor': 'warn',
       'prefer-const': 'warn',
       'no-var': 'warn',
-      'eqeqeq': ['warn', 'smart'],
+      eqeqeq: ['warn', 'smart'],
     },
   },
   {
@@ -71,6 +88,7 @@ module.exports = [
         MajorArcanaPreviewA11y: 'readonly',
         MajorArcanaPreviewAnimations: 'readonly',
         MajorArcanaPreviewToast: 'readonly',
+        state: 'readonly',
       },
     },
     rules: {
@@ -80,6 +98,70 @@ module.exports = [
       'no-redeclare': 'off',
       'prefer-const': 'off',
       'no-var': 'off',
+    },
+  },
+  {
+    files: ['public/major-arcana-preview/app/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        MajorArcanaPreviewI18n: 'readonly',
+        MajorArcanaPreviewA11y: 'readonly',
+        MajorArcanaPreviewAnimations: 'readonly',
+        MajorArcanaPreviewToast: 'readonly',
+        state: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
+    files: ['bin/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      'no-empty': ['warn', { allowEmptyCatch: true }],
+      'no-console': 'off',
+      'no-undef': 'error',
+    },
+  },
+  {
+    files: ['tools/coverage/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-console': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
     },
   },
   {

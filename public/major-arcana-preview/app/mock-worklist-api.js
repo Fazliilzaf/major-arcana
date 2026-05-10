@@ -104,6 +104,8 @@
   };
 
   if (typeof console !== 'undefined') {
-    console.log('[mock-api] aktiverad (demo-mode, ingen token) — kör window.__DEBUG_MOCK_API=true för logg');
+    console.log(
+      '[mock-api] aktiverad (demo-mode, ingen token) — kör window.__DEBUG_MOCK_API=true för logg'
+    );
   }
 })();

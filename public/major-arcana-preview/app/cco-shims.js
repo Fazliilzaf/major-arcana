@@ -17,7 +17,7 @@
   'use strict';
 
   const LS_KEY_SELECTED = 'cco.selectedMailboxIds.v1';
-  const DEFAULT_MAILBOXES = ['contact','egzona','fazli','info','kons','marknad'];
+  const DEFAULT_MAILBOXES = ['contact', 'egzona', 'fazli', 'info', 'kons', 'marknad'];
 
   // ============================================================
   // P0-1: Mailbox-val persistens
@@ -29,7 +29,9 @@
       if (!raw) return null;
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr : null;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
 
   function writePersistedMailboxes(ids) {
@@ -45,10 +47,10 @@
 
     let applied = 0;
     const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-    allCheckboxes.forEach(cb => {
+    allCheckboxes.forEach((cb) => {
       const labelEl = cb.closest('label') || cb.parentElement;
       const labelText = (labelEl?.textContent || '').toLowerCase();
-      const matchedKey = persisted.find(k => labelText.includes(k.toLowerCase()));
+      const matchedKey = persisted.find((k) => labelText.includes(k.toLowerCase()));
       if (matchedKey && !cb.checked) {
         cb.click();
         applied += 1;
@@ -70,7 +72,9 @@
       if (el) return el;
     }
     // Fallback: text-baserad sökning
-    const candidates = document.querySelectorAll('button, label, [role="button"], [role="combobox"]');
+    const candidates = document.querySelectorAll(
+      'button, label, [role="button"], [role="combobox"]'
+    );
     for (const el of candidates) {
       const txt = (el.textContent || '').trim();
       if (txt.length > 0 && txt.length < 80 && /Hair TP Clinic|mailboxar|mailboxes/i.test(txt)) {
@@ -84,11 +88,12 @@
     const persisted = readPersistedMailboxes();
     if (!persisted || persisted.length === 0) return;
 
-    const existingCheckboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
-      .filter(cb => {
-        const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-        return DEFAULT_MAILBOXES.some(m => lbl.includes(m));
-      });
+    const existingCheckboxes = Array.from(
+      document.querySelectorAll('input[type="checkbox"]')
+    ).filter((cb) => {
+      const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
+      return DEFAULT_MAILBOXES.some((m) => lbl.includes(m));
+    });
     if (existingCheckboxes.length > 0) {
       applyPersistedMailboxes();
       return;
@@ -98,29 +103,33 @@
     if (!toggle) return;
 
     toggle.click();
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 600));
     applyPersistedMailboxes();
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     document.body.click();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   }
 
   function watchMailboxChanges() {
-    document.addEventListener('change', (e) => {
-      if (e.target?.type !== 'checkbox') return;
-      const labelEl = e.target.closest('label') || e.target.parentElement;
-      const labelText = (labelEl?.textContent || '').toLowerCase();
-      const isMailboxCheckbox = DEFAULT_MAILBOXES.some(m => labelText.includes(m));
-      if (!isMailboxCheckbox) return;
+    document.addEventListener(
+      'change',
+      (e) => {
+        if (e.target?.type !== 'checkbox') return;
+        const labelEl = e.target.closest('label') || e.target.parentElement;
+        const labelText = (labelEl?.textContent || '').toLowerCase();
+        const isMailboxCheckbox = DEFAULT_MAILBOXES.some((m) => labelText.includes(m));
+        if (!isMailboxCheckbox) return;
 
-      const checked = [];
-      document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-        const matched = DEFAULT_MAILBOXES.find(m => lbl.includes(m));
-        if (matched) checked.push(matched);
-      });
-      writePersistedMailboxes([...new Set(checked)]);
-    }, true);
+        const checked = [];
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
+          const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
+          const matched = DEFAULT_MAILBOXES.find((m) => lbl.includes(m));
+          if (matched) checked.push(matched);
+        });
+        writePersistedMailboxes([...new Set(checked)]);
+      },
+      true
+    );
   }
 
   function bootstrapMailboxPersistence() {
@@ -143,7 +152,9 @@
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => { if (!triggered) observer.disconnect(); }, 30000);
+    setTimeout(() => {
+      if (!triggered) observer.disconnect();
+    }, 30000);
   }
 
   // ============================================================
@@ -159,15 +170,19 @@
   }
 
   function bootstrapLogout() {
-    document.addEventListener('click', (e) => {
-      const btn = e.target && e.target.closest && e.target.closest('[data-shim-logout]');
-      if (!btn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (confirm('Logga ut? Token rensas och du måste logga in igen.')) {
-        logout();
-      }
-    }, true);
+    document.addEventListener(
+      'click',
+      (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('[data-shim-logout]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm('Logga ut? Token rensas och du måste logga in igen.')) {
+          logout();
+        }
+      },
+      true
+    );
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
@@ -181,27 +196,36 @@
   // ============================================================
 
   function bootstrapThemeSwitcher() {
-    document.addEventListener('click', (e) => {
-      const btn = e.target && e.target.closest && e.target.closest(
-        '.preview-utility-button[aria-label*="läge"], ' +
-        'button[aria-label="Ljusläge"], ' +
-        'button[aria-label="Mörkläge"], ' +
-        'button[aria-label="Mörkt läge"]'
-      );
-      if (!btn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (window.MajorArcanaPreviewTheme?.toggleTheme) {
-        const next = window.MajorArcanaPreviewTheme.toggleTheme();
-        const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
-        btn.setAttribute('aria-label', labels[next] || 'Tema');
-      } else {
-        const cur = document.documentElement.getAttribute('data-theme') || 'system';
-        const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
-        document.documentElement.setAttribute('data-theme', next);
-        try { localStorage.setItem('cco.theme', next); } catch (_e) {}
-      }
-    }, true);
+    document.addEventListener(
+      'click',
+      (e) => {
+        const btn =
+          e.target &&
+          e.target.closest &&
+          e.target.closest(
+            '.preview-utility-button[aria-label*="läge"], ' +
+              'button[aria-label="Ljusläge"], ' +
+              'button[aria-label="Mörkläge"], ' +
+              'button[aria-label="Mörkt läge"]'
+          );
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.MajorArcanaPreviewTheme?.toggleTheme) {
+          const next = window.MajorArcanaPreviewTheme.toggleTheme();
+          const labels = { light: 'Mörkläge', dark: 'Systemläge', system: 'Ljusläge' };
+          btn.setAttribute('aria-label', labels[next] || 'Tema');
+        } else {
+          const cur = document.documentElement.getAttribute('data-theme') || 'system';
+          const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
+          document.documentElement.setAttribute('data-theme', next);
+          try {
+            localStorage.setItem('cco.theme', next);
+          } catch (_e) {}
+        }
+      },
+      true
+    );
   }
 
   // ============================================================
@@ -209,9 +233,21 @@
   // ============================================================
 
   function init() {
-    try { bootstrapMailboxPersistence(); } catch (e) { console.warn('[cco-shims] mailbox-persistens fel:', e); }
-    try { bootstrapLogout(); } catch (e) { console.warn('[cco-shims] logout fel:', e); }
-    try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[cco-shims] theme-switcher fel:', e); }
+    try {
+      bootstrapMailboxPersistence();
+    } catch (e) {
+      console.warn('[cco-shims] mailbox-persistens fel:', e);
+    }
+    try {
+      bootstrapLogout();
+    } catch (e) {
+      console.warn('[cco-shims] logout fel:', e);
+    }
+    try {
+      bootstrapThemeSwitcher();
+    } catch (e) {
+      console.warn('[cco-shims] theme-switcher fel:', e);
+    }
   }
 
   if (document.readyState === 'loading') {

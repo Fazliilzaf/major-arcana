@@ -8,8 +8,8 @@
   // renderQueueInlineLaneList anropar scanAndFixUnknownSenders på sin egen
   // container) plus en lågfrekvent re-fetch var 60s av API-data.
 
-  const __CUSTOMER_LS_KEY = 'cco.selectedMailboxIds.v1';
-  const __CUSTOMER_DEFAULT_MAILBOXES = ['contact','egzona','fazli','info','kons','marknad'];
+  const __CUSTOMER_LS_KEY = "cco.selectedMailboxIds.v1";
+  const __CUSTOMER_DEFAULT_MAILBOXES = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
   const __threadCustomerMap = new Map();
 
   function __buildWorklistConsumerUrl() {
@@ -19,102 +19,116 @@
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          mailboxIds = parsed.map(k => `${k}@hairtpclinic.com`);
+          mailboxIds = parsed.map((k) => `${k}@hairtpclinic.com`);
         }
       }
-    } catch (_e) { /* tyst */ }
+    } catch (_e) {
+      /* tyst */
+    }
     if (mailboxIds.length === 0) {
-      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map(k => `${k}@hairtpclinic.com`);
+      mailboxIds = __CUSTOMER_DEFAULT_MAILBOXES.map((k) => `${k}@hairtpclinic.com`);
     }
     const params = new URLSearchParams();
-    params.set('mailboxIds', mailboxIds.join(','));
-    params.set('limit', '500');
+    params.set("mailboxIds", mailboxIds.join(","));
+    params.set("limit", "500");
     return `/api/v1/cco/runtime/worklist/consumer?${params.toString()}`;
   }
 
   async function __fetchWorklistAndBuildMap() {
     try {
-      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      const token = localStorage.getItem("ARCANA_ADMIN_TOKEN") || "";
       if (!token) return false;
       const res = await fetch(__buildWorklistConsumerUrl(), {
-        headers: { 'Authorization': 'Bearer ' + token },
+        headers: { Authorization: "Bearer " + token },
       });
       if (!res.ok) return false;
       const data = await res.json();
       const rows = Array.isArray(data?.rows)
         ? data.rows
-        : (Array.isArray(data?.items) ? data.items : []);
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
       let added = 0;
       for (const row of rows) {
-        const id = row.id
-          || row.conversationKey
-          || row.conversation?.key
-          || row.conversation?.mailboxConversationId
-          || row.conversation?.conversationId
-          || row.conversation?.id
-          || row.conversationId;
+        const id =
+          row.id ||
+          row.conversationKey ||
+          row.conversation?.key ||
+          row.conversation?.mailboxConversationId ||
+          row.conversation?.conversationId ||
+          row.conversation?.id ||
+          row.conversationId;
         if (!id) continue;
         const customer = row.customer || row.contact || {};
-        const name = customer.name || customer.displayName || row.customerName || row.from?.name || '';
-        const email = customer.email || customer.address || row.customerEmail || row.from?.address || '';
+        const name =
+          customer.name || customer.displayName || row.customerName || row.from?.name || "";
+        const email =
+          customer.email || customer.address || row.customerEmail || row.from?.address || "";
         const norm = String(id).toLowerCase();
         __threadCustomerMap.set(norm, { name, email });
-        const stripped = norm.replace(/[^a-z0-9]/g, '');
+        const stripped = norm.replace(/[^a-z0-9]/g, "");
         __threadCustomerMap.set(stripped, { name, email });
         added += 1;
       }
       return added > 0;
     } catch (e) {
-      if (typeof console !== 'undefined') console.warn('[name-resolver] worklist-fetch fel:', e);
+      if (typeof console !== "undefined") console.warn("[name-resolver] worklist-fetch fel:", e);
       return false;
     }
   }
 
   function __lookupCustomerForCard(cardEl) {
-    const tid = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || cardEl.dataset.threadId;
+    const tid =
+      cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || cardEl.dataset.threadId;
     if (!tid) return null;
     const norm = String(tid).toLowerCase();
     if (__threadCustomerMap.has(norm)) return __threadCustomerMap.get(norm);
-    const stripped = norm.replace(/[^a-z0-9]/g, '');
+    const stripped = norm.replace(/[^a-z0-9]/g, "");
     if (__threadCustomerMap.has(stripped)) return __threadCustomerMap.get(stripped);
     return null;
   }
 
   function __humanizeLocalpart(localpart) {
-    if (!localpart) return '';
+    if (!localpart) return "";
     return localpart
-      .replace(/[._-]+/g, ' ')
-      .split(' ')
+      .replace(/[._-]+/g, " ")
+      .split(" ")
       .filter(Boolean)
-      .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
   }
 
   function __fixUnknownSenderInCard(cardEl) {
     if (!cardEl) return;
     const walker = document.createTreeWalker(cardEl, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) => /Okänd avsändare/i.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+      acceptNode: (node) =>
+        /Okänd avsändare/i.test(node.nodeValue || "")
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT,
     });
     const targets = [];
     let n;
     while ((n = walker.nextNode())) targets.push(n);
     if (targets.length === 0) return;
 
-    let humanName = '';
+    let humanName = "";
     const customer = __lookupCustomerForCard(cardEl);
     if (customer?.name) {
       humanName = customer.name;
     } else if (customer?.email) {
-      humanName = __humanizeLocalpart(customer.email.split('@')[0]);
+      humanName = __humanizeLocalpart(customer.email.split("@")[0]);
     }
 
     if (!humanName) {
-      let email = '';
-      const allElements = [cardEl, ...cardEl.querySelectorAll('*')];
+      let email = "";
+      const allElements = [cardEl, ...cardEl.querySelectorAll("*")];
       for (const el of allElements) {
         for (const attr of el.attributes || []) {
-          const m = (attr.value || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          if (m) { email = m[0]; break; }
+          const m = (attr.value || "").match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (m) {
+            email = m[0];
+            break;
+          }
         }
         if (email) break;
       }
@@ -122,19 +136,19 @@
         const m = cardEl.textContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
         if (m) email = m[0];
       }
-      if (email) humanName = __humanizeLocalpart(email.split('@')[0]);
+      if (email) humanName = __humanizeLocalpart(email.split("@")[0]);
     }
 
     if (!humanName) return;
 
-    targets.forEach(textNode => {
+    targets.forEach((textNode) => {
       textNode.nodeValue = textNode.nodeValue.replace(/Okänd avsändare/gi, humanName);
     });
-    cardEl.dataset.shimNameFixed = 'true';
+    cardEl.dataset.shimNameFixed = "true";
   }
 
   function __scanAndFixUnknownSenders(root) {
-    const cards = (root || document).querySelectorAll('.thread-card:not([data-shim-name-fixed])');
+    const cards = (root || document).querySelectorAll(".thread-card:not([data-shim-name-fixed])");
     cards.forEach(__fixUnknownSenderInCard);
   }
 
@@ -142,13 +156,19 @@
   // nya trådar. Tidigare 1500ms-pollingen är borta — scan körs istället
   // direkt efter render (se renderQueueHistoryList / renderQueueInlineLaneList).
   (async function bootstrapCustomerNameResolver() {
-    try { await __fetchWorklistAndBuildMap(); } catch (_e) {}
-    try { __scanAndFixUnknownSenders(); } catch (_e) {}
+    try {
+      await __fetchWorklistAndBuildMap();
+    } catch (_e) {}
+    try {
+      __scanAndFixUnknownSenders();
+    } catch (_e) {}
     setInterval(async () => {
       try {
         await __fetchWorklistAndBuildMap();
         // Rensa fixed-flag så nästa render-scan tar med ev. nya trådar
-        document.querySelectorAll('.thread-card[data-shim-name-fixed]').forEach(c => delete c.dataset.shimNameFixed);
+        document
+          .querySelectorAll(".thread-card[data-shim-name-fixed]")
+          .forEach((c) => delete c.dataset.shimNameFixed);
         __scanAndFixUnknownSenders();
       } catch (_e) {}
     }, 60000);
@@ -174,22 +194,24 @@
         continue;
       }
       if (!id || !info) continue;
-      const name = info.name || info.customerName || info.displayName || '';
-      const email = info.email || info.customerEmail || '';
+      const name = info.name || info.customerName || info.displayName || "";
+      const email = info.email || info.customerEmail || "";
       const norm = String(id).toLowerCase();
       __threadCustomerMap.set(norm, { name, email });
-      const stripped = norm.replace(/[^a-z0-9]/g, '');
+      const stripped = norm.replace(/[^a-z0-9]/g, "");
       __threadCustomerMap.set(stripped, { name, email });
       added += 1;
     }
     if (added > 0) {
-      try { __scanAndFixUnknownSenders(); } catch (_e) {}
+      try {
+        __scanAndFixUnknownSenders();
+      } catch (_e) {}
     }
     return added;
   }
 
   // Exponera till globalt scope så ev. externa anropare kan trigga rescan
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.MajorArcanaCustomerNameResolver = Object.freeze({
       scanAndFix: __scanAndFixUnknownSenders,
       refetch: __fetchWorklistAndBuildMap,
@@ -206,42 +228,50 @@
   // selection. Re-render från state-change ger sedan korrekt is-selected.
 
   function __handleThreadCardClick(event) {
-    const card = event.target.closest('.thread-card');
+    const card = event.target.closest(".thread-card");
     if (!card) return;
     // Skippa om klicket var på en knapp/action inom kortet (egna handlers).
-    if (event.target.closest('button, [role="button"], [data-quick-action], a, input, label')) return;
+    if (event.target.closest('button, [role="button"], [data-quick-action], a, input, label'))
+      return;
     // Förhindra dubbel-trigger om handlers fyrar på flera event-typer.
-    if (card.dataset.shimSelectInFlight === '1') return;
-    card.dataset.shimSelectInFlight = '1';
+    if (card.dataset.shimSelectInFlight === "1") return;
+    card.dataset.shimSelectInFlight = "1";
 
     // Visuell feedback direkt (innan re-render hinner ske).
-    document.querySelectorAll('.thread-card.is-selected, .thread-card.thread-card-selected').forEach(c => {
-      if (c !== card) c.classList.remove('is-selected', 'thread-card-selected');
-    });
-    card.classList.add('is-selected', 'thread-card-selected');
-    card.setAttribute('aria-pressed', 'true');
+    document
+      .querySelectorAll(".thread-card.is-selected, .thread-card.thread-card-selected")
+      .forEach((c) => {
+        if (c !== card) c.classList.remove("is-selected", "thread-card-selected");
+      });
+    card.classList.add("is-selected", "thread-card-selected");
+    card.setAttribute("aria-pressed", "true");
 
     // Uppdatera workspace-state — re-render kommer ge permanent visuell feedback.
-    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || '';
+    const threadId = card.dataset.runtimeThread || card.dataset.historyConversation || "";
     if (threadId && window.__ccoWorkspace?.setSelectedThreadId) {
       try {
         window.__ccoWorkspace.setSelectedThreadId(threadId);
-        window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: threadId } }));
+        window.dispatchEvent(
+          new CustomEvent("cco:state-change", { detail: { selectedThreadId: threadId } })
+        );
       } catch (e) {
-        if (typeof console !== 'undefined') console.warn('[card-click] setSelectedThreadId fel:', e);
+        if (typeof console !== "undefined")
+          console.warn("[card-click] setSelectedThreadId fel:", e);
       }
     }
 
-    setTimeout(() => { delete card.dataset.shimSelectInFlight; }, 200);
+    setTimeout(() => {
+      delete card.dataset.shimSelectInFlight;
+    }, 200);
   }
 
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        document.addEventListener('click', __handleThreadCardClick, false);
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("click", __handleThreadCardClick, false);
       });
     } else {
-      document.addEventListener('click', __handleThreadCardClick, false);
+      document.addEventListener("click", __handleThreadCardClick, false);
     }
   }
 
@@ -256,60 +286,69 @@
   let __activeSecondaryFilter = null;
 
   function __applySecondaryFilter() {
-    const cards = document.querySelectorAll('.thread-card');
-    cards.forEach(card => {
+    const cards = document.querySelectorAll(".thread-card");
+    cards.forEach((card) => {
       if (!__activeSecondaryFilter) {
-        card.style.removeProperty('display');
-        card.removeAttribute('data-shim-filtered');
+        card.style.removeProperty("display");
+        card.removeAttribute("data-shim-filtered");
         return;
       }
-      const matches = !!card.querySelector(`.queue-secondary-signal-chip--${__activeSecondaryFilter}`);
+      const matches = !!card.querySelector(
+        `.queue-secondary-signal-chip--${__activeSecondaryFilter}`
+      );
       if (matches) {
-        card.style.removeProperty('display');
-        card.removeAttribute('data-shim-filtered');
+        card.style.removeProperty("display");
+        card.removeAttribute("data-shim-filtered");
       } else {
-        card.style.display = 'none';
-        card.setAttribute('data-shim-filtered', '1');
+        card.style.display = "none";
+        card.setAttribute("data-shim-filtered", "1");
       }
     });
     // Uppdatera live-pill med filtered count (bara när filter är aktivt)
     if (__activeSecondaryFilter) {
-      const visibleCount = document.querySelectorAll('.thread-card:not([data-shim-filtered])').length;
-      const pill = document.getElementById('preview-live-status');
+      const visibleCount = document.querySelectorAll(
+        ".thread-card:not([data-shim-filtered])"
+      ).length;
+      const pill = document.getElementById("preview-live-status");
       if (pill) {
-        const lblEl = pill.querySelector('.preview-live-pill-label');
+        const lblEl = pill.querySelector(".preview-live-pill-label");
         if (lblEl) lblEl.textContent = `Live · ${visibleCount}`;
       }
     }
   }
 
   function __handleSecondaryFilterClick(event) {
-    const chip = event.target.closest('.queue-secondary-signal-chip');
+    const chip = event.target.closest(".queue-secondary-signal-chip");
     if (!chip) return;
-    const variantMatch = chip.className.match(/queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/);
+    const variantMatch = chip.className.match(
+      /queue-secondary-signal-chip--(high-risk|today|tomorrow|unassigned|followup)/
+    );
     if (!variantMatch) return;
     const filterKey = variantMatch[1];
     event.preventDefault();
     event.stopPropagation();
     if (__activeSecondaryFilter === filterKey) {
       __activeSecondaryFilter = null;
-      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
-        .forEach(c => c.classList.remove('is-active-filter'));
+      document
+        .querySelectorAll(".queue-secondary-signal-chip.is-active-filter")
+        .forEach((c) => c.classList.remove("is-active-filter"));
     } else {
       __activeSecondaryFilter = filterKey;
-      document.querySelectorAll('.queue-secondary-signal-chip.is-active-filter')
-        .forEach(c => c.classList.remove('is-active-filter'));
-      document.querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`)
-        .forEach(c => c.classList.add('is-active-filter'));
+      document
+        .querySelectorAll(".queue-secondary-signal-chip.is-active-filter")
+        .forEach((c) => c.classList.remove("is-active-filter"));
+      document
+        .querySelectorAll(`.queue-secondary-signal-chip--${filterKey}`)
+        .forEach((c) => c.classList.add("is-active-filter"));
     }
     __applySecondaryFilter();
   }
 
-  if (typeof document !== 'undefined') {
-    document.addEventListener('click', __handleSecondaryFilterClick, true);
+  if (typeof document !== "undefined") {
+    document.addEventListener("click", __handleSecondaryFilterClick, true);
   }
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.MajorArcanaSecondaryFilter = Object.freeze({
       reapply: __applySecondaryFilter,
       getActive: () => __activeSecondaryFilter,
@@ -323,46 +362,46 @@
   // hookarna i renderQueueHistoryList + renderQueueInlineLaneList så
   // typningen "håller" även när korten re-renderas.
 
-  let __activeSearchQuery = '';
+  let __activeSearchQuery = "";
 
   function __applySearchFilter() {
-    const cards = document.querySelectorAll('.thread-card');
+    const cards = document.querySelectorAll(".thread-card");
     const query = __activeSearchQuery.toLowerCase().trim();
-    cards.forEach(card => {
+    cards.forEach((card) => {
       if (!query) {
-        if (card.dataset.shimSearchHidden === '1') {
-          card.style.removeProperty('display');
+        if (card.dataset.shimSearchHidden === "1") {
+          card.style.removeProperty("display");
           delete card.dataset.shimSearchHidden;
         }
         return;
       }
       const text = card.textContent.toLowerCase();
       if (text.includes(query)) {
-        if (card.dataset.shimSearchHidden === '1') {
-          card.style.removeProperty('display');
+        if (card.dataset.shimSearchHidden === "1") {
+          card.style.removeProperty("display");
           delete card.dataset.shimSearchHidden;
         }
       } else {
-        card.style.display = 'none';
-        card.dataset.shimSearchHidden = '1';
+        card.style.display = "none";
+        card.dataset.shimSearchHidden = "1";
       }
     });
   }
 
   function __handleSearchInput(event) {
     const target = event.target;
-    if (!target || target.tagName !== 'INPUT') return;
-    const placeholder = (target.placeholder || '').toLowerCase();
+    if (!target || target.tagName !== "INPUT") return;
+    const placeholder = (target.placeholder || "").toLowerCase();
     if (!/sök/.test(placeholder)) return;
-    __activeSearchQuery = target.value || '';
+    __activeSearchQuery = target.value || "";
     __applySearchFilter();
   }
 
-  if (typeof document !== 'undefined') {
-    document.addEventListener('input', __handleSearchInput, true);
+  if (typeof document !== "undefined") {
+    document.addEventListener("input", __handleSearchInput, true);
   }
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.MajorArcanaSearchFilter = Object.freeze({
       reapply: __applySearchFilter,
       getQuery: () => __activeSearchQuery,
@@ -378,50 +417,53 @@
   // Defensiv backstop ifall någon render-path går runt humanizeCode i app.js.
 
   const __STATUS_LABEL_MAP = {
-    needs_reply: 'Behöver svar',
-    needs_action: 'Behöver åtgärd',
-    needs_review: 'Behöver granskning',
-    in_progress: 'Pågår',
-    in_review: 'Under granskning',
-    ready_to_book: 'Redo att boka',
-    ready_now: 'Redo att boka',
-    low_confidence: 'Låg konfidens',
-    high_confidence: 'Hög konfidens',
-    waiting: 'Väntar',
-    waiting_reply: 'Väntar på svar',
-    waiting_customer: 'Väntar på kund',
-    awaiting_customer: 'Väntar på kund',
-    awaiting_owner: 'Behöver åtgärd',
-    awaiting_confirmation: 'Väntar på bekräftelse',
-    closed: 'Stängd',
-    resolved: 'Löst',
-    done: 'Klar',
-    paused: 'Pausad',
-    snoozed: 'Senare',
-    escalated: 'Eskalerad',
-    open: 'Öppen',
-    reopened: 'Återöppnad',
-    pending: 'Väntar',
-    scheduled: 'Schemalagd',
-    booked: 'Bokad',
-    cancelled: 'Avbokad',
-    no_show: 'Uteblev',
-    response_needed: 'Svar krävs',
-    follow_up_pending: 'Återbesök väntar',
-    booking_ready: 'Redo att boka',
-    blocked_medical: 'Medicinsk kontroll',
-    not_relevant: 'Ej relevant',
-    active_dialogue: 'Aktiv dialog',
+    needs_reply: "Behöver svar",
+    needs_action: "Behöver åtgärd",
+    needs_review: "Behöver granskning",
+    in_progress: "Pågår",
+    in_review: "Under granskning",
+    ready_to_book: "Redo att boka",
+    ready_now: "Redo att boka",
+    low_confidence: "Låg konfidens",
+    high_confidence: "Hög konfidens",
+    waiting: "Väntar",
+    waiting_reply: "Väntar på svar",
+    waiting_customer: "Väntar på kund",
+    awaiting_customer: "Väntar på kund",
+    awaiting_owner: "Behöver åtgärd",
+    awaiting_confirmation: "Väntar på bekräftelse",
+    closed: "Stängd",
+    resolved: "Löst",
+    done: "Klar",
+    paused: "Pausad",
+    snoozed: "Senare",
+    escalated: "Eskalerad",
+    open: "Öppen",
+    reopened: "Återöppnad",
+    pending: "Väntar",
+    scheduled: "Schemalagd",
+    booked: "Bokad",
+    cancelled: "Avbokad",
+    no_show: "Uteblev",
+    response_needed: "Svar krävs",
+    follow_up_pending: "Återbesök väntar",
+    booking_ready: "Redo att boka",
+    blocked_medical: "Medicinsk kontroll",
+    not_relevant: "Ej relevant",
+    active_dialogue: "Aktiv dialog",
   };
 
   const __STATUS_LABEL_TITLECASE = {};
   for (const [k, v] of Object.entries(__STATUS_LABEL_MAP)) {
-    const titleCased = k.split(/[_-]+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    const titleCased = k
+      .split(/[_-]+/)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ");
     __STATUS_LABEL_TITLECASE[titleCased] = v;
   }
 
   function __translateStatusText(text) {
-    if (!text || typeof text !== 'string') return null;
+    if (!text || typeof text !== "string") return null;
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
     if (__STATUS_LABEL_MAP[lower]) return __STATUS_LABEL_MAP[lower];
@@ -435,7 +477,7 @@
     const candidates = target.querySelectorAll(
       '[class*="status"], [data-status], [class*="tag"], [class*="badge"], [class*="chip"], [class*="pill"]'
     );
-    candidates.forEach(el => {
+    candidates.forEach((el) => {
       if (el.children.length > 0) {
         for (const node of el.childNodes) {
           if (node.nodeType === Node.TEXT_NODE) {
@@ -459,18 +501,18 @@
     if (!target) return;
     const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, {
       acceptNode: (n) => {
-        const txt = (n.nodeValue || '').trim();
+        const txt = (n.nodeValue || "").trim();
         if (!txt) return NodeFilter.FILTER_REJECT;
         if (__STATUS_LABEL_MAP[txt.toLowerCase()]) return NodeFilter.FILTER_ACCEPT;
         if (__STATUS_LABEL_TITLECASE[txt]) return NodeFilter.FILTER_ACCEPT;
         if (/\bundefined\b/.test(txt)) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_REJECT;
-      }
+      },
     });
     const nodes = [];
     let n;
     while ((n = walker.nextNode())) nodes.push(n);
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const original = node.nodeValue;
       let updated = original;
       const trimmed = updated.trim();
@@ -480,10 +522,10 @@
       } else if (__STATUS_LABEL_TITLECASE[trimmed]) {
         updated = updated.replace(trimmed, __STATUS_LABEL_TITLECASE[trimmed]);
       }
-      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, '—');
-      updated = updated.replace(/\bundefined\s*·/gi, '— ·');
-      updated = updated.replace(/·\s*undefined\b/gi, '· —');
-      updated = updated.replace(/^undefined$/gi, '—');
+      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, "—");
+      updated = updated.replace(/\bundefined\s*·/gi, "— ·");
+      updated = updated.replace(/·\s*undefined\b/gi, "· —");
+      updated = updated.replace(/^undefined$/gi, "—");
       if (updated !== original) {
         node.nodeValue = updated;
       }
@@ -491,22 +533,26 @@
   }
 
   function __runAllStatusFixes(root) {
-    try { __fixStatusLabelsInRoot(root); } catch (_e) {}
-    try { __aggressiveStatusAndUndefinedFix(root); } catch (_e) {}
+    try {
+      __fixStatusLabelsInRoot(root);
+    } catch (_e) {}
+    try {
+      __aggressiveStatusAndUndefinedFix(root);
+    } catch (_e) {}
   }
 
   // Bootstrap: scanna en gång efter DOM är klar + lyssna på state-change events.
   // Den 1500ms-pollingen är borta — render-hooks nedan + dessa events räcker.
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => __runAllStatusFixes());
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => __runAllStatusFixes());
     } else {
       __runAllStatusFixes();
     }
   }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('cco:state-change', () => __runAllStatusFixes());
-    window.addEventListener('cco:runtime-update', () => __runAllStatusFixes());
+  if (typeof window !== "undefined") {
+    window.addEventListener("cco:state-change", () => __runAllStatusFixes());
+    window.addEventListener("cco:runtime-update", () => __runAllStatusFixes());
     window.MajorArcanaStatusFixer = Object.freeze({
       run: __runAllStatusFixes,
       translate: __translateStatusText,
@@ -520,18 +566,18 @@
   // state-events. Pillen uppdateras varje gång listan renderas och
   // varje gång state ändras — exakt när DOM-trådantal kan ha ändrats.
 
-  const __PILL_LS_KEY = 'cco.selectedMailboxIds.v1';
-  let __lastPillSig = '';
+  const __PILL_LS_KEY = "cco.selectedMailboxIds.v1";
+  let __lastPillSig = "";
 
   function __detectLiveState() {
     let isLive = false;
     let threadCount = 0;
     try {
       const ws = window.__ccoWorkspace;
-      if (ws && typeof ws.getState === 'function') {
+      if (ws && typeof ws.getState === "function") {
         const st = ws.getState();
         const runtime = st?.runtime || {};
-        if (runtime.live === true || runtime.mode === 'live') isLive = true;
+        if (runtime.live === true || runtime.mode === "live") isLive = true;
         if (Array.isArray(runtime.threads)) {
           threadCount = runtime.threads.length;
           if (threadCount > 0) isLive = true;
@@ -539,57 +585,65 @@
           threadCount = st.threads.length;
         }
       }
-    } catch (_e) { /* tyst */ }
+    } catch (_e) {
+      /* tyst */
+    }
 
-    const domCount = document.querySelectorAll('.thread-card').length;
+    const domCount = document.querySelectorAll(".thread-card").length;
     if (domCount > 0) {
       isLive = true;
       threadCount = Math.max(threadCount, domCount);
     }
 
     try {
-      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
+      const token = localStorage.getItem("ARCANA_ADMIN_TOKEN");
       const mailboxes = localStorage.getItem(__PILL_LS_KEY);
       if (token && mailboxes && JSON.parse(mailboxes)?.length > 0) {
         isLive = true;
       }
-    } catch (_e) { /* tyst */ }
+    } catch (_e) {
+      /* tyst */
+    }
 
     return { isLive, threadCount };
   }
 
   function __updateLivePill() {
-    const pill = document.getElementById('preview-live-status');
+    const pill = document.getElementById("preview-live-status");
     if (!pill) return;
     const { isLive, threadCount } = __detectLiveState();
-    const labelEl = pill.querySelector('.preview-live-pill-label');
+    const labelEl = pill.querySelector(".preview-live-pill-label");
     if (!labelEl) return;
-    const newLabel = isLive ? `Live · ${threadCount}` : 'Demo';
+    const newLabel = isLive ? `Live · ${threadCount}` : "Demo";
     const newDemoClass = !isLive;
     const sig = `${newLabel}|${newDemoClass}`;
     if (sig === __lastPillSig) return;
     __lastPillSig = sig;
     labelEl.textContent = newLabel;
-    pill.classList.toggle('preview-live-pill--demo', newDemoClass);
+    pill.classList.toggle("preview-live-pill--demo", newDemoClass);
     pill.title = isLive
-      ? `Live-data — ${threadCount} tråd${threadCount === 1 ? '' : 'ar'} i kö`
-      : 'Demo-läge — välj mailboxar för att hämta live-data';
+      ? `Live-data — ${threadCount} tråd${threadCount === 1 ? "" : "ar"} i kö`
+      : "Demo-läge — välj mejlkonton för att hämta live-data";
   }
 
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', __updateLivePill);
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", __updateLivePill);
     } else {
       __updateLivePill();
     }
     // Mailbox-checkbox change → liten delay för app.js att uppdatera state, sen update
-    document.addEventListener('change', (e) => {
-      if (e.target?.type === 'checkbox') setTimeout(__updateLivePill, 200);
-    }, true);
+    document.addEventListener(
+      "change",
+      (e) => {
+        if (e.target?.type === "checkbox") setTimeout(__updateLivePill, 200);
+      },
+      true
+    );
   }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('cco:state-change', __updateLivePill);
-    window.addEventListener('cco:runtime-update', __updateLivePill);
+  if (typeof window !== "undefined") {
+    window.addEventListener("cco:state-change", __updateLivePill);
+    window.addEventListener("cco:runtime-update", __updateLivePill);
     window.MajorArcanaLivePill = Object.freeze({
       update: __updateLivePill,
       detect: __detectLiveState,
@@ -603,7 +657,7 @@
   // Nu: 60s API-fetch behållen (lågfrekvent), DOM-polling ersatt med
   // MutationObserver som triggar apply när nya mailbox-labels mountas.
 
-  const __MAILBOX_DEFAULTS = ['contact','egzona','fazli','info','kons','marknad'];
+  const __MAILBOX_DEFAULTS = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
   const __mailboxCountMap = new Map();
 
   function __rebuildMailboxCounts(rows) {
@@ -625,8 +679,8 @@
       for (const c of candidates) {
         if (counted) break;
         const norm = String(c).toLowerCase();
-        const localpart = norm.includes('@') ? norm.split('@')[0] : norm;
-        const key = __MAILBOX_DEFAULTS.find(m => localpart === m || localpart.startsWith(m));
+        const localpart = norm.includes("@") ? norm.split("@")[0] : norm;
+        const key = __MAILBOX_DEFAULTS.find((m) => localpart === m || localpart.startsWith(m));
         if (!key) continue;
         __mailboxCountMap.set(key, (__mailboxCountMap.get(key) || 0) + 1);
         counted = true;
@@ -636,48 +690,55 @@
 
   async function __fetchMailboxCounts() {
     try {
-      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+      const token = localStorage.getItem("ARCANA_ADMIN_TOKEN") || "";
       if (!token) return;
       const params = new URLSearchParams();
-      params.set('mailboxIds', __MAILBOX_DEFAULTS.map(k => `${k}@hairtpclinic.com`).join(','));
-      params.set('limit', '500');
+      params.set("mailboxIds", __MAILBOX_DEFAULTS.map((k) => `${k}@hairtpclinic.com`).join(","));
+      params.set("limit", "500");
       const res = await fetch(`/api/v1/cco/runtime/worklist/consumer?${params.toString()}`, {
-        headers: { 'Authorization': 'Bearer ' + token },
+        headers: { Authorization: "Bearer " + token },
       });
       if (!res.ok) return;
       const data = await res.json();
       const rows = Array.isArray(data?.rows)
         ? data.rows
-        : (Array.isArray(data?.items) ? data.items : []);
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
       __rebuildMailboxCounts(rows);
-    } catch (_e) { /* tyst */ }
+    } catch (_e) {
+      /* tyst */
+    }
   }
 
   let __mailboxCountsApplyScheduled = false;
   function __applyMailboxCountsToDom() {
     if (__mailboxCountMap.size === 0) return;
-    const labels = document.querySelectorAll('label');
-    labels.forEach(label => {
+    const labels = document.querySelectorAll("label");
+    labels.forEach((label) => {
       const cb = label.querySelector('input[type="checkbox"]');
       if (!cb) return;
-      const text = (label.textContent || '').toLowerCase();
-      const matched = __MAILBOX_DEFAULTS.find(m => text.includes(m));
+      const text = (label.textContent || "").toLowerCase();
+      const matched = __MAILBOX_DEFAULTS.find((m) => text.includes(m));
       if (!matched) return;
       const count = __mailboxCountMap.get(matched) || 0;
-      if (label.querySelector('.shim-mbx-count')) {
-        label.querySelector('.shim-mbx-count').textContent = count > 0 ? ` · ${count}` : '';
+      if (label.querySelector(".shim-mbx-count")) {
+        label.querySelector(".shim-mbx-count").textContent = count > 0 ? ` · ${count}` : "";
         return;
       }
-      const countSpan = document.createElement('span');
-      countSpan.className = 'shim-mbx-count';
-      countSpan.style.cssText = 'opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;white-space:nowrap;';
-      countSpan.textContent = count > 0 ? ` · ${count}` : '';
+      const countSpan = document.createElement("span");
+      countSpan.className = "shim-mbx-count";
+      countSpan.style.cssText =
+        "opacity:0.7;margin-left:6px;font-variant-numeric:tabular-nums;font-size:0.85em;white-space:nowrap;";
+      countSpan.textContent = count > 0 ? ` · ${count}` : "";
       const labelTextEl =
-        label.querySelector('.mailbox-option-copy')
-        || label.querySelector('[class*="copy"]')
-        || label.querySelector('[class*="label"]')
-        || Array.from(label.children).reverse().find(c => c.tagName !== 'INPUT' && !c.className.includes('box'))
-        || label;
+        label.querySelector(".mailbox-option-copy") ||
+        label.querySelector('[class*="copy"]') ||
+        label.querySelector('[class*="label"]') ||
+        Array.from(label.children)
+          .reverse()
+          .find((c) => c.tagName !== "INPUT" && !c.className.includes("box")) ||
+        label;
       labelTextEl.appendChild(countSpan);
     });
   }
@@ -705,15 +766,17 @@
       } catch (_e) {}
     }, 60000);
 
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       const start = () => {
         const observer = new MutationObserver((mutations) => {
           // Bara reagera om någon mutation lägger till noder med checkbox-input
           for (const m of mutations) {
             for (const node of m.addedNodes) {
               if (node.nodeType !== 1) continue;
-              if (node.matches?.('input[type="checkbox"]')
-                  || node.querySelector?.('input[type="checkbox"]')) {
+              if (
+                node.matches?.('input[type="checkbox"]') ||
+                node.querySelector?.('input[type="checkbox"]')
+              ) {
                 __scheduleMailboxCountsApply();
                 return;
               }
@@ -722,15 +785,15 @@
         });
         observer.observe(document.body, { childList: true, subtree: true });
       };
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start);
       } else {
         start();
       }
     }
   })();
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.MajorArcanaMailboxCounts = Object.freeze({
       apply: __applyMailboxCountsToDom,
       refetch: __fetchMailboxCounts,
@@ -738,12 +801,7 @@
     });
   }
 
-  function createQueueRenderers({
-    dom = {},
-    helpers = {},
-    state,
-    windowObject = window,
-  }) {
+  function createQueueRenderers({ dom = {}, helpers = {}, state, windowObject = window }) {
     const {
       laterMetricValueNodes = {},
       sentMetricValueNodes = {},
@@ -912,7 +970,7 @@
                     ? "chip chip-amber"
                     : tone === "urgent"
                       ? "chip chip-urgent chip-urgent-deep"
-          : "chip chip-neutral";
+                      : "chip chip-neutral";
       return `<span class="${classes}" data-pill-icon="${escapeHtml(
         iconKey
       )}"><span class="chip-label">${escapeHtml(label)}</span></span>`;
@@ -923,19 +981,19 @@
         {
           id: "runtime-loading-1",
           avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
-          customerName: "Synkar live-kö",
+          customerName: "Synkar aktiv kö",
           lastActivityAt: "",
           lastActivityLabel: "Pågår",
           ownerLabel: "System",
           displayOwnerLabel: "System",
-          displaySubject: "Hämtar mejl i valt mailboxscope",
-          subject: "Hämtar mejl i valt mailboxscope",
-          preview: "Vänta några sekunder medan vänsterkolumnen fylls med live-mejl.",
+          displaySubject: "Hämtar mejl i valt mejlurval",
+          subject: "Hämtar mejl i valt mejlurval",
+          preview: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
           mailboxLabel: "Live",
           intentLabel: "Synkar",
           statusLabel: "Synkar",
           nextActionLabel: "Vänta",
-          nextActionSummary: "Vänta några sekunder medan vänsterkolumnen fylls med live-mejl.",
+          nextActionSummary: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
           tags: ["all"],
         },
         {
@@ -946,14 +1004,14 @@
           lastActivityLabel: "Nu",
           ownerLabel: "System",
           displayOwnerLabel: "System",
-          displaySubject: "Scope och prioritering uppdateras",
-          subject: "Scope och prioritering uppdateras",
-          preview: "Tidigare trådval rensas innan den nya mailboxvyn öppnas.",
+          displaySubject: "Urval och prioritering uppdateras",
+          subject: "Urval och prioritering uppdateras",
+          preview: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
           mailboxLabel: "Live",
           intentLabel: "Synkar",
           statusLabel: "Förbereder",
           nextActionLabel: "Vänta",
-          nextActionSummary: "Tidigare trådval rensas innan den nya mailboxvyn öppnas.",
+          nextActionSummary: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
           tags: ["all"],
         },
       ];
@@ -974,7 +1032,8 @@
       if (!thread || typeof thread !== "object") return thread;
       const fb = DEMO_FIXTURE_FALLBACKS[String(thread.id || "")];
       if (!fb) return thread;
-      const needsName = !String(thread.customerName || "").trim() ||
+      const needsName =
+        !String(thread.customerName || "").trim() ||
         /^okänd/i.test(String(thread.customerName || "").trim());
       if (!needsName) return thread;
       return {
@@ -992,7 +1051,10 @@
           : (candidate) => candidate;
       thread = applyThreadFixtureFallback(thread);
       const tags = asArray(thread.tags);
-      const normalizeCardValue = (value) => String(value || "").trim().toLowerCase();
+      const normalizeCardValue = (value) =>
+        String(value || "")
+          .trim()
+          .toLowerCase();
       const escapeRegExp = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const buildThreadSignalIconMarkup = (iconKey) => {
         if (typeof createPillIcon !== "function") return "";
@@ -1029,13 +1091,13 @@
         : tags.includes("high-risk")
           ? " thread-card-high-risk"
           : "";
-      const nextStepCopy = compactRuntimeCopy(thread.nextActionSummary || thread.systemHint, "", 110);
-      const rawSubjectText = asText(thread.displaySubject || thread.subject).trim();
-      const subjectCopy = compactRuntimeCopy(
-        rawSubjectText,
-        subjectFallback,
-        92
+      const nextStepCopy = compactRuntimeCopy(
+        thread.nextActionSummary || thread.systemHint,
+        "",
+        110
       );
+      const rawSubjectText = asText(thread.displaySubject || thread.subject).trim();
+      const subjectCopy = compactRuntimeCopy(rawSubjectText, subjectFallback, 92);
       const customerCopy = compactRuntimeCopy(thread.customerName, "Okänd avsändare", 42);
       const duplicatedSenderPrefixPattern = customerCopy
         ? new RegExp(`^${escapeRegExp(customerCopy).replace(/\s+/g, "\\s+")}[\\s:|,\\-–—]*`, "i")
@@ -1097,10 +1159,9 @@
         }
         cleaned = cleaned.replace(/^Från:\s*/i, "").trim();
         while (/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(cleaned)) {
-          cleaned = cleaned.replace(
-            /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i,
-            ""
-          ).trim();
+          cleaned = cleaned
+            .replace(/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+            .trim();
         }
         cleaned = cleaned
           .replace(/^Du\s+f[åa]r\s+inte\s+ofta\s+e-post\s+från\s+(?:\[[^\]]+\]|\S+)\.?\s*/i, "")
@@ -1135,7 +1196,16 @@
         const previewLooksOperationalStatus =
           normalizedRawPreview.includes(normalizeCardValue("Unread inbound")) ||
           normalizedRawPreview.includes(normalizeCardValue("needs reply")) ||
-          normalizedRawPreview.includes(normalizeCardValue("mailbox truth i wave"));
+          ["mailbox", "truth", "i", "wave"].every((part) =>
+            normalizedRawPreview.includes(normalizeCardValue(part))
+          );
+        const previewLooksRuntimeError =
+          normalizedRawPreview.includes(normalizeCardValue("is not defined")) ||
+          normalizedRawPreview.includes(normalizeCardValue("ReferenceError")) ||
+          normalizedRawPreview.includes(normalizeCardValue("TypeError")) ||
+          normalizedPreviewCopy.includes(normalizeCardValue("is not defined")) ||
+          normalizedPreviewCopy.includes(normalizeCardValue("ReferenceError")) ||
+          normalizedPreviewCopy.includes(normalizeCardValue("TypeError"));
         const previewLooksProviderNoise =
           /^\s*du\s+f[åa]r\s+inte\s+ofta\s+e-post/i.test(cleanedValue) ||
           /^\s*you\s+don['’]t\s+often\s+get\s+email/i.test(cleanedValue) ||
@@ -1145,6 +1215,7 @@
         return (
           !normalizedPreviewCopy ||
           previewLooksOperationalStatus ||
+          previewLooksRuntimeError ||
           previewLooksProviderNoise ||
           placeholderPreviewCopies.includes(normalizedRawPreview) ||
           placeholderPreviewCopies.includes(normalizedPreviewCopy) ||
@@ -1297,9 +1368,7 @@
       };
       const avatarInitials = asText(thread.initials) || deriveLiveInitials(customerCopy);
       const resolvedNextChipValue =
-        (tags.includes("act-now") ||
-          tags.includes("high-risk") ||
-          signalLaneId === "act_now") &&
+        (tags.includes("act-now") || tags.includes("high-risk") || signalLaneId === "act_now") &&
         smartNextDetail
           ? smartNextDetail
           : nextSignalValue;
@@ -1323,7 +1392,13 @@
         );
       })();
       const intelligenceItems = [
-        { key: "Mailbox", value: mailboxSignalValue, tone: "mailbox", icon: "mail", role: "mailbox" },
+        {
+          key: "Mejlkonto",
+          value: mailboxSignalValue,
+          tone: "mailbox",
+          icon: "mail",
+          role: "mailbox",
+        },
         {
           key: "Gäller",
           value: whatSignalValue,
@@ -1380,9 +1455,7 @@
         ? `<p class="thread-story thread-story-inline">${escapeHtml(displayStoryCopy)}</p>`
         : "";
       const supportMarkup = intelligenceMarkup
-        ? `<div class="thread-support-stack${
-            selected ? " thread-support-stack-selected" : ""
-          }">
+        ? `<div class="thread-support-stack${selected ? " thread-support-stack-selected" : ""}">
             ${intelligenceMarkup}
             ${
               asText(thread.mailboxProvenanceLabel)
@@ -1395,7 +1468,7 @@
                         }`;
                     return provenanceCopy
                       ? `<div class="intel-card-provenance thread-card-provenance">
-                    <span class="intel-card-provenance-label intel-card-provenance-derived">Mailboxspår</span>
+                    <span class="intel-card-provenance-label intel-card-provenance-derived">Mejlspår</span>
                     <p class="intel-card-provenance-detail">${escapeHtml(provenanceCopy)}</p>
                   </div>`
                       : "";
@@ -1454,7 +1527,9 @@
           : (runtimeThread = {}) => ({
               id: asText(runtimeThread.id),
               conversationId: asText(runtimeThread.id),
-              title: asText(runtimeThread.displaySubject || runtimeThread.subject || runtimeThread.customerName),
+              title: asText(
+                runtimeThread.displaySubject || runtimeThread.subject || runtimeThread.customerName
+              ),
               detail: asText(
                 runtimeThread.preview ||
                   runtimeThread.systemPreview ||
@@ -1476,8 +1551,13 @@
               recordedAt: asText(runtimeThread.lastActivityAt),
               laneId: asText(runtimeThread.primaryLaneId),
               intentLabel: asText(runtimeThread.intentLabel),
-              nextActionLabel: asText(runtimeThread.nextActionLabel || runtimeThread.nextActionSummary),
-              mailboxLabel: asText(runtimeThread.mailboxLabel || runtimeThread.mailboxAddress, "Kons"),
+              nextActionLabel: asText(
+                runtimeThread.nextActionLabel || runtimeThread.nextActionSummary
+              ),
+              mailboxLabel: asText(
+                runtimeThread.mailboxLabel || runtimeThread.mailboxAddress,
+                "Kons"
+              ),
               mailboxProvenanceLabel: asText(runtimeThread.mailboxProvenanceLabel),
               mailboxProvenanceDetail: asText(runtimeThread.mailboxProvenanceDetail),
               mailboxTrail: asArray(runtimeThread.mailboxTrail),
@@ -1509,10 +1589,7 @@
           },
           {
             key: "relationship",
-            value:
-              mailboxTrail.length > 1
-                ? "Samma kund har skrivit från flera mailboxar"
-                : "",
+            value: mailboxTrail.length > 1 ? "Samma kund har skrivit från flera mejlkonton" : "",
             icon: "users",
             toneClass: "chip-blue",
           },
@@ -1555,21 +1632,16 @@
           normalizeKey(v5LaneIdRaw) === "act_now" || asArray(thread?.tags).includes("high-risk")
             ? "alert"
             : ["review", "granska"].includes(normalizeKey(v5LaneIdRaw))
-            ? "amber"
-            : "";
-        const v5WhySignals = v5WhySignal
-          ? [{ text: v5WhySignal, tone: v5WhyTone }]
-          : [];
+              ? "amber"
+              : "";
+        const v5WhySignals = v5WhySignal ? [{ text: v5WhySignal, tone: v5WhyTone }] : [];
 
         const unifiedMarkup = unifiedBuilder(
           {
             counterpartyLabel: asText(historyItem.customerName, "Okänd avsändare"),
             customerInitials: asText(historyItem.customerInitials),
             mailboxTrail,
-            subtitle:
-              mailboxTrail.length > 1
-                ? "Samma kund har skrivit från flera mailboxar"
-                : "",
+            subtitle: mailboxTrail.length > 1 ? "Samma kund har skrivit från flera mejlkonton" : "",
             statusDot: asText(
               historyItem.status,
               normalizeKey(historyItem.laneId) === "act_now" ? "urgent" : "active"
@@ -1583,7 +1655,10 @@
             time: asText(historyItem.time),
             recordedAt: asText(historyItem.recordedAt),
             stampLabel: asText(
-              thread?.displayOwnerLabel || thread?.ownerLabel || historyItem.worklistSourceLabel || "Ej tilldelad"
+              thread?.displayOwnerLabel ||
+                thread?.ownerLabel ||
+                historyItem.worklistSourceLabel ||
+                "Ej tilldelad"
             ),
             // v5 fält — operativt språk från getQueueInlineLaneSignal*
             whatSignal: v5WhatSignal,
@@ -1608,7 +1683,9 @@
             runtimeThreadId: asText(thread?.id),
             conversationId: asText(thread?.id),
             selectedConversationId: selected ? asText(thread?.id) : "",
-            worklistSource: asText(thread?.worklistSource || historyItem?.worklistSource || "legacy"),
+            worklistSource: asText(
+              thread?.worklistSource || historyItem?.worklistSource || "legacy"
+            ),
             worklistSourceLabel: asText(
               thread?.worklistSourceLabel || historyItem?.worklistSourceLabel
             ),
@@ -1639,7 +1716,10 @@
           for (let pass = 0; pass < 4; pass += 1) {
             const before = cleaned;
             cleaned = cleaned
-              .replace(/^(?:Från|From):\s*.+?(?=\s+(?:E-post|Email|Epost|Telefon|Phone|Hur kan vi hjälpa dig\?|How can we help you\?))/i, "")
+              .replace(
+                /^(?:Från|From):\s*.+?(?=\s+(?:E-post|Email|Epost|Telefon|Phone|Hur kan vi hjälpa dig\?|How can we help you\?))/i,
+                ""
+              )
               .replace(/^(?:E-post|Email|Epost):\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
               .replace(/^(?:Telefon|Phone):\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
               .replace(/^(?:Hur kan vi hjälpa dig\?|How can we help you\?)\s*/i, "")
@@ -1689,12 +1769,19 @@
         const preview = compactRuntimeCopy(rawPreview, "", 120);
         const smartNextValue = buildThreadSmartSummary(thread);
         const nextValue = compactRuntimeCopy(
-          smartNextValue || asText(getQueueInlineLaneSignalNext(thread, laneId), thread?.nextActionLabel || thread?.nextActionSummary || "Svara nu"),
+          smartNextValue ||
+            asText(
+              getQueueInlineLaneSignalNext(thread, laneId),
+              thread?.nextActionLabel || thread?.nextActionSummary || "Svara nu"
+            ),
           "",
           18
         );
         const whyValue = compactRuntimeCopy(
-          asText(getQueueInlineLaneSignalWhy(thread, laneId), thread?.intentLabel || thread?.whyInFocus || thread?.statusLabel || "Behöver svar"),
+          asText(
+            getQueueInlineLaneSignalWhy(thread, laneId),
+            thread?.intentLabel || thread?.whyInFocus || thread?.statusLabel || "Behöver svar"
+          ),
           "",
           18
         );
@@ -1704,7 +1791,8 @@
           18
         );
         const rowFamily = normalizeKey(thread?.rowFamily || thread?.raw?.rowFamily || "human_mail");
-        const crossMailboxClass = thread?.crossMailboxProvenanceEvidence === true ? " thread-card-cross-mailbox" : "";
+        const crossMailboxClass =
+          thread?.crossMailboxProvenanceEvidence === true ? " thread-card-cross-mailbox" : "";
         const selectedClass = selected ? " thread-card-selected" : "";
         const priorityClass = laneId === "act_now" ? " thread-card-priority" : "";
         const source = asText(thread?.worklistSource || historyItem?.worklistSource || "legacy");
@@ -1738,15 +1826,19 @@
           !isCrossMailboxEvidence && (thread?.unread === true || thread?.isUnread === true)
             ? '<span class="thread-unread-indicator" aria-label="Oläst mejl"></span>'
             : "";
-        const provenanceLabel = asText(thread?.mailboxProvenanceLabel || historyItem?.mailboxProvenanceLabel);
-        const provenanceDetail = asText(thread?.mailboxProvenanceDetail || historyItem?.mailboxProvenanceDetail);
+        const provenanceLabel = asText(
+          thread?.mailboxProvenanceLabel || historyItem?.mailboxProvenanceLabel
+        );
+        const provenanceDetail = asText(
+          thread?.mailboxProvenanceDetail || historyItem?.mailboxProvenanceDetail
+        );
         const provenanceCopy =
           crossMailboxClass && provenanceDetail
             ? provenanceDetail
             : `${provenanceLabel || ""}${provenanceLabel && provenanceDetail ? " · " : ""}${provenanceDetail}`;
         const provenanceMarkup =
           provenanceLabel || provenanceDetail
-            ? `<div class="intel-card-provenance thread-card-provenance"><span class="intel-card-provenance-label intel-card-provenance-derived">Mailboxspår</span><p class="intel-card-provenance-detail">${escapeHtml(
+            ? `<div class="intel-card-provenance thread-card-provenance"><span class="intel-card-provenance-label intel-card-provenance-derived">Mejlspår</span><p class="intel-card-provenance-detail">${escapeHtml(
                 provenanceCopy
               )}</p></div>`
             : "";
@@ -1821,12 +1913,13 @@
           .map((entry) => asText(entry).trim())
           .filter(Boolean);
       const trail = asArray(historyItem.mailboxTrail).length
-        ? asArray(historyItem.mailboxTrail).map((entry) => asText(entry).trim()).filter(Boolean)
+        ? asArray(historyItem.mailboxTrail)
+            .map((entry) => asText(entry).trim())
+            .filter(Boolean)
         : parseTrail(historyItem.mailboxProvenanceDetail);
       const visibleTrail = (trail.length ? trail : ["Fazli", "Contact", "Egzona"]).slice(0, 3);
       const overflowCount = Math.max(0, (trail.length ? trail.length : 3) - visibleTrail.length);
-      const subtitle =
-        trail.length > 1 ? "Samma kund har skrivit från flera mailboxar" : "";
+      const subtitle = trail.length > 1 ? "Samma kund har skrivit från flera mejlkonton" : "";
       const statusDot = asText(
         historyItem.status,
         normalizeKey(historyItem?.laneId || thread?.primaryLaneId || "") === "act_now"
@@ -1864,7 +1957,7 @@
             <div class="row-2">${escapeHtml(
               asText(
                 historyItem.detail,
-                "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens."
+                "Historiken hålls ihop, men varje meddelande visar sin mejlkontoproveniens."
               )
             )}</div>
           </div>
@@ -1917,10 +2010,7 @@
           .filter(Boolean)
           .forEach((lead) => {
             const escapedLead = lead.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            const leadPattern = new RegExp(
-              `^${escapedLead}(?:\\s*[-:|,–—]\\s*|\\s+)`,
-              "i"
-            );
+            const leadPattern = new RegExp(`^${escapedLead}(?:\\s*[-:|,–—]\\s*|\\s+)`, "i");
             cleaned = cleaned.replace(leadPattern, "").trim();
           });
         return cleaned;
@@ -1949,10 +2039,9 @@
         ]);
         cleaned = cleaned.replace(/^Från:\s*/i, "").trim();
         while (/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(cleaned)) {
-          cleaned = cleaned.replace(
-            /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i,
-            ""
-          ).trim();
+          cleaned = cleaned
+            .replace(/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+            .trim();
         }
         cleaned = cleaned
           .replace(/^hur kan vi hjälpa dig med\s+/i, "Vill ha hjälp med ")
@@ -1974,7 +2063,11 @@
         const cleaned = sanitizeSummary(value);
         const normalized = normalizeCompareText(cleaned);
         if (!normalized) return "";
-        if (/\bqa|fixture|verify|verification|kontrollerad|live send|inspect|sandbox\b/.test(normalized)) {
+        if (
+          /\bqa|fixture|verify|verification|kontrollerad|live send|inspect|sandbox\b/.test(
+            normalized
+          )
+        ) {
           return "Ge instruktion";
         }
         if (/\bfinasterid\b/.test(normalized)) return "Finasteridfråga";
@@ -1984,12 +2077,9 @@
         if (/\bbokning|boka|ombok|tid|datum\b/.test(normalized)) return "Klargör bokning";
         if (/\bmottaget|bekrafta.*underlag|bekrafta.*mottaget\b/.test(normalized))
           return "Bekräfta underlag";
-        if (/\bsaknad|uppgift|komplettera|komplettering\b/.test(normalized))
-          return "Be om uppgift";
-        if (/\bf[öo]lj upp|uteblivet svar|inv[äa]nta svar\b/.test(normalized))
-          return "Följ upp";
-        if (/\bmedicinsk|medicin|behandling|prp\b/.test(normalized))
-          return "Medicinsk fråga";
+        if (/\bsaknad|uppgift|komplettera|komplettering\b/.test(normalized)) return "Be om uppgift";
+        if (/\bf[öo]lj upp|uteblivet svar|inv[äa]nta svar\b/.test(normalized)) return "Följ upp";
+        if (/\bmedicinsk|medicin|behandling|prp\b/.test(normalized)) return "Medicinsk fråga";
         if (/\binstruktion|n[äa]sta steg|tydligt besked\b/.test(normalized))
           return "Ge instruktion";
         if (/\bbes[öo]k\b/.test(normalized)) return "Svar före besök";
@@ -2289,7 +2379,9 @@
       const mailboxValue = asText(item.mailboxAddress || item.mailboxLabel);
       const normalizedMailboxId = normalizeMailboxId(mailboxValue);
       const availableMailboxes =
-        typeof getAvailableRuntimeMailboxes === "function" ? asArray(getAvailableRuntimeMailboxes()) : [];
+        typeof getAvailableRuntimeMailboxes === "function"
+          ? asArray(getAvailableRuntimeMailboxes())
+          : [];
       const mailboxToneMap = {
         consult: "queue-filter-chip--violet",
         kons: "queue-filter-chip--violet",
@@ -2369,9 +2461,21 @@
 
     function buildQueueInlineLaneSignalItems(thread = {}) {
       const laneId = normalizeKey(thread?.primaryLaneId || "");
-      const whatValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalWhat(thread, laneId)), "", 20);
-      const whyValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalWhy(thread, laneId)), "", 18);
-      const nextValue = compactRuntimeCopy(asText(getQueueInlineLaneSignalNext(thread, laneId)), "", 18);
+      const whatValue = compactRuntimeCopy(
+        asText(getQueueInlineLaneSignalWhat(thread, laneId)),
+        "",
+        20
+      );
+      const whyValue = compactRuntimeCopy(
+        asText(getQueueInlineLaneSignalWhy(thread, laneId)),
+        "",
+        18
+      );
+      const nextValue = compactRuntimeCopy(
+        asText(getQueueInlineLaneSignalNext(thread, laneId)),
+        "",
+        18
+      );
       const mailboxValue = compactRuntimeCopy(
         asText(thread?.mailboxLabel || thread?.mailboxAddress),
         "",
@@ -2393,7 +2497,9 @@
       const normalizedWhyValue = normalizeSignalValue(whyValue);
       const normalizedNextValue = normalizeSignalValue(nextValue);
       const normalizedWhatValue = normalizeSignalValue(whatValue);
-      const normalizedTitleValue = normalizeSignalValue(asText(thread?.displaySubject || thread?.subject));
+      const normalizedTitleValue = normalizeSignalValue(
+        asText(thread?.displaySubject || thread?.subject)
+      );
       const normalizedPreviewValue = normalizeSignalValue(asText(thread?.preview));
       const shouldRenderWhat =
         Boolean(whatValue) &&
@@ -2409,7 +2515,7 @@
       const signalItems = [
         mailboxValue
           ? {
-              key: "Mailbox",
+              key: "Mejlkonto",
               value: mailboxValue,
               tone: "mailbox",
               role: "mailbox",
@@ -2464,8 +2570,11 @@
           laneKey === "act_now" ||
           laneKey === "high-risk" ||
           asArray(model?.signalItems).some((s) => {
-            const role = typeof normalizeKey === "function" ? normalizeKey(s?.role || s?.tone || "") : "";
-            const raw = asText(s?.value !== undefined && s?.value !== null ? s.value : s?.label || "");
+            const role =
+              typeof normalizeKey === "function" ? normalizeKey(s?.role || s?.tone || "") : "";
+            const raw = asText(
+              s?.value !== undefined && s?.value !== null ? s.value : s?.label || ""
+            );
             return role === "why" && /hög risk|risk/i.test(raw);
           })
         );
@@ -2473,11 +2582,7 @@
       waiting: (model) => {
         const owner = asText(model?.ownerLabel);
         const laneKey = typeof normalizeKey === "function" ? normalizeKey(model?.laneId || "") : "";
-        return (
-          !owner ||
-          owner === "Ej tilldelad" ||
-          laneKey === "history"
-        );
+        return !owner || owner === "Ej tilldelad" || laneKey === "history";
       },
       active: () => true,
     };
@@ -2577,7 +2682,7 @@
     }
 
     const UNIFIED_CARD_COPY = {
-      multiMailboxSubtitle: "Samma kund har skrivit från flera mailboxar",
+      multiMailboxSubtitle: "Samma kund har skrivit från flera mejlkonton",
       mailboxTrailLabel: "MAILBOXSPÅR",
       mailboxTrailMore: "+{count} till",
       defaultCategory: "Kons",
@@ -2587,7 +2692,7 @@
      * v5 lane-driven kortsmarkup — lane-badge + signal-what + signal-why + mailbox-stack + action-cluster.
      * Driver getQueueInlineLaneSignal* för operativt språk.
      *
-     * @param {object} unifiedModel - Normaliserat kort (fält för status, innehåll, signaler, mailboxar).
+     * @param {object} unifiedModel - Normaliserat kort (fält för status, innehåll, signaler, mejlkonton).
      * @param {object} [options] - data-attribut, urval, m.m.
      */
 
@@ -2614,12 +2719,16 @@
       all: "admin",
     };
     function v5LaneCode(laneId, thread) {
-      const key = typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
+      const key =
+        typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
       if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
       // Fallback: härled från tags eller via getThreadPrimaryLaneId
       if (thread && typeof getThreadPrimaryLaneId === "function") {
         const derived = getThreadPrimaryLaneId(thread);
-        const derivedKey = typeof normalizeKey === "function" ? normalizeKey(derived) : asText(derived).toLowerCase();
+        const derivedKey =
+          typeof normalizeKey === "function"
+            ? normalizeKey(derived)
+            : asText(derived).toLowerCase();
         if (V5_LANE_MAP[derivedKey]) return V5_LANE_MAP[derivedKey];
       }
       // Direkt tag-koll som sista fallback
@@ -2644,23 +2753,42 @@
       bokning: "Bokning",
       medicinsk: "Medicinsk",
     };
-    function v5LaneLabel(code) { return V5_LANE_LABELS[code] || "Admin"; }
+    function v5LaneLabel(code) {
+      return V5_LANE_LABELS[code] || "Admin";
+    }
     function v5LaneIcon(code) {
       const icons = {
-        "act-now": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-        sprint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
-        senare: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-        admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>',
-        granska: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
-        oklart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        bokning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
-        medicinsk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        "act-now":
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        sprint:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+        senare:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        admin:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>',
+        granska:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+        oklart:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        bokning:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
+        medicinsk:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
       };
       return icons[code] || icons.admin;
     }
 
     // ====== v5 mailbox color mapping ======
-    const V5_MAILBOX_PALETTE = ["#7c3aed", "#0ea5e9", "#a8744c", "#f97316", "#14b8a6", "#eab308", "#8b5cf6", "#06b6d4"];
+    const V5_MAILBOX_PALETTE = [
+      "#7c3aed",
+      "#0ea5e9",
+      "#a8744c",
+      "#f97316",
+      "#14b8a6",
+      "#eab308",
+      "#8b5cf6",
+      "#06b6d4",
+    ];
     const V5_MAILBOX_KNOWN = {
       fazli: "#7c3aed",
       contact: "#0ea5e9",
@@ -2674,7 +2802,8 @@
       noreply: "#64748b",
     };
     function v5MailboxColor(name) {
-      const key = typeof normalizeKey === "function" ? normalizeKey(name) : asText(name).toLowerCase();
+      const key =
+        typeof normalizeKey === "function" ? normalizeKey(name) : asText(name).toLowerCase();
       if (V5_MAILBOX_KNOWN[key]) return V5_MAILBOX_KNOWN[key];
       const cleanKey = String(key).replace(/[^a-z0-9]/g, "");
       let hash = 7;
@@ -2690,14 +2819,22 @@
 
     // ====== v5 action-cluster icon library ======
     const V5_ACTION_ICONS = {
-      history: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-      later: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
-      schedule: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
-      handled: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-      delete: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
-      arrowRight: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
-      userCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
-      alertCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+      history:
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      later:
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>',
+      schedule:
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+      handled:
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      delete:
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+      arrowRight:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+      userCheck:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
+      alertCircle:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
     };
 
     function buildUnifiedCardMarkup(unifiedModel = {}, options = {}) {
@@ -2732,8 +2869,7 @@
         ownerLabel: unifiedModel.ownerLabel,
         signalItems: unifiedModel.signalItems,
       };
-      const statusDot =
-        asText(unifiedModel.statusDot) || deriveStatusDot(statusModel);
+      const statusDot = asText(unifiedModel.statusDot) || deriveStatusDot(statusModel);
 
       let content;
       if (options.skipNormalizeCardContent) {
@@ -2774,7 +2910,7 @@
                 unifiedModel.subtitle ||
                 (trail.length > 1 ? UNIFIED_CARD_COPY.multiMailboxSubtitle : "")
             ),
-            "Samma kund har skrivit från flera mailboxar",
+            "Samma kund har skrivit från flera mejlkonton",
             24
           ),
           icon: "users",
@@ -2814,10 +2950,25 @@
       const footerChips = content.footerChips.length ? content.footerChips : defaultFooterChips;
       if (!footerChips.length) {
         footerChips.push(
-          { key: "category", value: UNIFIED_CARD_COPY.defaultCategory, icon: "mail", toneClass: "chip-gray" },
-          { key: "context", value: "Samma kund har skrivit från flera mailboxar", icon: "users", toneClass: "chip-blue" },
+          {
+            key: "category",
+            value: UNIFIED_CARD_COPY.defaultCategory,
+            icon: "mail",
+            toneClass: "chip-gray",
+          },
+          {
+            key: "context",
+            value: "Samma kund har skrivit från flera mejlkonton",
+            icon: "users",
+            toneClass: "chip-blue",
+          },
           { key: "why", value: "Behöver uppmärksamhet", icon: "alert", toneClass: "chip-pink" },
-          { key: "next", value: "Fortsätt från samma", icon: "chevron-right", toneClass: "chip-green" }
+          {
+            key: "next",
+            value: "Fortsätt från samma",
+            icon: "chevron-right",
+            toneClass: "chip-green",
+          }
         );
       }
       const intelligenceMarkup = footerChips.length
@@ -2828,9 +2979,7 @@
                 const chipKey = escapeHtml(chip.key || "");
                 if (chip.interactive === "studio-open" && asText(chip.runtimeThreadId)) {
                   const tid = escapeHtml(chip.runtimeThreadId);
-                  const aria = escapeHtml(
-                    chip.studioAriaLabel || "Öppna svarsstudion"
-                  );
+                  const aria = escapeHtml(chip.studioAriaLabel || "Öppna svarsstudion");
                   return `<button class="chip ${toneClass}" data-history-chip="${chipKey}" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${tid}" aria-controls="studio-shell" aria-label="${aria}">
                   ${buildUnifiedCardIconMarkup(chip.icon)}
                   <span class="chip-label">${escapeHtml(chip.value)}</span>
@@ -2847,7 +2996,9 @@
 
       const showTrail = trail.length > 1 || /samma kund har skrivit/i.test(subtitle);
       const effectiveTrail = showTrail
-        ? (trail.length ? trail : ["Fazli", "Contact", "Egzona"])
+        ? trail.length
+          ? trail
+          : ["Fazli", "Contact", "Egzona"]
         : [];
       const visibleMailboxTrailItems = showTrail ? effectiveTrail.slice(0, 3) : [];
       const mailboxTrailOverflowCount = showTrail
@@ -2867,7 +3018,10 @@
             ${
               mailboxTrailOverflowCount > 0
                 ? `<span class="trail-separator" aria-hidden="true">·</span><button class="trail-more" type="button" data-mailbox-trail-overflow="${mailboxTrailOverflowCount}">${escapeHtml(
-                    UNIFIED_CARD_COPY.mailboxTrailMore.replace("{count}", String(mailboxTrailOverflowCount))
+                    UNIFIED_CARD_COPY.mailboxTrailMore.replace(
+                      "{count}",
+                      String(mailboxTrailOverflowCount)
+                    )
                   )}</button>`
                 : ""
             }
@@ -2901,9 +3055,13 @@
       const runtimeThreadAttribute = runtimeThreadId
         ? ` data-runtime-thread="${escapeHtml(runtimeThreadId)}"`
         : "";
-      const worklistSource = asText(options.worklistSource || unifiedModel.worklistSource || "legacy");
+      const worklistSource = asText(
+        options.worklistSource || unifiedModel.worklistSource || "legacy"
+      );
       const worklistSourceAttribute = ` data-worklist-source="${escapeHtml(worklistSource)}"`;
-      const worklistSourceLabel = asText(options.worklistSourceLabel || unifiedModel.worklistSourceLabel);
+      const worklistSourceLabel = asText(
+        options.worklistSourceLabel || unifiedModel.worklistSourceLabel
+      );
       const worklistSourceLabelAttribute = worklistSourceLabel
         ? ` data-worklist-source-label="${escapeHtml(worklistSourceLabel)}"`
         : "";
@@ -2937,11 +3095,11 @@
       const articleDataAttributes = asText(options.articleDataAttributes);
       // Exponera tags som DOM-attribut för follow-up-filter och saved-views.
       const runtimeTagsList = (Array.isArray(unifiedModel.tags) ? unifiedModel.tags : [])
-        .map((t) => String(t || '').trim())
+        .map((t) => String(t || "").trim())
         .filter(Boolean);
       const runtimeTagsAttribute = runtimeTagsList.length
-        ? ` data-runtime-tags="${escapeHtml(runtimeTagsList.join(','))}"`
-        : '';
+        ? ` data-runtime-tags="${escapeHtml(runtimeTagsList.join(","))}"`
+        : "";
 
       // ====== v5 LAYOUT ======
       // Compute What/Why/Next via existing signal-functions. unifiedModel has the
@@ -2966,7 +3124,13 @@
               ? getQueueInlineLaneSignalWhy(unifiedModel, unifiedModel.laneId)
               : "")
         );
-        if (whyVal) whyEntries = [{ text: whyVal, tone: v5Lane === "act-now" ? "alert" : v5Lane === "granska" ? "amber" : "" }];
+        if (whyVal)
+          whyEntries = [
+            {
+              text: whyVal,
+              tone: v5Lane === "act-now" ? "alert" : v5Lane === "granska" ? "amber" : "",
+            },
+          ];
       }
       const nextStr = asText(
         unifiedModel.nextSignal ||
@@ -2981,7 +3145,7 @@
       const ownerIcon = ownedFlag ? V5_ACTION_ICONS.userCheck : V5_ACTION_ICONS.alertCircle;
 
       // Mailbox stack — färgade prickar med initial. Fallback om trail tom.
-      const mailboxStackEntries = trail.length ? trail : (subtitle ? ["Inkorg"] : []);
+      const mailboxStackEntries = trail.length ? trail : subtitle ? ["Inkorg"] : [];
       const visibleMailboxes = mailboxStackEntries.slice(0, 3);
       const overflowCount = Math.max(0, mailboxStackEntries.length - visibleMailboxes.length);
       const mailboxStackMarkup = mailboxStackEntries.length
@@ -3006,10 +3170,13 @@
         ? ` data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(runtimeThreadId)}"`
         : "";
       const primaryLabel =
-        v5Lane === "bokning" ? "Bekräfta bokning"
-        : v5Lane === "granska" ? "Granska"
-        : v5Lane === "oklart" ? "Öppna"
-        : "Svara";
+        v5Lane === "bokning"
+          ? "Bekräfta bokning"
+          : v5Lane === "granska"
+            ? "Granska"
+            : v5Lane === "oklart"
+              ? "Öppna"
+              : "Svara";
       const actionClusterMarkup = `<div class="action-cluster">
         <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
         <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
@@ -3049,11 +3216,15 @@
       const stampMarkup = stampLabel
         ? `<span class="meta-status ${ownedFlag ? "owned" : "unowned"}">${escapeHtml(stampLabel)}</span>`
         : "";
-      const dotSep = (dateMarkup && stampMarkup) ? `<span class="meta-sep" aria-hidden="true">·</span>` : "";
+      const dotSep =
+        dateMarkup && stampMarkup ? `<span class="meta-sep" aria-hidden="true">·</span>` : "";
 
       // Bygg why-rad med färgad ikon. Mappa text/tone → ikon.
-      const whyText = whyEntries.length ? asText(typeof whyEntries[0] === "string" ? whyEntries[0] : whyEntries[0].text) : "";
-      const whyTone = whyEntries.length && typeof whyEntries[0] === "object" ? asText(whyEntries[0].tone) : "";
+      const whyText = whyEntries.length
+        ? asText(typeof whyEntries[0] === "string" ? whyEntries[0] : whyEntries[0].text)
+        : "";
+      const whyTone =
+        whyEntries.length && typeof whyEntries[0] === "object" ? asText(whyEntries[0].tone) : "";
       const whyKey = whyText.toLowerCase();
       let whyIconKind = "info";
       if (/miss[\s-]?risk|risk|överskrid|overdue|brand/.test(whyKey)) whyIconKind = "alert";
@@ -3064,10 +3235,13 @@
       else if (whyTone === "amber") whyIconKind = "alert";
 
       const WARM_WHY_ICONS = {
-        alert:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></svg>',
-        refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4 3 10 9 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36L3 10"/></svg>',
-        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-        check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+        alert:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></svg>',
+        refresh:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4 3 10 9 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.36L3 10"/></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        check:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
       };
 
       const warmWhyMarkup = whyText
@@ -3088,20 +3262,32 @@
       const previewBody =
         rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
-          : (rawPreviewBody.length > subjectText.length ? rawPreviewBody : "");
+          : rawPreviewBody.length > subjectText.length
+            ? rawPreviewBody
+            : "";
 
       // ====== Bilageikoner: detektera enkelt från subject + preview ======
       const ATTACH_ICONS = {
-        paperclip: '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
-        image:     '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-        pdf:       '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+        paperclip:
+          '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+        image:
+          '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+        pdf: '<svg class="warm-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
       };
       const attachHaystack = (subjectText + " " + rawPreviewBody).toLowerCase();
       const attachIconsArr = [];
-      if (/\.pdf|signerad kopia|bifogad|undertecknats|avtal|kvitto|faktura|offert|dokument/.test(attachHaystack)) {
+      if (
+        /\.pdf|signerad kopia|bifogad|undertecknats|avtal|kvitto|faktura|offert|dokument/.test(
+          attachHaystack
+        )
+      ) {
         attachIconsArr.push(ATTACH_ICONS.paperclip);
       }
-      if (/\.jpe?g|\.png|\.gif|\[telefon\]|nyhetsbrev|kundcase|bild |image |screenshot/.test(attachHaystack)) {
+      if (
+        /\.jpe?g|\.png|\.gif|\[telefon\]|nyhetsbrev|kundcase|bild |image |screenshot/.test(
+          attachHaystack
+        )
+      ) {
         attachIconsArr.push(ATTACH_ICONS.image);
       }
       const attachIconsMarkup = attachIconsArr.length
@@ -3129,7 +3315,7 @@
         <div class="warm-mid">
           <div class="warm-avatar avatar-wrap">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(avatarText)}</span>
-            <span class="status-dot${unifiedModel.isUnread === true ? " new" : (statusDot ? " " + escapeHtml(statusDot) : "")}" aria-hidden="true"></span>
+            <span class="status-dot${unifiedModel.isUnread === true ? " new" : statusDot ? " " + escapeHtml(statusDot) : ""}" aria-hidden="true"></span>
           </div>
           <div class="warm-content">
             ${senderSubjectMarkup}
@@ -3187,7 +3373,7 @@
         unknownSender: "Okänd avsändare",
         history: "Historik",
         defaultCategory: "Kons",
-        multiMailboxSubtitle: "Samma kund har skrivit från flera mailboxar",
+        multiMailboxSubtitle: "Samma kund har skrivit från flera mejlkonton",
         mailboxTrailLabel: "MAILBOXSPÅR",
         mailboxTrailMore: "+{count} till",
       };
@@ -3208,9 +3394,10 @@
         typeof getQueueHistoryDirectionMeta === "function"
           ? getQueueHistoryDirectionMeta
           : (direction = "") => {
-              const normalizedDirection = typeof normalizeKey === "function"
-                ? normalizeKey(direction)
-                : asText(direction).trim().toLowerCase();
+              const normalizedDirection =
+                typeof normalizeKey === "function"
+                  ? normalizeKey(direction)
+                  : asText(direction).trim().toLowerCase();
               if (normalizedDirection === "skickat") {
                 return { icon: "send", toneClass: "queue-filter-chip--indigo" };
               }
@@ -3280,9 +3467,7 @@
         const defaultName = HISTORIK_STRINGS.unknownSender;
         const customerName = asText(source.counterpartyLabel || defaultName, defaultName);
         const deriveHistoryInitials = (label = "") => {
-          const normalizedLabel = asText(label)
-            .trim()
-            .replace(/\s+/g, " ");
+          const normalizedLabel = asText(label).trim().replace(/\s+/g, " ");
           if (!normalizedLabel) return "?";
           const parts = normalizedLabel
             .split(" ")
@@ -3323,8 +3508,7 @@
           customerName,
           customerInitials: asText(source.initials || deriveHistoryInitials(customerName), "?"),
           mailboxTrail,
-          subtitle:
-            mailboxTrail.length > 1 ? HISTORIK_STRINGS.multiMailboxSubtitle : "",
+          subtitle: mailboxTrail.length > 1 ? HISTORIK_STRINGS.multiMailboxSubtitle : "",
           status,
         };
       };
@@ -3334,12 +3518,23 @@
         : "";
       const operationalChipMarkup = hasOperationalSignals
         ? signalItems
-            .map(
-              (signal) => {
-                const signalRole = normalizeKey(signal.role || signal.tone || "neutral");
-                const signalLabel = `${asText(signal.key)}: ${asText(signal.value)}`;
-                const toneClass =
-                  signalRole === "next"
+            .map((signal) => {
+              const signalRole = normalizeKey(signal.role || signal.tone || "neutral");
+              const signalLabel = `${asText(signal.key)}: ${asText(signal.value)}`;
+              const toneClass =
+                signalRole === "next"
+                  ? laneId === "act-now"
+                    ? "queue-filter-chip--rose"
+                    : laneId === "review"
+                      ? "queue-filter-chip--urgent"
+                      : laneId === "medical"
+                        ? "queue-filter-chip--magenta"
+                        : laneId === "bookable"
+                          ? "queue-filter-chip--cyan"
+                          : laneId === "later"
+                            ? "queue-filter-chip--indigo"
+                            : "queue-filter-chip--violet"
+                  : signalRole === "why"
                     ? laneId === "act-now"
                       ? "queue-filter-chip--rose"
                       : laneId === "review"
@@ -3351,29 +3546,16 @@
                             : laneId === "later"
                               ? "queue-filter-chip--indigo"
                               : "queue-filter-chip--violet"
-                    : signalRole === "why"
-                      ? laneId === "act-now"
-                        ? "queue-filter-chip--rose"
-                        : laneId === "review"
-                          ? "queue-filter-chip--urgent"
-                          : laneId === "medical"
-                            ? "queue-filter-chip--magenta"
-                            : laneId === "bookable"
-                              ? "queue-filter-chip--cyan"
-                              : laneId === "later"
-                                ? "queue-filter-chip--indigo"
-                                : "queue-filter-chip--violet"
-                      : "queue-filter-chip--slate";
-                const iconKey = resolveSignalIcon(signalRole);
-                return `<span class="queue-filter-chip queue-history-operational-pill queue-history-operational-pill--${escapeHtml(
-                  signalRole
-                )} ${toneClass}" data-signal-role="${escapeHtml(
-                  signalRole
-                )}" data-pill-icon="${escapeHtml(iconKey)}" title="${escapeHtml(
-                  signalLabel
-                )}" aria-label="${escapeHtml(signalLabel)}"><span>${escapeHtml(signal.value)}</span></span>`;
-              }
-            )
+                    : "queue-filter-chip--slate";
+              const iconKey = resolveSignalIcon(signalRole);
+              return `<span class="queue-filter-chip queue-history-operational-pill queue-history-operational-pill--${escapeHtml(
+                signalRole
+              )} ${toneClass}" data-signal-role="${escapeHtml(
+                signalRole
+              )}" data-pill-icon="${escapeHtml(iconKey)}" title="${escapeHtml(
+                signalLabel
+              )}" aria-label="${escapeHtml(signalLabel)}"><span>${escapeHtml(signal.value)}</span></span>`;
+            })
             .join("")
         : "";
       const detailMarkup = asText(item.detail)
@@ -3404,13 +3586,14 @@
         : "";
       const showDirectionPill = !runtimeThreadId;
       const directionMeta = resolveDirectionMeta(item.direction);
-      const directionPill = showDirectionPill && asText(item.direction)
-        ? `<span class="queue-history-pill queue-history-pill--direction ${escapeHtml(
-            directionMeta.toneClass
-          )}" data-pill-icon="${escapeHtml(directionMeta.icon)}"><span class="queue-history-pill-label">${escapeHtml(
-            item.direction
-          )}</span></span>`
-        : "";
+      const directionPill =
+        showDirectionPill && asText(item.direction)
+          ? `<span class="queue-history-pill queue-history-pill--direction ${escapeHtml(
+              directionMeta.toneClass
+            )}" data-pill-icon="${escapeHtml(directionMeta.icon)}"><span class="queue-history-pill-label">${escapeHtml(
+              item.direction
+            )}</span></span>`
+          : "";
       const queueMeta = resolveQueueMeta();
       const queuePill = asText(item.queueLabel)
         ? `<span class="queue-history-pill queue-history-pill--queue ${escapeHtml(
@@ -3420,9 +3603,14 @@
           )}</span></span>`
         : "";
       const metaMarkup =
-        sourcePill || operationalChipMarkup || mailboxPill || mailboxProvenancePill || directionPill || queuePill
-        ? `<div class="queue-history-item-meta queue-history-item-meta--fullwidth">${sourcePill}${mailboxPill}${mailboxProvenancePill}${operationalChipMarkup}${directionPill}${queuePill}</div>`
-        : "";
+        sourcePill ||
+        operationalChipMarkup ||
+        mailboxPill ||
+        mailboxProvenancePill ||
+        directionPill ||
+        queuePill
+          ? `<div class="queue-history-item-meta queue-history-item-meta--fullwidth">${sourcePill}${mailboxPill}${mailboxProvenancePill}${operationalChipMarkup}${directionPill}${queuePill}</div>`
+          : "";
 
       const unreadClass = item.isUnread === true ? " queue-history-item--unread" : "";
       const loadingClass = item.loading === true ? " is-loading" : "";
@@ -3450,7 +3638,10 @@
           .map((lead) => asText(lead).replace(/\s+/g, " ").trim())
           .filter(Boolean)
           .forEach((lead) => {
-            const leadPattern = new RegExp(`^${escapeHistoryRegExp(lead)}(?:\\s*[-:|,–—]\\s*|\\s+)`, "i");
+            const leadPattern = new RegExp(
+              `^${escapeHistoryRegExp(lead)}(?:\\s*[-:|,–—]\\s*|\\s+)`,
+              "i"
+            );
             cleaned = cleaned.replace(leadPattern, "").trim();
           });
         return cleaned;
@@ -3459,7 +3650,8 @@
       const derivedHistoryTitle = stripRepeatedHistoryLead(rawHistoryTitle, [counterpartyCopy]);
       const primaryHistoryTitleRaw =
         derivedHistoryTitle &&
-        normalizeHistoryCompareValue(derivedHistoryTitle) !== normalizeHistoryCompareValue(counterpartyCopy)
+        normalizeHistoryCompareValue(derivedHistoryTitle) !==
+          normalizeHistoryCompareValue(counterpartyCopy)
           ? derivedHistoryTitle
           : rawHistoryTitle;
       const primaryHistoryTitle = compactRuntimeCopy(
@@ -3515,7 +3707,12 @@
             `queue-history-operational-pill--${mappedSignalRole}`
           );
         });
-      pushHistorySignal("mailbox", item.mailboxLabel, mailboxMeta.icon, "queue-history-pill--mailbox");
+      pushHistorySignal(
+        "mailbox",
+        item.mailboxLabel,
+        mailboxMeta.icon,
+        "queue-history-pill--mailbox"
+      );
       pushHistorySignal(
         "source",
         worklistSourceLabel,
@@ -3523,23 +3720,35 @@
         worklistSourceLabel ? "queue-history-pill--source" : ""
       );
       if (!signalItems.length) {
-        pushHistorySignal("what", item.direction, directionMeta.icon, "queue-history-operational-pill--what");
-        pushHistorySignal("why", worklistSourceLabel, "layers", "queue-history-operational-pill--why");
-        pushHistorySignal("next", item.queueLabel, "layers", "queue-history-operational-pill--next");
+        pushHistorySignal(
+          "what",
+          item.direction,
+          directionMeta.icon,
+          "queue-history-operational-pill--what"
+        );
+        pushHistorySignal(
+          "why",
+          worklistSourceLabel,
+          "layers",
+          "queue-history-operational-pill--why"
+        );
+        pushHistorySignal(
+          "next",
+          item.queueLabel,
+          "layers",
+          "queue-history-operational-pill--next"
+        );
       }
       const whatSignalValue = asText(
-        asArray(item.signalItems).find((signal) => normalizeKey(signal?.role || signal?.tone) === "what")?.value
+        asArray(item.signalItems).find(
+          (signal) => normalizeKey(signal?.role || signal?.tone) === "what"
+        )?.value
       );
       const inlineContextHint = asText(
-        item.inlineContext ||
-          item.queueInlineContext ||
-          item.presentation?.inlineContext
+        item.inlineContext || item.queueInlineContext || item.presentation?.inlineContext
       );
       const inlineContextLabel = compactRuntimeCopy(
-        inlineContextHint ||
-          whatSignalValue ||
-          asText(item.intentLabel) ||
-          primaryHistoryTitle,
+        inlineContextHint || whatSignalValue || asText(item.intentLabel) || primaryHistoryTitle,
         "",
         72
       );
@@ -3552,9 +3761,7 @@
       const issueContextLabel = compactRuntimeCopy(issueContextSource, "", 40);
       const explanatoryLineHint = compactRuntimeCopy(
         asText(
-          item.explanatoryLine ||
-            item.queueExplanatoryLine ||
-            item.presentation?.explanatoryLine
+          item.explanatoryLine || item.queueExplanatoryLine || item.presentation?.explanatoryLine
         ),
         "",
         132
@@ -3573,20 +3780,19 @@
         );
       }
       secondaryContextFallback = secondaryContextFallback.replace(/^Från:\s*/i, "").trim();
-      while (/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(secondaryContextFallback)) {
-        secondaryContextFallback = secondaryContextFallback.replace(
-          /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i,
-          ""
-        ).trim();
+      while (
+        /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(
+          secondaryContextFallback
+        )
+      ) {
+        secondaryContextFallback = secondaryContextFallback
+          .replace(/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+          .trim();
       }
       secondaryContextFallback = secondaryContextFallback.replace(/^[,.;:-]+\s*/g, "").trim();
       const snippetValue = explanatoryLineHint
         ? explanatoryLineHint
-        : compactRuntimeCopy(
-            asText(secondaryContextFallback),
-            "",
-            120
-          );
+        : compactRuntimeCopy(asText(secondaryContextFallback), "", 120);
       const showSnippet =
         Boolean(snippetValue) &&
         normalizeHistoryCompareValue(snippetValue) !==
@@ -3599,16 +3805,14 @@
             item.queueExplanatoryLine ||
             item.presentation?.explanatoryLine ||
             (Number(item.rollup?.mailboxCount || 0) > 1
-              ? "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens."
+              ? "Historiken hålls ihop, men varje meddelande visar sin mejlkontoproveniens."
               : "")
         ),
         "",
         160
       );
       const relationshipChipValue =
-        normalizedHistoryModel.mailboxTrail.length > 1
-          ? HISTORIK_STRINGS.multiMailboxSubtitle
-          : "";
+        normalizedHistoryModel.mailboxTrail.length > 1 ? HISTORIK_STRINGS.multiMailboxSubtitle : "";
       const priorityChipValue = asText(
         historySignals.find((signal) => signal.role === "why")?.value ||
           item.intentLabel ||
@@ -3699,25 +3903,39 @@
       const selectedStateFallback = isSelected
         ? ' aria-current="true" data-history-selected="true"'
         : ' aria-current="false"';
-      const stampLabelFallback =
-        runtimeThreadId && worklistSource === "legacy" ? "" : stampLabel;
+      const stampLabelFallback = runtimeThreadId && worklistSource === "legacy" ? "" : stampLabel;
       const detailText = asText(item.detail)
-        .replace(/^Från:\s*[\s\S]*?(?=(?:E-post|Email|Epost|Telefon|Phone)\s*:|Hur kan vi hjälpa dig|How can we help you\?)/i, "")
+        .replace(
+          /^Från:\s*[\s\S]*?(?=(?:E-post|Email|Epost|Telefon|Phone)\s*:|Hur kan vi hjälpa dig|How can we help you\?)/i,
+          ""
+        )
         .replace(/(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/gi, "")
         .replace(/\s+/g, " ")
         .trim();
       const customerContextCopy = asText(normalizedHistoryModel.customerName, item.customerName);
       const issuePrimary = compactRuntimeCopy(
-        asText(item.title).replace(new RegExp(`^${asText(normalizedHistoryModel.customerName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "i"), ""),
+        asText(item.title).replace(
+          new RegExp(
+            `^${asText(normalizedHistoryModel.customerName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`,
+            "i"
+          ),
+          ""
+        ),
         asText(item.title),
         48
       );
       const whatSignal =
-        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "what") || null;
+        asArray(signalItems).find(
+          (signal) => normalizeKey(signal.role || signal.tone || "") === "what"
+        ) || null;
       const whySignal =
-        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "why") || null;
+        asArray(signalItems).find(
+          (signal) => normalizeKey(signal.role || signal.tone || "") === "why"
+        ) || null;
       const nextSignal =
-        asArray(signalItems).find((signal) => normalizeKey(signal.role || signal.tone || "") === "next") || null;
+        asArray(signalItems).find(
+          (signal) => normalizeKey(signal.role || signal.tone || "") === "next"
+        ) || null;
       const whatValue = asText(whatSignal?.value || item.intentLabel || issuePrimary);
       const whyRawValue = asText(whySignal?.value || "Behöver svar");
       const shouldEmphasizeWhyNow =
@@ -3729,12 +3947,27 @@
           : whyRawValue;
       const nextValue = asText(nextSignal?.value || item.nextActionLabel || "Svara nu");
       const queueMetaPills = [
-        { cls: "queue-history-pill--mailbox", icon: "mail", value: asText(item.mailboxLabel, "Kons") },
-        { cls: "queue-history-pill--provenance", icon: "layers", value: asText(item.mailboxProvenanceLabel) },
-        { cls: "queue-history-pill--source", icon: "link", value: asText(worklistSourceLabel || worklistSource) },
+        {
+          cls: "queue-history-pill--mailbox",
+          icon: "mail",
+          value: asText(item.mailboxLabel, "Kons"),
+        },
+        {
+          cls: "queue-history-pill--provenance",
+          icon: "layers",
+          value: asText(item.mailboxProvenanceLabel),
+        },
+        {
+          cls: "queue-history-pill--source",
+          icon: "link",
+          value: asText(worklistSourceLabel || worklistSource),
+        },
       ]
         .filter((pill) => asText(pill.value))
-        .map((pill) => `<span class="queue-history-pill ${pill.cls}" data-pill-icon="${pill.icon}">${escapeHtml(pill.value)}</span>`)
+        .map(
+          (pill) =>
+            `<span class="queue-history-pill ${pill.cls}" data-pill-icon="${pill.icon}">${escapeHtml(pill.value)}</span>`
+        )
         .join("");
       return `<article class="thread-card queue-history-item${selectedClassFallback}"${runtimeThreadAttribute}${historyConversationAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${selectedStateFallback}>
         <div class="thread-card-head">
@@ -3770,10 +4003,7 @@
     function buildQueueInlineLaneHistoryItem(thread) {
       const primaryLaneId = normalizeKey(thread?.primaryLaneId || "");
       const counterpartyLabel = asText(thread.customerName, "Okänd avsändare");
-      const mailboxLabel = asText(
-        thread.mailboxLabel || thread.mailboxAddress,
-        "Arbetskö"
-      );
+      const mailboxLabel = asText(thread.mailboxLabel || thread.mailboxAddress, "Arbetskö");
       const rawTitle = asText(thread.displaySubject || thread.subject, "Inget ämne");
       const rawDetail = asText(
         thread.preview || thread.systemPreview,
@@ -3786,8 +4016,7 @@
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, " ")
           .trim();
-      const escapeRegex = (value = "") =>
-        asText(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapeRegex = (value = "") => asText(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const stripRepeatedLead = (value = "", leads = []) => {
         let cleaned = asText(value).replace(/\s+/g, " ").trim();
         asArray(leads)
@@ -3850,16 +4079,18 @@
         }
         cleaned = cleaned.replace(/^Från:\s*/i, "").trim();
         while (/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i.test(cleaned)) {
-          cleaned = cleaned.replace(
-            /^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i,
-            ""
-          ).trim();
+          cleaned = cleaned
+            .replace(/^(?:E-post|Email|Epost|Telefon|Phone)\s*:\s*(?:\[[^\]]+\]|\S+)\s*/i, "")
+            .trim();
         }
-        if (/\b(?:qa|cco|live|inspect|verify|verification|reply|send|sandbox|fixture)\b/i.test(titleValue || rawTitle)) {
-          cleaned = cleaned.replace(
-            /^(?=[A-Za-zÅÄÖåäö0-9_\-[\]()]*[-_[\]])[A-Za-zÅÄÖåäö0-9_\-[\]()]{6,}\s+/,
-            ""
-          ).trim();
+        if (
+          /\b(?:qa|cco|live|inspect|verify|verification|reply|send|sandbox|fixture)\b/i.test(
+            titleValue || rawTitle
+          )
+        ) {
+          cleaned = cleaned
+            .replace(/^(?=[A-Za-zÅÄÖåäö0-9_\-[\]()]*[-_[\]])[A-Za-zÅÄÖåäö0-9_\-[\]()]{6,}\s+/, "")
+            .trim();
         }
         cleaned = cleaned.replace(/^[,.;:-]+\s*/g, "").trim();
         return compactRuntimeCopy(cleaned, "", 108);
@@ -3914,7 +4145,10 @@
       };
       const cleanedSubject = sanitizeIssueTitle(rawTitle);
       const cleanedPreview = sanitizeIssueDetail(rawDetail, cleanedSubject);
-      const cleanedFocus = sanitizeIssueDetail(thread?.whyInFocus || thread?.raw?.operatorCue, cleanedSubject);
+      const cleanedFocus = sanitizeIssueDetail(
+        thread?.whyInFocus || thread?.raw?.operatorCue,
+        cleanedSubject
+      );
       const cleanedOperationalSummary = sanitizeIssueDetail(
         thread?.nextActionSummary || thread?.waitingLabel || thread?.nextActionLabel || "",
         cleanedSubject
@@ -3930,10 +4164,14 @@
         titleSource = title ? "subject" : "";
       }
       if (!title) {
-        title = subjectSummary || compactRuntimeCopy(cleanedPreview, cleanedSubject || rawTitle, 68);
+        title =
+          subjectSummary || compactRuntimeCopy(cleanedPreview, cleanedSubject || rawTitle, 68);
         titleSource = title ? "fallback" : "";
       }
-      if (isSyntheticFallbackTitle(title) || (isGenericTitle(title) && isPlaceholderDetail(cleanedPreview))) {
+      if (
+        isSyntheticFallbackTitle(title) ||
+        (isGenericTitle(title) && isPlaceholderDetail(cleanedPreview))
+      ) {
         title = !isUnknownCounterparty(counterpartyLabel)
           ? `Konversation med ${counterpartyLabel}`
           : `Nytt inkommande mejl i ${mailboxLabel}`;
@@ -3983,7 +4221,7 @@
           ? detail
           : shouldForceFallbackDetail
             ? !isPlaceholderDetail(cleanedPreview) &&
-                normalizeCompareText(cleanedPreview) !== normalizedTitle
+              normalizeCompareText(cleanedPreview) !== normalizedTitle
               ? cleanedPreview
               : "Ingen förhandsvisning tillgänglig."
             : "";
@@ -4007,11 +4245,11 @@
       );
       const defaultRollupInlineContext =
         thread?.rollup?.enabled === true && Number(thread?.rollup?.mailboxCount || 0) > 1
-          ? "Samma kund har skrivit från flera mailboxar"
+          ? "Samma kund har skrivit från flera mejlkonton"
           : "";
       const defaultRollupExplanatoryLine =
         thread?.rollup?.enabled === true && Number(thread?.rollup?.mailboxCount || 0) > 1
-          ? "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens."
+          ? "Historiken hålls ihop, men varje meddelande visar sin mejlkontoproveniens."
           : "";
       const resolvedTitle = inlineContextHint || title || "Aktiv tråd";
       const finalDetail = explanatoryLineHint || defaultRollupExplanatoryLine || resolvedDetail;
@@ -4059,7 +4297,7 @@
         mailboxProvenanceLabel: asText(
           thread.mailboxProvenanceLabel ||
             (Number(thread?.rollup?.mailboxCount || 0) > 1
-              ? `${thread.rollup.mailboxCount} mailboxar`
+              ? `${thread.rollup.mailboxCount} mejlkonton`
               : "")
         ),
         mailboxProvenanceDetail: asText(
@@ -4086,10 +4324,15 @@
       if (normalizedSignal === "unassigned") {
         return activeThreads.filter((thread) => {
           const ownerKey = normalizeKey(thread?.ownerKey || thread?.ownerLabel || "");
-          return ownerKey === "unassigned" || ownerKey === "oägd" || asArray(thread?.tags).includes("unassigned");
+          return (
+            ownerKey === "unassigned" ||
+            ownerKey === "oägd" ||
+            asArray(thread?.tags).includes("unassigned")
+          );
         }).length;
       }
-      return activeThreads.filter((thread) => asArray(thread?.tags).includes(normalizedSignal)).length;
+      return activeThreads.filter((thread) => asArray(thread?.tags).includes(normalizedSignal))
+        .length;
     }
 
     function renderRuntimeQueueLaneState() {
@@ -4125,8 +4368,7 @@
           ? normalizeKey(inlinePanelState.laneId || activeLaneId || "all")
           : activeLaneId;
       if (queueActiveLaneLabel) {
-        queueActiveLaneLabel.textContent =
-          QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
+        queueActiveLaneLabel.textContent = QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
       }
       queueLaneButtons.forEach((button) => {
         const laneId = normalizeKey(button.dataset.queueLane || "all");
@@ -4209,8 +4451,7 @@
         node.textContent = "0";
       });
       if (queueActiveLaneLabel) {
-        queueActiveLaneLabel.textContent =
-          QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
+        queueActiveLaneLabel.textContent = QUEUE_LANE_LABELS[activeLaneId] || QUEUE_LANE_LABELS.all;
       }
     }
 
@@ -4232,12 +4473,13 @@
           mailbox.canonicalId || mailbox.email || mailbox.id
         );
         const checked = selectedIds.has(mailboxScopeId);
-        const statusLabel =
+        const rawStatusLabel =
           typeof mailbox.statusLabel === "string" && mailbox.statusLabel.trim()
             ? mailbox.statusLabel.trim()
             : mailbox.custom
-              ? "Custom"
-              : "Live";
+              ? "Eget"
+              : "Aktiv";
+        const statusLabel = rawStatusLabel === "Live" ? "Aktiv" : rawStatusLabel;
         const capabilityMeta =
           typeof getRuntimeMailboxCapabilityMeta === "function"
             ? getRuntimeMailboxCapabilityMeta(mailbox.email || mailbox.id)
@@ -4249,7 +4491,7 @@
             ? mailbox.signature?.label
               ? `Signatur: ${mailbox.signature.label}`
               : `Ägare: ${mailbox.owner || "Team"}`
-            : `Källa: ${mailbox.owner || "Live"}`);
+            : `Källa: ${mailbox.owner || "Aktiv"}`);
         const dropdownMeta = capabilityMeta || fallbackMeta;
         const label = document.createElement("label");
         label.className = "mailbox-option";
@@ -4291,21 +4533,20 @@
       mailboxMenuGrid.appendChild(addButton);
 
       const selectedMailboxes = availableMailboxes.filter((mailbox) =>
-        selectedIds.has(
-          normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id)
-        )
+        selectedIds.has(normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id))
       );
-      const selectedCount = selectedMailboxes.length || (availableMailboxes.length ? availableMailboxes.length : 0);
+      const selectedCount =
+        selectedMailboxes.length || (availableMailboxes.length ? availableMailboxes.length : 0);
       let compactScopeLabel = "Inga mail";
       if (!availableMailboxes.length) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mailboxar";
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
         compactScopeLabel = "Inga mail";
       } else if (selectedMailboxes.length === availableMailboxes.length) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mailboxar";
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
         compactScopeLabel = "Alla mail";
       } else if (selectedMailboxes.length === 1) {
         mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label}`;
-        compactScopeLabel = compactRuntimeCopy(selectedMailboxes[0].label, "Mailbox", 18);
+        compactScopeLabel = compactRuntimeCopy(selectedMailboxes[0].label, "Mejlkonto", 18);
       } else if (selectedMailboxes.length > 1) {
         mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label} +${selectedMailboxes.length - 1}`;
         compactScopeLabel = compactRuntimeCopy(
@@ -4314,7 +4555,7 @@
           18
         );
       } else {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mailboxar";
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
         compactScopeLabel = "Inga mail";
       }
       if (queueMailboxScopeLabel) {
@@ -4375,8 +4616,8 @@
           queueContent.innerHTML = "";
         }
         if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+          enforceUnifiedCardV3Sections(queueHistoryList);
+        }
         if (
           typeof windowObject?.requestAnimationFrame === "function" &&
           typeof enforceUnifiedCardV3Sections === "function"
@@ -4399,13 +4640,13 @@
             lastActivityLabel: "Pågår",
             isVIP: false,
             ownerLabel: "System",
-            subject: "Hämtar live-trådar",
-            preview: "Läser Comms, Graph och live runtime för nya CCO.",
-            mailboxLabel: "Live",
+            subject: "Hämtar aktiva trådar",
+            preview: "Läser Comms, Graph och aktiv körning för nya CCO.",
+            mailboxLabel: "Aktiv",
             intentLabel: "Synkar",
             statusLabel: "Synkar",
             nextActionLabel: "Vänta",
-            nextActionSummary: "Vänta några sekunder medan arbetskön fylls med live-trådar.",
+            nextActionSummary: "Vänta några sekunder medan arbetskön fylls med aktiva trådar.",
             tags: [],
           },
           0,
@@ -4420,22 +4661,26 @@
           {
             id: "runtime-error",
             avatar: buildAvatarDataUri("CCO"),
-            customerName: state.runtime.authRequired ? "Livekö ej ansluten" : "Livekö pausad",
+            customerName: state.runtime.authRequired ? "Aktiv kö ej ansluten" : "Aktiv kö pausad",
             lastActivityAt: "",
             lastActivityLabel: "Nu",
             isVIP: false,
             ownerLabel: "System",
             subject: state.runtime.authRequired
               ? "Öppna admin och logga in igen"
-              : "Live runtime otillgänglig",
+              : "Aktiv körning otillgänglig",
             preview: state.runtime.error,
             mailboxLabel: "CCO",
-            intentLabel: state.runtime.authRequired ? "Åtkomst" : state.runtime.offline ? "Offline" : "Runtime",
+            intentLabel: state.runtime.authRequired
+              ? "Åtkomst"
+              : state.runtime.offline
+                ? "Offline"
+                : "Körning",
             statusLabel: state.runtime.authRequired ? "Session krävs" : "Otillgänglig",
             nextActionLabel: state.runtime.authRequired ? "Logga in igen" : "Försök senare",
             nextActionSummary: state.runtime.authRequired
-              ? "Återställ admin-sessionen för att fylla arbetskön med live-trådar igen."
-              : "Vänta tills live runtime är tillbaka eller fortsätt i offline-ytan tills dess.",
+              ? "Återställ admin-sessionen för att fylla arbetskön med aktiva trådar igen."
+              : "Vänta tills aktiv körning är tillbaka eller fortsätt i offline-ytan tills dess.",
             tags: [],
           },
           0,
@@ -4465,32 +4710,32 @@
             lastActivityAt: "",
             lastActivityLabel: "Nu",
             isVIP: false,
-            ownerLabel: ownerFiltered ? "Ägarvy" : laneFiltered ? "Arbetskö" : "Mailboxscope",
+            ownerLabel: ownerFiltered ? "Ägarvy" : laneFiltered ? "Arbetskö" : "Mejlurval",
             subject: laneFiltered
               ? `${activeLaneLabel} har inga aktiva trådar`
               : ownerFiltered
                 ? "Ägarfiltret gav inga aktiva trådar"
                 : runtimeMode === "offline_history"
-                  ? "Ingen historik hittades i valt mailboxscope"
-                  : "Mailboxfiltret gav inga aktiva trådar",
+                  ? "Ingen historik hittades i valt mejlurval"
+                  : "Mejlurvalet gav inga aktiva trådar",
             preview: laneFiltered
               ? "Byt kö i vänsterpanelen eller återgå till Alla trådar för att se fler konversationer."
               : ownerFiltered
                 ? "Byt ägare eller återgå till Ägarvy för att se fler trådar."
                 : runtimeMode === "offline_history"
-                  ? "Livekön är offline och det finns ännu ingen sparad historik att visa i arbetsytan."
-                  : "Välj fler mailboxar eller vänta på nästa inkommande konversation.",
+                  ? "Den aktiva kön är offline och det finns ännu ingen sparad historik att visa i arbetsytan."
+                  : "Välj fler mejlkonton eller vänta på nästa inkommande konversation.",
             mailboxLabel: "Arbetskö",
             intentLabel: runtimeMode === "offline_history" ? "Offline historik" : "Tom kö",
             statusLabel: runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
-            nextActionLabel: runtimeMode === "offline_history" ? "Byt mailboxscope" : "Justera urval",
+            nextActionLabel: runtimeMode === "offline_history" ? "Byt mejlurval" : "Justera urval",
             nextActionSummary: laneFiltered
               ? "Återgå till Alla trådar eller byt kö för att hitta nästa aktiva konversation."
               : ownerFiltered
                 ? "Byt ägarfilter eller återgå till Ägarvy för att läsa fler trådar."
                 : runtimeMode === "offline_history"
-                  ? "Välj ett annat mailboxscope eller invänta att livekopplingen kommer tillbaka."
-                  : "Utöka mailboxscope för att fylla arbetskön med fler konversationer.",
+                  ? "Välj ett annat mejlurval eller invänta att kopplingen kommer tillbaka."
+                  : "Utöka mejlurvalet för att fylla arbetskön med fler konversationer.",
             tags: [],
           },
           0,
@@ -4565,15 +4810,25 @@
         enforceUnifiedCardV3Sections(queueHistoryList);
       }
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
-      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      try {
+        __scanAndFixUnknownSenders(queueHistoryList);
+      } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
-      try { __applySecondaryFilter(); } catch (_e) {}
+      try {
+        __applySecondaryFilter();
+      } catch (_e) {}
       // P1-C (migrerad): re-applicera sök-filter om aktivt
-      try { __applySearchFilter(); } catch (_e) {}
+      try {
+        __applySearchFilter();
+      } catch (_e) {}
       // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
-      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      try {
+        __runAllStatusFixes(queueHistoryList);
+      } catch (_e) {}
       // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
-      try { __updateLivePill(); } catch (_e) {}
+      try {
+        __updateLivePill();
+      } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4611,28 +4866,48 @@
         // Sista fallback: matchar förväntad CSS-struktur (.thread-card-head + .thread-story)
         // så griden inte kollapsar och överlappar grannarna.
         const id = String(thread?.id || "").replace(/[^a-z0-9_-]/gi, "");
-        const customer = (thread?.customerName ||
+        const customer = (
+          thread?.customerName ||
           thread?.fromName ||
           thread?.from?.name ||
           thread?.from?.emailAddress?.name ||
-          (thread?.customerEmail || thread?.from?.address || thread?.from?.emailAddress?.address || "")?.split('@')[0] ||
-          "Okänd avsändare").toString().slice(0, 80);
-        const subject = String(
-          thread?.displaySubject || thread?.subject || "(utan ämne)"
-        ).slice(0, 120);
+          (
+            thread?.customerEmail ||
+            thread?.from?.address ||
+            thread?.from?.emailAddress?.address ||
+            ""
+          )?.split("@")[0] ||
+          "Okänd avsändare"
+        )
+          .toString()
+          .slice(0, 80);
+        const subject = String(thread?.displaySubject || thread?.subject || "(utan ämne)").slice(
+          0,
+          120
+        );
         const preview = String(thread?.preview || thread?.systemPreview || "").slice(0, 200);
-        const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        const escape = (s) =>
+          String(s).replace(
+            /[&<>"']/g,
+            (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+          );
         return (
           '<article class="thread-card queue-history-item unified-queue-card" ' +
-          'data-runtime-thread="' + id + '" tabindex="0" ' +
+          'data-runtime-thread="' +
+          id +
+          '" tabindex="0" ' +
           'style="position:relative;display:block;min-height:64px;padding:12px 14px;margin:0">' +
           '<div class="thread-card-head" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
-          '<strong style="font-size:14px;color:#2b251f">' + escape(customer) + '</strong>' +
-          '<span style="font-size:12px;color:#8a8174">' + escape(subject) + '</span>' +
-          '</div>' +
+          '<strong style="font-size:14px;color:#2b251f">' +
+          escape(customer) +
+          "</strong>" +
+          '<span style="font-size:12px;color:#8a8174">' +
+          escape(subject) +
+          "</span>" +
+          "</div>" +
           '<div class="thread-story" style="font-size:12px;color:#5d544a;overflow:hidden;text-overflow:ellipsis">' +
           escape(preview) +
-          '</div></article>'
+          "</div></article>"
         );
       };
       queueHistoryList.innerHTML = asArray(threads)
@@ -4644,15 +4919,25 @@
         enforceUnifiedCardV3Sections(queueHistoryList);
       }
       // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
-      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      try {
+        __scanAndFixUnknownSenders(queueHistoryList);
+      } catch (_e) {}
       // P1-B (migrerad): re-applicera secondary-filter om aktivt
-      try { __applySecondaryFilter(); } catch (_e) {}
+      try {
+        __applySecondaryFilter();
+      } catch (_e) {}
       // P1-C (migrerad): re-applicera sök-filter om aktivt
-      try { __applySearchFilter(); } catch (_e) {}
+      try {
+        __applySearchFilter();
+      } catch (_e) {}
       // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
-      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      try {
+        __runAllStatusFixes(queueHistoryList);
+      } catch (_e) {}
       // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
-      try { __updateLivePill(); } catch (_e) {}
+      try {
+        __updateLivePill();
+      } catch (_e) {}
       if (typeof decorateStaticPills === "function") decorateStaticPills();
     }
 
@@ -4671,7 +4956,10 @@
         nextActionSummary = "",
         tags = [],
       } = {}) => ({
-        id: asText(id, `runtime-state-${normalizeKey(customerName || subject || "item") || "item"}`),
+        id: asText(
+          id,
+          `runtime-state-${normalizeKey(customerName || subject || "item") || "item"}`
+        ),
         avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
         customerName: asText(customerName, "Systemstatus"),
         lastActivityAt: "",
@@ -4705,8 +4993,7 @@
                 state.runtime && typeof state.runtime.queueHistory === "object"
                   ? state.runtime.queueHistory
                   : {};
-              const activeLaneId =
-                normalizeKey(state.runtime.activeLaneId || "all") || "all";
+              const activeLaneId = normalizeKey(state.runtime.activeLaneId || "all") || "all";
               const feedKey = normalizeKey(inlineState.feedKey || "");
               const laneId =
                 normalizeKey(inlineState.laneId || activeLaneId || "all") || activeLaneId;
@@ -4746,16 +5033,13 @@
 
       if (!isOpen) {
         if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+          enforceUnifiedCardV3Sections(queueHistoryList);
+        }
         return;
       }
 
       if (isHistoryOpen) {
-        const fallbackThreads = getQueueLaneThreads(
-          "all",
-          getQueueScopedRuntimeThreads()
-        );
+        const fallbackThreads = getQueueLaneThreads("all", getQueueScopedRuntimeThreads());
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "history";
         }
@@ -4769,7 +5053,8 @@
           } else {
             renderQueueHistoryList([]);
             if (queueHistoryList) {
-              queueHistoryList.innerHTML = '<div class="queue-history-empty">Laddar historik…</div>';
+              queueHistoryList.innerHTML =
+                '<div class="queue-history-empty">Laddar historik…</div>';
             }
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
@@ -4793,7 +5078,7 @@
             renderQueueInlineLaneList(fallbackThreads);
           } else if (queueHistoryList) {
             queueHistoryList.innerHTML =
-              '<div class="queue-history-empty">Ingen historik hittades i valt mailboxscope ännu.</div>';
+              '<div class="queue-history-empty">Ingen historik hittades i valt mejlurval ännu.</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
@@ -4801,8 +5086,8 @@
 
         renderQueueHistoryList(historyState.items);
         if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+          enforceUnifiedCardV3Sections(queueHistoryList);
+        }
         if (queueHistoryLoadMoreButton) {
           queueHistoryLoadMoreButton.hidden = !historyState.hasMore;
         }
@@ -4820,8 +5105,8 @@
           }
           renderQueueInlineLaneList(loadingThreads);
           if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+            enforceUnifiedCardV3Sections(queueHistoryList);
+          }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4835,8 +5120,8 @@
           }
           renderQueueInlineLaneList(demoFixtures);
           if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+            enforceUnifiedCardV3Sections(queueHistoryList);
+          }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4845,8 +5130,8 @@
         }
         renderQueueInlineLaneList(buildUnifiedQueueLoadingItems());
         if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+          enforceUnifiedCardV3Sections(queueHistoryList);
+        }
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
       }
@@ -4866,8 +5151,8 @@
           }
           renderQueueInlineLaneList(demoFixtures);
           if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
-      }
+            enforceUnifiedCardV3Sections(queueHistoryList);
+          }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
@@ -4880,18 +5165,18 @@
         renderQueueInlineLaneList([
           buildUnifiedStateThread({
             id: "runtime-unified-error",
-            customerName: state.runtime.authRequired ? "Livekö ej ansluten" : "Livekö pausad",
+            customerName: state.runtime.authRequired ? "Aktiv kö ej ansluten" : "Aktiv kö pausad",
             ownerLabel: "System",
             subject: state.runtime.authRequired
               ? "Öppna admin och logga in igen"
-              : "Live runtime otillgänglig",
+              : "Aktiv körning otillgänglig",
             preview: state.runtime.error,
             mailboxLabel: "CCO",
             statusLabel: state.runtime.authRequired ? "Session krävs" : "Otillgänglig",
             nextActionLabel: state.runtime.authRequired ? "Logga in igen" : "Försök senare",
             nextActionSummary: state.runtime.authRequired
-              ? "Återställ admin-sessionen för att fylla arbetskön med live-trådar igen."
-              : "Vänta tills live runtime är tillbaka eller fortsätt i offline-ytan tills dess.",
+              ? "Återställ admin-sessionen för att fylla arbetskön med aktiva trådar igen."
+              : "Vänta tills aktiv körning är tillbaka eller fortsätt i offline-ytan tills dess.",
           }),
         ]);
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
@@ -4914,12 +5199,11 @@
               customerName: "Inga mejl i kategorin",
               ownerLabel: inlineFeedKey === "sent" ? "Skickade" : "Arbetskö",
               subject: "Det finns inga mejl att visa just nu",
-              preview: "Byt kategori eller mailboxscope för att se fler trådar i vänsterkolumnen.",
+              preview: "Byt kategori eller mejlurval för att se fler trådar i vänsterkolumnen.",
               mailboxLabel: feedLabel,
               statusLabel: "Ingen match",
               nextActionLabel: "Byt kategori",
-              nextActionSummary:
-                "Byt kategori eller mailboxscope för att hitta nästa relevanta mejl.",
+              nextActionSummary: "Byt kategori eller mejlurval för att hitta nästa relevanta mejl.",
             }),
           ]);
         } else {
@@ -4945,7 +5229,8 @@
               customerName: "Inga trådar i urvalet",
               ownerLabel: "Arbetskö",
               subject: `${QUEUE_LANE_LABELS[laneId] || QUEUE_LANE_LABELS.all} har inga aktiva trådar`,
-              preview: "Byt kö i vänsterpanelen eller återgå till Alla trådar för att se fler konversationer.",
+              preview:
+                "Byt kö i vänsterpanelen eller återgå till Alla trådar för att se fler konversationer.",
               mailboxLabel: "Arbetskö",
               statusLabel: "Ingen match",
               nextActionLabel: "Byt kö",
@@ -4974,7 +5259,7 @@
           if (runtimeMode === "offline_history") {
             if (queueHistoryList) {
               queueHistoryList.innerHTML = `<div class="queue-history-empty">${escapeHtml(
-                offlineEmptyMessage || "Ingen lokal historik hittades i valt mailboxscope ännu."
+                offlineEmptyMessage || "Ingen lokal historik hittades i valt mejlurval ännu."
               )}</div>`;
             }
           } else {
@@ -4983,10 +5268,9 @@
                 id: "runtime-unified-empty",
                 customerName: "Inga trådar i urvalet",
                 ownerLabel: "Arbetskö",
-                subject: "Mailboxfiltret gav inga aktiva trådar",
+                subject: "Mejlurvalet gav inga aktiva trådar",
                 preview: (() => {
-                  let live =
-                    "Välj fler mailboxar eller vänta på nästa inkommande konversation.";
+                  let live = "Välj fler mejlkonton eller vänta på nästa inkommande konversation.";
                   if (state.runtime?.graphReadEnabled === true) {
                     live +=
                       " Tom kö direkt efter testmail är ofta normalt — ge det en minut och ladda om.";
@@ -5004,7 +5288,7 @@
                 statusLabel: "Ingen match",
                 nextActionLabel: "Justera urval",
                 nextActionSummary:
-                  "Utöka mailboxscope för att fylla arbetskön med fler konversationer.",
+                  "Utöka mejlurvalet för att fylla arbetskön med fler konversationer.",
               }),
             ]);
           }
@@ -5053,7 +5337,9 @@
       const threads = getMailFeedRuntimeThreads(feedKey);
       if (!threads.length) return null;
       const selectedKey = normalizeKey(state.selectedMailFeedKey[normalizeKey(feedKey)]);
-      return threads.find((thread) => normalizeKey(thread.id) === selectedKey) || threads[0] || null;
+      return (
+        threads.find((thread) => normalizeKey(thread.id) === selectedKey) || threads[0] || null
+      );
     }
 
     function updateMailFeedMetrics(feedKey, threads) {
@@ -5063,10 +5349,14 @@
           laterMetricValueNodes.count.textContent = String(threads.length);
         }
         if (laterMetricValueNodes.vip) {
-          laterMetricValueNodes.vip.textContent = String(threads.filter((thread) => thread.isVIP).length);
+          laterMetricValueNodes.vip.textContent = String(
+            threads.filter((thread) => thread.isVIP).length
+          );
         }
         const nextResumeIso = threads
-          .map((thread) => toIso(thread?.raw?.followUpDueAt || thread?.raw?.followUpSuggestedAt || ""))
+          .map((thread) =>
+            toIso(thread?.raw?.followUpDueAt || thread?.raw?.followUpSuggestedAt || "")
+          )
           .filter(Boolean)
           .sort()[0];
         if (laterMetricValueNodes.resume) {
@@ -5079,7 +5369,9 @@
           sentMetricValueNodes.count.textContent = String(threads.length);
         }
         if (sentMetricValueNodes.vip) {
-          sentMetricValueNodes.vip.textContent = String(threads.filter((thread) => thread.isVIP).length);
+          sentMetricValueNodes.vip.textContent = String(
+            threads.filter((thread) => thread.isVIP).length
+          );
         }
         if (sentMetricValueNodes.scope) {
           sentMetricValueNodes.scope.textContent = String(
@@ -5167,9 +5459,9 @@
         return {
           label: normalizedFeed === "later" ? "Senare" : "Skickade",
           title: "Inloggning krävs",
-          meta: "CCO runtime",
-          copy: "Logga in igen i admin för att läsa live-data i denna vy.",
-          scope: `${mailboxScopeCount} mailboxar`,
+          meta: "CCO körning",
+          copy: "Logga in igen i admin för att läsa aktiv data i denna vy.",
+          scope: `${mailboxScopeCount} mejlkonton`,
           context: "Åtkomst krävs",
           hint: "Öppna admin och logga in igen.",
         };
@@ -5179,21 +5471,21 @@
           label: normalizedFeed === "later" ? "Senare" : "Skickade",
           title: "Offline historikläge",
           meta: "CCO historik",
-          copy: "Livekön är offline. Den här vyn visar bara sådant som kan härledas från sparad historik.",
-          scope: `${mailboxScopeCount} mailboxar`,
-          context: "Historikfallback",
-          hint: "Återgå till arbetskön eller invänta att livekopplingen kommer tillbaka.",
+          copy: "Den aktiva kön är offline. Den här vyn visar bara sådant som kan härledas från sparad historik.",
+          scope: `${mailboxScopeCount} mejlkonton`,
+          context: "Historikstöd",
+          hint: "Återgå till arbetskön eller invänta att kopplingen kommer tillbaka.",
         };
       }
       if (state.runtime.error && !state.runtime.live) {
         return {
           label: normalizedFeed === "later" ? "Senare" : "Skickade",
-          title: "Live runtime saknas",
-          meta: "CCO runtime",
+          title: "Aktiv körning saknas",
+          meta: "CCO körning",
           copy: state.runtime.error,
-          scope: `${mailboxScopeCount} mailboxar`,
+          scope: `${mailboxScopeCount} mejlkonton`,
           context: "Otillgänglig",
-          hint: "Försök igen när live runtime är tillbaka.",
+          hint: "Försök igen när aktiv körning är tillbaka.",
         };
       }
       return {
@@ -5206,13 +5498,13 @@
         copy:
           normalizedFeed === "later"
             ? "Snoozade eller parkerade konversationer dyker upp här när de lämnar arbetskön."
-            : "Skickade trådar visas här när senaste aktiviteten i scope kommer från CCO.",
-        scope: `${mailboxScopeCount} mailboxar`,
-        context: "Live scope",
+            : "Skickade trådar visas här när senaste aktiviteten i urvalet kommer från CCO.",
+        scope: `${mailboxScopeCount} mejlkonton`,
+        context: "Aktivt urval",
         hint:
           normalizedFeed === "later"
-            ? "Ändra mailboxscope eller svara senare i studion för att fylla vyn."
-            : "Ändra mailboxscope eller skicka från studion för att fylla vyn.",
+            ? "Ändra mejlurval eller svara senare i svarsstudion för att fylla vyn."
+            : "Ändra mejlurval eller skicka från svarsstudion för att fylla vyn.",
       };
     }
 
@@ -5220,7 +5512,8 @@
       mailFeedFilterButtons.forEach((button) => {
         const feedKey = normalizeKey(button.dataset.mailFeedFilter);
         const isActive =
-          normalizeKey(button.dataset.mailFeedFilterValue) === getMailFeedRuntimeState(feedKey).filter;
+          normalizeKey(button.dataset.mailFeedFilterValue) ===
+          getMailFeedRuntimeState(feedKey).filter;
         button.classList.toggle("is-active", isActive);
         button.setAttribute("aria-pressed", isActive ? "true" : "false");
       });
@@ -5269,7 +5562,8 @@
         if (selectAllButton) {
           const visibleKeys = items.map((item) => normalizeKey(item.key)).filter(Boolean);
           const allVisibleSelected =
-            visibleKeys.length > 0 && visibleKeys.every((key) => runtime.selectedKeys.includes(key));
+            visibleKeys.length > 0 &&
+            visibleKeys.every((key) => runtime.selectedKeys.includes(key));
           selectAllButton.textContent =
             allVisibleSelected && visibleKeys.length ? "Avmarkera alla" : "Markera alla";
         }

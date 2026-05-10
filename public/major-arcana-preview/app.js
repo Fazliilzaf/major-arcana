@@ -5,11 +5,15 @@
   const previewWorkspace = document.querySelector(".preview-workspace");
   const previewShell = document.querySelector(".preview-shell");
   const focusShell = document.querySelector(".focus-shell");
+  const mobileWorkspaceButtons = Array.from(
+    document.querySelectorAll("[data-mobile-workspace-view]")
+  );
   const shellViewSections = Array.from(document.querySelectorAll("[data-shell-view]"));
   const automationShell = document.querySelector(".automation-shell");
   const navViewButtons = Array.from(document.querySelectorAll("[data-nav-view]"));
   const moreMenuToggle = document.querySelector("[data-more-toggle]");
   const moreMenu = document.getElementById("preview-more-menu");
+  const focusIntel = document.querySelector(".focus-intel");
   const focusIntelTabs = document.querySelector(".focus-intel-tabs");
   const focusTabButtons = Array.from(
     document.querySelectorAll(".focus-tab[data-focus-section]")
@@ -43,6 +47,79 @@
     vip: document.querySelector('[data-sent-metric-value="vip"]'),
     scope: document.querySelector('[data-sent-metric-value="scope"]'),
   };
+
+  const getSafeSessionStorage = () => {
+    try {
+      return window.sessionStorage || null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  function isMobileWorkspaceViewport() {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 620px)").matches
+    );
+  }
+
+  function urlWantsBookingWorkspace() {
+    const params = new URLSearchParams(window.location.search || "");
+    return (
+      params.get("booking") === "1" ||
+      String(params.get("surface") || "").toLowerCase() === "booking" ||
+      String(params.get("view") || "").toLowerCase() === "booking"
+    );
+  }
+
+  function setMobileWorkspaceView(view, { persist = false, resetScroll = true } = {}) {
+    if (!canvas) return;
+    const nextView = view === "focus" ? "focus" : "queue";
+    canvas.dataset.mobileWorkspaceView = nextView;
+    mobileWorkspaceButtons.forEach((button) => {
+      const isActive = button.dataset.mobileWorkspaceView === nextView;
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      button.classList.toggle("is-active", isActive);
+    });
+    if (persist) {
+      getSafeSessionStorage()?.setItem("majorArcanaMobileWorkspaceView", nextView);
+    }
+    if (resetScroll && isMobileWorkspaceViewport()) {
+      [canvas, previewWorkspace].forEach((node) => {
+        if (!node) return;
+        node.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+        node.scrollTop = 0;
+        node.scrollLeft = 0;
+      });
+    }
+  }
+
+  function initializeMobileWorkspaceSwitch() {
+    const savedView = getSafeSessionStorage()?.getItem("majorArcanaMobileWorkspaceView");
+    const initialView = urlWantsBookingWorkspace()
+      ? "focus"
+      : savedView === "focus" || savedView === "queue"
+        ? savedView
+        : "queue";
+    setMobileWorkspaceView(initialView, { persist: false, resetScroll: false });
+    mobileWorkspaceButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setMobileWorkspaceView(button.dataset.mobileWorkspaceView, {
+          persist: true,
+          resetScroll: true,
+        });
+      });
+    });
+    window.addEventListener("resize", () => {
+      setMobileWorkspaceView(canvas?.dataset.mobileWorkspaceView || initialView, {
+        persist: false,
+        resetScroll: false,
+      });
+    });
+  }
+
+  initializeMobileWorkspaceSwitch();
   const mailFeedFilterButtons = Array.from(
     document.querySelectorAll("[data-mail-feed-filter]")
   );
@@ -1174,7 +1251,7 @@
     sla_guardian: {
       flowTitle: "SLA-väktare",
       analysisTitle: 'Prestandainsikter för “SLA-väktare”',
-      templatesTitle: "Utvalda mallar för SLA, fallback och eskalering",
+      templatesTitle: "Utvalda mallar för SLA, reservspår och eskalering",
       testingTitle: "Testkörning för SLA-vakt",
       versionsTitle: "Versioner för SLA-väktare",
       autopilotTitle: "Autopilot för SLA-övervakning",
@@ -1201,7 +1278,7 @@
           lines: ["Varaktighet: 2h"],
         },
         condition: {
-          title: "Kontrollera fallback-slot",
+          title: "Kontrollera reservsteg",
           lines: ["Villkor: reply.received = false"],
         },
         guide: {
@@ -1236,7 +1313,7 @@
           lines: ["Mall: holiday-autoreply", "Till: {{customer.email}}"],
         },
         assign: {
-          title: "Märk fallback-ansvarig",
+          title: "Märk jouransvarig",
           lines: ["Tilldela till: support-duty"],
         },
         wait: {
@@ -1301,12 +1378,12 @@
       },
     },
     vip_fast_track: {
-      flowTitle: "VIP Fast Track",
-      analysisTitle: 'Prestandainsikter för “VIP Fast Track”',
+      flowTitle: "VIP-snabbspår",
+      analysisTitle: 'Prestandainsikter för “VIP-snabbspår”',
       templatesTitle: "Premiummallar för VIP och snabbspår",
-      testingTitle: "Testkörning för VIP Fast Track",
-      versionsTitle: "Versioner för VIP Fast Track",
-      autopilotTitle: "Autopilot för VIP Fast Track",
+      testingTitle: "Testkörning för VIP-snabbspår",
+      versionsTitle: "Versioner för VIP-snabbspår",
+      autopilotTitle: "Autopilot för VIP-snabbspår",
       testingConfig: {
         customer: "Johan Andersson",
         trigger: "vip.intent.detected",
@@ -1367,7 +1444,7 @@
       items: [
         "Körningen passerade utan regressionsvarning",
         "Villkorsgrenen gav förväntat utfall",
-        "Fallback-spår verifierat i samma körning",
+        "Reservspår verifierat i samma körning",
         "Felhantering svarade inom 2 sekunder",
       ],
       log: [
@@ -1384,7 +1461,7 @@
       title: "Validering kräver uppföljning",
       items: [
         "Väntesteget hoppades över manuellt",
-        "Fallback-mejl skickades för verifiering",
+        "Reservsvar skickades för verifiering",
         "SLA-tak hölls i simulerad körning",
         "Lägg gärna till extra verifiering av CTA innan publicering",
       ],
@@ -1401,8 +1478,8 @@
 
   const AUTOMATION_AUTOPILOT_BASE_RECENT = [
     { title: 'Minskade "Bokningsflöde" från 7 → 5 steg', stamp: "Idag", delta: "+6%" },
-    { title: 'Ökade "Merförsäljningssekvens" konvertering', stamp: "Idag", delta: "+18%" },
-    { title: "Auto-fixade 3 timeout-problem", stamp: "Igår", delta: "100% stabil" },
+        { title: 'Ökade konvertering i "Merförsäljningssekvens"', stamp: "Idag", delta: "+18%" },
+        { title: "Autofixade 3 timeout-problem", stamp: "Igår", delta: "100% stabil" },
   ];
 
   const BASE_HISTORY_ITEMS = [
@@ -1495,8 +1572,8 @@
         customerKey: "johan",
         customerName: "Johan Andersson",
         mailbox: "Kons",
-        title: "VIP-uppföljning efter fast track",
-        preview: "Behöver återupptas när senior-specialisten bekräftar fallback-slot.",
+        title: "VIP-uppföljning efter snabbspår",
+        preview: "Behöver återupptas när senior-specialisten bekräftar reservtiden.",
         meta: "Återupptas imorgon 09:00",
       },
       {
@@ -1524,8 +1601,8 @@
         customerKey: "johan",
         customerName: "Johan Andersson",
         mailbox: "Info",
-        title: "RE: VIP Fast Track - välkomstsekvens",
-        preview: "Skickat från Info via automationen VIP Fast Track.",
+        title: "RE: VIP-snabbspår - välkomstsekvens",
+        preview: "Skickat från Info via automationen VIP-snabbspår.",
         meta: "Idag 20:39",
       },
       {
@@ -1534,7 +1611,7 @@
         customerName: "Emma Svensson",
         mailbox: "Kons",
         title: "RE: Föreslå ny tid",
-        preview: "Skickat med mallen 'Föreslå ny tid' och tydlig fallback-slot.",
+        preview: "Skickat med mallen 'Föreslå ny tid' och tydlig reservtid.",
         meta: "Igår 18:05",
       },
     ],
@@ -1554,30 +1631,30 @@
       category: "payment",
       label: "Stripe",
       copy: "Skicka betalningslänkar, följ transaktioner och håll betalningspåminnelser i samma arbetsyta.",
-      owner: "Finance Ops",
+      owner: "Ekonomiteam",
       connected: true,
     },
     {
       key: "twilio",
       category: "communication",
       label: "Twilio",
-      copy: "Lägg till SMS och röstsamtal som fallback-kanal för svar senare, uppföljning och VIP-eskalering.",
-      owner: "Customer Care",
+      copy: "Lägg till SMS och röstsamtal som reservkanal för svar senare, uppföljning och VIP-eskalering.",
+      owner: "Kundteam",
       connected: false,
     },
     {
       key: "slack",
       category: "communication",
       label: "Slack",
-      copy: "Skicka teamaviseringar, handoff-signaler och eskaleringslarm utan att lämna CCO.",
-      owner: "Ops Lead",
+      copy: "Skicka teamaviseringar, överlämningssignaler och eskaleringslarm utan att lämna CCO.",
+      owner: "Driftansvarig",
       connected: true,
     },
     {
       key: "looker",
       category: "analytics",
       label: "Looker",
-      copy: "Dela dashboards och analytics-exporter externt utan att skapa ett parallellt operativt flöde.",
+      copy: "Dela dashboards och analys-exporter externt utan att skapa ett parallellt operativt flöde.",
       owner: "Data Team",
       connected: false,
     },
@@ -1585,8 +1662,8 @@
       key: "zapier",
       category: "automation",
       label: "Zapier",
-      copy: "Starta externa arbetsflöden från buildern utan att lämna automationsytan.",
-      owner: "Automation Desk",
+      copy: "Starta externa arbetsflöden från byggaren utan att lämna automationsytan.",
+      owner: "Automationsteam",
       connected: false,
     },
   ];
@@ -1690,7 +1767,7 @@
         "Lyft fram sammanfattningar, nästa steg och riskflaggor när operatören är mitt i tråden i stället för att skicka dem till en separat sida.",
       outcome: "Mer beslutsstöd utan att lämna arbetsytan.",
       detail:
-        "AI-assistenten ska stödja operatören i kontext: i fokusytan, i kundintelligensen och i studion, inte som en fristående app.",
+        "AI-assistenten ska stödja operatören i kontext: i fokusytan, i kundintelligensen och i svarsstudion, inte som en fristående app.",
       effectLabel: "Operativ effekt",
       effectTitle: "Fokus",
       effectCopy: "Mer stöd där svaren faktiskt skrivs",
@@ -1711,7 +1788,7 @@
       effectTitle: "Återanvändning",
       effectCopy: "Fler standardiserade svar med mindre friktion",
       nextTitle: "Knyt makron till studio och automation",
-      nextCopy: "Låt samma makro gå att köra direkt i studion eller öppna som byggsten i automation.",
+      nextCopy: "Låt samma makro gå att köra direkt i svarsstudion eller öppna som byggsten i automation.",
       primaryAction: { label: "Öppna makron", jump: "macros" },
       secondaryAction: { label: "Öppna automation", jump: "automation" },
     },
@@ -1722,7 +1799,7 @@
         "Samla viktiga steg, behandlingar, blockerare och nästa rekommenderade moment i en tydlig tidslinje över kunden.",
       outcome: "Bättre överblick över var kunden faktiskt befinner sig.",
       detail:
-        "Kundresan ska hjälpa operatören att förstå helheten över flera mailboxar och kontaktpunkter utan att gräva i råhistorik först.",
+        "Kundresan ska hjälpa operatören att förstå helheten över flera mejlkonton och kontaktpunkter utan att gräva i råhistorik först.",
       effectLabel: "Operativ effekt",
       effectTitle: "Utfall",
       effectCopy: "Tydligare nästa steg per kund",
@@ -1906,6 +1983,7 @@
     main: { min: 340 },
     right: { min: MIN_INTEL_WIDTH, max: 430 },
   };
+  let workspaceManualSizing = false;
 
   // ====================================================================
   // STATE — wrappad i Proxy för Fas 4-debug.
@@ -2995,6 +3073,34 @@
     const normalized = String(value ?? "").trim();
     if (normalized) return normalized;
     return String(fallback ?? "");
+  }
+
+  function extractPreviewTextFromHtml(value = "") {
+    const html = asText(value).trim();
+    if (!html) return "";
+    return html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<li\b[^>]*>/gi, "• ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&#x([0-9a-f]+);/gi, (_, code) => {
+        const parsed = Number.parseInt(code, 16);
+        return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : " ";
+      })
+      .replace(/&#([0-9]+);/g, (_, code) => {
+        const parsed = Number.parseInt(code, 10);
+        return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : " ";
+      })
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function normalizeMailboxId(value) {
@@ -4175,7 +4281,7 @@
       hasLocalSignatureDefinition,
       localSignatureSeeded,
       localSignatureLabel,
-      statusLabel: isCustomMailbox ? "Custom" : "Live",
+      statusLabel: isCustomMailbox ? "Eget" : "Aktiv",
       surfaceKind: isCustomMailbox
         ? "custom_mailbox"
         : hasLocalSignatureDefinition
@@ -4189,12 +4295,12 @@
       adminRemoveLabel:
         hasLiveSource && hasLocalSignatureDefinition ? "Ta bort signatur" : "Ta bort",
       ownerCopy: hasLiveSource
-        ? `Källa: ${asText(mailbox.owner, "Live")}`
+        ? `Källa: ${asText(mailbox.owner, "Aktiv")}`
         : `Ägare: ${asText(mailbox.owner, "Team")}`,
       signatureCopy: localSignatureLabel
         ? `${hasLiveSource ? "Lokal signatur" : "Signatur"}: ${localSignatureLabel}`
         : hasLiveSource
-          ? "Signatur: Liveprofil"
+          ? "Signatur: aktiv profil"
           : "Ingen lokal signatur",
       showLivePill: hasLiveSource,
     };
@@ -4721,8 +4827,9 @@
     canvas.dataset.runtimeVisualState = visualState;
 
     const freezeWorkspaceWidths = visualState === "auth_required" || visualState === "syncing";
+    const wasWorkspaceWidthFrozen = canvas.classList.contains("is-workspace-width-frozen");
     if (freezeWorkspaceWidths) {
-      if (!canvas.classList.contains("is-workspace-width-frozen")) {
+      if (!wasWorkspaceWidthFrozen) {
         canvas.style.setProperty("--workspace-left-width-locked", `${workspaceState.left}px`);
         canvas.style.setProperty("--workspace-main-width-locked", `${workspaceState.main}px`);
         canvas.style.setProperty("--workspace-right-width-locked", `${workspaceState.right}px`);
@@ -4730,6 +4837,9 @@
       canvas.classList.add("is-workspace-width-frozen");
     } else {
       canvas.classList.remove("is-workspace-width-frozen");
+      if (wasWorkspaceWidthFrozen) {
+        normalizeWorkspaceState();
+      }
     }
 
     if (activeRuntimeVisualState && activeRuntimeVisualState !== visualState) {
@@ -4868,9 +4978,9 @@
     const parts = [];
     const writeBlockedByMode = runtimeMode === "auth_required" || runtimeMode === "offline_history";
     const sendModeBlockedCopy =
-      runtimeMode === "auth_required" ? "Skicka: auth-låst" : "Skicka: spärrad i läsläge";
+      runtimeMode === "auth_required" ? "Skicka: inloggningslåst" : "Skicka: spärrad i läsläge";
     const deleteModeBlockedCopy =
-      runtimeMode === "auth_required" ? "Radera: auth-låst" : "Radera: spärrad i läsläge";
+      runtimeMode === "auth_required" ? "Radera: inloggningslåst" : "Radera: spärrad i läsläge";
     const requestedTokens = new Set(
       getMailboxIdentityTokens({
         id: mailboxId,
@@ -4903,11 +5013,11 @@
       ? "Signatur: profil saknas i nuvarande läge"
       : "Signatur: egen profil saknas";
     if (runtimeMode === "auth_required") {
-      parts.push("Läs: auth-låst");
+      parts.push("Läs: inloggningslåst");
     } else if (runtimeMode === "offline_history") {
       parts.push("Läs: offline historik · läsläge");
     } else {
-      parts.push(capability?.readAvailable ? "Läs: livekälla" : "Läs: spärrad");
+      parts.push(capability?.readAvailable ? "Läs: aktiv källa" : "Läs: spärrad");
     }
     parts.push(
       writeBlockedByMode
@@ -5460,7 +5570,7 @@
     if (normalized === "healthy") return "Stabil";
     if (normalized === "attention") return "Bevaka";
     if (normalized === "idle") return isConnected ? "Redo" : "Inte aktiv";
-    return isConnected ? "Live" : "Redo";
+    return isConnected ? "Aktiv" : "Redo";
   }
 
   function getFallbackIntegrationRecord(item) {
@@ -5472,7 +5582,7 @@
       statusTone: isConnected ? "healthy" : "idle",
       statusSummary: item?.copy || (isConnected ? "Ansluten." : "Inte ansluten ännu."),
       watchLabel: isConnected
-        ? "Verifiera guardrails och ägarskap efter aktivering."
+        ? "Verifiera skyddsregler och ägarskap efter aktivering."
         : "Koppla in när det faktiskt hjälper operatören i vardagen.",
       configurable: true,
       docsAvailable: true,
@@ -5521,7 +5631,7 @@
       `Enterpriseförfrågan från Major Arcana-integrationsytan.`,
       `Fokus just nu: ${categoryLabel}.`,
       `Aktiva kopplingar i tenant: ${connectedKeys.length}/${INTEGRATION_CATALOG.length}.`,
-      `Önskar genomgång av guardrails, readiness och nästa lämpliga integrationssteg.`,
+      `Önskar genomgång av skyddsregler, beredskap och nästa lämpliga integrationssteg.`,
     ].join(" ");
   }
 
@@ -5706,7 +5816,7 @@
             ? "Körs automatiskt när villkoren träffar rätt operativt läge."
             : "Körs manuellt från nya CCO:s arbetsyta när teamet behöver standardisera nästa steg.",
           140
-        ) || "Makrot är redo att köras i shellen.",
+        ) || "Makrot är redo att köras i arbetsytan.",
       actionLabel: actionLabelByTrigger,
       shortcut: asText(record?.shortcut),
       runCount: asNumber(record?.runCount, 0),
@@ -5723,7 +5833,7 @@
       mode: normalizeKey(macro?.mode) === "auto" ? "auto" : "manual",
       tone: asText(macro?.tone, "violet"),
       actionCount: Math.max(1, asNumber(macro?.actionCount, 1)),
-      copy: compactRuntimeCopy(macro?.copy, "Makrot är redo att köras i shellen.", 140),
+      copy: compactRuntimeCopy(macro?.copy, "Makrot är redo att köras i arbetsytan.", 140),
       actionLabel:
         normalizeKey(macro?.mode) === "auto" ? "Auto-körning" : "Manuell körning",
       shortcut: "",
@@ -5909,12 +6019,15 @@
       normalized.includes("du_far_inte_ofta_e_post") ||
       normalized.includes("power_up_your_productivity_with_microsoft_365") ||
       normalized.includes("get_more_done_with_apps_like_word") ||
-      normalized.includes("mailbox_truth_i_wave") ||
-      normalized.includes("raden_kommer_fran_mailbox_truth_i_wave") ||
-      normalized.includes("unread_inbound_and_needs_reply_lases_fran_mailbox_truth_i_wave")
-    ) {
-      return true;
-    }
+	      normalized.includes("mailbox_truth_i_wave") ||
+	      normalized.includes("raden_kommer_fran_mailbox_truth_i_wave") ||
+	      normalized.includes("unread_inbound_and_needs_reply_lases_fran_mailbox_truth_i_wave") ||
+	      normalized.includes("is_not_defined") ||
+	      normalized.includes("referenceerror") ||
+	      normalized.includes("typeerror")
+	    ) {
+	      return true;
+	    }
     return [
       "aktiv_trad",
       "active_thread",
@@ -6506,14 +6619,14 @@
       !isComposeMode && thread ? getRuntimeStudioTruthState(thread) : null;
     if (studioTruthState?.truthDriven) {
       summaryParts.push(
-        `${studioTruthState.label || "Truth-driven studio"} · ${
+        `${studioTruthState.label || "Sanningsstyrd svarstudio"} · ${
           studioTruthState.waveLabel || "Wave 1"
         }`
       );
       if (studioTruthState.sourceMailboxLabel) {
         summaryParts.push(`Källa: ${studioTruthState.sourceMailboxLabel}`);
       }
-      summaryParts.push("Reply-context: låst");
+      summaryParts.push("Svarskontext: låst");
     } else if (studioTruthState?.inConfiguredScope && studioTruthState?.waveLabel) {
       summaryParts.push(studioTruthState.waveLabel);
     }
@@ -6543,7 +6656,7 @@
       summaryParts.push(`Finjustera: ${refineLabel}`);
     }
     if (!summaryParts.length && isComposeMode) {
-      return "Studion är redo för nytt mejl.";
+      return "Svarsstudion är redo för nytt mejl.";
     }
     return summaryParts.join(" · ");
   }
@@ -7783,9 +7896,9 @@
           chip: "Bra att tänka på nu",
           tone: "violet",
           provenance: {
-            label: "Live kundkontext",
+            label: "Aktiv kundkontext",
             tone: "derived",
-            detail: "Härledd från livekällor: tempoprofil, livscykel och kundmönster sammanställs från runtime och kökontext.",
+            detail: "Härledd från aktiva källor: tempoprofil, livscykel och kundmönster sammanställs från körning och kökontext.",
           },
           lines: [
             `Arbeta så här: ${historyActionCue || "Led kunden med ett tydligt nästa steg i samma svar."}`,
@@ -7819,7 +7932,7 @@
           provenance: {
             label: "Historiksignal",
             tone: "system",
-            detail: "Livekälla i valt mailboxscope: bygger på tidigare kundinteraktioner för den valda kunden.",
+            detail: "Aktiv källa i valt mejlurval: bygger på tidigare kundinteraktioner för den valda kunden.",
           },
           lines: [
             `Historiken visar: ${
@@ -7839,12 +7952,12 @@
           provenance: {
             label: "Livekontext",
             tone: "system",
-            detail: "Livekälla: visar senast kända kommunikationsstatus för den valda tråden.",
+            detail: "Aktiv källa: visar senast kända kommunikationsstatus för den valda tråden.",
           },
           lines: [
             `Senaste inkommande: ${latestInbound}`,
             `Senaste utgående: ${latestOutbound}`,
-            `Senaste kundrad: ${compactRuntimeCopy(row?.latestInboundPreview, "Ingen preview tillgänglig.", 92)}`,
+            `Senaste kundrad: ${compactRuntimeCopy(row?.latestInboundPreview, "Ingen förhandsvisning tillgänglig.", 92)}`,
           ],
         },
       ],
@@ -7890,7 +8003,7 @@
           lines: [
             compactRuntimeCopy(row?.recommendedAction, "Granska tråden och svara tydligt.", 110),
             compactRuntimeCopy(row?.followUpTimingReason?.[0], "Ingen separat timing-signal just nu.", 110),
-            compactRuntimeCopy(row?.latestInboundPreview, "Ingen preview tillgänglig.", 110),
+            compactRuntimeCopy(row?.latestInboundPreview, "Ingen förhandsvisning tillgänglig.", 110),
           ],
         },
       ],
@@ -7902,7 +8015,7 @@
           provenance: {
             label: "Live teamstatus",
             tone: "system",
-            detail: "Livekälla: ägare och väntläge kommer från aktiv tråd- och teamkontext.",
+            detail: "Aktiv källa: ägare och väntläge kommer från aktiv tråd- och teamkontext.",
           },
           lines: [
             `Ägare: ${thread.ownerLabel || "Ej tilldelad"}`,
@@ -9948,7 +10061,7 @@
           : [mailboxAddress],
     });
     const mailboxProvenanceDetail = mailboxes.length > 1 ? mailboxes.map((item) => item.label).join(" · ") : "";
-    const mailboxProvenanceLabel = mailboxes.length > 1 ? `${mailboxes.length} mailboxar` : "";
+    const mailboxProvenanceLabel = mailboxes.length > 1 ? `${mailboxes.length} mejlkonton` : "";
     const runtimeTags = Array.from(
       new Set(
         (
@@ -10597,14 +10710,14 @@
       intent: needsReply ? "needs_reply" : "active_dialogue",
       recommendedAction: needsReply
         ? "Svara kunden och ta nästa tydliga steg."
-        : "Granska senaste aktivitet i truth-driven arbetskö.",
+        : "Granska senaste aktivitet i sanningsstyrd arbetskö.",
       recommendedActionLabel: needsReply ? "Svara nu" : "Granska tråden",
       riskStackExplanation: hasUnreadInbound
-        ? "Unread inbound och needs reply läses från mailbox truth i wave 1."
-        : "Raden kommer från mailbox truth i wave 1.",
+        ? "Unread inbound och needs reply läses från mejlsanning i wave 1."
+        : "Raden kommer från mejlsanning i wave 1.",
       operatorCue: needsReply
-        ? "Truth-driven rad: svara kunden via worklisten."
-        : "Truth-driven rad: kontrollera senaste aktivitet.",
+        ? "Sanningsstyrd rad: svara kunden via arbetslistan."
+        : "Sanningsstyrd rad: kontrollera senaste aktivitet.",
       workflowLane: lane === "act-now" ? "action_now" : "",
       bookingState: "",
       priorityLevel: lane === "act-now" ? "medium" : "low",
@@ -10999,7 +11112,7 @@
       : `<article class="studio-context-mini">
           <span>AI</span>
           <strong>Ingen kontext ännu</strong>
-          <p>Välj en live-tråd för att ladda svarsstudion.</p>
+          <p>Välj en aktiv tråd för att ladda svarsstudion.</p>
         </article>`;
   }
 
@@ -11023,7 +11136,7 @@
     const container = studioContextListNodes.preferences;
     if (!container) return;
     const rows = [
-      { label: "Mailbox", value: thread?.mailboxLabel || "Okänd" },
+      { label: "Mejlkonto", value: thread?.mailboxLabel || "Okänd" },
       { label: "Ägare", value: thread?.displayOwnerLabel || thread?.ownerLabel || "Ej tilldelad" },
       { label: "SLA", value: humanizeCode(thread?.raw?.slaStatus, "Stabil") },
       { label: "Kanal", value: "E-post" },
@@ -11049,8 +11162,8 @@
         copy: compactRuntimeCopy(thread?.whyInFocus, "Håll tempot uppe i tråden.", 110),
       },
       {
-        title: "Behåll samma mailbox",
-        copy: `${thread?.mailboxLabel || "Mailbox"} · ${thread?.displayOwnerLabel || thread?.ownerLabel || "Ej tilldelad"}`,
+        title: "Behåll samma mejlkonto",
+        copy: `${thread?.mailboxLabel || "Mejlkonto"} · ${thread?.displayOwnerLabel || thread?.ownerLabel || "Ej tilldelad"}`,
       },
     ];
     container.innerHTML = items
@@ -11108,7 +11221,7 @@
         `<article class="studio-conversation-message studio-conversation-message--empty"><p class="studio-conversation-message-text">${escapeHtml(
           isOfflineHistoryReadOnlyMode()
             ? "Välj en historikruta i vänsterkolumnen för att öppna kundens historik i läsläge här."
-            : "Välj en live-tråd i arbetskön för att öppna konversationen i studion."
+            : "Välj en aktiv tråd i arbetskön för att öppna konversationen i svarsstudion."
         )}</p></article>`;
       return;
     }
@@ -11992,6 +12105,7 @@
       setScheduleOpen,
       setStudioFeedback,
       setStudioOpen,
+      setWorkspaceManualSizing,
       startResize,
       syncCurrentNoteDraftFromForm,
       syncNoteCount,
@@ -12909,9 +13023,9 @@
         source: "truth_primary",
         truthDriven: true,
         readOnly,
-        label: "Truth-driven focus",
+        label: "Sanningsstyrt fokus",
         detail:
-          "Trådid, meddelandeordning, mailboxidentitet, riktning, tidsstämplar och unread-läge läses från mailbox truth och mailbox truth history i wave 1. Reply- och studioflödet ligger kvar utanför detta pass.",
+          "Trådid, meddelandeordning, mejlkontoidentitet, riktning, tidsstämplar och oläst-läge läses från mejlsanning och mejlsanningshistorik i wave 1. Svarflödet och svarsstudion ligger kvar utanför detta pass.",
         waveLabel: asText(
           focusThread?.worklistWaveLabel || focusThread?.raw?.worklistWaveLabel,
           "Wave 1"
@@ -12928,7 +13042,7 @@
         label: "Legacy focus",
         detail: asText(
           state.runtime?.focusTruthPrimary?.fallbackReason,
-          "Truth-driven focus är avstängd för wave 1. Fokusytan läser legacy-tråden medan worklisten fortsatt kan vara truth-primary."
+          "Sanningsstyrt fokus är avstängt för wave 1. Fokusytan läser ordinarie tråd medan arbetslistan fortsatt kan vara sanningsstyrd."
         ),
         waveLabel: "Wave 1 rollback",
         ...foundationProvenance,
@@ -13003,9 +13117,9 @@
         inConfiguredScope: true,
         writeAllowed: true,
         senderLocked: true,
-        label: "Truth-driven studio",
+        label: "Sanningsstyrd svarstudio",
         detail:
-          "Reply-context, källmailbox, trådid, medlemskap, meddelandeordning och unread-läge är låsta till mailbox truth i wave 1. Studion får skriva bara i detta låsta scope.",
+          "Svarskontext, källmejlkonto, trådid, medlemskap, meddelandeordning och oläst-läge är låsta till mejlsanning i wave 1. Svarsstudion får skriva bara i detta låsta urval.",
         waveLabel: asText(
           studioThread?.worklistWaveLabel || studioThread?.raw?.worklistWaveLabel,
           "Wave 1"
@@ -13028,7 +13142,7 @@
         label: "Legacy studio",
         detail: asText(
           state.runtime?.studioTruthPrimary?.fallbackReason,
-          "Truth-driven studio är avstängd för wave 1. Studion läser och skriver via legacy-kedjan tills truth-pathen åter är aktiv."
+          "Sanningsstyrd svarstudio är avstängd för wave 1. Svarsstudion läser och skriver via legacy-kedjan tills truth-pathen åter är aktiv."
         ),
         waveLabel: "Wave 1 rollback",
         sourceMailboxId,
@@ -13286,7 +13400,7 @@
       resetHistoryOnChange: true,
     }).catch((error) => {
       console.warn(
-        `CCO live runtime misslyckades efter ${reason}. Faller tillbaka till workspace bootstrap.`,
+        `CCO aktiv körning misslyckades efter ${reason}. Faller tillbaka till workspace bootstrap.`,
         error
       );
       return refreshWorkspaceBootstrapForSelectedThread(reason);
@@ -13580,7 +13694,7 @@
     const summary = thread.raw?.customerSummary || {};
     return [
       {
-        label: "Mailboxar",
+        label: "Mejlkonton",
         value: `${mailboxOptions.length || 1}`,
         note: joinReadableList(mailboxLabels.length ? mailboxLabels : [thread.mailboxLabel]),
         tone: "customer",
@@ -13588,7 +13702,7 @@
       {
         label: "Spår",
         value: `${Math.max(liveThreadCount, asNumber(summary.caseCount, 0), 1)}`,
-        note: `${liveThreadCount} live-trådar i valt scope`,
+        note: `${liveThreadCount} aktiva trådar i valt urval`,
         tone: "action",
       },
       {
@@ -13932,14 +14046,14 @@
         customerEmail: "morten.bak@example.com",
         mailboxId: "contact@hairtpclinic.com",
         customerName: "Morten Bak Kristoffersen",
-        subject: "Samma kund har skrivit från flera mailboxar",
+        subject: "Samma kund har skrivit från flera mejlkonton",
         detail:
-          "Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens.",
+          "Historiken hålls ihop, men varje meddelande visar sin mejlkontoproveniens.",
         direction: "inbound",
         recordedAt: isoAtLocal(16, 7),
         workflowLane: "action_now",
         ownerLabel: "Sara L.",
-        mailboxTrail: ["Fazli", "Contact", "Egzona"],
+        mailboxTrail: ["Fazli", "Kontakt", "Egzona"],
         signalItems: [
           { role: "why", value: "Behöver uppmärksamhet" },
           { role: "next", value: "Fortsätt från samma" },
@@ -13951,14 +14065,14 @@
         customerEmail: "erik.lindqvist@example.com",
         mailboxId: "contact@hairtpclinic.com",
         customerName: "Erik Lindqvist",
-        subject: "Samma kund har skrivit från flera mailboxar",
+        subject: "Samma kund har skrivit från flera mejlkonton",
         detail:
           "Har skickat förfrågan via flera kanaler, behöver få allt konsoliderat.",
         direction: "inbound",
         recordedAt: isoAtLocal(11, 34),
         workflowLane: "action_now",
         ownerLabel: "Egzona K.",
-        mailboxTrail: ["Contact", "Fazli", "Egzona", "Support", "Sales", "Info", "Admin", "Feedback"],
+        mailboxTrail: ["Kontakt", "Fazli", "Egzona", "Stöd", "Sälj", "Info", "Admin", "Återkoppling"],
         signalItems: [
           { role: "why", value: "Hög risk" },
           { role: "next", value: "Svara nu" },
@@ -13970,13 +14084,13 @@
         customerEmail: "anna.svensson@example.com",
         mailboxId: "contact@hairtpclinic.com",
         customerName: "Anna Svensson",
-        subject: "Samma kund har skrivit från flera mailboxar",
+        subject: "Samma kund har skrivit från flera mejlkonton",
         detail:
           "Hej, jag skrev tidigare om konsultation men har nu en uppföljande fråga om priser.",
         direction: "inbound",
         recordedAt: isoAtLocal(14, 22),
         ownerLabel: "",
-        mailboxTrail: ["Contact", "Fazli"],
+        mailboxTrail: ["Kontakt", "Fazli"],
         signalItems: [
           { role: "why", value: "Svar krävs" },
           { role: "next", value: "Fortsätt från samma" },
@@ -14006,13 +14120,13 @@
         customerEmail: "kontakt@hairclinicstockholm.se",
         mailboxId: "contact@hairtpclinic.com",
         customerName: "Hair Clinic Stockholm AB",
-        subject: "Samma kund har skrivit från flera mailboxar",
+        subject: "Samma kund har skrivit från flera mejlkonton",
         detail:
           "Vi vill gärna diskutera ett samarbete kring remissförfarande för våra patienter.",
         direction: "inbound",
         recordedAt: isoAtLocal(15, 47, -1),
         ownerLabel: "",
-        mailboxTrail: ["Contact", "Partners"],
+        mailboxTrail: ["Kontakt", "Partners"],
         signalItems: [
           { role: "why", value: "Hög risk" },
           { role: "next", value: "Fortsätt från samma" },
@@ -14024,12 +14138,12 @@
         customerEmail: "alexander.jl@example.com",
         mailboxId: "kons@hairtpclinic.com",
         customerName: "Alexander Jonatanson-Lindström",
-        subject: "Samma kund har skrivit från flera mailboxar",
+        subject: "Samma kund har skrivit från flera mejlkonton",
         detail: "Kan ni hjälpa mig? Jag funderar på PRP-behandling och vill veta mer.",
         direction: "inbound",
         recordedAt: "2026-04-20T07:49:00.000Z",
         ownerLabel: "Fazli K.",
-        mailboxTrail: ["Kons", "Contact", "Fazli", "Support"],
+        mailboxTrail: ["Kons", "Kontakt", "Fazli", "Stöd"],
         signalItems: [
           { role: "why", value: "Svar krävs" },
           { role: "next", value: "Svara nu" },
@@ -14610,7 +14724,7 @@
       </div>
       <p class="queue-truth-view-controls-note">
         ${escapeHtml(
-          `Visar ${visibleRows.length} av ${rows.length} truth-rader. Lokal filtrering och sortering påverkar bara assistytan; legacy queue, selection, fokusyta och studio lämnas orörda.`
+          `Visar ${visibleRows.length} av ${rows.length} sanningsrader. Lokal filtrering och sortering påverkar bara assistytan; ordinarie kö, val, fokusyta och svarstudio lämnas orörda.`
         )}
       </p>`;
   }
@@ -14629,14 +14743,14 @@
         tone: acceptanceGate.canConsiderCutover === true ? "ready" : "blocked",
       },
       {
-        label: "Relay",
-        value: relay ? "Relay redo via legacy-kö" : "Relay väntar på vald truth-rad",
+        label: "Relä",
+        value: relay ? "Relä redo via ordinarie kö" : "Relä väntar på vald sanningsrad",
         tone: relay ? "relay" : "waiting",
       },
-      { label: "Öppning", value: "Envägs-relay", tone: "truth" },
-      { label: "Selection", value: "Ingen global selection", tone: "neutral" },
+      { label: "Öppning", value: "Envägsrelä", tone: "truth" },
+      { label: "Val", value: "Inget globalt val", tone: "neutral" },
       { label: "Fokusyta", value: "Ingen fokusyta", tone: "neutral" },
-      { label: "Studio", value: "Ingen studio", tone: "neutral" },
+      { label: "Svarstudio", value: "Ingen svarstudio", tone: "neutral" },
     ];
     return `
       <div class="queue-truth-view-guidance-strip">
@@ -14656,7 +14770,7 @@
             viewState?.localFilter
           )} och ${getTruthWorklistAssistSortLabel(
             viewState?.localSort
-          )}. Operativ öppning sker fortfarande manuellt via legacy-kön.`
+          )}. Operativ öppning sker fortfarande manuellt via ordinarie kö.`
         )}
       </p>`;
   }
@@ -14671,28 +14785,28 @@
     return `
       <div class="queue-truth-relay-note-head">
         <div class="queue-truth-relay-note-copy">
-          <p class="queue-truth-relay-note-kicker">Truth relay</p>
-          <h3>Visa i legacy-kö</h3>
+          <p class="queue-truth-relay-note-kicker">Sanningsrelä</p>
+          <h3>Visa i ordinarie kö</h3>
         </div>
         <button
           class="queue-truth-relay-note-clear"
           type="button"
           data-truth-relay-clear
         >
-          Rensa relay
+          Rensa relä
         </button>
       </div>
       <p class="queue-truth-relay-note-provenance">
-        Truth-driven · Sekundär vy · Legacy queue fortfarande styrande · Envägs-relay aktivt
+        Sanningsstyrd · Sekundär vy · Ordinarie kö styr fortfarande · Envägsrelä aktivt
       </p>
       <p class="queue-truth-relay-note-meta">
-        Mailboxhint ${escapeHtml(mailboxId)} · Kund ${escapeHtml(customerLabel)} · Lane ${escapeHtml(
+        Mejlkontohint ${escapeHtml(mailboxId)} · Kund ${escapeHtml(customerLabel)} · Köspår ${escapeHtml(
           laneLabel
         )} · ${escapeHtml(parityLabel)}
       </p>
       <p class="queue-truth-relay-note-body">
         ${escapeHtml(
-          `Ämne: ${subject}. Öppna motsvarande rad manuellt i legacy-kön. Relay sätter inte vald tråd, öppnar inte fokusyta och öppnar inte studio.`
+          `Ämne: ${subject}. Öppna motsvarande rad manuellt i ordinarie kö. Reläet sätter inte vald tråd, öppnar inte fokusyta och öppnar inte svarstudio.`
         )}
       </p>`;
   }
@@ -14706,7 +14820,7 @@
     if (!items.length) {
       const emptyStateMessage = normalizeText(payload?.emptyStateMessage || "");
       return `<p class="queue-truth-view-empty">${escapeHtml(
-        emptyStateMessage || "Inga truth-rader i parity-scope för det här mailboxscope:t ännu."
+        emptyStateMessage || "Inga sanningsrader i paritetsurval för det här mejlurvalet ännu."
       )}</p>`;
     }
     return items
@@ -14736,7 +14850,7 @@
           if (Number(rollup?.mailboxCount || 0) > 0) {
             rollupMeta.push({
               tone: "customer",
-              text: `${Number(rollup.mailboxCount || 0)} mailboxar`,
+              text: `${Number(rollup.mailboxCount || 0)} mejlkonton`,
             });
           }
           if (normalizeText(rollup?.provenanceDetail || "")) {
@@ -14832,15 +14946,15 @@
                   ${escapeHtml(
                     comparable
                       ? relayActive
-                        ? "Relay aktivt i legacy-kö"
-                        : "Visa i legacy-kö"
-                      : "Legacy-baseline saknas"
+                        ? "Relä aktivt i ordinarie kö"
+                        : "Visa i ordinarie kö"
+                      : "Ordinarie baseline saknas"
                   )}
                 </button>
               </div>
             </div>
             <p class="queue-truth-view-row-preview">${escapeHtml(
-              compactRuntimeCopy(item?.preview, "Ingen preview tillganglig.", 150)
+              compactRuntimeCopy(item?.preview, "Ingen förhandsvisning tillgänglig.", 150)
             )}</p>
             <div class="queue-truth-view-row-meta">
               ${rowMeta
@@ -14940,8 +15054,8 @@
     if (truthWorklistLaunchButton) {
       truthWorklistLaunchButton.hidden = !featureEnabled;
       truthWorklistLaunchButton.textContent = hidden
-        ? "Öppna Truth Worklist Assist View"
-        : "Stäng Truth Worklist Assist View";
+        ? "Öppna sanningsvy för arbetslista"
+        : "Stäng sanningsvy för arbetslista";
       truthWorklistLaunchButton.setAttribute("aria-pressed", hidden ? "false" : "true");
       truthWorklistLaunchButton.setAttribute("aria-expanded", hidden ? "false" : "true");
       syncTruthWorklistLaunchWidth();
@@ -14975,20 +15089,20 @@
     if (truthWorklistMeta) {
       if (!mailboxIds.length) {
         truthWorklistMeta.textContent =
-          "Valj ett mailboxscope for att se den truth-driven assistvyn. Legacy queue ar fortfarande styrande.";
+          "Välj ett mejlurval för att se den sanningsdrivna assistvyn. Legacy-kön är fortfarande styrande.";
       } else if (viewState.authRequired) {
         truthWorklistMeta.textContent =
-          "Logga in igen i admin for att lasa Truth Worklist Assist View. Legacy queue ar fortfarande styrande och shadow guardrail aktiv.";
+          "Logga in igen i admin för att läsa sanningsvyn för arbetslista. Legacy-kön är fortfarande styrande och skuggskydd är aktivt.";
       } else if (viewState.loading) {
         truthWorklistMeta.textContent =
-          "Laddar truth-driven assistvy for valt mailboxscope. Legacy queue fortfarande styrande och shadow guardrail aktiv.";
+          "Laddar sanningsdriven assistvy för valt mejlurval. Legacy-kön är fortfarande styrande och skuggskydd är aktivt.";
       } else if (viewState.error) {
-        truthWorklistMeta.textContent = `Truth Worklist View kunde inte laddas: ${viewState.error}`;
+        truthWorklistMeta.textContent = `Sanningsvyn kunde inte laddas: ${viewState.error}`;
       } else {
         const comparableMailboxIds = getTruthWorklistComparableMailboxIds(payload);
         const notComparableMailboxIds = getTruthWorklistNotComparableMailboxIds(payload);
         const scopeLabel =
-          mailboxIds.length === 1 ? mailboxIds[0] : `${mailboxIds.length} mailboxar i scope`;
+          mailboxIds.length === 1 ? mailboxIds[0] : `${mailboxIds.length} mejlkonton i urval`;
         const comparableLabel = comparableMailboxIds.length
           ? `${comparableMailboxIds.length} jämförbara`
           : "ingen jämförbar baseline ännu";
@@ -15033,7 +15147,7 @@
     if (truthWorklistControls) {
       truthWorklistControls.innerHTML = payload
         ? buildTruthWorklistControlsMarkup(payload, viewState)
-        : '<p class="queue-truth-view-empty">Assistläget väntar på truth-rader.</p>';
+        : '<p class="queue-truth-view-empty">Assistläget väntar på sanningsrader.</p>';
     }
 
     if (truthWorklistGuidance) {
@@ -15049,8 +15163,8 @@
             ...payload,
             rows: visibleRows,
             emptyStateMessage: asArray(payload?.rows).length
-              ? "Inga truth-rader matchar det lokala assistläget ännu."
-              : "Inga truth-rader i parity-scope för det här mailboxscope:t ännu.",
+              ? "Inga sanningsrader matchar det lokala assistläget ännu."
+              : "Inga sanningsrader i paritetsurval för det här mejlurvalet ännu.",
           }
         : null;
       truthWorklistRows.innerHTML = payload
@@ -15135,7 +15249,7 @@
           loaded: true,
           authRequired: true,
           error:
-            "Logga in igen i admin for att lasa truth-driven worklistdata i denna assistvy.",
+            "Logga in igen i admin för att läsa sanningsstyrd arbetslistedata i denna assistvy.",
           scopeKey,
           scopeMode,
           mailboxIds: normalizedMailboxIds,
@@ -15414,6 +15528,29 @@
     return previewWorkspace.getBoundingClientRect().width;
   }
 
+  function getWorkspaceAdaptiveSizing(availableWidth) {
+    const hasIntelRoom = availableWidth >= 1040;
+    const leftMin = availableWidth < 1100 ? 360 : 376;
+    const leftMax = availableWidth < 1100 ? 392 : availableWidth < 1320 ? 428 : 456;
+    const rightMin = hasIntelRoom ? 260 : 0;
+    const rightMax = hasIntelRoom ? (availableWidth < 1320 ? 320 : 372) : 0;
+    const mainMin = availableWidth < 1040 ? 360 : 380;
+    const leftTarget = clamp(Math.round(availableWidth * 0.34), leftMin, leftMax);
+    const rightTarget = hasIntelRoom
+      ? clamp(Math.round(availableWidth * 0.24), rightMin, rightMax)
+      : 0;
+
+    return {
+      left: leftTarget,
+      mainMin,
+      right: rightTarget,
+      leftMin,
+      leftMax,
+      rightMin,
+      rightMax,
+    };
+  }
+
   function getQueueIntrinsicWidth() {
     return MIN_QUEUE_WIDTH;
   }
@@ -15448,7 +15585,13 @@
     canvas.style.setProperty("--workspace-right-width", `${workspaceState.right}px`);
   }
 
+  function setWorkspaceManualSizing(isManual) {
+    workspaceManualSizing = isManual === true;
+    canvas.dataset.workspaceSizing = workspaceManualSizing ? "manual" : "auto";
+  }
+
   function normalizeWorkspaceState() {
+    canvas.dataset.workspaceSizing = workspaceManualSizing ? "manual" : "auto";
     if (canvas.classList.contains("is-workspace-width-frozen")) {
       applyWorkspaceState();
       return;
@@ -15456,9 +15599,21 @@
 
     const availableWidth = getWorkspaceAvailableWidth();
     if (!availableWidth) return;
+    const adaptiveSizing = getWorkspaceAdaptiveSizing(availableWidth);
+    canvas.dataset.workspaceAvailableWidth = `${Math.round(availableWidth)}`;
+    canvas.dataset.workspaceAdaptiveLeft = `${adaptiveSizing.left}`;
+    canvas.dataset.workspaceAdaptiveRight = `${adaptiveSizing.right}`;
 
-    workspaceLimits.left.min = getQueueIntrinsicWidth();
-    workspaceLimits.right.min = getIntelIntrinsicWidth();
+    workspaceLimits.left.min = Math.min(getQueueIntrinsicWidth(), adaptiveSizing.leftMin);
+    workspaceLimits.left.max = adaptiveSizing.leftMax;
+    workspaceLimits.main.min = adaptiveSizing.mainMin;
+    workspaceLimits.right.min = Math.min(getIntelIntrinsicWidth(), adaptiveSizing.rightMin);
+    workspaceLimits.right.max = adaptiveSizing.rightMax;
+
+    if (!workspaceManualSizing) {
+      workspaceState.left = adaptiveSizing.left;
+      workspaceState.right = adaptiveSizing.right;
+    }
 
     workspaceState.left = clamp(
       workspaceState.left,
@@ -15546,10 +15701,10 @@
     const message = asText(error?.message || error || fallback);
     const normalized = normalizeKey(message);
     if (normalized === "cliento_partner_id_missing") {
-      return "Cliento är inte färdigkonfigurerat: saknar partner-id. Använd manuella kandidat-tider eller komplettera Cliento-inställningarna.";
+      return "Extern tidkälla är inte färdigkonfigurerad: saknar partner-id. Använd manuella kandidat-tider eller komplettera integrationsinställningarna.";
     }
     if (normalized === "cliento_booking_disabled") {
-      return "Cliento-integration är avstängd. Använd manuella kandidat-tider tills integrationen är aktiverad.";
+      return "Extern tidkälla är avstängd. Använd manuella kandidat-tider tills integrationen är aktiverad.";
     }
     return message || fallback;
   }
@@ -15689,7 +15844,7 @@
     if (!state.prefs.deleteEnabled) {
       setAuxStatus(
         getMailFeedStatusNode(feedKey),
-        "Delete är inte aktiverat i live runtime.",
+        "Radering är inte aktiverad i aktiv körning.",
         "error"
       );
       return false;
@@ -16744,7 +16899,7 @@
     if (customerImportSummary) {
       if (!preview) {
         customerImportSummary.innerHTML =
-          '<article class="customers-merge-card customers-merge-card-muted"><div class="customers-merge-empty"><strong>Ingen preview ännu</strong><p>Ladda upp en fil eller klistra in JSON, CSV eller XLS/XLSX och kör sedan Förhandsgranska.</p></div></article>';
+          '<article class="customers-merge-card customers-merge-card-muted"><div class="customers-merge-empty"><strong>Ingen förhandsvisning ännu</strong><p>Ladda upp en fil eller klistra in JSON, CSV eller XLS/XLSX och kör sedan Förhandsgranska.</p></div></article>';
       } else {
         customerImportSummary.innerHTML = `
           <div class="customer-import-summary-grid">
@@ -17131,7 +17286,7 @@
         `<span class="mailbox-option-copy">
           <span class="mailbox-option-primary">
             <span class="mailbox-option-name">${mailboxName}</span>
-            <span class="mailbox-option-status">Custom</span>
+            <span class="mailbox-option-status">Eget</span>
           </span>
           <span class="mailbox-option-secondary">
             <span class="mailbox-option-email">${mailboxEmail}</span>
@@ -17251,7 +17406,7 @@
     if (!state.prefs.deleteEnabled) {
       setAuxStatus(
         normalizeKey(feedKey) === "later" ? laterStatus : sentStatus,
-        "Delete är inte aktiverat i live runtime.",
+        "Radering är inte aktiverad i aktiv körning.",
         "error"
       );
       return false;
@@ -17426,7 +17581,7 @@
     if (runtime.partial) {
       setAuxStatus(
         integrationsStatus,
-        "Vissa integrationskällor kunde inte uppdateras. Visar senaste kompletta livebild.",
+        "Vissa integrationskällor kunde inte uppdateras. Visar senaste kompletta aktiv bild.",
         "success"
       );
       return;
@@ -17454,12 +17609,12 @@
       const updatedLabel = normalizeText(record.updatedAt)
         ? `Uppdaterad ${formatConversationTime(record.updatedAt)}`
         : connected
-          ? "Live"
+          ? "Aktiv"
           : "Redo";
       const statusSummary = compactRuntimeCopy(record.statusSummary, item.copy, 130);
       const watchLabel = compactRuntimeCopy(
         record.watchLabel,
-        connected ? "Verifiera guardrails och ägarskap efter anslutning." : "Koppla in utan att lämna CCO.",
+        connected ? "Verifiera skyddsregler och ägarskap efter anslutning." : "Koppla in utan att lämna CCO.",
         110
       );
       const toggleLabel = pending
@@ -17609,7 +17764,7 @@
       } else {
         runtime.error =
           runtime.loaded && asArray(runtime.records).length
-            ? "Kunde inte uppdatera integrationsstatus. Visar senaste livebild."
+            ? "Kunde inte uppdatera integrationsstatus. Visar senaste aktiv bild."
             : error?.message || "Kunde inte läsa integrationsstatus.";
       }
       runtime.partial = runtime.loaded && !runtime.authRequired;
@@ -17655,7 +17810,7 @@
         macro.runCount
           ? `${macro.actionLabel}. Körd ${macro.runCount} gånger${macro.lastRunAt ? `, senast ${formatConversationTime(macro.lastRunAt)}` : ""}.`
           : `${macro.actionLabel}. Bygger vidare på samma shell och fokuslogik.`,
-        "Makrot är redo i shellen.",
+	        "Makrot är redo i arbetsytan.",
         120
       );
       const card = document.createElement("article");
@@ -17801,10 +17956,10 @@
     }
     if (settingsSummaryGuardValue) {
       settingsSummaryGuardValue.textContent =
-        activeGuardrails >= 3 ? "SLA-varningar på" : activeGuardrails >= 1 ? "Guardrails delvis aktiva" : "Guardrails av";
+        activeGuardrails >= 3 ? "SLA-varningar på" : activeGuardrails >= 1 ? "Skyddsregler delvis aktiva" : "Skyddsregler av";
     }
     if (settingsSummaryGuardCopy) {
-      settingsSummaryGuardCopy.textContent = `${activeGuardrails} skydd aktiva i shellen`;
+      settingsSummaryGuardCopy.textContent = `${activeGuardrails} skydd aktiva i arbetsytan`;
     }
     if (settingsSummaryTeamValue) {
       settingsSummaryTeamValue.textContent =
@@ -18044,7 +18199,7 @@
         outcome: `${macroCount} makron redo, varav ${autoMacroCount} auto-körs i nya CCO.`,
         detail:
           macroCount > 0
-            ? `Makrobiblioteket använder nu riktig backendpersistens och kan köras eller öppnas från shellen.`
+            ? `Makrobiblioteket använder nu riktig backendpersistens och kan köras eller öppnas från arbetsytan.`
             : "Makrobiblioteket är redo att fyllas på från nya CCO.",
         effectCopy: `${macroCount} makron i biblioteket`,
         nextCopy: "Öppna makron för att köra, redigera eller bygga vidare på dem i automation.",
@@ -18055,7 +18210,7 @@
       return {
         ...feature,
         outcome: `${laterCount} trådar ligger just nu i Senare-flödet.`,
-        detail: `Later-vyn i nya CCO använder nu livedata och samma mailboxscope som arbetsytan.`,
+        detail: `Senare-vyn i nya CCO använder nu aktiv data och samma mejlurval som arbetsytan.`,
         effectCopy: `${laterCount} trådar redo att återuppta`,
       };
     }
@@ -18072,17 +18227,17 @@
     if (normalizeKey(featureKey) === "saved_views") {
       return {
         ...feature,
-        outcome: `${activeThreadCount} live-trådar följer nu arbetsköns filter- och lane-scope.`,
-        detail: `Queue, mailbox och owner-filter är nu levande i nya CCO och showcase hoppar direkt till den riktiga arbetsytan.`,
-        effectCopy: `${activeThreadCount} trådar i aktivt scope`,
+        outcome: `${activeThreadCount} aktiva trådar följer nu arbetsköns filter och köurval.`,
+        detail: `Kö, mejlkonto och ägarfilter är nu levande i nya CCO och showcase hoppar direkt till den riktiga arbetsytan.`,
+        effectCopy: `${activeThreadCount} trådar i aktivt urval`,
       };
     }
 
     if (normalizeKey(featureKey) === "ai_assistant") {
       return {
         ...feature,
-        outcome: `Beslutsstödet använder nu live runtime, historik och kundintelligens i samma shell.`,
-        detail: `Showcase pekar nu vidare till riktiga vyer i stället för en fristående demo.`,
+        outcome: `Beslutsstödet använder nu aktiv körning, historik och kundintelligens i samma skal.`,
+        detail: `Visningen pekar nu vidare till riktiga vyer i stället för en fristående demo.`,
         effectCopy: `${connectedIntegrations} integrationer stödjer beslutsflödet`,
       };
     }
@@ -18365,7 +18520,7 @@
         const time = card.querySelector("time");
         const points = Array.from(card.querySelectorAll(".automation-version-points li"));
         const buttons = Array.from(card.querySelectorAll("[data-automation-version-action]"));
-        if (badge) badge.textContent = authRequired ? "Logga in" : "Ingen liveversion";
+        if (badge) badge.textContent = authRequired ? "Logga in" : "Ingen aktiv version";
         if (flag) {
           flag.textContent = authRequired ? "Inloggning krävs" : "Osparat ännu";
           flag.hidden = false;
@@ -18373,7 +18528,7 @@
         if (time) {
           time.textContent = authRequired
             ? "Öppna admin och logga in igen"
-            : syncError || "Spara buildern för att skapa första liveversionen.";
+            : syncError || "Spara byggaren för att skapa första liveversionen.";
         }
         points.forEach((point, pointIndex) => {
           point.textContent =
@@ -18421,7 +18576,7 @@
               paragraph.textContent = "Versionsspåret blir live när första draften skapats.";
             } else {
               strong.textContent = authRequired ? "-" : "Nya CCO";
-              paragraph.textContent = "Buildern använder nu Major Arcana-shellen som bas.";
+              paragraph.textContent = "Byggaren använder nu Major Arcana-arbetsytan som bas.";
             }
           });
         }
@@ -18542,7 +18697,7 @@
         const paragraph = block.querySelector("p");
         if (!paragraph) return;
         if (noteIndex === 0) {
-          paragraph.textContent = `Versionsspåret har ${Number(version.revision || 1)} revisioner i livehistoriken.`;
+          paragraph.textContent = `Versionsspåret har ${Number(version.revision || 1)} revisioner i aktiv historiken.`;
         } else if (noteIndex === 1) {
           paragraph.textContent = `Påverkade delar: ${compactRuntimeCopy(
             version.title || version.content,
@@ -18993,14 +19148,14 @@
 
     return {
       readiness: {
-        label: "Readiness-score",
+        label: "Beredskapspoäng",
         trend: readinessBand,
         trendTone: goAllowed ? "positive" : "negative",
         value: readinessScore ? readinessScore.toFixed(1) : "0.0",
         meta: goAllowed ? "Go/no-go tillåter körning." : "Åtgärd krävs innan go.",
       },
       latency: {
-        label: "Runtime p95",
+        label: "Körning p95",
         trend: slowRequests > 0 ? `${slowRequests} långsamma` : "Stabil",
         trendTone: slowRequests > 0 ? "negative" : "positive",
         value: formatAnalyticsLatency(p95Ms),
@@ -19014,13 +19169,13 @@
         meta: "Operativt läge nu.",
       },
       mail: {
-        label: "Mail insights",
+        label: "Mejlinsikter",
         trend: asText(analytics.mailInsights?.brand, "Ingen brand"),
         trendTone: mailReady ? "positive" : "negative",
         value: mailReady ? "Redo" : "Väntar",
         meta: mailReady
-          ? "Mail-insikter redo för shellen."
-          : "Kör ingest för att fylla panelen.",
+          ? "Mejlinsikter redo för arbetsytan."
+          : "Kör inläsning för att fylla panelen.",
       },
       risk: {
         label: "Hög risk öppna",
@@ -19031,10 +19186,10 @@
       },
       scope: {
         label: "Synliga trådar",
-        trend: `${mailboxScopeCount} mailboxar`,
+        trend: `${mailboxScopeCount} mejlkonton`,
         trendTone: "positive",
         value: String(visibleThreads.length),
-        meta: `Ägarscope: ${getAnalyticsOwnerScopeLabel()}.${
+        meta: `Ägarurval: ${getAnalyticsOwnerScopeLabel()}.${
           ownerScopeAvailability.note ? ` ${ownerScopeAvailability.note}` : ""
         }`,
       },
@@ -19064,14 +19219,14 @@
         body: `${asNumber(ownerRisk.highCriticalOpen, 0)} hög/kritisk öppna. ${asNumber(
           pilot.ownerDecisionPending,
           0
-        )} väntar på owner-beslut.`,
+        )} väntar på ägarbeslut.`,
       },
       {
         kicker: "Incidentspår",
         body: `${asNumber(incidents.openUnresolved, 0)} öppna incidenter, ${asNumber(
           incidents.breachedOpen,
           0
-        )} över SLA. ${mailReady ? "Mail-insikter redo." : "Mail-insikter väntar på ingest."} ${visibleThreads.length} trådar i ${mailboxScopeCount} mailboxscope.`,
+        )} över SLA. ${mailReady ? "Mejlinsikter redo." : "Mejlinsikter väntar på inläsning."} ${visibleThreads.length} trådar i ${mailboxScopeCount} mejlurval.`,
       },
     ];
   }
@@ -19081,7 +19236,7 @@
 
     if (analyticsStatus) {
       if (analytics.loading) {
-        setFeedback(analyticsStatus, "loading", "Laddar live analytics…");
+        setFeedback(analyticsStatus, "loading", "Laddar aktiv analys...");
       } else if (analytics.error) {
         setFeedback(analyticsStatus, "error", analytics.error);
       } else {
@@ -19154,7 +19309,7 @@
         },
         csat: {
           value: "Låst",
-          trend: "Ingen livebild",
+          trend: "Ingen aktiv bild",
           tone: "negative",
         },
       },
@@ -19164,12 +19319,12 @@
         templates: "Låst",
         upsell: "Låst",
         upsell_count: "—",
-        upsellCaption: "logga in för personlig analytics",
+        upsellCaption: "logga in för personlig analys",
       },
       leaderboard: [
         {
           medal: "•",
-          name: "Logga in för live-ranking",
+          name: "Logga in för aktiv ranking",
           score: "Låst",
         },
       ],
@@ -19186,7 +19341,7 @@
       coaching: {
         label: "Inloggning krävs",
         copy:
-          "Lower dashboard är spärrad tills analytics-källorna kan läsas med giltig admin-session.",
+          "Nedre dashboard är spärrad tills analyskällorna kan läsas med giltig admin-session.",
         action: "Logga in",
         target: "auth",
         templateTarget: "",
@@ -19203,43 +19358,43 @@
     const authLocked = authRequired && !analytics.loaded;
     const partialAuth = authRequired && analytics.loaded;
     const leaderboardPlaceholder = normalizeKey(periodData?.leaderboard?.[0]?.name).includes(
-      "ingen live-ranking ännu"
+      "ingen aktiv ranking ännu"
     );
     const authLeaderboardPlaceholder = normalizeKey(periodData?.leaderboard?.[0]?.name).includes(
-      "logga in för live-ranking"
+      "logga in för aktiv ranking"
     );
 
     setTrustNote(
       analyticsTrustNotes.team,
       authLocked
-        ? "Auth-låst: teamkortet visar inga fallback-KPI:er som om de vore live analytics."
+        ? "Inloggningslåst: teamkortet visar inga reserv-KPI:er som om de vore aktiv analys."
         : partialAuth
-          ? "Härledd från livekällor: KPI-raden bygger på live telemetry och aktivt scope. Vissa owner-källor kräver ny inloggning."
+          ? "Härledd från aktiva källor: KPI-raden bygger på aktiv telemetri och aktivt urval. Vissa ägarkällor kräver ny inloggning."
           : analytics.loaded
-            ? "Härledd från livekällor: KPI-raden bygger på live telemetry, aktivt mailboxscope och runtime-kön."
-            : "Fallback/vänteläge: KPI-raden väntar på första livebilden och ska inte läsas som analytics-sanning ännu.",
+            ? "Härledd från aktiva källor: KPI-raden bygger på aktiv telemetri, aktivt mejlurval och körningskön."
+            : "Reserv-/vänteläge: KPI-raden väntar på första aktiva bilden och ska inte läsas som analyssanning ännu.",
       authLocked || partialAuth ? "auth" : analytics.loaded ? "derived" : "fallback"
     );
 
     setTrustNote(
       analyticsTrustNotes.self,
       authLocked
-        ? "Auth-låst: personlig analytics väntar på att admin-sessionen återställs."
+        ? "Inloggningslåst: personlig analys väntar på att admin-sessionen återställs."
         : partialAuth
-          ? "Härledd från livekällor: din prestation följer samma live-scope som teamkortet, men owner-data är delvis auth-låst."
+          ? "Härledd från aktiva källor: din prestation följer samma aktiva urval som teamkortet, men ägardata är delvis inloggningslåst."
           : analytics.loaded
-            ? "Härledd från livekällor: din prestation byggs från live telemetry och aktivt runtime-scope, inte från en separat self-feed."
-            : "Fallback/vänteläge: självkortet väntar på en verifierad livebild.",
+            ? "Härledd från aktiva källor: din prestation byggs från aktiv telemetri och aktivt körningsurval, inte från ett separat personligt flöde."
+            : "Reserv-/vänteläge: självkortet väntar på en verifierad aktiv bild.",
       authLocked || partialAuth ? "auth" : analytics.loaded ? "derived" : "fallback"
     );
 
     setTrustNote(
       analyticsTrustNotes.leaderboard,
       authLocked || authLeaderboardPlaceholder
-        ? "Auth-låst: leaderboarden väntar på live-ranking med giltig admin-session."
+        ? "Inloggningslåst: leaderboarden väntar på aktiv ranking med giltig admin-session."
         : leaderboardPlaceholder
-          ? "Fallback/vänteläge: ingen separat live-ranking hittades, så ytan visar vänteläge i stället för statiska fallbacknamn."
-          : "Härledd från livekällor: leaderboarden följer den ranking som finns i aktuell analytics-sammanställning.",
+          ? "Reserv-/vänteläge: ingen separat aktiv ranking hittades, så ytan visar vänteläge i stället för statiska reservnamn."
+          : "Härledd från aktiva källor: rankinglistan följer den ranking som finns i aktuell analyssammanställning.",
       authLocked || authLeaderboardPlaceholder
         ? "auth"
         : leaderboardPlaceholder
@@ -19250,22 +19405,22 @@
     setTrustNote(
       analyticsTrustNotes.templates,
       authLocked
-        ? "Auth-låst: mallandelar visas inte som analytics-sanning utan giltig admin-session."
+        ? "Inloggningslåst: mallandelar visas inte som analyssanning utan giltig admin-session."
         : analytics.loaded
-          ? "Härledd från livekällor: mallandelarna byggs från synligt scope och vald period, inte från en separat performance-feed."
-          : "Fallback/vänteläge: mallandelar väntar på analytics-laddning innan de kan tolkas.",
+          ? "Härledd från aktiva källor: mallandelarna byggs från synligt urval och vald period, inte från ett separat prestandaflöde."
+          : "Reserv-/vänteläge: mallandelar väntar på analysladdning innan de kan tolkas.",
       authLocked ? "auth" : analytics.loaded ? "derived" : "fallback"
     );
 
     setTrustNote(
       analyticsTrustNotes.coaching,
       authLocked
-        ? "Auth-låst: coachningen väntar på att analytics-källorna kan läsas med giltig session."
+        ? "Inloggningslåst: coachningen väntar på att analyskällorna kan läsas med giltig session."
         : partialAuth
-          ? "Härledd från livekällor: coachningen bygger på live telemetry och scope, men vissa owner-källor är auth-låsta."
+          ? "Härledd från aktiva källor: coachningen bygger på aktiv telemetri och urval, men vissa ägarkällor är inloggningslåsta."
           : analytics.loaded
-            ? "Härledd från livekällor: coachningen bygger på live telemetry och runtime-scope, inte från en separat coachingtjänst."
-            : "Fallback/vänteläge: coachningen väntar på live analytics innan den kan tolkas som vägledning.",
+            ? "Härledd från aktiva källor: coachningen bygger på aktiv telemetri och körningsurval, inte från en separat coachingtjänst."
+            : "Reserv-/vänteläge: coachningen väntar på aktiv analys innan den kan tolkas som vägledning.",
       authLocked || partialAuth ? "auth" : analytics.loaded ? "derived" : "fallback"
     );
   }
@@ -19325,12 +19480,12 @@
     if (!successCount && !state.analyticsRuntime.loaded) {
       const firstFailure = failures[0];
       const message =
-        firstFailure instanceof Error ? firstFailure.message : "Kunde inte läsa live analytics.";
+        firstFailure instanceof Error ? firstFailure.message : "Kunde inte läsa liveanalys.";
       const statusCode = Number(firstFailure?.statusCode || firstFailure?.status || 0);
       state.analyticsRuntime.loading = false;
       state.analyticsRuntime.authRequired = hasAuthFailure;
       state.analyticsRuntime.error = isAuthFailure(statusCode, message)
-        ? "Inloggning krävs för analytics i nya CCO."
+        ? "Inloggning krävs för analys i nya CCO."
         : message;
       renderAnalyticsRuntime();
       renderAnalyticsPeriod();
@@ -19346,8 +19501,8 @@
     state.analyticsRuntime.error =
       failures.length > 0
         ? hasAuthFailure
-          ? "Vissa analytics-källor kräver inloggning. Visar senaste kompletta livebild där det går."
-          : "Vissa analytics-källor kunde inte läsas. Visar senaste kompletta livebild."
+          ? "Vissa analyskällor kräver inloggning. Visar senaste kompletta aktiv bild där det går."
+          : "Vissa analyskällor kunde inte läsas. Visar senaste kompletta aktiv bild."
         : "";
     renderAnalyticsRuntime();
     renderAnalyticsPeriod();
@@ -19477,7 +19632,7 @@
         : [
             {
               medal: "•",
-              name: "Ingen live-ranking ännu",
+              name: "Ingen aktiv ranking ännu",
               score: "Väntar",
             },
           ];
@@ -19490,10 +19645,10 @@
           : "Öppna mallbibliotek";
     const coachingCopy =
       ownerPending > 0
-        ? `${ownerPending} ärenden väntar på owner-beslut i live-läget. Prioritera tydliga nästa steg för att minska kötrycket.`
+        ? `${ownerPending} ärenden väntar på ägarbeslut i live-läget. Prioritera tydliga nästa steg för att minska kötrycket.`
         : riskOpen > 0 || incidentOpen > 0
-          ? `Live-datan visar ${riskOpen} riskärenden och ${incidentOpen} öppna incidenter. Fokusera på guardrails och svarstid i samma scope.`
-          : `Readiness ligger på ${slaValue} och ${conversationCount} konversationer syns i aktivt scope. Använd mallar och makron för att hålla tempot stabilt.`;
+          ? `Live-datan visar ${riskOpen} riskärenden och ${incidentOpen} öppna incidenter. Fokusera på skyddsregler och svarstid i samma scope.`
+          : `Beredskapen ligger på ${slaValue} och ${conversationCount} konversationer syns i aktivt scope. Använd mallar och makron för att hålla tempot stabilt.`;
 
     return {
       metrics: {
@@ -19631,32 +19786,32 @@
     setTrustNote(
       automationTrustNotes.global,
       authRequired
-        ? "Auth-låst: live save, test och aktivering kräver ny admin-session. Buildern och senaste läsbara versioner kan fortfarande granskas."
-        : "Livekälla: spara, testkör och versionsspår går mot templatesystemet. Builder, analys och autopilot innehåller också shell-lokala ytor.",
+        ? "Inloggningslåst: aktiv sparning, test och aktivering kräver ny admin-session. Byggaren och senaste läsbara versioner kan fortfarande granskas."
+        : "Aktiv källa: spara, testkör och versionsspår går mot templatesystemet. Byggare, analys och autopilot innehåller också arbetsyte-lokala ytor.",
       authRequired ? "auth" : "live"
     );
     setTrustNote(
       automationTrustNotes.analysis,
-      "Shell-lokal: analyskort och copy är härledd UI tills en separat livekälla verifieras.",
+      "Arbetsyte-lokal: analyskort och text är härledd UI tills en separat aktiv källa verifieras.",
       "fallback"
     );
     setTrustNote(
       automationTrustNotes.testing,
       authRequired
-        ? "Auth-låst: Kör test kräver giltig admin-session. Hoppa över väntan förblir shell-lokal simulering även när auth saknas."
-        : "Delad sanning: Kör test använder live evaluate. Hoppa över väntan är shell-lokal simulering för testing-vyn.",
+        ? "Inloggningslåst: Kör test kräver giltig admin-session. Hoppa över väntan förblir arbetsyte-lokal simulering även när inloggning saknas."
+        : "Delad sanning: Kör test använder aktiv utvärdering. Hoppa över väntan är arbetsyte-lokal simulering för testing-vyn.",
       authRequired ? "auth" : "derived"
     );
     setTrustNote(
       automationTrustNotes.versioner,
       authRequired
-        ? "Auth-låst: versionskort kan visa senaste läsbara livebild, men aktivering kräver ny inloggning."
-        : "Livekälla: versionskort och aktivering läser och skriver till templatesystemets livehistorik.",
+        ? "Inloggningslåst: versionskort kan visa senaste läsbara aktiv bild, men aktivering kräver ny inloggning."
+        : "Aktiv källa: versionskort och aktivering läser och skriver till templatesystemets aktiva historik.",
       authRequired ? "auth" : "live"
     );
     setTrustNote(
       automationTrustNotes.autopilot,
-      "Shell-lokal: autopilotförslag, pending count och senaste optimeringar saknar separat livekälla.",
+      "Arbetsyte-lokal: autopilotförslag, väntande antal och senaste optimeringar saknar separat aktiv källa.",
       "fallback"
     );
 
@@ -20262,7 +20417,7 @@
         state.automationRuntime.dismissedSuggestionKeys.push(key);
       }
       renderAutomationSuggestions();
-      setAutomationStatus("AI-förslaget avfärdades och builder-railen städades upp.", "success");
+      setAutomationStatus("AI-förslaget avfärdades och förslagsrailen städades upp.", "success");
       return;
     }
 
@@ -20280,14 +20435,14 @@
         if (title) title.textContent = "Vänta 2 dagar";
         if (line) line.innerHTML = "Varaktighet: <b>2d</b>";
       }
-      setAutomationStatus("Väntesteget kortades till 2 dagar i buildern.", "success");
+      setAutomationStatus("Väntesteget kortades till 2 dagar i byggaren.", "success");
     } else if (key === "welcome") {
       setSelectedAutomationTemplate("vip_fast_track");
-      setAutomationStatus("Förslaget kopplades till mallen VIP Fast Track.", "success");
+      setAutomationStatus("Förslaget kopplades till mallen VIP-snabbspår.", "success");
     } else if (key === "assign") {
-      setAutomationStatus("Felhantering markerades som nästa steg i automationens backlog.", "loading");
+      setAutomationStatus("Felhantering markerades som nästa steg i automationens att-göra-lista.", "loading");
     } else if (key === "condition") {
-      setAutomationStatus("Det dubbla e-poststeget markerades för sammanslagning i nästa save.", "success");
+      setAutomationStatus("Det dubbla e-poststeget markerades för sammanslagning vid nästa sparning.", "success");
     }
 
     renderAutomationSuggestions();
@@ -20297,7 +20452,7 @@
     if (normalizeKey(actionKey) === "skip") {
       state.automationRuntime.testingScenario = "skip";
       renderAutomationTestingState();
-      setAutomationStatus("Väntesteget hoppades över och fallback-spåret verifieras i testloggen.", "success");
+      setAutomationStatus("Väntesteget hoppades över och reservspåret verifieras i testloggen.", "success");
       return;
     }
 
@@ -20330,7 +20485,7 @@
     );
     if (normalizeKey(actionKey) === "restore") {
       if (!version?.id) {
-        setAutomationStatus("Ingen liveversion finns att aktivera ännu.", "error");
+        setAutomationStatus("Ingen aktiv version finns att aktivera ännu.", "error");
         return;
       }
       try {
@@ -20375,7 +20530,7 @@
     }
     if (normalizeKey(actionKey) === "compare") {
       setAutomationStatus(
-        `Versionsjämförelsen för v${Number(version?.versionNo || 0)} visas nu från livehistoriken.`,
+        `Versionsjämförelsen för v${Number(version?.versionNo || 0)} visas nu från aktiv historiken.`,
         "loading"
       );
       return;
@@ -20623,13 +20778,13 @@
   function renderMailboxAdminFormState() {
     const isEditing = Boolean(normalizeMailboxId(state.ui.mailboxAdminEditingId));
     if (mailboxAdminFormTitle) {
-      mailboxAdminFormTitle.textContent = isEditing ? "Redigera mailbox" : "Lägg till mailbox";
+      mailboxAdminFormTitle.textContent = isEditing ? "Redigera mejlkonto" : "Lägg till mejlkonto";
     }
     if (mailboxAdminResetButton) {
       mailboxAdminResetButton.hidden = !isEditing;
     }
     if (mailboxAdminSaveButton) {
-      mailboxAdminSaveButton.textContent = isEditing ? "Spara mailbox" : "Lägg till mailbox";
+      mailboxAdminSaveButton.textContent = isEditing ? "Spara mejlkonto" : "Lägg till mejlkonto";
     }
   }
 
@@ -20699,11 +20854,11 @@
     const mailboxLabel = mailboxName || deriveMailboxLabel(mailboxEmail);
     const editingId = normalizeMailboxId(state.ui.mailboxAdminEditingId);
     if (!mailboxEmail || !mailboxEmail.includes("@")) {
-      setFeedback(mailboxAdminFeedback, "error", "Ange en giltig mailboxadress.");
+      setFeedback(mailboxAdminFeedback, "error", "Ange en giltig mejladress.");
       return;
     }
     if (!mailboxLabel) {
-      setFeedback(mailboxAdminFeedback, "error", "Ange ett namn för mailboxen.");
+      setFeedback(mailboxAdminFeedback, "error", "Ange ett namn för mejlkontot.");
       return;
     }
 
@@ -20718,7 +20873,7 @@
         );
       })
     ) {
-      setFeedback(mailboxAdminFeedback, "error", "Mailboxen finns redan i listan.");
+      setFeedback(mailboxAdminFeedback, "error", "Mejlkontot finns redan i listan.");
       return;
     }
 
@@ -20797,7 +20952,7 @@
       setFeedback(
         mailboxAdminFeedback,
         "error",
-        error?.message || "Kunde inte spara mailboxen."
+        error?.message || "Kunde inte spara mejlkontot."
       );
       return;
     }
@@ -20818,8 +20973,8 @@
       mailboxAdminFeedback,
       "success",
       editingId
-        ? `Mailboxen ${mailbox.label} uppdaterades.`
-        : `Mailboxen ${mailbox.label} lades till.`
+        ? `Mejlkontot ${mailbox.label} uppdaterades.`
+        : `Mejlkontot ${mailbox.label} lades till.`
     );
   }
 
@@ -21348,6 +21503,46 @@
     );
   }
 
+  function hasBookingSurfaceCue(thread) {
+    if (!thread) return false;
+    if (isBookingRuntimeThread(thread)) return true;
+    const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const haystack = [
+      thread.subject,
+      thread.title,
+      thread.preview,
+      thread.body,
+      thread.bodyPreview,
+      thread.detail,
+      thread.summary,
+      thread.nextActionSummary,
+      thread.intentLabel,
+      raw.subject,
+      raw.preview,
+      raw.body,
+      raw.bodyPreview,
+      raw.latestPreview,
+      raw.latestInboundPreview,
+      raw.detail,
+      raw.summary,
+      raw.plannedTreatment,
+      raw.treatmentContext,
+      raw.customerSummary?.lastCaseSummary,
+      raw.latestMessage?.body,
+      raw.latestMessage?.bodyPreview,
+      raw.latestMessage?.preview,
+      raw.conversation?.body,
+      raw.conversation?.bodyPreview,
+      raw.conversation?.preview,
+    ]
+      .map((value) => normalizeText(value))
+      .filter(Boolean)
+      .join(" ");
+    return /\b(?:bok|boka|bokning|tid|tider|appointment|booking|konsultation|behandlingsplan)\b/i.test(
+      haystack
+    );
+  }
+
   function getManualBookingLaneThread() {
     const activeLaneId = normalizePrimaryQueueLaneId(state.runtime?.activeLaneId || "all");
     const inlineLaneId =
@@ -21390,10 +21585,10 @@
     };
   }
 
-  function getBookingWorkThread() {
-    const focusedCase = state.booking?.case && typeof state.booking.case === "object"
-      ? state.booking.case
-      : null;
+	  function getBookingWorkThread() {
+	    const focusedCase = state.booking?.case && typeof state.booking.case === "object"
+	      ? state.booking.case
+	      : null;
     if (asText(state.booking?.focusCaseId) && focusedCase) {
       const linkedThread = findRuntimeThreadForBookingCase(focusedCase);
       if (linkedThread && isBookingRuntimeThread(linkedThread)) return linkedThread;
@@ -21401,8 +21596,65 @@
       if (focusedThread) return focusedThread;
     }
     const selectedThread = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread();
-    if (isBookingRuntimeThread(selectedThread)) return selectedThread;
-    return getManualBookingLaneThread();
+	    if (isBookingRuntimeThread(selectedThread)) return selectedThread;
+	    return getManualBookingLaneThread();
+	  }
+
+	  function isSingleWorkspaceViewport() {
+	    return (
+	      typeof window !== "undefined" &&
+	      typeof window.matchMedia === "function" &&
+	      window.matchMedia("(max-width: 1100px)").matches
+	    );
+	  }
+
+	  function resetSingleWorkspaceScrollPosition() {
+	    if (!isSingleWorkspaceViewport()) return;
+	    [".preview-canvas", ".preview-workspace"].forEach((selector) => {
+	      const scrollContainer = document.querySelector(selector);
+	      if (scrollContainer && typeof scrollContainer.scrollTo === "function") {
+	        scrollContainer.scrollTo({ top: 0, left: 0, behavior: "auto" });
+	      } else if (scrollContainer) {
+	        scrollContainer.scrollTop = 0;
+	        scrollContainer.scrollLeft = 0;
+	      }
+	    });
+	  }
+
+	  function openBookingOperatorSurface({
+	    scroll = true,
+	    message = "Bokningsytan öppnades i arbetsytan.",
+  } = {}) {
+    state.runtime.queueInlinePanel = {
+      ...(state.runtime.queueInlinePanel || {}),
+      open: true,
+      laneId: "bookable",
+      feedKey: "",
+    };
+    state.runtime.queueHistory = {
+      ...(state.runtime.queueHistory || {}),
+      open: false,
+      selectedConversationId: "",
+    };
+    setAppView("conversations");
+    applyFocusSection("conversation");
+    renderRuntimeConversationShell();
+    renderBookingSurface();
+    const bookingDom = getBookingDom();
+	    if (message) {
+	      setFeedback(bookingDom.feedback, "success", message);
+	    }
+	    if (isSingleWorkspaceViewport()) {
+	      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
+	      window.setTimeout(resetSingleWorkspaceScrollPosition, 0);
+	      window.setTimeout(resetSingleWorkspaceScrollPosition, 160);
+	      return;
+	    }
+	    if (scroll && bookingDom.surface) {
+	      window.setTimeout(() => {
+	        bookingDom.surface.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
   }
 
   function getBookingReadoutForThread(thread) {
@@ -21513,21 +21765,21 @@
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
       return {
         label: "Hälsa: redo att stängas",
-        meta: "Extern bekräftelse finns. Kontrollera audit innan stängning.",
+        meta: "Extern bekräftelse finns. Kontrollera loggen innan stängning.",
         tone: "ready",
       };
     }
     if (!slotCount) {
       return {
         label: "Hälsa: saknar kandidat-tider",
-        meta: "Välj 1-3 tider innan Studio och handoff aktiveras.",
+        meta: "Välj 1-3 tider innan Svarstudio och överlämning aktiveras.",
         tone: "attention",
       };
     }
     if (!hasOffer) {
       return {
-        label: "Hälsa: saknar Studio-erbjudande",
-        meta: `${slotCount} tider valda. Infoga erbjudandet i Studio före kundhandoff.`,
+        label: "Hälsa: saknar Svarstudio-erbjudande",
+        meta: `${slotCount} tider valda. Infoga erbjudandet i Svarstudio före kundöverlämning.`,
         tone: "attention",
       };
     }
@@ -21554,14 +21806,14 @@
     const score = Number(blocker?.score);
     if (blocker && (asText(blocker.key) || Number.isFinite(score))) {
       return {
-        label: "Beslutskälla: backend blocker",
+        label: "Beslutskälla: backend-blockering",
         meta: Number.isFinite(score) ? `prioritet ${score}` : "prioritering synkad",
         tone: "backend",
       };
     }
     return {
-      label: "Beslutskälla: lokal fallback",
-      meta: "äldre data saknar blocker",
+      label: "Beslutskälla: lokal bedömning",
+      meta: "äldre data saknar blockering",
       tone: "fallback",
     };
   }
@@ -21606,15 +21858,15 @@
     if (!slotCount) {
       return {
         label: "Nästa: välj kandidat-tider",
-        meta: "Använd live-slots eller manuell fallback för 1-3 tider.",
+        meta: "Använd externa tider eller manuella reservtider för 1-3 förslag.",
         action: "candidate_slots",
         tone: "attention",
       };
     }
     if (!hasOffer) {
       return {
-        label: "Nästa: infoga i Studio",
-        meta: "Erbjudandet behöver in i svarsstudion innan kundhandoff.",
+        label: "Nästa: infoga i Svarstudio",
+        meta: "Erbjudandet behöver in i Svarstudio innan kundöverlämning.",
         action: "insert_studio",
         tone: "attention",
       };
@@ -21633,7 +21885,7 @@
     }
     return {
       label: "Nästa: markera kundläge",
-      meta: "Sätt väntar kund efter erbjudande, eller markera extern bekräftelse när Cliento/widget är klar.",
+      meta: "Sätt väntar kund efter erbjudande, eller markera extern bekräftelse när kalender/widget är klar.",
       action: "waiting_customer",
       tone: "stable",
     };
@@ -21660,7 +21912,7 @@
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
       return {
         label: `Kundläge: extern bekräftelse · ${formatBookingWaitAge(waitHours, "sedan")}`,
-        meta: "Verifiera Cliento/widget och stäng sedan ärendet",
+        meta: "Verifiera kalender/widget och stäng sedan ärendet",
         tone: "external",
       };
     }
@@ -21674,7 +21926,7 @@
     if (!hasOffer) {
       return {
         label: `Kundläge: väntar operatör · ${formatBookingWaitAge(waitHours)}`,
-        meta: "Operatören behöver infoga erbjudandet i Studio",
+        meta: "Operatören behöver infoga erbjudandet i Svarstudio",
         tone: waitHours >= 24 ? "attention" : "operator",
       };
     }
@@ -21694,7 +21946,7 @@
       };
     }
     return {
-      label: `Kundläge: redo för handoff · ${formatBookingWaitAge(waitHours, "sedan")}`,
+      label: `Kundläge: redo för överlämning · ${formatBookingWaitAge(waitHours, "sedan")}`,
       meta: "Nästa steg är kundläge eller extern bekräftelse",
       tone: "ready",
     };
@@ -21723,9 +21975,9 @@
       },
       {
         key: "insert_studio",
-        label: "Studio infogat",
+        label: "Svarstudio infogad",
         done: hasOffer,
-        meta: hasOffer ? "Erbjudandet finns i flödet" : "Infoga tider i Studio",
+        meta: hasOffer ? "Erbjudandet finns i flödet" : "Infoga tider i Svarstudio",
       },
       {
         key: "customer_state",
@@ -21754,7 +22006,7 @@
   function formatBookingChecklistBlockerLabel(checklistKey = "") {
     const key = asText(checklistKey);
     if (key === "candidate_slots") return "Saknar tider";
-    if (key === "insert_studio") return "Saknar Studio";
+    if (key === "insert_studio") return "Saknar Svarstudio";
     if (key === "customer_state") return "Saknar kundläge";
     return "Redo";
   }
@@ -21787,9 +22039,9 @@
         raw.customerIdentity?.identitySource ||
         raw.customerSummary?.identitySource
     );
-    if (source === "cliento") return "Cliento-import";
+    if (source === "cliento") return "Extern import";
     if (source === "backend") return "Verifierad backend";
-    if (source === "mailbox_truth") return "Mailbox truth";
+    if (source === "mailbox_truth") return "Mejlsanning";
     if (source === "history") return "Historik";
     if (source === "derived") return "Härledd";
     return "Ej verifierad";
@@ -21811,7 +22063,7 @@
               ? customerSummary.identity
               : {};
     const identitySourceLabel = getBookingIdentitySourceLabel(identity, raw);
-    const clientoKey = asText(
+    const bookingProfileKey = asText(
       identity.canonicalCustomerId ||
         identity.provenance?.sourceRecordId ||
         identity.sourceRecordId ||
@@ -21832,9 +22084,9 @@
         meta: getBookingCustomerContactLabel(thread),
       },
       {
-        label: "Cliento-identitet",
+        label: "Kundmatch",
         value: identitySourceLabel,
-        meta: clientoKey || "Matcha mot import innan känslig åtgärd",
+        meta: bookingProfileKey || "Matcha kundprofil innan känslig åtgärd",
       },
       {
         label: "Önskemål",
@@ -21885,7 +22137,7 @@
   const BOOKING_CASE_SORTS = Object.freeze([
     { sort: "recent", label: "Senast" },
     { sort: "blocked", label: "Mest blockerad" },
-    { sort: "audit_needed", label: "Audit behövs" },
+    { sort: "audit_needed", label: "Logg behövs" },
   ]);
 
   function renderBookingStatusFlow(bookingDom, readout = {}) {
@@ -21893,7 +22145,7 @@
     const activeStatus = normalizeKey(readout.status || "needs_triage");
     bookingDom.statusFlow.innerHTML = BOOKING_STATUS_FLOW.map((item) => {
       const isActive = normalizeKey(item.status) === activeStatus;
-      return `<button class="booking-status-step${isActive ? " is-active" : ""}" type="button" data-booking-action="set_status" data-booking-status-target="${escapeHtml(item.status)}" aria-pressed="${isActive ? "true" : "false"}">
+      return `<button class="booking-status-step${isActive ? " is-active" : ""}" type="button" data-booking-action="set_status" data-booking-status-target="${escapeHtml(item.status)}" data-booking-status-tone="${escapeHtml(item.status)}" aria-pressed="${isActive ? "true" : "false"}">
         <span>${escapeHtml(item.label)}</span>
       </button>`;
     }).join("");
@@ -21927,8 +22179,8 @@
       if (activeSort === "audit_needed") {
         const remainingCount = getBookingAuditNeededCases().length;
         bookingDom.statusFilterNote.textContent = remainingCount
-          ? `Auditkö: ${remainingCount} kvar. Filter: ${activeLabel}. Öppna nästa case och kopiera audit för att gå vidare.`
-          : `Auditkö: klar. Filter: ${activeLabel}. Alla synliga bokningsärenden har aktuell intern audit.`;
+          ? `Loggkö: ${remainingCount} kvar. Filter: ${activeLabel}. Öppna nästa ärende och kopiera loggen för att gå vidare.`
+          : `Loggkö: klar. Filter: ${activeLabel}. Alla synliga bokningsärenden har aktuell intern logg.`;
       } else {
         bookingDom.statusFilterNote.textContent = matches
           ? `Filter: ${activeLabel}. Sortering: ${sortLabel}. Denna bokning ligger i ${formatBookingStatus(activeStatus)}.`
@@ -21950,7 +22202,7 @@
       return;
     }
     bookingDom.auditNextCaseControl.dataset.bookingCaseId = asText(nextCase.bookingCaseId);
-    bookingDom.auditNextCaseControl.innerHTML = `<span>Öppna nästa audit-case · ${auditCases.length} kvar</span><strong>${escapeHtml(
+    bookingDom.auditNextCaseControl.innerHTML = `<span>Öppna nästa logg-ärende · ${auditCases.length} kvar</span><strong>${escapeHtml(
       asText(nextCase.customerName || nextCase.customerEmail, "Bokningskund")
     )}</strong>`;
   }
@@ -22026,7 +22278,7 @@
       const activeSort = normalizeKey(state.booking?.caseSort || "recent") || "recent";
       bookingDom.caseList.innerHTML =
         activeSort === "audit_needed"
-          ? `<li class="booking-case-list-empty booking-case-list-done"><strong>Audit-kö klar</strong><span>Alla synliga bokningsärenden har en aktuell intern audit.</span></li>`
+          ? `<li class="booking-case-list-empty booking-case-list-done"><strong>Loggkö klar</strong><span>Alla synliga bokningsärenden har en aktuell intern logg.</span></li>`
           : `<li class="booking-case-list-empty"><strong>Inga ärenden i filtret</strong><span>Byt statusfilter, sortering eller skapa ett bokningscase från en tråd.</span></li>`;
       renderBookingAuditNextCaseControl(bookingDom);
       return;
@@ -22058,7 +22310,7 @@
         ${
           runtimeThread
             ? `<button class="booking-case-list-thread" type="button" data-booking-open-thread-case-id="${escapeHtml(caseId)}">Öppna tråd</button>`
-            : `<span class="booking-case-list-thread booking-case-list-thread-muted">Ingen live-tråd</span>`
+            : `<span class="booking-case-list-thread booking-case-list-thread-muted">Ingen aktiv tråd</span>`
         }
       </li>`;
     }).join("");
@@ -22122,12 +22374,12 @@
     );
     if (!nextCase) {
       renderBookingSurface();
-      setFeedback(getBookingDom().feedback, "success", "Audit kopierad. Audit-kön är klar.");
+      setFeedback(getBookingDom().feedback, "success", "Logg kopierad. Loggkön är klar.");
       return true;
     }
     return openBookingCaseInWorkspace(nextCase, {
       scrollToAudit: true,
-      message: "Audit kopierad. Nästa audit-case öppnades.",
+      message: "Logg kopierad. Nästa logg-ärende öppnades.",
     });
   }
 
@@ -22163,28 +22415,28 @@
       const linkedThread = findRuntimeThreadForBookingCase(focusedCase);
       if (linkedThread) {
         return {
-          label: "Källa: bokningscase + live-tråd",
-          meta: `Matchar ${asText(linkedThread.customerName || linkedThread.displaySubject || linkedThread.id, "live-tråd")}.`,
+          label: "Källa: bokningsärende + aktiv tråd",
+          meta: `Matchar ${asText(linkedThread.customerName || linkedThread.displaySubject || linkedThread.id, "aktiv tråd")}.`,
           tone: "linked",
         };
       }
       return {
         label: "Källa: fristående operator-case",
-        meta: "Ärendet saknar aktiv live-tråd i nuvarande köscope.",
+        meta: "Ärendet saknar aktiv tråd i nuvarande köurval.",
         tone: "standalone",
       };
     }
     const selectedRuntimeThread = threadId ? getRuntimeThreadById(threadId) : null;
     if (selectedRuntimeThread) {
       return {
-        label: "Källa: live-mailtråd",
-        meta: `Bokningsytan följer vald tråd i ${asText(selectedRuntimeThread.mailboxLabel || selectedRuntimeThread.mailboxAddress, "mailkön")}.`,
+        label: "Källa: aktiv mejltråd",
+        meta: `Bokningsytan följer vald tråd i ${asText(selectedRuntimeThread.mailboxLabel || selectedRuntimeThread.mailboxAddress, "mejlkön")}.`,
         tone: "live",
       };
     }
     return {
       label: "Källa: operator-yta",
-      meta: "Bokningskontexten är additiv och ersätter inte mailbox truth.",
+      meta: "Bokningskontexten är additiv och ersätter inte mejlsanning.",
       tone: "standalone",
     };
   }
@@ -22308,25 +22560,25 @@
       : "Äldre data saknar backend-blocker";
     const blockerAuditEvent = getBookingBlockerAuditEvent(readout);
     const blockerAudit = blockerAuditEvent
-      ? `Audit: ${blockerAuditEvent.label || blockerAuditEvent.type} · ${formatBookingEventTime(
+      ? `Logg: ${blockerAuditEvent.label || blockerAuditEvent.type} · ${formatBookingEventTime(
           blockerAuditEvent.createdAt
         )}`
-      : "Audit: ingen stödjande händelse ännu";
+      : "Logg: ingen stödjande händelse ännu";
     const blockerAuditType = asText(blockerAuditEvent?.type);
     return [
       {
         label: "Tider",
         value: slots.length ? `${slots.length} valda` : "Inga valda",
-        meta: slots.length ? formatBookingSlot(slots[0]) : "Hämta Cliento-slots eller välj manuellt",
+        meta: slots.length ? formatBookingSlot(slots[0]) : "Hämta externa tider eller välj manuellt",
       },
       {
-        label: "Studio",
+        label: "Svarstudio",
         value: offerEvent || readout.offeredAt ? "Erbjudande infogat" : "Ej infogat",
         meta: offerEvent
           ? formatBookingEventTime(offerEvent.createdAt)
           : readout.offeredAt
             ? formatBookingEventTime(readout.offeredAt)
-            : "Infoga kandidat-tider innan handoff",
+            : "Infoga kandidat-tider innan överlämning",
       },
       {
         label: "Uppföljning",
@@ -22342,8 +22594,8 @@
         label: "Extern bekräftelse",
         value: isConfirmed ? "Bekräftad" : "Ej bekräftad",
         meta: isConfirmed
-          ? "Ingen direkt Cliento-write gjordes av CCO"
-          : "Väntar på kund/Cliento-widget",
+          ? "Ingen extern bokningsskrivning gjordes av CCO"
+          : "Väntar på kund eller extern kalender",
         tone: isConfirmed ? "confirmed" : "",
       },
       {
@@ -22369,7 +22621,7 @@
         badgeAction: customerWait.action,
         badgeActionLabel: customerWait.actionLabel,
         badgeActionReason: customerWait.actionReason,
-        audit: statusEvent ? "Visa status-event i auditloggen" : "",
+        audit: statusEvent ? "Visa statusrörelse i ärendeloggen" : "",
         auditType: statusEvent ? "status_changed" : "",
         tone: "status-move",
       },
@@ -22467,9 +22719,9 @@
               </${tagName}>`;
             })
             .join("")
-        : "Bokningsaudit visas här när ett ärende är valt.";
+        : "Bokningslogg visas här när ett ärende är valt.";
     } else {
-      bookingDom.auditPreviewCopy.textContent = copy || "Bokningsaudit visas här när ett ärende är valt.";
+      bookingDom.auditPreviewCopy.textContent = copy || "Bokningslogg visas här när ett ärende är valt.";
     }
     asArray(bookingDom.auditPreviewModeButtons).forEach((button) => {
       const isActive = normalizeKey(button.dataset.bookingAuditPreviewMode) === mode;
@@ -22487,7 +22739,7 @@
       return {
         tone: "attention",
         label: "Ej kopierad",
-        meta: "Ingen intern audit-export är loggad för ärendet.",
+        meta: "Ingen intern loggkopia är sparad för ärendet.",
         filter: "",
       };
     }
@@ -22509,7 +22761,7 @@
     }
     return {
       tone: "current",
-      label: "Audit aktuell",
+        label: "Logg aktuell",
       meta: `Senast kopierad ${formatBookingEventTime(latestCopy.createdAt)}.`,
       filter: "audit_summary_copied",
     };
@@ -22536,7 +22788,7 @@
     const hasStatusMovement = Boolean(getLatestBookingEvent(readout, ["status_changed"]));
     const tools = [
       {
-        label: "Kopiera full audit",
+        label: "Kopiera full logg",
         action: "copy_full",
         tone: "primary",
       },
@@ -22575,7 +22827,7 @@
     const customerLabel = asText(thread?.customerName, "Bokningskund");
     const statusLabel = formatBookingStatus(readout.status);
     const lines = [
-      `Bokningshandoff - ${customerLabel}`,
+      `Bokningsöverlämning - ${customerLabel}`,
       `Status: ${statusLabel}`,
       ...summary.map((item) => `${item.label}: ${item.value} - ${item.meta}`),
       "",
@@ -22602,7 +22854,7 @@
     const statusTransition = getBookingEventStatusTransition(statusEvent);
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
     const lines = [
-      "Strukturerad audit",
+      "Strukturerad bokningslogg",
       `Ärende: ${asText(readout.conversationId || thread?.id, "okänt")}`,
       `Kund: ${asText(thread?.customerName || readout.customerName, "Bokningskund")}`,
       `Status: ${formatBookingStatus(readout.status)}`,
@@ -22654,7 +22906,7 @@
     const rows = [
       activeFilter
         ? {
-            label: "Auditfilter",
+            label: "Loggfilter",
             value: `${getBookingEventFilterLabel(activeFilter, readout)} · Visa alla`,
             action: "clear_filter",
           }
@@ -22725,7 +22977,7 @@
     const statusTransition = getBookingEventStatusTransition(statusEvent);
     const slots = asArray(readout.selectedSlots);
     return [
-      `Bokningsaudit - ${asText(thread?.customerName, "Bokningskund")}`,
+      `Bokningslogg - ${asText(thread?.customerName, "Bokningskund")}`,
       `Status: ${formatBookingStatus(readout.status)}`,
       blocker
         ? `Nästa: ${asText(blocker.nextActionLabel || blocker.action, "ingen rekommenderad åtgärd")}`
@@ -22745,7 +22997,7 @@
   function buildBookingAuditSummaryCopy(thread, readout = {}) {
     const latestEvent = asArray(readout.allEvents || readout.events).at(-1) || null;
     return [
-      `Bokningsaudit - ${asText(thread?.customerName, "Bokningskund")}`,
+      `Bokningslogg - ${asText(thread?.customerName, "Bokningskund")}`,
       `Senaste händelse: ${latestEvent ? `${latestEvent.label || latestEvent.type} · ${formatBookingEventTime(latestEvent.createdAt)}` : "ingen"}`,
       ...buildBookingStructuredAuditLines(thread, readout),
     ].join("\n");
@@ -22786,16 +23038,16 @@
       case_created: "Case",
       candidate_slots_selected: "Tider",
       candidate_slots_cleared: "Tider",
-      offer_draft_inserted: "Studio",
+      offer_draft_inserted: "Svarstudio",
       follow_up_opened: "Uppföljning",
       follow_up_scheduled: "Uppföljning",
-      audit_summary_copied: "Audit",
+      audit_summary_copied: "Logg",
       external_confirmation_marked: "Bekräftelse",
       status_changed: "Status",
     };
     const tones = {
       case_created: "neutral",
-      candidate_slots_selected: "slots",
+      candidate_slots_selected: "tider",
       candidate_slots_cleared: "attention",
       offer_draft_inserted: "studio",
       follow_up_opened: "followup",
@@ -22805,7 +23057,7 @@
       status_changed: "status",
     };
     return {
-      label: labels[normalized] || humanizeCode(normalized, "Audit"),
+      label: labels[normalized] || humanizeCode(normalized, "Logg"),
       tone: tones[normalized] || "neutral",
     };
   }
@@ -22914,7 +23166,7 @@
           ? `<li class="booking-event-filter-state">
               <div>
                 <strong>Inga händelser för ${escapeHtml(getBookingEventFilterLabel(activeFilter, readout))}</strong>
-                <span>Filtret kommer från blockeringskortets audit-rad.</span>
+                <span>Filtret kommer från blockeringskortets loggrad.</span>
               </div>
               <button type="button" data-booking-event-filter-clear>Visa alla</button>
             </li>`
@@ -22924,7 +23176,7 @@
     const filterHeader = activeFilter
       ? `<li class="booking-event-filter-state">
           <div>
-            <strong>Auditfilter: ${escapeHtml(getBookingEventFilterLabel(activeFilter, readout))}</strong>
+            <strong>Loggfilter: ${escapeHtml(getBookingEventFilterLabel(activeFilter, readout))}</strong>
             <span>${events.length} matchande händelse${events.length === 1 ? "" : "r"} visas.</span>
           </div>
           <button type="button" data-booking-event-filter-clear>Visa alla</button>
@@ -23024,9 +23276,9 @@
         <input class="booking-slot-input" type="text" data-booking-slot-srvids placeholder="28232" />
       </label>
       <button class="booking-action booking-action-secondary" type="button" data-booking-action="load_ref_data">Hämta val</button>
-      <button class="booking-action booking-action-secondary" type="button" data-booking-action="fetch_slots">Hämta slots</button>
+      <button class="booking-action booking-action-secondary" type="button" data-booking-action="fetch_slots">Hämta tider</button>
     </div>
-    <p class="booking-ref-status" data-booking-ref-status>Hämta Cliento-val eller skriv id manuellt.</p>`;
+    <p class="booking-ref-status" data-booking-ref-status>Hämta externa val eller skriv id manuellt.</p>`;
   }
 
   function renderBookingRefSelect(selectNode, items = [], placeholder = "Manuell") {
@@ -23054,7 +23306,7 @@
     renderBookingRefSelect(bookingDom.serviceSelect, state.booking.services, "Manuell tjänst");
     if (!bookingDom.refStatus) return;
     if (state.booking.loadingRefData) {
-      bookingDom.refStatus.textContent = "Hämtar Cliento-val...";
+      bookingDom.refStatus.textContent = "Hämtar externa val...";
       bookingDom.refStatus.dataset.tone = "loading";
       return;
     }
@@ -23068,7 +23320,7 @@
       bookingDom.refStatus.dataset.tone = "success";
       return;
     }
-    bookingDom.refStatus.textContent = "Hämta Cliento-val eller skriv id manuellt.";
+    bookingDom.refStatus.textContent = "Hämta externa val eller skriv id manuellt.";
     bookingDom.refStatus.dataset.tone = "";
   }
 
@@ -23106,6 +23358,10 @@
       setFeedback(bookingDom.feedback, "error", "Ingen rekommenderad knapp hittades i bokningsytan.");
       return;
     }
+    const collapsedGroup = targetButton.closest("details:not([open])");
+    if (collapsedGroup) {
+      collapsedGroup.open = true;
+    }
     targetButton.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
     targetButton.focus({ preventScroll: true });
     targetButton.classList.add("is-recommended-pulse");
@@ -23118,16 +23374,16 @@
   function renderAvailableBookingSlots(bookingDom) {
     if (!bookingDom.availableList) return;
     if (state.booking.loadingSlots) {
-      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Hämtar Cliento-slots</strong><span>Kontrollerar tillgängliga tider för vald resurs och service.</span></li>`;
+      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Hämtar externa tider</strong><span>Kontrollerar tillgängliga tider för vald resurs och service.</span></li>`;
       return;
     }
     if (state.booking.slotsError) {
-      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty booking-slot-error"><strong>Cliento-slots kunde inte hämtas</strong><span>${escapeHtml(state.booking.slotsError)}</span></li>`;
+      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty booking-slot-error"><strong>Externa tider kunde inte hämtas</strong><span>${escapeHtml(state.booking.slotsError)}</span></li>`;
       return;
     }
     const slots = asArray(state.booking.availableSlots).slice(0, 12);
     if (!slots.length) {
-      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Inga live-slots hämtade</strong><span>Ange resurs och service, eller använd manuell fallback.</span></li>`;
+      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Inga externa tider hämtade</strong><span>Ange resurs och service, eller använd manuella reservtider.</span></li>`;
       return;
     }
     bookingDom.availableList.innerHTML = slots
@@ -23136,7 +23392,7 @@
         return `<li class="booking-live-slot${selected ? " is-selected" : ""}">
           <div>
             <strong>${escapeHtml(formatBookingSlot(slot))}</strong>
-            <span>${escapeHtml(slot.locationLabel || slot.source || "cliento")}</span>
+            <span>${escapeHtml(slot.locationLabel || (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) || "Extern kalender")}</span>
           </div>
           <button class="booking-slot-select" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(getBookingSlotKey(slot))}">
             ${selected ? "Vald" : "Välj"}
@@ -23144,6 +23400,62 @@
         </li>`;
       })
       .join("");
+  }
+
+  function ensureBookingAdvancedDisclosure(surface) {
+    if (!surface || surface.querySelector("[data-booking-advanced-panel]")) return;
+    const actionRow = surface.querySelector(".booking-action-row");
+    const advancedNodes = [
+      surface.querySelector("[data-booking-status-filter-row]"),
+      surface.querySelector("[data-booking-status-filter-note]"),
+      surface.querySelector("[data-booking-audit-next-case]"),
+      surface.querySelector("[data-booking-case-list]"),
+      surface.querySelector("[data-booking-audit-preview]"),
+      surface.querySelector("[data-booking-slot-controls]"),
+      surface.querySelector("[data-booking-ref-status]"),
+      surface.querySelector("[data-booking-available-slot-list]"),
+      surface.querySelector("[data-booking-slot-list]"),
+      surface.querySelector("[data-booking-event-filter-row]"),
+      surface.querySelector("[data-booking-event-list]"),
+    ].filter(Boolean);
+    if (!advancedNodes.length) return;
+    const details = document.createElement("details");
+    details.className = "booking-advanced-disclosure";
+    details.dataset.bookingAdvancedPanel = "true";
+    const summary = document.createElement("summary");
+    summary.className = "booking-advanced-summary";
+    summary.innerHTML = '<span>Avancerat</span><strong>Tider, logg och historik</strong>';
+    const content = document.createElement("div");
+    content.className = "booking-advanced-content";
+    details.append(summary, content);
+    advancedNodes.forEach((node) => content.appendChild(node));
+    if (actionRow) {
+      surface.insertBefore(details, actionRow);
+    } else {
+      surface.appendChild(details);
+    }
+  }
+
+  function ensureBookingActionDisclosure(surface) {
+    if (!surface || surface.querySelector("[data-booking-more-actions]")) return;
+    const actionRow = surface.querySelector(".booking-action-row");
+    if (!actionRow) return;
+    const primaryActions = new Set(["candidate_slots", "insert_studio", "schedule_followup"]);
+    const secondaryButtons = Array.from(actionRow.querySelectorAll("[data-booking-action]")).filter(
+      (button) => !primaryActions.has(asText(button.dataset.bookingAction))
+    );
+    if (!secondaryButtons.length) return;
+    const details = document.createElement("details");
+    details.className = "booking-more-actions";
+    details.dataset.bookingMoreActions = "true";
+    const summary = document.createElement("summary");
+    summary.className = "booking-more-actions-summary";
+    summary.textContent = "Mer";
+    const content = document.createElement("div");
+    content.className = "booking-more-actions-content";
+    details.append(summary, content);
+    secondaryButtons.forEach((button) => content.appendChild(button));
+    actionRow.appendChild(details);
   }
 
   function getBookingDom() {
@@ -23155,14 +23467,14 @@
           <div class="booking-operator-head">
             <div>
               <span class="booking-operator-kicker">BOKNING</span>
-              <h3>Operatörsyta</h3>
+              <h3>Bokningsarbete</h3>
             </div>
             <span class="booking-status-pill" data-booking-status>Behöver triage</span>
           </div>
           <p class="booking-source-line" data-booking-source>Källa: manuell operator-yta</p>
           <p class="booking-health-line" data-booking-health>Hälsa: saknar kandidat-tider</p>
           <p class="booking-next-action-line" data-booking-next-action>Nästa: välj kandidat-tider</p>
-          <p class="booking-decision-source-line" data-booking-decision-source>Beslutskälla: lokal fallback</p>
+          <p class="booking-decision-source-line" data-booking-decision-source>Beslutskälla: lokal bedömning</p>
           <button class="booking-next-action-jump" type="button" data-booking-focus-recommended>Visa knapp</button>
           <span class="sr-only" id="booking-next-action-hint">Rekommenderad nästa manuella bokningsåtgärd.</span>
           <div class="booking-attention-grid" aria-label="Bokningssignaler">
@@ -23177,34 +23489,34 @@
           <button class="booking-audit-next-case" type="button" data-booking-audit-next-case hidden></button>
           <ul class="booking-case-list" data-booking-case-list aria-label="Bokningsärenden"></ul>
           <div class="booking-decision-grid" data-booking-decision-grid aria-label="Bokningskontext"></div>
-          <ul class="booking-handoff-checklist" data-booking-handoff-checklist aria-label="Handoff-checklista"></ul>
-          <div class="booking-handoff-summary" data-booking-handoff-summary aria-label="Bokningshandoff"></div>
-          <section class="booking-audit-preview" data-booking-audit-preview aria-label="Audit preview">
+          <ul class="booking-handoff-checklist" data-booking-handoff-checklist aria-label="Överlämningschecklista"></ul>
+          <div class="booking-handoff-summary" data-booking-handoff-summary aria-label="Bokningsöverlämning"></div>
+          <section class="booking-audit-preview" data-booking-audit-preview aria-label="Loggförhandsvisning">
             <div class="booking-audit-preview-head">
               <div>
-                <span>Audit preview</span>
+                <span>Loggförhandsvisning</span>
                 <strong>Intern ärendesammanfattning</strong>
               </div>
-              <div class="booking-audit-preview-toggle" aria-label="Audit preview-läge">
+              <div class="booking-audit-preview-toggle" aria-label="Loggförhandsvisningsläge">
                 <button type="button" data-booking-audit-preview-mode="short" aria-pressed="true">Kort</button>
                 <button type="button" data-booking-audit-preview-mode="full" aria-pressed="false">Full</button>
               </div>
             </div>
             <div class="booking-audit-export-state-slot" data-booking-audit-export-state></div>
             <div class="booking-audit-preview-tools" data-booking-audit-preview-tools hidden></div>
-            <div class="booking-audit-preview-copy" data-booking-audit-preview-copy>Bokningsaudit visas här när ett ärende är valt.</div>
+            <div class="booking-audit-preview-copy" data-booking-audit-preview-copy>Bokningslogg visas här när ett ärende är valt.</div>
           </section>
           ${buildBookingSlotControlsMarkup()}
           <ul class="booking-available-slot-list" data-booking-available-slot-list>
             <li class="booking-slot-empty">
-              <strong>Inga live-slots hämtade</strong>
-              <span>Ange resurs och service, eller använd manuell fallback.</span>
+              <strong>Inga externa tider hämtade</strong>
+              <span>Ange resurs och service, eller använd manuella reservtider.</span>
             </li>
           </ul>
           <ul class="booking-slot-list" data-booking-slot-list>
             <li class="booking-slot-empty">
               <strong>Inga tider valda</strong>
-              <span>Hämta Cliento-slots eller välj kandidater manuellt.</span>
+              <span>Hämta externa tider eller välj kandidater manuellt.</span>
             </li>
           </ul>
           <div class="booking-event-filter-row" data-booking-event-filter-row aria-label="Filtrera bokningshändelser"></div>
@@ -23217,21 +23529,23 @@
           <div class="booking-action-row">
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="candidate_slots">Välj 3 tider</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="clear_slots" data-booking-requires-slots="true" title="Rensa valda kandidat-tider.">Rensa tider</button>
-            <button class="booking-action booking-action-primary" type="button" data-booking-action="insert_studio" data-booking-requires-slots="true" title="Välj minst en tid innan förslaget infogas i Studio.">Infoga i Studio</button>
+            <button class="booking-action booking-action-primary" type="button" data-booking-action="insert_studio" data-booking-requires-slots="true" title="Välj minst en tid innan förslaget infogas i Svarstudio.">Infoga i Svarstudio</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="waiting_customer">Väntar kund</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="schedule_followup">Schemalägg</button>
             <button class="booking-action booking-action-confirmed" type="button" data-booking-action="confirm_external">Bekräftad externt</button>
-            <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_handoff" data-booking-requires-slots="true" title="Välj minst en tid innan handoff kopieras.">Kopiera handoff</button>
-            <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_audit_summary" title="Kopiera strukturerad bokningsaudit för intern ärendeöverlämning.">Kopiera audit</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_handoff" data-booking-requires-slots="true" title="Välj minst en tid innan överlämningen kopieras.">Kopiera överlämning</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_audit_summary" title="Kopiera strukturerad bokningslogg för intern ärendeöverlämning.">Kopiera logg</button>
           </div>
           <p class="booking-action-hint" data-booking-action-hint>
-            Välj minst en tid för att aktivera Studio och handoff.
+            Välj minst en tid för att aktivera Svarstudio och överlämning.
           </p>
           <p class="booking-feedback" data-booking-feedback aria-live="polite"></p>
         </section>`
       );
       surface = document.querySelector("[data-booking-surface]");
     }
+    ensureBookingAdvancedDisclosure(surface);
+    ensureBookingActionDisclosure(surface);
     return {
       surface,
       status: surface?.querySelector("[data-booking-status]") || bookingStatus,
@@ -23286,18 +23600,25 @@
     const readout = getBookingReadoutForThread(thread);
     const nextAction = buildBookingNextActionReadout(readout);
     if (bookingDom.status) bookingDom.status.textContent = formatBookingStatus(readout.status);
+    let healthReadout = null;
     if (bookingDom.source) {
       const source = buildBookingSourceReadout(thread);
       bookingDom.source.textContent = `${source.label} · ${source.meta}`;
       bookingDom.source.dataset.tone = source.tone;
     }
     if (bookingDom.health) {
-      const health = buildBookingHealthReadout(readout);
-      bookingDom.health.textContent = `${health.label} · ${health.meta}`;
-      bookingDom.health.dataset.tone = health.tone;
+      healthReadout = buildBookingHealthReadout(readout);
+      bookingDom.health.textContent = `${healthReadout.label} · ${healthReadout.meta}`;
+      bookingDom.health.dataset.tone = healthReadout.tone;
     }
     if (bookingDom.nextAction) {
-      bookingDom.nextAction.textContent = `${nextAction.label} · ${nextAction.meta}`;
+      const priorityLabel = healthReadout
+        ? `Prioritet: ${healthReadout.label.replace(/^Hälsa:\s*/i, "")} · ${nextAction.label.replace(/^Nästa:\s*/i, "")}`
+        : `Prioritet: ${nextAction.label.replace(/^Nästa:\s*/i, "")}`;
+      bookingDom.nextAction.textContent = priorityLabel;
+      bookingDom.nextAction.title = healthReadout
+        ? `${healthReadout.label} · ${healthReadout.meta}\n${nextAction.label} · ${nextAction.meta}`
+        : `${nextAction.label} · ${nextAction.meta}`;
       bookingDom.nextAction.dataset.tone = nextAction.tone;
       bookingDom.nextAction.dataset.bookingRecommendedAction = nextAction.action;
       if (bookingDom.nextActionJump) {
@@ -23334,7 +23655,7 @@
       bookingDom.decisionGrid.innerHTML = buildBookingDecisionCards(thread, readout)
         .map(
           (card) =>
-            `<article class="booking-decision-card"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(
+            `<article class="booking-decision-card" title="${escapeHtml(`${card.label}: ${card.value}. ${card.meta}`)}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(
               card.value
             )}</strong><p>${escapeHtml(card.meta)}</p></article>`
         )
@@ -23349,11 +23670,13 @@
             .map(
               (slot) =>
                 `<li><strong>${escapeHtml(formatBookingSlot(slot))}</strong><span>${escapeHtml(
-                  slot.locationLabel || slot.source || "cliento"
+                  slot.locationLabel ||
+                    (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) ||
+                    "Extern kalender"
                 )}</span></li>`
             )
             .join("")
-        : `<li class="booking-slot-empty"><strong>Inga tider valda</strong><span>Hämta Cliento-slots eller välj kandidater manuellt.</span></li>`;
+        : `<li class="booking-slot-empty"><strong>Inga tider valda</strong><span>Hämta externa tider eller välj kandidater manuellt.</span></li>`;
     }
     renderBookingEventFilter(bookingDom, readout);
     renderBookingEventTimeline(bookingDom, readout);
@@ -23368,7 +23691,7 @@
     );
     if (bookingDom.actionHint) {
       bookingDom.actionHint.hidden = hasSelectedSlots;
-      bookingDom.actionHint.textContent = "Välj minst en tid för att aktivera Studio och handoff.";
+      bookingDom.actionHint.textContent = "Välj minst en tid för att aktivera Svarstudio och överlämning.";
     }
     bookingDom.actionButtons.forEach((button) => {
       const requiresSlots = button.dataset.bookingRequiresSlots === "true";
@@ -23388,19 +23711,19 @@
         const buttonAction = button.dataset.bookingAction;
         if (buttonAction === "insert_studio") {
           button.title = hasSelectedSlots
-            ? "Infoga bokningsförslaget i Studio."
-            : "Välj minst en tid innan förslaget infogas i Studio.";
+            ? "Infoga bokningsförslaget i Svarstudio."
+            : "Välj minst en tid innan förslaget infogas i Svarstudio.";
         } else if (buttonAction === "copy_handoff") {
           button.title = hasSelectedSlots
-            ? "Kopiera bokningshandoff för intern överlämning."
-            : "Välj minst en tid innan handoff kopieras.";
+            ? "Kopiera bokningsöverlämning för intern överlämning."
+            : "Välj minst en tid innan överlämningen kopieras.";
         } else if (buttonAction === "clear_slots") {
           button.title = hasSelectedSlots
             ? "Rensa valda kandidat-tider."
             : "Inga valda tider att rensa.";
         }
       } else if (button.dataset.bookingAction === "copy_audit_summary") {
-        button.title = "Kopiera strukturerad bokningsaudit för intern ärendeöverlämning.";
+        button.title = "Kopiera strukturerad bokningslogg för intern ärendeöverlämning.";
       }
     });
   }
@@ -23573,12 +23896,12 @@
       setFeedback(
         getBookingDom().feedback,
         "success",
-        `Cliento-val hämtade: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
+        `Externa val hämtade: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
       );
     } catch (error) {
       state.booking.refDataError = formatBookingOperatorError(
         error,
-        "Cliento-val kunde inte hämtas."
+        "Externa val kunde inte hämtas."
       );
       setFeedback(getBookingDom().feedback, "error", state.booking.refDataError);
     } finally {
@@ -23625,7 +23948,12 @@
     ) || null;
   }
 
-  async function persistBookingSelectedSlots(thread, selectedSlots = [], successMessage = "") {
+  async function persistBookingSelectedSlots(
+    thread,
+    selectedSlots = [],
+    successMessage = "",
+    { refreshCases = true } = {}
+  ) {
     const payload = await apiRequest("/api/v1/cco-bookings/candidates", {
       method: "POST",
       body: buildBookingRequestBody(thread, {
@@ -23650,7 +23978,9 @@
     if (successMessage) {
       setFeedback(getBookingDom().feedback, "success", successMessage);
     }
-    refreshBookingCaseList();
+    if (refreshCases) {
+      refreshBookingCaseList();
+    }
     return payload;
   }
 
@@ -23785,16 +24115,19 @@
   async function handleBookingAction(action, event = null) {
     const thread = getBookingWorkThread();
     const bookingDom = getBookingDom();
+    const deferSurfaceRender = action === "select_live_slot";
     if (!thread) {
-      setFeedback(bookingDom.feedback, "error", "Välj en live-tråd först.");
+      setFeedback(bookingDom.feedback, "error", "Välj en aktiv tråd först.");
       return;
     }
     if (isOfflineHistoryContextThread(thread)) {
-      setFeedback(bookingDom.feedback, "error", "Offline historik är läsläge. Öppna live-tråden för bokningsarbete.");
+      setFeedback(bookingDom.feedback, "error", "Offline historik är läsläge. Öppna den aktiva tråden för bokningsarbete.");
       return;
     }
     state.booking.saving = true;
-    renderBookingSurface();
+    if (!deferSurfaceRender) {
+      renderBookingSurface();
+    }
     try {
       if (action === "load_ref_data") {
         await loadBookingRefData({ force: true });
@@ -23803,12 +24136,12 @@
       if (action === "fetch_slots") {
         if (!state.booking.refDataLoaded && !state.booking.refDataError) {
           loadBookingRefData().catch((error) => {
-            console.warn("Cliento ref-data kunde inte hämtas inför slot-sökning.", error);
+            console.warn("Extern bokningsdata kunde inte hämtas inför tidssökning.", error);
           });
         }
         const request = getBookingSlotsRequestFromDom(bookingDom);
         if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
-          setFeedback(bookingDom.feedback, "error", "Ange från, till, resurs-id och service-id för Cliento-slots.");
+          setFeedback(bookingDom.feedback, "error", "Ange från, till, resurs-id och service-id för externa tider.");
           return;
         }
         state.booking.loadingSlots = true;
@@ -23827,16 +24160,19 @@
           getBookingDom().feedback,
           state.booking.availableSlots.length ? "success" : "error",
           state.booking.availableSlots.length
-            ? `${state.booking.availableSlots.length} Cliento-slots hämtades. Välj 1-3 tider.`
-            : "Cliento svarade utan lediga slots för valt urval."
+            ? `${state.booking.availableSlots.length} externa tider hämtades. Välj 1-3 tider.`
+            : "Den externa kalendern svarade utan lediga tider för valt urval."
         );
       }
 
       if (action === "select_live_slot") {
-        const slotId = asText(event?.target?.closest("[data-booking-slot-id]")?.dataset.bookingSlotId);
+        const slotId = asText(
+          event?.slotId ||
+            event?.target?.closest("[data-booking-slot-id]")?.dataset.bookingSlotId
+        );
         const slot = findAvailableBookingSlot(slotId);
         if (!slot) {
-          setFeedback(bookingDom.feedback, "error", "Kunde inte hitta vald Cliento-slot.");
+          setFeedback(bookingDom.feedback, "error", "Kunde inte hitta vald extern tid.");
           return;
         }
         const selectedSlots = getSelectedBookingSlots();
@@ -23851,7 +24187,8 @@
         await persistBookingSelectedSlots(
           thread,
           nextSlots,
-          alreadySelected ? "Slot togs bort från erbjudandet." : "Cliento-slot lades till i erbjudandet."
+          alreadySelected ? "Tid togs bort från erbjudandet." : "Extern tid lades till i erbjudandet.",
+          { refreshCases: false }
         );
       }
 
@@ -23885,7 +24222,7 @@
       if (action === "insert_studio") {
         const readout = getBookingReadoutForThread(thread);
         if (!asArray(readout.selectedSlots).length) {
-          setFeedback(getBookingDom().feedback, "error", "Välj minst en tid innan förslaget infogas i Studio.");
+          setFeedback(getBookingDom().feedback, "error", "Välj minst en tid innan förslaget infogas i Svarstudio.");
           return;
         }
         const payload = await apiRequest("/api/v1/cco-bookings/offer-draft", {
@@ -23926,17 +24263,7 @@
 
       if (action === "waiting_customer") {
         await updateBookingStatus(thread, "waiting_customer", "Bokningen markerades som väntar på kund.");
-        openBookingFollowUp(thread);
-        await recordBookingEvent(thread, {
-          type: "follow_up_opened",
-          label: "Uppföljning öppnad",
-          detail: "Uppföljningsmodalen öppnades från bokningsytan.",
-          metadata: {
-            bookingFollowUpReason: "",
-            bookingFollowUpSource: "booking_surface",
-          },
-        });
-        setFeedback(getBookingDom().feedback, "success", "Bokningen väntar på kund. Uppföljningsmodalen är öppnad.");
+        setFeedback(getBookingDom().feedback, "success", "Bokningen väntar på kund. Schemalägg uppföljning vid behov.");
       }
 
       if (action === "schedule_followup") {
@@ -23960,27 +24287,27 @@
         await updateBookingStatus(
           thread,
           "confirmed_external",
-          "Bokningen markerades som bekräftad externt. Ingen direkt Cliento-bokning skapades av CCO."
+          "Bokningen markerades som bekräftad externt. Ingen direkt extern bokning skapades av CCO."
         );
       }
 
       if (action === "copy_handoff") {
         const readout = getBookingReadoutForThread(thread);
         if (!asArray(readout.selectedSlots).length) {
-          setFeedback(getBookingDom().feedback, "error", "Välj minst en tid innan handoff kopieras.");
+          setFeedback(getBookingDom().feedback, "error", "Välj minst en tid innan överlämningen kopieras.");
           return;
         }
         await copyTextToClipboard(buildBookingHandoffCopy(thread, readout));
         await recordBookingEvent(thread, {
           type: "handoff_copied",
-          label: "Handoff kopierad",
+          label: "Överlämning kopierad",
           detail: [
             `Status: ${formatBookingStatus(readout.status || "needs_triage")}`,
             `${asArray(readout.selectedSlots).length} valda tider`,
             "Text kopierad för intern överlämning.",
           ].join(" · "),
         });
-        setFeedback(getBookingDom().feedback, "success", "Bokningshandoff kopierades för intern överlämning.");
+        setFeedback(getBookingDom().feedback, "success", "Bokningsöverlämningen kopierades för intern överlämning.");
       }
 
       if (action === "copy_audit_summary") {
@@ -23989,8 +24316,8 @@
         await copyTextToClipboard(buildBookingAuditSummaryCopy(thread, readout));
         await recordBookingEvent(thread, {
           type: "audit_summary_copied",
-          label: "Audit kopierad",
-          detail: `Strukturerad bokningsaudit kopierades för intern ärendeöverlämning · ${eventCount} händelser.`,
+          label: "Logg kopierad",
+          detail: `Strukturerad bokningslogg kopierades för intern ärendeöverlämning · ${eventCount} händelser.`,
           metadata: {
             bookingAuditEventCount: eventCount,
             bookingAuditSource: "booking_surface",
@@ -23998,23 +24325,32 @@
         });
         const advanced = advanceToNextAuditCaseAfterCopy();
         if (!advanced) {
-          setFeedback(getBookingDom().feedback, "success", "Strukturerad bokningsaudit kopierades.");
+          setFeedback(getBookingDom().feedback, "success", "Strukturerad bokningslogg kopierades.");
         }
       }
-      renderBookingSurface();
+      if (!deferSurfaceRender) {
+        renderBookingSurface();
+      }
     } catch (error) {
       const message = formatBookingOperatorError(error);
       if (action === "fetch_slots") {
         state.booking.slotsError = formatBookingOperatorError(
           error,
-          "Cliento-slots kunde inte hämtas."
+          "Externa tider kunde inte hämtas."
         );
       }
       setFeedback(getBookingDom().feedback, "error", message);
     } finally {
       state.booking.saving = false;
       state.booking.loadingSlots = false;
-      renderBookingSurface();
+      if (deferSurfaceRender) {
+        window.setTimeout(() => {
+          renderBookingSurface();
+          refreshBookingCaseList();
+        }, 120);
+      } else {
+        renderBookingSurface();
+      }
     }
   }
 
@@ -24200,13 +24536,19 @@ renderStudioShell();
             : "Anteckningar";
       }
       renderRuntimeFocusSignals(selectedFocusThread, focusReadState);
-      const focusQuickActions = focusReadState.readOnly
-        ? []
-        : (() => {
-              const base = [...FOCUS_ACTIONS];
-              if (state.runtime.pendingGraphRestore && state.prefs.deleteEnabled) {
-                base.push({
-                  label: "Återställ",
+	      const focusQuickActions = focusReadState.readOnly
+	        ? []
+	        : (() => {
+	              const base = [...FOCUS_ACTIONS];
+	              base.splice(1, 0, {
+	                label: "Bokningsyta",
+	                tone: "compose",
+	                action: "booking_surface",
+	                icon: "calendar",
+	              });
+	              if (state.runtime.pendingGraphRestore && state.prefs.deleteEnabled) {
+	                base.push({
+	                  label: "Återställ",
                   tone: "compose",
                   action: "restore",
                   icon: "undo",
@@ -24374,6 +24716,38 @@ renderStudioShell();
     const selectedThread = getSelectedRuntimeThread();
     const isDeletingThread = Boolean(asText(state.status.deletingThreadId));
     rows.forEach((row) => {
+      const nextSignature = items
+        .map((item) => {
+          const isDeleteAction = item.action === "delete";
+          const isRestoreAction = item.action === "restore";
+          const disabled = isDeleteAction
+            ? !selectedThread || !state.prefs.deleteEnabled || isDeletingThread
+            : isRestoreAction
+              ? !state.runtime.pendingGraphRestore ||
+                !state.prefs.deleteEnabled ||
+                state.status.restoringMail === true
+              : false;
+          const label =
+            isDeleteAction && isDeletingThread
+              ? "Raderar…"
+              : isRestoreAction && state.status.restoringMail
+                ? "Återställer…"
+                : item.label;
+          return [
+            item.action,
+            item.tone,
+            item.mode || "",
+            item.target || "",
+            item.icon || "",
+            label,
+            disabled ? "disabled" : "enabled",
+          ].join(":");
+        })
+        .join("|");
+      if (row.dataset.quickActionSignature === nextSignature) {
+        return;
+      }
+      row.dataset.quickActionSignature = nextSignature;
       row.innerHTML = "";
       items.forEach((item) => {
         const button = document.createElement("button");
@@ -24608,7 +24982,7 @@ renderStudioShell();
 
     if (shellView === "customers") {
       loadCustomersRuntime().catch((error) => {
-        console.warn("Customers live-laddning misslyckades.", error);
+      console.warn("Kundernas live-laddning misslyckades.", error);
         applyCustomerFilters();
       });
     }
@@ -24616,7 +24990,7 @@ renderStudioShell();
     if (shellView === "analytics") {
       renderAnalyticsRuntime();
       loadAnalyticsRuntime().catch((error) => {
-        console.warn("Analytics live-laddning misslyckades.", error);
+        console.warn("Analysens live-laddning misslyckades.", error);
       });
     }
 
@@ -25287,7 +25661,7 @@ renderStudioShell();
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att ändra studioutkastet.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna den aktiva tråden för att ändra studioutkastet.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -25297,7 +25671,7 @@ renderStudioShell();
     studioState.draftBody = buildStudioTemplateDraft(thread, studioState.activeTemplateKey);
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
-    setStudioFeedback(`Mallen "${studioState.activeTemplateKey}" laddades i studion.`, "success");
+    setStudioFeedback(`Mallen "${studioState.activeTemplateKey}" laddades i svarsstudion.`, "success");
   }
 
   function applyStudioTrackSelection(trackKey) {
@@ -25318,7 +25692,7 @@ renderStudioShell();
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att växla responsspår.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna den aktiva tråden för att växla responsspår.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -25348,7 +25722,7 @@ renderStudioShell();
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att ändra tonfilter.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna den aktiva tråden för att ändra tonfilter.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -25375,7 +25749,7 @@ renderStudioShell();
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Offline historik är läsläge. Öppna live-tråden för att finjustera svaret.", "error");
+      setStudioFeedback("Offline historik är läsläge. Öppna den aktiva tråden för att finjustera svaret.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -25418,7 +25792,7 @@ renderStudioShell();
     const thread = getSelectedRuntimeThread();
     if (!thread) return;
     if (isOfflineHistoryContextThread(thread)) {
-      setStudioFeedback("Offline historik är läsläge. Verktygen låses upp när live-tråden är tillgänglig.", "error");
+      setStudioFeedback("Offline historik är läsläge. Verktygen låses upp när den aktiva tråden är tillgänglig.", "error");
       return;
     }
     const studioState = ensureStudioState(thread);
@@ -25439,7 +25813,7 @@ renderStudioShell();
       studioState.draftBody = buildStudioTrackDraft(thread, studioState.activeTrackKey);
       studioState.baseDraftBody = studioState.draftBody;
       renderStudioShell();
-      setStudioFeedback("Studioutkastet regenererades från live-kontexten.", "success");
+      setStudioFeedback("Svarstudioutkastet regenererades från aktiv kontext.", "success");
       return;
     }
     if (normalizedTool === "policy") {
@@ -25468,6 +25842,7 @@ renderStudioShell();
     const isMouseDrag = event.type === "mousedown";
     const moveEventName = isMouseDrag ? "mousemove" : "pointermove";
     const endEventNames = isMouseDrag ? ["mouseup"] : ["pointerup", "pointercancel"];
+    setWorkspaceManualSizing(true);
     event.preventDefault();
     event.stopPropagation();
 
@@ -25717,11 +26092,108 @@ renderStudioShell();
     });
   });
 
-  document.addEventListener("click", (event) => {
-    const focusRecommendedButton = event.target.closest("[data-booking-focus-recommended]");
-    if (focusRecommendedButton) {
-      const auditFilterTarget = event.target.closest("[data-booking-audit-filter]");
-      if (auditFilterTarget) {
+  function setFocusIntelDetailsOpen(isOpen, activeTabId = "") {
+    if (!focusIntel) return;
+    const open = isOpen === true;
+    focusIntel.dataset.intelDetailsOpen = open ? "true" : "false";
+    if (activeTabId) {
+      focusIntel.dataset.intelDetailsTab = activeTabId;
+    } else if (!open) {
+      delete focusIntel.dataset.intelDetailsTab;
+    }
+    const tabs = Array.from(focusIntel.querySelectorAll(".intel-tab"));
+    tabs.forEach((tab) => {
+      tab.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
+
+  if (focusIntelTabs && focusIntel) {
+    setFocusIntelDetailsOpen(false);
+    focusIntelTabs.addEventListener("click", (event) => {
+      const tab = event.target.closest(".intel-tab");
+      if (!tab || !focusIntelTabs.contains(tab)) return;
+      const tabId = tab.getAttribute("for") || "";
+      const isOpen = focusIntel.dataset.intelDetailsOpen === "true";
+      const activeTabId = focusIntel.dataset.intelDetailsTab || "";
+      const stableScrollContainers = [".preview-canvas", ".preview-workspace"]
+        .map((selector) => document.querySelector(selector))
+        .filter((element) => element instanceof HTMLElement)
+        .map((element) => ({
+          element,
+          scrollLeft: element.scrollLeft,
+          scrollTop: element.scrollTop
+        }));
+      const restoreWorkspaceScroll = () => {
+        stableScrollContainers.forEach(({ element, scrollLeft, scrollTop }) => {
+          element.scrollLeft = scrollLeft;
+          element.scrollTop = scrollTop;
+        });
+        if (window.scrollX !== 0 || window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+      };
+      const scheduleWorkspaceScrollRestore = () => {
+        restoreWorkspaceScroll();
+        window.requestAnimationFrame(restoreWorkspaceScroll);
+        window.setTimeout(restoreWorkspaceScroll, 80);
+        window.setTimeout(restoreWorkspaceScroll, 420);
+        window.setTimeout(restoreWorkspaceScroll, 900);
+      };
+      if (isOpen && activeTabId === tabId) {
+        event.preventDefault();
+        setFocusIntelDetailsOpen(false);
+        scheduleWorkspaceScrollRestore();
+        return;
+      }
+      const tabInput = tabId ? document.getElementById(tabId) : null;
+      if (tabInput instanceof HTMLInputElement) {
+        event.preventDefault();
+        tabInput.checked = true;
+        tabInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      setFocusIntelDetailsOpen(true, tabId);
+      scheduleWorkspaceScrollRestore();
+    });
+    focusIntel.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      setFocusIntelDetailsOpen(false);
+    });
+  }
+
+		  document.addEventListener("click", (event) => {
+	    const bookingSurfaceOpenButton = event.target.closest(
+	      '[data-quick-action="booking_surface"], [data-booking-open-surface]'
+	    );
+	    if (bookingSurfaceOpenButton) {
+	      event.preventDefault();
+	      event.stopPropagation();
+	      openBookingOperatorSurface({
+	        scroll: true,
+	        message: "Bokningsytan öppnades. Hämta externa tider eller välj kandidat-tider.",
+	      });
+	      return;
+	    }
+    const bookingAdvancedSummary = event.target.closest(".booking-advanced-summary");
+    if (bookingAdvancedSummary) {
+      window.setTimeout(() => {
+        const details = bookingAdvancedSummary.closest("[data-booking-advanced-panel]");
+        const surface = bookingAdvancedSummary.closest("[data-booking-surface]");
+        if (!details?.open || !surface) return;
+        const target =
+          surface.querySelector("[data-booking-slot-controls]") ||
+          surface.querySelector(".booking-advanced-content") ||
+          details;
+        const surfaceRect = surface.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const nextTop = surface.scrollTop + targetRect.top - surfaceRect.top - 12;
+        surface.scrollTo({ top: Math.max(0, nextTop), behavior: "smooth" });
+      }, 0);
+      return;
+    }
+	    const focusRecommendedButton = event.target.closest("[data-booking-focus-recommended]");
+	    if (focusRecommendedButton) {
+	      const auditFilterTarget = event.target.closest("[data-booking-audit-filter]");
+	      if (auditFilterTarget) {
         state.booking.eventTypeFilter = normalizeKey(auditFilterTarget.dataset.bookingAuditFilter || "");
         renderBookingSurface();
         bookingEventList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -25767,7 +26239,7 @@ renderStudioShell();
       }
       if (action === "copy_full") {
         handleBookingAction("copy_audit_summary").catch((error) => {
-          console.warn("Audit preview full-copy misslyckades.", error);
+          console.warn("Loggförhandsvisningens fullkopia misslyckades.", error);
         });
         return;
       }
@@ -25786,7 +26258,7 @@ renderStudioShell();
     const handoffActionButton = event.target.closest("[data-booking-handoff-action]");
     if (handoffActionButton) {
       handleBookingAction(handoffActionButton.dataset.bookingHandoffAction, event).catch((error) => {
-        console.warn("Booking handoff action misslyckades.", error);
+        console.warn("Bokningsöverlämningens åtgärd misslyckades.", error);
       });
       return;
     }
@@ -25796,7 +26268,7 @@ renderStudioShell();
       const bookingCase = asArray(state.booking.caseList).find((item) => asText(item.bookingCaseId) === caseId);
       const runtimeThread = findRuntimeThreadForBookingCase(bookingCase);
       if (!runtimeThread) {
-        setFeedback(getBookingDom().feedback, "error", "Ingen live-tråd hittades för bokningsärendet.");
+        setFeedback(getBookingDom().feedback, "error", "Ingen aktiv tråd hittades för bokningsärendet.");
         return;
       }
       state.booking.focusCaseId = "";
@@ -25816,12 +26288,12 @@ renderStudioShell();
       const caseId = asText(auditNextCaseButton.dataset.bookingCaseId);
       const bookingCase = asArray(state.booking.caseList).find((item) => asText(item.bookingCaseId) === caseId);
       if (!bookingCase) {
-        setFeedback(getBookingDom().feedback, "error", "Inget audit-case hittades i aktuell vy.");
+        setFeedback(getBookingDom().feedback, "error", "Inget logg-ärende hittades i aktuell vy.");
         return;
       }
       openBookingCaseInWorkspace(bookingCase, {
         scrollToAudit: true,
-        message: "Nästa audit-case öppnades vid audit-preview.",
+        message: "Nästa logg-ärende öppnades från loggförhandsvisningen.",
       });
       return;
     }
@@ -25854,6 +26326,18 @@ renderStudioShell();
       renderBookingSurface();
       return;
     }
+    const liveSlotButton = event.target.closest('[data-booking-action="select_live_slot"]');
+    if (liveSlotButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      handleBookingAction("select_live_slot", {
+        slotId: liveSlotButton.dataset.bookingSlotId,
+        target: liveSlotButton,
+      }).catch((error) => {
+        console.warn("Booking action misslyckades.", error);
+      });
+      return;
+    }
     const button = event.target.closest("[data-booking-action]");
     if (!button || bookingActionButtons.includes(button)) return;
     handleBookingAction(button.dataset.bookingAction, event).catch((error) => {
@@ -25869,14 +26353,37 @@ renderStudioShell();
     syncBookingManualIdsFromSelects(getBookingDom());
   });
 
-  document.addEventListener("pointerdown", (event) => {
-    if (!event.target.closest(".mailbox-dropdown")) {
-      closeMailboxDropdowns();
-    }
+	  document.addEventListener("pointerdown", (event) => {
+	    const liveSlotPointerButton = event.target.closest('[data-booking-action="select_live_slot"]');
+	    if (liveSlotPointerButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      handleBookingAction("select_live_slot", {
+        slotId: liveSlotPointerButton.dataset.bookingSlotId,
+        target: liveSlotPointerButton,
+      }).catch((error) => {
+        console.warn("Booking action misslyckades.", error);
+      });
+	      return;
+	    }
+	    if (!event.target.closest(".mailbox-dropdown")) {
+	      closeMailboxDropdowns();
+	    }
     if (state.ui.moreMenuOpen && !event.target.closest(".preview-more")) {
-      setMoreMenuOpen(false);
-    }
-  });
+	      setMoreMenuOpen(false);
+	    }
+	  });
+
+	  document.addEventListener("pointerup", (event) => {
+	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
+	    if (!bookingLaneButton) return;
+	    window.setTimeout(() => {
+	      openBookingOperatorSurface({
+	        scroll: true,
+	        message: "Bokningsytan öppnades från Bokning-kön.",
+	      });
+	    }, 120);
+	  });
 
   window.addEventListener("blur", () => {
     closeMailboxDropdowns();
@@ -26171,8 +26678,8 @@ renderStudioShell();
       setAutomationRailCollapsed(nextCollapsed);
       setAutomationStatus(
         nextCollapsed
-          ? "AI-förslagen doldes tillfälligt för att ge buildern mer arbetsro."
-          : "AI-förslagen visas igen i builder-railen.",
+          ? "AI-förslagen doldes tillfälligt för att ge byggaren mer arbetsro."
+          : "AI-förslagen visas igen i byggarrailen.",
         "success"
       );
     });
@@ -26427,7 +26934,7 @@ renderStudioShell();
       setAutomationStatus(
         state.ui.automationCollaborationOpen
           ? "Samarbetsläget visas i automationens högerpanel."
-          : "Samarbetsläget doldes för att ge buildern mer arbetsro.",
+          : "Samarbetsläget doldes för att ge byggaren mer arbetsro.",
         "success"
       );
     });
@@ -26882,7 +27389,7 @@ renderStudioShell();
     };
   }
 
-  async function openRuntimeHistoryConversationForDiagnostics({
+	  async function openRuntimeHistoryConversationForDiagnostics({
     conversationId = "",
     mailboxIds = [],
   } = {}) {
@@ -26953,10 +27460,27 @@ renderStudioShell();
         hydrationResult && typeof hydrationResult === "object"
           ? JSON.parse(JSON.stringify(hydrationResult))
           : hydrationResult,
-    };
-  }
+	    };
+	  }
 
-  window.MajorArcanaPreviewDiagnostics = Object.freeze({
+	  function scheduleBookingSurfaceFromUrl() {
+	    const params = new URLSearchParams(window.location.search || "");
+	    const wantsBookingSurface =
+	      params.get("booking") === "1" ||
+	      normalizeKey(params.get("surface")) === "booking" ||
+	      normalizeKey(params.get("view")) === "booking";
+	    if (!wantsBookingSurface) return;
+	    window.setTimeout(() => {
+	      openBookingOperatorSurface({
+	        scroll: true,
+	        message: "Bokningsytan öppnades från direktlänken.",
+	      });
+	    }, 900);
+	  }
+
+	  scheduleBookingSurfaceFromUrl();
+
+	  window.MajorArcanaPreviewDiagnostics = Object.freeze({
     captureRuntimeReentrySnapshot,
     restoreRuntimeReentrySnapshot,
     getRuntimeMailboxParitySnapshot,

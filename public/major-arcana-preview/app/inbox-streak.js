@@ -129,10 +129,11 @@
       // Bestäm om streaken fortsätter eller börjar om
       // (om lastCheckedDate var igår → +1, annars börja om från 1)
       const yesterday = (() => {
-        const d = new Date(); d.setDate(d.getDate() - 1);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       })();
-      nextStreak = (data.lastCheckedDate === yesterday) ? data.streak + 1 : 1;
+      nextStreak = data.lastCheckedDate === yesterday ? data.streak + 1 : 1;
     } else {
       // Inbox INTE tom → reset
       nextStreak = 0;
@@ -170,7 +171,10 @@
   window.__InboxStreak = Object.freeze({
     check: checkAndUpdate,
     read: readStreak,
-    reset: () => { writeStreak({ streak: 0, lastCheckedDate: '' }); renderPill(0); },
+    reset: () => {
+      writeStreak({ streak: 0, lastCheckedDate: '' });
+      renderPill(0);
+    },
     fakeStreak: (n) => {
       const today = todayString();
       writeStreak({ streak: n, lastCheckedDate: today });

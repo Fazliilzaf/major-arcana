@@ -48,7 +48,7 @@ for (const s of scripts) {
 }
 if (missing.length) {
   console.error(`FEL: saknar filer:`);
-  missing.forEach(f => console.error('  ' + f));
+  missing.forEach((f) => console.error('  ' + f));
   process.exit(1);
 }
 
@@ -88,7 +88,9 @@ try {
   );
   fs.writeFileSync(OUT_MIN, minified);
   const ratio = ((minified.length / concatSrc.length) * 100).toFixed(1);
-  console.log(`✓ ${OUT_MIN.replace(ROOT + '/', '')}: ${minified.length} bytes (${ratio}% av concat)`);
+  console.log(
+    `✓ ${OUT_MIN.replace(ROOT + '/', '')}: ${minified.length} bytes (${ratio}% av concat)`
+  );
 } catch (e) {
   console.error('FEL vid minify:', e.message);
   process.exit(1);
@@ -98,7 +100,11 @@ try {
 console.log('\n=== Bundle-resultat ===');
 console.log(`Källfiler:    ${scripts.length}`);
 console.log(`Källbytes:    ${totalBytes.toLocaleString('sv-SE')}`);
-console.log(`Concat:       ${concatSrc.length.toLocaleString('sv-SE')} bytes (${((concatSrc.length/totalBytes)*100).toFixed(1)}%)`);
+console.log(
+  `Concat:       ${concatSrc.length.toLocaleString('sv-SE')} bytes (${((concatSrc.length / totalBytes) * 100).toFixed(1)}%)`
+);
 const minBytes = fs.statSync(OUT_MIN).size;
-console.log(`Min:          ${minBytes.toLocaleString('sv-SE')} bytes (${((minBytes/totalBytes)*100).toFixed(1)}% av råkälla, ${((minBytes/concatSrc.length)*100).toFixed(1)}% av concat)`);
+console.log(
+  `Min:          ${minBytes.toLocaleString('sv-SE')} bytes (${((minBytes / totalBytes) * 100).toFixed(1)}% av råkälla, ${((minBytes / concatSrc.length) * 100).toFixed(1)}% av concat)`
+);
 console.log('\nNästa steg: kör bin/inject-bundle.js för att modifiera index.html.');

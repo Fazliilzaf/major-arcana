@@ -15,7 +15,7 @@
 (() => {
   'use strict';
 
-  let activeCard = null;     // vilket card som har inline-editor öppen
+  let activeCard = null; // vilket card som har inline-editor öppen
   let activeTextarea = null;
   let activeOriginalPreview = null;
 
@@ -132,7 +132,8 @@
         state.forms.studioThreadId = id;
       }
     } catch (_e) {}
-    if (typeof console !== 'undefined') console.log(`[inline-draft] sparade utkast för ${id} (${draft.length} tecken)`);
+    if (typeof console !== 'undefined')
+      console.log(`[inline-draft] sparade utkast för ${id} (${draft.length} tecken)`);
     closeInlineEditor(true);
   }
 
@@ -167,22 +168,26 @@
   // Click-handler — toggla editor när preview klickas
   // ============================================================
 
-  document.addEventListener('click', (e) => {
-    // Skippa om klick på actions/buttons
-    if (e.target.closest('button, [role="button"], [data-quick-action], a, input, label')) {
-      return;
-    }
-    // Skippa om klick inuti den aktiva editorn (vi har egna handlers där)
-    if (e.target.closest('[data-inline-draft-editor]')) return;
+  document.addEventListener(
+    'click',
+    (e) => {
+      // Skippa om klick på actions/buttons
+      if (e.target.closest('button, [role="button"], [data-quick-action], a, input, label')) {
+        return;
+      }
+      // Skippa om klick inuti den aktiva editorn (vi har egna handlers där)
+      if (e.target.closest('[data-inline-draft-editor]')) return;
 
-    const preview = e.target.closest('.warm-preview');
-    if (!preview) return;
-    const card = preview.closest('.thread-card[data-runtime-thread]');
-    if (!card) return;
-    e.preventDefault();
-    e.stopPropagation();
-    openInlineEditor(card);
-  }, true);
+      const preview = e.target.closest('.warm-preview');
+      if (!preview) return;
+      const card = preview.closest('.thread-card[data-runtime-thread]');
+      if (!card) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openInlineEditor(card);
+    },
+    true
+  );
 
   // Stäng editor om man klickar utanför kortet
   document.addEventListener('click', (e) => {

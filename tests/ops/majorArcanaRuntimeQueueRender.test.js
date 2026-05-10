@@ -314,7 +314,7 @@ test('buildThreadCardMarkup ger cross-mailbox-kort kompakt klass men behåller l
       lastActivityAt: '2026-04-01T16:07:25.000Z',
       displayOwnerLabel: 'Ej tilldelad',
       mailboxLabel: 'Kons',
-      mailboxProvenanceLabel: '3 mailboxar',
+      mailboxProvenanceLabel: '3 mejlkonton',
       mailboxProvenanceDetail: 'Fazli · Contact · Egzona',
       primaryLaneId: 'review',
       crossMailboxProvenanceEvidence: true,
@@ -341,14 +341,14 @@ test('buildThreadCardMarkup ger cross-mailbox-kort kompakt klass men behåller l
 
   assert.doesNotMatch(
     html,
-    /Samma kund har skrivit från flera mailboxar|Historiken hålls ihop, men varje meddelande visar sin mailboxproveniens.|Fortsätt från samma/,
+    /Samma kund har skrivit från flera mejlkonton|Historiken hålls ihop, men varje meddelande visar sin mejlkontoproveniens.|Fortsätt från samma/,
     'Cross-mailbox-kortet ska använda kompakt design men fortsatt bygga innehåll från live-trådens egna data, inte probe-copy.'
   );
 
   assert.doesNotMatch(
     html,
     /thread-card-act-now/,
-    'Cross-mailbox-kort ska inte automatiskt tvångsmarkeras som act-now bara för att raden är merged över flera mailboxar.'
+    'Cross-mailbox-kort ska inte automatiskt tvångsmarkeras som act-now bara för att raden är merged över flera mejlkonton.'
   );
 
   assert.doesNotMatch(
@@ -371,8 +371,8 @@ test('buildThreadCardMarkup ger cross-mailbox-kort kompakt klass men behåller l
 
   assert.match(
     html,
-    /Mailboxspår<\/span>\s*<p class="intel-card-provenance-detail">Fazli · Contact · Egzona<\/p>/,
-    'Cross-mailbox-kortet ska inte duplicera mailboxantalet i proveniensraden när kortet redan signalerar att flera mailboxar är ihopslagna.'
+    /Mejlspår<\/span>\s*<p class="intel-card-provenance-detail">Fazli · Contact · Egzona<\/p>/,
+    'Cross-mailbox-kortet ska inte duplicera mailboxantalet i proveniensraden när kortet redan signalerar att flera mejlkonton är ihopslagna.'
   );
 });
 
@@ -874,7 +874,7 @@ test('renderRuntimeMailboxMenu markerar valt canonical mailboxscope och renderar
     child.innerHTML.includes('mailbox-option-name">Kons')
   );
   assert.ok(konsOption);
-  assert.match(konsOption.innerHTML, /mailbox-option-status">Live/);
+  assert.match(konsOption.innerHTML, /mailbox-option-status">Aktiv/);
   assert.match(konsOption.innerHTML, /mailbox-option-email">kons@hairtpclinic\.com/);
   assert.match(
     konsOption.innerHTML,
@@ -977,7 +977,7 @@ test('renderRuntimeMailboxMenu behaller Live-status for live-mailboxar med lokal
     child.innerHTML.includes('mailbox-option-name">Fazli')
   );
   assert.ok(fazliOption);
-  assert.match(fazliOption.innerHTML, /mailbox-option-status">Live/);
+  assert.match(fazliOption.innerHTML, /mailbox-option-status">Aktiv/);
   assert.match(fazliOption.innerHTML, /mailbox-option-meta">Lokal signatur: Fazli/);
 });
 
@@ -1230,7 +1230,7 @@ test('queue inline lane cards render operational chips in the bottom meta row in
     displaySubject: 'Kontaktformulär om pris och konsultation',
     preview: 'Hej, jag vill förstå prisbilden och vad nästa steg är för en konsultation.',
     mailboxLabel: 'Kons',
-    mailboxProvenanceLabel: '2 mailboxar',
+    mailboxProvenanceLabel: '2 mejlkonton',
     mailboxProvenanceDetail: 'Egzona · Fazli',
     intentLabel: 'Prisfråga',
     statusLabel: 'Svar krävs',
@@ -1259,7 +1259,7 @@ test('queue inline lane cards render operational chips in the bottom meta row in
   assert.match(markup, /queue-history-pill--mailbox/);
   assert.match(markup, /queue-history-pill--provenance/);
   assert.match(markup, /queue-history-pill--source/);
-  assert.match(markup, /2 mailboxar/);
+  assert.match(markup, /2 mejlkonton/);
   assert.match(markup, /queue-history-item-freshness/);
   assert.match(markup, /queue-history-item-freshness-dot/);
   assert.doesNotMatch(markup, />Ny</);
@@ -1642,7 +1642,7 @@ test('buildQueueHistoryCardMarkup lyfter ämnet som huvudrubrik och visar avsän
     title: 'Sami Bonyadi Kontaktformulär',
     detail: 'Från: Sami Bonyadi E-post: [email] Telefon: [telefon] Hur kan vi hjälpa dig',
     mailboxLabel: 'Kons',
-    mailboxProvenanceLabel: '2 mailboxar',
+    mailboxProvenanceLabel: '2 mejlkonton',
     mailboxProvenanceDetail: 'Kons · Contact',
     signalItems: [
       { role: 'what', value: 'Kontaktformulär' },
@@ -1737,7 +1737,7 @@ test('renderQueueHistoryList återanvänder befintlig runtime-tråd för att ge 
       preview: 'Hej, jag vill förstå prisbilden och boka konsultation.',
       mailboxLabel: 'Kons',
       mailboxAddress: 'kons@hairtpclinic.com',
-      mailboxProvenanceLabel: '2 mailboxar',
+      mailboxProvenanceLabel: '2 mejlkonton',
       mailboxProvenanceDetail: 'Kons · Contact',
       intentLabel: 'Kontaktformulär',
       statusLabel: 'Behöver svar',
@@ -2451,7 +2451,7 @@ test('major arcana preview exposes a clearly labeled secondary truth worklist su
   assert.match(
     styles,
     /\.truth-worklist-hero-topline\s*\{[\s\S]*justify-content:\s*flex-start;/,
-    'Toppradens truth-statuschips ska ligga intill Truth-driven arbetsyta i stället för att skjutas ut till höger.'
+    'Toppradens truth-statuschips ska ligga intill sanningsstyrd arbetsyta i stället för att skjutas ut till höger.'
   );
   assert.match(
     styles,
@@ -2482,10 +2482,10 @@ test('major arcana preview exposes a clearly labeled secondary truth worklist su
   assert.match(html, /aria-controls="truth-worklist-shell"/);
   assert.match(html, /data-truth-worklist-shell/);
   assert.match(html, /data-truth-worklist-close/);
-  assert.match(html, /Truth-driven/);
+  assert.match(html, /Sanningsstyrd/);
   assert.match(html, /Sekundär vy/);
-  assert.match(html, /Legacy queue fortfarande styrande/);
-  assert.match(html, /Shadow guardrail aktiv/);
+  assert.match(html, /Ordinarie kö styr fortfarande/);
+  assert.match(html, /Jämförelseskydd aktiv/);
   assert.match(html, /data-truth-worklist-relay-note/);
   assert.doesNotMatch(html, /<section class="queue-truth-view"/);
   assert.doesNotMatch(truthSectionMatch[0], /data-runtime-thread/);
@@ -2636,7 +2636,7 @@ test('truth worklist rows expose advisory legacy relay without runtime selection
   );
 
   assert.match(comparableMarkup, /Jämförbar parity/);
-  assert.match(comparableMarkup, /Relay aktivt i legacy-kö/);
+  assert.match(comparableMarkup, /Relä aktivt i ordinarie kö/);
   assert.match(comparableMarkup, /data-truth-relay-legacy/);
   assert.doesNotMatch(comparableMarkup, /data-runtime-thread/);
   assert.doesNotMatch(comparableMarkup, /data-studio-open/);
@@ -2649,8 +2649,8 @@ test('truth worklist rows expose advisory legacy relay without runtime selection
       {
         id: 'marknad@hairtpclinic.com:conv-2',
         lane: 'all',
-        subject: 'Not comparable yet',
-        preview: 'Legacy baseline saknas i den här körningen.',
+        subject: 'Inte jämförbar ännu',
+        preview: 'Ordinarie baseline saknas i den här körningen.',
         conversation: {
           key: 'marknad@hairtpclinic.com:conv-2',
         },
@@ -2679,8 +2679,8 @@ test('truth worklist rows expose advisory legacy relay without runtime selection
     ],
   });
 
-  assert.match(notComparableMarkup, /Not comparable yet/);
-  assert.match(notComparableMarkup, /Legacy-baseline saknas/);
+  assert.match(notComparableMarkup, /Inte jämförbar ännu/);
+  assert.match(notComparableMarkup, /Ordinarie baseline saknas/);
   assert.match(notComparableMarkup, /disabled/);
 });
 
@@ -2751,7 +2751,7 @@ test('truth worklist rows surface customer rollup provenance without hiding oper
             enabled: true,
             count: 2,
             mailboxCount: 2,
-            provenanceLabel: '2 mailboxar',
+            provenanceLabel: '2 mejlkonton',
             provenanceDetail: 'egzona@hairtpclinic.com · contact@hairtpclinic.com',
             operationalSummary: {
               unreadCount: 1,
@@ -2781,7 +2781,7 @@ test('truth worklist rows surface customer rollup provenance without hiding oper
   );
 
   assert.match(markup, /Rollup 2/);
-  assert.match(markup, /2 mailboxar/);
+  assert.match(markup, /2 mejlkonton/);
   assert.match(markup, /egzona@hairtpclinic\.com/);
   assert.match(markup, /contact@hairtpclinic\.com/);
   assert.match(markup, /Unread 1/);
@@ -2873,12 +2873,12 @@ test('truth worklist assist controls stay local to the assist surface', () => {
 
   assert.match(controlsMarkup, /data-truth-worklist-filter="needs_reply"/);
   assert.match(controlsMarkup, /data-truth-worklist-sort="inbound"/);
-  assert.match(controlsMarkup, /Visar 2 av 2 truth-rader/);
-  assert.match(controlsMarkup, /legacy queue, selection, fokusyta och studio lämnas orörda/i);
-  assert.match(guidanceMarkup, /Ingen global selection/);
+  assert.match(controlsMarkup, /Visar 2 av 2 sanningsrader/);
+  assert.match(controlsMarkup, /ordinarie kö, val, fokusyta och svarstudio lämnas orörda/i);
+  assert.match(guidanceMarkup, /Inget globalt val/);
   assert.match(guidanceMarkup, /Ingen fokusyta/);
-  assert.match(guidanceMarkup, /Ingen studio/);
-  assert.match(guidanceMarkup, /Operativ öppning sker fortfarande manuellt via legacy-kön/);
+  assert.match(guidanceMarkup, /Ingen svarstudio/);
+  assert.match(guidanceMarkup, /Operativ öppning sker fortfarande manuellt via ordinarie kö/);
 });
 
 test('getRuntimeCustomerName faller tillbaka till kontaktformular-subject nar avsandarfalt saknas', () => {
@@ -6050,7 +6050,7 @@ test('buildRuntimeThread backfyller customerName fran feedEntries nar raden anna
   );
 
   assert.equal(thread.customerName, 'Isak Nyström');
-  assert.equal(thread.mailboxProvenanceLabel, '2 mailboxar');
+  assert.equal(thread.mailboxProvenanceLabel, '2 mejlkonton');
   assert.match(thread.mailboxProvenanceDetail, /Egzona/);
   assert.match(thread.mailboxProvenanceDetail, /Fazli/);
   assert.equal(thread.customerIdentity?.canonicalCustomerId, 'cust-rt-1');
@@ -7228,12 +7228,12 @@ test('truth worklist relay note keeps legacy steering explicit', () => {
     comparable: true,
   });
 
-  assert.match(markup, /Truth relay/);
-  assert.match(markup, /Legacy queue fortfarande styrande/);
-  assert.match(markup, /Envägs-relay aktivt/);
-  assert.match(markup, /Rensa relay/);
+  assert.match(markup, /Sanningsrelä/);
+  assert.match(markup, /Ordinarie kö styr fortfarande/);
+  assert.match(markup, /Envägsrelä aktivt/);
+  assert.match(markup, /Rensa relä/);
   assert.match(markup, /öppnar inte fokusyta/);
-  assert.match(markup, /öppnar inte studio/);
+  assert.match(markup, /öppnar inte svarstudio/);
 });
 
 test('truth worklist assist view waits for admin auth before loading consumer json', () => {
@@ -7968,7 +7968,7 @@ test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI'
       lastActivityAt: '2026-04-03T10:00:00.000Z',
       lastActivityLabel: '10:00',
       mailboxLabel: 'Contact',
-      mailboxProvenanceLabel: '2 mailboxar',
+      mailboxProvenanceLabel: '2 mejlkonton',
       mailboxProvenanceDetail: 'Contact · Kons',
       intentLabel: 'Behöver svar',
       statusLabel: 'Svar krävs',
@@ -7996,8 +7996,8 @@ test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI'
     'Olästpricken ska ligga först i den sammanslagna titellinjen, före avsändarnamnet och inte i datumstapeln.'
   );
   assert.match(markup, /thread-support-stack/);
-  assert.match(markup, /Mailboxspår/);
-  assert.match(markup, /2 mailboxar/);
+  assert.match(markup, /Mejlspår/);
+  assert.match(markup, /2 mejlkonton/);
   assert.match(markup, /thread-story/);
   assert.match(
     markup,
@@ -9523,8 +9523,8 @@ test('worklistkortens mejlrad visar bara nodvandig copy och fyra oppna intellige
 
   assert.match(
     renderersSource,
-    /key:\s*"Mailbox"[\s\S]*key:\s*"Gäller"[\s\S]*key:\s*"Nu"[\s\S]*key:\s*"Nästa"/,
-    'Mailraden ska rendera exakt de fyra intelligensämnena i fast ordning: Mailbox, Gäller, Nu, Nästa.'
+    /key:\s*"Mejlkonto"[\s\S]*key:\s*"Gäller"[\s\S]*key:\s*"Nu"[\s\S]*key:\s*"Nästa"/,
+    'Mailraden ska rendera exakt de fyra intelligensämnena i fast ordning: Mejlkonto, Gäller, Nu, Nästa.'
   );
 
   assert.match(

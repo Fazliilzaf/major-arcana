@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 function extractFunctionSource(source, functionName) {
   const signature = `function ${functionName}`;
@@ -71,7 +64,9 @@ function createMailboxScopeHarness({
       const normalized =
         typeof mailboxId === 'string'
           ? mailboxId.trim().toLowerCase()
-          : String(mailboxId || '').trim().toLowerCase();
+          : String(mailboxId || '')
+              .trim()
+              .toLowerCase();
       if (!normalized) return '';
       const matched = collection.find((mailbox) => {
         const values = [mailbox.id, mailbox.email, mailbox.label];
@@ -92,7 +87,9 @@ function createMailboxScopeHarness({
       const normalized =
         typeof mailboxId === 'string'
           ? mailboxId.trim().toLowerCase()
-          : String(mailboxId || '').trim().toLowerCase();
+          : String(mailboxId || '')
+              .trim()
+              .toLowerCase();
       if (!normalized) return null;
       return (
         collection.find((mailbox) => {
@@ -130,7 +127,12 @@ function createMailboxScopeHarness({
       });
       return Array.from(tokens);
     },
-    (value) => (typeof value === 'string' ? value.trim().toLowerCase() : String(value || '').trim().toLowerCase()),
+    (value) =>
+      typeof value === 'string'
+        ? value.trim().toLowerCase()
+        : String(value || '')
+            .trim()
+            .toLowerCase(),
     {
       runtime: {
         selectedMailboxIds,
@@ -166,7 +168,9 @@ function createRequestedMailboxIdsHarness({
       const normalized =
         typeof mailboxId === 'string'
           ? mailboxId.trim().toLowerCase()
-          : String(mailboxId || '').trim().toLowerCase();
+          : String(mailboxId || '')
+              .trim()
+              .toLowerCase();
       if (!normalized) return '';
       const matched = collection.find((mailbox) => {
         const values = [mailbox.id, mailbox.email, mailbox.label];
@@ -254,11 +258,18 @@ function createAvailableRuntimeMailboxesHarness({
       return String(value).trim() || fallback;
     },
     (email = '') => {
-      const localPart = String(email || '').trim().toLowerCase().split('@')[0] || '';
+      const localPart =
+        String(email || '')
+          .trim()
+          .toLowerCase()
+          .split('@')[0] || '';
       return localPart ? localPart.charAt(0).toUpperCase() + localPart.slice(1) : '';
     },
     (mailbox = {}) => mailbox?.toneClass || 'mailbox-option-contact',
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (signature = {}, mailbox = {}) => ({
       label:
         (typeof signature?.label === 'string' && signature.label.trim()) ||
@@ -268,7 +279,10 @@ function createAvailableRuntimeMailboxesHarness({
       title: typeof signature?.title === 'string' ? signature.title.trim() : '',
       html: typeof signature?.html === 'string' ? signature.html.trim() : '',
     }),
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value = '') =>
       String(value || '')
         .trim()
@@ -284,7 +298,9 @@ function createAvailableRuntimeMailboxesHarness({
     defaultSignaturePresets,
     legacyMailboxes,
     (value = '') => {
-      const normalized = String(value || '').trim().toLowerCase();
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
       const local = normalized.split('@')[0] || normalized;
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     }
@@ -414,7 +430,7 @@ test('getAvailableRuntimeMailboxes skiljer live-mailbox med lokal signaturprofil
 
   assert.ok(fazliMailbox, 'Förväntade att Fazli-mailboxen finns i den sammanslagna listan.');
   assert.equal(fazliMailbox.custom, false);
-  assert.equal(fazliMailbox.statusLabel, 'Live');
+  assert.equal(fazliMailbox.statusLabel, 'Aktiv');
   assert.equal(fazliMailbox.surfaceKind, 'live_mailbox_with_local_signature');
   assert.equal(fazliMailbox.hasLiveSource, true);
   assert.equal(fazliMailbox.hasLocalSignatureDefinition, true);
@@ -426,7 +442,7 @@ test('getAvailableRuntimeMailboxes skiljer live-mailbox med lokal signaturprofil
 
   assert.ok(sandboxMailbox, 'Förväntade att den rena custom-mailboxen finns kvar separat.');
   assert.equal(sandboxMailbox.custom, true);
-  assert.equal(sandboxMailbox.statusLabel, 'Custom');
+  assert.equal(sandboxMailbox.statusLabel, 'Eget');
   assert.equal(sandboxMailbox.surfaceKind, 'custom_mailbox');
   assert.equal(sandboxMailbox.hasLiveSource, false);
   assert.equal(sandboxMailbox.adminEditable, true);
@@ -470,17 +486,33 @@ test('buildRuntimeMailboxLoadDiagnostics sammanfattar mailboxscope, raw rows och
       if (value === undefined || value === null) return fallback;
       return String(value);
     },
-    (value = '') => String(value || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
     (value, fallback = '', max = 120) => {
-      const text = String(value || fallback || '').replace(/\s+/g, ' ').trim();
+      const text = String(value || fallback || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!text) return '';
       return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
     },
     (thread = {}) => String(thread?.primaryLaneId || 'all'),
-    (value = '') => String(value || '').trim().toLowerCase(),
-    (left, right) => String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+    (value = '') =>
+      String(value || '')
+        .trim()
+        .toLowerCase(),
+    (left, right) =>
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     (value = '') => {
-      const normalized = String(value || '').trim().toLowerCase();
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
       const local = normalized.split('@')[0] || normalized;
       return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Mailbox';
     },
@@ -499,9 +531,7 @@ test('buildRuntimeMailboxLoadDiagnostics sammanfattar mailboxscope, raw rows och
         { mailboxAddress: 'egzona@hairtpclinic.com', subject: 'Legacy egzona row' },
         { mailboxAddress: 'kons@hairtpclinic.com', subject: 'Legacy kons row' },
       ],
-      needsReplyToday: [
-        { mailboxAddress: 'egzona@hairtpclinic.com', subject: 'Reply egzona row' },
-      ],
+      needsReplyToday: [{ mailboxAddress: 'egzona@hairtpclinic.com', subject: 'Reply egzona row' }],
     },
     mergedWorklistData: {
       conversationWorklist: [
@@ -552,10 +582,7 @@ test('buildRuntimeMailboxLoadDiagnostics sammanfattar mailboxscope, raw rows och
       },
     ],
     historyPayload: {
-      messages: [
-        { mailboxId: 'kons@hairtpclinic.com' },
-        { mailboxId: 'kons@hairtpclinic.com' },
-      ],
+      messages: [{ mailboxId: 'kons@hairtpclinic.com' }, { mailboxId: 'kons@hairtpclinic.com' }],
     },
     truthPrimaryPayload: {
       rows: [{ id: 'truth-egzona-row' }],
@@ -578,7 +605,11 @@ test('buildRuntimeMailboxLoadDiagnostics sammanfattar mailboxscope, raw rows och
   assert.equal(diagnostics.liveThreads.samples[0].selected, true);
   assert.equal(diagnostics.liveThreads.samples[0].primaryLaneId, 'act-now');
   assert.deepEqual(
-    diagnostics.liveThreads.mailboxCounts.map((entry) => [entry.mailboxId, entry.count, entry.truthPrimaryCount]),
+    diagnostics.liveThreads.mailboxCounts.map((entry) => [
+      entry.mailboxId,
+      entry.count,
+      entry.truthPrimaryCount,
+    ]),
     [
       ['egzona@hairtpclinic.com', 1, 1],
       ['kons@hairtpclinic.com', 1, 0],

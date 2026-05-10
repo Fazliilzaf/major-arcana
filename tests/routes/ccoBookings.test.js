@@ -90,6 +90,8 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       assert.equal(offerPayload.bookingCase.events.at(-1).type, 'offer_draft_inserted');
       assert.match(offerPayload.draft, /Här är tiderna jag kan erbjuda/);
       assert.match(offerPayload.draft, /Dr\. Eriksson/);
+      assert.doesNotMatch(offerPayload.draft, /cliento\.com/i);
+      assert.doesNotMatch(offerPayload.draft, /boka själv/i);
 
       const eventResponse = await fetch(`${baseUrl}/cco-bookings/event?${qs}`, {
         method: 'POST',
@@ -117,7 +119,7 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           type: 'handoff_copied',
-          label: 'Handoff kopierad',
+          label: 'Överlämning kopierad',
           detail: 'Status: Erbjudet · 2 valda tider · Text kopierad för intern överlämning.',
         }),
       });
@@ -224,8 +226,14 @@ test('cco bookings route hämtar normaliserad Cliento ref-data', async () => {
       const response = await fetch(`${baseUrl}/cco-bookings/ref-data`);
       assert.equal(response.status, 200);
       const payload = await response.json();
-      assert.deepEqual(payload.resources.map((item) => item.id), ['res-1']);
-      assert.deepEqual(payload.services.map((item) => item.id), ['srv-1']);
+      assert.deepEqual(
+        payload.resources.map((item) => item.id),
+        ['res-1']
+      );
+      assert.deepEqual(
+        payload.services.map((item) => item.id),
+        ['srv-1']
+      );
       assert.equal(payload.resources[0].label, 'Dr. Eriksson');
       assert.equal(payload.services[0].label, 'Konsultation');
     });
@@ -260,7 +268,11 @@ test('cco bookings route uppdaterar handoff-statusar', async () => {
       assert.equal(confirmedPayload.bookingCase.status, 'confirmed_external');
       assert.ok(confirmedPayload.bookingCase.confirmedExternalAt);
       assert.equal(confirmedPayload.bookingCase.events.at(-1).type, 'external_confirmation_marked');
-      assert.match(confirmedPayload.bookingCase.events.at(-1).detail, /Ingen direkt Cliento-write/);
+      assert.match(
+        confirmedPayload.bookingCase.events.at(-1).detail,
+        /Ingen direkt kalenderskrivning/
+      );
+      assert.doesNotMatch(confirmedPayload.bookingCase.events.at(-1).detail, /Cliento/i);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
@@ -272,8 +284,7 @@ test('cco bookings route sorterar ärendelistan med mest blockerade först', asy
   try {
     await withServer(fixture.app, async (baseUrl) => {
       const createCase = async (conversationId, customerEmail, body = {}) => {
-        const qs =
-          `workspaceId=major-arcana-preview&conversationId=${encodeURIComponent(conversationId)}&customerEmail=${encodeURIComponent(customerEmail)}`;
+        const qs = `workspaceId=major-arcana-preview&conversationId=${encodeURIComponent(conversationId)}&customerEmail=${encodeURIComponent(customerEmail)}`;
         const response = await fetch(`${baseUrl}/cco-bookings/case?${qs}`);
         assert.equal(response.status, 200);
         if (body.selectedSlots) {
@@ -323,10 +334,10 @@ test('cco bookings route sorterar ärendelistan med mest blockerade först', asy
           },
           {
             key: 'insert_studio',
-            label: 'Saknar Studio',
+            label: 'Saknar Svarstudio',
             score: 20,
             action: 'insert_studio',
-            nextActionLabel: 'infoga i Studio',
+            nextActionLabel: 'infoga i Svarstudio',
             tone: 'attention',
           },
           {

@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 test('analytics coaching action ar datadriven och inte hardkodad till en malljump', () => {
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
@@ -26,7 +19,9 @@ test('analytics coaching action ar datadriven och inte hardkodad till en malljum
   );
 
   assert.ok(
-    !appSource.includes('analyticsCoachingAction.addEventListener("click", () => {\n      handleAnalyticsTemplateJump("payment_reminder");'),
+    !appSource.includes(
+      'analyticsCoachingAction.addEventListener("click", () => {\n      handleAnalyticsTemplateJump("payment_reminder");'
+    ),
     'Coaching-knappen far inte langre vara hardkodad till payment_reminder oavsett live-state.'
   );
 });
@@ -40,12 +35,14 @@ test('analytics leaderboard och template performance arligare fallback utan fals
   );
 
   assert.ok(
-    appSource.includes('name: "Ingen live-ranking ännu"'),
-    'Leaderboarden ska visa en arlig placeholder nar live-ranking saknas.'
+    appSource.includes('name: "Ingen aktiv ranking ännu"'),
+    'Leaderboarden ska visa en arlig placeholder nar aktiv ranking saknas.'
   );
 
   assert.ok(
-    !appSource.includes('(leaderboardCandidates.length ? leaderboardCandidates : fallback.leaderboard)'),
+    !appSource.includes(
+      '(leaderboardCandidates.length ? leaderboardCandidates : fallback.leaderboard)'
+    ),
     'Leaderboarden far inte falla tillbaka till statiska personnamn och poang som om de vore live-data.'
   );
 

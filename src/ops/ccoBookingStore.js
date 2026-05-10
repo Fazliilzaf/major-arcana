@@ -169,7 +169,7 @@ function createStatusEvent(status, previousStatus = '') {
   const labels = {
     needs_triage: 'Bokning kräver triage',
     slots_ready: 'Tider redo för validering',
-    offered: 'Erbjudande infogat i Studio',
+    offered: 'Erbjudande infogat i Svarstudio',
     waiting_customer: 'Väntar på kundsvar',
     confirmed_external: 'Bekräftad externt',
     cancelled: 'Bokningen avbröts',
@@ -180,7 +180,8 @@ function createStatusEvent(status, previousStatus = '') {
     return {
       type: 'external_confirmation_marked',
       label: labels[normalized],
-      detail: 'Operatören markerade extern bekräftelse. Ingen direkt Cliento-write gjordes av CCO.',
+      detail:
+        'Operatören markerade extern bekräftelse. Ingen direkt kalenderskrivning gjordes av CCO.',
     };
   }
   return {
@@ -188,9 +189,8 @@ function createStatusEvent(status, previousStatus = '') {
     label: labels[normalized] || 'Bokningsstatus uppdaterad',
     previousStatus: previous && previous !== normalized ? previous : '',
     nextStatus: normalized,
-    detail: previous && previous !== normalized
-      ? `${previous} → ${normalized}`
-      : `Status: ${normalized}`,
+    detail:
+      previous && previous !== normalized ? `${previous} → ${normalized}` : `Status: ${normalized}`,
   };
 }
 
@@ -206,7 +206,11 @@ function createSlotsEvent(slots = []) {
 }
 
 function hasBookingEvent(bookingCase = {}, eventTypes = []) {
-  const types = new Set(asArray(eventTypes).map((item) => normalizeKey(item)).filter(Boolean));
+  const types = new Set(
+    asArray(eventTypes)
+      .map((item) => normalizeKey(item))
+      .filter(Boolean)
+  );
   if (!types.size) return false;
   return asArray(bookingCase.events).some((event) => types.has(normalizeKey(event.type)));
 }
@@ -252,10 +256,10 @@ function buildBookingCaseBlockerReadout(bookingCase = {}) {
   if (!hasOffer) {
     return {
       key: 'insert_studio',
-      label: 'Saknar Studio',
+      label: 'Saknar Svarstudio',
       score: 20,
       action: 'insert_studio',
-      nextActionLabel: 'infoga i Studio',
+      nextActionLabel: 'infoga i Svarstudio',
       tone: 'attention',
     };
   }
@@ -314,7 +318,9 @@ async function createCcoBookingStore({ filePath }) {
   state = {
     ...emptyState(),
     ...(state && typeof state === 'object' ? state : {}),
-    cases: asArray(state?.cases).map((item) => normalizeBookingCase(item)).filter(Boolean),
+    cases: asArray(state?.cases)
+      .map((item) => normalizeBookingCase(item))
+      .filter(Boolean),
   };
 
   async function save() {
@@ -358,7 +364,9 @@ async function createCcoBookingStore({ filePath }) {
       });
     }
     await save();
-    return cloneBookingCase(state.cases[existingIndex >= 0 ? existingIndex : state.cases.length - 1]);
+    return cloneBookingCase(
+      state.cases[existingIndex >= 0 ? existingIndex : state.cases.length - 1]
+    );
   }
 
   async function getCase(input = {}) {
@@ -388,13 +396,14 @@ async function createCcoBookingStore({ filePath }) {
           actorUserId: normalizeText(input.ownerUserId),
           actorName: normalizeText(input.ownerName),
         }),
-      ].filter(Boolean).slice(-50),
+      ]
+        .filter(Boolean)
+        .slice(-50),
       ownerUserId: normalizeText(input.ownerUserId) || existing.ownerUserId,
       ownerName: normalizeText(input.ownerName) || existing.ownerName,
       notes: normalizeText(input.notes) || existing.notes,
       offeredAt: status === 'offered' ? ts : existing.offeredAt,
-      confirmedExternalAt:
-        status === 'confirmed_external' ? ts : existing.confirmedExternalAt,
+      confirmedExternalAt: status === 'confirmed_external' ? ts : existing.confirmedExternalAt,
       closedAt: status === 'closed' || status === 'cancelled' ? ts : existing.closedAt,
     });
   }
@@ -416,7 +425,9 @@ async function createCcoBookingStore({ filePath }) {
           actorUserId: normalizeText(input.ownerUserId),
           actorName: normalizeText(input.ownerName),
         }),
-      ].filter(Boolean).slice(-50),
+      ]
+        .filter(Boolean)
+        .slice(-50),
       notes: normalizeText(input.notes) || existing.notes,
       ownerUserId: normalizeText(input.ownerUserId) || existing.ownerUserId,
       ownerName: normalizeText(input.ownerName) || existing.ownerName,
@@ -437,7 +448,9 @@ async function createCcoBookingStore({ filePath }) {
           actorUserId: normalizeText(input.ownerUserId),
           actorName: normalizeText(input.ownerName),
         }),
-      ].filter(Boolean).slice(-50),
+      ]
+        .filter(Boolean)
+        .slice(-50),
       ownerUserId: normalizeText(input.ownerUserId) || existing.ownerUserId,
       ownerName: normalizeText(input.ownerName) || existing.ownerName,
     });

@@ -35,9 +35,12 @@
   ];
 
   const ICONS = {
-    thread: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5l5.5 4 5.5-4"/><rect x="2" y="3" width="12" height="10" rx="1.5"/></svg>',
-    customer: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/></svg>',
-    macro: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l3 3-3 3"/><path d="M8 11h5"/></svg>',
+    thread:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5l5.5 4 5.5-4"/><rect x="2" y="3" width="12" height="10" rx="1.5"/></svg>',
+    customer:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/></svg>',
+    macro:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l3 3-3 3"/><path d="M8 11h5"/></svg>',
     view: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 7h12"/></svg>',
   };
 
@@ -82,7 +85,7 @@
     const threads = (state.runtime?.threads || []).slice(0, 100);
     const historyItems = state.runtime?.queueHistory?.items || [];
     const all = [
-      ...threads.map(t => ({
+      ...threads.map((t) => ({
         type: 'thread',
         id: t.id,
         title: t.customerName || 'Okänd avsändare',
@@ -90,7 +93,7 @@
         searchText: `${t.customerName || ''} ${t.subject || ''} ${t.preview || ''}`,
         actionData: { kind: 'thread', id: t.id },
       })),
-      ...historyItems.slice(0, 50).map(h => ({
+      ...historyItems.slice(0, 50).map((h) => ({
         type: 'thread',
         id: h.conversationId || h.id,
         title: h.counterpartyLabel || h.title || 'Historik',
@@ -99,8 +102,9 @@
         actionData: { kind: 'thread', id: h.conversationId || h.id },
       })),
     ];
-    return all.map(item => ({ ...item, score: fuzzyMatch(item.searchText, query) }))
-      .filter(item => item.score > 0);
+    return all
+      .map((item) => ({ ...item, score: fuzzyMatch(item.searchText, query) }))
+      .filter((item) => item.score > 0);
   }
 
   function searchCustomers(query) {
@@ -108,33 +112,37 @@
     if (!state?.customerRuntime?.directory) return [];
     const directory = state.customerRuntime.directory;
     const entries = Object.entries(directory);
-    return entries.map(([key, info]) => ({
-      type: 'customer',
-      id: key,
-      title: info?.name || info?.displayName || key,
-      subtitle: info?.email || info?.phone || '',
-      searchText: `${info?.name || ''} ${info?.email || ''} ${info?.phone || ''}`,
-      actionData: { kind: 'customer', id: key },
-      score: fuzzyMatch(`${info?.name || ''} ${info?.email || ''} ${info?.phone || ''}`, query),
-    })).filter(item => item.score > 0);
+    return entries
+      .map(([key, info]) => ({
+        type: 'customer',
+        id: key,
+        title: info?.name || info?.displayName || key,
+        subtitle: info?.email || info?.phone || '',
+        searchText: `${info?.name || ''} ${info?.email || ''} ${info?.phone || ''}`,
+        actionData: { kind: 'customer', id: key },
+        score: fuzzyMatch(`${info?.name || ''} ${info?.email || ''} ${info?.phone || ''}`, query),
+      }))
+      .filter((item) => item.score > 0);
   }
 
   function searchMacros(query) {
     const state = getState();
-    const macros = (state?.macros || []);
-    return macros.map(m => ({
-      type: 'macro',
-      id: m.id || m.key || m.name,
-      title: m.name || m.title || 'Makro',
-      subtitle: m.description || m.summary || '',
-      searchText: `${m.name || ''} ${m.title || ''} ${m.description || ''}`,
-      actionData: { kind: 'macro', id: m.id || m.key },
-      score: fuzzyMatch(`${m.name || ''} ${m.description || ''}`, query),
-    })).filter(item => item.score > 0);
+    const macros = state?.macros || [];
+    return macros
+      .map((m) => ({
+        type: 'macro',
+        id: m.id || m.key || m.name,
+        title: m.name || m.title || 'Makro',
+        subtitle: m.description || m.summary || '',
+        searchText: `${m.name || ''} ${m.title || ''} ${m.description || ''}`,
+        actionData: { kind: 'macro', id: m.id || m.key },
+        score: fuzzyMatch(`${m.name || ''} ${m.description || ''}`, query),
+      }))
+      .filter((item) => item.score > 0);
   }
 
   function searchViews(query) {
-    return VIEWS.map(v => ({
+    return VIEWS.map((v) => ({
       type: 'view',
       id: v.key,
       title: `Hoppa till ${v.label}`,
@@ -142,13 +150,13 @@
       searchText: v.label,
       actionData: { kind: 'view', viewKey: v.key },
       score: fuzzyMatch(v.label, query),
-    })).filter(item => item.score > 0);
+    })).filter((item) => item.score > 0);
   }
 
   function getDefaultResults() {
     // Inga sök-query — visa de 5 senaste threads + alla views
     const state = getState();
-    const recentThreads = (state?.runtime?.threads || []).slice(0, 5).map(t => ({
+    const recentThreads = (state?.runtime?.threads || []).slice(0, 5).map((t) => ({
       type: 'thread',
       id: t.id,
       title: t.customerName || 'Okänd avsändare',
@@ -156,7 +164,7 @@
       actionData: { kind: 'thread', id: t.id },
       score: 50,
     }));
-    const allViews = VIEWS.map(v => ({
+    const allViews = VIEWS.map((v) => ({
       type: 'view',
       id: v.key,
       title: `Hoppa till ${v.label}`,
@@ -259,7 +267,9 @@
       const items = groups[groupKey];
       if (!items.length) continue;
       html += `<div class="cmd-k-group-label">${groupLabels[groupKey]}</div>`;
-      html += items.map(r => `
+      html += items
+        .map(
+          (r) => `
         <div class="cmd-k-result ${r.__index === activeIndex ? 'is-active' : ''}"
              data-cmd-k-result="${r.__index}"
              role="option"
@@ -270,7 +280,9 @@
             ${r.subtitle ? `<span class="cmd-k-sub">${escapeHtml(r.subtitle).slice(0, 80)}</span>` : ''}
           </span>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
     }
     listEl.innerHTML = html;
 
@@ -280,9 +292,17 @@
   }
 
   function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    })[c]);
+    return String(s ?? '').replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[c]
+    );
   }
 
   // ============================================================
@@ -300,7 +320,9 @@
       try {
         if (window.__ccoWorkspace?.setSelectedThreadId) {
           window.__ccoWorkspace.setSelectedThreadId(data.id);
-          window.dispatchEvent(new CustomEvent('cco:state-change', { detail: { selectedThreadId: data.id } }));
+          window.dispatchEvent(
+            new CustomEvent('cco:state-change', { detail: { selectedThreadId: data.id } })
+          );
         }
       } catch (_e) {}
       // Eller: scrolla till tråden i listan

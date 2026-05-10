@@ -29,6 +29,12 @@
       "options": {
         "singleQuote": false
       }
+    },
+    {
+      "files": ["public/major-arcana-preview/*.js"],
+      "options": {
+        "singleQuote": false
+      }
     }
   ]
 }

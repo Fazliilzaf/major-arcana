@@ -51,7 +51,7 @@
   // ============================================================
 
   let currentFocusIndex = -1;
-  let currentFocusId = null;  // thread-id — överlever re-render
+  let currentFocusId = null; // thread-id — överlever re-render
   let lastGKeyAt = 0; // för "g i", "g k"-sekvens
   let helpOverlayEl = null;
   let helpVisible = false;
@@ -69,11 +69,15 @@
   }
 
   function getThreadCards() {
-    return Array.from(document.querySelectorAll('.queue-history-list .thread-card[data-runtime-thread]'));
+    return Array.from(
+      document.querySelectorAll('.queue-history-list .thread-card[data-runtime-thread]')
+    );
   }
 
   function clearFocus() {
-    document.querySelectorAll('.' + FOCUSED_CLASS).forEach((el) => el.classList.remove(FOCUSED_CLASS));
+    document
+      .querySelectorAll('.' + FOCUSED_CLASS)
+      .forEach((el) => el.classList.remove(FOCUSED_CLASS));
   }
 
   function setFocus(index) {
@@ -153,12 +157,17 @@
     helpOverlayEl.setAttribute('role', 'dialog');
     helpOverlayEl.setAttribute('aria-label', 'Tangentbordsgenvägar');
 
-    const items = SHORTCUTS.map((s) => `
+    const items = SHORTCUTS.map(
+      (s) => `
       <div class="kbd-help-row">
         <span class="kbd-help-label">${s.label}</span>
-        <span class="kbd-help-keys">${s.keys.split(' ').map(k => `<kbd>${k}</kbd>`).join(' ')}</span>
+        <span class="kbd-help-keys">${s.keys
+          .split(' ')
+          .map((k) => `<kbd>${k}</kbd>`)
+          .join(' ')}</span>
       </div>
-    `).join('');
+    `
+    ).join('');
 
     helpOverlayEl.innerHTML = `
       <div class="kbd-help-backdrop" data-kbd-help-close></div>
@@ -196,7 +205,8 @@
   }
 
   function toggleHelp() {
-    if (helpVisible) hideHelp(); else showHelp();
+    if (helpVisible) hideHelp();
+    else showHelp();
   }
 
   // ============================================================
@@ -229,7 +239,13 @@
     if (now - lastGKeyAt < 1000) {
       lastGKeyAt = 0;
       const navKey = e.key.toLowerCase();
-      const viewMap = { i: 'conversations', k: 'customers', a: 'automation', m: 'macros', s: 'settings' };
+      const viewMap = {
+        i: 'conversations',
+        k: 'customers',
+        a: 'automation',
+        m: 'macros',
+        s: 'settings',
+      };
       const viewKey = viewMap[navKey];
       if (viewKey) {
         e.preventDefault();

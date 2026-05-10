@@ -195,7 +195,9 @@ function createMailboxTruthPage(mailboxId = 'kons@hairtpclinic.com', folderType 
         createdAt: inbound
           ? HISTORY_TEST_TIMESTAMPS.inbound
           : HISTORY_TEST_TIMESTAMPS.outboundCreated,
-        lastModifiedAt: inbound ? HISTORY_TEST_TIMESTAMPS.inbound : HISTORY_TEST_TIMESTAMPS.outbound,
+        lastModifiedAt: inbound
+          ? HISTORY_TEST_TIMESTAMPS.inbound
+          : HISTORY_TEST_TIMESTAMPS.outbound,
         from: {
           address: inbound ? 'patient@example.com' : mailboxId,
           name: inbound ? 'Patient One' : mailboxId.split('@')[0],
@@ -695,7 +697,9 @@ test('runtime history status route visar coverage och senaste schedulerstatus', 
 });
 
 test('runtime calibration summary route visar preferred mode och negativa utfallsmönster', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-calibration-summary-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-calibration-summary-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -913,7 +917,9 @@ test('runtime history search route returnerar store-baserad multi-mailbox-histor
 });
 
 test('runtime history search uses mailbox truth store for explicit message-only searches', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-history-truth-search-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-history-truth-search-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -959,7 +965,7 @@ test('runtime history search uses mailbox truth store for explicit message-only 
           bodyPreview: 'Hej, jag vill boka om min tid.',
           direction: 'inbound',
           isRead: false,
-          receivedAt: '2026-04-09T10:00:00.000Z',
+          receivedAt: buildRecentIso({ daysAgo: 6, hours: 10, minutes: 0 }),
           from: {
             address: 'patient@example.com',
             name: 'Patient One',
@@ -1018,7 +1024,9 @@ test('runtime history search uses mailbox truth store for explicit message-only 
 });
 
 test('runtime history route repairs cid bodyHtml from mailbox truth store before returning messages', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-history-truth-inline-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-history-truth-inline-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -1062,11 +1070,10 @@ test('runtime history route repairs cid bodyHtml from mailbox truth store before
           conversationId: 'conv-truth-inline-1',
           subject: 'Ralph Hultman',
           bodyPreview: 'Här kommer signaturen.',
-          bodyHtml:
-            '<div><p>Hej</p><img src="cid:image001.png@abc" alt="Hair TP Clinic" /></div>',
+          bodyHtml: '<div><p>Hej</p><img src="cid:image001.png@abc" alt="Hair TP Clinic" /></div>',
           direction: 'inbound',
           isRead: false,
-          receivedAt: '2026-04-09T10:00:00.000Z',
+          receivedAt: buildRecentIso({ daysAgo: 6, hours: 10, minutes: 0 }),
           from: {
             address: 'ralph@example.com',
             name: 'Ralph Hultman',
@@ -1169,16 +1176,25 @@ test('runtime history route repairs cid bodyHtml from mailbox truth store before
         inline: 1,
         external: 0,
       });
-      assert.equal(payload.messages[0]?.mailDocument?.assetSummary?.renderableInlineCount >= 1, true);
+      assert.equal(
+        payload.messages[0]?.mailDocument?.assetSummary?.renderableInlineCount >= 1,
+        true
+      );
       assert.equal(payload.messages[0]?.mailDocument?.mimeAvailable, true);
       assert.equal(payload.messages[0]?.mailDocument?.sourceDepth, 'mime');
       assert.equal(payload.messages[0]?.mailDocument?.mime?.contentType, 'message/rfc822');
       assert.equal(payload.messages[0]?.mailDocument?.mime?.version, 'phase_b');
       assert.equal(payload.messages[0]?.mailDocument?.mime?.parsed?.preferredBodyKind, 'html');
-      assert.equal(payload.messages[0]?.mailDocument?.mime?.parsed?.assets?.inlineAssets?.length, 1);
+      assert.equal(
+        payload.messages[0]?.mailDocument?.mime?.parsed?.assets?.inlineAssets?.length,
+        1
+      );
       assert.match(String(payload.messages[0]?.mailDocument?.primaryBodyHtml || ''), /Hej Ralph/);
       assert.equal(payload.messages[0]?.mailDocument?.fidelity?.mimePreferredBodyKind, 'html');
-      assert.equal(payload.messages[0]?.mailThreadMessage?.assets?.inlineAssetIds?.length >= 1, true);
+      assert.equal(
+        payload.messages[0]?.mailThreadMessage?.assets?.inlineAssetIds?.length >= 1,
+        true
+      );
       assert.deepEqual(payload.messages[0]?.mailThreadMessage?.assets?.familyCounts, {
         attachment: 0,
         inline: 1,
@@ -1187,7 +1203,10 @@ test('runtime history route repairs cid bodyHtml from mailbox truth store before
       assert.equal(payload.messages[0]?.mailThreadMessage?.assets?.mimeInlineAssetCount, 1);
       assert.equal(payload.messages[0]?.mailThreadMessage?.mimeBacked, true);
       assert.equal(payload.messages[0]?.mailThreadMessage?.contentSections?.source, 'mime_backed');
-      assert.equal(payload.messages[0]?.mailThreadMessage?.contentSections?.mimePreferredBodyKind, 'html');
+      assert.equal(
+        payload.messages[0]?.mailThreadMessage?.contentSections?.mimePreferredBodyKind,
+        'html'
+      );
       assert.equal(payload.threadDocument?.hasMimeBackedMessages, true);
       assert.equal(payload.threadDocument?.messageCount, 1);
     });
@@ -1241,11 +1260,10 @@ test('runtime history route can return thin mailbox history without bodyHtml on 
           conversationId: 'conv-truth-thin-1',
           subject: 'Thin history load',
           bodyPreview: 'Kort förhandsvisning',
-          bodyHtml:
-            '<div><p>Hej</p><img src="cid:image001.png@abc" alt="Hair TP Clinic" /></div>',
+          bodyHtml: '<div><p>Hej</p><img src="cid:image001.png@abc" alt="Hair TP Clinic" /></div>',
           direction: 'inbound',
           isRead: false,
-          receivedAt: '2026-04-09T10:00:00.000Z',
+          receivedAt: buildRecentIso({ daysAgo: 6, hours: 10, minutes: 0 }),
           from: {
             address: 'ralph@example.com',
             name: 'Ralph Hultman',
@@ -1306,7 +1324,9 @@ test('runtime history route can return thin mailbox history without bodyHtml on 
 });
 
 test('runtime history route matches mailbox-prefixed conversation ids even when mailbox casing differs', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-history-prefix-case-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-history-prefix-case-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -1347,7 +1367,8 @@ test('runtime history route matches mailbox-prefixed conversation ids even when 
           folderType: 'sent',
           folderId: 'folder-sent',
           folderName: 'Sent',
-          conversationId: 'AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
+          conversationId:
+            'AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
           mailboxConversationId:
             'marknad@hairtpclinic.com:AAQkAGQzNWNiYWVkLTFiNzUtNDY4NC1hNWJhLWUzYzc1NjAzMDZjNgAQAL0wbM_Erd5Op_O39VIZIv8=',
           subject: 'Sv: 8 månader update',
@@ -1408,7 +1429,9 @@ test('runtime history route matches mailbox-prefixed conversation ids even when 
 });
 
 test('runtime calibration summary default scope includes fazli mailbox history', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-history-fazli-default-'));
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'arcana-cco-runtime-history-fazli-default-')
+  );
   const authStore = await createAuthStore({
     filePath: path.join(tempDir, 'auth.json'),
     sessionTtlMs: 12 * 60 * 60 * 1000,
@@ -1469,7 +1492,12 @@ test('runtime calibration summary default scope includes fazli mailbox history',
       assert.equal(payload.ok, true);
       assert.equal(payload.summary.totalOutcomeCount, 1);
       assert.equal(payload.mailboxIds.includes('fazli@hairtpclinic.com'), true);
-      assert.equal(payload.summary.mailboxComparisonSummary.some((item) => item.mailboxId === 'fazli@hairtpclinic.com'), true);
+      assert.equal(
+        payload.summary.mailboxComparisonSummary.some(
+          (item) => item.mailboxId === 'fazli@hairtpclinic.com'
+        ),
+        true
+      );
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -1654,8 +1682,7 @@ test('runtime mail asset route streams attachment content for focus attachment a
   process.env.ARCANA_GRAPH_READ_ENABLED = 'true';
   process.env.ARCANA_GRAPH_TENANT_ID = process.env.ARCANA_GRAPH_TENANT_ID || 'tenant-test';
   process.env.ARCANA_GRAPH_CLIENT_ID = process.env.ARCANA_GRAPH_CLIENT_ID || 'client-test';
-  process.env.ARCANA_GRAPH_CLIENT_SECRET =
-    process.env.ARCANA_GRAPH_CLIENT_SECRET || 'secret-test';
+  process.env.ARCANA_GRAPH_CLIENT_SECRET = process.env.ARCANA_GRAPH_CLIENT_SECRET || 'secret-test';
 
   try {
     const app = express();

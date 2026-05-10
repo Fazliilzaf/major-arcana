@@ -23,22 +23,19 @@ const NOTE_TEMPLATES = {
   ombokning: {
     key: 'ombokning',
     label: 'Ombokning begärd',
-    text:
-      'Kunden önskar ombokning av PRP 2/3. Föredrar fredagar 09:00-12:00 med Dr. Eriksson. Var mycket nöjd med senaste behandlingen.',
+    text: 'Kunden önskar ombokning av PRP 2/3. Föredrar fredagar 09:00-12:00 med Dr. Eriksson. Var mycket nöjd med senaste behandlingen.',
     tags: ['ombokning', 'prp-serie', 'nöjd-kund'],
   },
   allergi: {
     key: 'allergi',
     label: 'Allergier / kontraindikationer',
-    text:
-      'Kunden uppger känslighet efter senaste behandlingen och vill säkerställa att inga kontraindikationer missas inför nästa steg. Behöver medicinsk kontroll före ny tid föreslås.',
+    text: 'Kunden uppger känslighet efter senaste behandlingen och vill säkerställa att inga kontraindikationer missas inför nästa steg. Behöver medicinsk kontroll före ny tid föreslås.',
     tags: ['allergi', 'medicinsk-koll', 'uppföljning'],
   },
   betalning: {
     key: 'betalning',
     label: 'Betalningsplan',
-    text:
-      'Kunden vill fortsätta sin PRP-serie men behöver dela upp nästa betalning. Önskar tydligt betalningsupplägg innan ny tid bekräftas.',
+    text: 'Kunden vill fortsätta sin PRP-serie men behöver dela upp nästa betalning. Önskar tydligt betalningsupplägg innan ny tid bekräftas.',
     tags: ['betalning', 'prp-serie', 'prisdialog'],
   },
 };
@@ -174,7 +171,9 @@ function buildScheduleIsoOrThrow(date, time) {
 }
 
 function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host')).split(':')[0].toLowerCase();
+  const host = normalizeText(req.hostname || req.get('host'))
+    .split(':')[0]
+    .toLowerCase();
   const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
   return (
     ['localhost', '127.0.0.1', '::1'].includes(host) ||
@@ -299,7 +298,11 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
           meta: 'Behandlingsuppföljning',
         },
       ],
-      linkedItems: [contentContext.treatmentSeriesLabel && 'PRP-Serie-2025-02', contentContext.customerName, contentContext.doctorName].filter(Boolean),
+      linkedItems: [
+        contentContext.treatmentSeriesLabel && 'PRP-Serie-2025-02',
+        contentContext.customerName,
+        contentContext.doctorName,
+      ].filter(Boolean),
     },
     betalning: {
       targetLabel: 'Betalning',
@@ -339,7 +342,9 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
         contentContext.customerName
           ? 'SLA är bruten och kunden behöver två konkreta ombokningsalternativ före 15:15 för att vi ska rädda morgondagens behandling och behålla förtroendet.'
           : '',
-        [contentContext.doctorName, contentContext.ownerName && 'Sara - Reception'].filter(Boolean).join(', '),
+        [contentContext.doctorName, contentContext.ownerName && 'Sara - Reception']
+          .filter(Boolean)
+          .join(', '),
       ],
     },
     intern: {
@@ -354,11 +359,24 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
           value: 'Sara hanterar, Dr. Eriksson cc:ad',
           meta: 'Teamsystem',
         },
-        { label: 'Interna anteckningar', value: '3 tidigare interna noteringar', meta: 'Internlogg' },
-        { label: 'Kundhistorik', value: 'Aldrig klagomål, alltid positiv', meta: 'Feedback-system' },
+        {
+          label: 'Interna anteckningar',
+          value: '3 tidigare interna noteringar',
+          meta: 'Internlogg',
+        },
+        {
+          label: 'Kundhistorik',
+          value: 'Aldrig klagomål, alltid positiv',
+          meta: 'Feedback-system',
+        },
         { label: 'Särskilda önskemål', value: 'Föredrar rum 3 (lugnast)', meta: 'Preferenser' },
       ],
-      linkedItems: [contentContext.customerName, [contentContext.ownerName && 'Sara - Reception', contentContext.doctorName].filter(Boolean).join(', ')].filter(Boolean),
+      linkedItems: [
+        contentContext.customerName,
+        [contentContext.ownerName && 'Sara - Reception', contentContext.doctorName]
+          .filter(Boolean)
+          .join(', '),
+      ].filter(Boolean),
     },
     uppfoljning: {
       targetLabel: 'Uppföljning',
@@ -388,7 +406,9 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
         },
       ],
       linkedItems: [
-        contentContext.treatmentSeriesLabel ? `Future-Booking-${contentContext.treatmentSeriesLabel}` : '',
+        contentContext.treatmentSeriesLabel
+          ? `Future-Booking-${contentContext.treatmentSeriesLabel}`
+          : '',
         contentContext.customerName,
         contentContext.ownerName ? 'Sara - Reception' : '',
       ].filter(Boolean),
@@ -398,7 +418,10 @@ function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }
 
 function mergeSavedNotes(definitions, savedNotes) {
   const notesByDestination = Object.fromEntries(
-    (Array.isArray(savedNotes) ? savedNotes : []).map((note) => [normalizeKey(note.destinationKey), note])
+    (Array.isArray(savedNotes) ? savedNotes : []).map((note) => [
+      normalizeKey(note.destinationKey),
+      note,
+    ])
   );
   const merged = {};
   for (const [key, definition] of Object.entries(definitions)) {
@@ -439,7 +462,11 @@ function buildScheduleDraft(latestFollowUp, workspaceContext = null) {
       doctorName: contentContext.doctorName,
       avgReplyHours: contentContext.avgReplyHours,
     },
-    linkedItems: ['Future-Booking-PRP-2', contentContext.customerName, contentContext.ownerName ? 'Sara - Reception' : ''].filter(Boolean),
+    linkedItems: [
+      'Future-Booking-PRP-2',
+      contentContext.customerName,
+      contentContext.ownerName ? 'Sara - Reception' : '',
+    ].filter(Boolean),
   };
 }
 
@@ -458,7 +485,9 @@ function buildBookingReadout(bookingCase, workspaceContext = null) {
       'Bokningsdialog',
     preferredWindow:
       normalizeText(safeCase?.preferredWindow) ||
-      [contentContext.preferredDayLabel, contentContext.preferredWindowLabel].filter(Boolean).join(' · '),
+      [contentContext.preferredDayLabel, contentContext.preferredWindowLabel]
+        .filter(Boolean)
+        .join(' · '),
     notes:
       normalizeText(safeCase?.notes) ||
       (contentContext.customerName
@@ -471,15 +500,15 @@ function buildBookingReadout(bookingCase, workspaceContext = null) {
         contentContext.treatmentName ||
         'Identifiera rätt behandling eller ärendetyp.',
       where:
-        normalizeText(safeCase?.ownerName) ||
-        contentContext.ownerName ||
-        'Reception / operatör',
+        normalizeText(safeCase?.ownerName) || contentContext.ownerName || 'Reception / operatör',
       when:
         selectedSlots[0]?.startsAt ||
         normalizeText(safeCase?.preferredWindow) ||
         contentContext.suggestedDate ||
         'Väntar på tidsförslag',
-      confidence: selectedSlots.length ? 'Hög - kandidat-tider valda' : 'Medel - operatören behöver validera tider',
+      confidence: selectedSlots.length
+        ? 'Hög - kandidat-tider valda'
+        : 'Medel - operatören behöver validera tider',
     },
     handoffCopy:
       selectedSlots.length > 0
@@ -501,7 +530,7 @@ function hasWorkspaceConversationContext(context) {
 
 function assertWorkspaceConversationContext(context) {
   if (hasWorkspaceConversationContext(context)) return;
-  throw createValidationError('Välj en live-tråd först.', 400, {
+  throw createValidationError('Välj en aktiv tråd först.', 400, {
     missing: ['conversationId', 'customerId'],
   });
 }
@@ -543,18 +572,12 @@ function createCcoWorkspaceRouter({
   async function getRequestContext(req) {
     const actor = await resolveWorkspaceActor(req, { authStore, config });
     const workspaceId =
-      normalizeText(req.query.workspaceId) ||
-      normalizeText(req.body?.workspaceId) ||
-      WORKSPACE_ID;
+      normalizeText(req.query.workspaceId) || normalizeText(req.body?.workspaceId) || WORKSPACE_ID;
     const conversationId =
-      normalizeText(req.query.conversationId) ||
-      normalizeText(req.body?.conversationId);
-    const customerId =
-      normalizeText(req.query.customerId) ||
-      normalizeText(req.body?.customerId);
+      normalizeText(req.query.conversationId) || normalizeText(req.body?.conversationId);
+    const customerId = normalizeText(req.query.customerId) || normalizeText(req.body?.customerId);
     const customerName =
-      normalizeText(req.query.customerName) ||
-      normalizeText(req.body?.customerName);
+      normalizeText(req.query.customerName) || normalizeText(req.body?.customerName);
     return {
       actor,
       workspaceId,
@@ -624,7 +647,9 @@ function createCcoWorkspaceRouter({
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {
-        return res.status(statusCode).json({ error: error.message, metadata: error.metadata || null });
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte ladda CCO workspace.' });
@@ -662,7 +687,9 @@ function createCcoWorkspaceRouter({
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {
-        return res.status(statusCode).json({ error: error.message, metadata: error.metadata || null });
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte validera synlighet.' });
@@ -674,7 +701,8 @@ function createCcoWorkspaceRouter({
       const context = await getRequestContext(req);
       assertWorkspaceConversationContext(context);
       const destinationKey = normalizeKey(req.body?.destinationKey);
-      const destinationLabel = NOTE_LABELS[destinationKey] || normalizeText(req.body?.destinationLabel);
+      const destinationLabel =
+        NOTE_LABELS[destinationKey] || normalizeText(req.body?.destinationLabel);
       const visibility = assertAllowedVisibility(destinationKey, req.body?.visibility);
 
       const saved = await noteStore.saveNote({
@@ -716,7 +744,9 @@ function createCcoWorkspaceRouter({
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {
-        return res.status(statusCode).json({ error: error.message, metadata: error.metadata || null });
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte spara anteckning.' });
@@ -826,7 +856,9 @@ function createCcoWorkspaceRouter({
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {
-        return res.status(statusCode).json({ error: error.message, metadata: error.metadata || null });
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte schemalägga uppföljning.' });

@@ -37,7 +37,9 @@ if (!target || target.count < 5) {
   process.exit(1);
 }
 
-console.log(`Mål-block: rad ${html.slice(0, target.start).split('\n').length}, ${target.count} script-taggar`);
+console.log(
+  `Mål-block: rad ${html.slice(0, target.start).split('\n').length}, ${target.count} script-taggar`
+);
 
 const BUNDLE_TAG = `\n    <!-- Bundlade scripts: ${target.count} filer → 1, byggt av bin/build-bundle.js -->\n    <script src="${BUNDLE_REL}"></script>\n    `;
 
@@ -45,7 +47,9 @@ if (REVERT) {
   // Hitta bundle-taggen och ersätt med original 50-taggar — kräver att man
   // har ett git checkout-state att återgå till. Detta script kan inte
   // återskapa originalen, så --revert betyder bara: print instruktion.
-  console.log('Revert: gör `git checkout -- public/major-arcana-preview/index.html` för att återställa.');
+  console.log(
+    'Revert: gör `git checkout -- public/major-arcana-preview/index.html` för att återställa.'
+  );
   process.exit(0);
 }
 
@@ -55,5 +59,7 @@ fs.writeFileSync(INDEX_HTML, newHtml);
 console.log(`✓ Index.html: ${target.count} script-taggar → 1 (${BUNDLE_REL})`);
 console.log(`Bytes före: ${html.length}`);
 console.log(`Bytes efter: ${newHtml.length} (-${html.length - newHtml.length})`);
-console.log('\nNästa steg: hard-reload i Chrome + kör verify-three-features.js + verify-demo-fixtures.js');
+console.log(
+  '\nNästa steg: hard-reload i Chrome + kör verify-three-features.js + verify-demo-fixtures.js'
+);
 console.log('Om något bryter: git checkout -- public/major-arcana-preview/index.html');

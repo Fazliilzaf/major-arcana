@@ -33,7 +33,9 @@
   }
 
   function getThreadCards() {
-    return Array.from(document.querySelectorAll('.queue-history-list .thread-card[data-runtime-thread]'));
+    return Array.from(
+      document.querySelectorAll('.queue-history-list .thread-card[data-runtime-thread]')
+    );
   }
 
   function getCardById(id) {
@@ -145,7 +147,9 @@
     const ids = Array.from(selectedSet);
 
     if (actionKey === 'delete') {
-      const ok = confirm(`Radera ${ids.length} ${ids.length === 1 ? 'tråd' : 'trådar'}? Denna åtgärd kan inte ångras.`);
+      const ok = confirm(
+        `Radera ${ids.length} ${ids.length === 1 ? 'tråd' : 'trådar'}? Denna åtgärd kan inte ångras.`
+      );
       if (!ok) return;
     }
 
@@ -153,7 +157,10 @@
     let skipped = 0;
     for (const id of ids) {
       const card = getCardById(id);
-      if (!card) { skipped++; continue; }
+      if (!card) {
+        skipped++;
+        continue;
+      }
       const btn = card.querySelector(`[data-quick-action="${actionKey}"]`);
       if (btn) {
         btn.click();
