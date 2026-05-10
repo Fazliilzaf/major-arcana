@@ -159,6 +159,8 @@
     "prettier": "^3.3.3"
   },
   "overrides": {
-    "path-to-regexp": "8.4.2"
+    "path-to-regexp": "8.4.2",
+    "fast-uri": "3.1.2",
+    "tmp": "0.2.5"
   }
 }
