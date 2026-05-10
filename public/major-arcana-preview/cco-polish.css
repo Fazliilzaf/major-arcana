@@ -1538,35 +1538,37 @@
   }
 
   /* ============================================================
-     Konsistent thread-card-höjd: trunka preview (2026-05-10)
+     Konsistent thread-card-proportioner (2026-05-11)
      ------------------------------------------------------------
-     Mål: ALLA kort lika kompakta som det utan preview (~88px).
-     Lösning: trunka preview-text till 1 rad med ellipsis (Gmail/
-     Outlook-stil). Full text bevarad i title-attribut för hover.
-     Inget innehåll elimineras — bara visningen klipps med "...".
+     Spec från användarens mockup: 88–110px höjd, 16px horisontell
+     padding, 12–16px vertikal padding. Behåll nuvarande design,
+     justera bara mått så ALLA kort hamnar i samma proportionsband.
+     2-rad preview tillåts; subject + why trunkas på 1 rad.
      ============================================================ */
   .thread-card.unified-queue-card.warm-row {
-    min-height: 88px;
-    max-height: 100px;
+    min-height: 104px;
+    max-height: 116px;
+    padding-top: 14px;
+    padding-bottom: 14px;
   }
+  /* Preview: max 2 rader (line-clamp), aldrig mer */
   .thread-card.unified-queue-card.warm-row .warm-preview {
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.42;
     max-width: 100%;
   }
-  /* Subject också på 1 rad så lång subject inte breddar kort onödigt */
+  /* Subject på 1 rad med ellipsis — så lång subject inte sprängar layouten */
   .thread-card.unified-queue-card.warm-row .warm-subject,
   .thread-card.unified-queue-card.warm-row .signal-what {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 100%;
+    min-width: 0;
   }
-  /* Why-pill: alltid en rad, ingen wrapping */
+  /* Why-pill alltid på en rad */
   .thread-card.unified-queue-card.warm-row .warm-why,
   .thread-card.unified-queue-card.warm-row .why-reason {
     white-space: nowrap;
