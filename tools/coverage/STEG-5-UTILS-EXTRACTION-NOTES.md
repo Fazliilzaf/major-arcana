@@ -149,3 +149,28 @@ parallellt göra en stor extraktion med esbuild som validerar.
 - Ingen risk för coverage-regression
 - Ingen blockering av feature-utveckling
 - Klar exit-kriterie dokumenterad ovan
+
+---
+
+## 2026-05-10 (samma dag) — concat-bundler installerad, hoisting-problem KVARSTÅR
+
+Bundler-pipeline installerad (commit 504557d/6304e6b):
+- bin/build-bundle.js + bin/inject-bundle.js
+- 53 → 14 HTTP-requests (-74%)
+- 2.4 MB → 1.37 MB minified (-43.7%)
+- esbuild --minify (INTE --bundle)
+
+**MEN:** denna concat-bundler löser inte modulrefactor-problemet.
+Den konkatenerar IIFE-filer i ordning — varje fil är fortfarande sin
+egen scope. Hoisting inom app.js-IIFE är oförändrat.
+
+För riktig modulrefactor krävs fortfarande:
+1. Konvertera app.js till ESM (`import { humanizeCode } from './utils.js'`)
+2. Använda `esbuild --bundle` (inte bara `--minify`) som löser ESM imports
+3. Risk: 27k-rader app.js har många `function`-deklarationer som inte
+   hoistas korrekt om de wrappas som ESM-export. Behöver AST-transform
+   eller manuell konvertering med smoke-test per batch.
+
+Concat-bundlern är ett **förkrav** för modulrefactor (vi har nu en
+build-step), men inte en **lösning**. Modulrefactor-task förblir
+deferred tills vidare med samma exit-kriterier.
