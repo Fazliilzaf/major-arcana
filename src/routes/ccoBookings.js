@@ -140,12 +140,40 @@ function toCaseInput(context, body = {}) {
   };
 }
 
+function formatOfferSlotTime(slot = {}) {
+  const startsAt = normalizeText(slot.startsAt);
+  const endsAt = normalizeText(slot.endsAt);
+  const startMs = Date.parse(startsAt);
+  const endMs = Date.parse(endsAt);
+  if (!startsAt || Number.isNaN(startMs)) return 'Tid saknas';
+
+  const dateFormatter = new Intl.DateTimeFormat('sv-SE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Europe/Stockholm',
+  });
+  const timeFormatter = new Intl.DateTimeFormat('sv-SE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Stockholm',
+  });
+  const start = new Date(startMs);
+  const dateLabel = dateFormatter.format(start).replace('.', '');
+  const startLabel = timeFormatter.format(start);
+  if (!Number.isNaN(endMs)) {
+    const endLabel = timeFormatter.format(new Date(endMs));
+    return `${dateLabel} kl. ${startLabel}-${endLabel}`;
+  }
+  return `${dateLabel} kl. ${startLabel}`;
+}
+
 function buildOfferDraft({ bookingCase }) {
   const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
   const lines = slots.map((slot, index) => {
     const label = slot.resourceLabel ? ` hos ${slot.resourceLabel}` : '';
     const service = slot.serviceLabel ? ` (${slot.serviceLabel})` : '';
-    return `${index + 1}. ${slot.startsAt}${label}${service}`;
+    return `${index + 1}. ${formatOfferSlotTime(slot)}${label}${service}`;
   });
   const slotCopy = lines.length
     ? lines.join('\n')
