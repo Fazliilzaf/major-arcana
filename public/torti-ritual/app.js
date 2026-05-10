@@ -3259,6 +3259,7 @@
                   <strong>${escapeHtml(item.name)}</strong>
                   <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
                   <span class="collection-result-flags">
+                    <span class="collection-result-zones">Spray zones</span>
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
@@ -3290,6 +3291,7 @@
                   <strong>${escapeHtml(item.name)}</strong>
                   <span class="collection-result-meta">${renderProductMeta(item, "product-meta product-meta-card")}</span>
                   <span class="collection-result-flags">
+                    <span class="collection-result-zones">Spray zones</span>
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
