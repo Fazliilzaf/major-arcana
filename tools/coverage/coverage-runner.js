@@ -106,6 +106,73 @@ async function exerciseUI(page) {
   // Tillbaka till conversations som final state
   await safeClick(page, '[data-nav-view="conversations"]', 'conversations final');
   await sleep(500);
+
+  // ========================================================================
+  // 2026-05-09: nya features — säkerställ CSS-coverage genom att trigga dem
+  // ========================================================================
+  console.log('Feature-triggers (Cmd+K, keyboard-nav, bulk, streak, inline-draft)…');
+
+  // Cmd+K snabbsök
+  try {
+    await page.keyboard.down('MetaLeft');
+    await page.keyboard.press('KeyK');
+    await page.keyboard.up('MetaLeft');
+    await sleep(400);
+    await page.keyboard.type('test', { delay: 30 });
+    await sleep(200);
+    await page.keyboard.press('Escape');
+    await sleep(200);
+    console.log('  Cmd+K opened/typed/closed');
+  } catch (_e) {}
+
+  // Keyboard-nav
+  try {
+    await page.keyboard.press('KeyJ'); await sleep(100); // focus first
+    await page.keyboard.press('KeyJ'); await sleep(100); // next
+    await page.keyboard.press('KeyK'); await sleep(100); // prev
+    await page.keyboard.press('Slash'); await sleep(300); // ? hjälp
+    await page.keyboard.press('Escape'); await sleep(200);
+    console.log('  keyboard-nav j/k/?');
+  } catch (_e) {}
+
+  // Bulk-actions: x toggle + *a select all
+  try {
+    await page.keyboard.press('KeyJ'); await sleep(100);
+    await page.keyboard.press('KeyX'); await sleep(300); // toggla bulk
+    await page.keyboard.press('Digit8'); await sleep(50); // * (Shift+8)
+    await page.keyboard.down('ShiftLeft');
+    await page.keyboard.press('Digit8'); await sleep(50);
+    await page.keyboard.up('ShiftLeft');
+    await page.keyboard.press('KeyA'); await sleep(300); // *a
+    await page.keyboard.down('ShiftLeft');
+    await page.keyboard.press('Digit8'); await sleep(50);
+    await page.keyboard.up('ShiftLeft');
+    await page.keyboard.press('KeyN'); await sleep(200); // *n clear
+    console.log('  bulk-actions x / *a / *n');
+  } catch (_e) {}
+
+  // Inbox-streak: trigga pillen via __InboxStreak.fakeStreak
+  try {
+    await page.evaluate(() => {
+      if (window.__InboxStreak?.fakeStreak) window.__InboxStreak.fakeStreak(7);
+    });
+    await sleep(300);
+    console.log('  inbox-streak fakeStreak(7)');
+  } catch (_e) {}
+
+  // Inline-draft-edit: öppna via __InlineDraftEdit.open
+  try {
+    await page.evaluate(() => {
+      const card = document.querySelector('.thread-card[data-runtime-thread] .warm-preview')?.closest('.thread-card');
+      if (card && window.__InlineDraftEdit?.open) window.__InlineDraftEdit.open(card);
+    });
+    await sleep(400);
+    await page.evaluate(() => window.__InlineDraftEdit?.close?.());
+    await sleep(200);
+    console.log('  inline-draft-edit open/close');
+  } catch (_e) {}
+
+  await sleep(500);
 }
 
 (async () => {

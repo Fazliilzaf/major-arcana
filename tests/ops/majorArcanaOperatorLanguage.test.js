@@ -13,7 +13,8 @@ const PREVIEW_FILES = [
   path.join(ROOT, 'public', 'major-arcana-preview', 'runtime-focus-intel-renderers.js'),
   path.join(ROOT, 'public', 'major-arcana-preview', 'runtime-dom-live-composition.js'),
   path.join(ROOT, 'public', 'major-arcana-preview', 'runtime-overlay-renderers.js'),
-  path.join(ROOT, 'public', 'major-arcana-preview', 'runtime-demo-fixture-name-patch.js'),
+  path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'demo-fixtures-data.js'),
+  path.join(ROOT, 'public', 'major-arcana-preview', 'app', 'cco-shims.js'),
 ];
 
 const REQUIRED_TERMS = [

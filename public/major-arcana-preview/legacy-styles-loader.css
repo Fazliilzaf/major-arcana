@@ -5,4 +5,4 @@
  *
  * Cache-busters synkas automatiskt av bin/sync-cache-busters.sh.
  */
-@import url("./styles.css?v=build-20260510-booking-touchqa-stability") layer(legacy);
+@import url("./styles.css?v=build-20260510-booking-merge") layer(legacy);

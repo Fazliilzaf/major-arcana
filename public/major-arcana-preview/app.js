@@ -2525,165 +2525,24 @@
   // Aktiv test: kör `__testStateUi()` i devtools för att verifiera att alla
   // paths pekar på existerande storage.
 
-  const __UI_KEY_PATHS = Object.freeze({
-    // Top-level UI-flaggor
-    moreMenuOpen: ['moreMenuOpen'],
-    mailboxAdminOpen: ['mailboxAdminOpen'],
-    mailboxAdminEditingId: ['mailboxAdminEditingId'],
-    automationCollaborationOpen: ['automationCollaborationOpen'],
-    automationRailCollapsed: ['automationRailCollapsed'],
-    customerMergeModalOpen: ['customerMergeModalOpen'],
-    customerSettingsOpen: ['customerSettingsOpen'],
-    customerSuggestionsHidden: ['customerSuggestionsHidden'],
-    // Nested top-level
-    noteModeOpen: ['noteMode', 'open'],
-    macroModalOpen: ['macroModal', 'open'],
-    settingsProfileModalOpen: ['settingsProfileModal', 'open'],
-    confirmDialogOpen: ['confirmDialog', 'open'],
-    pendingMailFeedDeleteActive: ['pendingMailFeedDelete', 'active'],
-    // Runtime-nested
-    queueInlinePanelOpen: ['runtime', 'queueInlinePanel', 'open'],
-    queueHistoryOpen: ['runtime', 'queueHistory', 'open'],
-    queueCategoriesCompact: ['runtime', 'queueCategoriesCompact'],
-    truthWorklistViewHidden: ['runtime', 'truthWorklistView', 'hidden'],
-    historyExpanded: ['runtime', 'historyExpanded'],
-    // Navigation (vilken stor vy/pane är aktiv)
-    view: ['view'],
-    activeFocusSection: ['runtime', 'activeFocusSection'],
-  });
-
-  // state.selection — flat namespace för all selection-state (16 + 6 keys).
-  const __SELECTION_KEY_PATHS = Object.freeze({
-    // Top-level
-    customerIdentity: ['selectedCustomerIdentity'],
-    analyticsPeriod: ['selectedAnalyticsPeriod'],
-    automationLibrary: ['selectedAutomationLibrary'],
-    automationNode: ['selectedAutomationNode'],
-    automationSection: ['selectedAutomationSection'],
-    automationTemplate: ['selectedAutomationTemplate'],
-    automationVersion: ['selectedAutomationVersion'],
-    automationAutopilotProposal: ['selectedAutomationAutopilotProposal'],
-    integrationCategory: ['selectedIntegrationCategory'],
-    showcaseFeature: ['selectedShowcaseFeature'],
-    customerMergePrimaryKey: ['customerMergePrimaryKey'],
-    // Nested top-level
-    mailFeedKeyLater: ['selectedMailFeedKey', 'later'],
-    mailFeedKeySent: ['selectedMailFeedKey', 'sent'],
-    // Runtime-nested
-    threadId: ['runtime', 'selectedThreadId'],
-    mailboxIds: ['runtime', 'selectedMailboxIds'],
-    ownerKey: ['runtime', 'selectedOwnerKey'],
-    laneId: ['runtime', 'activeLaneId'],
-    historyContextThreadId: ['runtime', 'historyContextThreadId'],
-    historyConversationId: ['runtime', 'queueHistory', 'selectedConversationId'],
-  });
-
-  // state.status — flat namespace för loading/error-flaggor (28 keys).
-  const __STATUS_KEY_PATHS = Object.freeze({
-    bootstrapped: ['bootstrapped'],
-    bootstrapError: ['bootstrapError'],
-    // Runtime status
-    loading: ['runtime', 'loading'],
-    loaded: ['runtime', 'loaded'],
-    hasReachedSteadyState: ['runtime', 'hasReachedSteadyState'],
-    hasRemovedRuntimeLoading: ['runtime', 'hasRemovedRuntimeLoading'],
-    authRecoveryArmed: ['runtime', 'authRecoveryArmed'],
-    pendingFullRefresh: ['runtime', 'pendingFullRefresh'],
-    isBackgroundRefresh: ['runtime', 'isBackgroundRefresh'],
-    backgroundRefreshSelectedThreadId: ['runtime', 'backgroundRefreshSelectedThreadId'],
-    mode: ['runtime', 'mode'],
-    live: ['runtime', 'live'],
-    authRequired: ['runtime', 'authRequired'],
-    offline: ['runtime', 'offline'],
-    offlineWorkingSetSource: ['runtime', 'offlineWorkingSetSource'],
-    offlineWorkingSetMeta: ['runtime', 'offlineWorkingSetMeta'],
-    error: ['runtime', 'error'],
-    lastSyncAt: ['runtime', 'lastSyncAt'],
-    historyDeleting: ['runtime', 'historyDeleting'],
-    deletingThreadId: ['runtime', 'deletingThreadId'],
-    restoringMail: ['runtime', 'restoringMail'],
-    // Sub-runtime status
-    queueHistoryLoading: ['runtime', 'queueHistory', 'loading'],
-    queueHistoryLoaded: ['runtime', 'queueHistory', 'loaded'],
-    queueHistoryError: ['runtime', 'queueHistory', 'error'],
-    truthWorklistViewLoading: ['runtime', 'truthWorklistView', 'loading'],
-    truthWorklistViewLoaded: ['runtime', 'truthWorklistView', 'loaded'],
-    truthWorklistViewAuthRequired: ['runtime', 'truthWorklistView', 'authRequired'],
-    truthWorklistViewError: ['runtime', 'truthWorklistView', 'error'],
-  });
-
-  // state.data — flat namespace för domain-data (server-levererat).
-  const __DATA_KEY_PATHS = Object.freeze({
-    threads: ['runtime', 'threads'],
-    mailboxes: ['runtime', 'mailboxes'],
-    mailboxCapabilities: ['runtime', 'mailboxCapabilities'],
-    queueHistoryItems: ['runtime', 'queueHistory', 'items'],
-    truthPrimaryLegacyThreads: ['runtime', 'truthPrimaryLegacyThreads'],
-    noteTemplates: ['noteTemplates'],
-    noteDefinitions: ['noteDefinitions'],
-    customMailboxes: ['customMailboxes'],
-    macros: ['macros'],
-  });
-
-  // state.forms — flat namespace för live form/draft-state.
-  const __FORMS_KEY_PATHS = Object.freeze({
-    // Studio (compose / reply)
-    studioMode: ['studio', 'mode'],
-    studioThreadId: ['studio', 'threadId'],
-    studioComposeMailboxId: ['studio', 'composeMailboxId'],
-    studioComposeTo: ['studio', 'composeTo'],
-    studioComposeSubject: ['studio', 'composeSubject'],
-    studioDraftBody: ['studio', 'draftBody'],
-    studioActiveTemplate: ['studio', 'activeTemplateKey'],
-    studioActiveTrack: ['studio', 'activeTrackKey'],
-    studioActiveTone: ['studio', 'activeToneKey'],
-    studioSignature: ['studio', 'selectedSignatureId'],
-    studioSending: ['studio', 'sending'],
-    // Note
-    noteActiveKey: ['note', 'activeKey'],
-    noteDrafts: ['note', 'drafts'],
-    noteSaving: ['note', 'saving'],
-    // Schedule
-    scheduleDraft: ['schedule', 'draft'],
-    scheduleOptions: ['schedule', 'options'],
-    scheduleSaving: ['schedule', 'saving'],
-    // Later
-    laterOption: ['later', 'option'],
-    laterBulkSelectionKeys: ['later', 'bulkSelectionKeys'],
-    laterContextThreadId: ['later', 'contextThreadId'],
-    // Customer-vyn
-    customerSearch: ['customerSearch'],
-    customerFilter: ['customerFilter'],
-    customerBatchSelection: ['customerBatchSelection'],
-    customerMergeOptions: ['customerMergeOptions'],
-    // History-filter
-    historySearch: ['runtime', 'historySearch'],
-    historyMailboxFilter: ['runtime', 'historyMailboxFilter'],
-    historyResultTypeFilter: ['runtime', 'historyResultTypeFilter'],
-    historyRangeFilter: ['runtime', 'historyRangeFilter'],
-  });
-
-  // state.prefs — flat namespace för preferences (persisted-värden).
-  const __PREFS_KEY_PATHS = Object.freeze({
-    // Top-level
-    automationAutopilotEnabled: ['automationAutopilotEnabled'],
-    automationScale: ['automationScale'],
-    workspacePrefsApplied: ['workspacePrefsApplied'],
-    // Runtime-nested
-    preferredMailboxId: ['runtime', 'preferredMailboxId'],
-    defaultSenderMailbox: ['runtime', 'defaultSenderMailbox'],
-    defaultSignatureProfile: ['runtime', 'defaultSignatureProfile'],
-    sendEnabled: ['runtime', 'sendEnabled'],
-    deleteEnabled: ['runtime', 'deleteEnabled'],
-    graphReadEnabled: ['runtime', 'graphReadEnabled'],
-    graphReadConnectorAvailable: ['runtime', 'graphReadConnectorAvailable'],
-    mailboxScopePinned: ['runtime', 'mailboxScopePinned'],
-    // Settings runtime
-    themeChoice: ['settingsRuntime', 'choices', 'theme'],
-    densityChoice: ['settingsRuntime', 'choices', 'density'],
-    profileName: ['settingsRuntime', 'profileName'],
-    profileEmail: ['settingsRuntime', 'profileEmail'],
-  });
+  // ====================================================================
+  // STATE-VIEW PATH MAPPINGS — extraherade till app/state-paths.js
+  // (Steg 1 av app.js modulrefactor per APP-JS-MODULE-PLAN.md, 2026-05-08)
+  //
+  // app/state-paths.js MÅSTE laddas FÖRE app.js via <script>-tag i index.html.
+  // Den exponerar window.__AppPaths.{UI,SELECTION,STATUS,DATA,FORMS,PREFS}.
+  // Vi importerar dem som lokala konstanter här för att inte bryta resten av
+  // koden som referenser via dessa namn.
+  // ====================================================================
+  if (!window.__AppPaths) {
+    throw new Error('[app.js] window.__AppPaths saknas — säkerställ att app/state-paths.js laddas före app.js i index.html');
+  }
+  const __UI_KEY_PATHS = window.__AppPaths.UI;
+  const __SELECTION_KEY_PATHS = window.__AppPaths.SELECTION;
+  const __STATUS_KEY_PATHS = window.__AppPaths.STATUS;
+  const __DATA_KEY_PATHS = window.__AppPaths.DATA;
+  const __FORMS_KEY_PATHS = window.__AppPaths.FORMS;
+  const __PREFS_KEY_PATHS = window.__AppPaths.PREFS;
 
   function __readUiPath(path) {
     let cur = __stateInternal;
@@ -2890,7 +2749,7 @@
     renderMoreMenu(state);
     renderMailboxAdmin(state);
     renderConfirmDialog(state);
-    renderCustomerMergeModal(state);
+    renderCustomerMergeShell(state);
     renderCustomerSettings(state);
     renderMacroModal(state);
     renderSettingsProfileModal(state);
@@ -2924,88 +2783,25 @@
     }
   }
 
-  // Hjälpare: idempotent DOM-mutation för "floating shell"-modaler.
-  // Synlighet + transform driven av CSS via [data-open] (cco-polish.css).
-  // JS sätter bara aria-hidden + data-open — inga inline-styles.
-  function __renderFloatingShell(shell, isOpen, _offsetY) {
-    if (!shell) return;
-    const ariaHidden = isOpen ? 'false' : 'true';
-    if (shell.getAttribute('aria-hidden') !== ariaHidden) {
-      shell.setAttribute('aria-hidden', ariaHidden);
-    }
-    const hasOpen = shell.hasAttribute('data-open');
-    if (isOpen && !hasOpen) shell.setAttribute('data-open', '');
-    else if (!isOpen && hasOpen) shell.removeAttribute('data-open');
+  // ====================================================================
+  // Component-renderers — extraherade till app/render-components.js (Steg 4).
+  // Måste laddas FÖRE app.js i index.html. Vi tar in dem som lokala alias
+  // för att inte bryta call sites i renderApp.
+  // ====================================================================
+  if (!window.__AppRenderComponents) {
+    throw new Error('[app.js] window.__AppRenderComponents saknas — säkerställ att app/render-components.js laddas före app.js');
   }
-
-  function renderMailboxAdmin(state) {
-    const shell = document.getElementById('mailbox-admin-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.mailboxAdminOpen === true, 14);
-  }
-
-  function renderConfirmDialog(state) {
-    const shell = document.getElementById('shell-confirm-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.confirmDialogOpen === true, 16);
-  }
-
-  function renderCustomerMergeModal(state) {
-    const shell = document.getElementById('customers-merge-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.customerMergeModalOpen === true, 16);
-  }
-
-  function renderCustomerSettings(state) {
-    const shell = document.getElementById('customers-settings-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.customerSettingsOpen === true, 16);
-  }
-
-  function renderMacroModal(state) {
-    const shell = document.getElementById('macro-editor-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.macroModalOpen === true, 16);
-  }
-
-  function renderSettingsProfileModal(state) {
-    const shell = document.getElementById('settings-profile-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.settingsProfileModalOpen === true, 16);
-  }
-
-  function renderNoteModeShell(state) {
-    const shell = document.getElementById('note-mode-shell');
-    if (!shell) return;
-    __renderFloatingShell(shell, state.ui.noteModeOpen === true, 14);
-  }
-
-  function renderMoreMenu(state) {
-    const wrapper = document.querySelector('.preview-more');
-    const menu = document.getElementById('preview-more-menu');
-    const toggle = document.querySelector('[data-more-toggle]');
-    if (!wrapper) return;
-    const isOpen = state.ui.moreMenuOpen === true;
-    // Steg 5: CSS driver synlighet via [data-open]-attributet på wrappern.
-    // JS sätter bara attribut — inga inline-styles, inga 6 redundanta props.
-    const hasOpen = wrapper.hasAttribute('data-open');
-    if (isOpen && !hasOpen) wrapper.setAttribute('data-open', '');
-    else if (!isOpen && hasOpen) wrapper.removeAttribute('data-open');
-    if (menu) {
-      // Synka [hidden] + aria-hidden för screen readers + tab-flow.
-      if (menu.hidden !== !isOpen) menu.hidden = !isOpen;
-      const ariaHidden = isOpen ? 'false' : 'true';
-      if (menu.getAttribute('aria-hidden') !== ariaHidden) {
-        menu.setAttribute('aria-hidden', ariaHidden);
-      }
-    }
-    if (toggle) {
-      const ariaExpanded = isOpen ? 'true' : 'false';
-      if (toggle.getAttribute('aria-expanded') !== ariaExpanded) {
-        toggle.setAttribute('aria-expanded', ariaExpanded);
-      }
-    }
-  }
+  const {
+    renderFloatingShell: __renderFloatingShell,
+    renderMailboxAdmin,
+    renderConfirmDialog,
+    renderCustomerMergeShell,
+    renderCustomerSettings,
+    renderMacroModal,
+    renderSettingsProfileModal,
+    renderNoteModeShell,
+    renderMoreMenu,
+  } = window.__AppRenderComponents;
 
   if (typeof window !== 'undefined') {
     window.__getStateStats = () => ({

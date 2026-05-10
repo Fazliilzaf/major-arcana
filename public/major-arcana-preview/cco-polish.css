@@ -866,6 +866,31 @@
     }
   }
 
+  /* Focus-shell layout-guardian — migrerad från FIX13 i runtime-demo-fixture
+     (eliminerar setInterval-pollingen + inline-styles). Tvingar focus-shell till
+     höger grid-kolumn och spannar två rader så panelen syns även när auth_required
+     skulle ha flyttat den till en ny rad. */
+  .focus-shell {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    justify-self: stretch;
+    width: 100%;
+    height: auto;
+    min-height: 600px;
+  }
+  .cco-followup-row {
+    align-self: start;
+  }
+  .preview-workspace {
+    grid-template-rows: auto;
+  }
+  /* Mail-content-area får 2/3, intel-area 1/3 (var 348px lika delar = för smalt) */
+  .focus-layout {
+    grid-template-columns: minmax(420px, 2fr) minmax(260px, 1fr);
+    gap: 14px;
+  }
+
   /* ============================================================
    More-menu CSS-only visibility (steg 5 state-konsolidering 2026-05-08)
    Wrappern .preview-more bär data-open="" när menyn är öppen.
@@ -976,5 +1001,539 @@
     outline: 2px solid currentColor;
     outline-offset: 2px;
     font-weight: 600;
+  }
+
+  /* ============================================================
+   Cmd+K Spotlight-snabbsök (app/cmd-k.js, 2026-05-08)
+   ============================================================ */
+  #cmd-k-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+  }
+  #cmd-k-overlay[data-open] {
+    display: flex;
+  }
+  #cmd-k-overlay .cmd-k-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(40, 25, 15, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #cmd-k-overlay .cmd-k-panel {
+    position: relative;
+    width: min(640px, 92vw);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 16px;
+    box-shadow:
+      0 20px 60px rgba(60, 35, 20, 0.28),
+      0 4px 12px rgba(60, 35, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+  }
+  #cmd-k-overlay .cmd-k-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(255, 252, 246, 0.6);
+  }
+  #cmd-k-overlay .cmd-k-search-icon {
+    width: 18px;
+    height: 18px;
+    color: #8a6f55;
+    flex-shrink: 0;
+  }
+  #cmd-k-overlay .cmd-k-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    font-weight: 400;
+    color: #2b1f15;
+    font-family: inherit;
+  }
+  #cmd-k-overlay .cmd-k-input::placeholder {
+    color: #b89e85;
+  }
+  #cmd-k-overlay .cmd-k-esc {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(165, 105, 60, 0.1);
+    color: #8a6f55;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+  }
+  #cmd-k-overlay .cmd-k-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    min-height: 60px;
+  }
+  #cmd-k-overlay .cmd-k-empty {
+    padding: 32px 18px;
+    text-align: center;
+    color: #b89e85;
+    font-size: 13px;
+  }
+  #cmd-k-overlay .cmd-k-group-label {
+    padding: 10px 18px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a78867;
+  }
+  #cmd-k-overlay .cmd-k-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  #cmd-k-overlay .cmd-k-result:hover,
+  #cmd-k-overlay .cmd-k-result.is-active {
+    background: rgba(215, 130, 90, 0.12);
+    border-left-color: #c97a4d;
+  }
+  #cmd-k-overlay .cmd-k-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a6f55;
+    flex-shrink: 0;
+  }
+  #cmd-k-overlay .cmd-k-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  #cmd-k-overlay .cmd-k-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  #cmd-k-overlay .cmd-k-label strong {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #2b1f15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #cmd-k-overlay .cmd-k-sub {
+    font-size: 11.5px;
+    color: #7a6249;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #cmd-k-overlay .cmd-k-footer {
+    padding: 10px 18px;
+    font-size: 11px;
+    color: #8a6f55;
+    border-top: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(248, 240, 230, 0.5);
+  }
+  #cmd-k-overlay .cmd-k-footer kbd {
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #6b5340;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    margin: 0 2px;
+  }
+
+  /* ============================================================
+   Tangentbordsnav (app/keyboard-nav.js, 2026-05-08)
+   ============================================================ */
+
+  /* Highlighted thread-card (j/k navigation) — visuell distinkt från click-selected */
+  .thread-card.is-keyboard-focused {
+    box-shadow:
+      0 0 0 2px #c97a4d,
+      0 4px 14px rgba(201, 122, 77, 0.22);
+    outline: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Help-overlay (?-genväg) */
+  #keyboard-help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998; /* under cmd-k-overlay (9999) */
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #keyboard-help-overlay[data-open] {
+    display: flex;
+  }
+  #keyboard-help-overlay .kbd-help-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(40, 25, 15, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #keyboard-help-overlay .kbd-help-panel {
+    position: relative;
+    width: min(520px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 16px;
+    box-shadow:
+      0 20px 60px rgba(60, 35, 20, 0.28),
+      0 4px 12px rgba(60, 35, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+  }
+  #keyboard-help-overlay .kbd-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(165, 105, 60, 0.14);
+  }
+  #keyboard-help-overlay .kbd-help-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: #8a6f55;
+    cursor: pointer;
+    padding: 0 6px;
+    border-radius: 6px;
+  }
+  #keyboard-help-overlay .kbd-help-close:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #keyboard-help-overlay .kbd-help-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 0;
+    font-size: 13.5px;
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-label {
+    flex: 1;
+  }
+  #keyboard-help-overlay .kbd-help-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #keyboard-help-overlay kbd {
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #6b5340;
+    border: 1px solid rgba(165, 105, 60, 0.22);
+    box-shadow: inset 0 -1px 0 rgba(165, 105, 60, 0.12);
+    min-width: 18px;
+    text-align: center;
+  }
+  #keyboard-help-overlay .kbd-help-footer {
+    padding: 12px 22px;
+    font-size: 11.5px;
+    color: #8a6f55;
+    border-top: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(248, 240, 230, 0.5);
+    text-align: center;
+  }
+
+  /* ============================================================
+   Bulk-actions (app/bulk-actions.js, 2026-05-08)
+   ============================================================ */
+
+  /* Valda thread-cards — accent border + checkmark */
+  .thread-card.is-bulk-selected {
+    box-shadow:
+      inset 4px 0 0 #c97a4d,
+      0 4px 14px rgba(201, 122, 77, 0.18);
+    background-color: rgba(255, 247, 240, 0.6);
+  }
+  .thread-card.is-bulk-selected::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 18px;
+    height: 18px;
+    background: #c97a4d;
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 8 7 12 13 4'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px 12px;
+    z-index: 3;
+  }
+
+  /* Bulk-toolbar — fixed bottom, slides up när ≥1 vald */
+  #bulk-actions-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    z-index: 9997;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 14px;
+    box-shadow:
+      0 14px 40px rgba(60, 35, 20, 0.22),
+      0 4px 12px rgba(60, 35, 20, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+      opacity 0.18s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #bulk-actions-toolbar[data-open] {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #bulk-actions-toolbar .bulk-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2b1f15;
+    padding: 0 8px;
+  }
+  #bulk-actions-toolbar .bulk-divider {
+    width: 1px;
+    height: 22px;
+    background: rgba(165, 105, 60, 0.2);
+  }
+  #bulk-actions-toolbar .bulk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #4b3826;
+    font-size: 12.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      transform 0.08s ease;
+  }
+  #bulk-actions-toolbar .bulk-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+  }
+  #bulk-actions-toolbar .bulk-btn:active {
+    transform: translateY(0);
+  }
+  #bulk-actions-toolbar .bulk-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  #bulk-actions-toolbar .bulk-btn-danger {
+    color: #b54420;
+    border-color: rgba(181, 68, 32, 0.25);
+  }
+  #bulk-actions-toolbar .bulk-btn-danger:hover {
+    background: rgba(255, 235, 230, 0.95);
+  }
+  #bulk-actions-toolbar .bulk-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #8a6f55;
+  }
+  #bulk-actions-toolbar .bulk-btn-ghost:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+
+  /* ============================================================
+   Inbox-zero-streak pill (app/inbox-streak.js, 2026-05-08)
+   ============================================================ */
+  #inbox-streak-pill.inbox-streak-pill {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff4d8 0%, #ffe6b3 100%);
+    border: 1px solid rgba(200, 130, 60, 0.32);
+    color: #8a4a18;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 1px 3px rgba(150, 90, 30, 0.18);
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  #inbox-streak-pill.inbox-streak-pill[data-visible] {
+    display: inline-flex;
+  }
+  #inbox-streak-pill.inbox-streak-pill:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 3px 8px rgba(150, 90, 30, 0.24);
+  }
+  #inbox-streak-pill .inbox-streak-flame {
+    font-size: 13px;
+    line-height: 1;
+  }
+  #inbox-streak-pill .inbox-streak-label {
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+   Inline-draft-editor (app/inline-draft-edit.js, 2026-05-08)
+   ============================================================ */
+  .warm-preview {
+    cursor: text;
+    border-radius: 4px;
+    transition: background 0.12s ease;
+  }
+  .warm-preview:hover {
+    background: rgba(255, 247, 240, 0.6);
+  }
+  .inline-draft-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 6px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.22);
+    box-shadow: 0 4px 12px rgba(60, 35, 20, 0.08);
+  }
+  .inline-draft-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .inline-draft-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #a44a1f;
+  }
+  .inline-draft-hint {
+    font-size: 10.5px;
+    color: #8a6f55;
+  }
+  .inline-draft-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(165, 105, 60, 0.2);
+    background: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #2b1f15;
+    resize: vertical;
+    outline: none;
+  }
+  .inline-draft-textarea:focus {
+    border-color: rgba(201, 122, 77, 0.5);
+    box-shadow: 0 0 0 2px rgba(201, 122, 77, 0.18);
+  }
+  .inline-draft-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .inline-draft-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(165, 105, 60, 0.2);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #4b3826;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      transform 0.08s ease;
+  }
+  .inline-draft-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+  }
+  .inline-draft-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #8a6f55;
+  }
+  .inline-draft-btn-ghost:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+  .inline-draft-btn-primary {
+    background: linear-gradient(180deg, #d68a5f 0%, #c97a4d 100%);
+    border-color: #b56a3d;
+    color: #fff;
+  }
+  .inline-draft-btn-primary:hover {
+    background: linear-gradient(180deg, #de9268 0%, #d2825a 100%);
   }
 } /* end @layer components */
