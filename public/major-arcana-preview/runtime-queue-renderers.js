@@ -3259,12 +3259,28 @@
       const rawPreviewBody = asText(unifiedModel.previewLine);
       const subtitleText = asText(unifiedModel.subtitle);
       const subjectText = subtitleText || whatStr;
+      // Prioriterad preview-resolution:
+      // 1. previewLine om unik från subject
+      // 2. fallback till bodyPreview / snippet / nextActionSummary / systemPreview
+      // 3. fallback till thread.preview (raw från worklist-API)
+      // 4. om allt tomt → tom string → .warm-preview döljs
+      const fallbackPreview = asText(
+        unifiedModel.bodyPreview ||
+          unifiedModel.snippet ||
+          unifiedModel.summary ||
+          unifiedModel.nextActionSummary ||
+          unifiedModel.systemPreview ||
+          unifiedModel.detail ||
+          ""
+      );
       const previewBody =
         rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
           : rawPreviewBody.length > subjectText.length
             ? rawPreviewBody
-            : "";
+            : fallbackPreview && fallbackPreview !== subjectText && !fallbackPreview.startsWith(subjectText)
+              ? fallbackPreview
+              : "";
 
       // ====== Bilageikoner: detektera enkelt från subject + preview ======
       const ATTACH_ICONS = {

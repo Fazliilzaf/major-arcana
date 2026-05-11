@@ -1607,21 +1607,24 @@
     min-width: 0;
   }
 
-  /* Smal kolumn (<520px): dölj history/later/schedule-actions —
-     behåll bara handled, delete + Öppna-pill. Frigör horisontell yta. */
-  @container (max-width: 520px) {
-    .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"],
-    .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"],
-    .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] {
-      display: none;
-    }
-  }
-  /* Fallback om container queries inte stöds — basera på viewport-bredd */
+  /* Mini-actions för smal kolumn — alla 5 syns men ultra-kompakta */
   @media (max-width: 1500px) {
-    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"],
-    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"],
-    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"] {
-      display: none;
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster {
+      gap: 2px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+      width: 20px;
+      height: 20px;
+      padding: 3px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+      width: 10px;
+      height: 10px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+      padding: 4px 8px;
+      height: 22px;
+      font-size: 11px;
     }
   }
 
