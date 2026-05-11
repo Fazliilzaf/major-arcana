@@ -60,17 +60,55 @@
     applyIntent();
   }
 
-  function init() {
-    // Initial apply
-    tick();
-    // Observera body för DOM-mutations (renderApp wipar olika containers)
+  function waitForSettled(callback) {
+    // Vänta tills inga DOM-mutations skett på 500 ms → appen är "klar"
+    // med initial rendering. Detta förhindrar att dropdown visas medan
+    // items fortfarande laddas in (vilket användaren såg som "hopp").
+    let lastMutation = Date.now();
     const observer = new MutationObserver(() => {
-      // Debounce med rAF
-      requestAnimationFrame(tick);
+      lastMutation = Date.now();
     });
     observer.observe(document.body, { childList: true, subtree: true });
-    // Backup polling om observer missar något
-    setInterval(tick, 1000);
+
+    const check = () => {
+      if (Date.now() - lastMutation > 500) {
+        observer.disconnect();
+        callback();
+      } else {
+        setTimeout(check, 200);
+      }
+    };
+    // Max-wait safety: settla efter senast 3s även om mutations fortgår
+    setTimeout(() => {
+      observer.disconnect();
+      callback();
+    }, 3000);
+    setTimeout(check, 700);
+  }
+
+  function init() {
+    // FÖRST: bind toggle-change så användarens KLICK fungerar direkt
+    bindToggleChange();
+
+    // SEN: vänta tills appen är settled, DÅ applicera persisted intent
+    waitForSettled(() => {
+      // Re-bind ifall toggle re-skapats under load
+      bindToggleChange();
+      applyIntent();
+
+      // Efter settle: börja persistera över renderApp-wipes med MutationObserver
+      const observer = new MutationObserver(() => {
+        requestAnimationFrame(() => {
+          bindToggleChange();
+          applyIntent();
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      setInterval(() => {
+        bindToggleChange();
+        applyIntent();
+      }, 1000);
+    });
   }
 
   if (document.readyState === 'loading') {
