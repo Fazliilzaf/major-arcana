@@ -1607,6 +1607,90 @@
     min-width: 0;
   }
 
+  /* ============================================================
+     Chrome-reducering: slimma topp-area så fler kort syns (2026-05-11)
+     ============================================================ */
+  /* Lane-chips: kompakta i grid med tighter spacing */
+  .preview-shell .queue-secondary-signal-row,
+  .preview-shell .queue-filter-row,
+  .preview-shell [data-queue-secondary-filters] {
+    gap: 4px !important;
+    margin-bottom: 6px !important;
+  }
+  .preview-shell .queue-secondary-signal-chip {
+    padding: 4px 9px !important;
+    font-size: 11.5px !important;
+    border-radius: 999px !important;
+  }
+  /* "ARBETSKO Arbetslista (X)" kompakt rubrik */
+  .preview-shell .queue-arbetsko-title,
+  .preview-shell [data-queue-section-label],
+  .preview-shell .arbetslista-title {
+    font-size: 11px !important;
+    letter-spacing: 0.16em !important;
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+  }
+  /* Mailbox-row + filter-counts row: kompakt */
+  .preview-shell .queue-mailbox-row,
+  .preview-shell .queue-filter-counts {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    min-height: 0 !important;
+  }
+  /* Generell shell-padding reducerad */
+  .preview-shell {
+    padding-top: 12px !important;
+  }
+
+  /* ============================================================
+     Keyboard-footer (app/keyboard-footer.js, 2026-05-11)
+     ------------------------------------------------------------
+     Linear-stil shortcut-hjälp längst ned i preview-shell.
+     ============================================================ */
+  .cco-keyboard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 14px;
+    margin-top: 8px;
+    border-top: 1px solid var(--warm-border);
+    font-size: 11px;
+    color: var(--warm-text-3);
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    background: linear-gradient(180deg, rgba(255,252,247,0) 0%, rgba(252,247,239,0.6) 100%);
+    user-select: none;
+  }
+  .cco-keyboard-footer .kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .cco-keyboard-footer kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    padding: 1px 4px;
+    background: rgba(255, 252, 247, 0.95);
+    border: 1px solid var(--warm-border-2);
+    border-bottom-width: 1.5px;
+    border-radius: 4px;
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--warm-text-2);
+    line-height: 1;
+  }
+  .cco-keyboard-footer .kbd-sep {
+    opacity: 0.45;
+    color: var(--warm-text-4, var(--warm-text-3));
+  }
+
   /* Mini-actions för smal kolumn — alla 5 syns men ultra-kompakta */
   @media (max-width: 1500px) {
     .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster {
