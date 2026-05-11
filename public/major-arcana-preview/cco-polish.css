@@ -1608,6 +1608,67 @@
   }
 
   /* ============================================================
+     Stadium 2: slimma topbar mot mockup-stil (2026-05-11)
+     ------------------------------------------------------------
+     Mockup har: [Inbox] [Streak] [Sök ⌘K] [Live·N] [Filter] [E]
+     Vi behåller: CCO + Nav + Live + 1 streak + Nytt mejl + Profile
+     Döljer: duplicate streak, Sprint-pill, theme-switcher, 6 utility-
+     icons, language-picker. Frigör ~300px topbar-bredd.
+     ============================================================ */
+  /* Bug-fix: två element delar id="inbox-streak-pill" — dölj duplikat */
+  .preview-topbar-right #inbox-streak-pill ~ #inbox-streak-pill,
+  .preview-topbar-right .inbox-streak-pill:nth-of-type(n + 2) {
+    display: none !important;
+  }
+  /* Dölj utility-icons (theme/refresh/desktop/web/notifications/file) */
+  .preview-topbar-right .preview-utility-button,
+  .preview-topbar-right .preview-theme-button,
+  .preview-topbar-right .preview-mode-button {
+    display: none !important;
+  }
+  /* Dölj theme-mode dropdown (Standard) */
+  .preview-topbar-right .preview-theme-mode,
+  .preview-topbar-right [data-theme-switcher] {
+    display: none !important;
+  }
+  /* Dölj language-picker */
+  .preview-topbar-right .preview-language-picker,
+  .preview-topbar-right [data-language-picker] {
+    display: none !important;
+  }
+  /* Dölj Sprint-pill (info-cluttring) */
+  .preview-topbar-right .preview-sprint-pill {
+    display: none !important;
+  }
+  /* Kompakta resterande element: tighter padding + gap */
+  .preview-topbar-right {
+    gap: 8px !important;
+  }
+  .preview-topbar-right .preview-live-pill {
+    padding: 4px 11px !important;
+    font-size: 11.5px !important;
+    height: 28px !important;
+  }
+  .preview-topbar-right .preview-compose-pill {
+    padding: 4px 13px !important;
+    font-size: 11.5px !important;
+    height: 28px !important;
+  }
+  /* Slimma topbar-höjden själv */
+  .preview-topbar {
+    min-height: 52px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+  .preview-topbar .preview-brand {
+    font-size: 16px !important;
+  }
+  .preview-topbar .preview-nav .preview-nav-item {
+    font-size: 12.5px !important;
+    padding: 5px 10px !important;
+  }
+
+  /* ============================================================
      Stadium 1: Inbox filter-toggle (2026-05-11)
      ------------------------------------------------------------
      Default: body har .has-inbox-filters-collapsed → dölj
