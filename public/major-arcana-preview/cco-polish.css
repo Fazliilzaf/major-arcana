@@ -1543,6 +1543,60 @@
      Action-ikon-färger + storlek matchar mockupens spec exakt:
      lila alarm, amber timer, moss kalender/check, crimson trash.
      ============================================================ */
+  /* Kompakta thread-cards för smal inbox-kolumn (~456px):
+     mindre font, tighter gap, mindre actions så allt får plats. */
+  .thread-card.unified-queue-card.warm-row {
+    padding: 12px 14px 12px 16px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-sender {
+    font-size: 13.5px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-subject {
+    font-size: 13px;
+    color: var(--warm-text-2);
+    font-weight: 450;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    font-size: 12px;
+    line-height: 1.42;
+    -webkit-line-clamp: 2;
+    color: var(--warm-text-3);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why,
+  .thread-card.unified-queue-card.warm-row .why-reason {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster {
+    gap: 4px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    width: 11px;
+    height: 11px;
+  }
+  /* Avatar något mindre för att frigöra horisontell yta */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12.5px;
+  }
+  /* Top-meta tightare */
+  .thread-card.unified-queue-card.warm-row .warm-top-meta {
+    font-size: 11px;
+    gap: 5px;
+  }
+  /* Primary-action pill kompakt */
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    padding: 5px 10px;
+    height: 24px;
+    font-size: 11.5px;
+  }
+
   .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
     width: 13px;
     height: 13px;
