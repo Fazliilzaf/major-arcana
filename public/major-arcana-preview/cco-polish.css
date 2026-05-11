@@ -1608,6 +1608,61 @@
   }
 
   /* ============================================================
+     Stadium 1: Inbox filter-toggle (2026-05-11)
+     ------------------------------------------------------------
+     Default: body har .has-inbox-filters-collapsed → dölj
+     lane-chips, ARBETSKO-rubrik, mailbox-row, counts-row.
+     Klick på "Visa filter"-pill expanderar tillbaka.
+     ============================================================ */
+  body.has-inbox-filters-collapsed .preview-shell .queue-secondary-signal-row,
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-row,
+  body.has-inbox-filters-collapsed .preview-shell [data-queue-secondary-filters],
+  body.has-inbox-filters-collapsed .preview-shell .queue-mailbox-row,
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-counts,
+  body.has-inbox-filters-collapsed .preview-shell .queue-arbetsko-title,
+  body.has-inbox-filters-collapsed .preview-shell [data-queue-section-label],
+  body.has-inbox-filters-collapsed .preview-shell .arbetslista-title,
+  body.has-inbox-filters-collapsed .preview-shell .queue-mailbox-bar,
+  body.has-inbox-filters-collapsed .preview-shell label[for="mailbox-menu-toggle"],
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-bar,
+  body.has-inbox-filters-collapsed .preview-shell .queue-summary-row {
+    display: none !important;
+  }
+  /* Filter-toggle pill — varm rundad knapp */
+  .inbox-filter-toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--warm-border);
+    background: rgba(255, 252, 248, 0.95);
+    color: var(--warm-text-2);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04);
+    margin-bottom: 8px;
+  }
+  .inbox-filter-toggle-pill:hover {
+    background: var(--warm-bg-warmer);
+    border-color: var(--warm-border-2);
+    transform: translateY(-1px);
+  }
+  .inbox-filter-toggle-pill .filter-pill-icon {
+    width: 12px;
+    height: 12px;
+    opacity: 0.7;
+  }
+  .inbox-filter-toggle-pill[data-collapsed="0"] {
+    background: var(--warm-bg-warmer);
+    border-color: var(--warm-border-2);
+    color: var(--warm-text-1);
+  }
+
+  /* ============================================================
      Chrome-reducering: slimma topp-area så fler kort syns (2026-05-11)
      ============================================================ */
   /* Lane-chips: kompakta i grid med tighter spacing */
