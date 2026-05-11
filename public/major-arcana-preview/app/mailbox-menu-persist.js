@@ -48,8 +48,12 @@
     const toggle = document.getElementById('mailbox-menu-toggle');
     if (!toggle || toggle.dataset.persistBound) return;
     toggle.dataset.persistBound = '1';
-    toggle.addEventListener('change', () => {
+    toggle.addEventListener('change', (e) => {
       if (isApplying) return;
+      // Bara äkta användarinteraktion ska skriva intent — programmatic
+      // change-events (t.ex. cco-polish.js dispatchEvent eller renderApp-
+      // wipes) har e.isTrusted === false och ska ignoreras.
+      if (e && e.isTrusted === false) return;
       userIntent = toggle.checked;
       writeIntent(userIntent);
     });
