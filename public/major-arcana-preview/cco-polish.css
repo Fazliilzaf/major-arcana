@@ -1626,6 +1626,34 @@
       height: 22px;
       font-size: 11px;
     }
+
+    /* Gmail-mönster: göm 5 action-ikoner default, visa floating-overlay
+       på hover/focus. Primary-action (Öppna/Svara/Bekräfta bokning)
+       syns alltid till höger. Sender + subject får hela bredden default. */
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster {
+      position: relative;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+      display: none;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row:hover .action-cluster,
+    .preview-shell .thread-card.unified-queue-card.warm-row:focus-within .action-cluster,
+    .preview-shell .thread-card.unified-queue-card.warm-row.is-keyboard-focused .action-cluster {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, rgba(255,252,247,0) 0%, var(--warm-card) 18%);
+      padding: 8px 8px 8px 28px;
+      border-radius: 14px;
+      z-index: 5;
+      box-shadow: -8px 0 16px -8px rgba(120,80,40,0.12);
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row:hover .action-cluster .action-icon,
+    .preview-shell .thread-card.unified-queue-card.warm-row:focus-within .action-cluster .action-icon,
+    .preview-shell .thread-card.unified-queue-card.warm-row.is-keyboard-focused .action-cluster .action-icon {
+      display: inline-flex;
+    }
   }
 
   .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
