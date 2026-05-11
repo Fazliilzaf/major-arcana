@@ -11,13 +11,22 @@
 (() => {
   'use strict';
 
-  function getMailboxCountFromCard(card) {
-    // Försök hämta från data-attribut
-    const explicit = card.dataset.mailboxCount;
-    if (explicit && parseInt(explicit, 10) > 1) return parseInt(explicit, 10);
+  // Cache per threadId så badge överlever renderApp-wipes (annars
+  // försvinner badge varje gång appen re-renderar kortet, vilket
+  // användaren såg som "syns och försvinner när det hoppar").
+  const countCache = new Map(); // threadId → { count, addresses }
 
-    // Försök hämta från thread-objekt via window.__App?.state
+  function getMailboxCountFromCard(card) {
     const id = card.dataset.runtimeThread;
+    // 1) Försök hämta från data-attribut
+    const explicit = card.dataset.mailboxCount;
+    if (explicit && parseInt(explicit, 10) > 1) {
+      const n = parseInt(explicit, 10);
+      countCache.set(id, { count: n, addresses: card.dataset.mailboxAddresses || '' });
+      return n;
+    }
+
+    // 2) Försök hämta från thread-objekt via window.__App?.state
     try {
       const state = window.__App?.state || (typeof state !== 'undefined' ? state : null);
       const threads = state?.runtime?.threads || [];
@@ -26,12 +35,21 @@
         const addrs = t.mailboxAddresses || t.mailboxes || [];
         const unique = Array.from(new Set(addrs.filter(Boolean)));
         if (unique.length > 1) {
-          // Spara på cardet för tooltip
           card.dataset.mailboxAddresses = unique.join(',');
+          countCache.set(id, { count: unique.length, addresses: unique.join(',') });
           return unique.length;
         }
       }
     } catch (_e) {}
+
+    // 3) Fall back till cache (om vi tidigare visste att kortet hade fler)
+    if (id && countCache.has(id)) {
+      const cached = countCache.get(id);
+      if (cached.count > 1) {
+        if (cached.addresses) card.dataset.mailboxAddresses = cached.addresses;
+        return cached.count;
+      }
+    }
     return 0;
   }
 

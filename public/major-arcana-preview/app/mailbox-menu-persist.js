@@ -55,6 +55,38 @@
     });
   }
 
+  // Global utklick-handler: när användaren klickar UTANFÖR mailbox-menu
+  // OCH utanför togglens label, stäng + spara stängt-intent.
+  let outsideClickBound = false;
+  function bindOutsideClick() {
+    if (outsideClickBound) return;
+    outsideClickBound = true;
+    document.addEventListener('click', (e) => {
+      const toggle = document.getElementById('mailbox-menu-toggle');
+      if (!toggle || !toggle.checked) return;
+      // Klick inom mailbox-menu eller label = OK, behåll öppen
+      if (
+        e.target.closest('.mailbox-menu') ||
+        e.target.closest('label[for="mailbox-menu-toggle"]') ||
+        e.target.id === 'mailbox-menu-toggle'
+      ) {
+        // Användaren klickade på items i menyn → behåll öppen, men
+        // synca intent ifall klicket var direkt på togglen
+        setTimeout(() => {
+          userIntent = toggle.checked;
+          writeIntent(userIntent);
+        }, 50);
+        return;
+      }
+      // Klick utanför → stäng
+      isApplying = true;
+      toggle.checked = false;
+      isApplying = false;
+      userIntent = false;
+      writeIntent(false);
+    }, true);
+  }
+
   function tick() {
     bindToggleChange();
     applyIntent();
@@ -87,8 +119,9 @@
   }
 
   function init() {
-    // FÖRST: bind toggle-change så användarens KLICK fungerar direkt
+    // FÖRST: bind toggle-change + utklick-handler så användarens KLICK fungerar
     bindToggleChange();
+    bindOutsideClick();
 
     // SEN: vänta tills appen är settled, DÅ applicera persisted intent
     waitForSettled(() => {
