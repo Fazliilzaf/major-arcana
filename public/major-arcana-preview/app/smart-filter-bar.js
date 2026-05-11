@@ -66,12 +66,16 @@
     if (document.getElementById(BAR_ID)) return true;
     const shell = document.querySelector('.preview-shell');
     if (!shell) return false;
-    const footer = document.getElementById('cco-keyboard-footer');
     const bar = buildBar();
-    if (footer) {
-      shell.insertBefore(bar, footer);
+    // Mål: placera DIREKT FÖRE .queue-history-list så filter-bar sitter
+    // tillsammans med mailbox-väljaren och counts-row, INTE längst ner.
+    const list = shell.querySelector('.queue-history-list');
+    if (list && list.parentElement) {
+      list.parentElement.insertBefore(bar, list);
     } else {
-      shell.appendChild(bar);
+      const footer = document.getElementById('cco-keyboard-footer');
+      if (footer) shell.insertBefore(bar, footer);
+      else shell.appendChild(bar);
     }
     return true;
   }

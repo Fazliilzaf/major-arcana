@@ -2048,16 +2048,17 @@
 
   /* ============================================================
      Smart filter-bar (app/smart-filter-bar.js, 2026-05-11)
+     Placerad direkt FÖRE .queue-history-list (samlat med mailbox/counts)
      ============================================================ */
   .cco-smart-filter-bar {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 10px 16px;
-    margin-top: 12px;
-    border-top: 1px solid #F3E7DC;
-    background: linear-gradient(180deg, rgba(255,250,243,0) 0%, rgba(252,247,239,0.4) 100%);
+    padding: 8px 4px 10px;
+    margin: 4px 0 8px;
+    border-top: none;
+    background: transparent;
   }
   .cco-smart-filter-bar .smart-filter-label {
     font-size: 10px;
