@@ -10088,7 +10088,9 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     </main>
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
-    <!-- Bundlade scripts: 40 filer → 1, byggt av bin/build-bundle.js -->
+    <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
+    <script src="./runtime-config.js?v=build-bbe7758"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js -->
     <script src="./app.bundle.min.js"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
     <script src="./app/mock-worklist-api.js?v=build-bbe7758"></script>
@@ -10106,8 +10108,6 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="./app/bulk-actions.js?v=build-bbe7758"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
     <script src="./app/inbox-streak.js?v=build-bbe7758"></script>
-    <!-- AI-utkast inline-edit: klicka i utkast direkt i thread-card -->
-    <!-- Bundlade scripts: 7 filer → 1, byggt av bin/build-bundle.js -->
-    <script src="./app.bundle.min.js"></script>
+    <!-- AI-utkast inline-edit + Snooze + keyboard-footer + inbox-filter-toggle + mailbox-merge-badge + smart-filter-bar + mailbox-menu-persist är alla bundlade i app.bundle.min.js (laddad högre upp i body) -->
     </body>
 </html>
