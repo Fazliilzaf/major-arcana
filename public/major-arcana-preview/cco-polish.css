@@ -1608,6 +1608,205 @@
   }
 
   /* ============================================================
+     A: BREDDA INBOX-KOLUMN till 760px (2026-05-11)
+     ------------------------------------------------------------
+     Override JS-driven inline --workspace-left-width så kort
+     följer specen utan att kläms. Right-panel + focus krymps
+     hellre än kort.
+     ============================================================ */
+  .preview-canvas .preview-workspace {
+    grid-template-columns: 760px minmax(0, 1fr) !important;
+  }
+
+  /* ============================================================
+     SPEC-IMPLEMENTATION: thread-card enligt KOMPAKT-spec (2026-05-11)
+     ------------------------------------------------------------
+     Höjd 88-96px (var 128) · padding 12/16 · avatar 32 · actions 32
+     · öppna-pill 32 · sender 15/600 · subject 14/600 · preview 13/18
+     · meta 12 · Inter-typografi
+     ============================================================ */
+  .preview-shell .thread-card.unified-queue-card.warm-row {
+    min-height: 96px !important;
+    max-height: 96px !important;
+    padding: 12px 16px 12px 24px !important;
+    border-radius: 16px !important;
+    box-shadow:
+      0 2px 8px rgba(111, 78, 55, 0.04),
+      0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+    background-color: #FFFCF8 !important;
+    border: 1px solid #F3E7DC !important;
+    margin-bottom: 0 !important;
+  }
+  .queue-history-list {
+    gap: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row:hover {
+    background-color: #FFF6EE !important;
+    transform: none !important;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row .warm-rail {
+    width: 4px !important;
+    left: 0 !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    border-radius: 0 4px 4px 0 !important;
+  }
+  /* Lane-rail mockup-färger */
+  .preview-shell .thread-card.warm-row[data-lane="oklart"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="unclear"] .warm-rail { background: #7C3AED !important; }
+  .preview-shell .thread-card.warm-row[data-lane="act-now"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="urgent"] .warm-rail { background: #EF4444 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="sprint"] .warm-rail { background: #4F46E5 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="granska"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="review"] .warm-rail { background: #4F46E5 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="bokning"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="bookable"] .warm-rail { background: #16A34A !important; }
+  .preview-shell .thread-card.warm-row[data-lane="senare"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="later"] .warm-rail { background: #F59E0B !important; }
+  /* Lane-tag — kompakt monospace caps i färg */
+  .preview-shell .thread-card.warm-row .lane-badge {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+  }
+  .preview-shell .thread-card.warm-row[data-lane="oklart"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="unclear"] .lane-badge { color: #7C3AED !important; }
+  .preview-shell .thread-card.warm-row[data-lane="act-now"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="urgent"] .lane-badge { color: #EF4444 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="sprint"] .lane-badge { color: #4F46E5 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="granska"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="review"] .lane-badge { color: #4F46E5 !important; }
+  .preview-shell .thread-card.warm-row[data-lane="bokning"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="bookable"] .lane-badge { color: #16A34A !important; }
+  .preview-shell .thread-card.warm-row[data-lane="senare"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="later"] .lane-badge { color: #F59E0B !important; }
+
+  /* Avatar 32x32 */
+  .preview-shell .thread-card.warm-row .warm-avatar .avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    background: #F8ECDD !important;
+    color: #8B6A3D !important;
+  }
+  .preview-shell .thread-card.warm-row .warm-avatar .status-dot {
+    background: #2D7CD3 !important;
+    box-shadow: 0 0 0 2px #FFFCF8 !important;
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  /* Typografi enligt spec */
+  .preview-shell .thread-card.warm-row .warm-sender {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 20px !important;
+    color: #1F2937 !important;
+  }
+  .preview-shell .thread-card.warm-row .warm-subject,
+  .preview-shell .thread-card.warm-row .signal-what {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 20px !important;
+    color: #1F2937 !important;
+  }
+  .preview-shell .thread-card.warm-row .warm-preview {
+    font-size: 13px !important;
+    line-height: 18px !important;
+    color: #6B7280 !important;
+    -webkit-line-clamp: 1 !important;
+  }
+  .preview-shell .thread-card.warm-row .warm-top-meta,
+  .preview-shell .thread-card.warm-row .meta-date,
+  .preview-shell .thread-card.warm-row .meta-status {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #9CA3AF !important;
+  }
+  .preview-shell .thread-card.warm-row .warm-why,
+  .preview-shell .thread-card.warm-row .why-reason {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+
+  /* ACTIONS 32x32 (back to spec) — override mini overrides */
+  .preview-shell .thread-card.warm-row .action-cluster {
+    gap: 4px !important;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .action-icon {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 7px !important;
+    border-radius: 999px !important;
+    background: #FFFAF0 !important;
+    border: 1px solid #ECDDC4 !important;
+    /* SYNS ALLTID — ta bort hover-only-trick */
+    display: inline-flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: static !important;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .action-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  /* Återställ static-position på action-cluster (overlay-trick borta) */
+  .preview-shell .thread-card.warm-row .action-cluster,
+  .preview-shell .thread-card.warm-row:hover .action-cluster,
+  .preview-shell .thread-card.warm-row:focus-within .action-cluster,
+  .preview-shell .thread-card.warm-row.is-keyboard-focused .action-cluster {
+    position: static !important;
+    transform: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    right: auto !important;
+    top: auto !important;
+  }
+  /* Öppna-pill 32px höjd */
+  .preview-shell .thread-card.warm-row .action-cluster .primary-action {
+    height: 32px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 999px !important;
+    background: #FFFAF0 !important;
+    border: 1px solid #ECDDC4 !important;
+    color: #1F2937 !important;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .primary-action:hover {
+    background: #FFF1DC !important;
+  }
+
+  /* Multi-mailkonto badge (C) */
+  .preview-shell .thread-card.warm-row .warm-avatar {
+    position: relative;
+  }
+  .preview-shell .thread-card.warm-row .warm-avatar[data-mailbox-count]::before {
+    content: attr(data-mailbox-count);
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #8B6A3D;
+    color: #FFF9F1;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #FFFCF8;
+    z-index: 2;
+    cursor: help;
+  }
+
+  /* ============================================================
      Stadium 3: kort-grid-perfection (2026-05-11)
      ------------------------------------------------------------
      Matcha mockupens visuella stil:
@@ -1845,6 +2044,52 @@
   /* Generell shell-padding reducerad */
   .preview-shell {
     padding-top: 12px !important;
+  }
+
+  /* ============================================================
+     Smart filter-bar (app/smart-filter-bar.js, 2026-05-11)
+     ============================================================ */
+  .cco-smart-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+    margin-top: 12px;
+    border-top: 1px solid #F3E7DC;
+    background: linear-gradient(180deg, rgba(255,250,243,0) 0%, rgba(252,247,239,0.4) 100%);
+  }
+  .cco-smart-filter-bar .smart-filter-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #8B7660;
+    margin-right: 8px;
+  }
+  .cco-smart-filter-bar .smart-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #FFFAF0;
+    border: 1px solid #ECDDC4;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #5A4838;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .cco-smart-filter-bar .smart-filter-chip:hover {
+    background: #FFF1DC;
+    border-color: #DCC8A6;
+  }
+  .cco-smart-filter-bar .smart-filter-chip.is-active {
+    background: linear-gradient(180deg, #FFE7C7 0%, #FCD9AB 100%);
+    border-color: #DCC8A6;
+    color: #6B3F0E;
+    box-shadow: inset 0 0 0 1px rgba(190, 130, 60, 0.25);
   }
 
   /* ============================================================
