@@ -1608,6 +1608,94 @@
   }
 
   /* ============================================================
+     Stadium 3: kort-grid-perfection (2026-05-11)
+     ------------------------------------------------------------
+     Matcha mockupens visuella stil:
+     - 24px border-radius (var 18px)
+     - 128px konstant höjd
+     - padding 16/20/16/34 (extra left för lane-rail)
+     - lane-rail 4px bred (var 3px)
+     - Mockup card-bg #FFFCF8, border #F1E7DD
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row {
+    border-radius: 24px !important;
+    background-color: #FFFCF8 !important;
+    border-color: #F1E7DD !important;
+    min-height: 128px !important;
+    max-height: 128px !important;
+    padding: 14px 18px 14px 28px !important;
+    box-shadow:
+      0 10px 30px rgba(111, 78, 55, 0.055),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  }
+  .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
+    background-color: #FFF9F1 !important;
+  }
+  .thread-card.unified-queue-card.warm-row:hover {
+    background-color: #FFF7EE !important;
+    transform: translateY(-1px) !important;
+    box-shadow:
+      0 14px 34px rgba(111, 78, 55, 0.075),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  }
+  /* Lane-rail bredare och rundare som mockup */
+  .thread-card.unified-queue-card.warm-row .warm-rail {
+    left: 0 !important;
+    top: 12px !important;
+    bottom: 12px !important;
+    width: 4px !important;
+    border-radius: 0 8px 8px 0 !important;
+    opacity: 0.95 !important;
+  }
+  /* Lane-tag tightare i mockup-stil */
+  .thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
+    font-size: 10.5px !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1 !important;
+  }
+  /* Konsistent gap för warm-mid (avatar + content + actions) */
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    column-gap: 14px !important;
+  }
+  /* Avatar — mockup-stil med subtilare ring */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+    box-shadow:
+      inset 0 0 0 1px rgba(160, 110, 60, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  }
+  /* Status-dot på avatar — mockup-blå */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
+    background: #2D7CD3 !important;
+    box-shadow: 0 0 0 2px #FFFCF8 !important;
+  }
+  /* Status-rad — kompaktare som mockup */
+  .thread-card.unified-queue-card.warm-row .warm-why {
+    margin-top: 4px !important;
+    gap: 5px !important;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why-icon svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  /* Primary-pill — mockup-stil (rundad, subtil) */
+  .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, rgba(255,250,243,0.95) 0%, rgba(252,245,234,0.95) 100%) !important;
+    border: 1px solid #ECDDC4 !important;
+    color: var(--warm-text-1) !important;
+    font-weight: 600 !important;
+    transition: all 140ms ease !important;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
+    background: linear-gradient(180deg, #FFE7C7 0%, #FCD9AB 100%) !important;
+    color: #6B3F0E !important;
+  }
+
+  /* ============================================================
      Stadium 2: slimma topbar mot mockup-stil (2026-05-11)
      ------------------------------------------------------------
      Mockup har: [Inbox] [Streak] [Sök ⌘K] [Live·N] [Filter] [E]
