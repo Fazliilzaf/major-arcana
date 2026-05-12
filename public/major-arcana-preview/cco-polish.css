@@ -2523,31 +2523,35 @@
     display: none;
   }
 
-  /* Individual pill */
+  /* Individual pill — matchar "↺ Svar krävs nu"-stil: ljus bakgrund,
+     färgad SVG-ikon + färgad text, mjuk border i samma färgton. */
   .signal-pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
+    gap: 5px;
+    padding: 4px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
     line-height: 1.2;
-    background: color-mix(in srgb, var(--signal-color, #64748b) 12%, transparent);
+    background: #ffffff;
     color: var(--signal-color, #64748b);
     border: 1px solid
-      color-mix(in srgb, var(--signal-color, #64748b) 22%, transparent);
+      color-mix(in srgb, var(--signal-color, #64748b) 28%, #ecddc4);
     white-space: nowrap;
     flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
-  .signal-pill-icon {
-    font-size: 10px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
+  .signal-pill svg.signal-pill-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
   }
   .signal-pill-label {
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
   }
 
   /* Göm originalen på testkortet — undvik visuell dubbling */
