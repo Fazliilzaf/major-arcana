@@ -2496,28 +2496,39 @@
      på .has-signal-bar så de inte dubbleras visuellt.
      ────────────────────────────────────────────────────────────────── */
 
-  /* Container — horisontell scroll om för många pills */
+  /* Container — horisontell scroll om för många pills.
+     Kortet är CSS grid (96px). Vi positionerar bar:en absolut längst ner
+     och utökar kort-höjden så bar:en får plats utan att krocka med övrigt
+     content. */
   .thread-card.has-signal-bar {
-    padding-bottom: 0 !important;
+    position: relative;
+    min-height: 124px !important;
+    padding-bottom: 32px !important;
   }
-  .thread-card-signal-bar {
+  .thread-card.has-signal-bar .thread-card-signal-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    margin-top: 6px;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
-    border-top: 1px solid rgba(15, 23, 42, 0.06);
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
     background: linear-gradient(
       180deg,
-      rgba(248, 250, 252, 0) 0%,
-      rgba(248, 250, 252, 0.6) 100%
+      rgba(252, 250, 247, 0.8) 0%,
+      rgba(247, 244, 239, 0.95) 100%
     );
+    border-radius: 0 0 var(--card-border-radius, 12px)
+      var(--card-border-radius, 12px);
     scrollbar-width: none;
     -ms-overflow-style: none;
+    z-index: 2;
   }
   .thread-card-signal-bar::-webkit-scrollbar {
     display: none;
