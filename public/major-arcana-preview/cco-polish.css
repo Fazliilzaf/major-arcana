@@ -2535,4 +2535,11 @@
   .thread-card.has-inline-signals .lane-badge {
     display: none !important;
   }
+
+  /* När lane-badge är gömd hamnar .warm-top-meta (07:31 · Ej tilldelad)
+     till vänster pga justify-content:space-between. Tvinga den till
+     höger med margin-left: auto. */
+  .thread-card.has-inline-signals .warm-top-meta {
+    margin-left: auto;
+  }
 } /* end @layer components */
