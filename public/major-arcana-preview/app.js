@@ -12765,13 +12765,44 @@
       });
     });
 
+    // Specialregel: om Kontakt är vald är den "samlingspunkten" — alla
+    // cross-mailbox-trådar (där samma kund skrivit till flera mailboxar)
+    // visas här oavsett primary mailbox.
+    const contactSelected = Array.from(allowedMailboxTokens).some(
+      (t) => /^contact|^kontakt/.test(String(t))
+    );
+
     return threads.filter((thread) => {
+      // 1) Primary mailbox match (befintligt beteende)
       const threadMailboxTokens = getMailboxIdentityTokens({
         id: thread?.mailboxAddress,
         email: thread?.mailboxAddress,
         label: thread?.mailboxLabel,
       });
-      return threadMailboxTokens.some((token) => allowedMailboxTokens.has(normalizeMailboxId(token)));
+      if (threadMailboxTokens.some((token) => allowedMailboxTokens.has(normalizeMailboxId(token)))) {
+        return true;
+      }
+
+      // 2) Mailbox-trail / mailboxAddresses match — tråden har gått
+      //    genom en mailbox som är vald
+      const trail = asArray(thread?.mailboxTrail).concat(asArray(thread?.mailboxAddresses));
+      for (const item of trail) {
+        const token = normalizeMailboxId(item);
+        if (token && allowedMailboxTokens.has(token)) return true;
+      }
+
+      // 3) Kontakt-samlingsregel: om Kontakt valt, inkludera alla
+      //    cross-mailbox-trådar oavsett vilka mailboxar de har gått genom
+      if (
+        contactSelected &&
+        (thread?.crossMailboxProvenanceEvidence === true ||
+          asArray(thread?.mailboxTrail).length > 1 ||
+          asArray(thread?.mailboxAddresses).length > 1)
+      ) {
+        return true;
+      }
+
+      return false;
     });
   }
 
