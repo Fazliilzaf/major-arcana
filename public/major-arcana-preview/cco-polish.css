@@ -2696,4 +2696,14 @@
     line-height: 1.2 !important;
     margin-top: 1px !important;
   }
+
+  /* Pusha pill-raden till nedre kanten av kortet — fyll ut content
+     med utrymme ovanför pillsen */
+  .preview-shell .thread-card.has-inline-signals .warm-content {
+    height: 100% !important;
+  }
+  .preview-shell .thread-card.has-inline-signals .warm-why-extras {
+    margin-top: auto !important;
+    padding-top: 2px !important;
+  }
 } /* end @layer components */
