@@ -2497,13 +2497,14 @@
      ────────────────────────────────────────────────────────────────── */
 
   /* Container — horisontell scroll om för många pills.
-     Kortet är CSS grid (96px). Vi positionerar bar:en absolut längst ner
-     och utökar kort-höjden så bar:en får plats utan att krocka med övrigt
-     content. */
+     Kortet är CSS grid (96px fixed). För att signal-bar ska få plats
+     måste vi override height: auto + max-height: none så kortet kan växa. */
   .thread-card.has-signal-bar {
     position: relative;
-    min-height: 124px !important;
-    padding-bottom: 32px !important;
+    height: auto !important;
+    min-height: 130px !important;
+    max-height: none !important;
+    padding-bottom: 36px !important;
   }
   .thread-card.has-signal-bar .thread-card-signal-bar {
     position: absolute;
