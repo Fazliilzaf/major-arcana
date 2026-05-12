@@ -179,18 +179,64 @@
       seenLabels.add('miss-risk');
     }
 
-    // 4) Mailbox
-    const toneClass = card.className.match(/mailbox-(?:tone-)?([a-z]+)/);
-    let mailboxKey = toneClass?.[1];
-    if (!mailboxKey) {
-      const avatar = card.querySelector('.warm-avatar');
-      if (avatar) {
-        const m = avatar.className.match(/mailbox-(?:tone-)?([a-z]+)/);
-        if (m) mailboxKey = m[1];
-      }
+    // 4) Mailbox — multi om cross-mailbox-tråd, annars single
+    //    Cross-mailbox: thread.mailboxAddresses (emails) ELLER mailboxTrail
+    //    (svenska labels: Egzona/Kontakt/Fazli/etc.)
+    let mailboxAddresses = (card.dataset.mailboxAddresses || '')
+      .split(',').map((s) => s.trim()).filter(Boolean);
+
+    // Fallback: läs thread.mailboxTrail från window.__App?.state om finns
+    if (mailboxAddresses.length < 2) {
+      try {
+        const state = window.__App?.state;
+        const threads = state?.runtime?.threads || state?.data?.threads || [];
+        const t = threads.find((x) => x && x.id === card.dataset.runtimeThread);
+        if (t && Array.isArray(t.mailboxTrail) && t.mailboxTrail.length > 1) {
+          // Konvertera svenska labels → keys för MAILBOX_COLORS-lookup
+          const trail = t.mailboxTrail
+            .map((label) => String(label).toLowerCase().trim())
+            .filter(Boolean);
+          if (trail.length > 1) {
+            mailboxAddresses = trail; // använd keys direkt (matchar MAILBOX_COLORS)
+          }
+        }
+      } catch (_e) {}
     }
-    if (mailboxKey && MAILBOX_COLORS[mailboxKey]) {
-      out.push({ ...MAILBOX_COLORS[mailboxKey], icon: 'inbox', type: 'mailbox' });
+
+    if (mailboxAddresses.length > 1) {
+      // Cross-mailbox: rendera EN pill per unik mailbox.
+      // Sortera så contact/kontakt kommer först (samlingspunkten).
+      const sorted = mailboxAddresses.slice().sort((a, b) => {
+        const ka = a.split('@')[0].toLowerCase();
+        const kb = b.split('@')[0].toLowerCase();
+        if (/^contact|kontakt/.test(ka)) return -1;
+        if (/^contact|kontakt/.test(kb)) return 1;
+        return 0;
+      });
+      const seenKeys = new Set();
+      sorted.forEach((addr) => {
+        const key = addr.split('@')[0].toLowerCase();
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+        const m = MAILBOX_COLORS[key];
+        if (m) {
+          out.push({ ...m, icon: 'inbox', type: 'mailbox' });
+        }
+      });
+    } else {
+      // Single mailbox — fallback till mailbox-tone-class
+      const toneClass = card.className.match(/mailbox-(?:tone-)?([a-z]+)/);
+      let mailboxKey = toneClass?.[1];
+      if (!mailboxKey) {
+        const avatar = card.querySelector('.warm-avatar');
+        if (avatar) {
+          const m = avatar.className.match(/mailbox-(?:tone-)?([a-z]+)/);
+          if (m) mailboxKey = m[1];
+        }
+      }
+      if (mailboxKey && MAILBOX_COLORS[mailboxKey]) {
+        out.push({ ...MAILBOX_COLORS[mailboxKey], icon: 'inbox', type: 'mailbox' });
+      }
     }
 
     // 5) Ägare
