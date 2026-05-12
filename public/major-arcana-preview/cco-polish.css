@@ -2712,4 +2712,120 @@
     margin-top: auto !important;
     padding-top: 2px !important;
   }
+
+  /* ──────────────────────────────────────────────────────────────────
+     Onboarding-tour (app/onboarding-tour.js, 2026-05-12)
+     First-visit walkthrough med spotlight + tooltip.
+     ────────────────────────────────────────────────────────────────── */
+
+  .onboarding-tour-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 9998;
+    pointer-events: none;
+    /* Spotlight via radial-gradient som "skär hål" i overlayen */
+    background: radial-gradient(
+      circle var(--spotlight-size, 200px) at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+      transparent 0%,
+      transparent 60%,
+      rgba(15, 23, 42, 0.55) 80%,
+      rgba(15, 23, 42, 0.6) 100%
+    );
+    animation: onboarding-fade-in 200ms ease;
+  }
+  @keyframes onboarding-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .onboarding-tour-tooltip {
+    position: absolute;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    padding: 18px 22px 18px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow:
+      0 14px 32px rgba(15, 23, 42, 0.18),
+      0 4px 8px rgba(15, 23, 42, 0.08);
+    z-index: 9999;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #0f172a;
+    animation: onboarding-pop-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes onboarding-pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .onboarding-tour-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 120ms ease;
+  }
+  .onboarding-tour-close:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  .onboarding-tour-step-count {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .onboarding-tour-tooltip h4 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .onboarding-tour-tooltip p {
+    margin: 0 0 16px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: #475569;
+  }
+  .onboarding-tour-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .onboarding-tour-actions button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 140ms ease;
+  }
+  .onboarding-tour-prev {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+  .onboarding-tour-prev:hover {
+    background: #f1f5f9;
+  }
+  .onboarding-tour-next,
+  .onboarding-tour-finish {
+    background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+    color: #fff;
+  }
+  .onboarding-tour-next:hover,
+  .onboarding-tour-finish:hover {
+    background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%);
+  }
 } /* end @layer components */
