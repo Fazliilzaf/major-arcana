@@ -147,6 +147,9 @@
     const signals = buildSignals(card);
     if (!signals.length) return;
     card.classList.add('has-signal-bar');
+    // Inline-style: vinner över befintliga CSS-regler som tvingar 96px höjd.
+    card.style.cssText +=
+      ';position:relative;height:auto;min-height:130px;max-height:none;padding-bottom:36px;';
     let bar = card.querySelector(':scope > .thread-card-signal-bar');
     if (!bar) {
       bar = document.createElement('div');
