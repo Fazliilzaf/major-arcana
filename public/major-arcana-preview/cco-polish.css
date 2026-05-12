@@ -2496,40 +2496,39 @@
      på .has-signal-bar så de inte dubbleras visuellt.
      ────────────────────────────────────────────────────────────────── */
 
-  /* Container — horisontell scroll om för många pills.
-     Kortet är CSS grid (96px fixed). För att signal-bar ska få plats
-     måste vi override height: auto + max-height: none så kortet kan växa. */
+  /* Kortet är CSS grid med areas "top" "mid" och tvingad 96px. Vi
+     överrider grid-template-areas + rows för att lägga till "signal"-
+     raden, samt height/max-height så kortet får växa. */
+  .preview-shell .queue-history-list .thread-card.has-signal-bar,
   .thread-card.has-signal-bar {
-    position: relative;
+    position: relative !important;
     height: auto !important;
-    min-height: 130px !important;
+    min-height: 134px !important;
     max-height: none !important;
-    padding-bottom: 36px !important;
+    grid-template-areas: "top" "mid" "signal" !important;
+    grid-template-rows: 15px 37.99px auto !important;
   }
   .thread-card.has-signal-bar .thread-card-signal-bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    grid-area: signal;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 7px 12px 9px;
+    margin-top: 4px;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
     border-top: 1px solid rgba(15, 23, 42, 0.08);
     background: linear-gradient(
       180deg,
-      rgba(252, 250, 247, 0.8) 0%,
-      rgba(247, 244, 239, 0.95) 100%
+      rgba(252, 250, 247, 0.6) 0%,
+      rgba(247, 244, 239, 0.92) 100%
     );
     border-radius: 0 0 var(--card-border-radius, 12px)
       var(--card-border-radius, 12px);
     scrollbar-width: none;
     -ms-overflow-style: none;
-    z-index: 2;
   }
   .thread-card-signal-bar::-webkit-scrollbar {
     display: none;
