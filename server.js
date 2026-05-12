@@ -3,7 +3,24 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('node:fs');
 const path = require('node:path');
-const { chromium } = require('playwright');
+
+// Lazy-load playwright: require synkront vid top-level kraschade Node-
+// processen med SIGABRT (status 134) vid Render-runtime när chromium-
+// binärerna saknades eller native deps inte var installerade. Nu laddas
+// playwright bara när PDF/screenshot-feature faktiskt anropas, och
+// failure där bryter inte hela servern.
+let __playwrightChromium = null;
+function getChromium() {
+  if (__playwrightChromium) return __playwrightChromium;
+  try {
+    const pw = require('playwright');
+    __playwrightChromium = pw.chromium;
+    return __playwrightChromium;
+  } catch (error) {
+    console.error('Playwright kunde inte laddas (chromium-feature otillgänglig):', error.message);
+    throw new Error('Playwright/Chromium är inte tillgängligt i denna miljö.');
+  }
+}
 
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
@@ -100,6 +117,7 @@ async function sendStaticPagePdf(
   let browser;
 
   try {
+    const chromium = getChromium();
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport, ...pageOptions });
     const origin = `${req.protocol}://${req.get('host')}`;

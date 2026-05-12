@@ -3,11 +3,12 @@ services:
     name: arcana-cco
     runtime: node
     plan: starter
-    # Build i två steg: deps utan playwright-browsers, sedan chromium
-    # till persistent disk. Detta löser status 134 SIGABRT på starter-
-    # plan (orsakad av OOM/timeout under postinstall-browser-download
-    # som triggades av "playwright" i dependencies).
-    buildCommand: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium
+    # Build: standard npm ci + post-install playwright-chromium till
+    # persistent disk så browsers cachas mellan deploys.
+    # (Status 134 var runtime-crash, INTE build-fail — server.js har
+    # nu lazy-load av playwright så startup inte längre kraschar om
+    # browsers saknas.)
+    buildCommand: npm ci && PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå"
     startCommand: npm start
     disk:
       name: arcana-cco-data
