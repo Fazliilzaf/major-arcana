@@ -1626,8 +1626,14 @@
      · meta 12 · Inter-typografi
      ============================================================ */
   .preview-shell .thread-card.unified-queue-card.warm-row {
+    /* min-height 96 = behåll spec-höjd som default.
+       max-height borttagen 2026-05-12: tidigare 96px tvingade kortet
+       till fix höjd vilket krockade med signal-bar som behöver utrymme.
+       Nu växer kortet naturligt om innehåll kräver (signal-pills,
+       expanderade sub-trådar etc.). Eliminerar grid-template-areas-hack-
+       kedjan. */
     min-height: 96px !important;
-    max-height: 96px !important;
+    height: auto !important;
     padding: 12px 16px 12px 24px !important;
     border-radius: 16px !important;
     box-shadow:
