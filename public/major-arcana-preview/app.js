@@ -17616,9 +17616,9 @@
           </span>
           <span class="mailbox-option-secondary">
             <span class="mailbox-option-email">${mailboxEmail}</span>
-            <span class="mailbox-option-meta">${metaCopy}</span>
           </span>
         </span>`;
+      // .mailbox-option-meta borttagen 2026-05-12 — användaren ville inte ha info'n.
       mailboxOptionsContainer.insertBefore(label, mailboxAdminOpenButton);
     });
   }

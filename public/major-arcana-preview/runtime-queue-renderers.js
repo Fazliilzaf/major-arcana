@@ -4534,9 +4534,11 @@
                   ? `<span class="mailbox-option-email">${escapeHtml(mailbox.email)}</span>`
                   : ""
               }
-              <span class="mailbox-option-meta">${escapeHtml(dropdownMeta)}</span>
             </span>
           </span>`;
+        // .mailbox-option-meta borttagen 2026-05-12: orsakade flicker
+        // mellan capability-text ('Läs: spärrad...') och tråd-count ('· 246')
+        // mellan renderApp-cykler. Användaren ville inte ha den info'n.
         mailboxMenuGrid.appendChild(label);
       });
       const addButton = document.createElement("button");
