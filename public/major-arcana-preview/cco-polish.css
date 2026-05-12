@@ -2480,4 +2480,12 @@
   .mailbox-menu .mailbox-option-meta {
     display: none !important;
   }
+
+  /* Dölj .shim-mbx-count — den span:en (' · 53', ' · 186') skapas av
+     runtime-queue-renderers __applyMailboxCountsToDom() och appendas till
+     .mailbox-option-copy. Användaren ville inte ha tråd-count under namn. */
+  .mailbox-menu .shim-mbx-count,
+  .shim-mbx-count {
+    display: none !important;
+  }
 } /* end @layer components */
