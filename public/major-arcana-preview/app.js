@@ -25967,7 +25967,24 @@ renderStudioShell();
       });
 
       const text = await response.text();
-      const payload = text ? JSON.parse(text) : {};
+      // Content-type-check innan JSON.parse: i preview/demo-mode returnerar
+      // static-servern HTML (DOCTYPE) som SPA-fallback för okända API-paths.
+      // JSON.parse(HTML) → SyntaxError som spammade konsolen ~1ggr/sek efter
+      // mailbox-change. Vi behandlar HTML som tom payload tyst.
+      const contentType = (response.headers.get("content-type") || "").toLowerCase();
+      let payload = {};
+      if (text) {
+        const looksLikeHtml = contentType.includes("text/html") || /^\s*<(!doctype|html)/i.test(text);
+        if (looksLikeHtml) {
+          payload = {};
+        } else {
+          try {
+            payload = JSON.parse(text);
+          } catch (_parseError) {
+            payload = {};
+          }
+        }
+      }
 
       if (
         !response.ok &&
