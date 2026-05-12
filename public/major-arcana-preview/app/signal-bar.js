@@ -33,17 +33,29 @@
   };
 
   // Lane-mappning: lane-id → { label, color, icon }
+  // Inkluderar både engelska (act-now) och svenska (agera-nu) keys
+  // eftersom data-lane kan vara på endera språk.
   const LANES = {
-    'act-now':  { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
-    'act_now':  { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
-    'sprint':   { label: 'Sprint',    color: '#4F46E5', icon: 'bolt' },
-    'bookable': { label: 'Bokning',   color: '#16A34A', icon: 'calendar' },
-    'booking':  { label: 'Bokning',   color: '#16A34A', icon: 'calendar' },
-    'review':   { label: 'Granska',   color: '#4F46E5', icon: 'eye' },
-    'unclear':  { label: 'Oklart',    color: '#7C3AED', icon: 'question' },
-    'later':    { label: 'Senare',    color: '#F59E0B', icon: 'clock' },
-    'admin':    { label: 'Admin',     color: '#64748B', icon: 'gear' },
-    'medical':  { label: 'Medicinsk', color: '#0EA5E9', icon: 'plus' },
+    // Engelska
+    'act-now':   { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
+    'act_now':   { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
+    'sprint':    { label: 'Sprint',    color: '#4F46E5', icon: 'bolt' },
+    'bookable':  { label: 'Bokning',   color: '#16A34A', icon: 'calendar' },
+    'booking':   { label: 'Bokning',   color: '#16A34A', icon: 'calendar' },
+    'review':    { label: 'Granska',   color: '#4F46E5', icon: 'eye' },
+    'unclear':   { label: 'Oklart',    color: '#7C3AED', icon: 'question' },
+    'later':     { label: 'Senare',    color: '#F59E0B', icon: 'clock' },
+    'admin':     { label: 'Admin',     color: '#64748B', icon: 'gear' },
+    'medical':   { label: 'Medicinsk', color: '#0EA5E9', icon: 'plus' },
+    // Svenska (matchar app.js fixture-data)
+    'agera-nu':  { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
+    'agera_nu':  { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
+    'oklart':    { label: 'Oklart',    color: '#7C3AED', icon: 'question' },
+    'granska':   { label: 'Granska',   color: '#4F46E5', icon: 'eye' },
+    'bokning':   { label: 'Bokning',   color: '#16A34A', icon: 'calendar' },
+    'senare':    { label: 'Senare',    color: '#F59E0B', icon: 'clock' },
+    'medicinsk': { label: 'Medicinsk', color: '#0EA5E9', icon: 'plus' },
+    'medicinskt':{ label: 'Medicinsk', color: '#0EA5E9', icon: 'plus' },
   };
 
   function makeSvg(iconKey, color) {
