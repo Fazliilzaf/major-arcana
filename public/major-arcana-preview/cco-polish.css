@@ -2550,18 +2550,18 @@
   }
 
   /* Kompaktera vertikal spacing — flytta tid+ägar-status till absolut
-     position top-right så content (avatar+namn+preview+pills) kan börja
-     vid topp utan att .warm-top tar upp en hel rad. */
+     position top-right + minska padding/avatar/action så all content
+     (avatar + namn + preview + pills + actions) ryms inom 96px-höjden. */
   .preview-shell .queue-history-list .thread-card.has-inline-signals,
   .preview-shell .thread-card.has-inline-signals {
     position: relative !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
   }
   .preview-shell .thread-card.has-inline-signals .warm-top {
     position: absolute !important;
-    top: 10px !important;
-    right: 16px !important;
+    top: 8px !important;
+    right: 14px !important;
     margin: 0 !important;
     padding: 0 !important;
     min-height: 0 !important;
@@ -2572,5 +2572,38 @@
     align-items: flex-start !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
+    gap: 0 8px !important;
+  }
+  /* Avatar mindre + start från top */
+  .preview-shell .thread-card.has-inline-signals .warm-avatar {
+    margin-top: 0 !important;
+    align-self: flex-start !important;
+  }
+  /* Action-buttons mer kompakta */
+  .preview-shell .thread-card.has-inline-signals .warm-actions .action-icon {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  .preview-shell .thread-card.has-inline-signals .warm-actions .action-icon svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  /* CTA-knapp (Svara / Bekräfta bokning / Öppna) kompakt */
+  .preview-shell .thread-card.has-inline-signals .warm-cta-button,
+  .preview-shell .thread-card.has-inline-signals .warm-actions > button:not(.action-icon),
+  .preview-shell .thread-card.has-inline-signals .warm-actions a {
+    height: 26px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 26px !important;
+    font-size: 12px !important;
+  }
+  /* Tightare line-height på namn-rad + preview */
+  .preview-shell .thread-card.has-inline-signals .warm-line-1 {
+    line-height: 1.15 !important;
+  }
+  .preview-shell .thread-card.has-inline-signals .warm-preview {
+    line-height: 1.2 !important;
+    margin-top: 1px !important;
   }
 } /* end @layer components */
