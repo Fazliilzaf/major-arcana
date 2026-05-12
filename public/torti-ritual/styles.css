@@ -2044,7 +2044,7 @@ input {
   padding: 6px 10px;
   border: 1px solid rgba(88, 63, 46, 0.06);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--muted);
   box-shadow: 0 4px 8px rgba(75, 53, 37, 0.015);
   cursor: pointer;
@@ -2053,7 +2053,7 @@ input {
 
 .collection-tab.is-active {
   border-color: rgba(67, 50, 39, 0.2);
-  background: rgba(255, 251, 245, 0.94);
+  background: rgba(255, 253, 248, 0.98);
   color: var(--ink);
   box-shadow: 0 7px 14px rgba(75, 53, 37, 0.04);
 }
@@ -2477,9 +2477,9 @@ input {
 .product-empty {
   min-height: 76px;
   border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.94);
   padding: 9px 10px;
-  box-shadow: 0 7px 15px rgba(75, 53, 37, 0.03);
+  box-shadow: 0 4px 10px rgba(75, 53, 37, 0.02);
 }
 
 .product-card {
@@ -2495,8 +2495,8 @@ input {
 
 .product-card.is-pending {
   border-color: rgba(59, 42, 31, 0.5);
-  background: rgba(255, 252, 246, 0.98);
-  box-shadow: 0 14px 28px rgba(75, 53, 37, 0.06);
+  background: rgba(255, 254, 250, 0.99);
+  box-shadow: 0 8px 16px rgba(75, 53, 37, 0.03);
 }
 
 .product-copy {
