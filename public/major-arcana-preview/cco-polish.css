@@ -2473,4 +2473,11 @@
   .preview-shell .queue-secondary-signal-strip {
     display: none !important;
   }
+
+  /* Dölj .mailbox-option-meta i dropdown — flickrar mellan "Läs: spärrad
+     · Skicka: spärrad..." och "· N" (tråd-count) på olika renderApp-cykler.
+     Stör läsning. Behåll bara namn + status-pill + email. */
+  .mailbox-menu .mailbox-option-meta {
+    display: none !important;
+  }
 } /* end @layer components */
