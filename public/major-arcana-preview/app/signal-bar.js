@@ -93,8 +93,20 @@
     if (!txt) return null;
     const kind = why.dataset.whyKind || '';
 
-    if (/svar krävs|behöver svar/i.test(txt)) {
-      return { label: 'Behöver svar', color: '#4F46E5', icon: 'refresh', type: 'status' };
+    if (/svar krävs|behöver svar|^svara nu$/i.test(txt)) {
+      return { label: 'Svara nu', color: '#4F46E5', icon: 'refresh', type: 'status' };
+    }
+    if (/^svara$/i.test(txt)) {
+      return { label: 'Svara', color: '#4F46E5', icon: 'refresh', type: 'status' };
+    }
+    if (/granska/i.test(txt)) {
+      return { label: 'Granska', color: '#F59E0B', icon: 'eye', type: 'status' };
+    }
+    if (/bekräfta/i.test(txt)) {
+      return { label: 'Bekräfta', color: '#16A34A', icon: 'check', type: 'status' };
+    }
+    if (/pågår|in.progress/i.test(txt)) {
+      return { label: 'Pågår', color: '#6366F1', icon: 'bolt', type: 'status' };
     }
     if (/miss.risk/i.test(txt)) {
       return { label: 'Miss-risk', color: '#F59E0B', icon: 'warning', type: 'risk' };
@@ -193,6 +205,21 @@
     }
     if (card.classList.contains('is-just-returned') || card.querySelector('.snooze-pill-returned')) {
       out.push({ label: 'Återkommer', color: '#3B82F6', icon: 'undo', type: 'returned' });
+    }
+
+    // 8) Next-action (Svara nu / Granska tråden / Bekräfta bokning) från
+    //    eventuell .warm-cta / next-action-element (om de finns i DOM)
+    const ctaText = (
+      card.querySelector('.warm-cta, .warm-next-action, [data-next-action]')?.textContent || ''
+    ).trim();
+    if (ctaText && ctaText.length < 30 && !seenLabels.has(ctaText.toLowerCase())) {
+      if (/svara nu|svar krävs/i.test(ctaText)) {
+        out.push({ label: 'Svara nu', color: '#4F46E5', icon: 'refresh', type: 'cta' });
+      } else if (/granska/i.test(ctaText)) {
+        out.push({ label: ctaText, color: '#F59E0B', icon: 'eye', type: 'cta' });
+      } else if (/bekräfta|boka/i.test(ctaText)) {
+        out.push({ label: ctaText, color: '#16A34A', icon: 'check', type: 'cta' });
+      }
     }
 
     return out;
