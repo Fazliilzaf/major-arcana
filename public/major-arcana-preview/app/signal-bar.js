@@ -59,18 +59,25 @@
   };
 
   const MAILBOX_COLORS = {
-    egzona:  { label: 'Egzona',  color: '#BE2166' },
-    contact: { label: 'Kontakt', color: '#4F46E5' },
-    kontakt: { label: 'Kontakt', color: '#4F46E5' },
-    fazli:   { label: 'Fazli',   color: '#5F2CFF' },
-    receipt: { label: 'Kvitto',  color: '#0891B2' },
-    kvitto:  { label: 'Kvitto',  color: '#0891B2' },
-    info:    { label: 'Info',    color: '#0EA5E9' },
-    consult: { label: 'Kons',    color: '#16A34A' },
-    kons:    { label: 'Kons',    color: '#16A34A' },
-    market:  { label: 'Marknad', color: '#F59E0B' },
-    marknad: { label: 'Marknad', color: '#F59E0B' },
+    egzona:  { label: 'Egzona',  color: '#BE2166', initial: 'E' },
+    contact: { label: 'Kontakt', color: '#4F46E5', initial: 'K' },
+    kontakt: { label: 'Kontakt', color: '#4F46E5', initial: 'K' },
+    fazli:   { label: 'Fazli',   color: '#5F2CFF', initial: 'F' },
+    receipt: { label: 'Kvitto',  color: '#0891B2', initial: 'Kv' },
+    kvitto:  { label: 'Kvitto',  color: '#0891B2', initial: 'Kv' },
+    info:    { label: 'Info',    color: '#0EA5E9', initial: 'I' },
+    consult: { label: 'Kons',    color: '#16A34A', initial: 'Ko' },
+    kons:    { label: 'Kons',    color: '#16A34A', initial: 'Ko' },
+    market:  { label: 'Marknad', color: '#F59E0B', initial: 'M' },
+    marknad: { label: 'Marknad', color: '#F59E0B', initial: 'M' },
   };
+
+  // Sammansatt lookup för att avgöra om en .warm-sender text är ett
+  // mailbox-namn (då döljer vi den eftersom mailbox-pillen visar samma info)
+  const MAILBOX_LABELS = new Set([
+    'egzona', 'kontakt', 'contact', 'fazli', 'kvitto', 'receipt',
+    'info', 'kons', 'consult', 'marknad', 'market',
+  ]);
 
   function makeSvg(iconKey, color) {
     const d = ICONS[iconKey] || ICONS.alert;
@@ -78,7 +85,11 @@
   }
 
   function makePill(s) {
-    return `<span class="warm-why-extra" data-signal-type="${s.type}" style="--signal-color:${s.color}"><span class="warm-why-extra-icon" aria-hidden="true">${makeSvg(s.icon, s.color)}</span><span class="warm-why-extra-label">${escapeHtml(s.label)}</span></span>`;
+    // För mailbox-pill: cirkel med initial istället för SVG-symbol
+    const iconMarkup = (s.type === 'mailbox' && s.initial)
+      ? `<span class="warm-why-extra-circle" style="background:${s.color};color:#fff" aria-hidden="true">${escapeHtml(s.initial)}</span>`
+      : `<span class="warm-why-extra-icon" aria-hidden="true">${makeSvg(s.icon, s.color)}</span>`;
+    return `<span class="warm-why-extra" data-signal-type="${s.type}" style="--signal-color:${s.color}">${iconMarkup}<span class="warm-why-extra-label">${escapeHtml(s.label)}</span></span>`;
   }
 
   function escapeHtml(s) {
@@ -236,6 +247,17 @@
     if (!signals.length) return;
 
     card.classList.add('has-inline-signals');
+
+    // Om .warm-sender är ett mailbox-namn (Egzona/Kontakt/Fazli/...)
+    // är den redundant — mailbox-pillen visar samma info. Markera kortet
+    // så CSS kan dölja sender-texten.
+    const sender = card.querySelector('.warm-sender');
+    const senderText = (sender?.textContent || '').trim().toLowerCase();
+    if (senderText && MAILBOX_LABELS.has(senderText)) {
+      card.classList.add('has-mailbox-sender');
+    } else {
+      card.classList.remove('has-mailbox-sender');
+    }
 
     let wrapper = content.querySelector(':scope > .warm-why-extras');
     if (!wrapper) {

@@ -2530,6 +2530,30 @@
     vertical-align: middle;
   }
 
+  /* Cirkel-initial för mailbox-pill (istället för SVG) — ser ut som en
+     mini-avatar med mailbox-färg. */
+  .warm-why-extra-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+
+  /* Dölj .warm-sender när den matchar mailbox-namn — mailbox-pillen
+     visar samma info, gamla texten är duplikat. */
+  .thread-card.has-mailbox-sender .warm-sender,
+  .thread-card.has-mailbox-sender .warm-sep {
+    display: none !important;
+  }
+
   /* Göm lane-badge på .has-inline-signals — den ÄR nu första pillen i
      warm-why-extras, så top-left lane-badge blir duplikat. */
   .thread-card.has-inline-signals .lane-badge {
