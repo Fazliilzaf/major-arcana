@@ -2,18 +2,17 @@
  * app/signal-bar.js — INLINE signal-pills bredvid "Behöver svar"-pillen.
  *
  * MEDIUM-läge (7-8 pills) hybrid: card-DOM + Kundintelligens.
- * Pillar visas som syskon till .warm-why i .warm-content-raden.
- * Inga grid-/höjd-ändringar på kortet.
+ * Pillar visas i EN rad. Befintliga .warm-why-text migreras till första
+ * pill (samma design). Originalet .warm-why göms (.has-inline-signals).
  *
- * Pills (i visningsordning):
- *   1. Lane           — data-lane (Oklart, Agera nu, etc.)
- *   2. Hög risk       — data-runtime-tags innehåller "high-risk"
- *   3. Mailbox        — från mailbox-tone-class
- *   4. Ägare          — .meta-status (Ej tilldelad / namn)
- *   5. AI-utkast      — om .draft-pill finns
- *   6. (Behöver svar — befintlig .warm-why behålls oförändrad)
- *
- * Färgsystem matchar queue-filter-chip-modifiers + smart-filter-bar.
+ * Pills i ordning (alla på samma rad):
+ *   1. Status (från .warm-why) — Behöver svar / Miss-risk / etc.
+ *   2. Lane                    — Oklart, Agera nu, etc.
+ *   3. Risk-tags               — Hög risk / Miss-risk (om inte i 1)
+ *   4. Mailbox                 — Egzona, Kontakt, etc.
+ *   5. Ägare                   — Ej tilldelad / namn
+ *   6. AI-utkast               — om finns
+ *   7. Snooze / Återkommer
  */
 (() => {
   'use strict';
@@ -32,17 +31,12 @@
     alert:       'M8 1L1 13h14L8 1zm0 4v4m0 2.5h0',
     user:        'M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-2.8 0-5 1.5-5 4v1h10v-1c0-2.5-2.2-4-5-4z',
     userQuestion:'M6 8a3 3 0 100-6 3 3 0 000 6zm0 1c-2.5 0-4.5 1.5-4.5 4v1h6m4-1v.01m0-2c0-.4.3-.7.6-1 .4-.3.9-.6.9-1.3 0-1-.7-1.7-1.5-1.7s-1.5.7-1.5 1.7',
-    envelope:    'M2 4h12v8H2V4zm0 0l6 5 6-5',
-    stack:       'M3 4h10M3 7h10M3 10h10M3 13h10',
-    trash:       'M3 4h10M5 4V2.5h6V4m-1 0v9M6 4v9M4 4l.5 10h7L12 4',
     bell:        'M8 1.5a4 4 0 014 4v2.5l1.5 2.5h-11L4 8V5.5a4 4 0 014-4zM6.5 13a1.5 1.5 0 003 0',
     undo:        'M3 8a5 5 0 018.5-3.5L13 6M3 3v3h3',
     check:       'M3 8.5L6.5 12l7-8',
     refresh:     'M3 8a5 5 0 018.5-3.5L13 6m0-3v3h-3M13 8a5 5 0 01-8.5 3.5L3 10m0 3v-3h3',
   };
 
-  // Lane → svenska+engelska keys → label + färg + ikon (matchar
-  // queue-filter-chip-modifiers från cco-polish.css)
   const LANES = {
     'act-now':   { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
     'act_now':   { label: 'Agera nu',  color: '#EF4444', icon: 'alert' },
@@ -64,18 +58,17 @@
     'medicinskt':{ label: 'Medicinsk', color: '#EC4899', icon: 'plus' },
   };
 
-  // Mailbox-tone → färg (matchar mailbox-option-egzona/contact/etc.)
   const MAILBOX_COLORS = {
-    egzona:  { label: 'Egzona',  color: '#BE2166' },  // magenta
-    contact: { label: 'Kontakt', color: '#4F46E5' },  // indigo
+    egzona:  { label: 'Egzona',  color: '#BE2166' },
+    contact: { label: 'Kontakt', color: '#4F46E5' },
     kontakt: { label: 'Kontakt', color: '#4F46E5' },
-    fazli:   { label: 'Fazli',   color: '#5F2CFF' },  // violet
-    receipt: { label: 'Kvitto',  color: '#0891B2' },  // cyan
+    fazli:   { label: 'Fazli',   color: '#5F2CFF' },
+    receipt: { label: 'Kvitto',  color: '#0891B2' },
     kvitto:  { label: 'Kvitto',  color: '#0891B2' },
-    info:    { label: 'Info',    color: '#0EA5E9' },  // sky
-    consult: { label: 'Kons',    color: '#16A34A' },  // green
+    info:    { label: 'Info',    color: '#0EA5E9' },
+    consult: { label: 'Kons',    color: '#16A34A' },
     kons:    { label: 'Kons',    color: '#16A34A' },
-    market:  { label: 'Marknad', color: '#F59E0B' },  // amber
+    market:  { label: 'Marknad', color: '#F59E0B' },
     marknad: { label: 'Marknad', color: '#F59E0B' },
   };
 
@@ -92,29 +85,81 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function buildExtraSignals(card) {
-    const out = [];
+  // Härled status-pill från .warm-why text + data-why-kind
+  function deriveStatusFromWhy(card) {
+    const why = card.querySelector('.warm-why');
+    if (!why) return null;
+    const txt = (why.querySelector('.why-reason')?.textContent || why.textContent || '').trim();
+    if (!txt) return null;
+    const kind = why.dataset.whyKind || '';
 
-    // 1) Lane
+    if (/svar krävs|behöver svar/i.test(txt)) {
+      return { label: 'Behöver svar', color: '#4F46E5', icon: 'refresh', type: 'status' };
+    }
+    if (/miss.risk/i.test(txt)) {
+      return { label: 'Miss-risk', color: '#F59E0B', icon: 'warning', type: 'risk' };
+    }
+    if (/hög risk/i.test(txt)) {
+      return { label: 'Hög risk', color: '#EF4444', icon: 'warning', type: 'risk' };
+    }
+    if (/otillgänglig/i.test(txt)) {
+      return { label: 'Otillgänglig', color: '#94A3B8', icon: 'warning', type: 'status' };
+    }
+    if (/tid kan erbjudas|redo att boka/i.test(txt)) {
+      return { label: txt, color: '#16A34A', icon: 'check', type: 'status' };
+    }
+    if (/snooze/i.test(txt)) {
+      return { label: txt, color: '#EAB308', icon: 'bell', type: 'snooze' };
+    }
+    // Fallback: behåll text + standardfärg per data-why-kind
+    const kindMap = {
+      refresh: '#4F46E5',
+      risk:    '#F59E0B',
+      check:   '#16A34A',
+      snooze:  '#EAB308',
+    };
+    const c = kindMap[kind] || '#4F46E5';
+    const i = kind === 'risk' ? 'warning' :
+              kind === 'check' ? 'check' :
+              kind === 'snooze' ? 'bell' : 'refresh';
+    return { label: txt.slice(0, 24), color: c, icon: i, type: 'status' };
+  }
+
+  function buildSignals(card) {
+    const out = [];
+    const seenTypes = new Set();
+    const seenLabels = new Set();
+
+    // 1) Status från .warm-why (Behöver svar / Miss-risk / etc.)
+    const statusPill = deriveStatusFromWhy(card);
+    if (statusPill) {
+      out.push(statusPill);
+      seenTypes.add(statusPill.type);
+      seenLabels.add(statusPill.label.toLowerCase());
+    }
+
+    // 2) Lane
     const laneId = (card.dataset.lane || '').toLowerCase().replace(/_/g, '-');
     const lane = LANES[laneId];
     if (lane) {
       out.push({ ...lane, type: 'lane' });
+      seenLabels.add(lane.label.toLowerCase());
     }
 
-    // 2) Hög risk / Miss-risk — från data-runtime-tags
+    // 3) Risk-tags från data-runtime-tags (om inte redan i status)
     const tags = (card.dataset.runtimeTags || '').toLowerCase();
-    if (/high-risk|hög.risk/.test(tags)) {
+    if (/high-risk|hög.risk/.test(tags) && !seenLabels.has('hög risk')) {
       out.push({ label: 'Hög risk', color: '#EF4444', icon: 'warning', type: 'risk' });
-    } else if (/miss.risk/.test(tags)) {
+      seenLabels.add('hög risk');
+    } else if (/miss.risk/.test(tags) && !seenLabels.has('miss-risk')) {
       out.push({ label: 'Miss-risk', color: '#F59E0B', icon: 'warning', type: 'risk' });
+      seenLabels.add('miss-risk');
     }
 
-    // 3) Mailbox — från mailbox-tone-class på avatar eller kort
+    // 4) Mailbox
     const toneClass = card.className.match(/mailbox-(?:tone-)?([a-z]+)/);
     let mailboxKey = toneClass?.[1];
     if (!mailboxKey) {
-      // Försök hitta från avatar
       const avatar = card.querySelector('.warm-avatar');
       if (avatar) {
         const m = avatar.className.match(/mailbox-(?:tone-)?([a-z]+)/);
@@ -125,7 +170,7 @@
       out.push({ ...MAILBOX_COLORS[mailboxKey], icon: 'inbox', type: 'mailbox' });
     }
 
-    // 4) Ägare — .meta-status
+    // 5) Ägare
     const owner = card.querySelector('.meta-status')?.textContent?.trim();
     if (owner) {
       if (/ej.tilldelad|oägd|unassigned/i.test(owner)) {
@@ -135,17 +180,17 @@
       }
     }
 
-    // 5) AI-utkast — om kortet har draft-pill
+    // 6) AI-utkast
     if (card.querySelector('.draft-pill, [class*="ai-draft"], [class*="draft-status"]')) {
       out.push({ label: 'AI-utkast', color: '#EC4899', icon: 'sparkle', type: 'ai' });
     }
 
-    // 6) Snooze — om kortet är snoozad
+    // 7) Snooze / Återkommer
     if (card.classList.contains('is-snoozed') || card.querySelector('.snooze-pill')) {
-      out.push({ label: 'Snooze', color: '#EAB308', icon: 'bell', type: 'snooze' });
+      if (!seenTypes.has('snooze')) {
+        out.push({ label: 'Snooze', color: '#EAB308', icon: 'bell', type: 'snooze' });
+      }
     }
-
-    // 7) Återkommer — om kortet just återkommit från snooze
     if (card.classList.contains('is-just-returned') || card.querySelector('.snooze-pill-returned')) {
       out.push({ label: 'Återkommer', color: '#3B82F6', icon: 'undo', type: 'returned' });
     }
@@ -160,7 +205,7 @@
     const content = why.parentElement;
     if (!content) return;
 
-    const signals = buildExtraSignals(card);
+    const signals = buildSignals(card);
     if (!signals.length) return;
 
     card.classList.add('has-inline-signals');
@@ -169,6 +214,7 @@
     if (!wrapper) {
       wrapper = document.createElement('div');
       wrapper.className = 'warm-why-extras';
+      // Insert FÖRE .warm-why så pillarna ligger där .warm-why annars skulle vara
       content.insertBefore(wrapper, why);
     }
     const newHtml = signals.map(makePill).join('');
