@@ -352,11 +352,17 @@ app.use(
   express.static("public", {
     setHeaders: (res, filePath) => {
       // P4: cache-strategi för major-arcana-preview/-assets.
-      // - Aggressiv cache med stale-while-revalidate så browser kan visa
-      //   cached version medan en ny laddas i bakgrunden vid nästa besök.
-      // - HTML har kort cache så ny deploy syns snabbt.
+      // - HASHADE bundle-filer (app.bundle.<hash>.min.js): 1 år immutable
+      //   eftersom hash byts vid varje content-ändring. Cloudflare och
+      //   browser kan cacha för evigt utan risk för stale content.
+      // - Övriga JS/CSS i major-arcana-preview: kort cache + SWR.
+      // - HTML: max-age=0 så ny deploy syns omedelbart, vilket triggar
+      //   browser att fetcha den nya hashade bundle-versionen.
       const safe = String(filePath || '').toLowerCase();
-      if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
+      if (/\/major-arcana-preview\/app\.bundle\.[a-f0-9]{6,}\.min\.js$/i.test(safe)) {
+        // Content-hashed bundle — säkert att cacha aggressivt
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
         res.setHeader(
           'Cache-Control',
           'public, max-age=300, stale-while-revalidate=86400'

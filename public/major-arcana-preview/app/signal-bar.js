@@ -96,14 +96,35 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Härled status-pill från .warm-why text + data-why-kind
+  // Härled status-pill från .warm-why — primärt via data-why-kind
+  // (strukturerat attribut), fallback till text-regex om kind saknas.
+  // data-why-kind är stabilt mot copy-ändringar; regex är skör.
+  const KIND_MAP = {
+    refresh: { color: '#4F46E5', icon: 'refresh', type: 'status' },
+    risk:    { color: '#F59E0B', icon: 'warning', type: 'risk' },
+    check:   { color: '#16A34A', icon: 'check',   type: 'status' },
+    snooze:  { color: '#EAB308', icon: 'bell',    type: 'snooze' },
+    cta:     { color: '#4F46E5', icon: 'refresh', type: 'cta' },
+  };
+
   function deriveStatusFromWhy(card) {
     const why = card.querySelector('.warm-why');
     if (!why) return null;
     const txt = (why.querySelector('.why-reason')?.textContent || why.textContent || '').trim();
     if (!txt) return null;
-    const kind = why.dataset.whyKind || '';
+    const kind = (why.dataset.whyKind || '').toLowerCase();
 
+    // PRIMÄR källa: data-why-kind. Stabilt mot copy-ändringar.
+    if (kind && KIND_MAP[kind]) {
+      // Behåll text som label (truncate vid 24) — texten kan vara svensk
+      // ("Behöver svar"), engelsk eller varierad copy.
+      return {
+        label: txt.length > 24 ? txt.slice(0, 22) + '…' : txt,
+        ...KIND_MAP[kind],
+      };
+    }
+
+    // FALLBACK: regex-matchning för card-versioner utan data-why-kind.
     if (/svar krävs|behöver svar|^svara nu$/i.test(txt)) {
       return { label: 'Svara nu', color: '#4F46E5', icon: 'refresh', type: 'status' };
     }
@@ -129,23 +150,11 @@
       return { label: 'Otillgänglig', color: '#94A3B8', icon: 'warning', type: 'status' };
     }
     if (/tid kan erbjudas|redo att boka/i.test(txt)) {
-      return { label: txt, color: '#16A34A', icon: 'check', type: 'status' };
+      return { label: txt.slice(0, 24), color: '#16A34A', icon: 'check', type: 'status' };
     }
-    if (/snooze/i.test(txt)) {
-      return { label: txt, color: '#EAB308', icon: 'bell', type: 'snooze' };
-    }
-    // Fallback: behåll text + standardfärg per data-why-kind
-    const kindMap = {
-      refresh: '#4F46E5',
-      risk:    '#F59E0B',
-      check:   '#16A34A',
-      snooze:  '#EAB308',
-    };
-    const c = kindMap[kind] || '#4F46E5';
-    const i = kind === 'risk' ? 'warning' :
-              kind === 'check' ? 'check' :
-              kind === 'snooze' ? 'bell' : 'refresh';
-    return { label: txt.slice(0, 24), color: c, icon: i, type: 'status' };
+
+    // Sista fallback: använd default refresh-stil
+    return { label: txt.slice(0, 24), color: '#4F46E5', icon: 'refresh', type: 'status' };
   }
 
   function buildSignals(card) {
