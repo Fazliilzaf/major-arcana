@@ -2550,17 +2550,20 @@
   }
 
   /* Kompaktera vertikal spacing så avatar + namn + preview hamnar
-     närmare överkanten istället för att vara centrerade. */
-  .thread-card.has-inline-signals {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
+     närmare överkanten. Hög specificitet med preview-shell + scope. */
+  .preview-shell .queue-history-list .thread-card.has-inline-signals,
+  .preview-shell .thread-card.has-inline-signals {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
   }
-  .thread-card.has-inline-signals .warm-top {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
+  .preview-shell .thread-card.has-inline-signals .warm-top {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
   }
-  .thread-card.has-inline-signals .warm-mid {
-    align-items: flex-start;
-    padding-top: 2px;
+  .preview-shell .thread-card.has-inline-signals .warm-mid {
+    align-items: flex-start !important;
+    padding-top: 0 !important;
+    margin-top: -2px !important;
   }
 } /* end @layer components */
