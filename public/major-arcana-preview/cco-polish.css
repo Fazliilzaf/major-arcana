@@ -2549,21 +2549,28 @@
     margin-left: auto;
   }
 
-  /* Kompaktera vertikal spacing så avatar + namn + preview hamnar
-     närmare överkanten. Hög specificitet med preview-shell + scope. */
+  /* Kompaktera vertikal spacing — flytta tid+ägar-status till absolut
+     position top-right så content (avatar+namn+preview+pills) kan börja
+     vid topp utan att .warm-top tar upp en hel rad. */
   .preview-shell .queue-history-list .thread-card.has-inline-signals,
   .preview-shell .thread-card.has-inline-signals {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+    position: relative !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
   .preview-shell .thread-card.has-inline-signals .warm-top {
+    position: absolute !important;
+    top: 10px !important;
+    right: 16px !important;
     margin: 0 !important;
     padding: 0 !important;
     min-height: 0 !important;
+    background: transparent !important;
+    z-index: 1;
   }
   .preview-shell .thread-card.has-inline-signals .warm-mid {
     align-items: flex-start !important;
+    margin-top: 0 !important;
     padding-top: 0 !important;
-    margin-top: -2px !important;
   }
 } /* end @layer components */
