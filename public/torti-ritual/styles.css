@@ -2044,18 +2044,18 @@ input {
   padding: 6px 10px;
   border: 1px solid rgba(88, 63, 46, 0.06);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--muted);
-  box-shadow: 0 4px 8px rgba(75, 53, 37, 0.015);
+  box-shadow: 0 2px 4px rgba(75, 53, 37, 0.01);
   cursor: pointer;
   text-align: left;
 }
 
 .collection-tab.is-active {
   border-color: rgba(67, 50, 39, 0.2);
-  background: rgba(255, 253, 248, 0.98);
+  background: rgba(255, 255, 255, 0.98);
   color: var(--ink);
-  box-shadow: 0 7px 14px rgba(75, 53, 37, 0.04);
+  box-shadow: 0 4px 10px rgba(75, 53, 37, 0.025);
 }
 
 .collection-tab-label {
@@ -2087,8 +2087,8 @@ input {
   padding: 7px 9px 7px;
   border: 1px solid rgba(88, 63, 46, 0.035);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 2px 6px rgba(75, 53, 37, 0.01);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 1px 3px rgba(75, 53, 37, 0.008);
 }
 
 .collection-preview {
@@ -2136,7 +2136,7 @@ input {
   padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid rgba(88, 63, 46, 0.08);
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.99);
   color: var(--ink);
   font-size: 0.56rem;
   line-height: 1;
@@ -2205,7 +2205,7 @@ input {
   min-width: 0;
   border: 1px solid rgba(110, 84, 62, 0.1);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.99);
   color: var(--ink);
   padding: 4px 8px;
   font-size: 0.64rem;
@@ -2355,8 +2355,8 @@ input {
   padding: 10px 10px 9px;
   border: 1px solid rgba(88, 63, 46, 0.045);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 1px 3px rgba(75, 53, 37, 0.01);
+  background: rgba(255, 255, 255, 0.995);
+  box-shadow: 0 1px 2px rgba(75, 53, 37, 0.008);
   cursor: grab;
   text-align: left;
 }
@@ -2408,11 +2408,11 @@ input {
 .collection-result.is-pending {
   border-color: rgba(59, 42, 31, 0.32);
   background: rgba(255, 255, 255, 1);
-  box-shadow: 0 2px 5px rgba(75, 53, 37, 0.018);
+  box-shadow: 0 1px 3px rgba(75, 53, 37, 0.01);
 }
 
 .collection-result.is-owned {
-  background: rgba(255, 255, 255, 0.995);
+  background: rgba(255, 255, 255, 1);
 }
 
 .collection-result-bottle img {
@@ -2477,9 +2477,9 @@ input {
 .product-empty {
   min-height: 76px;
   border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.98);
   padding: 9px 10px;
-  box-shadow: 0 4px 10px rgba(75, 53, 37, 0.02);
+  box-shadow: 0 2px 6px rgba(75, 53, 37, 0.012);
 }
 
 .product-card {
@@ -2495,8 +2495,8 @@ input {
 
 .product-card.is-pending {
   border-color: rgba(59, 42, 31, 0.5);
-  background: rgba(255, 254, 250, 0.99);
-  box-shadow: 0 8px 16px rgba(75, 53, 37, 0.03);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 3px 8px rgba(75, 53, 37, 0.016);
 }
 
 .product-copy {
