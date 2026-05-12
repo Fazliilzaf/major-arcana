@@ -16,12 +16,8 @@
   --skin: #dfc1a8;
   --radius-sm: 8px;
   --radius-md: 12px;
-  --shadow-soft:
-    0 28px 80px rgba(75, 53, 37, 0.08),
-    0 10px 24px rgba(75, 53, 37, 0.04);
-  --control-shadow:
-    0 10px 22px rgba(75, 53, 37, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 28px 80px rgba(75, 53, 37, 0.08), 0 10px 24px rgba(75, 53, 37, 0.04);
+  --control-shadow: 0 10px 22px rgba(75, 53, 37, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.92);
   --max-width: 1320px;
 }
 
@@ -399,7 +395,11 @@ input {
   text-transform: uppercase;
   font-weight: 700;
   white-space: nowrap;
-  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease, opacity 160ms ease;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease;
 }
 
 .layers-panel .panel-mini-action {
@@ -776,8 +776,7 @@ input {
   overflow-y: hidden;
   border: 1px solid var(--line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(253, 250, 246, 0.95)),
-    var(--paper);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(253, 250, 246, 0.95)), var(--paper);
   box-shadow: var(--shadow-soft);
   overscroll-behavior: contain;
   touch-action: pan-x;
@@ -847,8 +846,22 @@ input {
   box-shadow:
     0 10px 24px rgba(75, 53, 37, 0.035),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 78%, rgba(0, 0, 0, 0.72) 88%, rgba(0, 0, 0, 0.18) 96%, transparent 100%);
-  mask-image: linear-gradient(to right, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 78%, rgba(0, 0, 0, 0.72) 88%, rgba(0, 0, 0, 0.18) 96%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 78%,
+    rgba(0, 0, 0, 0.72) 88%,
+    rgba(0, 0, 0, 0.18) 96%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 78%,
+    rgba(0, 0, 0, 0.72) 88%,
+    rgba(0, 0, 0, 0.18) 96%,
+    transparent 100%
+  );
 }
 
 .stage-step span {
@@ -866,7 +879,12 @@ input {
   height: 23.2%;
   background:
     linear-gradient(180deg, rgba(255, 253, 241, 0.98), rgba(247, 238, 186, 0.88)),
-    linear-gradient(90deg, rgba(255, 250, 223, 0.9), rgba(255, 247, 207, 0.62) 82%, rgba(255, 247, 207, 0.38) 100%);
+    linear-gradient(
+      90deg,
+      rgba(255, 250, 223, 0.9),
+      rgba(255, 247, 207, 0.62) 82%,
+      rgba(255, 247, 207, 0.38) 100%
+    );
 }
 
 .stage-step-heart {
@@ -875,7 +893,12 @@ input {
   height: 28.5%;
   background:
     linear-gradient(180deg, rgba(255, 249, 244, 0.98), rgba(244, 210, 192, 0.87)),
-    linear-gradient(90deg, rgba(249, 230, 220, 0.9), rgba(245, 220, 206, 0.64) 84%, rgba(245, 220, 206, 0.38) 100%);
+    linear-gradient(
+      90deg,
+      rgba(249, 230, 220, 0.9),
+      rgba(245, 220, 206, 0.64) 84%,
+      rgba(245, 220, 206, 0.38) 100%
+    );
 }
 
 .stage-step-base {
@@ -884,7 +907,12 @@ input {
   height: 28.9%;
   background:
     linear-gradient(180deg, rgba(251, 247, 252, 0.98), rgba(228, 220, 232, 0.88)),
-    linear-gradient(90deg, rgba(236, 230, 240, 0.9), rgba(231, 225, 236, 0.66) 84%, rgba(231, 225, 236, 0.4) 100%);
+    linear-gradient(
+      90deg,
+      rgba(236, 230, 240, 0.9),
+      rgba(231, 225, 236, 0.66) 84%,
+      rgba(231, 225, 236, 0.4) 100%
+    );
 }
 
 .placement-target {
@@ -1079,7 +1107,10 @@ input {
   border: 0;
   background: transparent;
   padding: 0;
-  transform: translate(calc(-50% + var(--zone-offset-x, 0px)), calc(-50% + var(--zone-offset-y, 0px)));
+  transform: translate(
+    calc(-50% + var(--zone-offset-x, 0px)),
+    calc(-50% + var(--zone-offset-y, 0px))
+  );
   pointer-events: auto;
   cursor: pointer;
   z-index: 1;
@@ -1093,7 +1124,10 @@ input {
   border: 0;
   background: transparent;
   padding: 0;
-  transform: translate(calc(-5px + var(--zone-offset-x, 0px)), calc(-50% + var(--zone-offset-y, 0px)));
+  transform: translate(
+    calc(-5px + var(--zone-offset-x, 0px)),
+    calc(-50% + var(--zone-offset-y, 0px))
+  );
   pointer-events: auto;
   cursor: grab;
   user-select: none;
@@ -1852,18 +1886,15 @@ input {
 }
 
 .zone-plan-group--high {
-  background:
-    linear-gradient(180deg, rgba(255, 253, 241, 0.96), rgba(247, 238, 186, 0.32));
+  background: linear-gradient(180deg, rgba(255, 253, 241, 0.96), rgba(247, 238, 186, 0.32));
 }
 
 .zone-plan-group--middle {
-  background:
-    linear-gradient(180deg, rgba(255, 249, 244, 0.96), rgba(244, 210, 192, 0.34));
+  background: linear-gradient(180deg, rgba(255, 249, 244, 0.96), rgba(244, 210, 192, 0.34));
 }
 
 .zone-plan-group--low {
-  background:
-    linear-gradient(180deg, rgba(251, 247, 252, 0.96), rgba(228, 220, 232, 0.38));
+  background: linear-gradient(180deg, rgba(251, 247, 252, 0.96), rgba(228, 220, 232, 0.38));
 }
 
 .zone-plan-group-head {
@@ -2056,8 +2087,8 @@ input {
   padding: 7px 9px 7px;
   border: 1px solid rgba(88, 63, 46, 0.035);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 2px 6px rgba(75, 53, 37, 0.012);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 6px rgba(75, 53, 37, 0.01);
 }
 
 .collection-preview {
@@ -2105,7 +2136,7 @@ input {
   padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid rgba(88, 63, 46, 0.08);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
   font-size: 0.56rem;
   line-height: 1;
@@ -2174,7 +2205,7 @@ input {
   min-width: 0;
   border: 1px solid rgba(110, 84, 62, 0.1);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.97);
   color: var(--ink);
   padding: 4px 8px;
   font-size: 0.64rem;
@@ -2324,7 +2355,7 @@ input {
   padding: 10px 10px 9px;
   border: 1px solid rgba(88, 63, 46, 0.045);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 1px 3px rgba(75, 53, 37, 0.01);
   cursor: grab;
   text-align: left;
@@ -2376,12 +2407,12 @@ input {
 
 .collection-result.is-pending {
   border-color: rgba(59, 42, 31, 0.32);
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 1);
   box-shadow: 0 2px 5px rgba(75, 53, 37, 0.018);
 }
 
 .collection-result.is-owned {
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.995);
 }
 
 .collection-result-bottle img {
