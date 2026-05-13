@@ -314,6 +314,7 @@
   const portalCustomerNotificationCount = document.querySelector(
     "[data-portal-customer-notification-count]"
   );
+  const portalCustomerStatus = document.querySelector("[data-portal-customer-status]");
   const portalCustomerVersions = document.querySelector("[data-portal-customer-versions]");
   const portalCustomerNotifications = document.querySelector(
     "[data-portal-customer-notifications]"
@@ -8051,6 +8052,9 @@
     if (lane === "act-now" || lane === "act_now") return "Hög prioritet — kräver omedelbar åtgärd";
     if (lane === "sprint") return "Sprint — pågående arbete";
     if (lane === "bookable") return "Klar för bokning — kund väntar bekräftelse";
+    if (lane === "operation")
+      return "Operationsspår — behandling eller genomförande äger nästa steg";
+    if (lane === "commercial") return "Commercial — pris, offert eller betalning driver nästa drag";
     if (lane === "review") return "Granskning krävs — AI-utkast eller avvikande pris";
     if (lane === "medical") return "Medicinsk fråga — kräver klinisk bedömning";
     if (lane === "later" || hasFollowUp) return "Schemalagd uppföljning";
@@ -9190,11 +9194,52 @@
     return !!queueEntry && isAftercareQueueBucketActive(queueEntry);
   }
 
+  function getThreadJourneyActiveModuleId(thread) {
+    if (!thread) return "";
+    const focusReadState =
+      typeof getRuntimeFocusReadState === "function" ? getRuntimeFocusReadState(thread) : {};
+    return normalizeKey(
+      getPreviewPatient360JourneyForThread(thread, focusReadState)?.journey?.activeModule?.id || ""
+    );
+  }
+
+  function isCommercialRuntimeThread(thread) {
+    if (!thread || isAftercareRuntimeThread(thread)) return false;
+    const activeModuleId = getThreadJourneyActiveModuleId(thread);
+    if (activeModuleId === "commercial") return true;
+    const body = normalizeKey(
+      [
+        thread?.bodyPreview,
+        thread?.preview,
+        thread?.raw?.bodyPreview,
+        thread?.raw?.textPreview,
+        thread?.raw?.subject,
+        thread?.subject,
+      ]
+        .map((value) => asText(value, ""))
+        .join(" ")
+    );
+    return body.includes("pris") || body.includes("offert") || body.includes("betal");
+  }
+
+  function isOperationRuntimeThread(thread) {
+    if (!thread || isAftercareRuntimeThread(thread) || isCommercialRuntimeThread(thread)) return false;
+    if (getThreadJourneyActiveModuleId(thread) === "operation") return true;
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const hasTreatmentContext = Boolean(
+      asText(raw.plannedTreatment || raw.treatmentContext || raw.medicalContext)
+    );
+    const tags = new Set(asArray(thread?.tags).map((tag) => normalizeKey(tag)));
+    return hasTreatmentContext && !tags.has("bookable");
+  }
+
   function getThreadPrimaryLaneId(thread) {
     const explicitPrimaryLane = normalizeKey(thread?.primaryLaneId || "");
     if (isManualReviewRuntimeThread(thread)) return "review";
     if (isUnclearRuntimeThread(thread)) return "unclear";
     if (isAftercareRuntimeThread(thread)) return "aftercare";
+    if (isCommercialRuntimeThread(thread)) return "commercial";
+    if (isOperationRuntimeThread(thread)) return "operation";
     if (!explicitPrimaryLane || explicitPrimaryLane === "all") {
       if (asArray(thread?.tags).includes("medical")) return "medical";
       if (asArray(thread?.tags).includes("bookable")) return "bookable";
@@ -20616,6 +20661,48 @@
       portalCustomerNotificationCount.textContent = `${notifications.length} notiser${
         unreadNotifications.length ? ` · ${unreadNotifications.length} olästa` : ""
       }`;
+    }
+    if (portalCustomerStatus) {
+      const portalState = normalizeText(customerPortal?.portalStatus || "");
+      const statusLabel =
+        portalState === "published_unread"
+          ? "Nytt material väntar"
+          : portalState === "published"
+            ? "Senaste versionen är läst"
+            : portalState === "draft"
+              ? "Utkast finns i ägarläge"
+              : "Ingen publicerad version";
+      const statusDescription =
+        portalState === "published_unread"
+          ? `${unreadNotifications.length} oläst${unreadNotifications.length === 1 ? " notis" : "a notiser"} finns i portalen.`
+          : portalState === "published"
+            ? "Kunden ser den senaste publicerade layers-skissen."
+            : portalState === "draft"
+              ? "Ägaren har ett sparat utkast som ännu inte publicerats."
+              : "Publicera en layers-sketch för att fylla kundportalen.";
+      const latestVersionLabel = selectedVersion
+        ? `Version ${selectedVersion.versionNumber}`
+        : "Version —";
+      const lastViewedLabel = customerPortal?.lastViewedAt
+        ? `Öppnad ${customerPortal.lastViewedAt}`
+        : "Inte öppnad ännu";
+      portalCustomerStatus.innerHTML = `
+        <article class="customers-portal-customer-status-card">
+          <span>Status</span>
+          <strong>${escapeHtml(statusLabel)}</strong>
+          <p>${escapeHtml(statusDescription)}</p>
+        </article>
+        <article class="customers-portal-customer-status-card">
+          <span>Senaste version</span>
+          <strong>${escapeHtml(latestVersionLabel)}</strong>
+          <p>${escapeHtml(selectedVersion?.publishedAt || "Ingen publicerad version ännu")}</p>
+        </article>
+        <article class="customers-portal-customer-status-card">
+          <span>Öppnat läge</span>
+          <strong>${escapeHtml(lastViewedLabel)}</strong>
+          <p>${escapeHtml(customerPortal?.lastAcknowledgedAt || "Ingen kvittens ännu")}</p>
+        </article>
+      `;
     }
     if (portalTitle) {
       portalTitle.textContent = detail.key
@@ -36938,22 +37025,10 @@ renderStudioShell();
 	  });
 
 	  document.addEventListener("pointerup", (event) => {
-	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
-	    if (bookingLaneButton) {
-	      window.setTimeout(() => {
-	        openBookingOperatorSurface({
-	          scroll: true,
-	          message: "Bokningsytan öppnades från Bokning-kön.",
-	        });
-	      }, 120);
-	      return;
-	    }
-	    const aftercareLaneButton = event.target.closest('[data-queue-lane="aftercare"]');
-	    if (!aftercareLaneButton) return;
-	    window.setTimeout(() => {
+	    const activateWorkspaceLane = (laneId, statusMessage) => {
 	      const workspaceApi = window.__ccoWorkspace;
 	      if (workspaceApi && typeof workspaceApi.setActiveLaneId === "function") {
-	        workspaceApi.setActiveLaneId("aftercare");
+	        workspaceApi.setActiveLaneId(laneId);
 	        if (typeof workspaceApi.setView === "function") {
 	          workspaceApi.setView("conversations");
 	        }
@@ -36968,11 +37043,40 @@ renderStudioShell();
 	        };
 	      }
 	      if (focusStatusLine) {
-	        focusStatusLine.textContent = "Eftervårdskön filtrerades fram i arbetskön.";
+	        focusStatusLine.textContent = statusMessage;
 	      }
 	      if (typeof window.__renderApp === "function") {
 	        window.__renderApp();
 	      }
+	    };
+	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
+	    if (bookingLaneButton) {
+	      window.setTimeout(() => {
+	        openBookingOperatorSurface({
+	          scroll: true,
+	          message: "Bokningsytan öppnades från Bokning-kön.",
+	        });
+	      }, 120);
+	      return;
+	    }
+	    const aftercareLaneButton = event.target.closest('[data-queue-lane="aftercare"]');
+	    if (aftercareLaneButton) {
+	      window.setTimeout(() => {
+	        activateWorkspaceLane("aftercare", "Eftervårdskön filtrerades fram i arbetskön.");
+	      }, 120);
+	      return;
+	    }
+	    const operationLaneButton = event.target.closest('[data-queue-lane="operation"]');
+	    if (operationLaneButton) {
+	      window.setTimeout(() => {
+	        activateWorkspaceLane("operation", "Operationsspåret filtrerades fram i arbetskön.");
+	      }, 120);
+	      return;
+	    }
+	    const commercialLaneButton = event.target.closest('[data-queue-lane="commercial"]');
+	    if (!commercialLaneButton) return;
+	    window.setTimeout(() => {
+	      activateWorkspaceLane("commercial", "Commercial-spåret filtrerades fram i arbetskön.");
 	    }, 120);
 	  });
 

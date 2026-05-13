@@ -248,6 +248,12 @@
 .thread-card.unified-queue-card[data-lane="bokning"] {
   --v5-lane-color: #0d9488;
 }
+.thread-card.unified-queue-card[data-lane="operation"] {
+  --v5-lane-color: #15803d;
+}
+.thread-card.unified-queue-card[data-lane="commercial"] {
+  --v5-lane-color: #b45309;
+}
 .thread-card.unified-queue-card[data-lane="act-now"] .priority-bar::after {
   content: "";
   position: absolute;
@@ -1768,6 +1774,46 @@ button {
   box-shadow: var(--panel-card-shadow);
 }
 
+.customers-portal-customer-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.customers-portal-customer-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--card-radius);
+  border: 1px solid rgba(120, 105, 90, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 241, 236, 0.86) 100%);
+  box-shadow: var(--panel-card-shadow);
+}
+
+.customers-portal-customer-status-card span {
+  color: var(--copy-warm-kicker);
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customers-portal-customer-status-card strong {
+  color: var(--copy-warm-body-deep);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.customers-portal-customer-status-card p {
+  margin: 0;
+  color: var(--copy-warm-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .customers-portal-customer-hero p {
   margin: 6px 0 0;
   color: var(--copy-warm-muted);
@@ -1928,6 +1974,10 @@ button {
 
   .customers-portal-summary,
   .customers-portal-draft-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customers-portal-customer-status {
     grid-template-columns: minmax(0, 1fr);
   }
 
