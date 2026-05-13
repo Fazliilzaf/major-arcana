@@ -20873,6 +20873,19 @@
                   <span>${isLatest ? "Senaste" : unread ? "Oläst" : "Läst"}</span>
                   <strong>${escapeHtml(notification.title || "Ny layers-skiss")}</strong>
                   <p>${escapeHtml(notification.message || "")}</p>
+                  ${
+                    isLatest && unread
+                      ? `
+                    <button
+                      class="customers-utility-button customers-portal-notification-cta"
+                      type="button"
+                      data-portal-action="ack"
+                    >
+                      Kvittera nu
+                    </button>
+                  `
+                      : ""
+                  }
                 </div>
                 <div class="customers-portal-notification-meta">
                   <span>${escapeHtml(notification.createdAt || "")}</span>

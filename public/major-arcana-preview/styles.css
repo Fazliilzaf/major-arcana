@@ -1938,6 +1938,15 @@ button {
   text-transform: uppercase;
 }
 
+.customers-portal-notification-cta {
+  justify-self: start;
+  margin-top: 2px;
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: 9px;
+  line-height: 10px;
+}
+
 .customers-portal-notification-meta {
   display: inline-flex;
   flex-direction: column;
