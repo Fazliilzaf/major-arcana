@@ -50,6 +50,17 @@ input {
   padding: 10px 0 40px;
 }
 
+.sheet-app.is-customer-portal-view .sheet-meta,
+.sheet-app.is-customer-portal-view .customer-library,
+.sheet-app.is-customer-portal-view .layers-panel,
+.sheet-app.is-customer-portal-view .zone-editor {
+  display: none;
+}
+
+.sheet-app.is-customer-portal-view .composition-strip {
+  padding-bottom: 0;
+}
+
 .brand-strip {
   display: flex;
   align-items: flex-start;

@@ -3861,6 +3861,10 @@
     const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
     const portalView = state.portalView || "split";
     const customerOnlyView = portalView === "customer";
+    if (sheetApp) {
+      sheetApp.classList.toggle("is-customer-portal-view", customerOnlyView);
+      sheetApp.classList.toggle("is-owner-portal-view", !customerOnlyView);
+    }
     schedulePortalRemoteHydration(snapshot);
     const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
     const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
