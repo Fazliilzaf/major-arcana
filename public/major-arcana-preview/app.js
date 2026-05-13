@@ -2369,10 +2369,15 @@
           mailboxId: "fazli@hairtpclinic.com",
           mailboxLabel: "Fazli",
           mailboxTrail: ["Fazli"],
-          subject: "Vill boka möte nästa måndag om den nya integrationen.",
-          preview: "Vill boka möte nästa måndag om den nya integrationen.",
-          nextActionLabel: "Svara",
+          subject: "Bekräfta operationsplan och nästa kliniska steg inför behandlingen.",
+          preview: "Operationsplanen är redo men behöver ägas i workspace innan kunden får slutlig bekräftelse.",
+          nextActionLabel: "Öppna operationsspår",
           isUnread: false,
+          raw: {
+            plannedTreatment: "Hårtransplantation FUE",
+            treatmentContext: "Operationsplan klar för genomförande och klinisk handoff",
+            caseType: "operation",
+          },
           worklistSource: "demo",
         },
         {
@@ -9238,6 +9243,7 @@
     if (isManualReviewRuntimeThread(thread)) return "review";
     if (isUnclearRuntimeThread(thread)) return "unclear";
     if (isAftercareRuntimeThread(thread)) return "aftercare";
+    if (asArray(thread?.tags).includes("act-now")) return "act-now";
     if (isCommercialRuntimeThread(thread)) return "commercial";
     if (isOperationRuntimeThread(thread)) return "operation";
     if (!explicitPrimaryLane || explicitPrimaryLane === "all") {
@@ -13834,7 +13840,9 @@
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
     if (!selectedMailboxIds.length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(
-        preferredMailboxId && availableIds.includes(preferredMailboxId)
+        shouldPreserveDemoMailboxScope()
+          ? [...availableIds]
+          : preferredMailboxId && availableIds.includes(preferredMailboxId)
           ? [preferredMailboxId]
           : [...availableIds]
       );
@@ -13846,11 +13854,34 @@
     );
     if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(
-        preferredMailboxId && availableIds.includes(preferredMailboxId)
+        shouldPreserveDemoMailboxScope()
+          ? [...availableIds]
+          : preferredMailboxId && availableIds.includes(preferredMailboxId)
           ? [preferredMailboxId]
           : [...availableIds]
       );
     }
+  }
+
+  function shouldPreserveDemoMailboxScope() {
+    const previewThreads =
+      typeof state !== "undefined" && state
+        ? Array.isArray(state.data?.threads)
+          ? state.data.threads
+          : Array.isArray(state.runtime?.threads)
+            ? state.runtime.threads
+            : []
+        : [];
+    return (
+      previewThreads.length > 1 &&
+      previewThreads.every(
+        (thread) =>
+          String(thread?.worklistSource || "")
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "") === "demo"
+      )
+    );
   }
 
   function getMailboxScopedRuntimeThreads() {
@@ -14038,6 +14069,12 @@
     const activeQueueThreads = threads.filter((thread) => !isHandledRuntimeThread(thread));
     if (normalizedLane === "all") {
       return activeQueueThreads;
+    }
+    if (normalizedLane === "commercial") {
+      return activeQueueThreads.filter((thread) => isCommercialRuntimeThread(thread));
+    }
+    if (normalizedLane === "operation") {
+      return activeQueueThreads.filter((thread) => isOperationRuntimeThread(thread));
     }
     return activeQueueThreads.filter((thread) => getThreadPrimaryLaneId(thread) === normalizedLane);
   }
@@ -14665,6 +14702,15 @@
     const preserveMailboxScope =
       state.prefs?.mailboxScopePinned === true ||
       state.runtime?.mailboxScopePinned === true ||
+      (() => {
+        const previewThreads = Array.isArray(state.data?.threads)
+          ? state.data.threads
+          : asArray(state.runtime?.threads);
+        return (
+          previewThreads.length > 1 &&
+          previewThreads.every((thread) => normalizeKey(thread?.worklistSource || "") === "demo")
+        );
+      })() ||
       Boolean(options.preserveMailboxSelection);
     if (mailboxScopeChanged && !preserveMailboxScope) {
       workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
@@ -15868,6 +15914,39 @@
         ? "needs_validation"
         : "inactive";
     }
+    if (moduleId === "operation") {
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+      const operationStatus = normalizeKey(
+        raw.operationStatus || raw.caseStatus || raw.plannedTreatmentStatus || ""
+      );
+      const treatmentSignal = normalizeKey(
+        [
+          raw.plannedTreatment,
+          raw.treatmentContext,
+          raw.medicalContext,
+          thread?.riskReason,
+          bodyText,
+        ]
+          .map((value) => asText(value, ""))
+          .join(" ")
+      );
+      if (
+        operationStatus === "complete" ||
+        operationStatus === "completed" ||
+        operationStatus === "closed"
+      ) {
+        return "completed";
+      }
+      if (
+        treatmentSignal.includes("klarering") ||
+        treatmentSignal.includes("genomforande") ||
+        treatmentSignal.includes("operationsplan") ||
+        treatmentSignal.includes("operation")
+      ) {
+        return "needs_action";
+      }
+      return "inactive";
+    }
     if (moduleId === "documents") {
       return body.includes("gdpr") || body.includes("personuppgifter") || body.includes("samtycke")
         ? "needs_validation"
@@ -16136,6 +16215,20 @@
         status: getPreviewPatient360ModuleStatus(thread, "documents", bodyText),
         nextAction: "Kontrollera samtycke",
         confidence: 0.72,
+      },
+      {
+        id: "operation",
+        label: "Operation",
+        detail: asText(
+          thread.raw?.plannedTreatment || thread.raw?.treatmentContext || thread.raw?.medicalContext,
+          "Behandling eller genomförande väntar"
+        ),
+        status: getPreviewPatient360ModuleStatus(thread, "operation", bodyText),
+        nextAction: asText(
+          thread.nextActionLabel,
+          "Verifiera operationsberedskap och nästa kliniska steg"
+        ),
+        confidence: isOperationRuntimeThread(thread) ? 0.84 : 0.62,
       },
       {
         id: "aftercare",
@@ -20647,6 +20740,7 @@
     const versions = asArray(customerPortal?.versions);
     const notifications = asArray(customerPortal?.notifications);
     const unreadNotifications = notifications.filter((item) => !item?.readAt);
+    const latestNotification = notifications[0] || null;
 
     portalCustomerTitle.textContent =
       selectedVersion?.title || customerPortal?.currentDraft?.title || "Ingen publicerad version ännu";
@@ -20686,6 +20780,12 @@
       const lastViewedLabel = customerPortal?.lastViewedAt
         ? `Öppnad ${customerPortal.lastViewedAt}`
         : "Inte öppnad ännu";
+      const latestNotificationLabel = latestNotification?.title || "Ingen notis ännu";
+      const latestNotificationState = latestNotification
+        ? latestNotification.readAt
+          ? "Läst"
+          : "Oläst"
+        : "Ingen status";
       portalCustomerStatus.innerHTML = `
         <article class="customers-portal-customer-status-card">
           <span>Status</span>
@@ -20701,6 +20801,15 @@
           <span>Öppnat läge</span>
           <strong>${escapeHtml(lastViewedLabel)}</strong>
           <p>${escapeHtml(customerPortal?.lastAcknowledgedAt || "Ingen kvittens ännu")}</p>
+        </article>
+        <article class="customers-portal-customer-status-card">
+          <span>Senaste notis</span>
+          <strong>${escapeHtml(latestNotificationLabel)}</strong>
+          <p>${escapeHtml(
+            latestNotification
+              ? `${latestNotificationState} · ${latestNotification.createdAt || "Ingen tid"}`
+              : "Kunden får en notis här när en ny version publiceras."
+          )}</p>
         </article>
       `;
     }
