@@ -3877,6 +3877,7 @@
       ? record.notifications.filter((notification) => !notification.readAt).length
       : 0;
     const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
+    const latestPortalEvent = portalEvents[0] || null;
     const recentPortalEvents = customerOnlyView
       ? portalEvents.filter((event) => {
           const eventType = normalize(event.type);
@@ -3920,6 +3921,7 @@
           <div class="portal-hero-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
             <span>${escapeHtml(customerStatus)}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
@@ -3954,6 +3956,7 @@
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
             <span>Customer key ${escapeHtml(customerKey)}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
@@ -3994,6 +3997,7 @@
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
@@ -4046,7 +4050,7 @@
                     </div>
                     <div class="portal-activity-item-foot">
                       <span>${escapeHtml(eventType)}</span>
-                      <span>${escapeHtml(event.actorUserId || "owner")}</span>
+                      <span>${escapeHtml(customerOnlyView ? "Shared portal" : (event.actorUserId || "owner"))}</span>
                     </div>
                   </article>
                 `;
