@@ -31623,6 +31623,64 @@
         }).finally(function () { caoBtn.disabled = false; });
       });
     }
+    var cfoBtn = document.getElementById('runCfoAgentBtn');
+    var cfoStatus = document.getElementById('cfoRunStatus');
+    if (cfoBtn) {
+      cfoBtn.addEventListener('click', function () {
+        cfoBtn.disabled = true;
+        if (cfoStatus) cfoStatus.textContent = 'Kör...';
+        agentPost('CFO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cfoResultPanel');
+          if (panel) panel.style.display = '';
+          var cs = out.costSummary || {};
+          var el = document.getElementById('cfoMonthlyCost');
+          if (el) el.textContent = (cs.totalMonthlySek || 0) + ' SEK';
+          el = document.getElementById('cfoLlmCost');
+          if (el) el.textContent = (cs.llmCostSek || 0) + ' SEK';
+          el = document.getElementById('cfoCostPerTenant');
+          if (el) el.textContent = (cs.costPerTenantSek || 0) + ' SEK';
+          el = document.getElementById('cfoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cfoAlerts');
+          if (el) {
+            var alerts = out.alerts || [];
+            el.textContent = alerts.length ? alerts.map(function (a) { return '[' + a.severity + '] ' + a.message; }).join('\n') : 'Inga kostnadsvarningar.';
+          }
+          if (cfoStatus) cfoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cfoStatus) cfoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cfoBtn.disabled = false; });
+      });
+    }
+
+    var cmoBtn = document.getElementById('runCmoAgentBtn');
+    var cmoStatus = document.getElementById('cmoRunStatus');
+    if (cmoBtn) {
+      cmoBtn.addEventListener('click', function () {
+        cmoBtn.disabled = true;
+        if (cmoStatus) cmoStatus.textContent = 'Kör...';
+        agentPost('CMO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cmoResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('cmoTopicCount');
+          if (el) el.textContent = String((out.topics || []).length);
+          el = document.getElementById('cmoCalendarCount');
+          if (el) el.textContent = String((out.contentCalendar || []).length);
+          el = document.getElementById('cmoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cmoCalendar');
+          if (el) {
+            var cal = out.contentCalendar || [];
+            el.textContent = cal.length ? cal.map(function (c) { return 'Vecka ' + c.week + ': ' + c.topic + ' (' + c.format + ') — ' + c.targetDate; }).join('\n') : 'Ingen content-kalender genererad.';
+          }
+          if (cmoStatus) cmoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cmoStatus) cmoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cmoBtn.disabled = false; });
+      });
+    }
   })();
 
   restoreSession();

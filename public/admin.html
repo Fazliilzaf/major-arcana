@@ -5566,6 +5566,8 @@
     [data-section-group="templateLifecycleSection"] { --section-tint: rgba(201, 152, 108, 0.22); }
     [data-section-group="cooSection"] { --section-tint: rgba(180, 148, 118, 0.24); }
     [data-section-group="caoSection"] { --section-tint: rgba(168, 140, 115, 0.22); }
+    [data-section-group="cfoSection"] { --section-tint: rgba(155, 132, 108, 0.22); }
+    [data-section-group="cmoSection"] { --section-tint: rgba(142, 125, 105, 0.20); }
     [data-section-group="reviewsIncidentsSection"] { --section-tint: rgba(195, 159, 126, 0.24); }
     [data-section-group="auditSection"] { --section-tint: rgba(158, 132, 111, 0.22); }
     [data-section-group="teamSection"] { --section-tint: rgba(172, 146, 120, 0.23); }
@@ -11905,6 +11907,8 @@
           <button class="btn small sectionNavBtn" data-target="opsSection" data-i18n="nav_ops">Drift</button>
           <button class="btn small sectionNavBtn" data-target="cooSection" data-i18n="nav_coo">COO</button>
           <button class="btn small sectionNavBtn" data-target="caoSection" data-i18n="nav_cao">CAO</button>
+          <button class="btn small sectionNavBtn" data-target="cfoSection" data-i18n="nav_cfo">CFO</button>
+          <button class="btn small sectionNavBtn" data-target="cmoSection" data-i18n="nav_cmo">CMO</button>
           <a class="btn small sectionNavBtn" href="/major-arcana-preview/" data-i18n="nav_cco" style="display:inline-flex;align-items:center;text-decoration:none">CCO</a>
         </nav>
       </div>
@@ -13480,6 +13484,60 @@
           <div id="caoDisclaimerResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
           <h3 style="margin-top:14px">Variabelförslag</h3>
           <div id="caoVariableResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
+      <section id="cfoSection" data-section-group="cfoSection" class="panel" style="margin-top:14px">
+        <h2>CFO — Kostnadsrådgivare</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Financial Officer-agenten bevakar LLM-kostnader, hosting, lagring och genererar projektioner.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCfoAgentBtn" class="btn small">Kör CFO Cost Advisor</button>
+          <span id="cfoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="cfoResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Månadskostnad</h4>
+              <div id="cfoMonthlyCost" class="value" style="font-size:24px">— SEK</div>
+            </div>
+            <div class="overview-card">
+              <h4>LLM-kostnad</h4>
+              <div id="cfoLlmCost" class="value" style="font-size:24px">— SEK</div>
+            </div>
+            <div class="overview-card">
+              <h4>Kostnad/tenant</h4>
+              <div id="cfoCostPerTenant" class="value" style="font-size:24px">— SEK</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="cfoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Kostnadsvarningar</h3>
+          <div id="cfoAlerts" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
+      <section id="cmoSection" data-section-group="cmoSection" class="panel" style="margin-top:14px">
+        <h2>CMO — Content-rådgivare</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Marketing Officer-agenten identifierar content-ämnen från mail-insikter, FAQ och mallar och bygger en content-kalender.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCmoAgentBtn" class="btn small">Kör CMO Content Advisor</button>
+          <span id="cmoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="cmoResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Content-ämnen</h4>
+              <div id="cmoTopicCount" class="value" style="font-size:28px">0</div>
+            </div>
+            <div class="overview-card">
+              <h4>Planerade inlägg</h4>
+              <div id="cmoCalendarCount" class="value" style="font-size:28px">0</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="cmoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Content-kalender</h3>
+          <div id="cmoCalendar" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
         </div>
       </section>
 
