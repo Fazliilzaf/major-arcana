@@ -3767,12 +3767,13 @@
       "width",
     ]);
 
-    const sanitizeHtmlUrl = (value = "", { allowMailto = false, allowDataImage = false } = {}) => {
+    const sanitizeHtmlUrl = (value = "", { allowMailto = false, allowDataImage = false, allowMailAssetProxy = false } = {}) => {
       const normalizedValue = normalizeText(value);
       if (!normalizedValue) return "";
       if (/^https?:/i.test(normalizedValue)) return normalizedValue;
       if (allowMailto && /^mailto:/i.test(normalizedValue)) return normalizedValue;
       if (allowDataImage && /^data:image\//i.test(normalizedValue)) return normalizedValue;
+      if (allowMailAssetProxy && /^\/api\/v1\/cco\/runtime\/mail-asset\/content\?/i.test(normalizedValue)) return normalizedValue;
       return "";
     };
 
@@ -4305,7 +4306,7 @@
           rawHeight === 94
             ? CCO_HAIR_TP_SIGNATURE_LOGO_URL
             : rawSrc;
-        const src = sanitizeHtmlUrl(resolvedSrc, { allowDataImage: true });
+        const src = sanitizeHtmlUrl(resolvedSrc, { allowDataImage: true, allowMailAssetProxy: true });
         if (!src) {
           const alt = normalizeText(node.getAttribute("alt"));
           if (alt) {
