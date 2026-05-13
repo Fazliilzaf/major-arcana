@@ -3892,6 +3892,8 @@
           ].includes(eventType);
         }).slice(0, 4)
       : portalEvents.slice(0, 4);
+    const latestVisiblePortalEvent = recentPortalEvents[0] || null;
+    const summaryPortalEvent = customerOnlyView ? latestVisiblePortalEvent : latestPortalEvent;
     const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
     const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
     const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
@@ -3921,7 +3923,7 @@
           <div class="portal-hero-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
             <span>${escapeHtml(customerStatus)}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
@@ -3956,7 +3958,7 @@
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
             <span>Customer key ${escapeHtml(customerKey)}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
@@ -3997,7 +3999,7 @@
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(latestPortalEvent ? `Latest activity: ${latestPortalEvent.message || latestPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
@@ -4042,8 +4044,9 @@
               .map((event) => {
                 const eventTitle = event.message || event.type || "Portal event";
                 const eventType = event.type ? event.type.replace(/_/g, " ") : "event";
+                const isLatestActivity = latestVisiblePortalEvent && latestVisiblePortalEvent.eventId === event.eventId;
                 return `
-                  <article class="portal-activity-item">
+                  <article class="portal-activity-item${isLatestActivity ? " is-latest" : ""}">
                     <div class="portal-activity-item-head">
                       <strong>${escapeHtml(eventTitle)}</strong>
                       <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
