@@ -3886,6 +3886,7 @@
     const portalPanelCopy = customerOnlyView
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
+    const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
 
     portalPanel.innerHTML = `
       <div class="panel-intro">
@@ -3896,6 +3897,7 @@
         </div>
         <div class="panel-meta">
           <span class="panel-count">${escapeHtml(`${versions.length} versions`)}</span>
+          <span class="panel-count panel-count--quiet">${escapeHtml(portalViewBadge)}</span>
           ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
         </div>
       </div>

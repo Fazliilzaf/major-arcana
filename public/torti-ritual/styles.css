@@ -492,6 +492,17 @@ input {
   white-space: nowrap;
 }
 
+.panel-count--quiet {
+  border: 1px solid rgba(120, 105, 90, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: rgba(70, 60, 50, 0.72);
+  padding: 0 10px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .panel-meta {
   display: flex;
   align-items: center;
