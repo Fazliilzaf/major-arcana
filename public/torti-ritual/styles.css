@@ -538,6 +538,14 @@ input {
   gap: 8px;
 }
 
+.portal-activity-item-head-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .portal-activity-item-head strong {
   color: var(--ink);
   font-size: 0.78rem;
@@ -550,6 +558,21 @@ input {
   color: var(--muted);
   font-size: 0.54rem;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.portal-activity-latest-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(67, 50, 39, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 250, 241, 0.98);
+  color: var(--ink);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 700;
 }

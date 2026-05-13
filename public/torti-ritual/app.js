@@ -4049,7 +4049,10 @@
                   <article class="portal-activity-item${isLatestActivity ? " is-latest" : ""}">
                     <div class="portal-activity-item-head">
                       <strong>${escapeHtml(eventTitle)}</strong>
-                      <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
+                      <div class="portal-activity-item-head-meta">
+                        ${isLatestActivity ? '<span class="portal-activity-latest-pill">Latest</span>' : ""}
+                        <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
+                      </div>
                     </div>
                     <div class="portal-activity-item-foot">
                       <span>${escapeHtml(eventType)}</span>
