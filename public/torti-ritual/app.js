@@ -3895,6 +3895,14 @@
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
+    const portalOwnerUrl = customerOnlyView
+      ? (() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set("portalView", "split");
+          url.searchParams.set("portalCustomerKey", customerKey);
+          return url.toString();
+        })()
+      : "";
     const portalHero = customerOnlyView
       ? `
         <article class="portal-hero">
@@ -3907,6 +3915,9 @@
             <span>${escapeHtml(customerStatus)}</span>
             <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
+          </div>
+          <div class="portal-hero-actions">
+            <button class="ghost-button portal-action" type="button" data-open-owner-workspace>Back to owner workspace</button>
           </div>
         </article>
       `
@@ -4048,6 +4059,15 @@
     if (ackButton) {
       ackButton.addEventListener("click", function () {
         acknowledgeLatestPortalNotification();
+      });
+    }
+
+    const ownerWorkspaceButton = portalPanel.querySelector("[data-open-owner-workspace]");
+    if (ownerWorkspaceButton) {
+      ownerWorkspaceButton.addEventListener("click", function () {
+        if (portalOwnerUrl) {
+          window.location.assign(portalOwnerUrl);
+        }
       });
     }
   }
