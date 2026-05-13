@@ -181,7 +181,7 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
           conversationId: 'conv-test-2',
           customerId: 'anna.karlsson@email.com',
           customerName: 'Anna Karlsson',
-          date: '2026-03-27',
+          date: '2027-03-27',
           time: '10:30',
           doctorName: 'Dr. Eriksson',
           category: 'Ombokning',
@@ -195,6 +195,9 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
       assert.equal(followUpPayload.followUp.customerName, 'Anna Karlsson');
       assert.equal(followUpPayload.patient360.modules.aftercare.status, 'scheduled');
       assert.equal(followUpPayload.aftercareCase.aftercareStatus, 'scheduled');
+      assert.equal(followUpPayload.aftercareReadout.phase, 'follow_up_planned');
+      assert.equal(followUpPayload.aftercareReadout.blocker.key, 'follow_up_planned');
+      assert.equal(followUpPayload.aftercareReadout.queueBucket, 'planned');
 
       const conflictResponse = await fetch(
         `${baseUrl}/cco-workspace/follow-ups/validate-conflict`,
@@ -205,7 +208,7 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
           },
           body: JSON.stringify({
             workspaceId: 'major-arcana-preview',
-            date: '2026-03-27',
+            date: '2027-03-27',
             time: '10:30',
             doctorName: 'Dr. Eriksson',
           }),
@@ -239,9 +242,12 @@ test('cco workspace router schemalägger uppföljning, hittar konflikt och spara
       );
       const bootstrapPayload = await bootstrapResponse.json();
       assert.equal(bootstrapPayload.aftercareCase.aftercareStatus, 'scheduled');
+      assert.equal(bootstrapPayload.aftercareReadout.phase, 'follow_up_planned');
+      assert.equal(bootstrapPayload.aftercareReadout.blocker.key, 'follow_up_planned');
+      assert.equal(bootstrapPayload.aftercareReadout.queueBucket, 'planned');
       assert.equal(bootstrapPayload.workspacePrefs.leftWidth, 504);
       assert.equal(bootstrapPayload.workspacePrefs.rightWidth, 398);
-      assert.equal(bootstrapPayload.scheduleDraft.date, '2026-03-27');
+      assert.equal(bootstrapPayload.scheduleDraft.date, '2027-03-27');
       assert.equal(bootstrapPayload.scheduleDraft.time, '10:30');
       assert.equal(bootstrapPayload.bookingCase.status, 'needs_triage');
       assert.equal(bootstrapPayload.bookingReadout.status, 'needs_triage');
@@ -950,6 +956,72 @@ test('cco workspace bootstrap låter eftervård vinna över commercial efter avs
         bootstrapPayload.patient360.attention.what,
         'Öppna eftervårdsärendet och välj nästa steg'
       );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco workspace bootstrap returnerar sorterad aftercare-kö över flera ärenden', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await fixture.aftercareStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-aftercare-critical',
+      customerId: 'kritisk@example.com',
+      customerName: 'Kritisk Kund',
+      aftercareStatus: 'in_progress',
+      contactStatus: 'confirmed',
+      outcomeStatus: 'needs_attention',
+      doctorName: 'Dr. Eriksson',
+      requiredActions: ['Verifiera eftervårdsutfall med Dr. Eriksson'],
+      notes: 'Klinisk eskalering ska ligga först i kön.',
+    });
+
+    await fixture.aftercareStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-aftercare-due',
+      customerId: 'forfallen@example.com',
+      customerName: 'Förfallen Kund',
+      aftercareStatus: 'scheduled',
+      contactStatus: 'pending',
+      outcomeStatus: 'unknown',
+      scheduledForIso: '2026-03-10T08:00:00.000Z',
+      requiredActions: ['Genomför planerad uppföljning och dokumentera utfallet'],
+      notes: 'Förfallen uppföljning ska komma före planerade ärenden.',
+    });
+
+    await fixture.aftercareStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-aftercare-planned',
+      customerId: 'planerad@example.com',
+      customerName: 'Planerad Kund',
+      aftercareStatus: 'scheduled',
+      contactStatus: 'pending',
+      outcomeStatus: 'unknown',
+      scheduledForIso: '2027-03-27T10:30:00.000Z',
+      requiredActions: ['Genomför planerad uppföljning och dokumentera utfallet'],
+      notes: 'Planerad uppföljning ska ligga efter akuta ärenden.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const bootstrapResponse = await fetch(
+        `${baseUrl}/cco-workspace/bootstrap?workspaceId=major-arcana-preview&conversationId=conv-aftercare-critical&customerId=kritisk@example.com&customerName=Kritisk%20Kund`
+      );
+      assert.equal(bootstrapResponse.status, 200);
+      const bootstrapPayload = await bootstrapResponse.json();
+      assert.equal(Array.isArray(bootstrapPayload.aftercareQueue), true);
+      assert.equal(bootstrapPayload.aftercareQueue.length, 3);
+      assert.equal(bootstrapPayload.aftercareQueue[0].conversationId, 'conv-aftercare-critical');
+      assert.equal(bootstrapPayload.aftercareQueue[0].aftercareReadout.queueBucket, 'critical');
+      assert.equal(bootstrapPayload.aftercareQueue[1].conversationId, 'conv-aftercare-due');
+      assert.equal(bootstrapPayload.aftercareQueue[1].aftercareReadout.queueBucket, 'due');
+      assert.equal(bootstrapPayload.aftercareQueue[2].conversationId, 'conv-aftercare-planned');
+      assert.equal(bootstrapPayload.aftercareQueue[2].aftercareReadout.queueBucket, 'planned');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

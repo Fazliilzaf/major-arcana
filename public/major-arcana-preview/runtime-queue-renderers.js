@@ -219,6 +219,161 @@
     });
   }
 
+  function __describeAftercareQueueBucket(bucket = "") {
+    const normalized =
+      typeof normalizeKey === "function"
+        ? normalizeKey(bucket)
+        : String(bucket || "").toLowerCase();
+    const states = {
+      critical: {
+        label: "Kritisk",
+        tone: "escalation",
+        summary: "Kräver omedelbar uppföljning eller klinisk eskalering.",
+      },
+      due: {
+        label: "Förfallen",
+        tone: "due",
+        summary: "Planerad uppföljning är passerad och ska upp nu.",
+      },
+      today: {
+        label: "Idag",
+        tone: "today",
+        summary: "Planerad uppföljning ska tas idag.",
+      },
+      active: {
+        label: "Aktiv",
+        tone: "pending",
+        summary: "Aktivt eftervårdsarbete pågår.",
+      },
+      planned: {
+        label: "Planerad",
+        tone: "planned",
+        summary: "Uppföljningen är planerad men inte förfallen ännu.",
+      },
+      closed: {
+        label: "Stängd",
+        tone: "closed",
+        summary: "Eftervården är lugnt avslutad.",
+      },
+      paused: {
+        label: "Pausad",
+        tone: "cancelled",
+        summary: "Eftervården väntar eller är pausad.",
+      },
+    };
+    return states[normalized] || states.active;
+  }
+
+  function __getAftercareLaneEntries({ includeClosed = false, limit = 10 } = {}) {
+    const entries = Array.isArray(state?.aftercare?.queue) ? state.aftercare.queue : [];
+    return entries
+      .map((item) => {
+        const safeItem = item && typeof item === "object" ? item : {};
+        const aftercareCase =
+          safeItem.aftercareCase && typeof safeItem.aftercareCase === "object"
+            ? safeItem.aftercareCase
+            : null;
+        const readout =
+          safeItem.aftercareReadout && typeof safeItem.aftercareReadout === "object"
+            ? safeItem.aftercareReadout
+            : null;
+        const queueBucket = asText(safeItem.queueBucket || readout?.queueBucket);
+        const queueMeta = __describeAftercareQueueBucket(queueBucket);
+        const conversationId = asText(safeItem.conversationId || aftercareCase?.conversationId);
+        return {
+          caseId: asText(aftercareCase?.aftercareCaseId),
+          conversationId,
+          customerId: asText(safeItem.customerId || aftercareCase?.customerId),
+          customerName: asText(
+            safeItem.customerName || aftercareCase?.customerName,
+            "Kund i eftervård"
+          ),
+          queueBucket: normalizeKey(queueBucket),
+          queueLabel: queueMeta.label,
+          queueTone: queueMeta.tone,
+          queueSummary: asText(readout?.queueSummary, queueMeta.summary),
+          phase: normalizeKey(readout?.phase || ""),
+          nextStep: asText(readout?.nextStep, aftercareCase?.nextStep || "Öppna eftervårdsytan"),
+          blockerLabel: asText(
+            readout?.blocker?.label,
+            aftercareCase?.blocker?.label || "Bedöm eftervårdsärendet och välj nästa steg"
+          ),
+          requiredActions: Array.isArray(readout?.requiredActions) ? readout.requiredActions : [],
+          waitingOn: asText(readout?.waitingOn || aftercareCase?.waitingOn),
+          scheduledLabel: asText(
+            readout?.scheduledForIso && typeof formatHistoryTimestamp === "function"
+              ? formatHistoryTimestamp(readout.scheduledForIso)
+              : ""
+          ),
+          runtimeThreadId: conversationId,
+        };
+      })
+      .filter((entry) => entry.caseId && entry.conversationId)
+      .filter(
+        (entry) => includeClosed || !["closed", "paused", "cancelled"].includes(entry.queueBucket)
+      )
+      .slice(0, Math.max(1, limit));
+  }
+
+  function __buildAftercareLaneCardMarkup(entry = {}, selected = false) {
+    const selectedClass = selected ? " is-selected thread-card-selected" : "";
+    const metaParts = [entry.queueSummary, entry.scheduledLabel].filter(Boolean);
+    const supportText = entry.requiredActions.length
+      ? entry.requiredActions.join(" · ")
+      : entry.waitingOn
+        ? `Väntar på ${entry.waitingOn}`
+        : entry.blockerLabel;
+    return `<button class="thread-card queue-history-item unified-queue-card aftercare-lane-card${selectedClass}" type="button"
+      data-aftercare-open-case-id="${escapeHtml(entry.caseId)}"
+      data-aftercare-open-conversation-id="${escapeHtml(entry.conversationId)}"
+      data-aftercare-open-customer-id="${escapeHtml(entry.customerId)}"
+      data-runtime-thread="${escapeHtml(entry.runtimeThreadId)}"
+      aria-pressed="${selected ? "true" : "false"}">
+        <div class="aftercare-lane-card-head">
+          <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
+            entry.queueTone || "planned"
+          )}"><b>Kö</b><span>${escapeHtml(entry.queueLabel || "Eftervård")}</span></span>
+          <span class="aftercare-lane-card-cta">${escapeHtml(
+            entry.runtimeThreadId ? "Öppna tråd" : "Ladda case"
+          )}</span>
+        </div>
+        <div class="aftercare-lane-card-body">
+          <strong>${escapeHtml(compactRuntimeCopy(entry.customerName, entry.customerName, 40))}</strong>
+          <p>${escapeHtml(compactRuntimeCopy(entry.nextStep, entry.blockerLabel || "-", 110))}</p>
+          ${
+            supportText
+              ? `<small>${escapeHtml(compactRuntimeCopy(supportText, supportText, 92))}</small>`
+              : ""
+          }
+        </div>
+        ${
+          metaParts.length
+            ? `<div class="aftercare-lane-card-meta">${escapeHtml(
+                compactRuntimeCopy(metaParts.join(" · "), metaParts.join(" · "), 76)
+              )}</div>`
+            : ""
+        }
+      </button>`;
+  }
+
+  function __renderAftercareLaneList(entries = []) {
+    if (!queueHistoryList) return;
+    if (queueHistoryList.dataset) {
+      queueHistoryList.dataset.queueListMode = "aftercare";
+    }
+    const selectedConversationId = normalizeKey(
+      asText(state?.runtime?.selectedThreadId || state?.aftercare?.contextConversationId)
+    );
+    queueHistoryList.innerHTML = entries
+      .map((entry) =>
+        __buildAftercareLaneCardMarkup(
+          entry,
+          selectedConversationId && normalizeKey(entry.conversationId) === selectedConversationId
+        )
+      )
+      .join("");
+  }
+
   // ============================================================
   // Thread-card click delegering (migrerad från P1-1 shim 2026-05-07)
   // ============================================================
@@ -2715,6 +2870,9 @@
       granska: "granska",
       unclear: "oklart",
       oklart: "oklart",
+      aftercare: "eftervard",
+      eftervard: "eftervard",
+      eftervård: "eftervard",
       bookable: "bokning",
       booking: "bokning",
       bokning: "bokning",
@@ -2756,6 +2914,7 @@
       admin: "Admin",
       granska: "Granska",
       oklart: "Oklart",
+      eftervard: "Eftervård",
       bokning: "Bokning",
       medicinsk: "Medicinsk",
     };
@@ -2776,6 +2935,8 @@
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
         oklart:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        eftervard:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M7 12h2.8l1.7-3 2.7 7 2-4H19"/></svg>',
         bokning:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
         medicinsk:
@@ -4327,6 +4488,9 @@
     }
 
     function getQueueCount(tag, threads = getQueueScopedRuntimeThreads()) {
+      if (normalizeKey(tag) === "aftercare") {
+        return __getAftercareLaneEntries().length;
+      }
       return getQueueLaneThreads(tag, threads).length;
     }
 
@@ -5231,6 +5395,33 @@
           queueHistoryList.dataset.queueListMode = "live";
         }
         const laneId = normalizeKey(leftColumnState.laneId || state.runtime.activeLaneId || "all");
+        if (laneId === "aftercare") {
+          const aftercareEntries = __getAftercareLaneEntries({ limit: 12 });
+          if (queueTitle) {
+            queueTitle.textContent = `${QUEUE_LANE_LABELS.aftercare || "Eftervård"} (${aftercareEntries.length})`;
+          }
+          if (!aftercareEntries.length) {
+            renderQueueInlineLaneList([
+              buildUnifiedStateThread({
+                id: "runtime-lane-empty-aftercare",
+                customerName: "Inga eftervårdsärenden i kö",
+                ownerLabel: "Eftervård",
+                subject: "Eftervårdslanen är lugn just nu",
+                preview:
+                  "När uppföljningar blir förfallna, planerade för idag eller behöver klinisk eskalering syns de här först.",
+                mailboxLabel: "Eftervård",
+                statusLabel: "Ingen aktiv kö",
+                nextActionLabel: "Övervaka",
+                nextActionSummary:
+                  "Fortsätt i övriga arbetsköer tills nya eftervårdsärenden kliver upp i prioritet.",
+              }),
+            ]);
+          } else {
+            __renderAftercareLaneList(aftercareEntries);
+          }
+          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+          return;
+        }
         const laneThreads = getQueueLaneThreads(laneId, getQueueScopedRuntimeThreads());
         if (queueTitle) {
           queueTitle.textContent = `${QUEUE_LANE_LABELS[laneId] || QUEUE_LANE_LABELS.all} (${laneThreads.length})`;

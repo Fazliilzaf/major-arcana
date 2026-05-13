@@ -783,6 +783,37 @@
                     </button>
 
                     <button
+                      class="queue-filter-chip queue-filter-chip--aftercare"
+                      type="button"
+                      data-queue-lane="aftercare"
+                    >
+                      <span>
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <path
+                            d="M3.4 8h2.1l1.1-2 2 5 1.4-3h2.6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.3"
+                          />
+                          <rect
+                            x="2.6"
+                            y="2.9"
+                            width="10.8"
+                            height="10.2"
+                            rx="2.3"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.2"
+                          />
+                        </svg>
+                        Eftervård
+                      </span>
+                      <strong data-queue-lane-count="aftercare">0</strong>
+                    </button>
+
+                    <button
                       class="queue-filter-chip queue-filter-chip--cyan"
                       type="button"
                       data-queue-lane="bookable"
@@ -3522,6 +3553,17 @@
 
                       <div class="customers-portal-panels">
                         <section class="customers-portal-view is-active" data-portal-owner-view>
+                          <div
+                            class="customers-portal-mode-banner customers-portal-mode-banner-owner"
+                          >
+                            <p class="customers-portal-kicker">Ägarläge</p>
+                            <h5>Redigera, spara och publicera</h5>
+                            <p>
+                              Här bygger du layers-skissen, låser versionen och skickar den vidare
+                              till kunden.
+                            </p>
+                          </div>
+
                           <div class="customers-portal-summary" data-portal-owner-summary></div>
 
                           <div class="customers-portal-draft-card">
@@ -3601,6 +3643,17 @@
                         </section>
 
                         <section class="customers-portal-view" data-portal-customer-view hidden>
+                          <div
+                            class="customers-portal-mode-banner customers-portal-mode-banner-customer"
+                          >
+                            <p class="customers-portal-kicker">Kundläge</p>
+                            <h5>Se publicerade versioner</h5>
+                            <p>
+                              Kunden ser den senaste publicerade skissen, notiserna och
+                              kvittensstatusen.
+                            </p>
+                          </div>
+
                           <div class="customers-portal-customer-hero">
                             <div>
                               <p class="customers-portal-kicker">Kundvy</p>

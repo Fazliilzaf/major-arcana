@@ -9150,11 +9150,51 @@
     return "all";
   }
 
+  function getAftercareQueueEntryForConversation(conversationId = "") {
+    const normalizedConversationId = normalizeKey(conversationId);
+    if (!normalizedConversationId) return null;
+    return (
+      asArray(state.aftercare?.queue).find((item) => {
+        const safeItem = item && typeof item === "object" ? item : {};
+        const aftercareCase =
+          safeItem.aftercareCase && typeof safeItem.aftercareCase === "object"
+            ? safeItem.aftercareCase
+            : null;
+        return (
+          normalizeKey(safeItem.conversationId) === normalizedConversationId ||
+          normalizeKey(aftercareCase?.conversationId) === normalizedConversationId
+        );
+      }) || null
+    );
+  }
+
+  function isAftercareQueueBucketActive(entry = {}) {
+    const safeEntry = entry && typeof entry === "object" ? entry : {};
+    const readout =
+      safeEntry.aftercareReadout && typeof safeEntry.aftercareReadout === "object"
+        ? safeEntry.aftercareReadout
+        : null;
+    const queueBucket = normalizeKey(safeEntry.queueBucket || readout?.queueBucket || "");
+    if (queueBucket) {
+      return !["closed", "paused", "cancelled"].includes(queueBucket);
+    }
+    const phase = normalizeKey(readout?.phase || "");
+    return !["closed", "cancelled"].includes(phase);
+  }
+
+  function isAftercareRuntimeThread(thread) {
+    const conversationId = asText(thread?.id || thread?.conversationId);
+    if (!conversationId) return false;
+    const queueEntry = getAftercareQueueEntryForConversation(conversationId);
+    return !!queueEntry && isAftercareQueueBucketActive(queueEntry);
+  }
+
   function getThreadPrimaryLaneId(thread) {
     const explicitPrimaryLane = normalizeKey(thread?.primaryLaneId || "");
+    if (isManualReviewRuntimeThread(thread)) return "review";
+    if (isUnclearRuntimeThread(thread)) return "unclear";
+    if (isAftercareRuntimeThread(thread)) return "aftercare";
     if (!explicitPrimaryLane || explicitPrimaryLane === "all") {
-      if (isManualReviewRuntimeThread(thread)) return "review";
-      if (isUnclearRuntimeThread(thread)) return "unclear";
       if (asArray(thread?.tags).includes("medical")) return "medical";
       if (asArray(thread?.tags).includes("bookable")) return "bookable";
       if (asArray(thread?.tags).includes("admin")) return "admin";
@@ -36837,12 +36877,27 @@ renderStudioShell();
 
 	  document.addEventListener("pointerup", (event) => {
 	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
-	    if (!bookingLaneButton) return;
+	    if (bookingLaneButton) {
+	      window.setTimeout(() => {
+	        openBookingOperatorSurface({
+	          scroll: true,
+	          message: "Bokningsytan öppnades från Bokning-kön.",
+	        });
+	      }, 120);
+	      return;
+	    }
+	    const aftercareLaneButton = event.target.closest('[data-queue-lane="aftercare"]');
+	    if (!aftercareLaneButton) return;
 	    window.setTimeout(() => {
-	      openBookingOperatorSurface({
-	        scroll: true,
-	        message: "Bokningsytan öppnades från Bokning-kön.",
-	      });
+	      state.ui = {
+	        ...(state.ui || {}),
+	        appView: "workspace",
+	        focusSection: "customer",
+	      };
+	      if (focusStatusLine) {
+	        focusStatusLine.textContent = "Eftervårdskön filtrerades fram i arbetskön.";
+	      }
+	      renderShell();
 	    }, 120);
 	  });
 

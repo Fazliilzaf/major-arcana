@@ -13,6 +13,7 @@ const {
   AFTERCARE_STATUSES,
   CONTACT_STATUSES,
   OUTCOME_STATUSES,
+  buildAftercareCaseReadout,
 } = require('../ops/ccoAftercareStore');
 const { syncPatient360FromAftercareCase } = require('../ops/ccoPatient360Bridge');
 
@@ -34,6 +35,15 @@ function toCaseInput(context, body = {}) {
     nextStep: normalizeText(body.nextStep),
     linkedFollowUpId: normalizeText(body.linkedFollowUpId),
     requiredActions: Array.isArray(body.requiredActions) ? body.requiredActions : [],
+  };
+}
+
+function toActionInput(context, body = {}) {
+  return {
+    ...toCaseInput(context, body),
+    actionKey: normalizeText(body.action || body.actionKey),
+    actorUserId: context.actor.userId,
+    actorName: normalizeText(body.actorName || body.ownerName),
   };
 }
 
@@ -88,6 +98,7 @@ function createCcoAftercareRouter({
       });
       return res.json({
         aftercareCase,
+        aftercareReadout: buildAftercareCaseReadout(aftercareCase),
         patient360: serializePatient360(patientRecord),
         statuses: {
           aftercare: AFTERCARE_STATUSES,
@@ -127,7 +138,25 @@ function createCcoAftercareRouter({
       });
       return res.json({
         aftercareCase,
+        aftercareReadout: buildAftercareCaseReadout(aftercareCase),
         patient360: serializePatient360(patientRecord),
+      });
+    })
+  );
+
+  router.post('/cco-aftercare/case/action', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireCcoRouteContext(context, 'Välj en aktiv tråd med kund innan eftervårdsytan används.');
+      const aftercareCase = await aftercareStore.applyCaseAction(toActionInput(context, req.body));
+      const patientRecord = await syncAftercarePatient360(context, aftercareCase, {
+        source: 'cco_aftercare_case_action',
+        includeTimelineEvent: true,
+      });
+      return res.json({
+        aftercareCase,
+        aftercareReadout: buildAftercareCaseReadout(aftercareCase),
+        patient360: serializePatient360(patientRecord),
+        message: 'Eftervårdsåtgärden sparades.',
       });
     })
   );

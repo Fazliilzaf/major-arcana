@@ -729,14 +729,22 @@ function buildPatient360SnapshotFromAftercareCase({
   const requiredActions = asArray(safeCase.requiredActions)
     .map((item) => normalizeText(item))
     .filter(Boolean);
+  const explicitNextStep = normalizeText(safeCase.nextStep);
   const primaryAction =
     outcomeStatus === 'needs_attention'
       ? 'Eskalera eftervårdsutfall och boka nästa åtgärd'
-      : aftercareStatus === 'scheduled'
-        ? 'Genomför planerad uppföljning och dokumentera utfallet'
-        : aftercareStatus === 'needs_validation'
-          ? 'Verifiera eftervårdsutfall med ansvarig kliniker'
-          : requiredActions[0] || 'Öppna eftervårdsärendet och välj nästa steg';
+      : aftercareStatus === 'complete'
+        ? explicitNextStep ||
+          (outcomeStatus === 'stable'
+            ? 'Eftervården är avslutad och kunden är stabil'
+            : 'Eftervården är avslutad')
+        : aftercareStatus === 'scheduled'
+          ? 'Genomför planerad uppföljning och dokumentera utfallet'
+          : aftercareStatus === 'needs_validation'
+            ? 'Verifiera eftervårdsutfall med ansvarig kliniker'
+            : requiredActions[0] ||
+              explicitNextStep ||
+              'Öppna eftervårdsärendet och välj nästa steg';
 
   return {
     tenantId: normalizeText(context.tenantId),
@@ -754,7 +762,12 @@ function buildPatient360SnapshotFromAftercareCase({
       aftercare: {
         status: aftercareStatus,
         nextAction: primaryAction,
-        waitingOn: contactStatus === 'confirmed' ? 'clinic' : 'operator',
+        waitingOn:
+          aftercareStatus === 'complete'
+            ? 'none'
+            : contactStatus === 'confirmed'
+              ? 'clinic'
+              : 'operator',
         confidence: aftercareStatus === 'scheduled' ? 0.84 : 0.74,
         metadata: {
           source,
@@ -771,7 +784,13 @@ function buildPatient360SnapshotFromAftercareCase({
             confidence: 0.76,
             metadata: { source, requiredActionCount: requiredActions.length },
           }
-        : undefined,
+        : {
+            status: 'inactive',
+            nextAction: '',
+            waitingOn: 'none',
+            confidence: 0.9,
+            metadata: { source, requiredActionCount: 0 },
+          },
       clinical:
         outcomeStatus === 'needs_attention'
           ? {
@@ -780,7 +799,13 @@ function buildPatient360SnapshotFromAftercareCase({
               confidence: 0.71,
               metadata: { source, aftercare: true },
             }
-          : undefined,
+          : {
+              status: 'inactive',
+              nextAction: '',
+              waitingOn: 'none',
+              confidence: 0.9,
+              metadata: { source, aftercare: true },
+            },
     },
   };
 }
