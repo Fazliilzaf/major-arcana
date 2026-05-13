@@ -5,10 +5,14 @@ const crypto = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 
 const { AnalyzeInboxCapability } = require('../capabilities/analyzeInbox');
+const { composeCooDailyBrief } = require('../agents/cooDailyBriefAgent');
 const { buildPilotReport } = require('../reports/pilotReport');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { buildShadowRunOutput, summarizeShadowReview } = require('./ccoShadowRun');
-const { hydrateAnalyzeInboxInput, materializeCustomerReplyActions } = require('../routes/capabilities');
+const {
+  hydrateAnalyzeInboxInput,
+  materializeCustomerReplyActions,
+} = require('../routes/capabilities');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 const {
   getStateFileMap,
@@ -28,7 +32,9 @@ const { resolveAdaptiveFocusState } = require('../intelligence/adaptiveFocusCont
 const { evaluateRecovery } = require('../intelligence/recoveryEngine');
 const { evaluateStrategicInsights } = require('../intelligence/strategicInsightsEngine');
 const { runClientoBackfill } = require('../../scripts/run-cliento-backfill');
-const { createMicrosoftGraphMailboxTruthDelta } = require('../infra/microsoftGraphMailboxTruthDelta');
+const {
+  createMicrosoftGraphMailboxTruthDelta,
+} = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
 const { config: defaultSchedulerConfig } = require('../config');
 
@@ -134,18 +140,21 @@ function collectCcoHistoryMessages(snapshot = {}) {
         subject: normalizeText(message?.subject) || subject,
         customerEmail,
         sentAt: toIso(message?.sentAt) || null,
-        direction: normalizeText(message?.direction).toLowerCase() === 'outbound' ? 'outbound' : 'inbound',
+        direction:
+          normalizeText(message?.direction).toLowerCase() === 'outbound' ? 'outbound' : 'inbound',
         bodyPreview: normalizeText(message?.bodyPreview) || '',
         senderEmail: normalizeMailboxId(message?.senderEmail) || null,
         senderName: normalizeText(message?.senderName) || null,
         recipients: (Array.isArray(message?.recipients) ? message.recipients : [])
           .map((item) => normalizeMailboxId(item))
           .filter(Boolean),
-        replyToRecipients: (Array.isArray(message?.replyToRecipients) ? message.replyToRecipients : [])
+        replyToRecipients: (Array.isArray(message?.replyToRecipients)
+          ? message.replyToRecipients
+          : []
+        )
           .map((item) => normalizeMailboxId(item))
           .filter(Boolean),
-        mailboxId:
-          normalizeMailboxId(message?.mailboxId || conversation?.mailboxId) || null,
+        mailboxId: normalizeMailboxId(message?.mailboxId || conversation?.mailboxId) || null,
         mailboxAddress:
           normalizeMailboxId(message?.mailboxAddress || conversation?.mailboxAddress) || null,
         userPrincipalName:
@@ -180,10 +189,7 @@ async function fetchCcoHistoryWindowMessagesFromGraph({
   return collectCcoHistoryMessages(snapshot);
 }
 
-function selectNextCcoHistoryBackfillWindow({
-  missingWindows = [],
-  chunkDays = 30,
-}) {
+function selectNextCcoHistoryBackfillWindow({ missingWindows = [], chunkDays = 30 }) {
   const safeChunkDays = Math.max(1, Math.min(90, Number(chunkDays) || 30));
   const chunkMs = safeChunkDays * 24 * 60 * 60 * 1000;
   const windows = Array.isArray(missingWindows) ? missingWindows : [];
@@ -653,7 +659,11 @@ function createScheduler({
     return result;
   }
 
-  async function runSecretRotationSnapshot({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+  async function runSecretRotationSnapshot({
+    tenantId,
+    trigger = 'scheduled',
+    actorUserId = null,
+  }) {
     if (!secretRotationStore || typeof secretRotationStore.captureSnapshot !== 'function') {
       return {
         tenantId,
@@ -663,13 +673,14 @@ function createScheduler({
     }
 
     const dryRun = Boolean(config.schedulerSecretRotationDryRun);
-    const source = dryRun ? 'scheduler_secret_rotation_preview' : 'scheduler_secret_rotation_commit';
+    const source = dryRun
+      ? 'scheduler_secret_rotation_preview'
+      : 'scheduler_secret_rotation_commit';
     const snapshot = await secretRotationStore.captureSnapshot({
       actorUserId: actorUserId || 'scheduler',
       source,
       note:
-        normalizeText(config.schedulerSecretRotationNote) ||
-        'Scheduled secret rotation snapshot',
+        normalizeText(config.schedulerSecretRotationNote) || 'Scheduled secret rotation snapshot',
       dryRun,
       force: false,
     });
@@ -690,7 +701,8 @@ function createScheduler({
         await sendAlertNotification({
           tenantId,
           actorUserId: actorUserId || 'scheduler',
-          eventType: staleRequired > 0 ? 'secrets.rotation.stale_required' : 'secrets.rotation.pending',
+          eventType:
+            staleRequired > 0 ? 'secrets.rotation.stale_required' : 'secrets.rotation.pending',
           severity: staleRequired > 0 ? 'critical' : 'warn',
           payload: {
             trigger,
@@ -722,10 +734,7 @@ function createScheduler({
     trigger = 'scheduled',
     actorUserId = null,
   }) {
-    if (
-      !releaseGovernanceStore ||
-      typeof releaseGovernanceStore.evaluateCycle !== 'function'
-    ) {
+    if (!releaseGovernanceStore || typeof releaseGovernanceStore.evaluateCycle !== 'function') {
       return {
         tenantId,
         skipped: true,
@@ -757,9 +766,8 @@ function createScheduler({
       };
     }
 
-    let evaluation = payload?.evaluation && typeof payload.evaluation === 'object'
-      ? payload.evaluation
-      : null;
+    let evaluation =
+      payload?.evaluation && typeof payload.evaluation === 'object' ? payload.evaluation : null;
     let status = normalizeText(payload?.cycle?.status || '').toLowerCase();
     const autoReviewEnabled = Boolean(config?.schedulerReleaseGovernanceAutoReviewEnabled);
     let autoReview = {
@@ -797,10 +805,7 @@ function createScheduler({
               ? await templateStore.summarizeRisk({ tenantId })
               : null;
 
-          const openIncidents = Math.max(
-            0,
-            Number(incidentsSummary?.totals?.openUnresolved || 0)
-          );
+          const openIncidents = Math.max(0, Number(incidentsSummary?.totals?.openUnresolved || 0));
           const breachedIncidents = Math.max(
             0,
             Number(incidentsSummary?.totals?.breachedOpen || 0)
@@ -882,9 +887,10 @@ function createScheduler({
           }
 
           payload = await evaluateReleaseCycle();
-          evaluation = payload?.evaluation && typeof payload.evaluation === 'object'
-            ? payload.evaluation
-            : null;
+          evaluation =
+            payload?.evaluation && typeof payload.evaluation === 'object'
+              ? payload.evaluation
+              : null;
           status = normalizeText(payload?.cycle?.status || '').toLowerCase();
         }
       }
@@ -912,9 +918,7 @@ function createScheduler({
             status,
             releaseGatePassed: evaluation?.releaseGatePassed === true,
             blockerCount,
-            blockers: Array.isArray(evaluation?.blockers)
-              ? evaluation.blockers.slice(0, 12)
-              : [],
+            blockers: Array.isArray(evaluation?.blockers) ? evaluation.blockers.slice(0, 12) : [],
           },
         })
       );
@@ -1056,14 +1060,12 @@ function createScheduler({
 
       if (Number(autoOwnerAssignment?.assignedCount || 0) > 0) {
         const assignedIncidents = Array.isArray(autoOwnerAssignment?.assigned)
-          ? autoOwnerAssignment.assigned
-              .slice(0, 25)
-              .map((item) => ({
-                incidentId: item?.incidentId || null,
-                evaluationId: item?.evaluationId || null,
-                severity: item?.severity || null,
-                assignedOwnerUserId: item?.assignedOwnerUserId || null,
-              }))
+          ? autoOwnerAssignment.assigned.slice(0, 25).map((item) => ({
+              incidentId: item?.incidentId || null,
+              evaluationId: item?.evaluationId || null,
+              severity: item?.severity || null,
+              assignedOwnerUserId: item?.assignedOwnerUserId || null,
+            }))
           : [];
 
         await addAudit({
@@ -1126,14 +1128,12 @@ function createScheduler({
 
       if (Number(autoEscalation?.escalatedCount || 0) > 0) {
         const escalatedIncidents = Array.isArray(autoEscalation?.escalated)
-          ? autoEscalation.escalated
-              .slice(0, 25)
-              .map((item) => ({
-                incidentId: item?.incidentId || null,
-                evaluationId: item?.evaluationId || null,
-                severity: item?.severity || null,
-                slaDeadline: item?.slaDeadline || null,
-              }))
+          ? autoEscalation.escalated.slice(0, 25).map((item) => ({
+              incidentId: item?.incidentId || null,
+              evaluationId: item?.evaluationId || null,
+              severity: item?.severity || null,
+              slaDeadline: item?.slaDeadline || null,
+            }))
           : [];
 
         await addAudit({
@@ -1208,7 +1208,9 @@ function createScheduler({
         ? Number(((serverErrors / Math.max(1, sampledRequests)) * 100).toFixed(3))
         : 0;
     const maxErrorRatePct = Number(config?.observabilityAlertMaxErrorRatePct || 2.5);
-    const maxP95Ms = Number(config?.observabilityAlertMaxP95Ms || config?.metricsSlowRequestMs || 1800);
+    const maxP95Ms = Number(
+      config?.observabilityAlertMaxP95Ms || config?.metricsSlowRequestMs || 1800
+    );
     const maxSlowRequests = Math.max(1, Number(config?.observabilityAlertMaxSlowRequests || 25));
     const restoreMaxAgeDays = Math.max(1, Number(config?.monitorRestoreDrillMaxAgeDays || 30));
     const pilotMaxAgeHours = Math.max(1, Number(config?.monitorPilotReportMaxAgeHours || 36));
@@ -1509,10 +1511,7 @@ function createScheduler({
     return Math.round((sum / list.length) * factor) / factor;
   }
 
-  async function buildCcoStrategicPayload({
-    tenantId,
-    windowDays = 14,
-  } = {}) {
+  async function buildCcoStrategicPayload({ tenantId, windowDays = 14 } = {}) {
     if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.list !== 'function') {
       return {
         skipped: true,
@@ -1554,7 +1553,9 @@ function createScheduler({
         .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] ||
       sourceEntries[1] ||
       null;
-    const previousConversationWorklist = Array.isArray(previousEntry?.output?.data?.conversationWorklist)
+    const previousConversationWorklist = Array.isArray(
+      previousEntry?.output?.data?.conversationWorklist
+    )
       ? previousEntry.output.data.conversationWorklist
       : [];
 
@@ -1589,7 +1590,9 @@ function createScheduler({
         (event) => normalizeText(event?.action).toLowerCase() === 'cco.draft.mode_selected'
       );
       if (!modeEvents.length) return 0;
-      const followed = modeEvents.filter((event) => event?.metadata?.ignoredRecommended !== true).length;
+      const followed = modeEvents.filter(
+        (event) => event?.metadata?.ignoredRecommended !== true
+      ).length;
       return Math.max(0, Math.min(1, followed / modeEvents.length));
     })();
 
@@ -1663,7 +1666,7 @@ function createScheduler({
       const delta = Math.abs(toNumber(point.score, 0) - toNumber(previous?.score, 0));
       return {
         ts: point.ts,
-        index: Number((Math.min(1, delta / 20)).toFixed(3)),
+        index: Number(Math.min(1, delta / 20).toFixed(3)),
       };
     });
     const recoveryState = evaluateRecovery({
@@ -1721,7 +1724,8 @@ function createScheduler({
     outputData,
     metadata = {},
   } = {}) {
-    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') return null;
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function')
+      return null;
     if (!normalizeText(capabilityName)) return null;
     return capabilityAnalysisStore.append({
       tenantId,
@@ -1741,6 +1745,87 @@ function createScheduler({
       riskSummary: {},
       policySummary: {},
     });
+  }
+
+  async function runCooDailyBrief({ tenantId, trigger = 'scheduled', actorUserId = null }) {
+    const incidentSummary =
+      typeof templateStore?.summarizeIncidents === 'function'
+        ? await templateStore.summarizeIncidents({ tenantId })
+        : null;
+    const riskSummary =
+      typeof templateStore?.getRiskSummary === 'function'
+        ? await templateStore.getRiskSummary({ tenantId })
+        : null;
+    const openReviews = Number(riskSummary?.openReviewCount || 0);
+    const incidentRisk = normalizeText(incidentSummary?.escalationRisk) || 'Lag';
+    const incidentOutput = {
+      data: {
+        summary:
+          normalizeText(incidentSummary?.summary) || 'Ingen incidentsammanfattning tillganglig.',
+        severityBreakdown: {
+          L3: Number(incidentSummary?.totals?.L3 || incidentSummary?.severityBreakdown?.L3 || 0),
+          L4: Number(incidentSummary?.totals?.L4 || incidentSummary?.severityBreakdown?.L4 || 0),
+          L5: Number(incidentSummary?.totals?.L5 || incidentSummary?.severityBreakdown?.L5 || 0),
+        },
+        escalationRisk: incidentRisk,
+        recommendations: Array.isArray(incidentSummary?.recommendations)
+          ? incidentSummary.recommendations.slice(0, 5)
+          : [],
+        generatedAt: new Date().toISOString(),
+      },
+      warnings: [],
+    };
+    const taskPlanOutput = {
+      data: {
+        tasks: [
+          ...(openReviews > 0
+            ? [
+                {
+                  title: `Granska ${openReviews} oppna risk-reviews`,
+                  priority: 'P1',
+                  source: 'risk_summary',
+                },
+              ]
+            : []),
+          ...(Number(incidentSummary?.totals?.breachedOpen || 0) > 0
+            ? [{ title: 'Eskalera breachade incidenter', priority: 'P0', source: 'incidents' }]
+            : []),
+          { title: 'Verifiera nightly backup + restore drill', priority: 'P2', source: 'ops' },
+        ].slice(0, 5),
+        riskHighlight: { level: incidentRisk },
+        recommendedActions: [],
+        summary: `${openReviews} oppna reviews, incidentrisk ${incidentRisk}.`,
+        generatedAt: new Date().toISOString(),
+      },
+      warnings: [],
+    };
+
+    const brief = composeCooDailyBrief({
+      incidentOutput,
+      taskPlanOutput,
+      channel: 'scheduler',
+      tenantId,
+    });
+
+    await appendStrategicAnalysisEntry({
+      tenantId,
+      actorUserId,
+      capabilityName: 'COO.DailyBrief',
+      outputData: brief.data,
+      metadata: {
+        trigger,
+        generatedAt: brief.data.generatedAt,
+        priorityLevel: brief.data.priorityLevel,
+      },
+    });
+
+    return {
+      tenantId,
+      generatedAt: brief.data.generatedAt,
+      priorityLevel: brief.data.priorityLevel,
+      executiveSummary: brief.data.executiveSummary,
+      taskCount: brief.data.taskPlan?.tasks?.length || 0,
+    };
   }
 
   async function runCcoWeeklyBrief({ tenantId, trigger = 'scheduled', actorUserId = null }) {
@@ -2137,7 +2222,10 @@ function createScheduler({
   }
 
   async function runCcoClientoBackfill({ tenantId, trigger = 'scheduled' }) {
-    if (!ccoCustomerStore || typeof ccoCustomerStore.getTenantCustomerImportCoverageReadout !== 'function') {
+    if (
+      !ccoCustomerStore ||
+      typeof ccoCustomerStore.getTenantCustomerImportCoverageReadout !== 'function'
+    ) {
       return {
         tenantId,
         skipped: true,
@@ -2468,22 +2556,25 @@ function createScheduler({
 
     try {
       const startedAt = Date.now();
-      logger?.log?.(
-        `[scheduler] cco_truth_delta_sync START mailboxes=${mailboxIds.join(',')}`
-      );
+      logger?.log?.(`[scheduler] cco_truth_delta_sync START mailboxes=${mailboxIds.join(',')}`);
       const result = await delta.runDeltaSync({
         mailboxIds,
         folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
       });
       const newMessages = (result?.perMailbox || []).reduce((sum, mb) => {
-        return sum + (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+        return (
+          sum + (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0)
+        );
       }, 0);
       logger?.log?.(
-        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} elapsedMs=${result?.elapsedMs ?? Date.now()-startedAt}`
+        `[scheduler] cco_truth_delta_sync DONE runId=${result?.runId || ''} mailboxes=${mailboxIds.length} newMessages=${newMessages} elapsedMs=${result?.elapsedMs ?? Date.now() - startedAt}`
       );
       // Per-mailbox breakdown
-      for (const mb of (result?.perMailbox || [])) {
-        const mbMsgs = (mb?.folderReports || []).reduce((s, fr) => s + Number(fr?.messageCount || 0), 0);
+      for (const mb of result?.perMailbox || []) {
+        const mbMsgs = (mb?.folderReports || []).reduce(
+          (s, fr) => s + Number(fr?.messageCount || 0),
+          0
+        );
         logger?.log?.(
           `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs}`
         );
@@ -2531,6 +2622,12 @@ function createScheduler({
   }
 
   const jobDefinitions = [
+    {
+      id: 'coo_daily_brief',
+      name: 'COO daily brief',
+      intervalMs: toHoursMs(config.schedulerReportIntervalHours, 24),
+      run: runCooDailyBrief,
+    },
     {
       id: 'cco_weekly_brief',
       name: 'CCO weekly brief snapshot',
