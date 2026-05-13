@@ -16228,7 +16228,11 @@
           thread.nextActionLabel,
           "Verifiera operationsberedskap och nästa kliniska steg"
         ),
-        confidence: isOperationRuntimeThread(thread) ? 0.84 : 0.62,
+        confidence: asText(
+          thread.raw?.plannedTreatment || thread.raw?.treatmentContext || thread.raw?.medicalContext
+        )
+          ? 0.84
+          : 0.62,
       },
       {
         id: "aftercare",
@@ -20858,17 +20862,21 @@
         `;
       } else {
         portalCustomerNotifications.innerHTML = notifications
-          .map((notification) => {
+          .map((notification, index) => {
             const unread = !notification.readAt;
+            const isLatest = index === 0;
             return `
-              <article class="customers-portal-notification-card${unread ? " is-unread" : ""}">
+              <article class="customers-portal-notification-card${unread ? " is-unread" : ""}${
+              isLatest ? " is-latest" : ""
+            }">
                 <div>
+                  <span>${isLatest ? "Senaste" : unread ? "Oläst" : "Läst"}</span>
                   <strong>${escapeHtml(notification.title || "Ny layers-skiss")}</strong>
                   <p>${escapeHtml(notification.message || "")}</p>
                 </div>
                 <div class="customers-portal-notification-meta">
                   <span>${escapeHtml(notification.createdAt || "")}</span>
-                  <span>${unread ? "Oläst" : "Läst"}</span>
+                  <span>${isLatest ? "Nyast" : unread ? "Oläst" : "Läst"}</span>
                 </div>
               </article>
             `;
