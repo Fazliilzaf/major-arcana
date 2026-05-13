@@ -353,6 +353,12 @@ input {
   font-weight: 700;
 }
 
+.portal-card-sync {
+  border-color: rgba(88, 63, 46, 0.26);
+  background: rgba(253, 250, 244, 0.96);
+  color: var(--ink);
+}
+
 .portal-card-actions {
   display: flex;
   align-items: center;

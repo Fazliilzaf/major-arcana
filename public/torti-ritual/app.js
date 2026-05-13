@@ -1,6 +1,14 @@
 (function () {
   const STORAGE_KEY = "torti-ritual-saved-sheets-v1";
   const PORTAL_STORAGE_KEY = "torti-ritual-portal-records-v1";
+  const PORTAL_REMOTE_PATHS = {
+    overview: "/cco-workspace/portal",
+    draft: "/cco-workspace/portal/drafts",
+    publish: "/cco-workspace/portal/publish",
+    customer: "/cco/customers/portal",
+    viewed: "/cco/customers/portal/viewed",
+    acknowledgeBase: "/cco/customers/portal/notifications",
+  };
   const ZONE_LAYOUT_VERSION = "cluster-horizontal-v1";
 
   const BODY_IMAGE_SIZE = {
@@ -1030,6 +1038,9 @@
     pendingCatalogId: null,
     savedSheets: [],
     currentSheetId: null,
+    portalRemoteStatus: {},
+    portalRemoteHydrationSignatures: {},
+    portalRemoteSyncSignatures: {},
   };
 
   let bottleSeed = 0;
@@ -2051,6 +2062,45 @@
     };
   }
 
+  function normalizePortalDraft(draft, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(draft.createdAt) || now;
+
+    return {
+      draftId: normalizeText(draft.draftId) || `draft-${index + 1}`,
+      customerKey: normalize(draft.customerKey),
+      customerName: normalizeText(draft.customerName),
+      customerEmail: normalizeText(draft.customerEmail).toLowerCase(),
+      customerPhone: normalizeText(draft.customerPhone),
+      workspaceId: normalizeText(draft.workspaceId) || "torti-ritual",
+      title: normalizeText(draft.title),
+      summary: normalizeText(draft.summary),
+      note: normalizeText(draft.note),
+      layers: cloneLayers(draft.layers),
+      librarySnapshot: Array.isArray(draft.librarySnapshot) ? draft.librarySnapshot.slice() : [],
+      ownerUserId: normalizeText(draft.ownerUserId),
+      ownerName: normalizeText(draft.ownerName),
+      source: normalizeText(draft.source) || "workspace_draft",
+      status: normalizeText(draft.status) || "draft",
+      publishedVersionId: normalizeText(draft.publishedVersionId),
+      publishedAt: normalizeText(draft.publishedAt),
+      createdAt,
+      updatedAt: normalizeText(draft.updatedAt) || createdAt,
+    };
+  }
+
+  function normalizePortalEvent(event, index = 0) {
+    const now = nowIso();
+    return {
+      eventId: normalizeText(event.eventId) || `event-${index + 1}`,
+      type: normalizeText(event.type),
+      message: normalizeText(event.message),
+      payload: event && typeof event.payload === "object" ? JSON.parse(JSON.stringify(event.payload)) : {},
+      createdAt: normalizeText(event.createdAt) || now,
+      actorUserId: normalizeText(event.actorUserId),
+    };
+  }
+
   function normalizePortalNotification(notification, index = 0) {
     const now = nowIso();
     const createdAt = normalizeText(notification.createdAt) || now;
@@ -2069,18 +2119,38 @@
 
   function normalizePortalRecord(record, customerKey) {
     const now = nowIso();
+    const drafts = Array.isArray(record && record.drafts)
+      ? record.drafts.map((draft, index) => normalizePortalDraft(draft, index))
+      : [];
     const versions = Array.isArray(record && record.versions)
       ? record.versions.map((version, index) => normalizePortalVersion(version, index))
       : [];
     const notifications = Array.isArray(record && record.notifications)
       ? record.notifications.map((notification, index) => normalizePortalNotification(notification, index))
       : [];
+    const events = Array.isArray(record && record.events)
+      ? record.events.map((event, index) => normalizePortalEvent(event, index))
+      : [];
+    const currentDraftId = normalizeText(record && record.currentDraftId) || drafts.at(-1)?.draftId || "";
+    const currentPublishedVersionId =
+      normalizeText(record && record.currentPublishedVersionId) || versions.at(-1)?.versionId || "";
 
     return {
       customerKey: normalize((record && record.customerKey) || customerKey),
       customerName: normalizeText(record && record.customerName),
+      customerEmail: normalizeText(record && record.customerEmail).toLowerCase(),
+      customerPhone: normalizeText(record && record.customerPhone),
+      workspaceId: normalizeText(record && record.workspaceId) || "torti-ritual",
+      drafts,
       versions,
       notifications,
+      events,
+      currentDraftId,
+      currentPublishedVersionId,
+      lastPublishedAt: normalizeText(record && record.lastPublishedAt) || normalizeText(versions.at(-1)?.publishedAt),
+      lastViewedAt: normalizeText(record && record.lastViewedAt) || normalizeText(record && record.viewedAt),
+      lastAcknowledgedAt:
+        normalizeText(record && record.lastAcknowledgedAt) || normalizeText(record && record.acknowledgedAt),
       viewedAt: normalizeText(record && record.viewedAt),
       acknowledgedAt: normalizeText(record && record.acknowledgedAt),
       updatedAt: normalizeText(record && record.updatedAt) || now,
@@ -2144,6 +2214,246 @@
     return state.portalRecords[customerKey] || null;
   }
 
+  function canUsePortalRemoteSync() {
+    return typeof window.fetch === "function" && window.location.protocol !== "file:";
+  }
+
+  function getPortalRemoteBase() {
+    const override = window.__TORTI_PORTAL_API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.trim().replace(/\/+$/, "");
+    }
+
+    return "";
+  }
+
+  function resolvePortalRemotePath(path) {
+    const base = getPortalRemoteBase();
+    return base ? `${base}${path}` : path;
+  }
+
+  function buildPortalRemoteHeaders() {
+    return {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+  }
+
+  async function requestPortalJson(path, options) {
+    const response = await window.fetch(resolvePortalRemotePath(path), {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...buildPortalRemoteHeaders(),
+        ...(options && options.headers ? options.headers : {}),
+      },
+    });
+
+    const text = await response.text();
+    let body = {};
+
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch (error) {
+        body = { raw: text };
+      }
+    }
+
+    if (!response.ok) {
+      const error = new Error(body.error || `Request failed with status ${response.status}`);
+      error.statusCode = response.status;
+      error.responseBody = body;
+      throw error;
+    }
+
+    return body;
+  }
+
+  function buildPortalRemotePayload(snapshot) {
+    const customerName = getPortalCustomerName(snapshot);
+    const customerKey = getPortalCustomerKey(snapshot);
+    const activeLayer = Array.isArray(snapshot.layers)
+      ? snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null
+      : null;
+
+    return {
+      workspaceId: state.currentSheetId || "torti-ritual",
+      customerKey,
+      customerName,
+      customerEmail: "",
+      customerPhone: "",
+      ownerUserId: "torti-ritual-browser",
+      ownerName: "Torti Ritual",
+      title: getSheetLabel(snapshot, 0),
+      summary: `${snapshot.customerLibrary.length} bottles · ${Array.isArray(snapshot.layers) ? snapshot.layers.length : 0} layers · ${activeLayer ? activeLayer.name : "Layer 1"}`,
+      note: "Published from the active Torti layer sketch.",
+      layers: cloneLayers(snapshot.layers),
+      librarySnapshot: snapshot.customerLibrary.slice(),
+      activeLayerId: snapshot.activeLayerId,
+      notificationMessage: "New layers sketch is ready in the customer portal.",
+    };
+  }
+
+  function normalizePortalSyncRecord(payload, customerKey) {
+    if (!payload) {
+      return null;
+    }
+
+    if (payload.portal) {
+      return normalizePortalRecord(payload.portal, customerKey);
+    }
+
+    if (payload.record) {
+      return normalizePortalRecord(payload.record, customerKey);
+    }
+
+    return normalizePortalRecord(payload, customerKey);
+  }
+
+  function recordPortalLocalStatus(customerKey) {
+    state.portalRemoteStatus[customerKey] = "local";
+  }
+
+  function getPortalConnectionLabel(customerKey) {
+    const status = state.portalRemoteStatus[customerKey] || "local";
+
+    if (status === "remote") {
+      return "Backend synced";
+    }
+
+    if (status === "syncing") {
+      return "Syncing…";
+    }
+
+    return "Local portal";
+  }
+
+  function schedulePortalRemoteHydration(snapshot, force = false) {
+    if (!canUsePortalRemoteSync()) {
+      return;
+    }
+
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!customerKey) {
+      return;
+    }
+
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const signature = [
+      customerKey,
+      record.updatedAt || "",
+      record.versions.length,
+      record.notifications.length,
+      record.currentDraftId || "",
+      record.currentPublishedVersionId || "",
+    ].join(":");
+
+    if (!force && state.portalRemoteHydrationSignatures[customerKey] === signature) {
+      return;
+    }
+
+    state.portalRemoteHydrationSignatures[customerKey] = signature;
+    state.portalRemoteStatus[customerKey] = "syncing";
+
+    void (async function () {
+      try {
+        const payload = await requestPortalJson(
+          `${PORTAL_REMOTE_PATHS.customer}?customerKey=${encodeURIComponent(customerKey)}&customerName=${encodeURIComponent(getPortalCustomerName(snapshot))}`,
+          { method: "GET" }
+        );
+        const remoteRecord = normalizePortalSyncRecord(payload.portal || payload, customerKey);
+        if (remoteRecord) {
+          state.portalRecords[customerKey] = remoteRecord;
+          state.portalRemoteStatus[customerKey] = "remote";
+          persistPortalRecords();
+          render();
+        }
+      } catch (error) {
+        state.portalRemoteStatus[customerKey] = "local";
+      }
+    })();
+  }
+
+  function syncPortalRemoteAction(action, snapshot, extras = {}) {
+    if (!canUsePortalRemoteSync()) {
+      return;
+    }
+
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!customerKey) {
+      return;
+    }
+
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const signature = [
+      action,
+      customerKey,
+      record.updatedAt || "",
+      record.versions.length,
+      record.notifications.length,
+      record.currentDraftId || "",
+      record.currentPublishedVersionId || "",
+      extras.notificationId || "",
+    ].join(":");
+
+    if (state.portalRemoteSyncSignatures[customerKey] === signature) {
+      return;
+    }
+
+    state.portalRemoteSyncSignatures[customerKey] = signature;
+    state.portalRemoteStatus[customerKey] = "syncing";
+
+    void (async function () {
+      try {
+        let payload = null;
+        if (action === "draft") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.draft, {
+            method: "POST",
+            body: JSON.stringify(buildPortalRemotePayload(snapshot)),
+          });
+        } else if (action === "publish") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.publish, {
+            method: "POST",
+            body: JSON.stringify(buildPortalRemotePayload(snapshot)),
+          });
+        } else if (action === "viewed") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.viewed, {
+            method: "POST",
+            body: JSON.stringify({
+              customerKey,
+              customerName: getPortalCustomerName(snapshot),
+              viewerScope: "customer",
+            }),
+          });
+        } else if (action === "acknowledge" && extras.notificationId) {
+          payload = await requestPortalJson(
+            `${PORTAL_REMOTE_PATHS.acknowledgeBase}/${encodeURIComponent(extras.notificationId)}/ack`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                customerKey,
+                customerName: getPortalCustomerName(snapshot),
+              }),
+            }
+          );
+        }
+
+        const nextRecord = normalizePortalSyncRecord(payload && (payload.portal || payload), customerKey);
+        if (nextRecord) {
+          state.portalRecords[customerKey] = nextRecord;
+          state.portalRemoteStatus[customerKey] = "remote";
+          persistPortalRecords();
+          render();
+        } else {
+          state.portalRemoteStatus[customerKey] = "remote";
+        }
+      } catch (error) {
+        state.portalRemoteStatus[customerKey] = "local";
+      }
+    })();
+  }
+
   function buildPortalVersionFromSheet(snapshot, versionNumber) {
     const now = nowIso();
     const sheetLabel = getSheetLabel(snapshot, 0);
@@ -2187,15 +2497,60 @@
     const record = ensurePortalRecord(snapshot);
     const versionNumber = (record.versions.at(-1)?.versionNumber || 0) + 1;
     const version = buildPortalVersionFromSheet(snapshot, versionNumber);
+    const draftId = `portal-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const draft = {
+      draftId,
+      customerKey: getPortalCustomerKey(snapshot),
+      customerName: getPortalCustomerName(snapshot),
+      customerEmail: "",
+      customerPhone: "",
+      workspaceId: state.currentSheetId || "torti-ritual",
+      title: version.title,
+      summary: version.summary,
+      note: version.note,
+      layers: cloneLayers(snapshot.layers),
+      librarySnapshot: snapshot.customerLibrary.slice(),
+      ownerUserId: "torti-ritual-browser",
+      ownerName: "Torti Ritual",
+      source: "browser_publish",
+      status: "published",
+      publishedVersionId: version.versionId,
+      publishedAt: version.publishedAt,
+      createdAt: version.publishedAt,
+      updatedAt: version.publishedAt,
+    };
+    const event = {
+      eventId: `portal-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: "layer_version_published",
+      message: "Layer-version publicerades.",
+      payload: {
+        versionId: version.versionId,
+        versionNumber: version.versionNumber,
+        draftId,
+      },
+      createdAt: version.publishedAt,
+      actorUserId: "torti-ritual-browser",
+    };
 
     record.versions.push(version);
     record.notifications.push(buildPortalNotificationFromVersion(version));
+    record.drafts = Array.isArray(record.drafts) ? record.drafts : [];
+    record.events = Array.isArray(record.events) ? record.events : [];
+    record.drafts.push(draft);
+    record.events.push(event);
+    record.currentDraftId = draft.draftId;
+    record.currentPublishedVersionId = version.versionId;
+    record.lastPublishedAt = version.publishedAt;
+    record.lastViewedAt = record.lastViewedAt || "";
+    record.lastAcknowledgedAt = record.lastAcknowledgedAt || "";
     record.updatedAt = nowIso();
     record.customerName = getPortalCustomerName(snapshot);
     record.customerKey = getPortalCustomerKey(snapshot);
     state.currentSheetId = snapshot.id;
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    syncPortalRemoteAction("publish", snapshot);
     render();
   }
 
@@ -2206,6 +2561,7 @@
     const latestVersion = record.versions.at(-1) || null;
 
     record.viewedAt = now;
+    record.lastViewedAt = now;
     if (latestVersion) {
       latestVersion.viewedAt = now;
     }
@@ -2213,6 +2569,8 @@
     record.updatedAt = now;
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    syncPortalRemoteAction("viewed", snapshot);
     render();
   }
 
@@ -2234,8 +2592,13 @@
     }
 
     record.updatedAt = now;
+    record.lastAcknowledgedAt = now;
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    syncPortalRemoteAction("acknowledge", snapshot, {
+      notificationId: latestUnread.notificationId,
+    });
     render();
   }
 
@@ -3444,6 +3807,7 @@
     const customerKey = getPortalCustomerKey(snapshot);
     const customerName = getPortalCustomerName(snapshot);
     const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    schedulePortalRemoteHydration(snapshot);
     const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
     const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
     const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
@@ -3463,6 +3827,7 @@
         ? "New version waiting"
         : "Customer has seen the latest version"
       : "Draft not published yet";
+    const portalSyncLabel = getPortalConnectionLabel(customerKey);
 
     portalPanel.innerHTML = `
       <div class="panel-intro">
@@ -3486,6 +3851,7 @@
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
             <span>Customer key ${escapeHtml(customerKey)}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
@@ -3519,6 +3885,7 @@
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
