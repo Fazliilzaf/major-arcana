@@ -3857,8 +3857,11 @@
 
     const snapshot = buildSheetSnapshot();
     const customerKey = getPortalCustomerKey(snapshot);
-    const customerName = getPortalCustomerName(snapshot);
     const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const customerName =
+      [snapshot.firstName, snapshot.lastName].filter(Boolean).join(" ").trim() ||
+      record.customerName ||
+      getPortalCustomerName(snapshot);
     const portalView = state.portalView || "split";
     const customerOnlyView = portalView === "customer";
     if (sheetApp) {
@@ -3891,6 +3894,22 @@
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
+    const portalHero = customerOnlyView
+      ? `
+        <article class="portal-hero">
+          <div class="portal-hero-head">
+            <span class="portal-card-kicker">Shared customer portal</span>
+            <strong>${escapeHtml(customerName)}</strong>
+          </div>
+          <div class="portal-hero-summary">
+            <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
+            <span>${escapeHtml(customerStatus)}</span>
+            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
+          </div>
+        </article>
+      `
+      : "";
 
     portalPanel.innerHTML = `
       <div class="panel-intro">
@@ -3905,6 +3924,7 @@
           ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
         </div>
       </div>
+      ${portalHero}
       <div class="portal-grid${customerOnlyView ? " portal-grid--customer-only" : ""}">
         ${customerOnlyView
           ? ""
