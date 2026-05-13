@@ -1,5 +1,6 @@
 (function () {
   const STORAGE_KEY = "torti-ritual-saved-sheets-v1";
+  const PORTAL_STORAGE_KEY = "torti-ritual-portal-records-v1";
   const ZONE_LAYOUT_VERSION = "cluster-horizontal-v1";
 
   const BODY_IMAGE_SIZE = {
@@ -1021,6 +1022,7 @@
     activeLibraryBottleId: null,
     layers: [],
     activeLayerId: null,
+    portalRecords: {},
     bottles: [],
     zoneLabelOffsets: {},
     isAdjustingLabels: false,
@@ -1056,6 +1058,7 @@
   const downloadSavedButton = document.querySelector("[data-download-saved]");
   const savedSheetsPanel = document.querySelector("[data-saved-sheets-panel]");
   const layersPanel = document.querySelector("[data-layers-panel]");
+  const portalPanel = document.querySelector("[data-portal-panel]");
   const customerLibraryPanel = document.querySelector("[data-customer-library]");
   const pdfButtons = Array.from(document.querySelectorAll("[data-pdf-trigger]"));
   const levelRows = Array.from(document.querySelectorAll("[data-level-row]"));
@@ -1195,6 +1198,14 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  function normalizeText(value) {
+    return typeof value === "string" ? value.trim() : "";
   }
 
   function normalize(value) {
@@ -1984,6 +1995,248 @@
       console.warn("Could not load saved Torti sheets", error);
       return [];
     }
+  }
+
+  function formatPortalMoment(value) {
+    if (!value) {
+      return "just now";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  }
+
+  function getPortalCustomerName(snapshot) {
+    const source = snapshot || getWorkingStateSnapshot();
+    const fullName = [source.firstName, source.lastName].filter(Boolean).join(" ").trim();
+    return fullName || "Unnamed customer";
+  }
+
+  function getPortalCustomerKey(snapshot) {
+    const source = snapshot || getWorkingStateSnapshot();
+    const fullName = getPortalCustomerName(source);
+    return normalize(fullName || "current-customer");
+  }
+
+  function normalizePortalVersion(version, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(version.createdAt) || normalizeText(version.publishedAt) || now;
+
+    return {
+      versionId: normalizeText(version.versionId) || crypto.randomUUID(),
+      versionNumber: Math.max(1, Number.parseInt(String(version.versionNumber ?? ""), 10) || index + 1),
+      title: normalizeText(version.title),
+      summary: normalizeText(version.summary),
+      note: normalizeText(version.note),
+      customerKey: normalize(version.customerKey),
+      customerName: normalizeText(version.customerName),
+      layers: cloneLayers(version.layers),
+      customerLibrary: Array.isArray(version.customerLibrary)
+        ? version.customerLibrary.filter((catalogId) => getCatalogItem(catalogId))
+        : [],
+      activeLayerId: normalizeText(version.activeLayerId),
+      createdAt,
+      publishedAt: normalizeText(version.publishedAt) || createdAt,
+      viewedAt: normalizeText(version.viewedAt),
+      acknowledgedAt: normalizeText(version.acknowledgedAt),
+    };
+  }
+
+  function normalizePortalNotification(notification, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(notification.createdAt) || now;
+
+    return {
+      notificationId: normalizeText(notification.notificationId) || crypto.randomUUID(),
+      type: normalizeText(notification.type) || "layer_version_published",
+      title: normalizeText(notification.title),
+      message: normalizeText(notification.message),
+      versionId: normalizeText(notification.versionId),
+      versionNumber: Math.max(1, Number.parseInt(String(notification.versionNumber ?? ""), 10) || index + 1),
+      readAt: normalizeText(notification.readAt),
+      createdAt,
+    };
+  }
+
+  function normalizePortalRecord(record, customerKey) {
+    const now = nowIso();
+    const versions = Array.isArray(record && record.versions)
+      ? record.versions.map((version, index) => normalizePortalVersion(version, index))
+      : [];
+    const notifications = Array.isArray(record && record.notifications)
+      ? record.notifications.map((notification, index) => normalizePortalNotification(notification, index))
+      : [];
+
+    return {
+      customerKey: normalize((record && record.customerKey) || customerKey),
+      customerName: normalizeText(record && record.customerName),
+      versions,
+      notifications,
+      viewedAt: normalizeText(record && record.viewedAt),
+      acknowledgedAt: normalizeText(record && record.acknowledgedAt),
+      updatedAt: normalizeText(record && record.updatedAt) || now,
+    };
+  }
+
+  function loadPortalRecords() {
+    try {
+      const raw = window.localStorage.getItem(PORTAL_STORAGE_KEY);
+      if (!raw) {
+        return {};
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return Object.entries(parsed).reduce((accumulator, [key, record]) => {
+        const normalizedKey = normalize(key);
+        if (!normalizedKey) {
+          return accumulator;
+        }
+
+        accumulator[normalizedKey] = normalizePortalRecord(record, normalizedKey);
+        return accumulator;
+      }, {});
+    } catch (error) {
+      console.warn("Could not load Torti portal records", error);
+      return {};
+    }
+  }
+
+  function persistPortalRecords() {
+    try {
+      window.localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(state.portalRecords));
+    } catch (error) {
+      console.warn("Could not persist Torti portal records", error);
+    }
+  }
+
+  function ensurePortalRecord(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!state.portalRecords[customerKey]) {
+      state.portalRecords[customerKey] = normalizePortalRecord({
+        customerKey,
+        customerName: getPortalCustomerName(snapshot),
+      }, customerKey);
+    }
+
+    const record = state.portalRecords[customerKey];
+    if (!record.customerName) {
+      record.customerName = getPortalCustomerName(snapshot);
+    }
+
+    return record;
+  }
+
+  function getPortalRecord(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    return state.portalRecords[customerKey] || null;
+  }
+
+  function buildPortalVersionFromSheet(snapshot, versionNumber) {
+    const now = nowIso();
+    const sheetLabel = getSheetLabel(snapshot, 0);
+    const layerLabel = Array.isArray(snapshot.layers) && snapshot.layers.length
+      ? snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId)?.name || snapshot.layers[0].name
+      : "Layer 1";
+
+    return {
+      versionId: `portal-version-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      versionNumber,
+      customerKey: getPortalCustomerKey(snapshot),
+      customerName: getPortalCustomerName(snapshot),
+      title: sheetLabel,
+      summary: `${snapshot.customerLibrary.length} bottles · ${Array.isArray(snapshot.layers) ? snapshot.layers.length : 0} layers · ${layerLabel}`,
+      note: "Published from the active Torti layer sketch.",
+      layers: cloneLayers(snapshot.layers),
+      customerLibrary: snapshot.customerLibrary.slice(),
+      activeLayerId: snapshot.activeLayerId,
+      createdAt: now,
+      publishedAt: now,
+    };
+  }
+
+  function buildPortalNotificationFromVersion(version) {
+    const now = nowIso();
+
+    return {
+      notificationId: `portal-notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: "layer_version_published",
+      title: `Version ${version.versionNumber} published`,
+      message: `${version.title} is ready in the customer portal.`,
+      versionId: version.versionId,
+      versionNumber: version.versionNumber,
+      readAt: "",
+      createdAt: now,
+    };
+  }
+
+  function publishPortalVersion() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const versionNumber = (record.versions.at(-1)?.versionNumber || 0) + 1;
+    const version = buildPortalVersionFromSheet(snapshot, versionNumber);
+
+    record.versions.push(version);
+    record.notifications.push(buildPortalNotificationFromVersion(version));
+    record.updatedAt = nowIso();
+    record.customerName = getPortalCustomerName(snapshot);
+    record.customerKey = getPortalCustomerKey(snapshot);
+    state.currentSheetId = snapshot.id;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    render();
+  }
+
+  function markPortalViewed() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const now = nowIso();
+    const latestVersion = record.versions.at(-1) || null;
+
+    record.viewedAt = now;
+    if (latestVersion) {
+      latestVersion.viewedAt = now;
+    }
+
+    record.updatedAt = now;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    render();
+  }
+
+  function acknowledgeLatestPortalNotification() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const latestUnread = [...record.notifications].reverse().find((notification) => !notification.readAt);
+    const now = nowIso();
+
+    if (!latestUnread) {
+      return;
+    }
+
+    latestUnread.readAt = now;
+    record.acknowledgedAt = now;
+    const latestVersion = record.versions.find((version) => version.versionId === latestUnread.versionId) || record.versions.at(-1) || null;
+    if (latestVersion) {
+      latestVersion.acknowledgedAt = now;
+    }
+
+    record.updatedAt = now;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    render();
   }
 
   function saveCurrentSheet() {
@@ -3182,6 +3435,142 @@
 
   }
 
+  function renderPortalPanel() {
+    if (!portalPanel) {
+      return;
+    }
+
+    const snapshot = buildSheetSnapshot();
+    const customerKey = getPortalCustomerKey(snapshot);
+    const customerName = getPortalCustomerName(snapshot);
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
+    const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
+    const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
+    const latestNotification = Array.isArray(record.notifications) ? record.notifications.at(-1) || null : null;
+    const unreadCount = Array.isArray(record.notifications)
+      ? record.notifications.filter((notification) => !notification.readAt).length
+      : 0;
+    const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
+    const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
+    const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
+    const draftSummary = `${snapshot.customerLibrary.length} bottles · ${snapshot.layers.length} layers · ${draftLayerName}`;
+    const latestVersionSummary = latestVersion
+      ? `${latestVersion.summary} · Published ${formatPortalMoment(latestVersion.publishedAt)}`
+      : "No version published yet.";
+    const customerStatus = latestVersion
+      ? unreadCount > 0
+        ? "New version waiting"
+        : "Customer has seen the latest version"
+      : "Draft not published yet";
+
+    portalPanel.innerHTML = `
+      <div class="panel-intro">
+        <div class="panel-copy">
+          <p>Portal flow</p>
+          <h2>Owner & customer portal</h2>
+          <span>Publish the active Torti draft and keep the customer version in sync.</span>
+        </div>
+        <div class="panel-meta">
+          <span class="panel-count">${escapeHtml(`${versions.length} versions`)}</span>
+          <button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>
+        </div>
+      </div>
+      <div class="portal-grid">
+        <article class="portal-card portal-card--owner">
+          <div class="portal-card-head">
+            <span class="portal-card-kicker">Owner portal</span>
+            <strong>${escapeHtml(customerName)}</strong>
+          </div>
+          <div class="portal-card-summary">
+            <span>${escapeHtml(draftSummary)}</span>
+            <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
+            <span>Customer key ${escapeHtml(customerKey)}</span>
+          </div>
+          <div class="portal-card-actions">
+            <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
+          </div>
+          <div class="portal-card-list">
+            ${versions.length > 0
+              ? versions
+                .map((version) => {
+                  const isLatest = latestVersion && latestVersion.versionId === version.versionId;
+                  return `
+                    <article class="portal-item${isLatest ? " is-latest" : ""}">
+                      <div class="portal-item-head">
+                        <strong>Version ${escapeHtml(String(version.versionNumber))}</strong>
+                        <span>${escapeHtml(formatPortalMoment(version.publishedAt))}</span>
+                      </div>
+                      <p>${escapeHtml(version.summary || version.note || "Published Torti draft.")}</p>
+                    </article>
+                  `;
+                })
+                .join("")
+              : '<div class="portal-empty">Publish the draft to create the first customer version.</div>'}
+          </div>
+        </article>
+
+        <article class="portal-card portal-card--customer">
+          <div class="portal-card-head">
+            <span class="portal-card-kicker">Customer portal</span>
+            <strong>${escapeHtml(customerStatus)}</strong>
+          </div>
+          <div class="portal-card-summary">
+            <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
+            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+          </div>
+          <div class="portal-card-actions">
+            <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
+            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+          </div>
+          <div class="portal-card-list">
+            ${notifications.length > 0
+              ? notifications
+                .map((notification) => {
+                  const isLatest = latestNotification && latestNotification.notificationId === notification.notificationId;
+                  return `
+                    <article class="portal-item portal-notification${!notification.readAt ? " is-unread" : ""}${isLatest ? " is-latest" : ""}">
+                      <div class="portal-item-head">
+                        <strong>${escapeHtml(notification.title || `Notification ${notification.versionNumber}`)}</strong>
+                        <span>${escapeHtml(formatPortalMoment(notification.createdAt))}</span>
+                      </div>
+                      <p>${escapeHtml(notification.message || "A new Torti version is waiting in the customer portal.")}</p>
+                      <div class="portal-item-foot">
+                        <span>Version ${escapeHtml(String(notification.versionNumber))}</span>
+                        <span>${notification.readAt ? "Viewed" : "Unread"}</span>
+                      </div>
+                    </article>
+                  `;
+                })
+                .join("")
+              : '<div class="portal-empty">No notifications yet. Publish a draft to send one.</div>'}
+          </div>
+        </article>
+      </div>
+    `;
+
+    portalPanel.querySelectorAll("[data-publish-portal]").forEach((button) => {
+      button.addEventListener("click", function () {
+        publishPortalVersion();
+      });
+    });
+
+    const markViewedButton = portalPanel.querySelector("[data-mark-portal-view]");
+    if (markViewedButton) {
+      markViewedButton.addEventListener("click", function () {
+        markPortalViewed();
+      });
+    }
+
+    const ackButton = portalPanel.querySelector("[data-ack-portal-notification]");
+    if (ackButton) {
+      ackButton.addEventListener("click", function () {
+        acknowledgeLatestPortalNotification();
+      });
+    }
+  }
+
   function renderProductScroller() {
     if (!productScroller) {
       return;
@@ -3454,6 +3843,7 @@
     renderSavedSheets();
     renderLayersPanel();
     renderCustomerLibrary();
+    renderPortalPanel();
     renderActionState();
     renderProductScroller();
   }
@@ -3745,6 +4135,7 @@
   });
 
   state.savedSheets = loadSavedSheets();
+  state.portalRecords = loadPortalRecords();
   state.layers = buildDefaultLayers();
   state.activeLayerId = state.layers[0].id;
   state.customerLibrary = [];
