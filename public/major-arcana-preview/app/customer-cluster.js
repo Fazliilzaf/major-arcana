@@ -75,16 +75,39 @@
 
     const expanded = readExpanded();
 
-    // Rensa tidigare cluster-state
+    // Idempotent reset: rör bara kort vars NUVARANDE cluster-state INTE
+    // matchar den vi skall applicera. Att rensa allt + bygga om vid varje
+    // scan skapade en synlig "hoppning" där badgen försvann under en
+    // animation-frame innan den återskapades. Genom att bara röra det som
+    // ska ändras får vi stabil rendering.
+    //
+    // Beräkna vad varje kort SKA ha först (key + role: primary/sub/none):
+    const desired = new Map(); // card -> { key, role: 'primary'|'sub'|null, count, isExpanded }
+    cards.forEach((c) => { desired.set(c, { key: null, role: null, count: 0, isExpanded: false }); });
+    groups.forEach((groupCards, key) => {
+      if (groupCards.length < 2) return;
+      const isExpanded = expanded.has(key);
+      desired.set(groupCards[0], { key, role: 'primary', count: groupCards.length, isExpanded });
+      groupCards.slice(1).forEach((sub) => {
+        desired.set(sub, { key, role: 'sub', count: 0, isExpanded });
+      });
+    });
+
+    // Rensa BARA kort som inte längre ska vara primary/sub
     cards.forEach((c) => {
-      c.classList.remove('customer-cluster-primary', 'customer-cluster-sub', 'customer-cluster-expanded');
-      delete c.dataset.customerClusterCount;
-      delete c.dataset.customerClusterKey;
-      const oldBadge = c.querySelector(':scope > .customer-cluster-badge');
-      if (oldBadge) oldBadge.remove();
-      // Rensa även inline-badge + separator (kan annars staplas mellan scans)
-      c.querySelectorAll('.warm-top-meta .customer-cluster-badge-inline').forEach((b) => b.remove());
-      c.querySelectorAll('.warm-top-meta .customer-cluster-sep').forEach((s) => s.remove());
+      const d = desired.get(c);
+      const wasInCluster = c.classList.contains('customer-cluster-primary') || c.classList.contains('customer-cluster-sub');
+      const willBeInCluster = d.role !== null;
+      const keyChanged = c.dataset.customerClusterKey && c.dataset.customerClusterKey !== d.key;
+      if (wasInCluster && (!willBeInCluster || keyChanged)) {
+        c.classList.remove('customer-cluster-primary', 'customer-cluster-sub', 'customer-cluster-expanded', 'customer-cluster-hidden');
+        delete c.dataset.customerClusterCount;
+        delete c.dataset.customerClusterKey;
+        const oldBadge = c.querySelector(':scope > .customer-cluster-badge');
+        if (oldBadge) oldBadge.remove();
+        c.querySelectorAll('.warm-top-meta .customer-cluster-badge-inline').forEach((b) => b.remove());
+        c.querySelectorAll('.warm-top-meta .customer-cluster-sep').forEach((s) => s.remove());
+      }
     });
 
     // Applicera nya cluster
@@ -134,8 +157,14 @@
           scanAndCluster();
         });
       }
+      // Diff-check: bara skriv om innerHTML om count faktiskt ändrats
+      // (annars triggar varje scan en visuell flash på badgen).
       if (badge) {
-        badge.innerHTML = `${groupCards.length} trådar <svg class="customer-cluster-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l3 3 3-3"/></svg>`;
+        const newCountText = `${groupCards.length} trådar`;
+        const currentText = badge.textContent.trim();
+        if (!currentText.startsWith(newCountText)) {
+          badge.innerHTML = `${newCountText} <svg class="customer-cluster-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l3 3 3-3"/></svg>`;
+        }
       }
 
       // Sub-cards: göm om inte expanderat
