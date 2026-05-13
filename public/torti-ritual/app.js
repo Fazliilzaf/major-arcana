@@ -3948,7 +3948,7 @@
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
     const portalActivityTitle = customerOnlyView ? "Timeline" : "Portal timeline";
     const latestActivityLabel = customerOnlyView ? "Latest update" : "Latest activity";
-    const latestActivityBadgeLabel = customerOnlyView ? "Latest update" : "Latest portal event";
+    const latestActivityBadgeLabel = customerOnlyView ? "Latest portal update" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
     const portalHero = customerOnlyView
       ? `
