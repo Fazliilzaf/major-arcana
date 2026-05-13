@@ -3912,6 +3912,8 @@
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
+    const portalActivityTitle = customerOnlyView ? "Latest shared events" : "Latest portal events";
+    const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
     const portalHero = customerOnlyView
       ? `
@@ -3923,7 +3925,7 @@
           <div class="portal-hero-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
             <span>${escapeHtml(customerStatus)}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
@@ -3958,7 +3960,7 @@
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
             <span>Customer key ${escapeHtml(customerKey)}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
@@ -3999,7 +4001,7 @@
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
             <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `Latest activity: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
@@ -4034,7 +4036,7 @@
         <div class="portal-activity-head">
           <div class="portal-activity-heading">
             <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared customer activity" : "Portal activity")}</span>
-            <strong>${escapeHtml("Latest portal events")}</strong>
+            <strong>${escapeHtml(portalActivityTitle)}</strong>
           </div>
           <span class="portal-activity-meta">${escapeHtml(portalSyncLabel)}</span>
         </div>
