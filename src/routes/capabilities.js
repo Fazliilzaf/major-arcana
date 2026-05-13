@@ -76,8 +76,14 @@ const CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS = Object.freeze([
   'fazli@hairtpclinic.com',
 ]);
 const CCO_KONS_HISTORY_DEFAULT_MAILBOX = 'kons@hairtpclinic.com';
-const CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS = 1095;
-const CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS = 1825;
+// Sänkt 2026-05-14 från 1095/1825 (3 år / 5 år) — orsakade SIGABRT 134
+// på Render-instans pga OOM vid Graph API-backfill. Hair TP Clinic har
+// 6 mailboxar; 3 års historik per request = flera GB mail-data → 502/
+// instance-restart. 90 dagar default täcker normal use case, 365 max
+// räcker för rapporter. Om legitimate behov av >1 år finns: använd
+// streaming endpoint istället.
+const CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS = 90;
+const CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS = 365;
 const CCO_KONS_HISTORY_CHUNK_DAYS = 30;
 const CCO_KONS_HISTORY_RECENT_FRESHNESS_MS = 10 * 60 * 1000;
 const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
@@ -671,8 +677,17 @@ function toIncidentSnapshot(incident = {}) {
     severity: normalizeText(incident.severity) || null,
     status: normalizeText(incident.status) || null,
     ownerDecision: normalizeText(incident.ownerDecision) || null,
+    ownerUserId:
+      normalizeText(incident.ownerUserId) || normalizeText(incident.owner?.userId) || null,
     openedAt: normalizeText(incident.openedAt) || null,
     updatedAt: normalizeText(incident.updatedAt) || null,
+    resolutionTs: normalizeText(incident.resolutionTs) || null,
+    slaDeadline:
+      normalizeText(incident.slaDeadline) ||
+      (incident?.sla && typeof incident.sla === 'object'
+        ? normalizeText(incident.sla.deadline)
+        : null) ||
+      null,
     sla:
       incident?.sla && typeof incident.sla === 'object'
         ? {
