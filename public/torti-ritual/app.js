@@ -4039,10 +4039,13 @@
             <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
+          ${customerOnlyView
+            ? ""
+            : `
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
             <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
-          </div>
+          </div>`}
           <div class="portal-card-list">
             ${notifications.length > 0
               ? notifications
