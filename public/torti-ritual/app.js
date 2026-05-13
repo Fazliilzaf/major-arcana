@@ -4043,7 +4043,10 @@
     if (previewCustomerButton) {
       previewCustomerButton.addEventListener("click", function () {
         if (portalPreviewUrl) {
-          window.location.assign(portalPreviewUrl);
+          const previewWindow = window.open(portalPreviewUrl, "_blank", "noopener");
+          if (!previewWindow) {
+            window.location.assign(portalPreviewUrl);
+          }
         }
       });
     }
