@@ -3940,7 +3940,7 @@
         ? "New version waiting"
         : "Customer has seen the latest version"
       : "Draft not published yet";
-    const portalSyncLabel = getPortalConnectionLabel(customerKey);
+    const portalSyncLabel = customerOnlyView ? "Shared portal" : getPortalConnectionLabel(customerKey);
     const portalPanelTitle = customerOnlyView ? "Customer portal" : "Owner & customer portal";
     const portalPanelCopy = customerOnlyView
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
