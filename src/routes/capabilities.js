@@ -2581,6 +2581,38 @@ async function maybeHydrateCapabilityPayload({
       systemStateSnapshot,
     });
   }
+  if (
+    normalizedName === 'suggesttemplateimprovement' ||
+    normalizedName === 'validatedisclaimers' ||
+    normalizedName === 'optimizevariables'
+  ) {
+    const safeSnapshot = asObject(systemStateSnapshot);
+    if (
+      templateStore &&
+      typeof templateStore.listTemplates === 'function' &&
+      !Array.isArray(safeSnapshot.templates)
+    ) {
+      const [allTemplates, templateMeta] = await Promise.all([
+        templateStore.listTemplates({ tenantId, limit: 100 }),
+        typeof templateStore.getTemplateMeta === 'function'
+          ? templateStore.getTemplateMeta({ tenantId })
+          : null,
+      ]);
+      return {
+        input: asObject(input),
+        systemStateSnapshot: {
+          ...safeSnapshot,
+          templates: Array.isArray(allTemplates) ? allTemplates : [],
+          variableWhitelist:
+            templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {},
+        },
+      };
+    }
+    return {
+      input: asObject(input),
+      systemStateSnapshot: safeSnapshot,
+    };
+  }
   if (normalizedName === 'analyzeinbox') {
     return hydrateAnalyzeInboxInput({
       tenantId,
@@ -2709,6 +2741,44 @@ async function maybeHydrateAgentPayload({
       actorUserId,
       correlationId,
     });
+  }
+
+  if (normalizedAgentName === 'cao') {
+    const safeSnapshot = asObject(systemStateSnapshot);
+    if (
+      templateStore &&
+      typeof templateStore.listTemplates === 'function' &&
+      !Array.isArray(safeSnapshot.templates)
+    ) {
+      const [allTemplates, templateMeta, riskSummary] = await Promise.all([
+        templateStore.listTemplates({ tenantId, limit: 100 }),
+        typeof templateStore.getTemplateMeta === 'function'
+          ? templateStore.getTemplateMeta({ tenantId })
+          : null,
+        typeof templateStore.getRiskSummary === 'function'
+          ? templateStore.getRiskSummary({ tenantId })
+          : null,
+      ]);
+      const variableWhitelist =
+        templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {};
+      return {
+        input: safeInput,
+        systemStateSnapshot: {
+          ...safeSnapshot,
+          templates: Array.isArray(allTemplates) ? allTemplates : [],
+          variableWhitelist,
+          riskSummary: riskSummary || {},
+          snapshotVersion: 'cao.snapshot.v1',
+          timestamps: {
+            capturedAt: new Date().toISOString(),
+          },
+        },
+      };
+    }
+    return {
+      input: safeInput,
+      systemStateSnapshot: safeSnapshot,
+    };
   }
 
   return {
