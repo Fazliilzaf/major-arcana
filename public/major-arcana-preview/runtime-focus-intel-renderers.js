@@ -63,6 +63,9 @@
       buildCustomerSummaryCards,
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
+      buildPreviewPatient360Backbone,
+      buildPreviewPatient360Journey,
+      getJourneyPrimaryActionConfig,
       buildRuntimeSummaryCards,
       compactRuntimeCopy,
       decorateStaticPills,
@@ -80,6 +83,7 @@
       initialsForName,
       isOfflineHistoryContextThread,
       isOfflineHistorySelectionActive,
+      getPreviewPatient360JourneyForThread,
       joinReadableList,
       normalizeKey,
       normalizeText,
@@ -2449,6 +2453,24 @@
               "Var konkret med tider eller nästa steg direkt i svaret.",
               88
             );
+      const primaryJourneyAction =
+        typeof getJourneyPrimaryActionConfig === "function"
+          ? getJourneyPrimaryActionConfig(thread, focusReadState)
+          : { action: "studio_open", label: "Öppna Svarstudio" };
+      const recommendedActionTitle = isOfflineHistoryThread
+        ? "Läsläge från historik"
+        : isTruthDrivenReadOnly
+          ? `${focusWaveLabel} · Läsläge`
+          : asText(primaryJourneyAction.label, thread.nextActionLabel);
+      const recommendedActionSummary = isOfflineHistoryThread
+        ? nextActionSummaryCopy
+        : isTruthDrivenReadOnly
+          ? nextActionSummaryCopy
+          : compactRuntimeCopy(
+              primaryJourneyAction.summary || thread.nextActionSummary,
+              "Var konkret med tider eller nästa steg direkt i svaret.",
+              88
+            );
       const conversationNextActionsMarkup = isOfflineHistoryThread
         ? `<div class="conversation-next-actions conversation-next-actions--offline">
             <button class="conversation-next-button" type="button" data-runtime-studio-open data-runtime-studio-read-only="true" data-runtime-studio-thread-id="${escapeHtml(
@@ -2465,18 +2487,24 @@
               )}</span>
             </div>`
           : `<div class="conversation-next-actions">
-            <button class="conversation-next-button" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
-              thread.id
-            )}" aria-controls="studio-shell">
-              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>
-              Öppna Svarstudio
-            </button>
+            ${buildConversationJourneyActionMarkup(primaryJourneyAction, thread.id)}
             <div class="conversation-next-icons" aria-label="Snabbverktyg">
-              <button class="conversation-next-icon-button conversation-next-icon-button-calendar" type="button" data-runtime-schedule-open aria-controls="schedule-shell" aria-label="Schemalägg uppföljning">
+              <button class="conversation-next-icon-button conversation-next-icon-button-calendar" type="button" data-runtime-schedule-open aria-controls="schedule-shell" aria-label="Schemalägg uppföljning"${
+                primaryJourneyAction.action === "schedule_open" ? " hidden" : ""
+              }>
                 <svg viewBox="0 0 16 16"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>
               </button>
-              <button class="conversation-next-icon-button conversation-next-icon-button-note" type="button" data-runtime-note-open aria-controls="note-shell" aria-label="Öppna Smart anteckning">
+              <button class="conversation-next-icon-button conversation-next-icon-button-note" type="button" data-runtime-note-open aria-controls="note-shell" aria-label="Öppna Smart anteckning"${
+                primaryJourneyAction.action === "note_open" ? " hidden" : ""
+              }>
                 <svg viewBox="0 0 16 16"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>
+              </button>
+              <button class="conversation-next-icon-button conversation-next-icon-button-studio" type="button" data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                thread.id
+              )}" aria-controls="studio-shell" aria-label="Öppna Svarstudio"${
+                primaryJourneyAction.action === "studio_open" ? " hidden" : ""
+              }>
+                <svg viewBox="0 0 16 16"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>
               </button>
             </div>
           </div>`;
@@ -2489,14 +2517,8 @@
                   ? "Sanningsstyrt fokus"
                   : "Rekommenderat drag"
             )}</span>
-            <strong class="conversation-next-title">${escapeHtml(
-              isOfflineHistoryThread
-                ? "Läsläge från historik"
-                : isTruthDrivenReadOnly
-                  ? `${focusWaveLabel} · Läsläge`
-                  : thread.nextActionLabel
-            )}</strong>
-            <p class="conversation-next-text">${escapeHtml(nextActionSummaryCopy)}</p>
+            <strong class="conversation-next-title">${escapeHtml(recommendedActionTitle)}</strong>
+            <p class="conversation-next-text">${escapeHtml(recommendedActionSummary)}</p>
           </div>
           ${conversationNextActionsMarkup}
         </div>`;
@@ -2699,6 +2721,29 @@
       const customerEvents = buildCustomerHistoryEvents(thread);
       const relatedThreads = getRelatedCustomerThreads(thread);
       const customerMailboxOptions = getCustomerHistoryMailboxOptions(thread);
+      const journeyState = getPatientJourneyState(thread, focusReadState);
+      const activeJourneyLabel = asText(journeyState?.journey?.activeModule?.label);
+      const nextJourneyLabel = asText(journeyState?.journey?.nextModule?.label);
+      const activeJourneyAction = asText(journeyState?.journey?.activeModule?.nextAction);
+      const primaryJourneyAction =
+        typeof getJourneyPrimaryActionConfig === "function"
+          ? getJourneyPrimaryActionConfig(thread, focusReadState)
+          : null;
+      const lifecycleLabel = asText(
+        thread.lifecycleLabel,
+        activeJourneyLabel || humanizeCode(thread.statusLabel, "Aktiv dialog")
+      );
+      const ownerLabel = asText(thread.displayOwnerLabel || thread.ownerLabel, "Ej tilldelad");
+      const engagementLabel = asText(
+        thread.displayEngagementLabel || thread.engagementLabel,
+        humanizeCode(customerSummary.relationshipSensitivity, "Aktiv relation")
+      );
+      const waitingLabel = asText(nextJourneyLabel || thread.waitingLabel, "Teamuppgifter");
+      const riskReasonLabel = asText(thread.riskReason, "Ingen tydlig risk signalerad");
+      const customerMetaLine = asText(
+        thread.displayCustomerMeta,
+        [engagementLabel, ownerLabel].filter(Boolean).join(" · ")
+      );
       const firstEvent = customerEvents[customerEvents.length - 1];
       const latestEvent = customerEvents[0];
       const caseCount = Math.max(
@@ -2727,14 +2772,21 @@
                   : "Ny kund"
               )}</span>
               <span class="focus-customer-chip focus-customer-chip--violet">${escapeHtml(
-                thread.lifecycleLabel
+                lifecycleLabel
               )}</span>
               <span class="focus-customer-chip focus-customer-chip--gold">${escapeHtml(
-                `${thread.riskLabel} · ${thread.waitingLabel}`
+                `${asText(thread.riskLabel, "Normal")} · ${waitingLabel}`
               )}</span>
               <span class="focus-customer-chip focus-customer-chip--green">${escapeHtml(
                 isOfflineHistoryThread ? "Vald historik" : "Aktiv tråd"
               )}</span>
+              ${
+                activeJourneyLabel
+                  ? `<span class="focus-customer-chip focus-customer-chip--violet">${escapeHtml(
+                      activeJourneyLabel
+                    )}</span>`
+                  : ""
+              }
               ${
                 isTruthDrivenReadOnly
                   ? `<span class="focus-customer-chip focus-customer-chip--violet">${escapeHtml(
@@ -2802,24 +2854,41 @@
         <article class="focus-customer-data-card"><h4>Kundprofil</h4><dl>
           <div><dt>Kund</dt><dd>${escapeHtml(thread.customerName)}</dd></div>
           <div><dt>Mailbox</dt><dd>${escapeHtml(thread.mailboxLabel)}</dd></div>
-          <div><dt>Livscykel</dt><dd>${escapeHtml(thread.lifecycleLabel)}</dd></div>
-          <div><dt>Relation</dt><dd>${escapeHtml(thread.displayEngagementLabel || thread.engagementLabel)}</dd></div>
+          <div><dt>Livscykel</dt><dd>${escapeHtml(lifecycleLabel)}</dd></div>
+          <div><dt>Relation</dt><dd>${escapeHtml(engagementLabel)}</dd></div>
         </dl></article>
-        <article class="focus-customer-data-card"><h4>Konversationsläge</h4><dl>
+        <article class="focus-customer-data-card"><h4>Domänläge</h4><dl>
           <div><dt>Prioritet</dt><dd>${escapeHtml(
             thread.tags.includes("sprint") ? "Sprint" : "Normal"
           )}</dd></div>
-          <div><dt>Status</dt><dd>${escapeHtml(thread.statusLabel)}</dd></div>
-          <div><dt>Väntar på</dt><dd>${escapeHtml(thread.waitingLabel)}</dd></div>
-          <div><dt>Nästa steg</dt><dd>${escapeHtml(thread.nextActionLabel)}</dd></div>
+          <div><dt>Nu</dt><dd>${escapeHtml(activeJourneyLabel || thread.statusLabel)}</dd></div>
+          <div><dt>Nästa</dt><dd>${escapeHtml(waitingLabel)}</dd></div>
+          <div><dt>Verktyg</dt><dd>${escapeHtml(
+            asText(primaryJourneyAction?.label, thread.nextActionLabel)
+          )}</dd></div>
         </dl></article>
         <article class="focus-customer-data-card"><h4>Risk &amp; uppföljning</h4><dl>
           <div><dt>SLA</dt><dd>${escapeHtml(humanizeCode(thread.raw?.slaStatus, "Stabil"))}</dd></div>
-          <div><dt>Risk</dt><dd>${escapeHtml(thread.riskReason)}</dd></div>
+          <div><dt>Risk</dt><dd>${escapeHtml(riskReasonLabel)}</dd></div>
           <div><dt>Föreslagen uppföljning</dt><dd>${escapeHtml(thread.followUpLabel || "-")}</dd></div>
-          <div><dt>Nästa drag</dt><dd>${escapeHtml(
-            compactRuntimeCopy(thread.nextActionSummary, "Ingen planerad uppföljning ännu.", 72)
-          )}</dd></div>
+          <div><dt>Nästa drag</dt><dd class="focus-customer-next-action-cell">
+            <span>${escapeHtml(
+              compactRuntimeCopy(
+                primaryJourneyAction?.summary || activeJourneyAction || thread.nextActionSummary,
+                "Ingen planerad uppföljning ännu.",
+                72
+              )
+            )}</span>
+            ${
+              primaryJourneyAction
+                ? buildJourneyActionButtonMarkup(
+                    primaryJourneyAction,
+                    thread.id,
+                    "focus-customer-next-action-button"
+                  )
+                : ""
+            }
+          </dd></div>
         </dl></article>`;
 
       if (focusCustomerHistoryTitle) {
@@ -2977,6 +3046,14 @@
             lines,
             badges,
             provenance,
+            actionButton:
+              safeCard.actionButton && typeof safeCard.actionButton === "object"
+                ? {
+                    label: compactRuntimeCopy(asText(safeCard.actionButton.label), "", 42),
+                    action: asText(safeCard.actionButton.action),
+                    threadId: asText(safeCard.actionButton.threadId),
+                  }
+                : null,
           };
         })
         .filter(Boolean)
@@ -2999,6 +3076,10 @@
       );
       const provenance =
         safeCard.provenance && typeof safeCard.provenance === "object" ? safeCard.provenance : null;
+      const actionButton =
+        safeCard.actionButton && typeof safeCard.actionButton === "object"
+          ? safeCard.actionButton
+          : null;
       const provenanceLabel = asText(provenance?.label);
       const provenanceDetail = asText(provenance?.detail);
       const provenanceTone =
@@ -3070,6 +3151,15 @@
             : ""
         }
         ${
+          actionButton?.label
+            ? `<div class="intel-card-action-row">${buildJourneyActionButtonMarkup(
+                actionButton,
+                actionButton.threadId,
+                "intel-card-action-button"
+              )}</div>`
+            : ""
+        }
+        ${
           badges.length
             ? `<div class="intel-card-badges">
                 ${badges
@@ -3132,6 +3222,125 @@
       };
     }
 
+    function getPatientJourneyState(thread, focusReadState = {}) {
+      if (typeof getPreviewPatient360JourneyForThread === "function") {
+        const resolved = getPreviewPatient360JourneyForThread(thread, focusReadState);
+        if (resolved && typeof resolved === "object") return resolved;
+      }
+      const backbone =
+        typeof buildPreviewPatient360Backbone === "function"
+          ? buildPreviewPatient360Backbone(thread, focusReadState)
+          : null;
+      return {
+        backbone,
+        journey:
+          typeof buildPreviewPatient360Journey === "function"
+            ? buildPreviewPatient360Journey(backbone)
+            : null,
+      };
+    }
+
+    function buildIntelJourneyCard(thread, focusReadState = {}, journeyState = {}) {
+      const journey = journeyState?.journey;
+      const backbone = journeyState?.backbone;
+      if (!journey || !backbone) return null;
+      const primaryActionConfig =
+        typeof getJourneyPrimaryActionConfig === "function"
+          ? getJourneyPrimaryActionConfig(thread, focusReadState)
+          : null;
+      return {
+        chip: "Nu",
+        title: asText(journey.activeModule?.label, "Nästa domänsteg"),
+        provenance: {
+          label: "Patientresa",
+          tone: "derived",
+          detail:
+            "Visar vilket BOOK-steg som leder arbetet just nu och vad som står näst i kedjan.",
+        },
+        detail: compactRuntimeCopy(
+          primaryActionConfig?.summary || backbone.attention?.what,
+          "Öppna nästa tydliga steg.",
+          92
+        ),
+        note: compactRuntimeCopy(
+          journey.nextModule
+            ? `Sedan ${journey.nextModule.label}. ${journey.nextModule.nextAction || ""}`
+            : `${journey.completedCount}/${journey.totalCount} moduler orienterade.`,
+          "Fortsätt i samma arbetsyta.",
+          92
+        ),
+        lines: [
+          { label: "Nu", value: asText(journey.activeModule?.label, "Aktivt steg") },
+          {
+            label: "Verktyg",
+            value: asText(primaryActionConfig?.label, "Öppna nästa tydliga steg"),
+          },
+          {
+            label: "Nästa",
+            value: asText(journey.nextModule?.label, "Fortsätt i samma arbetsyta"),
+          },
+        ],
+        actionButton: primaryActionConfig
+          ? {
+              label: primaryActionConfig.label,
+              action: primaryActionConfig.action,
+              threadId: thread?.id,
+            }
+          : null,
+      };
+    }
+
+    function buildConversationJourneyActionMarkup(config = {}, threadId = "") {
+      const action = asText(config.action);
+      const label = asText(config.label, "Öppna Svarstudio");
+      const safeThreadId = asText(threadId);
+      const iconMarkup =
+        action === "booking_surface"
+          ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>'
+          : action === "schedule_open"
+            ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>'
+            : action === "note_open"
+              ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>'
+              : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>';
+      const actionAttributes =
+        action === "booking_surface"
+          ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(safeThreadId)}"`
+          : action === "schedule_open"
+            ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+            : action === "note_open"
+              ? 'data-runtime-note-open aria-controls="note-shell"'
+              : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                  safeThreadId
+                )}" aria-controls="studio-shell"`;
+      return `<button class="conversation-next-button" type="button" ${actionAttributes}>
+        ${iconMarkup}
+        ${escapeHtml(label)}
+      </button>`;
+    }
+
+    function buildJourneyActionButtonMarkup(
+      config = {},
+      threadId = "",
+      className = "intel-card-action-button"
+    ) {
+      const action = asText(config.action);
+      const label = asText(config.label, "Öppna Svarstudio");
+      const safeThreadId = asText(threadId);
+      const actionAttributes =
+        action === "booking_surface"
+          ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(safeThreadId)}"`
+          : action === "schedule_open"
+            ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+            : action === "note_open"
+              ? 'data-runtime-note-open aria-controls="note-shell"'
+              : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                  safeThreadId
+                )}" aria-controls="studio-shell"`;
+      return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
+        label
+      )}</button>`;
+    }
+
     function buildIntelHistoryCard(thread) {
       const historyCount = Math.max(
         1,
@@ -3180,7 +3389,8 @@
       };
     }
 
-    function buildRuntimeIntelPanelCards(thread) {
+    function buildRuntimeIntelPanelCards(thread, focusReadState = {}) {
+      const journeyState = getPatientJourneyState(thread, focusReadState);
       const helperConversation = buildIntelHelperConversation(thread);
       const customerHelper =
         windowObject.ArcanaCcoNextCustomerIntelligence &&
@@ -3242,7 +3452,11 @@
           { maxCards: 3, fallbackTitle: "Team" }
         ),
         actions: normalizeIntelDisplayCards(
-          [...asArray(baseCards.actions), ...asArray(baseCards.signals)],
+          [
+            buildIntelJourneyCard(thread, focusReadState, journeyState),
+            ...asArray(baseCards.actions),
+            ...asArray(baseCards.signals),
+          ],
           { maxCards: 3, fallbackTitle: "Nu" }
         ),
       };
@@ -3353,11 +3567,35 @@
         return;
       }
       applyIntelWaitingState(false);
+      const journeyState = getPatientJourneyState(thread, focusReadState);
+      const activeJourneyLabel = asText(journeyState?.journey?.activeModule?.label);
+      const nextJourneyLabel = asText(journeyState?.journey?.nextModule?.label);
+      const primaryJourneyAction =
+        typeof getJourneyPrimaryActionConfig === "function"
+          ? getJourneyPrimaryActionConfig(thread, focusReadState)
+          : null;
+      const lifecycleLabel = asText(
+        thread.lifecycleLabel,
+        activeJourneyLabel || humanizeCode(thread.statusLabel, "Aktiv dialog")
+      );
+      const ownerLabel = asText(thread.displayOwnerLabel || thread.ownerLabel, "Ej tilldelad");
+      const engagementLabel = asText(
+        thread.displayEngagementLabel || thread.engagementLabel,
+        humanizeCode(thread.raw?.customerSummary?.relationshipSensitivity, "Aktiv relation")
+      );
+      const customerMetaLine = asText(
+        thread.displayCustomerMeta,
+        [engagementLabel, ownerLabel].filter(Boolean).join(" · ")
+      );
+      const waitingLabel = asText(nextJourneyLabel || thread.waitingLabel, "Teamuppgifter");
+      const riskLabel = asText(thread.riskLabel, "Normal");
       focusIntelTitle.textContent = isOfflineHistoryThread
         ? "Operativt stöd · läsläge"
         : isTruthDrivenReadOnly
-          ? `Operativt stöd · ${focusReadState.label || "Sanningsstyrt fokus"}`
-          : "Operativt stöd";
+          ? `Operativt stöd · ${activeJourneyLabel || focusReadState.label || "Sanningsstyrt fokus"}`
+          : activeJourneyLabel
+            ? `Operativt stöd · ${activeJourneyLabel}`
+            : "Operativt stöd";
       setRuntimeActionRowsVisibility("[data-intel-actions]", !isOfflineHistoryThread);
       intelDateButton.innerHTML = `<span>${escapeHtml(
         isOfflineHistoryThread
@@ -3382,36 +3620,31 @@
           <p>${escapeHtml(
             isTruthDrivenReadOnly
               ? compactRuntimeCopy(
-                  `${thread.displayCustomerMeta || `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`} · ${focusWaveLabel} sanningsstyrt läsläge`,
-                  `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`,
+                  `${customerMetaLine} · ${focusWaveLabel} sanningsstyrt läsläge`,
+                  customerMetaLine,
                   86
                 )
-              : compactRuntimeCopy(
-                  thread.displayCustomerMeta ||
-                    `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`,
-                  `${thread.displayEngagementLabel || thread.engagementLabel} · ${thread.displayOwnerLabel || thread.ownerLabel}`,
-                  86
-                )
+              : compactRuntimeCopy(customerMetaLine, customerMetaLine, 86)
           )}</p>
         </div>`;
       intelGrid.innerHTML = `
         <div class="focus-intel-item focus-intel-item-lifecycle"><span class="focus-intel-label">LIVSCYKEL</span><strong>${escapeHtml(
-          thread.lifecycleLabel
+          lifecycleLabel
         )}</strong></div>
         <div class="focus-intel-item focus-intel-item-waiting"><span class="focus-intel-label">VÄNTAR PÅ</span><strong>${escapeHtml(
-          thread.waitingLabel
+          waitingLabel
         )}</strong></div>
         <div class="focus-intel-item focus-intel-item-followup"><span class="focus-intel-label">UPPFÖLJNING</span><strong>${escapeHtml(
           thread.followUpLabel || "-"
         )}</strong></div>
         <div class="focus-intel-item focus-intel-item-status"><span class="focus-intel-label">STATUS</span><strong>${escapeHtml(
-          thread.statusLabel
+          activeJourneyLabel || thread.statusLabel
         )}</strong></div>
         <div class="focus-intel-item focus-intel-item-owner"><span class="focus-intel-label">ÄGARE</span><strong>${escapeHtml(
-          thread.displayOwnerLabel || thread.ownerLabel
+          ownerLabel
         )}</strong></div>
         <div class="focus-intel-item focus-intel-item-risk"><span class="focus-intel-label">RISK</span><strong>${escapeHtml(
-          thread.riskLabel
+          riskLabel
         )}</strong></div>`;
       if (intelReasonCopy) {
         intelReasonCopy.textContent = isOfflineHistoryThread
@@ -3422,16 +3655,26 @@
             )
           : isTruthDrivenReadOnly
             ? compactRuntimeCopy(
-                `${thread.whyInFocus} ${asText(
+                `${activeJourneyLabel ? `Nu ${activeJourneyLabel}. ` : ""}${
+                  primaryJourneyAction?.label ? `Verktyg ${primaryJourneyAction.label}. ` : ""
+                }${
+                  nextJourneyLabel ? `Sedan ${nextJourneyLabel}. ` : ""
+                }${thread.whyInFocus} ${asText(
                   focusReadState?.detail,
                   "Sanningsstyrt läsläge i fokusytan för wave 1. Svarflödet och svarsstudion ligger kvar utanför detta pass."
                 )}`,
                 thread.whyInFocus,
                 132
               )
-            : compactRuntimeCopy(thread.whyInFocus, thread.whyInFocus, 132);
+            : compactRuntimeCopy(
+                `${activeJourneyLabel ? `Nu ${activeJourneyLabel}. ` : ""}${
+                  primaryJourneyAction?.label ? `Verktyg ${primaryJourneyAction.label}. ` : ""
+                }${nextJourneyLabel ? `Sedan ${nextJourneyLabel}. ` : ""}${thread.whyInFocus}`,
+                thread.whyInFocus,
+                132
+              );
       }
-      const intelPanels = buildRuntimeIntelPanelCards(thread);
+      const intelPanels = buildRuntimeIntelPanelCards(thread, focusReadState);
       renderIntelCardGroup(intelPanelCustomer, intelPanels.customer);
       renderIntelCardGroup(intelPanelHistory, intelPanels.history);
       renderIntelCardGroup(intelPanelSignals, intelPanels.signals);

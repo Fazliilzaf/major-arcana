@@ -76,10 +76,7 @@ function summarizeLatency(samples = []) {
   };
 }
 
-function createRuntimeMetricsStore({
-  maxSamples = 5000,
-  slowRequestMs = 1500,
-} = {}) {
+function createRuntimeMetricsStore({ maxSamples = 5000, slowRequestMs = 1500 } = {}) {
   const safeMaxSamples = clampInt(maxSamples, 5000, 500, 50000);
   const safeSlowRequestMs = clampInt(slowRequestMs, 1500, 50, 60000);
 
@@ -96,6 +93,20 @@ function createRuntimeMetricsStore({
     samples: [],
   };
 
+  function reset() {
+    state.startedAt = nowIso();
+    state.totalRequests = 0;
+    state.statusBuckets = {
+      '2xx': 0,
+      '3xx': 0,
+      '4xx': 0,
+      '5xx': 0,
+      other: 0,
+    };
+    state.samples = [];
+    return getSnapshot();
+  }
+
   function pushSample(sample) {
     state.samples.push(sample);
     if (state.samples.length > safeMaxSamples) {
@@ -103,12 +114,7 @@ function createRuntimeMetricsStore({
     }
   }
 
-  function record({
-    method = 'GET',
-    path = '/',
-    statusCode = 200,
-    durationMs = 0,
-  } = {}) {
+  function record({ method = 'GET', path = '/', statusCode = 200, durationMs = 0 } = {}) {
     const normalizedMethod = typeof method === 'string' ? method.toUpperCase() : 'GET';
     const normalizedPath = normalizePath(path);
     const area = inferArea(normalizedPath);
@@ -147,13 +153,13 @@ function createRuntimeMetricsStore({
     return next();
   }
 
-  function getSnapshot({
-    areaLimit = 10,
-  } = {}) {
+  function getSnapshot({ areaLimit = 10 } = {}) {
     const limit = clampInt(areaLimit, 10, 1, 100);
     const samples = Array.isArray(state.samples) ? state.samples : [];
     const overallLatency = summarizeLatency(samples);
-    const slowRequests = samples.filter((item) => Number(item.durationMs || 0) >= safeSlowRequestMs).length;
+    const slowRequests = samples.filter(
+      (item) => Number(item.durationMs || 0) >= safeSlowRequestMs
+    ).length;
 
     const byAreaMap = new Map();
     for (const sample of samples) {
@@ -235,6 +241,7 @@ function createRuntimeMetricsStore({
   return {
     middleware,
     record,
+    reset,
     getSnapshot,
     getTenantUsage,
   };

@@ -964,10 +964,22 @@
   const studioIncomingLabel = document.querySelector("[data-studio-incoming-label]");
   const studioIncomingBody = document.querySelector("[data-studio-incoming-body]");
   const studioTemplateButtons = Array.from(document.querySelectorAll("[data-studio-template]"));
+  const studioTemplateHelper = document.querySelector("[data-studio-template-helper]");
+  const studioTemplateHelperLabel = document.querySelector(
+    "[data-studio-template-helper-label]"
+  );
+  const studioTemplateHelperCopy = document.querySelector("[data-studio-template-helper-copy]");
   const studioComposeFromSelect = document.querySelector("[data-studio-compose-from]");
   const studioComposeToInput = document.querySelector("[data-studio-compose-to]");
   const studioComposeSubjectInput = document.querySelector("[data-studio-compose-subject]");
   const studioEditorRecipient = document.querySelector("[data-studio-editor-recipient]");
+  const studioEditorInlineUpdate = document.querySelector("[data-studio-editor-inline-update]");
+  const studioEditorInlineUpdateLabel = document.querySelector(
+    "[data-studio-editor-inline-update-label]"
+  );
+  const studioEditorInlineUpdateCopy = document.querySelector(
+    "[data-studio-editor-inline-update-copy]"
+  );
   const studioEditorInput = document.querySelector("[data-studio-editor-input]");
   const studioEditorWordCount = document.querySelector("[data-studio-editor-wordcount]");
   const studioEditorSummary = document.querySelector("[data-studio-editor-summary]");
@@ -976,6 +988,14 @@
   const studioTrackButtons = Array.from(document.querySelectorAll("[data-studio-track]"));
   const studioToneButtons = Array.from(document.querySelectorAll("[data-studio-tone]"));
   const studioRefineButtons = Array.from(document.querySelectorAll("[data-studio-refine]"));
+  const studioGuidanceHelper = document.querySelector("[data-studio-guidance-helper]");
+  const studioGuidanceHelperLabel = document.querySelector(
+    "[data-studio-guidance-helper-label]"
+  );
+  const studioGuidanceHelperCopy = document.querySelector("[data-studio-guidance-helper-copy]");
+  const studioCtaHelper = document.querySelector("[data-studio-cta-helper]");
+  const studioCtaHelperLabel = document.querySelector("[data-studio-cta-helper-label]");
+  const studioCtaHelperCopy = document.querySelector("[data-studio-cta-helper-copy]");
   const studioToolButtons = Array.from(document.querySelectorAll("[data-studio-tool]"));
   const studioSendButton = document.querySelector("[data-studio-send]");
   const studioSendLabel = document.querySelector("[data-studio-send-label]");
@@ -2013,16 +2033,33 @@
     booking: {
       case: null,
       readout: null,
+      patient360: null,
+      engineSummary: null,
+      engineSummaryThreadId: "",
+      provider: "",
+      contextThreadId: "",
+      loadingEngineSummary: false,
       statuses: [],
       saving: false,
       loadingSlots: false,
       availableSlots: [],
+      slotFetchAttempted: false,
+      recentSelectedSlotId: "",
+      recentSelectedSlotAction: "",
+      recentWorkflowAction: "",
+      recentWorkflowStatus: "",
       slotsError: "",
       loadingRefData: false,
       refDataLoaded: false,
       refDataError: "",
       resources: [],
       services: [],
+      slotRequestDraft: {
+        fromDate: "",
+        toDate: "",
+        resIds: "",
+        srvIds: "",
+      },
       statusFilter: "all",
       caseSort: "recent",
       caseList: [],
@@ -2064,6 +2101,12 @@
       truthSourceMailboxLabel: "",
       truthSenderLocked: false,
       truthFallbackReason: "",
+      bookingStudioMode: "",
+      bookingStudioVariant: "",
+      bookingStudioSummaryLabel: "",
+      bookingStudioReason: "",
+      bookingStudioChangedFrom: "",
+      bookingStudioChangedTo: "",
     },
     noteMode: {
       open: false,
@@ -6388,6 +6431,14 @@
   function buildStudioTemplateDraft(thread, templateKey) {
     const firstName = getStudioFirstName(thread);
     const dueLabel = asText(thread?.followUpLabel || thread?.nextActionLabel || "idag");
+    if (
+      templateKey === "confirm_booking" &&
+      isBookingOfferStaleAfterRebook(getBookingReadoutForThread(thread))
+    ) {
+      return buildBookingUpdateStudioDraft(thread, {
+        toneKey: "solution_focus",
+      });
+    }
     if (templateKey === "suggest_times") {
       return `Hej ${firstName},\n\nTack för ditt meddelande. Här kommer tre tider som ligger närmast det du efterfrågar:\n\n• Fredag 09:00\n• Måndag 10:30\n• Onsdag 14:00\n\nSvara gärna med den tid som passar bäst så bekräftar jag direkt.`;
     }
@@ -6413,6 +6464,14 @@
       draftModes.warm ||
       draftModes.short;
 
+    if (
+      trackKey === "booking" &&
+      isBookingOfferStaleAfterRebook(getBookingReadoutForThread(thread))
+    ) {
+      return buildBookingUpdateStudioDraft(thread, {
+        toneKey: "solution_focus",
+      });
+    }
     if (trackKey === "booking" && recommendedDraft) return recommendedDraft;
     if (trackKey === "follow_up") {
       return `Hej ${firstName},\n\nJag följer upp ditt ärende så att vi håller tempot i konversationen.\n\nDet snabbaste sättet framåt är att du svarar direkt med vilken tid som passar bäst, så säkrar jag nästa steg utan dröjsmål.`;
@@ -6446,6 +6505,11 @@
     const firstName = getStudioFirstName(thread);
     const draftModes = getStudioDraftModes(thread);
     const normalizedTone = normalizeKey(toneKey || "professional");
+    if (isBookingOfferStaleAfterRebook(getBookingReadoutForThread(thread))) {
+      return buildBookingUpdateStudioDraft(thread, {
+        toneKey: normalizedTone,
+      });
+    }
     const baseDraft =
       normalizeText(currentDraft) || buildStudioTrackDraft(thread, inferStudioTrackKey(thread));
     if (normalizedTone === "warm" && draftModes.warm) {
@@ -6468,11 +6532,314 @@
     return baseDraft;
   }
 
+  function getBookingUpdateDefaultToneKey(thread) {
+    const variant = getBookingUpdateStudioProfile(thread)?.variant;
+    if (variant === "customer_update") return "decision_support";
+    if (variant === "follow_up_update") return "warm";
+    return "solution_focus";
+  }
+
+  function buildBookingUpdateStudioDraft(thread, { toneKey = "" } = {}) {
+    return buildBookingUpdateStudioStructure(thread, {
+      toneKey: normalizeKey(toneKey || getBookingUpdateDefaultToneKey(thread)),
+      mode: "default",
+    }).body;
+  }
+
+  function getBookingUpdateStudioProfile(thread) {
+    const readout = getBookingReadoutForThread(thread);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+    const status = normalizeKey(readout.status || "");
+    const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
+    const waitHours = hoursSinceIso(readout.updatedAt || readout.offeredAt || latestRebook?.event?.createdAt);
+    const hasPriorCustomerProposal = Boolean(offerEvent);
+    const buildFreshLead = () =>
+      previousLabel && nextLabel
+        ? `Den tidigare tiden ${previousLabel} är inte längre aktuell. Jag har i stället uppdaterat ditt förslag till ${nextLabel}.`
+        : nextLabel
+          ? `Jag har uppdaterat ditt bokningsförslag och den nya tiden är ${nextLabel}.`
+          : "Jag har uppdaterat ditt bokningsförslag efter en ombokning i vårt system.";
+    const buildCustomerUpdateLead = () =>
+      previousLabel && nextLabel
+        ? `Sedan mitt tidigare förslag har tiden ${previousLabel} utgått. Den nya tiden jag nu kan erbjuda är ${nextLabel}.`
+        : nextLabel
+          ? `Sedan mitt tidigare förslag har tiden ändrats. Den nya tiden jag nu kan erbjuda är ${nextLabel}.`
+          : "Sedan mitt tidigare förslag har bokningsläget ändrats och jag behöver uppdatera dig med en ny tid.";
+    const buildFollowUpLead = () =>
+      previousLabel && nextLabel
+        ? `Jag följer upp eftersom tiden ${previousLabel} har ändrats sedan mitt tidigare förslag. Den nya tiden jag kan hålla åt dig är ${nextLabel}.`
+        : nextLabel
+          ? `Jag följer upp eftersom bokningsförslaget har ändrats. Den nya tiden jag kan hålla åt dig är ${nextLabel}.`
+          : "Jag följer upp eftersom bokningsförslaget har ändrats sedan vårt senaste steg och behöver uppdateras i samma tråd.";
+    const buildStandardStep = () =>
+      nextLabel
+        ? `Återkom gärna i samma tråd om ${nextLabel} passar, så bekräftar jag tiden direkt.`
+        : "Återkom gärna i samma tråd om förslaget passar, så bekräftar jag tiden direkt.";
+    const buildUrgentStep = () =>
+      nextLabel
+        ? `Återkom gärna så snart du kan om ${nextLabel} fungerar, så låser jag bokningen direkt.`
+        : "Återkom gärna så snart du kan om den uppdaterade tiden fungerar, så låser jag bokningen direkt.";
+    if (status === "waiting_customer" && waitHours >= 24) {
+      return {
+        variant: "follow_up_update",
+        lead: buildFollowUpLead(),
+        confirmationStep: buildUrgentStep(),
+        professionalStep:
+          "Bekräfta gärna så snart du kan om den uppdaterade tiden passar, så säkrar jag nästa steg direkt.",
+        warmPreface: "Tack för ditt tålamod medan jag uppdaterade bokningsförslaget.",
+      };
+    }
+    if (status === "waiting_customer" || hasPriorCustomerProposal) {
+      return {
+        variant: "customer_update",
+        lead: buildCustomerUpdateLead(),
+        confirmationStep: buildStandardStep(),
+        professionalStep:
+          "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så säkrar jag nästa steg direkt.",
+        warmPreface: "Tack för ditt tålamod medan jag justerade det tidigare förslaget.",
+      };
+    }
+    return {
+      variant: "fresh_update",
+      lead: buildFreshLead(),
+      confirmationStep: buildStandardStep(),
+      professionalStep:
+        "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så säkrar jag nästa steg direkt.",
+      warmPreface: "Tack för ditt tålamod.",
+    };
+  }
+
+  function buildBookingUpdateStudioStructure(
+    thread,
+    { toneKey = "solution_focus", mode = "default" } = {}
+  ) {
+    const firstName = getStudioFirstName(thread);
+    const readout = getBookingReadoutForThread(thread);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+    const normalizedTone = normalizeKey(toneKey || "solution_focus");
+    const normalizedMode = normalizeKey(mode || "default");
+    const updateProfile = getBookingUpdateStudioProfile(thread);
+    const greeting = `Hej ${firstName},`;
+    const introLines = [greeting];
+    const actionStep =
+      normalizedTone === "decision_support"
+        ? "Nästa steg för dig är att svara om den uppdaterade tiden passar, så låser jag bokningen direkt."
+        : normalizedTone === "professional"
+          ? updateProfile.professionalStep
+          : updateProfile.confirmationStep;
+    const bridgeLine =
+      previousLabel && nextLabel
+        ? `Det tidigare förslaget med ${previousLabel} behöver därför ersättas av ${nextLabel}.`
+        : nextLabel
+          ? `Det tidigare förslaget behöver därför ersättas av ${nextLabel}.`
+          : "Det tidigare förslaget behöver därför ersättas av en ny tid i samma tråd.";
+    const customerOwnershipLine =
+      previousLabel && nextLabel
+        ? `Jag uppdaterar dig därför direkt i samma tråd, så att du kan gå vidare med ${nextLabel} i stället för att utgå från ${previousLabel}.`
+        : nextLabel
+          ? `Jag uppdaterar dig därför direkt i samma tråd, så att du kan ta ställning till ${nextLabel} utan att hålla fast vid det tidigare förslaget.`
+          : "Jag uppdaterar dig därför direkt i samma tråd, så att du kan ta ställning till den nya tiden utan att hålla fast vid det tidigare förslaget.";
+    const customerContextLine =
+      previousLabel && nextLabel
+        ? `På så sätt behöver du bara ta ställning till den nya tiden, medan jag ser till att ${previousLabel} släpps ur det tidigare upplägget.`
+        : nextLabel
+          ? `På så sätt behöver du bara ta ställning till den nya tiden, medan jag ser till att det tidigare upplägget ersätts i samma steg.`
+          : "På så sätt behöver du bara ta ställning till den nya tiden, medan jag ser till att det tidigare upplägget ersätts i samma steg.";
+    const customerCadenceLine =
+      nextLabel
+        ? `Det viktiga nu är bara om ${nextLabel} passar för dig. Resten tar jag direkt härifrån.`
+        : "Det viktiga nu är bara om den nya tiden passar för dig. Resten tar jag direkt härifrån.";
+    const followUpOwnershipLine =
+      previousLabel && nextLabel
+        ? `Jag vill därför fånga upp ändringen tydligt här, så att du inte behöver förhålla dig till ${previousLabel} när ${nextLabel} nu är det nya läget.`
+        : nextLabel
+          ? `Jag vill därför fånga upp ändringen tydligt här i samma tråd, så att du inte behöver förhålla dig till det tidigare förslaget när ${nextLabel} nu gäller.`
+          : "Jag vill därför fånga upp ändringen tydligt här i samma tråd, så att du inte behöver förhålla dig till det tidigare förslaget när bokningsläget nu är uppdaterat.";
+    const followUpContextLine =
+      previousLabel && nextLabel
+        ? `Eftersom det här kommer efter ett tidigare kundförslag vill jag hellre förtydliga ändringen nu än låta ${previousLabel} ligga kvar som osäker referens.`
+        : nextLabel
+          ? `Eftersom det här kommer efter ett tidigare kundförslag vill jag hellre förtydliga ändringen nu än låta det gamla läget ligga kvar som osäker referens.`
+          : "Eftersom det här kommer efter ett tidigare kundförslag vill jag hellre förtydliga ändringen nu än låta det gamla läget ligga kvar som osäker referens.";
+    const followUpCadenceLine =
+      nextLabel
+        ? `Jag vill hellre reda ut ändringen nu än låta frågan ligga kvar mellan två olika tider.`
+        : "Jag vill hellre reda ut ändringen nu än låta frågan ligga kvar mellan två olika lägen.";
+    const freshOwnershipLine =
+      nextLabel
+        ? `Jag skickar därför den uppdaterade tiden direkt här i samma tråd, så att du enkelt kan ta ställning till ${nextLabel}.`
+        : "Jag skickar därför den uppdaterade tiden direkt här i samma tråd, så att du enkelt kan ta ställning till det nya förslaget.";
+    const freshContextLine =
+      nextLabel
+        ? `Det gör att vi kan hålla processen enkel: du svarar bara på om ${nextLabel} fungerar, så tar jag resten direkt härifrån.`
+        : "Det gör att vi kan hålla processen enkel: du svarar bara på om den nya tiden fungerar, så tar jag resten direkt härifrån.";
+    const freshCadenceLine =
+      "Det här är alltså bara en enkel uppdatering, inte ett nytt komplicerat steg för dig att hålla ordning på.";
+    const followUpSupport =
+      "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.";
+    const followUpAction =
+      normalizedMode === "regenerate"
+        ? "Återkom gärna så snart du kan i samma tråd om den uppdaterade tiden fungerar, så säkrar jag ändringen direkt."
+        : actionStep;
+    const customerAction =
+      normalizedMode === "regenerate"
+        ? nextLabel
+          ? `Svara gärna i samma tråd om ${nextLabel} fungerar, så ersätter jag det tidigare förslaget direkt.`
+          : "Svara gärna i samma tråd om den uppdaterade tiden fungerar, så ersätter jag det tidigare förslaget direkt."
+        : actionStep;
+    const sectionContent = {
+      lead: updateProfile.lead,
+      bridge: bridgeLine,
+      customerOwnership: customerOwnershipLine,
+      customerContext: customerContextLine,
+      customerCadence: customerCadenceLine,
+      customerAction,
+      followUpOwnership: followUpOwnershipLine,
+      followUpContext: followUpContextLine,
+      followUpCadence: followUpCadenceLine,
+      followUpAction,
+      followUpSupport,
+      freshOwnership: freshOwnershipLine,
+      freshContext: freshContextLine,
+      freshCadence: freshCadenceLine,
+      freshAction: actionStep,
+    };
+    const sectionOrder =
+      updateProfile.variant === "customer_update"
+        ? ["lead", "bridge", "customerAction", "customerOwnership", "customerContext", "customerCadence"]
+        : updateProfile.variant === "follow_up_update"
+          ? ["lead", "followUpOwnership", "followUpAction", "followUpContext", "followUpCadence", "followUpSupport"]
+          : ["lead", "freshAction", "freshOwnership", "freshContext", "freshCadence"];
+
+    if (normalizedTone === "warm" && updateProfile.warmPreface) {
+      introLines.push(updateProfile.warmPreface);
+    }
+
+    const sectionParagraphs =
+      updateProfile.variant === "customer_update"
+        ? [
+            ["lead", "bridge"],
+            ["customerAction"],
+            ["customerOwnership", "customerContext"],
+            ["customerCadence"],
+          ]
+        : updateProfile.variant === "follow_up_update"
+          ? [
+              ["lead", "followUpOwnership"],
+              ["followUpAction"],
+              ["followUpContext", "followUpCadence"],
+              ["followUpSupport"],
+            ]
+          : [
+              ["lead"],
+              ["freshAction", "freshOwnership"],
+              ["freshContext", "freshCadence"],
+            ];
+    const paragraphs = [];
+    if (introLines.length) {
+      paragraphs.push(introLines.filter(Boolean).join("\n"));
+    }
+
+    sectionParagraphs.forEach((sectionKeys) => {
+      const paragraph = sectionKeys
+        .map((sectionKey) => sectionContent[sectionKey])
+        .filter(Boolean)
+        .join(" ");
+      if (paragraph) {
+        paragraphs.push(paragraph);
+      }
+    });
+
+    return {
+      variant: updateProfile.variant,
+      body: paragraphs.join("\n\n"),
+      sectionOrder,
+      sectionParagraphs,
+      bridgeLine,
+      customerOwnershipLine,
+      customerContextLine,
+      customerCadenceLine,
+      followUpOwnershipLine,
+      followUpContextLine,
+      followUpCadenceLine,
+      freshOwnershipLine,
+      freshContextLine,
+      freshCadenceLine,
+      actionStep,
+      customerAction,
+      followUpAction,
+      followUpSupport,
+    };
+  }
+
+  function emphasizeBookingUpdateLead(thread, draft = "") {
+    const normalizedDraft = normalizeText(draft);
+    if (!normalizedDraft) return "";
+    const readout = getBookingReadoutForThread(thread);
+    if (!isBookingOfferStaleAfterRebook(readout)) {
+      return normalizedDraft;
+    }
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+    const updateLine =
+      previousLabel && nextLabel
+        ? `Uppdatering: tidigare tid ${previousLabel} har ersatts av ${nextLabel}.`
+        : nextLabel
+          ? `Uppdatering: ditt tidigare förslag har ersatts av ${nextLabel}.`
+          : "Uppdatering: tidigare bokningsförslag har ersatts av en ny tid.";
+    if (normalizedDraft.includes(updateLine)) {
+      return normalizedDraft;
+    }
+    return `${updateLine}\n\n${normalizedDraft}`;
+  }
+
+  function buildBookingUpdateRegeneratedDraft(thread) {
+    const readout = getBookingReadoutForThread(thread);
+    if (!isBookingOfferStaleAfterRebook(readout)) {
+      return buildStudioTrackDraft(thread, inferStudioTrackKey(thread));
+    }
+    return buildBookingUpdateStudioStructure(thread, {
+      toneKey: "solution_focus",
+      mode: "regenerate",
+    }).body;
+  }
+
+  function getBookingUpdateRegeneratedFeedback(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    if (variant === "follow_up_update") {
+      return "Uppföljning på uppdaterat kundförslag regenererades.";
+    }
+    if (variant === "customer_update") {
+      return "Ersättningsförslag regenererades från tidigare kundlöfte.";
+    }
+    return "Uppdaterat kundförslag regenererades från ombokningskontext.";
+  }
+
   function buildStudioRefinedDraft(thread, currentDraft, refineKey) {
     const draftModes = getStudioDraftModes(thread);
     const normalizedRefine = normalizeKey(refineKey || "");
     const baseDraft =
       normalizeText(currentDraft) || buildStudioTrackDraft(thread, inferStudioTrackKey(thread));
+    if (normalizedRefine === "sharper" && isBookingOfferStaleAfterRebook(getBookingReadoutForThread(thread))) {
+      const updateProfile = getBookingUpdateStudioProfile(thread);
+      const sharpenedDraft = emphasizeBookingUpdateLead(
+        thread,
+        `${baseDraft}\n\n${
+          updateProfile.variant === "follow_up_update"
+            ? "Återkom gärna så snart du kan om den uppdaterade tiden fungerar, så låser jag ändringen direkt."
+            : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så låser jag ändringen direkt."
+        }`
+      );
+      const studioState = thread ? ensureStudioState(thread) : null;
+      return studioState
+        ? applyStudioBookingCompletionDraft(thread, studioState, sharpenedDraft)
+        : sharpenedDraft;
+    }
     if (normalizedRefine === "shorter" && draftModes.short) {
       return draftModes.short;
     }
@@ -6585,6 +6952,856 @@
     return "";
   }
 
+  function getStudioResolvedTemplateLabel(studioState, templateKey = "") {
+    if (
+      normalizeKey(templateKey) === "confirm_booking" &&
+      normalizeKey(studioState?.bookingStudioMode) === "booking_update"
+    ) {
+      const variant = normalizeKey(studioState?.bookingStudioVariant);
+      if (variant === "follow_up_update") return "Följ upp kundförslag";
+      if (variant === "customer_update") return "Ersätt kundförslag";
+      return "Uppdatera kundförslag";
+    }
+    return getStudioTemplateLabel(templateKey);
+  }
+
+  function isStudioBookingUpdateMode(studioState) {
+    return normalizeKey(studioState?.bookingStudioMode) === "booking_update";
+  }
+
+  function getStudioBookingUpdateVariant(studioState) {
+    return normalizeKey(studioState?.bookingStudioVariant);
+  }
+
+  function getStudioRecommendedToneKey(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    if (variant === "customer_update") return "decision_support";
+    if (variant === "follow_up_update") return "warm";
+    return "solution_focus";
+  }
+
+  function getStudioRecommendedRefineKey(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    if (variant === "follow_up_update") return "sharper";
+    if (variant === "customer_update") return "shorter";
+    return "sharper";
+  }
+
+  function getStudioUsedToolKeys(studioState) {
+    return asArray(studioState?.usedToolKeys)
+      .map((entry) => normalizeKey(entry))
+      .filter(Boolean);
+  }
+
+  function hasStudioBookingClosingSequence(studioState) {
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    return (
+      usedToolKeys.includes("regenerate") &&
+      (usedToolKeys.includes("policy") || usedToolKeys.includes("note"))
+    );
+  }
+
+  function getStudioBookingCompletionLabel(studioState) {
+    if (!hasStudioBookingClosingSequence(studioState)) {
+      return "";
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    if (variant === "follow_up_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return "Redo att skicka · kort uppföljning";
+      }
+      return "Redo att skicka · följ upp tydligt";
+    }
+    if (variant === "customer_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return "Redo att skicka · kort ersättning";
+      }
+      return "Redo att skicka · ersätt tidigare förslag";
+    }
+    if (replyShape === "compact_three_paragraph_reply") {
+      return "Redo att skicka · kompakt bekräftelse";
+    }
+    return "Redo att skicka · bekräfta ny tid";
+  }
+
+  function getStudioBookingCompletionCopy(studioState) {
+    if (!hasStudioBookingClosingSequence(studioState)) {
+      return "";
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    if (variant === "follow_up_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return "Utkastet är omskrivet, kontrollerat och nere på ett kort beslutssvar. Avsluta nu med ett snabbt ja eller nej på den nya tiden i samma tråd.";
+      }
+      return "Utkastet är omskrivet och kontrollerat. Avsluta nu med en tydlig uppföljning på den nya tiden i samma tråd.";
+    }
+    if (variant === "customer_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return "Utkastet är omskrivet, kontrollerat och nere på ett kort ersättningssvar. Avsluta nu med den nya tiden som enda beslutspunkt i samma tråd.";
+      }
+      return "Utkastet är omskrivet och kontrollerat. Avsluta nu med ett tydligt besked om att tidigare förslag ersatts av den nya tiden.";
+    }
+    if (replyShape === "compact_three_paragraph_reply") {
+      return "Utkastet är omskrivet och kontrollerat. Avsluta nu med ett kompakt bekräftelsesvar på den nya tiden i samma tråd.";
+    }
+    return "Utkastet är omskrivet och kontrollerat. Avsluta nu med en enkel bekräftelse på den nya tiden i samma tråd.";
+  }
+
+  function buildStudioBookingCompletionDraftClosing(thread, studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const readout = getBookingReadoutForThread(thread);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+    if (variant === "follow_up_update") {
+      if (hasGiftAdded && hasPolicyChecked) {
+        return [
+          nextLabel
+            ? `Återkom gärna så snart du kan i samma tråd om ${nextLabel} fungerar, så låser jag ändringen direkt och håller allt samlat här. Det räcker med ett kort ja i samma tråd, så tar jag resten härifrån utan fler omvägar.`
+            : "Återkom gärna så snart du kan i samma tråd om den uppdaterade tiden fungerar, så låser jag ändringen direkt och håller allt samlat här. Det räcker med ett kort ja i samma tråd, så tar jag resten härifrån utan fler omvägar.",
+        ];
+      }
+      return [
+        nextLabel
+          ? `Återkom gärna så snart du kan i samma tråd om ${nextLabel} fungerar, så låser jag ändringen direkt.`
+          : "Återkom gärna så snart du kan i samma tråd om den uppdaterade tiden fungerar, så låser jag ändringen direkt.",
+        hasGiftAdded
+          ? "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd."
+          : "Om den nya tiden inte fungerar hjälper jag dig gärna vidare i samma tråd.",
+      ];
+    }
+    if (variant === "customer_update") {
+      if (hasPolicyChecked && hasGiftAdded) {
+        return [
+          nextLabel
+            ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt. Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.`
+            : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt. Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.",
+        ];
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          nextLabel
+            ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt.`
+            : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt.",
+          "Du behöver alltså bara ta ställning till den nya tiden i samma tråd, så håller jag resten av ändringen hos mig.",
+          "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.",
+        ];
+      }
+      return [
+        nextLabel
+          ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt.`
+          : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så ersätter jag det tidigare förslaget och låser den nya tiden direkt.",
+        previousLabel
+          ? `Om du fortfarande utgick från ${previousLabel} räcker det att svara i samma tråd, så uppdaterar jag bokningen till den nya tiden i samma steg.`
+          : "Om du fortfarande utgick från det tidigare förslaget räcker det att svara i samma tråd, så uppdaterar jag bokningen till den nya tiden i samma steg.",
+        "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.",
+      ];
+    }
+    if (variant === "fresh_update") {
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          nextLabel
+            ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så låser jag den nya tiden direkt. Det räcker med ett enkelt ja i samma tråd, så tar jag resten direkt härifrån.`
+            : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så låser jag den nya tiden direkt. Det räcker med ett enkelt ja i samma tråd, så tar jag resten direkt härifrån.",
+        ];
+      }
+      return [
+        nextLabel
+          ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så låser jag den nya tiden direkt.`
+          : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så låser jag den nya tiden direkt.",
+        "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.",
+      ];
+    }
+    return [
+      nextLabel
+        ? `Bekräfta gärna i samma svar om ${nextLabel} passar, så låser jag den nya tiden direkt.`
+        : "Bekräfta gärna i samma svar om den uppdaterade tiden passar, så låser jag den nya tiden direkt.",
+      "Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd.",
+    ];
+  }
+
+  function buildStudioBookingCompletionDraftBridge(thread, studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const readout = getBookingReadoutForThread(thread);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+
+    if (variant === "follow_up_update") {
+      if (hasGiftAdded && hasPolicyChecked) {
+        return [
+          previousLabel && nextLabel
+            ? `Det är nu bara ${nextLabel} som gäller här; ${previousLabel} är inte längre aktuell.`
+            : "Det är nu bara den nya tiden som gäller här; det gamla läget är inte längre aktuellt.",
+        ];
+      }
+      if (hasNoteOpen && hasPolicyChecked) {
+        return [
+          "Jag har därför samlat ändringen tydligt här, så att du bara behöver ta ställning till den uppdaterade tiden.",
+        ];
+      }
+    }
+
+    if (variant === "customer_update") {
+      if (hasPolicyChecked && hasGiftAdded) {
+        return [
+          previousLabel
+            ? `Det tidigare förslaget med ${previousLabel} gäller alltså inte längre.`
+            : "Det tidigare förslaget gäller alltså inte längre.",
+        ];
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          nextLabel
+            ? `Det betyder att du nu bara behöver ta ställning till ${nextLabel}, medan jag håller själva ändringen hos mig.`
+            : "Det betyder att du nu bara behöver ta ställning till den nya tiden, medan jag håller själva ändringen hos mig.",
+        ];
+      }
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return [
+        nextLabel
+          ? `Det är nu bara ${nextLabel} du behöver ta ställning till.`
+          : "Det är nu bara den uppdaterade tiden du behöver ta ställning till.",
+      ];
+    }
+
+    return [];
+  }
+
+  function getStudioBookingCompletionPrunePatterns(studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+
+    if (variant === "follow_up_update") {
+      if (hasGiftAdded && hasPolicyChecked) {
+        return [
+          /^Eftersom det här kommer efter ett tidigare kundförslag/i,
+          /^Jag vill hellre reda ut ändringen nu/i,
+          /^Om den nya tiden inte fungerar hjälper jag dig gärna vidare med ett nytt alternativ i samma tråd\.$/i,
+        ];
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          /^Eftersom det här kommer efter ett tidigare kundförslag/i,
+          /^Jag vill hellre reda ut ändringen nu/i,
+        ];
+      }
+    }
+
+    if (variant === "customer_update") {
+      if (hasPolicyChecked && (hasGiftAdded || hasNoteOpen)) {
+        return [
+          /^På så sätt behöver du bara ta ställning till den nya tiden/i,
+          /^Det viktiga nu är bara om .* passar för dig\./i,
+        ];
+      }
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return [
+        /^Det gör att vi kan hålla processen enkel:/i,
+        /^Det här är alltså bara en enkel uppdatering/i,
+      ];
+    }
+
+    return [];
+  }
+
+  function buildStudioBookingCompletionDraftOpening(thread, studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const readout = getBookingReadoutForThread(thread);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const previousLabel = asText(latestRebook?.previousLabel);
+    const nextLabel = asText(latestRebook?.nextLabel);
+
+    if (variant === "follow_up_update") {
+      if (hasGiftAdded && hasPolicyChecked) {
+        return [
+          previousLabel && nextLabel
+            ? `Jag följer därför upp kort här: ${previousLabel} gäller inte längre, och ${nextLabel} är nu den tid du bara behöver ta ställning till i samma tråd.`
+            : nextLabel
+              ? `Jag följer därför upp kort här: ${nextLabel} är nu den tid du bara behöver ta ställning till i samma tråd.`
+              : "Jag följer därför upp kort här: det är nu bara den uppdaterade tiden du behöver ta ställning till i samma tråd.",
+        ];
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          nextLabel
+            ? `Jag följer därför upp kort här, så att du bara behöver ta ställning till ${nextLabel} i samma tråd.`
+            : "Jag följer därför upp kort här, så att du bara behöver ta ställning till den uppdaterade tiden i samma tråd.",
+        ];
+      }
+    }
+
+    if (variant === "customer_update") {
+      if (hasPolicyChecked && hasGiftAdded) {
+        return [
+          previousLabel && nextLabel
+            ? `Jag uppdaterar därför beskedet kort här: ${previousLabel} är ersatt, och du behöver nu bara svara på om ${nextLabel} passar.`
+            : nextLabel
+              ? `Jag uppdaterar därför beskedet kort här: du behöver nu bara svara på om ${nextLabel} passar.`
+              : "Jag uppdaterar därför beskedet kort här: du behöver nu bara svara på om den uppdaterade tiden passar.",
+        ];
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return [
+          nextLabel
+            ? `Jag uppdaterar därför beskedet kort här, så att du bara behöver svara på om ${nextLabel} passar.`
+            : "Jag uppdaterar därför beskedet kort här, så att du bara behöver svara på om den uppdaterade tiden passar.",
+        ];
+      }
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return [
+        nextLabel
+          ? `Kort uppdatering: ${nextLabel} är nu den aktuella tiden, och det är bara den du behöver ta ställning till här.`
+          : "Kort uppdatering: den uppdaterade tiden är nu det enda du behöver ta ställning till här.",
+      ];
+    }
+
+    return [];
+  }
+
+  function getStudioBookingCompletionLeadPrunePatterns(studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+
+    if (variant === "follow_up_update") {
+      if ((hasGiftAdded && hasPolicyChecked) || (hasPolicyChecked && hasNoteOpen)) {
+        return [/^Jag följer upp eftersom/i];
+      }
+    }
+
+    if (variant === "customer_update") {
+      if (hasPolicyChecked && (hasGiftAdded || hasNoteOpen)) {
+        return [/^Sedan mitt tidigare förslag har/i];
+      }
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return [/^Den tidigare tiden .* är inte längre aktuell\./i, /^Jag har uppdaterat ditt bokningsförslag/i];
+    }
+
+    return [];
+  }
+
+  function getStudioBookingCompletionCompactionPrunePatterns(studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+
+    if (variant === "follow_up_update" && hasGiftAdded && hasPolicyChecked) {
+      return [/^Jag vill därför fånga upp ändringen tydligt här/i];
+    }
+
+    if (variant === "customer_update" && hasPolicyChecked && hasGiftAdded) {
+      return [/^Jag uppdaterar dig därför direkt i samma tråd/i];
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return [/^Jag skickar därför den uppdaterade tiden direkt här i samma tråd/i];
+    }
+
+    return [];
+  }
+
+  function shouldStudioBookingCompletionUseShortReply(studioState) {
+    return getStudioBookingCompletionReplyShape(studioState) !== "standard_completion";
+  }
+
+  function shouldStudioBookingCompletionDropBridge(studioState) {
+    return getStudioBookingCompletionReplyShape(studioState) === "two_paragraph_reply";
+  }
+
+  function getStudioBookingCompletionReplyShape(studioState) {
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return "standard_completion";
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+
+    if (variant === "follow_up_update" && hasGiftAdded && hasPolicyChecked) {
+      return "two_paragraph_reply";
+    }
+
+    if (variant === "customer_update" && hasGiftAdded && hasPolicyChecked) {
+      return "two_paragraph_reply";
+    }
+
+    if (variant === "fresh_update" && hasPolicyChecked && hasNoteOpen) {
+      return "compact_three_paragraph_reply";
+    }
+
+    return "standard_completion";
+  }
+
+  function buildStudioBookingCompletionIntro(thread, studioState, introParagraph = "") {
+    const normalizedIntro = normalizeText(introParagraph);
+    if (!normalizedIntro) {
+      return "";
+    }
+    if (!isStudioBookingUpdateMode(studioState) || !hasStudioBookingClosingSequence(studioState)) {
+      return normalizedIntro;
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const greetingLine =
+      normalizedIntro
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean)[0] || `Hej ${getStudioFirstName(thread)},`;
+
+    if (variant === "follow_up_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return `${greetingLine}\n\nKort uppföljning här: det är nu bara den uppdaterade tiden som återstår för dig att svara på.`;
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return `${greetingLine}\n\nJag håller det kort här, så att du bara behöver ta ställning till den uppdaterade tiden.`;
+      }
+    }
+
+    if (variant === "customer_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return `${greetingLine}\n\nKort uppdatering här: det tidigare förslaget är redan ersatt och du behöver bara svara på den nya tiden.`;
+      }
+      if (hasPolicyChecked && hasNoteOpen) {
+        return `${greetingLine}\n\nJag håller det kort här, så att du bara behöver svara på den nya tiden.`;
+      }
+    }
+
+    if (variant === "fresh_update" && replyShape === "compact_three_paragraph_reply") {
+      return `${greetingLine}\n\nKort uppdatering här: det är nu bara den uppdaterade tiden du behöver ta ställning till.`;
+    }
+
+    return greetingLine;
+  }
+
+  function applyStudioBookingCompletionDraft(thread, studioState, draft = "") {
+    const normalizedDraft = normalizeText(draft);
+    if (!normalizedDraft) {
+      return "";
+    }
+    const openingParagraphs = buildStudioBookingCompletionDraftOpening(thread, studioState);
+    const bridgeParagraphs = buildStudioBookingCompletionDraftBridge(thread, studioState);
+    const closingParagraphs = buildStudioBookingCompletionDraftClosing(thread, studioState);
+    if (!closingParagraphs.length) {
+      return normalizedDraft;
+    }
+    const prunePatterns = getStudioBookingCompletionPrunePatterns(studioState);
+    const leadPrunePatterns = getStudioBookingCompletionLeadPrunePatterns(studioState);
+    const compactionPrunePatterns = getStudioBookingCompletionCompactionPrunePatterns(studioState);
+    const useShortReply = shouldStudioBookingCompletionUseShortReply(studioState);
+    const shouldDropBridge = shouldStudioBookingCompletionDropBridge(studioState);
+    const completionPattern =
+      /^(Återkom gärna|Bekräfta gärna|Svara gärna|Om den nya tiden inte fungerar|Om den uppdaterade tiden inte fungerar|Det räcker med ett kort ja|Det räcker alltså att svara ja|Det räcker med ett enkelt ja|Du behöver alltså bara ta ställning|Du behöver därför inte längre förhålla dig|Jag har därför samlat ändringen tydligt här|Det betyder att du nu bara behöver ta ställning|Det tidigare förslaget med|Det här är nu det enda förslag du behöver ta ställning till|Då låser jag|så låser jag|så bekräftar jag tiden|så säkrar jag)/i;
+    const normalizedParagraphs = normalizedDraft
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean);
+    const introParagraph = normalizedParagraphs[0] || "";
+    const completionIntroParagraph = buildStudioBookingCompletionIntro(
+      thread,
+      studioState,
+      introParagraph
+    );
+    const keptParagraphs = normalizedParagraphs
+      .slice(1)
+      .filter((paragraph) => !completionPattern.test(paragraph));
+    const prunedParagraphs = keptParagraphs.filter(
+      (paragraph) =>
+        !prunePatterns.some((pattern) => pattern.test(paragraph)) &&
+        !leadPrunePatterns.some((pattern) => pattern.test(paragraph)) &&
+        !compactionPrunePatterns.some((pattern) => pattern.test(paragraph))
+    );
+    const completionOpeningParagraphs = useShortReply ? [] : openingParagraphs;
+    return [
+      completionIntroParagraph || introParagraph,
+      ...completionOpeningParagraphs,
+      ...prunedParagraphs,
+      ...(shouldDropBridge ? [] : bridgeParagraphs),
+      ...closingParagraphs,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  function applyStudioBookingUpdateToolPhaseDraft(
+    thread,
+    studioState,
+    draft = "",
+    toolKey = ""
+  ) {
+    const normalizedDraft = normalizeText(draft);
+    if (!normalizedDraft || !isStudioBookingUpdateMode(studioState)) {
+      return normalizedDraft;
+    }
+    const normalizedTool = normalizeKey(toolKey);
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasRegenerated = usedToolKeys.includes("regenerate");
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const phasePattern =
+      /^(För tydlighetens skull|Mitt fokus nu|Det viktiga just nu|Som nästa steg räcker det)/i;
+    const keptParagraphs = normalizedDraft
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .filter((paragraph) => !phasePattern.test(paragraph));
+    let phaseParagraph = "";
+
+    if (normalizedTool === "policy") {
+      if (variant === "follow_up_update" && hasRegenerated && hasGiftAdded) {
+        phaseParagraph =
+          "För tydlighetens skull ber jag nu bara om snabbt besked på den nya tiden, så ändringen kan låsas utan att det gamla läget hänger kvar.";
+      } else if (variant === "customer_update" && hasRegenerated && hasNoteOpen) {
+        phaseParagraph =
+          "Som nästa steg räcker det att kunden svarar på den nya tiden, så kan det tidigare förslaget släppas utan extra rundor i samma tråd.";
+      } else if (variant === "fresh_update" && hasRegenerated && hasGiftAdded) {
+        phaseParagraph =
+          "Det viktiga just nu är bara ett enkelt ja eller nej på den nya tiden, så att bokningen kan stängas tydligt direkt.";
+      }
+    }
+
+    if (normalizedTool === "gift") {
+      if (variant === "follow_up_update" && hasRegenerated && hasNoteOpen && !hasPolicyChecked) {
+        phaseParagraph =
+          "Mitt fokus nu är att landa ändringen varmt men tydligt, så kunden lätt kan återkomma om den nya tiden fungerar.";
+      } else if (
+        variant === "customer_update" &&
+        hasRegenerated &&
+        hasPolicyChecked
+      ) {
+        phaseParagraph =
+          "För tydlighetens skull ersätter vi nu bara det tidigare förslaget med den nya tiden, medan resten av bokningsarbetet hålls hos oss.";
+      }
+    }
+
+    if (normalizedTool === "note") {
+      if (variant === "follow_up_update" && hasRegenerated) {
+        phaseParagraph =
+          "Mitt fokus nu är att fånga upp ändringen internt, så kunden bara behöver återkomma om den nya tiden fungerar.";
+      } else if (variant === "customer_update" && hasRegenerated) {
+        phaseParagraph =
+          "För tydlighetens skull dokumenterar vi nu bytet internt, så kunden bara behöver ta ställning till den nya tiden.";
+      } else if (variant === "fresh_update" && hasRegenerated && hasPolicyChecked) {
+        phaseParagraph =
+          "Som nästa steg sparar vi bara bakgrunden internt, medan kunden kan svara enkelt på den nya tiden.";
+      }
+    }
+
+    if (normalizedTool === "regenerate" && (hasPolicyChecked || hasNoteOpen || hasGiftAdded)) {
+      if (variant === "follow_up_update") {
+        phaseParagraph =
+          "Jag skriver nu om svaret utifrån den nya tiden, så kunden möter ett samlat uppföljt förslag i samma tråd.";
+      } else if (variant === "customer_update") {
+        phaseParagraph =
+          "Jag skriver nu om svaret så den nya tiden tydligt ersätter det tidigare förslaget redan från första raden.";
+      } else {
+        phaseParagraph =
+          "Jag skriver nu om svaret så den nya tiden blir huvudspår direkt utan extra omvägar för kunden.";
+      }
+    }
+
+    if (!phaseParagraph) {
+      return normalizedDraft;
+    }
+    return [...keptParagraphs, phaseParagraph].join("\n\n");
+  }
+
+  function getStudioRecommendedBookingCtaLabel(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    if (hasStudioBookingClosingSequence(studioState)) {
+      if (variant === "follow_up_update") {
+        if (replyShape === "two_paragraph_reply") return "Avsluta nu · be om kort svar";
+        return "Avsluta nu · be om snabbt besked";
+      }
+      if (variant === "customer_update") {
+        if (replyShape === "two_paragraph_reply") return "Avsluta nu · ersätt med nytt svar";
+        return "Avsluta nu · lås nytt ja";
+      }
+      if (replyShape === "compact_three_paragraph_reply") {
+        return "Avsluta nu · bekräfta kort";
+      }
+      return "Avsluta nu · stäng tydligt";
+    }
+    if (variant === "follow_up_update") return "Avsluta nu · följ upp snabbt";
+    if (variant === "customer_update") return "Avsluta nu · ersätt tydligt";
+    return "Avsluta nu · be om enkel bekräftelse";
+  }
+
+  function getStudioRecommendedBookingCtaCopy(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    if (hasStudioBookingClosingSequence(studioState)) {
+      if (variant === "follow_up_update") {
+        if (replyShape === "two_paragraph_reply") {
+          return "Avsluta med ett kort svarssteg på den nya tiden, så ändringen kan låsas direkt i samma tråd.";
+        }
+        return "Avsluta med att be kunden återkomma snabbt i samma tråd, så ändringen kan låsas innan tempot faller.";
+      }
+      if (variant === "customer_update") {
+        if (replyShape === "two_paragraph_reply") {
+          return "Avsluta med att göra den nya tiden till enda svarspunkt, så det tidigare förslaget kan släppas direkt.";
+        }
+        return "Avsluta med ett tydligt ja-nej-steg på den nya tiden, så det gamla förslaget ersätts utan mer friktion.";
+      }
+      if (replyShape === "compact_three_paragraph_reply") {
+        return "Avsluta med ett kort bekräftelsesteg på den nya tiden, så nästa steg kan låsas direkt i samma tråd.";
+      }
+      return "Avsluta med ett enkelt bekräftelsesteg på den nya tiden, så nästa steg kan låsas direkt i samma tråd.";
+    }
+    if (variant === "follow_up_update") {
+      return "Be kunden återkomma så snart som möjligt i samma tråd om den uppdaterade tiden fungerar.";
+    }
+    if (variant === "customer_update") {
+      return "Säg att tidigare förslag har ersatts och be om ett enkelt ja på den nya tiden i samma tråd.";
+    }
+    return "Be kunden återkomma i samma tråd om den nya tiden passar, så kan du låsa nästa steg direkt.";
+  }
+
+  function getStudioBookingUpdateWorkModeLabel(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    if (variant === "follow_up_update") {
+      if (replyShape === "two_paragraph_reply") return "Arbetsläge · kort uppföljning";
+      return "Arbetsläge · följ upp ändringen";
+    }
+    if (variant === "customer_update") {
+      if (replyShape === "two_paragraph_reply") return "Arbetsläge · kort ersättning";
+      return "Arbetsläge · ersätt tidigare svar";
+    }
+    if (replyShape === "compact_three_paragraph_reply") {
+      return "Arbetsläge · kompakt bekräftelse";
+    }
+    return "Arbetsläge · skicka uppdaterad tid";
+  }
+
+  function getStudioBookingUpdateWorkModeCopy(studioState) {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const replyShape = getStudioBookingCompletionReplyShape(studioState);
+    const toneLabel = getStudioToneLabel(
+      normalizeKey(studioState?.activeToneKey) || getStudioRecommendedToneKey(studioState)
+    );
+    const refineLabel = getStudioRefineLabel(
+      normalizeKey(studioState?.activeRefineKey) || getStudioRecommendedRefineKey(studioState)
+    );
+    if (variant === "follow_up_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return `${toneLabel || "Varm"} håller det kort och lugnt, medan ${refineLabel || "Skarpare"} hjälper dig be om ett snabbt svar på den nya tiden utan extra omvägar.`;
+      }
+      return `${toneLabel || "Varm"} håller uppföljningen lugn och tydlig, medan ${refineLabel || "Skarpare"} hjälper dig be om snabbt besked på den nya tiden.`;
+    }
+    if (variant === "customer_update") {
+      if (replyShape === "two_paragraph_reply") {
+        return `${toneLabel || "Beslutsstöd"} håller ersättningen rak, medan ${refineLabel || "Kortare"} hjälper dig göra den nya tiden till enda svarspunkt i tråden.`;
+      }
+      return `${toneLabel || "Beslutsstöd"} gör bytet rakt och begripligt, medan ${refineLabel || "Kortare"} hjälper dig ersätta tidigare svar utan onödig rundgång.`;
+    }
+    if (replyShape === "compact_three_paragraph_reply") {
+      return `${toneLabel || "Lösningsfokus"} håller svaret lätt, medan ${refineLabel || "Skarpare"} hjälper dig landa i en kompakt bekräftelse på den nya tiden.`;
+    }
+    return `${toneLabel || "Lösningsfokus"} håller uppdateringen enkel, medan ${refineLabel || "Skarpare"} hjälper dig landa i ett tydligt ja-nej-steg på den nya tiden.`;
+  }
+
+  function getStudioRecommendedTemplateKey(studioState) {
+    if (isStudioBookingUpdateMode(studioState)) {
+      return "confirm_booking";
+    }
+    return "";
+  }
+
+  function getStudioRecommendedToolOrder(studioState) {
+    if (!isStudioBookingUpdateMode(studioState)) {
+      return [];
+    }
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasRegenerated = usedToolKeys.includes("regenerate");
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const prioritizeUnused = (order) => {
+      const normalizedOrder = asArray(order)
+        .map((toolKey) => normalizeKey(toolKey))
+        .filter(Boolean);
+      const unused = normalizedOrder.filter((toolKey) => !usedToolKeys.includes(toolKey));
+      const used = normalizedOrder.filter((toolKey) => usedToolKeys.includes(toolKey));
+      return unused.length ? [...unused, ...used] : normalizedOrder;
+    };
+    if (variant === "follow_up_update") {
+      if (hasRegenerated && hasNoteOpen && !hasGiftAdded) {
+        return prioritizeUnused(["gift", "policy", "note", "regenerate"]);
+      }
+      if (hasRegenerated && hasGiftAdded && !hasPolicyChecked) {
+        return prioritizeUnused(["policy", "gift", "note", "regenerate"]);
+      }
+      return prioritizeUnused(["regenerate", "note", "gift", "policy"]);
+    }
+    if (variant === "customer_update") {
+      if (hasRegenerated && hasNoteOpen && !hasPolicyChecked) {
+        return prioritizeUnused(["policy", "note", "gift", "regenerate"]);
+      }
+      if (hasRegenerated && hasPolicyChecked && !hasGiftAdded) {
+        return prioritizeUnused(["gift", "policy", "note", "regenerate"]);
+      }
+      return prioritizeUnused(["regenerate", "note", "policy", "gift"]);
+    }
+    if (hasRegenerated && hasPolicyChecked && !hasNoteOpen) {
+      return prioritizeUnused(["note", "gift", "policy", "regenerate"]);
+    }
+    return prioritizeUnused(["regenerate", "policy", "note", "gift"]);
+  }
+
+  function getStudioRecommendedToolKey(studioState) {
+    return getStudioRecommendedToolOrder(studioState)[0] || "";
+  }
+
+  function getStudioRecommendedToolReason(studioState, toolKey = "") {
+    const variant = getStudioBookingUpdateVariant(studioState);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    const hasRegenerated = usedToolKeys.includes("regenerate");
+    const hasPolicyChecked = usedToolKeys.includes("policy");
+    const hasNoteOpen = usedToolKeys.includes("note");
+    const hasGiftAdded = usedToolKeys.includes("gift");
+    const normalizedToolKey = normalizeKey(toolKey || getStudioRecommendedToolKey(studioState));
+    if (normalizedToolKey === "note") {
+      if (variant === "follow_up_update") {
+        if (hasRegenerated && hasPolicyChecked) {
+          return "Nu när uppföljningen är omskriven och trygghetskontrollerad: öppna smart anteckning och fånga vad kunden ska svara på kring den nya tiden.";
+        }
+        return hasRegenerated
+          ? "Nu när utkastet är omskrivet: öppna smart anteckning och fånga att uppföljning krävs på den nya tiden."
+          : "Öppna smart anteckning och fånga att uppföljning krävs på den nya tiden.";
+      }
+      if (variant === "customer_update") {
+        if (hasRegenerated && hasPolicyChecked) {
+          return "Nu när ersättningssvaret är omskrivet och trygghetskontrollerat: öppna smart anteckning och dokumentera att kunden nu bara behöver ta ställning till den nya tiden.";
+        }
+        return hasRegenerated
+          ? "Nu när utkastet är omskrivet: öppna smart anteckning och dokumentera att tidigare kundförslag ersatts."
+          : "Öppna smart anteckning och dokumentera att tidigare kundförslag ersatts.";
+      }
+      if (hasRegenerated && hasPolicyChecked) {
+        return "Nu när uppdateringen är omskriven och trygghetskontrollerad: öppna smart anteckning om du vill fånga varför den nya tiden blev huvudspår.";
+      }
+      return hasRegenerated
+        ? "Nu när utkastet är omskrivet: öppna smart anteckning om du vill spara varför tiden uppdaterades internt."
+        : "Öppna smart anteckning om du vill spara varför tiden uppdaterades internt.";
+    }
+    if (normalizedToolKey === "policy") {
+      if (variant === "follow_up_update" && hasRegenerated && hasGiftAdded) {
+        return "Nu när uppföljningssvaret fått sin varma slutrad: gör sista trygghetskontrollen innan du ber om snabbt besked.";
+      }
+      if (variant === "customer_update" && hasRegenerated && hasNoteOpen) {
+        return "Nu när ersättningen är omskriven och dokumenterad: gör sista trygghetskontrollen innan du skickar den nya tiden.";
+      }
+      return hasRegenerated
+        ? "Nu när huvudutkastet är klart: kontrollera att den uppdaterade formuleringen fortfarande är trygg att skicka."
+        : "Kontrollera att den uppdaterade formuleringen fortfarande är trygg att skicka.";
+    }
+    if (normalizedToolKey === "gift") {
+      if (variant === "follow_up_update" && hasRegenerated && hasNoteOpen && !hasPolicyChecked) {
+        return "Nu när uppföljningen är dokumenterad: lägg till en varm sista rad innan du ber kunden återkomma snabbt om den nya tiden.";
+      }
+      if (variant === "customer_update" && hasRegenerated && hasPolicyChecked) {
+        return "Nu när ersättningssvaret är trygghetskontrollerat: lägg till en sista lugn rad om kunden behöver lite mer stöd innan du skickar.";
+      }
+      if (hasRegenerated && (hasPolicyChecked || hasNoteOpen)) {
+        return "Avsluta med en extra trygghetsrad om kunden behöver lite mer stöd innan svaret skickas.";
+      }
+      return hasRegenerated
+        ? "Nu när huvudutkastet är klart: lägg till en extra trygghetsrad om kunden behöver lite mer stöd i svaret."
+        : "Lägg till en extra trygghetsrad om kunden behöver lite mer stöd i svaret.";
+    }
+    if (variant === "follow_up_update") {
+      return "Skriv om utkastet som uppföljning på den uppdaterade tiden.";
+    }
+    if (variant === "customer_update") {
+      return "Skriv om utkastet så tidigare kundförslag ersätts tydligt.";
+    }
+    return "Skriv om utkastet så den nya tiden blir huvudförslag direkt.";
+  }
+
+  function getStudioRecommendedToolLeadLabel(studioState, rank = -1) {
+    const lastToolKey = normalizeKey(studioState?.lastToolKey);
+    const usedToolKeys = getStudioUsedToolKeys(studioState);
+    if (rank === 0) {
+      if (usedToolKeys.length >= 2) return "Avsluta med detta.";
+      return lastToolKey ? "Fortsätt här nu." : "Starta här.";
+    }
+    if (rank === 1) {
+      if (usedToolKeys.length >= 2) return "Sedan detta vid behov.";
+      return lastToolKey ? "Sedan detta." : "Nästa verktyg.";
+    }
+    return "";
+  }
+
+  function markStudioToolUsed(studioState, toolKey = "") {
+    if (!studioState || !normalizeText(toolKey)) {
+      return;
+    }
+    const normalizedToolKey = normalizeKey(toolKey);
+    studioState.lastToolKey = normalizedToolKey;
+    const usedToolKeys = asArray(studioState.usedToolKeys)
+      .map((entry) => normalizeKey(entry))
+      .filter(Boolean)
+      .filter((entry) => entry !== normalizedToolKey);
+    studioState.usedToolKeys = [...usedToolKeys, normalizedToolKey].slice(-4);
+  }
+
   function getStudioTrackLabel(trackKey = "") {
     const normalizedTrack = normalizeKey(trackKey);
     if (normalizedTrack === "booking") return "Bokning";
@@ -6647,9 +7864,25 @@
     if (toneLabel) {
       summaryParts.push(`Ton: ${toneLabel}`);
     }
-    const templateLabel = getStudioTemplateLabel(studioState.activeTemplateKey);
+    const templateLabel = getStudioResolvedTemplateLabel(
+      studioState,
+      studioState.activeTemplateKey
+    );
     if (templateLabel) {
       summaryParts.push(`Mall: ${templateLabel}`);
+    }
+    if (normalizeKey(studioState.bookingStudioMode) === "booking_update") {
+      summaryParts.push(
+        studioState.bookingStudioChangedFrom && studioState.bookingStudioChangedTo
+          ? `Ändrat: ${studioState.bookingStudioChangedFrom} -> ${studioState.bookingStudioChangedTo}`
+          : asText(studioState.bookingStudioSummaryLabel, "Läge: Uppdaterat bokningsförslag")
+      );
+      const bookingCompletionLabel = getStudioBookingCompletionLabel(studioState);
+      if (bookingCompletionLabel) {
+        summaryParts.push(bookingCompletionLabel);
+      }
+    } else if (asText(studioState.bookingStudioSummaryLabel)) {
+      summaryParts.push(asText(studioState.bookingStudioSummaryLabel));
     }
     const refineLabel = getStudioRefineLabel(studioState.activeRefineKey);
     if (refineLabel) {
@@ -11272,6 +12505,8 @@
       activeTrackKey: trackKey,
       activeToneKey: "professional",
       activeRefineKey: "",
+      lastToolKey: "",
+      usedToolKeys: [],
       selectedSignatureId: selectedSignature,
       sending: false,
       savingDraft: false,
@@ -11285,6 +12520,12 @@
       truthSourceMailboxLabel: "",
       truthSenderLocked: false,
       truthFallbackReason: "",
+      bookingStudioMode: "",
+      bookingStudioVariant: "",
+      bookingStudioSummaryLabel: "",
+      bookingStudioReason: "",
+      bookingStudioChangedFrom: "",
+      bookingStudioChangedTo: "",
     }, thread);
   }
 
@@ -11310,6 +12551,8 @@
       activeTrackKey: "booking",
       activeToneKey: "professional",
       activeRefineKey: "",
+      lastToolKey: "",
+      usedToolKeys: [],
       selectedSignatureId: selectedSignature,
       sending: false,
       savingDraft: false,
@@ -11323,6 +12566,12 @@
       truthSourceMailboxLabel: "",
       truthSenderLocked: false,
       truthFallbackReason: "",
+      bookingStudioMode: "",
+      bookingStudioVariant: "",
+      bookingStudioSummaryLabel: "",
+      bookingStudioReason: "",
+      bookingStudioChangedFrom: "",
+      bookingStudioChangedTo: "",
     };
   }
 
@@ -11454,6 +12703,9 @@
       studioComposeFromSelect,
       studioComposeSubjectInput,
       studioComposeToInput,
+      studioEditorInlineUpdate,
+      studioEditorInlineUpdateLabel,
+      studioEditorInlineUpdateCopy,
       studioEditorInput,
       studioEditorRecipient,
       studioEditorSummary,
@@ -11472,7 +12724,13 @@
       studioPreviewButton,
       studioPrimarySuggestion,
       studioPrimarySuggestionLabel,
+      studioTemplateHelper,
+      studioTemplateHelperLabel,
+      studioTemplateHelperCopy,
       studioRefineButtons,
+      studioCtaHelper,
+      studioCtaHelperLabel,
+      studioCtaHelperCopy,
       studioSaveDraftButton,
       studioSendButton,
       studioSendLabel,
@@ -11483,6 +12741,9 @@
       studioTemplateButtons,
       studioTitle,
       studioToneButtons,
+      studioGuidanceHelper,
+      studioGuidanceHelperLabel,
+      studioGuidanceHelperCopy,
       studioToolbarPills,
       studioToolButtons,
       studioTrackButtons,
@@ -11507,6 +12768,19 @@
       getRuntimeMailboxCapability,
       getRuntimeMailboxCapabilityMeta,
       getRuntimeStudioTruthState,
+      getStudioBookingUpdateVariant,
+      getStudioBookingUpdateWorkModeCopy,
+      getStudioBookingUpdateWorkModeLabel,
+      getStudioRecommendedTemplateKey,
+      getStudioRecommendedToolOrder,
+      getStudioRecommendedToolKey,
+      getStudioRecommendedToolReason,
+      getStudioRefineLabel,
+      getStudioRecommendedRefineKey,
+      getStudioRecommendedBookingCtaCopy,
+      getStudioRecommendedBookingCtaLabel,
+      getStudioRecommendedToneKey,
+      getStudioToneLabel,
       getRuntimeThreadById,
       getScheduleBookingThread,
       isOfflineHistoryContextThread,
@@ -11515,6 +12789,7 @@
       getStudioSenderMailboxOptions,
       getStudioSignatureProfiles,
       getStudioSignatureProfile,
+      getStudioResolvedTemplateLabel,
       getStudioSourceMailboxLabel,
       humanizeCode,
       mapPriorityLabel,
@@ -11630,6 +12905,9 @@
       buildCustomerSummaryCards,
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
+      getJourneyPrimaryActionConfig,
+      buildPreviewPatient360Backbone,
+      buildPreviewPatient360Journey,
       buildRuntimeSummaryCards,
       buildThreadHistoryEvents,
       compactRuntimeCopy,
@@ -11648,6 +12926,7 @@
       initialsForName,
       isOfflineHistoryContextThread,
       isOfflineHistorySelectionActive,
+      getPreviewPatient360JourneyForThread,
       joinReadableList,
       normalizeKey,
       normalizeText,
@@ -11997,6 +13276,7 @@
       applyMailboxAdminSignatureCommand,
       applyNoteModePreset,
       applyStudioMode,
+      applyStudioBookingUpdateToolPhaseDraft,
       applyStudioRefineSelection,
       applyStudioTemplateSelection,
       applyStudioToneSelection,
@@ -12063,6 +13343,7 @@
       normalizeMailboxId,
       normalizeText,
       mergeTruthPrimaryWorklistData,
+      markStudioToolUsed,
       runtimeConversationIdsMatch,
       normalizeVisibleRuntimeScope,
       normalizeWorkspaceState,
@@ -14402,6 +15683,1627 @@
     }
     params.set("limit", String(Math.max(1, Number(limit || getTruthWorklistViewLimit()))));
     return `/api/v1/cco/runtime/worklist/consumer/readout?${params.toString()}`;
+  }
+
+  function getPreviewPatient360ModuleStatus(thread, moduleId, bodyText = "") {
+    const tags = new Set(asArray(thread?.tags).map((tag) => normalizeKey(tag)));
+    const status = normalizeKey(thread?.statusLabel || thread?.raw?.status || "");
+    const waiting = normalizeKey(thread?.waitingLabel || thread?.raw?.waitingOn || "");
+    const next = normalizeKey(thread?.nextActionLabel || thread?.raw?.nextActionLabel || "");
+    const body = normalizeKey(bodyText);
+    if (moduleId === "booking") {
+      if (
+        tags.has("booking") ||
+        tags.has("bookable") ||
+        tags.has("booking_request") ||
+        body.includes("boka") ||
+        body.includes("tid")
+      ) {
+        return "needs_action";
+      }
+      return "inactive";
+    }
+    if (moduleId === "consultation") {
+      return body.includes("konsult") || body.includes("behandlingsplan")
+        ? "needs_validation"
+        : "inactive";
+    }
+    if (moduleId === "clinical") {
+      return body.includes("medgiv") || body.includes("gdpr") || body.includes("behandling")
+        ? "needs_validation"
+        : "inactive";
+    }
+    if (moduleId === "documents") {
+      return body.includes("gdpr") || body.includes("personuppgifter") || body.includes("samtycke")
+        ? "needs_validation"
+        : "inactive";
+    }
+    if (moduleId === "aftercare") {
+      return thread?.followUpLabel ? "scheduled" : "inactive";
+    }
+    if (moduleId === "tasks") {
+      return waiting.includes("åtgärd") || next.includes("svara") ? "needs_action" : "ready";
+    }
+    if (moduleId === "commercial") {
+      return body.includes("pris") || body.includes("offert") || body.includes("betal")
+        ? "needs_action"
+        : "inactive";
+    }
+    return status.includes("svar") || status.includes("aktiv") ? "needs_action" : "ready";
+  }
+
+  function getJourneyBookingModuleContext(thread) {
+    const readout = getBookingReadoutForThread(thread);
+    const preferredStatusStep = getJourneyPreferredBookingStatusStep(readout);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const baseDetail = asText(
+      recommendation.reason,
+      asText(blocker?.label, thread.raw?.bookingCase?.statusLabel || thread.nextActionLabel || "Bokningsläge")
+    );
+    const recommendationLabel = formatBookingRecommendationStateLabel(recommendationState);
+    const withReason = (fallback = "") =>
+      asText(recommendation.reason, fallback || baseDetail || "Följ bokningsmotorns rekommenderade nästa steg.");
+
+    if (preferredStatusStep === "confirmed_external" && postConfirmation) {
+      const byRecommendationState = {
+        act_now_overdue: {
+          status: "needs_action",
+          detail: "Kundsvar väntar efter bekräftelse",
+          nextAction: "Bearbeta kundsvaret nu",
+          summary: withReason("Kunden har svarat efter bekräftelsen och svaret väntar redan på bearbetning i bokningsytan."),
+          confidence: 0.96,
+        },
+        act_now: {
+          status: "needs_action",
+          detail: "Kundsvar efter bekräftelse",
+          nextAction: "Ta tillbaka till Svarstudio",
+          summary: withReason("Kunden har återkommit efter bekräftelsen. Öppna bokningsytan och bearbeta svaret direkt."),
+          confidence: 0.94,
+        },
+        reengage_now: {
+          status: "needs_action",
+          detail: "Uppföljning efter bekräftelse",
+          nextAction: "Återuppta kunddialogen",
+          summary: withReason("Uppföljningen efter bekräftelsen har förfallit och behöver återupptas från bokningsytan."),
+          confidence: 0.92,
+        },
+        monitor: {
+          status: "waiting_customer",
+          detail: "Bevakar efter bekräftelse",
+          nextAction: "Bevaka kundläget",
+          summary: withReason("Kunddialogen lever fortfarande efter bekräftelsen. Bokningsytan visar senaste uppföljning och nästa skifte."),
+          confidence: 0.88,
+        },
+      };
+      if (byRecommendationState[recommendationState]) {
+        return byRecommendationState[recommendationState];
+      }
+      return {
+        status: "confirmed_external",
+        detail: "Bekräftad externt",
+        nextAction: recommendationLabel ? `Arbetsläge: ${recommendationLabel}` : "Verifiera och stäng",
+        summary: withReason("Extern bekräftelse finns. Validera logg och avsluta bara när efterarbetet verkligen är klart."),
+        confidence: 0.84,
+      };
+    }
+
+    if (preferredStatusStep === "waiting_customer") {
+      const byRecommendationState = {
+        act_now_overdue: {
+          status: "needs_action",
+          detail: "Kundsvar väntar redan",
+          nextAction: "Bearbeta kundsvaret nu",
+          summary: withReason("Kunden har svarat och svaret har blivit liggande. Öppna bokningsytan och ta tillbaka det till Svarstudio."),
+          confidence: 0.95,
+        },
+        act_now: {
+          status: "needs_action",
+          detail: "Kundsvar inkommet",
+          nextAction: "Bearbeta nytt kundsvar",
+          summary: withReason("Kunden har återkommit. Bokningsytan leder nu tillbaka till Svarstudio och nästa tydliga svar."),
+          confidence: 0.92,
+        },
+        reengage_now: {
+          status: "needs_action",
+          detail: "Följ upp igen",
+          nextAction: "Återuppta kunddialogen",
+          summary: withReason("Vänteläget har tappat fart. Bokningsytan bör lyfta uppföljningen igen innan ärendet svalnar mer."),
+          confidence: 0.9,
+        },
+        monitor: {
+          status: "waiting_customer",
+          detail: "Kundläge bevakas",
+          nextAction: "Bevaka svarsläget",
+          summary: withReason("En uppföljning pågår redan. Bokningsytan hålls i bevakningsläge tills kunden eller kliniken ger ny signal."),
+          confidence: 0.86,
+        },
+      };
+      if (byRecommendationState[recommendationState]) {
+        return byRecommendationState[recommendationState];
+      }
+      return {
+        status: "waiting_customer",
+        detail: "Väntar på kund",
+        nextAction: "Bevaka eller följ upp",
+        summary: withReason("Kunden har fått ett bokningsförslag. Bokningsytan håller nu ihop svar, uppföljning och bekräftelse."),
+        confidence: 0.82,
+      };
+    }
+
+    if (preferredStatusStep === "offered") {
+      return {
+        status: "needs_action",
+        detail: "Erbjudande väntar",
+        nextAction: "Lämna över till kunden",
+        summary: withReason("Tider finns framme. Bokningsytan bör nu uppdatera Svarstudio eller sätta rätt kundläge."),
+        confidence: 0.84,
+      };
+    }
+
+    if (preferredStatusStep === "slots_ready") {
+      return {
+        status: "needs_action",
+        detail: "Tider kräver beslut",
+        nextAction: "Välj eller reservera tider",
+        summary: withReason("Bokningsytan är i tidsläget. Få fram, justera eller reservera kandidat-tider innan kundhandoff."),
+        confidence: 0.83,
+      };
+    }
+
+    if (preferredStatusStep === "needs_triage") {
+      return {
+        status: "needs_validation",
+        detail: "Triage krävs",
+        nextAction: "Validera bokningsunderlag",
+        summary: withReason("Bokningsavsikten behöver först tydliggöras innan tider hämtas eller erbjuds."),
+        confidence: 0.8,
+      };
+    }
+
+    if (preferredStatusStep === "closed" || preferredStatusStep === "cancelled") {
+      return {
+        status: preferredStatusStep,
+        detail: preferredStatusStep === "closed" ? "Stängt" : "Avbokat",
+        nextAction: "Granska loggen",
+        summary: withReason("Bokningsärendet är avslutat, men logg och slutstatus finns kvar för kontroll."),
+        confidence: 0.8,
+      };
+    }
+
+    return {
+      status: getPreviewPatient360ModuleStatus(thread, "booking", ""),
+      detail: baseDetail,
+      nextAction: recommendationLabel ? `Arbetsläge: ${recommendationLabel}` : "Öppna bokningsytan",
+      summary: withReason("Bokningsytan visar det tydligaste nästa steget för ärendet."),
+      confidence: 0.82,
+    };
+  }
+
+  function buildPreviewPatient360Backbone(thread, focusReadState = {}) {
+    if (!thread) return null;
+    const backendPatient360 =
+      state.booking?.patient360 && typeof state.booking.patient360 === "object"
+        ? state.booking.patient360
+        : null;
+    const bookingModuleContext = getJourneyBookingModuleContext(thread);
+    if (backendPatient360?.attention && backendPatient360?.modules) {
+      const backendModules = Object.entries(backendPatient360.modules)
+        .filter(([, value]) => value && typeof value === "object")
+        .map(([moduleId, value]) => {
+          if (moduleId === "booking") {
+            return {
+              id: moduleId,
+              label: asText(value.label || moduleId, moduleId),
+              detail: bookingModuleContext.detail,
+              status: normalizeKey(bookingModuleContext.status || value.status || "inactive") || "inactive",
+              nextAction: asText(bookingModuleContext.nextAction, value.nextAction),
+              confidence: Number(bookingModuleContext.confidence || value.confidence || 0.82),
+            };
+          }
+          return {
+            id: moduleId,
+            label: asText(value.label || moduleId, moduleId),
+            detail:
+              asText(value.nextAction) ||
+              asText(value.waitingOn) ||
+              asText(value.metadata?.requestedTreatment) ||
+              "-",
+            status: normalizeKey(value.status || "inactive") || "inactive",
+            nextAction: asText(value.nextAction),
+            confidence: Number(value.confidence || 0.6),
+          };
+        })
+        .filter((item) => item.id !== "communication")
+        .slice(0, 8);
+      return {
+        attention: {
+          what: asText(backendPatient360.attention.what, "Öppna nästa tydliga steg"),
+          where: asText(backendPatient360.attention.where, "CCO"),
+          when: asText(backendPatient360.attention.when, "Nu"),
+          validation: asText(backendPatient360.attention.validation, "Tillräckligt underlag"),
+        },
+        modules: backendModules,
+        latestEvent: null,
+      };
+    }
+    const customerEvents = buildCustomerHistoryEvents(thread);
+    const relatedThreads = getRelatedCustomerThreads(thread);
+    const bodyText = [
+      thread.bodyPreview,
+      thread.preview,
+      thread.raw?.bodyPreview,
+      thread.raw?.textPreview,
+      thread.raw?.subject,
+      thread.subject,
+    ]
+      .map((item) => asText(item, ""))
+      .join(" ");
+    const moduleDefinitions = [
+      {
+        id: "identity",
+        label: "Kund-/patientkort",
+        detail: thread.customerEmail || "Identifiera kund",
+        status: thread.customerEmail ? "ready" : "needs_validation",
+        nextAction: thread.customerEmail ? "Identitet kopplad" : "Verifiera kontaktväg",
+        confidence: thread.customerEmail ? 0.9 : 0.58,
+      },
+      {
+        id: "timeline",
+        label: "Samlad tidslinje",
+        detail: `${customerEvents.length} händelser · ${Math.max(relatedThreads.length, 1)} trådar`,
+        status: customerEvents.length ? "ready" : "needs_action",
+        nextAction: customerEvents.length ? "Läs senaste händelsen" : "Byt urval för mer historik",
+        confidence: customerEvents.length ? 0.86 : 0.64,
+      },
+      {
+        id: "booking",
+        label: "Bokning",
+        detail: bookingModuleContext.detail,
+        status: normalizeKey(bookingModuleContext.status || getPreviewPatient360ModuleStatus(thread, "booking", bodyText)),
+        nextAction: bookingModuleContext.nextAction,
+        confidence: bookingModuleContext.confidence,
+      },
+      {
+        id: "consultation",
+        label: "Konsultation",
+        detail: "Behandlingsbehov läses som operatörsunderlag",
+        status: getPreviewPatient360ModuleStatus(thread, "consultation", bodyText),
+        nextAction: "Verifiera behov innan råd",
+        confidence: 0.66,
+      },
+      {
+        id: "documents",
+        label: "Dokument",
+        detail: "Samtycke och personuppgifter",
+        status: getPreviewPatient360ModuleStatus(thread, "documents", bodyText),
+        nextAction: "Kontrollera samtycke",
+        confidence: 0.72,
+      },
+      {
+        id: "aftercare",
+        label: "Eftervård",
+        detail: thread.followUpLabel || "Ingen eftervård planerad",
+        status: getPreviewPatient360ModuleStatus(thread, "aftercare", bodyText),
+        nextAction: thread.followUpLabel || "Planera vid bekräftad behandling",
+        confidence: thread.followUpLabel ? 0.82 : 0.58,
+      },
+      {
+        id: "tasks",
+        label: "Team",
+        detail: thread.waitingLabel || "Operativt ägarskap",
+        status: getPreviewPatient360ModuleStatus(thread, "tasks", bodyText),
+        nextAction: thread.nextActionLabel || "Sätt nästa ansvar",
+        confidence: 0.78,
+      },
+      {
+        id: "commercial",
+        label: "Offert",
+        detail: "Pris och betalning hålls som separat status",
+        status: getPreviewPatient360ModuleStatus(thread, "commercial", bodyText),
+        nextAction: "Aktiveras när prisfråga finns",
+        confidence: 0.62,
+      },
+    ];
+    const priority = {
+      needs_validation: 4,
+      needs_action: 3,
+      scheduled: 2,
+      ready: 1,
+      inactive: 0,
+    };
+    const attentionModule = [...moduleDefinitions].sort((a, b) => {
+      const delta = (priority[b.status] || 0) - (priority[a.status] || 0);
+      if (delta) return delta;
+      return a.confidence - b.confidence;
+    })[0];
+    const latestEvent = customerEvents[0];
+    const needsValidation =
+      attentionModule?.status === "needs_validation" ||
+      attentionModule?.confidence < 0.75 ||
+      focusReadState?.readOnly === true;
+    return {
+      attention: {
+        what: attentionModule?.nextAction || thread.nextActionLabel || "Öppna nästa tydliga steg",
+        where: attentionModule?.label || "CCO",
+        when: thread.followUpLabel || latestEvent?.time || thread.lastActivityLabel || "Nu",
+        validation: needsValidation ? "Människa validerar" : "Underlag räcker",
+      },
+      modules: moduleDefinitions,
+      latestEvent,
+    };
+  }
+
+  function buildPreviewPatient360Journey(backbone) {
+    if (!backbone || !Array.isArray(backbone.modules) || !backbone.modules.length) return null;
+    const moduleOrder = [
+      "identity",
+      "timeline",
+      "booking",
+      "consultation",
+      "documents",
+      "clinical",
+      "operation",
+      "aftercare",
+      "commercial",
+      "tasks",
+    ];
+    const statusRank = {
+      needs_validation: 5,
+      needs_action: 4,
+      waiting_customer: 4,
+      scheduled: 3,
+      ready: 2,
+      completed: 1,
+      confirmed_external: 1,
+      closed: 0,
+      inactive: 0,
+    };
+    const orderedModules = backbone.modules
+      .map((module, index) => ({
+        ...module,
+        status: normalizeKey(module.status || "inactive") || "inactive",
+        orderIndex: moduleOrder.indexOf(module.id) >= 0 ? moduleOrder.indexOf(module.id) : 100 + index,
+      }))
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+    const attentionWhere = normalizeKey(backbone.attention?.where || "");
+    const attentionWhat = normalizeKey(backbone.attention?.what || "");
+    const activeModule =
+      orderedModules.find(
+        (module) =>
+          normalizeKey(module.label) === attentionWhere ||
+          normalizeKey(module.id) === attentionWhere ||
+          normalizeKey(module.nextAction || "") === attentionWhat
+      ) ||
+      [...orderedModules]
+        .sort((a, b) => {
+          const delta = (statusRank[b.status] || 0) - (statusRank[a.status] || 0);
+          if (delta) return delta;
+          return a.orderIndex - b.orderIndex;
+        })[0] ||
+      orderedModules[0];
+    const activeIndex = Math.max(
+      0,
+      orderedModules.findIndex((module) => module.id === activeModule?.id)
+    );
+    const nextModule =
+      orderedModules.slice(activeIndex + 1).find((module) =>
+        ["needs_validation", "needs_action", "waiting_customer", "scheduled"].includes(module.status)
+      ) || null;
+    const completedCount = orderedModules.filter((module) =>
+      ["ready", "completed", "confirmed_external", "closed"].includes(module.status)
+    ).length;
+    const visibleModules = orderedModules.slice(0, 6).map((module) => ({
+      ...module,
+      state:
+        module.id === activeModule?.id
+          ? "active"
+          : module.id === nextModule?.id
+            ? "next"
+            : ["ready", "completed", "confirmed_external", "closed"].includes(module.status)
+              ? "complete"
+              : "idle",
+    }));
+    return {
+      activeModule,
+      nextModule,
+      completedCount,
+      totalCount: orderedModules.length,
+      visibleModules,
+    };
+  }
+
+  function getPreviewPatient360JourneyForThread(thread, focusReadState = {}) {
+    const backbone = buildPreviewPatient360Backbone(thread, focusReadState);
+    return {
+      backbone,
+      journey: buildPreviewPatient360Journey(backbone),
+    };
+  }
+
+  function getJourneyPrimaryActionConfig(thread, focusReadState = {}) {
+    const journeyState = getPreviewPatient360JourneyForThread(thread, focusReadState);
+    const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
+    if (activeModuleId === "booking") {
+      const bookingModuleContext = getJourneyBookingModuleContext(thread);
+      return {
+        action: "booking_surface",
+        quickAction: "booking_surface",
+        label: "Öppna bokningsyta",
+        tone: "compose",
+        summary: bookingModuleContext.summary,
+        secondaryQuickActions: ["note", "studio", "schedule", "history"],
+      };
+    }
+    if (activeModuleId === "aftercare") {
+      return {
+        action: "schedule_open",
+        quickAction: "schedule",
+        label: "Schemalägg uppföljning",
+        tone: "compose",
+        summary: "Schemalägg nästa kontroll eller uppföljning innan ärendet tappar tempo.",
+        secondaryQuickActions: ["note", "studio", "booking_surface", "history"],
+      };
+    }
+    if (
+      activeModuleId === "documents" ||
+      activeModuleId === "consultation" ||
+      activeModuleId === "clinical" ||
+      activeModuleId === "operation" ||
+      activeModuleId === "tasks" ||
+      activeModuleId === "identity" ||
+      activeModuleId === "timeline"
+    ) {
+      return {
+        action: "note_open",
+        quickAction: "note",
+        label: "Öppna Smart anteckning",
+        tone: "compose",
+        summary: "Samla och validera underlag i Smart anteckning innan svar eller handoff.",
+        secondaryQuickActions: ["studio", "schedule", "booking_surface", "history"],
+      };
+    }
+    return {
+      action: "studio_open",
+      quickAction: "studio",
+      label: "Öppna Svarstudio",
+      tone: "compose",
+      summary: "Svara kort och tydligt till kunden från Svarstudio med nästa steg först.",
+      secondaryQuickActions: ["note", "schedule", "booking_surface", "history"],
+    };
+  }
+
+  function getJourneyPreferredIntelTabId(thread, focusReadState = {}) {
+    const journeyState = getPreviewPatient360JourneyForThread(thread, focusReadState);
+    const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
+    if (activeModuleId === "identity") {
+      return "intel-view-customer";
+    }
+    if (activeModuleId === "timeline") {
+      return "intel-view-history";
+    }
+    if (
+      activeModuleId === "booking" ||
+      activeModuleId === "aftercare" ||
+      activeModuleId === "documents" ||
+      activeModuleId === "consultation" ||
+      activeModuleId === "clinical" ||
+      activeModuleId === "operation" ||
+      activeModuleId === "commercial" ||
+      activeModuleId === "tasks"
+    ) {
+      return "intel-view-actions";
+    }
+    return "intel-view-actions";
+  }
+
+  function shouldJourneyAutoOpenIntelDetails(thread, focusReadState = {}) {
+    const preferredTabId = getJourneyPreferredIntelTabId(thread, focusReadState);
+    return preferredTabId === "intel-view-actions";
+  }
+
+  function getJourneyPreferredWorkspaceAction(thread, focusReadState = {}) {
+    return normalizeKey(getJourneyPrimaryActionConfig(thread, focusReadState)?.action || "studio_open");
+  }
+
+  function getJourneyPreferredNoteDestination(thread, focusReadState = {}) {
+    const journeyState = getPreviewPatient360JourneyForThread(thread, focusReadState);
+    const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
+    if (activeModuleId === "commercial") return "betalning";
+    if (
+      activeModuleId === "consultation" ||
+      activeModuleId === "documents" ||
+      activeModuleId === "clinical" ||
+      activeModuleId === "operation"
+    ) {
+      return "medicinsk";
+    }
+    if (activeModuleId === "tasks" || activeModuleId === "aftercare") {
+      return "uppfoljning";
+    }
+    if (activeModuleId === "identity") return "kundprofil";
+    if (activeModuleId === "timeline") return "konversation";
+    if (activeModuleId === "booking") return "konversation";
+    return "konversation";
+  }
+
+  function getJourneyPreferredNoteTemplate(thread, focusReadState = {}) {
+    const journeyState = getPreviewPatient360JourneyForThread(thread, focusReadState);
+    const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
+    if (activeModuleId === "booking") return "ombokning";
+    if (activeModuleId === "commercial") return "betalning";
+    if (
+      activeModuleId === "consultation" ||
+      activeModuleId === "documents" ||
+      activeModuleId === "clinical" ||
+      activeModuleId === "operation"
+    ) {
+      return "allergi";
+    }
+    return "";
+  }
+
+  function getJourneyPreferredBookingStatusStep(readout = {}) {
+    const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const blockerKey = normalizeKey(blocker?.key || "");
+    const blockerAction = normalizeKey(blocker?.action || "");
+    const status = normalizeKey(readout.status || "needs_triage");
+    const recommendationState = normalizeKey(getBookingRecommendationMeta(readout).state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    if (status === "closed" || status === "cancelled") return status;
+    if (
+      (status === "confirmed_external" || asText(readout.confirmedExternalAt)) &&
+      postConfirmation &&
+      recommendationState &&
+      recommendationState !== "ready_to_close"
+    ) {
+      return "confirmed_external";
+    }
+    if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      return "confirmed_external";
+    }
+    if (
+      blockerKey === "candidate_slots" ||
+      blockerAction === "candidate_slots" ||
+      blockerKey.includes("slot") ||
+      blockerAction.includes("slot")
+    ) {
+      return "slots_ready";
+    }
+    if (blockerKey === "customer_state" && blockerAction === "insert_studio") {
+      return "waiting_customer";
+    }
+    if (
+      blockerKey === "insert_studio" ||
+      blockerAction === "insert_studio" ||
+      blockerKey.includes("studio") ||
+      blockerAction.includes("studio") ||
+      blockerKey.includes("offer") ||
+      blockerAction.includes("offer")
+    ) {
+      return "offered";
+    }
+    if (
+      blockerKey === "customer_state" ||
+      blockerAction === "waiting_customer" ||
+      blockerAction === "schedule_followup" ||
+      blockerAction === "confirm_external" ||
+      blockerAction.startsWith("set_status:waiting_customer")
+    ) {
+      return "waiting_customer";
+    }
+    if (
+      blockerKey.includes("triage") ||
+      blockerKey.includes("validation") ||
+      blockerKey.includes("request") ||
+      blockerAction.includes("triage") ||
+      blockerAction.includes("validate")
+    ) {
+      return "needs_triage";
+    }
+    if (status === "offered" || Boolean(asText(readout.offeredAt))) return "offered";
+    if (status === "waiting_customer") return "waiting_customer";
+    if (status === "slots_ready" || asArray(readout.selectedSlots).length > 0) return "slots_ready";
+    return "needs_triage";
+  }
+
+  function getJourneyPreferredBookingSurfaceZone(statusStep = "", readout = {}) {
+    const normalizedStatus = normalizeKey(statusStep);
+    const recommendationState = normalizeKey(getBookingRecommendationMeta(readout).state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    if (normalizedStatus === "needs_triage") return "decision_context";
+    if (normalizedStatus === "slots_ready") {
+      return asArray(readout.selectedSlots).length ? "selected_slots" : "slot_controls";
+    }
+    if (normalizedStatus === "offered") return "action_row";
+    if (normalizedStatus === "waiting_customer") return "handoff_summary";
+    if (normalizedStatus === "confirmed_external") {
+      if (postConfirmation && recommendationState && recommendationState !== "ready_to_close") {
+        if (recommendationState === "monitor") return "handoff_summary";
+        return "action_row";
+      }
+      return "audit_preview";
+    }
+    if (normalizedStatus === "closed" || normalizedStatus === "cancelled") return "audit_preview";
+    return "action_row";
+  }
+
+  function buildBookingStageContext(statusStep = "", readout = {}) {
+    const normalizedStatus = normalizeKey(statusStep || readout.status || "needs_triage");
+    const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    if (normalizedStatus === "needs_triage") {
+      return {
+        heroLabel: "Triage nu",
+        heroValue: "Validera kund, önskemål och tidsfönster",
+        heroMeta: "Bekräfta bokningsavsikt innan tider hämtas eller erbjuds.",
+        handoffLabel: "Triage blockerar",
+        handoffMeta: "Klargör underlaget innan du går vidare till tider eller erbjudande.",
+        actionHint: "Bokningen är i triage. Börja med kundmatch, önskemål och tidsfönster.",
+      };
+    }
+    if (normalizedStatus === "slots_ready") {
+      return {
+        heroLabel: "Tider nu",
+        heroValue: asArray(readout.selectedSlots).length ? "Validera valda tider" : "Hämta kandidat-tider",
+        heroMeta: "Säkerställ 1-3 tydliga förslag innan Svarstudio tar över.",
+        handoffLabel: "Tider leder",
+        handoffMeta: "Nästa steg är att välja eller bekräfta kandidater som kan erbjudas kunden.",
+        actionHint: "Bokningen är i tidsläget. Få fram eller granska 1-3 kandidat-tider först.",
+      };
+    }
+    if (normalizedStatus === "offered") {
+      return {
+        heroLabel: "Erbjudande nu",
+        heroValue: staleOfferAfterRebook ? "Uppdatera kundförslaget" : "Förbered kundöverlämning",
+        heroMeta: staleOfferAfterRebook
+          ? "Ombokningen är nyare än senaste kundförslaget. Skicka uppdaterade tider först."
+          : "Tider finns. Nästa steg är tydlig offert i Svarstudio.",
+        handoffLabel: "Erbjudande leder",
+        handoffMeta: staleOfferAfterRebook
+          ? "Den nya tiden har ersatt tidigare erbjudande. Uppdatera kundsvaret innan nästa handoff."
+          : "Kontrollera att tiderna är infogade och redo att lämnas över till kunden.",
+        actionHint: staleOfferAfterRebook
+          ? "Bokningen har bokats om. Uppdatera Svarstudio med den nya tiden innan du går vidare."
+          : "Bokningen är i erbjudandeläget. Lägg tiderna i Svarstudio innan du markerar kundläge.",
+      };
+    }
+    if (normalizedStatus === "waiting_customer") {
+      const waitingContextByRecommendationState = {
+        act_now_overdue: {
+          heroLabel: "Svar nu",
+          heroValue: "Bearbeta kundsvaret direkt",
+          heroMeta:
+            recommendation.reason ||
+            "Kunden har redan svarat och svaret har blivit liggande. Ta tillbaka ärendet till Svarstudio nu.",
+          handoffLabel: "Kundsvar blockerar",
+          handoffMeta:
+            recommendation.reason ||
+            "Svar har inkommit men ännu inte bearbetats. Prioritera Svarstudio före ny uppföljning.",
+          actionHint:
+            recommendation.reason ||
+            "Kunden väntar redan på vår bearbetning. Öppna Svarstudio och svara innan tempot tappas.",
+        },
+        act_now: {
+          heroLabel: "Kundsvar nu",
+          heroValue: "Bearbeta nytt kundsvar",
+          heroMeta:
+            recommendation.reason ||
+            "Kunden har återkommit och behöver ett uppdaterat operatörssvar innan nytt vänteläge sätts.",
+          handoffLabel: "Kundsvar leder",
+          handoffMeta:
+            recommendation.reason ||
+            "Låt kundsvaret styra nästa drag och uppdatera Svarstudio innan andra statussteg.",
+          actionHint:
+            recommendation.reason ||
+            "Ta tillbaka ärendet till Svarstudio och bearbeta kundens svar direkt.",
+        },
+        reengage_now: {
+          heroLabel: "Följ upp nu",
+          heroValue: "Återuppta kunddialogen",
+          heroMeta:
+            recommendation.reason ||
+            "Vänteläget har tappat tempo. Påminn eller återöppna kontakten innan ärendet svalnar mer.",
+          handoffLabel: "Uppföljning blockerar",
+          handoffMeta:
+            recommendation.reason ||
+            "Nu är det viktigare att återuppta dialogen än att bara fortsätta bevaka.",
+          actionHint:
+            recommendation.reason ||
+            "Schemalägg eller skicka ny uppföljning så att kunden inte faller ur flödet.",
+        },
+        monitor: {
+          heroLabel: "Bevaka svar",
+          heroValue: "Håll vänteläget lugnt",
+          heroMeta:
+            recommendation.reason ||
+            "En aktiv uppföljning eller naturlig väntan pågår redan. Fortsätt bevaka innan du skapar ett nytt steg.",
+          handoffLabel: "Vänteläge leder",
+          handoffMeta:
+            recommendation.reason ||
+            "Kunddialogen rullar fortfarande. Nästa drag är att bevaka eller markera bekräftelse när den finns.",
+          actionHint:
+            recommendation.reason ||
+            "Låt kunden återkomma eller markera extern bekräftelse när den finns.",
+        },
+      };
+      if (waitingContextByRecommendationState[recommendationState]) {
+        return waitingContextByRecommendationState[recommendationState];
+      }
+      return {
+        heroLabel: "Kundsvar nu",
+        heroValue: staleOfferAfterRebook ? "Skicka ny tid till kunden" : "Bevaka svar eller följ upp",
+        heroMeta: staleOfferAfterRebook
+          ? "Tiderna ändrades efter senaste kundförslag. Kunden behöver uppdaterad tid innan vänteläget fortsätter."
+          : "Kunden har fått tider. Nästa steg är svar, uppföljning eller extern bekräftelse.",
+        handoffLabel: "Kundväntan leder",
+        handoffMeta: staleOfferAfterRebook
+          ? "Ett tidigare kundförslag är nu gammalt. Uppdatera svaret innan du fortsätter bevaka kundläge."
+          : "Prioritera svarsläge, påminnelse eller bekräftelse i stället för nya tider.",
+        actionHint: staleOfferAfterRebook
+          ? "Bokningen är ombokad efter senaste utskick. Uppdatera kunden med den nya tiden först."
+          : "Bokningen väntar på kund. Fokusera på kundsvar, uppföljning eller extern bekräftelse.",
+      };
+    }
+    if (normalizedStatus === "confirmed_external") {
+      const postConfirmation = getBookingPostConfirmationContext(readout);
+      const postConfirmationContextByRecommendationState = {
+        act_now_overdue: {
+          heroLabel: "Svar efter bekräftelse",
+          heroValue: "Bearbeta kundsvaret direkt",
+          heroMeta:
+            recommendation.reason ||
+            "Kunden har återkommit efter bekräftelsen och svaret har redan blivit liggande.",
+          handoffLabel: "Svar efter bekräftelse blockerar",
+          handoffMeta:
+            recommendation.reason ||
+            "Det här caset såg klart ut, men kundsvaret efter bekräftelsen måste bearbetas först.",
+          actionHint:
+            recommendation.reason ||
+            "Öppna Svarstudio nu. Kundsvaret efter bekräftelsen väntar redan på vår bearbetning.",
+        },
+        act_now: {
+          heroLabel: "Kundsvar efter bekräftelse",
+          heroValue: "Ta tillbaka ärendet till Svarstudio",
+          heroMeta:
+            recommendation.reason ||
+            "Kunden har återkommit efter bekräftelsen och behöver ett nytt operatörssvar.",
+          handoffLabel: "Svar efter bekräftelse leder",
+          handoffMeta:
+            recommendation.reason ||
+            "Behandla det nya kundsvaret innan du tänker på stängning eller ny bekräftelse.",
+          actionHint:
+            recommendation.reason ||
+            "Öppna Svarstudio och bearbeta kundsvaret som kom in efter bekräftelsen.",
+        },
+        reengage_now: {
+          heroLabel: "Följ upp efter bekräftelse",
+          heroValue: "Återuppta kunddialogen",
+          heroMeta:
+            recommendation.reason ||
+            "Uppföljningen efter bekräftelsen har tappat tempo och behöver återupptas nu.",
+          handoffLabel: "Uppföljning efter bekräftelse blockerar",
+          handoffMeta:
+            recommendation.reason ||
+            "Caset är inte slut ännu. Kunddialogen efter bekräftelsen behöver lyftas igen.",
+          actionHint:
+            recommendation.reason ||
+            "Schemalägg eller återuppta uppföljningen efter bekräftelsen nu.",
+        },
+        monitor: {
+          heroLabel: "Bevaka efter bekräftelse",
+          heroValue: "Håll kundläget levande",
+          heroMeta:
+            recommendation.reason ||
+            "En uppföljning pågår fortfarande efter bekräftelsen och kunden väntas återkomma.",
+          handoffLabel: "Efterbekräftelse bevakas",
+          handoffMeta:
+            recommendation.reason ||
+            "Läget är inte stängklart ännu. Bevaka kunddialogen efter bekräftelsen lugnt.",
+          actionHint:
+            recommendation.reason ||
+            "Bevaka kundläget efter bekräftelsen och markera bara stängt när tråden verkligen är klar.",
+        },
+      };
+      if (postConfirmation && postConfirmationContextByRecommendationState[recommendationState]) {
+        return postConfirmationContextByRecommendationState[recommendationState];
+      }
+      return {
+        heroLabel: "Bekräftelse nu",
+        heroValue: "Verifiera och stäng",
+        heroMeta: "Extern bekräftelse finns. Säkerställ logg och avsluta när allt stämmer.",
+        handoffLabel: "Bekräftelse leder",
+        handoffMeta: "Fokusera på logg, intern kontroll och stängning snarare än ny handoff.",
+        actionHint: "Bokningen är bekräftad externt. Verifiera loggen och stäng ärendet när allt stämmer.",
+      };
+    }
+    return {
+      heroLabel: "Bokning nu",
+      heroValue: "Arbeta vidare i bokningsytan",
+      heroMeta: "Följ den rekommenderade åtgärden och validera manuellt innan nästa steg.",
+      handoffLabel: "Bokning leder",
+      handoffMeta: "Ytan visar vilket steg som är primärt just nu.",
+      actionHint: "Följ rekommenderat nästa steg i bokningsytan.",
+    };
+  }
+
+  function buildBookingSurfaceStageLayout(statusStep = "", readout = {}) {
+    const normalizedStatus = normalizeKey(statusStep || readout.status || "needs_triage");
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const baseLayout = {
+      outerOrder: [
+        "decision_context",
+        "slot_overview",
+        "slot_controls",
+        "ref_status",
+        "available_head",
+        "available_slots",
+        "selected_head",
+        "selected_slots",
+        "action_head",
+        "action_row",
+        "handoff_summary",
+        "advanced_panel",
+        "handoff_checklist",
+      ],
+      advancedOrder: [
+        "status_filter_row",
+        "status_filter_note",
+        "audit_next_case",
+        "case_list",
+        "audit_preview",
+        "event_filter_row",
+        "event_timeline",
+      ],
+      advancedOpen: false,
+      advancedSummaryLabel: "Avancerat",
+      advancedSummaryValue: "Tider, logg och historik",
+      primaryZones: [
+        "decision_context",
+        "slot_overview",
+        "slot_controls",
+        "available_head",
+        "available_slots",
+        "selected_head",
+        "selected_slots",
+        "action_head",
+        "action_row",
+      ],
+      quietZones: ["handoff_checklist"],
+    };
+    if (normalizedStatus === "slots_ready") {
+      return {
+        ...baseLayout,
+        outerOrder: [
+          "slot_overview",
+          "slot_controls",
+          "ref_status",
+          "available_head",
+          "available_slots",
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+          "decision_context",
+          "handoff_summary",
+          "advanced_panel",
+          "handoff_checklist",
+        ],
+        advancedOpen: false,
+        advancedSummaryLabel: "Stöd · Kö och logg",
+        advancedSummaryValue: "Case-lista, audit och historik under tidsarbetet",
+        primaryZones: [
+          "slot_overview",
+          "slot_controls",
+          "ref_status",
+          "available_head",
+          "available_slots",
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+        ],
+        quietZones: ["event_timeline"],
+      };
+    }
+    if (normalizedStatus === "offered") {
+      return {
+        ...baseLayout,
+        outerOrder: [
+          "slot_overview",
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+          "handoff_summary",
+          "decision_context",
+          "advanced_panel",
+          "handoff_checklist",
+        ],
+        advancedOpen: false,
+        advancedSummaryLabel: "Stöd · Historik bakom förslaget",
+        advancedSummaryValue: "Kö, audit och tidigare kandidater bakom skickat förslag",
+        primaryZones: [
+          "decision_context",
+          "slot_overview",
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+          "handoff_summary",
+        ],
+        quietZones: ["slot_controls", "available_head", "available_slots", "event_timeline"],
+      };
+    }
+    if (normalizedStatus === "waiting_customer") {
+      return {
+        ...baseLayout,
+        outerOrder: [
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+          "handoff_summary",
+          "decision_context",
+          "advanced_panel",
+          "handoff_checklist",
+        ],
+        advancedOpen: false,
+        advancedSummaryLabel: "Stöd · Vänteläge och historik",
+        advancedSummaryValue: "Kö, audit och tidigare kandidater bakom väntande kunddialog",
+        primaryZones: [
+          "decision_context",
+          "selected_head",
+          "selected_slots",
+          "action_head",
+          "action_row",
+          "handoff_summary",
+        ],
+        quietZones: ["slot_overview", "slot_controls", "available_head", "available_slots", "event_timeline"],
+      };
+    }
+    if (normalizedStatus === "confirmed_external") {
+      if (recommendationState && recommendationState !== "ready_to_close") {
+        return {
+          ...baseLayout,
+          outerOrder: [
+            "selected_head",
+            "selected_slots",
+            "action_head",
+            "action_row",
+            "handoff_summary",
+            "decision_context",
+            "advanced_panel",
+            "handoff_checklist",
+          ],
+          advancedOpen: false,
+          advancedSummaryLabel: "Stöd · Efter bekräftelse",
+          advancedSummaryValue: "Kö, audit och tidigare tider bakom fortsatt kunduppföljning",
+          primaryZones: [
+            "decision_context",
+            "selected_head",
+            "selected_slots",
+            "action_head",
+            "action_row",
+            "handoff_summary",
+          ],
+          quietZones: ["slot_overview", "slot_controls", "available_head", "available_slots"],
+        };
+      }
+      return {
+        ...baseLayout,
+        outerOrder: [
+          "handoff_summary",
+          "action_head",
+          "action_row",
+          "decision_context",
+          "advanced_panel",
+          "handoff_checklist",
+        ],
+        advancedOpen: true,
+        advancedSummaryLabel: "Stöd · Bekräftelse och historik",
+        advancedSummaryValue: "Audit, tidsval och ärendespår efter slutförd bokning",
+        primaryZones: ["handoff_summary", "action_head", "action_row", "decision_context"],
+        quietZones: ["slot_overview", "slot_controls", "available_head", "available_slots", "selected_head", "selected_slots"],
+      };
+    }
+    return {
+      ...baseLayout,
+      advancedSummaryLabel: "Stöd · Triageunderlag",
+      advancedSummaryValue: "Kö, audit och historik bakom nästa tidssteg",
+      primaryZones: ["decision_context", "slot_overview", "slot_controls", "action_head"],
+      quietZones: ["audit_preview", "event_timeline", "handoff_checklist"],
+    };
+  }
+
+  function buildBookingStageMicrocopy(statusStep = "", readout = {}, nextAction = {}) {
+    const normalizedStatus = normalizeKey(statusStep || readout.status || "needs_triage");
+    const slotCount = asArray(readout.selectedSlots).length;
+    const nextActionKey = normalizeKey(nextAction.action || "");
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const base = {
+      refStatus: "Hämta externa tider eller skriv id manuellt.",
+      availableEmptyTitle: "Kandidatlistan väntar på första hämtningen",
+      availableEmptyMeta:
+        "Välj resurs och behandling här nedanför för att fylla kandidatlistan, eller använd manuella reservtider när underlaget redan är tydligt.",
+      selectedEmptyTitle: "Inga tider valda",
+      selectedEmptyMeta: "Hämta externa tider eller välj kandidater manuellt.",
+      actionLabels: {
+        candidate_slots: slotCount ? "Justera tider" : "Välj 3 tider",
+        reserve_slots: "Reservera i CCO",
+        renew_reservation: "Förnya håll",
+        clear_slots: "Rensa tider",
+        insert_studio: "Infoga i Svarstudio",
+        waiting_customer: "Väntar kund",
+        schedule_followup: "Schemalägg",
+        confirm_external: "Bekräftad externt",
+        copy_handoff: "Kopiera överlämning",
+        copy_audit_summary: "Kopiera logg",
+        cancel_booking: "Avboka",
+      },
+      actionRoles: {
+        candidate_slots: "supporting",
+        reserve_slots: "quiet",
+        renew_reservation: "quiet",
+        clear_slots: "quiet",
+        insert_studio: "supporting",
+        waiting_customer: "supporting",
+        schedule_followup: "supporting",
+        confirm_external: "supporting",
+        copy_handoff: "quiet",
+        copy_audit_summary: "quiet",
+        cancel_booking: "quiet",
+      },
+    };
+    if (normalizedStatus === "slots_ready") {
+      return {
+        ...base,
+        refStatus: "Tidsläget leder nu. Få fram eller bekräfta 1-3 kandidat-tider.",
+        selectedEmptyTitle: "Välj kandidat-tider",
+        selectedEmptyMeta: "Prioritera 1-3 tydliga tider som kan lämnas över till kunden.",
+        actionLabels: {
+          ...base.actionLabels,
+          candidate_slots: slotCount ? "Justera tider" : "Hämta tider",
+          reserve_slots: slotCount >= 3 ? "Lås i CCO" : "Reservera i CCO",
+          insert_studio: slotCount >= 3 ? "Skicka i Svarstudio" : "Lägg i Svarstudio",
+        },
+        actionRoles: {
+          ...base.actionRoles,
+          candidate_slots: slotCount ? "supporting" : "primary",
+          reserve_slots: slotCount ? "primary" : "quiet",
+          insert_studio: slotCount ? "primary" : "supporting",
+          waiting_customer: "quiet",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+        },
+      };
+    }
+    if (normalizedStatus === "offered") {
+      return {
+        ...base,
+        refStatus: "Erbjudandet leder nu. Kontrollera tiderna och lämna över till kunden.",
+        actionLabels: {
+          ...base.actionLabels,
+          insert_studio: slotCount >= 3 ? "Skicka i Svarstudio" : "Uppdatera Svarstudio",
+          waiting_customer: slotCount >= 3 ? "Sätt vänteläge" : "Markera kundläge",
+        },
+        actionRoles: {
+          ...base.actionRoles,
+          insert_studio: "supporting",
+          waiting_customer: "primary",
+          reserve_slots: "quiet",
+          candidate_slots: "quiet",
+          schedule_followup: "quiet",
+        },
+      };
+    }
+    if (normalizedStatus === "waiting_customer") {
+      const primaryWaitAction =
+        nextActionKey === "insert_studio"
+          ? "insert_studio"
+          : nextActionKey === "schedule_followup"
+            ? "schedule_followup"
+            : "confirm_external";
+      const refStatusByRecommendationState = {
+        act_now_overdue:
+          recommendation.reason ||
+          "Kundsvar väntar redan på bearbetning. Ta tillbaka ärendet till Svarstudio nu.",
+        act_now:
+          recommendation.reason ||
+          "Kunden har svarat. Låt Svarstudio bli nästa steg innan nytt vänteläge sätts.",
+        reengage_now:
+          recommendation.reason ||
+          "Vänteläget har tappat fart. Återuppta kunddialogen innan ärendet svalnar mer.",
+        monitor:
+          recommendation.reason ||
+          "En aktiv uppföljning eller naturlig väntan pågår redan. Bevaka innan du agerar igen.",
+      };
+      return {
+        ...base,
+        refStatus:
+          refStatusByRecommendationState[recommendationState] ||
+          "Kundläge leder nu. Bevaka svar, följ upp eller markera extern bekräftelse.",
+        actionLabels: {
+          ...base.actionLabels,
+          insert_studio: slotCount >= 3 ? "Uppdatera kundförslag" : "Uppdatera Svarstudio",
+          schedule_followup: slotCount >= 3 ? "Säkra uppföljning" : "Skapa uppföljning",
+          confirm_external: slotCount >= 3 ? "Bekräfta / boka om" : "Markera bekräftad",
+        },
+        actionRoles: {
+          ...base.actionRoles,
+          [primaryWaitAction]: "primary",
+          insert_studio: primaryWaitAction === "insert_studio" ? "primary" : "supporting",
+          schedule_followup: primaryWaitAction === "schedule_followup" ? "primary" : "supporting",
+          confirm_external: primaryWaitAction === "confirm_external" ? "primary" : "supporting",
+          reserve_slots: "quiet",
+          candidate_slots: "quiet",
+          clear_slots: "quiet",
+        },
+      };
+    }
+    if (normalizedStatus === "confirmed_external") {
+      const postConfirmation = getBookingPostConfirmationContext(readout);
+      const refStatusByRecommendationState = {
+        act_now_overdue:
+          recommendation.reason ||
+          "Kundsvar efter bekräftelsen väntar redan på bearbetning. Ta tillbaka ärendet till Svarstudio nu.",
+        act_now:
+          recommendation.reason ||
+          "Kunden har svarat efter bekräftelsen. Behandla svaret innan ärendet åter blir stängklart.",
+        reengage_now:
+          recommendation.reason ||
+          "Uppföljningen efter bekräftelsen har passerat sitt vänteläge och behöver återupptas nu.",
+        monitor:
+          recommendation.reason ||
+          "En uppföljning pågår fortfarande efter bekräftelsen. Bevaka innan du stänger ärendet.",
+      };
+      if (postConfirmation && refStatusByRecommendationState[recommendationState]) {
+        return {
+          ...base,
+          refStatus: refStatusByRecommendationState[recommendationState],
+          actionLabels: {
+            ...base.actionLabels,
+            insert_studio: "Uppdatera Svarstudio",
+            schedule_followup: slotCount >= 3 ? "Återuppta uppföljning" : "Följ upp igen",
+            confirm_external: slotCount >= 3 ? "Stäm av bokningen" : "Bevaka bekräftelse",
+            copy_audit_summary: "Kopiera slutlogg",
+          },
+          actionRoles: {
+            ...base.actionRoles,
+            insert_studio:
+              recommendationState === "act_now" || recommendationState === "act_now_overdue"
+                ? "primary"
+                : "quiet",
+            schedule_followup:
+              recommendationState === "reengage_now" ? "primary" : "supporting",
+            confirm_external: recommendationState === "monitor" ? "primary" : "supporting",
+            copy_audit_summary: "quiet",
+            reserve_slots: "quiet",
+            candidate_slots: "quiet",
+            waiting_customer: "quiet",
+            copy_handoff: "quiet",
+            clear_slots: "quiet",
+            cancel_booking: "quiet",
+          },
+        };
+      }
+      return {
+        ...base,
+        refStatus: "Bekräftelsen leder nu. Verifiera loggen och avsluta ärendet när allt stämmer.",
+        actionLabels: {
+          ...base.actionLabels,
+          copy_audit_summary: "Kopiera slutlogg",
+          confirm_external: "Bekräftad",
+        },
+        actionRoles: {
+          ...base.actionRoles,
+          copy_audit_summary: "primary",
+          confirm_external: "supporting",
+          reserve_slots: "quiet",
+          candidate_slots: "quiet",
+          insert_studio: "quiet",
+          waiting_customer: "quiet",
+          schedule_followup: "quiet",
+          copy_handoff: "quiet",
+          clear_slots: "quiet",
+          cancel_booking: "quiet",
+        },
+      };
+    }
+    return {
+      ...base,
+      refStatus: "Triage leder nu. Bekräfta kundmatch, önskemål och tidsfönster innan tider hämtas.",
+      availableEmptyTitle: "Tider kommer efter triage",
+      availableEmptyMeta: "Validera underlaget först, hämta sedan externa tider eller manuella kandidater.",
+      selectedEmptyTitle: "Triage före tider",
+      selectedEmptyMeta: "Börja med kundmatch och bokningsavsikt innan du låser kandidat-tider.",
+      actionLabels: {
+        ...base.actionLabels,
+        candidate_slots: "Validera & välj tider",
+      },
+      actionRoles: {
+        ...base.actionRoles,
+        candidate_slots: "primary",
+        reserve_slots: "quiet",
+        insert_studio: "quiet",
+        waiting_customer: "quiet",
+        schedule_followup: "quiet",
+        confirm_external: "quiet",
+      },
+    };
+  }
+
+  function reorderBookingSurfaceSections(container, orderedNodes = []) {
+    if (!container) return;
+    const nodes = asArray(orderedNodes).filter(Boolean);
+    if (!nodes.length) return;
+    const firstNode = nodes[0];
+    if (!firstNode || firstNode.parentNode !== container) return;
+    const marker = document.createComment("booking-surface-order");
+    container.insertBefore(marker, firstNode);
+    nodes.forEach((node) => {
+      container.insertBefore(node, marker);
+    });
+    container.removeChild(marker);
+  }
+
+  function syncBookingAdvancedSummary(advancedSummary, stageLayout = {}) {
+    if (!advancedSummary) return;
+    const label = asText(stageLayout.advancedSummaryLabel, "Avancerat");
+    const value = asText(stageLayout.advancedSummaryValue, "Tider, logg och historik");
+    advancedSummary.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`;
+  }
+
+  function applyBookingActionStagePresentation(bookingDom, stageMicrocopy = {}) {
+    const actionPriorityBase = {
+      candidate_slots: 10,
+      reserve_slots: 20,
+      renew_reservation: 30,
+      insert_studio: 40,
+      waiting_customer: 50,
+      schedule_followup: 60,
+      confirm_external: 70,
+      copy_handoff: 80,
+      copy_audit_summary: 90,
+      clear_slots: 100,
+      cancel_booking: 110,
+    };
+    const roleWeight = {
+      primary: -20,
+      supporting: 0,
+      quiet: 20,
+    };
+    asArray(bookingDom?.actionButtons).forEach((button) => {
+      const actionKey = asText(button?.dataset?.bookingAction);
+      if (!actionKey) return;
+      const label = asText(stageMicrocopy?.actionLabels?.[actionKey]);
+      const role = asText(stageMicrocopy?.actionRoles?.[actionKey], "supporting");
+      if (label) {
+        button.textContent = label;
+      }
+      button.dataset.stageRole = role;
+      button.style.order = String((actionPriorityBase[actionKey] || 999) + (roleWeight[role] || 0));
+    });
+    if (bookingDom?.refStatus && !state.booking.loadingRefData && !state.booking.refDataError) {
+      bookingDom.refStatus.textContent = asText(
+        stageMicrocopy?.refStatus,
+        "Hämta externa tider eller skriv id manuellt."
+      );
+    }
+  }
+
+  function applyBookingSurfaceStageLayout(bookingDom, stageLayout = {}) {
+    const surface = bookingDom?.surface;
+    if (!surface) return;
+    const stageZoneMap = {
+      decision_context: bookingDom.decisionGrid,
+      slot_overview: bookingDom.slotOverview,
+      handoff_checklist: bookingDom.handoffChecklist,
+      handoff_summary: bookingDom.handoffSummary,
+      advanced_panel: bookingDom.advancedPanel,
+      available_head: bookingDom.availableHead,
+      selected_head: bookingDom.selectedHead,
+      action_head: bookingDom.actionHead,
+      action_row: bookingDom.actionRow,
+      status_filter_row: bookingDom.statusFilterRow,
+      status_filter_note: bookingDom.statusFilterNote,
+      audit_next_case: bookingDom.auditNextCaseControl,
+      case_list: bookingDom.caseList,
+      slot_controls: bookingDom.slotControls,
+      ref_status: bookingDom.refStatus,
+      available_slots: bookingDom.availableList,
+      selected_slots: bookingDom.slotList,
+      audit_preview: bookingDom.auditPreview,
+      event_filter_row: bookingDom.eventFilterRow,
+      event_timeline: bookingDom.eventList,
+    };
+    const outerNodes = asArray(stageLayout.outerOrder).map((key) => stageZoneMap[key]).filter(Boolean);
+    reorderBookingSurfaceSections(surface, [
+      ...outerNodes,
+      bookingDom.actionHint,
+      bookingDom.feedback,
+    ]);
+    reorderBookingSurfaceSections(
+      bookingDom.advancedContent,
+      asArray(stageLayout.advancedOrder).map((key) => stageZoneMap[key]).filter(Boolean)
+    );
+    syncBookingAdvancedSummary(bookingDom.advancedSummary, stageLayout);
+    if (bookingDom.advancedPanel) {
+      bookingDom.advancedPanel.open = Boolean(stageLayout.advancedOpen);
+    }
+    const primaryZones = new Set(asArray(stageLayout.primaryZones).map((key) => normalizeKey(key)));
+    const quietZones = new Set(asArray(stageLayout.quietZones).map((key) => normalizeKey(key)));
+    Object.entries(stageZoneMap).forEach(([zoneKey, node]) => {
+      if (!node) return;
+      const normalizedZoneKey = normalizeKey(zoneKey);
+      if (primaryZones.has(normalizedZoneKey)) {
+        node.dataset.stagePriority = "primary";
+      } else if (quietZones.has(normalizedZoneKey)) {
+        node.dataset.stagePriority = "quiet";
+      } else {
+        node.dataset.stagePriority = "supporting";
+      }
+    });
+    if (bookingDom.advancedPanel) {
+      const advancedKeys = new Set(asArray(stageLayout.advancedOrder).map((key) => normalizeKey(key)));
+      bookingDom.advancedPanel.dataset.stagePriority = Array.from(primaryZones).some((key) => advancedKeys.has(key))
+        ? "primary"
+        : "supporting";
+    }
+  }
+
+  function focusBookingStatusStep(status = "") {
+    const bookingDom = getBookingDom();
+    const targetStatus = normalizeKey(status);
+    if (!targetStatus || !bookingDom.statusFlow) return;
+    const targetButton = bookingDom.statusFlow.querySelector(
+      `[data-booking-status-target="${escapeAttribute(targetStatus)}"]`
+    );
+    if (!targetButton) return;
+    const collapsedGroup = targetButton.closest("details:not([open])");
+    if (collapsedGroup) {
+      collapsedGroup.open = true;
+    }
+    targetButton.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    targetButton.focus({ preventScroll: true });
+    targetButton.classList.add("is-recommended-pulse");
+    window.setTimeout(() => {
+      targetButton.classList.remove("is-recommended-pulse");
+    }, 900);
+  }
+
+  function setBookingSurfaceZoneHighlight(zoneKey = "") {
+    const bookingDom = getBookingDom();
+    const surface = bookingDom.surface;
+    const normalizedZone = normalizeKey(zoneKey);
+    if (!surface) return null;
+    surface
+      .querySelectorAll("[data-booking-stage-focus-zone].booking-stage-focus-target")
+      .forEach((node) => node.classList.remove("booking-stage-focus-target"));
+    if (!normalizedZone) return null;
+    const targetZone = surface.querySelector(
+      `[data-booking-stage-focus-zone="${escapeAttribute(normalizedZone)}"]`
+    );
+    if (!targetZone) return null;
+    targetZone.classList.add("booking-stage-focus-target");
+    return targetZone;
+  }
+
+  function focusBookingSurfaceZone(zoneKey = "") {
+    const targetZone = setBookingSurfaceZoneHighlight(zoneKey);
+    if (!targetZone) return;
+    const collapsedGroup = targetZone.closest("details:not([open])");
+    if (collapsedGroup) {
+      collapsedGroup.open = true;
+    }
+    targetZone.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    if (!targetZone.hasAttribute("tabindex")) {
+      targetZone.setAttribute("tabindex", "-1");
+    }
+    targetZone.focus({ preventScroll: true });
+  }
+
+  function seedBookingSurfaceForCurrentThread(thread, { moveActionFocus = false, announce = false } = {}) {
+    if (!thread) return;
+    const bookingReadout = getBookingReadoutForThread(thread);
+    const preferredStatusStep = getJourneyPreferredBookingStatusStep(bookingReadout);
+    focusBookingStatusStep(preferredStatusStep);
+    focusBookingSurfaceZone(
+      getJourneyPreferredBookingSurfaceZone(preferredStatusStep, bookingReadout)
+    );
+    focusRecommendedBookingAction("", { moveFocus: moveActionFocus, announce });
+  }
+
+  function seedJourneyDrivenWorkspace(thread, focusReadState = {}, preferredAction = "") {
+    const normalizedAction = normalizeKey(preferredAction);
+    if (normalizedAction === "booking_surface") {
+      window.setTimeout(() => {
+        seedBookingSurfaceForCurrentThread(thread, { moveActionFocus: false, announce: false });
+      }, 120);
+      return;
+    }
+    if (normalizedAction === "note_open") {
+      const destinationKey = getJourneyPreferredNoteDestination(thread, focusReadState);
+      const templateKey = getJourneyPreferredNoteTemplate(thread, focusReadState);
+      window.setTimeout(() => {
+        renderNoteDestination(destinationKey);
+        if (templateKey) {
+          applyTemplateToActiveDraft(templateKey);
+        }
+      }, 80);
+    }
+  }
+
+  function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
+    if (!focusIntel || !thread) return;
+    const threadId = normalizeKey(thread.id);
+    if (!threadId) return;
+    state.runtime = state.runtime || {};
+    const lastThreadId = normalizeKey(state.runtime.journeyDrivenIntelThreadId);
+    const preferredTabId = getJourneyPreferredIntelTabId(thread, focusReadState);
+    const lastTabId = normalizeKey(state.runtime.journeyDrivenIntelTabId);
+    const currentCheckedId = normalizeKey(
+      focusIntel.querySelector(".intel-toggle:checked")?.getAttribute("id")
+    );
+    if (
+      !force &&
+      lastThreadId === threadId &&
+      lastTabId === normalizeKey(preferredTabId) &&
+      currentCheckedId === normalizeKey(preferredTabId)
+    ) {
+      return;
+    }
+    const tabInput = preferredTabId ? document.getElementById(preferredTabId) : null;
+    if (tabInput instanceof HTMLInputElement) {
+      tabInput.checked = true;
+    }
+    setFocusIntelDetailsOpen(
+      shouldJourneyAutoOpenIntelDetails(thread, focusReadState),
+      preferredTabId
+    );
+    state.runtime.journeyDrivenIntelThreadId = threadId;
+    state.runtime.journeyDrivenIntelTabId = preferredTabId;
+  }
+
+  function syncJourneyDrivenWorkspaceLanding(thread, focusReadState = {}, { force = false } = {}) {
+    if (!thread || !runtimeActionEngine) return;
+    if (isOfflineHistoryContextThread(thread)) return;
+    const threadId = normalizeKey(thread.id);
+    if (!threadId) return;
+    state.runtime = state.runtime || {};
+    const preferredAction = getJourneyPreferredWorkspaceAction(thread, focusReadState);
+    const lastThreadId = normalizeKey(state.runtime.journeyDrivenWorkspaceThreadId);
+    const lastAction = normalizeKey(state.runtime.journeyDrivenWorkspaceAction);
+    if (!force && lastThreadId === threadId && lastAction === preferredAction) {
+      return;
+    }
+    state.runtime.journeyDrivenWorkspaceThreadId = threadId;
+    state.runtime.journeyDrivenWorkspaceAction = preferredAction;
+    setStudioOpen(false);
+    setNoteOpen(false);
+    setNoteModeOpen(false);
+    setScheduleOpen(false);
+    setContextCollapsed(false);
+    if (preferredAction === "booking_surface") {
+      openBookingOperatorSurface({
+        scroll: false,
+        message: "",
+      });
+    } else if (preferredAction === "schedule_open") {
+      runtimeActionEngine.openRuntimeSchedule({ renderDraft: true }).catch((error) => {
+        console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
+      });
+    } else if (preferredAction === "note_open") {
+      runtimeActionEngine.openRuntimeNote().catch((error) => {
+        console.warn("Journey-driven anteckningsyta kunde inte öppnas.", error);
+      });
+    } else {
+      runtimeActionEngine.openRuntimeStudio("reply", thread.id, {
+        readOnly: false,
+      });
+    }
+    seedJourneyDrivenWorkspace(thread, focusReadState, preferredAction);
+  }
+
+  function renderPreviewPatient360Backbone(thread, focusReadState = {}) {
+    if (!focusCustomerSummary) return;
+    if (!thread) {
+      focusCustomerSummary.innerHTML = "";
+      focusCustomerSummary.hidden = true;
+      return;
+    }
+    const backbone = buildPreviewPatient360Backbone(thread, focusReadState);
+    if (!backbone) return;
+    const attentionItems = [
+      { label: "Vad", value: backbone.attention.what },
+      { label: "Var", value: backbone.attention.where },
+      { label: "När", value: backbone.attention.when },
+      { label: "Validering", value: backbone.attention.validation },
+    ];
+    const journey = buildPreviewPatient360Journey(backbone);
+    focusCustomerSummary.hidden = false;
+    focusCustomerSummary.innerHTML = `
+      <section class="patient360-compact" aria-label="Patient 360 systemryggrad">
+        ${
+          journey
+            ? `<div class="patient360-journey-row" aria-label="Patientresa">
+                <div class="patient360-journey-summary">
+                  <span class="patient360-journey-kicker">Patientresa</span>
+                  <strong>${escapeHtml(journey.activeModule?.label || "Nästa domänsteg")}</strong>
+                  <span>${escapeHtml(
+                    compactRuntimeCopy(
+                      journey.nextModule
+                        ? `Sedan ${journey.nextModule.label}`
+                        : `${journey.completedCount}/${journey.totalCount} moduler orienterade`,
+                      "-",
+                      48
+                    )
+                  )}</span>
+                </div>
+                <div class="patient360-journey-strip" aria-label="Domänsteg">
+                  ${journey.visibleModules
+                    .map(
+                      (item) => `<span class="patient360-journey-chip" data-state="${escapeHtml(
+                        item.state
+                      )}" data-status="${escapeHtml(item.status)}">
+                        ${escapeHtml(compactRuntimeCopy(item.label, item.label, 18))}
+                      </span>`
+                    )
+                    .join("")}
+                </div>
+              </div>`
+            : ""
+        }
+        <div class="patient360-attention-row">
+          ${attentionItems
+            .map(
+              (item) => `<span class="patient360-attention-item">
+                <b>${escapeHtml(item.label)}</b>
+                <span>${escapeHtml(compactRuntimeCopy(item.value, "-", 42))}</span>
+              </span>`
+            )
+            .join("")}
+        </div>
+        <div class="patient360-module-row" aria-label="BOOK Systemets CCO moduler">
+          ${backbone.modules
+            .slice(0, 4)
+            .map(
+              (item) => `<span class="patient360-module-chip" data-patient360-module="${escapeHtml(
+                item.id
+              )}" data-status="${escapeHtml(item.status)}" title="${escapeHtml(
+                `${item.label}: ${item.nextAction}`
+              )}">
+                <span>${escapeHtml(item.label)}</span>
+                <b>${escapeHtml(compactRuntimeCopy(item.detail, "-", 30))}</b>
+              </span>`
+            )
+            .join("")}
+        </div>
+      </section>`;
+    if (focusCustomerGrid) {
+      const patientCardMarkup = `
+        <article class="focus-customer-data-card patient360-data-card" data-patient360-module-card>
+          <h4>Nästa domänsteg</h4><dl>
+            <div><dt>Nu</dt><dd>${escapeHtml(journey?.activeModule?.label || backbone.attention.where)}</dd></div>
+            <div><dt>Nästa</dt><dd>${escapeHtml(
+              journey?.nextModule?.label || "Fortsätt i samma arbetsyta"
+            )}</dd></div>
+            <div><dt>Fokus</dt><dd>${escapeHtml(backbone.attention.what)}</dd></div>
+            <div><dt>Validering</dt><dd>${escapeHtml(backbone.attention.validation)}</dd></div>
+          </dl>
+        </article>`;
+      const existingCard = focusCustomerGrid.querySelector("[data-patient360-module-card]");
+      if (existingCard) {
+        existingCard.outerHTML = patientCardMarkup;
+      } else {
+        focusCustomerGrid.insertAdjacentHTML("afterbegin", patientCardMarkup);
+      }
+    }
   }
 
   function buildTruthWorklistSummaryMarkup(payload = {}) {
@@ -21643,6 +24545,13 @@
     const bookingDom = getBookingDom();
 	    if (message) {
 	      setFeedback(bookingDom.feedback, "success", message);
+        const bookingThread = getBookingWorkThread();
+        window.setTimeout(() => {
+          seedBookingSurfaceForCurrentThread(bookingThread, {
+            moveActionFocus: false,
+            announce: false,
+          });
+        }, 120);
 	    }
 	    if (isSingleWorkspaceViewport()) {
 	      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
@@ -21695,12 +24604,42 @@
       offeredAt: asText(readout.offeredAt || bookingCase.offeredAt),
       confirmedExternalAt: asText(readout.confirmedExternalAt || bookingCase.confirmedExternalAt),
       updatedAt: asText(readout.updatedAt || bookingCase.updatedAt),
+      postConfirmation:
+        state.booking.engineSummary?.postConfirmation &&
+        typeof state.booking.engineSummary.postConfirmation === "object"
+          ? state.booking.engineSummary.postConfirmation
+          : readout.postConfirmation && typeof readout.postConfirmation === "object"
+            ? readout.postConfirmation
+            : bookingCase.postConfirmation && typeof bookingCase.postConfirmation === "object"
+              ? bookingCase.postConfirmation
+              : null,
+      waitingCustomer:
+        state.booking.engineSummary?.waitingCustomer &&
+        typeof state.booking.engineSummary.waitingCustomer === "object"
+          ? state.booking.engineSummary.waitingCustomer
+          : readout.waitingCustomer && typeof readout.waitingCustomer === "object"
+            ? readout.waitingCustomer
+            : bookingCase.waitingCustomer && typeof bookingCase.waitingCustomer === "object"
+              ? bookingCase.waitingCustomer
+              : null,
       blocker:
-        readout.blocker && typeof readout.blocker === "object"
+        state.booking.engineSummary?.blocker && typeof state.booking.engineSummary.blocker === "object"
+          ? state.booking.engineSummary.blocker
+          : readout.blocker && typeof readout.blocker === "object"
           ? readout.blocker
           : bookingCase.blocker && typeof bookingCase.blocker === "object"
             ? bookingCase.blocker
             : null,
+      recommendedActionState: asText(
+        state.booking.engineSummary?.recommendedActionState ||
+          readout.recommendedActionState ||
+          bookingCase.recommendedActionState
+      ),
+      recommendedActionReason: asText(
+        state.booking.engineSummary?.recommendedActionReason ||
+          readout.recommendedActionReason ||
+          bookingCase.recommendedActionReason
+      ),
       attention: readout.attention || {},
       handoffCopy: asText(readout.handoffCopy),
     };
@@ -21728,12 +24667,899 @@
     return `${prefix} ${Math.floor(safeHours / 24)}d`;
   }
 
+  function getBookingWaitingCustomerContext(readout = {}) {
+    return readout?.waitingCustomer && typeof readout.waitingCustomer === "object"
+      ? readout.waitingCustomer
+      : null;
+  }
+
+  function getBookingPostConfirmationContext(readout = {}) {
+    return readout?.postConfirmation && typeof readout.postConfirmation === "object"
+      ? readout.postConfirmation
+      : null;
+  }
+
+  function buildBookingWorkflowSignalReadout(readout = {}) {
+    const recommendation = getBookingRecommendationMeta(readout);
+    const waitingCustomer = getBookingWaitingCustomerContext(readout);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const buildSignalMeta = (signalAt = "", fallback = "") => {
+      const signalLabel = asText(signalAt);
+      if (!signalLabel) return fallback;
+      const age = formatBookingWaitAge(hoursSinceIso(signalLabel), "sedan");
+      const eventLabel = formatBookingEventTime(signalLabel);
+      return `${fallback} Senaste signal: ${eventLabel} · ${age}.`.trim();
+    };
+    const buildSignal = ({
+      label = "",
+      meta = "",
+      tone = "",
+      sourceLabel = "",
+      sourceMode = "",
+      signalAt = "",
+    } = {}) => ({
+      label,
+      meta,
+      tone,
+      sourceLabel: asText(sourceLabel, label),
+      sourceMode: normalizeKey(sourceMode),
+      signalAt: asText(signalAt),
+    });
+
+    if (postConfirmation) {
+      const postMode = normalizeKey(postConfirmation.mode);
+      const latestSignalAt = asText(postConfirmation.latestCustomerReplyAt || postConfirmation.latestFollowUpAt);
+      const signalByMode = {
+        post_confirmation_reply: {
+          label:
+            recommendation.state && normalizeKey(recommendation.state) === "act_now_overdue"
+              ? "Signal: kundsvar väntar efter bekräftelse"
+              : "Signal: kundsvar efter bekräftelse",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är kundsvaret efter bekräftelsen som håller caset öppet och driver nästa steg."
+          ),
+          tone: "attention",
+          sourceLabel: "Kundsvar efter bekräftelse",
+          sourceMode: "customer_reply",
+          signalAt: latestSignalAt,
+        },
+        post_confirmation_follow_up_active: {
+          label: "Signal: uppföljning efter bekräftelse",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är den aktiva uppföljningen efter bekräftelsen som håller caset levande just nu."
+          ),
+          tone: "waiting",
+          sourceLabel: "Aktiv uppföljning efter bekräftelse",
+          sourceMode: "follow_up_active",
+          signalAt: latestSignalAt,
+        },
+        post_confirmation_follow_up_due: {
+          label: "Signal: förfallen uppföljning efter bekräftelse",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är den förfallna uppföljningen efter bekräftelsen som återöppnar arbetet i caset."
+          ),
+          tone: "attention",
+          sourceLabel: "Förfallen uppföljning efter bekräftelse",
+          sourceMode: "follow_up_due",
+          signalAt: latestSignalAt,
+        },
+      };
+      if (signalByMode[postMode]) return buildSignal(signalByMode[postMode]);
+    }
+
+    if (waitingCustomer) {
+      const waitingMode = normalizeKey(waitingCustomer.mode);
+      const latestSignalAt = asText(
+        waitingCustomer.latestCustomerReplyAt ||
+          waitingCustomer.latestFollowUpAt ||
+          waitingCustomer.waitingReferenceAt
+      );
+      const signalByMode = {
+        customer_reply: {
+          label:
+            waitingCustomer.customerReplyStale === true
+              ? "Signal: kundsvar väntar"
+              : "Signal: kundsvar inkommet",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är kundens senaste svar som nu driver bokningsytans nästa steg."
+          ),
+          tone: "attention",
+          sourceLabel:
+            waitingCustomer.customerReplyStale === true
+              ? "Kundsvar väntar"
+              : "Nytt kundsvar",
+          sourceMode: "customer_reply",
+          signalAt: latestSignalAt,
+        },
+        follow_up_active: {
+          label: "Signal: aktiv uppföljning",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är den pågående uppföljningen som håller kundläget aktivt just nu."
+          ),
+          tone: "waiting",
+          sourceLabel: "Aktiv uppföljning",
+          sourceMode: "follow_up_active",
+          signalAt: latestSignalAt,
+        },
+        follow_up_due: {
+          label: "Signal: förfallen uppföljning",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är den förfallna uppföljningen som nu driver nästa steg i bokningsytan."
+          ),
+          tone: "attention",
+          sourceLabel: "Förfallen uppföljning",
+          sourceMode: "follow_up_due",
+          signalAt: latestSignalAt,
+        },
+        waiting_stale: {
+          label: "Signal: gammal kundväntan",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Det är en gammal kundväntan utan ny signal som nu måste lyftas operativt."
+          ),
+          tone: "attention",
+          sourceLabel: "Gammal kundväntan",
+          sourceMode: "waiting_stale",
+          signalAt: latestSignalAt,
+        },
+        waiting_monitor: {
+          label: "Signal: naturlig kundväntan",
+          meta: buildSignalMeta(
+            latestSignalAt,
+            recommendation.reason ||
+              "Caset väntar fortfarande naturligt på kundens återkoppling och bevakas därför lugnt."
+          ),
+          tone: "waiting",
+          sourceLabel: "Naturlig kundväntan",
+          sourceMode: "waiting_monitor",
+          signalAt: latestSignalAt,
+        },
+      };
+      if (signalByMode[waitingMode]) return buildSignal(signalByMode[waitingMode]);
+    }
+    return null;
+  }
+
+  function getBookingWorkflowSignalEvent(readout = {}) {
+    const signalReadout = buildBookingWorkflowSignalReadout(readout);
+    if (!signalReadout) return null;
+    const events = asArray(readout.allEvents || readout.events);
+    const sourceMode = normalizeKey(signalReadout.sourceMode);
+    const eventTypesBySourceMode = {
+      customer_reply: ["customer_reply_received", "customer_replied"],
+      follow_up_active: ["follow_up_scheduled", "follow_up_opened"],
+      follow_up_due: ["follow_up_scheduled", "follow_up_opened"],
+      waiting_stale: ["follow_up_scheduled", "follow_up_opened", "status_changed"],
+      waiting_monitor: ["follow_up_scheduled", "follow_up_opened", "status_changed"],
+    };
+    const candidateEvents = events.filter((event) =>
+      (eventTypesBySourceMode[sourceMode] || []).includes(normalizeKey(event.type))
+    );
+    const matchingEvent =
+      candidateEvents.find((event) => asText(event?.createdAt) === asText(signalReadout.signalAt)) ||
+      candidateEvents.at(-1) ||
+      events.at(-1) ||
+      null;
+    const eventCreatedAt = asText(matchingEvent?.createdAt, signalReadout.signalAt);
+    return {
+      label: asText(signalReadout.sourceLabel, "Aktiv signal"),
+      value: matchingEvent
+        ? `${formatBookingVisibleLogText(matchingEvent.label || matchingEvent.type)} · ${formatBookingEventTime(
+            eventCreatedAt
+          )}`
+        : `${asText(signalReadout.sourceLabel, "Aktiv signal")} · ${formatBookingEventTime(eventCreatedAt)}`,
+      meta: asText(signalReadout.meta, "Ingen signalproveniens tillgänglig."),
+      tone: asText(signalReadout.tone, "neutral"),
+      filter: normalizeKey(matchingEvent?.type),
+      eventType: normalizeKey(matchingEvent?.type),
+      signalAt: eventCreatedAt,
+      sourceMode,
+    };
+  }
+
+  function getBookingWorkflowSignalTimelineContext(readout = {}, signalEvent = null) {
+    if (!signalEvent) return null;
+    const status = normalizeKey(readout.status || "");
+    const confirmedAt = asText(readout.confirmedExternalAt);
+    const signalAt = asText(signalEvent.signalAt);
+    const confirmedMs = Date.parse(confirmedAt);
+    const signalMs = Date.parse(signalAt);
+    const afterConfirmation =
+      Number.isFinite(confirmedMs) && Number.isFinite(signalMs) && signalMs >= confirmedMs;
+    if (afterConfirmation || getBookingPostConfirmationContext(readout)) {
+      return {
+        phase: "post_confirmation",
+        label: "Efter bekräftelse",
+        meta: "Den här händelsen är det som håller ett redan bekräftat case operativt levande.",
+      };
+    }
+    if (status === "waiting_customer" || getBookingWaitingCustomerContext(readout)) {
+      return {
+        phase: "waiting_customer",
+        label: "Under kundväntan",
+        meta: "Den här händelsen är den aktuella arbetskällan i vänteläget mot kund.",
+      };
+    }
+    return {
+      phase: "active_booking",
+      label: "I aktiv bokning",
+      meta: "Den här händelsen är den tydligaste aktiva signalen i det pågående bokningsflödet.",
+    };
+  }
+
+  function getBookingRecommendationMeta(readout = {}) {
+    return {
+      state: asText(readout?.recommendedActionState),
+      reason: asText(readout?.recommendedActionReason),
+    };
+  }
+
+  function getBookingRecommendationStatePriority(recommendedActionState = "") {
+    const stateKey = normalizeKey(recommendedActionState);
+    return (
+      {
+        act_now_overdue: 60,
+        reengage_now: 50,
+        act_now: 40,
+        set_customer_state: 30,
+        monitor: 20,
+        ready_to_close: 10,
+      }[stateKey] || 0
+    );
+  }
+
+  function formatBookingRecommendationStateLabel(recommendedActionState = "") {
+    const stateKey = normalizeKey(recommendedActionState);
+    return (
+      {
+        act_now_overdue: "agera nu, redan sent",
+        reengage_now: "följ upp nu",
+        act_now: "agera nu",
+        set_customer_state: "sätt kundläge",
+        monitor: "bevaka",
+        ready_to_close: "redo att stänga",
+      }[stateKey] || "agera nu"
+    );
+  }
+
+  function getBookingRecommendedActionForState(recommendedActionState = "") {
+    const stateKey = normalizeKey(recommendedActionState);
+    return (
+      {
+        act_now_overdue: "insert_studio",
+        act_now: "insert_studio",
+        reengage_now: "schedule_followup",
+        monitor: "confirm_external",
+        set_customer_state: "waiting_customer",
+        ready_to_close: "set_status:closed",
+      }[stateKey] || ""
+    );
+  }
+
+  function buildBookingWaitingActionEmphasis(readout = {}, recommendedAction = "") {
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const normalizedAction =
+      normalizeKey(recommendedAction) ||
+      normalizeKey(getBookingRecommendedActionForState(recommendation.state));
+    const sharedReason = recommendation.reason || "";
+    const emphasisByState = {
+      act_now_overdue: {
+        hint: sharedReason || "Kundsvar väntar redan på vår bearbetning. Öppna Svarstudio nu.",
+        roles: {
+          insert_studio: "primary",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+        },
+        titles: {
+          insert_studio: sharedReason || "Kunden har redan svarat och svaret har blivit liggande. Öppna Svarstudio nu.",
+          schedule_followup: "Undvik ny uppföljning innan kundsvaret har bearbetats i Svarstudio.",
+          confirm_external: "Markera inte bekräftelse innan kundsvaret har bearbetats och bokningsläget är tydligt.",
+        },
+      },
+      act_now: {
+        hint: sharedReason || "Kunden har svarat nyligen. Ta tillbaka ärendet till Svarstudio nu.",
+        roles: {
+          insert_studio: "primary",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+        },
+        titles: {
+          insert_studio: sharedReason || "Kunden har återkommit och behöver ett uppdaterat operatörssvar i Svarstudio.",
+          schedule_followup: "Vänta med ny uppföljning tills kundsvaret har bearbetats.",
+          confirm_external: "Markera bekräftelse först när kundsvaret är hanterat och bokningen verkligen är klar.",
+        },
+      },
+      reengage_now: {
+        hint: sharedReason || "Uppföljningen behöver återupptas nu innan ärendet tappar mer tempo.",
+        roles: {
+          insert_studio: "supporting",
+          schedule_followup: "primary",
+          confirm_external: "quiet",
+        },
+        titles: {
+          insert_studio: "Svarstudio är stöd här, men det viktigaste nu är att återuppta kunddialogen.",
+          schedule_followup: sharedReason || "Uppföljningen är förfallen eller vänteläget har svalnat. Skapa ny uppföljning nu.",
+          confirm_external: "Markera inte bekräftelse innan kunddialogen har återupptagits eller bokningen faktiskt är klar.",
+        },
+      },
+      monitor: {
+        hint: sharedReason || "Kundläget bevakas redan. Avvakta eller markera bekräftelse när den finns.",
+        roles: {
+          insert_studio: "quiet",
+          schedule_followup: "supporting",
+          confirm_external: normalizedAction === "confirm_external" ? "primary" : "supporting",
+        },
+        titles: {
+          insert_studio: "Ta bara tillbaka ärendet till Svarstudio om kunden faktiskt har svarat eller tiderna ändrats igen.",
+          schedule_followup: "Skapa bara en ny uppföljning om det nuvarande vänteläget börjar tappa tempo.",
+          confirm_external: sharedReason || "Bevaka läget och markera extern bekräftelse när bokningen verkligen är klar.",
+        },
+      },
+    };
+    return emphasisByState[recommendationState] || null;
+  }
+
+  function buildBookingCompleteProposalActionEmphasis(readout = {}, recommendedAction = "") {
+    const selectedCount = asArray(readout.selectedSlots).length;
+    if (selectedCount < 3) return null;
+    const recommendation = getBookingRecommendationMeta(readout);
+    const normalizedStatus = normalizeKey(readout.status || "");
+    const normalizedAction =
+      normalizeKey(recommendedAction) ||
+      normalizeKey(getBookingRecommendedActionForState(recommendation.state));
+    const sharedReason = recommendation.reason || "";
+    const confirmedBooking = getBookingEngineConfirmedBooking();
+    const hasReservations = getBookingEngineReservationList().length > 0;
+    const selectedTopSlot =
+      getBookingRankedSelectedSlots(readout)[0] || asArray(readout.selectedSlots)[0] || null;
+    const selectedSlotId = getBookingSlotKey(selectedTopSlot || {});
+    const confirmedSlotId = getBookingSlotKey(confirmedBooking?.slot || {});
+    const isRebookTarget = Boolean(
+      confirmedBooking && selectedSlotId && confirmedSlotId && selectedSlotId !== confirmedSlotId
+    );
+    const lead =
+      normalizedStatus === "waiting_customer"
+        ? "Tre tider bär redan ett aktivt kundförslag."
+        : "Tre tider är valda och förslaget känns komplett.";
+    const emphasisByAction = {
+      reserve_slots: {
+        kicker: "Steg 4 · Lås förslaget i CCO",
+        title: hasReservations ? "Reservationen bär redan förslaget" : "Reservera tiderna innan utskick",
+        meta: hasReservations
+          ? `${lead} Tiderna är redan låsta i CCO. För nu samma förslag vidare i Svarstudio eller intern överlämning.`
+          : `${lead} Lås tiderna i CCO först, så att kundförslaget inte glider medan det förs vidare.`,
+        hint: hasReservations
+          ? `${lead} Reservationen finns redan. Nästa steg är att föra samma tre tider vidare utan att skapa glapp.`
+          : `${lead} Reservera tiderna i CCO innan du skickar eller lämnar över förslaget vidare.`,
+        roles: {
+          reserve_slots: "primary",
+          insert_studio: "supporting",
+          waiting_customer: "quiet",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+          copy_handoff: "supporting",
+        },
+        titles: {
+          reserve_slots: hasReservations
+            ? "Tiderna är redan reserverade i CCO och behöver inte låsas igen."
+            : "Reservera de tre valda tiderna i CCO innan förslaget går vidare.",
+          insert_studio: "Öppna Svarstudio när reservationen är säkrad och för in samma tre tider där.",
+          waiting_customer: "Sätt kundläget först när tiderna är låsta och förslaget faktiskt är redo att lämnas vidare.",
+          copy_handoff: "Kopiera en överlämning som bär samma tre reserverade tider vidare internt.",
+        },
+      },
+      insert_studio: {
+        kicker: "Steg 4 · Skicka förslaget till kunden",
+        title: "Svarstudio ska bära samma tre tider",
+        meta:
+          sharedReason ||
+          `${lead} För nu in exakt dessa tre tider i Svarstudio så att kundförslaget matchar arbetsytan fullt ut.`,
+        hint: `${lead} Svarstudio är nu den tydliga vidareföringen av förslaget.`,
+        roles: {
+          insert_studio: "primary",
+          waiting_customer: "supporting",
+          reserve_slots: "quiet",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+          copy_handoff: "supporting",
+        },
+        titles: {
+          insert_studio: "För in det kompletta trespannet i Svarstudio så att kundutskicket matchar förslaget.",
+          waiting_customer: "Markera kundläge först när Svarstudio eller handoff verkligen bär samma tre tider.",
+          copy_handoff: "Kopiera en intern överlämning som bär samma tre tider vidare till nästa person.",
+        },
+      },
+      waiting_customer: {
+        kicker: "Steg 4 · Lämna vidare med tydligt kundläge",
+        title: "Markera vänteläget först när förslaget är ute",
+        meta:
+          sharedReason ||
+          `${lead} När Svarstudio eller handoff är uppdaterad ska kundläget markeras tydligt, så nästa person kan följa samma förslag utan att tolka om tiderna.`,
+        hint: `${lead} Markera vänteläget först när kundförslaget eller överlämningen faktiskt bär samma tre tider.`,
+        roles: {
+          waiting_customer: "primary",
+          insert_studio: "supporting",
+          reserve_slots: "quiet",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+          copy_handoff: "supporting",
+        },
+        titles: {
+          waiting_customer: "Markera kundläge när förslaget är komplett och utskicket eller överlämningen verkligen är klart.",
+          insert_studio: "Uppdatera Svarstudio först om kunden ännu inte har fått det kompletta trespannet.",
+          copy_handoff: "Kopiera överlämningen när någon annan ska ta vid på exakt samma tre tider.",
+        },
+      },
+      schedule_followup: {
+        kicker: "Steg 4 · Säkra nästa touchpoint",
+        title: "Bygg uppföljningen runt det kompletta förslaget",
+        meta:
+          sharedReason ||
+          `${lead} Kunden har redan ett fullständigt spann. Lägg uppföljningen runt just de här tiderna så att förslaget inte tappar tempo.`,
+        hint: `${lead} Nästa steg är att säkra när och hur förslaget följs upp.`,
+        roles: {
+          schedule_followup: "primary",
+          waiting_customer: "supporting",
+          insert_studio: "quiet",
+          reserve_slots: "quiet",
+          confirm_external: "quiet",
+          copy_handoff: "supporting",
+        },
+        titles: {
+          schedule_followup: "Schemalägg nästa touchpoint runt det kompletta förslaget så att kunden inte faller ur flödet.",
+          waiting_customer: "Markera kundläge när uppföljningen är tydlig och någon annan kan förstå exakt vad kunden väntar på.",
+          copy_handoff: "Kopiera överlämningen om nästa touchpoint ska drivas av någon annan.",
+        },
+      },
+      confirm_external: {
+        kicker: isRebookTarget ? "Steg 4 · Bekräfta den nya toppkandidaten" : "Steg 4 · Stäm av bekräftelsen",
+        title: isRebookTarget
+          ? "Boka om till den nya valda tiden"
+          : confirmedBooking
+            ? "Bekräftelsen styr nästa drag"
+            : "Bekräfta i CCO när kunden har valt",
+        meta: isRebookTarget
+          ? `${lead} En ny toppkandidat ersätter tidigare CCO-bokning. Bekräfta ombokningen först och bär sedan vidare samma uppdaterade förslag.`
+          : sharedReason ||
+            `${lead} Bekräfta bara när kunden faktiskt har valt eller när CCO-bokningen ska låsas slutligt mot en av de tre tiderna.`,
+        hint: isRebookTarget
+          ? `${lead} Den tidigare bokningen behöver ersättas med den nya toppkandidaten nu.`
+          : `${lead} Bekräfta först när kundens val eller CCO-bokningen faktiskt matchar en av de tre tiderna.`,
+        roles: {
+          confirm_external: "primary",
+          insert_studio: normalizedStatus === "waiting_customer" ? "quiet" : "supporting",
+          schedule_followup: normalizedStatus === "waiting_customer" ? "supporting" : "quiet",
+          waiting_customer: normalizedStatus === "waiting_customer" ? "supporting" : "quiet",
+          reserve_slots: "quiet",
+          copy_handoff: "quiet",
+        },
+        titles: {
+          confirm_external: isRebookTarget
+            ? "Bekräfta den nya valda tiden och ersätt tidigare CCO-bokning."
+            : "Bekräfta först när kunden faktiskt har valt en av de tre tiderna eller bokningen ska låsas slutligt i CCO.",
+          schedule_followup:
+            "Följ upp igen om kunden ännu inte har valt, i stället för att markera bekräftelse för tidigt.",
+          waiting_customer:
+            "Behåll eller markera kundläge om förslaget fortfarande väntar på kundens beslut.",
+        },
+      },
+    };
+    return emphasisByAction[normalizedAction] || emphasisByAction.insert_studio;
+  }
+
+  function setBookingRecentWorkflowAction(action = "", status = "") {
+    state.booking.recentWorkflowAction = normalizeKey(action);
+    state.booking.recentWorkflowStatus = normalizeKey(status);
+  }
+
+  function clearBookingRecentWorkflowAction() {
+    state.booking.recentWorkflowAction = "";
+    state.booking.recentWorkflowStatus = "";
+  }
+
+  function buildBookingRecentWorkflowActionEmphasis(readout = {}, recommendedAction = "") {
+    const actionKey = normalizeKey(state.booking.recentWorkflowAction);
+    const statusKey = normalizeKey(readout.status || state.booking.recentWorkflowStatus);
+    const selectedCount = asArray(readout.selectedSlots).length;
+    if (!actionKey || !statusKey || !selectedCount) return null;
+    if (actionKey === "insert_studio" && statusKey === "offered") {
+      return {
+        kicker: "Steg 4 · Kundförslaget är uppdaterat",
+        title: "Svarstudio bär nu samma tider",
+        meta:
+          selectedCount >= 3
+            ? "Tre tider ligger nu i Svarstudio. Nästa steg är att markera vänteläget eller lämna över samma förslag vidare utan att tolka om tiderna."
+            : "Förslaget ligger nu i Svarstudio. Nästa steg är att markera kundläge eller fortsätta bygga tidsförslaget.",
+        hint:
+          selectedCount >= 3
+            ? "Svarstudio är nu uppdaterad med samma tre tider. Markera kundläge först när utskicket eller överlämningen verkligen bär dem."
+            : "Svarstudio är uppdaterad. Fortsätt nu med kundläge eller komplettera tidsförslaget.",
+        roles: {
+          insert_studio: "primary",
+          waiting_customer: "supporting",
+          copy_handoff: "supporting",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+          reserve_slots: "quiet",
+        },
+        titles: {
+          waiting_customer: "Markera kundläge när Svarstudio eller överlämningen faktiskt bär samma tider som förslaget.",
+          copy_handoff: "Kopiera överlämningen om nästa person ska ta vid på samma uppdaterade förslag.",
+        },
+      };
+    }
+    if (actionKey === "waiting_customer" && statusKey === "waiting_customer") {
+      return {
+        kicker: "Steg 4 · Kundväntan är satt",
+        title: "Förslaget väntar nu på kundens svar",
+        meta:
+          selectedCount >= 3
+            ? "Det kompletta tidsförslaget bärs nu som ett tydligt kundläge. Nästa drag är att bevaka svar, återuppta dialogen eller bekräfta när kunden valt."
+            : "Kundläget är markerat. Nästa drag är att bevaka svar eller återuppta dialogen när läget kräver det.",
+        hint:
+          selectedCount >= 3
+            ? "Tre tider bär nu ett aktivt vänteläge. Följ upp bara om dialogen tappar tempo eller kunden återkommer."
+            : "Kundläget är satt. Låt nu svarsläget och uppföljningen styra vidare arbete.",
+        roles: {
+          schedule_followup: "primary",
+          waiting_customer: "supporting",
+          confirm_external: "supporting",
+          insert_studio: "quiet",
+          reserve_slots: "quiet",
+          copy_handoff: "quiet",
+        },
+        titles: {
+          schedule_followup: "Uppföljningen är nu det viktigaste sättet att hålla fart i kunddialogen.",
+          confirm_external: "Markera bekräftelse först när kunden faktiskt har valt eller bokningen är klar.",
+        },
+      };
+    }
+    if (actionKey === "confirm_external" && statusKey === "confirmed_external") {
+      return {
+        kicker: "Steg 4 · Bokningen är bekräftad",
+        title: "Bekräftelsen styr nästa arbetsfas",
+        meta:
+          selectedCount >= 3
+            ? "En av de valda tiderna är nu låst som bekräftad bokning. Härifrån handlar arbetet om efterbekräftelse, uppföljning eller stängning - inte om att bygga nya förslag."
+            : "Bokningen är nu bekräftad. Härifrån handlar arbetet om efterbekräftelse, uppföljning eller stängning.",
+        hint:
+          "Bokningen är bekräftad i CCO. Verifiera slutlogg och efterbekräftelseläge innan tråden stängs eller lämnas vidare.",
+        roles: {
+          copy_audit_summary: "primary",
+          schedule_followup: "supporting",
+          waiting_customer: "supporting",
+          confirm_external: "quiet",
+          insert_studio: "quiet",
+          reserve_slots: "quiet",
+          copy_handoff: "quiet",
+          clear_slots: "quiet",
+          cancel_booking: "quiet",
+        },
+        titles: {
+          copy_audit_summary: "Kopiera slutloggen nu när bokningen är bekräftad och arbetsläget ska säkras internt.",
+          schedule_followup: "Behåll uppföljning synlig om kunddialogen fortsätter även efter bekräftelsen.",
+          waiting_customer: "Behåll eller sätt kundläge bara om den bekräftade bokningen fortfarande kräver aktiv kunddialog.",
+          insert_studio: "Ta bara tillbaka ärendet till Svarstudio om kunden återkommer eller bokningen behöver ändras igen.",
+        },
+      };
+    }
+    if (actionKey === "copy_audit_summary" && statusKey === "confirmed_external") {
+      return {
+        kicker: "Steg 4 · Slutloggen är säkrad",
+        title: "Bekräftelsen är redo att stängas lugnt",
+        meta:
+          selectedCount >= 3
+            ? "Bekräftelsen och slutloggen bär nu samma tidsval. Härifrån handlar arbetet mest om att stänga lugnt, om inte eftervård eller handoff fortfarande behöver leva vidare."
+            : "Bekräftelsen och slutloggen är nu säkrade. Härifrån handlar arbetet mest om att stänga lugnt, om inte eftervård fortfarande behövs.",
+        hint:
+          "Slutloggen är kopierad. Låt nu ärendet vila i ett stängningsnära läge och öppna bara upp eftervård eller handoff om dialogen faktiskt lever vidare efter bekräftelsen.",
+        roles: {
+          copy_audit_summary: "primary",
+          schedule_followup: "supporting",
+          copy_handoff: "supporting",
+          waiting_customer: "quiet",
+          confirm_external: "quiet",
+          insert_studio: "quiet",
+          reserve_slots: "quiet",
+          clear_slots: "quiet",
+          cancel_booking: "quiet",
+        },
+        titles: {
+          schedule_followup: "Schemalägg bara uppföljning om efterbekräftelsen fortfarande kräver aktiv bevakning.",
+          copy_handoff: "Kopiera överlämningen om någon annan ska bära den bekräftade bokningen vidare i en lugn efterfas.",
+          waiting_customer: "Ta bara tillbaka kundläge om bokningen faktiskt blir levande igen i dialogen.",
+        },
+      };
+    }
+    if (actionKey === "reserve_slots" && statusKey === "slots_ready") {
+      return {
+        kicker: "Steg 4 · Tiderna är låsta",
+        title: "Reservationen skyddar nu förslaget",
+        meta:
+          selectedCount >= 3
+            ? "Tre tider är nu reserverade i CCO. För förslaget vidare i Svarstudio eller intern handoff utan att byta ut spannet i onödan."
+            : "Reservationen finns nu i CCO. För samma tider vidare i nästa steg.",
+        hint:
+          "Tiderna är reserverade i CCO. Nästa steg är att föra exakt samma förslag vidare.",
+        roles: {
+          insert_studio: "primary",
+          copy_handoff: "supporting",
+          waiting_customer: "supporting",
+          reserve_slots: "quiet",
+          schedule_followup: "quiet",
+          confirm_external: "quiet",
+        },
+        titles: {
+          insert_studio: "Reservationen är säkrad. För nu samma förslag vidare i Svarstudio.",
+          copy_handoff: "Kopiera överlämningen om någon annan ska ta förslaget vidare från det låsta läget.",
+        },
+      };
+    }
+    if (actionKey === "schedule_followup" && statusKey === "waiting_customer") {
+      return {
+        kicker: "Steg 4 · Uppföljningen är säkrad",
+        title: "Nästa touchpoint är nu satt",
+        meta:
+          "Kundläget har nu en tydlig uppföljning runt förslaget. Nästa steg är att bevaka svarsläget och bara justera när dialogen eller bokningen verkligen kräver det.",
+        hint:
+          "Uppföljningen är satt. Låt nu kundens svar eller uteblivna svar styra nästa operativa drag.",
+      };
+    }
+    if (actionKey === "schedule_followup" && statusKey === "confirmed_external") {
+      return {
+        kicker: "Steg 4 · Eftervården är säkrad",
+        title: "Bekräftelsen bär nu en nästa touchpoint",
+        meta:
+          "Bokningen är bekräftad, men eftervården lever vidare. Härifrån handlar arbetet om att bevaka nästa touchpoint utan att dra tillbaka ärendet till fullt bokningsläge i onödan.",
+        hint:
+          "Nästa touchpoint är satt för en redan bekräftad bokning. Håll efterfasen lätt och öppna bara upp ytan igen om kunddialogen faktiskt kräver det.",
+        roles: {
+          schedule_followup: "primary",
+          copy_audit_summary: "supporting",
+          copy_handoff: "supporting",
+          waiting_customer: "quiet",
+          confirm_external: "quiet",
+          insert_studio: "quiet",
+          reserve_slots: "quiet",
+          clear_slots: "quiet",
+          cancel_booking: "quiet",
+        },
+        titles: {
+          copy_audit_summary: "Kopiera slutloggen om efterbekräftelsen behöver säkras eller delas internt.",
+          copy_handoff: "Kopiera överlämningen om någon annan ska bära nästa touchpoint vidare.",
+          waiting_customer: "Ta bara tillbaka kundläge om efterfasen kräver en ny aktiv kunddialog.",
+        },
+      };
+    }
+    return null;
+  }
+
+  function buildBookingRecommendedActionPrompt(readout = {}, recommendedAction = "") {
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
+    const status = normalizeKey(readout.status || "needs_triage");
+    const normalizedAction =
+      normalizeKey(recommendedAction) ||
+      normalizeKey(getBookingRecommendedActionForState(recommendation.state));
+    const sharedReason = recommendation.reason || "";
+    if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      if (recentWorkflowAction === "copy_audit_summary") {
+        return {
+          label: "Avslut lugnt",
+          title: "Ärendet är i ett stängningsnära läge. Ingen ny bokningsåtgärd behöver markeras först.",
+          announce: "Ärendet är i ett stängningsnära läge.",
+          tone: "ready",
+          role: "supporting",
+        };
+      }
+      if (recentWorkflowAction === "schedule_followup") {
+        return {
+          label: "Öppna uppföljning",
+          title: "Markera uppföljningsknappen för den planerade eftervården utan att utföra åtgärden.",
+          announce: "Uppföljningsknappen för eftervården är markerad. Ingen åtgärd utfördes.",
+          tone: "attention",
+          role: "primary",
+        };
+      }
+      if (recentWorkflowAction === "confirm_external") {
+        return {
+          label: "Öppna slutlogg",
+          title: "Markera slutloggsknappen utan att utföra åtgärden.",
+          announce: "Slutloggsknappen är markerad. Ingen åtgärd utfördes.",
+          tone: "ready",
+          role: "primary",
+        };
+      }
+    }
+    const promptByRecommendationState = {
+      act_now_overdue: {
+        label: "Öppna svar nu",
+        title:
+          sharedReason ||
+          "Markera Svarstudio-knappen först. Kundsvaret väntar redan på vår bearbetning.",
+        announce:
+          sharedReason ||
+          "Svarstudio-knappen är markerad. Kundsvaret väntar redan på vår bearbetning.",
+        tone: "attention",
+        role: "primary",
+      },
+      act_now: {
+        label: "Öppna svar nu",
+        title:
+          sharedReason ||
+          "Markera Svarstudio-knappen först. Kunden har svarat och behöver ett nytt operatorsvar.",
+        announce:
+          sharedReason ||
+          "Svarstudio-knappen är markerad. Kunden har svarat och behöver ett nytt operatorsvar.",
+        tone: "attention",
+        role: "primary",
+      },
+      reengage_now: {
+        label: "Öppna uppföljning",
+        title:
+          sharedReason ||
+          "Markera uppföljningsknappen först. Kunddialogen behöver återupptas nu.",
+        announce:
+          sharedReason ||
+          "Uppföljningsknappen är markerad. Kunddialogen behöver återupptas nu.",
+        tone: "attention",
+        role: "primary",
+      },
+      monitor: {
+        label: "Öppna bevakning",
+        title:
+          sharedReason ||
+          "Markera bevakningssteget först. Läget ska följas utan att skapa ett nytt kundsteg ännu.",
+        announce:
+          sharedReason ||
+          "Rekommenderad bevakningsknapp är markerad. Läget ska följas utan nytt kundsteg ännu.",
+        tone: normalizedAction === "confirm_external" ? "stable" : "waiting",
+        role: normalizedAction === "confirm_external" ? "primary" : "supporting",
+      },
+      set_customer_state: {
+        label: "Sätt kundläge",
+        title:
+          sharedReason ||
+          "Markera kundläget först så resten av bokningsflödet får rätt väntesanning.",
+        announce:
+          sharedReason ||
+          "Kundlägesknappen är markerad. Sätt vänteläget innan flödet går vidare.",
+        tone: "stable",
+        role: "primary",
+      },
+      ready_to_close: {
+        label: "Öppna avslut",
+        title:
+          sharedReason ||
+          "Markera avslutsknappen först. Bokningsärendet ser redo ut att stängas efter slutkontroll.",
+        announce:
+          sharedReason ||
+          "Avslutsknappen är markerad. Bokningsärendet ser redo ut att stängas efter slutkontroll.",
+        tone: "ready",
+        role: "supporting",
+      },
+    };
+    const fallbackByAction = {
+      insert_studio: {
+        label: "Öppna Svarstudio",
+        title: "Markera Svarstudio-knappen utan att utföra åtgärden.",
+        announce: "Svarstudio-knappen är markerad. Ingen åtgärd utfördes.",
+        tone: "attention",
+        role: "primary",
+      },
+      schedule_followup: {
+        label: "Öppna uppföljning",
+        title: "Markera uppföljningsknappen utan att utföra åtgärden.",
+        announce: "Uppföljningsknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "attention",
+        role: "primary",
+      },
+      confirm_external: {
+        label: "Öppna bekräftelse",
+        title: "Markera bekräftelseknappen utan att utföra åtgärden.",
+        announce: "Bekräftelseknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "stable",
+        role: "supporting",
+      },
+      waiting_customer: {
+        label: "Sätt kundläge",
+        title: "Markera kundlägesknappen utan att utföra åtgärden.",
+        announce: "Kundlägesknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "stable",
+        role: "supporting",
+      },
+      "set_status:closed": {
+        label: "Öppna avslut",
+        title: "Markera avslutsknappen utan att utföra åtgärden.",
+        announce: "Avslutsknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "ready",
+        role: "supporting",
+      },
+      reserve_slots: {
+        label: "Öppna reservation",
+        title: "Markera reservationsknappen utan att utföra åtgärden.",
+        announce: "Reservationsknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "attention",
+        role: "primary",
+      },
+      renew_reservation: {
+        label: "Förnya håll",
+        title: "Markera förnyelseknappen utan att utföra åtgärden.",
+        announce: "Förnyelseknappen är markerad. Ingen åtgärd utfördes.",
+        tone: "attention",
+        role: "primary",
+      },
+      candidate_slots: {
+        label: "Välj tider",
+        title: "Markera tidssteget utan att utföra åtgärden.",
+        announce: "Tidssteget är markerat. Ingen åtgärd utfördes.",
+        tone: "attention",
+        role: "primary",
+      },
+    };
+    return (
+      promptByRecommendationState[recommendationState] ||
+      fallbackByAction[normalizedAction] || {
+        label: "Visa knapp",
+        title: "Visa den rekommenderade knappen utan att utföra åtgärden.",
+        announce: "Rekommenderad knapp är markerad. Ingen åtgärd utfördes.",
+        tone: "stable",
+        role: "supporting",
+      }
+    );
+  }
+
   function buildBookingHealthReadout(readout = {}) {
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
     const blockerKey = asText(blocker?.key);
     const blockerLabel = asText(blocker?.label);
     const blockerNext = asText(blocker?.nextActionLabel);
     const blockerTone = asText(blocker?.tone);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const enginePrimary = isBookingEnginePrimary();
+    const hasEngineReservation = getBookingEngineReservationList().length > 0;
+    const hasEngineBooking = Boolean(getBookingEngineConfirmedBooking());
+    const status = normalizeKey(readout.status || "needs_triage");
+    const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
+    if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      if (recentWorkflowAction === "copy_audit_summary") {
+        return {
+          label: "Hälsa: redo att stänga",
+          meta: "Slutloggen är säkrad och bokningen bär ett lugnt avslutsläge.",
+          tone: "ready",
+        };
+      }
+      if (recentWorkflowAction === "schedule_followup") {
+        return {
+          label: "Hälsa: eftervård planerad",
+          meta: "Bokningen är bekräftad men efterfasen lever vidare med en tydlig nästa touchpoint.",
+          tone: "waiting",
+        };
+      }
+      if (recentWorkflowAction === "confirm_external") {
+        return {
+          label: "Hälsa: bokningen bekräftad",
+          meta: "Bekräftelsen är gjord. Nästa steg är att säkra slutlogg och avgöra om caset ska vila eller följas upp.",
+          tone: "ready",
+        };
+      }
+    }
     if (blocker && (blockerKey || blockerLabel)) {
       return {
         label:
@@ -21742,13 +25568,16 @@
             : blockerTone === "ready"
               ? "Hälsa: redo"
               : `Hälsa: ${blockerLabel || formatBookingChecklistBlockerLabel(blockerKey)}`,
-        meta: blockerNext
-          ? `Backend prioriterar: ${blockerNext}.`
-          : "Backend markerar inget aktivt blockerande bokningssteg.",
+        meta: recommendation.reason
+          ? blockerNext
+            ? `Backend prioriterar: ${blockerNext}. ${recommendation.reason}`
+            : recommendation.reason
+          : blockerNext
+            ? `Backend prioriterar: ${blockerNext}.`
+            : "Backend markerar inget aktivt blockerande bokningssteg.",
         tone: blockerTone || (blockerKey ? "attention" : "stable"),
       };
     }
-    const status = normalizeKey(readout.status || "needs_triage");
     const slotCount = asArray(readout.selectedSlots).length;
     const hasOffer =
       status === "offered" ||
@@ -21763,6 +25592,40 @@
       };
     }
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      const postConfirmation = getBookingPostConfirmationContext(readout);
+      const healthByRecommendationState = {
+        act_now_overdue: {
+          label: "Hälsa: kundsvar efter bekräftelse väntar",
+          meta:
+            recommendation.reason ||
+            "Kunden har återkommit efter bekräftelsen och svaret har redan blivit liggande.",
+          tone: "attention",
+        },
+        act_now: {
+          label: "Hälsa: kundsvar efter bekräftelse",
+          meta:
+            recommendation.reason ||
+            "Kunden har återkommit efter bekräftelsen och behöver ett nytt operatörssvar.",
+          tone: "attention",
+        },
+        reengage_now: {
+          label: "Hälsa: uppföljning efter bekräftelse förfallen",
+          meta:
+            recommendation.reason ||
+            "Uppföljningen efter bekräftelsen behöver återupptas innan caset kan bli stängklart igen.",
+          tone: "attention",
+        },
+        monitor: {
+          label: "Hälsa: efterbekräftelse bevakas",
+          meta:
+            recommendation.reason ||
+            "En uppföljning pågår fortfarande efter bekräftelsen och kundläget ska bevakas.",
+          tone: "waiting",
+        },
+      };
+      if (postConfirmation && healthByRecommendationState[recommendationState]) {
+        return healthByRecommendationState[recommendationState];
+      }
       return {
         label: "Hälsa: redo att stängas",
         meta: "Extern bekräftelse finns. Kontrollera loggen innan stängning.",
@@ -21776,6 +25639,13 @@
         tone: "attention",
       };
     }
+    if (enginePrimary && !hasEngineReservation && !hasEngineBooking) {
+      return {
+        label: "Hälsa: tider ej reserverade",
+        meta: `${slotCount} tider valda. Reservera dem i CCO innan bekräftelse eller handoff.`,
+        tone: "attention",
+      };
+    }
     if (!hasOffer) {
       return {
         label: "Hälsa: saknar Svarstudio-erbjudande",
@@ -21785,6 +25655,39 @@
     }
     if (status === "waiting_customer") {
       const waitingHours = hoursSinceIso(readout.updatedAt || readout.offeredAt);
+      const waitingHealthByRecommendationState = {
+        act_now_overdue: {
+          label: "Hälsa: kundsvar väntar redan",
+          meta:
+            recommendation.reason ||
+            "Kunden har svarat och svaret har blivit liggande. Ta tillbaka ärendet till Svarstudio nu.",
+          tone: "attention",
+        },
+        act_now: {
+          label: "Hälsa: kundsvar inkommet",
+          meta:
+            recommendation.reason ||
+            "Kunden har återkommit och behöver ett nytt operatorsvar innan flödet går vidare.",
+          tone: "attention",
+        },
+        reengage_now: {
+          label: "Hälsa: uppföljning förfallen",
+          meta:
+            recommendation.reason ||
+            "Kunddialogen har tappat tempo. Återuppta uppföljningen nu innan ärendet svalnar mer.",
+          tone: "attention",
+        },
+        monitor: {
+          label: "Hälsa: kundläge bevakas",
+          meta:
+            recommendation.reason ||
+            "En aktiv uppföljning eller naturlig väntan pågår redan. Bevaka innan du skapar ett nytt kundsteg.",
+          tone: "waiting",
+        },
+      };
+      if (waitingHealthByRecommendationState[recommendationState]) {
+        return waitingHealthByRecommendationState[recommendationState];
+      }
       return {
         label: waitingHours >= 24 ? "Hälsa: följ upp kund" : "Hälsa: väntar kund",
         meta:
@@ -21804,11 +25707,58 @@
   function buildBookingDecisionSourceReadout(readout = {}) {
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
     const score = Number(blocker?.score);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const signalReadout = buildBookingWorkflowSignalReadout(readout);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalMessageReadout = signalEvent ? getBookingWorkflowSignalMessageReadout(signalEvent, readout) : null;
+    const signalMomentReadout = getBookingWorkflowSignalMomentReadout(readout);
+    const activeRowReadout = getBookingWorkflowActiveRowReadout(readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const signalSourceSummary = signalProvenance?.referenceLabel
+      ? `${signalProvenance.label} · ${signalProvenance.referenceLabel}`
+      : asText(signalProvenance?.label);
     if (blocker && (asText(blocker.key) || Number.isFinite(score))) {
+      const recommendationLabel = formatBookingRecommendationStateLabel(recommendation.state);
       return {
-        label: "Beslutskälla: backend-blockering",
-        meta: Number.isFinite(score) ? `prioritet ${score}` : "prioritering synkad",
-        tone: "backend",
+        label: signalReadout ? "Beslutskälla: backend + kundsignal" : "Beslutskälla: backend-blockering",
+        meta: signalReadout
+          ? recommendationState
+            ? [recommendationLabel, signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")
+            : [signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")
+          : recommendationState
+            ? `${recommendationLabel} · ${recommendation.reason || (Number.isFinite(score) ? `prioritet ${score}` : "prioritering synkad")}`
+            : Number.isFinite(score)
+              ? `prioritet ${score}`
+              : "prioritering synkad",
+        tone: signalReadout?.tone || "backend",
       };
     }
     return {
@@ -21821,24 +25771,82 @@
   function buildBookingNextActionReadout(readout = {}) {
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
     const blockerAction = asText(blocker?.action);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
+    const enginePrimary = isBookingEnginePrimary();
+    const hasEngineReservation = getBookingEngineReservationList().length > 0;
+    const hasEngineBooking = Boolean(getBookingEngineConfirmedBooking());
+    const status = normalizeKey(readout.status || "needs_triage");
+    if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      if (recentWorkflowAction === "copy_audit_summary") {
+        return {
+          label: "Nästa: redo att stänga",
+          meta:
+            "Slutloggen är säkrad. Låt ärendet vila lugnt och öppna bara överlämning eller uppföljning om efterfasen faktiskt behöver leva vidare.",
+          action: "",
+          tone: "ready",
+        };
+      }
+      if (recentWorkflowAction === "schedule_followup") {
+        return {
+          label: "Nästa: följ upp efter bekräftelse",
+          meta:
+            "Eftervården lever vidare trots att bokningen är bekräftad. Håll nästa touchpoint synlig utan att dra tillbaka ärendet till fullt bokningsläge.",
+          action: "schedule_followup",
+          tone: "attention",
+        };
+      }
+      if (recentWorkflowAction === "confirm_external") {
+        return {
+          label: "Nästa: säkra slutloggen",
+          meta:
+            "Bokningen är bekräftad. Kopiera slutloggen nu så att efterbekräftelse, intern stängning eller lugn handoff bygger på samma bekräftade läge.",
+          action: "copy_audit_summary",
+          tone: "ready",
+        };
+      }
+    }
     if (blocker && blockerAction) {
       const nextActionLabel = asText(blocker.nextActionLabel) || blockerAction;
+      const metaByRecommendationState = {
+        act_now_overdue: recommendation.reason
+          ? `${recommendation.reason} Ta tillbaka ärendet nu innan kundspåret tappar tempo.`
+          : "",
+        reengage_now: recommendation.reason
+          ? `${recommendation.reason} Återuppta kunddialogen nu.`
+          : "",
+        act_now: recommendation.reason
+          ? recommendation.reason
+          : "",
+        set_customer_state: recommendation.reason
+          ? `${recommendation.reason} Tydliggör kundläget innan flödet går vidare.`
+          : "",
+        monitor: recommendation.reason
+          ? `${recommendation.reason} Håll läget under uppsikt utan att skapa ett nytt kundsteg ännu.`
+          : "",
+        ready_to_close: recommendation.reason
+          ? `${recommendation.reason} Gör slutkontroll och stäng sedan ärendet.`
+          : "",
+      };
       return {
         label: `Nästa: ${nextActionLabel}`,
         meta:
+          metaByRecommendationState[recommendationState] ||
+          recommendation.reason ||
           asText(blocker.label) ||
           "Backend har markerat nästa blockerande bokningssteg.",
         action: blockerAction,
         tone: asText(blocker.tone) || "attention",
       };
     }
-    const status = normalizeKey(readout.status || "needs_triage");
     const slotCount = asArray(readout.selectedSlots).length;
     const hasOffer =
       status === "offered" ||
       status === "waiting_customer" ||
       Boolean(asText(readout.offeredAt)) ||
       hasBookingEvent(readout, ["offer_draft_inserted"]);
+    const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
     if (status === "closed" || status === "cancelled") {
       return {
         label: "Nästa: ingen aktiv åtgärd",
@@ -21848,6 +25856,18 @@
       };
     }
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      const postConfirmation = getBookingPostConfirmationContext(readout);
+      if (postConfirmation && asText(postConfirmation.action)) {
+        const nextActionLabel = asText(postConfirmation.nextActionLabel) || asText(postConfirmation.action);
+        return {
+          label: `Nästa: ${nextActionLabel}`,
+          meta:
+            recommendation.reason ||
+            "Caset såg klart ut, men kunddialogen efter bekräftelsen kräver ett nytt aktivt steg.",
+          action: asText(postConfirmation.action),
+          tone: asText(postConfirmation.tone) || "attention",
+        };
+      }
       return {
         label: "Nästa: stäng ärendet efter kontroll",
         meta: "Verifiera intern logg och kundsvar innan status sätts till stängd.",
@@ -21863,6 +25883,33 @@
         tone: "attention",
       };
     }
+    if (enginePrimary && !hasEngineReservation && !hasEngineBooking) {
+      return {
+        label: "Nästa: reservera i CCO",
+        meta: "Håll de valda tiderna i CCO:s egen bokningsmotor innan de bekräftas eller lämnas över.",
+        action: "reserve_slots",
+        tone: "attention",
+      };
+    }
+    if (enginePrimary && hasEngineReservation && getBookingEngineWorkflowSummary().expiresSoon) {
+      return {
+        label: "Nästa: förnya hållet i CCO",
+        meta: asText(
+          getBookingEngineWorkflowSummary().stateReason,
+          "Reservationen håller på att gå ut och bör förnyas eller bekräftas innan sloten tappas."
+        ),
+        action: "renew_reservation",
+        tone: "attention",
+      };
+    }
+    if (staleOfferAfterRebook) {
+      return {
+        label: "Nästa: uppdatera Svarstudio",
+        meta: "Ombokningen är nyare än senaste kundförslaget. Skicka den uppdaterade tiden innan kundläge eller bekräftelse.",
+        action: "insert_studio",
+        tone: "attention",
+      };
+    }
     if (!hasOffer) {
       return {
         label: "Nästa: infoga i Svarstudio",
@@ -21872,7 +25919,27 @@
       };
     }
     if (status === "waiting_customer") {
-      const waitingHours = hoursSinceIso(readout.updatedAt || readout.offeredAt);
+      const waitingCustomer = getBookingWaitingCustomerContext(readout);
+      const waitingMode = normalizeKey(waitingCustomer?.mode);
+      const waitingHours = Number(waitingCustomer?.waitingHours);
+      if (waitingCustomer && asText(waitingCustomer.action)) {
+        const nextActionLabel = asText(waitingCustomer.nextActionLabel) || asText(waitingCustomer.action);
+        return {
+          label: `Nästa: ${nextActionLabel}`,
+          meta:
+            waitingMode === "customer_reply"
+              ? "Kunden har svarat i tråden. Ta tillbaka ärendet till Svarstudio och bearbeta svaret innan nästa statussteg."
+              : waitingMode === "follow_up_due"
+                ? "Senaste uppföljningen börjar bli gammal. Påminn kunden innan ärendet tappar tempo."
+                : waitingMode === "follow_up_active"
+                  ? "En uppföljning pågår redan. Bevaka kundsvar eller markera bekräftelse när den finns."
+                  : Number.isFinite(waitingHours) && waitingHours >= 24
+                    ? "Öppna uppföljning så ärendet inte tappar tempo."
+                    : "Vänta på kundsvar eller markera extern bekräftelse när den finns.",
+          action: asText(waitingCustomer.action),
+          tone: asText(waitingCustomer.tone) || "attention",
+        };
+      }
       return {
         label: waitingHours >= 24 ? "Nästa: schemalägg uppföljning" : "Nästa: bevaka kundsvar",
         meta:
@@ -21891,6 +25958,10 @@
     };
   }
 
+  function getBookingNextActionReadout(readout = {}) {
+    return buildBookingNextActionReadout(readout);
+  }
+
   function buildBookingCustomerWaitReadout(readout = {}) {
     const status = normalizeKey(readout.status || "needs_triage");
     const slotCount = asArray(readout.selectedSlots).length;
@@ -21902,6 +25973,7 @@
       status === "waiting_customer" ||
       Boolean(asText(readout.offeredAt)) ||
       hasBookingEvent(readout, ["offer_draft_inserted"]);
+    const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
     if (status === "closed" || status === "cancelled") {
       return {
         label: "Kundläge: stängt",
@@ -21910,6 +25982,56 @@
       };
     }
     if (status === "confirmed_external" || asText(readout.confirmedExternalAt)) {
+      const postConfirmation = getBookingPostConfirmationContext(readout);
+      const recommendation = getBookingRecommendationMeta(readout);
+      const recommendationState = normalizeKey(recommendation.state);
+      if (postConfirmation) {
+        const postWaitAge = formatBookingWaitAge(
+          hoursSinceIso(
+            asText(
+              postConfirmation.latestCustomerReplyAt ||
+                postConfirmation.latestFollowUpAt ||
+                readout.updatedAt
+            )
+          ),
+          "sedan"
+        );
+        const postMode = normalizeKey(postConfirmation.mode);
+        if (postMode === "post_confirmation_reply") {
+          const staleReply = recommendationState === "act_now_overdue";
+          return {
+            label: `Kundläge: ${staleReply ? "bearbeta svar efter bekräftelse" : "kundsvar efter bekräftelse"} · ${postWaitAge}`,
+            meta:
+              recommendation.reason ||
+              "Kunden har återkommit efter bekräftelsen. Ta tillbaka ärendet till Svarstudio innan du stänger.",
+            tone: asText(postConfirmation.tone) || "attention",
+            action: asText(postConfirmation.action) || "insert_studio",
+            actionLabel: staleReply ? "Öppna Svarstudio" : "Uppdatera Svarstudio",
+            actionReason: recommendation.reason || asText(postConfirmation.urgencyReason),
+          };
+        }
+        if (postMode === "post_confirmation_follow_up_active") {
+          return {
+            label: `Kundläge: bevakar efter bekräftelse · ${postWaitAge}`,
+            meta:
+              recommendation.reason ||
+              "En uppföljning pågår fortfarande efter bekräftelsen. Bevaka innan ärendet stängs.",
+            tone: asText(postConfirmation.tone) || "waiting",
+          };
+        }
+        if (postMode === "post_confirmation_follow_up_due") {
+          return {
+            label: `Kundläge: följ upp efter bekräftelse · ${postWaitAge}`,
+            meta:
+              recommendation.reason ||
+              "Uppföljningen efter bekräftelsen har förfallit. Lyft kunddialogen igen innan stängning.",
+            tone: asText(postConfirmation.tone) || "attention",
+            action: asText(postConfirmation.action) || "schedule_followup",
+            actionLabel: asText(postConfirmation.nextActionLabel) || "Påminn kunden igen",
+            actionReason: recommendation.reason || asText(postConfirmation.urgencyReason),
+          };
+        }
+      }
       return {
         label: `Kundläge: extern bekräftelse · ${formatBookingWaitAge(waitHours, "sedan")}`,
         meta: "Verifiera kalender/widget och stäng sedan ärendet",
@@ -21930,18 +26052,60 @@
         tone: waitHours >= 24 ? "attention" : "operator",
       };
     }
-    if (status === "waiting_customer") {
-      const staleCustomerWait = waitHours >= 24;
+    if (staleOfferAfterRebook) {
       return {
-        label: `Kundläge: väntar kund · ${formatBookingWaitAge(waitHours)}`,
+        label: `Kundläge: uppdatera kundsvar · ${formatBookingWaitAge(waitHours)}`,
+        meta: "Ombokningen har ändrat tiderna. Kunden behöver få den nya tiden innan vänteläget fortsätter.",
+        tone: "attention",
+      };
+    }
+    if (status === "waiting_customer") {
+      const waitingCustomer = getBookingWaitingCustomerContext(readout);
+      const waitingMode = normalizeKey(waitingCustomer?.mode);
+      const waitingHours = Number(waitingCustomer?.waitingHours);
+      const waitingReason = asText(waitingCustomer?.urgencyReason);
+      const safeWaitHours = Number.isFinite(waitingHours) ? waitingHours : waitHours;
+      const waitAge = formatBookingWaitAge(safeWaitHours);
+      if (waitingCustomer && waitingMode === "customer_reply") {
+        const staleCustomerReply = waitingCustomer?.customerReplyStale === true;
+        return {
+          label: `Kundläge: ${staleCustomerReply ? "bearbeta kundsvar" : "kundsvar inkommet"} · ${waitAge}`,
+          meta:
+            waitingReason ||
+            "Kunden har återkommit. Uppdatera Svarstudio eller bearbeta svaret innan nytt vänteläge sätts.",
+          tone: asText(waitingCustomer.tone) || "attention",
+          action: asText(waitingCustomer.action) || "insert_studio",
+          actionLabel: staleCustomerReply ? "Öppna Svarstudio" : "Uppdatera Svarstudio",
+          actionReason:
+            waitingReason ||
+            "Kunden har svarat i samma tråd efter senaste utskick eller uppföljning.",
+        };
+      }
+      if (waitingCustomer && waitingMode === "follow_up_active") {
+        return {
+          label: `Kundläge: uppföljning pågår · ${waitAge}`,
+          meta:
+            waitingReason ||
+            "En uppföljning är redan öppnad. Bevaka kundsvar innan ny påminnelse skickas.",
+          tone: asText(waitingCustomer.tone) || "waiting",
+        };
+      }
+      const staleCustomerWait =
+        waitingMode === "follow_up_due" ||
+        waitingMode === "waiting_stale" ||
+        safeWaitHours >= 24;
+      return {
+        label: `Kundläge: väntar kund · ${waitAge}`,
         meta: staleCustomerWait
-          ? "Kunden har väntat över 24h. Schemalägg uppföljning."
-          : "Kunden behöver välja eller svara på erbjudna tider",
-        tone: staleCustomerWait ? "attention" : "customer",
-        action: staleCustomerWait ? "schedule_followup" : "",
-        actionLabel: staleCustomerWait ? "Schemalägg uppföljning" : "",
+          ? waitingReason || "Kunden har väntat över 24h. Schemalägg uppföljning."
+          : waitingReason || "Kunden behöver välja eller svara på erbjudna tider",
+        tone: asText(waitingCustomer?.tone) || (staleCustomerWait ? "attention" : "customer"),
+        action: staleCustomerWait ? asText(waitingCustomer?.action) || "schedule_followup" : "",
+        actionLabel: staleCustomerWait
+          ? asText(waitingCustomer?.nextActionLabel) || "Schemalägg uppföljning"
+          : "",
         actionReason: staleCustomerWait
-          ? `Kundväntan över 24h: ${formatBookingWaitAge(waitHours)} sedan status sattes till väntar kund.`
+          ? `Kundväntan över 24h: ${waitAge} sedan status sattes till väntar kund.`
           : "",
       };
     }
@@ -22047,7 +26211,74 @@
     return "Ej verifierad";
   }
 
-  function buildBookingDecisionCards(thread, readout = {}) {
+  function buildBookingDecisionFocusCard(thread, readout = {}, stageContext = {}, previousSignal = "") {
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const recommendationLabel = formatBookingRecommendationStateLabel(recommendation.state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const signalReadout = buildBookingWorkflowSignalReadout(readout);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalMessageReadout = signalEvent ? getBookingWorkflowSignalMessageReadout(signalEvent, readout) : null;
+    const signalMomentReadout = getBookingWorkflowSignalMomentReadout(readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const signalSourceSummary = signalProvenance?.referenceLabel
+      ? `${signalProvenance.label} · ${signalProvenance.referenceLabel}`
+      : asText(signalProvenance?.label);
+    const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const blockerNextActionLabel = asText(blocker?.nextActionLabel);
+    const riskValue = asText(thread?.riskLabel || humanizeCode(raw.slaStatus, "Stabil"), "Stabil");
+    const riskMeta = asText(thread?.followUpLabel || thread?.riskReason || previousSignal, previousSignal);
+    if (recommendationState) {
+      return {
+        label: postConfirmation ? "Efter bekräftelse" : "Arbetsläge",
+        value:
+          recommendationState !== "ready_to_close"
+            ? [recommendationLabel, signalMessageReadout?.label || signalReadout?.sourceLabel || signalProvenance?.label].filter(Boolean).join(" · ")
+            : recommendationLabel,
+        meta:
+          [signalMessageReadout?.meta, signalReadout?.meta, signalMomentReadout?.value, signalSourceSummary, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ") ||
+          recommendation.reason ||
+          (blockerNextActionLabel
+            ? `Backend prioriterar: ${blockerNextActionLabel}.`
+            : stageContext.handoffMeta || "Backendens arbetsläge styr nästa operativa drag."),
+      };
+    }
+    return {
+      label: "Risk / SLA",
+      value: riskValue,
+      meta: riskMeta,
+    };
+  }
+
+  function buildBookingDecisionCards(thread, readout = {}, stageContext = {}) {
     const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
     const customerSummary = raw.customerSummary && typeof raw.customerSummary === "object"
       ? raw.customerSummary
@@ -22077,28 +26308,346 @@
         raw.previousBookingLabel ||
         "Ingen tidigare bokningssignal i tråden"
     );
-    return [
-      {
-        label: "Kund",
-        value: asText(thread?.customerName, "Bokningskön"),
-        meta: getBookingCustomerContactLabel(thread),
-      },
-      {
-        label: "Kundmatch",
-        value: identitySourceLabel,
-        meta: bookingProfileKey || "Matcha kundprofil innan känslig åtgärd",
-      },
-      {
-        label: "Önskemål",
-        value: readout.requestedTreatment || "Bokningsdialog",
-        meta: readout.preferredWindow || "Inget tidsfönster tolkat ännu",
-      },
-      {
-        label: "Risk / SLA",
-        value: asText(thread?.riskLabel || humanizeCode(raw.slaStatus, "Stabil"), "Stabil"),
-        meta: asText(thread?.followUpLabel || thread?.riskReason || previousSignal, previousSignal),
-      },
-    ];
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalMessageReadout = signalEvent ? getBookingWorkflowSignalMessageReadout(signalEvent, readout) : null;
+    const signalSourceSummary = signalProvenance?.referenceLabel
+      ? `${signalProvenance.label} · ${signalProvenance.referenceLabel}`
+      : asText(signalProvenance?.label);
+    const signalMomentReadout = getBookingWorkflowSignalMomentReadout(readout);
+    const activeRowReadout = getBookingWorkflowActiveRowReadout(readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const statusStep = normalizeKey(getJourneyPreferredBookingStatusStep(readout) || readout.status);
+    const signalCard = signalEvent
+      ? {
+          label: "Signal",
+          value: signalMessageReadout?.value || signalEvent.value,
+          meta: [
+            signalTimeline?.label,
+            signalMessageReadout?.meta || signalEvent.meta,
+            signalSourceSummary,
+            signalMomentReadout?.value,
+            activeRowReadout?.value,
+            signalPointAnchorReadout?.value,
+            signalThreadPointReadout?.value,
+            signalHistoryRowReadout?.value,
+            signalCustomerReadout?.value,
+            signalCustomerEventReadout?.value,
+            signalMessagePointReadout?.value,
+            signalMessageRowReadout?.value,
+            signalHistoryWorkRowReadout?.value,
+            signalHistoryWorkRowIdentityReadout?.value,
+            signalHistoryWorkRowReferenceReadout?.value,
+            signalHistoryWorkRowTraceReadout?.value,
+            signalHistoryChainReadout?.value,
+            signalCustomerThreadReadout?.value,
+            signalCustomerDialogueReadout?.value,
+            signalCustomerDialoguePointReadout?.value,
+            signalCustomerReplyPointReadout?.value,
+            signalCustomerReplyReadout?.value,
+            signalCustomerResponseReadout?.value,
+            signalCustomerReactionReadout?.value,
+            signalCustomerResponseModeReadout?.value,
+            signalCustomerProcessingModeReadout?.value,
+            signalCustomerActionModeReadout?.value,
+            signalCustomerActionReadout?.value,
+            signalActionCue?.value,
+            signalWorkReadout?.value,
+            signalWorkPointReadout?.value,
+            signalWorkSourceReadout?.value,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        }
+      : null;
+    const workSourceCard = signalWorkSourceReadout
+      ? {
+          label: signalWorkSourceReadout.label,
+          value: signalWorkSourceReadout.value,
+          meta: [signalHistoryRowReadout?.value, signalWorkSourceReadout.meta].filter(Boolean).join(" · "),
+        }
+      : null;
+    const historyRowCard = signalHistoryRowReadout
+      ? {
+          label: signalHistoryRowReadout.label,
+          value: signalHistoryRowReadout.value,
+          meta: signalHistoryRowReadout.meta,
+        }
+      : null;
+    const customerSignalCard = signalCustomerReadout
+      ? {
+          label: signalCustomerReadout.label,
+          value: signalCustomerReadout.value,
+          meta: signalCustomerReadout.meta,
+        }
+      : null;
+    const customerEventCard = signalCustomerEventReadout
+      ? {
+          label: signalCustomerEventReadout.label,
+          value: signalCustomerEventReadout.value,
+          meta: signalCustomerEventReadout.meta,
+        }
+      : null;
+    const messagePointCard = signalMessagePointReadout
+      ? {
+          label: signalMessagePointReadout.label,
+          value: signalMessagePointReadout.value,
+          meta: signalMessagePointReadout.meta,
+        }
+      : null;
+    const messageRowCard = signalMessageRowReadout
+      ? {
+          label: signalMessageRowReadout.label,
+          value: signalMessageRowReadout.value,
+          meta: signalMessageRowReadout.meta,
+        }
+      : null;
+    const historyWorkRowCard = signalHistoryWorkRowReadout
+      ? {
+          label: signalHistoryWorkRowReadout.label,
+          value: signalHistoryWorkRowReadout.value,
+          meta: signalHistoryWorkRowReadout.meta,
+        }
+      : null;
+    const historyWorkRowIdentityCard = signalHistoryWorkRowIdentityReadout
+      ? {
+          label: signalHistoryWorkRowIdentityReadout.label,
+          value: signalHistoryWorkRowIdentityReadout.value,
+          meta: signalHistoryWorkRowIdentityReadout.meta,
+        }
+      : null;
+    const historyWorkRowReferenceCard = signalHistoryWorkRowReferenceReadout
+      ? {
+          label: signalHistoryWorkRowReferenceReadout.label,
+          value: signalHistoryWorkRowReferenceReadout.value,
+          meta: signalHistoryWorkRowReferenceReadout.meta,
+        }
+      : null;
+    const historyWorkRowTraceCard = signalHistoryWorkRowTraceReadout
+      ? {
+          label: signalHistoryWorkRowTraceReadout.label,
+          value: signalHistoryWorkRowTraceReadout.value,
+          meta: signalHistoryWorkRowTraceReadout.meta,
+        }
+      : null;
+    const historyChainCard = signalHistoryChainReadout
+      ? {
+          label: signalHistoryChainReadout.label,
+          value: signalHistoryChainReadout.value,
+          meta: signalHistoryChainReadout.meta,
+        }
+      : null;
+    const customerThreadCard = signalCustomerThreadReadout
+      ? {
+          label: signalCustomerThreadReadout.label,
+          value: signalCustomerThreadReadout.value,
+          meta: signalCustomerThreadReadout.meta,
+        }
+      : null;
+    const customerDialogueCard = signalCustomerDialogueReadout
+      ? {
+          label: signalCustomerDialogueReadout.label,
+          value: signalCustomerDialogueReadout.value,
+          meta: signalCustomerDialogueReadout.meta,
+        }
+      : null;
+    const customerDialoguePointCard = signalCustomerDialoguePointReadout
+      ? {
+          label: signalCustomerDialoguePointReadout.label,
+          value: signalCustomerDialoguePointReadout.value,
+          meta: signalCustomerDialoguePointReadout.meta,
+        }
+      : null;
+    const customerReplyPointCard = signalCustomerReplyPointReadout
+      ? {
+          label: signalCustomerReplyPointReadout.label,
+          value: signalCustomerReplyPointReadout.value,
+          meta: signalCustomerReplyPointReadout.meta,
+        }
+      : null;
+    const customerReplyCard = signalCustomerReplyReadout
+      ? {
+          label: signalCustomerReplyReadout.label,
+          value: signalCustomerReplyReadout.value,
+          meta: signalCustomerReplyReadout.meta,
+        }
+      : null;
+    const customerResponseCard = signalCustomerResponseReadout
+      ? {
+          label: signalCustomerResponseReadout.label,
+          value: signalCustomerResponseReadout.value,
+          meta: signalCustomerResponseReadout.meta,
+        }
+      : null;
+    const customerReactionCard = signalCustomerReactionReadout
+      ? {
+          label: signalCustomerReactionReadout.label,
+          value: signalCustomerReactionReadout.value,
+          meta: signalCustomerReactionReadout.meta,
+        }
+      : null;
+    const customerResponseModeCard = signalCustomerResponseModeReadout
+      ? {
+          label: signalCustomerResponseModeReadout.label,
+          value: signalCustomerResponseModeReadout.value,
+          meta: signalCustomerResponseModeReadout.meta,
+        }
+      : null;
+    const customerProcessingModeCard = signalCustomerProcessingModeReadout
+      ? {
+          label: signalCustomerProcessingModeReadout.label,
+          value: signalCustomerProcessingModeReadout.value,
+          meta: signalCustomerProcessingModeReadout.meta,
+        }
+      : null;
+    const customerActionModeCard = signalCustomerActionModeReadout
+      ? {
+          label: signalCustomerActionModeReadout.label,
+          value: signalCustomerActionModeReadout.value,
+          meta: signalCustomerActionModeReadout.meta,
+        }
+      : null;
+    const customerActionCard = signalCustomerActionReadout
+      ? {
+          label: signalCustomerActionReadout.label,
+          value: signalCustomerActionReadout.value,
+          meta: signalCustomerActionReadout.meta,
+        }
+      : null;
+    const focusCard = buildBookingDecisionFocusCard(thread, readout, stageContext, previousSignal);
+    const nowCard = {
+      label: stageContext.heroLabel || "Nu",
+      value: stageContext.heroValue || formatBookingStatus(readout.status),
+      meta:
+        [
+          getBookingRecommendationMeta(readout).reason,
+          signalMomentReadout?.value,
+          activeRowReadout?.value,
+          signalPointAnchorReadout?.value,
+          signalThreadPointReadout?.value,
+          signalHistoryRowReadout?.value,
+          signalCustomerReadout?.value,
+          signalCustomerEventReadout?.value,
+          signalMessagePointReadout?.value,
+          signalMessageRowReadout?.value,
+          signalHistoryWorkRowReadout?.value,
+          signalHistoryWorkRowIdentityReadout?.value,
+          signalHistoryWorkRowReferenceReadout?.value,
+          signalHistoryWorkRowTraceReadout?.value,
+          signalHistoryChainReadout?.value,
+          signalCustomerThreadReadout?.value,
+          signalCustomerDialogueReadout?.value,
+          signalCustomerDialoguePointReadout?.value,
+          signalCustomerReplyPointReadout?.value,
+          signalCustomerReplyReadout?.value,
+          signalCustomerResponseReadout?.value,
+          signalCustomerReactionReadout?.value,
+          signalCustomerResponseModeReadout?.value,
+          signalCustomerProcessingModeReadout?.value,
+          signalCustomerActionModeReadout?.value,
+          signalCustomerActionReadout?.value,
+          signalActionCue?.value,
+          signalWorkReadout?.value,
+          signalWorkPointReadout?.value,
+          signalWorkSourceReadout?.value,
+          stageContext.heroMeta,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Följ rekommenderat nästa steg i bokningsytan.",
+    };
+    const customerCard = {
+      label: "Kund",
+      value: asText(thread?.customerName, "Bokningskön"),
+      meta: getBookingCustomerContactLabel(thread),
+    };
+    const identityCard = {
+      label: "Kundmatch",
+      value: identitySourceLabel,
+      meta: bookingProfileKey || "Matcha kundprofil innan känslig åtgärd",
+    };
+    const preferenceCard = {
+      label: "Önskemål",
+      value: readout.requestedTreatment || "Bokningsdialog",
+      meta: readout.preferredWindow || "Inget tidsfönster tolkat ännu",
+    };
+    const liveSignalCard =
+      customerReactionCard ||
+      customerResponseCard ||
+      customerReplyCard ||
+      customerEventCard ||
+      signalCard ||
+      historyRowCard ||
+      customerSignalCard ||
+      messagePointCard ||
+      messageRowCard ||
+      historyWorkRowCard ||
+      historyWorkRowIdentityCard ||
+      historyWorkRowReferenceCard ||
+      historyWorkRowTraceCard ||
+      historyChainCard ||
+      customerThreadCard ||
+      customerDialogueCard ||
+      customerDialoguePointCard ||
+      customerReplyPointCard ||
+      customerResponseModeCard ||
+      customerProcessingModeCard ||
+      customerActionModeCard ||
+      customerActionCard ||
+      workSourceCard;
+    const dedupeCards = (cards = []) => {
+      const seen = new Set();
+      return cards.filter((card) => {
+        if (!card) return false;
+        const key = `${asText(card.label)}::${asText(card.value)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+
+    if (statusStep === "needs_triage") {
+      return dedupeCards([nowCard, identityCard, preferenceCard, customerCard]);
+    }
+    if (statusStep === "slots_ready") {
+      return dedupeCards([nowCard, preferenceCard, focusCard, customerCard]);
+    }
+    if (statusStep === "offered") {
+      return dedupeCards([nowCard, focusCard, liveSignalCard || customerCard, preferenceCard]);
+    }
+    if (statusStep === "waiting_customer") {
+      return dedupeCards([nowCard, liveSignalCard || focusCard, focusCard, customerCard]);
+    }
+    if (statusStep === "confirmed_external") {
+      return dedupeCards([nowCard, liveSignalCard || focusCard, focusCard, customerCard]);
+    }
+    return dedupeCards([nowCard, focusCard, customerCard, preferenceCard]);
   }
 
   function formatBookingStatus(status = "") {
@@ -22248,6 +26797,10 @@
       if (activeSort === "blocked") {
         const blockerDelta = getBookingCaseBlockerScore(b) - getBookingCaseBlockerScore(a);
         if (blockerDelta) return blockerDelta;
+        const recommendationDelta =
+          getBookingRecommendationStatePriority(b?.recommendedActionState) -
+          getBookingRecommendationStatePriority(a?.recommendedActionState);
+        if (recommendationDelta) return recommendationDelta;
       }
       return getBookingCaseTimeMs(b) - getBookingCaseTimeMs(a);
     });
@@ -22336,6 +26889,9 @@
       confirmedExternalAt: bookingCase.confirmedExternalAt || "",
       updatedAt: bookingCase.updatedAt || "",
       blocker: bookingCase.blocker || null,
+      waitingCustomer: bookingCase.waitingCustomer || null,
+      recommendedActionState: bookingCase.recommendedActionState || "",
+      recommendedActionReason: bookingCase.recommendedActionReason || "",
     };
     renderBookingSurface();
     if (options.scrollToAudit) {
@@ -22400,9 +26956,49 @@
   }
 
   function buildBookingSourceReadout(thread) {
+    const provider = normalizeKey(state.booking?.provider);
     const focusedCase = state.booking?.case && typeof state.booking.case === "object"
       ? state.booking.case
       : null;
+    const focusedReadout = getBookingReadoutForThread(thread);
+    const signalReadout = buildBookingWorkflowSignalReadout(focusedReadout);
+    const signalEvent = getBookingWorkflowSignalEvent(focusedReadout);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, focusedReadout) : null;
+    const signalMessageReadout = signalEvent
+      ? getBookingWorkflowSignalMessageReadout(signalEvent, focusedReadout)
+      : null;
+    const signalMomentReadout = getBookingWorkflowSignalMomentReadout(focusedReadout);
+    const activeRowReadout = getBookingWorkflowActiveRowReadout(focusedReadout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(focusedReadout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(focusedReadout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(focusedReadout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(focusedReadout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(focusedReadout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(focusedReadout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(focusedReadout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(focusedReadout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(focusedReadout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(focusedReadout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(focusedReadout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(focusedReadout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(focusedReadout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(focusedReadout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(focusedReadout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(focusedReadout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(focusedReadout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(focusedReadout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(focusedReadout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(focusedReadout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(focusedReadout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(focusedReadout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(focusedReadout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(focusedReadout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(focusedReadout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(focusedReadout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(focusedReadout);
+    const signalSourceSummary = signalProvenance?.referenceLabel
+      ? `${signalProvenance.label} · ${signalProvenance.referenceLabel}`
+      : asText(signalProvenance?.label);
     const threadId = asText(thread?.id);
     if (normalizeKey(threadId) === "manual-booking-workspace") {
       return {
@@ -22416,28 +27012,41 @@
       if (linkedThread) {
         return {
           label: "Källa: bokningsärende + aktiv tråd",
-          meta: `Matchar ${asText(linkedThread.customerName || linkedThread.displaySubject || linkedThread.id, "aktiv tråd")}.`,
-          tone: "linked",
+          meta: signalReadout
+            ? `Matchar ${asText(linkedThread.customerName || linkedThread.displaySubject || linkedThread.id, "aktiv tråd")}. ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}`
+            : `Matchar ${asText(linkedThread.customerName || linkedThread.displaySubject || linkedThread.id, "aktiv tråd")}.`,
+          tone: signalReadout?.tone || "linked",
         };
       }
       return {
         label: "Källa: fristående operator-case",
-        meta: "Ärendet saknar aktiv tråd i nuvarande köurval.",
-        tone: "standalone",
+        meta: signalReadout
+          ? `Ärendet saknar aktiv tråd i nuvarande köurval. ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}`
+          : "Ärendet saknar aktiv tråd i nuvarande köurval.",
+        tone: signalReadout?.tone || "standalone",
       };
     }
     const selectedRuntimeThread = threadId ? getRuntimeThreadById(threadId) : null;
     if (selectedRuntimeThread) {
       return {
-        label: "Källa: aktiv mejltråd",
-        meta: `Bokningsytan följer vald tråd i ${asText(selectedRuntimeThread.mailboxLabel || selectedRuntimeThread.mailboxAddress, "mejlkön")}.`,
-        tone: "live",
+        label:
+          provider === "cco_engine"
+            ? "Källa: aktiv mejltråd + CCO bokningsmotor"
+            : "Källa: aktiv mejltråd",
+        meta:
+          provider === "cco_engine"
+            ? `${`Vald tråd i ${asText(selectedRuntimeThread.mailboxLabel || selectedRuntimeThread.mailboxAddress, "mejlkön")} är kopplad till CCO:s egen tidkälla.`}${signalReadout ? ` ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}` : ""}`
+            : `${`Bokningsytan följer vald tråd i ${asText(selectedRuntimeThread.mailboxLabel || selectedRuntimeThread.mailboxAddress, "mejlkön")}.`}${signalReadout ? ` ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}` : ""}`,
+        tone: signalReadout?.tone || (provider === "cco_engine" ? "backend" : "live"),
       };
     }
     return {
-      label: "Källa: operator-yta",
-      meta: "Bokningskontexten är additiv och ersätter inte mejlsanning.",
-      tone: "standalone",
+      label: provider === "cco_engine" ? "Källa: CCO bokningsmotor" : "Källa: operator-yta",
+      meta:
+        provider === "cco_engine"
+          ? `${"CCO äger tidkälla och bokningssanning i detta läge."}${signalReadout ? ` ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}` : ""}`
+          : `${"Bokningskontexten är additiv och ersätter inte mejlsanning."}${signalReadout ? ` ${[signalReadout.meta, signalMessageReadout?.value || signalSourceSummary, signalMomentReadout?.value, activeRowReadout?.value, signalPointAnchorReadout?.value, signalThreadPointReadout?.value, signalHistoryRowReadout?.value, signalCustomerReadout?.value, signalCustomerEventReadout?.value, signalMessagePointReadout?.value, signalMessageRowReadout?.value, signalHistoryWorkRowReadout?.value, signalHistoryWorkRowIdentityReadout?.value, signalHistoryWorkRowReferenceReadout?.value, signalHistoryWorkRowTraceReadout?.value, signalHistoryChainReadout?.value, signalCustomerThreadReadout?.value, signalCustomerDialogueReadout?.value, signalCustomerDialoguePointReadout?.value, signalCustomerReplyPointReadout?.value, signalCustomerReplyReadout?.value, signalCustomerResponseReadout?.value, signalCustomerReactionReadout?.value, signalCustomerResponseModeReadout?.value, signalCustomerProcessingModeReadout?.value, signalCustomerActionModeReadout?.value, signalCustomerActionReadout?.value, signalActionCue?.value, signalWorkReadout?.value, signalWorkPointReadout?.value, signalWorkSourceReadout?.value].filter(Boolean).join(" · ")}` : ""}`,
+      tone: signalReadout?.tone || (provider === "cco_engine" ? "backend" : "standalone"),
     };
   }
 
@@ -22470,6 +27079,101 @@
       asText(slot.serviceLabel),
     ].filter(Boolean);
     return parts.join(" · ");
+  }
+
+  function getBookingEventSlotChange(event = {}) {
+    const metadata =
+      event?.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? event.metadata
+        : {};
+    const previousSlot =
+      metadata.previousSlot && typeof metadata.previousSlot === "object" ? metadata.previousSlot : null;
+    const nextSlot = metadata.nextSlot && typeof metadata.nextSlot === "object" ? metadata.nextSlot : null;
+    const previousLabel = previousSlot ? formatBookingSlot(previousSlot) : "";
+    const nextLabel = nextSlot ? formatBookingSlot(nextSlot) : "";
+    if (!previousLabel && !nextLabel) return null;
+    return {
+      previousLabel,
+      nextLabel,
+    };
+  }
+
+  function getBookingLatestRebookReadout(readout = {}) {
+    const rebookEvent = getLatestBookingEvent(readout, ["engine_booking_rebooked"]);
+    if (!rebookEvent) return null;
+    const slotChange = getBookingEventSlotChange(rebookEvent);
+    return {
+      event: rebookEvent,
+      previousLabel: slotChange?.previousLabel || "",
+      nextLabel: slotChange?.nextLabel || "",
+      changedAt: formatBookingEventTime(rebookEvent.createdAt),
+      summary:
+        slotChange?.previousLabel && slotChange?.nextLabel
+          ? `${slotChange.previousLabel} ersattes av ${slotChange.nextLabel}.`
+          : "Tidigare bokning ersattes av en ny tid i CCO.",
+    };
+  }
+
+  function buildBookingStudioRefreshLead(readout = {}) {
+    if (!isBookingOfferStaleAfterRebook(readout)) return "";
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    if (!latestRebook) return "";
+    if (latestRebook.previousLabel && latestRebook.nextLabel) {
+      return `Uppdatering: den tidigare tiden ${latestRebook.previousLabel} gäller inte längre. Ersätt med ${latestRebook.nextLabel} i svaret till kunden.\n\n`;
+    }
+    return "Uppdatering: bokningen har bokats om efter senaste kundförslag. Säkerställ att svaret till kunden använder den nya tiden.\n\n";
+  }
+
+  function buildBookingStudioContext(readout = {}) {
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const status = normalizeKey(readout.status || "");
+    const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
+    const waitHours = hoursSinceIso(readout.updatedAt || readout.offeredAt || latestRebook?.event?.createdAt);
+    const hasPriorCustomerProposal = Boolean(offerEvent);
+    if (isBookingOfferStaleAfterRebook(readout)) {
+      const variant =
+        status === "waiting_customer" && waitHours >= 24
+          ? "follow_up_update"
+          : status === "waiting_customer" || hasPriorCustomerProposal
+            ? "customer_update"
+            : "fresh_update";
+      return {
+        mode: "booking_update",
+        variant,
+        subject:
+          variant === "follow_up_update"
+            ? "Uppföljning på uppdaterat bokningsförslag"
+            : "Uppdaterat bokningsförslag",
+        summaryLabel:
+          variant === "follow_up_update"
+            ? "Läge: Följ upp uppdaterat kundförslag"
+            : variant === "customer_update"
+              ? "Läge: Ersätt tidigare kundförslag"
+              : "Läge: Uppdaterat bokningsförslag",
+        reason:
+          variant === "follow_up_update"
+            ? latestRebook?.summary
+              ? `Kunden väntar fortfarande på svar efter ombokningen. ${latestRebook.summary}`
+              : "Kunden väntar fortfarande på svar efter ombokningen."
+            : variant === "customer_update"
+              ? latestRebook?.summary
+                ? `Det tidigare kundförslaget behöver ersättas. ${latestRebook.summary}`
+                : "Det tidigare kundförslaget behöver ersättas."
+              : latestRebook?.summary
+                ? `Ombokningen är nyare än senaste kundförslaget. ${latestRebook.summary}`
+                : "Ombokningen är nyare än senaste kundförslaget.",
+        changedFrom: latestRebook?.previousLabel || "",
+        changedTo: latestRebook?.nextLabel || "",
+      };
+    }
+    return {
+      mode: "booking_offer",
+      subject: "Bokningsförslag",
+      summaryLabel: "Läge: Första bokningsförslag",
+      reason: "Svarstudio förbereder första tidförslaget till kunden.",
+      changedFrom: "",
+      changedTo: "",
+    };
   }
 
   function formatBookingEventTime(value = "") {
@@ -22506,6 +27210,16 @@
       .find((event) => wanted.includes(normalizeKey(event.type))) || null;
   }
 
+  function isBookingOfferStaleAfterRebook(readout = {}) {
+    const rebookEvent = getLatestBookingEvent(readout, ["engine_booking_rebooked"]);
+    if (!rebookEvent) return false;
+    const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
+    if (!offerEvent) return true;
+    const rebookMs = Date.parse(rebookEvent.createdAt || "");
+    const offerMs = Date.parse(offerEvent.createdAt || "");
+    return Number.isFinite(rebookMs) && (!Number.isFinite(offerMs) || rebookMs > offerMs);
+  }
+
   function getBookingBlockerAuditEvent(readout = {}) {
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
     const blockerKey = normalizeKey(blocker?.key);
@@ -22535,8 +27249,9 @@
     return getLatestBookingEvent(readout, ["case_created"]);
   }
 
-  function buildBookingHandoffSummary(readout = {}) {
-    const slots = asArray(readout.selectedSlots).slice(0, 3);
+  function buildBookingHandoffSummary(readout = {}, stageContext = {}) {
+    const slots = getBookingRankedSelectedSlots(readout);
+    const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
     const latestEvent = asArray(readout.allEvents || readout.events).at(-1) || null;
     const latestTime = asText(latestEvent?.createdAt || readout.updatedAt);
     const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
@@ -22552,11 +27267,14 @@
       Boolean(asText(readout.confirmedExternalAt)) ||
       Boolean(confirmationEvent);
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const recommendation = getBookingRecommendationMeta(readout);
     const blockerScore = Number(blocker?.score);
     const blockerLabel = asText(blocker?.label) || formatBookingChecklistBlockerLabel(blocker?.key);
     const blockerNext = asText(blocker?.nextActionLabel || blocker?.action);
     const blockerMeta = Number.isFinite(blockerScore)
-      ? `Prioritet ${blockerScore}${blockerNext ? ` · Lös med: ${blockerNext}` : ""}`
+      ? `Prioritet ${blockerScore}${blockerNext ? ` · Lös med: ${blockerNext}` : ""}${
+          recommendation.state ? ` · Arbetsläge: ${formatBookingRecommendationStateLabel(recommendation.state)}` : ""
+        }`
       : "Äldre data saknar backend-blocker";
     const blockerAuditEvent = getBookingBlockerAuditEvent(readout);
     const blockerAudit = blockerAuditEvent
@@ -22565,12 +27283,47 @@
         )}`
       : "Logg: ingen stödjande händelse ännu";
     const blockerAuditType = asText(blockerAuditEvent?.type);
+    const engineState = getBookingEngineStateReadout(readout);
+    const latestRebook = getBookingLatestRebookReadout(readout);
     return [
       {
         label: "Tider",
         value: slots.length ? `${slots.length} valda` : "Inga valda",
-        meta: slots.length ? formatBookingSlot(slots[0]) : "Hämta externa tider eller välj manuellt",
+        meta: slots.length
+          ? `${formatBookingSlot(slots[0])}${
+              asText(slots[0]?.recommendation?.reason) ? ` · ${slots[0].recommendation.reason}` : ""
+            }`
+          : "Hämta externa tider eller välj manuellt",
       },
+      isConfirmed && recentWorkflowAction === "copy_audit_summary"
+        ? {
+            label: "Efterfas",
+            value: "Redo att stänga",
+            meta:
+              "Bekräftelsen och slutloggen är nu säkrade. Öppna bara upp ärendet igen om eftervård eller intern överlämning faktiskt fortfarande behövs.",
+            tone: "confirmed",
+          }
+        : isConfirmed && recentWorkflowAction === "schedule_followup"
+          ? {
+              label: "Efterfas",
+              value: "Lätt levande",
+              meta:
+                "Bokningen är bekräftad men bär en planerad nästa touchpoint. Håll efterfasen lätt tills kunddialogen verkligen kräver nytt arbete.",
+              tone: "status-move",
+            }
+          : null,
+      latestRebook
+        ? {
+            label: "Ombokning",
+            value: latestRebook.nextLabel || "Ny tid vald",
+            meta: latestRebook.previousLabel
+              ? `Ersatte ${latestRebook.previousLabel} · ${latestRebook.changedAt}`
+              : latestRebook.summary,
+            audit: "Visa ombokning i ärendeloggen",
+            auditType: "engine_booking_rebooked",
+            tone: "status-move",
+          }
+        : null,
       {
         label: "Svarstudio",
         value: offerEvent || readout.offeredAt ? "Erbjudande infogat" : "Ej infogat",
@@ -22590,7 +27343,7 @@
               : "Ej planerad",
         meta: followUpEvent?.detail || "Schemalägg när kunden inte svarat",
       },
-      {
+      engineState || {
         label: "Extern bekräftelse",
         value: isConfirmed ? "Bekräftad" : "Ej bekräftad",
         meta: isConfirmed
@@ -22599,9 +27352,11 @@
         tone: isConfirmed ? "confirmed" : "",
       },
       {
-        label: "Blockering",
+        label: stageContext.handoffLabel || "Blockering",
         value: blockerLabel,
-        meta: blockerMeta,
+        meta: stageContext.handoffMeta
+          ? `${stageContext.handoffMeta} ${blockerMeta}${recommendation.reason ? ` ${recommendation.reason}` : ""}`
+          : `${blockerMeta}${recommendation.reason ? ` ${recommendation.reason}` : ""}`,
         audit: blockerAudit,
         auditType: blockerAuditType,
         tone: blocker ? "blocker" : "",
@@ -22631,12 +27386,12 @@
         meta: formatBookingVisibleLogText(latestEvent?.label, "Bokningsärendet är öppet för operatörsval"),
         tone: "latest",
       },
-    ];
+    ].filter(Boolean);
   }
 
-  function renderBookingHandoffSummary(bookingDom, readout = {}) {
+  function renderBookingHandoffSummary(bookingDom, readout = {}, stageContext = {}) {
     if (!bookingDom.handoffSummary) return;
-    bookingDom.handoffSummary.innerHTML = buildBookingHandoffSummary(readout)
+    bookingDom.handoffSummary.innerHTML = buildBookingHandoffSummary(readout, stageContext)
       .map(
         (item) => {
           const tagName = item.focusRecommended ? "button" : "article";
@@ -22682,8 +27437,45 @@
     if (!bookingDom.auditPreview || !bookingDom.auditPreviewCopy) return;
     const mode = normalizeKey(state.booking?.auditPreviewMode || "short") === "full" ? "full" : "short";
     const copy = buildBookingAuditPreviewCopy(thread, readout, mode);
+    const normalizedStatus = normalizeKey(readout.status || "needs_triage");
+    const auditHeadByStatus = {
+      needs_triage: {
+        kicker: "Stod · Bekrafta laget",
+        title: "Intern logg och beslutsstod",
+        intro:
+          "Anvand loggen for att verifiera kundlage, signal och bokningsavsikt innan du tar vidare steg.",
+      },
+      slots_ready: {
+        kicker: "Stod · Varfor dessa tider",
+        title: "Intern logg och tidsspar",
+        intro:
+          "Har verifierar du varfor tiderna vann och vilken signal som fortfarande driver arbetslaget.",
+      },
+      offered: {
+        kicker: "Stod · Fore kundhandoff",
+        title: "Intern logg och overlamning",
+        intro:
+          "Anvand loggen for att kontrollera att erbjudandet och handoffen lutar sig mot samma arbetssanning.",
+      },
+      waiting_customer: {
+        kicker: "Stod · Under vantan",
+        title: "Intern logg och uppfoljning",
+        intro:
+          "Loggen forklarar vad kunden svarar pa och vilket uppfoljningslage som just nu galler.",
+      },
+      confirmed_external: {
+        kicker: "Stod · Slutkontroll",
+        title: "Intern logg och bekraftelsespår",
+        intro:
+          "Anvand loggen som slutkontroll for att se att bekraftelsen, senaste svaret och statusen hanger ihop.",
+      },
+    };
+    const auditHead = auditHeadByStatus[normalizedStatus] || auditHeadByStatus.needs_triage;
     bookingDom.auditPreview.hidden = !asText(copy);
     bookingDom.auditPreview.dataset.mode = mode;
+    if (bookingDom.auditPreviewKicker) bookingDom.auditPreviewKicker.textContent = auditHead.kicker;
+    if (bookingDom.auditPreviewTitle) bookingDom.auditPreviewTitle.textContent = auditHead.title;
+    if (bookingDom.auditPreviewIntro) bookingDom.auditPreviewIntro.textContent = auditHead.intro;
     if (bookingDom.auditExportState) {
       bookingDom.auditExportState.innerHTML = renderBookingAuditExportState(readout);
     }
@@ -22785,13 +27577,48 @@
     const events = asArray(readout.allEvents || readout.events);
     const latestEvent = events.at(-1) || null;
     const latestFollowUp = getLatestBookingFollowUpEvent(readout);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
     const hasStatusMovement = Boolean(getLatestBookingEvent(readout, ["status_changed"]));
+    const engineEvents = events.filter((event) =>
+      [
+        "engine_slots_reserved",
+        "engine_booking_confirmed",
+        "engine_booking_rebooked",
+        "engine_booking_cancelled",
+      ].includes(normalizeKey(event.type))
+    );
     const tools = [
       {
         label: "Kopiera full logg",
         action: "copy_full",
         tone: "primary",
       },
+      signalEvent
+        ? {
+            label: "Aktiv signal",
+            action: "filter_event",
+            filter: signalEvent.filter,
+            tone: signalEvent.tone || "attention",
+          }
+        : null,
+      signalProvenance
+        ? {
+            label: signalProvenance.label,
+            action: "filter_event",
+            filter: signalEvent?.filter || "",
+            tone: signalProvenance.tone || "neutral",
+          }
+        : null,
+      engineEvents.length
+        ? {
+            label: "CCO motor",
+            action: "filter_event",
+            filter: normalizeKey(engineEvents.at(-1)?.type) || "engine_slots_reserved",
+            count: engineEvents.length,
+            tone: "status",
+          }
+        : null,
       hasStatusMovement
         ? {
             label: "Status",
@@ -22853,14 +27680,176 @@
     const statusEvent = getLatestBookingEvent(readout, ["status_changed"]);
     const statusTransition = getBookingEventStatusTransition(statusEvent);
     const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const engineState = getBookingEngineStateReadout(readout);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
     const lines = [
       "Strukturerad bokningslogg",
       `Ärende: ${asText(readout.conversationId || thread?.id, "okänt")}`,
       `Kund: ${asText(thread?.customerName || readout.customerName, "Bokningskund")}`,
       `Status: ${formatBookingStatus(readout.status)}`,
+      engineState ? `${engineState.label}: ${engineState.value} · ${engineState.meta}` : "",
       blocker
         ? `Blockering: ${asText(blocker.label, "Ej klassad")} · ${asText(blocker.nextActionLabel || blocker.action, "ingen rekommenderad åtgärd")}`
         : "Blockering: ej klassad",
+      signalEvent ? `Aktiv signal: ${signalEvent.label} · ${signalEvent.value}` : "Aktiv signal: ej klassad",
+      signalTimeline ? `Signalfas: ${signalTimeline.label}` : "",
+      signalEvent ? `Signalproveniens: ${signalEvent.meta}` : "",
+      signalActionCue ? `Arbetscue: ${signalActionCue.value} · ${signalActionCue.meta}` : "",
+      signalWorkPointReadout
+        ? `Arbetspunkt: ${signalWorkPointReadout.value}${
+            signalWorkPointReadout.meta ? ` · ${signalWorkPointReadout.meta}` : ""
+          }`
+        : "",
+      signalPointAnchorReadout
+        ? `Radankare: ${signalPointAnchorReadout.value}${
+            signalPointAnchorReadout.meta ? ` · ${signalPointAnchorReadout.meta}` : ""
+          }`
+        : "",
+      signalThreadPointReadout
+        ? `Trådpunkt: ${signalThreadPointReadout.value}${
+            signalThreadPointReadout.meta ? ` · ${signalThreadPointReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryRowReadout
+        ? `Historikrad: ${signalHistoryRowReadout.value}${
+            signalHistoryRowReadout.meta ? ` · ${signalHistoryRowReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReadout
+        ? `Kundsignalrad: ${signalCustomerReadout.value}${
+            signalCustomerReadout.meta ? ` · ${signalCustomerReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerEventReadout
+        ? `Kundhändelse: ${signalCustomerEventReadout.value}${
+            signalCustomerEventReadout.meta ? ` · ${signalCustomerEventReadout.meta}` : ""
+          }`
+        : "",
+      signalMessagePointReadout
+        ? `Meddelandepunkt: ${signalMessagePointReadout.value}${
+            signalMessagePointReadout.meta ? ` · ${signalMessagePointReadout.meta}` : ""
+          }`
+        : "",
+      signalMessageRowReadout
+        ? `Meddelanderad: ${signalMessageRowReadout.value}${
+            signalMessageRowReadout.meta ? ` · ${signalMessageRowReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowReadout
+        ? `Arbetsrad: ${signalHistoryWorkRowReadout.value}${
+            signalHistoryWorkRowReadout.meta ? ` · ${signalHistoryWorkRowReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowIdentityReadout
+        ? `Radidentitet: ${signalHistoryWorkRowIdentityReadout.value}${
+            signalHistoryWorkRowIdentityReadout.meta ? ` · ${signalHistoryWorkRowIdentityReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowReferenceReadout
+        ? `Radreferens: ${signalHistoryWorkRowReferenceReadout.value}${
+            signalHistoryWorkRowReferenceReadout.meta ? ` · ${signalHistoryWorkRowReferenceReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowTraceReadout
+        ? `Radspår: ${signalHistoryWorkRowTraceReadout.value}${
+            signalHistoryWorkRowTraceReadout.meta ? ` · ${signalHistoryWorkRowTraceReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryChainReadout
+        ? `Historikkedja: ${signalHistoryChainReadout.value}${
+            signalHistoryChainReadout.meta ? ` · ${signalHistoryChainReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerThreadReadout
+        ? `Kundtråd: ${signalCustomerThreadReadout.value}${
+            signalCustomerThreadReadout.meta ? ` · ${signalCustomerThreadReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerDialogueReadout
+        ? `Kunddialog: ${signalCustomerDialogueReadout.value}${
+            signalCustomerDialogueReadout.meta ? ` · ${signalCustomerDialogueReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerDialoguePointReadout
+        ? `Dialogpunkt: ${signalCustomerDialoguePointReadout.value}${
+            signalCustomerDialoguePointReadout.meta ? ` · ${signalCustomerDialoguePointReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReplyPointReadout
+        ? `Svarspunkt: ${signalCustomerReplyPointReadout.value}${
+            signalCustomerReplyPointReadout.meta ? ` · ${signalCustomerReplyPointReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReplyReadout
+        ? `Kundsvar: ${signalCustomerReplyReadout.value}${
+            signalCustomerReplyReadout.meta ? ` · ${signalCustomerReplyReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerResponseReadout
+        ? `Kundrespons: ${signalCustomerResponseReadout.value}${
+            signalCustomerResponseReadout.meta ? ` · ${signalCustomerResponseReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReactionReadout
+        ? `Kundreaktion: ${signalCustomerReactionReadout.value}${
+            signalCustomerReactionReadout.meta ? ` · ${signalCustomerReactionReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerResponseModeReadout
+        ? `Responsläge: ${signalCustomerResponseModeReadout.value}${
+            signalCustomerResponseModeReadout.meta ? ` · ${signalCustomerResponseModeReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerProcessingModeReadout
+        ? `Bearbetningsläge: ${signalCustomerProcessingModeReadout.value}${
+            signalCustomerProcessingModeReadout.meta ? ` · ${signalCustomerProcessingModeReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerActionReadout
+        ? `Operativ åtgärd: ${signalCustomerActionReadout.value}${
+            signalCustomerActionReadout.meta ? ` · ${signalCustomerActionReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerActionModeReadout
+        ? `Åtgärdsläge: ${signalCustomerActionModeReadout.value}${
+            signalCustomerActionModeReadout.meta ? ` · ${signalCustomerActionModeReadout.meta}` : ""
+          }`
+        : "",
+      signalWorkSourceReadout
+        ? `Arbetskälla: ${signalWorkSourceReadout.value} · ${signalWorkSourceReadout.meta}`
+        : "",
+      signalWorkReadout ? `Nästa drag: ${signalWorkReadout.value} · ${signalWorkReadout.meta}` : "",
+      signalProvenance ? `Signalsource: ${signalProvenance.label} · ${signalProvenance.meta}` : "",
+      signalProvenance?.referenceLabel ? `Signalreferens: ${signalProvenance.referenceLabel}` : "",
       statusTransition
         ? `Statusrörelse: ${statusTransition.previous} → ${statusTransition.next}`
         : "Statusrörelse: ej loggad",
@@ -22902,6 +27891,36 @@
     const statusEvent = getLatestBookingEvent(readout, ["status_changed"]);
     const statusTransition = getBookingEventStatusTransition(statusEvent);
     const slots = asArray(readout.selectedSlots);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
     const activeFilter = normalizeKey(state.booking?.eventTypeFilter || "");
     const rows = [
       activeFilter
@@ -22915,6 +27934,14 @@
         label: "Status",
         value: formatBookingStatus(readout.status),
       },
+      getBookingEngineStateReadout(readout)
+        ? {
+            label: "CCO motor",
+            value: `${getBookingEngineStateReadout(readout).value}`,
+            action: getBookingEngineStateReadout(readout).filter ? "filter_event" : "",
+            filter: getBookingEngineStateReadout(readout).filter || "",
+          }
+        : null,
       {
         label: "Nästa",
         value: blocker
@@ -22923,6 +27950,290 @@
         action: blocker?.action ? "focus_recommended" : "",
         recommendedAction: asText(blocker?.action),
       },
+      signalEvent
+        ? {
+            label: "Signal",
+            value: signalTimeline ? `${signalEvent.value} · ${signalTimeline.label}` : signalEvent.value,
+            action: signalEvent.filter ? "filter_event" : "",
+            filter: signalEvent.filter || "",
+          }
+        : null,
+      signalProvenance
+        ? {
+            label: "Källa",
+            value: `${signalProvenance.label}${
+              signalProvenance.referenceLabel ? ` · ${signalProvenance.referenceLabel}` : ""
+            }${signalProvenance.meta ? ` · ${signalProvenance.meta}` : ""}`,
+            action: signalEvent?.filter ? "filter_event" : "",
+            filter: signalEvent?.filter || "",
+          }
+        : null,
+      signalActionCue
+        ? {
+            label: "Arbetscue",
+            value: `${signalActionCue.value}${signalActionCue.meta ? ` · ${signalActionCue.meta}` : ""}`,
+            action: signalEvent?.filter ? "filter_event" : "",
+            filter: signalEvent?.filter || "",
+          }
+        : null,
+      signalWorkPointReadout
+        ? {
+            label: "Arbetspunkt",
+            value: `${signalWorkPointReadout.value}${
+              signalWorkPointReadout.meta ? ` · ${signalWorkPointReadout.meta}` : ""
+            }`,
+            action: signalWorkPointReadout.filter ? "filter_event" : "",
+            filter: signalWorkPointReadout.filter || "",
+          }
+        : null,
+      signalPointAnchorReadout
+        ? {
+            label: "Radankare",
+            value: `${signalPointAnchorReadout.value}${
+              signalPointAnchorReadout.meta ? ` · ${signalPointAnchorReadout.meta}` : ""
+            }`,
+            action: signalPointAnchorReadout.filter ? "filter_event" : "",
+            filter: signalPointAnchorReadout.filter || "",
+          }
+        : null,
+      signalThreadPointReadout
+        ? {
+            label: "Trådpunkt",
+            value: `${signalThreadPointReadout.value}${
+              signalThreadPointReadout.meta ? ` · ${signalThreadPointReadout.meta}` : ""
+            }`,
+            action: signalThreadPointReadout.filter ? "filter_event" : "",
+            filter: signalThreadPointReadout.filter || "",
+          }
+        : null,
+      signalHistoryRowReadout
+        ? {
+            label: "Historikrad",
+            value: `${signalHistoryRowReadout.value}${
+              signalHistoryRowReadout.meta ? ` · ${signalHistoryRowReadout.meta}` : ""
+            }`,
+            action: signalHistoryRowReadout.filter ? "filter_event" : "",
+            filter: signalHistoryRowReadout.filter || "",
+          }
+        : null,
+      signalCustomerReadout
+        ? {
+            label: "Kundsignalrad",
+            value: `${signalCustomerReadout.value}${
+              signalCustomerReadout.meta ? ` · ${signalCustomerReadout.meta}` : ""
+            }`,
+            action: signalCustomerReadout.filter ? "filter_event" : "",
+            filter: signalCustomerReadout.filter || "",
+          }
+        : null,
+      signalCustomerEventReadout
+        ? {
+            label: "Kundhändelse",
+            value: `${signalCustomerEventReadout.value}${
+              signalCustomerEventReadout.meta ? ` · ${signalCustomerEventReadout.meta}` : ""
+            }`,
+            action: signalCustomerEventReadout.filter ? "filter_event" : "",
+            filter: signalCustomerEventReadout.filter || "",
+          }
+        : null,
+      signalMessagePointReadout
+        ? {
+            label: "Meddelandepunkt",
+            value: `${signalMessagePointReadout.value}${
+              signalMessagePointReadout.meta ? ` · ${signalMessagePointReadout.meta}` : ""
+            }`,
+            action: signalMessagePointReadout.filter ? "filter_event" : "",
+            filter: signalMessagePointReadout.filter || "",
+          }
+        : null,
+      signalMessageRowReadout
+        ? {
+            label: "Meddelanderad",
+            value: `${signalMessageRowReadout.value}${
+              signalMessageRowReadout.meta ? ` · ${signalMessageRowReadout.meta}` : ""
+            }`,
+            action: signalMessageRowReadout.filter ? "filter_event" : "",
+            filter: signalMessageRowReadout.filter || "",
+          }
+        : null,
+      signalHistoryWorkRowReadout
+        ? {
+            label: "Arbetsrad",
+            value: `${signalHistoryWorkRowReadout.value}${
+              signalHistoryWorkRowReadout.meta ? ` · ${signalHistoryWorkRowReadout.meta}` : ""
+            }`,
+            action: signalHistoryWorkRowReadout.filter ? "filter_event" : "",
+            filter: signalHistoryWorkRowReadout.filter || "",
+          }
+        : null,
+      signalHistoryWorkRowIdentityReadout
+        ? {
+            label: "Radidentitet",
+            value: `${signalHistoryWorkRowIdentityReadout.value}${
+              signalHistoryWorkRowIdentityReadout.meta ? ` · ${signalHistoryWorkRowIdentityReadout.meta}` : ""
+            }`,
+            action: signalHistoryWorkRowIdentityReadout.filter ? "filter_event" : "",
+            filter: signalHistoryWorkRowIdentityReadout.filter || "",
+          }
+        : null,
+      signalHistoryWorkRowReferenceReadout
+        ? {
+            label: "Radreferens",
+            value: `${signalHistoryWorkRowReferenceReadout.value}${
+              signalHistoryWorkRowReferenceReadout.meta ? ` · ${signalHistoryWorkRowReferenceReadout.meta}` : ""
+            }`,
+            action: signalHistoryWorkRowReferenceReadout.filter ? "filter_event" : "",
+            filter: signalHistoryWorkRowReferenceReadout.filter || "",
+          }
+        : null,
+      signalHistoryWorkRowTraceReadout
+        ? {
+            label: "Radspår",
+            value: `${signalHistoryWorkRowTraceReadout.value}${
+              signalHistoryWorkRowTraceReadout.meta ? ` · ${signalHistoryWorkRowTraceReadout.meta}` : ""
+            }`,
+            action: signalHistoryWorkRowTraceReadout.filter ? "filter_event" : "",
+            filter: signalHistoryWorkRowTraceReadout.filter || "",
+          }
+        : null,
+      signalHistoryChainReadout
+        ? {
+            label: "Historikkedja",
+            value: `${signalHistoryChainReadout.value}${
+              signalHistoryChainReadout.meta ? ` · ${signalHistoryChainReadout.meta}` : ""
+            }`,
+            action: signalHistoryChainReadout.filter ? "filter_event" : "",
+            filter: signalHistoryChainReadout.filter || "",
+          }
+        : null,
+      signalCustomerThreadReadout
+        ? {
+            label: "Kundtråd",
+            value: `${signalCustomerThreadReadout.value}${
+              signalCustomerThreadReadout.meta ? ` · ${signalCustomerThreadReadout.meta}` : ""
+            }`,
+            action: signalCustomerThreadReadout.filter ? "filter_event" : "",
+            filter: signalCustomerThreadReadout.filter || "",
+          }
+        : null,
+      signalCustomerDialogueReadout
+        ? {
+            label: "Kunddialog",
+            value: `${signalCustomerDialogueReadout.value}${
+              signalCustomerDialogueReadout.meta ? ` · ${signalCustomerDialogueReadout.meta}` : ""
+            }`,
+            action: signalCustomerDialogueReadout.filter ? "filter_event" : "",
+            filter: signalCustomerDialogueReadout.filter || "",
+          }
+        : null,
+      signalCustomerDialoguePointReadout
+        ? {
+            label: "Dialogpunkt",
+            value: `${signalCustomerDialoguePointReadout.value}${
+              signalCustomerDialoguePointReadout.meta ? ` · ${signalCustomerDialoguePointReadout.meta}` : ""
+            }`,
+            action: signalCustomerDialoguePointReadout.filter ? "filter_event" : "",
+            filter: signalCustomerDialoguePointReadout.filter || "",
+          }
+        : null,
+      signalCustomerReplyPointReadout
+        ? {
+            label: "Svarspunkt",
+            value: `${signalCustomerReplyPointReadout.value}${
+              signalCustomerReplyPointReadout.meta ? ` · ${signalCustomerReplyPointReadout.meta}` : ""
+            }`,
+            action: signalCustomerReplyPointReadout.filter ? "filter_event" : "",
+            filter: signalCustomerReplyPointReadout.filter || "",
+          }
+        : null,
+      signalCustomerReplyReadout
+        ? {
+            label: "Kundsvar",
+            value: `${signalCustomerReplyReadout.value}${
+              signalCustomerReplyReadout.meta ? ` · ${signalCustomerReplyReadout.meta}` : ""
+            }`,
+            action: signalCustomerReplyReadout.filter ? "filter_event" : "",
+            filter: signalCustomerReplyReadout.filter || "",
+          }
+        : null,
+      signalCustomerResponseReadout
+        ? {
+            label: "Kundrespons",
+            value: `${signalCustomerResponseReadout.value}${
+              signalCustomerResponseReadout.meta ? ` · ${signalCustomerResponseReadout.meta}` : ""
+            }`,
+            action: signalCustomerResponseReadout.filter ? "filter_event" : "",
+            filter: signalCustomerResponseReadout.filter || "",
+          }
+        : null,
+      signalCustomerReactionReadout
+        ? {
+            label: "Kundreaktion",
+            value: `${signalCustomerReactionReadout.value}${
+              signalCustomerReactionReadout.meta ? ` · ${signalCustomerReactionReadout.meta}` : ""
+            }`,
+            action: signalCustomerReactionReadout.filter ? "filter_event" : "",
+            filter: signalCustomerReactionReadout.filter || "",
+          }
+        : null,
+      signalCustomerResponseModeReadout
+        ? {
+            label: "Responsläge",
+            value: `${signalCustomerResponseModeReadout.value}${
+              signalCustomerResponseModeReadout.meta ? ` · ${signalCustomerResponseModeReadout.meta}` : ""
+            }`,
+            action: signalCustomerResponseModeReadout.filter ? "filter_event" : "",
+            filter: signalCustomerResponseModeReadout.filter || "",
+          }
+        : null,
+      signalCustomerProcessingModeReadout
+        ? {
+            label: "Bearbetningsläge",
+            value: `${signalCustomerProcessingModeReadout.value}${
+              signalCustomerProcessingModeReadout.meta ? ` · ${signalCustomerProcessingModeReadout.meta}` : ""
+            }`,
+            action: signalCustomerProcessingModeReadout.filter ? "filter_event" : "",
+            filter: signalCustomerProcessingModeReadout.filter || "",
+          }
+        : null,
+      signalCustomerActionReadout
+        ? {
+            label: "Operativ åtgärd",
+            value: `${signalCustomerActionReadout.value}${
+              signalCustomerActionReadout.meta ? ` · ${signalCustomerActionReadout.meta}` : ""
+            }`,
+            action: signalCustomerActionReadout.filter ? "filter_event" : "",
+            filter: signalCustomerActionReadout.filter || "",
+          }
+        : null,
+      signalCustomerActionModeReadout
+        ? {
+            label: "Åtgärdsläge",
+            value: `${signalCustomerActionModeReadout.value}${
+              signalCustomerActionModeReadout.meta ? ` · ${signalCustomerActionModeReadout.meta}` : ""
+            }`,
+            action: signalCustomerActionModeReadout.filter ? "filter_event" : "",
+            filter: signalCustomerActionModeReadout.filter || "",
+          }
+        : null,
+      signalWorkSourceReadout
+        ? {
+            label: "Arbetskälla",
+            value: `${signalWorkSourceReadout.value}${
+              signalWorkSourceReadout.meta ? ` · ${signalWorkSourceReadout.meta}` : ""
+            }`,
+            action: signalWorkSourceReadout.filter ? "filter_event" : "",
+            filter: signalWorkSourceReadout.filter || "",
+          }
+        : null,
+      signalWorkReadout
+        ? {
+            label: "Nästa drag",
+            value: `${signalWorkReadout.value}${signalWorkReadout.meta ? ` · ${signalWorkReadout.meta}` : ""}`,
+            action: signalWorkReadout.filter ? "filter_event" : "",
+            filter: signalWorkReadout.filter || "",
+          }
+        : null,
       statusTransition
         ? {
             label: "Rörelse",
@@ -22976,12 +28287,179 @@
     const statusEvent = getLatestBookingEvent(readout, ["status_changed"]);
     const statusTransition = getBookingEventStatusTransition(statusEvent);
     const slots = asArray(readout.selectedSlots);
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalProvenance = signalEvent ? getBookingEventProvenanceReadout(signalEvent, readout) : null;
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
     return [
       `Bokningslogg - ${asText(thread?.customerName, "Bokningskund")}`,
       `Status: ${formatBookingStatus(readout.status)}`,
       blocker
         ? `Nästa: ${asText(blocker.nextActionLabel || blocker.action, "ingen rekommenderad åtgärd")}`
         : "Nästa: ej klassad",
+      signalEvent
+        ? `Signal: ${signalEvent.label} · ${signalEvent.value}${
+            signalTimeline ? ` · ${signalTimeline.label}` : ""
+          }`
+        : "",
+      signalProvenance
+        ? `Källa: ${signalProvenance.label}${
+            signalProvenance.referenceLabel ? ` · ${signalProvenance.referenceLabel}` : ""
+          } · ${signalProvenance.meta}`
+        : "",
+      signalActionCue ? `Arbetscue: ${signalActionCue.value}${signalActionCue.meta ? ` · ${signalActionCue.meta}` : ""}` : "",
+      signalWorkPointReadout
+        ? `${signalWorkPointReadout.label}: ${signalWorkPointReadout.value}${
+            signalWorkPointReadout.meta ? ` · ${signalWorkPointReadout.meta}` : ""
+          }`
+        : "",
+      signalPointAnchorReadout
+        ? `${signalPointAnchorReadout.label}: ${signalPointAnchorReadout.value}${
+            signalPointAnchorReadout.meta ? ` · ${signalPointAnchorReadout.meta}` : ""
+          }`
+        : "",
+      signalThreadPointReadout
+        ? `${signalThreadPointReadout.label}: ${signalThreadPointReadout.value}${
+            signalThreadPointReadout.meta ? ` · ${signalThreadPointReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryRowReadout
+        ? `${signalHistoryRowReadout.label}: ${signalHistoryRowReadout.value}${
+            signalHistoryRowReadout.meta ? ` · ${signalHistoryRowReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReadout
+        ? `${signalCustomerReadout.label}: ${signalCustomerReadout.value}${
+            signalCustomerReadout.meta ? ` · ${signalCustomerReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerEventReadout
+        ? `${signalCustomerEventReadout.label}: ${signalCustomerEventReadout.value}${
+            signalCustomerEventReadout.meta ? ` · ${signalCustomerEventReadout.meta}` : ""
+          }`
+        : "",
+      signalMessagePointReadout
+        ? `${signalMessagePointReadout.label}: ${signalMessagePointReadout.value}${
+            signalMessagePointReadout.meta ? ` · ${signalMessagePointReadout.meta}` : ""
+          }`
+        : "",
+      signalMessageRowReadout
+        ? `${signalMessageRowReadout.label}: ${signalMessageRowReadout.value}${
+            signalMessageRowReadout.meta ? ` · ${signalMessageRowReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowReadout
+        ? `${signalHistoryWorkRowReadout.label}: ${signalHistoryWorkRowReadout.value}${
+            signalHistoryWorkRowReadout.meta ? ` · ${signalHistoryWorkRowReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowIdentityReadout
+        ? `${signalHistoryWorkRowIdentityReadout.label}: ${signalHistoryWorkRowIdentityReadout.value}${
+            signalHistoryWorkRowIdentityReadout.meta ? ` · ${signalHistoryWorkRowIdentityReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowReferenceReadout
+        ? `${signalHistoryWorkRowReferenceReadout.label}: ${signalHistoryWorkRowReferenceReadout.value}${
+            signalHistoryWorkRowReferenceReadout.meta ? ` · ${signalHistoryWorkRowReferenceReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryWorkRowTraceReadout
+        ? `${signalHistoryWorkRowTraceReadout.label}: ${signalHistoryWorkRowTraceReadout.value}${
+            signalHistoryWorkRowTraceReadout.meta ? ` · ${signalHistoryWorkRowTraceReadout.meta}` : ""
+          }`
+        : "",
+      signalHistoryChainReadout
+        ? `${signalHistoryChainReadout.label}: ${signalHistoryChainReadout.value}${
+            signalHistoryChainReadout.meta ? ` · ${signalHistoryChainReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerThreadReadout
+        ? `${signalCustomerThreadReadout.label}: ${signalCustomerThreadReadout.value}${
+            signalCustomerThreadReadout.meta ? ` · ${signalCustomerThreadReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerDialogueReadout
+        ? `${signalCustomerDialogueReadout.label}: ${signalCustomerDialogueReadout.value}${
+            signalCustomerDialogueReadout.meta ? ` · ${signalCustomerDialogueReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerDialoguePointReadout
+        ? `${signalCustomerDialoguePointReadout.label}: ${signalCustomerDialoguePointReadout.value}${
+            signalCustomerDialoguePointReadout.meta ? ` · ${signalCustomerDialoguePointReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReplyPointReadout
+        ? `${signalCustomerReplyPointReadout.label}: ${signalCustomerReplyPointReadout.value}${
+            signalCustomerReplyPointReadout.meta ? ` · ${signalCustomerReplyPointReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReplyReadout
+        ? `${signalCustomerReplyReadout.label}: ${signalCustomerReplyReadout.value}${
+            signalCustomerReplyReadout.meta ? ` · ${signalCustomerReplyReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerResponseReadout
+        ? `${signalCustomerResponseReadout.label}: ${signalCustomerResponseReadout.value}${
+            signalCustomerResponseReadout.meta ? ` · ${signalCustomerResponseReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerReactionReadout
+        ? `${signalCustomerReactionReadout.label}: ${signalCustomerReactionReadout.value}${
+            signalCustomerReactionReadout.meta ? ` · ${signalCustomerReactionReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerResponseModeReadout
+        ? `${signalCustomerResponseModeReadout.label}: ${signalCustomerResponseModeReadout.value}${
+            signalCustomerResponseModeReadout.meta ? ` · ${signalCustomerResponseModeReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerProcessingModeReadout
+        ? `${signalCustomerProcessingModeReadout.label}: ${signalCustomerProcessingModeReadout.value}${
+            signalCustomerProcessingModeReadout.meta ? ` · ${signalCustomerProcessingModeReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerActionReadout
+        ? `${signalCustomerActionReadout.label}: ${signalCustomerActionReadout.value}${
+            signalCustomerActionReadout.meta ? ` · ${signalCustomerActionReadout.meta}` : ""
+          }`
+        : "",
+      signalCustomerActionModeReadout
+        ? `${signalCustomerActionModeReadout.label}: ${signalCustomerActionModeReadout.value}${
+            signalCustomerActionModeReadout.meta ? ` · ${signalCustomerActionModeReadout.meta}` : ""
+          }`
+        : "",
+      signalWorkSourceReadout
+        ? `${signalWorkSourceReadout.label}: ${signalWorkSourceReadout.value}${
+            signalWorkSourceReadout.meta ? ` · ${signalWorkSourceReadout.meta}` : ""
+          }`
+        : "",
+      signalWorkReadout ? `${signalWorkReadout.label}: ${signalWorkReadout.value}${signalWorkReadout.meta ? ` · ${signalWorkReadout.meta}` : ""}` : "",
       statusTransition ? `Rörelse: ${statusTransition.previous} → ${statusTransition.next}` : "",
       `Tider: ${slots.length}${slots[0] ? ` · ${formatBookingSlot(slots[0])}` : ""}`,
       latestFollowUp
@@ -23052,22 +28530,30 @@
       case_created: "Case",
       candidate_slots_selected: "Tider",
       candidate_slots_cleared: "Tider",
+      engine_slots_reserved: "CCO motor",
       offer_draft_inserted: "Svarstudio",
       follow_up_opened: "Uppföljning",
       follow_up_scheduled: "Uppföljning",
       audit_summary_copied: "Logg",
       external_confirmation_marked: "Bekräftelse",
+      engine_booking_confirmed: "CCO motor",
+      engine_booking_cancelled: "CCO motor",
+      engine_booking_rebooked: "CCO motor",
       status_changed: "Status",
     };
     const tones = {
       case_created: "neutral",
       candidate_slots_selected: "tider",
       candidate_slots_cleared: "attention",
+      engine_slots_reserved: "status",
       offer_draft_inserted: "studio",
       follow_up_opened: "followup",
       follow_up_scheduled: "followup",
       audit_summary_copied: "neutral",
       external_confirmation_marked: "confirmed",
+      engine_booking_confirmed: "confirmed",
+      engine_booking_cancelled: "attention",
+      engine_booking_rebooked: "status",
       status_changed: "status",
     };
     return {
@@ -23103,6 +28589,1200 @@
     return asText(metadata.bookingFollowUpReason || metadata.reason);
   }
 
+  function getBookingEventProvenanceReadout(event = {}, readout = {}) {
+    const metadata =
+      event?.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? event.metadata
+        : {};
+    const source = normalizeKey(metadata.source);
+    const actionType = normalizeKey(metadata.actionType);
+    const mailboxId = asText(metadata.mailboxId);
+    const messageId = asText(metadata.messageId);
+    const nextActionLabel = asText(metadata.nextActionLabel);
+    const followUpDueAt = asText(metadata.followUpDueAt);
+    const mailboxLabel = mailboxId
+      ? asText(findRuntimeMailboxByScopeId(mailboxId)?.label, titleCaseMailbox(mailboxId))
+      : "";
+    const messageLabel = messageId ? `msg ${messageId.slice(0, 8)}` : "";
+    if (source === "cco_history_store") {
+      const labelByActionType = {
+        customer_replied: "History-enrichment: kundsvar",
+        reply_later: "History-enrichment: uppföljning",
+      };
+      const detailParts = [
+        mailboxLabel ? `Mailbox ${mailboxLabel}` : "",
+        nextActionLabel || "",
+        followUpDueAt ? `due ${formatBookingEventTime(followUpDueAt)}` : "",
+        messageLabel,
+      ].filter(Boolean);
+      return {
+        label: labelByActionType[actionType] || "History-enrichment",
+        meta:
+          detailParts.join(" · ") ||
+          "Signalen kommer från kundhistoriken snarare än lokal booking-eventkedja.",
+        tone: actionType === "reply_later" ? "followup" : "message",
+        sourceKind: "history",
+        referenceLabel: messageLabel || mailboxLabel || "",
+      };
+    }
+    const eventType = normalizeKey(event?.type);
+    if (
+      ["engine_slots_reserved", "engine_booking_confirmed", "engine_booking_cancelled", "engine_booking_rebooked"].includes(
+        eventType
+      )
+    ) {
+      return {
+        label: "CCO-motor",
+        meta: "Händelsen kommer från bokningsmotorns egen write-kedja.",
+        tone: "status",
+        sourceKind: "engine",
+        referenceLabel: "",
+      };
+    }
+    if (eventType === "offer_draft_inserted") {
+      return {
+        label: "Svarstudio",
+        meta: "Händelsen kommer från compose-/erbjudandespåret i operatörsytan.",
+        tone: "studio",
+        sourceKind: "studio",
+        referenceLabel: "",
+      };
+    }
+    if (eventType === "external_confirmation_marked") {
+      return {
+        label: "Extern bekräftelse",
+        meta: "Händelsen markerades i ärendet som extern bekräftelse eller syncad bokning.",
+        tone: "confirmed",
+        sourceKind: "external_confirmation",
+        referenceLabel: "",
+      };
+    }
+    if (eventType === "status_changed") {
+      return {
+        label: "Lokal bookinglogg",
+        meta: "Händelsen kommer från operatörens egen status- eller handoff-kedja.",
+        tone: "status",
+        sourceKind: "local_case",
+        referenceLabel: "",
+      };
+    }
+    return {
+      label: "Lokal bookinglogg",
+      meta: "Händelsen kommer från det lokala booking-caset.",
+      tone: "neutral",
+      sourceKind: "local_case",
+      referenceLabel: "",
+    };
+  }
+
+  function getBookingWorkflowSignalMessageReadout(event = {}, readout = {}) {
+    const provenance = getBookingEventProvenanceReadout(event, readout);
+    if (normalizeKey(provenance?.sourceKind) !== "history") return null;
+    const metadata =
+      event?.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? event.metadata
+        : {};
+    const actionType = normalizeKey(metadata.actionType);
+    const mailboxId = asText(metadata.mailboxId);
+    const messageId = asText(metadata.messageId);
+    const mailboxLabel = mailboxId
+      ? asText(findRuntimeMailboxByScopeId(mailboxId)?.label, titleCaseMailbox(mailboxId))
+      : "";
+    const messageLabel = messageId ? `msg ${messageId.slice(0, 8)}` : "";
+    const actionLabel =
+      {
+        customer_replied: "Kundsvar",
+        reply_later: "Reply later",
+      }[actionType] || "Historiksignal";
+    const actionMeta =
+      {
+        customer_replied: "Den aktiva kundsignalen kommer från kundhistoriken.",
+        reply_later: "Den aktiva uppföljningen kommer från kundhistoriken.",
+      }[actionType] || "Den aktiva signalen kommer från kundhistoriken.";
+    const referenceParts = [mailboxLabel, messageLabel].filter(Boolean);
+    return {
+      label: actionLabel,
+      value: referenceParts.length ? `${actionLabel} · ${referenceParts.join(" · ")}` : actionLabel,
+      meta: referenceParts.length ? `${actionMeta} ${referenceParts.join(" · ")}` : actionMeta,
+      tone: provenance?.tone || "message",
+      referenceLabel: messageLabel || mailboxLabel || "",
+      mailboxLabel,
+      messageLabel,
+      actionType,
+    };
+  }
+
+  function getBookingWorkflowSignalMomentReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalAtLabel = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Arbetsogonblick",
+      value: signalTimeline ? `${signalTimeline.label} · ${signalAtLabel}` : signalAtLabel,
+      meta:
+        signalTimeline?.meta ||
+        "Det här är den aktuella tidpunkten som håller bokningscaset operativt.",
+      tone: signalEvent?.tone || "neutral",
+    };
+  }
+
+  function getBookingWorkflowActiveRowReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const rowLabel = signalMessageReadout?.label || signalEvent.label;
+    const rowValue = formatBookingVisibleLogText(signalEvent.value || signalEvent.label, "Bokningshändelse");
+    return {
+      label: "Aktiv rad",
+      value: `${rowLabel} · ${rowValue}`,
+      meta: signalTimeline
+        ? `${signalTimeline.label} · ${formatBookingEventTime(signalEvent.signalAt)}`
+        : formatBookingEventTime(signalEvent.signalAt),
+      tone: signalEvent?.tone || signalMessageReadout?.tone || "neutral",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowSignalActionCue(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const cueByRecommendationState = {
+      act_now_overdue: {
+        label: "Arbetscue",
+        value: "Svara nu",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att ärendet ska tillbaka till Svarstudio direkt.",
+        tone: "attention",
+      },
+      act_now: {
+        label: "Arbetscue",
+        value: "Svara nu",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att kunden väntar på ett nytt operatörssvar.",
+        tone: "attention",
+      },
+      reengage_now: {
+        label: "Arbetscue",
+        value: "Följ upp nu",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att kunddialogen ska återupptas nu.",
+        tone: "attention",
+      },
+      monitor: {
+        label: "Arbetscue",
+        value: "Bevaka",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att läget ska följas utan att skapa ett nytt steg ännu.",
+        tone: "waiting",
+      },
+      set_customer_state: {
+        label: "Arbetscue",
+        value: "Sätt kundläge",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att kundläget behöver tydliggöras innan flödet går vidare.",
+        tone: "stable",
+      },
+      ready_to_close: {
+        label: "Arbetscue",
+        value: "Stäng efter kontroll",
+        meta:
+          recommendation.reason ||
+          "Den aktiva raden betyder att slutkontroll återstår innan ärendet stängs.",
+        tone: "ready",
+      },
+    };
+    if (cueByRecommendationState[recommendationState]) {
+      return cueByRecommendationState[recommendationState];
+    }
+    return {
+      label: "Arbetscue",
+      value: "Granska raden",
+      meta: "Den aktiva raden är den säkraste startpunkten för nästa manuella drag.",
+      tone: "stable",
+    };
+  }
+
+  function getBookingWorkflowSignalWorkReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const nextActionLabel = asText(blocker?.nextActionLabel || blocker?.action);
+    const recommendation = getBookingRecommendationMeta(readout);
+    return {
+      label: "Nästa drag",
+      value: [signalActionCue?.value, nextActionLabel].filter(Boolean).join(" · ") || "Granska raden",
+      meta:
+        signalActionCue?.meta ||
+        recommendation.reason ||
+        "Den aktiva signalraden är den säkraste arbetsingången just nu.",
+      tone: signalActionCue?.tone || asText(blocker?.tone) || "stable",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowWorkSourceReadout(readout = {}) {
+    const activeRowReadout = getBookingWorkflowActiveRowReadout(readout);
+    if (!activeRowReadout) return null;
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalMomentReadout = getBookingWorkflowSignalMomentReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    return {
+      label: "Arbetskälla",
+      value: activeRowReadout.value,
+      meta: [signalWorkPointReadout?.value, signalPointAnchorReadout?.value, signalMomentReadout?.value, signalWorkReadout?.value]
+        .filter(Boolean)
+        .join(" · "),
+      tone: activeRowReadout.tone || signalWorkReadout?.tone || "stable",
+      filter: activeRowReadout.filter || "",
+    };
+  }
+
+  function getBookingWorkflowPointAnchorReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    const pointRowAnchor = formatBookingVisibleLogText(signalEvent.value || signalEvent.label, "Bokningshändelse");
+    const pointFilterLabel = signalEvent.filter
+      ? getBookingEventFilterLabel(signalEvent.filter, readout)
+      : "";
+    const pointThreadReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const pointThreadOriginLabel =
+      signalMessageReadout?.label ||
+      signalProvenance?.label ||
+      signalEvent.label;
+    const pointTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Radankare",
+      value: [pointThreadReference, pointRowAnchor].filter(Boolean).join(" · ") || pointRowAnchor,
+      meta: [pointThreadOriginLabel, pointFilterLabel, pointTime].filter(Boolean).join(" · "),
+      tone: signalEvent?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "stable",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowThreadPointReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const pointRowAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Bokningshändelse"
+    );
+    const pointFilterLabel = signalEvent.filter
+      ? getBookingEventFilterLabel(signalEvent.filter, readout)
+      : "";
+    const pointThreadOriginLabel =
+      signalMessageReadout?.label ||
+      signalProvenance?.label ||
+      signalEvent.label;
+    const pointMailboxLabel = signalMessageReadout?.mailboxLabel || "";
+    const pointMessageLabel = signalMessageReadout?.messageLabel || "";
+    const pointThreadReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const pointThreadOrigin =
+      signalMessageReadout?.value ||
+      [signalProvenance?.label, pointThreadReference].filter(Boolean).join(" · ") ||
+      signalEvent.label;
+    const pointThreadMeta =
+      signalMessageReadout?.meta ||
+      signalProvenance?.meta ||
+      "";
+    const pointTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Trådpunkt",
+      value: [pointThreadOriginLabel, pointMailboxLabel, pointMessageLabel, pointTime]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [signalTimeline?.label, pointThreadOrigin, pointFilterLabel, pointRowAnchor, pointThreadMeta]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalEvent?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "stable",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryRowReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const pointRowAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Bokningshändelse"
+    );
+    const pointFilterLabel = signalEvent.filter
+      ? getBookingEventFilterLabel(signalEvent.filter, readout)
+      : "";
+    const pointThreadOriginLabel =
+      signalMessageReadout?.label ||
+      signalProvenance?.label ||
+      signalEvent.label;
+    const pointThreadReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const pointTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Historikrad",
+      value: [pointThreadOriginLabel, pointThreadReference, pointRowAnchor].filter(Boolean).join(" · "),
+      meta: [signalTimeline?.label, pointFilterLabel, pointTime].filter(Boolean).join(" · "),
+      tone: signalMessageReadout?.tone || signalProvenance?.tone || signalEvent?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerSignalReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const customerSignalLabel =
+      signalMessageReadout?.label ||
+      signalProvenance?.label ||
+      signalEvent.label;
+    const customerSignalReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    return {
+      label: "Kundsignalrad",
+      value: [customerSignalLabel, customerSignalReference, historyRowReadout?.value].filter(Boolean).join(" · "),
+      meta: [signalTimeline?.label, signalActionCue?.value, signalMessageReadout?.meta].filter(Boolean).join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerEventReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const customerEventLabel =
+      signalEvent.label ||
+      signalMessageReadout?.label ||
+      signalProvenance?.label;
+    const customerEventValue =
+      signalEvent.value ||
+      signalMessageReadout?.value ||
+      customerEventLabel;
+    const customerEventReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const customerEventTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Kundhändelse",
+      value: [
+        customerEventLabel,
+        customerEventValue !== customerEventLabel ? customerEventValue : "",
+        customerEventReference,
+        customerEventTime,
+      ].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        historyRowReadout?.value,
+        signalMessageReadout?.meta,
+      ].filter(Boolean).join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowMessagePointReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const messagePointLabel = signalMessageReadout?.label || signalEvent.label;
+    const messagePointMailbox = signalMessageReadout?.mailboxLabel || "";
+    const messagePointMessage = signalMessageReadout?.messageLabel || "";
+    const messagePointReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const messagePointTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Meddelandepunkt",
+      value: [
+        messagePointLabel,
+        messagePointMailbox,
+        messagePointMessage,
+        messagePointReference,
+        messagePointTime,
+      ].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        historyRowReadout?.value,
+        signalMessageReadout?.meta,
+      ].filter(Boolean).join(" · "),
+      tone: signalMessageReadout?.tone || signalProvenance?.tone || signalEvent?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowMessageRowReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const pointRowAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Meddelanderad"
+    );
+    const messageRowLabel = signalMessageReadout?.label || signalEvent.label;
+    const messageRowReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const messageRowTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Meddelanderad",
+      value: [messageRowLabel, messageRowReference, pointRowAnchor].filter(Boolean).join(" · "),
+      meta: [signalTimeline?.label, historyRowReadout?.value, messageRowTime, signalMessageReadout?.meta]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalMessageReadout?.tone || signalProvenance?.tone || signalEvent?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryWorkRowReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const messageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const workSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const pointRowAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Historikrad"
+    );
+    const historyWorkRowLabel = signalMessageReadout?.label || signalEvent.label;
+    const historyWorkRowReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const historyWorkRowTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Arbetsrad",
+      value: [historyWorkRowLabel, historyWorkRowReference, pointRowAnchor].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        messageRowReadout?.value,
+        historyRowReadout?.value,
+        workSourceReadout?.value,
+        historyWorkRowTime,
+        signalMessageReadout?.meta,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryWorkRowIdentityReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const messageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const pointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const rowIdentityLabel = signalMessageReadout?.label || signalEvent.label;
+    const rowIdentityReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const rowIdentityAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Historikrad"
+    );
+    const rowIdentityTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Radidentitet",
+      value: [rowIdentityLabel, rowIdentityReference, rowIdentityAnchor].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        historyRowReadout?.value,
+        messageRowReadout?.value,
+        pointAnchorReadout?.value,
+        rowIdentityTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryWorkRowReferenceReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const historyWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const pointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const rowReferenceLabel = signalMessageReadout?.label || signalEvent.label;
+    const rowReferenceMailbox = signalMessageReadout?.mailboxLabel || "";
+    const rowReferenceMessage = signalMessageReadout?.messageLabel || "";
+    const rowReferenceReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const rowReferenceTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Radreferens",
+      value: [rowReferenceLabel, rowReferenceMailbox, rowReferenceMessage, rowReferenceReference]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        historyWorkRowReadout?.value,
+        historyWorkRowIdentityReadout?.value,
+        pointAnchorReadout?.value,
+        rowReferenceTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryWorkRowTraceReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const historyWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const historyWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const pointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const rowTraceLabel = signalMessageReadout?.label || signalEvent.label;
+    const rowTraceReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const rowTraceAnchor = formatBookingVisibleLogText(
+      signalEvent.value || signalEvent.label,
+      "Historikspår"
+    );
+    const rowTraceTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Radspår",
+      value: [rowTraceLabel, rowTraceReference, rowTraceAnchor].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        historyWorkRowReadout?.value,
+        historyWorkRowReferenceReadout?.value,
+        pointAnchorReadout?.value,
+        rowTraceTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowHistoryChainReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const historyWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const historyWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const historyChainTime = formatBookingEventTime(signalEvent.signalAt);
+    const historyChainLabel = signalCustomerEventReadout?.label || signalEvent.label;
+    const historyChainEvent = signalCustomerEventReadout?.value || signalEvent.value || signalEvent.label;
+    const historyChainReference =
+      signalMessagePointReadout?.value ||
+      historyWorkRowReferenceReadout?.value ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const historyChainTrace = historyWorkRowTraceReadout?.value || "";
+    return {
+      label: "Historikkedja",
+      value: [historyChainLabel, historyChainEvent, historyChainReference, historyChainTrace]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerEventReadout?.meta,
+        signalMessagePointReadout?.meta,
+        historyWorkRowReferenceReadout?.meta,
+        historyChainTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalCustomerEventReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerThreadReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const customerThreadTime = formatBookingEventTime(signalEvent.signalAt);
+    const customerThreadLabel = signalThreadPointReadout?.label || signalEvent.label;
+    const customerThreadOrigin = signalThreadPointReadout?.value || signalEvent.value || signalEvent.label;
+    const customerThreadReference =
+      signalMessagePointReadout?.value ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const customerThreadChain = signalHistoryChainReadout?.value || "";
+    return {
+      label: "Kundtråd",
+      value: [customerThreadLabel, customerThreadOrigin, customerThreadReference, customerThreadChain]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalThreadPointReadout?.meta,
+        signalMessagePointReadout?.meta,
+        signalHistoryChainReadout?.meta,
+        customerThreadTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalActionCue?.tone || signalThreadPointReadout?.tone || signalProvenance?.tone || "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerDialogueReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const customerDialogueTime = formatBookingEventTime(signalEvent.signalAt);
+    const customerDialogueLabel = signalCustomerEventReadout?.label || signalEvent.label;
+    const customerDialogueEvent =
+      signalCustomerEventReadout?.value || signalEvent.value || signalEvent.label;
+    const customerDialogueThread = signalCustomerThreadReadout?.value || "";
+    const customerDialogueRow = signalMessageRowReadout?.value || "";
+    return {
+      label: "Kunddialog",
+      value: [
+        customerDialogueLabel,
+        customerDialogueEvent,
+        customerDialogueThread,
+        customerDialogueRow,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerThreadReadout?.meta,
+        signalCustomerEventReadout?.meta,
+        signalMessageRowReadout?.meta,
+        customerDialogueTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerThreadReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerDialoguePointReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const customerDialoguePointTime = formatBookingEventTime(signalEvent.signalAt);
+    const customerDialoguePointLabel = signalMessagePointReadout?.label || signalEvent.label;
+    const customerDialoguePointOrigin =
+      signalCustomerDialogueReadout?.value || signalEvent.value || signalEvent.label;
+    const customerDialoguePointMessage = signalMessagePointReadout?.value || "";
+    const customerDialoguePointRow = signalMessageRowReadout?.value || "";
+    return {
+      label: "Dialogpunkt",
+      value: [
+        customerDialoguePointLabel,
+        customerDialoguePointOrigin,
+        customerDialoguePointMessage,
+        customerDialoguePointRow,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerDialogueReadout?.meta,
+        signalMessagePointReadout?.meta,
+        signalMessageRowReadout?.meta,
+        customerDialoguePointTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerDialogueReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerReplyPointReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const replyPointTime = formatBookingEventTime(signalEvent.signalAt);
+    const replyPointLabel = signalMessagePointReadout?.label || signalEvent.label;
+    const replyPointOrigin =
+      signalCustomerDialoguePointReadout?.value ||
+      signalCustomerDialogueReadout?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const replyPointMessage = signalMessagePointReadout?.value || "";
+    return {
+      label: "Svarspunkt",
+      value: [replyPointLabel, replyPointOrigin, replyPointMessage].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerDialogueReadout?.meta,
+        signalCustomerDialoguePointReadout?.meta,
+        signalMessagePointReadout?.meta,
+        replyPointTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerDialoguePointReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerReplyReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const replyTime = formatBookingEventTime(signalEvent.signalAt);
+    const replyLabel = signalCustomerEventReadout?.label || signalEvent.label;
+    const replyValue =
+      signalMessageReadout?.value ||
+      signalCustomerEventReadout?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const replyPoint = signalCustomerReplyPointReadout?.value || "";
+    return {
+      label: "Kundsvar",
+      value: [replyLabel, replyValue, replyPoint].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerEventReadout?.meta,
+        signalCustomerReplyPointReadout?.meta,
+        signalMessageReadout?.meta,
+        replyTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerReplyPointReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerResponseReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const responseTime = formatBookingEventTime(signalEvent.signalAt);
+    const responseLabel = signalCustomerReplyReadout?.label || signalEvent.label;
+    const responseValue =
+      signalCustomerDialoguePointReadout?.value ||
+      signalCustomerReplyReadout?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const responseRow = signalMessageRowReadout?.value || "";
+    return {
+      label: "Kundrespons",
+      value: [responseLabel, responseValue, responseRow].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerReplyReadout?.meta,
+        signalCustomerDialoguePointReadout?.meta,
+        signalMessageRowReadout?.meta,
+        responseTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerReplyReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerReactionReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const reactionTime = formatBookingEventTime(signalEvent.signalAt);
+    const reactionLabel = signalCustomerResponseReadout?.label || signalEvent.label;
+    const reactionValue =
+      signalCustomerEventReadout?.value ||
+      signalCustomerResponseReadout?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const reactionPoint = signalMessagePointReadout?.value || "";
+    return {
+      label: "Kundreaktion",
+      value: [reactionLabel, reactionValue, reactionPoint].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        signalActionCue?.value,
+        signalCustomerResponseReadout?.meta,
+        signalCustomerEventReadout?.meta,
+        signalMessagePointReadout?.meta,
+        reactionTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerResponseReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerResponseModeReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const nextActionReadout = buildBookingNextActionReadout(readout);
+    const responseModeTime = formatBookingEventTime(signalEvent.signalAt);
+    const responseModeLabel = signalCustomerReactionReadout?.label || signalEvent.label;
+    const responseModeValue =
+      signalActionCue?.value ||
+      signalCustomerResponseReadout?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const responseModePoint = signalCustomerReplyPointReadout?.value || "";
+    return {
+      label: "Responsläge",
+      value: [responseModeLabel, responseModeValue, responseModePoint].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        nextActionReadout?.label,
+        nextActionReadout?.meta,
+        signalCustomerReactionReadout?.meta,
+        signalCustomerResponseReadout?.meta,
+        signalCustomerReplyPointReadout?.meta,
+        responseModeTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalActionCue?.tone ||
+        signalCustomerReactionReadout?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerProcessingModeReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const nextActionReadout = buildBookingNextActionReadout(readout);
+    const processingModeTime = formatBookingEventTime(signalEvent.signalAt);
+    const processingModeLabel = signalCustomerResponseModeReadout?.label || signalEvent.label;
+    const processingModeValue =
+      signalWorkReadout?.value ||
+      signalActionCue?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const processingModeSource =
+      signalWorkSourceReadout?.value ||
+      signalCustomerResponseModeReadout?.value ||
+      "";
+    return {
+      label: "Bearbetningsläge",
+      value: [processingModeLabel, processingModeValue, processingModeSource].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        nextActionReadout?.label,
+        nextActionReadout?.meta,
+        signalCustomerResponseModeReadout?.meta,
+        signalWorkReadout?.meta,
+        signalWorkSourceReadout?.meta,
+        processingModeTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalWorkReadout?.tone ||
+        signalActionCue?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerActionModeReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const nextActionReadout = buildBookingNextActionReadout(readout);
+    const actionModeTime = formatBookingEventTime(signalEvent.signalAt);
+    const actionModeLabel = signalCustomerProcessingModeReadout?.label || signalEvent.label;
+    const actionModeValue =
+      nextActionReadout?.label ||
+      signalWorkReadout?.value ||
+      signalActionCue?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const actionModePoint = signalWorkPointReadout?.value || "";
+    return {
+      label: "Åtgärdsläge",
+      value: [actionModeLabel, actionModeValue, actionModePoint].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        nextActionReadout?.meta,
+        signalCustomerProcessingModeReadout?.meta,
+        signalWorkReadout?.meta,
+        signalWorkPointReadout?.meta,
+        actionModeTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        signalWorkReadout?.tone ||
+        signalActionCue?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowCustomerActionReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    if (normalizeKey(signalProvenance?.sourceKind) !== "history") return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
+    const nextActionReadout = buildBookingNextActionReadout(readout);
+    const actionTime = formatBookingEventTime(signalEvent.signalAt);
+    const actionLabel = nextActionReadout?.label || signalActionCue?.label || signalEvent.label;
+    const actionValue =
+      nextActionReadout?.value ||
+      signalWorkReadout?.value ||
+      signalActionCue?.value ||
+      signalEvent.value ||
+      signalEvent.label;
+    const actionSource =
+      signalWorkSourceReadout?.value ||
+      signalCustomerActionModeReadout?.value ||
+      "";
+    return {
+      label: "Operativ åtgärd",
+      value: [actionLabel, actionValue, actionSource].filter(Boolean).join(" · "),
+      meta: [
+        signalTimeline?.label,
+        nextActionReadout?.meta,
+        signalCustomerActionModeReadout?.meta,
+        signalWorkReadout?.meta,
+        signalWorkSourceReadout?.meta,
+        actionTime,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone:
+        nextActionReadout?.tone ||
+        signalWorkReadout?.tone ||
+        signalActionCue?.tone ||
+        signalProvenance?.tone ||
+        "message",
+      filter: signalEvent.filter || "",
+    };
+  }
+
+  function getBookingWorkflowWorkPointReadout(readout = {}) {
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    if (!signalEvent) return null;
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalMessageReadout = getBookingWorkflowSignalMessageReadout(signalEvent, readout);
+    const signalProvenance = getBookingEventProvenanceReadout(signalEvent, readout);
+    const pointRowAnchor = formatBookingVisibleLogText(signalEvent.value || signalEvent.label, "Bokningshändelse");
+    const pointFilterLabel = signalEvent.filter
+      ? getBookingEventFilterLabel(signalEvent.filter, readout)
+      : "";
+    const pointThreadReference =
+      signalMessageReadout?.referenceLabel ||
+      signalProvenance?.referenceLabel ||
+      "";
+    const pointThreadOriginLabel =
+      signalMessageReadout?.label ||
+      signalProvenance?.label ||
+      "";
+    const pointThreadOriginMeta =
+      signalMessageReadout?.meta ||
+      signalProvenance?.meta ||
+      "";
+    const pointThreadOrigin =
+      signalMessageReadout?.value ||
+      [signalProvenance?.label, pointThreadReference].filter(Boolean).join(" · ");
+    const pointLabel = signalMessageReadout?.label || signalEvent.label;
+    const pointTime = formatBookingEventTime(signalEvent.signalAt);
+    return {
+      label: "Arbetspunkt",
+      value: [pointLabel, pointThreadOrigin !== pointLabel ? pointThreadOrigin : "", pointTime]
+        .filter(Boolean)
+        .join(" · "),
+      meta: [signalTimeline?.label, pointThreadOriginLabel, pointThreadOriginMeta, pointFilterLabel, pointRowAnchor]
+        .filter(Boolean)
+        .join(" · "),
+      tone: signalEvent?.tone || signalMessageReadout?.tone || signalProvenance?.tone || "stable",
+      filter: signalEvent.filter || "",
+    };
+  }
+
   function getBookingEventFilterOptions(readout = {}) {
     const events = asArray(readout.allEvents || readout.events);
     const counts = events.reduce((map, event) => {
@@ -23115,11 +29795,15 @@
       "case_created",
       "candidate_slots_selected",
       "candidate_slots_cleared",
+      "engine_slots_reserved",
       "offer_draft_inserted",
       "follow_up_scheduled",
       "follow_up_opened",
       "audit_summary_copied",
       "external_confirmation_marked",
+      "engine_booking_confirmed",
+      "engine_booking_rebooked",
+      "engine_booking_cancelled",
       "status_changed",
     ];
     const orderedTypes = [
@@ -23168,6 +29852,35 @@
   function renderBookingEventTimeline(bookingDom, readout = {}) {
     if (!bookingDom.eventList) return;
     const activeFilter = normalizeKey(state.booking?.eventTypeFilter || "");
+    const signalEvent = getBookingWorkflowSignalEvent(readout);
+    const signalTimeline = getBookingWorkflowSignalTimelineContext(readout, signalEvent);
+    const signalActionCue = getBookingWorkflowSignalActionCue(readout);
+    const signalWorkReadout = getBookingWorkflowSignalWorkReadout(readout);
+    const signalPointAnchorReadout = getBookingWorkflowPointAnchorReadout(readout);
+    const signalThreadPointReadout = getBookingWorkflowThreadPointReadout(readout);
+    const signalHistoryRowReadout = getBookingWorkflowHistoryRowReadout(readout);
+    const signalCustomerReadout = getBookingWorkflowCustomerSignalReadout(readout);
+    const signalCustomerEventReadout = getBookingWorkflowCustomerEventReadout(readout);
+    const signalMessagePointReadout = getBookingWorkflowMessagePointReadout(readout);
+    const signalMessageRowReadout = getBookingWorkflowMessageRowReadout(readout);
+    const signalHistoryWorkRowReadout = getBookingWorkflowHistoryWorkRowReadout(readout);
+    const signalHistoryWorkRowIdentityReadout = getBookingWorkflowHistoryWorkRowIdentityReadout(readout);
+    const signalHistoryWorkRowReferenceReadout = getBookingWorkflowHistoryWorkRowReferenceReadout(readout);
+    const signalHistoryWorkRowTraceReadout = getBookingWorkflowHistoryWorkRowTraceReadout(readout);
+    const signalHistoryChainReadout = getBookingWorkflowHistoryChainReadout(readout);
+    const signalCustomerThreadReadout = getBookingWorkflowCustomerThreadReadout(readout);
+    const signalCustomerDialogueReadout = getBookingWorkflowCustomerDialogueReadout(readout);
+    const signalCustomerDialoguePointReadout = getBookingWorkflowCustomerDialoguePointReadout(readout);
+    const signalCustomerReplyPointReadout = getBookingWorkflowCustomerReplyPointReadout(readout);
+    const signalCustomerReplyReadout = getBookingWorkflowCustomerReplyReadout(readout);
+    const signalCustomerResponseReadout = getBookingWorkflowCustomerResponseReadout(readout);
+    const signalCustomerReactionReadout = getBookingWorkflowCustomerReactionReadout(readout);
+    const signalCustomerResponseModeReadout = getBookingWorkflowCustomerResponseModeReadout(readout);
+    const signalCustomerProcessingModeReadout = getBookingWorkflowCustomerProcessingModeReadout(readout);
+    const signalCustomerActionModeReadout = getBookingWorkflowCustomerActionModeReadout(readout);
+    const signalCustomerActionReadout = getBookingWorkflowCustomerActionReadout(readout);
+    const signalWorkPointReadout = getBookingWorkflowWorkPointReadout(readout);
+    const signalWorkSourceReadout = getBookingWorkflowWorkSourceReadout(readout);
     const sourceEvents = activeFilter
       ? asArray(readout.allEvents || readout.events).filter(
           (event) => normalizeKey(event.type) === activeFilter
@@ -23205,7 +29918,12 @@
         const chip = getBookingEventTypeChip(event.type);
         const transition = getBookingEventStatusTransition(event);
         const metadataReason = getBookingEventMetadataReason(event);
-        return `<li>
+        const provenance = getBookingEventProvenanceReadout(event, readout);
+        const isActiveSignal =
+          signalEvent &&
+          normalizeKey(signalEvent.eventType) === normalizeKey(event.type) &&
+          asText(signalEvent.signalAt) === asText(event.createdAt);
+        return `<li${isActiveSignal ? ' class="is-active-signal"' : ""}>
           <span class="booking-event-dot" aria-hidden="true"></span>
           <div>
             <strong class="booking-event-title">
@@ -23213,6 +29931,13 @@
               <em class="booking-event-chip booking-event-chip-${escapeHtml(chip.tone)}">${escapeHtml(chip.label)}</em>
             </strong>
             <span>${escapeHtml(meta)}</span>
+            ${
+              isActiveSignal
+                ? `<p class="booking-event-structured-reason">Aktiv signal · ${escapeHtml(
+                    asText(signalTimeline?.label, signalEvent.label)
+                  )}</p>`
+                : ""
+            }
             ${
               transition
                 ? `<p class="booking-event-transition"><span>${escapeHtml(
@@ -23222,6 +29947,207 @@
             }
             ${detail && detail !== label ? `<p>${escapeHtml(detail)}</p>` : ""}
             ${metadataReason ? `<p class="booking-event-structured-reason">Orsak · ${escapeHtml(metadataReason)}</p>` : ""}
+            ${
+              provenance
+                ? `<p class="booking-event-structured-reason">Källa · ${escapeHtml(provenance.label)}${
+                    provenance.referenceLabel ? ` · ${escapeHtml(provenance.referenceLabel)}` : ""
+                  }${provenance.meta ? ` · ${escapeHtml(provenance.meta)}` : ""}</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalTimeline?.meta
+                ? `<p class="booking-event-structured-reason">Proveniens · ${escapeHtml(signalTimeline.meta)}</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalActionCue?.value
+                ? `<p class="booking-event-structured-reason">Arbetscue · ${escapeHtml(signalActionCue.value)}${
+                    signalActionCue.meta ? ` · ${escapeHtml(signalActionCue.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalPointAnchorReadout?.value
+                ? `<p class="booking-event-structured-reason">Radankare · ${escapeHtml(signalPointAnchorReadout.value)}${
+                    signalPointAnchorReadout.meta ? ` · ${escapeHtml(signalPointAnchorReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalThreadPointReadout?.value
+                ? `<p class="booking-event-structured-reason">Trådpunkt · ${escapeHtml(signalThreadPointReadout.value)}${
+                    signalThreadPointReadout.meta ? ` · ${escapeHtml(signalThreadPointReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryRowReadout?.value
+                ? `<p class="booking-event-structured-reason">Historikrad · ${escapeHtml(signalHistoryRowReadout.value)}${
+                    signalHistoryRowReadout.meta ? ` · ${escapeHtml(signalHistoryRowReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundsignalrad · ${escapeHtml(signalCustomerReadout.value)}${
+                    signalCustomerReadout.meta ? ` · ${escapeHtml(signalCustomerReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerEventReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundhändelse · ${escapeHtml(signalCustomerEventReadout.value)}${
+                    signalCustomerEventReadout.meta ? ` · ${escapeHtml(signalCustomerEventReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalMessagePointReadout?.value
+                ? `<p class="booking-event-structured-reason">Meddelandepunkt · ${escapeHtml(signalMessagePointReadout.value)}${
+                    signalMessagePointReadout.meta ? ` · ${escapeHtml(signalMessagePointReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalMessageRowReadout?.value
+                ? `<p class="booking-event-structured-reason">Meddelanderad · ${escapeHtml(signalMessageRowReadout.value)}${
+                    signalMessageRowReadout.meta ? ` · ${escapeHtml(signalMessageRowReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryWorkRowReadout?.value
+                ? `<p class="booking-event-structured-reason">Arbetsrad · ${escapeHtml(signalHistoryWorkRowReadout.value)}${
+                    signalHistoryWorkRowReadout.meta ? ` · ${escapeHtml(signalHistoryWorkRowReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryWorkRowIdentityReadout?.value
+                ? `<p class="booking-event-structured-reason">Radidentitet · ${escapeHtml(signalHistoryWorkRowIdentityReadout.value)}${
+                    signalHistoryWorkRowIdentityReadout.meta ? ` · ${escapeHtml(signalHistoryWorkRowIdentityReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryWorkRowReferenceReadout?.value
+                ? `<p class="booking-event-structured-reason">Radreferens · ${escapeHtml(signalHistoryWorkRowReferenceReadout.value)}${
+                    signalHistoryWorkRowReferenceReadout.meta ? ` · ${escapeHtml(signalHistoryWorkRowReferenceReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryWorkRowTraceReadout?.value
+                ? `<p class="booking-event-structured-reason">Radspår · ${escapeHtml(signalHistoryWorkRowTraceReadout.value)}${
+                    signalHistoryWorkRowTraceReadout.meta ? ` · ${escapeHtml(signalHistoryWorkRowTraceReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalHistoryChainReadout?.value
+                ? `<p class="booking-event-structured-reason">Historikkedja · ${escapeHtml(signalHistoryChainReadout.value)}${
+                    signalHistoryChainReadout.meta ? ` · ${escapeHtml(signalHistoryChainReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerThreadReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundtråd · ${escapeHtml(signalCustomerThreadReadout.value)}${
+                    signalCustomerThreadReadout.meta ? ` · ${escapeHtml(signalCustomerThreadReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerDialogueReadout?.value
+                ? `<p class="booking-event-structured-reason">Kunddialog · ${escapeHtml(signalCustomerDialogueReadout.value)}${
+                    signalCustomerDialogueReadout.meta ? ` · ${escapeHtml(signalCustomerDialogueReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerDialoguePointReadout?.value
+                ? `<p class="booking-event-structured-reason">Dialogpunkt · ${escapeHtml(signalCustomerDialoguePointReadout.value)}${
+                    signalCustomerDialoguePointReadout.meta ? ` · ${escapeHtml(signalCustomerDialoguePointReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerReplyPointReadout?.value
+                ? `<p class="booking-event-structured-reason">Svarspunkt · ${escapeHtml(signalCustomerReplyPointReadout.value)}${
+                    signalCustomerReplyPointReadout.meta ? ` · ${escapeHtml(signalCustomerReplyPointReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerReplyReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundsvar · ${escapeHtml(signalCustomerReplyReadout.value)}${
+                    signalCustomerReplyReadout.meta ? ` · ${escapeHtml(signalCustomerReplyReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerResponseReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundrespons · ${escapeHtml(signalCustomerResponseReadout.value)}${
+                    signalCustomerResponseReadout.meta ? ` · ${escapeHtml(signalCustomerResponseReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerReactionReadout?.value
+                ? `<p class="booking-event-structured-reason">Kundreaktion · ${escapeHtml(signalCustomerReactionReadout.value)}${
+                    signalCustomerReactionReadout.meta ? ` · ${escapeHtml(signalCustomerReactionReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerResponseModeReadout?.value
+                ? `<p class="booking-event-structured-reason">Responsläge · ${escapeHtml(signalCustomerResponseModeReadout.value)}${
+                    signalCustomerResponseModeReadout.meta ? ` · ${escapeHtml(signalCustomerResponseModeReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerProcessingModeReadout?.value
+                ? `<p class="booking-event-structured-reason">Bearbetningsläge · ${escapeHtml(signalCustomerProcessingModeReadout.value)}${
+                    signalCustomerProcessingModeReadout.meta ? ` · ${escapeHtml(signalCustomerProcessingModeReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerActionReadout?.value
+                ? `<p class="booking-event-structured-reason">Operativ åtgärd · ${escapeHtml(signalCustomerActionReadout.value)}${
+                    signalCustomerActionReadout.meta ? ` · ${escapeHtml(signalCustomerActionReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalCustomerActionModeReadout?.value
+                ? `<p class="booking-event-structured-reason">Åtgärdsläge · ${escapeHtml(signalCustomerActionModeReadout.value)}${
+                    signalCustomerActionModeReadout.meta ? ` · ${escapeHtml(signalCustomerActionModeReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalWorkPointReadout?.value
+                ? `<p class="booking-event-structured-reason">Arbetspunkt · ${escapeHtml(signalWorkPointReadout.value)}${
+                    signalWorkPointReadout.meta ? ` · ${escapeHtml(signalWorkPointReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalWorkSourceReadout?.value
+                ? `<p class="booking-event-structured-reason">Arbetskälla · ${escapeHtml(signalWorkSourceReadout.value)}${
+                    signalWorkSourceReadout.meta ? ` · ${escapeHtml(signalWorkSourceReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
+            ${
+              isActiveSignal && signalWorkReadout?.value
+                ? `<p class="booking-event-structured-reason">Nästa drag · ${escapeHtml(signalWorkReadout.value)}${
+                    signalWorkReadout.meta ? ` · ${escapeHtml(signalWorkReadout.meta)}` : ""
+                  }</p>`
+                : ""
+            }
           </div>
         </li>`;
       })
@@ -23252,6 +30178,271 @@
     return asArray(readout.selectedSlots).slice(0, 3);
   }
 
+  function buildBookingPreferredWindowHints(readout = {}) {
+    const text = normalizeText(readout.preferredWindow || "");
+    const hints = {
+      text,
+      wantsMorning: /\b(morgon|förmiddag|fm|9|10|11)\b/i.test(text),
+      wantsAfternoon: /\b(eftermiddag|em|12|13|14|15|16)\b/i.test(text),
+      wantsLate: /\b(kväll|sen|17|18|19)\b/i.test(text),
+      weekdays: [],
+    };
+    const weekdayMap = [
+      { key: 1, match: /\b(måndag|mån)\b/i },
+      { key: 2, match: /\b(tisdag|tis)\b/i },
+      { key: 3, match: /\b(onsdag|ons)\b/i },
+      { key: 4, match: /\b(torsdag|tors)\b/i },
+      { key: 5, match: /\b(fredag|fre)\b/i },
+      { key: 6, match: /\b(lördag|lör)\b/i },
+      { key: 0, match: /\b(söndag|sön)\b/i },
+    ];
+    hints.weekdays = weekdayMap.filter((item) => item.match.test(text)).map((item) => item.key);
+    return hints;
+  }
+
+  function buildBookingSlotRecommendation(slot = {}, readout = {}) {
+    const timestamp = Date.parse(asText(slot.startsAt));
+    if (!Number.isFinite(timestamp)) {
+      return { score: 0, reason: "", rankLabel: "" };
+    }
+    const hints = buildBookingPreferredWindowHints(readout);
+    const date = new Date(timestamp);
+    const hour = date.getHours();
+    const weekday = date.getDay();
+    let score = 0;
+    const reasons = [];
+    if (hints.weekdays.includes(weekday)) {
+      score += 40;
+      reasons.push("matchar veckodag");
+    }
+    if (hints.wantsMorning && hour < 12) {
+      score += 28;
+      reasons.push("matchar morgon");
+    }
+    if (hints.wantsAfternoon && hour >= 12 && hour < 17) {
+      score += 28;
+      reasons.push("matchar eftermiddag");
+    }
+    if (hints.wantsLate && hour >= 17) {
+      score += 28;
+      reasons.push("matchar sen tid");
+    }
+    if (!hints.wantsMorning && !hints.wantsAfternoon && !hints.wantsLate && !hints.weekdays.length) {
+      if (hour >= 10 && hour <= 15) {
+        score += 12;
+        reasons.push("stabil standardtid");
+      }
+    }
+    if (asText(slot.resourceLabel)) score += 2;
+    if (asText(slot.serviceLabel)) score += 2;
+    return {
+      score,
+      reason: reasons[0] || "",
+      rankLabel: "",
+    };
+  }
+
+  function rankBookingAvailableSlots(slots = [], readout = {}) {
+    const ranked = asArray(slots).map((slot, index) => ({
+      slot,
+      index,
+      recommendation: buildBookingSlotRecommendation(slot, readout),
+    }));
+    ranked.sort((left, right) => {
+      const scoreDelta = right.recommendation.score - left.recommendation.score;
+      if (scoreDelta) return scoreDelta;
+      const leftMs = Date.parse(asText(left.slot.startsAt));
+      const rightMs = Date.parse(asText(right.slot.startsAt));
+      if (Number.isFinite(leftMs) && Number.isFinite(rightMs) && leftMs !== rightMs) {
+        return leftMs - rightMs;
+      }
+      return left.index - right.index;
+    });
+    let recommendationRank = 0;
+    ranked.forEach((entry) => {
+      if (entry.recommendation.score > 0 && recommendationRank < 3) {
+        recommendationRank += 1;
+        entry.recommendation.rankLabel = `Rek ${recommendationRank}`;
+      }
+    });
+    return ranked;
+  }
+
+  function getBookingRankedSelectedSlots(readout = {}) {
+    return rankBookingAvailableSlots(asArray(readout.selectedSlots).slice(0, 3), readout).map(
+      ({ slot, recommendation }, index) => ({
+        ...slot,
+        recommendation,
+        selectedRankLabel: `Val ${index + 1}`,
+      })
+    );
+  }
+
+  function getBookingSlotTimeBand(slot = {}) {
+    const timestamp = Date.parse(asText(slot.startsAt));
+    if (!Number.isFinite(timestamp)) return "";
+    const hour = new Date(timestamp).getHours();
+    if (hour < 12) return "morgon";
+    if (hour < 17) return "eftermiddag";
+    return "sen tid";
+  }
+
+  function buildBookingSelectedSlotSpreadAnalysis(readout = {}) {
+    const slots = getBookingRankedSelectedSlots(readout);
+    if (slots.length < 2) {
+      return {
+        tone: "",
+        summary: "",
+        detail: "",
+      };
+    }
+    const dayKeys = slots.map((slot) => asText(slot.startsAt).slice(0, 10)).filter(Boolean);
+    const bandKeys = slots.map((slot) => getBookingSlotTimeBand(slot)).filter(Boolean);
+    const uniqueDays = new Set(dayKeys);
+    const uniqueBands = new Set(bandKeys);
+    if (uniqueDays.size === 1 && uniqueBands.size === 1) {
+      return {
+        tone: "attention",
+        summary: "Alla valda tider ligger väldigt nära varandra.",
+        detail: "Överväg att sprida förslaget över fler tider eller dagar så kunden lättare kan välja.",
+      };
+    }
+    if (uniqueDays.size === 1) {
+      return {
+        tone: "attention",
+        summary: "Alla valda tider ligger samma dag.",
+        detail: "Det kan vara värt att lägga till en alternativ dag som reserv innan överlämning.",
+      };
+    }
+    if (uniqueBands.size === 1) {
+      return {
+        tone: "soft",
+        summary: `Alla valda tider ligger på ${Array.from(uniqueBands)[0]}.`,
+        detail: "Överväg att blanda tidsfönster om kunden inte varit tydlig med tid på dagen.",
+      };
+    }
+    return {
+      tone: "good",
+      summary: "Valda tider har bra spridning.",
+      detail: "Förslaget täcker olika alternativ och är redo för kundöverlämning.",
+    };
+  }
+
+  function renderBookingSlotOverview(bookingDom, stageMicrocopy = {}, readout = {}) {
+    if (!bookingDom.slotOverview || !bookingDom.slotOverviewTitle || !bookingDom.slotOverviewMeta) return;
+    const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3);
+    const selectedCount = asArray(readout.selectedSlots).length;
+    const engineContext = buildBookingEngineSlotContext(readout);
+    const nextActionReadout = getBookingNextActionReadout(readout);
+    const normalizedStatus = normalizeKey(readout.status || "needs_triage");
+    let tone = "idle";
+    let kicker = "Steg 2 · Bygg tidsförslaget";
+    let title = "Börja med att hämta kandidat-tider";
+    let meta = "Det här steget bygger förslaget som sedan bärs vidare till valda tider, reservation och Svarstudio.";
+    let actionLabel = "Öppna tider";
+    if (state.booking.loadingSlots) {
+      tone = "loading";
+      kicker = "Steg 2 · Hamtar kandidat-tider";
+      title = "Hämtar lediga tider";
+      meta = "Kontrollerar tillgängliga tider för vald resurs och behandling.";
+      actionLabel = "Uppdaterar...";
+    } else if (state.booking.slotsError) {
+      tone = "error";
+      kicker = "Steg 2 · Tidslagret stoppade";
+      title = "Kunde inte visa lediga tider";
+      meta = state.booking.slotsError;
+      actionLabel = "Försök igen";
+    } else if (rankedSlots.length) {
+      const topSlot = rankedSlots[0];
+      tone = "ready";
+      kicker =
+        normalizedStatus === "waiting_customer"
+          ? "Stod · Tider kunden svarar pa"
+          : normalizedStatus === "offered"
+            ? "Steg 2 · Kandidattider redo"
+            : "Steg 2 · Valj kandidattider";
+      title = `${rankedSlots.length} lediga tider redo`;
+      meta = `${formatBookingSlot(topSlot.slot)}${
+        asText(topSlot.recommendation?.reason) ? ` · ${topSlot.recommendation.reason}` : ""
+      }`;
+      actionLabel = selectedCount ? "Visa tider" : "Välj tider";
+    } else if (normalizeKey(readout.status) === "needs_triage") {
+      tone = "triage";
+      kicker = "Steg 2 · Efter triage";
+      title = "Sätt kundläge innan du hämtar tider";
+      meta =
+        "När kundläget är tydligt blir kandidatlistan nedan nästa konkreta arbetssteg för 1-3 tider att bära vidare.";
+      actionLabel = "Öppna tidshämtning";
+    } else if (normalizedStatus === "confirmed_external") {
+      kicker = "Stod · Tider som bekraftats";
+      title = selectedCount ? "Bekräftade tider finns redan valda" : "Bekräftelsen bygger på tidigare tidsval";
+      meta = "Använd kandidatdelen nedan bara om du behöver jämföra, boka om eller förankra vad som tidigare erbjöds.";
+    } else if (normalizedStatus === "waiting_customer") {
+      kicker = "Stod · Tider kunden overväger";
+      title = selectedCount ? "Förslaget är ute hos kunden" : "Kunden väntar men förslaget behöver byggas upp igen";
+      meta = selectedCount
+        ? "Kandidatdelen nedan används främst för att jämföra nya tider mot det förslag som redan skickats."
+        : "Hämta fram ett nytt kandidatunderlag nedan innan du skickar nästa svar eller följer upp.";
+    } else if (normalizedStatus === "offered") {
+      kicker = "Steg 2 · Kontrollera erbjudna tider";
+      title = selectedCount ? "Förslaget är skickat" : "Bygg upp erbjudandet från kandidatlistan";
+      meta = selectedCount
+        ? "Kandidatdelen nedan används för att justera eller ersätta tider innan nästa kundkontakt."
+        : "Hämta och välj kandidat-tider nedan så att erbjudandet får ett tydligt underlag.";
+    } else if (!rankedSlots.length) {
+      title = "Öppna kandidatlistan nedan";
+      meta = "Välj behandlare och behandling först. När kandidaterna syns nedanför väljer du 1-3 tider att bära vidare.";
+    }
+    bookingDom.slotOverview.dataset.tone = tone;
+    if (bookingDom.slotOverviewKicker) bookingDom.slotOverviewKicker.textContent = kicker;
+    bookingDom.slotOverviewTitle.textContent = title;
+    bookingDom.slotOverviewMeta.textContent = meta;
+    if (bookingDom.slotOverviewEngine) {
+      if (engineContext) {
+        bookingDom.slotOverviewEngine.hidden = false;
+        bookingDom.slotOverviewEngine.dataset.tone = engineContext.tone || "idle";
+        bookingDom.slotOverviewEngine.innerHTML = `<strong>${escapeHtml(
+          engineContext.title
+        )}</strong><span>${escapeHtml(engineContext.meta)}</span>`;
+      } else {
+        bookingDom.slotOverviewEngine.hidden = true;
+        bookingDom.slotOverviewEngine.textContent = "";
+        bookingDom.slotOverviewEngine.dataset.tone = "";
+      }
+    }
+    if (bookingDom.slotOverviewSteps) {
+      const steps = isBookingEnginePrimary()
+        ? buildBookingEngineSequenceSteps(readout, nextActionReadout.action)
+        : [];
+      bookingDom.slotOverviewSteps.hidden = !steps.length;
+      bookingDom.slotOverviewSteps.innerHTML = steps
+        .map(
+          (step) => `<button class="booking-slot-step${step.isRecommended ? " is-recommended" : ""}" type="button" data-state="${escapeHtml(
+            step.state
+          )}" data-booking-sequence-action="${escapeHtml(step.action || "")}" title="Öppna ${escapeHtml(
+            step.label.toLowerCase()
+          )} i bokningsflödet.">${escapeHtml(step.label)}</button>`
+        )
+        .join("");
+    }
+    if (bookingDom.slotOverviewReason) {
+      const sequenceReason = isBookingEnginePrimary()
+        ? buildBookingEngineSequenceReason(readout, nextActionReadout)
+        : null;
+      bookingDom.slotOverviewReason.hidden = !sequenceReason;
+      bookingDom.slotOverviewReason.dataset.tone = sequenceReason?.tone || "";
+      bookingDom.slotOverviewReason.innerHTML = sequenceReason
+        ? `<strong>${escapeHtml(sequenceReason.label)}</strong><span>${escapeHtml(
+            sequenceReason.meta
+          )}</span>`
+        : "";
+    }
+    if (bookingDom.slotOverviewAction) {
+      bookingDom.slotOverviewAction.textContent = actionLabel;
+      bookingDom.slotOverviewAction.disabled = Boolean(state.booking.loadingSlots);
+    }
+  }
+
   function isBookingSlotSelected(slot = {}) {
     const slotKey = getBookingSlotKey(slot);
     if (!slotKey) return false;
@@ -23260,7 +30451,7 @@
 
   function buildBookingSlotControlsMarkup() {
     const range = getDefaultBookingDateRange();
-    return `<div class="booking-slot-controls" data-booking-slot-controls>
+    return `<div class="booking-slot-controls" data-booking-slot-controls data-booking-stage-focus-zone="slot_controls">
       <label>
         <span>Från</span>
         <input class="booking-slot-input" type="date" data-booking-slot-from value="${escapeHtml(range.fromDate)}" />
@@ -23283,16 +30474,16 @@
       </label>
       <label>
         <span>Resurs-id</span>
-        <input class="booking-slot-input" type="text" data-booking-slot-resids placeholder="4575" />
+        <input class="booking-slot-input" type="text" data-booking-slot-resids placeholder="egzona" />
       </label>
       <label>
         <span>Service-id</span>
-        <input class="booking-slot-input" type="text" data-booking-slot-srvids placeholder="28232" />
+        <input class="booking-slot-input" type="text" data-booking-slot-srvids placeholder="consultation" />
       </label>
-      <button class="booking-action booking-action-secondary" type="button" data-booking-action="load_ref_data">Hämta externa tider</button>
-      <button class="booking-action booking-action-secondary" type="button" data-booking-action="fetch_slots">Hämta tider</button>
+      <button class="booking-action booking-action-secondary" type="button" data-booking-action="load_ref_data">Hämta CCO-val</button>
+      <button class="booking-action booking-action-secondary" type="button" data-booking-action="fetch_slots">Visa lediga tider</button>
     </div>
-    <p class="booking-ref-status" data-booking-ref-status>Hämta externa tider eller skriv id manuellt.</p>`;
+    <p class="booking-ref-status" data-booking-ref-status>Hämta tider från CCO bokningsmotor eller skriv id manuellt.</p>`;
   }
 
   function renderBookingRefSelect(selectNode, items = [], placeholder = "Manuell") {
@@ -23315,12 +30506,145 @@
     if (serviceId && bookingDom.slotSrvIds) bookingDom.slotSrvIds.value = serviceId;
   }
 
+  function normalizeBookingRefHint(value = "") {
+    return normalizeKey(asText(value)).replace(/[^a-z0-9]+/g, "");
+  }
+
+  function findBookingRefItemByHints(items = [], hints = []) {
+    const normalizedHints = asArray(hints)
+      .map((hint) => normalizeBookingRefHint(hint))
+      .filter(Boolean);
+    if (!normalizedHints.length) return null;
+    return (
+      asArray(items).find((item) => {
+        const itemId = normalizeBookingRefHint(item?.id);
+        const itemLabel = normalizeBookingRefHint(item?.label);
+        return normalizedHints.some(
+          (hint) =>
+            hint === itemId ||
+            hint === itemLabel ||
+            (itemId && itemId.includes(hint)) ||
+            (itemLabel && itemLabel.includes(hint)) ||
+            (hint && (hint.includes(itemId) || hint.includes(itemLabel)))
+        );
+      }) || null
+    );
+  }
+
+  function resolveBookingPreferredResourceId(thread = getBookingWorkThread(), readout = getBookingReadoutForThread(thread)) {
+    const resources = asArray(state.booking.resources);
+    if (!resources.length) return "";
+    const resourceMatch = findBookingRefItemByHints(resources, [
+      thread?.displayOwnerLabel,
+      thread?.ownerLabel,
+      thread?.mailboxLabel,
+      thread?.raw?.doctorName,
+      readout?.doctorName,
+      readout?.ownerLabel,
+    ]);
+    return asText(resourceMatch?.id || resources[0]?.id);
+  }
+
+  function resolveBookingPreferredServiceId(thread = getBookingWorkThread(), readout = getBookingReadoutForThread(thread)) {
+    const services = asArray(state.booking.services);
+    if (!services.length) return "";
+    const serviceMatch = findBookingRefItemByHints(services, [
+      readout?.requestedTreatment,
+      thread?.intentLabel,
+      thread?.raw?.plannedTreatment,
+      thread?.raw?.treatmentContext,
+      thread?.raw?.medicalContext,
+      "consultation",
+      "konsultation",
+      "booking",
+      "bokning",
+    ]);
+    return asText(serviceMatch?.id || services[0]?.id);
+  }
+
+  function seedBookingSlotRequestDefaults(bookingDom = getBookingDom()) {
+    if (!bookingDom || !state.booking.refDataLoaded) return false;
+    const draft =
+      state.booking.slotRequestDraft && typeof state.booking.slotRequestDraft === "object"
+        ? state.booking.slotRequestDraft
+        : {};
+    let changed = false;
+    if (!asText(bookingDom.slotResIds?.value || draft.resIds)) {
+      const resourceId = resolveBookingPreferredResourceId();
+      if (resourceId) {
+        if (bookingDom.slotResIds) bookingDom.slotResIds.value = resourceId;
+        if (bookingDom.resourceSelect) bookingDom.resourceSelect.value = resourceId;
+        changed = true;
+      }
+    }
+    if (!asText(bookingDom.slotSrvIds?.value || draft.srvIds)) {
+      const serviceId = resolveBookingPreferredServiceId();
+      if (serviceId) {
+        if (bookingDom.slotSrvIds) bookingDom.slotSrvIds.value = serviceId;
+        if (bookingDom.serviceSelect) bookingDom.serviceSelect.value = serviceId;
+        changed = true;
+      }
+    }
+    if (changed) {
+      captureBookingSlotRequestDraft(bookingDom);
+    }
+    return changed;
+  }
+
+  function resetBookingAvailableSlotSearchState({ rerender = false } = {}) {
+    const hadState =
+      state.booking.slotFetchAttempted === true ||
+      Boolean(state.booking.slotsError) ||
+      asArray(state.booking.availableSlots).length > 0;
+    if (!hadState) return;
+    state.booking.slotFetchAttempted = false;
+    state.booking.slotsError = "";
+    state.booking.availableSlots = [];
+    if (rerender) {
+      renderBookingSurface();
+    }
+  }
+
+  function captureBookingSlotRequestDraft(bookingDom = getBookingDom()) {
+    if (!bookingDom) return state.booking.slotRequestDraft || {};
+    const nextDraft = {
+      fromDate: asText(bookingDom.slotFrom?.value),
+      toDate: asText(bookingDom.slotTo?.value),
+      resIds: asText(bookingDom.slotResIds?.value),
+      srvIds: asText(bookingDom.slotSrvIds?.value),
+    };
+    state.booking.slotRequestDraft = nextDraft;
+    return nextDraft;
+  }
+
+  function restoreBookingSlotRequestDraft(bookingDom = getBookingDom()) {
+    if (!bookingDom) return;
+    const draft = state.booking.slotRequestDraft && typeof state.booking.slotRequestDraft === "object"
+      ? state.booking.slotRequestDraft
+      : {};
+    if (bookingDom.slotFrom && draft.fromDate && !bookingDom.slotFrom.value) {
+      bookingDom.slotFrom.value = draft.fromDate;
+    }
+    if (bookingDom.slotTo && draft.toDate && !bookingDom.slotTo.value) {
+      bookingDom.slotTo.value = draft.toDate;
+    }
+    if (bookingDom.slotResIds && draft.resIds && !bookingDom.slotResIds.value) {
+      bookingDom.slotResIds.value = draft.resIds;
+    }
+    if (bookingDom.slotSrvIds && draft.srvIds && !bookingDom.slotSrvIds.value) {
+      bookingDom.slotSrvIds.value = draft.srvIds;
+    }
+  }
+
   function renderBookingRefDataControls(bookingDom) {
     renderBookingRefSelect(bookingDom.resourceSelect, state.booking.resources, "Manuell resurs");
     renderBookingRefSelect(bookingDom.serviceSelect, state.booking.services, "Manuell tjänst");
+    restoreBookingSlotRequestDraft(bookingDom);
+    seedBookingSlotRequestDefaults(bookingDom);
     if (!bookingDom.refStatus) return;
+    const providerLabel = getBookingProviderLabel(state.booking.provider);
     if (state.booking.loadingRefData) {
-      bookingDom.refStatus.textContent = "Hämtar externa val...";
+      bookingDom.refStatus.textContent = `Hämtar val från ${providerLabel.toLowerCase()}...`;
       bookingDom.refStatus.dataset.tone = "loading";
       return;
     }
@@ -23330,11 +30654,11 @@
       return;
     }
     if (state.booking.refDataLoaded) {
-      bookingDom.refStatus.textContent = `${state.booking.resources.length} behandlare och ${state.booking.services.length} behandlingar hämtade.`;
+      bookingDom.refStatus.textContent = `${providerLabel}: ${state.booking.resources.length} behandlare och ${state.booking.services.length} behandlingar hämtade.`;
       bookingDom.refStatus.dataset.tone = "success";
       return;
     }
-    bookingDom.refStatus.textContent = "Hämta externa tider eller skriv id manuellt.";
+    bookingDom.refStatus.textContent = `Hämta tider från ${providerLabel.toLowerCase()} eller skriv id manuellt.`;
     bookingDom.refStatus.dataset.tone = "";
   }
 
@@ -23360,60 +30684,378 @@
     );
   }
 
-  function focusRecommendedBookingAction(actionOverride = "") {
+  function focusRecommendedBookingAction(actionOverride = "", { moveFocus = true, announce = true } = {}) {
     const bookingDom = getBookingDom();
+    const bookingThread = getBookingWorkThread();
+    const readout = getBookingReadoutForThread(bookingThread);
     const recommendedAction = asText(
       actionOverride ||
         bookingDom.nextActionJump?.dataset.bookingRecommendedAction ||
         bookingDom.nextAction?.dataset.bookingRecommendedAction
     );
+    const recommendationPrompt = buildBookingRecommendedActionPrompt(readout, recommendedAction);
     const targetButton = findRecommendedBookingActionButton(bookingDom, recommendedAction);
     if (!targetButton) {
-      setFeedback(bookingDom.feedback, "error", "Ingen rekommenderad knapp hittades i bokningsytan.");
+      if (announce) {
+        setFeedback(
+          bookingDom.feedback,
+          "error",
+          "Ingen rekommenderad knapp hittades i bokningsytan för det här arbetsläget."
+        );
+      }
       return;
     }
     const collapsedGroup = targetButton.closest("details:not([open])");
     if (collapsedGroup) {
       collapsedGroup.open = true;
     }
-    targetButton.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
-    targetButton.focus({ preventScroll: true });
+    if (moveFocus) {
+      targetButton.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      targetButton.focus({ preventScroll: true });
+    }
     targetButton.classList.add("is-recommended-pulse");
     window.setTimeout(() => {
       targetButton.classList.remove("is-recommended-pulse");
     }, 900);
-    setFeedback(bookingDom.feedback, "success", "Rekommenderad knapp är markerad. Ingen åtgärd utfördes.");
+    if (announce) {
+      setFeedback(
+        bookingDom.feedback,
+        "success",
+        recommendationPrompt.announce || "Rekommenderad knapp är markerad. Ingen åtgärd utfördes."
+      );
+    }
   }
 
-  function renderAvailableBookingSlots(bookingDom) {
+  function renderAvailableBookingSlots(bookingDom, stageMicrocopy = {}, readout = {}) {
     if (!bookingDom.availableList) return;
+    const engineContext = buildBookingEngineSlotContext(readout);
+    const selectedCount = asArray(readout.selectedSlots).length;
+    const normalizedStatus = normalizeKey(readout.status || "needs_triage");
+    const setAvailableHead = (kicker, title, meta, tone = "idle") => {
+      if (bookingDom.availableHeadKicker) bookingDom.availableHeadKicker.textContent = kicker;
+      if (bookingDom.availableHeadTitle) bookingDom.availableHeadTitle.textContent = title;
+      if (bookingDom.availableHeadMeta) bookingDom.availableHeadMeta.textContent = meta;
+      if (bookingDom.availableHead) bookingDom.availableHead.dataset.tone = tone;
+      bookingDom.availableList.dataset.tone = tone;
+    };
     if (state.booking.loadingSlots) {
+      setAvailableHead(
+        "Steg 2 · Hämtar kandidater",
+        "Kontrollerar lediga tider",
+        "Vi läser in kandidater från bokningsmotorn innan du väljer vad som ska bäras vidare.",
+        "loading"
+      );
       bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Hämtar externa tider</strong><span>Kontrollerar tillgängliga tider för vald resurs och service.</span></li>`;
       return;
     }
     if (state.booking.slotsError) {
+      setAvailableHead(
+        "Steg 2 · Kandidatlagret stoppade",
+        "Lediga tider kunde inte visas",
+        "Lös tidshämtningen först, fortsätt sedan med att välja de tider som ska bli förslag.",
+        "error"
+      );
       bookingDom.availableList.innerHTML = `<li class="booking-slot-empty booking-slot-error"><strong>Externa tider kunde inte hämtas</strong><span>${escapeHtml(state.booking.slotsError)}</span></li>`;
       return;
     }
-    const slots = asArray(state.booking.availableSlots).slice(0, 12);
-    if (!slots.length) {
-      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Inga externa tider hämtade</strong><span>Ange resurs och service, eller använd manuella reservtider.</span></li>`;
+    const totalAvailableCount = asArray(state.booking.availableSlots).length;
+    const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 12);
+    const displayedAvailableCount = rankedSlots.length;
+    if (!rankedSlots.length) {
+      const attemptedFetch = state.booking.slotFetchAttempted === true;
+      const emptyListTitle = attemptedFetch
+        ? "Inga kandidater hittades för urvalet"
+        : normalizedStatus === "needs_triage"
+          ? "Triage kommer först"
+          : "Välj resurs och behandling först";
+      const emptyListMeta = attemptedFetch
+        ? "Prova ett nytt datumspann eller andra id:n. Om läget ändå måste vidare kan du arbeta med manuella reservtider och bära dem till förslaget."
+        : normalizedStatus === "needs_triage"
+          ? "Markera kundläge och bokningsavsikt först. Därefter blir kandidatlistan här nedanför nästa konkreta arbetssteg."
+          : "När underlaget är satt dyker kandidaterna upp här. Du kan också arbeta vidare med manuella reservtider om läget redan är tydligt.";
+      setAvailableHead(
+        attemptedFetch
+          ? "Steg 2 · Kandidatlistan gav inget träff"
+          : normalizedStatus === "needs_triage"
+            ? "Steg 2 · Efter triage"
+            : "Steg 2 · Börja kandidatvalet",
+        attemptedFetch
+          ? "Inga lediga tider matchade urvalet"
+          : asText(stageMicrocopy.availableEmptyTitle, "Inga kandidattider hämtade ännu"),
+        attemptedFetch
+          ? "Justera urvalet och försök igen, eller fortsätt med manuella reservtider om läget kräver ett snabbt förslag."
+          : asText(
+              stageMicrocopy.availableEmptyMeta,
+              "Välj behandlare och behandling här nedanför för att fylla kandidatlistan, eller använd manuella reservtider."
+            ),
+        attemptedFetch ? "empty_result" : normalizedStatus === "needs_triage" ? "triage" : "empty"
+      );
+      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>${escapeHtml(
+        emptyListTitle
+      )}</strong><span>${escapeHtml(emptyListMeta)}</span></li>`;
       return;
     }
-    bookingDom.availableList.innerHTML = slots
-      .map((slot) => {
+    setAvailableHead(
+      selectedCount
+        ? normalizedStatus === "waiting_customer"
+          ? "Stöd · Jämför mot skickat förslag"
+          : "Steg 2 · Justera kandidatvalet"
+        : "Steg 2 · Välj kandidat-tider",
+      selectedCount
+        ? totalAvailableCount > displayedAvailableCount
+          ? `Visar ${displayedAvailableCount} av ${totalAvailableCount} kandidater`
+          : `${displayedAvailableCount} kandidater att jämföra`
+        : totalAvailableCount > displayedAvailableCount
+          ? `Visar ${displayedAvailableCount} av ${totalAvailableCount} kandidater`
+          : `${displayedAvailableCount} kandidater redo att välja`,
+      selectedCount
+        ? totalAvailableCount > displayedAvailableCount
+          ? "Du har redan ett förslag. Vi visar de starkaste kandidaterna först så att du snabbt kan jämföra mot det som redan valts."
+          : "Du har redan ett förslag. Jämför nya kandidater mot det som redan valts innan du ändrar överlämningen."
+        : totalAvailableCount > displayedAvailableCount
+          ? "Vi visar de starkaste kandidaterna först. Markera 1-3 tider som ska bli nästa tydliga förslag till kunden eller nästa steg i CCO."
+          : "Markera 1-3 tider som ska bli nästa tydliga förslag till kunden eller nästa steg i CCO.",
+      selectedCount ? "compare" : "ready"
+    );
+    const engineSummaryRow =
+      engineContext
+        ? `<li class="booking-slot-engine-note" data-tone="${escapeHtml(
+            engineContext.tone || "idle"
+          )}"><strong>${escapeHtml(engineContext.title)}</strong><span>${escapeHtml(engineContext.meta)}</span></li>`
+        : "";
+    const laneBridgeRow = `<li class="booking-slot-lane-bridge" data-tone="${
+      selectedCount ? "compare" : "carry_forward"
+    }"><strong>${
+      selectedCount >= 3
+        ? "Förslaget är fullt - byt bara om något blir starkare"
+        : selectedCount === 2
+          ? "En sista tid kan runda av förslaget"
+          : selectedCount
+            ? "Valda tider byggs vidare i nästa steg"
+            : "Lägg till tiderna som ska bäras vidare"
+    }</strong><span>${
+      selectedCount >= 3
+        ? "Du har redan tre tider i förslaget. Jämför bara vidare om någon ny kandidat är tydligt starkare än det som redan bärs vidare."
+        : selectedCount === 2
+          ? "Två tider är redan valda. Lägg till ett sista alternativ om du vill ge kunden ett starkare spann innan nästa steg."
+          : selectedCount
+            ? "Fortsätt jämföra mot det förslag du redan håller på att bygga innan du ändrar överlämningen."
+            : "Varje tid du lägger till flyttas direkt till Valda tider, där förslaget inför Svarstudio och överlämning tar form."
+    }</span></li>`;
+    bookingDom.availableList.innerHTML = engineSummaryRow + rankedSlots
+      .map(({ slot, recommendation }) => {
         const selected = isBookingSlotSelected(slot);
-        return `<li class="booking-live-slot${selected ? " is-selected" : ""}">
-          <div>
-            <strong>${escapeHtml(formatBookingSlot(slot))}</strong>
-            <span>${escapeHtml(slot.locationLabel || (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) || "Extern kalender")}</span>
+        const engineState = getBookingEngineSlotState(slot);
+        const recommendationBadge = recommendation.rankLabel
+          ? `<small class="booking-slot-recommendation" data-tone="recommended">${escapeHtml(
+              recommendation.rankLabel
+            )}</small>`
+          : "";
+        const engineBadge = engineState
+          ? `<small class="booking-slot-engine-badge" data-tone="${escapeHtml(engineState)}">${escapeHtml(
+              engineState === "confirmed" ? "Bekräftad i CCO" : "Reserverad i CCO"
+            )}</small>`
+          : "";
+        const locationLabel =
+          slot.locationLabel ||
+          (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) ||
+          "Extern kalender";
+        const recommendationReason = asText(recommendation.reason);
+        const slotLabel = escapeHtml(formatBookingSlot(slot));
+        const locationLine = `<span class="booking-live-slot-meta">${escapeHtml(locationLabel)}</span>`;
+        const recommendationReasonLine = recommendationReason
+          ? `<small class="booking-live-slot-reason">${escapeHtml(recommendationReason)}</small>`
+          : "";
+        const badgeRow = recommendationBadge || engineBadge
+          ? `<div class="booking-live-slot-badges">${recommendationBadge}${engineBadge}</div>`
+          : "";
+        return `<li class="booking-live-slot${selected ? " is-selected" : ""}" data-recommended="${recommendation.rankLabel ? "true" : "false"}" data-engine-state="${escapeHtml(engineState || "idle")}">
+          <div class="booking-live-slot-body">
+            <strong class="booking-live-slot-title">${slotLabel}</strong>
+            ${badgeRow}
+            ${locationLine}
+            ${recommendationReasonLine}
           </div>
-          <button class="booking-slot-select" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(getBookingSlotKey(slot))}">
-            ${selected ? "Vald" : "Välj"}
+          <button class="booking-slot-select${selected ? " is-selected" : ""}" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(getBookingSlotKey(slot))}">
+            ${selected ? "Tillagd" : "Lägg till"}
           </button>
         </li>`;
       })
-      .join("");
+      .join("") + laneBridgeRow;
+  }
+
+  function renderBookingSelectedSlotLane(bookingDom, readout = {}) {
+    if (!bookingDom.selectedHeadTitle || !bookingDom.selectedHeadMeta) return;
+    const selectedSlots = getBookingRankedSelectedSlots(readout);
+    const selectedCount = selectedSlots.length;
+    const normalizedStatus = normalizeKey(readout.status || "needs_triage");
+    const spread = buildBookingSelectedSlotSpreadAnalysis(readout);
+    const latestRebook = getBookingLatestRebookReadout(readout);
+    const engineContext = buildBookingEngineSlotContext(readout);
+    const nextActionReadout = getBookingNextActionReadout(readout);
+    const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
+    let kicker = "Steg 3 · Ditt förslag";
+    let title = "Välj 1-3 tider att bära vidare";
+    let meta = "De tider du väljer här blir underlaget för Svarstudio, reservation och intern överlämning.";
+    if (!selectedCount && normalizedStatus === "waiting_customer") {
+      kicker = "Stöd · Återställ förslaget";
+      title = "Kunden väntar men förslaget är tomt";
+      meta = "Välj på nytt vilka tider som ska bäras vidare innan du skickar nästa svar eller följer upp.";
+    } else if (selectedCount) {
+      kicker =
+        normalizedStatus === "waiting_customer"
+          ? "Steg 3 · Aktivt kundförslag"
+          : normalizedStatus === "confirmed_external"
+            ? "Stöd · Bekräftat tidsval"
+            : normalizedStatus === "offered"
+              ? "Steg 3 · Skickat förslag"
+              : "Steg 3 · Valda kandidater";
+      title = `${selectedCount} ${selectedCount === 1 ? "tid vald" : "tider valda"}`;
+      meta =
+        latestRebook?.summary ||
+        (nextActionReadout?.label
+          ? `${nextActionReadout.label.replace(/^Nästa:\s*/i, "")}. ${nextActionReadout.meta || ""}`.trim()
+          : "") ||
+        (spread.summary ? `${spread.summary} ${spread.detail}`.trim() : "") ||
+        engineContext?.meta ||
+        "Det här är tiderna som nästa operativa steg utgår från.";
+      if (
+        state.booking.recentSelectedSlotAction === "added" &&
+        selectedCount &&
+        state.booking.recentSelectedSlotId
+      ) {
+        if (selectedCount === 1) {
+          kicker = "Steg 3 · Förslaget startade";
+          meta = "Första tiden är nu vald. Lägg till upp till två alternativ till, eller gå vidare med reservation och Svarstudio.";
+        } else if (selectedCount === 2) {
+          kicker = "Steg 3 · Förslaget tar form";
+          meta = "Två tider är nu valda. Lägg till ett sista alternativ om du vill ge kunden ett tydligare spann, eller gå vidare med nästa åtgärd.";
+        } else {
+          kicker = "Steg 3 · Förslaget är komplett";
+          meta = "Tre tider är nu valda. Förslaget känns redo att reserveras, föras till Svarstudio eller lämnas över vidare i flödet.";
+        }
+      } else if (selectedCount === 3) {
+        kicker =
+          normalizedStatus === "waiting_customer"
+            ? "Steg 3 · Aktivt kundförslag"
+            : normalizedStatus === "confirmed_external"
+              ? "Steg 3 · Bokningen är låst"
+              : "Steg 3 · Komplett tidsförslag";
+        title =
+          normalizedStatus === "waiting_customer"
+            ? "3 tider väntar på svar"
+            : normalizedStatus === "confirmed_external"
+              ? "Bekräftad tid med reservspann"
+              : title;
+        meta =
+          normalizedStatus === "confirmed_external"
+            ? "En av de valda tiderna är nu bekräftad. Behåll övriga som tydligt reservspann bara om kunddialogen eller eftervården kräver det."
+            : latestRebook?.summary ||
+              (nextActionReadout?.label
+                ? `${nextActionReadout.label.replace(/^Nästa:\s*/i, "")}. ${nextActionReadout.meta || ""}`.trim()
+                : "") ||
+              "Tre tider bärs redan vidare. Justera bara om en ny kandidat tydligt förbättrar förslaget.";
+      }
+      if (normalizedStatus === "confirmed_external" && recentWorkflowAction === "copy_audit_summary") {
+        kicker = "Stöd · Redo att stänga";
+        title = selectedCount >= 3 ? "Bekräftad tid är internsäkrad" : "Bekräftad tid är säkrad";
+        meta =
+          "Slutloggen är nu kopierad runt den bekräftade tiden. Låt reservspannet leva kvar bara om eftervården eller intern överlämning fortfarande verkligen behöver det.";
+      } else if (normalizedStatus === "confirmed_external" && recentWorkflowAction === "schedule_followup") {
+        kicker = "Stöd · Eftervård planerad";
+        title = selectedCount >= 3 ? "Bekräftad tid med nästa touchpoint" : "Bekräftad tid följs upp";
+        meta =
+          "Bekräftelsen har nu en planerad nästa touchpoint. Håll efterfasen lätt och öppna bara upp bokningsarbetet igen om kunddialogen faktiskt kräver det.";
+      }
+    }
+    if (bookingDom.selectedHeadKicker) bookingDom.selectedHeadKicker.textContent = kicker;
+    bookingDom.selectedHeadTitle.textContent = title;
+    bookingDom.selectedHeadMeta.textContent = meta;
+  }
+
+  function renderBookingActionLane(bookingDom, readout = {}, nextAction = {}, stageMicrocopy = {}) {
+    if (!bookingDom.actionHeadTitle || !bookingDom.actionHeadMeta) return;
+    const selectedCount = asArray(readout.selectedSlots).length;
+    const normalizedStatus = normalizeKey(readout.status || "needs_triage");
+    const recommendedAction = normalizeKey(nextAction.action || "");
+    const completeProposalEmphasis = buildBookingCompleteProposalActionEmphasis(
+      readout,
+      recommendedAction
+    );
+    const recentWorkflowEmphasis = buildBookingRecentWorkflowActionEmphasis(
+      readout,
+      recommendedAction
+    );
+    const recommendationLabel = asText(nextAction.label).replace(/^Nästa:\s*/i, "");
+    const recommendationMeta = asText(nextAction.meta);
+    let kicker = "Steg 4 · Fortsätt med förslaget";
+    let title = selectedCount
+      ? "Välj hur förslaget ska tas vidare"
+      : "Valda tider låser upp nästa åtgärd";
+    let meta = selectedCount
+      ? "När tiderna är valda kan du reservera, bära dem vidare i Svarstudio eller lämna över dem internt."
+      : "Börja med att välja 1-3 tider. Därefter blir reservation, Svarstudio och överlämning det naturliga nästa steget.";
+    const proposalLead =
+      selectedCount >= 3
+        ? "Tre tider är redan valda."
+        : selectedCount === 2
+          ? "Två tider bär redan förslaget."
+          : selectedCount === 1
+            ? "En tid är vald som första ankare."
+            : "";
+    if (selectedCount && recommendedAction === "reserve_slots") {
+      kicker = "Steg 4 · Lås tiderna";
+      title = "Reservera innan du går vidare";
+      meta =
+        recommendationMeta
+          ? `${proposalLead} ${recommendationMeta}`.trim()
+          : `${proposalLead} Reservera de valda tiderna i CCO först, så att förslaget inte glider innan du skickar det vidare.`.trim();
+    } else if (selectedCount && recommendedAction === "insert_studio") {
+      kicker = "Steg 4 · Skicka vidare till kund";
+      title = "Svarstudio leder nästa steg";
+      meta =
+        recommendationMeta
+          ? `${proposalLead} ${recommendationMeta}`.trim()
+          : `${proposalLead} Förslaget är redo. Öppna Svarstudio nu så att kunden får samma tider som den här ytan bygger på.`.trim();
+    } else if (selectedCount && recommendedAction === "confirm_external") {
+      kicker = normalizedStatus === "waiting_customer" ? "Steg 4 · Bevaka svarsläget" : "Steg 4 · Bekräfta eller boka om";
+      title = recommendationLabel || "Bekräfta bokningsläget";
+      meta =
+        recommendationMeta
+          ? `${proposalLead} ${recommendationMeta}`.trim()
+          : `${proposalLead} Härifrån avgör du om bokningen ska bekräftas, bevakas eller justeras efter kundens svar.`.trim();
+    } else if (selectedCount && recommendedAction === "schedule_followup") {
+      kicker = "Steg 4 · Håll tempot uppe";
+      title = "Schemalägg nästa uppföljning";
+      meta =
+        recommendationMeta
+          ? `${proposalLead} ${recommendationMeta}`.trim()
+          : `${proposalLead} Förslaget är klart men kunden väntar. Lägg uppföljningen här så att nästa steg inte tappas bort.`.trim();
+    } else if (selectedCount && recommendedAction === "waiting_customer") {
+      kicker = selectedCount >= 3 ? "Steg 4 · Förslaget är redo att lämnas vidare" : "Steg 4 · Sätt vänteläget med mening";
+      title = selectedCount >= 3 ? "Markera vänteläget och bär vidare förslaget" : "Markera vad kunden faktiskt väntar på";
+      meta =
+        recommendationMeta
+          ? `${proposalLead} ${recommendationMeta}`.trim()
+          : `${proposalLead} Använd vänteläget först när förslaget och nästa uppföljning är så tydliga att någon annan kan ta över utan friktion.`.trim();
+    } else if (!selectedCount && normalizedStatus === "slots_ready") {
+      kicker = "Steg 4 · Väntar på urval";
+      title = "Actions blir skarpa efter tidsvalet";
+      meta = "Reservation, Svarstudio och överlämning hålls tillbaka tills du har valt det förslag som faktiskt ska bäras vidare.";
+    }
+    if (completeProposalEmphasis?.kicker && completeProposalEmphasis?.title && completeProposalEmphasis?.meta) {
+      kicker = completeProposalEmphasis.kicker;
+      title = completeProposalEmphasis.title;
+      meta = completeProposalEmphasis.meta;
+    }
+    if (recentWorkflowEmphasis?.kicker && recentWorkflowEmphasis?.title && recentWorkflowEmphasis?.meta) {
+      kicker = recentWorkflowEmphasis.kicker;
+      title = recentWorkflowEmphasis.title;
+      meta = recentWorkflowEmphasis.meta;
+    }
+    if (bookingDom.actionHeadKicker) bookingDom.actionHeadKicker.textContent = kicker;
+    bookingDom.actionHeadTitle.textContent = title;
+    bookingDom.actionHeadMeta.textContent = meta;
   }
 
   function ensureBookingAdvancedDisclosure(surface) {
@@ -23427,7 +31069,9 @@
       surface.querySelector("[data-booking-audit-preview]"),
       surface.querySelector("[data-booking-slot-controls]"),
       surface.querySelector("[data-booking-ref-status]"),
+      surface.querySelector("[data-booking-available-head]"),
       surface.querySelector("[data-booking-available-slot-list]"),
+      surface.querySelector("[data-booking-selected-head]"),
       surface.querySelector("[data-booking-slot-list]"),
       surface.querySelector("[data-booking-event-filter-row]"),
       surface.querySelector("[data-booking-event-list]"),
@@ -23444,36 +31088,174 @@
     details.append(summary, content);
     advancedNodes.forEach((node) => content.appendChild(node));
     if (actionRow) {
-      surface.insertBefore(details, actionRow);
+      if (actionRow.parentNode === surface) {
+        surface.insertBefore(details, actionRow);
+      } else if (typeof actionRow.before === "function") {
+        actionRow.before(details);
+      } else {
+        surface.appendChild(details);
+      }
     } else {
       surface.appendChild(details);
     }
   }
 
   function ensureBookingActionDisclosure(surface) {
-    if (!surface || surface.querySelector("[data-booking-more-actions]")) return;
+    const actionRow = surface.querySelector(".booking-action-row");
+    if (!surface || !actionRow) return;
+    let details = surface.querySelector("[data-booking-more-actions]");
+    if (!details) {
+      details = document.createElement("details");
+      details.className = "booking-more-actions";
+      details.dataset.bookingMoreActions = "true";
+      const summary = document.createElement("summary");
+      summary.className = "booking-more-actions-summary";
+      summary.textContent = "Mer";
+      const content = document.createElement("div");
+      content.className = "booking-more-actions-content";
+      details.append(summary, content);
+      actionRow.appendChild(details);
+    }
+    const content = details.querySelector(".booking-more-actions-content");
+    if (!content) return;
+    const roleVisibleActions = new Set([
+      "candidate_slots",
+      "reserve_slots",
+      "renew_reservation",
+      "insert_studio",
+      "schedule_followup",
+      "confirm_external",
+    ]);
+    const conditionallyVisibleActions = new Set(["waiting_customer", "copy_audit_summary", "copy_handoff"]);
+    const buttons = Array.from(surface.querySelectorAll("[data-booking-action]")).filter(
+      (button) => button.closest(".booking-action-row, .booking-more-actions-content")
+    );
+    buttons.forEach((button) => {
+      const actionKey = asText(button.dataset.bookingAction);
+      const role = asText(button.dataset.stageRole, "supporting");
+      const keepVisible =
+        (roleVisibleActions.has(actionKey) && role !== "quiet") ||
+        (conditionallyVisibleActions.has(actionKey) && role !== "quiet");
+      if (keepVisible) {
+        actionRow.insertBefore(button, details);
+      } else {
+        content.appendChild(button);
+      }
+    });
+    details.hidden = !content.children.length;
+    if (details.hidden) details.open = false;
+  }
+
+  function ensureBookingSurfaceStructure(surface) {
+    if (!surface) return;
     const actionRow = surface.querySelector(".booking-action-row");
     if (!actionRow) return;
-    const primaryActions = new Set(["candidate_slots", "insert_studio", "schedule_followup"]);
-    const secondaryButtons = Array.from(actionRow.querySelectorAll("[data-booking-action]")).filter(
-      (button) => !primaryActions.has(asText(button.dataset.bookingAction))
-    );
-    if (!secondaryButtons.length) return;
-    const details = document.createElement("details");
-    details.className = "booking-more-actions";
-    details.dataset.bookingMoreActions = "true";
-    const summary = document.createElement("summary");
-    summary.className = "booking-more-actions-summary";
-    summary.textContent = "Mer";
-    const content = document.createElement("div");
-    content.className = "booking-more-actions-content";
-    details.append(summary, content);
-    secondaryButtons.forEach((button) => content.appendChild(button));
-    actionRow.appendChild(details);
+    const fragments = [];
+    if (!surface.querySelector("[data-booking-slot-overview]")) {
+      fragments.push(`
+        <section class="booking-slot-overview" data-booking-slot-overview data-booking-stage-focus-zone="slot_overview" aria-label="Lediga tider">
+          <div class="booking-slot-overview-copy">
+            <span data-booking-slot-overview-kicker>Lediga tider</span>
+            <strong data-booking-slot-overview-title>Inte hämtade ännu</strong>
+            <p data-booking-slot-overview-meta>Öppna tidshämtningen för att se tillgängliga tider och välja 1-3 förslag.</p>
+            <div class="booking-slot-overview-engine" data-booking-slot-overview-engine hidden></div>
+            <div class="booking-slot-overview-steps" data-booking-slot-overview-steps hidden></div>
+            <p class="booking-slot-overview-reason" data-booking-slot-overview-reason hidden></p>
+          </div>
+          <button class="booking-slot-overview-action" type="button" data-booking-open-slots>Öppna tider</button>
+        </section>
+      `);
+    }
+    if (!surface.querySelector("[data-booking-audit-preview]")) {
+      fragments.push(`
+        <section class="booking-audit-preview" data-booking-audit-preview data-booking-stage-focus-zone="audit_preview" aria-label="Loggförhandsvisning">
+          <div class="booking-audit-preview-head">
+            <div>
+              <span data-booking-audit-preview-kicker>Loggförhandsvisning</span>
+              <strong data-booking-audit-preview-title>Intern ärendesammanfattning</strong>
+              <p class="booking-audit-preview-intro" data-booking-audit-preview-intro>
+                Bokningsloggen ska förklara varför nästa steg vann, inte konkurrera med arbetsblocket.
+              </p>
+            </div>
+            <div class="booking-audit-preview-toggle" aria-label="Loggförhandsvisningsläge">
+              <button type="button" data-booking-audit-preview-mode="short" aria-pressed="true">Kort</button>
+              <button type="button" data-booking-audit-preview-mode="full" aria-pressed="false">Full</button>
+            </div>
+          </div>
+          <div class="booking-audit-export-state-slot" data-booking-audit-export-state></div>
+          <div class="booking-audit-preview-tools" data-booking-audit-preview-tools hidden></div>
+          <div class="booking-audit-preview-copy" data-booking-audit-preview-copy>Bokningslogg visas här när ett ärende är valt.</div>
+        </section>
+      `);
+    }
+    if (!surface.querySelector("[data-booking-slot-controls]")) {
+      fragments.push(buildBookingSlotControlsMarkup());
+    }
+    if (!surface.querySelector("[data-booking-available-slot-list]")) {
+      fragments.push(`
+        <div class="booking-slot-lane-head booking-slot-lane-head-available" data-booking-available-head>
+          <span data-booking-available-head-kicker>Steg 2 · Kandidattider</span>
+          <strong data-booking-available-head-title>Lediga tider att välja från</strong>
+          <p data-booking-available-head-meta>Hämta tider och markera 1-3 förslag att bära vidare i bokningsflödet.</p>
+        </div>
+        <ul class="booking-available-slot-list" data-booking-available-slot-list data-booking-stage-focus-zone="available_slots">
+          <li class="booking-slot-empty">
+            <strong>Inga externa tider hämtade</strong>
+            <span>Ange resurs och service, eller använd manuella reservtider.</span>
+          </li>
+        </ul>
+      `);
+    }
+    if (!surface.querySelector("[data-booking-slot-list]")) {
+      fragments.push(`
+        <div class="booking-slot-lane-head booking-slot-lane-head-selected" data-booking-selected-head>
+          <span data-booking-selected-head-kicker>Steg 3 · Ditt förslag</span>
+          <strong data-booking-selected-head-title>Valda tider att bära vidare</strong>
+          <p data-booking-selected-head-meta>Här samlar du tiderna som ska in i Svarstudio, reservation eller överlämning.</p>
+        </div>
+        <ul class="booking-slot-list" data-booking-slot-list data-booking-stage-focus-zone="selected_slots">
+          <li class="booking-slot-empty">
+            <strong>Inga tider valda</strong>
+            <span>Hämta externa tider eller välj kandidater manuellt.</span>
+          </li>
+        </ul>
+      `);
+    }
+    if (!surface.querySelector("[data-booking-event-filter-row]")) {
+      fragments.push(
+        '<div class="booking-event-filter-row" data-booking-event-filter-row aria-label="Filtrera bokningshändelser"></div>'
+      );
+    }
+    if (!surface.querySelector("[data-booking-event-list]")) {
+      fragments.push(`
+        <ol class="booking-event-timeline" data-booking-event-list data-booking-stage-focus-zone="event_timeline" aria-label="Bokningshändelser">
+          <li class="booking-event-empty">
+            <strong>Ingen händelselogg ännu</strong>
+            <span>Åtgärder i bokningsytan sparas här.</span>
+          </li>
+        </ol>
+      `);
+    }
+    if (fragments.length) {
+      actionRow.insertAdjacentHTML("beforebegin", fragments.join(""));
+    }
   }
 
   function getBookingDom() {
     let surface = document.querySelector("[data-booking-surface]");
+    const needsSurfaceRefresh =
+      surface &&
+      (!surface.querySelector("[data-booking-slot-overview]") ||
+        !surface.querySelector("[data-booking-open-slots]") ||
+        !surface.querySelector("[data-booking-slot-controls]") ||
+        !surface.querySelector("[data-booking-audit-preview]") ||
+        !surface.querySelector("[data-booking-event-filter-row]") ||
+        !surface.querySelector('[data-booking-action="cancel_booking"]') ||
+        !surface.querySelector('[data-booking-action="renew_reservation"]'));
+    if (needsSurfaceRefresh) {
+      surface.remove();
+      surface = null;
+    }
     if (!surface && focusWorkrail) {
       focusWorkrail.insertAdjacentHTML(
         "afterend",
@@ -23502,14 +31284,28 @@
           <p class="booking-status-filter-note" data-booking-status-filter-note></p>
           <button class="booking-audit-next-case" type="button" data-booking-audit-next-case hidden></button>
           <ul class="booking-case-list" data-booking-case-list aria-label="Bokningsärenden"></ul>
-          <div class="booking-decision-grid" data-booking-decision-grid aria-label="Bokningskontext"></div>
-          <ul class="booking-handoff-checklist" data-booking-handoff-checklist aria-label="Överlämningschecklista"></ul>
-          <div class="booking-handoff-summary" data-booking-handoff-summary aria-label="Bokningsöverlämning"></div>
-          <section class="booking-audit-preview" data-booking-audit-preview aria-label="Loggförhandsvisning">
+          <div class="booking-decision-grid" data-booking-decision-grid data-booking-stage-focus-zone="decision_context" aria-label="Bokningskontext"></div>
+          <ul class="booking-handoff-checklist" data-booking-handoff-checklist data-booking-stage-focus-zone="handoff_checklist" aria-label="Överlämningschecklista"></ul>
+          <div class="booking-handoff-summary" data-booking-handoff-summary data-booking-stage-focus-zone="handoff_summary" aria-label="Bokningsöverlämning"></div>
+          <section class="booking-slot-overview" data-booking-slot-overview data-booking-stage-focus-zone="slot_overview" aria-label="Lediga tider">
+            <div class="booking-slot-overview-copy">
+              <span data-booking-slot-overview-kicker>Lediga tider</span>
+              <strong data-booking-slot-overview-title>Inte hämtade ännu</strong>
+              <p data-booking-slot-overview-meta>Öppna tidshämtningen för att se tillgängliga tider och välja 1-3 förslag.</p>
+              <div class="booking-slot-overview-engine" data-booking-slot-overview-engine hidden></div>
+              <div class="booking-slot-overview-steps" data-booking-slot-overview-steps hidden></div>
+              <p class="booking-slot-overview-reason" data-booking-slot-overview-reason hidden></p>
+            </div>
+            <button class="booking-slot-overview-action" type="button" data-booking-open-slots>Öppna tider</button>
+          </section>
+          <section class="booking-audit-preview" data-booking-audit-preview data-booking-stage-focus-zone="audit_preview" aria-label="Loggförhandsvisning">
             <div class="booking-audit-preview-head">
               <div>
-                <span>Loggförhandsvisning</span>
-                <strong>Intern ärendesammanfattning</strong>
+                <span data-booking-audit-preview-kicker>Loggförhandsvisning</span>
+                <strong data-booking-audit-preview-title>Intern ärendesammanfattning</strong>
+                <p class="booking-audit-preview-intro" data-booking-audit-preview-intro>
+                  Bokningsloggen ska förklara varför nästa steg vann, inte konkurrera med arbetsblocket.
+                </p>
               </div>
               <div class="booking-audit-preview-toggle" aria-label="Loggförhandsvisningsläge">
                 <button type="button" data-booking-audit-preview-mode="short" aria-pressed="true">Kort</button>
@@ -23521,32 +31317,50 @@
             <div class="booking-audit-preview-copy" data-booking-audit-preview-copy>Bokningslogg visas här när ett ärende är valt.</div>
           </section>
           ${buildBookingSlotControlsMarkup()}
-          <ul class="booking-available-slot-list" data-booking-available-slot-list>
+          <div class="booking-slot-lane-head booking-slot-lane-head-available" data-booking-available-head>
+            <span data-booking-available-head-kicker>Steg 2 · Kandidattider</span>
+            <strong data-booking-available-head-title>Lediga tider att välja från</strong>
+            <p data-booking-available-head-meta>Hämta tider och markera 1-3 förslag att bära vidare i bokningsflödet.</p>
+          </div>
+          <ul class="booking-available-slot-list" data-booking-available-slot-list data-booking-stage-focus-zone="available_slots">
             <li class="booking-slot-empty">
               <strong>Inga externa tider hämtade</strong>
               <span>Ange resurs och service, eller använd manuella reservtider.</span>
             </li>
           </ul>
-          <ul class="booking-slot-list" data-booking-slot-list>
+          <div class="booking-slot-lane-head booking-slot-lane-head-selected" data-booking-selected-head>
+            <span data-booking-selected-head-kicker>Steg 3 · Ditt förslag</span>
+            <strong data-booking-selected-head-title>Valda tider att bära vidare</strong>
+            <p data-booking-selected-head-meta>Här samlar du tiderna som ska in i Svarstudio, reservation eller överlämning.</p>
+          </div>
+          <ul class="booking-slot-list" data-booking-slot-list data-booking-stage-focus-zone="selected_slots">
             <li class="booking-slot-empty">
               <strong>Inga tider valda</strong>
               <span>Hämta externa tider eller välj kandidater manuellt.</span>
             </li>
           </ul>
           <div class="booking-event-filter-row" data-booking-event-filter-row aria-label="Filtrera bokningshändelser"></div>
-          <ol class="booking-event-timeline" data-booking-event-list aria-label="Bokningshändelser">
+          <ol class="booking-event-timeline" data-booking-event-list data-booking-stage-focus-zone="event_timeline" aria-label="Bokningshändelser">
             <li class="booking-event-empty">
               <strong>Ingen händelselogg ännu</strong>
               <span>Åtgärder i bokningsytan sparas här.</span>
             </li>
           </ol>
-          <div class="booking-action-row">
+          <div class="booking-action-lane-head" data-booking-action-head>
+            <span data-booking-action-head-kicker>Steg 4 · Fortsätt med förslaget</span>
+            <strong data-booking-action-head-title>Valda tider låser upp nästa åtgärd</strong>
+            <p data-booking-action-head-meta>Börja med att välja 1-3 tider. Därefter blir reservation, Svarstudio och överlämning det naturliga nästa steget.</p>
+          </div>
+          <div class="booking-action-row" data-booking-stage-focus-zone="action_row">
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="candidate_slots">Välj 3 tider</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="reserve_slots" data-booking-requires-slots="true" title="Välj minst en tid innan tiderna reserveras i CCO.">Reservera i CCO</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="renew_reservation" title="Förnya reservationen i CCO om hållet snart går ut.">Förnya håll</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="clear_slots" data-booking-requires-slots="true" title="Rensa valda kandidat-tider.">Rensa tider</button>
             <button class="booking-action booking-action-primary" type="button" data-booking-action="insert_studio" data-booking-requires-slots="true" title="Välj minst en tid innan förslaget infogas i Svarstudio.">Infoga i Svarstudio</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="waiting_customer">Väntar kund</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="schedule_followup">Schemalägg</button>
             <button class="booking-action booking-action-confirmed" type="button" data-booking-action="confirm_external">Bekräftad externt</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="cancel_booking">Avboka</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_handoff" data-booking-requires-slots="true" title="Välj minst en tid innan överlämningen kopieras.">Kopiera överlämning</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_audit_summary" title="Kopiera strukturerad bokningslogg för intern ärendeöverlämning.">Kopiera logg</button>
           </div>
@@ -23558,6 +31372,7 @@
       );
       surface = document.querySelector("[data-booking-surface]");
     }
+    ensureBookingSurfaceStructure(surface);
     ensureBookingAdvancedDisclosure(surface);
     ensureBookingActionDisclosure(surface);
     return {
@@ -23580,12 +31395,39 @@
       decisionGrid: surface?.querySelector("[data-booking-decision-grid]"),
       handoffChecklist: surface?.querySelector("[data-booking-handoff-checklist]"),
       handoffSummary: surface?.querySelector("[data-booking-handoff-summary]"),
+      slotOverview: surface?.querySelector("[data-booking-slot-overview]"),
+      slotOverviewKicker: surface?.querySelector("[data-booking-slot-overview-kicker]"),
+      slotOverviewTitle: surface?.querySelector("[data-booking-slot-overview-title]"),
+      slotOverviewMeta: surface?.querySelector("[data-booking-slot-overview-meta]"),
+      slotOverviewEngine: surface?.querySelector("[data-booking-slot-overview-engine]"),
+      slotOverviewSteps: surface?.querySelector("[data-booking-slot-overview-steps]"),
+      slotOverviewReason: surface?.querySelector("[data-booking-slot-overview-reason]"),
+      slotOverviewAction: surface?.querySelector("[data-booking-open-slots]"),
       auditPreview: surface?.querySelector("[data-booking-audit-preview]"),
+      auditPreviewKicker: surface?.querySelector("[data-booking-audit-preview-kicker]"),
+      auditPreviewTitle: surface?.querySelector("[data-booking-audit-preview-title]"),
+      auditPreviewIntro: surface?.querySelector("[data-booking-audit-preview-intro]"),
       auditExportState: surface?.querySelector("[data-booking-audit-export-state]"),
       auditPreviewTools: surface?.querySelector("[data-booking-audit-preview-tools]"),
       auditPreviewCopy: surface?.querySelector("[data-booking-audit-preview-copy]"),
       auditPreviewModeButtons: Array.from(surface?.querySelectorAll("[data-booking-audit-preview-mode]") || []),
+      advancedPanel: surface?.querySelector("[data-booking-advanced-panel]"),
+      advancedSummary: surface?.querySelector(".booking-advanced-summary"),
+      advancedContent: surface?.querySelector(".booking-advanced-content"),
+      slotControls: surface?.querySelector("[data-booking-slot-controls]"),
+      availableHead: surface?.querySelector("[data-booking-available-head]"),
+      availableHeadKicker: surface?.querySelector("[data-booking-available-head-kicker]"),
+      availableHeadTitle: surface?.querySelector("[data-booking-available-head-title]"),
+      availableHeadMeta: surface?.querySelector("[data-booking-available-head-meta]"),
       slotList: surface?.querySelector("[data-booking-slot-list]") || bookingSlotList,
+      selectedHead: surface?.querySelector("[data-booking-selected-head]"),
+      selectedHeadKicker: surface?.querySelector("[data-booking-selected-head-kicker]"),
+      selectedHeadTitle: surface?.querySelector("[data-booking-selected-head-title]"),
+      selectedHeadMeta: surface?.querySelector("[data-booking-selected-head-meta]"),
+      actionHead: surface?.querySelector("[data-booking-action-head]"),
+      actionHeadKicker: surface?.querySelector("[data-booking-action-head-kicker]"),
+      actionHeadTitle: surface?.querySelector("[data-booking-action-head-title]"),
+      actionHeadMeta: surface?.querySelector("[data-booking-action-head-meta]"),
       eventFilterRow: surface?.querySelector("[data-booking-event-filter-row]"),
       eventList: surface?.querySelector("[data-booking-event-list]") || bookingEventList,
       availableList: surface?.querySelector("[data-booking-available-slot-list]"),
@@ -23596,6 +31438,7 @@
       slotResIds: surface?.querySelector("[data-booking-slot-resids]"),
       slotSrvIds: surface?.querySelector("[data-booking-slot-srvids]"),
       refStatus: surface?.querySelector("[data-booking-ref-status]"),
+      actionRow: surface?.querySelector(".booking-action-row"),
       actionHint: surface?.querySelector("[data-booking-action-hint]"),
       feedback: surface?.querySelector("[data-booking-feedback]") || bookingFeedback,
       actionButtons: Array.from(surface?.querySelectorAll("[data-booking-action]") || bookingActionButtons),
@@ -23612,13 +31455,25 @@
     if (!isBooking) return;
 
     const readout = getBookingReadoutForThread(thread);
+    ensureBookingRuntimeContext(thread);
+    const journeyState = getPreviewPatient360JourneyForThread(thread, getRuntimeFocusReadState(thread));
+    const activeJourneyLabel = asText(journeyState?.journey?.activeModule?.label);
+    const nextJourneyLabel = asText(journeyState?.journey?.nextModule?.label);
+    const preferredStatusStep = getJourneyPreferredBookingStatusStep(readout);
+    const stageContext = buildBookingStageContext(preferredStatusStep, readout);
+    const stageLayout = buildBookingSurfaceStageLayout(preferredStatusStep, readout);
+    const preferredFocusZone = getJourneyPreferredBookingSurfaceZone(preferredStatusStep, readout);
     const nextAction = buildBookingNextActionReadout(readout);
+    const recommendationPrompt = buildBookingRecommendedActionPrompt(readout, nextAction.action);
+    const stageMicrocopy = buildBookingStageMicrocopy(preferredStatusStep, readout, nextAction);
     if (bookingDom.status) bookingDom.status.textContent = formatBookingStatus(readout.status);
     let healthReadout = null;
     if (bookingDom.source) {
       const source = buildBookingSourceReadout(thread);
       bookingDom.source.textContent = `${source.label} · ${source.meta}`;
       bookingDom.source.dataset.tone = source.tone;
+      bookingDom.source.title = `${source.label} · ${source.meta}`;
+      bookingDom.source.hidden = !["manual", "standalone"].includes(normalizeKey(source.tone));
     }
     if (bookingDom.health) {
       healthReadout = buildBookingHealthReadout(readout);
@@ -23639,15 +31494,40 @@
         bookingDom.nextActionJump.hidden = !nextAction.action;
         bookingDom.nextActionJump.disabled = !nextAction.action;
         bookingDom.nextActionJump.dataset.bookingRecommendedAction = nextAction.action;
+        bookingDom.nextActionJump.dataset.bookingRecommendationState = normalizeKey(
+          readout.recommendedActionState
+        );
+        bookingDom.nextActionJump.dataset.tone = nextAction.action
+          ? recommendationPrompt.tone || nextAction.tone || "stable"
+          : "";
+        bookingDom.nextActionJump.dataset.stageRole = nextAction.action
+          ? recommendationPrompt.role || "supporting"
+          : "supporting";
+        bookingDom.nextActionJump.textContent = nextAction.action
+          ? recommendationPrompt.label || "Visa knapp"
+          : "Visa knapp";
         bookingDom.nextActionJump.title = nextAction.action
-          ? "Visa den rekommenderade knappen utan att utföra åtgärden."
+          ? recommendationPrompt.title || "Visa den rekommenderade knappen utan att utföra åtgärden."
           : "Ingen aktiv rekommenderad åtgärd.";
       }
     }
     if (bookingDom.decisionSource) {
       const decisionSource = buildBookingDecisionSourceReadout(readout);
-      bookingDom.decisionSource.textContent = `${decisionSource.label} · ${decisionSource.meta}`;
+      const compactDecisionParts = [];
+      if (activeJourneyLabel) compactDecisionParts.push(`Nu ${activeJourneyLabel}`);
+      if (nextJourneyLabel) compactDecisionParts.push(`Sedan ${nextJourneyLabel}`);
+      if (!compactDecisionParts.length && recommendationPrompt.label) {
+        compactDecisionParts.push(recommendationPrompt.label);
+      }
+      const compactDecisionText = compactDecisionParts.length
+        ? `${decisionSource.label} · ${compactDecisionParts.join(" · ")}`
+        : decisionSource.label;
+      const fullDecisionText = activeJourneyLabel
+        ? `${decisionSource.label} · Nu ${activeJourneyLabel}${nextJourneyLabel ? ` · sedan ${nextJourneyLabel}` : ""} · ${decisionSource.meta}`
+        : `${decisionSource.label} · ${decisionSource.meta}`;
+      bookingDom.decisionSource.textContent = compactDecisionText;
       bookingDom.decisionSource.dataset.tone = decisionSource.tone;
+      bookingDom.decisionSource.title = fullDecisionText;
     }
     if (bookingDom.treatment) bookingDom.treatment.textContent = readout.requestedTreatment;
     if (bookingDom.window) bookingDom.window.textContent = readout.preferredWindow || "Väntar på tidsfönster";
@@ -23656,7 +31536,13 @@
         asText(readout.attention?.confidence) ||
         (readout.selectedSlots.length ? "Hög - tider valda" : "Medel - validera tider");
     }
-    if (bookingDom.notes) bookingDom.notes.textContent = readout.notes;
+    if (bookingDom.notes) {
+      const noteText = asText(readout.notes);
+      const healthMeta = asText(healthReadout?.meta);
+      const decisionMeta = bookingDom.decisionSource?.title || "";
+      bookingDom.notes.textContent = noteText;
+      bookingDom.notes.hidden = !noteText || noteText === healthMeta || decisionMeta.includes(noteText);
+    }
     renderBookingStatusFlow(bookingDom, readout);
     renderBookingStatusFilter(bookingDom, readout);
     renderBookingCaseList(bookingDom);
@@ -23666,7 +31552,7 @@
       });
     }
     if (bookingDom.decisionGrid) {
-      bookingDom.decisionGrid.innerHTML = buildBookingDecisionCards(thread, readout)
+      bookingDom.decisionGrid.innerHTML = buildBookingDecisionCards(thread, readout, stageContext)
         .map(
           (card) =>
             `<article class="booking-decision-card" title="${escapeHtml(`${card.label}: ${card.value}. ${card.meta}`)}"><span>${escapeHtml(card.label)}</span><strong>${escapeHtml(
@@ -23676,40 +31562,170 @@
         .join("");
     }
     renderBookingHandoffChecklist(bookingDom, readout, nextAction.action);
-    renderBookingHandoffSummary(bookingDom, readout);
+    renderBookingHandoffSummary(bookingDom, readout, stageContext);
+    renderBookingSlotOverview(bookingDom, stageMicrocopy, readout);
     renderBookingAuditPreview(bookingDom, thread, readout);
+    renderBookingSelectedSlotLane(bookingDom, readout);
+    renderBookingActionLane(bookingDom, readout, nextAction, stageMicrocopy);
+    const selectedSlotSpread = buildBookingSelectedSlotSpreadAnalysis(readout);
+    const engineContext = buildBookingEngineSlotContext(readout);
+    const latestRebook = getBookingLatestRebookReadout(readout);
     if (bookingDom.slotList) {
-      bookingDom.slotList.innerHTML = readout.selectedSlots.length
-        ? readout.selectedSlots
+      const rankedSelectedSlots = getBookingRankedSelectedSlots(readout);
+      const recentSelectedSlotId = asText(state.booking.recentSelectedSlotId);
+      bookingDom.slotList.innerHTML = rankedSelectedSlots.length
+        ? rankedSelectedSlots
             .map(
-              (slot) =>
-                `<li><strong>${escapeHtml(formatBookingSlot(slot))}</strong><span>${escapeHtml(
-                  slot.locationLabel ||
-                    (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) ||
-                    "Extern kalender"
-                )}</span></li>`
+              (slot) => {
+                const engineState = getBookingEngineSlotState(slot);
+                const slotKey = getBookingSlotKey(slot);
+                const isRecentlyAdded =
+                  state.booking.recentSelectedSlotAction === "added" &&
+                  recentSelectedSlotId &&
+                  recentSelectedSlotId === slotKey;
+                const isRebookTarget =
+                  latestRebook?.nextLabel && latestRebook.nextLabel === formatBookingSlot(slot);
+                const selectedBadge = `<small class="booking-slot-recommendation" data-tone="selected">${escapeHtml(
+                  slot.selectedRankLabel || "Vald"
+                )}</small>`;
+                const engineBadge = engineState
+                  ? `<small class="booking-slot-engine-badge" data-tone="${escapeHtml(engineState)}">${escapeHtml(
+                      engineState === "confirmed" ? "Bekräftad i CCO" : "Reserverad i CCO"
+                    )}</small>`
+                  : "";
+                const rebookBadge = isRebookTarget
+                  ? `<small class="booking-slot-rebook-badge" data-tone="changed">Ersatte tidigare tid</small>`
+                  : "";
+                const reasonLine = asText(slot.recommendation?.reason)
+                  ? `<small class="booking-selected-slot-reason">${escapeHtml(slot.recommendation.reason)}</small>`
+                  : "";
+                const changeLine =
+                  isRecentlyAdded || (isRebookTarget && latestRebook?.previousLabel)
+                    ? `<small class="booking-selected-slot-change">${
+                        isRecentlyAdded
+                          ? "Nyss tillagd från kandidatlistan"
+                          : escapeHtml(`Ersatte ${latestRebook.previousLabel}`)
+                      }</small>`
+                    : "";
+                return `<li class="booking-selected-slot${isRecentlyAdded ? " is-recent" : ""}">
+                  <div class="booking-selected-slot-body">
+                    <strong class="booking-selected-slot-title">${escapeHtml(formatBookingSlot(slot))}</strong>
+                    <div class="booking-selected-slot-badges">${selectedBadge}${engineBadge}${rebookBadge}</div>
+                    <span class="booking-selected-slot-meta">${escapeHtml(
+                      slot.locationLabel ||
+                        (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) ||
+                        "Extern kalender"
+                    )}</span>
+                    ${reasonLine}
+                    ${changeLine}
+                  </div>
+                  <button class="booking-slot-select booking-slot-select-secondary" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(slotKey)}">Ta bort</button>
+                </li>`;
+              }
             )
-            .join("")
-        : `<li class="booking-slot-empty"><strong>Inga tider valda</strong><span>Hämta externa tider eller välj kandidater manuellt.</span></li>`;
+            .join("") +
+          (latestRebook
+            ? `<li class="booking-slot-rebook-note" data-tone="changed"><strong>${escapeHtml(
+                latestRebook.nextLabel || "Ny tid vald"
+              )}</strong><span>${escapeHtml(latestRebook.summary)}</span></li>`
+            : "") +
+          (engineContext
+            ? `<li class="booking-slot-engine-note" data-tone="${escapeHtml(
+                engineContext.tone || "idle"
+              )}"><strong>${escapeHtml(engineContext.title)}</strong><span>${escapeHtml(
+                engineContext.meta
+              )}</span></li>`
+            : "") +
+          (selectedSlotSpread.summary
+            ? `<li class="booking-slot-spread-note" data-tone="${escapeHtml(
+                selectedSlotSpread.tone || "soft"
+              )}"><strong>${escapeHtml(selectedSlotSpread.summary)}</strong><span>${escapeHtml(
+                selectedSlotSpread.detail
+              )}</span></li>`
+            : "")
+        : `<li class="booking-slot-empty"><strong>${escapeHtml(
+            asText(stageMicrocopy.selectedEmptyTitle, "Inga tider valda")
+          )}</strong><span>${escapeHtml(
+            asText(stageMicrocopy.selectedEmptyMeta, "Hämta externa tider eller välj kandidater manuellt.")
+          )}</span></li>`;
     }
     renderBookingEventFilter(bookingDom, readout);
     renderBookingEventTimeline(bookingDom, readout);
+    applyBookingSurfaceStageLayout(bookingDom, stageLayout);
+    applyBookingActionStagePresentation(bookingDom, stageMicrocopy);
+    setBookingSurfaceZoneHighlight(preferredFocusZone);
     const range = getDefaultBookingDateRange();
     if (bookingDom.slotFrom && !bookingDom.slotFrom.value) bookingDom.slotFrom.value = range.fromDate;
     if (bookingDom.slotTo && !bookingDom.slotTo.value) bookingDom.slotTo.value = range.toDate;
     renderBookingRefDataControls(bookingDom);
-    renderAvailableBookingSlots(bookingDom);
+    renderAvailableBookingSlots(bookingDom, stageMicrocopy, readout);
     const hasSelectedSlots = asArray(readout.selectedSlots).length > 0;
     const recommendedAction = asText(
       bookingDom.nextAction?.dataset.bookingRecommendedAction || nextAction.action
     );
+    const waitingActionEmphasis =
+      normalizeKey(readout.status) === "waiting_customer"
+        ? buildBookingWaitingActionEmphasis(readout, recommendedAction)
+        : null;
+    const completeProposalEmphasis = hasSelectedSlots
+      ? buildBookingCompleteProposalActionEmphasis(readout, recommendedAction)
+      : null;
+    const recentWorkflowEmphasis = hasSelectedSlots
+      ? buildBookingRecentWorkflowActionEmphasis(readout, recommendedAction)
+      : null;
     if (bookingDom.actionHint) {
       bookingDom.actionHint.hidden = hasSelectedSlots;
-      bookingDom.actionHint.textContent = "Välj minst en tid för att aktivera Svarstudio och överlämning.";
+      bookingDom.actionHint.textContent = activeJourneyLabel
+        ? `${activeJourneyLabel} leder nu. ${stageContext.actionHint || "Följ rekommenderat nästa steg i bokningsytan."}`
+        : stageContext.actionHint || "Följ rekommenderat nästa steg i bokningsytan.";
+    }
+    if (hasSelectedSlots && bookingDom.actionHint && recentWorkflowEmphasis?.hint) {
+      bookingDom.actionHint.hidden = false;
+      bookingDom.actionHint.textContent = recentWorkflowEmphasis.hint;
+      bookingDom.actionHint.dataset.tone = "success";
+    } else if (hasSelectedSlots && bookingDom.actionHint && waitingActionEmphasis?.hint) {
+      bookingDom.actionHint.hidden = false;
+      bookingDom.actionHint.textContent = waitingActionEmphasis.hint;
+      bookingDom.actionHint.dataset.tone = "attention";
+    } else if (hasSelectedSlots && bookingDom.actionHint && completeProposalEmphasis?.hint) {
+      bookingDom.actionHint.hidden = false;
+      bookingDom.actionHint.textContent = completeProposalEmphasis.hint;
+      bookingDom.actionHint.dataset.tone = "attention";
+    } else if (hasSelectedSlots && bookingDom.actionHint && selectedSlotSpread.summary) {
+      bookingDom.actionHint.hidden = false;
+      bookingDom.actionHint.textContent = `${selectedSlotSpread.summary} ${selectedSlotSpread.detail}`;
+      bookingDom.actionHint.dataset.tone = selectedSlotSpread.tone || "";
+    } else if (bookingDom.actionHint) {
+      bookingDom.actionHint.dataset.tone = "";
     }
     bookingDom.actionButtons.forEach((button) => {
       const requiresSlots = button.dataset.bookingRequiresSlots === "true";
       const isRecommended = isRecommendedBookingActionButton(button, recommendedAction);
+      const actionKey = asText(button.dataset.bookingAction);
+      const normalizedBookingStatus = normalizeKey(readout.status);
+      const recentWorkflowAction = normalizeKey(state.booking.recentWorkflowAction);
+      if (actionKey === "cancel_booking") {
+        button.hidden =
+          !isBookingEnginePrimary() ||
+          (normalizedBookingStatus === "confirmed_external" && recentWorkflowAction === "copy_audit_summary");
+      } else if (actionKey === "clear_slots") {
+        button.hidden = normalizedBookingStatus === "confirmed_external";
+      } else if (actionKey === "reserve_slots") {
+        button.hidden = !isBookingEnginePrimary();
+      } else if (actionKey === "renew_reservation") {
+        button.hidden = !isBookingEnginePrimary();
+      } else {
+        button.hidden = false;
+      }
+      if (completeProposalEmphasis?.roles?.[actionKey]) {
+        button.dataset.stageRole = completeProposalEmphasis.roles[actionKey];
+      }
+      if (recentWorkflowEmphasis?.roles?.[actionKey]) {
+        button.dataset.stageRole = recentWorkflowEmphasis.roles[actionKey];
+      }
+      if (waitingActionEmphasis?.roles?.[actionKey]) {
+        button.dataset.stageRole = waitingActionEmphasis.roles[actionKey];
+      }
       button.classList.toggle("is-recommended", Boolean(isRecommended));
       if (isRecommended) {
         button.setAttribute("aria-describedby", "booking-next-action-hint");
@@ -23721,9 +31737,73 @@
         state.booking?.loadingSlots === true ||
         !thread ||
         (requiresSlots && !hasSelectedSlots);
+      if (actionKey === "cancel_booking") {
+        const hasEngineBooking = Boolean(getBookingEngineConfirmedBooking());
+        button.disabled =
+          button.disabled ||
+          !isBookingEnginePrimary() ||
+          (!hasEngineBooking && !asArray(state.booking.engineSummary?.reservations).length);
+        button.title = hasEngineBooking
+          ? "Avboka den bekräftade bokningen i CCO."
+          : "Ingen aktiv CCO-bokning att avboka ännu.";
+      }
+      if (actionKey === "reserve_slots" && isBookingEnginePrimary()) {
+        const hasReservations = getBookingEngineReservationList().length > 0;
+        const hasConfirmedBooking = Boolean(getBookingEngineConfirmedBooking());
+        button.disabled =
+          button.disabled ||
+          hasConfirmedBooking ||
+          hasReservations;
+        button.title = hasConfirmedBooking
+          ? "Bokningen är redan bekräftad i CCO."
+          : hasReservations
+            ? "Valda tider är redan reserverade i CCO."
+            : hasSelectedSlots
+              ? "Reservera de valda tiderna i CCO innan du bekräftar bokningen."
+              : "Välj minst en tid innan tiderna reserveras i CCO.";
+      }
+      if (actionKey === "renew_reservation" && isBookingEnginePrimary()) {
+        const workflow = getBookingEngineWorkflowSummary();
+        const hasReservations = getBookingEngineReservationList().length > 0;
+        button.disabled =
+          button.disabled ||
+          !hasReservations ||
+          !workflow.expiresSoon;
+        button.title = !hasReservations
+          ? "Ingen aktiv reservation att förnya ännu."
+          : workflow.expiresSoon
+            ? "Förnya reservationen i CCO innan hållet går ut."
+            : "Reservationen behöver inte förnyas ännu.";
+      }
+      if (actionKey === "confirm_external" && isBookingEnginePrimary()) {
+        const confirmedBooking = getBookingEngineConfirmedBooking();
+        const hasReservation = asArray(state.booking.engineSummary?.reservations).length > 0;
+        const selectedTopSlot = getBookingRankedSelectedSlots(readout)[0] || asArray(readout.selectedSlots)[0] || null;
+        const selectedSlotId = getBookingSlotKey(selectedTopSlot || {});
+        const confirmedSlotId = getBookingSlotKey(confirmedBooking?.slot || {});
+        button.disabled =
+          button.disabled ||
+          (!confirmedBooking && !selectedSlotId && !hasReservation);
+        button.textContent =
+          confirmedBooking && selectedSlotId && confirmedSlotId && selectedSlotId !== confirmedSlotId
+            ? "Boka om i CCO"
+            : "Bekräfta i CCO";
+        button.title =
+          confirmedBooking && selectedSlotId && confirmedSlotId && selectedSlotId !== confirmedSlotId
+            ? "Bekräfta den nya valda tiden och ersätt tidigare CCO-bokning."
+            : confirmedBooking
+              ? "Bokningen är redan bekräftad i CCO."
+              : hasReservation || selectedSlotId
+                ? "Bekräfta bokningen direkt i CCO:s egen bokningsmotor."
+                : "Välj minst en tid innan bokningen kan bekräftas i CCO.";
+      }
       if (requiresSlots) {
         const buttonAction = button.dataset.bookingAction;
-        if (buttonAction === "insert_studio") {
+        if (buttonAction === "reserve_slots") {
+          button.title = hasSelectedSlots
+            ? "Reservera de valda tiderna i CCO:s egen bokningsmotor."
+            : "Välj minst en tid innan tiderna reserveras i CCO.";
+        } else if (buttonAction === "insert_studio") {
           button.title = hasSelectedSlots
             ? "Infoga bokningsförslaget i Svarstudio."
             : "Välj minst en tid innan förslaget infogas i Svarstudio.";
@@ -23739,7 +31819,17 @@
       } else if (button.dataset.bookingAction === "copy_audit_summary") {
         button.title = "Kopiera strukturerad bokningslogg för intern ärendeöverlämning.";
       }
+      if (completeProposalEmphasis?.titles?.[actionKey]) {
+        button.title = completeProposalEmphasis.titles[actionKey];
+      }
+      if (recentWorkflowEmphasis?.titles?.[actionKey]) {
+        button.title = recentWorkflowEmphasis.titles[actionKey];
+      }
+      if (waitingActionEmphasis?.titles?.[actionKey]) {
+        button.title = waitingActionEmphasis.titles[actionKey];
+      }
     });
+    ensureBookingActionDisclosure(bookingDom.surface);
   }
 
   function buildBookingRequestBody(thread, extra = {}) {
@@ -23888,10 +31978,11 @@
 
   function getBookingSlotsRequestFromDom(bookingDom) {
     syncBookingManualIdsFromSelects(bookingDom);
-    const fromDate = asText(bookingDom.slotFrom?.value);
-    const toDate = asText(bookingDom.slotTo?.value);
-    const resIds = asText(bookingDom.slotResIds?.value);
-    const srvIds = asText(bookingDom.slotSrvIds?.value);
+    const draft = captureBookingSlotRequestDraft(bookingDom);
+    const fromDate = asText(bookingDom.slotFrom?.value || draft.fromDate);
+    const toDate = asText(bookingDom.slotTo?.value || draft.toDate);
+    const resIds = asText(bookingDom.slotResIds?.value || draft.resIds);
+    const srvIds = asText(bookingDom.slotSrvIds?.value || draft.srvIds);
     return { fromDate, toDate, resIds, srvIds };
   }
 
@@ -23905,17 +31996,18 @@
       const payload = await apiRequest("/api/v1/cco-bookings/ref-data");
       state.booking.resources = asArray(payload.resources);
       state.booking.services = asArray(payload.services);
+      state.booking.provider = asText(payload.provider || state.booking.provider);
       state.booking.refDataLoaded = true;
       state.booking.refDataError = "";
       setFeedback(
         getBookingDom().feedback,
         "success",
-        `Extern tidkälla: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar hämtade.`
+        `${state.booking.provider === "cco_engine" ? "CCO tidkälla" : "Extern tidkälla"}: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar hämtade.`
       );
     } catch (error) {
       state.booking.refDataError = formatBookingOperatorError(
         error,
-        "Extern tidkälla kunde inte hämtas."
+        `${state.booking.provider === "cco_engine" ? "CCO tidkälla" : "Extern tidkälla"} kunde inte hämtas.`
       );
       setFeedback(getBookingDom().feedback, "error", state.booking.refDataError);
     } finally {
@@ -23962,6 +32054,581 @@
     ) || null;
   }
 
+  function syncBookingRuntimePayload(payload = {}) {
+    if (payload.bookingEngine && typeof payload.bookingEngine === "object") {
+      state.booking.engineSummary = payload.bookingEngine;
+    }
+    state.booking.case = payload.bookingCase || state.booking.case;
+    state.booking.readout = {
+      ...(state.booking.readout || {}),
+      status: state.booking.case?.status || state.booking.readout?.status,
+      selectedSlots: state.booking.case?.selectedSlots || state.booking.readout?.selectedSlots || [],
+      events: state.booking.case?.events || state.booking.readout?.events || [],
+      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
+      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
+      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
+      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
+      postConfirmation:
+        state.booking.engineSummary?.postConfirmation &&
+        typeof state.booking.engineSummary.postConfirmation === "object"
+          ? state.booking.engineSummary.postConfirmation
+          : state.booking.case?.postConfirmation && typeof state.booking.case?.postConfirmation === "object"
+            ? state.booking.case.postConfirmation
+            : state.booking.readout?.postConfirmation || null,
+      waitingCustomer:
+        state.booking.engineSummary?.waitingCustomer && typeof state.booking.engineSummary.waitingCustomer === "object"
+          ? state.booking.engineSummary.waitingCustomer
+          : state.booking.case?.waitingCustomer && typeof state.booking.case?.waitingCustomer === "object"
+            ? state.booking.case.waitingCustomer
+            : state.booking.readout?.waitingCustomer || null,
+      blocker:
+        state.booking.engineSummary?.blocker && typeof state.booking.engineSummary.blocker === "object"
+          ? state.booking.engineSummary.blocker
+          : state.booking.case?.blocker || state.booking.readout?.blocker || null,
+    };
+    state.booking.patient360 =
+      payload.patient360 && typeof payload.patient360 === "object"
+        ? payload.patient360
+        : state.booking.patient360 || null;
+    if (asText(payload.provider)) {
+      state.booking.provider = asText(payload.provider);
+    }
+  }
+
+  function getBookingProviderLabel(provider = "") {
+    return normalizeKey(provider) === "cco_engine" ? "CCO bokningsmotor" : "Extern tidkälla";
+  }
+
+  function isBookingEnginePrimary() {
+    return normalizeKey(state.booking.provider) === "cco_engine";
+  }
+
+  function getBookingEngineReservationList() {
+    return asArray(state.booking.engineSummary?.reservations);
+  }
+
+  function getBookingEngineConfirmedBooking() {
+    const booking =
+      state.booking.engineSummary?.booking && typeof state.booking.engineSummary.booking === "object"
+        ? state.booking.engineSummary.booking
+        : null;
+    return normalizeKey(booking?.status) === "confirmed" ? booking : null;
+  }
+
+  function getBookingEngineWorkflowSummary() {
+    return state.booking.engineSummary && typeof state.booking.engineSummary === "object"
+      ? state.booking.engineSummary
+      : {};
+  }
+
+  function getBookingEngineStateReadout(readout = {}) {
+    if (!isBookingEnginePrimary()) return null;
+    const workflow = getBookingEngineWorkflowSummary();
+    const confirmedBooking = getBookingEngineConfirmedBooking();
+    const reservations = getBookingEngineReservationList();
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const backendPrimarySlot =
+      workflow.primarySlot && typeof workflow.primarySlot === "object" ? workflow.primarySlot : null;
+    const latestSelectedSlot = getBookingRankedSelectedSlots(readout)[0] || asArray(readout.selectedSlots)[0] || null;
+    if (confirmedBooking) {
+      if (postConfirmation) {
+        const valueByRecommendationState = {
+          act_now_overdue: "Svar väntar efter bekräftelse",
+          act_now: "Kundsvar efter bekräftelse",
+          reengage_now: "Uppföljning efter bekräftelse",
+          monitor: "Bevakar efter bekräftelse",
+        };
+        return {
+          label: "CCO motor",
+          value:
+            valueByRecommendationState[recommendationState] ||
+            asText(workflow.stateLabel, "Bekräftad"),
+          meta: recommendation.reason
+            ? recommendation.reason
+            : confirmedBooking.slot
+              ? `${formatBookingSlot(confirmedBooking.slot)} · bokad i CCO men fortfarande aktivt case`
+              : "Bokningen är bekräftad i CCO men kunddialogen lever fortfarande vidare.",
+          tone:
+            recommendationState === "monitor"
+              ? "waiting"
+              : recommendationState === "reengage_now"
+                ? "attention"
+                : "attention",
+          filter: "engine_booking_confirmed",
+        };
+      }
+      return {
+        label: "CCO motor",
+        value: asText(workflow.stateLabel, "Bekräftad"),
+        meta: confirmedBooking.slot
+          ? `${formatBookingSlot(confirmedBooking.slot)} · bokad i CCO`
+          : "Bokningen är bekräftad i CCO:s egen bokningsmotor.",
+        tone: "confirmed",
+        filter: "engine_booking_confirmed",
+      };
+    }
+    if (reservations.length) {
+      const firstReservation = reservations[0];
+      const expiryMeta =
+        workflow.nextExpiryAt && Number.isFinite(Number(workflow.expiresInMinutes))
+          ? workflow.expiresSoon
+            ? `utgår om ${workflow.expiresInMinutes} min`
+            : `hålls till ${formatBookingEventTime(workflow.nextExpiryAt)}`
+          : "hålls i CCO";
+      return {
+        label: "CCO motor",
+        value: asText(workflow.stateLabel, reservations.length === 1 ? "Reserverad" : `${reservations.length} reserverade`),
+        meta: (backendPrimarySlot || firstReservation?.slot)
+          ? `${formatBookingSlot(backendPrimarySlot || firstReservation.slot)} · ${expiryMeta}`
+          : asText(workflow.stateReason, "Valda tider är reserverade i CCO:s egen bokningsmotor."),
+        tone: workflow.expiresSoon ? "attention" : "status-move",
+        filter: "engine_slots_reserved",
+      };
+    }
+    return {
+      label: "CCO motor",
+      value: latestSelectedSlot ? "Redo att reservera" : "Ingen reservation",
+      meta: latestSelectedSlot
+        ? "Reservera valda tider i CCO innan bokningen bekräftas."
+        : "Välj tider först, reservera sedan i CCO:s egen bokningsmotor.",
+      tone: latestSelectedSlot ? "blocker" : "",
+      filter: latestSelectedSlot ? "candidate_slots_selected" : "",
+    };
+  }
+
+  function buildBookingEngineSlotContext(readout = {}) {
+    if (!isBookingEnginePrimary()) return null;
+    const workflow = getBookingEngineWorkflowSummary();
+    const confirmedBooking = getBookingEngineConfirmedBooking();
+    const reservations = getBookingEngineReservationList();
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const selectedCount = asArray(readout.selectedSlots).length;
+    if (confirmedBooking) {
+      if (postConfirmation) {
+        const titleByRecommendationState = {
+          act_now_overdue: "Svar väntar efter bekräftelse",
+          act_now: "Kundsvar efter bekräftelse",
+          reengage_now: "Följ upp efter bekräftelse",
+          monitor: "Bevaka efter bekräftelse",
+        };
+        return {
+          tone: recommendationState === "monitor" ? "reserved" : "attention",
+          title:
+            titleByRecommendationState[recommendationState] || "Bekräftad i CCO",
+          meta: recommendation.reason
+            ? recommendation.reason
+            : confirmedBooking.slot
+              ? `${formatBookingSlot(confirmedBooking.slot)} · bokad i CCO men fortfarande aktivt case`
+              : "Bokningen är bekräftad i CCO men kunddialogen lever fortfarande vidare.",
+        };
+      }
+      return {
+        tone: "confirmed",
+        title: "Bekräftad i CCO",
+        meta: workflow.primarySlot
+          ? formatBookingSlot(workflow.primarySlot)
+          : confirmedBooking.slot
+            ? formatBookingSlot(confirmedBooking.slot)
+          : "Bokningen är bekräftad i CCO:s bokningsmotor.",
+      };
+    }
+    if (reservations.length) {
+      return {
+        tone: workflow.expiresSoon ? "attention" : "reserved",
+        title: workflow.expiresSoon
+          ? "Reservation utgår snart"
+          : asText(workflow.stateLabel) ||
+            (reservations.length === 1 ? "1 tid reserverad" : `${reservations.length} tider reserverade`),
+        meta: asText(
+          workflow.stateReason,
+          "De valda tiderna hålls nu i CCO i väntan på bekräftelse eller ombokning."
+        ),
+      };
+    }
+    if (selectedCount) {
+      return {
+        tone: "pending",
+        title: "Redo att reservera",
+        meta: "Valda tider finns, men hålls ännu inte i CCO:s egen bokningsmotor.",
+      };
+    }
+    return {
+      tone: "idle",
+      title: "Ingen CCO-reservation ännu",
+      meta: "Välj tider först och reservera dem sedan i CCO innan slutlig bekräftelse.",
+    };
+  }
+
+  function getBookingEngineSlotState(slot = {}) {
+    const slotKey = getBookingSlotKey(slot);
+    if (!slotKey) return "";
+    const confirmedSlotKey = getBookingSlotKey(getBookingEngineConfirmedBooking()?.slot || {});
+    if (confirmedSlotKey && confirmedSlotKey === slotKey) return "confirmed";
+    const reservationMatch = getBookingEngineReservationList().some(
+      (reservation) => getBookingSlotKey(reservation?.slot || {}) === slotKey
+    );
+    return reservationMatch ? "reserved" : "";
+  }
+
+  function buildBookingEngineSequenceSteps(readout = {}, recommendedAction = "") {
+    const selectedSlots = asArray(readout.selectedSlots);
+    const hasSelectedSlots = selectedSlots.length > 0;
+    const workflow = getBookingEngineWorkflowSummary();
+    const recommendation = getBookingRecommendationMeta(readout);
+    const hasReservations = workflow.hasReservations === true || getBookingEngineReservationList().length > 0;
+    const hasConfirmedBooking = workflow.hasConfirmedBooking === true || Boolean(getBookingEngineConfirmedBooking());
+    const normalizedRecommendation =
+      normalizeKey(recommendedAction) ||
+      normalizeKey(getBookingRecommendedActionForState(recommendation.state)) ||
+      normalizeKey(workflow.recommendedAction);
+    const waitingRecommendationStep =
+      normalizedRecommendation === "insert_studio" ||
+      normalizedRecommendation === "schedule_followup" ||
+      normalizedRecommendation === "confirm_external" ||
+      normalizedRecommendation === "waiting_customer";
+    return [
+      {
+        key: "select",
+        label: "Välj tider",
+        action: hasSelectedSlots ? "focus_slots" : "candidate_slots",
+        state: hasSelectedSlots ? "done" : "active",
+        isRecommended: normalizedRecommendation === "candidate_slots",
+      },
+      {
+        key: "reserve",
+        label: "Reservera",
+        action: "reserve_slots",
+        state: hasConfirmedBooking ? "done" : hasReservations ? "done" : hasSelectedSlots ? "active" : "idle",
+        isRecommended:
+          normalizedRecommendation === "reserve_slots" ||
+          normalizedRecommendation === "renew_reservation",
+      },
+      {
+        key: "confirm",
+        label: "Bekräfta",
+        action: "confirm_external",
+        state:
+          hasConfirmedBooking
+            ? "done"
+            : hasReservations || waitingRecommendationStep
+              ? "active"
+              : "idle",
+        isRecommended: normalizedRecommendation === "confirm_external" || waitingRecommendationStep,
+      },
+    ];
+  }
+
+  function buildBookingEngineSequenceReason(readout = {}, nextActionReadout = {}) {
+    if (!isBookingEnginePrimary()) return null;
+    const blocker = readout?.blocker && typeof readout.blocker === "object" ? readout.blocker : null;
+    const blockerLabel = asText(blocker?.label);
+    const recommendation = getBookingRecommendationMeta(readout);
+    const recommendationState = normalizeKey(recommendation.state);
+    const signalReadout = buildBookingWorkflowSignalReadout(readout);
+    const nextAction = normalizeKey(nextActionReadout?.action);
+    const nextActionLabel = asText(nextActionReadout?.label).replace(/^Nästa:\s*/i, "").trim();
+    const nextActionMeta = asText(nextActionReadout?.meta);
+    const status = normalizeKey(readout.status || "");
+    const rebookEvent = getLatestBookingEvent(readout, ["engine_booking_rebooked"]);
+    const reservationEvent = getLatestBookingEvent(readout, ["engine_slots_reserved"]);
+    const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
+    const followUpEvent =
+      getLatestBookingEvent(readout, ["follow_up_scheduled"]) ||
+      getLatestBookingEvent(readout, ["follow_up_opened"]);
+    const statusEvent = getLatestBookingEvent(readout, ["status_changed"]);
+    const statusTransition = getBookingEventStatusTransition(statusEvent);
+    const waitingHours = hoursSinceIso(readout.updatedAt || readout.offeredAt);
+    const postConfirmation = getBookingPostConfirmationContext(readout);
+    const appendChange = (baseMeta = "", changeMeta = "") =>
+      [asText(baseMeta).trim(), asText(changeMeta).trim()].filter(Boolean).join(" ");
+    const rebookSlotChange = getBookingEventSlotChange(rebookEvent);
+    const bookingChangedMeta = rebookEvent
+      ? rebookSlotChange?.previousLabel && rebookSlotChange?.nextLabel
+        ? `Ändrat: ${rebookSlotChange.previousLabel} ersattes av ${rebookSlotChange.nextLabel}.`
+        : "Ändrat: en tidigare bekräftad tid ersattes och nästa steg behöver säkras i samma flöde."
+      : "";
+    const customerWaitMeta =
+      status === "waiting_customer"
+        ? waitingHours >= 24
+          ? `Ändrat: kunden har väntat ${formatBookingWaitAge(waitingHours)} utan ny bekräftelse.`
+          : `Ändrat: erbjudandet är ute och kundsvar inväntas ${formatBookingWaitAge(waitingHours)}.`
+        : "";
+    const statusShiftMeta =
+      statusTransition && status === "waiting_customer"
+        ? `Senaste skifte: ${statusTransition.previous} → ${statusTransition.next}.`
+        : "";
+    const waitingReasonByRecommendationState = {
+      act_now_overdue: {
+        label: "Varför nu: kundsvaret väntar på oss",
+        meta:
+          recommendation.reason ||
+          "Kunden har redan svarat och svaret har blivit liggande. Öppna Svarstudio innan fler påminnelser eller statussteg.",
+      },
+      act_now: {
+        label: "Varför nu: kunden har svarat",
+        meta:
+          recommendation.reason ||
+          "Kunden har återkommit i samma tråd. Ta tillbaka ärendet till Svarstudio och bearbeta svaret innan nästa statussteg.",
+      },
+      reengage_now: {
+        label: "Varför nu: uppföljningen behöver återupptas",
+        meta:
+          recommendation.reason ||
+          "Kunddialogen har svalnat eller passerat sin tänkta återupptagning. Lyft uppföljningen igen nu.",
+      },
+      monitor: {
+        label: "Varför nu: kundläget bevakas",
+        meta:
+          recommendation.reason ||
+          "Det finns redan ett aktivt vänteläge eller en pågående uppföljning. Bevaka innan du skapar ett nytt steg.",
+      },
+    };
+    const postConfirmationReasonByRecommendationState = {
+      act_now_overdue: {
+        label: "Varför nu: kundsvaret efter bekräftelsen väntar på oss",
+        meta:
+          recommendation.reason ||
+          "Kunden har svarat efter bekräftelsen och svaret har redan blivit liggande. Ta tillbaka ärendet till Svarstudio nu.",
+      },
+      act_now: {
+        label: "Varför nu: kunden återkom efter bekräftelsen",
+        meta:
+          recommendation.reason ||
+          "Kunden har svarat efter bekräftelsen. Bearbeta svaret innan du tänker på stängning.",
+      },
+      reengage_now: {
+        label: "Varför nu: uppföljningen efter bekräftelsen behöver återupptas",
+        meta:
+          recommendation.reason ||
+          "Uppföljningen efter bekräftelsen har förfallit och kunddialogen behöver lyftas igen.",
+      },
+      monitor: {
+        label: "Varför nu: kundläget lever vidare efter bekräftelsen",
+        meta:
+          recommendation.reason ||
+          "En uppföljning pågår fortfarande efter bekräftelsen. Bevaka innan caset stängs.",
+      },
+    };
+    if (status === "confirmed_external" && postConfirmation && postConfirmationReasonByRecommendationState[recommendationState]) {
+      return {
+        label: postConfirmationReasonByRecommendationState[recommendationState].label,
+        meta: appendChange(
+          signalReadout?.meta || postConfirmationReasonByRecommendationState[recommendationState].meta,
+          blockerLabel ? `Backend blockerar på: ${blockerLabel}.` : ""
+        ),
+        tone:
+          recommendationState === "monitor"
+            ? "waiting"
+            : "attention",
+      };
+    }
+    if (status === "waiting_customer" && signalReadout && waitingReasonByRecommendationState[recommendationState]) {
+      return {
+        label: waitingReasonByRecommendationState[recommendationState].label,
+        meta: appendChange(
+          signalReadout.meta,
+          blockerLabel ? `Backend blockerar på: ${blockerLabel}.` : ""
+        ),
+        tone: recommendationState === "monitor" ? "waiting" : "attention",
+      };
+    }
+    if (blockerLabel && nextActionLabel) {
+      return {
+        label: `Varför nu: ${blockerLabel}`,
+        meta:
+          appendChange(
+            nextActionMeta || `${nextActionLabel} leder bokningsflödet just nu.`,
+            bookingChangedMeta || statusShiftMeta || customerWaitMeta
+          ) || `${nextActionLabel} leder bokningsflödet just nu.`,
+        tone: normalizeKey(nextActionReadout?.tone) || "attention",
+      };
+    }
+    if (nextAction === "candidate_slots") {
+      return {
+        label: "Varför nu: inga kandidat-tider ännu",
+        meta: appendChange(
+          nextActionMeta ||
+            "Börja med att välja 1–3 tider så CCO sedan kan reservera eller bekräfta dem.",
+          rebookEvent
+            ? "Ändrat: tidigare tid släpptes i ombokning, så nya kandidater behövs först."
+            : ""
+        ),
+        tone: "attention",
+      };
+    }
+    if (nextAction === "reserve_slots") {
+      return {
+        label: "Varför nu: tiderna hålls inte ännu",
+        meta: appendChange(
+          nextActionMeta ||
+            "Det finns valda tider, men de behöver reserveras i CCO innan bekräftelse eller kundöverlämning.",
+          bookingChangedMeta ||
+            (reservationEvent ? "" : "Ändrat: urvalet är klart men ännu inte låst i motorn.")
+        ),
+        tone: "attention",
+      };
+    }
+    if (nextAction === "renew_reservation") {
+      const workflow = getBookingEngineWorkflowSummary();
+      return {
+        label: "Varför nu: reservationen utgår snart",
+        meta: asText(
+          workflow.stateReason,
+          "Reservationen håller på att gå ut. Förnya hållet eller bekräfta bokningen i CCO."
+        ),
+        tone: "attention",
+      };
+    }
+    if (nextAction === "confirm_external") {
+      const workflow = getBookingEngineWorkflowSummary();
+      return {
+        label:
+          workflow.expiresSoon
+            ? "Varför nu: reservationen utgår snart"
+            : status === "waiting_customer"
+              ? waitingReasonByRecommendationState[recommendationState]?.label || "Varför nu: kundsvar inväntas"
+              : "Varför nu: tiderna är hållna",
+        meta: appendChange(
+          workflow.expiresSoon
+            ? asText(
+                workflow.stateReason,
+                "Reservationen håller tiden just nu, men den bör bekräftas snart för att inte tappa sloten."
+              )
+            : nextActionMeta ||
+                (status === "waiting_customer"
+                  ? waitingReasonByRecommendationState[recommendationState]?.meta ||
+                    "Reservation eller erbjudande finns redan. Bevaka kundsvar eller följ upp när tempot faller."
+                  : "Reservation finns redan. Nästa trygga steg är att bekräfta eller markera kundläge."),
+          customerWaitMeta || statusShiftMeta || (offerEvent ? "Ändrat: erbjudandet har redan lagts in i Svarstudio." : "")
+        ),
+        tone: workflow.expiresSoon ? "attention" : "ready",
+      };
+    }
+    if (nextAction === "insert_studio" && status === "waiting_customer") {
+      return {
+        label: "Varför nu: kunden har svarat",
+        meta: appendChange(
+          nextActionMeta ||
+            "Kunden har återkommit i samma tråd. Ta tillbaka ärendet till Svarstudio och bearbeta svaret innan nästa statussteg.",
+          customerWaitMeta || statusShiftMeta
+        ),
+        tone: "attention",
+      };
+    }
+    if (nextAction === "schedule_followup") {
+      return {
+        label: "Varför nu: kundsvaret har stannat av",
+        meta: appendChange(
+          nextActionMeta || "Ärendet behöver en tydlig uppföljning så att bokningen inte tappar fart.",
+          followUpEvent
+            ? "Ändrat: uppföljning finns redan i loggen, kontrollera om den behöver flyttas fram."
+            : customerWaitMeta || statusShiftMeta
+        ),
+        tone: "attention",
+      };
+    }
+    if (nextActionLabel || nextActionMeta) {
+      return {
+        label: `Varför nu: ${nextActionLabel || "det här steget leder"}`,
+        meta: appendChange(
+          nextActionMeta || "CCO har markerat detta som nästa rimliga steg i bokningsmotorn.",
+          bookingChangedMeta || customerWaitMeta || statusShiftMeta
+        ),
+        tone: normalizeKey(nextActionReadout?.tone) || "idle",
+      };
+    }
+    return null;
+  }
+
+  async function loadBookingEngineSummary(thread, { force = false } = {}) {
+    if (!thread || !isBookingRuntimeThread(thread)) return state.booking.engineSummary || null;
+    const threadId = asText(thread.id);
+    if (
+      state.booking.engineSummary &&
+      state.booking.engineSummaryThreadId === threadId &&
+      !force
+    ) {
+      return state.booking.engineSummary;
+    }
+    if (state.booking.loadingEngineSummary && !force) return state.booking.engineSummary || null;
+    state.booking.loadingEngineSummary = true;
+    const payload = await apiRequestWithQuery("/api/v1/cco-booking-engine/case-summary", {
+      query: buildBookingRequestBody(thread),
+    });
+    try {
+      state.booking.engineSummary =
+        payload && typeof payload === "object"
+          ? {
+              ...payload,
+              provider: asText(payload.provider, "cco_engine"),
+              reservations: asArray(payload.reservations),
+              booking: payload.booking && typeof payload.booking === "object" ? payload.booking : null,
+              resources: asArray(payload.resources),
+              services: asArray(payload.services),
+            }
+          : null;
+      state.booking.engineSummaryThreadId = threadId;
+      state.booking.provider = asText(payload?.provider || state.booking.provider);
+      return state.booking.engineSummary;
+    } finally {
+      state.booking.loadingEngineSummary = false;
+    }
+  }
+
+  function ensureBookingRuntimeContext(thread) {
+    if (!thread || !isBookingRuntimeThread(thread)) return;
+    const threadId = asText(thread.id);
+    if (!threadId) return;
+    if (
+      state.booking.contextThreadId === threadId &&
+      (state.booking.refDataLoaded || state.booking.loadingRefData) &&
+      (
+        (state.booking.engineSummaryThreadId === threadId && state.booking.engineSummary) ||
+        state.booking.loadingEngineSummary
+      )
+    ) {
+      return;
+    }
+    if (state.booking.contextThreadId !== threadId) {
+      state.booking.engineSummary = null;
+      state.booking.engineSummaryThreadId = "";
+    }
+    state.booking.contextThreadId = threadId;
+    if (!state.booking.refDataLoaded && !state.booking.loadingRefData) {
+      loadBookingRefData().then(() => {
+        renderBookingSurface();
+      }).catch((error) => {
+        console.warn("CCO tidkälla kunde inte hydreras för bokningsytan.", error);
+      });
+    }
+    if (
+      state.booking.engineSummaryThreadId !== threadId &&
+      !state.booking.loadingEngineSummary
+    ) {
+      loadBookingEngineSummary(thread).then(() => {
+        renderBookingSurface();
+      }).catch((error) => {
+        console.warn("CCO booking engine summary kunde inte hydreras.", error);
+      });
+    }
+  }
+
+  async function apiRequestWithQuery(url, { method = "GET", body = null, query = null } = {}) {
+    const params = new URLSearchParams();
+    if (query && typeof query === "object") {
+      Object.entries(query).forEach(([key, value]) => {
+        const text = asText(value);
+        if (text) params.set(key, text);
+      });
+    }
+    const fullUrl = params.size ? `${url}?${params.toString()}` : url;
+    return apiRequest(fullUrl, method === "GET" ? {} : { method, body });
+  }
+
   async function persistBookingSelectedSlots(
     thread,
     selectedSlots = [],
@@ -23977,18 +32644,7 @@
         selectedSlots,
       }),
     });
-    state.booking.case = payload.bookingCase || state.booking.case;
-    state.booking.readout = {
-      ...(state.booking.readout || {}),
-      status: state.booking.case?.status,
-      selectedSlots: state.booking.case?.selectedSlots || [],
-      events: state.booking.case?.events || state.booking.readout?.events || [],
-      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
-      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
-      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
-      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
-      blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
-    };
+    syncBookingRuntimePayload(payload);
     if (successMessage) {
       setFeedback(getBookingDom().feedback, "success", successMessage);
     }
@@ -23998,23 +32654,48 @@
     return payload;
   }
 
+  async function fetchBookingAvailableSlots(bookingDom = getBookingDom()) {
+    if (!state.booking.refDataLoaded && !state.booking.refDataError) {
+      loadBookingRefData().catch((error) => {
+        console.warn("Extern bokningsdata kunde inte hämtas inför tidssökning.", error);
+      });
+    }
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
+      return {
+        ok: false,
+        reason: "missing_request",
+        message: "Ange från, till, resurs-id och service-id för externa tider.",
+      };
+    }
+    state.booking.loadingSlots = true;
+    state.booking.slotFetchAttempted = true;
+    state.booking.slotsError = "";
+    state.booking.availableSlots = [];
+    renderBookingSurface();
+    const params = new URLSearchParams({
+      fromDate: request.fromDate,
+      toDate: request.toDate,
+      resIds: request.resIds,
+      srvIds: request.srvIds,
+    });
+    const payload = await apiRequest(`/api/v1/cco-bookings/slots?${params.toString()}`);
+    state.booking.availableSlots = asArray(payload.slots);
+    state.booking.provider = asText(payload.provider || state.booking.provider);
+    return {
+      ok: true,
+      request,
+      payload,
+      slotCount: state.booking.availableSlots.length,
+    };
+  }
+
   async function updateBookingStatus(thread, status, successMessage = "") {
     const payload = await apiRequest("/api/v1/cco-bookings/status", {
       method: "POST",
       body: buildBookingRequestBody(thread, { status }),
     });
-    state.booking.case = payload.bookingCase || state.booking.case;
-    state.booking.readout = {
-      ...(state.booking.readout || {}),
-      status: state.booking.case?.status || status,
-      selectedSlots: state.booking.case?.selectedSlots || state.booking.readout?.selectedSlots || [],
-      events: state.booking.case?.events || state.booking.readout?.events || [],
-      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
-      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
-      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
-      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
-      blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
-    };
+    syncBookingRuntimePayload(payload);
     if (successMessage) {
       setFeedback(getBookingDom().feedback, "success", successMessage);
     }
@@ -24030,23 +32711,12 @@
         label: eventInput.label,
         detail: eventInput.detail,
         metadata:
-          eventInput.metadata && typeof eventInput.metadata === "object" && !Array.isArray(eventInput.metadata)
+        eventInput.metadata && typeof eventInput.metadata === "object" && !Array.isArray(eventInput.metadata)
             ? eventInput.metadata
             : {},
       }),
     });
-    state.booking.case = payload.bookingCase || state.booking.case;
-    state.booking.readout = {
-      ...(state.booking.readout || {}),
-      status: state.booking.case?.status || state.booking.readout?.status,
-      selectedSlots: state.booking.case?.selectedSlots || state.booking.readout?.selectedSlots || [],
-      events: state.booking.case?.events || state.booking.readout?.events || [],
-      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
-      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
-      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
-      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
-      blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
-    };
+    syncBookingRuntimePayload(payload);
     refreshBookingCaseList();
     return payload;
   }
@@ -24148,34 +32818,17 @@
       }
 
       if (action === "fetch_slots") {
-        if (!state.booking.refDataLoaded && !state.booking.refDataError) {
-          loadBookingRefData().catch((error) => {
-            console.warn("Extern bokningsdata kunde inte hämtas inför tidssökning.", error);
-          });
-        }
-        const request = getBookingSlotsRequestFromDom(bookingDom);
-        if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
-          setFeedback(bookingDom.feedback, "error", "Ange från, till, resurs-id och service-id för externa tider.");
+        const result = await fetchBookingAvailableSlots(bookingDom);
+        if (!result.ok) {
+          setFeedback(bookingDom.feedback, "error", result.message || "Externa tider kunde inte hämtas.");
           return;
         }
-        state.booking.loadingSlots = true;
-        state.booking.slotsError = "";
-        state.booking.availableSlots = [];
-        renderBookingSurface();
-        const params = new URLSearchParams({
-          fromDate: request.fromDate,
-          toDate: request.toDate,
-          resIds: request.resIds,
-          srvIds: request.srvIds,
-        });
-        const payload = await apiRequest(`/api/v1/cco-bookings/slots?${params.toString()}`);
-        state.booking.availableSlots = asArray(payload.slots);
         setFeedback(
           getBookingDom().feedback,
-          state.booking.availableSlots.length ? "success" : "error",
-          state.booking.availableSlots.length
-            ? `${state.booking.availableSlots.length} externa tider hämtades. Välj 1-3 tider.`
-            : "Den externa kalendern svarade utan lediga tider för valt urval."
+          result.slotCount ? "success" : "error",
+          result.slotCount
+            ? `${result.slotCount} lediga tider hämtades från ${getBookingProviderLabel(state.booking.provider).toLowerCase()}. ${result.slotCount > 12 ? "De 12 starkaste visas först." : ""} Välj 1-3 tider.`
+            : `${getBookingProviderLabel(state.booking.provider)} svarade utan lediga tider för valt urval.`
         );
       }
 
@@ -24185,6 +32838,7 @@
             event?.target?.closest("[data-booking-slot-id]")?.dataset.bookingSlotId
         );
         const slot = findAvailableBookingSlot(slotId);
+        const currentReadout = getBookingReadoutForThread(thread);
         if (!slot) {
           setFeedback(bookingDom.feedback, "error", "Kunde inte hitta vald extern tid.");
           return;
@@ -24193,7 +32847,9 @@
         const alreadySelected = selectedSlots.some((selected) => getBookingSlotKey(selected) === slotId);
         const nextSlots = alreadySelected
           ? selectedSlots.filter((selected) => getBookingSlotKey(selected) !== slotId)
-          : [...selectedSlots, slot].slice(0, 3);
+          : rankBookingAvailableSlots([...selectedSlots, slot], currentReadout)
+              .map(({ slot: rankedSlot }) => rankedSlot)
+              .slice(0, 3);
         if (!alreadySelected && selectedSlots.length >= 3) {
           setFeedback(bookingDom.feedback, "error", "Max tre tider kan erbjudas i samma svar.");
           return;
@@ -24201,9 +32857,14 @@
         await persistBookingSelectedSlots(
           thread,
           nextSlots,
-          alreadySelected ? "Tid togs bort från erbjudandet." : "Extern tid lades till i erbjudandet.",
+          alreadySelected
+            ? "Tid togs bort från Valda tider."
+            : "Tid lades till i Valda tider och förslaget uppdaterades.",
           { refreshCases: false }
         );
+        state.booking.recentSelectedSlotId = alreadySelected ? "" : slotId;
+        state.booking.recentSelectedSlotAction = alreadySelected ? "removed" : "added";
+        clearBookingRecentWorkflowAction();
       }
 
       if (action === "set_status") {
@@ -24218,11 +32879,75 @@
       }
 
       if (action === "candidate_slots") {
+        const request = getBookingSlotsRequestFromDom(bookingDom);
+        if (request.resIds && request.srvIds) {
+          const result = await fetchBookingAvailableSlots(bookingDom);
+          if (!result.ok) {
+            setFeedback(bookingDom.feedback, "error", result.message || "Externa tider kunde inte hämtas.");
+            return;
+          }
+          setFeedback(
+            getBookingDom().feedback,
+            result.slotCount ? "success" : "error",
+            result.slotCount
+              ? `${result.slotCount} kandidater hämtades till kandidatlistan. ${result.slotCount > 12 ? "De 12 starkaste visas först." : ""} Välj nu 1-3 tider att bära vidare.`
+              : `${getBookingProviderLabel(state.booking.provider)} svarade utan lediga tider för valt urval. Använd manuella reservtider om läget kräver det.`
+          );
+          return;
+        }
         await persistBookingSelectedSlots(
           thread,
           buildManualBookingCandidateSlots(thread, bookingDom),
           "Tre manuella kandidat-tider lades i bokningsytan utifrån valt datum och behandling."
         );
+        clearBookingRecentWorkflowAction();
+      }
+
+      if (action === "reserve_slots") {
+        const readout = getBookingReadoutForThread(thread);
+        const selectedSlots = getBookingRankedSelectedSlots(readout).map(({ slot }) => slot);
+        if (!selectedSlots.length) {
+          setFeedback(getBookingDom().feedback, "error", "Välj minst en tid innan tiderna reserveras i CCO.");
+          return;
+        }
+        const payload = await apiRequest("/api/v1/cco-booking-engine/reservations", {
+          method: "POST",
+          body: buildBookingRequestBody(thread, {
+            selectedSlots,
+            requestedTreatment: readout.requestedTreatment,
+            preferredWindow: readout.preferredWindow,
+            notes: readout.notes,
+          }),
+        });
+        syncBookingRuntimePayload(payload);
+        setFeedback(
+          getBookingDom().feedback,
+          "success",
+          selectedSlots.length === 1
+            ? "Tiden reserverades i CCO:s egen bokningsmotor."
+            : `${selectedSlots.length} tider reserverades i CCO:s egen bokningsmotor.`
+        );
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        setBookingRecentWorkflowAction("reserve_slots", getBookingReadoutForThread(thread).status || "slots_ready");
+      }
+
+      if (action === "renew_reservation") {
+        const payload = await apiRequest("/api/v1/cco-booking-engine/reservations/renew", {
+          method: "POST",
+          body: buildBookingRequestBody(thread, {}),
+        });
+        syncBookingRuntimePayload(payload);
+        setFeedback(
+          getBookingDom().feedback,
+          "success",
+          asArray(payload.reservations).length === 1
+            ? "Reservationen förnyades i CCO."
+            : "Reservationerna förnyades i CCO."
+        );
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        setBookingRecentWorkflowAction("reserve_slots", getBookingReadoutForThread(thread).status || "slots_ready");
       }
 
       if (action === "clear_slots") {
@@ -24231,6 +32956,9 @@
           [],
           "Valda kandidat-tider rensades."
         );
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        clearBookingRecentWorkflowAction();
       }
 
       if (action === "insert_studio") {
@@ -24257,6 +32985,10 @@
           updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
           blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
         };
+        state.booking.patient360 =
+          payload.patient360 && typeof payload.patient360 === "object"
+            ? payload.patient360
+            : state.booking.patient360 || null;
         const isManualBookingThread = normalizeKey(thread.id) === "manual-booking-workspace";
         const studioState = isManualBookingThread
           ? prepareComposeStudioState(thread)
@@ -24266,18 +32998,60 @@
         if (isManualBookingThread) {
           studioState.composeTo =
             getRuntimeCustomerEmail(thread) || asText(thread.customerEmail || thread.id);
-          studioState.composeSubject = "Bokningsförslag";
         }
-        studioState.draftBody = asText(payload.draft, studioState.draftBody);
+        const studioBookingContext = buildBookingStudioContext(readout);
+        const isBookingUpdateMode =
+          normalizeKey(studioBookingContext.mode) === "booking_update";
+        studioState.lastToolKey = "";
+        studioState.usedToolKeys = [];
+        studioState.bookingStudioMode = asText(studioBookingContext.mode);
+        studioState.bookingStudioVariant = asText(studioBookingContext.variant);
+        studioState.bookingStudioSummaryLabel = asText(studioBookingContext.summaryLabel);
+        studioState.bookingStudioReason = asText(studioBookingContext.reason);
+        studioState.bookingStudioChangedFrom = asText(studioBookingContext.changedFrom);
+        studioState.bookingStudioChangedTo = asText(studioBookingContext.changedTo);
+        studioState.activeTemplateKey =
+          getStudioRecommendedTemplateKey(studioState) || "confirm_booking";
+        studioState.activeToneKey = isBookingUpdateMode
+          ? getStudioRecommendedToneKey(studioState)
+          : "professional";
+        studioState.activeRefineKey = isBookingUpdateMode
+          ? getStudioRecommendedRefineKey(studioState)
+          : "";
+        studioState.lastToolKey = "";
+        if (isManualBookingThread) {
+          studioState.composeSubject = asText(studioBookingContext.subject, "Bokningsförslag");
+        }
+        const refreshLead = buildBookingStudioRefreshLead(readout);
+        studioState.draftBody = `${refreshLead}${asText(payload.draft, studioState.draftBody)}`.trim();
+        if (isBookingUpdateMode && studioState.activeRefineKey) {
+          studioState.draftBody = buildStudioRefinedDraft(
+            thread,
+            studioState.draftBody,
+            studioState.activeRefineKey
+          );
+        }
         studioState.baseDraftBody = studioState.draftBody;
         renderStudioShell();
         setStudioOpen(true);
-        setFeedback(getBookingDom().feedback, "success", "Bokningsförslaget infogades i Svarstudio.");
+        setFeedback(
+          getBookingDom().feedback,
+          "success",
+          normalizeKey(studioBookingContext.mode) === "booking_update"
+            ? "Uppdaterat bokningsförslag infogades i Svarstudio."
+            : "Bokningsförslaget infogades i Svarstudio."
+        );
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        setBookingRecentWorkflowAction("insert_studio", "offered");
       }
 
       if (action === "waiting_customer") {
         await updateBookingStatus(thread, "waiting_customer", "Bokningen markerades som väntar på kund.");
         setFeedback(getBookingDom().feedback, "success", "Bokningen väntar på kund. Schemalägg uppföljning vid behov.");
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        setBookingRecentWorkflowAction("waiting_customer", "waiting_customer");
       }
 
       if (action === "schedule_followup") {
@@ -24295,14 +33069,85 @@
           },
         });
         setFeedback(getBookingDom().feedback, "success", "Uppföljningsmodalen öppnades för bokningen.");
+        state.booking.recentSelectedSlotId = "";
+        state.booking.recentSelectedSlotAction = "";
+        setBookingRecentWorkflowAction(
+          "schedule_followup",
+          getBookingReadoutForThread(thread).status || "waiting_customer"
+        );
       }
 
       if (action === "confirm_external") {
-        await updateBookingStatus(
-          thread,
-          "confirmed_external",
-          "Bokningen markerades som bekräftad externt. Ingen direkt extern bokning skapades av CCO."
-        );
+        if (isBookingEnginePrimary()) {
+          const readout = getBookingReadoutForThread(thread);
+          const engineSummary = await loadBookingEngineSummary(thread, { force: true });
+          const selectedSlot =
+            getBookingRankedSelectedSlots(readout)[0] ||
+            asArray(readout.selectedSlots)[0] ||
+            engineSummary?.reservations?.[0]?.slot ||
+            engineSummary?.booking?.slot ||
+            null;
+          if (!selectedSlot) {
+            setFeedback(getBookingDom().feedback, "error", "Välj eller reservera minst en tid innan du bekräftar bokningen i CCO.");
+            return;
+          }
+          const confirmedBooking = engineSummary?.booking && normalizeKey(engineSummary.booking.status) === "confirmed"
+            ? engineSummary.booking
+            : null;
+          const confirmedSlotId = getBookingSlotKey(confirmedBooking?.slot || {});
+          const selectedSlotId = getBookingSlotKey(selectedSlot);
+          const payload =
+            confirmedBooking && confirmedSlotId && selectedSlotId && confirmedSlotId !== selectedSlotId
+              ? await apiRequest("/api/v1/cco-booking-engine/rebook", {
+                  method: "POST",
+                  body: buildBookingRequestBody(thread, {
+                    selectedSlots: [selectedSlot],
+                    slot: selectedSlot,
+                    reason: "Operatören bekräftade en ny tid i CCO.",
+                  }),
+                })
+              : await apiRequest("/api/v1/cco-booking-engine/confirm", {
+                  method: "POST",
+                  body: buildBookingRequestBody(thread, {
+                    slot: selectedSlot,
+                  }),
+                });
+          syncBookingRuntimePayload(payload);
+          setFeedback(
+            getBookingDom().feedback,
+            "success",
+            confirmedBooking && confirmedSlotId && selectedSlotId && confirmedSlotId !== selectedSlotId
+              ? "Bokningen bokades om och bekräftades i CCO."
+              : "Bokningen bekräftades i CCO:s egen bokningsmotor."
+          );
+          state.booking.recentSelectedSlotId = "";
+          state.booking.recentSelectedSlotAction = "";
+          setBookingRecentWorkflowAction("confirm_external", "confirmed_external");
+        } else {
+          await updateBookingStatus(
+            thread,
+            "confirmed_external",
+            "Bokningen markerades som bekräftad externt. Ingen direkt extern bokning skapades av CCO."
+          );
+          state.booking.recentSelectedSlotId = "";
+          state.booking.recentSelectedSlotAction = "";
+          setBookingRecentWorkflowAction("confirm_external", "confirmed_external");
+        }
+      }
+
+      if (action === "cancel_booking") {
+        if (isBookingEnginePrimary()) {
+          const payload = await apiRequest("/api/v1/cco-booking-engine/cancel", {
+            method: "POST",
+            body: buildBookingRequestBody(thread, {
+              reason: "Operatören avbokade bokningen i CCO.",
+            }),
+          });
+          syncBookingRuntimePayload(payload);
+          setFeedback(getBookingDom().feedback, "success", "Bokningen avbokades i CCO:s egen bokningsmotor.");
+        } else {
+          await updateBookingStatus(thread, "cancelled", "Bokningen markerades som avbokad.");
+        }
       }
 
       if (action === "copy_handoff") {
@@ -24337,6 +33182,10 @@
             bookingAuditSource: "booking_surface",
           },
         });
+        setBookingRecentWorkflowAction(
+          "copy_audit_summary",
+          readout.status || state.booking.recentWorkflowStatus || "confirmed_external"
+        );
         const advanced = advanceToNextAuditCaseAfterCopy();
         if (!advanced) {
           setFeedback(getBookingDom().feedback, "success", "Strukturerad bokningslogg kopierades.");
@@ -24550,33 +33399,69 @@ renderStudioShell();
             : "Anteckningar";
       }
       renderRuntimeFocusSignals(selectedFocusThread, focusReadState);
-	      const focusQuickActions = focusReadState.readOnly
-	        ? []
-	        : (() => {
-	              const base = [...FOCUS_ACTIONS];
-	              base.splice(1, 0, {
-	                label: "Bokningsyta",
-	                tone: "compose",
-	                action: "booking_surface",
-	                icon: "calendar",
-	              });
-	              if (state.runtime.pendingGraphRestore && state.prefs.deleteEnabled) {
-	                base.push({
-	                  label: "Återställ",
+      const focusQuickActions = focusReadState.readOnly
+        ? []
+        : (() => {
+              const journeyAction = getJourneyPrimaryActionConfig(
+                  selectedFocusThread,
+                  focusReadState
+                );
+                const noteAction = {
+                  label: "Smart anteckning",
+                  tone: "compose",
+                  action: "note",
+                  icon: "sparkle",
+                };
+                const bookingAction = {
+                  label: "Bokningsyta",
+                  tone: "compose",
+                  action: "booking_surface",
+                  icon: "calendar",
+                };
+                const base = [...FOCUS_ACTIONS, noteAction, bookingAction];
+                const deduped = [];
+                const seenActions = new Set();
+                base.forEach((item) => {
+                  const actionKey = asText(item.action);
+                  if (!actionKey || seenActions.has(actionKey)) return;
+                  seenActions.add(actionKey);
+                  deduped.push(item);
+                });
+                const actionPriority = [
+                  asText(journeyAction.quickAction, "studio"),
+                  ...asArray(journeyAction.secondaryQuickActions),
+                  "later",
+                  "handled",
+                  "delete",
+                ];
+                deduped.sort((left, right) => {
+                  const leftIndex = actionPriority.indexOf(asText(left.action));
+                  const rightIndex = actionPriority.indexOf(asText(right.action));
+                  const normalizedLeft = leftIndex >= 0 ? leftIndex : actionPriority.length;
+                  const normalizedRight = rightIndex >= 0 ? rightIndex : actionPriority.length;
+                  if (normalizedLeft !== normalizedRight) return normalizedLeft - normalizedRight;
+                  return 0;
+                });
+              if (state.runtime.pendingGraphRestore && state.prefs.deleteEnabled) {
+                deduped.push({
+                  label: "Återställ",
                   tone: "compose",
                   action: "restore",
                   icon: "undo",
                 });
               }
-              return base;
+              return deduped;
             })();
       renderQuickActionRows(focusActionRows, focusQuickActions);
       renderRuntimeFocusConversation(selectedFocusThread, focusReadState);
       renderBookingSurface();
       renderRuntimeCustomerPanel(selectedFocusThread, focusReadState);
+      renderPreviewPatient360Backbone(selectedFocusThread, focusReadState);
       renderFocusHistorySection(selectedFocusThread, focusReadState);
       renderFocusNotesSection();
       renderQuickActionRows(intelActionRows, INTEL_ACTIONS);
+      syncJourneyDrivenIntelSelection(selectedFocusThread, focusReadState);
+      syncJourneyDrivenWorkspaceLanding(selectedFocusThread, focusReadState);
       renderRuntimeIntel(selectedFocusThread, focusReadState);
     }
     if (!shouldSkipFocusRefresh) {
@@ -25607,13 +34492,15 @@ renderStudioShell();
           : options.body;
 
     const executeRequest = async ({ authToken = "", allowRetry = false } = {}) => {
+      const isLocalPreviewToken = authToken === "__preview_local__";
       const response = await fetch(url.toString(), {
         method: options.method || "GET",
         credentials: "same-origin",
         headers: {
           "content-type": "application/json",
+          ...(isLocalPreviewToken ? { "x-arcana-preview-local": "1" } : {}),
           ...(authToken &&
-          authToken !== "__preview_local__" &&
+          !isLocalPreviewToken &&
           !("Authorization" in headerObject) &&
           !("authorization" in headerObject)
             ? { Authorization: `Bearer ${authToken}` }
@@ -25663,6 +34550,8 @@ renderStudioShell();
       const studioState = state.studio;
       studioState.activeTemplateKey = normalizeKey(templateKey);
       studioState.activeRefineKey = "";
+      studioState.lastToolKey = "";
+      studioState.usedToolKeys = [];
       studioState.draftBody = buildComposeTemplateDraft(
         studioState.activeTemplateKey,
         studioState.composeTo
@@ -25681,8 +34570,19 @@ renderStudioShell();
     const studioState = ensureStudioState(thread);
     studioState.activeTemplateKey = normalizeKey(templateKey);
     studioState.activeTrackKey = studioState.activeTrackKey || inferStudioTrackKey(thread);
-    studioState.activeRefineKey = "";
+    studioState.lastToolKey = "";
+    studioState.usedToolKeys = [];
+    studioState.activeRefineKey = isStudioBookingUpdateMode(studioState)
+      ? getStudioRecommendedRefineKey(studioState)
+      : "";
     studioState.draftBody = buildStudioTemplateDraft(thread, studioState.activeTemplateKey);
+    if (studioState.activeRefineKey) {
+      studioState.draftBody = buildStudioRefinedDraft(
+        thread,
+        studioState.draftBody,
+        studioState.activeRefineKey
+      );
+    }
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
     setStudioFeedback(`Mallen "${studioState.activeTemplateKey}" laddades i svarsstudion.`, "success");
@@ -25694,6 +34594,8 @@ renderStudioShell();
       studioState.activeTrackKey = normalizeKey(trackKey) || "booking";
       studioState.activeTemplateKey = "";
       studioState.activeRefineKey = "";
+      studioState.lastToolKey = "";
+      studioState.usedToolKeys = [];
       studioState.draftBody = buildComposeTrackDraft(
         studioState.activeTrackKey,
         studioState.composeTo
@@ -25712,8 +34614,19 @@ renderStudioShell();
     const studioState = ensureStudioState(thread);
     studioState.activeTrackKey = normalizeKey(trackKey) || inferStudioTrackKey(thread);
     studioState.activeTemplateKey = "";
-    studioState.activeRefineKey = "";
+    studioState.lastToolKey = "";
+    studioState.usedToolKeys = [];
+    studioState.activeRefineKey = isStudioBookingUpdateMode(studioState)
+      ? getStudioRecommendedRefineKey(studioState)
+      : "";
     studioState.draftBody = buildStudioTrackDraft(thread, studioState.activeTrackKey);
+    if (studioState.activeRefineKey) {
+      studioState.draftBody = buildStudioRefinedDraft(
+        thread,
+        studioState.draftBody,
+        studioState.activeRefineKey
+      );
+    }
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
     setStudioFeedback(`Responsspåret "${studioState.activeTrackKey}" är aktivt.`, "success");
@@ -25744,7 +34657,12 @@ renderStudioShell();
     studioState.draftBody = buildStudioToneDraft(thread, studioState.draftBody, studioState.activeToneKey);
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
-    setStudioFeedback(`Tonfiltret "${studioState.activeToneKey}" applicerades.`, "success");
+    setStudioFeedback(
+      isStudioBookingUpdateMode(studioState)
+        ? `Tonfiltret "${studioState.activeToneKey}" applicerades för uppdaterat kundsvar.`
+        : `Tonfiltret "${studioState.activeToneKey}" applicerades.`,
+      "success"
+    );
   }
 
   function applyStudioRefineSelection(refineKey) {
@@ -25770,7 +34688,12 @@ renderStudioShell();
     studioState.activeRefineKey = normalizeKey(refineKey);
     studioState.draftBody = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
     renderStudioShell();
-    setStudioFeedback(`Finjusteringen "${studioState.activeRefineKey}" applicerades.`, "success");
+    setStudioFeedback(
+      isStudioBookingUpdateMode(studioState)
+        ? `Finjusteringen "${studioState.activeRefineKey}" applicerades för uppdaterat kundsvar.`
+        : `Finjusteringen "${studioState.activeRefineKey}" applicerades.`,
+      "success"
+    );
   }
 
   function handleStudioToolAction(toolKey) {
@@ -25783,6 +34706,7 @@ renderStudioShell();
         if (!studioState.draftBody.includes(giftLine.trim())) {
           studioState.draftBody = `${studioState.draftBody}${giftLine}`;
         }
+        markStudioToolUsed(studioState, normalizedTool);
         renderStudioShell();
         setStudioFeedback("Merförsäljningsrad lades till i nytt mejl.", "success");
         return;
@@ -25793,12 +34717,15 @@ renderStudioShell();
           ? buildComposeTemplateDraft(studioState.activeTemplateKey, studioState.composeTo)
           : buildComposeTrackDraft(studioState.activeTrackKey || "booking", studioState.composeTo);
         studioState.baseDraftBody = studioState.draftBody;
+        markStudioToolUsed(studioState, normalizedTool);
         renderStudioShell();
         setStudioFeedback("Nytt mejl regenererades från vald mall och ton.", "success");
         return;
       }
       if (normalizedTool === "policy") {
         const policy = evaluateStudioPolicy(null, studioState.draftBody);
+        markStudioToolUsed(studioState, normalizedTool);
+        renderStudioShell();
         setStudioFeedback(policy.summary, policy.tone === "warning" ? "error" : "success");
       }
       return;
@@ -25817,22 +34744,78 @@ renderStudioShell();
       if (!studioState.draftBody.includes(giftLine.trim())) {
         studioState.draftBody = `${studioState.draftBody}${giftLine}`;
       }
+      markStudioToolUsed(studioState, normalizedTool);
+      studioState.draftBody = applyStudioBookingUpdateToolPhaseDraft(
+        thread,
+        studioState,
+        studioState.draftBody,
+        normalizedTool
+      );
+      studioState.draftBody = applyStudioBookingCompletionDraft(
+        thread,
+        studioState,
+        studioState.draftBody
+      );
       renderStudioShell();
-      setStudioFeedback("Merförsäljningsrad lades till i utkastet.", "success");
+      setStudioFeedback(
+        isStudioBookingUpdateMode(studioState) && hasStudioBookingClosingSequence(studioState)
+          ? getStudioBookingCompletionCopy(studioState)
+          : "Merförsäljningsrad lades till i utkastet.",
+        "success"
+      );
       return;
     }
     if (normalizedTool === "regenerate") {
       studioState.activeTemplateKey = "";
       studioState.activeRefineKey = "";
-      studioState.draftBody = buildStudioTrackDraft(thread, studioState.activeTrackKey);
+      const regeneratedDraft = isStudioBookingUpdateMode(studioState)
+        ? buildBookingUpdateRegeneratedDraft(thread)
+        : buildStudioTrackDraft(thread, studioState.activeTrackKey);
+      studioState.draftBody = isStudioBookingUpdateMode(studioState)
+        ? emphasizeBookingUpdateLead(thread, regeneratedDraft)
+        : regeneratedDraft;
       studioState.baseDraftBody = studioState.draftBody;
+      markStudioToolUsed(studioState, normalizedTool);
+      studioState.draftBody = applyStudioBookingUpdateToolPhaseDraft(
+        thread,
+        studioState,
+        studioState.draftBody,
+        normalizedTool
+      );
       renderStudioShell();
-      setStudioFeedback("Svarstudioutkastet regenererades från aktiv kontext.", "success");
+      setStudioFeedback(
+        isStudioBookingUpdateMode(studioState)
+          ? getBookingUpdateRegeneratedFeedback(studioState)
+          : "Svarstudioutkastet regenererades från aktiv kontext.",
+        "success"
+      );
       return;
     }
     if (normalizedTool === "policy") {
       const policy = evaluateStudioPolicy(thread, studioState.draftBody);
-      setStudioFeedback(policy.summary, policy.tone === "warning" ? "error" : "success");
+      markStudioToolUsed(studioState, normalizedTool);
+      if (policy.tone !== "warning") {
+        studioState.draftBody = applyStudioBookingUpdateToolPhaseDraft(
+          thread,
+          studioState,
+          studioState.draftBody,
+          normalizedTool
+        );
+        studioState.draftBody = applyStudioBookingCompletionDraft(
+          thread,
+          studioState,
+          studioState.draftBody
+        );
+      }
+      renderStudioShell();
+      setStudioFeedback(
+        isStudioBookingUpdateMode(studioState) &&
+          policy.tone !== "warning" &&
+          hasStudioBookingClosingSequence(studioState)
+          ? `${policy.summary} ${getStudioBookingCompletionCopy(studioState)}`
+          : policy.summary,
+        policy.tone === "warning" ? "error" : "success"
+      );
     }
   }
 
@@ -26205,15 +35188,56 @@ renderStudioShell();
       return;
     }
 	    const focusRecommendedButton = event.target.closest("[data-booking-focus-recommended]");
-	    if (focusRecommendedButton) {
-	      const auditFilterTarget = event.target.closest("[data-booking-audit-filter]");
-	      if (auditFilterTarget) {
+    if (focusRecommendedButton) {
+      const auditFilterTarget = event.target.closest("[data-booking-audit-filter]");
+      if (auditFilterTarget) {
         state.booking.eventTypeFilter = normalizeKey(auditFilterTarget.dataset.bookingAuditFilter || "");
         renderBookingSurface();
         bookingEventList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         return;
       }
       focusRecommendedBookingAction();
+      return;
+    }
+    const sequenceActionButton = event.target.closest("[data-booking-sequence-action]");
+    if (sequenceActionButton) {
+      const sequenceAction = normalizeKey(sequenceActionButton.dataset.bookingSequenceAction || "");
+      if (sequenceAction === "focus_slots") {
+        const bookingDom = getBookingDom();
+        const targetNode =
+          asArray(state.booking.availableSlots).length > 0
+            ? bookingDom.availableList || bookingDom.slotControls
+            : bookingDom.slotControls || bookingDom.refStatus;
+        if (bookingDom.advancedPanel) bookingDom.advancedPanel.open = true;
+        if (targetNode) {
+          targetNode.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (typeof targetNode.focus === "function") {
+            targetNode.focus({ preventScroll: true });
+          }
+        }
+        setFeedback(getBookingDom().feedback, "success", "Tidssteget är öppnat i bokningsytan.");
+        return;
+      }
+      if (sequenceAction) {
+        focusRecommendedBookingAction(sequenceAction, { moveFocus: true, announce: false });
+        setFeedback(getBookingDom().feedback, "success", "Valt bokningssteg är markerat. Ingen åtgärd utfördes.");
+        return;
+      }
+    }
+    const openSlotsButton = event.target.closest("[data-booking-open-slots]");
+    if (openSlotsButton) {
+      const bookingDom = getBookingDom();
+      if (bookingDom.advancedPanel) bookingDom.advancedPanel.open = true;
+      const targetNode =
+        state.booking.loadingSlots || !asArray(state.booking.availableSlots).length
+          ? bookingDom.slotControls || bookingDom.refStatus
+          : bookingDom.availableList || bookingDom.slotControls;
+      if (targetNode) {
+        targetNode.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (typeof targetNode.focus === "function") {
+          targetNode.focus({ preventScroll: true });
+        }
+      }
       return;
     }
     const eventFilterClearButton = event.target.closest("[data-booking-event-filter-clear]");
@@ -26363,8 +35387,29 @@ renderStudioShell();
     const select = event.target.closest(
       "[data-booking-slot-resource-select], [data-booking-slot-service-select]"
     );
-    if (!select) return;
-    syncBookingManualIdsFromSelects(getBookingDom());
+    if (select) {
+      const bookingDom = getBookingDom();
+      resetBookingAvailableSlotSearchState({ rerender: true });
+      syncBookingManualIdsFromSelects(bookingDom);
+      captureBookingSlotRequestDraft(bookingDom);
+      return;
+    }
+    const slotField = event.target.closest(
+      "[data-booking-slot-from], [data-booking-slot-to], [data-booking-slot-resids], [data-booking-slot-srvids]"
+    );
+    if (slotField) {
+      resetBookingAvailableSlotSearchState({ rerender: true });
+      captureBookingSlotRequestDraft(getBookingDom());
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const slotField = event.target.closest(
+      "[data-booking-slot-from], [data-booking-slot-to], [data-booking-slot-resids], [data-booking-slot-srvids]"
+    );
+    if (!slotField) return;
+    resetBookingAvailableSlotSearchState();
+    captureBookingSlotRequestDraft(getBookingDom());
   });
 
 	  document.addEventListener("pointerdown", (event) => {

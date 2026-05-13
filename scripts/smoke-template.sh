@@ -833,6 +833,21 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
     exit 1
   fi
 
+  MONITOR_METRICS_RESET_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/monitor/metrics/reset" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json")"
+  MONITOR_METRICS_RESET_OK="$(printf '%s' "$MONITOR_METRICS_RESET_RESPONSE" | json_get ok 2>/dev/null || true)"
+  if [[ "$MONITOR_METRICS_RESET_OK" != "true" ]]; then
+    echo "❌ monitor/metrics/reset misslyckades"
+    printf '%s\n' "$MONITOR_METRICS_RESET_RESPONSE"
+    exit 1
+  fi
+  echo "✅ monitor/metrics/reset OK"
+
+  curl -s "$BASE_URL/healthz" >/dev/null
+  curl -s "$BASE_URL/readyz" >/dev/null
+  curl -s "$BASE_URL/api/v1/monitor/status" -H "Authorization: Bearer $TOKEN" >/dev/null
+
   MONITOR_SLO_PRIMED_RESPONSE="$(curl -s "$BASE_URL/api/v1/monitor/slo" \
     -H "Authorization: Bearer $TOKEN")"
   validate_monitor_slo_response "$MONITOR_SLO_PRIMED_RESPONSE" "strict" "monitor/slo"

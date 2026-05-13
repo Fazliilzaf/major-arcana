@@ -64,7 +64,10 @@ function safeEqualText(a, b) {
 }
 
 function hashRecoveryCode(normalizedCode) {
-  return crypto.createHash('sha256').update(String(normalizedCode || '')).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(normalizedCode || ''))
+    .digest('hex');
 }
 
 function encodeBase32(buffer) {
@@ -157,7 +160,9 @@ function generateTotpToken(secret, counter) {
 function verifyTotpCode(secret, code, { nowMs = Date.now(), window = MFA_TOTP_WINDOW } = {}) {
   const normalizedCode = normalizeMfaCode(code);
   if (!/^\d{6}$/.test(normalizedCode)) return false;
-  const baseCounter = Math.floor(Math.max(0, Number(nowMs) || Date.now()) / 1000 / MFA_TOTP_STEP_SEC);
+  const baseCounter = Math.floor(
+    Math.max(0, Number(nowMs) || Date.now()) / 1000 / MFA_TOTP_STEP_SEC
+  );
   const clampedWindow = Math.max(0, Math.min(3, Number(window) || MFA_TOTP_WINDOW));
   for (let offset = -clampedWindow; offset <= clampedWindow; offset += 1) {
     const candidate = generateTotpToken(secret, baseCounter + offset);
@@ -366,8 +371,18 @@ async function createAuthStore({
       issues.push({ type, ...details });
     }
 
-    let expectedPrevHash = null;
-    let expectedSeq = 0;
+    const firstEvent = state.auditEvents[0];
+    const hasRetainedSuffix =
+      !repairMissing &&
+      auditMaxEntries > 0 &&
+      state.auditEvents.length >= auditMaxEntries &&
+      firstEvent &&
+      hasAuditChainFields(firstEvent) &&
+      Number.isInteger(firstEvent.seq) &&
+      firstEvent.seq > 1;
+
+    let expectedPrevHash = hasRetainedSuffix ? firstEvent.prevHash || null : null;
+    let expectedSeq = hasRetainedSuffix ? firstEvent.seq - 1 : 0;
     let head = null;
     let tail = null;
 
@@ -461,6 +476,7 @@ async function createAuthStore({
     return {
       changed,
       checkedEvents: state.auditEvents.length,
+      retainedSuffix: hasRetainedSuffix,
       head,
       tail,
       issues,
@@ -483,7 +499,8 @@ async function createAuthStore({
     const absoluteExpired = !Number.isFinite(expiresAt) || expiresAt <= now;
 
     const lastSeenAt = Date.parse(session?.lastSeenAt || session?.createdAt || '');
-    const idleExpired = idleTtlMs > 0 && Number.isFinite(lastSeenAt) && lastSeenAt + idleTtlMs <= now;
+    const idleExpired =
+      idleTtlMs > 0 && Number.isFinite(lastSeenAt) && lastSeenAt + idleTtlMs <= now;
 
     return {
       expired: absoluteExpired || idleExpired,
@@ -602,6 +619,7 @@ async function createAuthStore({
       ok: inspected.issues.length === 0,
       chainVersion: AUDIT_CHAIN_VERSION,
       appendOnly: Boolean(auditAppendOnly),
+      retainedSuffix: Boolean(inspected.retainedSuffix),
       totalEvents: state.auditEvents.length,
       checkedEvents: inspected.checkedEvents,
       head: inspected.head,
@@ -710,12 +728,7 @@ async function createAuthStore({
     return listRawMembershipsForUser(userId, { includeDisabled }).map(toSafeMembership);
   }
 
-  async function ensureMembership({
-    userId,
-    tenantId,
-    role,
-    createdBy = null,
-  }) {
+  async function ensureMembership({ userId, tenantId, role, createdBy = null }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const normalizedRole = normalizeRole(role);
     if (!normalizedTenantId) {
@@ -866,10 +879,7 @@ async function createAuthStore({
     };
   }
 
-  async function verifyMfaChallenge({
-    ticket,
-    code,
-  }) {
+  async function verifyMfaChallenge({ ticket, code }) {
     const normalizedTicket = typeof ticket === 'string' ? ticket.trim() : '';
     const normalizedCode = normalizeMfaCode(code);
     if (!normalizedTicket || !normalizedCode) {
@@ -904,7 +914,9 @@ async function createAuthStore({
     const userRecoveryHashes = Array.isArray(user.mfaRecoveryCodeHashes)
       ? user.mfaRecoveryCodeHashes
       : [];
-    const effectiveRecoveryHashes = challenge.setupRequired ? challengeRecoveryHashes : userRecoveryHashes;
+    const effectiveRecoveryHashes = challenge.setupRequired
+      ? challengeRecoveryHashes
+      : userRecoveryHashes;
     const recoveryHash = hashRecoveryCode(codeNormalizedForRecovery);
 
     let verified = false;
@@ -915,7 +927,9 @@ async function createAuthStore({
       verified = verifyTotpCode(effectiveSecret, normalizedCode);
     }
     if (!verified && codeNormalizedForRecovery) {
-      usedRecoveryIndex = effectiveRecoveryHashes.findIndex((item) => safeEqualText(item, recoveryHash));
+      usedRecoveryIndex = effectiveRecoveryHashes.findIndex((item) =>
+        safeEqualText(item, recoveryHash)
+      );
       if (usedRecoveryIndex >= 0) {
         verified = true;
         usedRecoveryCode = true;
@@ -946,7 +960,9 @@ async function createAuthStore({
     }
 
     if (usedRecoveryCode) {
-      const targetHashes = Array.isArray(user.mfaRecoveryCodeHashes) ? user.mfaRecoveryCodeHashes : [];
+      const targetHashes = Array.isArray(user.mfaRecoveryCodeHashes)
+        ? user.mfaRecoveryCodeHashes
+        : [];
       const targetIndex = targetHashes.findIndex((item) => safeEqualText(item, recoveryHash));
       if (targetIndex >= 0) {
         targetHashes.splice(targetIndex, 1);
@@ -1085,11 +1101,7 @@ async function createAuthStore({
 
   async function revokeSessionsByUser(
     userId,
-    {
-      tenantId = '',
-      excludeSessionId = '',
-      reason = 'manual',
-    } = {}
+    { tenantId = '', excludeSessionId = '', reason = 'manual' } = {}
   ) {
     const normalizedUserId = typeof userId === 'string' ? userId.trim() : '';
     const normalizedTenantId = normalizeTenantId(tenantId);
@@ -1102,7 +1114,8 @@ async function createAuthStore({
     const revokedSessionIds = [];
     for (const session of Object.values(state.sessions)) {
       if (!session || session.userId !== normalizedUserId) continue;
-      if (normalizedTenantId && normalizeTenantId(session.tenantId) !== normalizedTenantId) continue;
+      if (normalizedTenantId && normalizeTenantId(session.tenantId) !== normalizedTenantId)
+        continue;
       if (normalizedExcludeSessionId && session.id === normalizedExcludeSessionId) continue;
       if (session.revokedAt) continue;
       session.revokedAt = nowIso();
@@ -1227,12 +1240,7 @@ async function createAuthStore({
     return toSafeMembership(membership);
   }
 
-  async function upsertStaffMember({
-    tenantId,
-    email,
-    password,
-    actorUserId = null,
-  }) {
+  async function upsertStaffMember({ tenantId, email, password, actorUserId = null }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
     const normalizedEmail = normalizeEmail(email);
@@ -1273,12 +1281,7 @@ async function createAuthStore({
     };
   }
 
-  async function upsertOwnerMember({
-    tenantId,
-    email,
-    password,
-    actorUserId = null,
-  }) {
+  async function upsertOwnerMember({ tenantId, email, password, actorUserId = null }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
     const normalizedEmail = normalizeEmail(email);
@@ -1365,7 +1368,8 @@ async function createAuthStore({
       if (!event || typeof event !== 'object') continue;
       if (normalizedTenantId && normalizeTenantId(event.tenantId) !== normalizedTenantId) continue;
       if (normalizedAction && String(event.action || '') !== normalizedAction) continue;
-      if (normalizedOutcome && String(event.outcome || '').toLowerCase() !== normalizedOutcome) continue;
+      if (normalizedOutcome && String(event.outcome || '').toLowerCase() !== normalizedOutcome)
+        continue;
       return toSafeAuditEvent(event);
     }
 
@@ -1381,7 +1385,12 @@ async function createAuthStore({
   }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     const normalizedEmail = normalizeEmail(email);
-    if (!normalizedTenantId || !normalizedEmail || typeof password !== 'string' || !password.trim()) {
+    if (
+      !normalizedTenantId ||
+      !normalizedEmail ||
+      typeof password !== 'string' ||
+      !password.trim()
+    ) {
       return { bootstrapped: false, reason: 'missing_config' };
     }
 

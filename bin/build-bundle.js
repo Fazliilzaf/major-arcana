@@ -34,16 +34,24 @@ while ((m = SCRIPT_RE.exec(html)) !== null) {
   scripts.push(m[1]);
 }
 
-if (scripts.length === 0) {
+const EXCLUDED_SCRIPTS = new Set(['app.bundle.js', 'app.bundle.min.js']);
+const sourceScripts = scripts.filter((scriptPath) => !EXCLUDED_SCRIPTS.has(scriptPath));
+
+if (sourceScripts.length === 0) {
   console.error('FEL: hittade inga ./*.js script-taggar i index.html');
   process.exit(1);
 }
 
 console.log(`Hittade ${scripts.length} script-taggar i index.html`);
+if (sourceScripts.length !== scripts.length) {
+  console.log(
+    `Ignorerar ${scripts.length - sourceScripts.length} bundle-script-taggar för att undvika rekursiv bundling`
+  );
+}
 
 // 2. Verifiera att alla filer finns
 const missing = [];
-for (const s of scripts) {
+for (const s of sourceScripts) {
   if (!fs.existsSync(path.join(PREVIEW_DIR, s))) missing.push(s);
 }
 if (missing.length) {
@@ -55,12 +63,12 @@ if (missing.length) {
 // 3. Konkatenera
 let totalBytes = 0;
 const parts = [];
-parts.push('/* Major Arcana CCO bundle — concat av ' + scripts.length + ' filer.\n');
+parts.push('/* Major Arcana CCO bundle — concat av ' + sourceScripts.length + ' filer.\n');
 parts.push(' * Genererad av bin/build-bundle.js\n');
 parts.push(' * Bevarar exakt index.html-ordning så IIFE-bootstrap-flödet är identiskt.\n');
 parts.push(' */\n\n');
 
-for (const s of scripts) {
+for (const s of sourceScripts) {
   const fp = path.join(PREVIEW_DIR, s);
   const code = fs.readFileSync(fp, 'utf8');
   parts.push('\n/* ============================================================ */\n');
@@ -98,7 +106,7 @@ try {
 
 // 5. Rapport
 console.log('\n=== Bundle-resultat ===');
-console.log(`Källfiler:    ${scripts.length}`);
+console.log(`Källfiler:    ${sourceScripts.length}`);
 console.log(`Källbytes:    ${totalBytes.toLocaleString('sv-SE')}`);
 console.log(
   `Concat:       ${concatSrc.length.toLocaleString('sv-SE')} bytes (${((concatSrc.length / totalBytes) * 100).toFixed(1)}%)`

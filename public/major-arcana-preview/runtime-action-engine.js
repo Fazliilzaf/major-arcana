@@ -191,6 +191,10 @@
         return openRuntimeSchedule().then(() => true);
       }
 
+      if (action === "note") {
+        return openRuntimeNote().then(() => true);
+      }
+
       if (action === "readout") {
         return openReadout(button.dataset.quickTarget).then(() => true);
       }

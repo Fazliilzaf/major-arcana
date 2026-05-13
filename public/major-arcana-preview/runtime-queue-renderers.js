@@ -1199,13 +1199,19 @@
           ["mailbox", "truth", "i", "wave"].every((part) =>
             normalizedRawPreview.includes(normalizeCardValue(part))
           );
-        const previewLooksRuntimeError =
-          normalizedRawPreview.includes(normalizeCardValue("is not defined")) ||
-          normalizedRawPreview.includes(normalizeCardValue("ReferenceError")) ||
-          normalizedRawPreview.includes(normalizeCardValue("TypeError")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("is not defined")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("ReferenceError")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("TypeError"));
+        const runtimeErrorNeedles = [
+          "is not defined",
+          "ReferenceError",
+          "TypeError",
+          "SyntaxError",
+          "Cannot access",
+          "Cannot read properties",
+          "Failed to fetch",
+        ].map((value) => normalizeCardValue(value));
+        const previewLooksRuntimeError = runtimeErrorNeedles.some(
+          (needle) =>
+            normalizedRawPreview.includes(needle) || normalizedPreviewCopy.includes(needle)
+        );
         const previewLooksProviderNoise =
           /^\s*du\s+f[åa]r\s+inte\s+ofta\s+e-post/i.test(cleanedValue) ||
           /^\s*you\s+don['’]t\s+often\s+get\s+email/i.test(cleanedValue) ||
@@ -3259,10 +3265,17 @@
       const rawPreviewBody = asText(unifiedModel.previewLine);
       const subtitleText = asText(unifiedModel.subtitle);
       const subjectText = subtitleText || whatStr;
+      const previewLooksBroken =
+        /(?:Cannot access|ReferenceError|TypeError|SyntaxError|is not defined|Cannot read properties)/i.test(
+          rawPreviewBody
+        );
       const previewBody =
-        rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
+        !previewLooksBroken &&
+        rawPreviewBody &&
+        rawPreviewBody !== subjectText &&
+        !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
-          : rawPreviewBody.length > subjectText.length
+          : !previewLooksBroken && rawPreviewBody.length > subjectText.length
             ? rawPreviewBody
             : "";
 

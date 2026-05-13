@@ -145,6 +145,15 @@
             ...(state.booking || {}),
             case: payload.bookingCase || null,
             readout: payload.bookingReadout || null,
+            engineSummary: payload.bookingEngine || state.booking?.engineSummary || null,
+            provider:
+              asText(payload.bookingEngine?.provider || payload.bookingProvider) ||
+              state.booking?.provider ||
+              "",
+            patient360:
+              payload.patient360 && typeof payload.patient360 === "object"
+                ? payload.patient360
+                : null,
             statuses: Array.isArray(payload.bookingStatuses)
               ? payload.bookingStatuses
               : state.booking?.statuses || [],
@@ -319,6 +328,10 @@
             templateKey: draft.templateKey,
           },
         });
+        state.booking.patient360 =
+          payload.patient360 && typeof payload.patient360 === "object"
+            ? payload.patient360
+            : state.booking.patient360 || null;
 
         const savedNote = payload?.note || null;
         if (savedNote && state.activity && Array.isArray(state.activity.notes)) {
@@ -397,6 +410,10 @@
             notes: draft.notes,
           },
         });
+        state.booking.patient360 =
+          payload.patient360 && typeof payload.patient360 === "object"
+            ? payload.patient360
+            : state.booking.patient360 || null;
 
         const savedFollowUp = {
           ...draft,

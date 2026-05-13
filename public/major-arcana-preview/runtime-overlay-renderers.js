@@ -55,6 +55,9 @@
       studioDoneActionButton,
       studioComposeSubjectInput,
       studioComposeToInput,
+      studioEditorInlineUpdate,
+      studioEditorInlineUpdateLabel,
+      studioEditorInlineUpdateCopy,
       studioEditorInput,
       studioEditorRecipient,
       studioEditorSummary,
@@ -73,7 +76,13 @@
       studioPreviewButton,
       studioPrimarySuggestion,
       studioPrimarySuggestionLabel,
+      studioTemplateHelper,
+      studioTemplateHelperLabel,
+      studioTemplateHelperCopy,
       studioRefineButtons = [],
+      studioCtaHelper,
+      studioCtaHelperLabel,
+      studioCtaHelperCopy,
       studioSaveDraftButton,
       studioSendButton,
       studioSendLabel,
@@ -84,6 +93,9 @@
       studioTemplateButtons = [],
       studioTitle,
       studioToneButtons = [],
+      studioGuidanceHelper,
+      studioGuidanceHelperLabel,
+      studioGuidanceHelperCopy,
       studioToolbarPills = {},
       studioToolButtons = [],
       studioTrackButtons = [],
@@ -109,6 +121,20 @@
       getRuntimeMailboxCapability,
       getRuntimeMailboxCapabilityMeta,
       getRuntimeStudioTruthState,
+      getStudioBookingUpdateVariant,
+      getStudioBookingUpdateWorkModeCopy,
+      getStudioBookingUpdateWorkModeLabel,
+      getStudioRecommendedTemplateKey,
+      getStudioRecommendedToolOrder,
+      getStudioRecommendedToolKey,
+      getStudioRecommendedToolLeadLabel,
+      getStudioRecommendedToolReason,
+      getStudioRecommendedBookingCtaCopy,
+      getStudioRecommendedBookingCtaLabel,
+      getStudioRefineLabel,
+      getStudioRecommendedRefineKey,
+      getStudioRecommendedToneKey,
+      getStudioToneLabel,
       getRuntimeThreadById,
       getScheduleBookingThread,
       isOfflineHistoryContextThread,
@@ -116,6 +142,7 @@
       getStudioSenderMailboxOptions,
       getStudioSignatureProfiles,
       getStudioSignatureProfile,
+      getStudioResolvedTemplateLabel,
       getStudioSourceMailboxLabel,
       humanizeCode,
       mapPriorityLabel,
@@ -306,6 +333,38 @@
         !isComposeMode && thread && typeof getRuntimeStudioTruthState === "function"
           ? getRuntimeStudioTruthState(thread)
           : {};
+      const bookingStudioMode = normalizeKey(studioState?.bookingStudioMode);
+      const hasBookingUpdateStudioContext = bookingStudioMode === "booking_update";
+      const bookingStudioVariant = hasBookingUpdateStudioContext
+        ? normalizeKey(getStudioBookingUpdateVariant(studioState))
+        : normalizeKey(studioState?.bookingStudioVariant);
+      const recommendedTemplateKey = normalizeKey(getStudioRecommendedTemplateKey(studioState));
+      const recommendedToolOrder = hasBookingUpdateStudioContext
+        ? asArray(getStudioRecommendedToolOrder(studioState)).map((toolKey) =>
+            normalizeKey(toolKey)
+          )
+        : [];
+      const recommendedToolKey = normalizeKey(getStudioRecommendedToolKey(studioState));
+      const recommendedToolReason = hasBookingUpdateStudioContext
+        ? asText(getStudioRecommendedToolReason(studioState))
+        : "";
+      const recommendedToneKey = hasBookingUpdateStudioContext
+        ? normalizeKey(getStudioRecommendedToneKey(studioState))
+        : "";
+      const recommendedRefineKey = hasBookingUpdateStudioContext
+        ? normalizeKey(getStudioRecommendedRefineKey(studioState))
+        : "";
+      const bookingStudioSummaryLabel = asText(studioState?.bookingStudioSummaryLabel);
+      const bookingStudioReason = asText(studioState?.bookingStudioReason);
+      const bookingStudioChangedFrom = asText(studioState?.bookingStudioChangedFrom);
+      const bookingStudioChangedTo = asText(studioState?.bookingStudioChangedTo);
+      const bookingStudioDeltaLabel =
+        bookingStudioChangedFrom && bookingStudioChangedTo
+          ? `${bookingStudioChangedFrom} -> ${bookingStudioChangedTo}`
+          : "";
+      const bookingReplyShape = hasBookingUpdateStudioContext
+        ? getStudioBookingCompletionReplyShape(studioState)
+        : "";
       const isTruthDrivenStudio = !isComposeMode && studioTruthState?.truthDriven === true;
       const isTruthScopeRollback =
         !isComposeMode &&
@@ -462,7 +521,17 @@
       }
       if (studioNextActionTitle) {
         studioNextActionTitle.textContent = isComposeMode
-          ? "Skriv nytt mejl"
+          ? hasBookingUpdateStudioContext
+            ? bookingStudioVariant === "follow_up_update" &&
+              bookingReplyShape === "two_paragraph_reply"
+              ? "Kort uppföljning till kund"
+              : bookingStudioVariant === "customer_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                ? "Kort ersättning till kund"
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Kompakt bekräftelse till kund"
+                  : "Uppdatera kundförslag"
+            : "Skriv nytt mejl"
           : isOfflineHistoryReply
             ? "Offline historik · läsläge"
             : isTruthDrivenStudio
@@ -471,9 +540,29 @@
       }
       if (studioNextActionNote) {
         studioNextActionNote.textContent = isComposeMode
-          ? thread
-            ? `Startar en ny kontakt med ${thread.customerName}. Vi förifyller mottagaren åt dig.`
-            : `Fristående compose från ${selectedSenderLabel}. Välj mall, ton och signatur innan du skickar.`
+          ? hasBookingUpdateStudioContext
+            ? compactRuntimeCopy(
+                bookingStudioVariant === "follow_up_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                  ? bookingStudioDeltaLabel
+                    ? `Kort uppföljning nu: ${bookingStudioDeltaLabel} är den enda tiden kunden behöver svara på.`
+                    : "Kort uppföljning nu: kunden behöver bara svara på den uppdaterade tiden i samma tråd."
+                  : bookingStudioVariant === "customer_update" &&
+                      bookingReplyShape === "two_paragraph_reply"
+                    ? bookingStudioDeltaLabel
+                      ? `Kort ersättning nu: ${bookingStudioDeltaLabel} är den enda svarspunkten i tråden.`
+                      : "Kort ersättning nu: den nya tiden är nu den enda svarspunkten i samma tråd."
+                    : bookingReplyShape === "compact_three_paragraph_reply"
+                      ? bookingStudioDeltaLabel
+                        ? `Kompakt bekräftelse nu: landa direkt i ${bookingStudioDeltaLabel}.`
+                        : "Kompakt bekräftelse nu: landa direkt i den uppdaterade tiden i samma tråd."
+                      : bookingStudioReason,
+                "Det här utkastet ersätter ett tidigare kundförslag med en ny tid.",
+                112
+              )
+            : thread
+              ? `Startar en ny kontakt med ${thread.customerName}. Vi förifyller mottagaren åt dig.`
+              : `Fristående compose från ${selectedSenderLabel}. Välj mall, ton och signatur innan du skickar.`
           : isOfflineHistoryReply
             ? "Historikkontexten är läsbar här, men svar, förhandsvisning, senare, klar och radera kräver aktiv tråd."
             : isTruthDrivenStudio
@@ -496,9 +585,21 @@
       }
       if (studioPrimarySuggestionLabel) {
         studioPrimarySuggestionLabel.textContent = isComposeMode
-          ? composeRecipient
-            ? `Skriv till ${composeRecipient}`
-            : "Fyll i mottagare"
+          ? hasBookingUpdateStudioContext
+            ? bookingStudioVariant === "follow_up_update" &&
+              bookingReplyShape === "two_paragraph_reply"
+              ? "Följ upp kort"
+              : bookingStudioVariant === "customer_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                ? "Ersätt kort"
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Bekräfta kort"
+                  : composeRecipient
+                    ? `Skriv till ${composeRecipient}`
+                    : "Fyll i mottagare"
+            : composeRecipient
+              ? `Skriv till ${composeRecipient}`
+              : "Fyll i mottagare"
           : isOfflineHistoryReply
             ? "Läs historiken"
             : isTruthDrivenStudio
@@ -513,13 +614,35 @@
       }
       if (studioWhyInFocus) {
         studioWhyInFocus.textContent = isComposeMode
-          ? thread
+          ? hasBookingUpdateStudioContext
             ? compactRuntimeCopy(
-                thread.whyInFocus,
-                "Vald kundkontext ger extra stöd för ett nytt mejl.",
+                bookingStudioVariant === "follow_up_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                  ? bookingStudioDeltaLabel
+                    ? `Kort uppföljning i fokus. Ändrat: ${bookingStudioDeltaLabel}.`
+                    : "Kort uppföljning i fokus. Kunden behöver bara svara på den uppdaterade tiden."
+                  : bookingStudioVariant === "customer_update" &&
+                      bookingReplyShape === "two_paragraph_reply"
+                    ? bookingStudioDeltaLabel
+                      ? `Kort ersättning i fokus. Ändrat: ${bookingStudioDeltaLabel}.`
+                      : "Kort ersättning i fokus. Den nya tiden är nu den enda svarspunkten."
+                    : bookingReplyShape === "compact_three_paragraph_reply"
+                      ? bookingStudioDeltaLabel
+                        ? `Kompakt bekräftelse i fokus. Ändrat: ${bookingStudioDeltaLabel}.`
+                        : "Kompakt bekräftelse i fokus. Landa direkt i den uppdaterade tiden."
+                      : bookingStudioDeltaLabel
+                        ? `Uppdaterat bokningsförslag. Ändrat: ${bookingStudioDeltaLabel}.`
+                        : bookingStudioReason,
+                "Det här svaret uppdaterar kunden efter en ombokning.",
                 88
               )
-            : "Det här är ett fristående nytt mejl. Lägg till mottagare, välj mall och håll tonen tydlig."
+            : thread
+              ? compactRuntimeCopy(
+                  thread.whyInFocus,
+                  "Vald kundkontext ger extra stöd för ett nytt mejl.",
+                  88
+                )
+              : "Det här är ett fristående nytt mejl. Lägg till mottagare, välj mall och håll tonen tydlig."
           : isOfflineHistoryReply
             ? `${thread?.whyInFocus || "Historiken är tillgänglig i läsläge."} Operativa actions kräver aktiv tråd.`
             : isTruthDrivenStudio
@@ -586,7 +709,17 @@
       }
       if (studioIncomingLabel) {
         studioIncomingLabel.textContent = isComposeMode
-          ? "Skrivkontext:"
+          ? hasBookingUpdateStudioContext
+            ? bookingStudioVariant === "follow_up_update" &&
+              bookingReplyShape === "two_paragraph_reply"
+              ? "Kort uppföljning:"
+              : bookingStudioVariant === "customer_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                ? "Kort ersättning:"
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Kompakt bekräftelse:"
+                  : "Skrivkontext:"
+            : "Skrivkontext:"
           : isOfflineHistoryReply
             ? "Historik i offline-läge:"
             : isTruthDrivenStudio
@@ -637,6 +770,195 @@
         studioComposeSubjectInput.value = composeSubject;
         studioComposeSubjectInput.disabled = state.runtime.authRequired;
       }
+      if (studioEditorInlineUpdate) {
+        const shouldShowBookingUpdateInline = isComposeMode && hasBookingUpdateStudioContext;
+        studioEditorInlineUpdate.hidden = !shouldShowBookingUpdateInline;
+        if (studioEditorInlineUpdateLabel) {
+          studioEditorInlineUpdateLabel.textContent = shouldShowBookingUpdateInline
+            ? getStudioBookingUpdateWorkModeLabel(studioState)
+            : hasBookingUpdateStudioContext && bookingReplyShape === "two_paragraph_reply"
+              ? bookingStudioVariant === "follow_up_update"
+                ? "Läge: kort uppföljning"
+                : "Läge: kort ersättning"
+              : hasBookingUpdateStudioContext &&
+                  bookingReplyShape === "compact_three_paragraph_reply"
+                ? "Läge: kompakt bekräftelse"
+                : bookingStudioSummaryLabel || "Läge: Uppdaterat bokningsförslag";
+        }
+        if (studioEditorInlineUpdateCopy) {
+          studioEditorInlineUpdateCopy.textContent = shouldShowBookingUpdateInline
+            ? compactRuntimeCopy(
+                bookingStudioVariant === "follow_up_update" &&
+                  bookingReplyShape === "two_paragraph_reply"
+                  ? bookingStudioDeltaLabel
+                    ? `${bookingStudioDeltaLabel}. Kort uppföljning: kunden behöver bara svara på den nya tiden i samma tråd.`
+                    : "Kort uppföljning: kunden behöver bara svara på den nya tiden i samma tråd."
+                  : bookingStudioVariant === "customer_update" &&
+                      bookingReplyShape === "two_paragraph_reply"
+                    ? bookingStudioDeltaLabel
+                      ? `${bookingStudioDeltaLabel}. Kort ersättning: gör den nya tiden till enda svarspunkt i tråden.`
+                      : "Kort ersättning: gör den nya tiden till enda svarspunkt i tråden."
+                    : bookingReplyShape === "compact_three_paragraph_reply"
+                      ? bookingStudioDeltaLabel
+                        ? `${bookingStudioDeltaLabel}. Kompakt bekräftelse: landa direkt i den nya tiden.`
+                        : "Kompakt bekräftelse: landa direkt i den nya tiden."
+                      : [
+                          bookingStudioDeltaLabel
+                            ? `${bookingStudioDeltaLabel}. ${bookingStudioReason}`
+                            : bookingStudioReason,
+                          getStudioBookingUpdateWorkModeCopy(studioState),
+                        ]
+                          .filter(Boolean)
+                          .join(" "),
+                bookingReplyShape === "two_paragraph_reply"
+                  ? "Kort uppdatering: den nya tiden är nu den enda kunden behöver svara på."
+                  : bookingReplyShape === "compact_three_paragraph_reply"
+                    ? "Kompakt bekräftelse: landa direkt i den nya tiden."
+                    : "Tidigare kundförslag har ersatts med en ny tid.",
+                132
+              )
+            : "";
+        }
+      }
+      const bookingTemplateButton = studioTemplateButtons.find(
+        (button) => normalizeKey(button.dataset.studioTemplate) === "confirm_booking"
+      );
+      if (bookingTemplateButton) {
+        bookingTemplateButton.textContent = hasBookingUpdateStudioContext
+          ? bookingStudioVariant === "follow_up_update" &&
+            bookingReplyShape === "two_paragraph_reply"
+            ? "Följ upp kundförslag"
+            : bookingStudioVariant === "customer_update" &&
+                bookingReplyShape === "two_paragraph_reply"
+              ? "Ersätt kundförslag"
+              : bookingReplyShape === "compact_three_paragraph_reply"
+                ? "Bekräfta uppdaterad tid"
+                : "Uppdatera kundförslag"
+          : "Bekräfta bokning";
+        bookingTemplateButton.title = hasBookingUpdateStudioContext
+          ? bookingStudioVariant === "follow_up_update" &&
+            bookingReplyShape === "two_paragraph_reply"
+            ? "Följ upp det uppdaterade kundförslaget med ett kort svarssteg."
+            : bookingStudioVariant === "customer_update" &&
+                bookingReplyShape === "two_paragraph_reply"
+              ? "Ersätt det tidigare kundförslaget och gör den nya tiden till enda svarspunkt."
+              : bookingReplyShape === "compact_three_paragraph_reply"
+                ? "Bekräfta den uppdaterade tiden med ett kompakt kundsvar."
+                : "Uppdatera tidigare kundförslag efter ombokning."
+          : "Bekräfta eller skicka första bokningsförslaget.";
+      }
+      const templateRow = studioTemplateButtons[0]?.parentElement || null;
+      if (templateRow && recommendedTemplateKey) {
+        studioTemplateButtons
+          .slice()
+          .sort((leftButton, rightButton) => {
+            const leftRank =
+              normalizeKey(leftButton.dataset.studioTemplate) === recommendedTemplateKey ? 0 : 1;
+            const rightRank =
+              normalizeKey(rightButton.dataset.studioTemplate) === recommendedTemplateKey ? 0 : 1;
+            return leftRank - rightRank;
+          })
+          .forEach((button) => {
+            templateRow.appendChild(button);
+          });
+      }
+      if (studioTemplateHelper) {
+        studioTemplateHelper.hidden = !hasBookingUpdateStudioContext;
+      }
+      if (studioTemplateHelperLabel) {
+        studioTemplateHelperLabel.textContent = hasBookingUpdateStudioContext
+          ? bookingStudioVariant === "follow_up_update"
+            ? bookingReplyShape === "two_paragraph_reply"
+              ? "Rekommenderat nu · kort uppföljning"
+              : "Rekommenderat nu · följ upp"
+            : bookingStudioVariant === "customer_update"
+              ? bookingReplyShape === "two_paragraph_reply"
+                ? "Rekommenderat nu · kort ersättning"
+                : "Rekommenderat nu · ersätt"
+              : bookingReplyShape === "compact_three_paragraph_reply"
+                ? "Rekommenderat nu · kompakt bekräftelse"
+                : "Rekommenderat nu · uppdatera"
+          : "";
+      }
+      if (studioTemplateHelperCopy) {
+        studioTemplateHelperCopy.textContent = hasBookingUpdateStudioContext
+          ? compactRuntimeCopy(
+              bookingStudioVariant === "follow_up_update"
+                ? bookingReplyShape === "two_paragraph_reply"
+                  ? bookingStudioDeltaLabel
+                    ? `Kunden väntar fortfarande. Håll svaret kort och följ upp att ${bookingStudioDeltaLabel} nu är den enda tiden att svara på.`
+                    : "Kunden väntar fortfarande. Håll svaret kort och följ upp den nya tiden som enda beslutspunkt."
+                  : bookingStudioDeltaLabel
+                    ? `Kunden väntar fortfarande. Följ upp att ${bookingStudioDeltaLabel} nu är rätt tid i samma tråd.`
+                    : bookingStudioReason
+                : bookingStudioVariant === "customer_update"
+                  ? bookingReplyShape === "two_paragraph_reply"
+                    ? bookingStudioDeltaLabel
+                      ? `Tidigare förslag ersattes av ${bookingStudioDeltaLabel}. Håll svaret kort och gör den nya tiden till enda svarspunkt.`
+                      : "Håll svaret kort och gör den nya tiden till enda svarspunkt i samma tråd."
+                    : bookingStudioDeltaLabel
+                      ? `Tidigare förslag ersattes av ${bookingStudioDeltaLabel}. Ersätt kundsvaret med den nya tiden.`
+                      : bookingStudioReason
+                  : bookingReplyShape === "compact_three_paragraph_reply"
+                    ? bookingStudioDeltaLabel
+                      ? `Tidigare förslag ersattes av ${bookingStudioDeltaLabel}. Håll bekräftelsen kompakt och landa i den nya tiden direkt.`
+                      : "Håll bekräftelsen kompakt och landa i den nya tiden direkt."
+                    : bookingStudioDeltaLabel
+                      ? `Tidigare förslag ersattes av ${bookingStudioDeltaLabel}. Uppdatera kundsvaret med den nya tiden.`
+                      : bookingStudioReason,
+              bookingReplyShape === "two_paragraph_reply"
+                ? "Håll svaret kort och gör den nya tiden till enda svarspunkt i tråden."
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Håll bekräftelsen kompakt och landa i den nya tiden direkt."
+                  : "Tidigare kundförslag har ändrats. Uppdatera svaret med den nya tiden.",
+              132
+            )
+          : "";
+      }
+      if (studioGuidanceHelper) {
+        studioGuidanceHelper.hidden = !hasBookingUpdateStudioContext;
+      }
+      if (studioGuidanceHelperLabel) {
+        studioGuidanceHelperLabel.textContent = hasBookingUpdateStudioContext
+          ? getStudioBookingUpdateWorkModeLabel(studioState)
+          : "";
+      }
+      if (studioGuidanceHelperCopy) {
+        studioGuidanceHelperCopy.textContent = hasBookingUpdateStudioContext
+          ? compactRuntimeCopy(
+              getStudioBookingUpdateWorkModeCopy(studioState),
+              bookingReplyShape === "two_paragraph_reply"
+                ? "Håll svaret kort och låt den nya tiden bli enda svarspunkt i tråden."
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Håll svaret kompakt och landa direkt i den nya tiden."
+                  : "Lösningsfokus passar bäst när ett tidigare kundförslag har ersatts.",
+              132
+            )
+          : "";
+      }
+      if (studioCtaHelper) {
+        studioCtaHelper.hidden = !hasBookingUpdateStudioContext;
+      }
+      if (studioCtaHelperLabel) {
+        studioCtaHelperLabel.textContent = hasBookingUpdateStudioContext
+          ? getStudioRecommendedBookingCtaLabel(studioState)
+          : "";
+      }
+      if (studioCtaHelperCopy) {
+        studioCtaHelperCopy.textContent = hasBookingUpdateStudioContext
+          ? compactRuntimeCopy(
+              getStudioRecommendedBookingCtaCopy(studioState),
+              bookingReplyShape === "two_paragraph_reply"
+                ? bookingStudioVariant === "follow_up_update"
+                  ? "Be om ett kort svar på den nya tiden i samma tråd."
+                  : "Be om ett kort ja på den nya tiden i samma tråd."
+                : bookingReplyShape === "compact_three_paragraph_reply"
+                  ? "Be om en kort bekräftelse på den nya tiden i samma tråd."
+                  : "Be kunden återkomma i samma tråd om den uppdaterade tiden passar.",
+              132
+            )
+          : "";
+      }
       if (studioEditorInput) {
         if (studioEditorInput.value !== String(studioState?.draftBody || "")) {
           studioEditorInput.value = String(studioState?.draftBody || "");
@@ -661,6 +983,29 @@
               48
             );
         const replySummaryParts = [`Från: ${senderLabel}`, `Signatur: ${signatureProfile.label}`];
+        if (hasBookingUpdateStudioContext) {
+          const completionSummaryLabel = hasStudioBookingClosingSequence(studioState)
+            ? getStudioBookingCompletionLabel(studioState).replace(
+                /^Redo att skicka ·\s*/i,
+                "Läge: "
+              )
+            : "";
+          replySummaryParts.unshift(
+            completionSummaryLabel ||
+              bookingStudioSummaryLabel ||
+              "Läge: Uppdaterat bokningsförslag"
+          );
+          replySummaryParts.push(getStudioBookingUpdateWorkModeLabel(studioState));
+          if (bookingStudioDeltaLabel) {
+            replySummaryParts.push(`Ändrat: ${bookingStudioDeltaLabel}`);
+          }
+          replySummaryParts.push(
+            getStudioRecommendedBookingCtaLabel(studioState).replace(
+              /^Avsluta nu ·\s*/i,
+              "Avslut: "
+            )
+          );
+        }
         if (normalizeText(nextStepLabel)) {
           replySummaryParts.push(`Nästa steg: ${nextStepLabel}`);
         }
@@ -677,9 +1022,11 @@
       if (studioPolicyPill) {
         studioPolicyPill.textContent = isOfflineHistoryReply
           ? "Offline läsläge"
-          : isTruthDrivenStudio
-            ? "Truth guardrail aktiv"
-            : policy.label;
+          : isComposeMode && hasBookingUpdateStudioContext
+            ? "Bokning uppdaterad"
+            : isTruthDrivenStudio
+              ? "Truth guardrail aktiv"
+              : policy.label;
       }
 
       renderStudioSelection(
@@ -699,6 +1046,90 @@
         studioState?.activeRefineKey || "",
         "studioRefine"
       );
+      studioToneButtons.forEach((button) => {
+        const toneKey = normalizeKey(button.dataset.studioTone);
+        const isRecommended = hasBookingUpdateStudioContext && toneKey === recommendedToneKey;
+        const baseLabel = asText(button.textContent, "Ton");
+        button.classList.toggle("is-recommended", isRecommended);
+        button.dataset.recommended = isRecommended ? "true" : "false";
+        button.title = isRecommended ? `${baseLabel} · rekommenderat i detta läge` : baseLabel;
+      });
+      studioRefineButtons.forEach((button) => {
+        const refineKey = normalizeKey(button.dataset.studioRefine);
+        const isRecommended = hasBookingUpdateStudioContext && refineKey === recommendedRefineKey;
+        const baseLabel = asText(button.textContent, "Finjustering");
+        button.classList.toggle("is-recommended", isRecommended);
+        button.dataset.recommended = isRecommended ? "true" : "false";
+        button.title = isRecommended ? `${baseLabel} · rekommenderat i detta läge` : baseLabel;
+      });
+      const getInlineToolKey = (button) =>
+        button?.hasAttribute("data-note-open") ? "note" : normalizeKey(button?.dataset?.studioTool);
+      const regenerateButton = studioToolButtons.find(
+        (button) => normalizeKey(button.dataset.studioTool) === "regenerate"
+      );
+      const editorToolsRow = studioInlineToolButtons[0]?.parentElement || null;
+      if (editorToolsRow && recommendedToolOrder.length) {
+        studioInlineToolButtons
+          .slice()
+          .sort((leftButton, rightButton) => {
+            const leftKey = getInlineToolKey(leftButton);
+            const rightKey = getInlineToolKey(rightButton);
+            const leftIndex = recommendedToolOrder.indexOf(leftKey);
+            const rightIndex = recommendedToolOrder.indexOf(rightKey);
+            const leftRank = leftIndex === -1 ? recommendedToolOrder.length + 1 : leftIndex;
+            const rightRank = rightIndex === -1 ? recommendedToolOrder.length + 1 : rightIndex;
+            return leftRank - rightRank;
+          })
+          .forEach((button) => {
+            editorToolsRow.appendChild(button);
+          });
+      }
+      studioTemplateButtons.forEach((button) => {
+        const templateKey = normalizeKey(button.dataset.studioTemplate);
+        const isPromoted = hasBookingUpdateStudioContext && templateKey === recommendedTemplateKey;
+        const baseLabel = asText(button.textContent, "Mall");
+        button.classList.toggle("is-promoted", isPromoted);
+        button.dataset.promoted = isPromoted ? "true" : "false";
+        button.title = isPromoted ? `${baseLabel} · starta här i detta läge` : baseLabel;
+      });
+      studioInlineToolButtons.forEach((button) => {
+        const toolKey = getInlineToolKey(button);
+        const rank = recommendedToolOrder.indexOf(toolKey);
+        const isPromotedPrimary = hasBookingUpdateStudioContext && rank === 0;
+        const isPromotedSecondary = hasBookingUpdateStudioContext && rank === 1;
+        const baseLabel = asText(
+          button.getAttribute("aria-label") || button.dataset.studioTool || toolKey,
+          "Verktyg"
+        );
+        const toolReason = hasBookingUpdateStudioContext
+          ? asText(getStudioRecommendedToolReason(studioState, toolKey))
+          : "";
+        button.classList.toggle("is-promoted", isPromotedPrimary);
+        button.classList.toggle("is-promoted-secondary", isPromotedSecondary);
+        button.dataset.promoted = isPromotedPrimary ? "true" : "false";
+        button.dataset.promotedRank = rank >= 0 ? String(rank) : "";
+        if ((isPromotedPrimary || isPromotedSecondary) && normalizeText(toolReason)) {
+          const promotedLead = asText(
+            getStudioRecommendedToolLeadLabel(studioState, rank),
+            isPromotedPrimary ? "Starta här." : "Nästa verktyg."
+          );
+          button.dataset.promotedTitle = `${baseLabel} · ${promotedLead} ${toolReason}`;
+        } else {
+          button.dataset.promotedTitle = "";
+        }
+        if (isPromotedPrimary && normalizeText(toolReason)) {
+          button.title = button.dataset.promotedTitle;
+        } else if (isPromotedSecondary && normalizeText(toolReason)) {
+          button.title = button.dataset.promotedTitle;
+        } else {
+          button.title = baseLabel;
+        }
+      });
+      if (regenerateButton) {
+        regenerateButton.title = hasBookingUpdateStudioContext
+          ? `${getStudioRecommendedBookingCtaLabel(studioState)} · regenerera med rätt avslut för detta läge. ${recommendedToolReason}`
+          : "Bygg ett nytt utkast från aktuell kontext.";
+      }
 
       const disableChoiceControls =
         (!thread && !isComposeMode) || state.runtime.authRequired || isOfflineHistoryReply;
@@ -728,7 +1159,9 @@
         );
         button.disabled = disableChoiceControls;
         button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
-        button.title = isOfflineHistoryReply ? `${buttonLabel} · spärrad i läsläge` : buttonLabel;
+        button.title = isOfflineHistoryReply
+          ? `${buttonLabel} · spärrad i läsläge`
+          : asText(button.dataset.promotedTitle, buttonLabel);
       });
       Object.entries(studioContextTabs).forEach(([key, tab]) => {
         if (!tab) return;

@@ -214,6 +214,7 @@
       setStudioFeedback,
       setStudioOpen,
       startResize,
+      markStudioToolUsed,
       syncCurrentNoteDraftFromForm,
       syncNoteCount,
       workspaceLimits,
@@ -3079,6 +3080,27 @@
 
       noteOpenButtons.forEach((button) => {
         button.addEventListener("click", () => {
+          const selectedThread =
+            typeof getSelectedRuntimeThread === "function" ? getSelectedRuntimeThread() : null;
+          const studioState =
+            selectedThread && typeof ensureStudioState === "function"
+              ? ensureStudioState(selectedThread)
+              : state.studio;
+          if (typeof markStudioToolUsed === "function") {
+            markStudioToolUsed(studioState, "note");
+          }
+          if (
+            selectedThread &&
+            studioState &&
+            typeof applyStudioBookingUpdateToolPhaseDraft === "function"
+          ) {
+            studioState.draftBody = applyStudioBookingUpdateToolPhaseDraft(
+              selectedThread,
+              studioState,
+              studioState.draftBody,
+              "note"
+            );
+          }
           runtimeActionEngine.openRuntimeNote().catch(() => {});
         });
       });

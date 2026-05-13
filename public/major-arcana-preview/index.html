@@ -1596,24 +1596,66 @@
                             <div
                               class="booking-decision-grid"
                               data-booking-decision-grid
+                              data-booking-stage-focus-zone="decision_context"
                               aria-label="Bokningskontext"
                             ></div>
 
                             <ul
                               class="booking-handoff-checklist"
                               data-booking-handoff-checklist
+                              data-booking-stage-focus-zone="handoff_checklist"
                               aria-label="Överlämningschecklista"
                             ></ul>
 
                             <div
                               class="booking-handoff-summary"
                               data-booking-handoff-summary
+                              data-booking-stage-focus-zone="handoff_summary"
                               aria-label="Bokningsöverlämning"
                             ></div>
 
                             <section
+                              class="booking-slot-overview"
+                              data-booking-slot-overview
+                              data-booking-stage-focus-zone="slot_overview"
+                              aria-label="Lediga tider"
+                            >
+                              <div class="booking-slot-overview-copy">
+                                <span>Lediga tider</span>
+                                <strong data-booking-slot-overview-title>Inte hämtade ännu</strong>
+                                <p data-booking-slot-overview-meta>
+                                  Öppna tidshämtningen för att se tillgängliga tider och välja 1-3
+                                  förslag.
+                                </p>
+                                <div
+                                  class="booking-slot-overview-engine"
+                                  data-booking-slot-overview-engine
+                                  hidden
+                                ></div>
+                                <div
+                                  class="booking-slot-overview-steps"
+                                  data-booking-slot-overview-steps
+                                  hidden
+                                ></div>
+                                <p
+                                  class="booking-slot-overview-reason"
+                                  data-booking-slot-overview-reason
+                                  hidden
+                                ></p>
+                              </div>
+                              <button
+                                class="booking-slot-overview-action"
+                                type="button"
+                                data-booking-open-slots
+                              >
+                                Öppna tider
+                              </button>
+                            </section>
+
+                            <section
                               class="booking-audit-preview"
                               data-booking-audit-preview
+                              data-booking-stage-focus-zone="audit_preview"
                               aria-label="Loggförhandsvisning"
                             >
                               <div class="booking-audit-preview-head">
@@ -1658,7 +1700,11 @@
                               </div>
                             </section>
 
-                            <div class="booking-slot-controls" data-booking-slot-controls>
+                            <div
+                              class="booking-slot-controls"
+                              data-booking-slot-controls
+                              data-booking-stage-focus-zone="slot_controls"
+                            >
                               <label>
                                 <span>Från</span>
                                 <input
@@ -1730,6 +1776,7 @@
                             <ul
                               class="booking-available-slot-list"
                               data-booking-available-slot-list
+                              data-booking-stage-focus-zone="available_slots"
                             >
                               <li class="booking-slot-empty">
                                 <strong>Inga externa tider hämtade</strong>
@@ -1739,16 +1786,27 @@
                               </li>
                             </ul>
 
-                            <ul class="booking-slot-list" data-booking-slot-list>
+                            <ul
+                              class="booking-slot-list"
+                              data-booking-slot-list
+                              data-booking-stage-focus-zone="selected_slots"
+                            >
                               <li class="booking-slot-empty">
                                 <strong>Inga tider valda</strong>
                                 <span>Hämta externa tider eller välj kandidater manuellt.</span>
                               </li>
                             </ul>
 
+                            <div
+                              class="booking-event-filter-row"
+                              data-booking-event-filter-row
+                              aria-label="Filtrera bokningshändelser"
+                            ></div>
+
                             <ol
                               class="booking-event-timeline"
                               data-booking-event-list
+                              data-booking-stage-focus-zone="event_timeline"
                               aria-label="Bokningshändelser"
                             >
                               <li class="booking-event-empty">
@@ -1757,7 +1815,10 @@
                               </li>
                             </ol>
 
-                            <div class="booking-action-row">
+                            <div
+                              class="booking-action-row"
+                              data-booking-stage-focus-zone="action_row"
+                            >
                               <button
                                 class="booking-action booking-action-secondary"
                                 type="button"
@@ -1803,6 +1864,13 @@
                                 data-booking-action="confirm_external"
                               >
                                 Bekräftad externt
+                              </button>
+                              <button
+                                class="booking-action booking-action-secondary"
+                                type="button"
+                                data-booking-action="cancel_booking"
+                              >
+                                Avboka
                               </button>
                               <button
                                 class="booking-action booking-action-secondary"
@@ -8904,6 +8972,14 @@
                         Be om info
                       </button>
                     </div>
+                    <p class="studio-template-helper" data-studio-template-helper hidden>
+                      <span class="studio-template-helper-label" data-studio-template-helper-label
+                        >Rekommenderat nu</span
+                      >
+                      <span class="studio-template-helper-copy" data-studio-template-helper-copy
+                        >Tidigare kundförslag har ändrats. Uppdatera svaret med den nya tiden.</span
+                      >
+                    </p>
                   </section>
 
                   <article class="studio-card studio-editor-card">
@@ -9027,6 +9103,23 @@
                           </svg>
                         </button>
                       </div>
+                    </div>
+
+                    <div
+                      class="studio-editor-inline-update"
+                      data-studio-editor-inline-update
+                      hidden
+                    >
+                      <strong
+                        class="studio-editor-inline-update-label"
+                        data-studio-editor-inline-update-label
+                        >Tid ersatt</strong
+                      >
+                      <span
+                        class="studio-editor-inline-update-copy"
+                        data-studio-editor-inline-update-copy
+                        >Tidigare kundförslag har ersatts med en ny tid.</span
+                      >
                     </div>
 
                     <textarea
@@ -9231,6 +9324,22 @@ Hör av dig om du har några frågor.</textarea
                         </button>
                       </div>
                     </div>
+                    <p class="studio-guidance-helper" data-studio-guidance-helper hidden>
+                      <span class="studio-guidance-helper-label" data-studio-guidance-helper-label
+                        >Skrivläge nu</span
+                      >
+                      <span class="studio-guidance-helper-copy" data-studio-guidance-helper-copy
+                        >Lösningsfokus passar bäst när ett tidigare kundförslag har ersatts.</span
+                      >
+                    </p>
+                    <p class="studio-cta-helper" data-studio-cta-helper hidden>
+                      <span class="studio-cta-helper-label" data-studio-cta-helper-label
+                        >Avsluta nu</span
+                      >
+                      <span class="studio-cta-helper-copy" data-studio-cta-helper-copy
+                        >Be kunden återkomma i samma tråd om den uppdaterade tiden passar.</span
+                      >
+                    </p>
                   </section>
 
                   <div class="studio-primary-actions">
@@ -10122,8 +10231,18 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     </main>
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
-    <!-- Bundlade scripts: 40 filer → 1, byggt av bin/build-bundle.js -->
-    <script src="./app.bundle.min.js"></script>
+    <!-- Previewn kör nu på explicita källfiler.
+         Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
+    <script src="./runtime-config.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-thread-ops.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-action-engine.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-workspace-state.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-reentry-state.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-focus-intel-renderers.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-queue-renderers.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-overlay-renderers.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-async-orchestration.js?v=build-20260510-booking-merge"></script>
+    <script src="./runtime-dom-live-composition.js?v=build-20260510-booking-merge"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
     <script src="./app/mock-worklist-api.js?v=build-20260510-booking-merge"></script>
     <script src="./app/state-paths.js?v=build-20260510-booking-merge"></script>
