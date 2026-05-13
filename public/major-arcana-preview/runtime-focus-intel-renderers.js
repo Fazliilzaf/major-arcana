@@ -3847,6 +3847,17 @@
           )
         )}</p></article>`;
 
+      const activeWorkspaceDomainId =
+        normalizeKey(primaryJourneyAction?.action) === "aftercare_open"
+          ? "aftercare"
+          : normalizeKey(primaryJourneyAction?.action) === "operation_open"
+            ? "operation"
+            : normalizeKey(primaryJourneyAction?.action) === "consultation_open"
+              ? "consultation"
+              : normalizeKey(primaryJourneyAction?.action) === "commercial_open"
+                ? "commercial"
+                : "";
+
       focusCustomerGrid.innerHTML = `
         <article class="focus-customer-data-card"><h4>Mailhistorik</h4><dl>
           <div><dt>Mailboxar</dt><dd>${escapeHtml(
@@ -3906,7 +3917,9 @@
         </dl></article>
         ${
           operationSurface
-            ? `<article class="focus-customer-data-card patient360-operation-card" data-tone="${escapeHtml(
+            ? `<article class="focus-customer-data-card patient360-operation-card" data-is-active-module="${escapeHtml(
+                activeWorkspaceDomainId === "operation" ? "true" : "false"
+              )}" data-tone="${escapeHtml(
                 operationSurface.tone || "planned"
               )}"><h4>Operation</h4><dl>
               <div><dt>Arbetskö</dt><dd>${escapeHtml(operationSurface.queueLabel)}</dd></div>
@@ -3968,7 +3981,9 @@
         }
         ${
           consultationSurface
-            ? `<article class="focus-customer-data-card patient360-consultation-card" data-tone="${escapeHtml(
+            ? `<article class="focus-customer-data-card patient360-consultation-card" data-is-active-module="${escapeHtml(
+                activeWorkspaceDomainId === "consultation" ? "true" : "false"
+              )}" data-tone="${escapeHtml(
                 consultationSurface.tone || "planned"
               )}" data-consultation-module-card><h4>Konsultation</h4><dl>
               <div><dt>Arbetskö</dt><dd>${escapeHtml(consultationSurface.queueLabel)}</dd></div>
@@ -4036,7 +4051,9 @@
         }
         ${
           commercialSurface
-            ? `<article class="focus-customer-data-card patient360-commercial-card" data-tone="${escapeHtml(
+            ? `<article class="focus-customer-data-card patient360-commercial-card" data-is-active-module="${escapeHtml(
+                activeWorkspaceDomainId === "commercial" ? "true" : "false"
+              )}" data-tone="${escapeHtml(
                 commercialSurface.tone || "planned"
               )}"><h4>Commercial</h4><dl>
               <div><dt>Arbetskö</dt><dd>${escapeHtml(commercialSurface.queueLabel)}</dd></div>
@@ -4098,7 +4115,9 @@
         }
         ${
           aftercareSurface
-            ? `<article class="focus-customer-data-card patient360-aftercare-card" data-tone="${escapeHtml(
+            ? `<article class="focus-customer-data-card patient360-aftercare-card" data-is-active-module="${escapeHtml(
+                activeWorkspaceDomainId === "aftercare" ? "true" : "false"
+              )}" data-tone="${escapeHtml(
                 aftercareSurface.tone || "planned"
               )}"><h4>Eftervård</h4><dl>
               <div><dt>Fas</dt><dd>${escapeHtml(aftercareSurface.title)}</dd></div>

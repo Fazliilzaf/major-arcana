@@ -108,6 +108,11 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.match(
     source,
+    /preferredAction === "aftercare_open"[\s\S]*preferredAction === "operation_open"[\s\S]*preferredAction === "consultation_open"[\s\S]*preferredAction === "commercial_open"[\s\S]*openWorkspaceDomainSurface\(preferredAction\.replace\(\/_open\$\/, ""\),/,
+    'Förväntade att journey-driven landning öppnar rätt domänyta direkt för aftercare, operation, consultation och commercial i stället för att falla tillbaka till studio.'
+  );
+  assert.match(
+    source,
     /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\)/,
     'Förväntade en separat helper som kan förfina arbetsytans startläge efter att rätt domänverktyg öppnats.'
   );

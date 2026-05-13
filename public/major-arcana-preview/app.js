@@ -18848,6 +18848,16 @@
         scroll: false,
         message: "",
       });
+    } else if (
+      preferredAction === "aftercare_open" ||
+      preferredAction === "operation_open" ||
+      preferredAction === "consultation_open" ||
+      preferredAction === "commercial_open"
+    ) {
+      openWorkspaceDomainSurface(preferredAction.replace(/_open$/, ""), {
+        threadId: thread.id,
+        message: "",
+      });
     } else if (preferredAction === "schedule_open") {
       runtimeActionEngine.openRuntimeSchedule({ renderDraft: true }).catch((error) => {
         console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
