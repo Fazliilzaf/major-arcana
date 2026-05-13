@@ -293,7 +293,7 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     appSource,
-    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\)\.catch/,
+    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),[\s\S]*\}\)\.catch/m,
     'Dokument- och konsultationsdomäner ska kunna landa direkt i Smart anteckning som första arbetsläge.'
   );
   assertMatchFast(
@@ -593,7 +593,7 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     appSource,
-    /renderNoteDestination\(destinationKey\);[\s\S]*applyTemplateToActiveDraft\(templateKey\);/,
+    /openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
     'Smart anteckning ska kunna öppnas med både rätt sparplats och rätt mall när patientresan ger ett tydligt defaultläge.'
   );
   assertMatchFast(

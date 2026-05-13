@@ -3720,6 +3720,7 @@
       const relatedThreads = getRelatedCustomerThreads(thread);
       const customerMailboxOptions = getCustomerHistoryMailboxOptions(thread);
       const journeyState = getPatientJourneyState(thread, focusReadState);
+      const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
       const activeJourneyLabel = asText(journeyState?.journey?.activeModule?.label);
       const nextJourneyLabel = asText(journeyState?.journey?.nextModule?.label);
       const activeJourneyAction = asText(journeyState?.journey?.activeModule?.nextAction);
@@ -3856,7 +3857,17 @@
               ? "consultation"
               : normalizeKey(primaryJourneyAction?.action) === "commercial_open"
                 ? "commercial"
-                : "";
+                : activeModuleId === "aftercare" || activeModuleId === "tasks"
+                  ? "aftercare"
+                  : activeModuleId === "consultation" ||
+                      activeModuleId === "documents" ||
+                      activeModuleId === "clinical"
+                    ? "consultation"
+                    : activeModuleId === "operation"
+                      ? "operation"
+                      : activeModuleId === "commercial"
+                        ? "commercial"
+                        : "";
 
       focusCustomerGrid.innerHTML = `
         <article class="focus-customer-data-card"><h4>Mailhistorik</h4><dl>

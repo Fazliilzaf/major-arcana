@@ -18781,16 +18781,6 @@
       }, 120);
       return;
     }
-    if (normalizedAction === "note_open") {
-      const destinationKey = getJourneyPreferredNoteDestination(thread, focusReadState);
-      const templateKey = getJourneyPreferredNoteTemplate(thread, focusReadState);
-      window.setTimeout(() => {
-        renderNoteDestination(destinationKey);
-        if (templateKey) {
-          applyTemplateToActiveDraft(templateKey);
-        }
-      }, 80);
-    }
   }
 
   function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
@@ -18863,7 +18853,13 @@
         console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
       });
     } else if (preferredAction === "note_open") {
-      runtimeActionEngine.openRuntimeNote().catch((error) => {
+      runtimeActionEngine
+        .openRuntimeNote({
+          directOpen: true,
+          destinationKey: getJourneyPreferredNoteDestination(thread, focusReadState),
+          templateKey: getJourneyPreferredNoteTemplate(thread, focusReadState),
+        })
+        .catch((error) => {
         console.warn("Journey-driven anteckningsyta kunde inte öppnas.", error);
       });
     } else {

@@ -839,6 +839,11 @@ test('runtime focus-renderer markerar aktivt domankort med data-is-active-module
     source,
     /data-is-active-module="\$\{escapeHtml\(\s*activeWorkspaceDomainId === "aftercare" \? "true" : "false"\s*\)\}"/
   );
+  assert.match(source, /activeModuleId === "aftercare" \|\| activeModuleId === "tasks"/);
+  assert.match(
+    source,
+    /activeModuleId === "consultation" \|\|\s*activeModuleId === "documents" \|\|\s*activeModuleId === "clinical"/
+  );
 });
 
 test('reconcileRuntimeSelection synkar mailboxscope med vald trad även när samma thread redan var vald', () => {

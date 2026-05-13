@@ -113,6 +113,11 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.match(
     source,
+    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
+    'Förväntade att journey-driven note-läge öppnar rätt destination och template direkt i anteckningsytan i stället för att först falla tillbaka till generiskt note-mode.'
+  );
+  assert.match(
+    source,
     /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\)/,
     'Förväntade en separat helper som kan förfina arbetsytans startläge efter att rätt domänverktyg öppnats.'
   );
@@ -193,8 +198,8 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.match(
     source,
-    /renderNoteDestination\(destinationKey\);[\s\S]*applyTemplateToActiveDraft\(templateKey\);/,
-    'Förväntade att journey-driven anteckningsläge även kan sätta destination och mall, inte bara öppna själva overlayn.'
+    /openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
+    'Förväntade att journey-driven anteckningsläge öppnar rätt destination och mall direkt i note-surface, inte via ett senare seed-steg.'
   );
   assert.ok(
     source.includes(
