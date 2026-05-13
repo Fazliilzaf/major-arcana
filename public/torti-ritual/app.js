@@ -2059,6 +2059,34 @@
     }).format(date);
   }
 
+  function formatPortalActivityTypeLabel(value) {
+    const normalized = normalize(value).replace(/_/g, " ");
+    if (!normalized) {
+      return "Event";
+    }
+
+    const activityLabels = {
+      "layer draft saved": "Draft saved",
+      "version published": "Published",
+      "layer version published": "Published",
+      "customer notified": "Notified",
+      "customer viewed": "Viewed",
+      "customer acknowledged": "Acknowledged",
+      "customer read": "Viewed",
+      "version viewed": "Viewed",
+    };
+
+    if (activityLabels[normalized]) {
+      return activityLabels[normalized];
+    }
+
+    return normalized
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(" ");
+  }
+
   function getPortalCustomerName(snapshot) {
     const source = snapshot || getWorkingStateSnapshot();
     const fullName = [source.firstName, source.lastName].filter(Boolean).join(" ").trim();
@@ -4052,7 +4080,7 @@
             ? recentPortalEvents
               .map((event) => {
                 const eventTitle = event.message || event.type || "Portal event";
-                const eventType = event.type ? event.type.replace(/_/g, " ") : "event";
+                const eventType = formatPortalActivityTypeLabel(event.type);
                 const isLatestActivity = latestVisiblePortalEvent && latestVisiblePortalEvent.eventId === event.eventId;
                 return `
                   <article class="portal-activity-item${isLatestActivity ? " is-latest" : ""}">
