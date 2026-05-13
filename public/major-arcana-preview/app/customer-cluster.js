@@ -38,9 +38,13 @@
     if (senderText && senderText.length > 1 && senderText.length < 60) {
       // Skip mailbox-namn (samma-kund-mail där sender är mailbox)
       const mailboxLabels = ['egzona','kontakt','contact','fazli','kvitto','receipt','info','kons','consult','marknad','market'];
-      if (!mailboxLabels.includes(senderText)) {
-        return `sender:${senderText}`;
-      }
+      // Skip generisk fallback-text — flera olika kunder kan ha samma fallback
+      // ("Okänd avsändare" är inte EN kund, det är N okända kunder. Att klustra
+      // dem ger felaktig kollaps till ett enda kort.)
+      const fallbackLabels = ['okänd avsändare','okand avsandare','unknown sender','unknown','no sender','okänd','okand','utan avsändare','utan avsandare'];
+      if (mailboxLabels.includes(senderText)) return null;
+      if (fallbackLabels.includes(senderText)) return null;
+      return `sender:${senderText}`;
     }
 
     // Fallback: använd hela thread-id-prefix (email före kolon)
