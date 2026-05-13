@@ -2142,6 +2142,12 @@
       contextConversationId: "",
       contextCustomerId: "",
     },
+    commercial: {
+      case: null,
+      readout: null,
+      contextConversationId: "",
+      contextCustomerId: "",
+    },
     later: {
       option: "one_hour",
       bulkSelectionKeys: [],
@@ -13084,6 +13090,7 @@
       formatHistoryTimestamp,
       getCustomerHistoryMailboxOptions,
       getPreviewAftercareWorkspaceSurface,
+      getPreviewCommercialWorkspaceSurface,
       getPreviewOperationWorkspaceSurface,
       getPreviewAftercareQueueEntries,
       getRelatedCustomerThreads,
@@ -16131,6 +16138,7 @@
   function buildPreviewPatient360Backbone(thread, focusReadState = {}) {
     if (!thread) return null;
     const operationSurface = getPreviewOperationWorkspaceSurface(thread, focusReadState);
+    const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
     const backendPatient360 =
       state.booking?.patient360 && typeof state.booking.patient360 === "object"
         ? state.booking.patient360
@@ -16158,6 +16166,16 @@
               status: normalizeKey(operationSurface.status || value.status || "inactive") || "inactive",
               nextAction: asText(operationSurface.nextStep, value.nextAction),
               confidence: Number(value.confidence || 0.84),
+            };
+          }
+          if (moduleId === "commercial" && commercialSurface) {
+            return {
+              id: moduleId,
+              label: asText(value.label || moduleId, moduleId),
+              detail: asText(commercialSurface.title, value.nextAction),
+              status: normalizeKey(commercialSurface.status || value.status || "inactive") || "inactive",
+              nextAction: asText(commercialSurface.nextStep, value.nextAction),
+              confidence: Number(value.confidence || 0.82),
             };
           }
           return {
@@ -16576,6 +16594,214 @@
       theatreName: asText(readout?.theatreName || operationCase?.theatreName),
       handoffCopy: asText(readout?.handoffCopy),
       note: asText(readout?.notes || operationCase?.notes),
+    };
+  }
+
+  function describeCommercialQueueBucket(queueBucket = "", phase = "") {
+    const bucketKey = normalizeKey(queueBucket || phase);
+    const definitions = {
+      critical: {
+        label: "Blockerad betalning",
+        shortLabel: "Blockerad",
+        summary: "Betalning eller deposition blockerar nästa steg och ska upp först.",
+        tone: "critical",
+        focusTone: "commercial-critical",
+      },
+      due: {
+        label: "Förfallen offertuppföljning",
+        shortLabel: "Förfallen",
+        summary: "Commercial väntar på uppföljning som redan har passerat sitt planerade läge.",
+        tone: "due",
+        focusTone: "commercial-critical",
+      },
+      today: {
+        label: "Commercial idag",
+        shortLabel: "Idag",
+        summary: "Commercial-spåret ska tas idag för att undvika friktion i bokning eller handoff.",
+        tone: "today",
+        focusTone: "commercial-today",
+      },
+      active: {
+        label: "Aktiv prisdialog",
+        shortLabel: "Aktiv",
+        summary: "Offert eller betalningsupplägg behöver aktivt operatörsarbete nu.",
+        tone: "active",
+        focusTone: "commercial-active",
+      },
+      planned: {
+        label: "Inväntar kundbesked",
+        shortLabel: "Planerad",
+        summary: "Offerten är skickad eller prisdialogen väntar på kundens besked.",
+        tone: "planned",
+        focusTone: "commercial-planned",
+      },
+      closed: {
+        label: "Commercial avslutad",
+        shortLabel: "Stängd",
+        summary: "Commercial-spåret är förankrat och ska inte bära arbetsfokus längre.",
+        tone: "closed",
+        focusTone: "commercial-closed",
+      },
+      paused: {
+        label: "Commercial pausad",
+        shortLabel: "Pausad",
+        summary: "Commercial-spåret ligger parkerat tills nytt klartecken eller nytt behov finns.",
+        tone: "paused",
+        focusTone: "commercial-paused",
+      },
+    };
+    return (
+      definitions[bucketKey] || {
+        label: "Commercial i kö",
+        shortLabel: "Commercial",
+        summary: "Commercial-spåret behöver ett tydligt nästa steg i workspace.",
+        tone: "planned",
+        focusTone: "commercial-active",
+      }
+    );
+  }
+
+  function getPreviewCommercialWorkspaceSurface(thread, focusReadState = {}) {
+    if (!thread) return null;
+    const contextConversationId = normalizeKey(state.commercial?.contextConversationId || "");
+    const contextCustomerId = normalizeKey(state.commercial?.contextCustomerId || "");
+    const threadConversationId = normalizeKey(thread.id);
+    const threadCustomerId = normalizeKey(
+      getRuntimeCustomerEmail(thread) || thread.customerEmail || thread.id
+    );
+    const readoutMatchesThread =
+      Boolean(contextConversationId && contextConversationId === threadConversationId) ||
+      Boolean(contextCustomerId && threadCustomerId && contextCustomerId === threadCustomerId);
+    const readout =
+      readoutMatchesThread &&
+      state.commercial?.readout &&
+      typeof state.commercial.readout === "object"
+        ? state.commercial.readout
+        : null;
+    const commercialCase =
+      readoutMatchesThread && state.commercial?.case && typeof state.commercial.case === "object"
+        ? state.commercial.case
+        : null;
+    const backendPatient360 =
+      state.booking?.patient360 && typeof state.booking.patient360 === "object"
+        ? state.booking.patient360
+        : null;
+    const commercialModule =
+      backendPatient360?.modules?.commercial &&
+      typeof backendPatient360.modules.commercial === "object"
+        ? backendPatient360.modules.commercial
+        : null;
+    const bodySignal = normalizeKey(
+      [
+        thread?.bodyPreview,
+        thread?.preview,
+        thread?.raw?.bodyPreview,
+        thread?.raw?.textPreview,
+        thread?.raw?.subject,
+        thread?.subject,
+      ]
+        .map((value) => asText(value, ""))
+        .join(" ")
+    );
+    const hasCommercialSignal =
+      bodySignal.includes("offert") || bodySignal.includes("pris") || bodySignal.includes("betal");
+    if (!readout && !commercialCase && !commercialModule && !hasCommercialSignal) return null;
+
+    const phase = normalizeKey(readout?.phase || "");
+    const status = normalizeKey(readout?.status || commercialModule?.status || "");
+    const phaseMeta = {
+      review: {
+        kicker: "Commercial · Granska",
+        title: "Commercial-spåret behöver bedömas",
+        tone: "active",
+      },
+      quote_draft: {
+        kicker: "Commercial · Offert",
+        title: "Offerten behöver skickas",
+        tone: "active",
+      },
+      quote_sent: {
+        kicker: "Commercial · Väntar",
+        title: "Offerten väntar på kundens besked",
+        tone: "planned",
+      },
+      payment_pending: {
+        kicker: "Commercial · Betalning",
+        title: "Betalning eller deposition väntar",
+        tone: "active",
+      },
+      payment_blocked: {
+        kicker: "Commercial · Blockerad",
+        title: "Betalning blockerar nästa steg",
+        tone: "critical",
+      },
+      ready_for_booking: {
+        kicker: "Commercial · Klar",
+        title: "Commercial är redo för nästa handoff",
+        tone: "planned",
+      },
+      closed: {
+        kicker: "Commercial · Slutförd",
+        title: "Commercial-spåret är klart",
+        tone: "closed",
+      },
+      cancelled: {
+        kicker: "Commercial · Avbruten",
+        title: "Commercial-spåret är avbrutet",
+        tone: "paused",
+      },
+    };
+    const phaseState = phaseMeta[phase] || {
+      kicker: "Commercial",
+      title: "Commercial-spåret behöver ägas",
+      tone: "planned",
+    };
+    const queueBucket = normalizeKey(readout?.queueBucket || "");
+    const queueState = describeCommercialQueueBucket(queueBucket, phase);
+    const blockerLabel = asText(
+      readout?.blocker?.label,
+      commercialModule?.nextAction || "Operativ kontroll"
+    );
+    const waitingOnLabel = humanizeCode(
+      readout?.waitingOn || commercialModule?.waitingOn || "",
+      "Operatör"
+    );
+    const nextStep = asText(
+      readout?.nextStep,
+      commercialModule?.nextAction || thread.nextActionLabel || "Öppna commercial-spåret"
+    );
+    const summary = asText(
+      readout?.attention?.what,
+      readout?.handoffCopy || commercialCase?.notes || thread.nextActionSummary
+    );
+    const requiredActions = asArray(readout?.requiredActions)
+      .map((item) => humanizeCode(item, ""))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return {
+      phase,
+      status,
+      tone: phaseState.tone,
+      kicker: phaseState.kicker,
+      title: phaseState.title,
+      blockerLabel,
+      waitingOnLabel,
+      nextStep,
+      summary,
+      requiredActions,
+      queueBucket,
+      queueLabel: queueState.label,
+      queueShortLabel: queueState.shortLabel,
+      queueSummary: queueState.summary,
+      queueTone: queueState.tone,
+      focusQueueTone: queueState.focusTone,
+      dueDateLabel: asText(readout?.dueDateIso ? formatHistoryTimestamp(readout.dueDateIso) : ""),
+      offerType: asText(readout?.offerType || commercialCase?.offerType, "Commercial"),
+      quotedAmount: asText(readout?.quotedAmount || commercialCase?.quotedAmount),
+      depositAmount: asText(readout?.depositAmount || commercialCase?.depositAmount),
+      handoffCopy: asText(readout?.handoffCopy),
+      note: asText(readout?.notes || commercialCase?.notes),
     };
   }
 
@@ -18252,6 +18478,71 @@
             }
           </article>`
         : "";
+      const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
+      const commercialCardMarkup = commercialSurface
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-commercial-card" data-commercial-module-card data-tone="${escapeHtml(
+            commercialSurface.tone || "planned"
+          )}">
+            <h4>Commercial</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(commercialSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(commercialSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(commercialSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(commercialSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(commercialSurface.nextStep, "-", 58)
+              )}</dd></div>
+            </dl>
+            ${
+              commercialSurface.requiredActions.length ||
+              commercialSurface.handoffCopy ||
+              commercialSurface.note
+                ? `<div class="patient360-commercial-card-footer">
+                    ${
+                      commercialSurface.queueSummary
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Köläge: ${commercialSurface.queueSummary}`,
+                              commercialSurface.queueSummary,
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      commercialSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${commercialSurface.requiredActions.join(", ")}`,
+                              commercialSurface.requiredActions.join(", "),
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      commercialSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              commercialSurface.handoffCopy,
+                              commercialSurface.handoffCopy,
+                              74
+                            )
+                          )}</p>`
+                        : commercialSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(
+                                commercialSurface.note,
+                                commercialSurface.note,
+                                74
+                              )
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }
+          </article>`
+        : "";
       const aftercareCardMarkup = aftercareSurface
         ? `<article class="focus-customer-data-card patient360-data-card patient360-aftercare-card" data-aftercare-module-card data-tone="${escapeHtml(
             aftercareSurface.tone
@@ -18354,6 +18645,7 @@
         : "";
       const existingCard = focusCustomerGrid.querySelector("[data-patient360-module-card]");
       const existingOperationCard = focusCustomerGrid.querySelector("[data-operation-module-card]");
+      const existingCommercialCard = focusCustomerGrid.querySelector("[data-commercial-module-card]");
       const existingAftercareCard = focusCustomerGrid.querySelector("[data-aftercare-module-card]");
       if (existingCard) {
         existingCard.outerHTML = patientCardMarkup;
@@ -18373,6 +18665,22 @@
         }
       } else if (existingOperationCard) {
         existingOperationCard.remove();
+      }
+      if (commercialCardMarkup) {
+        if (existingCommercialCard) {
+          existingCommercialCard.outerHTML = commercialCardMarkup;
+        } else {
+          const insertAfterTarget =
+            focusCustomerGrid.querySelector("[data-operation-module-card]") ||
+            focusCustomerGrid.querySelector("[data-patient360-module-card]");
+          if (insertAfterTarget) {
+            insertAfterTarget.insertAdjacentHTML("afterend", commercialCardMarkup);
+          } else {
+            focusCustomerGrid.insertAdjacentHTML("afterbegin", commercialCardMarkup);
+          }
+        }
+      } else if (existingCommercialCard) {
+        existingCommercialCard.remove();
       }
       if (aftercareCardMarkup) {
         if (existingAftercareCard) {
@@ -20724,6 +21032,64 @@
     return customers.find((item) => normalizeKey(item?.customerKey) === normalizedKey) || null;
   }
 
+  function hasPortalDetailContent(record) {
+    if (!record || typeof record !== "object") return false;
+    return Boolean(
+      asArray(record.versions).length ||
+        asArray(record.notifications).length ||
+        asArray(record.events).length ||
+        record.currentPublishedVersion ||
+        record.currentDraft ||
+        record.currentPublishedVersionId ||
+        record.currentDraftId
+    );
+  }
+
+  function resolvePortalCustomerRecord(customerKey) {
+    const normalizedKey = normalizeKey(customerKey);
+    const ownerOverviewRecord = findPortalOverviewCustomer(normalizedKey);
+    const customerPortalRecord = state.portalRuntime.customerPortal || null;
+    const customerPortalKey = normalizeKey(customerPortalRecord?.customerKey);
+    const portalMatchesSelectedCustomer = Boolean(customerPortalKey && customerPortalKey === normalizedKey);
+
+    if (portalMatchesSelectedCustomer && hasPortalDetailContent(customerPortalRecord)) {
+      return customerPortalRecord;
+    }
+
+    if (ownerOverviewRecord) {
+      return {
+        ...(portalMatchesSelectedCustomer ? customerPortalRecord : {}),
+        ...ownerOverviewRecord,
+        currentDraft:
+          (portalMatchesSelectedCustomer ? customerPortalRecord?.currentDraft : null) ||
+          ownerOverviewRecord.currentDraft ||
+          (portalMatchesSelectedCustomer ? customerPortalRecord?.currentPublishedVersion : null) ||
+          ownerOverviewRecord.currentPublishedVersion ||
+          null,
+        currentPublishedVersion:
+          (portalMatchesSelectedCustomer ? customerPortalRecord?.currentPublishedVersion : null) ||
+          ownerOverviewRecord.currentPublishedVersion ||
+          (portalMatchesSelectedCustomer ? customerPortalRecord?.currentDraft : null) ||
+          ownerOverviewRecord.currentDraft ||
+          null,
+        versions:
+          portalMatchesSelectedCustomer && asArray(customerPortalRecord?.versions).length
+            ? customerPortalRecord.versions
+            : asArray(ownerOverviewRecord.versions),
+        notifications:
+          portalMatchesSelectedCustomer && asArray(customerPortalRecord?.notifications).length
+            ? customerPortalRecord.notifications
+            : asArray(ownerOverviewRecord.notifications),
+        events:
+          portalMatchesSelectedCustomer && asArray(customerPortalRecord?.events).length
+            ? customerPortalRecord.events
+            : [],
+      };
+    }
+
+    return portalMatchesSelectedCustomer ? customerPortalRecord : ownerOverviewRecord;
+  }
+
   function splitPortalProducts(value) {
     return asText(value)
       .split(/[\n;,]+/g)
@@ -21120,7 +21486,7 @@
     if (!portalCustomerTitle || !portalCustomerSummary || !portalCustomerVersion) return;
     const detail = getCustomerDetail(getPortalSelectedCustomerKey());
     const selectedOverview = findPortalOverviewCustomer(detail.key);
-    const customerPortal = state.portalRuntime.customerPortal || selectedOverview;
+    const customerPortal = resolvePortalCustomerRecord(detail.key) || selectedOverview;
     const selectedVersion = customerPortal?.currentPublishedVersion || null;
     const versions = asArray(customerPortal?.versions);
     const notifications = asArray(customerPortal?.notifications);
@@ -21223,7 +21589,8 @@
     if (portalOwnerSummary) {
       renderPortalOwnerSummary(detail, findPortalOverviewCustomer(detail.key), asArray(state.portalRuntime.ownerOverview?.customers));
     }
-    renderPortalOwnerHistory(state.portalRuntime.customerPortal || selectedOverview);
+    const selectedPortalRecord = resolvePortalCustomerRecord(detail.key) || selectedOverview;
+    renderPortalOwnerHistory(selectedPortalRecord);
 
     if (portalCustomerVersions) {
       if (!versions.length) {
@@ -21338,10 +21705,12 @@
       renderPortalOwnerSummary(detail, resolvedSummary, overviewCustomers);
     }
 
+    const selectedPortalRecord = resolvePortalCustomerRecord(selectedKey) || selectedOverview;
+
     renderPortalDraftInputs();
     renderPortalOwnerList(overviewCustomers);
-    renderPortalOwnerHistory(state.portalRuntime.customerPortal || selectedOverview);
-    renderPortalOwnerActivity(state.portalRuntime.customerPortal || selectedOverview);
+    renderPortalOwnerHistory(selectedPortalRecord);
+    renderPortalOwnerActivity(selectedPortalRecord);
     renderPortalCustomerView();
 
     const actionState = {
@@ -21414,7 +21783,7 @@
       return;
     }
 
-    const selectedPortal = state.portalRuntime.customerPortal || selectedOverview;
+    const selectedPortal = selectedPortalRecord;
     const unreadCount = Number(selectedPortal?.unreadNotificationCount || 0);
     const publishedCount = Number(selectedPortal?.publishedVersionCount || 0);
     const portalState = normalizeText(selectedPortal?.portalStatus || "");
