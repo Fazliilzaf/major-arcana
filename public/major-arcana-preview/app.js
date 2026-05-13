@@ -20672,8 +20672,13 @@
             : item.portalStatus === "published"
               ? "Publicerad"
               : item.portalStatus === "draft"
-                ? "Utkast"
-                : "Tom";
+            ? "Utkast"
+            : "Tom";
+        const activityLabel = item.lastAcknowledgedAt
+          ? `Kvitterad ${item.lastAcknowledgedAt}`
+          : item.lastViewedAt
+            ? `Öppnad ${item.lastViewedAt}`
+            : "Ingen aktivitet ännu";
         return `
           <button
             type="button"
@@ -20691,6 +20696,9 @@
             </span>
             <span class="customers-portal-owner-item-foot">
               ${Number(item.unreadNotificationCount || 0)} notiser · ${Number(item.publishedVersionCount || 0)} versioner
+            </span>
+            <span class="customers-portal-owner-item-foot">
+              ${escapeHtml(activityLabel)}
             </span>
           </button>
         `;

@@ -12,6 +12,91 @@
   const __CUSTOMER_DEFAULT_MAILBOXES = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
   const __threadCustomerMap = new Map();
 
+  function asText(...values) {
+    for (const value of values) {
+      if (typeof value === "string") {
+        const normalized = value.trim();
+        if (normalized) return normalized;
+      }
+    }
+    return "";
+  }
+
+  function __normalizeKey(value) {
+    return asText(value).toLowerCase();
+  }
+
+  function __formatHistoryTimestamp(value) {
+    try {
+      if (typeof formatHistoryTimestamp === "function") {
+        return formatHistoryTimestamp(value);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return asText(value);
+  }
+
+  function __renderUnifiedCardIconMarkup(name) {
+    try {
+      if (typeof renderUnifiedCardIconMarkup === "function") {
+        return renderUnifiedCardIconMarkup(name);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return "";
+  }
+
+  function __getThreadPrimaryLaneId(thread) {
+    try {
+      if (typeof getThreadPrimaryLaneId === "function") {
+        return getThreadPrimaryLaneId(thread);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return "";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => {
+      return (
+        {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[character] || character
+      );
+    });
+  }
+
+  function compactRuntimeCopy(value, fallback = "", limit = 160) {
+    const baseValue = asText(value, fallback).replace(/\s+/g, " ").trim();
+    if (!baseValue) return "";
+    if (!Number.isFinite(limit) || limit <= 0 || baseValue.length <= limit) {
+      return baseValue;
+    }
+    return `${baseValue.slice(0, Math.max(1, limit - 1)).trimEnd()}…`;
+  }
+
+  function __getPreviewState() {
+    try {
+      const workspaceApi = window.__ccoWorkspace;
+      if (workspaceApi && typeof workspaceApi.getState === "function") {
+        const previewState = workspaceApi.getState();
+        if (previewState && typeof previewState === "object") {
+          return previewState;
+        }
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return null;
+  }
+
   function __buildWorklistConsumerUrl() {
     let mailboxIds = [];
     try {
@@ -220,10 +305,7 @@
   }
 
   function __describeAftercareQueueBucket(bucket = "") {
-    const normalized =
-      typeof normalizeKey === "function"
-        ? normalizeKey(bucket)
-        : String(bucket || "").toLowerCase();
+    const normalized = __normalizeKey(bucket);
     const states = {
       critical: {
         label: "Kritisk",
@@ -264,8 +346,48 @@
     return states[normalized] || states.active;
   }
 
+  function __describeAftercarePriority(entry = {}, index = 0) {
+    const bucket = __normalizeKey(entry.queueBucket || "active");
+    if (bucket === "critical") {
+      return {
+        rank: index + 1,
+        label: index === 0 ? "Nu först" : "Omedelbart efter",
+        reason: "Klinisk eskalering går före övrig eftervård.",
+      };
+    }
+    if (bucket === "due") {
+      return {
+        rank: index + 1,
+        label: index === 0 ? "Nu först" : "Ta härnäst",
+        reason: "Förfallen uppföljning ska upp innan planerade ärenden.",
+      };
+    }
+    if (bucket === "today") {
+      return {
+        rank: index + 1,
+        label: "Idag",
+        reason: "Dagens uppföljning bör göras innan planerade framtida ärenden.",
+      };
+    }
+    if (bucket === "active") {
+      return {
+        rank: index + 1,
+        label: "Pågår",
+        reason: "Arbetet är aktivt men blockerar inte kön före akuta lägen.",
+      };
+    }
+    return {
+      rank: index + 1,
+      label: "Planerat",
+      reason: "Kan vänta tills akuta och förfallna lägen är hanterade.",
+    };
+  }
+
   function __getAftercareLaneEntries({ includeClosed = false, limit = 10 } = {}) {
-    const entries = Array.isArray(state?.aftercare?.queue) ? state.aftercare.queue : [];
+    const previewState = __getPreviewState();
+    const entries = Array.isArray(previewState?.aftercare?.queue)
+      ? previewState.aftercare.queue
+      : [];
     const mappedEntries = entries
       .map((item) => {
         const safeItem = item && typeof item === "object" ? item : {};
@@ -288,22 +410,21 @@
             safeItem.customerName || aftercareCase?.customerName,
             "Kund i eftervård"
           ),
-          queueBucket: normalizeKey(queueBucket),
+          queueBucket: __normalizeKey(queueBucket),
           queueLabel: queueMeta.label,
           queueTone: queueMeta.tone,
           queueSummary: asText(readout?.queueSummary, queueMeta.summary),
-          phase: normalizeKey(readout?.phase || ""),
+          phase: __normalizeKey(readout?.phase || ""),
           nextStep: asText(readout?.nextStep, aftercareCase?.nextStep || "Öppna eftervårdsytan"),
           blockerLabel: asText(
             readout?.blocker?.label,
             aftercareCase?.blocker?.label || "Bedöm eftervårdsärendet och välj nästa steg"
           ),
           requiredActions: Array.isArray(readout?.requiredActions) ? readout.requiredActions : [],
+          operatorActions: Array.isArray(readout?.operatorActions) ? readout.operatorActions : [],
           waitingOn: asText(readout?.waitingOn || aftercareCase?.waitingOn),
           scheduledLabel: asText(
-            readout?.scheduledForIso && typeof formatHistoryTimestamp === "function"
-              ? formatHistoryTimestamp(readout.scheduledForIso)
-              : ""
+            readout?.scheduledForIso ? __formatHistoryTimestamp(readout.scheduledForIso) : ""
           ),
           runtimeThreadId: conversationId,
         };
@@ -316,15 +437,15 @@
       return mappedEntries.slice(0, Math.max(1, limit));
     }
     const bootstrapReadout =
-      state?.aftercare?.readout && typeof state.aftercare.readout === "object"
-        ? state.aftercare.readout
+      previewState?.aftercare?.readout && typeof previewState.aftercare.readout === "object"
+        ? previewState.aftercare.readout
         : null;
     const bootstrapCase =
-      state?.aftercare?.case && typeof state.aftercare.case === "object"
-        ? state.aftercare.case
+      previewState?.aftercare?.case && typeof previewState.aftercare.case === "object"
+        ? previewState.aftercare.case
         : null;
     if (!bootstrapReadout) return [];
-    const fallbackQueueBucket = normalizeKey(bootstrapReadout.queueBucket || "active");
+    const fallbackQueueBucket = __normalizeKey(bootstrapReadout.queueBucket || "active");
     if (!includeClosed && ["closed", "paused", "cancelled"].includes(fallbackQueueBucket)) {
       return [];
     }
@@ -333,21 +454,21 @@
       {
         caseId: asText(bootstrapCase?.aftercareCaseId, "aftercare-bootstrap"),
         conversationId: asText(
-          bootstrapCase?.conversationId || state?.aftercare?.contextConversationId,
+          bootstrapCase?.conversationId || previewState?.aftercare?.contextConversationId,
           "aftercare-bootstrap"
         ),
-        customerId: asText(bootstrapCase?.customerId || state?.aftercare?.customerId),
+        customerId: asText(bootstrapCase?.customerId || previewState?.aftercare?.customerId),
         customerName: asText(
           bootstrapCase?.customerName ||
-            state?.schedule?.draft?.customerName ||
-            state?.status?.customerName,
+            previewState?.schedule?.draft?.customerName ||
+            previewState?.status?.customerName,
           "Eftervård i workspace"
         ),
         queueBucket: fallbackQueueBucket,
         queueLabel: queueMeta.label,
         queueTone: queueMeta.tone,
         queueSummary: asText(bootstrapReadout.queueSummary, queueMeta.summary),
-        phase: normalizeKey(bootstrapReadout.phase || ""),
+        phase: __normalizeKey(bootstrapReadout.phase || ""),
         nextStep: asText(bootstrapReadout.nextStep, "Öppna eftervårdsytan"),
         blockerLabel: asText(
           bootstrapReadout?.blocker?.label,
@@ -356,37 +477,81 @@
         requiredActions: Array.isArray(bootstrapReadout?.requiredActions)
           ? bootstrapReadout.requiredActions
           : [],
+        operatorActions: Array.isArray(bootstrapReadout?.operatorActions)
+          ? bootstrapReadout.operatorActions
+          : [],
         waitingOn: asText(bootstrapReadout.waitingOn),
         scheduledLabel: asText(
-          bootstrapReadout?.scheduledForIso && typeof formatHistoryTimestamp === "function"
-            ? formatHistoryTimestamp(bootstrapReadout.scheduledForIso)
+          bootstrapReadout?.scheduledForIso
+            ? __formatHistoryTimestamp(bootstrapReadout.scheduledForIso)
             : ""
         ),
         runtimeThreadId: asText(
-          bootstrapCase?.conversationId || state?.aftercare?.contextConversationId
+          bootstrapCase?.conversationId || previewState?.aftercare?.contextConversationId
         ),
       },
     ];
   }
 
-  function __buildAftercareLaneCardMarkup(entry = {}, selected = false) {
+  function __buildAftercareLaneCardMarkup(entry = {}, selected = false, index = 0) {
     const selectedClass = selected ? " is-selected thread-card-selected" : "";
-    const metaParts = [entry.queueSummary, entry.scheduledLabel].filter(Boolean);
+    const priority = __describeAftercarePriority(entry, index);
+    const metaParts = [entry.scheduledLabel, entry.queueSummary].filter(Boolean);
     const supportText = entry.requiredActions.length
       ? entry.requiredActions.join(" · ")
       : entry.waitingOn
         ? `Väntar på ${entry.waitingOn}`
         : entry.blockerLabel;
+    const primaryAction = Array.isArray(entry.operatorActions)
+      ? entry.operatorActions.find((action) => __normalizeKey(action?.emphasis) === "primary") ||
+        entry.operatorActions[0]
+      : null;
+    const actionType = __normalizeKey(primaryAction?.type);
+    const actionKey = asText(primaryAction?.key);
+    const actionLabel = asText(primaryAction?.label);
+    const actionSurface = __normalizeKey(primaryAction?.surfaceAction);
+    const actionMarkup =
+      actionType === "case_action" && actionKey && actionLabel
+        ? `<button class="aftercare-lane-inline-action" type="button"
+            data-aftercare-action-key="${escapeHtml(actionKey)}"
+            data-aftercare-thread-id="${escapeHtml(entry.runtimeThreadId || entry.conversationId)}">${escapeHtml(
+              compactRuntimeCopy(actionLabel, actionLabel, 30)
+            )}</button>`
+        : actionType === "surface_action" && actionLabel
+          ? actionSurface === "schedule_open"
+            ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                data-runtime-schedule-open aria-controls="schedule-shell">${escapeHtml(
+                  compactRuntimeCopy(actionLabel, actionLabel, 30)
+                )}</button>`
+            : actionSurface === "note_open"
+              ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                  data-runtime-note-open aria-controls="note-shell">${escapeHtml(
+                    compactRuntimeCopy(actionLabel, actionLabel, 30)
+                  )}</button>`
+              : actionSurface === "studio_open"
+                ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                    data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                      entry.runtimeThreadId || entry.conversationId
+                    )}" aria-controls="studio-shell">${escapeHtml(
+                      compactRuntimeCopy(actionLabel, actionLabel, 30)
+                    )}</button>`
+                : ""
+          : "";
     return `<button class="thread-card queue-history-item unified-queue-card aftercare-lane-card${selectedClass}" type="button"
       data-aftercare-open-case-id="${escapeHtml(entry.caseId)}"
       data-aftercare-open-conversation-id="${escapeHtml(entry.conversationId)}"
       data-aftercare-open-customer-id="${escapeHtml(entry.customerId)}"
       data-runtime-thread="${escapeHtml(entry.runtimeThreadId)}"
+      data-aftercare-queue-bucket="${escapeHtml(entry.queueBucket || "active")}"
+      data-aftercare-priority-rank="${escapeHtml(String(priority.rank || index + 1))}"
       aria-pressed="${selected ? "true" : "false"}">
         <div class="aftercare-lane-card-head">
-          <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
-            entry.queueTone || "planned"
-          )}"><b>Kö</b><span>${escapeHtml(entry.queueLabel || "Eftervård")}</span></span>
+          <div class="aftercare-lane-card-priority">
+            <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
+              entry.queueTone || "planned"
+            )}"><b>Kö</b><span>${escapeHtml(entry.queueLabel || "Eftervård")}</span></span>
+            <span class="aftercare-lane-priority-kicker">${escapeHtml(priority.label)}</span>
+          </div>
           <span class="aftercare-lane-card-cta">${escapeHtml(
             entry.runtimeThreadId ? "Öppna tråd" : "Ladda case"
           )}</span>
@@ -394,6 +559,9 @@
         <div class="aftercare-lane-card-body">
           <strong>${escapeHtml(compactRuntimeCopy(entry.customerName, entry.customerName, 40))}</strong>
           <p>${escapeHtml(compactRuntimeCopy(entry.nextStep, entry.blockerLabel || "-", 110))}</p>
+          <small class="aftercare-lane-priority-reason">${escapeHtml(
+            compactRuntimeCopy(priority.reason, priority.reason, 96)
+          )}</small>
           ${
             supportText
               ? `<small>${escapeHtml(compactRuntimeCopy(supportText, supportText, 92))}</small>`
@@ -407,22 +575,28 @@
               )}</div>`
             : ""
         }
+        ${actionMarkup ? `<div class="aftercare-lane-card-actions">${actionMarkup}</div>` : ""}
       </button>`;
   }
 
   function __renderAftercareLaneList(entries = []) {
-    if (!queueHistoryList) return;
-    if (queueHistoryList.dataset) {
-      queueHistoryList.dataset.queueListMode = "aftercare";
+    const listElement = document.querySelector(".queue-history-list");
+    if (!listElement) return;
+    if (listElement.dataset) {
+      listElement.dataset.queueListMode = "aftercare";
     }
-    const selectedConversationId = normalizeKey(
-      asText(state?.runtime?.selectedThreadId || state?.aftercare?.contextConversationId)
+    const previewState = __getPreviewState();
+    const selectedConversationId = __normalizeKey(
+      asText(
+        previewState?.runtime?.selectedThreadId || previewState?.aftercare?.contextConversationId
+      )
     );
-    queueHistoryList.innerHTML = entries
-      .map((entry) =>
+    listElement.innerHTML = entries
+      .map((entry, index) =>
         __buildAftercareLaneCardMarkup(
           entry,
-          selectedConversationId && normalizeKey(entry.conversationId) === selectedConversationId
+          selectedConversationId && __normalizeKey(entry.conversationId) === selectedConversationId,
+          index
         )
       )
       .join("");
@@ -2178,18 +2352,18 @@
           </div>
         </div>
         <div class="card-footer">
-          <span class="chip chip-gray">${renderUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
+          <span class="chip chip-gray">${__renderUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
             asText(historyItem.mailboxLabel, "Kons")
           )}</span></span>
-          <span class="chip chip-blue">${renderUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
-          <span class="chip chip-pink">${renderUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
-          <span class="chip chip-green">${renderUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+          <span class="chip chip-blue">${__renderUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+          <span class="chip chip-pink">${__renderUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+          <span class="chip chip-green">${__renderUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
         </div>
         ${
           trail.length > 1
             ? `<div class="mailbox-trail">
                 <span class="trail-bar" aria-hidden="true"></span>
-                ${renderUnifiedCardIconMarkup("inbox")}
+                ${__renderUnifiedCardIconMarkup("inbox")}
                 <span class="trail-label">MAILBOXSPÅR</span>
                 ${visibleTrail
                   .map(
@@ -2467,6 +2641,7 @@
       const normalizedLaneId = normalizeKey(laneId);
       const intentLabel = asText(thread?.intentLabel);
       const normalizedIntent = normalizeKey(intentLabel);
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       const intentDisplayMap = {
         pricing_question: "Prisfråga",
         price_question: "Prisfråga",
@@ -2502,6 +2677,12 @@
       if (normalizedIntent && normalizedIntent !== "oklart" && normalizedIntent !== "unclear") {
         return compactRuntimeCopy(intentLabel, "", 18);
       }
+      if (normalizedLaneId === "operation") {
+        return compactRuntimeCopy(asText(raw.plannedTreatment, raw.caseType, "Operation"), "", 22);
+      }
+      if (normalizedLaneId === "commercial") {
+        return compactRuntimeCopy(asText(raw.offerType, raw.paymentContext, "Offert"), "", 20);
+      }
       if (normalizedLaneId === "medical") return "Medicinsk fråga";
       if (normalizedLaneId === "bookable") return "Bokning";
       if (normalizedLaneId === "review") return "Granskning";
@@ -2518,8 +2699,37 @@
       const nextActionLabel = asText(thread?.nextActionLabel);
       const whyInFocus = asText(thread?.whyInFocus);
       const normalizedWhy = normalizeKey(whyInFocus);
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       if (normalizedLaneId === "act_now") return "Svar krävs nu";
       if (normalizedLaneId === "review") return "Behöver granskning";
+      if (normalizedLaneId === "operation") {
+        const operationStatus = normalizeKey(
+          raw.operationStatus || raw.caseStatus || raw.plannedTreatmentStatus || statusLabel
+        );
+        const operationContext = normalizeKey(
+          asText(raw.treatmentContext, raw.medicalContext, whyInFocus)
+        );
+        if (operationStatus.includes("blocked") || operationContext.includes("klarering")) {
+          return "Klarering krävs";
+        }
+        if (operationStatus.includes("complete")) {
+          return "Operationsspår klart";
+        }
+        if (operationContext.includes("handoff") || operationContext.includes("genomforande")) {
+          return "Klinisk handoff";
+        }
+        return "Operationsspår aktivt";
+      }
+      if (normalizedLaneId === "commercial") {
+        const commercialStatus = normalizeKey(
+          raw.commercialStatus || raw.paymentStatus || raw.offerStatus || statusLabel
+        );
+        if (commercialStatus.includes("deposit")) return "Deposition väntar";
+        if (commercialStatus.includes("quote_sent")) return "Offert väntar";
+        if (commercialStatus.includes("needs_review")) return "Pris kräver granskning";
+        if (normalizedWhy.includes("betal")) return "Betalning driver";
+        return "Commercial aktiv";
+      }
       if (normalizedLaneId === "medical") return "Medicinsk bedömning";
       if (normalizedLaneId === "bookable") return "Tid kan erbjudas";
       if (normalizedLaneId === "later") {
@@ -2583,6 +2793,8 @@
       const normalizedLaneId = normalizeKey(laneId);
       const nextActionLabel = asText(thread?.nextActionLabel);
       if (nextActionLabel) return nextActionLabel;
+      if (normalizedLaneId === "operation") return "Öppna operationsspår";
+      if (normalizedLaneId === "commercial") return "Öppna commercial";
       if (normalizedLaneId === "bookable") return "Erbjud tid";
       if (normalizedLaneId === "review") return "Granska tråden";
       if (normalizedLaneId === "medical") return "Läs medicinskt";
@@ -2930,6 +3142,9 @@
       bookable: "bokning",
       booking: "bokning",
       bokning: "bokning",
+      operation: "operation",
+      operations: "operation",
+      commercial: "commercial",
       medical: "medicinsk",
       medicinsk: "medicinsk",
       handled: "admin",
@@ -2937,16 +3152,12 @@
       all: "admin",
     };
     function v5LaneCode(laneId, thread) {
-      const key =
-        typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
+      const key = __normalizeKey(laneId);
       if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
       // Fallback: härled från tags eller via getThreadPrimaryLaneId
-      if (thread && typeof getThreadPrimaryLaneId === "function") {
-        const derived = getThreadPrimaryLaneId(thread);
-        const derivedKey =
-          typeof normalizeKey === "function"
-            ? normalizeKey(derived)
-            : asText(derived).toLowerCase();
+      if (thread) {
+        const derived = __getThreadPrimaryLaneId(thread);
+        const derivedKey = __normalizeKey(derived);
         if (V5_LANE_MAP[derivedKey]) return V5_LANE_MAP[derivedKey];
       }
       // Direkt tag-koll som sista fallback
@@ -2955,6 +3166,8 @@
       if (tags.includes("sprint")) return "sprint";
       if (tags.includes("later")) return "senare";
       if (tags.includes("bookable") || tags.includes("booking")) return "bokning";
+      if (tags.includes("operation")) return "operation";
+      if (tags.includes("commercial")) return "commercial";
       if (tags.includes("review") || tags.includes("granska")) return "granska";
       if (tags.includes("medical") || tags.includes("medicinsk")) return "medicinsk";
       if (tags.includes("unclear") || tags.includes("oklart")) return "oklart";
@@ -2970,6 +3183,8 @@
       oklart: "Oklart",
       eftervard: "Eftervård",
       bokning: "Bokning",
+      operation: "Operation",
+      commercial: "Commercial",
       medicinsk: "Medicinsk",
     };
     function v5LaneLabel(code) {
@@ -2993,6 +3208,10 @@
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M7 12h2.8l1.7-3 2.7 7 2-4H19"/></svg>',
         bokning:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
+        operation:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 17V8l4-3 4 3v9"/><path d="M10 12h4"/><path d="M12 10v4"/></svg>',
+        commercial:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"/></svg>',
         medicinsk:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
       };
@@ -3393,17 +3612,78 @@
       const primaryLabel =
         v5Lane === "bokning"
           ? "Bekräfta bokning"
-          : v5Lane === "granska"
-            ? "Granska"
-            : v5Lane === "oklart"
-              ? "Öppna"
-              : "Svara";
+          : v5Lane === "operation"
+            ? "Öppna operation"
+            : v5Lane === "commercial"
+              ? "Öppna commercial"
+              : v5Lane === "granska"
+                ? "Granska"
+                : v5Lane === "oklart"
+                  ? "Öppna"
+                  : "Svara";
+      const normalizedNextStr = normalizeKey(nextStr);
+      const laneQuickActionSignal = normalizeKey(
+        [
+          whatStr,
+          nextStr,
+          unifiedModel.previewLine,
+          unifiedModel.explanatoryLine,
+          unifiedModel.secondarySnippet,
+          ...whyEntries.map((entry) => asText(typeof entry === "string" ? entry : entry?.text)),
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      const hasOperationQuickAction =
+        v5Lane === "operation" ||
+        normalizedNextStr === "oppna_operationsspar" ||
+        laneQuickActionSignal.includes("operationsplan") ||
+        laneQuickActionSignal.includes("operation") ||
+        laneQuickActionSignal.includes("klarering");
+      const hasCommercialQuickAction =
+        v5Lane === "commercial" ||
+        normalizedNextStr === "oppna_commercial" ||
+        laneQuickActionSignal.includes("offert") ||
+        laneQuickActionSignal.includes("deposition") ||
+        laneQuickActionSignal.includes("betalning") ||
+        laneQuickActionSignal.includes("pris");
+      const laneQuickActionDestination = hasCommercialQuickAction ? "betalning" : "medicinsk";
+      const laneQuickActionTemplate = hasCommercialQuickAction ? "betalning" : "allergi";
+      const laneQuickAction = hasOperationQuickAction
+        ? {
+            action: "note",
+            key: "operation",
+            label: "Klarering",
+            aria: "Öppna klareringsanteckning",
+          }
+        : hasCommercialQuickAction
+          ? {
+              action: "note",
+              key: "commercial",
+              label: "Prisnot",
+              aria: "Öppna prisanteckning",
+            }
+          : null;
+      const laneQuickActionMarkup = laneQuickAction
+        ? `<button class="queue-inline-lane-action quick-action-pill" type="button"
+            data-quick-action="${escapeHtml(laneQuickAction.action)}"
+            data-lane-quick-action="${escapeHtml(laneQuickAction.key)}"
+            data-runtime-note-open
+            data-runtime-note-thread-id="${escapeHtml(runtimeThreadId)}"
+            data-runtime-note-destination="${escapeHtml(laneQuickActionDestination)}"
+            data-runtime-note-template="${escapeHtml(laneQuickActionTemplate)}"
+            title="${escapeHtml(laneQuickAction.aria)}"
+            aria-label="${escapeHtml(laneQuickAction.aria)}">${escapeHtml(
+              laneQuickAction.label
+            )}</button>`
+        : "";
       const actionClusterMarkup = `<div class="action-cluster">
         <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
         <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
         <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
         <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
         <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+        ${laneQuickActionMarkup}
         <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
           ${escapeHtml(primaryLabel)}
           ${V5_ACTION_ICONS.arrowRight}
@@ -3556,6 +3836,7 @@
             <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
             <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
             <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+            ${laneQuickActionMarkup}
             <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
               ${escapeHtml(primaryLabel)}
               ${V5_ACTION_ICONS.arrowRight}

@@ -1073,14 +1073,49 @@ test('booking engine-ytan visar reservera/bekräfta som förstaklassiga CCO-moto
 
   assertMatchFast(
     appSource,
-    /function buildStudioBookingCompletionDraftBridge\(thread,\s*studioState\)[\s\S]*hasPolicyChecked[\s\S]*hasNoteOpen[\s\S]*hasGiftAdded[\s\S]*follow_up_update[\s\S]*Det är nu bara .* som gäller här[\s\S]*Jag har därför samlat ändringen tydligt här[\s\S]*customer_update[\s\S]*Det tidigare förslaget med .* gäller alltså inte längre[\s\S]*Det betyder att du nu bara behöver ta ställning[\s\S]*fresh_update[\s\S]*Det är nu bara .* du behöver ta ställning till/i,
-    'Svarstudio ska kunna göra även bridge-raden mer beslutsnära i kortsvarsläget, så completion-svaret inte bär mer historik än vad kunden faktiskt behöver.'
+    /function buildStudioBookingCompletionDraftBridge\(thread,\s*studioState\)/,
+    'Svarstudio ska fortsatt ha en dedikerad bridge-helper för booking-completion.'
+  );
+  assertMatchFast(
+    appSource,
+    /hasPolicyChecked[\s\S]*hasNoteOpen[\s\S]*hasGiftAdded/,
+    'Bridge-logiken ska väga in policy, note-läge och gåva innan completion-copy väljs.'
+  );
+  assertMatchFast(
+    appSource,
+    /follow_up_update[\s\S]*Det är nu bara .* som gäller här[\s\S]*Jag har därför samlat ändringen tydligt här/i,
+    'Follow-up completion ska kunna ge en mer beslutsnära bridge-rad.'
+  );
+  assertMatchFast(
+    appSource,
+    /customer_update[\s\S]*Det tidigare förslaget med .* gäller alltså inte längre[\s\S]*Det betyder att du nu bara behöver ta ställning/i,
+    'Customer-update completion ska kunna tala som en tydlig ersättning av tidigare förslag.'
+  );
+  assertMatchFast(
+    appSource,
+    /fresh_update[\s\S]*Det är nu bara .* du behöver ta ställning till/i,
+    'Fresh-update completion ska kunna ge en kort ren beslutsrad.'
   );
 
   assertMatchFast(
     appSource,
-    /function getStudioBookingCompletionPrunePatterns\(studioState\)[\s\S]*follow_up_update[\s\S]*Eftersom det här kommer efter ett tidigare kundförslag[\s\S]*Jag vill hellre reda ut ändringen nu[\s\S]*customer_update[\s\S]*På så sätt behöver du bara ta ställning till den nya tiden[\s\S]*Det viktiga nu är bara om .* passar för dig[\s\S]*fresh_update[\s\S]*Det gör att vi kan hålla processen enkel:[\s\S]*Det här är alltså bara en enkel uppdatering/i,
-    'Svarstudio ska kunna veta vilka mittparagrafer som kan falla bort helt när ett uppdaterat bokningssvar redan nått avslutsläget.'
+    /function getStudioBookingCompletionPrunePatterns\(studioState\)/,
+    'Svarstudio ska fortsatt ha en dedikerad prune-helper för booking-completion.'
+  );
+  assertMatchFast(
+    appSource,
+    /follow_up_update[\s\S]*Eftersom det här kommer efter ett tidigare kundförslag[\s\S]*Jag vill hellre reda ut ändringen nu/i,
+    'Follow-up completion ska kunna känna igen vilka mellanparagrafer som kan klippas bort.'
+  );
+  assertMatchFast(
+    appSource,
+    /customer_update[\s\S]*På så sätt behöver du bara ta ställning till den nya tiden[\s\S]*Det viktiga nu är bara om .* passar för dig/i,
+    'Customer-update completion ska kunna pruna överflödig historikcopy.'
+  );
+  assertMatchFast(
+    appSource,
+    /fresh_update[\s\S]*Det gör att vi kan hålla processen enkel:[\s\S]*Det här är alltså bara en enkel uppdatering/i,
+    'Fresh-update completion ska kunna pruna ned svaret till ett enkelt uppdateringsläge.'
   );
 
   assertMatchFast(
@@ -1261,8 +1296,23 @@ test('booking engine-ytan visar reservera/bekräfta som förstaklassiga CCO-moto
 
   assertMatchFast(
     overlaySource,
-    /const completionSummaryLabel = hasStudioBookingClosingSequence\(studioState\)[\s\S]*getStudioBookingCompletionLabel\(studioState\)\.replace\(\s*\/\^Redo att skicka ·\\s\*\/i,\s*"Läge: "\s*\)[\s\S]*replySummaryParts\.unshift\([\s\S]*completionSummaryLabel[\s\S]*bookingStudioSummaryLabel[\s\S]*replySummaryParts\.push\([\s\S]*getStudioRecommendedBookingCtaLabel\(studioState\)\.replace\(\s*\/\^Avsluta nu ·\\s\*\/i,\s*"Avslut: "\s*\)/,
-    'Editorns summaryrad ska kunna bära en shape-medveten Läge-signal i completion-läget och fortfarande visa rekommenderat avslut i samma kompakta rad.'
+    /const completionSummaryLabel = hasStudioBookingClosingSequence\(studioState\)/,
+    'Editorn ska kunna räkna fram en completion-specifik summarylabel.'
+  );
+  assertMatchFast(
+    overlaySource,
+    /getStudioBookingCompletionLabel\(studioState\)\.replace\(\s*\/\^Redo att skicka ·\\s\*\/i,\s*"Läge: "\s*\)/,
+    'Completion-summaryn ska kunna översätta Redo att skicka till en Läge-signal.'
+  );
+  assertMatchFast(
+    overlaySource,
+    /replySummaryParts\.unshift\([\s\S]*completionSummaryLabel[\s\S]*bookingStudioSummaryLabel/,
+    'Completion-summaryn ska kunna lyftas först i den kompakta summaryraden.'
+  );
+  assertMatchFast(
+    overlaySource,
+    /replySummaryParts\.push\([\s\S]*getStudioRecommendedBookingCtaLabel\(studioState\)\.replace\(\s*\/\^Avsluta nu ·\\s\*\/i,\s*"Avslut: "\s*\)/,
+    'Summaryraden ska fortfarande kunna bära ett rekommenderat avslut sist i samma rad.'
   );
 
   assertMatchFast(
@@ -1396,9 +1446,10 @@ test('booking engine-ytan visar reservera/bekräfta som förstaklassiga CCO-moto
     'Follow-up-läget ska kunna bära en kortare CTA-hjälptext när reply-shape komprimeras.'
   );
 
-  assertMatchFast(
-    appSource,
-    /enda svarspunkt[\s\S]*(tidigare förslaget kan släppas direkt|gamla förslaget ersätts utan mer friktion)/i,
+  assert.ok(
+    /enda svarspunkt/i.test(appSource) &&
+      (/tidigare förslaget kan släppas direkt/i.test(appSource) ||
+        /gamla förslaget ersätts utan mer friktion/i.test(appSource)),
     'Customer-update-läget ska kunna tala som en rak ersättning av tidigare kundlöfte.'
   );
 

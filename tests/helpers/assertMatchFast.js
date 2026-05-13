@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 
-const WILDCARD_PATTERN = /\[\\s\\S\]\*(?:\?)?/g;
+const WILDCARD_PATTERN = /(?:\[\\s\\S\][*+](?:\?)?|\[\^[^\]]+\]\*|\["']|\\s[*+?]?|\\b)+/g;
 const UNSAFE_LITERAL_PATTERN = /(^|[^\\])(?:\.\*|\.\+|\.|\(|\)|\[|\]|\{|\}|\||\^|\$|\+|\?)/;
 
 function decodeLiteralSegment(segment = '') {
@@ -40,10 +40,19 @@ function buildSequentialPlan(matcher) {
   }
 
   const source = matcher.source || '';
-  if (!source.includes('[\\s\\S]*')) {
+  const literalSource = decodeLiteralSegment(source);
+  if (literalSource !== null) {
+    return {
+      caseInsensitive: matcher.flags.includes('i'),
+      parts: literalSource ? [literalSource] : [],
+    };
+  }
+
+  if (!WILDCARD_PATTERN.test(source)) {
     return null;
   }
 
+  WILDCARD_PATTERN.lastIndex = 0;
   const parts = source.split(WILDCARD_PATTERN).map(decodeLiteralSegment);
   if (parts.some((part) => part === null)) {
     return null;

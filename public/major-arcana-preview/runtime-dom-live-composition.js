@@ -103,12 +103,14 @@
       applyMailboxAdminSignatureCommand,
       applyNoteModePreset,
       applyStudioMode,
+      applyStudioBookingUpdateToolPhaseDraft,
       applyStudioRefineSelection,
       applyStudioTemplateSelection,
       applyStudioToneSelection,
       applyStudioTrackSelection,
       applyTemplateToActiveDraft,
       asArray,
+      asNumber,
       asText,
       buildRuntimeMailboxLoadDiagnostics,
       buildRuntimeMailboxCapabilities,
@@ -125,9 +127,11 @@
       ensureRuntimeMailboxSelection,
       ensureRuntimeSelection,
       ensureStudioState,
+      findRuntimeMailboxByScopeId,
       getFilteredRuntimeThreads,
       getMailFeedRuntimeThreads,
       getAdminToken,
+      getAvailableRuntimeMailboxes,
       getMailboxScopedRuntimeThreads,
       getOrderedQueueLaneIds,
       getQueueLaneThreads,
@@ -189,6 +193,7 @@
       renderQueueLaneShortcutRows,
       renderRuntimeConversationShell,
       renderRuntimeFocusConversation,
+      renderRuntimeIntel,
       renderQueueHistorySection,
       renderScheduleDraft,
       renderSignalRows,
@@ -3863,9 +3868,21 @@
 
       const runtimeNoteOpenButton = event.target.closest("[data-runtime-note-open]");
       if (runtimeNoteOpenButton) {
-        runtimeActionEngine.openRuntimeNote().catch((error) => {
-          console.warn("Runtime-anteckning från snabbentry misslyckades.", error);
-        });
+        const runtimeNoteThreadId = asText(runtimeNoteOpenButton.dataset.runtimeNoteThreadId);
+        const destinationKey = asText(runtimeNoteOpenButton.dataset.runtimeNoteDestination);
+        const templateKey = asText(runtimeNoteOpenButton.dataset.runtimeNoteTemplate);
+        if (runtimeNoteThreadId) {
+          selectRuntimeThread(runtimeNoteThreadId, { reloadBootstrap: false });
+        }
+        runtimeActionEngine
+          .openRuntimeNote({
+            directOpen: Boolean(destinationKey || templateKey),
+            destinationKey,
+            templateKey,
+          })
+          .catch((error) => {
+            console.warn("Runtime-anteckning från snabbentry misslyckades.", error);
+          });
         return true;
       }
 

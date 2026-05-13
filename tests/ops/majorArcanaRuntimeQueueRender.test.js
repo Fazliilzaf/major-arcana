@@ -8022,6 +8022,56 @@ test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI'
   assert.match(markup, /data-thread-signal-icon="bolt"/);
 });
 
+test('queue renderers ger operation och commercial eget v5-lane-sprak', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+
+  assert.match(source, /operation:\s*"operation"/);
+  assert.match(source, /commercial:\s*"commercial"/);
+  assert.match(source, /operation:\s*"Operation"/);
+  assert.match(source, /commercial:\s*"Commercial"/);
+});
+
+test('queue renderers visar lane-specifika what/why/next-signaler for operation och commercial', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /if \(normalizedLaneId === "operation"\) \{\s*return compactRuntimeCopy\(asText\(raw\.plannedTreatment, raw\.caseType, "Operation"\)/
+  );
+  assert.match(
+    source,
+    /if \(normalizedLaneId === "commercial"\) \{\s*return compactRuntimeCopy\(asText\(raw\.offerType, raw\.paymentContext, "Offert"\)/
+  );
+  assert.match(source, /if \(normalizedLaneId === "operation"\) return "Öppna operationsspår";/);
+  assert.match(source, /if \(normalizedLaneId === "commercial"\) return "Öppna commercial";/);
+});
+
+test('queue renderers ger operation och commercial egna primära radactions', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+
+  assert.match(source, /v5Lane === "operation"\s*\?\s*"Öppna operation"/);
+  assert.match(source, /v5Lane === "commercial"\s*\?\s*"Öppna commercial"/);
+});
+
+test('queue renderers ger operation och commercial lane-specifika snabbactions', () => {
+  const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /laneQuickActionSignal\.includes\("operationsplan"\)[\s\S]*laneQuickActionSignal\.includes\("klarering"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Klarering"/
+  );
+  assert.match(
+    source,
+    /laneQuickActionSignal\.includes\("offert"\)[\s\S]*laneQuickActionSignal\.includes\("betalning"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Prisnot"/
+  );
+  assert.match(source, /data-lane-quick-action="\$\{escapeHtml\(laneQuickAction\.key\)\}"/);
+  assert.match(
+    source,
+    /data-runtime-note-destination="\$\{escapeHtml\(laneQuickActionDestination\)\}"/
+  );
+  assert.match(source, /data-runtime-note-template="\$\{escapeHtml\(laneQuickActionTemplate\)\}"/);
+});
+
 test('buildThreadCardMarkup kan visa preview fran raw latestMessage bodyHtml nar preview ar tom', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
