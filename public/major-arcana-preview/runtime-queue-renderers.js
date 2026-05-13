@@ -266,7 +266,7 @@
 
   function __getAftercareLaneEntries({ includeClosed = false, limit = 10 } = {}) {
     const entries = Array.isArray(state?.aftercare?.queue) ? state.aftercare.queue : [];
-    return entries
+    const mappedEntries = entries
       .map((item) => {
         const safeItem = item && typeof item === "object" ? item : {};
         const aftercareCase =
@@ -311,8 +311,62 @@
       .filter((entry) => entry.caseId && entry.conversationId)
       .filter(
         (entry) => includeClosed || !["closed", "paused", "cancelled"].includes(entry.queueBucket)
-      )
-      .slice(0, Math.max(1, limit));
+      );
+    if (mappedEntries.length) {
+      return mappedEntries.slice(0, Math.max(1, limit));
+    }
+    const bootstrapReadout =
+      state?.aftercare?.readout && typeof state.aftercare.readout === "object"
+        ? state.aftercare.readout
+        : null;
+    const bootstrapCase =
+      state?.aftercare?.case && typeof state.aftercare.case === "object"
+        ? state.aftercare.case
+        : null;
+    if (!bootstrapReadout) return [];
+    const fallbackQueueBucket = normalizeKey(bootstrapReadout.queueBucket || "active");
+    if (!includeClosed && ["closed", "paused", "cancelled"].includes(fallbackQueueBucket)) {
+      return [];
+    }
+    const queueMeta = __describeAftercareQueueBucket(fallbackQueueBucket);
+    return [
+      {
+        caseId: asText(bootstrapCase?.aftercareCaseId, "aftercare-bootstrap"),
+        conversationId: asText(
+          bootstrapCase?.conversationId || state?.aftercare?.contextConversationId,
+          "aftercare-bootstrap"
+        ),
+        customerId: asText(bootstrapCase?.customerId || state?.aftercare?.customerId),
+        customerName: asText(
+          bootstrapCase?.customerName ||
+            state?.schedule?.draft?.customerName ||
+            state?.status?.customerName,
+          "Eftervård i workspace"
+        ),
+        queueBucket: fallbackQueueBucket,
+        queueLabel: queueMeta.label,
+        queueTone: queueMeta.tone,
+        queueSummary: asText(bootstrapReadout.queueSummary, queueMeta.summary),
+        phase: normalizeKey(bootstrapReadout.phase || ""),
+        nextStep: asText(bootstrapReadout.nextStep, "Öppna eftervårdsytan"),
+        blockerLabel: asText(
+          bootstrapReadout?.blocker?.label,
+          "Bedöm eftervårdsärendet och välj nästa steg"
+        ),
+        requiredActions: Array.isArray(bootstrapReadout?.requiredActions)
+          ? bootstrapReadout.requiredActions
+          : [],
+        waitingOn: asText(bootstrapReadout.waitingOn),
+        scheduledLabel: asText(
+          bootstrapReadout?.scheduledForIso && typeof formatHistoryTimestamp === "function"
+            ? formatHistoryTimestamp(bootstrapReadout.scheduledForIso)
+            : ""
+        ),
+        runtimeThreadId: asText(
+          bootstrapCase?.conversationId || state?.aftercare?.contextConversationId
+        ),
+      },
+    ];
   }
 
   function __buildAftercareLaneCardMarkup(entry = {}, selected = false) {
