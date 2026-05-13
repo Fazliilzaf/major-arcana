@@ -8056,7 +8056,10 @@ test('queue renderers ger operation, consultation och commercial egna primära r
     source,
     /v5Lane === "consultation"[\s\S]*"Säkra samtycke"[\s\S]*"Lås upp dokument"[\s\S]*"Verifiera kliniskt"[\s\S]*"Planera konsultation"[\s\S]*"Öppna konsultation"/
   );
-  assert.match(source, /v5Lane === "commercial"\s*\?\s*"Öppna commercial"/);
+  assert.match(
+    source,
+    /v5Lane === "commercial"[\s\S]*"Lås upp betalning"[\s\S]*"Följ upp offert"[\s\S]*"Lämna till bokning"[\s\S]*"Öppna commercial"/
+  );
   assert.match(
     source,
     /data-runtime-domain-open="operation"\s+data-runtime-domain-thread-id="\$\{escapeHtml\(\s*runtimeThreadId\s*\)\}"/
@@ -8084,7 +8087,7 @@ test('queue renderers ger operation, consultation och commercial lane-specifika 
   );
   assert.match(
     source,
-    /laneQuickActionSignal\.includes\("offert"\)[\s\S]*laneQuickActionSignal\.includes\("betalning"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Prisnot"/
+    /laneQuickActionSignal\.includes\("offert"\)[\s\S]*laneQuickActionSignal\.includes\("betalning"\)[\s\S]*"Depositionsnot"[\s\S]*"Betalningsnot"[\s\S]*"Prisnot"/
   );
   assert.match(source, /data-lane-quick-action="\$\{escapeHtml\(laneQuickAction\.key\)\}"/);
   assert.match(

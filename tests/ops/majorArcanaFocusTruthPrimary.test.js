@@ -249,6 +249,21 @@ test('consultation actions kan öppna bokningsytan direkt från consultation-car
   );
 });
 
+test('commercial actions kan öppna bokningsytan direkt från commercial-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /buildCommercialActionButtonMarkup[\s\S]*surfaceAction === "booking_surface"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att commercial-action-knappar kan öppna bokningsytan direkt när readouten ber om bokningshandoff.'
+  );
+  assert.match(
+    source,
+    /key === "review_commercial_booking_handoff"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att commercial fallback-beteendet leder Bokningshandoff till bokningsytan i stället för tillbaka till commercial-spåret.'
+  );
+});
+
 test('focus renderers låser truth-driven focus i read-only gren utan studio-knappar och med tydlig provenance', () => {
   const source = fs.readFileSync(FOCUS_RENDERERS_PATH, 'utf8');
   const appSource = fs.readFileSync(APP_PATH, 'utf8');

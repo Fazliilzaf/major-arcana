@@ -3647,7 +3647,16 @@
                       ? "Planera konsultation"
                       : "Öppna konsultation"
               : v5Lane === "commercial"
-                ? "Öppna commercial"
+                ? laneQuickActionSignal.includes("betalning") ||
+                  laneQuickActionSignal.includes("deposition")
+                  ? "Lås upp betalning"
+                  : laneQuickActionSignal.includes("offert")
+                    ? "Följ upp offert"
+                    : laneQuickActionSignal.includes("bokning") ||
+                        laneQuickActionSignal.includes("klartecken") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Lämna till bokning"
+                      : "Öppna commercial"
                 : v5Lane === "granska"
                   ? "Granska"
                   : v5Lane === "oklart"
@@ -3729,8 +3738,16 @@
             ? {
                 action: "note",
                 key: "commercial",
-                label: "Prisnot",
-                aria: "Öppna prisanteckning",
+                label: laneQuickActionSignal.includes("deposition")
+                  ? "Depositionsnot"
+                  : laneQuickActionSignal.includes("betalning")
+                    ? "Betalningsnot"
+                    : "Prisnot",
+                aria: laneQuickActionSignal.includes("deposition")
+                  ? "Öppna depositionsanteckning"
+                  : laneQuickActionSignal.includes("betalning")
+                    ? "Öppna betalningsanteckning"
+                    : "Öppna prisanteckning",
               }
             : null;
       const laneQuickActionMarkup = laneQuickAction

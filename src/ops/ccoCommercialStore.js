@@ -89,7 +89,7 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
       },
       {
         key: 'open_commercial_note',
-        label: 'Prisnot',
+        label: 'Betalningsnot',
         type: 'surface_action',
         surfaceAction: 'note_open',
         noteDestination: 'betalning',
@@ -119,19 +119,30 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
   if (phase === 'payment_pending' || phase === 'ready_for_booking') {
     return [
       {
+        key:
+          phase === 'ready_for_booking' ? 'review_commercial_booking_handoff' : 'follow_up_payment',
+        label:
+          phase === 'ready_for_booking'
+            ? 'Bokningshandoff'
+            : waitingOn === 'customer'
+              ? 'Följ upp betalning'
+              : 'Bekräfta betalning',
+        type: 'surface_action',
+        surfaceAction: phase === 'ready_for_booking' ? 'booking_surface' : 'commercial_open',
+        emphasis: 'primary',
+      },
+      {
         key: 'open_commercial_note',
-        label: phase === 'ready_for_booking' ? 'Bekräfta klartecken' : 'Dokumentera prisdialog',
+        label:
+          phase === 'ready_for_booking'
+            ? 'Bekräfta klartecken'
+            : waitingOn === 'customer'
+              ? 'Betalningsnot'
+              : 'Prisnot',
         type: 'surface_action',
         surfaceAction: 'note_open',
         noteDestination: 'betalning',
         noteTemplate: 'betalning',
-        emphasis: 'primary',
-      },
-      {
-        key: 'review_commercial_case',
-        label: 'Öppna commercial',
-        type: 'surface_action',
-        surfaceAction: 'commercial_open',
         emphasis: 'secondary',
       },
     ];

@@ -66,4 +66,26 @@ test('cco commercial readout prioriterar blockerad betalning och tydlig nästa �
   assert.equal(readout.operatorActions[0]?.type, 'surface_action');
   assert.equal(readout.operatorActions[0]?.surfaceAction, 'commercial_open');
   assert.equal(readout.operatorActions[1]?.surfaceAction, 'note_open');
+  assert.equal(readout.operatorActions[1]?.label, 'Betalningsnot');
+});
+
+test('cco commercial readout skickar redo commercial direkt mot bokningshandoff', () => {
+  const readout = buildCommercialCaseReadout({
+    customerName: 'Anna',
+    offerType: 'PRP paket',
+    commercialStatus: 'ready',
+    quoteStatus: 'accepted',
+    paymentStatus: 'paid',
+    quotedAmount: '75 000 kr',
+    depositAmount: '15 000 kr',
+    requiredActions: ['Lämna vidare till bokning med ekonomiskt klartecken'],
+  });
+
+  assert.equal(readout.phase, 'ready_for_booking');
+  assert.equal(readout.waitingOn, 'booking');
+  assert.equal(readout.operatorActions[0]?.key, 'review_commercial_booking_handoff');
+  assert.equal(readout.operatorActions[0]?.surfaceAction, 'booking_surface');
+  assert.equal(readout.operatorActions[0]?.label, 'Bokningshandoff');
+  assert.equal(readout.operatorActions[1]?.surfaceAction, 'note_open');
+  assert.equal(readout.operatorActions[1]?.label, 'Bekräfta klartecken');
 });
