@@ -359,11 +359,6 @@ input {
   font-weight: 700;
 }
 
-.portal-hero-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .portal-hero-notice.is-emphasis {
   border-color: rgba(88, 63, 46, 0.18);
   background: rgba(255, 251, 244, 0.96);
