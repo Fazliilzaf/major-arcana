@@ -3939,6 +3939,8 @@
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
             <span>Customer key ${escapeHtml(customerKey)}</span>
+            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span>${escapeHtml(record.lastAcknowledgedAt ? `Acknowledged ${formatPortalMoment(record.lastAcknowledgedAt)}` : "Not acknowledged yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
