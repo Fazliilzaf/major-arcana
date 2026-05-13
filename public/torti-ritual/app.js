@@ -3914,6 +3914,7 @@
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
     const portalActivityTitle = customerOnlyView ? "Latest shared events" : "Latest portal events";
     const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
+    const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
     const portalHero = customerOnlyView
       ? `
@@ -4052,7 +4053,7 @@
                     <div class="portal-activity-item-head">
                       <strong>${escapeHtml(eventTitle)}</strong>
                       <div class="portal-activity-item-head-meta">
-                        ${isLatestActivity ? '<span class="portal-activity-latest-pill">Latest</span>' : ""}
+                        ${isLatestActivity ? `<span class="portal-activity-latest-pill">${escapeHtml(latestActivityBadgeLabel)}</span>` : ""}
                         <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
                       </div>
                     </div>
