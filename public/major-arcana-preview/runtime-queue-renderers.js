@@ -139,6 +139,17 @@
       if (email) humanName = __humanizeLocalpart(email.split("@")[0]);
     }
 
+    // Sista fallback: om thread-ID är ett demo-mönster (demo-XX-NNN),
+    // generera "Kund XX-NNN" istället för att lämna "Okänd avsändare".
+    // Mer informativt än fallback-text och visar tydligt att det är demo.
+    if (!humanName) {
+      const threadId = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || "";
+      const demoMatch = threadId.match(/^demo-([a-z]+)-(\d+)$/i);
+      if (demoMatch) {
+        humanName = `Kund ${demoMatch[1].toUpperCase()}-${demoMatch[2]}`;
+      }
+    }
+
     if (!humanName) return;
 
     targets.forEach((textNode) => {
