@@ -1808,9 +1808,53 @@ function createCapabilityExecutor({
           );
         }
 
-        dependencyRuns = [toDependencyRunSummary(contentRun)];
+        const audienceRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'AnalyzeAudienceSegments',
+          input: { maxSegments: 6 },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const campaignRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateOutreachCampaign',
+          input: {
+            maxCampaigns: 5,
+            targetSegment: normalizeText(validatedInput.targetSegment) || '',
+          },
+          systemStateSnapshot: {
+            ...validatedSystemStateSnapshot,
+            audienceSegments: toCapabilityResponseOutput(audienceRun)?.data?.segments || [],
+          },
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:campaign` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        dependencyRuns = [
+          toDependencyRunSummary(contentRun),
+          toDependencyRunSummary(audienceRun),
+          toDependencyRunSummary(campaignRun),
+        ];
         agentOutput = composeCmoContentAdvisor({
           contentBriefOutput: toCapabilityResponseOutput(contentRun),
+          audienceOutput: toCapabilityResponseOutput(audienceRun),
+          campaignOutput: toCapabilityResponseOutput(campaignRun),
           channel: normalizedChannel,
           tenantId: normalizedTenantId,
           correlationId: normalizedCorrelationId,

@@ -44,18 +44,33 @@ const cmoContentOutputSchema = Object.freeze({
 
 function composeCmoContentAdvisor({
   contentBriefOutput = null,
+  audienceOutput = null,
+  campaignOutput = null,
   channel = 'admin',
   tenantId = '',
   correlationId = '',
 } = {}) {
   const briefData = asObject(asObject(contentBriefOutput).data);
+  const audienceData = asObject(asObject(audienceOutput).data);
+  const campaignData = asObject(asObject(campaignOutput).data);
   const briefWarnings = asArray(asObject(contentBriefOutput).warnings);
+  const audienceWarnings = asArray(asObject(audienceOutput).warnings);
+  const campaignWarnings = asArray(asObject(campaignOutput).warnings);
+
   const topics = asArray(briefData.topics);
   const calendar = asArray(briefData.contentCalendar);
+  const segments = asArray(audienceData.segments);
+  const campaigns = asArray(campaignData.campaigns);
 
   const executiveSummary = [
     `CMO Content Advisor.`,
     normalizeText(briefData.summary) || 'Ingen content-data tillganglig.',
+    segments.length > 0
+      ? `${segments.length} malgruppssegment identifierade (hogst: ${segments[0]?.label || '-'}).`
+      : '',
+    campaigns.length > 0
+      ? `${campaigns.length} kampanjforslag (${campaigns.filter((c) => c.readiness === 'ready').length} redo att lansera).`
+      : '',
     calendar.length > 0
       ? `Content-kalender: ${calendar.length} planerade inlagg.`
       : '',
@@ -66,6 +81,9 @@ function composeCmoContentAdvisor({
       contentBrief: briefData,
       topics,
       contentCalendar: calendar,
+      audienceSegments: segments,
+      campaigns,
+      campaignReadyCount: campaigns.filter((c) => c.readiness === 'ready').length,
       executiveSummary,
       generatedAt: new Date().toISOString(),
     },
@@ -75,10 +93,14 @@ function composeCmoContentAdvisor({
       channel: normalizeText(channel) || 'admin',
       tenantId: normalizeText(tenantId) || 'unknown',
       correlationId: normalizeText(correlationId) || '',
-      sources: ['GenerateContentBrief'],
+      sources: ['GenerateContentBrief', 'AnalyzeAudienceSegments', 'GenerateOutreachCampaign'],
     },
     warnings: Array.from(
-      new Set(briefWarnings.map((w) => normalizeText(w)).filter(Boolean))
+      new Set(
+        [...briefWarnings, ...audienceWarnings, ...campaignWarnings]
+          .map((w) => normalizeText(w))
+          .filter(Boolean)
+      )
     ).slice(0, 20),
   };
 }
