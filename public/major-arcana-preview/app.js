@@ -9280,8 +9280,37 @@
     return body.includes("pris") || body.includes("offert") || body.includes("betal");
   }
 
+  function isConsultationRuntimeThread(thread) {
+    if (!thread || isAftercareRuntimeThread(thread)) return false;
+    if (getThreadJourneyActiveModuleId(thread) === "consultation") return true;
+    const body = normalizeKey(
+      [
+        thread?.bodyPreview,
+        thread?.preview,
+        thread?.raw?.bodyPreview,
+        thread?.raw?.textPreview,
+        thread?.raw?.subject,
+        thread?.subject,
+      ]
+        .map((value) => asText(value, ""))
+        .join(" ")
+    );
+    return (
+      body.includes("konsult") ||
+      body.includes("samtycke") ||
+      body.includes("behandlingsplan") ||
+      body.includes("dokumentunderlag")
+    );
+  }
+
   function isOperationRuntimeThread(thread) {
-    if (!thread || isAftercareRuntimeThread(thread) || isCommercialRuntimeThread(thread)) return false;
+    if (
+      !thread ||
+      isAftercareRuntimeThread(thread) ||
+      isConsultationRuntimeThread(thread) ||
+      isCommercialRuntimeThread(thread)
+    )
+      return false;
     if (getThreadJourneyActiveModuleId(thread) === "operation") return true;
     const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
     const hasTreatmentContext = Boolean(
@@ -9297,6 +9326,8 @@
     if (isUnclearRuntimeThread(thread)) return "unclear";
     if (isAftercareRuntimeThread(thread)) return "aftercare";
     if (asArray(thread?.tags).includes("act-now")) return "act-now";
+    if (explicitPrimaryLane === "consultation" || isConsultationRuntimeThread(thread))
+      return "consultation";
     if (isCommercialRuntimeThread(thread)) return "commercial";
     if (isOperationRuntimeThread(thread)) return "operation";
     if (!explicitPrimaryLane || explicitPrimaryLane === "all") {
@@ -13112,6 +13143,9 @@
       buildCustomerHistoryEvents,
       buildCustomerSummaryCards,
       buildAftercareActionButtonMarkup,
+      buildCommercialActionButtonMarkup,
+      buildConsultationActionButtonMarkup,
+      buildOperationActionButtonMarkup,
       buildAftercareQueueItemMarkup,
       describeAftercareQueueBucket,
       describeCommercialQueueBucket,
@@ -14018,6 +14052,35 @@
     if (!visibleThreads.length && options.allowLaneFallback) {
       const activeQueueThreads = getQueueScopedRuntimeThreads().filter((thread) => !isHandledRuntimeThread(thread));
       if (activeQueueThreads.length) {
+        const lanePriorityRank = {
+          review: 120,
+          "act-now": 110,
+          unclear: 100,
+          aftercare: 95,
+          consultation: 90,
+          operation: 85,
+          commercial: 80,
+          bookable: 70,
+          medical: 65,
+          later: 40,
+          sprint: 35,
+          admin: 10,
+          all: 0,
+        };
+        const sortLaneIdsByPriority = (laneIds = []) =>
+          (Array.isArray(laneIds) ? laneIds : []).slice().sort((left, right) => {
+            const leftRank = lanePriorityRank[normalizePrimaryQueueLaneId(left)] || 0;
+            const rightRank = lanePriorityRank[normalizePrimaryQueueLaneId(right)] || 0;
+            if (leftRank !== rightRank) return rightRank - leftRank;
+            return (
+              (Array.isArray(getOrderedQueueLaneIds()) ? getOrderedQueueLaneIds() : []).indexOf(
+                normalizePrimaryQueueLaneId(left)
+              ) -
+              (Array.isArray(getOrderedQueueLaneIds()) ? getOrderedQueueLaneIds() : []).indexOf(
+                normalizePrimaryQueueLaneId(right)
+              )
+            );
+          });
         const preferredThreadId = asText(selectionOptions.preferredThreadId);
         const orderedLaneIds = getOrderedQueueLaneIds();
         const preferredLaneId = orderedLaneIds.find((laneId) =>
@@ -14025,15 +14088,14 @@
             (thread) => runtimeConversationIdsMatch(thread?.id, preferredThreadId)
           )
         );
-        const preferredOperationalLaneId = orderedLaneIds.find((laneId) =>
-          getQueueLaneThreads(laneId, activeQueueThreads).some(
-            (thread) => !isVerificationRuntimeThread(thread)
-          )
+        const prioritizedLaneIds = sortLaneIdsByPriority(orderedLaneIds);
+        const preferredOperationalLaneId = prioritizedLaneIds.find((laneId) =>
+          getQueueLaneThreads(laneId, activeQueueThreads).some((thread) => !isVerificationRuntimeThread(thread))
         );
         const fallbackLaneId =
           preferredLaneId ||
           preferredOperationalLaneId ||
-          orderedLaneIds.find((laneId) => getQueueLaneThreads(laneId, activeQueueThreads).length) ||
+          prioritizedLaneIds.find((laneId) => getQueueLaneThreads(laneId, activeQueueThreads).length) ||
           "";
         if (fallbackLaneId) {
           workspaceSourceOfTruth.setActiveLaneId(fallbackLaneId);
@@ -16631,6 +16693,20 @@
       .map((item) => humanizeCode(item, ""))
       .filter(Boolean)
       .slice(0, 3);
+    const operatorActions = asArray(readout?.operatorActions)
+      .map((action) => {
+        const safeAction = action && typeof action === "object" ? action : {};
+        return {
+          key: asText(safeAction.key || safeAction.action),
+          label: asText(safeAction.label),
+          type: normalizeKey(safeAction.type),
+          surfaceAction: normalizeKey(safeAction.surfaceAction),
+          noteDestination: normalizeKey(safeAction.noteDestination),
+          noteTemplate: normalizeKey(safeAction.noteTemplate),
+          emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+        };
+      })
+      .filter((action) => action.key && action.label);
 
     return {
       phase,
@@ -16643,6 +16719,7 @@
       nextStep,
       summary,
       requiredActions,
+      operatorActions,
       queueBucket,
       queueLabel: queueState.label,
       queueShortLabel: queueState.shortLabel,
@@ -16820,6 +16897,20 @@
       .map((item) => humanizeCode(item, ""))
       .filter(Boolean)
       .slice(0, 3);
+    const operatorActions = asArray(readout?.operatorActions)
+      .map((action) => {
+        const safeAction = action && typeof action === "object" ? action : {};
+        return {
+          key: asText(safeAction.key || safeAction.action),
+          label: asText(safeAction.label),
+          type: normalizeKey(safeAction.type),
+          surfaceAction: normalizeKey(safeAction.surfaceAction),
+          noteDestination: normalizeKey(safeAction.noteDestination),
+          noteTemplate: normalizeKey(safeAction.noteTemplate),
+          emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+        };
+      })
+      .filter((action) => action.key && action.label);
 
     return {
       phase,
@@ -16832,6 +16923,7 @@
       nextStep,
       summary,
       requiredActions,
+      operatorActions,
       queueBucket,
       queueLabel: queueState.label,
       queueShortLabel: queueState.shortLabel,
@@ -17031,6 +17123,20 @@
       .map((item) => humanizeCode(item, ""))
       .filter(Boolean)
       .slice(0, 3);
+    const operatorActions = asArray(readout?.operatorActions)
+      .map((action) => {
+        const safeAction = action && typeof action === "object" ? action : {};
+        return {
+          key: asText(safeAction.key || safeAction.action),
+          label: asText(safeAction.label),
+          type: normalizeKey(safeAction.type),
+          surfaceAction: normalizeKey(safeAction.surfaceAction),
+          noteDestination: normalizeKey(safeAction.noteDestination),
+          noteTemplate: normalizeKey(safeAction.noteTemplate),
+          emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+        };
+      })
+      .filter((action) => action.key && action.label);
 
     return {
       phase,
@@ -17043,6 +17149,7 @@
       nextStep,
       summary,
       requiredActions,
+      operatorActions,
       queueBucket,
       queueLabel: queueState.label,
       queueShortLabel: queueState.shortLabel,
@@ -17326,6 +17433,163 @@
     )}" data-aftercare-thread-id="${escapeHtml(asText(threadId))}">${escapeHtml(label)}</button>`;
   }
 
+  function buildOperationActionButtonMarkup(action = {}, { threadId = "", compact = false } = {}) {
+    const key = asText(action.key || action.action);
+    const label = asText(action.label);
+    if (!key || !label) return "";
+    const type = normalizeKey(action.type);
+    const surfaceAction = normalizeKey(action.surfaceAction);
+    const noteDestination = normalizeKey(action.noteDestination);
+    const noteTemplate = normalizeKey(action.noteTemplate);
+    const emphasis = normalizeKey(action.emphasis) || "secondary";
+    const className = compact
+      ? `patient360-operation-action patient360-operation-action--${emphasis}`
+      : `focus-customer-next-action-button patient360-operation-action patient360-operation-action--${emphasis}`;
+    const buildNoteAttributes = () => {
+      const destinationAttribute = noteDestination
+        ? ` data-runtime-note-destination="${escapeHtml(noteDestination)}"`
+        : "";
+      const templateAttribute = noteTemplate
+        ? ` data-runtime-note-template="${escapeHtml(noteTemplate)}"`
+        : "";
+      return `data-runtime-note-open aria-controls="note-shell"${destinationAttribute}${templateAttribute}`;
+    };
+    if (type === "surface_action") {
+      const actionAttributes =
+        surfaceAction === "schedule_open"
+          ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+          : surfaceAction === "note_open"
+            ? buildNoteAttributes()
+            : surfaceAction === "aftercare_open"
+              ? `data-runtime-domain-open="aftercare" data-runtime-domain-thread-id="${escapeHtml(
+                  asText(threadId)
+                )}"`
+              : surfaceAction === "studio_open"
+                ? `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                    asText(threadId)
+                  )}" aria-controls="studio-shell"`
+                : "";
+      if (!actionAttributes) return "";
+      return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
+        label
+      )}</button>`;
+    }
+    const fallbackActionAttributes =
+      key === "resolve_operation_clearance" ||
+      key === "capture_operation_progress" ||
+      key === "escalate_operation_outcome"
+        ? buildNoteAttributes()
+        : key === "share_operation_time"
+          ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+          : key === "review_aftercare_handoff"
+            ? `data-runtime-domain-open="aftercare" data-runtime-domain-thread-id="${escapeHtml(
+                asText(threadId)
+              )}"`
+            : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                asText(threadId)
+              )}" aria-controls="studio-shell"`;
+    return `<button class="${escapeHtml(className)}" type="button" ${fallbackActionAttributes}>${escapeHtml(
+      label
+    )}</button>`;
+  }
+
+  function buildCommercialActionButtonMarkup(action = {}, { threadId = "", compact = false } = {}) {
+    const key = asText(action.key || action.action);
+    const label = asText(action.label);
+    if (!key || !label) return "";
+    const type = normalizeKey(action.type);
+    const surfaceAction = normalizeKey(action.surfaceAction);
+    const noteDestination = normalizeKey(action.noteDestination) || "betalning";
+    const noteTemplate = normalizeKey(action.noteTemplate) || "betalning";
+    const emphasis = normalizeKey(action.emphasis) || "secondary";
+    const className = compact
+      ? `patient360-commercial-action patient360-commercial-action--${emphasis}`
+      : `focus-customer-next-action-button patient360-commercial-action patient360-commercial-action--${emphasis}`;
+    const noteAttributes = `data-runtime-note-open aria-controls="note-shell" data-runtime-note-destination="${escapeHtml(
+      noteDestination
+    )}" data-runtime-note-template="${escapeHtml(noteTemplate)}"`;
+    if (type === "surface_action") {
+      const actionAttributes =
+        surfaceAction === "schedule_open"
+          ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+          : surfaceAction === "note_open"
+            ? noteAttributes
+            : surfaceAction === "commercial_open"
+              ? `data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+                  asText(threadId)
+                )}"`
+              : surfaceAction === "studio_open"
+                ? `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                    asText(threadId)
+                  )}" aria-controls="studio-shell"`
+                : "";
+      if (!actionAttributes) return "";
+      return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
+        label
+      )}</button>`;
+    }
+    const fallbackActionAttributes =
+      key === "follow_up_quote"
+        ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+        : key === "open_commercial_note"
+          ? noteAttributes
+          : `data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+              asText(threadId)
+            )}"`;
+    return `<button class="${escapeHtml(className)}" type="button" ${fallbackActionAttributes}>${escapeHtml(
+      label
+    )}</button>`;
+  }
+
+  function buildConsultationActionButtonMarkup(action = {}, { threadId = "", compact = false } = {}) {
+    const key = asText(action.key || action.action);
+    const label = asText(action.label);
+    if (!key || !label) return "";
+    const type = normalizeKey(action.type);
+    const surfaceAction = normalizeKey(action.surfaceAction);
+    const noteDestination = normalizeKey(action.noteDestination) || "medicinsk";
+    const noteTemplate = normalizeKey(action.noteTemplate) || "samtycke";
+    const emphasis = normalizeKey(action.emphasis) || "secondary";
+    const className = compact
+      ? `patient360-consultation-action patient360-consultation-action--${emphasis}`
+      : `focus-customer-next-action-button patient360-consultation-action patient360-consultation-action--${emphasis}`;
+    const noteAttributes = `data-runtime-note-open aria-controls="note-shell" data-runtime-note-destination="${escapeHtml(
+      noteDestination
+    )}" data-runtime-note-template="${escapeHtml(noteTemplate)}"`;
+    if (type === "surface_action") {
+      const actionAttributes =
+        surfaceAction === "schedule_open"
+          ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+          : surfaceAction === "note_open"
+            ? noteAttributes
+            : surfaceAction === "consultation_open"
+              ? `data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+                  asText(threadId)
+                )}"`
+              : surfaceAction === "studio_open"
+                ? `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                    asText(threadId)
+                  )}" aria-controls="studio-shell"`
+                : "";
+      if (!actionAttributes) return "";
+      return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
+        label
+      )}</button>`;
+    }
+    const fallbackActionAttributes =
+      key === "handoff_consultation_ready"
+        ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+        : key === "document_consultation_status" ||
+            key === "capture_consultation_clinical_note"
+          ? noteAttributes
+          : `data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+              asText(threadId)
+            )}"`;
+    return `<button class="${escapeHtml(className)}" type="button" ${fallbackActionAttributes}>${escapeHtml(
+      label
+    )}</button>`;
+  }
+
   function buildAftercareQueueItemMarkup(entry = {}, { compact = false } = {}) {
     const buttonClass = compact
       ? "patient360-aftercare-queue-item patient360-aftercare-queue-item--compact"
@@ -17442,6 +17706,50 @@
   function getJourneyPrimaryActionConfig(thread, focusReadState = {}) {
     const journeyState = getPreviewPatient360JourneyForThread(thread, focusReadState);
     const activeModuleId = normalizeKey(journeyState?.journey?.activeModule?.id || "");
+    const primaryLaneId =
+      typeof getThreadPrimaryLaneId === "function"
+        ? normalizeKey(getThreadPrimaryLaneId(thread))
+        : "";
+    if (primaryLaneId === "aftercare") {
+      return {
+        action: "aftercare_open",
+        quickAction: "aftercare_surface",
+        label: "Öppna eftervård",
+        tone: "compose",
+        summary: "Öppna eftervårdsytan och ta nästa kontakt, handoff eller uppföljning därifrån.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
+    if (primaryLaneId === "consultation") {
+      return {
+        action: "consultation_open",
+        quickAction: "consultation_surface",
+        label: "Öppna konsultation",
+        tone: "compose",
+        summary: "Öppna konsultationsytan och säkra samtycke, klinisk validering och rätt handoff.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
+    if (primaryLaneId === "operation") {
+      return {
+        action: "operation_open",
+        quickAction: "operation_surface",
+        label: "Öppna operationsspår",
+        tone: "compose",
+        summary: "Öppna operationsytan och driv klarering, handoff eller status utan omvägar.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
+    if (primaryLaneId === "commercial") {
+      return {
+        action: "commercial_open",
+        quickAction: "commercial_surface",
+        label: "Öppna commercial",
+        tone: "compose",
+        summary: "Öppna commercial-ytan och lås upp offert, betalning eller nästa kommersiella steg.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
     if (activeModuleId === "booking") {
       const bookingModuleContext = getJourneyBookingModuleContext(thread);
       return {
@@ -17455,19 +17763,47 @@
     }
     if (activeModuleId === "aftercare") {
       return {
-        action: "schedule_open",
-        quickAction: "schedule",
-        label: "Schemalägg uppföljning",
+        action: "aftercare_open",
+        quickAction: "aftercare_surface",
+        label: "Öppna eftervård",
         tone: "compose",
-        summary: "Schemalägg nästa kontroll eller uppföljning innan ärendet tappar tempo.",
+        summary: "Öppna eftervårdsytan och ta nästa kontakt, handoff eller uppföljning därifrån.",
         secondaryQuickActions: ["note", "studio", "booking_surface", "history"],
+      };
+    }
+    if (activeModuleId === "commercial") {
+      return {
+        action: "commercial_open",
+        quickAction: "commercial_surface",
+        label: "Öppna commercial",
+        tone: "compose",
+        summary: "Öppna commercial-ytan och lås upp offert, betalning eller nästa kommersiella steg.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
+    if (activeModuleId === "consultation") {
+      return {
+        action: "consultation_open",
+        quickAction: "consultation_surface",
+        label: "Öppna konsultation",
+        tone: "compose",
+        summary: "Öppna konsultationsytan och säkra samtycke, klinisk validering och rätt handoff.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
+      };
+    }
+    if (activeModuleId === "operation") {
+      return {
+        action: "operation_open",
+        quickAction: "operation_surface",
+        label: "Öppna operationsspår",
+        tone: "compose",
+        summary: "Öppna operationsytan och driv klarering, handoff eller status utan omvägar.",
+        secondaryQuickActions: ["note", "schedule", "studio", "history"],
       };
     }
     if (
       activeModuleId === "documents" ||
-      activeModuleId === "consultation" ||
       activeModuleId === "clinical" ||
-      activeModuleId === "operation" ||
       activeModuleId === "tasks" ||
       activeModuleId === "identity" ||
       activeModuleId === "timeline"
@@ -17478,6 +17814,8 @@
         label: "Öppna Smart anteckning",
         tone: "compose",
         summary: "Samla och validera underlag i Smart anteckning innan svar eller handoff.",
+        noteDestination: getJourneyPreferredNoteDestination(thread, focusReadState),
+        noteTemplate: getJourneyPreferredNoteTemplate(thread, focusReadState),
         secondaryQuickActions: ["studio", "schedule", "booking_surface", "history"],
       };
     }
@@ -18656,6 +18994,12 @@
         }
       </section>`;
     if (focusCustomerGrid) {
+      const activeModuleId = normalizeKey(journey?.activeModule?.id || "");
+      const activeWorkspaceDomainId = ["aftercare", "consultation", "operation", "commercial"].includes(
+        normalizeKey(getThreadPrimaryLaneId(thread))
+      )
+        ? normalizeKey(getThreadPrimaryLaneId(thread))
+        : activeModuleId;
       const patientCardMarkup = `
         <article class="focus-customer-data-card patient360-data-card" data-patient360-module-card>
           <h4>Nästa domänsteg</h4><dl>
@@ -18668,7 +19012,9 @@
           </dl>
         </article>`;
       const operationCardMarkup = operationSurface
-        ? `<article class="focus-customer-data-card patient360-data-card patient360-operation-card" data-operation-module-card data-tone="${escapeHtml(
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-operation-card" data-operation-module-card data-is-active-module="${escapeHtml(
+            activeWorkspaceDomainId === "operation" ? "true" : "false"
+          )}" data-tone="${escapeHtml(
             operationSurface.tone || "planned"
           )}">
             <h4>Operation</h4><dl>
@@ -18682,6 +19028,7 @@
             </dl>
             ${
               operationSurface.requiredActions.length ||
+              operationSurface.operatorActions.length ||
               operationSurface.handoffCopy ||
               operationSurface.note
                 ? `<div class="patient360-operation-card-footer">
@@ -18705,6 +19052,19 @@
                               74
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      operationSurface.operatorActions.length
+                        ? `<div class="patient360-operation-action-row">${operationSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildOperationActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -18733,7 +19093,13 @@
         : "";
       const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);
       const consultationCardMarkup = consultationSurface
-        ? `<article class="focus-customer-data-card patient360-data-card patient360-consultation-card" data-consultation-module-card data-tone="${escapeHtml(
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-consultation-card" data-consultation-module-card data-is-active-module="${escapeHtml(
+            activeWorkspaceDomainId === "consultation" ||
+            ((activeModuleId === "consultation" || activeModuleId === "documents" || activeModuleId === "clinical") &&
+              !["aftercare", "operation", "commercial"].includes(activeWorkspaceDomainId))
+              ? "true"
+              : "false"
+          )}" data-tone="${escapeHtml(
             consultationSurface.tone || "planned"
           )}">
             <h4>Konsultation</h4><dl>
@@ -18747,6 +19113,7 @@
             </dl>
             ${
               consultationSurface.requiredActions.length ||
+              consultationSurface.operatorActions.length ||
               consultationSurface.handoffCopy ||
               consultationSurface.note
                 ? `<div class="patient360-consultation-card-footer">
@@ -18770,6 +19137,19 @@
                               74
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      consultationSurface.operatorActions.length
+                        ? `<div class="patient360-consultation-action-row">${consultationSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildConsultationActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -18798,7 +19178,9 @@
         : "";
       const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
       const commercialCardMarkup = commercialSurface
-        ? `<article class="focus-customer-data-card patient360-data-card patient360-commercial-card" data-commercial-module-card data-tone="${escapeHtml(
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-commercial-card" data-commercial-module-card data-is-active-module="${escapeHtml(
+            activeWorkspaceDomainId === "commercial" ? "true" : "false"
+          )}" data-tone="${escapeHtml(
             commercialSurface.tone || "planned"
           )}">
             <h4>Commercial</h4><dl>
@@ -18812,6 +19194,7 @@
             </dl>
             ${
               commercialSurface.requiredActions.length ||
+              commercialSurface.operatorActions.length ||
               commercialSurface.handoffCopy ||
               commercialSurface.note
                 ? `<div class="patient360-commercial-card-footer">
@@ -18835,6 +19218,19 @@
                               74
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      commercialSurface.operatorActions.length
+                        ? `<div class="patient360-commercial-action-row">${commercialSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildCommercialActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -18862,7 +19258,13 @@
           </article>`
         : "";
       const aftercareCardMarkup = aftercareSurface
-        ? `<article class="focus-customer-data-card patient360-data-card patient360-aftercare-card" data-aftercare-module-card data-tone="${escapeHtml(
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-aftercare-card" data-aftercare-module-card data-is-active-module="${escapeHtml(
+            activeWorkspaceDomainId === "aftercare" ||
+            ((activeModuleId === "aftercare" || activeModuleId === "tasks") &&
+              !["consultation", "operation", "commercial"].includes(activeWorkspaceDomainId))
+              ? "true"
+              : "false"
+          )}" data-tone="${escapeHtml(
             aftercareSurface.tone
           )}">
             <h4>Eftervård</h4><dl>
@@ -27338,6 +27740,44 @@
 	      window.setTimeout(() => {
 	        bookingDom.surface.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
+    }
+  }
+
+  function openWorkspaceDomainSurface(domainId = "", { threadId = "", message = "" } = {}) {
+    const safeDomainId = normalizeKey(domainId);
+    if (!safeDomainId) return;
+    const workspaceApi = window.__ccoWorkspace;
+    const runtimeThread = threadId ? getRuntimeThreadById(threadId) : null;
+    if (runtimeThread) {
+      selectRuntimeThread(runtimeThread.id);
+    }
+    closeMailboxDropdowns();
+    setStudioOpen(false);
+    setContextCollapsed(false);
+    setMoreMenuOpen(false);
+    if (workspaceApi && typeof workspaceApi.setActiveLaneId === "function") {
+      workspaceApi.setActiveLaneId(safeDomainId);
+      if (typeof workspaceApi.setView === "function") {
+        workspaceApi.setView("conversations");
+      }
+      if (typeof workspaceApi.setFocusSection === "function") {
+        workspaceApi.setFocusSection("customer");
+      }
+      if (runtimeThread && typeof workspaceApi.setSelectedThreadId === "function") {
+        workspaceApi.setSelectedThreadId(runtimeThread.id);
+      }
+    }
+    setAppView("conversations");
+    applyFocusSection("customer");
+    normalizeWorkspaceState();
+    renderRuntimeConversationShell();
+    if (focusStatusLine && message) {
+      focusStatusLine.textContent = message;
+    }
+    if (isSingleWorkspaceViewport()) {
+      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
+      window.setTimeout(resetSingleWorkspaceScrollPosition, 0);
+      window.setTimeout(resetSingleWorkspaceScrollPosition, 160);
     }
   }
 
@@ -38017,6 +38457,24 @@ renderStudioShell();
 	      });
 	      return;
 	    }
+    const workspaceDomainOpenButton = event.target.closest("[data-runtime-domain-open]");
+    if (workspaceDomainOpenButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const domainId = normalizeKey(workspaceDomainOpenButton.dataset.runtimeDomainOpen || "");
+      const threadId = asText(workspaceDomainOpenButton.dataset.runtimeDomainThreadId);
+      const messageByDomain = {
+        aftercare: "Eftervårdsytan öppnades i kundfokus.",
+        operation: "Operationsytan öppnades i kundfokus.",
+        commercial: "Commercial-ytan öppnades i kundfokus.",
+        consultation: "Konsultationsytan öppnades i kundfokus.",
+      };
+      openWorkspaceDomainSurface(domainId, {
+        threadId,
+        message: messageByDomain[domainId] || "Arbetsytan öppnades i kundfokus.",
+      });
+      return;
+    }
     const bookingAdvancedSummary = event.target.closest(".booking-advanced-summary");
     if (bookingAdvancedSummary) {
       window.setTimeout(() => {

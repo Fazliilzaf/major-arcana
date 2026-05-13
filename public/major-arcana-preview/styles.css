@@ -4654,6 +4654,16 @@ button {
   --focus-card-accent: #4f73b3;
 }
 
+.patient360-operation-card[data-is-active-module="true"],
+.patient360-consultation-card[data-is-active-module="true"],
+.patient360-commercial-card[data-is-active-module="true"],
+.patient360-aftercare-card[data-is-active-module="true"] {
+  border-color: rgba(159, 95, 120, 0.28);
+  box-shadow:
+    0 8px 20px rgba(70, 50, 30, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
 .patient360-operation-card[data-tone="critical"] {
   --focus-card-accent: #9f5f78;
 }
@@ -4691,25 +4701,37 @@ button {
   border-top: 1px solid rgba(120, 105, 90, 0.12);
 }
 
-.patient360-aftercare-action-row {
+.patient360-aftercare-action-row,
+.patient360-operation-action-row,
+.patient360-consultation-action-row,
+.patient360-commercial-action-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 2px;
 }
 
-.patient360-aftercare-action {
+.patient360-aftercare-action,
+.patient360-operation-action,
+.patient360-consultation-action,
+.patient360-commercial-action {
   min-height: 30px;
 }
 
-.patient360-aftercare-action.patient360-aftercare-action--primary {
+.patient360-aftercare-action.patient360-aftercare-action--primary,
+.patient360-operation-action.patient360-operation-action--primary,
+.patient360-consultation-action.patient360-consultation-action--primary,
+.patient360-commercial-action.patient360-commercial-action--primary {
   border-color: rgba(164, 78, 115, 0.32);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.94),
     0 6px 14px rgba(70, 50, 30, 0.08);
 }
 
-.patient360-aftercare-action.patient360-aftercare-action--secondary {
+.patient360-aftercare-action.patient360-aftercare-action--secondary,
+.patient360-operation-action.patient360-operation-action--secondary,
+.patient360-consultation-action.patient360-consultation-action--secondary,
+.patient360-commercial-action.patient360-commercial-action--secondary {
   opacity: 0.92;
 }
 

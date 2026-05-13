@@ -208,6 +208,16 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     renderersSource,
+    /data-runtime-domain-open="aftercare"[\s\S]*data-runtime-domain-open="operation"[\s\S]*data-runtime-domain-open="consultation"[\s\S]*data-runtime-domain-open="commercial"/,
+    'Arbetsraden ska kunna öppna rätt domänyta direkt för aftercare, operation, consultation och commercial.'
+  );
+  assertMatchFast(
+    renderersSource,
+    /data-runtime-note-destination="\$\{escapeHtml\(noteDestination\)\}"[\s\S]*data-runtime-note-template="\$\{escapeHtml\(noteTemplate\)\}"/,
+    'Note-baserade journey-actions ska bära med sig rätt destination och mall in i anteckningsytan.'
+  );
+  assertMatchFast(
+    renderersSource,
     /function buildJourneyActionButtonMarkup\([\s\S]*className = "intel-card-action-button"[\s\S]*\)/,
     'Högerpanelen ska kunna återanvända samma journey-action som liten CTA utan att duplicera actionlogik för varje domän.'
   );
@@ -225,6 +235,26 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
     appSource,
     /quickAction:\s*"note"/,
     'Journey-mappen ska kunna översätta dokument- och konsultationslägen till en riktig note-snabbaction.'
+  );
+  assertMatchFast(
+    appSource,
+    /activeModuleId === "aftercare"[\s\S]*action:\s*"aftercare_open"[\s\S]*label:\s*"Öppna eftervård"/,
+    'Eftervårdsläge ska kunna bära ett eget primärt arbetsdrag i stället för att falla tillbaka till generisk schemaläggning.'
+  );
+  assertMatchFast(
+    appSource,
+    /activeModuleId === "consultation"[\s\S]*action:\s*"consultation_open"[\s\S]*label:\s*"Öppna konsultation"/,
+    'Konsultationsläge ska kunna landa direkt i konsultationsytan när det är den aktiva domänen.'
+  );
+  assertMatchFast(
+    appSource,
+    /activeModuleId === "operation"[\s\S]*action:\s*"operation_open"[\s\S]*label:\s*"Öppna operationsspår"/,
+    'Operationsläge ska kunna bära en egen primär CTA som öppnar operationsytan direkt.'
+  );
+  assertMatchFast(
+    appSource,
+    /activeModuleId === "commercial"[\s\S]*action:\s*"commercial_open"[\s\S]*label:\s*"Öppna commercial"/,
+    'Commercial-läge ska kunna bära en egen primär CTA som öppnar commercial-surface direkt.'
   );
   assertMatchFast(
     appSource,

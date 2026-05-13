@@ -64,6 +64,9 @@
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
       buildAftercareActionButtonMarkup,
+      buildCommercialActionButtonMarkup,
+      buildConsultationActionButtonMarkup,
+      buildOperationActionButtonMarkup,
       buildAftercareQueueItemMarkup,
       describeAftercareQueueBucket,
       describeCommercialQueueBucket,
@@ -192,8 +195,19 @@
           .filter(Boolean)
           .slice(0, 3),
         operatorActions: asArray(readout?.operatorActions)
-          .map((item) => (item && typeof item === "object" ? item : {}))
-          .filter((item) => asText(item.key) && asText(item.label))
+          .map((item) => {
+            const safeAction = item && typeof item === "object" ? item : {};
+            return {
+              key: asText(safeAction.key || safeAction.action),
+              label: asText(safeAction.label),
+              type: normalizeKey(safeAction.type),
+              surfaceAction: normalizeKey(safeAction.surfaceAction),
+              noteDestination: normalizeKey(safeAction.noteDestination),
+              noteTemplate: normalizeKey(safeAction.noteTemplate),
+              emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+            };
+          })
+          .filter((item) => item.key && item.label)
           .slice(0, 2),
       };
     }
@@ -348,6 +362,21 @@
           .map((item) => humanizeCode(item, ""))
           .filter(Boolean)
           .slice(0, 3),
+        operatorActions: asArray(readout?.operatorActions)
+          .map((item) => {
+            const safeAction = item && typeof item === "object" ? item : {};
+            return {
+              key: asText(safeAction.key || safeAction.action),
+              label: asText(safeAction.label),
+              type: normalizeKey(safeAction.type),
+              surfaceAction: normalizeKey(safeAction.surfaceAction),
+              noteDestination: normalizeKey(safeAction.noteDestination),
+              noteTemplate: normalizeKey(safeAction.noteTemplate),
+              emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+            };
+          })
+          .filter((item) => item.key && item.label)
+          .slice(0, 2),
       };
     }
 
@@ -3036,6 +3065,7 @@
               )}</dd></div>
             </dl>${
               bootstrapOperationSurface.requiredActions.length ||
+              bootstrapOperationSurface.operatorActions.length ||
               bootstrapOperationSurface.handoffCopy ||
               bootstrapOperationSurface.note
                 ? `<div class="patient360-operation-card-footer">
@@ -3044,6 +3074,18 @@
                         ? `<p>${escapeHtml(
                             `Kräver: ${bootstrapOperationSurface.requiredActions.join(", ")}`
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapOperationSurface.operatorActions.length
+                        ? `<div class="patient360-operation-action-row">${bootstrapOperationSurface.operatorActions
+                            .map((action) =>
+                              buildOperationActionButtonMarkup(action, {
+                                threadId: "",
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -3180,6 +3222,7 @@
               )}</dd></div>
             </dl>${
               bootstrapConsultationSurface.requiredActions.length ||
+              bootstrapConsultationSurface.operatorActions.length ||
               bootstrapConsultationSurface.handoffCopy ||
               bootstrapConsultationSurface.note
                 ? `<div class="patient360-consultation-card-footer">
@@ -3188,6 +3231,18 @@
                         ? `<p>${escapeHtml(
                             `Kräver: ${bootstrapConsultationSurface.requiredActions.join(", ")}`
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapConsultationSurface.operatorActions.length
+                        ? `<div class="patient360-consultation-action-row">${bootstrapConsultationSurface.operatorActions
+                            .map((action) =>
+                              buildConsultationActionButtonMarkup(action, {
+                                threadId: "",
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -3321,6 +3376,7 @@
               )}</dd></div>
             </dl>${
               bootstrapCommercialSurface.requiredActions.length ||
+              bootstrapCommercialSurface.operatorActions.length ||
               bootstrapCommercialSurface.handoffCopy ||
               bootstrapCommercialSurface.note
                 ? `<div class="patient360-commercial-card-footer">
@@ -3329,6 +3385,18 @@
                         ? `<p>${escapeHtml(
                             `Kräver: ${bootstrapCommercialSurface.requiredActions.join(", ")}`
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapCommercialSurface.operatorActions.length
+                        ? `<div class="patient360-commercial-action-row">${bootstrapCommercialSurface.operatorActions
+                            .map((action) =>
+                              buildCommercialActionButtonMarkup(action, {
+                                threadId: "",
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -3850,6 +3918,7 @@
               )}</dd></div>
             </dl>${
               operationSurface.requiredActions.length ||
+              operationSurface.operatorActions.length ||
               operationSurface.handoffCopy ||
               operationSurface.note
                 ? `<div class="patient360-operation-card-footer">
@@ -3862,6 +3931,19 @@
                               84
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      operationSurface.operatorActions.length
+                        ? `<div class="patient360-operation-action-row">${operationSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildOperationActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -3900,6 +3982,7 @@
               )}</dd></div>
             </dl>${
               consultationSurface.requiredActions.length ||
+              consultationSurface.operatorActions.length ||
               consultationSurface.handoffCopy ||
               consultationSurface.note
                 ? `<div class="patient360-consultation-card-footer">
@@ -3912,6 +3995,19 @@
                               84
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      consultationSurface.operatorActions.length
+                        ? `<div class="patient360-consultation-action-row">${consultationSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildConsultationActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -3952,6 +4048,7 @@
               )}</dd></div>
             </dl>${
               commercialSurface.requiredActions.length ||
+              commercialSurface.operatorActions.length ||
               commercialSurface.handoffCopy ||
               commercialSurface.note
                 ? `<div class="patient360-commercial-card-footer">
@@ -3964,6 +4061,19 @@
                               84
                             )
                           )}</p>`
+                        : ""
+                    }
+                    ${
+                      commercialSurface.operatorActions.length
+                        ? `<div class="patient360-commercial-action-row">${commercialSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildCommercialActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
                         : ""
                     }
                     ${
@@ -4442,24 +4552,51 @@
       const action = asText(config.action);
       const label = asText(config.label, "Öppna Svarstudio");
       const safeThreadId = asText(threadId);
+      const noteDestination = asText(config.noteDestination);
+      const noteTemplate = asText(config.noteTemplate);
+      const noteAttributes = `data-runtime-note-open aria-controls="note-shell"${
+        noteDestination ? ` data-runtime-note-destination="${escapeHtml(noteDestination)}"` : ""
+      }${noteTemplate ? ` data-runtime-note-template="${escapeHtml(noteTemplate)}"` : ""}`;
       const iconMarkup =
         action === "booking_surface"
           ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>'
-          : action === "schedule_open"
-            ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>'
-            : action === "note_open"
-              ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>'
-              : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>';
+          : action === "aftercare_open"
+            ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 8.1h9.2M8 3.5v9.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.35" /><circle cx="8" cy="8" r="5.2" fill="none" stroke="currentColor" stroke-width="1.15" /></svg>'
+            : action === "operation_open" ||
+                action === "consultation_open" ||
+                action === "commercial_open"
+              ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.1" width="11" height="9.8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M5.2 8h5.6M8 5.2 10.8 8 8 10.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" /></svg>'
+              : action === "schedule_open"
+                ? '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>'
+                : action === "note_open"
+                  ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>'
+                  : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6M5 5l6 6M11 5 5 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" /></svg>';
       const actionAttributes =
         action === "booking_surface"
           ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(safeThreadId)}"`
-          : action === "schedule_open"
-            ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
-            : action === "note_open"
-              ? 'data-runtime-note-open aria-controls="note-shell"'
-              : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+          : action === "aftercare_open"
+            ? `data-runtime-domain-open="aftercare" data-runtime-domain-thread-id="${escapeHtml(
+                safeThreadId
+              )}"`
+            : action === "operation_open"
+              ? `data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
                   safeThreadId
-                )}" aria-controls="studio-shell"`;
+                )}"`
+              : action === "consultation_open"
+                ? `data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+                    safeThreadId
+                  )}"`
+                : action === "commercial_open"
+                  ? `data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+                      safeThreadId
+                    )}"`
+                  : action === "schedule_open"
+                    ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+                    : action === "note_open"
+                      ? noteAttributes
+                      : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                          safeThreadId
+                        )}" aria-controls="studio-shell"`;
       return `<button class="conversation-next-button" type="button" ${actionAttributes}>
         ${iconMarkup}
         ${escapeHtml(label)}
@@ -4474,16 +4611,37 @@
       const action = asText(config.action);
       const label = asText(config.label, "Öppna Svarstudio");
       const safeThreadId = asText(threadId);
+      const noteDestination = asText(config.noteDestination);
+      const noteTemplate = asText(config.noteTemplate);
+      const noteAttributes = `data-runtime-note-open aria-controls="note-shell"${
+        noteDestination ? ` data-runtime-note-destination="${escapeHtml(noteDestination)}"` : ""
+      }${noteTemplate ? ` data-runtime-note-template="${escapeHtml(noteTemplate)}"` : ""}`;
       const actionAttributes =
         action === "booking_surface"
           ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(safeThreadId)}"`
-          : action === "schedule_open"
-            ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
-            : action === "note_open"
-              ? 'data-runtime-note-open aria-controls="note-shell"'
-              : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+          : action === "aftercare_open"
+            ? `data-runtime-domain-open="aftercare" data-runtime-domain-thread-id="${escapeHtml(
+                safeThreadId
+              )}"`
+            : action === "operation_open"
+              ? `data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
                   safeThreadId
-                )}" aria-controls="studio-shell"`;
+                )}"`
+              : action === "consultation_open"
+                ? `data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+                    safeThreadId
+                  )}"`
+                : action === "commercial_open"
+                  ? `data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+                      safeThreadId
+                    )}"`
+                  : action === "schedule_open"
+                    ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+                    : action === "note_open"
+                      ? noteAttributes
+                      : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                          safeThreadId
+                        )}" aria-controls="studio-shell"`;
       return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
         label
       )}</button>`;
