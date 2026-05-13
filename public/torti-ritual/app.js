@@ -3878,7 +3878,7 @@
       : 0;
     const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
     const latestPortalEvent = portalEvents[0] || null;
-    const recentPortalEvents = customerOnlyView
+    const sharedPortalEvents = customerOnlyView
       ? portalEvents.filter((event) => {
           const eventType = normalize(event.type);
           return [
@@ -3890,10 +3890,16 @@
             "customer read",
             "version viewed",
           ].includes(eventType);
-        }).slice(0, 4)
+        })
+      : portalEvents;
+    const recentPortalEvents = customerOnlyView
+      ? sharedPortalEvents.slice(0, 4)
       : portalEvents.slice(0, 4);
     const latestVisiblePortalEvent = recentPortalEvents[0] || null;
     const summaryPortalEvent = customerOnlyView ? latestVisiblePortalEvent : latestPortalEvent;
+    const portalActivityCountLabel = customerOnlyView
+      ? `${sharedPortalEvents.length} shared events`
+      : `${portalEvents.length} portal events`;
     const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
     const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
     const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
@@ -4039,7 +4045,7 @@
             <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared customer activity" : "Portal activity")}</span>
             <strong>${escapeHtml(portalActivityTitle)}</strong>
           </div>
-          <span class="portal-activity-meta">${escapeHtml(portalSyncLabel)}</span>
+          <span class="portal-activity-meta">${escapeHtml(portalActivityCountLabel)} · ${escapeHtml(portalSyncLabel)}</span>
         </div>
         <div class="portal-activity-list">
           ${recentPortalEvents.length > 0
