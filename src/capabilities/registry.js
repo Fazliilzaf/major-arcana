@@ -21,6 +21,8 @@ const { OptimizeVariablesCapability } = require('./optimizeVariables');
 const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
 const { FinanceGovernanceCapability } = require('./financeGovernance');
 const { GenerateContentBriefCapability } = require('./generateContentBrief');
+const { AnalyzeAudienceSegmentsCapability } = require('./analyzeAudienceSegments');
+const { GenerateOutreachCampaignCapability } = require('./generateOutreachCampaign');
 const { PatientChatResponseCapability } = require('./patientChatResponse');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
@@ -56,6 +58,8 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(AnalyzeRiskTrendCapability),
   assertCapabilityClass(FinanceGovernanceCapability),
   assertCapabilityClass(GenerateContentBriefCapability),
+  assertCapabilityClass(AnalyzeAudienceSegmentsCapability),
+  assertCapabilityClass(GenerateOutreachCampaignCapability),
   assertCapabilityClass(PatientChatResponseCapability),
 ]);
 
@@ -108,7 +112,7 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     name: CMO_AGENT_NAME,
     version: '1.0.0',
     role: 'CMO',
-    capabilities: Object.freeze(['GenerateContentBrief']),
+    capabilities: Object.freeze(['GenerateContentBrief', 'AnalyzeAudienceSegments', 'GenerateOutreachCampaign']),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
