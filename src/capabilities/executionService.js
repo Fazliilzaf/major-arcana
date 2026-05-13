@@ -18,6 +18,12 @@ const {
   composeCooDailyBrief,
 } = require('../agents/cooDailyBriefAgent');
 const {
+  CAO_AGENT_NAME,
+  caoTemplateAdvisorInputSchema,
+  caoTemplateAdvisorOutputSchema,
+  composeCaoTemplateAdvisor,
+} = require('../agents/caoTemplateAdvisorAgent');
+const {
   CCO_AGENT_NAME,
   CCO_INBOX_ANALYSIS_CAPABILITY_REF,
   ccoInboxAnalysisInputSchema,
@@ -1507,6 +1513,14 @@ function createCapabilityExecutor({
         errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
         label: 'Agent input',
       });
+    } else if (normalizedAgentName === CAO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: caoTemplateAdvisorInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
     } else if (normalizedAgentName === CCO_AGENT_NAME) {
       ensureSchemaValidity({
         schema: ccoInboxAnalysisInputSchema,
@@ -1617,6 +1631,86 @@ function createCapabilityExecutor({
         });
         agentOutputSchema = cooDailyBriefOutputSchema;
         agentCapabilityRef = COO_DAILY_BRIEF_CAPABILITY_REF;
+      } else if (normalizedAgentName === CAO_AGENT_NAME) {
+        const suggestRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'SuggestTemplateImprovement',
+          input: {
+            maxSuggestions: Number(validatedInput.maxSuggestions || 5) || 5,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:suggest` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          suggestRun?.gatewayResult?.decision === 'blocked' ||
+          suggestRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'SuggestTemplateImprovement blockerade agent-korning.'
+          );
+        }
+
+        const disclaimerRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ValidateDisclaimers',
+          input: {
+            strictMode: validatedInput.strictDisclaimers === true,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:disclaimers`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const variableRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'OptimizeVariables',
+          input: {},
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:variables` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        dependencyRuns = [
+          toDependencyRunSummary(suggestRun),
+          toDependencyRunSummary(disclaimerRun),
+          toDependencyRunSummary(variableRun),
+        ];
+        agentOutput = composeCaoTemplateAdvisor({
+          suggestOutput: toCapabilityResponseOutput(suggestRun),
+          disclaimerOutput: toCapabilityResponseOutput(disclaimerRun),
+          variableOutput: toCapabilityResponseOutput(variableRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = caoTemplateAdvisorOutputSchema;
+        agentCapabilityRef = 'CAO.TemplateAdvisor';
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,
