@@ -3877,7 +3877,20 @@
       ? record.notifications.filter((notification) => !notification.readAt).length
       : 0;
     const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
-    const recentPortalEvents = portalEvents.slice(0, 4);
+    const recentPortalEvents = customerOnlyView
+      ? portalEvents.filter((event) => {
+          const eventType = normalize(event.type);
+          return [
+            "version published",
+            "layer version published",
+            "customer notified",
+            "customer viewed",
+            "customer acknowledged",
+            "customer read",
+            "version viewed",
+          ].includes(eventType);
+        }).slice(0, 4)
+      : portalEvents.slice(0, 4);
     const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
     const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
     const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
