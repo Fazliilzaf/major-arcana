@@ -1038,6 +1038,7 @@
     pendingCatalogId: null,
     savedSheets: [],
     currentSheetId: null,
+    portalFocusCustomerKey: getPortalQueryCustomerKey(),
     portalRemoteStatus: {},
     portalRemoteHydrationSignatures: {},
     portalRemoteSyncSignatures: {},
@@ -1217,6 +1218,19 @@
 
   function normalizeText(value) {
     return typeof value === "string" ? value.trim() : "";
+  }
+
+  function getPortalQueryCustomerKey() {
+    if (typeof window === "undefined" || !window.location) {
+      return "";
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return normalize(params.get("portalCustomerKey") || params.get("customerKey") || "");
+    } catch (error) {
+      return "";
+    }
   }
 
   function normalize(value) {
@@ -2035,7 +2049,7 @@
   function getPortalCustomerKey(snapshot) {
     const source = snapshot || getWorkingStateSnapshot();
     const fullName = getPortalCustomerName(source);
-    return normalize(fullName || "current-customer");
+    return state.portalFocusCustomerKey || normalize(fullName || "current-customer");
   }
 
   function normalizePortalVersion(version, index = 0) {
@@ -2327,6 +2341,24 @@
     }
 
     return "Local portal";
+  }
+
+  function buildPortalShareUrl(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    const url = new URL(window.location.href);
+    url.searchParams.set("portalCustomerKey", customerKey);
+    return url.toString();
+  }
+
+  async function copyPortalShareUrl(snapshot) {
+    const shareUrl = buildPortalShareUrl(snapshot);
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(shareUrl);
+      return true;
+    }
+
+    window.prompt("Copy portal link", shareUrl);
+    return false;
   }
 
   function schedulePortalRemoteHydration(snapshot, force = false) {
@@ -3855,6 +3887,7 @@
           </div>
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
+            <button class="ghost-button portal-action" type="button" data-copy-portal-link>Copy portal link</button>
           </div>
           <div class="portal-card-list">
             ${versions.length > 0
@@ -3922,6 +3955,21 @@
         publishPortalVersion();
       });
     });
+
+    const copyLinkButton = portalPanel.querySelector("[data-copy-portal-link]");
+    if (copyLinkButton) {
+      copyLinkButton.addEventListener("click", async function () {
+        try {
+          await copyPortalShareUrl(snapshot);
+          copyLinkButton.textContent = "Copied";
+          window.setTimeout(() => {
+            copyLinkButton.textContent = "Copy portal link";
+          }, 1500);
+        } catch (error) {
+          window.prompt("Copy portal link", buildPortalShareUrl(snapshot));
+        }
+      });
+    }
 
     const markViewedButton = portalPanel.querySelector("[data-mark-portal-view]");
     if (markViewedButton) {
