@@ -31544,5 +31544,86 @@
   renderWritingIdentityProfiles();
 
   updateLifecyclePermissions();
+
+  (function mountAgentPanels() {
+    function getToken() {
+      return state?.token || '';
+    }
+    function agentPost(agentName) {
+      const token = getToken();
+      if (!token) return Promise.reject(new Error('Ej inloggad'));
+      return fetch(`/api/v1/agents/${agentName}/run`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      }).then(function (res) { return res.json(); });
+    }
+
+    var cooBtn = document.getElementById('runCooAgentBtn');
+    var cooStatus = document.getElementById('cooRunStatus');
+    if (cooBtn) {
+      cooBtn.addEventListener('click', function () {
+        cooBtn.disabled = true;
+        if (cooStatus) cooStatus.textContent = 'Kör...';
+        agentPost('COO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cooResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('cooPriorityLevel');
+          if (el) el.textContent = out.priorityLevel || '—';
+          el = document.getElementById('cooTaskCount');
+          if (el) el.textContent = String((out.taskPlan && out.taskPlan.tasks && out.taskPlan.tasks.length) || 0);
+          el = document.getElementById('cooIncidentRisk');
+          if (el) el.textContent = (out.incidentSummary && out.incidentSummary.escalationRisk) || '—';
+          el = document.getElementById('cooExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cooTaskList');
+          if (el) {
+            var tasks = (out.taskPlan && out.taskPlan.tasks) || [];
+            el.textContent = tasks.length ? tasks.map(function (t, i) { return (i + 1) + '. [' + (t.priority || '') + '] ' + (t.title || ''); }).join('\n') : 'Inga tasks genererade.';
+          }
+          if (cooStatus) cooStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cooStatus) cooStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cooBtn.disabled = false; });
+      });
+    }
+
+    var caoBtn = document.getElementById('runCaoAgentBtn');
+    var caoStatus = document.getElementById('caoRunStatus');
+    if (caoBtn) {
+      caoBtn.addEventListener('click', function () {
+        caoBtn.disabled = true;
+        if (caoStatus) caoStatus.textContent = 'Kör...';
+        agentPost('CAO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('caoResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('caoSuggestionCount');
+          if (el) el.textContent = String((out.templateSuggestions || []).length);
+          el = document.getElementById('caoDisclaimerStatus');
+          if (el) el.textContent = (out.disclaimerResults ? out.disclaimerResults.compliantCount + '/' + out.disclaimerResults.totalCount : '—');
+          el = document.getElementById('caoVariableScore');
+          if (el) el.textContent = ((out.variableOptimization && out.variableOptimization.averageScore) || 100) + '%';
+          el = document.getElementById('caoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('caoDisclaimerResults');
+          if (el) {
+            var nc = (out.disclaimerResults && out.disclaimerResults.nonCompliantTemplates) || [];
+            el.textContent = nc.length ? nc.map(function (t) { return t.templateName + ': saknar ' + (t.missing || []).join(', ') + (t.violations && t.violations.length ? ' | brott: ' + t.violations.map(function (v) { return v.label; }).join(', ') : ''); }).join('\n') : 'Alla mallar godkända.';
+          }
+          el = document.getElementById('caoVariableResults');
+          if (el) {
+            var top = (out.variableOptimization && out.variableOptimization.topImprovable) || [];
+            el.textContent = top.length ? top.map(function (t) { return t.templateName + ': ' + (t.suggestions || []).map(function (s) { return s.description; }).join('; '); }).join('\n') : 'Alla mallar har optimal variabelanvändning.';
+          }
+          if (caoStatus) caoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (caoStatus) caoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { caoBtn.disabled = false; });
+      });
+    }
+  })();
+
   restoreSession();
 })();
