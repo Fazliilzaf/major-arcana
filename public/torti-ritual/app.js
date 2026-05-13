@@ -3947,7 +3947,7 @@
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
     const portalActivityTitle = customerOnlyView ? "Timeline" : "Portal timeline";
-    const latestActivityLabel = customerOnlyView ? "Latest shared update" : "Latest activity";
+    const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
     const portalHero = customerOnlyView
