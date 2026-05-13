@@ -54,11 +54,11 @@ function buildConsultationOperatorActions({ phase = '', waitingOn = '', consentS
       {
         action: 'document_consultation_status',
         key: 'document_consultation_status',
-        label: 'Dokumentera hinder',
+        label: normalizeKey(consentStatus) === 'required' ? 'Samtyckesnot' : 'Dokumentnot',
         type: 'surface_action',
         surfaceAction: 'note_open',
         noteDestination: 'medicinsk',
-        noteTemplate: 'samtycke',
+        noteTemplate: normalizeKey(consentStatus) === 'required' ? 'samtycke' : 'behandling',
         emphasis: 'secondary',
       },
     ];
@@ -92,9 +92,9 @@ function buildConsultationOperatorActions({ phase = '', waitingOn = '', consentS
       {
         action: 'handoff_consultation_ready',
         key: 'handoff_consultation_ready',
-        label: phase === 'scheduled' ? 'Bekräfta konsultation' : 'Förbered konsultation',
+        label: phase === 'scheduled' ? 'Bekräfta konsultation' : 'Planera konsultation',
         type: 'surface_action',
-        surfaceAction: phase === 'scheduled' ? 'schedule_open' : 'consultation_open',
+        surfaceAction: 'schedule_open',
         emphasis: 'primary',
       },
       {
@@ -102,7 +102,7 @@ function buildConsultationOperatorActions({ phase = '', waitingOn = '', consentS
         key: 'review_consultation_booking_handoff',
         label: 'Bokningshandoff',
         type: 'surface_action',
-        surfaceAction: 'consultation_open',
+        surfaceAction: 'booking_surface',
         emphasis: 'secondary',
       },
     ];

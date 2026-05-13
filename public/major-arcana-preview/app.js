@@ -17573,7 +17573,11 @@
     )}" data-runtime-note-template="${escapeHtml(noteTemplate)}"`;
     if (type === "surface_action") {
       const actionAttributes =
-        surfaceAction === "schedule_open"
+        surfaceAction === "booking_surface"
+          ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(
+              asText(threadId)
+            )}"`
+          : surfaceAction === "schedule_open"
           ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
           : surfaceAction === "note_open"
             ? noteAttributes
@@ -17592,7 +17596,11 @@
       )}</button>`;
     }
     const fallbackActionAttributes =
-      key === "handoff_consultation_ready"
+      key === "review_consultation_booking_handoff"
+        ? `data-booking-open-surface data-runtime-studio-thread-id="${escapeHtml(
+            asText(threadId)
+          )}"`
+        : key === "handoff_consultation_ready"
         ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
         : key === "document_consultation_status" ||
             key === "capture_consultation_clinical_note"

@@ -89,7 +89,9 @@ test('buildConsultationCaseReadout prioriterar dokument och samtycke som blocker
   assert.equal(readout.operatorActions[0].action, 'resolve_consultation_documents');
   assert.equal(readout.operatorActions[0].type, 'surface_action');
   assert.equal(readout.operatorActions[0].surfaceAction, 'consultation_open');
+  assert.equal(readout.operatorActions[1].label, 'Samtyckesnot');
   assert.equal(readout.operatorActions[1].surfaceAction, 'note_open');
+  assert.equal(readout.operatorActions[1].noteTemplate, 'samtycke');
 });
 
 test('buildConsultationCaseReadout lämnar konsultation vidare till booking när den är klar', () => {
@@ -121,4 +123,20 @@ test('buildConsultationCaseReadout lyfter klinisk validering med konsultations- 
   assert.equal(readout.phase, 'clinical_validation');
   assert.equal(readout.operatorActions[0].surfaceAction, 'consultation_open');
   assert.equal(readout.operatorActions[1].surfaceAction, 'note_open');
+});
+
+test('buildConsultationCaseReadout skickar redo konsultation direkt till planering och bokningshandoff', () => {
+  const readout = buildConsultationCaseReadout({
+    consultationStatus: 'ready',
+    clinicalStatus: 'validated',
+    documentStatus: 'validated',
+    consentStatus: 'confirmed',
+    requiredActions: ['Boka konsultation denna vecka'],
+  });
+
+  assert.equal(readout.phase, 'ready_for_consultation');
+  assert.equal(readout.operatorActions[0].label, 'Planera konsultation');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'schedule_open');
+  assert.equal(readout.operatorActions[1].label, 'Bokningshandoff');
+  assert.equal(readout.operatorActions[1].surfaceAction, 'booking_surface');
 });

@@ -8052,7 +8052,10 @@ test('queue renderers ger operation, consultation och commercial egna primära r
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
 
   assert.match(source, /v5Lane === "operation"\s*\?\s*"Öppna operation"/);
-  assert.match(source, /v5Lane === "consultation"[\s\S]*"Öppna konsultation"/);
+  assert.match(
+    source,
+    /v5Lane === "consultation"[\s\S]*"Säkra samtycke"[\s\S]*"Lås upp dokument"[\s\S]*"Verifiera kliniskt"[\s\S]*"Planera konsultation"[\s\S]*"Öppna konsultation"/
+  );
   assert.match(source, /v5Lane === "commercial"\s*\?\s*"Öppna commercial"/);
   assert.match(
     source,
@@ -8077,7 +8080,7 @@ test('queue renderers ger operation, consultation och commercial lane-specifika 
   );
   assert.match(
     source,
-    /laneQuickActionSignal\.includes\("samtycke"\)[\s\S]*laneQuickActionSignal\.includes\("konsultation"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Samtyckesnot"/
+    /laneQuickActionSignal\.includes\("samtycke"\)[\s\S]*laneQuickActionSignal\.includes\("konsultation"\)[\s\S]*laneQuickActionSignal\.includes\("dokument"\)[\s\S]*laneQuickActionSignal\.includes\("klinis"\)[\s\S]*"Klinisk not"[\s\S]*"Dokumentnot"[\s\S]*"Samtyckesnot"/
   );
   assert.match(
     source,

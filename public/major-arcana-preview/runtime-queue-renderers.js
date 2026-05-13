@@ -3635,7 +3635,17 @@
           : v5Lane === "operation"
             ? "Öppna operation"
             : v5Lane === "consultation"
-              ? "Öppna konsultation"
+              ? laneQuickActionSignal.includes("samtycke")
+                ? "Säkra samtycke"
+                : laneQuickActionSignal.includes("dokument")
+                  ? "Lås upp dokument"
+                  : laneQuickActionSignal.includes("klinis")
+                    ? "Verifiera kliniskt"
+                    : laneQuickActionSignal.includes("planera") ||
+                        laneQuickActionSignal.includes("bokning") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Planera konsultation"
+                      : "Öppna konsultation"
               : v5Lane === "commercial"
                 ? "Öppna commercial"
                 : v5Lane === "granska"
@@ -3676,6 +3686,9 @@
         laneQuickActionSignal.includes("konsultation") ||
         laneQuickActionSignal.includes("dokument") ||
         laneQuickActionSignal.includes("klinis");
+      const hasConsultationConsentSignal = laneQuickActionSignal.includes("samtycke");
+      const hasConsultationDocumentSignal = laneQuickActionSignal.includes("dokument");
+      const hasConsultationClinicalSignal = laneQuickActionSignal.includes("klinis");
       const laneQuickActionDestination = hasCommercialQuickAction
         ? "betalning"
         : hasConsultationQuickAction
@@ -3683,9 +3696,13 @@
           : "medicinsk";
       const laneQuickActionTemplate = hasCommercialQuickAction
         ? "betalning"
-        : hasConsultationQuickAction
-          ? "samtycke"
-          : "allergi";
+        : hasConsultationClinicalSignal
+          ? "allergi"
+          : hasConsultationDocumentSignal
+            ? "behandling"
+            : hasConsultationQuickAction
+              ? "samtycke"
+              : "allergi";
       const laneQuickAction = hasOperationQuickAction
         ? {
             action: "note",
@@ -3697,8 +3714,16 @@
           ? {
               action: "note",
               key: "consultation",
-              label: "Samtyckesnot",
-              aria: "Öppna konsultationsanteckning",
+              label: hasConsultationClinicalSignal
+                ? "Klinisk not"
+                : hasConsultationDocumentSignal && !hasConsultationConsentSignal
+                  ? "Dokumentnot"
+                  : "Samtyckesnot",
+              aria: hasConsultationClinicalSignal
+                ? "Öppna klinisk anteckning"
+                : hasConsultationDocumentSignal && !hasConsultationConsentSignal
+                  ? "Öppna dokumentanteckning"
+                  : "Öppna samtyckesanteckning",
             }
           : hasCommercialQuickAction
             ? {

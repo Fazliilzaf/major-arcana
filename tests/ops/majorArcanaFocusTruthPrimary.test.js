@@ -234,6 +234,21 @@ test('runtime-dom-live-composition sparar legacythreads parallellt och håller s
   );
 });
 
+test('consultation actions kan öppna bokningsytan direkt från consultation-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /surfaceAction === "booking_surface"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att consultation-action-knappar kan öppna bokningsytan direkt när readouten ber om bokningshandoff.'
+  );
+  assert.match(
+    source,
+    /key === "review_consultation_booking_handoff"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att consultation fallback-beteendet leder Bokningshandoff till bokningsytan i stället för tillbaka till konsultationsspåret.'
+  );
+});
+
 test('focus renderers låser truth-driven focus i read-only gren utan studio-knappar och med tydlig provenance', () => {
   const source = fs.readFileSync(FOCUS_RENDERERS_PATH, 'utf8');
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
