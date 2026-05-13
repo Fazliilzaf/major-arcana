@@ -2722,6 +2722,36 @@
           return;
         }
 
+        // Performance: parallellisera AnalyzeInbox + TruthPrimary-fetch
+        // istället för sekventiell await-kedja. TruthPrimary räknar inte
+        // på liveData så den kan startas innan AnalyzeInbox är klar.
+        // (Total wall-clock-tid sjunker från AnalyzeInbox+TruthPrimary till
+        // max(AnalyzeInbox, TruthPrimary) ≈ 3-5s vinst per refresh.)
+        const configuredTruthPrimaryMailboxIds =
+          typeof getTruthPrimaryWorklistMailboxIds === "function"
+            ? getTruthPrimaryWorklistMailboxIds({ mailboxIds: runtimeMailboxIds })
+            : [];
+        const configuredFocusTruthMailboxIds =
+          typeof getTruthPrimaryFocusMailboxIds === "function"
+            ? getTruthPrimaryFocusMailboxIds({ mailboxIds: runtimeMailboxIds })
+            : [];
+        const configuredStudioTruthMailboxIds =
+          typeof getTruthPrimaryStudioMailboxIds === "function"
+            ? getTruthPrimaryStudioMailboxIds({ mailboxIds: runtimeMailboxIds })
+            : [];
+
+        // Starta truthPrimary-fetch i bakgrund (parallel med AnalyzeInbox)
+        const truthPrimaryPromise =
+          configuredTruthPrimaryMailboxIds.length &&
+          typeof buildTruthPrimaryWorklistConsumerHref === "function"
+            ? apiRequest(
+                buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+              ).then(
+                (payload) => ({ ok: true, payload }),
+                (error) => ({ ok: false, error })
+              )
+            : Promise.resolve(null);
+
         const analysisPayload = await apiRequest("/api/v1/capabilities/AnalyzeInbox/run", {
           method: "POST",
           headers: {
@@ -2746,42 +2776,24 @@
           throw new Error("AnalyzeInbox returnerade ingen aktiv data.");
         }
 
-        const configuredTruthPrimaryMailboxIds =
-          typeof getTruthPrimaryWorklistMailboxIds === "function"
-            ? getTruthPrimaryWorklistMailboxIds({ mailboxIds: runtimeMailboxIds })
-            : [];
+        // Vänta in truthPrimary (har körts parallellt — sannolikt klar nu)
         let activeTruthPrimaryMailboxIds = [];
         let truthPrimaryFallbackReason = "";
         let truthPrimaryPayload = null;
-        const configuredFocusTruthMailboxIds =
-          typeof getTruthPrimaryFocusMailboxIds === "function"
-            ? getTruthPrimaryFocusMailboxIds({ mailboxIds: runtimeMailboxIds })
-            : [];
-        const configuredStudioTruthMailboxIds =
-          typeof getTruthPrimaryStudioMailboxIds === "function"
-            ? getTruthPrimaryStudioMailboxIds({ mailboxIds: runtimeMailboxIds })
-            : [];
-
-        if (
-          configuredTruthPrimaryMailboxIds.length &&
-          typeof buildTruthPrimaryWorklistConsumerHref === "function"
-        ) {
-          try {
-            truthPrimaryPayload = await apiRequest(
-              buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
-            );
-            if (!isCurrentRequest()) return;
-            activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
-          } catch (truthPrimaryError) {
-            truthPrimaryFallbackReason =
-              truthPrimaryError instanceof Error
-                ? truthPrimaryError.message
-                : String(truthPrimaryError);
-            console.warn(
-              "CCO kunde inte läsa truth-primary worklist för wave 1. Faller tillbaka till legacy.",
-              truthPrimaryError
-            );
-          }
+        const truthPrimaryResult = await truthPrimaryPromise;
+        if (!isCurrentRequest()) return;
+        if (truthPrimaryResult && truthPrimaryResult.ok) {
+          truthPrimaryPayload = truthPrimaryResult.payload;
+          activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
+        } else if (truthPrimaryResult && truthPrimaryResult.error) {
+          truthPrimaryFallbackReason =
+            truthPrimaryResult.error instanceof Error
+              ? truthPrimaryResult.error.message
+              : String(truthPrimaryResult.error);
+          console.warn(
+            "CCO kunde inte läsa truth-primary worklist för wave 1. Faller tillbaka till legacy.",
+            truthPrimaryResult.error
+          );
         }
 
         const existingQueuePreviewByThreadId = new Map(
