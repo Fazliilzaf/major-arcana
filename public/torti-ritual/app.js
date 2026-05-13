@@ -3945,7 +3945,7 @@
     const portalPanelCopy = customerOnlyView
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
-    const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
+    const portalViewBadge = customerOnlyView ? "Shared portal" : "Owner workspace";
     const portalActivityTitle = customerOnlyView ? "Timeline" : "Portal timeline";
     const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
@@ -3954,7 +3954,7 @@
       ? `
         <article class="portal-hero">
           <div class="portal-hero-head">
-            <span class="portal-card-kicker">Shared customer portal</span>
+            <span class="portal-card-kicker">Shared portal</span>
             <strong>${escapeHtml(customerName)}</strong>
           </div>
           <div class="portal-hero-summary">
