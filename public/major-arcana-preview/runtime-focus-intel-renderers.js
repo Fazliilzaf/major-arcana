@@ -63,9 +63,13 @@
       buildCustomerSummaryCards,
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
+      buildAftercareActionButtonMarkup,
+      buildAftercareQueueItemMarkup,
+      describeAftercareQueueBucket,
       buildPreviewPatient360Backbone,
       buildPreviewPatient360Journey,
       getJourneyPrimaryActionConfig,
+      getPreviewAftercareWorkspaceSurface,
       buildRuntimeSummaryCards,
       compactRuntimeCopy,
       decorateStaticPills,
@@ -74,6 +78,7 @@
       formatConversationTime,
       formatHistoryTimestamp,
       getCustomerHistoryMailboxOptions,
+      getPreviewAftercareQueueEntries,
       getRelatedCustomerThreads,
       getScopedActivityNotes,
       getSelectedRuntimeThread,
@@ -118,6 +123,73 @@
       if (focusCustomerHistoryListStateCopy) {
         focusCustomerHistoryListStateCopy.textContent = asText(copy, "");
       }
+    }
+
+    function getBootstrapAftercareCustomerSurface() {
+      const readout =
+        state.aftercare?.readout && typeof state.aftercare.readout === "object"
+          ? state.aftercare.readout
+          : null;
+      const aftercareCase =
+        state.aftercare?.case && typeof state.aftercare.case === "object"
+          ? state.aftercare.case
+          : null;
+      if (!readout && !aftercareCase) return null;
+      const customerName = asText(
+        aftercareCase?.customerName || state.schedule?.draft?.customerName,
+        "Kund i workspace"
+      );
+      const phaseKey = normalizeKey(readout?.phase || "");
+      const phaseTitleByKey = {
+        review: "Eftervård kräver genomgång",
+        clinical_escalation: "Klinisk eskalering krävs",
+        follow_up_due: "Uppföljningen behöver tas nu",
+        follow_up_today: "Uppföljningen sker idag",
+        follow_up_planned: "Uppföljningen är planerad",
+        contact_pending: "Kunden väntar på kontakt",
+        document_outcome: "Dokumentera utfall och nästa steg",
+        closed: "Eftervården är stängd",
+        cancelled: "Eftervården är avbokad",
+      };
+      const blockerLabel = asText(
+        readout?.blocker?.label,
+        humanizeCode(readout?.blocker?.key, "Operativ kontroll")
+      );
+      const waitingOnLabel = humanizeCode(
+        readout?.waitingOn || aftercareCase?.waitingOn || "",
+        "Operatör"
+      );
+      const queueState = describeAftercareQueueBucket(
+        readout?.queueBucket || "",
+        readout?.phase || ""
+      );
+      return {
+        customerName,
+        customerId: asText(aftercareCase?.customerId),
+        phaseTitle: asText(phaseTitleByKey[phaseKey], humanizeCode(readout?.phase, "Eftervård")),
+        blockerLabel,
+        waitingOnLabel,
+        nextStep: asText(readout?.nextStep, aftercareCase?.nextStep || "Öppna eftervårdsytan"),
+        attention: asText(
+          readout?.attention,
+          aftercareCase?.notes || "Workspace-bootstrap har ett aktivt eftervårdsläge redo."
+        ),
+        scheduledForIso: asText(readout?.scheduledForIso || aftercareCase?.scheduledForIso),
+        doctorName: asText(readout?.doctorName || aftercareCase?.doctorName),
+        queueLabel: asText(queueState.label, "Eftervård i kö"),
+        queueShortLabel: asText(queueState.shortLabel, "Eftervård"),
+        queueSummary: asText(queueState.summary),
+        queueTone: asText(queueState.tone || "planned"),
+        focusQueueTone: asText(queueState.focusTone || "aftercare-active"),
+        requiredActions: asArray(readout?.requiredActions)
+          .map((item) => humanizeCode(item, ""))
+          .filter(Boolean)
+          .slice(0, 3),
+        operatorActions: asArray(readout?.operatorActions)
+          .map((item) => (item && typeof item === "object" ? item : {}))
+          .filter((item) => asText(item.key) && asText(item.label))
+          .slice(0, 2),
+      };
     }
 
     const conversationSystemBlockPatterns = [
@@ -2327,6 +2399,10 @@
         !isOfflineHistoryThread && !isTruthDrivenReadOnly
       );
       focusTitle.textContent = thread.displaySubject || thread.subject;
+      const aftercareSurface =
+        typeof getPreviewAftercareWorkspaceSurface === "function"
+          ? getPreviewAftercareWorkspaceSurface(thread, focusReadState)
+          : null;
       const lifecycleSummary = [
         thread.lifecycleLabel,
         thread.followUpLabel || thread.lastActivityLabel,
@@ -2367,6 +2443,21 @@
           tone: "lifecycle",
           icon: "calendar",
         },
+        aftercareSurface &&
+        aftercareSurface.status !== "closed" &&
+        aftercareSurface.status !== "cancelled"
+          ? {
+              label: `Eftervård · ${
+                aftercareSurface.queueShortLabel && aftercareSurface.queueShortLabel !== "Eftervård"
+                  ? aftercareSurface.queueShortLabel
+                  : aftercareSurface.queueLabel && aftercareSurface.queueLabel !== "Eftervård i kö"
+                    ? aftercareSurface.queueLabel
+                    : aftercareSurface.title
+              }`,
+              tone: aftercareSurface.focusQueueTone || "aftercare-active",
+              icon: "spark",
+            }
+          : null,
         {
           label: asText(thread.riskLabel).trim(),
           tone: "risk",
@@ -2595,6 +2686,142 @@
         focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
+        const bootstrapAftercareSurface = getBootstrapAftercareCustomerSurface();
+        if (bootstrapAftercareSurface) {
+          const aftercareQueueEntries =
+            typeof getPreviewAftercareQueueEntries === "function"
+              ? getPreviewAftercareQueueEntries({ includeClosed: false, limit: 4 })
+              : [];
+          renderFocusSummaryCards(focusCustomerSummary, [], "customer");
+          if (focusCustomerHistoryTitle) {
+            focusCustomerHistoryTitle.textContent = "Workspace-bootstrap för eftervård";
+          }
+          if (focusCustomerHistoryDescription) {
+            focusCustomerHistoryDescription.textContent =
+              "Ingen aktiv tråd är vald just nu, men workspace-bootstrap bär ett aktivt eftervårdsläge.";
+          }
+          focusCustomerHero.innerHTML = `
+            <div class="focus-customer-hero-main">
+              <div class="focus-customer-avatar">${escapeHtml(
+                initialsForName(bootstrapAftercareSurface.customerName)
+              )}</div>
+              <div class="focus-customer-copy">
+                <h3>${escapeHtml(bootstrapAftercareSurface.customerName)}</h3>
+                <div class="focus-customer-contact-line">
+                  <span>${escapeHtml(
+                    bootstrapAftercareSurface.customerId || "Preview-local workspace"
+                  )}</span>
+                  <span>·</span>
+                  <span>Workspace-bootstrap</span>
+                </div>
+                <div class="focus-customer-chip-row">
+                  <span class="focus-customer-chip focus-customer-chip--violet">Eftervård</span>
+                  <span class="focus-customer-chip focus-customer-chip--gold">${escapeHtml(
+                    bootstrapAftercareSurface.phaseTitle
+                  )}</span>
+                  <span class="focus-customer-chip focus-customer-chip--green">Ingen aktiv tråd vald</span>
+                </div>
+              </div>
+            </div>`;
+          focusCustomerStats.innerHTML = `
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">ARBETSKÖ</span><strong>${escapeHtml(
+              bootstrapAftercareSurface.queueLabel || bootstrapAftercareSurface.phaseTitle
+            )}</strong><p>${escapeHtml(
+              bootstrapAftercareSurface.queueSummary || bootstrapAftercareSurface.blockerLabel
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">VÄNTAR PÅ</span><strong>${escapeHtml(
+              bootstrapAftercareSurface.waitingOnLabel
+            )}</strong><p>${escapeHtml(
+              bootstrapAftercareSurface.doctorName || "Klinikteamet"
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">UPPFÖLJNING</span><strong>${escapeHtml(
+              bootstrapAftercareSurface.scheduledForIso
+                ? formatHistoryTimestamp(bootstrapAftercareSurface.scheduledForIso)
+                : "Ej tidssatt"
+            )}</strong><p>${escapeHtml(bootstrapAftercareSurface.nextStep)}</p></article>`;
+          focusCustomerGrid.innerHTML = `
+            <article class="focus-customer-data-card"><h4>Eftervårdsstatus</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(
+                bootstrapAftercareSurface.queueLabel || "-"
+              )}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(bootstrapAftercareSurface.phaseTitle)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(bootstrapAftercareSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(bootstrapAftercareSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Kliniker</dt><dd>${escapeHtml(
+                bootstrapAftercareSurface.doctorName || "-"
+              )}</dd></div>
+            </dl></article>
+            <article class="focus-customer-data-card"><h4>Nästa steg</h4><dl>
+              <div><dt>Nu</dt><dd>${escapeHtml(bootstrapAftercareSurface.nextStep)}</dd></div>
+              <div><dt>Tid</dt><dd>${escapeHtml(
+                bootstrapAftercareSurface.scheduledForIso
+                  ? formatHistoryTimestamp(bootstrapAftercareSurface.scheduledForIso)
+                  : "-"
+              )}</dd></div>
+              <div><dt>Kölogik</dt><dd>${escapeHtml(
+                bootstrapAftercareSurface.queueSummary || "-"
+              )}</dd></div>
+              <div><dt>Kräver</dt><dd>${escapeHtml(
+                bootstrapAftercareSurface.requiredActions.join(", ") || "-"
+              )}</dd></div>
+              <div><dt>Kontext</dt><dd>Workspace-bootstrap</dd></div>
+            </dl>${
+              bootstrapAftercareSurface.operatorActions.length
+                ? `<div class="patient360-aftercare-card-footer"><div class="patient360-aftercare-action-row">${bootstrapAftercareSurface.operatorActions
+                    .map((action) =>
+                      buildAftercareActionButtonMarkup(action, {
+                        threadId: "",
+                        compact: true,
+                      })
+                    )
+                    .join("")}</div></div>`
+                : ""
+            }</article>`;
+          if (focusCustomerHistoryCount) {
+            focusCustomerHistoryCount.textContent = "Visar workspace-baserad eftervård";
+          }
+          if (focusCustomerHistoryMeta) {
+            focusCustomerHistoryMeta.textContent =
+              "Ingen aktiv tråd vald · bootstrap-baserad eftervård";
+          }
+          setCustomerHistoryState("Bootstrap-läge", "violet");
+          setCustomerHistoryListState(
+            "Bootstrap-läge",
+            bootstrapAftercareSurface.attention,
+            "violet"
+          );
+          if (focusCustomerHistoryReadoutButton) {
+            focusCustomerHistoryReadoutButton.disabled = true;
+          }
+          if (focusCustomerHistoryList) {
+            focusCustomerHistoryList.innerHTML = `
+              <article class="focus-history-entry focus-history-entry--state">
+                <div class="focus-history-entry-head">
+                  <div>
+                    <div class="focus-history-meta-row">
+                      <span class="focus-customer-chip focus-customer-chip--violet">Bootstrap-läge</span>
+                    </div>
+                    <h4 class="focus-history-entry-title">${escapeHtml(
+                      bootstrapAftercareSurface.phaseTitle
+                    )}</h4>
+                    <p class="focus-history-entry-text">${escapeHtml(
+                      bootstrapAftercareSurface.attention
+                    )}</p>
+                  </div>
+                </div>
+              </article>
+              ${
+                aftercareQueueEntries.length
+                  ? `<div class="patient360-aftercare-queue-list patient360-aftercare-queue-list--stacked" aria-label="Eftervårdskö">
+                      ${aftercareQueueEntries
+                        .map((entry) => buildAftercareQueueItemMarkup(entry, { compact: false }))
+                        .join("")}
+                    </div>`
+                  : ""
+              }`;
+          }
+          return;
+        }
         const isLoading = state.runtime.loading === true;
         renderFocusSummaryCards(focusCustomerSummary, [], "customer");
         if (focusCustomerHistoryTitle) {
@@ -2889,7 +3116,59 @@
                 : ""
             }
           </dd></div>
-        </dl></article>`;
+        </dl></article>
+        ${
+          aftercareSurface
+            ? `<article class="focus-customer-data-card patient360-aftercare-card" data-tone="${escapeHtml(
+                aftercareSurface.tone || "planned"
+              )}"><h4>Eftervård</h4><dl>
+              <div><dt>Fas</dt><dd>${escapeHtml(aftercareSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(aftercareSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(aftercareSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(aftercareSurface.nextStep, "-", 64)
+              )}</dd></div>
+            </dl>${
+              aftercareSurface.requiredActions.length ||
+              aftercareSurface.note ||
+              aftercareSurface.operatorActions.length
+                ? `<div class="patient360-aftercare-card-footer">
+                    ${
+                      aftercareSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${aftercareSurface.requiredActions.join(", ")}`,
+                              aftercareSurface.requiredActions.join(", "),
+                              84
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      aftercareSurface.note
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(aftercareSurface.note, aftercareSurface.note, 84)
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      aftercareSurface.operatorActions.length
+                        ? `<div class="patient360-aftercare-action-row">${aftercareSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildAftercareActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
+                        : ""
+                    }
+                  </div>`
+                : ""
+            }</article>`
+            : ""
+        }`;
 
       if (focusCustomerHistoryTitle) {
         focusCustomerHistoryTitle.textContent = `Kundhistorik över ${

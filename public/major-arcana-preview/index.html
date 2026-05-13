@@ -3481,6 +3481,169 @@
                         Markera för batch
                       </button>
                     </div>
+
+                    <section class="customers-portal-panel" data-portal-panel aria-label="Portal">
+                      <div class="customers-portal-head">
+                        <div>
+                          <p class="customers-portal-kicker">Portal</p>
+                          <h4 data-portal-title>Ägarportal och kundportal</h4>
+                          <p class="customers-portal-subtitle" data-portal-customer-key>
+                            Välj en kund för att ladda portalstatus.
+                          </p>
+                        </div>
+
+                        <div
+                          class="customers-portal-view-toggle"
+                          role="tablist"
+                          aria-label="Portalvy"
+                        >
+                          <button
+                            class="customers-portal-toggle is-active"
+                            type="button"
+                            data-portal-view="owner"
+                            role="tab"
+                            aria-pressed="true"
+                          >
+                            Ägare
+                          </button>
+                          <button
+                            class="customers-portal-toggle"
+                            type="button"
+                            data-portal-view="customer"
+                            role="tab"
+                            aria-pressed="false"
+                          >
+                            Kund
+                          </button>
+                        </div>
+                      </div>
+
+                      <p class="customers-portal-status" data-portal-status hidden></p>
+
+                      <div class="customers-portal-panels">
+                        <section class="customers-portal-view is-active" data-portal-owner-view>
+                          <div class="customers-portal-summary" data-portal-owner-summary></div>
+
+                          <div class="customers-portal-draft-card">
+                            <div class="customers-rail-panel-head">
+                              <h5>Layers-sketch</h5>
+                              <span class="customers-rail-inline-note">Redigera och publicera</span>
+                            </div>
+
+                            <div class="customers-portal-draft-grid">
+                              <label class="customers-portal-field customers-portal-field-wide">
+                                <span>Titel</span>
+                                <input type="text" data-portal-draft-title />
+                              </label>
+                              <label class="customers-portal-field">
+                                <span>Sammanfattning</span>
+                                <input type="text" data-portal-draft-summary />
+                              </label>
+                              <label class="customers-portal-field customers-portal-field-wide">
+                                <span>Notis till kund</span>
+                                <textarea rows="2" data-portal-draft-note></textarea>
+                              </label>
+                            </div>
+
+                            <div class="customers-portal-layer-list" aria-label="Nivåer">
+                              <label class="customers-portal-layer-row">
+                                <span>Head</span>
+                                <input
+                                  type="text"
+                                  placeholder="Produkter separerade med komma"
+                                  data-portal-layer-products="head"
+                                />
+                              </label>
+                              <label class="customers-portal-layer-row">
+                                <span>Heart</span>
+                                <input
+                                  type="text"
+                                  placeholder="Produkter separerade med komma"
+                                  data-portal-layer-products="heart"
+                                />
+                              </label>
+                              <label class="customers-portal-layer-row">
+                                <span>Base</span>
+                                <input
+                                  type="text"
+                                  placeholder="Produkter separerade med komma"
+                                  data-portal-layer-products="base"
+                                />
+                              </label>
+                            </div>
+
+                            <div class="customers-portal-actions">
+                              <button
+                                class="customers-utility-button"
+                                type="button"
+                                data-portal-action="refresh"
+                              >
+                                Ladda portal
+                              </button>
+                              <button
+                                class="customers-utility-button"
+                                type="button"
+                                data-portal-action="save"
+                              >
+                                Spara utkast
+                              </button>
+                              <button
+                                class="customers-merge-accept"
+                                type="button"
+                                data-portal-action="publish"
+                              >
+                                Publicera till kund
+                              </button>
+                            </div>
+                          </div>
+
+                          <div class="customers-portal-owner-list" data-portal-owner-list></div>
+                        </section>
+
+                        <section class="customers-portal-view" data-portal-customer-view hidden>
+                          <div class="customers-portal-customer-hero">
+                            <div>
+                              <p class="customers-portal-kicker">Kundvy</p>
+                              <h5 data-portal-customer-title>Ingen publicerad version ännu</h5>
+                              <p data-portal-customer-summary>
+                                Den publicerade layers-skissen visas här när den har skickats ut.
+                              </p>
+                            </div>
+                            <div class="customers-portal-customer-meta">
+                              <span data-portal-customer-version>Version —</span>
+                              <span data-portal-customer-notification-count>0 notiser</span>
+                            </div>
+                          </div>
+
+                          <div
+                            class="customers-portal-version-list"
+                            data-portal-customer-versions
+                          ></div>
+
+                          <div
+                            class="customers-portal-notification-list"
+                            data-portal-customer-notifications
+                          ></div>
+
+                          <div class="customers-portal-actions">
+                            <button
+                              class="customers-utility-button"
+                              type="button"
+                              data-portal-action="viewed"
+                            >
+                              Markera som öppnad
+                            </button>
+                            <button
+                              class="customers-merge-accept"
+                              type="button"
+                              data-portal-action="ack"
+                            >
+                              Kvittera senaste
+                            </button>
+                          </div>
+                        </section>
+                      </div>
+                    </section>
                   </section>
                 </aside>
               </div>

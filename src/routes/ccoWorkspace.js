@@ -66,6 +66,10 @@ const NOTE_VISIBILITY_RULES = {
   uppfoljning: ['team', 'all_operators'],
 };
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 const NOTE_LABELS = {
   kundprofil: 'Kundprofil',
   konversation: 'Konversation',
@@ -501,6 +505,25 @@ function buildAftercareReadout(aftercareCase, workspaceContext = null) {
   };
 }
 
+function buildAftercareQueueItem(aftercareCase, workspaceContext = null) {
+  const safeCase = aftercareCase && typeof aftercareCase === 'object' ? aftercareCase : null;
+  if (!safeCase) return null;
+  try {
+    const readout = buildAftercareReadout(safeCase, workspaceContext);
+    return {
+      aftercareCase: safeCase,
+      aftercareReadout: readout,
+      conversationId: normalizeText(safeCase.conversationId),
+      customerId: normalizeText(safeCase.customerId),
+      customerName: normalizeText(safeCase.customerName),
+      scheduledForIso: normalizeText(readout.scheduledForIso || safeCase.scheduledForIso),
+      queueBucket: normalizeText(readout.queueBucket),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function createValidationError(message, statusCode = 400, metadata = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -642,6 +665,7 @@ function createCcoWorkspaceRouter({
         bookingCase,
         consultationCase,
         aftercareCase,
+        aftercareQueueCases,
         operationCase,
         commercialCase,
         prefs,
@@ -676,6 +700,14 @@ function createCcoWorkspaceRouter({
               customerId: context.customerId,
             })
           : Promise.resolve(null),
+        aftercareStore && typeof aftercareStore.listCases === 'function'
+          ? aftercareStore.listCases({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              includeClosed: false,
+              limit: 8,
+            })
+          : Promise.resolve([]),
         hasLiveContext && operationStore && typeof operationStore.getCase === 'function'
           ? operationStore.getCase({
               tenantId: context.tenantId,
@@ -771,6 +803,9 @@ function createCcoWorkspaceRouter({
         savedNotes
       );
       const scheduleDraft = buildScheduleDraft(latestFollowUp, context);
+      const aftercareQueue = asArray(aftercareQueueCases)
+        .map((item) => buildAftercareQueueItem(item, context))
+        .filter(Boolean);
 
       return res.json({
         workspaceId: context.workspaceId,
@@ -791,6 +826,7 @@ function createCcoWorkspaceRouter({
         commercialCase,
         bookingReadout: buildBookingReadout(bookingCase, context),
         aftercareReadout: buildAftercareReadout(aftercareCase, context),
+        aftercareQueue,
         patient360: serializePatient360(
           pickLatestPatient360Record(
             patientRecord,

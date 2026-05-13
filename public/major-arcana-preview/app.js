@@ -293,6 +293,30 @@
   const customerBulkCount = document.querySelector("[data-customer-bulk-count]");
   const customerDetailName = document.querySelector("[data-customer-detail-name]");
   const customerEmailList = document.querySelector("[data-customer-email-list]");
+  const portalPanel = document.querySelector("[data-portal-panel]");
+  const portalViewButtons = Array.from(document.querySelectorAll("[data-portal-view]"));
+  const portalStatus = document.querySelector("[data-portal-status]");
+  const portalTitle = document.querySelector("[data-portal-title]");
+  const portalCustomerKey = document.querySelector("[data-portal-customer-key]");
+  const portalOwnerSummary = document.querySelector("[data-portal-owner-summary]");
+  const portalOwnerList = document.querySelector("[data-portal-owner-list]");
+  const portalDraftTitleInput = document.querySelector("[data-portal-draft-title]");
+  const portalDraftSummaryInput = document.querySelector("[data-portal-draft-summary]");
+  const portalDraftNoteInput = document.querySelector("[data-portal-draft-note]");
+  const portalLayerInputs = Array.from(document.querySelectorAll("[data-portal-layer-products]"));
+  const portalActionButtons = Array.from(document.querySelectorAll("[data-portal-action]"));
+  const portalOwnerView = document.querySelector("[data-portal-owner-view]");
+  const portalCustomerView = document.querySelector("[data-portal-customer-view]");
+  const portalCustomerTitle = document.querySelector("[data-portal-customer-title]");
+  const portalCustomerSummary = document.querySelector("[data-portal-customer-summary]");
+  const portalCustomerVersion = document.querySelector("[data-portal-customer-version]");
+  const portalCustomerNotificationCount = document.querySelector(
+    "[data-portal-customer-notification-count]"
+  );
+  const portalCustomerVersions = document.querySelector("[data-portal-customer-versions]");
+  const portalCustomerNotifications = document.querySelector(
+    "[data-portal-customer-notifications]"
+  );
   const customerDetailActionButtons = Array.from(
     document.querySelectorAll("[data-customer-detail-action]")
   );
@@ -1880,6 +1904,38 @@
     };
   }
 
+  function createPortalDraftRuntime(customer = {}) {
+    const customerName = asText(customer?.name, "Kunden");
+    return {
+      title: `Layers för ${customerName}`,
+      summary: `Nya layers-versionen för ${customerName}.`,
+      note: "Spara ett utkast och publicera sedan till kundportalen när skissen är klar.",
+      layers: [
+        { layerId: "head", label: "Head", products: "" },
+        { layerId: "heart", label: "Heart", products: "" },
+        { layerId: "base", label: "Base", products: "" },
+      ],
+    };
+  }
+
+  function createPortalRuntime() {
+    return {
+      loading: false,
+      loaded: false,
+      saving: false,
+      publishing: false,
+      error: "",
+      selectedView: "owner",
+      selectedCustomerKey: "",
+      lastLoadedAt: "",
+      loadToken: 0,
+      ownerOverview: null,
+      customerPortal: null,
+      draft: createPortalDraftRuntime(),
+      dirty: false,
+    };
+  }
+
   function createCustomerImportRuntime() {
     return {
       open: false,
@@ -2070,6 +2126,12 @@
       eventTypeFilter: "",
       auditPreviewMode: "short",
     },
+    aftercare: {
+      case: null,
+      readout: null,
+      contextConversationId: "",
+      contextCustomerId: "",
+    },
     later: {
       option: "one_hour",
       bulkSelectionKeys: [],
@@ -2150,6 +2212,7 @@
     customerImport: createCustomerImportRuntime(),
     workspacePrefsApplied: false,
     customerRuntime: createCustomerRuntime(),
+    portalRuntime: createPortalRuntime(),
     automationScale: 100,
     automationRailCollapsed: false,
     automationRuntime: createAutomationRuntime(),
@@ -12903,6 +12966,9 @@
       asText,
       buildCustomerHistoryEvents,
       buildCustomerSummaryCards,
+      buildAftercareActionButtonMarkup,
+      buildAftercareQueueItemMarkup,
+      describeAftercareQueueBucket,
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
       getJourneyPrimaryActionConfig,
@@ -12917,6 +12983,8 @@
       formatConversationTime,
       formatHistoryTimestamp,
       getCustomerHistoryMailboxOptions,
+      getPreviewAftercareWorkspaceSurface,
+      getPreviewAftercareQueueEntries,
       getRelatedCustomerThreads,
       getScopedActivityNotes,
       getSelectedRuntimeThread,
@@ -13038,6 +13106,7 @@
   const {
     deleteRuntimeThread,
     handleFocusHistoryDelete,
+    handleAftercareAction,
     handleRuntimeRestoreAction,
     handleRuntimeDeleteAction,
     handleRuntimeHandledAction,
@@ -16036,6 +16105,364 @@
     };
   }
 
+  function describeAftercareQueueBucket(queueBucket = "", phase = "") {
+    const bucketKey = normalizeKey(queueBucket || phase);
+    const definitions = {
+      critical: {
+        label: "Klinisk eskalering",
+        shortLabel: "Eskalera nu",
+        summary: "Lyft eftervården före annat arbete tills klinisk bedömning är säkrad.",
+        tone: "escalation",
+        focusTone: "aftercare-critical",
+      },
+      due: {
+        label: "Förfallen uppföljning",
+        shortLabel: "Agera nu",
+        summary: "Den här eftervården har tappat sitt planerade tempo och ska upp först.",
+        tone: "due",
+        focusTone: "aftercare-critical",
+      },
+      today: {
+        label: "Uppföljning idag",
+        shortLabel: "Idag",
+        summary: "Det här ärendet ska bäras idag så att nästa steg inte halkar efter.",
+        tone: "today",
+        focusTone: "aftercare-today",
+      },
+      active: {
+        label: "Aktivt operatörsarbete",
+        shortLabel: "Aktiv",
+        summary: "Eftervården väntar på aktivt operatörsarbete före nästa handoff.",
+        tone: "pending",
+        focusTone: "aftercare-active",
+      },
+      planned: {
+        label: "Planerad uppföljning",
+        shortLabel: "Planerad",
+        summary: "Det finns en planerad touchpoint, men inget akut blockerar just nu.",
+        tone: "planned",
+        focusTone: "aftercare-planned",
+      },
+      closed: {
+        label: "Avslutad eftervård",
+        shortLabel: "Stängd",
+        summary: "Eftervården är klar och ska inte ta arbetsfokus längre.",
+        tone: "closed",
+        focusTone: "aftercare-closed",
+      },
+      paused: {
+        label: "Pausad eftervård",
+        shortLabel: "Pausad",
+        summary: "Ärendet ligger parkerat tills ny signal eller ny plan finns.",
+        tone: "cancelled",
+        focusTone: "aftercare-paused",
+      },
+    };
+    return (
+      definitions[bucketKey] || {
+        label: "Eftervård i kö",
+        shortLabel: "Eftervård",
+        summary: "Eftervården behöver fortsatt ägarskap i workspace.",
+        tone: "planned",
+        focusTone: "aftercare-active",
+      }
+    );
+  }
+
+  function getPreviewAftercareWorkspaceSurface(thread, focusReadState = {}) {
+    if (!thread) return null;
+    const contextConversationId = normalizeKey(state.aftercare?.contextConversationId || "");
+    const contextCustomerId = normalizeKey(state.aftercare?.contextCustomerId || "");
+    const threadConversationId = normalizeKey(thread.id);
+    const threadCustomerId = normalizeKey(
+      getRuntimeCustomerEmail(thread) || thread.customerEmail || thread.id
+    );
+    const readoutMatchesThread =
+      Boolean(contextConversationId && contextConversationId === threadConversationId) ||
+      Boolean(contextCustomerId && threadCustomerId && contextCustomerId === threadCustomerId);
+    const readout =
+      readoutMatchesThread &&
+      state.aftercare?.readout &&
+      typeof state.aftercare.readout === "object"
+        ? state.aftercare.readout
+        : null;
+    const aftercareCase =
+      readoutMatchesThread && state.aftercare?.case && typeof state.aftercare.case === "object"
+        ? state.aftercare.case
+        : null;
+    const backbone = buildPreviewPatient360Backbone(thread, focusReadState);
+    const aftercareModule = asArray(backbone?.modules).find((item) => item.id === "aftercare") || null;
+    const followUps = getScopedActivityFollowUps(thread, { customerScoped: true }).sort(
+      (left, right) =>
+        Date.parse(String(right?.scheduledForIso || right?.createdAt || "")) -
+        Date.parse(String(left?.scheduledForIso || left?.createdAt || ""))
+    );
+    const latestFollowUp = followUps[0] || null;
+    const readoutPhase = normalizeKey(readout?.phase || "");
+    const nowMs = Date.now();
+    const scheduledIso = toIso(readout?.scheduledForIso || latestFollowUp?.scheduledForIso || "");
+    const scheduledMs = scheduledIso ? Date.parse(scheduledIso) : Number.NaN;
+    const scheduledOverdue = Number.isFinite(scheduledMs) ? scheduledMs < nowMs : false;
+    const fallbackPhase =
+      normalizeKey(aftercareCase?.outcomeStatus) === "needs_attention"
+        ? "clinical_escalation"
+        : scheduledOverdue
+          ? "follow_up_due"
+          : scheduledIso
+            ? "follow_up_planned"
+            : normalizeKey(aftercareModule?.status) === "needs_validation"
+              ? "review"
+              : normalizeKey(aftercareModule?.status) === "needs_action"
+                ? "contact_pending"
+                : normalizeKey(aftercareCase?.aftercareStatus) === "complete"
+                  ? "closed"
+                  : normalizeKey(aftercareCase?.aftercareStatus) === "cancelled"
+                    ? "cancelled"
+                    : "";
+    const phase = readoutPhase || fallbackPhase;
+    const status = normalizeKey(
+      readout?.status || aftercareCase?.aftercareStatus || aftercareModule?.status || ""
+    );
+    const visible =
+      Boolean(readout) ||
+      Boolean(aftercareCase) ||
+      Boolean(latestFollowUp) ||
+      (phase && phase !== "closed" && phase !== "cancelled") ||
+      normalizeKey(aftercareModule?.status) !== "inactive";
+    if (!visible) return null;
+
+    const phaseMeta = {
+      review: {
+        kicker: "Eftervård · Granska",
+        title: "Eftervård kräver genomgång",
+        tone: "review",
+      },
+      clinical_escalation: {
+        kicker: "Eftervård · Eskalera",
+        title: "Klinisk eskalering krävs",
+        tone: "escalation",
+      },
+      follow_up_due: {
+        kicker: "Eftervård · Förfallen",
+        title: "Uppföljningen behöver tas nu",
+        tone: "due",
+      },
+      follow_up_today: {
+        kicker: "Eftervård · Idag",
+        title: "Uppföljningen sker idag",
+        tone: "today",
+      },
+      follow_up_planned: {
+        kicker: "Eftervård · Planerad",
+        title: "Uppföljningen är planerad",
+        tone: "planned",
+      },
+      contact_pending: {
+        kicker: "Eftervård · Kontakt",
+        title: "Kunden väntar på kontakt",
+        tone: "pending",
+      },
+      document_outcome: {
+        kicker: "Eftervård · Dokumentera",
+        title: "Dokumentera utfall och nästa steg",
+        tone: "document",
+      },
+      closed: {
+        kicker: "Eftervård · Stängd",
+        title: "Eftervården är stängd",
+        tone: "closed",
+      },
+      cancelled: {
+        kicker: "Eftervård · Avbokad",
+        title: "Eftervården är avbokad",
+        tone: "cancelled",
+      },
+    };
+    const phaseState = phaseMeta[phase] || {
+      kicker: "Eftervård",
+      title: "Eftervården behöver ägas",
+      tone: "planned",
+    };
+    const blockerLabel = asText(
+      readout?.blocker?.label,
+      humanizeCode(readout?.blocker?.key || "", aftercareModule?.nextAction || "Operativ kontroll")
+    );
+    const waitingOnLabel = humanizeCode(
+      readout?.waitingOn || aftercareCase?.waitingOn || "",
+      latestFollowUp?.doctorName ? "Klinikteamet" : "Operatör"
+    );
+    const nextStep = asText(
+      readout?.nextStep,
+      aftercareModule?.nextAction || thread.followUpLabel || "Öppna eftervårdsläget"
+    );
+    const summary = asText(
+      readout?.attention,
+      latestFollowUp?.notes || thread.followUpLabel || thread.nextActionSummary
+    );
+    const requiredActions = asArray(readout?.requiredActions)
+      .map((item) => humanizeCode(item, ""))
+      .filter(Boolean)
+      .slice(0, 3);
+    const operatorActions = asArray(readout?.operatorActions)
+      .map((action) => {
+        const safeAction = action && typeof action === "object" ? action : {};
+        return {
+          key: asText(safeAction.key),
+          label: asText(safeAction.label),
+          type: normalizeKey(safeAction.type),
+          surfaceAction: normalizeKey(safeAction.surfaceAction),
+          emphasis: normalizeKey(safeAction.emphasis) || "secondary",
+        };
+      })
+      .filter((action) => action.key && action.label);
+    const queueBucket = normalizeKey(readout?.queueBucket || "");
+    const queueState = describeAftercareQueueBucket(queueBucket, phase);
+    return {
+      phase,
+      status,
+      tone: phaseState.tone,
+      kicker: phaseState.kicker,
+      title: phaseState.title,
+      blockerLabel,
+      waitingOnLabel,
+      nextStep,
+      summary,
+      requiredActions,
+      operatorActions,
+      queueBucket,
+      queueLabel: queueState.label,
+      queueShortLabel: queueState.shortLabel,
+      queueSummary: queueState.summary,
+      queueTone: queueState.tone,
+      focusQueueTone: queueState.focusTone,
+      scheduledLabel: scheduledIso ? formatHistoryTimestamp(scheduledIso) : "",
+      doctorName: asText(readout?.doctorName || latestFollowUp?.doctorName || ""),
+      note: asText(asArray(readout?.notes)[0], asText(latestFollowUp?.notes)),
+    };
+  }
+
+  function getPreviewAftercareQueueEntries({
+    activeConversationId = "",
+    includeClosed = false,
+    limit = 4,
+  } = {}) {
+    const activeKey = normalizeKey(activeConversationId);
+    const phaseMeta = {
+      review: "Eftervård kräver genomgång",
+      clinical_escalation: "Klinisk eskalering krävs",
+      follow_up_due: "Uppföljningen behöver tas nu",
+      follow_up_today: "Uppföljningen sker idag",
+      follow_up_planned: "Uppföljningen är planerad",
+      contact_pending: "Kunden väntar på kontakt",
+      document_outcome: "Dokumentera utfall och nästa steg",
+      closed: "Eftervården är stängd",
+      cancelled: "Eftervården är avbokad",
+    };
+    return asArray(state.aftercare?.queue)
+      .map((item) => {
+        const safeItem = item && typeof item === "object" ? item : {};
+        const aftercareCase =
+          safeItem.aftercareCase && typeof safeItem.aftercareCase === "object"
+            ? safeItem.aftercareCase
+            : null;
+        const readout =
+          safeItem.aftercareReadout && typeof safeItem.aftercareReadout === "object"
+            ? safeItem.aftercareReadout
+            : null;
+        const conversationId = asText(safeItem.conversationId || aftercareCase?.conversationId);
+        const queueBucket = normalizeKey(safeItem.queueBucket || readout?.queueBucket || "");
+        const phase = normalizeKey(readout?.phase || "");
+        const queueState = describeAftercareQueueBucket(queueBucket, phase);
+        const runtimeThread = conversationId ? getRuntimeThreadById(conversationId) : null;
+        return {
+          caseId: asText(aftercareCase?.aftercareCaseId),
+          conversationId,
+          customerId: asText(safeItem.customerId || aftercareCase?.customerId),
+          customerName: asText(safeItem.customerName || aftercareCase?.customerName, "Kund i eftervård"),
+          queueBucket,
+          queueLabel: asText(queueState.label, "Eftervård i kö"),
+          queueShortLabel: asText(queueState.shortLabel, "Eftervård"),
+          queueSummary: asText(queueState.summary),
+          queueTone: asText(queueState.tone || "planned"),
+          phaseTitle: asText(phaseMeta[phase], humanizeCode(phase, "Eftervård")),
+          nextStep: asText(readout?.nextStep, aftercareCase?.nextStep || "Öppna eftervårdsytan"),
+          blockerLabel: asText(
+            readout?.blocker?.label,
+            humanizeCode(readout?.blocker?.key, "Operativ kontroll")
+          ),
+          scheduledLabel: asText(
+            readout?.scheduledForIso ? formatHistoryTimestamp(readout.scheduledForIso) : ""
+          ),
+          aftercareCase,
+          aftercareReadout: readout,
+          runtimeThread,
+        };
+      })
+      .filter((item) => item.caseId && item.conversationId)
+      .filter((item) => includeClosed || !["closed", "paused"].includes(item.queueBucket))
+      .filter((item) => !activeKey || normalizeKey(item.conversationId) !== activeKey)
+      .slice(0, Math.max(1, limit));
+  }
+
+  function buildAftercareActionButtonMarkup(action = {}, { threadId = "", compact = false } = {}) {
+    const key = asText(action.key);
+    const label = asText(action.label);
+    if (!key || !label) return "";
+    const type = normalizeKey(action.type);
+    const surfaceAction = normalizeKey(action.surfaceAction);
+    const emphasis = normalizeKey(action.emphasis) || "secondary";
+    const className = compact
+      ? `patient360-aftercare-action patient360-aftercare-action--${emphasis}`
+      : `focus-customer-next-action-button patient360-aftercare-action patient360-aftercare-action--${emphasis}`;
+    if (type === "surface_action") {
+      const actionAttributes =
+        surfaceAction === "schedule_open"
+          ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
+          : surfaceAction === "note_open"
+            ? 'data-runtime-note-open aria-controls="note-shell"'
+            : surfaceAction === "studio_open"
+              ? `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                  asText(threadId)
+                )}" aria-controls="studio-shell"`
+              : "";
+      if (!actionAttributes) return "";
+      return `<button class="${escapeHtml(className)}" type="button" ${actionAttributes}>${escapeHtml(
+        label
+      )}</button>`;
+    }
+    return `<button class="${escapeHtml(
+      className
+    )}" type="button" data-aftercare-action-key="${escapeHtml(
+      key
+    )}" data-aftercare-thread-id="${escapeHtml(asText(threadId))}">${escapeHtml(label)}</button>`;
+  }
+
+  function buildAftercareQueueItemMarkup(entry = {}, { compact = false } = {}) {
+    const buttonClass = compact
+      ? "patient360-aftercare-queue-item patient360-aftercare-queue-item--compact"
+      : "patient360-aftercare-queue-item";
+    const ctaLabel = entry.runtimeThread ? "Öppna tråd" : "Ladda case";
+    const metaParts = [entry.phaseTitle, entry.scheduledLabel].filter(Boolean);
+    return `<button class="${escapeHtml(buttonClass)}" type="button"
+      data-aftercare-open-case-id="${escapeHtml(entry.caseId)}"
+      data-aftercare-open-conversation-id="${escapeHtml(entry.conversationId)}"
+      data-aftercare-open-customer-id="${escapeHtml(entry.customerId)}">
+        <span class="patient360-aftercare-queue-topline">
+          <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
+            entry.queueTone || "planned"
+          )}"><b>Kö</b><span>${escapeHtml(entry.queueShortLabel || entry.queueLabel)}</span></span>
+          <span class="patient360-aftercare-queue-cta">${escapeHtml(ctaLabel)}</span>
+        </span>
+        <strong>${escapeHtml(compactRuntimeCopy(entry.customerName, entry.customerName, 32))}</strong>
+        <span>${escapeHtml(compactRuntimeCopy(entry.nextStep, entry.blockerLabel || "-", 88))}</span>
+        ${
+          metaParts.length
+            ? `<small>${escapeHtml(compactRuntimeCopy(metaParts.join(" · "), metaParts.join(" · "), 52))}</small>`
+            : ""
+        }
+      </button>`;
+  }
+
   function buildPreviewPatient360Journey(backbone) {
     if (!backbone || !Array.isArray(backbone.modules) || !backbone.modules.length) return null;
     const moduleOrder = [
@@ -17219,6 +17646,12 @@
     }
     const backbone = buildPreviewPatient360Backbone(thread, focusReadState);
     if (!backbone) return;
+    const aftercareSurface = getPreviewAftercareWorkspaceSurface(thread, focusReadState);
+    const aftercareQueueEntries = getPreviewAftercareQueueEntries({
+      activeConversationId: thread?.id,
+      includeClosed: false,
+      limit: 3,
+    });
     const attentionItems = [
       { label: "Vad", value: backbone.attention.what },
       { label: "Var", value: backbone.attention.where },
@@ -17284,6 +17717,54 @@
             )
             .join("")}
         </div>
+        ${
+          aftercareSurface
+            ? `<div class="patient360-aftercare-row" data-tone="${escapeHtml(
+                aftercareSurface.tone
+              )}" aria-label="Eftervård">
+                <div class="patient360-aftercare-copy">
+                  <span class="patient360-aftercare-kicker">${escapeHtml(
+                    aftercareSurface.kicker
+                  )}</span>
+                  <strong>${escapeHtml(aftercareSurface.title)}</strong>
+                  <p>${escapeHtml(
+                    compactRuntimeCopy(
+                      aftercareSurface.summary || aftercareSurface.nextStep,
+                      aftercareSurface.nextStep,
+                      118
+                    )
+                  )}</p>
+                </div>
+                <div class="patient360-aftercare-meta">
+                  <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
+                    aftercareSurface.queueTone || aftercareSurface.tone
+                  )}"><b>Arbetskö</b><span>${escapeHtml(
+                    compactRuntimeCopy(aftercareSurface.queueLabel, "-", 28)
+                  )}</span></span>
+                  <span class="patient360-aftercare-chip"><b>Blocker</b><span>${escapeHtml(
+                    compactRuntimeCopy(aftercareSurface.blockerLabel, "-", 30)
+                  )}</span></span>
+                  <span class="patient360-aftercare-chip"><b>Väntar på</b><span>${escapeHtml(
+                    compactRuntimeCopy(aftercareSurface.waitingOnLabel, "-", 24)
+                  )}</span></span>
+                  ${
+                    aftercareSurface.scheduledLabel
+                      ? `<span class="patient360-aftercare-chip"><b>Tid</b><span>${escapeHtml(
+                          compactRuntimeCopy(aftercareSurface.scheduledLabel, "-", 26)
+                        )}</span></span>`
+                      : ""
+                  }
+                  ${
+                    aftercareSurface.doctorName
+                      ? `<span class="patient360-aftercare-chip"><b>Kliniker</b><span>${escapeHtml(
+                          compactRuntimeCopy(aftercareSurface.doctorName, "-", 24)
+                        )}</span></span>`
+                      : ""
+                  }
+                </div>
+              </div>`
+            : ""
+        }
       </section>`;
     if (focusCustomerGrid) {
       const patientCardMarkup = `
@@ -17297,11 +17778,121 @@
             <div><dt>Validering</dt><dd>${escapeHtml(backbone.attention.validation)}</dd></div>
           </dl>
         </article>`;
+      const aftercareCardMarkup = aftercareSurface
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-aftercare-card" data-aftercare-module-card data-tone="${escapeHtml(
+            aftercareSurface.tone
+          )}">
+            <h4>Eftervård</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(aftercareSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(aftercareSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(aftercareSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(aftercareSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(aftercareSurface.nextStep, "-", 58)
+              )}</dd></div>
+            </dl>
+            ${
+              aftercareSurface.requiredActions.length || aftercareSurface.note
+                ? `<div class="patient360-aftercare-card-footer">
+                    ${
+                      aftercareSurface.queueSummary
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Köläge: ${aftercareSurface.queueSummary}`,
+                              aftercareSurface.queueSummary,
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      aftercareSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${aftercareSurface.requiredActions.join(", ")}`,
+                              aftercareSurface.requiredActions.join(", "),
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      aftercareSurface.note
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              aftercareSurface.note,
+                              aftercareSurface.note,
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      aftercareSurface.operatorActions.length
+                        ? `<div class="patient360-aftercare-action-row">${aftercareSurface.operatorActions
+                            .slice(0, 2)
+                            .map((action) =>
+                              buildAftercareActionButtonMarkup(action, {
+                                threadId: thread?.id,
+                                compact: true,
+                              })
+                            )
+                            .join("")}</div>`
+                        : ""
+                    }
+                    ${
+                      aftercareQueueEntries.length
+                        ? `<div class="patient360-aftercare-queue-list" aria-label="Fler eftervårdsärenden i kö">
+                            ${aftercareQueueEntries
+                              .map((entry) => buildAftercareQueueItemMarkup(entry, { compact: true }))
+                              .join("")}
+                          </div>`
+                        : ""
+                    }
+                  </div>`
+                : aftercareSurface.operatorActions.length
+                  ? `<div class="patient360-aftercare-card-footer"><div class="patient360-aftercare-action-row">${aftercareSurface.operatorActions
+                      .slice(0, 2)
+                      .map((action) =>
+                        buildAftercareActionButtonMarkup(action, {
+                          threadId: thread?.id,
+                          compact: true,
+                        })
+                      )
+                      .join("")}</div>${
+                        aftercareQueueEntries.length
+                          ? `<div class="patient360-aftercare-queue-list" aria-label="Fler eftervårdsärenden i kö">
+                              ${aftercareQueueEntries
+                                .map((entry) => buildAftercareQueueItemMarkup(entry, { compact: true }))
+                                .join("")}
+                            </div>`
+                          : ""
+                      }</div>`
+                  : aftercareQueueEntries.length
+                    ? `<div class="patient360-aftercare-card-footer"><div class="patient360-aftercare-queue-list" aria-label="Fler eftervårdsärenden i kö">
+                        ${aftercareQueueEntries
+                          .map((entry) => buildAftercareQueueItemMarkup(entry, { compact: true }))
+                          .join("")}
+                      </div></div>`
+                  : ""
+            }
+          </article>`
+        : "";
       const existingCard = focusCustomerGrid.querySelector("[data-patient360-module-card]");
+      const existingAftercareCard = focusCustomerGrid.querySelector("[data-aftercare-module-card]");
       if (existingCard) {
         existingCard.outerHTML = patientCardMarkup;
       } else {
         focusCustomerGrid.insertAdjacentHTML("afterbegin", patientCardMarkup);
+      }
+      if (aftercareCardMarkup) {
+        if (existingAftercareCard) {
+          existingAftercareCard.outerHTML = aftercareCardMarkup;
+        } else {
+          focusCustomerGrid.insertAdjacentHTML("beforeend", aftercareCardMarkup);
+        }
+      } else if (existingAftercareCard) {
+        existingAftercareCard.remove();
       }
     }
   }
@@ -19136,6 +19727,9 @@
       ensureCustomerRuntimeProfilesFromLive();
       await refreshCustomerIdentitySuggestions({ quiet: true });
       applyCustomerFilters();
+      void loadPortalRuntime({ force: true }).catch((error) => {
+        console.warn("Portal laddning misslyckades.", error);
+      });
       return state.customerRuntime;
     }
 
@@ -19164,6 +19758,9 @@
     } finally {
       state.customerRuntime.loading = false;
       applyCustomerFilters();
+      void loadPortalRuntime({ force: true }).catch((error) => {
+        console.warn("Portal laddning misslyckades.", error);
+      });
     }
     return state.customerRuntime;
   }
@@ -19198,6 +19795,9 @@
         setCustomersStatus(successMessage, "success");
       }
       applyCustomerFilters();
+      void loadPortalRuntime({ force: true }).catch((error) => {
+        console.warn("Portal laddning misslyckades.", error);
+      });
       return true;
     } catch (error) {
       if (isAuthFailure(error?.statusCode, error?.message)) {
@@ -19621,6 +20221,741 @@
     if (state.customerRuntime.splitModalOpen) {
       renderCustomerSplitModal();
     }
+
+    renderPortalPanel();
+  }
+
+  function getPortalSelectedCustomerKey() {
+    return normalizeKey(state.portalRuntime.selectedCustomerKey || state.selection.customerIdentity);
+  }
+
+  function findPortalOverviewCustomer(customerKey) {
+    const normalizedKey = normalizeKey(customerKey);
+    const customers = asArray(state.portalRuntime.ownerOverview?.customers);
+    return customers.find((item) => normalizeKey(item?.customerKey) === normalizedKey) || null;
+  }
+
+  function splitPortalProducts(value) {
+    return asText(value)
+      .split(/[\n;,]+/g)
+      .map((item) => normalizeText(item))
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  function formatPortalProducts(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => normalizeText(item)).filter(Boolean).join(", ");
+    }
+    if (value && typeof value === "object") {
+      return Object.values(value)
+        .flatMap((item) => (Array.isArray(item) ? item : [item]))
+        .map((item) => normalizeText(item))
+        .filter(Boolean)
+        .join(", ");
+    }
+    return normalizeText(value);
+  }
+
+  function normalizePortalLayers(layers = []) {
+    const layerMap = new Map();
+    asArray(layers).forEach((layer) => {
+      const layerId = normalizeKey(layer?.layerId || layer?.id || layer?.label);
+      if (!layerId) return;
+      layerMap.set(layerId, layer);
+    });
+
+    return [
+      { layerId: "head", label: "Head" },
+      { layerId: "heart", label: "Heart" },
+      { layerId: "base", label: "Base" },
+    ].map((template) => {
+      const source = layerMap.get(template.layerId) || {};
+      return {
+        layerId: template.layerId,
+        label: template.label,
+        products: formatPortalProducts(
+          source.products ?? source.items ?? source.productNames ?? source.value ?? ""
+        ),
+      };
+    });
+  }
+
+  function buildPortalLibrarySnapshot(detail) {
+    if (!detail || !detail.key) return [];
+    return [
+      {
+        customerKey: detail.key,
+        customerName: detail.name,
+        customerEmail: detail.emails[0] || "",
+        customerPhone: detail.phone || "",
+        emails: [...detail.emails],
+        mailboxes: [...detail.mailboxes],
+        capturedAt: new Date().toISOString(),
+        source: "major-arcana-preview",
+      },
+    ];
+  }
+
+  function syncPortalDraftForCustomer(detail, { force = false, sourceDraft = null } = {}) {
+    const selectedKey = normalizeKey(detail?.key);
+    if (!selectedKey) {
+      state.portalRuntime.draft = createPortalDraftRuntime();
+      state.portalRuntime.dirty = false;
+      return state.portalRuntime.draft;
+    }
+
+    const draft = createPortalDraftRuntime(detail);
+    const draftSource =
+      sourceDraft && typeof sourceDraft === "object"
+        ? sourceDraft
+        : state.portalRuntime.customerPortal?.currentDraft ||
+          findPortalOverviewCustomer(selectedKey)?.currentDraft ||
+          state.portalRuntime.customerPortal?.currentPublishedVersion ||
+          findPortalOverviewCustomer(selectedKey)?.currentPublishedVersion ||
+          null;
+
+    if (draftSource) {
+      draft.draftId = normalizeText(draftSource.draftId) || draft.draftId;
+      draft.title = normalizeText(draftSource.title) || draft.title;
+      draft.summary = normalizeText(draftSource.summary) || draft.summary;
+      draft.note = normalizeText(draftSource.note) || draft.note;
+      draft.layers = normalizePortalLayers(draftSource.layers);
+    }
+
+    draft.customerKey = selectedKey;
+    draft.customerName = detail.name || draft.customerName;
+    draft.customerEmail = detail.emails[0] || "";
+    draft.customerPhone = detail.phone || "";
+    draft.librarySnapshot = buildPortalLibrarySnapshot(detail);
+
+    if (!force && state.portalRuntime.dirty && normalizeKey(state.portalRuntime.draft?.customerKey) === selectedKey) {
+      return state.portalRuntime.draft;
+    }
+
+    state.portalRuntime.draft = draft;
+    state.portalRuntime.dirty = false;
+    return draft;
+  }
+
+  function buildPortalDraftPayloadFromState() {
+    const customerKey = getPortalSelectedCustomerKey();
+    const detail = getCustomerDetail(customerKey);
+    const draft = state.portalRuntime.draft || createPortalDraftRuntime(detail);
+    const layers = normalizePortalLayers(draft.layers).map((layer) => ({
+      layerId: layer.layerId,
+      label: layer.label,
+      products: splitPortalProducts(layer.products),
+    }));
+
+    return {
+      customerKey: detail.key,
+      customerName: detail.name,
+      customerEmail: detail.emails[0] || "",
+      customerPhone: detail.phone || "",
+      title: normalizeText(draft.title),
+      summary: normalizeText(draft.summary),
+      note: normalizeText(draft.note),
+      layers,
+      librarySnapshot: buildPortalLibrarySnapshot(detail),
+      ownerName: normalizeText(state.prefs.profileName) || "Ditt namn",
+      source: "major-arcana-preview",
+      draftId: normalizeText(draft.draftId) || "",
+      notificationMessage:
+        normalizeText(draft.summary) ||
+        `Ny layers-version för ${detail.name || "kunden"} är publicerad i portalen.`,
+    };
+  }
+
+  function updatePortalDraftField(fieldName, value) {
+    const detail = getCustomerDetail(getPortalSelectedCustomerKey());
+    if (!state.portalRuntime.draft || typeof state.portalRuntime.draft !== "object") {
+      state.portalRuntime.draft = createPortalDraftRuntime(detail);
+    }
+    state.portalRuntime.draft[fieldName] = normalizeText(value);
+    state.portalRuntime.dirty = true;
+  }
+
+  function updatePortalLayerProducts(layerId, value) {
+    const detail = getCustomerDetail(getPortalSelectedCustomerKey());
+    if (!state.portalRuntime.draft || typeof state.portalRuntime.draft !== "object") {
+      state.portalRuntime.draft = createPortalDraftRuntime(detail);
+    }
+    const normalizedLayerId = normalizeKey(layerId);
+    const nextLayers = normalizePortalLayers(state.portalRuntime.draft.layers).map((layer) =>
+      layer.layerId === normalizedLayerId ? { ...layer, products: normalizeText(value) } : layer
+    );
+    state.portalRuntime.draft.layers = nextLayers;
+    state.portalRuntime.dirty = true;
+  }
+
+  function renderPortalDraftInputs() {
+    const draft = state.portalRuntime.draft || createPortalDraftRuntime(getCustomerDetail(""));
+    if (portalDraftTitleInput) {
+      portalDraftTitleInput.value = normalizeText(draft.title);
+    }
+    if (portalDraftSummaryInput) {
+      portalDraftSummaryInput.value = normalizeText(draft.summary);
+    }
+    if (portalDraftNoteInput) {
+      portalDraftNoteInput.value = normalizeText(draft.note);
+    }
+    portalLayerInputs.forEach((input) => {
+      const layerId = normalizeKey(input.dataset.portalLayerProducts);
+      const layer =
+        asArray(draft.layers).find((entry) => normalizeKey(entry?.layerId || entry?.label) === layerId) ||
+        null;
+      input.value = formatPortalProducts(layer?.products || "");
+    });
+  }
+
+  function renderPortalOwnerSummary(detail, selectedPortalRecord, customers = []) {
+    if (!portalOwnerSummary) return;
+    const overview = state.portalRuntime.ownerOverview;
+    const draft = selectedPortalRecord?.currentDraft || null;
+    const published = selectedPortalRecord?.currentPublishedVersion || null;
+    const totalCustomers = Number(overview?.customerCount || customers.length || 0);
+    const draftCount = customers.reduce((sum, item) => sum + Number(item?.draftCount || 0), 0);
+    const publishedCount = customers.reduce(
+      (sum, item) => sum + Number(item?.publishedVersionCount || 0),
+      0
+    );
+    const unreadCount = customers.reduce(
+      (sum, item) => sum + Number(item?.unreadNotificationCount || 0),
+      0
+    );
+
+    portalOwnerSummary.innerHTML = `
+      <article class="customers-portal-summary-card">
+        <span>Översikt</span>
+        <strong>${totalCustomers} kunder</strong>
+        <p>${draftCount} utkast · ${publishedCount} versioner · ${unreadCount} notiser</p>
+      </article>
+      <article class="customers-portal-summary-card">
+        <span>Vald kund</span>
+        <strong>${escapeHtml(detail.name || "Ingen kund")}</strong>
+        <p>${escapeHtml(detail.emails[0] || "Saknar e-post")}</p>
+      </article>
+      <article class="customers-portal-summary-card">
+        <span>Senast publicerat</span>
+        <strong>${escapeHtml(published?.title || "Ingen version ännu")}</strong>
+        <p>${published?.versionNumber ? `Version ${published.versionNumber}` : "Publicera första skissen"}</p>
+      </article>
+      <article class="customers-portal-summary-card">
+        <span>Aktivt utkast</span>
+        <strong>${escapeHtml(draft?.title || state.portalRuntime.draft?.title || "Utkast saknas")}</strong>
+        <p>${draft ? "Redo att spara eller publicera" : "Skapa ett utkast för vald kund"}</p>
+      </article>
+    `;
+  }
+
+  function renderPortalOwnerList(customers = []) {
+    if (!portalOwnerList) return;
+    if (!customers.length) {
+      portalOwnerList.innerHTML = `
+        <article class="customers-portal-owner-empty">
+          <strong>Ingen portal ännu</strong>
+          <p>Ladda en kund eller skapa ett utkast för att börja publicera layers-skisser.</p>
+        </article>
+      `;
+      return;
+    }
+
+    portalOwnerList.innerHTML = customers
+      .map((item) => {
+        const isActive = normalizeKey(item.customerKey) === getPortalSelectedCustomerKey();
+        const statusLabel =
+          item.portalStatus === "published_unread"
+            ? "Publicerad · oläst"
+            : item.portalStatus === "published"
+              ? "Publicerad"
+              : item.portalStatus === "draft"
+                ? "Utkast"
+                : "Tom";
+        return `
+          <button
+            type="button"
+            class="customers-portal-owner-item${isActive ? " is-active" : ""}"
+            data-portal-customer="${escapeAttribute(item.customerKey)}"
+            aria-pressed="${isActive ? "true" : "false"}"
+          >
+            <span class="customers-portal-owner-item-top">
+              <strong>${escapeHtml(item.customerName || item.customerKey)}</strong>
+              <span>${escapeHtml(statusLabel)}</span>
+            </span>
+            <span class="customers-portal-owner-item-meta">
+              ${item.currentPublishedVersionNumber ? `Version ${escapeHtml(item.currentPublishedVersionNumber)}` : "Ingen version"}
+              · ${Number(item.draftCount || 0)} utkast
+            </span>
+            <span class="customers-portal-owner-item-foot">
+              ${Number(item.unreadNotificationCount || 0)} notiser · ${Number(item.publishedVersionCount || 0)} versioner
+            </span>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function renderPortalCustomerView() {
+    if (!portalCustomerTitle || !portalCustomerSummary || !portalCustomerVersion) return;
+    const detail = getCustomerDetail(getPortalSelectedCustomerKey());
+    const customerPortal = state.portalRuntime.customerPortal || findPortalOverviewCustomer(detail.key);
+    const selectedVersion = customerPortal?.currentPublishedVersion || null;
+    const versions = asArray(customerPortal?.versions);
+    const notifications = asArray(customerPortal?.notifications);
+    const unreadNotifications = notifications.filter((item) => !item?.readAt);
+
+    portalCustomerTitle.textContent =
+      selectedVersion?.title || customerPortal?.currentDraft?.title || "Ingen publicerad version ännu";
+    portalCustomerSummary.textContent =
+      selectedVersion?.summary ||
+      customerPortal?.currentDraft?.summary ||
+      "Den publicerade layers-skissen visas här när den har skickats ut.";
+    portalCustomerVersion.textContent = selectedVersion
+      ? `Version ${selectedVersion.versionNumber}`
+      : "Version —";
+    if (portalCustomerNotificationCount) {
+      portalCustomerNotificationCount.textContent = `${notifications.length} notiser${
+        unreadNotifications.length ? ` · ${unreadNotifications.length} olästa` : ""
+      }`;
+    }
+    if (portalTitle) {
+      portalTitle.textContent = detail.key
+        ? `Portal för ${detail.name}`
+        : "Ägarportal och kundportal";
+    }
+    if (portalOwnerSummary) {
+      renderPortalOwnerSummary(detail, findPortalOverviewCustomer(detail.key), asArray(state.portalRuntime.ownerOverview?.customers));
+    }
+
+    if (portalCustomerVersions) {
+      if (!versions.length) {
+        portalCustomerVersions.innerHTML = `
+          <article class="customers-portal-empty">
+            <strong>Inga publicerade versioner ännu</strong>
+            <p>Publicera en layers-skiss för att kunden ska se den här.</p>
+          </article>
+        `;
+      } else {
+        portalCustomerVersions.innerHTML = versions
+          .map(
+            (version) => `
+              <article class="customers-portal-version-card${selectedVersion && version.versionId === selectedVersion.versionId ? " is-active" : ""}">
+                <div>
+                  <strong>Version ${escapeHtml(version.versionNumber)}</strong>
+                  <p>${escapeHtml(version.title || "Utan titel")}</p>
+                </div>
+                <span>${escapeHtml(version.publishedAt || "Nyss")}</span>
+              </article>
+            `
+          )
+          .join("");
+      }
+    }
+
+    if (portalCustomerNotifications) {
+      if (!notifications.length) {
+        portalCustomerNotifications.innerHTML = `
+          <article class="customers-portal-empty">
+            <strong>Inga notiser</strong>
+            <p>Kunden får en notis här när en ny version publiceras.</p>
+          </article>
+        `;
+      } else {
+        portalCustomerNotifications.innerHTML = notifications
+          .map((notification) => {
+            const unread = !notification.readAt;
+            return `
+              <article class="customers-portal-notification-card${unread ? " is-unread" : ""}">
+                <div>
+                  <strong>${escapeHtml(notification.title || "Ny layers-skiss")}</strong>
+                  <p>${escapeHtml(notification.message || "")}</p>
+                </div>
+                <div class="customers-portal-notification-meta">
+                  <span>${escapeHtml(notification.createdAt || "")}</span>
+                  <span>${unread ? "Oläst" : "Läst"}</span>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+    }
+  }
+
+  function renderPortalPanel() {
+    if (!portalPanel) return;
+    const selectedKey = getPortalSelectedCustomerKey();
+    const detail = getCustomerDetail(selectedKey);
+    const overviewCustomers = asArray(state.portalRuntime.ownerOverview?.customers);
+    const selectedOverview = findPortalOverviewCustomer(selectedKey);
+    const resolvedSummary = selectedOverview || null;
+
+    if (portalCustomerKey) {
+      portalCustomerKey.textContent = detail.key
+        ? `Kund: ${detail.name}${detail.emails[0] ? ` · ${detail.emails[0]}` : ""}`
+        : "Välj en kund för att ladda portalstatus.";
+    }
+
+    portalViewButtons.forEach((button) => {
+      const isActive =
+        normalizeKey(button.dataset.portalView) === normalizeKey(state.portalRuntime.selectedView);
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    if (portalOwnerView) {
+      portalOwnerView.hidden = normalizeKey(state.portalRuntime.selectedView) !== "owner";
+      portalOwnerView.classList.toggle(
+        "is-active",
+        normalizeKey(state.portalRuntime.selectedView) === "owner"
+      );
+    }
+
+    if (portalCustomerView) {
+      portalCustomerView.hidden = normalizeKey(state.portalRuntime.selectedView) !== "customer";
+      portalCustomerView.classList.toggle(
+        "is-active",
+        normalizeKey(state.portalRuntime.selectedView) === "customer"
+      );
+    }
+
+    if (portalOwnerSummary) {
+      renderPortalOwnerSummary(detail, resolvedSummary, overviewCustomers);
+    }
+
+    renderPortalDraftInputs();
+    renderPortalOwnerList(overviewCustomers);
+    renderPortalCustomerView();
+
+    const actionState = {
+      refresh: state.portalRuntime.loading,
+      save: state.portalRuntime.saving,
+      publish: state.portalRuntime.publishing,
+      viewed: state.portalRuntime.loading,
+      ack: state.portalRuntime.loading,
+    };
+    portalActionButtons.forEach((button) => {
+      const actionKey = normalizeKey(button.dataset.portalAction);
+      const isBusy = Boolean(actionState[actionKey]);
+      if (!button.dataset.portalIdleLabel) {
+        button.dataset.portalIdleLabel = button.textContent || "";
+      }
+      button.disabled = isBusy || (!detail.key && actionKey !== "refresh");
+      if (actionKey === "refresh") {
+        button.textContent = state.portalRuntime.loading
+          ? "Läser portal…"
+          : button.dataset.portalIdleLabel;
+      }
+      if (actionKey === "save") {
+        button.textContent = state.portalRuntime.saving
+          ? "Sparar utkast…"
+          : button.dataset.portalIdleLabel;
+      }
+      if (actionKey === "publish") {
+        button.textContent = state.portalRuntime.publishing
+          ? "Publicerar…"
+          : button.dataset.portalIdleLabel;
+      }
+      if (actionKey === "viewed") {
+        button.textContent = state.portalRuntime.loading
+          ? "Uppdaterar…"
+          : button.dataset.portalIdleLabel;
+      }
+      if (actionKey === "ack") {
+        button.textContent = state.portalRuntime.loading
+          ? "Kvitterar…"
+          : button.dataset.portalIdleLabel;
+      }
+    });
+
+    if (!detail.key) {
+      setFeedback(
+        portalStatus,
+        "loading",
+        "Välj en kund i listan för att läsa och publicera layers-portalen."
+      );
+      return;
+    }
+
+    if (state.portalRuntime.error) {
+      setFeedback(portalStatus, "error", state.portalRuntime.error);
+      return;
+    }
+
+    if (state.portalRuntime.loading) {
+      setFeedback(portalStatus, "loading", "Läser portalstatus…");
+      return;
+    }
+
+    if (state.portalRuntime.saving) {
+      setFeedback(portalStatus, "loading", "Sparar layers-utkast…");
+      return;
+    }
+
+    if (state.portalRuntime.publishing) {
+      setFeedback(portalStatus, "loading", "Publicerar layers-version…");
+      return;
+    }
+
+    const selectedPortal = state.portalRuntime.customerPortal || selectedOverview;
+    const unreadCount = Number(selectedPortal?.unreadNotificationCount || 0);
+    const publishedCount = Number(selectedPortal?.publishedVersionCount || 0);
+    const portalState = normalizeText(selectedPortal?.portalStatus || "");
+
+    if (portalState === "published_unread") {
+      setFeedback(
+        portalStatus,
+        "success",
+        `${detail.name} har ${unreadCount} oläst${unreadCount === 1 ? " notis" : "a notiser"} och ${publishedCount} publicerade versioner.`
+      );
+      return;
+    }
+
+    if (portalState === "published") {
+      setFeedback(
+        portalStatus,
+        "success",
+        `${detail.name} har ${publishedCount} publicerade versioner i portalen.`
+      );
+      return;
+    }
+
+    if (portalState === "draft") {
+      setFeedback(portalStatus, "loading", `${detail.name} har ett sparat utkast som kan publiceras.`);
+      return;
+    }
+
+    setFeedback(portalStatus, "", `${detail.name} är redo för första layers-versionen.`);
+  }
+
+  function setPortalSelectedView(viewKey) {
+    const normalizedView = normalizeKey(viewKey) === "customer" ? "customer" : "owner";
+    state.portalRuntime.selectedView = normalizedView;
+    renderPortalPanel();
+    if (normalizedView === "customer") {
+      void loadPortalRuntime({ force: true }).catch((error) => {
+        console.warn("Portalvy kunde inte laddas.", error);
+      });
+    }
+  }
+
+  async function loadPortalRuntime({ force = false } = {}) {
+    if (!portalPanel) return state.portalRuntime;
+    if (state.portalRuntime.loading && !force) {
+      return state.portalRuntime;
+    }
+    if (state.portalRuntime.loaded && !force && !state.portalRuntime.error) {
+      renderPortalPanel();
+      return state.portalRuntime;
+    }
+
+    const requestedKey = getPortalSelectedCustomerKey();
+    const loadToken = state.portalRuntime.loadToken + 1;
+    state.portalRuntime.loadToken = loadToken;
+    state.portalRuntime.loading = true;
+    state.portalRuntime.error = "";
+    setFeedback(portalStatus, "loading", "Läser portalstatus…");
+    renderPortalPanel();
+
+    try {
+      const ownerPath = requestedKey
+        ? `/api/v1/cco-workspace/portal?customerKey=${encodeURIComponent(requestedKey)}`
+        : "/api/v1/cco-workspace/portal";
+      const ownerPayload = await apiRequest(ownerPath);
+      if (state.portalRuntime.loadToken !== loadToken) return state.portalRuntime;
+
+      state.portalRuntime.ownerOverview = ownerPayload?.portalOverview || null;
+
+      const overviewCustomers = asArray(state.portalRuntime.ownerOverview?.customers);
+      const resolvedKey =
+        requestedKey ||
+        normalizeKey(overviewCustomers[0]?.customerKey) ||
+        normalizeKey(state.selection.customerIdentity);
+      state.portalRuntime.selectedCustomerKey = resolvedKey;
+
+      const selectedDetail = getCustomerDetail(resolvedKey);
+      const selectedOverview = findPortalOverviewCustomer(resolvedKey);
+      const portalSource = ownerPayload?.portal || selectedOverview?.currentDraft || null;
+      syncPortalDraftForCustomer(selectedDetail, {
+        force: force || !state.portalRuntime.loaded,
+        sourceDraft: portalSource,
+      });
+
+      const customerPayload = resolvedKey
+        ? await apiRequest(`/api/v1/cco/customers/portal?customerKey=${encodeURIComponent(resolvedKey)}`)
+        : null;
+      if (state.portalRuntime.loadToken !== loadToken) return state.portalRuntime;
+
+      state.portalRuntime.customerPortal = customerPayload?.portal || ownerPayload?.portal || null;
+      state.portalRuntime.loaded = true;
+      state.portalRuntime.error = "";
+      state.portalRuntime.lastLoadedAt = new Date().toISOString();
+      setFeedback(portalStatus, "", "");
+      renderPortalPanel();
+    } catch (error) {
+      state.portalRuntime.error = error?.message || "Kunde inte läsa layers-portalen.";
+      setFeedback(portalStatus, "error", state.portalRuntime.error);
+      renderPortalPanel();
+    } finally {
+      if (state.portalRuntime.loadToken === loadToken) {
+        state.portalRuntime.loading = false;
+      }
+    }
+
+    return state.portalRuntime;
+  }
+
+  async function handlePortalAction(actionKey) {
+    const normalizedAction = normalizeKey(actionKey);
+    const customerKey = getPortalSelectedCustomerKey();
+    const detail = getCustomerDetail(customerKey);
+    if (normalizedAction !== "refresh" && !detail.key) {
+      setFeedback(portalStatus, "error", "Välj en kund innan du arbetar med portalen.");
+      return false;
+    }
+
+    if (normalizedAction === "refresh") {
+      await loadPortalRuntime({ force: true });
+      return true;
+    }
+
+    if (normalizedAction === "save" || normalizedAction === "publish") {
+      const endpoint =
+        normalizedAction === "publish"
+          ? "/api/v1/cco-workspace/portal/publish"
+          : "/api/v1/cco-workspace/portal/drafts";
+      state.portalRuntime.saving = normalizedAction === "save";
+      state.portalRuntime.publishing = normalizedAction === "publish";
+      setFeedback(
+        portalStatus,
+        "loading",
+        normalizedAction === "publish" ? "Publicerar layers-version…" : "Sparar layers-utkast…"
+      );
+      renderPortalPanel();
+      try {
+        const payload = await apiRequest(endpoint, {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey(
+              normalizedAction === "publish"
+                ? "major-arcana-portal-publish"
+                : "major-arcana-portal-save"
+            ),
+          },
+          body: buildPortalDraftPayloadFromState(),
+        });
+        state.portalRuntime.ownerOverview = payload?.portalOverview || state.portalRuntime.ownerOverview;
+        state.portalRuntime.customerPortal = payload?.portal || state.portalRuntime.customerPortal;
+        syncPortalDraftForCustomer(detail, {
+          force: true,
+          sourceDraft: payload?.draft || payload?.savedDraft || null,
+        });
+        state.portalRuntime.dirty = false;
+        state.portalRuntime.loaded = true;
+        state.portalRuntime.error = "";
+        setFeedback(
+          portalStatus,
+          "success",
+          normalizedAction === "publish"
+            ? `Publicerade layers-version för ${detail.name}.`
+            : `Utkast sparat för ${detail.name}.`
+        );
+        renderPortalPanel();
+        return true;
+      } catch (error) {
+        state.portalRuntime.error = error?.message || "Kunde inte spara layers-portalen.";
+        setFeedback(portalStatus, "error", state.portalRuntime.error);
+        renderPortalPanel();
+        return false;
+      } finally {
+        state.portalRuntime.saving = false;
+        state.portalRuntime.publishing = false;
+      }
+    }
+
+    if (normalizedAction === "viewed") {
+      state.portalRuntime.loading = true;
+      setFeedback(portalStatus, "loading", "Markerar portalen som öppnad…");
+      renderPortalPanel();
+      try {
+        const payload = await apiRequest("/api/v1/cco/customers/portal/viewed", {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey("major-arcana-portal-viewed"),
+          },
+          body: {
+            customerKey: detail.key,
+            customerName: detail.name,
+            customerEmail: detail.emails[0] || "",
+            customerPhone: detail.phone || "",
+          },
+        });
+        state.portalRuntime.customerPortal = payload?.portal || state.portalRuntime.customerPortal;
+        state.portalRuntime.ownerOverview = payload?.portalOverview || state.portalRuntime.ownerOverview;
+        setFeedback(portalStatus, "success", `Portalen för ${detail.name} markerades som öppnad.`);
+        renderPortalPanel();
+        return true;
+      } catch (error) {
+        state.portalRuntime.error = error?.message || "Kunde inte markera portalen som öppnad.";
+        setFeedback(portalStatus, "error", state.portalRuntime.error);
+        renderPortalPanel();
+        return false;
+      } finally {
+        state.portalRuntime.loading = false;
+      }
+    }
+
+    if (normalizedAction === "ack") {
+      const customerPortal = state.portalRuntime.customerPortal || {};
+      const notifications = asArray(customerPortal.notifications);
+      const targetNotification =
+        notifications.find((item) => !item?.readAt) || notifications[0] || null;
+      if (!targetNotification?.notificationId) {
+        setFeedback(portalStatus, "", "Det finns inga notifieringar att kvittera.");
+        return false;
+      }
+
+      state.portalRuntime.loading = true;
+      setFeedback(portalStatus, "loading", "Kvitterar senaste notifieringen…");
+      renderPortalPanel();
+      try {
+        const payload = await apiRequest(
+          `/api/v1/cco/customers/portal/notifications/${encodeURIComponent(
+            targetNotification.notificationId
+          )}/ack`,
+          {
+            method: "POST",
+            headers: {
+              "x-idempotency-key": createIdempotencyKey("major-arcana-portal-ack"),
+            },
+            body: {
+              customerKey: detail.key,
+              customerName: detail.name,
+              customerEmail: detail.emails[0] || "",
+              customerPhone: detail.phone || "",
+            },
+          }
+        );
+        state.portalRuntime.customerPortal = payload?.portal || state.portalRuntime.customerPortal;
+        setFeedback(
+          portalStatus,
+          "success",
+          `Notifieringen för ${detail.name} kvitterades.`
+        );
+        renderPortalPanel();
+        return true;
+      } catch (error) {
+        state.portalRuntime.error = error?.message || "Kunde inte kvittera notifieringen.";
+        setFeedback(portalStatus, "error", state.portalRuntime.error);
+        renderPortalPanel();
+        return false;
+      } finally {
+        state.portalRuntime.loading = false;
+      }
+    }
+
+    return false;
   }
 
   function renderCustomerMergeModal() {
@@ -33979,6 +35314,7 @@ renderStudioShell();
     const normalizedKey = normalizeKey(customerKey);
     state.selection.customerIdentity =
       normalizedKey || getVisibleCustomerPoolKeys()[0] || "";
+    state.portalRuntime.selectedCustomerKey = state.selection.customerIdentity;
 
     customerRows.forEach((row) => {
       const isActive = normalizeKey(row.dataset.customerRow) === state.selection.customerIdentity;
@@ -34003,6 +35339,11 @@ renderStudioShell();
     renderCustomerMergeGroups();
     renderCustomerDetailTools();
     renderCustomerBatchSelection();
+    if (state.customerRuntime.loaded && state.selection.customerIdentity) {
+      void loadPortalRuntime({ force: true }).catch((error) => {
+        console.warn("Portal laddning misslyckades.", error);
+      });
+    }
   }
 
   function setSelectedAutomationLibrary(libraryKey) {
@@ -35158,6 +36499,67 @@ renderStudioShell();
   }
 
 		  document.addEventListener("click", (event) => {
+      const aftercareActionButton = event.target.closest("[data-aftercare-action-key]");
+      if (aftercareActionButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        handleAftercareAction(aftercareActionButton.dataset.aftercareActionKey, {
+          threadId: aftercareActionButton.dataset.aftercareThreadId,
+        });
+        return;
+      }
+      const aftercareOpenCaseButton = event.target.closest("[data-aftercare-open-case-id]");
+      if (aftercareOpenCaseButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const caseId = asText(aftercareOpenCaseButton.dataset.aftercareOpenCaseId);
+        const conversationId = asText(aftercareOpenCaseButton.dataset.aftercareOpenConversationId);
+        const queueEntry = asArray(state.aftercare?.queue).find((item) => {
+          const safeItem = item && typeof item === "object" ? item : {};
+          const aftercareCase =
+            safeItem.aftercareCase && typeof safeItem.aftercareCase === "object"
+              ? safeItem.aftercareCase
+              : {};
+          return (
+            asText(aftercareCase.aftercareCaseId) === caseId ||
+            normalizeKey(safeItem.conversationId || aftercareCase.conversationId) ===
+              normalizeKey(conversationId)
+          );
+        });
+        const aftercareCase =
+          queueEntry?.aftercareCase && typeof queueEntry.aftercareCase === "object"
+            ? queueEntry.aftercareCase
+            : null;
+        const aftercareReadout =
+          queueEntry?.aftercareReadout && typeof queueEntry.aftercareReadout === "object"
+            ? queueEntry.aftercareReadout
+            : null;
+        const runtimeThread = conversationId ? getRuntimeThreadById(conversationId) : null;
+        if (aftercareCase || aftercareReadout) {
+          state.aftercare = {
+            ...(state.aftercare || {}),
+            case: aftercareCase || state.aftercare?.case || null,
+            readout: aftercareReadout || state.aftercare?.readout || null,
+            contextConversationId: asText(conversationId || aftercareCase?.conversationId),
+            contextCustomerId: asText(
+              aftercareOpenCaseButton.dataset.aftercareOpenCustomerId || aftercareCase?.customerId
+            ),
+          };
+        }
+        if (runtimeThread) {
+          selectRuntimeThread(runtimeThread.id);
+          setAppView("conversations");
+          applyFocusSection("conversation");
+        }
+        normalizeWorkspaceState();
+        renderRuntimeConversationShell();
+        if (focusStatusLine) {
+          focusStatusLine.textContent = runtimeThread
+            ? "Eftervårdsärendet öppnades i matchande tråd."
+            : "Eftervårdsärendet laddades i workspace-bootstrap.";
+        }
+        return;
+      }
 	    const bookingSurfaceOpenButton = event.target.closest(
 	      '[data-quick-action="booking_surface"], [data-booking-open-surface]'
 	    );
@@ -35505,6 +36907,47 @@ renderStudioShell();
       handleCustomerDetailAction(button.dataset.customerDetailAction).catch((error) => {
         console.warn("Customer detail action misslyckades.", error);
       });
+    });
+  });
+
+  portalViewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setPortalSelectedView(button.dataset.portalView);
+    });
+  });
+
+  portalOwnerList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-portal-customer]");
+    if (!button) return;
+    const customerKey = normalizeKey(button.dataset.portalCustomer);
+    if (!customerKey) return;
+    setSelectedCustomerIdentity(customerKey);
+    setPortalSelectedView("owner");
+  });
+
+  portalActionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      handlePortalAction(button.dataset.portalAction).catch((error) => {
+        console.warn("Portal action misslyckades.", error);
+      });
+    });
+  });
+
+  portalDraftTitleInput?.addEventListener("input", () => {
+    updatePortalDraftField("title", portalDraftTitleInput.value);
+  });
+
+  portalDraftSummaryInput?.addEventListener("input", () => {
+    updatePortalDraftField("summary", portalDraftSummaryInput.value);
+  });
+
+  portalDraftNoteInput?.addEventListener("input", () => {
+    updatePortalDraftField("note", portalDraftNoteInput.value);
+  });
+
+  portalLayerInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      updatePortalLayerProducts(input.dataset.portalLayerProducts, input.value);
     });
   });
 
