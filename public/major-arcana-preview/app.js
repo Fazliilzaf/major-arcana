@@ -314,6 +314,7 @@
   const portalCustomerNotificationCount = document.querySelector(
     "[data-portal-customer-notification-count]"
   );
+  const portalCustomerActivity = document.querySelector("[data-portal-customer-activity]");
   const portalCustomerStatus = document.querySelector("[data-portal-customer-status]");
   const portalCustomerVersions = document.querySelector("[data-portal-customer-versions]");
   const portalCustomerNotifications = document.querySelector(
@@ -20760,6 +20761,28 @@
         unreadNotifications.length ? ` · ${unreadNotifications.length} olästa` : ""
       }`;
     }
+    if (portalCustomerActivity) {
+      const latestNotificationState = latestNotification
+        ? latestNotification.readAt
+          ? "Läst"
+          : "Oläst"
+        : "Ingen status";
+      portalCustomerActivity.innerHTML = `
+        <span>Senaste aktivitet</span>
+        <strong>${escapeHtml(
+          selectedVersion
+            ? `${selectedVersion.title || "Publicerad version"} · Version ${selectedVersion.versionNumber}`
+            : "Ingen publicerad version ännu"
+        )}</strong>
+        <p>${escapeHtml(
+          latestNotification
+            ? `${latestNotification.title || "Ny layers-skiss"} · ${latestNotificationState} · ${
+                latestNotification.createdAt || "Ingen tid"
+              }`
+            : "Kunden får en notifiering när en ny version publiceras."
+        )}</p>
+      `;
+    }
     if (portalCustomerStatus) {
       const portalState = normalizeText(customerPortal?.portalStatus || "");
       const statusLabel =
@@ -20785,11 +20808,6 @@
         ? `Öppnad ${customerPortal.lastViewedAt}`
         : "Inte öppnad ännu";
       const latestNotificationLabel = latestNotification?.title || "Ingen notis ännu";
-      const latestNotificationState = latestNotification
-        ? latestNotification.readAt
-          ? "Läst"
-          : "Oläst"
-        : "Ingen status";
       portalCustomerStatus.innerHTML = `
         <article class="customers-portal-customer-status-card">
           <span>Status</span>
