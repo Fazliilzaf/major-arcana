@@ -82,6 +82,13 @@ test('cco commercial route uppdaterar offert och betalning i samma Patient 360-k
       assert.equal(updateResponse.status, 200);
       const updatePayload = await updateResponse.json();
       assert.equal(updatePayload.commercialCase.commercialStatus, 'deposit_pending');
+      assert.equal(updatePayload.commercialReadout.phase, 'payment_blocked');
+      assert.equal(updatePayload.commercialReadout.queueBucket, 'critical');
+      assert.equal(updatePayload.commercialReadout.waitingOn, 'operator');
+      assert.equal(
+        updatePayload.commercialReadout.operatorActions[0]?.key,
+        'resolve_payment_blocker'
+      );
       assert.equal(updatePayload.patient360.modules.commercial.status, 'blocked');
       assert.equal(updatePayload.patient360.attention.where, 'Offert & betalning');
       assert.equal(

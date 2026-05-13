@@ -185,6 +185,17 @@
                 : "") || bootstrapContextThread?.customerEmail
             ),
           };
+          state.commercial = {
+            ...(state.commercial || {}),
+            case: payload.commercialCase || null,
+            readout: payload.commercialReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
             ? followUpPayload.followUps

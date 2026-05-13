@@ -13,7 +13,13 @@ const COMMERCIAL_STATUSES = Object.freeze([
 ]);
 
 const QUOTE_STATUSES = Object.freeze(['missing', 'draft', 'sent', 'accepted']);
-const PAYMENT_STATUSES = Object.freeze(['pending', 'partially_paid', 'paid', 'blocked']);
+const PAYMENT_STATUSES = Object.freeze([
+  'pending',
+  'pending_customer',
+  'partially_paid',
+  'paid',
+  'blocked',
+]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -33,6 +39,302 @@ function asArray(value) {
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function uniqueActions(items = []) {
+  return Array.from(
+    new Set(
+      asArray(items)
+        .map((item) => normalizeText(item))
+        .filter(Boolean)
+    )
+  );
+}
+
+function toScheduledMeta(isoString, nowMs = Date.now()) {
+  const iso = normalizeText(isoString);
+  if (!iso) {
+    return {
+      iso: '',
+      isDue: false,
+      isOverdue: false,
+    };
+  }
+  const parsedMs = Date.parse(iso);
+  if (!Number.isFinite(parsedMs)) {
+    return {
+      iso: '',
+      isDue: false,
+      isOverdue: false,
+    };
+  }
+  const dayMs = 24 * 60 * 60 * 1000;
+  return {
+    iso: new Date(parsedMs).toISOString(),
+    isDue: parsedMs >= nowMs && parsedMs - nowMs <= dayMs,
+    isOverdue: parsedMs < nowMs,
+  };
+}
+
+function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso = '' } = {}) {
+  if (phase === 'closed' || phase === 'cancelled') return [];
+  if (phase === 'payment_blocked') {
+    return [
+      {
+        key: 'resolve_payment_blocker',
+        label: 'Lås upp betalning',
+        type: 'update_commercial',
+        surfaceAction: 'commercial_open',
+        emphasis: 'primary',
+      },
+    ];
+  }
+  if (phase === 'quote_sent') {
+    return [
+      {
+        key: 'follow_up_quote',
+        label: dueDateIso ? 'Följ upp offert' : 'Planera uppföljning',
+        type: 'update_commercial',
+        surfaceAction: 'schedule_open',
+        emphasis: waitingOn === 'customer' ? 'primary' : 'secondary',
+      },
+    ];
+  }
+  if (phase === 'payment_pending' || phase === 'ready_for_booking') {
+    return [
+      {
+        key: 'open_commercial_note',
+        label: phase === 'ready_for_booking' ? 'Bekräfta klartecken' : 'Dokumentera prisdialog',
+        type: 'note',
+        surfaceAction: 'note_open',
+        emphasis: 'secondary',
+      },
+    ];
+  }
+  return [
+    {
+      key: 'review_commercial_case',
+      label: 'Granska commercial',
+      type: 'update_commercial',
+      surfaceAction: 'commercial_open',
+      emphasis: 'secondary',
+    },
+  ];
+}
+
+function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } = {}) {
+  const safeCase = asObject(commercialCase);
+  const commercialStatus = normalizeEnum(
+    safeCase.commercialStatus,
+    COMMERCIAL_STATUSES,
+    'needs_review'
+  );
+  const quoteStatus = normalizeEnum(safeCase.quoteStatus, QUOTE_STATUSES, 'missing');
+  const paymentStatus = normalizeEnum(safeCase.paymentStatus, PAYMENT_STATUSES, 'pending');
+  const schedule = toScheduledMeta(safeCase.dueDateIso, nowMs);
+  const existingActions = uniqueActions(safeCase.requiredActions);
+  const offerType = normalizeText(safeCase.offerType) || 'Offert';
+  const depositAmount = normalizeText(safeCase.depositAmount);
+  const quotedAmount = normalizeText(safeCase.quotedAmount);
+
+  let phase = 'review';
+  let blocker = {
+    key: 'commercial_review',
+    action: 'review_commercial_case',
+    label: 'Granska offertläge och välj nästa steg',
+    score: 68,
+  };
+  let nextStep = 'Granska offertläge och välj nästa steg';
+  let waitingOn = 'operator';
+  let handoffCopy = '';
+
+  if (commercialStatus === 'cancelled') {
+    phase = 'cancelled';
+    blocker = {
+      key: 'commercial_cancelled',
+      action: 'commercial_cancelled',
+      label: 'Commercial-spåret är avbrutet',
+      score: 10,
+    };
+    nextStep = 'Bekräfta om offertspåret ska öppnas igen eller lämnas stängt';
+    waitingOn = 'operator';
+  } else if (commercialStatus === 'complete') {
+    phase = 'closed';
+    blocker = {
+      key: 'commercial_complete',
+      action: 'commercial_complete',
+      label: 'Commercial-spåret är avslutat',
+      score: 12,
+    };
+    nextStep = 'Ekonomiskt klartecken är avslutat och caset kan lämnas vidare';
+    waitingOn = 'none';
+    handoffCopy =
+      'Commercial är klart. Bokning eller nästa behandlingssteg kan ta över utan prisfriktion.';
+  } else if (paymentStatus === 'blocked') {
+    phase = 'payment_blocked';
+    blocker = {
+      key: 'payment_blocked',
+      action: 'resolve_payment_blocker',
+      label: 'Betalning eller deposition blockerar nästa steg',
+      score: 95,
+    };
+    nextStep = depositAmount
+      ? `Lös depositionen på ${depositAmount} innan bokning eller handoff går vidare`
+      : 'Lös betalningsblockeraren innan nästa steg går vidare';
+    waitingOn = 'operator';
+  } else if (commercialStatus === 'needs_review' || quoteStatus === 'missing') {
+    phase = 'review';
+    blocker = {
+      key: 'quote_review',
+      action: 'review_commercial_case',
+      label: 'Offertunderlag behöver bedömas',
+      score: 72,
+    };
+    nextStep = quotedAmount
+      ? `Bekräfta prisbilden på ${quotedAmount} och säkra nästa kommersiella steg`
+      : 'Skapa tydlig offert eller prisbild innan ärendet lämnas vidare';
+    waitingOn = 'operator';
+  } else if (quoteStatus === 'draft') {
+    phase = 'quote_draft';
+    blocker = {
+      key: 'quote_draft',
+      action: 'send_commercial_quote',
+      label: 'Offerten är inte skickad ännu',
+      score: 79,
+    };
+    nextStep = 'Skicka offerten och tydliggör nästa betalnings- eller bokningssteg';
+    waitingOn = 'operator';
+  } else if (commercialStatus === 'quote_sent' || quoteStatus === 'sent') {
+    phase = 'quote_sent';
+    blocker = {
+      key: 'quote_sent',
+      action: 'follow_up_quote',
+      label: schedule.isOverdue
+        ? 'Offerten väntar på kundens besked och uppföljningen har förfallit'
+        : 'Offerten väntar på kundens besked',
+      score: schedule.isOverdue ? 88 : schedule.isDue ? 80 : 60,
+    };
+    nextStep = 'Invänta kundens besked om offert eller prisupplägg';
+    waitingOn = 'customer';
+  } else if (
+    commercialStatus === 'deposit_pending' ||
+    commercialStatus === 'payment_pending' ||
+    paymentStatus === 'pending' ||
+    paymentStatus === 'pending_customer' ||
+    paymentStatus === 'partially_paid'
+  ) {
+    phase = 'payment_pending';
+    blocker = {
+      key: 'payment_pending',
+      action: 'confirm_payment_plan',
+      label:
+        paymentStatus === 'partially_paid'
+          ? 'Delbetalning väntar på nästa kommersiella drag'
+          : 'Betalning eller deposition väntar på klartecken',
+      score: paymentStatus === 'partially_paid' ? 70 : 78,
+    };
+    nextStep =
+      paymentStatus === 'partially_paid'
+        ? 'Bekräfta återstående betalningsplan innan bokning eller handoff går vidare'
+        : depositAmount
+          ? `Följ upp depositionen på ${depositAmount} och säkra kundens besked`
+          : 'Säkra betalningsupplägg eller deposition före nästa steg';
+    waitingOn =
+      paymentStatus === 'pending_customer' || commercialStatus === 'deposit_pending'
+        ? 'customer'
+        : 'operator';
+  } else if (
+    commercialStatus === 'ready' ||
+    paymentStatus === 'paid' ||
+    quoteStatus === 'accepted'
+  ) {
+    phase = 'ready_for_booking';
+    blocker = {
+      key: 'commercial_ready',
+      action: 'handoff_commercial_ready',
+      label: 'Ekonomiskt klartecken finns för nästa steg',
+      score: 42,
+    };
+    nextStep = 'Lämna vidare till bokning eller behandling med ekonomiskt klartecken';
+    waitingOn = 'booking';
+    handoffCopy =
+      'Commercial är redo. Bokning kan ta över med pris, offert och betalning förankrade.';
+  }
+
+  const requiredActions =
+    existingActions.length > 0 ? existingActions : uniqueActions([nextStep, safeCase.nextStep]);
+  const queueBucket =
+    phase === 'payment_blocked'
+      ? 'critical'
+      : phase === 'quote_sent' || phase === 'payment_pending'
+        ? schedule.isOverdue
+          ? 'due'
+          : schedule.isDue
+            ? 'today'
+            : waitingOn === 'customer'
+              ? 'planned'
+              : 'active'
+        : phase === 'quote_draft' || phase === 'review'
+          ? 'active'
+          : phase === 'ready_for_booking'
+            ? 'planned'
+            : phase === 'closed'
+              ? 'closed'
+              : 'paused';
+
+  return {
+    enabled: Boolean(
+      normalizeText(safeCase.tenantId) &&
+      normalizeText(safeCase.workspaceId) &&
+      normalizeText(safeCase.conversationId) &&
+      normalizeText(safeCase.customerId)
+    ),
+    status: commercialStatus,
+    phase,
+    blocker,
+    offerType,
+    quoteStatus,
+    paymentStatus,
+    quotedAmount,
+    depositAmount,
+    dueDateIso: schedule.iso,
+    isDue: schedule.isDue,
+    isOverdue: schedule.isOverdue,
+    nextStep,
+    requiredActions,
+    queueBucket,
+    operatorActions: buildCommercialOperatorActions({
+      phase,
+      waitingOn,
+      dueDateIso: schedule.iso,
+    }),
+    notes:
+      normalizeText(safeCase.notes) ||
+      (requiredActions[0]
+        ? `${requiredActions[0]}.`
+        : 'Commercial-spåret behöver ett tydligt nästa steg.'),
+    waitingOn,
+    attention: {
+      what: nextStep,
+      where: 'Offert & betalning',
+      when: schedule.iso || normalizeText(safeCase.updatedAt) || 'Så snart som möjligt',
+      confidence:
+        phase === 'payment_blocked'
+          ? 'Hög - blockerande betalningssignal'
+          : phase === 'ready_for_booking'
+            ? 'Hög - ekonomiskt klartecken finns'
+            : waitingOn === 'customer'
+              ? 'Medel - väntar på kundens besked'
+              : 'Medel - operatören behöver validera nästa steg',
+    },
+    handoffCopy:
+      handoffCopy ||
+      (waitingOn === 'customer'
+        ? 'Commercial väntar på kundens besked innan bokning eller nästa handoff ska forceras.'
+        : waitingOn === 'booking'
+          ? 'Commercial är förankrat. Lämna vidare till bokning med tydligt ekonomiskt läge.'
+          : ''),
+  };
 }
 
 function emptyState() {
@@ -213,5 +515,6 @@ module.exports = {
   COMMERCIAL_STATUSES,
   QUOTE_STATUSES,
   PAYMENT_STATUSES,
+  buildCommercialCaseReadout,
   createCcoCommercialStore,
 };

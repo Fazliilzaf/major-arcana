@@ -70,6 +70,7 @@
       buildPreviewPatient360Journey,
       getJourneyPrimaryActionConfig,
       getPreviewAftercareWorkspaceSurface,
+      getPreviewCommercialWorkspaceSurface,
       getPreviewOperationWorkspaceSurface,
       buildRuntimeSummaryCards,
       compactRuntimeCopy,
@@ -269,6 +270,80 @@
           .map((item) => (item && typeof item === "object" ? item : {}))
           .filter((item) => asText(item.key) && asText(item.label))
           .slice(0, 2),
+      };
+    }
+
+    function getBootstrapCommercialCustomerSurface() {
+      const readout =
+        state.commercial?.readout && typeof state.commercial.readout === "object"
+          ? state.commercial.readout
+          : null;
+      const commercialCase =
+        state.commercial?.case && typeof state.commercial.case === "object"
+          ? state.commercial.case
+          : null;
+      if (!readout && !commercialCase) return null;
+      const customerName = asText(
+        commercialCase?.customerName || state.schedule?.draft?.customerName,
+        "Kund i workspace"
+      );
+      const phaseKey = normalizeKey(readout?.phase || "");
+      const phaseTitleByKey = {
+        review: "Commercial-spåret behöver bedömas",
+        quote_draft: "Offerten behöver skickas",
+        quote_sent: "Offerten väntar på kundens besked",
+        payment_pending: "Betalning eller deposition väntar",
+        payment_blocked: "Betalning blockerar nästa steg",
+        ready_for_booking: "Commercial är redo för nästa handoff",
+        closed: "Commercial-spåret är klart",
+        cancelled: "Commercial-spåret är avbrutet",
+      };
+      const blockerLabel = asText(
+        readout?.blocker?.label,
+        humanizeCode(readout?.blocker?.key, "Operativ kontroll")
+      );
+      const waitingOnLabel = humanizeCode(
+        readout?.waitingOn || commercialCase?.waitingOn || "",
+        "Operatör"
+      );
+      const queueState =
+        typeof describeCommercialQueueBucket === "function"
+          ? describeCommercialQueueBucket(readout?.queueBucket || "", readout?.phase || "")
+          : {
+              label: "Commercial i kö",
+              shortLabel: "Commercial",
+              summary: "Commercial-spåret behöver ett tydligt nästa steg i workspace.",
+              tone: "planned",
+              focusTone: "commercial-active",
+            };
+      return {
+        customerName,
+        customerId: asText(commercialCase?.customerId),
+        offerType: asText(readout?.offerType || commercialCase?.offerType),
+        quotedAmount: asText(readout?.quotedAmount || commercialCase?.quotedAmount),
+        depositAmount: asText(readout?.depositAmount || commercialCase?.depositAmount),
+        phaseTitle: asText(phaseTitleByKey[phaseKey], humanizeCode(readout?.phase, "Commercial")),
+        blockerLabel,
+        waitingOnLabel,
+        nextStep: asText(readout?.nextStep, commercialCase?.nextStep || "Öppna commercial-spåret"),
+        attention: asText(
+          readout?.attention?.what,
+          readout?.handoffCopy ||
+            commercialCase?.notes ||
+            "Workspace-bootstrap har ett aktivt commercial-läge redo."
+        ),
+        dueDateIso: asText(readout?.dueDateIso || commercialCase?.dueDateIso),
+        handoffCopy: asText(readout?.handoffCopy),
+        note: asText(readout?.notes || commercialCase?.notes),
+        queueLabel: asText(queueState.label, "Commercial i kö"),
+        queueShortLabel: asText(queueState.shortLabel, "Commercial"),
+        queueSummary: asText(queueState.summary),
+        queueTone: asText(queueState.tone || "planned"),
+        focusQueueTone: asText(queueState.focusTone || "commercial-active"),
+        requiredActions: asArray(readout?.requiredActions)
+          .map((item) => humanizeCode(item, ""))
+          .filter(Boolean)
+          .slice(0, 3),
       };
     }
 
@@ -2787,6 +2862,7 @@
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         const bootstrapOperationSurface = getBootstrapOperationCustomerSurface();
+        const bootstrapCommercialSurface = getBootstrapCommercialCustomerSurface();
         const bootstrapAftercareSurface = getBootstrapAftercareCustomerSurface();
         const bootstrapLaneId = normalizeKey(
           state.workspace?.activeLaneId || state.runtime?.activeLaneId || ""
@@ -2925,6 +3001,147 @@
                     )}</h4>
                     <p class="focus-history-entry-text">${escapeHtml(
                       bootstrapOperationSurface.attention
+                    )}</p>
+                  </div>
+                </div>
+              </article>`;
+          }
+          return;
+        }
+        if (
+          bootstrapCommercialSurface &&
+          (bootstrapLaneId === "commercial" || !bootstrapAftercareSurface)
+        ) {
+          renderFocusSummaryCards(focusCustomerSummary, [], "customer");
+          if (focusCustomerHistoryTitle) {
+            focusCustomerHistoryTitle.textContent = "Workspace-bootstrap för commercial";
+          }
+          if (focusCustomerHistoryDescription) {
+            focusCustomerHistoryDescription.textContent =
+              "Ingen aktiv tråd är vald just nu, men workspace-bootstrap bär ett aktivt commercial-läge.";
+          }
+          focusCustomerHero.innerHTML = `
+            <div class="focus-customer-hero-main">
+              <div class="focus-customer-avatar">${escapeHtml(
+                initialsForName(bootstrapCommercialSurface.customerName)
+              )}</div>
+              <div class="focus-customer-copy">
+                <h3>${escapeHtml(bootstrapCommercialSurface.customerName)}</h3>
+                <div class="focus-customer-contact-line">
+                  <span>${escapeHtml(
+                    bootstrapCommercialSurface.customerId || "Preview-local workspace"
+                  )}</span>
+                  <span>·</span>
+                  <span>Workspace-bootstrap</span>
+                </div>
+                <div class="focus-customer-chip-row">
+                  <span class="focus-customer-chip focus-customer-chip--green">Commercial</span>
+                  <span class="focus-customer-chip focus-customer-chip--gold">${escapeHtml(
+                    bootstrapCommercialSurface.phaseTitle
+                  )}</span>
+                  <span class="focus-customer-chip focus-customer-chip--green">Ingen aktiv tråd vald</span>
+                </div>
+              </div>
+            </div>`;
+          focusCustomerStats.innerHTML = `
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">ARBETSKÖ</span><strong>${escapeHtml(
+              bootstrapCommercialSurface.queueLabel || bootstrapCommercialSurface.phaseTitle
+            )}</strong><p>${escapeHtml(
+              bootstrapCommercialSurface.queueSummary || bootstrapCommercialSurface.blockerLabel
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">VÄNTAR PÅ</span><strong>${escapeHtml(
+              bootstrapCommercialSurface.waitingOnLabel
+            )}</strong><p>${escapeHtml(
+              bootstrapCommercialSurface.offerType ||
+                bootstrapCommercialSurface.quotedAmount ||
+                "Commercial-spåret"
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">EKONOMI</span><strong>${escapeHtml(
+              bootstrapCommercialSurface.quotedAmount ||
+                bootstrapCommercialSurface.depositAmount ||
+                "Ej satt"
+            )}</strong><p>${escapeHtml(bootstrapCommercialSurface.nextStep)}</p></article>`;
+          focusCustomerGrid.innerHTML = `
+            <article class="focus-customer-data-card patient360-commercial-card" data-tone="${escapeHtml(
+              bootstrapCommercialSurface.queueTone || "planned"
+            )}"><h4>Commercial</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.queueLabel || "-"
+              )}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(bootstrapCommercialSurface.phaseTitle)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.blockerLabel
+              )}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.waitingOnLabel
+              )}</dd></div>
+              <div><dt>Offert</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.offerType || "-"
+              )}</dd></div>
+            </dl>${
+              bootstrapCommercialSurface.requiredActions.length ||
+              bootstrapCommercialSurface.handoffCopy ||
+              bootstrapCommercialSurface.note
+                ? `<div class="patient360-commercial-card-footer">
+                    ${
+                      bootstrapCommercialSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            `Kräver: ${bootstrapCommercialSurface.requiredActions.join(", ")}`
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapCommercialSurface.handoffCopy
+                        ? `<p>${escapeHtml(bootstrapCommercialSurface.handoffCopy)}</p>`
+                        : bootstrapCommercialSurface.note
+                          ? `<p>${escapeHtml(bootstrapCommercialSurface.note)}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>
+            <article class="focus-customer-data-card"><h4>Nästa steg</h4><dl>
+              <div><dt>Nu</dt><dd>${escapeHtml(bootstrapCommercialSurface.nextStep)}</dd></div>
+              <div><dt>Kölogik</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.queueSummary || "-"
+              )}</dd></div>
+              <div><dt>Pris</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.quotedAmount || "-"
+              )}</dd></div>
+              <div><dt>Deposition</dt><dd>${escapeHtml(
+                bootstrapCommercialSurface.depositAmount || "-"
+              )}</dd></div>
+              <div><dt>Kontext</dt><dd>Workspace-bootstrap</dd></div>
+            </dl></article>`;
+          if (focusCustomerHistoryCount) {
+            focusCustomerHistoryCount.textContent = "Visar workspace-baserad commercial";
+          }
+          if (focusCustomerHistoryMeta) {
+            focusCustomerHistoryMeta.textContent =
+              "Ingen aktiv tråd vald · bootstrap-baserad commercial";
+          }
+          setCustomerHistoryState("Bootstrap-läge", "green");
+          setCustomerHistoryListState(
+            "Bootstrap-läge",
+            bootstrapCommercialSurface.attention,
+            "green"
+          );
+          if (focusCustomerHistoryReadoutButton) {
+            focusCustomerHistoryReadoutButton.disabled = true;
+          }
+          if (focusCustomerHistoryList) {
+            focusCustomerHistoryList.innerHTML = `
+              <article class="focus-history-entry focus-history-entry--state">
+                <div class="focus-history-entry-head">
+                  <div>
+                    <div class="focus-history-meta-row">
+                      <span class="focus-customer-chip focus-customer-chip--green">Bootstrap-läge</span>
+                    </div>
+                    <h4 class="focus-history-entry-title">${escapeHtml(
+                      bootstrapCommercialSurface.phaseTitle
+                    )}</h4>
+                    <p class="focus-history-entry-text">${escapeHtml(
+                      bootstrapCommercialSurface.attention
                     )}</p>
                   </div>
                 </div>
@@ -3206,6 +3423,10 @@
         typeof getPreviewOperationWorkspaceSurface === "function"
           ? getPreviewOperationWorkspaceSurface(thread, focusReadState)
           : null;
+      const commercialSurface =
+        typeof getPreviewCommercialWorkspaceSurface === "function"
+          ? getPreviewCommercialWorkspaceSurface(thread, focusReadState)
+          : null;
       const aftercareSurface =
         typeof getPreviewAftercareWorkspaceSurface === "function"
           ? getPreviewAftercareWorkspaceSurface(thread, focusReadState)
@@ -3410,6 +3631,54 @@
                         : operationSurface.note
                           ? `<p>${escapeHtml(
                               compactRuntimeCopy(operationSurface.note, operationSurface.note, 84)
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>`
+            : ""
+        }
+        ${
+          commercialSurface
+            ? `<article class="focus-customer-data-card patient360-commercial-card" data-tone="${escapeHtml(
+                commercialSurface.tone || "planned"
+              )}"><h4>Commercial</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(commercialSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(commercialSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(commercialSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(commercialSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(commercialSurface.nextStep, "-", 64)
+              )}</dd></div>
+            </dl>${
+              commercialSurface.requiredActions.length ||
+              commercialSurface.handoffCopy ||
+              commercialSurface.note
+                ? `<div class="patient360-commercial-card-footer">
+                    ${
+                      commercialSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${commercialSurface.requiredActions.join(", ")}`,
+                              commercialSurface.requiredActions.join(", "),
+                              84
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      commercialSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              commercialSurface.handoffCopy,
+                              commercialSurface.handoffCopy,
+                              84
+                            )
+                          )}</p>`
+                        : commercialSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(commercialSurface.note, commercialSurface.note, 84)
                             )}</p>`
                           : ""
                     }

@@ -4765,13 +4765,15 @@
 
   function readShellViewStateFromLocation() {
     if (typeof window === "undefined") {
-      return { view: "conversations", automationSection: "" };
+      return { view: "conversations", automationSection: "", portalCustomerKey: "" };
     }
     const params = new URLSearchParams(window.location.search || "");
     return {
       view: normalizeKey(params.get("view")) || "conversations",
       automationSection:
         normalizeKey(params.get("automationSection") || params.get("section")) || "",
+      portalCustomerKey:
+        normalizeKey(params.get("portalCustomerKey") || params.get("customerKey")) || "",
     };
   }
 
@@ -4779,33 +4781,53 @@
     const requestedView = normalizeKey(state.ui.view) || "conversations";
     const shellView = resolveShellView(requestedView);
     const selectedAutomationSection = normalizeKey(state.selection.automationSection) || "byggare";
+    const selectedPortalCustomerKey = normalizeKey(
+      state.portalRuntime.selectedCustomerKey || state.selection.customerIdentity
+    );
 
     if (shellView === "conversations") {
-      return { view: "", automationSection: "" };
+      return {
+        view: "",
+        automationSection: "",
+        portalCustomerKey: selectedPortalCustomerKey,
+      };
     }
 
     if (requestedView === "templates" && selectedAutomationSection === "mallar") {
-      return { view: "templates", automationSection: "" };
+      return {
+        view: "templates",
+        automationSection: "",
+        portalCustomerKey: selectedPortalCustomerKey,
+      };
     }
 
     if (requestedView === "workflows" && selectedAutomationSection === "byggare") {
-      return { view: "workflows", automationSection: "" };
+      return {
+        view: "workflows",
+        automationSection: "",
+        portalCustomerKey: selectedPortalCustomerKey,
+      };
     }
 
     if (shellView === "automation") {
       return {
         view: "automation",
         automationSection: selectedAutomationSection === "byggare" ? "" : selectedAutomationSection,
+        portalCustomerKey: selectedPortalCustomerKey,
       };
     }
 
-    return { view: shellView, automationSection: "" };
+    return {
+      view: shellView,
+      automationSection: "",
+      portalCustomerKey: selectedPortalCustomerKey,
+    };
   }
 
   function syncShellViewToLocation() {
     if (typeof window === "undefined" || !window.history?.replaceState) return;
     const url = new URL(window.location.href);
-    const { view, automationSection } = buildShellViewStateForUrl();
+    const { view, automationSection, portalCustomerKey } = buildShellViewStateForUrl();
     if (view) {
       url.searchParams.set("view", view);
     } else {
@@ -4816,6 +4838,12 @@
     } else {
       url.searchParams.delete("automationSection");
       url.searchParams.delete("section");
+    }
+    if (portalCustomerKey) {
+      url.searchParams.set("portalCustomerKey", portalCustomerKey);
+    } else {
+      url.searchParams.delete("portalCustomerKey");
+      url.searchParams.delete("customerKey");
     }
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -38745,6 +38773,10 @@ renderStudioShell();
     const initialShellViewState = readShellViewStateFromLocation();
     if (initialShellViewState.view !== "conversations") {
       setAppView(initialShellViewState.view);
+    }
+    if (initialShellViewState.portalCustomerKey) {
+      setSelectedCustomerIdentity(initialShellViewState.portalCustomerKey);
+      setPortalSelectedView("customer");
     }
     if (
       resolveShellView(initialShellViewState.view) === "automation" &&

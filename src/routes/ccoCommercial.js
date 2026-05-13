@@ -13,6 +13,7 @@ const {
   COMMERCIAL_STATUSES,
   QUOTE_STATUSES,
   PAYMENT_STATUSES,
+  buildCommercialCaseReadout,
 } = require('../ops/ccoCommercialStore');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
 
@@ -91,6 +92,7 @@ function createCcoCommercialRouter({
       });
       return res.json({
         commercialCase,
+        commercialReadout: buildCommercialCaseReadout(commercialCase),
         patient360: serializePatient360(patientRecord),
         statuses: {
           commercial: COMMERCIAL_STATUSES,
@@ -133,6 +135,7 @@ function createCcoCommercialRouter({
       });
       return res.json({
         commercialCase,
+        commercialReadout: buildCommercialCaseReadout(commercialCase),
         patient360: serializePatient360(patientRecord),
       });
     })

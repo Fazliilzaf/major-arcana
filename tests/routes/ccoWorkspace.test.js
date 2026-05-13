@@ -617,6 +617,10 @@ test('cco workspace bootstrap läser first-class kommersiellt ärende och priori
       assert.equal(bootstrapResponse.status, 200);
       const bootstrapPayload = await bootstrapResponse.json();
       assert.equal(bootstrapPayload.commercialCase.offerType, 'PRP paket');
+      assert.equal(bootstrapPayload.commercialReadout.phase, 'payment_blocked');
+      assert.equal(bootstrapPayload.commercialReadout.queueBucket, 'critical');
+      assert.equal(bootstrapPayload.commercialReadout.waitingOn, 'operator');
+      assert.match(bootstrapPayload.commercialReadout.nextStep, /betalningsblockerare|deposition/i);
       assert.equal(bootstrapPayload.patient360.modules.commercial.status, 'blocked');
       assert.equal(bootstrapPayload.patient360.attention.where, 'Offert & betalning');
       assert.equal(
@@ -654,6 +658,9 @@ test('cco workspace bootstrap låter commercial bära fokus före stödjande tea
       );
       assert.equal(bootstrapResponse.status, 200);
       const bootstrapPayload = await bootstrapResponse.json();
+      assert.equal(bootstrapPayload.commercialReadout.phase, 'quote_sent');
+      assert.equal(bootstrapPayload.commercialReadout.queueBucket, 'due');
+      assert.equal(bootstrapPayload.commercialReadout.waitingOn, 'customer');
       assert.equal(bootstrapPayload.patient360.modules.commercial.status, 'waiting_customer');
       assert.equal(bootstrapPayload.patient360.modules.tasks.status, 'needs_action');
       assert.equal(bootstrapPayload.patient360.attention.where, 'Offert & betalning');

@@ -11,6 +11,7 @@ const {
 const { buildBookingCaseBlockerReadout } = require('../ops/ccoBookingStore');
 const { buildAftercareCaseReadout } = require('../ops/ccoAftercareStore');
 const { buildOperationCaseReadout } = require('../ops/ccoOperationStore');
+const { buildCommercialCaseReadout } = require('../ops/ccoCommercialStore');
 const {
   syncPatient360FromAftercareCase,
   syncPatient360FromBookingCase,
@@ -542,6 +543,22 @@ function buildOperationReadout(operationCase, workspaceContext = null) {
   };
 }
 
+function buildCommercialReadout(commercialCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase = commercialCase && typeof commercialCase === 'object' ? commercialCase : null;
+  const base = buildCommercialCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    offerType: normalizeText(safeCase?.offerType) || contentContext.treatmentName || base.offerType,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt kommersiellt nästa steg.`
+        : base.notes),
+  };
+}
+
 function createValidationError(message, statusCode = 400, metadata = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -845,6 +862,7 @@ function createCcoWorkspaceRouter({
         bookingReadout: buildBookingReadout(bookingCase, context),
         aftercareReadout: buildAftercareReadout(aftercareCase, context),
         operationReadout: buildOperationReadout(operationCase, context),
+        commercialReadout: buildCommercialReadout(commercialCase, context),
         aftercareQueue,
         patient360: serializePatient360(
           pickLatestPatient360Record(

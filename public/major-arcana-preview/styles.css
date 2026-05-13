@@ -3153,12 +3153,20 @@ button {
   color: rgba(180, 83, 87, 0.95);
 }
 
+.focus-status-token-commercial-critical {
+  color: rgba(176, 86, 92, 0.95);
+}
+
 .focus-status-token-aftercare-today {
   color: rgba(184, 124, 45, 0.96);
 }
 
 .focus-status-token-operation-today {
   color: rgba(191, 129, 55, 0.96);
+}
+
+.focus-status-token-commercial-today {
+  color: rgba(188, 135, 58, 0.95);
 }
 
 .focus-status-token-aftercare-active {
@@ -3169,6 +3177,10 @@ button {
   color: rgba(99, 118, 181, 0.95);
 }
 
+.focus-status-token-commercial-active {
+  color: rgba(91, 142, 98, 0.94);
+}
+
 .focus-status-token-aftercare-planned {
   color: rgba(74, 132, 150, 0.94);
 }
@@ -3177,13 +3189,19 @@ button {
   color: rgba(74, 132, 150, 0.94);
 }
 
+.focus-status-token-commercial-planned {
+  color: rgba(84, 138, 104, 0.92);
+}
+
 .focus-status-token-aftercare-closed,
 .focus-status-token-aftercare-paused {
   color: rgba(91, 120, 88, 0.88);
 }
 
 .focus-status-token-operation-closed,
-.focus-status-token-operation-paused {
+.focus-status-token-operation-paused,
+.focus-status-token-commercial-closed,
+.focus-status-token-commercial-paused {
   color: rgba(91, 120, 88, 0.88);
 }
 
@@ -4616,11 +4634,21 @@ button {
 }
 
 .patient360-operation-card,
+.patient360-commercial-card,
 .patient360-aftercare-card {
   --focus-card-accent: #4f73b3;
 }
 
 .patient360-operation-card[data-tone="critical"] {
+  --focus-card-accent: #9f5f78;
+}
+
+.patient360-commercial-card {
+  --focus-card-accent: #5f8b63;
+}
+
+.patient360-commercial-card[data-tone="critical"],
+.patient360-commercial-card[data-tone="due"] {
   --focus-card-accent: #9f5f78;
 }
 
@@ -4630,6 +4658,7 @@ button {
 }
 
 .patient360-operation-card-footer,
+.patient360-commercial-card-footer,
 .patient360-aftercare-card-footer {
   display: grid;
   gap: 6px;
