@@ -301,6 +301,7 @@
   const portalOwnerSummary = document.querySelector("[data-portal-owner-summary]");
   const portalOwnerList = document.querySelector("[data-portal-owner-list]");
   const portalOwnerHistory = document.querySelector("[data-portal-owner-history]");
+  const portalOwnerActivity = document.querySelector("[data-portal-owner-activity]");
   const portalDraftTitleInput = document.querySelector("[data-portal-draft-title]");
   const portalDraftSummaryInput = document.querySelector("[data-portal-draft-summary]");
   const portalDraftNoteInput = document.querySelector("[data-portal-draft-note]");
@@ -2130,6 +2131,12 @@
       auditPreviewMode: "short",
     },
     aftercare: {
+      case: null,
+      readout: null,
+      contextConversationId: "",
+      contextCustomerId: "",
+    },
+    operation: {
       case: null,
       readout: null,
       contextConversationId: "",
@@ -13077,6 +13084,7 @@
       formatHistoryTimestamp,
       getCustomerHistoryMailboxOptions,
       getPreviewAftercareWorkspaceSurface,
+      getPreviewOperationWorkspaceSurface,
       getPreviewAftercareQueueEntries,
       getRelatedCustomerThreads,
       getScopedActivityNotes,
@@ -16122,6 +16130,7 @@
 
   function buildPreviewPatient360Backbone(thread, focusReadState = {}) {
     if (!thread) return null;
+    const operationSurface = getPreviewOperationWorkspaceSurface(thread, focusReadState);
     const backendPatient360 =
       state.booking?.patient360 && typeof state.booking.patient360 === "object"
         ? state.booking.patient360
@@ -16139,6 +16148,16 @@
               status: normalizeKey(bookingModuleContext.status || value.status || "inactive") || "inactive",
               nextAction: asText(bookingModuleContext.nextAction, value.nextAction),
               confidence: Number(bookingModuleContext.confidence || value.confidence || 0.82),
+            };
+          }
+          if (moduleId === "operation" && operationSurface) {
+            return {
+              id: moduleId,
+              label: asText(value.label || moduleId, moduleId),
+              detail: asText(operationSurface.title, value.nextAction),
+              status: normalizeKey(operationSurface.status || value.status || "inactive") || "inactive",
+              nextAction: asText(operationSurface.nextStep, value.nextAction),
+              confidence: Number(value.confidence || 0.84),
             };
           }
           return {
@@ -16354,6 +16373,210 @@
         focusTone: "aftercare-active",
       }
     );
+  }
+
+  function describeOperationQueueBucket(queueBucket = "", phase = "") {
+    const bucketKey = normalizeKey(queueBucket || phase);
+    const definitions = {
+      critical: {
+        label: "Klinisk blockerare",
+        shortLabel: "Blockerad",
+        summary: "Operationsspåret ska stanna här tills klinisk klarering eller utfall är säkrat.",
+        tone: "critical",
+        focusTone: "operation-critical",
+      },
+      due: {
+        label: "Operationsfönster passerat",
+        shortLabel: "Förfallen",
+        summary: "Planerad operationstid har passerat och behöver fångas upp omedelbart.",
+        tone: "critical",
+        focusTone: "operation-critical",
+      },
+      today: {
+        label: "Operation idag",
+        shortLabel: "Idag",
+        summary: "Operationen ska över i genomförande nu och kräver tydlig handoff.",
+        tone: "today",
+        focusTone: "operation-today",
+      },
+      active: {
+        label: "Aktiv operationskoordinering",
+        shortLabel: "Aktiv",
+        summary: "Operationsärendet väntar på aktiv koordinering mellan operatör och klinik.",
+        tone: "active",
+        focusTone: "operation-active",
+      },
+      planned: {
+        label: "Planerad operation",
+        shortLabel: "Planerad",
+        summary: "Operationsupplägget finns, men behöver ännu inte bryta igenom annat arbete.",
+        tone: "planned",
+        focusTone: "operation-planned",
+      },
+      closed: {
+        label: "Överlämnad till eftervård",
+        shortLabel: "Slutförd",
+        summary: "Operationen är klar och ska nu drivas vidare genom eftervård och slutlogg.",
+        tone: "closed",
+        focusTone: "operation-closed",
+      },
+      paused: {
+        label: "Pausat operationsspår",
+        shortLabel: "Pausad",
+        summary: "Operationsärendet ligger parkerat tills nytt klartecken eller ny plan finns.",
+        tone: "paused",
+        focusTone: "operation-paused",
+      },
+    };
+    return (
+      definitions[bucketKey] || {
+        label: "Operation i kö",
+        shortLabel: "Operation",
+        summary: "Operationsärendet behöver ett tydligt nästa steg i workspace.",
+        tone: "planned",
+        focusTone: "operation-active",
+      }
+    );
+  }
+
+  function getPreviewOperationWorkspaceSurface(thread, focusReadState = {}) {
+    if (!thread) return null;
+    const contextConversationId = normalizeKey(state.operation?.contextConversationId || "");
+    const contextCustomerId = normalizeKey(state.operation?.contextCustomerId || "");
+    const threadConversationId = normalizeKey(thread.id);
+    const threadCustomerId = normalizeKey(
+      getRuntimeCustomerEmail(thread) || thread.customerEmail || thread.id
+    );
+    const readoutMatchesThread =
+      Boolean(contextConversationId && contextConversationId === threadConversationId) ||
+      Boolean(contextCustomerId && threadCustomerId && contextCustomerId === threadCustomerId);
+    const readout =
+      readoutMatchesThread &&
+      state.operation?.readout &&
+      typeof state.operation.readout === "object"
+        ? state.operation.readout
+        : null;
+    const operationCase =
+      readoutMatchesThread && state.operation?.case && typeof state.operation.case === "object"
+        ? state.operation.case
+        : null;
+    const backendPatient360 =
+      state.booking?.patient360 && typeof state.booking.patient360 === "object"
+        ? state.booking.patient360
+        : null;
+    const operationModule =
+      backendPatient360?.modules?.operation && typeof backendPatient360.modules.operation === "object"
+        ? backendPatient360.modules.operation
+        : null;
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const treatmentSignal = asText(
+      raw.plannedTreatment || raw.treatmentContext || raw.medicalContext,
+      ""
+    );
+    if (!readout && !operationCase && !operationModule && !treatmentSignal) return null;
+
+    const phase = normalizeKey(readout?.phase || "");
+    const status = normalizeKey(readout?.status || operationModule?.status || "");
+    const phaseMeta = {
+      review: {
+        kicker: "Operation · Genomgång",
+        title: "Operationsärendet behöver bedömas",
+        tone: "active",
+      },
+      clearance_pending: {
+        kicker: "Operation · Klarering",
+        title: "Klarering väntar före låsning",
+        tone: "active",
+      },
+      clearance_blocked: {
+        kicker: "Operation · Blockerad",
+        title: "Klareringen stoppar operationsflödet",
+        tone: "critical",
+      },
+      ready_for_operation: {
+        kicker: "Operation · Planerad",
+        title: "Operationen är planerad och väntar på handoff",
+        tone: "planned",
+      },
+      operation_today: {
+        kicker: "Operation · Idag",
+        title: "Operationen kräver handoff nu",
+        tone: "today",
+      },
+      in_progress: {
+        kicker: "Operation · Pågår",
+        title: "Operationen pågår och behöver tät koordinering",
+        tone: "active",
+      },
+      clinical_follow_up: {
+        kicker: "Operation · Klinisk uppföljning",
+        title: "Postoperativt utfall behöver klinisk bedömning",
+        tone: "critical",
+      },
+      closed: {
+        kicker: "Operation · Slutförd",
+        title: "Operationen är klar och lämnas vidare",
+        tone: "closed",
+      },
+      cancelled: {
+        kicker: "Operation · Avbruten",
+        title: "Operationsärendet är avbrutet",
+        tone: "paused",
+      },
+    };
+    const phaseState = phaseMeta[phase] || {
+      kicker: "Operation",
+      title: "Operationsspåret behöver ägas",
+      tone: "planned",
+    };
+    const queueBucket = normalizeKey(readout?.queueBucket || "");
+    const queueState = describeOperationQueueBucket(queueBucket, phase);
+    const blockerLabel = asText(
+      readout?.blocker?.label,
+      operationModule?.nextAction || "Operativ kontroll"
+    );
+    const waitingOnLabel = humanizeCode(
+      readout?.waitingOn || operationModule?.waitingOn || "",
+      "Operatör"
+    );
+    const nextStep = asText(
+      readout?.nextStep,
+      operationModule?.nextAction || thread.nextActionLabel || "Öppna operationsspåret"
+    );
+    const summary = asText(
+      readout?.attention?.what,
+      readout?.handoffCopy || operationCase?.notes || thread.nextActionSummary
+    );
+    const requiredActions = asArray(readout?.requiredActions)
+      .map((item) => humanizeCode(item, ""))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return {
+      phase,
+      status,
+      tone: phaseState.tone,
+      kicker: phaseState.kicker,
+      title: phaseState.title,
+      blockerLabel,
+      waitingOnLabel,
+      nextStep,
+      summary,
+      requiredActions,
+      queueBucket,
+      queueLabel: queueState.label,
+      queueShortLabel: queueState.shortLabel,
+      queueSummary: queueState.summary,
+      queueTone: queueState.tone,
+      focusQueueTone: queueState.focusTone,
+      scheduledLabel: asText(
+        readout?.scheduledForIso ? formatHistoryTimestamp(readout.scheduledForIso) : ""
+      ),
+      doctorName: asText(readout?.doctorName || operationCase?.doctorName || raw.doctorName),
+      theatreName: asText(readout?.theatreName || operationCase?.theatreName),
+      handoffCopy: asText(readout?.handoffCopy),
+      note: asText(readout?.notes || operationCase?.notes),
+    };
   }
 
   function getPreviewAftercareWorkspaceSurface(thread, focusReadState = {}) {
@@ -20762,6 +20985,58 @@
       .join("");
   }
 
+  function renderPortalOwnerActivity(selectedPortalRecord = null) {
+    if (!portalOwnerActivity) return;
+    const events = asArray(selectedPortalRecord?.events).slice(0, 5);
+
+    if (!events.length) {
+      portalOwnerActivity.innerHTML = `
+        <article class="customers-portal-empty">
+          <strong>Ingen aktivitet ännu</strong>
+          <p>Publicera eller öppna en layers-sketch för att börja se händelser här.</p>
+        </article>
+      `;
+      return;
+    }
+
+    portalOwnerActivity.innerHTML = events
+      .map((event) => {
+        const title =
+          event.type === "layer_draft_saved"
+            ? "Utkast sparades"
+            : event.type === "layer_version_published"
+              ? "Version publicerad"
+              : event.type === "customer_notified"
+                ? "Kunden notifierades"
+                : event.type === "customer_viewed"
+                  ? "Kunden öppnade portalen"
+                  : event.type === "customer_acknowledged"
+                    ? "Kunden kvitterade notisen"
+                    : event.message || "Portalhändelse";
+        const tone =
+          event.type === "customer_acknowledged"
+            ? "draft"
+            : event.type === "customer_viewed"
+              ? "published"
+              : event.type === "customer_notified"
+                ? "published"
+                : "draft";
+        return `
+          <article class="customers-portal-version-card customers-portal-version-card--owner is-${escapeHtml(tone)}">
+            <div>
+              <strong>${escapeHtml(title)}</strong>
+              <p>${escapeHtml(event.message || "Händelsen loggades i portalen.")}</p>
+            </div>
+            <span>
+              ${escapeHtml(event.type || "event")}
+              <em>${escapeHtml(event.createdAt || "Nyss")}</em>
+            </span>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
   function renderPortalCustomerView() {
     if (!portalCustomerTitle || !portalCustomerSummary || !portalCustomerVersion) return;
     const detail = getCustomerDetail(getPortalSelectedCustomerKey());
@@ -20986,6 +21261,8 @@
 
     renderPortalDraftInputs();
     renderPortalOwnerList(overviewCustomers);
+    renderPortalOwnerHistory(state.portalRuntime.customerPortal || selectedOverview);
+    renderPortalOwnerActivity(state.portalRuntime.customerPortal || selectedOverview);
     renderPortalCustomerView();
 
     const actionState = {
