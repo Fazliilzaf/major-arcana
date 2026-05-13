@@ -532,6 +532,12 @@ test('cco workspace bootstrap läser first-class operationsärende och prioriter
       assert.equal(bootstrapResponse.status, 200);
       const bootstrapPayload = await bootstrapResponse.json();
       assert.equal(bootstrapPayload.operationCase.procedureType, 'Hårtransplantation');
+      assert.equal(bootstrapPayload.operationReadout.phase, 'clearance_blocked');
+      assert.equal(bootstrapPayload.operationReadout.queueBucket, 'critical');
+      assert.equal(
+        bootstrapPayload.operationReadout.operatorActions[0].action,
+        'resolve_operation_clearance'
+      );
       assert.equal(bootstrapPayload.patient360.modules.operation.status, 'blocked');
       assert.equal(bootstrapPayload.patient360.modules.clinical.status, 'needs_validation');
       assert.equal(bootstrapPayload.patient360.attention.where, 'Operation');
@@ -539,6 +545,44 @@ test('cco workspace bootstrap läser first-class operationsärende och prioriter
         bootstrapPayload.patient360.attention.what,
         'Stoppa operationsflödet och lös blockerande klarering'
       );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco workspace bootstrap ger operation first-class handoffyta nar operationen ar klar', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await fixture.operationStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-operation-complete-workspace',
+      customerId: 'anna.karlsson@email.com',
+      customerName: 'Anna Karlsson',
+      procedureType: 'Hårtransplantation',
+      operationStatus: 'complete',
+      clearanceStatus: 'cleared',
+      outcomeStatus: 'stable',
+      scheduledForIso: '2026-03-29T08:00:00.000Z',
+      doctorName: 'Dr. Eriksson',
+      theatreName: 'Rum 2',
+      requiredActions: ['Slutför operationsloggen'],
+      notes: 'Operationen är klar och eftervården ska ta över.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const bootstrapResponse = await fetch(
+        `${baseUrl}/cco-workspace/bootstrap?workspaceId=major-arcana-preview&conversationId=conv-operation-complete-workspace&customerId=anna.karlsson@email.com&customerName=Anna%20Karlsson`
+      );
+      assert.equal(bootstrapResponse.status, 200);
+      const bootstrapPayload = await bootstrapResponse.json();
+      assert.equal(bootstrapPayload.operationReadout.phase, 'closed');
+      assert.equal(bootstrapPayload.operationReadout.queueBucket, 'closed');
+      assert.equal(bootstrapPayload.operationReadout.waitingOn, 'aftercare');
+      assert.match(bootstrapPayload.operationReadout.nextStep, /eftervård/i);
+      assert.match(bootstrapPayload.operationReadout.handoffCopy, /eftervård/i);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

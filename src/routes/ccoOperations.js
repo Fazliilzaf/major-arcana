@@ -13,6 +13,7 @@ const {
   OPERATION_STATUSES,
   CLEARANCE_STATUSES,
   OUTCOME_STATUSES,
+  buildOperationCaseReadout,
 } = require('../ops/ccoOperationStore');
 const { syncPatient360FromOperationCase } = require('../ops/ccoPatient360Bridge');
 
@@ -88,6 +89,7 @@ function createCcoOperationsRouter({
       });
       return res.json({
         operationCase,
+        operationReadout: buildOperationCaseReadout(operationCase),
         patient360: serializePatient360(patientRecord),
         statuses: {
           operation: OPERATION_STATUSES,
@@ -127,6 +129,7 @@ function createCcoOperationsRouter({
       });
       return res.json({
         operationCase,
+        operationReadout: buildOperationCaseReadout(operationCase),
         patient360: serializePatient360(patientRecord),
       });
     })

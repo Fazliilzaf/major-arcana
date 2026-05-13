@@ -365,6 +365,33 @@
   color: #e3342f;
 }
 
+.thread-card.unified-queue-card .queue-inline-lane-action {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 650;
+  opacity: 0.92;
+}
+
+.thread-card.unified-queue-card .queue-inline-lane-action[data-lane-quick-action="operation"] {
+  color: #5a3a28;
+  border-color: rgba(172, 117, 68, 0.28);
+  background: linear-gradient(180deg, rgba(255, 249, 240, 0.92) 0%, rgba(245, 232, 220, 0.9) 100%);
+}
+
+.thread-card.unified-queue-card .queue-inline-lane-action[data-lane-quick-action="commercial"] {
+  color: #4f3a29;
+  border-color: rgba(138, 111, 52, 0.26);
+  background: linear-gradient(180deg, rgba(255, 252, 238, 0.92) 0%, rgba(244, 237, 214, 0.88) 100%);
+}
+
+.thread-card.unified-queue-card .queue-inline-lane-action:hover {
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
 .thread-card.unified-queue-card .primary-action {
   display: inline-flex;
   align-items: center;
@@ -3122,20 +3149,41 @@ button {
   color: rgba(173, 88, 119, 0.96);
 }
 
+.focus-status-token-operation-critical {
+  color: rgba(180, 83, 87, 0.95);
+}
+
 .focus-status-token-aftercare-today {
   color: rgba(184, 124, 45, 0.96);
+}
+
+.focus-status-token-operation-today {
+  color: rgba(191, 129, 55, 0.96);
 }
 
 .focus-status-token-aftercare-active {
   color: rgba(123, 99, 177, 0.94);
 }
 
+.focus-status-token-operation-active {
+  color: rgba(99, 118, 181, 0.95);
+}
+
 .focus-status-token-aftercare-planned {
+  color: rgba(74, 132, 150, 0.94);
+}
+
+.focus-status-token-operation-planned {
   color: rgba(74, 132, 150, 0.94);
 }
 
 .focus-status-token-aftercare-closed,
 .focus-status-token-aftercare-paused {
+  color: rgba(91, 120, 88, 0.88);
+}
+
+.focus-status-token-operation-closed,
+.focus-status-token-operation-paused {
   color: rgba(91, 120, 88, 0.88);
 }
 
@@ -4401,6 +4449,7 @@ button {
   --focus-card-accent: #9f5f78;
 }
 
+.patient360-operation-row,
 .patient360-aftercare-row {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -4415,29 +4464,41 @@ button {
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
+.patient360-operation-row[data-tone="critical"],
 .patient360-aftercare-row[data-tone="due"],
 .patient360-aftercare-row[data-tone="escalation"] {
   border-color: rgba(204, 128, 157, 0.28);
   background: linear-gradient(180deg, rgba(255, 246, 250, 0.94) 0%, rgba(247, 233, 239, 0.82) 100%);
 }
 
+.patient360-operation-row[data-tone="planned"],
+.patient360-operation-row[data-tone="active"],
 .patient360-aftercare-row[data-tone="planned"],
 .patient360-aftercare-row[data-tone="today"] {
   border-color: rgba(103, 137, 196, 0.24);
   background: linear-gradient(180deg, rgba(246, 250, 255, 0.94) 0%, rgba(233, 240, 250, 0.8) 100%);
 }
 
+.patient360-operation-row[data-tone="today"] {
+  border-color: rgba(207, 156, 74, 0.22);
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.96) 0%, rgba(248, 240, 226, 0.88) 100%);
+}
+
+.patient360-operation-row[data-tone="closed"],
+.patient360-operation-row[data-tone="paused"],
 .patient360-aftercare-row[data-tone="closed"] {
   border-color: rgba(106, 145, 111, 0.24);
   background: linear-gradient(180deg, rgba(246, 252, 247, 0.94) 0%, rgba(234, 245, 236, 0.82) 100%);
 }
 
+.patient360-operation-copy,
 .patient360-aftercare-copy {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
+.patient360-operation-kicker,
 .patient360-aftercare-kicker {
   color: var(--copy-warm-label);
   font-size: 10px;
@@ -4447,6 +4508,7 @@ button {
   text-transform: uppercase;
 }
 
+.patient360-operation-copy strong,
 .patient360-aftercare-copy strong {
   color: var(--copy-warm-strong);
   font-size: 14px;
@@ -4454,6 +4516,8 @@ button {
   font-weight: 700;
 }
 
+.patient360-operation-copy p,
+.patient360-operation-card-footer p,
 .patient360-aftercare-copy p,
 .patient360-aftercare-card-footer p {
   margin: 0;
@@ -4462,6 +4526,7 @@ button {
   line-height: 16px;
 }
 
+.patient360-operation-meta,
 .patient360-aftercare-meta {
   display: flex;
   flex-wrap: wrap;
@@ -4469,6 +4534,7 @@ button {
   justify-content: flex-end;
 }
 
+.patient360-operation-chip,
 .patient360-aftercare-chip {
   min-width: 0;
   display: inline-flex;
@@ -4487,6 +4553,7 @@ button {
   font-weight: 650;
 }
 
+.patient360-operation-chip b,
 .patient360-aftercare-chip b {
   color: #9f5f78;
   font-size: 8px;
@@ -4495,6 +4562,7 @@ button {
   text-transform: uppercase;
 }
 
+.patient360-operation-chip span,
 .patient360-aftercare-chip span {
   min-width: 0;
   overflow: hidden;
@@ -4525,8 +4593,35 @@ button {
   background: linear-gradient(180deg, rgba(248, 252, 248, 0.96) 0%, rgba(238, 245, 238, 0.86) 100%);
 }
 
+.patient360-operation-chip--queue[data-priority="critical"] {
+  border-color: rgba(204, 128, 157, 0.24);
+  background: linear-gradient(180deg, rgba(255, 247, 251, 0.96) 0%, rgba(248, 235, 241, 0.86) 100%);
+}
+
+.patient360-operation-chip--queue[data-priority="today"] {
+  border-color: rgba(207, 156, 74, 0.22);
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.96) 0%, rgba(248, 240, 226, 0.88) 100%);
+}
+
+.patient360-operation-chip--queue[data-priority="active"],
+.patient360-operation-chip--queue[data-priority="planned"] {
+  border-color: rgba(103, 137, 196, 0.2);
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.96) 0%, rgba(236, 242, 250, 0.86) 100%);
+}
+
+.patient360-operation-chip--queue[data-priority="closed"],
+.patient360-operation-chip--queue[data-priority="paused"] {
+  border-color: rgba(106, 145, 111, 0.18);
+  background: linear-gradient(180deg, rgba(248, 252, 248, 0.96) 0%, rgba(238, 245, 238, 0.86) 100%);
+}
+
+.patient360-operation-card,
 .patient360-aftercare-card {
   --focus-card-accent: #4f73b3;
+}
+
+.patient360-operation-card[data-tone="critical"] {
+  --focus-card-accent: #9f5f78;
 }
 
 .patient360-aftercare-card[data-tone="escalation"],
@@ -4534,6 +4629,7 @@ button {
   --focus-card-accent: #9f5f78;
 }
 
+.patient360-operation-card-footer,
 .patient360-aftercare-card-footer {
   display: grid;
   gap: 6px;

@@ -4,7 +4,10 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoOperationStore } = require('../../src/ops/ccoOperationStore');
+const {
+  createCcoOperationStore,
+  buildOperationCaseReadout,
+} = require('../../src/ops/ccoOperationStore');
 
 test('cco operation store skapar och uppdaterar operationsärenden idempotent', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-operation-store-'));
@@ -38,4 +41,48 @@ test('cco operation store skapar och uppdaterar operationsärenden idempotent', 
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
+});
+
+test('operation readout prioriterar blockerad klarering och bygger operatorlage', () => {
+  const readout = buildOperationCaseReadout({
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-op-1',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+    procedureType: 'Hårtransplantation',
+    operationStatus: 'planned',
+    clearanceStatus: 'blocked',
+    outcomeStatus: 'unknown',
+    scheduledForIso: '2026-03-29T08:00:00.000Z',
+    doctorName: 'Dr. Eriksson',
+    theatreName: 'Rum 2',
+  });
+
+  assert.equal(readout.phase, 'clearance_blocked');
+  assert.equal(readout.queueBucket, 'critical');
+  assert.equal(readout.waitingOn, 'clinic');
+  assert.match(readout.nextStep, /klarering/i);
+  assert.equal(readout.operatorActions[0].action, 'resolve_operation_clearance');
+});
+
+test('operation readout gor avslutad operation till eftervards-handoff', () => {
+  const readout = buildOperationCaseReadout({
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-op-2',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+    procedureType: 'Hårtransplantation',
+    operationStatus: 'complete',
+    clearanceStatus: 'cleared',
+    outcomeStatus: 'stable',
+    doctorName: 'Dr. Eriksson',
+    theatreName: 'Rum 2',
+  });
+
+  assert.equal(readout.phase, 'closed');
+  assert.equal(readout.queueBucket, 'closed');
+  assert.equal(readout.waitingOn, 'aftercare');
+  assert.match(readout.nextStep, /eftervård/i);
 });

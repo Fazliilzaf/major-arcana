@@ -3,14 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const APP_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'public',
-  'major-arcana-preview',
-  'app.js'
-);
+const APP_PATH = path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app.js');
 
 function extractFunctionSource(source, functionName) {
   const signature = `function ${functionName}(`;
@@ -41,6 +34,42 @@ function extractFunctionSource(source, functionName) {
   }
 
   throw new Error(`Kunde inte extrahera ${functionName} fr책n app.js.`);
+}
+
+function extractConstSource(source, constName) {
+  const signature = `const ${constName} =`;
+  const startIndex = source.indexOf(signature);
+  assert.notEqual(startIndex, -1, `Kunde inte hitta ${constName} i app.js.`);
+  const statementStart = source.indexOf('[', startIndex);
+  assert.notEqual(statementStart, -1, `Kunde inte hitta array-starten for ${constName}.`);
+
+  let depth = 0;
+  let inString = false;
+  let stringQuote = '';
+  for (let index = statementStart; index < source.length; index += 1) {
+    const character = source[index];
+    const previous = source[index - 1];
+    if (inString) {
+      if (character === stringQuote && previous !== '\\') {
+        inString = false;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      inString = true;
+      stringQuote = character;
+      continue;
+    }
+    if (character === '[') depth += 1;
+    if (character === ']') depth -= 1;
+    if (depth === 0) {
+      const semicolonIndex = source.indexOf(';', index);
+      assert.notEqual(semicolonIndex, -1, `Kunde inte hitta avslut for ${constName}.`);
+      return source.slice(startIndex, semicolonIndex + 1);
+    }
+  }
+
+  throw new Error(`Kunde inte extrahera ${constName} fran app.js.`);
 }
 
 function createReconcileHarness({
@@ -97,7 +126,12 @@ function createReconcileHarness({
       resetCount += 1;
     },
     (left, right) =>
-      String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     state,
     (thread) =>
       Array.isArray(thread?.historyMailboxOptions) && thread.historyMailboxOptions.length
@@ -215,9 +249,15 @@ function createNormalizeScopeHarness({
     () => ['later', 'sprint', 'act-now', 'high-risk'],
     (laneId, laneThreads = []) => {
       const normalizedLaneId =
-        typeof laneId === 'string' ? laneId.trim().toLowerCase() : String(laneId || '').trim().toLowerCase();
+        typeof laneId === 'string'
+          ? laneId.trim().toLowerCase()
+          : String(laneId || '')
+              .trim()
+              .toLowerCase();
       return Array.isArray(laneThreads)
-        ? laneThreads.filter((thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId))
+        ? laneThreads.filter(
+            (thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId)
+          )
         : [];
     },
     () => queueScopedThreads,
@@ -252,7 +292,12 @@ function createNormalizeScopeHarness({
       return allowedLaneIds.includes(normalizedLaneId) ? normalizedLaneId : 'all';
     },
     (left, right) =>
-      String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     (visible, options) => {
       reconcileCalls.push({
         visibleThreadIds: Array.isArray(visible) ? visible.map((thread) => thread.id) : [],
@@ -433,12 +478,20 @@ function createGetSelectedRuntimeThreadTruthHarness({
     () => mailboxScopedThreads,
     (laneId, threads = queueScopedThreads) => {
       const normalizedLaneId =
-        typeof laneId === 'string' ? laneId.trim().toLowerCase() : String(laneId || '').trim().toLowerCase();
+        typeof laneId === 'string'
+          ? laneId.trim().toLowerCase()
+          : String(laneId || '')
+              .trim()
+              .toLowerCase();
       const candidates = Array.isArray(threads) ? threads : [];
       if (normalizedLaneId === 'all') {
-        return candidates.filter((thread) => !Array.isArray(thread.tags) || !thread.tags.includes('later'));
+        return candidates.filter(
+          (thread) => !Array.isArray(thread.tags) || !thread.tags.includes('later')
+        );
       }
-      return candidates.filter((thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId));
+      return candidates.filter(
+        (thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId)
+      );
     },
     () => queueHistory?.selectedConversationId || '',
     () => queueScopedThreads,
@@ -568,12 +621,18 @@ function createEnsureRuntimeSelectionHarness({
     () => selectedHistoryConversationId,
     (laneId, threads = queueScopedThreads) => {
       const normalizedLaneId =
-        typeof laneId === 'string' ? laneId.trim().toLowerCase() : String(laneId || '').trim().toLowerCase();
+        typeof laneId === 'string'
+          ? laneId.trim().toLowerCase()
+          : String(laneId || '')
+              .trim()
+              .toLowerCase();
       const candidates = Array.isArray(threads) ? threads : [];
       if (normalizedLaneId === 'all') {
         return candidates;
       }
-      return candidates.filter((thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId));
+      return candidates.filter(
+        (thread) => Array.isArray(thread.tags) && thread.tags.includes(normalizedLaneId)
+      );
     },
     () => queueScopedThreads,
     () => {
@@ -602,7 +661,12 @@ function createEnsureRuntimeSelectionHarness({
       return { source: 'normalize', options };
     },
     (left, right) =>
-      String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase(),
+      String(left || '')
+        .trim()
+        .toLowerCase() ===
+      String(right || '')
+        .trim()
+        .toLowerCase(),
     (visibleThreads) => {
       reconcileCalls.push(visibleThreads);
       return { source: 'reconcile', visibleThreads };
@@ -665,6 +729,43 @@ test('reconcileRuntimeSelection behaller vald trad nar den fortfarande ar synlig
   assert.equal(harness.getResetCount(), 0);
 });
 
+test('preview shell prioriterar act-now fore commercial och operation nar traden ar akut', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const laneSource = extractFunctionSource(source, 'getThreadPrimaryLaneId');
+
+  assert.match(
+    laneSource,
+    /if \(isAftercareRuntimeThread\(thread\)\) return "aftercare";\s*if \(asArray\(thread\?\.tags\)\.includes\("act-now"\)\) return "act-now";\s*if \(isCommercialRuntimeThread\(thread\)\) return "commercial";\s*if \(isOperationRuntimeThread\(thread\)\) return "operation";/
+  );
+});
+
+test('preview backbone bar operation som eget modulsteg fore aftercare och commercial', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const moduleDefinitionsSource = extractConstSource(source, 'moduleDefinitions');
+
+  assert.match(
+    moduleDefinitionsSource,
+    /id:\s*"operation"[\s\S]*label:\s*"Operation"[\s\S]*status:\s*getPreviewPatient360ModuleStatus\(thread,\s*"operation",\s*bodyText\)/
+  );
+  assert.match(
+    moduleDefinitionsSource,
+    /id:\s*"documents"[\s\S]*id:\s*"operation"[\s\S]*id:\s*"aftercare"[\s\S]*id:\s*"tasks"[\s\S]*id:\s*"commercial"/
+  );
+});
+
+test('preview shell bygger operation surface fran workspace readout och bar blocker/handoff ut i ytan', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const surfaceSource = extractFunctionSource(source, 'getPreviewOperationWorkspaceSurface');
+
+  assert.match(surfaceSource, /state\.operation\?\.readout/);
+  assert.match(surfaceSource, /describeOperationQueueBucket/);
+  assert.match(surfaceSource, /blockerLabel/);
+  assert.match(surfaceSource, /handoffCopy/);
+  assert.match(surfaceSource, /queueLabel/);
+  assert.match(source, /data-operation-module-card/);
+  assert.match(source, /patient360-operation-card-footer/);
+});
+
 test('reconcileRuntimeSelection synkar mailboxscope med vald trad 채ven n채r samma thread redan var vald', () => {
   const harness = createReconcileHarness({
     initialSelectedThreadId: 'thread-2',
@@ -674,9 +775,7 @@ test('reconcileRuntimeSelection synkar mailboxscope med vald trad 채ven n채r sam
         id: 'thread-2',
         mailboxAddress: 'fazli@hairtpclinic.com',
         mailboxLabel: 'Fazli',
-        historyMailboxOptions: [
-          { id: 'fazli@hairtpclinic.com', label: 'Fazli' },
-        ],
+        historyMailboxOptions: [{ id: 'fazli@hairtpclinic.com', label: 'Fazli' }],
       },
     ],
   });
@@ -702,9 +801,7 @@ test('reconcileRuntimeSelection bevarar manuellt mailboxscope n채r scope redan �
         id: 'thread-2',
         mailboxAddress: 'fazli@hairtpclinic.com',
         mailboxLabel: 'Fazli',
-        historyMailboxOptions: [
-          { id: 'fazli@hairtpclinic.com', label: 'Fazli' },
-        ],
+        historyMailboxOptions: [{ id: 'fazli@hairtpclinic.com', label: 'Fazli' }],
       },
     ],
   });
@@ -1305,10 +1402,7 @@ test('ensureRuntimeSelection rensar stale live-trad nar offline-historiklaget sa
 test('reconcileRuntimeSelection prioriterar riktig kundtrad fore verifieringstrad nar valet ar automatiskt', () => {
   const harness = createReconcileHarness({
     initialSelectedThreadId: '',
-    visibleThreads: [
-      { id: 'thread-qa', isVerificationThread: true },
-      { id: 'thread-customer' },
-    ],
+    visibleThreads: [{ id: 'thread-qa', isVerificationThread: true }, { id: 'thread-customer' }],
   });
 
   const result = harness.run({

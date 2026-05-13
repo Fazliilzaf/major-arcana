@@ -174,6 +174,17 @@
                 : "") || bootstrapContextThread?.customerEmail
             ),
           };
+          state.operation = {
+            ...(state.operation || {}),
+            case: payload.operationCase || null,
+            readout: payload.operationReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
             ? followUpPayload.followUps

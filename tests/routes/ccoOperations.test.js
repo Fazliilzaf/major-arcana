@@ -63,6 +63,7 @@ test('cco operations route uppdaterar operation i samma Patient 360-kort', async
       assert.equal(caseResponse.status, 200);
       const casePayload = await caseResponse.json();
       assert.equal(casePayload.operationCase.operationStatus, 'needs_review');
+      assert.equal(casePayload.operationReadout.phase, 'review');
 
       const updateResponse = await fetch(`${baseUrl}/cco-operations/case?${qs}`, {
         method: 'PUT',
@@ -82,6 +83,8 @@ test('cco operations route uppdaterar operation i samma Patient 360-kort', async
       assert.equal(updateResponse.status, 200);
       const updatePayload = await updateResponse.json();
       assert.equal(updatePayload.operationCase.operationStatus, 'planned');
+      assert.equal(updatePayload.operationReadout.phase, 'clearance_blocked');
+      assert.equal(updatePayload.operationReadout.queueBucket, 'critical');
       assert.equal(updatePayload.patient360.modules.operation.status, 'blocked');
       assert.equal(updatePayload.patient360.modules.clinical.status, 'needs_validation');
       assert.equal(updatePayload.patient360.attention.where, 'Operation');

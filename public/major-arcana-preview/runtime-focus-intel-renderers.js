@@ -70,6 +70,7 @@
       buildPreviewPatient360Journey,
       getJourneyPrimaryActionConfig,
       getPreviewAftercareWorkspaceSurface,
+      getPreviewOperationWorkspaceSurface,
       buildRuntimeSummaryCards,
       compactRuntimeCopy,
       decorateStaticPills,
@@ -181,6 +182,85 @@
         queueSummary: asText(queueState.summary),
         queueTone: asText(queueState.tone || "planned"),
         focusQueueTone: asText(queueState.focusTone || "aftercare-active"),
+        requiredActions: asArray(readout?.requiredActions)
+          .map((item) => humanizeCode(item, ""))
+          .filter(Boolean)
+          .slice(0, 3),
+        operatorActions: asArray(readout?.operatorActions)
+          .map((item) => (item && typeof item === "object" ? item : {}))
+          .filter((item) => asText(item.key) && asText(item.label))
+          .slice(0, 2),
+      };
+    }
+
+    function getBootstrapOperationCustomerSurface() {
+      const readout =
+        state.operation?.readout && typeof state.operation.readout === "object"
+          ? state.operation.readout
+          : null;
+      const operationCase =
+        state.operation?.case && typeof state.operation.case === "object"
+          ? state.operation.case
+          : null;
+      if (!readout && !operationCase) return null;
+      const customerName = asText(
+        operationCase?.customerName || state.schedule?.draft?.customerName,
+        "Kund i workspace"
+      );
+      const phaseKey = normalizeKey(readout?.phase || "");
+      const phaseTitleByKey = {
+        review: "Operationsärendet behöver bedömas",
+        clearance_pending: "Klarering väntar före låsning",
+        clearance_blocked: "Klareringen stoppar operationsflödet",
+        ready_for_operation: "Operationen är planerad och väntar på handoff",
+        operation_today: "Operationen kräver handoff idag",
+        in_progress: "Operationen pågår och behöver tät koordinering",
+        clinical_follow_up: "Postoperativt utfall behöver klinisk bedömning",
+        closed: "Operationen är klar och lämnas vidare",
+        cancelled: "Operationsärendet är avbrutet",
+      };
+      const blockerLabel = asText(
+        readout?.blocker?.label,
+        humanizeCode(readout?.blocker?.key, "Operativ kontroll")
+      );
+      const waitingOnLabel = humanizeCode(
+        readout?.waitingOn || operationCase?.waitingOn || "",
+        "Operatör"
+      );
+      const queueState =
+        typeof describeOperationQueueBucket === "function"
+          ? describeOperationQueueBucket(readout?.queueBucket || "", readout?.phase || "")
+          : {
+              label: "Operation i kö",
+              shortLabel: "Operation",
+              summary: "Operationsärendet behöver ett tydligt nästa steg i workspace.",
+              tone: "planned",
+              focusTone: "operation-active",
+            };
+      return {
+        customerName,
+        customerId: asText(operationCase?.customerId),
+        procedureType: asText(readout?.procedureType || operationCase?.procedureType),
+        phaseTitle: asText(phaseTitleByKey[phaseKey], humanizeCode(readout?.phase, "Operation")),
+        blockerLabel,
+        waitingOnLabel,
+        nextStep: asText(readout?.nextStep, operationCase?.nextStep || "Öppna operationsspåret"),
+        attention: asText(
+          readout?.attention?.what,
+          readout?.handoffCopy ||
+            operationCase?.notes ||
+            "Workspace-bootstrap har ett aktivt operationsläge redo."
+        ),
+        scheduledForIso: asText(readout?.scheduledForIso || operationCase?.scheduledForIso),
+        doctorName: asText(readout?.doctorName || operationCase?.doctorName),
+        theatreName: asText(readout?.theatreName || operationCase?.theatreName),
+        handoffCopy: asText(readout?.handoffCopy),
+        note: asText(readout?.notes || operationCase?.notes),
+        queueLabel: asText(queueState.label, "Operation i kö"),
+        queueShortLabel: asText(queueState.shortLabel, "Operation"),
+        queueSummary: asText(queueState.summary),
+        queueTone: asText(queueState.tone || "planned"),
+        focusQueueTone: asText(queueState.focusTone || "operation-active"),
         requiredActions: asArray(readout?.requiredActions)
           .map((item) => humanizeCode(item, ""))
           .filter(Boolean)
@@ -2399,6 +2479,10 @@
         !isOfflineHistoryThread && !isTruthDrivenReadOnly
       );
       focusTitle.textContent = thread.displaySubject || thread.subject;
+      const operationSurface =
+        typeof getPreviewOperationWorkspaceSurface === "function"
+          ? getPreviewOperationWorkspaceSurface(thread, focusReadState)
+          : null;
       const aftercareSurface =
         typeof getPreviewAftercareWorkspaceSurface === "function"
           ? getPreviewAftercareWorkspaceSurface(thread, focusReadState)
@@ -2455,6 +2539,22 @@
                     : aftercareSurface.title
               }`,
               tone: aftercareSurface.focusQueueTone || "aftercare-active",
+              icon: "spark",
+            }
+          : null,
+        operationSurface &&
+        operationSurface.status !== "complete" &&
+        operationSurface.status !== "closed" &&
+        operationSurface.status !== "cancelled"
+          ? {
+              label: `Operation · ${
+                operationSurface.queueShortLabel && operationSurface.queueShortLabel !== "Operation"
+                  ? operationSurface.queueShortLabel
+                  : operationSurface.queueLabel && operationSurface.queueLabel !== "Operation i kö"
+                    ? operationSurface.queueLabel
+                    : operationSurface.title
+              }`,
+              tone: operationSurface.focusQueueTone || "operation-active",
               icon: "spark",
             }
           : null,
@@ -2686,7 +2786,152 @@
         focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
+        const bootstrapOperationSurface = getBootstrapOperationCustomerSurface();
         const bootstrapAftercareSurface = getBootstrapAftercareCustomerSurface();
+        const bootstrapLaneId = normalizeKey(
+          state.workspace?.activeLaneId || state.runtime?.activeLaneId || ""
+        );
+        if (
+          bootstrapOperationSurface &&
+          (bootstrapLaneId === "operation" || !bootstrapAftercareSurface)
+        ) {
+          renderFocusSummaryCards(focusCustomerSummary, [], "customer");
+          if (focusCustomerHistoryTitle) {
+            focusCustomerHistoryTitle.textContent = "Workspace-bootstrap för operation";
+          }
+          if (focusCustomerHistoryDescription) {
+            focusCustomerHistoryDescription.textContent =
+              "Ingen aktiv tråd är vald just nu, men workspace-bootstrap bär ett aktivt operationsläge.";
+          }
+          focusCustomerHero.innerHTML = `
+            <div class="focus-customer-hero-main">
+              <div class="focus-customer-avatar">${escapeHtml(
+                initialsForName(bootstrapOperationSurface.customerName)
+              )}</div>
+              <div class="focus-customer-copy">
+                <h3>${escapeHtml(bootstrapOperationSurface.customerName)}</h3>
+                <div class="focus-customer-contact-line">
+                  <span>${escapeHtml(
+                    bootstrapOperationSurface.customerId || "Preview-local workspace"
+                  )}</span>
+                  <span>·</span>
+                  <span>Workspace-bootstrap</span>
+                </div>
+                <div class="focus-customer-chip-row">
+                  <span class="focus-customer-chip focus-customer-chip--blue">Operation</span>
+                  <span class="focus-customer-chip focus-customer-chip--gold">${escapeHtml(
+                    bootstrapOperationSurface.phaseTitle
+                  )}</span>
+                  <span class="focus-customer-chip focus-customer-chip--green">Ingen aktiv tråd vald</span>
+                </div>
+              </div>
+            </div>`;
+          focusCustomerStats.innerHTML = `
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">ARBETSKÖ</span><strong>${escapeHtml(
+              bootstrapOperationSurface.queueLabel || bootstrapOperationSurface.phaseTitle
+            )}</strong><p>${escapeHtml(
+              bootstrapOperationSurface.queueSummary || bootstrapOperationSurface.blockerLabel
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">VÄNTAR PÅ</span><strong>${escapeHtml(
+              bootstrapOperationSurface.waitingOnLabel
+            )}</strong><p>${escapeHtml(
+              bootstrapOperationSurface.doctorName ||
+                bootstrapOperationSurface.theatreName ||
+                "Klinikteamet"
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">OPERATIONSFÖNSTER</span><strong>${escapeHtml(
+              bootstrapOperationSurface.scheduledForIso
+                ? formatHistoryTimestamp(bootstrapOperationSurface.scheduledForIso)
+                : "Ej tidssatt"
+            )}</strong><p>${escapeHtml(bootstrapOperationSurface.nextStep)}</p></article>`;
+          focusCustomerGrid.innerHTML = `
+            <article class="focus-customer-data-card patient360-operation-card" data-tone="${escapeHtml(
+              bootstrapOperationSurface.queueTone || "planned"
+            )}"><h4>Operation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.queueLabel || "-"
+              )}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(bootstrapOperationSurface.phaseTitle)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(bootstrapOperationSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.waitingOnLabel
+              )}</dd></div>
+              <div><dt>Behandling</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.procedureType || "-"
+              )}</dd></div>
+            </dl>${
+              bootstrapOperationSurface.requiredActions.length ||
+              bootstrapOperationSurface.handoffCopy ||
+              bootstrapOperationSurface.note
+                ? `<div class="patient360-operation-card-footer">
+                    ${
+                      bootstrapOperationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            `Kräver: ${bootstrapOperationSurface.requiredActions.join(", ")}`
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapOperationSurface.handoffCopy
+                        ? `<p>${escapeHtml(bootstrapOperationSurface.handoffCopy)}</p>`
+                        : bootstrapOperationSurface.note
+                          ? `<p>${escapeHtml(bootstrapOperationSurface.note)}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>
+            <article class="focus-customer-data-card"><h4>Nästa steg</h4><dl>
+              <div><dt>Nu</dt><dd>${escapeHtml(bootstrapOperationSurface.nextStep)}</dd></div>
+              <div><dt>Tid</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.scheduledForIso
+                  ? formatHistoryTimestamp(bootstrapOperationSurface.scheduledForIso)
+                  : "-"
+              )}</dd></div>
+              <div><dt>Kölogik</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.queueSummary || "-"
+              )}</dd></div>
+              <div><dt>Operationsrum</dt><dd>${escapeHtml(
+                bootstrapOperationSurface.theatreName || "-"
+              )}</dd></div>
+              <div><dt>Kontext</dt><dd>Workspace-bootstrap</dd></div>
+            </dl></article>`;
+          if (focusCustomerHistoryCount) {
+            focusCustomerHistoryCount.textContent = "Visar workspace-baserad operation";
+          }
+          if (focusCustomerHistoryMeta) {
+            focusCustomerHistoryMeta.textContent =
+              "Ingen aktiv tråd vald · bootstrap-baserad operation";
+          }
+          setCustomerHistoryState("Bootstrap-läge", "blue");
+          setCustomerHistoryListState(
+            "Bootstrap-läge",
+            bootstrapOperationSurface.attention,
+            "blue"
+          );
+          if (focusCustomerHistoryReadoutButton) {
+            focusCustomerHistoryReadoutButton.disabled = true;
+          }
+          if (focusCustomerHistoryList) {
+            focusCustomerHistoryList.innerHTML = `
+              <article class="focus-history-entry focus-history-entry--state">
+                <div class="focus-history-entry-head">
+                  <div>
+                    <div class="focus-history-meta-row">
+                      <span class="focus-customer-chip focus-customer-chip--blue">Bootstrap-läge</span>
+                    </div>
+                    <h4 class="focus-history-entry-title">${escapeHtml(
+                      bootstrapOperationSurface.phaseTitle
+                    )}</h4>
+                    <p class="focus-history-entry-text">${escapeHtml(
+                      bootstrapOperationSurface.attention
+                    )}</p>
+                  </div>
+                </div>
+              </article>`;
+          }
+          return;
+        }
         if (bootstrapAftercareSurface) {
           const aftercareQueueEntries =
             typeof getPreviewAftercareQueueEntries === "function"
@@ -2956,6 +3201,15 @@
         typeof getJourneyPrimaryActionConfig === "function"
           ? getJourneyPrimaryActionConfig(thread, focusReadState)
           : null;
+      const customerSummary = thread.raw?.customerSummary || {};
+      const operationSurface =
+        typeof getPreviewOperationWorkspaceSurface === "function"
+          ? getPreviewOperationWorkspaceSurface(thread, focusReadState)
+          : null;
+      const aftercareSurface =
+        typeof getPreviewAftercareWorkspaceSurface === "function"
+          ? getPreviewAftercareWorkspaceSurface(thread, focusReadState)
+          : null;
       const lifecycleLabel = asText(
         thread.lifecycleLabel,
         activeJourneyLabel || humanizeCode(thread.statusLabel, "Aktiv dialog")
@@ -2978,7 +3232,6 @@
         asNumber(thread.raw?.customerSummary?.caseCount, 0),
         1
       );
-      const customerSummary = thread.raw?.customerSummary || {};
       const primaryMailboxList = customerMailboxOptions.map((item) => item.label);
       focusCustomerHero.innerHTML = `
         <div class="focus-customer-hero-main">
@@ -3117,6 +3370,54 @@
             }
           </dd></div>
         </dl></article>
+        ${
+          operationSurface
+            ? `<article class="focus-customer-data-card patient360-operation-card" data-tone="${escapeHtml(
+                operationSurface.tone || "planned"
+              )}"><h4>Operation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(operationSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(operationSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(operationSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(operationSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(operationSurface.nextStep, "-", 64)
+              )}</dd></div>
+            </dl>${
+              operationSurface.requiredActions.length ||
+              operationSurface.handoffCopy ||
+              operationSurface.note
+                ? `<div class="patient360-operation-card-footer">
+                    ${
+                      operationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${operationSurface.requiredActions.join(", ")}`,
+                              operationSurface.requiredActions.join(", "),
+                              84
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      operationSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              operationSurface.handoffCopy,
+                              operationSurface.handoffCopy,
+                              84
+                            )
+                          )}</p>`
+                        : operationSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(operationSurface.note, operationSurface.note, 84)
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>`
+            : ""
+        }
         ${
           aftercareSurface
             ? `<article class="focus-customer-data-card patient360-aftercare-card" data-tone="${escapeHtml(

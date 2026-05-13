@@ -18188,6 +18188,70 @@
             <div><dt>Validering</dt><dd>${escapeHtml(backbone.attention.validation)}</dd></div>
           </dl>
         </article>`;
+      const operationCardMarkup = operationSurface
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-operation-card" data-operation-module-card data-tone="${escapeHtml(
+            operationSurface.tone || "planned"
+          )}">
+            <h4>Operation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(operationSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(operationSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(operationSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(operationSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(operationSurface.nextStep, "-", 58)
+              )}</dd></div>
+            </dl>
+            ${
+              operationSurface.requiredActions.length ||
+              operationSurface.handoffCopy ||
+              operationSurface.note
+                ? `<div class="patient360-operation-card-footer">
+                    ${
+                      operationSurface.queueSummary
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Köläge: ${operationSurface.queueSummary}`,
+                              operationSurface.queueSummary,
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      operationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${operationSurface.requiredActions.join(", ")}`,
+                              operationSurface.requiredActions.join(", "),
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      operationSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              operationSurface.handoffCopy,
+                              operationSurface.handoffCopy,
+                              74
+                            )
+                          )}</p>`
+                        : operationSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(
+                                operationSurface.note,
+                                operationSurface.note,
+                                74
+                              )
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }
+          </article>`
+        : "";
       const aftercareCardMarkup = aftercareSurface
         ? `<article class="focus-customer-data-card patient360-data-card patient360-aftercare-card" data-aftercare-module-card data-tone="${escapeHtml(
             aftercareSurface.tone
@@ -18289,11 +18353,26 @@
           </article>`
         : "";
       const existingCard = focusCustomerGrid.querySelector("[data-patient360-module-card]");
+      const existingOperationCard = focusCustomerGrid.querySelector("[data-operation-module-card]");
       const existingAftercareCard = focusCustomerGrid.querySelector("[data-aftercare-module-card]");
       if (existingCard) {
         existingCard.outerHTML = patientCardMarkup;
       } else {
         focusCustomerGrid.insertAdjacentHTML("afterbegin", patientCardMarkup);
+      }
+      if (operationCardMarkup) {
+        if (existingOperationCard) {
+          existingOperationCard.outerHTML = operationCardMarkup;
+        } else {
+          const afterBeginTarget = focusCustomerGrid.querySelector("[data-patient360-module-card]");
+          if (afterBeginTarget) {
+            afterBeginTarget.insertAdjacentHTML("afterend", operationCardMarkup);
+          } else {
+            focusCustomerGrid.insertAdjacentHTML("afterbegin", operationCardMarkup);
+          }
+        }
+      } else if (existingOperationCard) {
+        existingOperationCard.remove();
       }
       if (aftercareCardMarkup) {
         if (existingAftercareCard) {
