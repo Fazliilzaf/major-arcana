@@ -13315,6 +13315,7 @@
 
   const runtimeActionEngine = PREVIEW_ACTION_ENGINE.createRuntimeActionEngine({
     applyFocusSection,
+    applyTemplateToActiveDraft,
     applyStudioMode,
     buildIntelReadoutHref,
     buildReauthUrl,
@@ -13330,6 +13331,7 @@
     noteFeedback,
     openLaterDialog,
     prepareComposeStudioState,
+    renderNoteDestination,
     renderScheduleDraft,
     scheduleFeedback,
     sentStatus,
@@ -13338,6 +13340,7 @@
     setContextCollapsed,
     setFeedback,
     setNoteModeOpen,
+    setNoteOpen,
     setScheduleOpen,
     setStudioOpen,
     state,
@@ -20598,6 +20601,12 @@
     const overview = state.portalRuntime.ownerOverview;
     const draft = selectedPortalRecord?.currentDraft || null;
     const published = selectedPortalRecord?.currentPublishedVersion || null;
+    const lastViewedLabel = selectedPortalRecord?.lastViewedAt
+      ? `Öppnad ${selectedPortalRecord.lastViewedAt}`
+      : "Inte öppnad ännu";
+    const lastAcknowledgedLabel = selectedPortalRecord?.lastAcknowledgedAt
+      ? `Kvitterad ${selectedPortalRecord.lastAcknowledgedAt}`
+      : "Ingen kvittens ännu";
     const totalCustomers = Number(overview?.customerCount || customers.length || 0);
     const draftCount = customers.reduce((sum, item) => sum + Number(item?.draftCount || 0), 0);
     const publishedCount = customers.reduce(
@@ -20629,6 +20638,15 @@
         <span>Aktivt utkast</span>
         <strong>${escapeHtml(draft?.title || state.portalRuntime.draft?.title || "Utkast saknas")}</strong>
         <p>${draft ? "Redo att spara eller publicera" : "Skapa ett utkast för vald kund"}</p>
+      </article>
+      <article class="customers-portal-summary-card">
+        <span>Kundaktivitet</span>
+        <strong>${escapeHtml(lastViewedLabel)}</strong>
+        <p>${escapeHtml(lastAcknowledgedLabel)} · ${
+          selectedPortalRecord?.unreadNotificationCount
+            ? `${selectedPortalRecord.unreadNotificationCount} olästa notiser`
+            : "Inga olästa notiser"
+        }</p>
       </article>
     `;
   }
@@ -36087,21 +36105,23 @@ renderStudioShell();
   }
 
   function syncCurrentNoteDraftFromForm() {
-    const activeKey = normalizeKey(state.forms.noteActiveKey);
+    const activeKey = normalizeKey(state.note?.activeKey);
     const definition = state.data.noteDefinitions[activeKey];
     if (!activeKey || !definition) return null;
 
-    const currentDraft = state.forms.noteDrafts[activeKey] || createNoteDraft(definition);
+    state.note = state.note || {};
+    state.note.drafts = state.note.drafts || {};
+    const currentDraft = state.note.drafts[activeKey] || createNoteDraft(definition);
     currentDraft.text = normalizeText(noteText?.value);
     currentDraft.priority = normalizeText(notePrioritySelect?.value) || currentDraft.priority;
     currentDraft.visibility = normalizeText(noteVisibilitySelect?.value) || currentDraft.visibility;
-    state.forms.noteDrafts[activeKey] = currentDraft;
+    state.note.drafts[activeKey] = currentDraft;
     return currentDraft;
   }
 
   function getActiveNoteDraft() {
     syncCurrentNoteDraftFromForm();
-    return state.forms.noteDrafts[normalizeKey(state.forms.noteActiveKey)] || null;
+    return state.note?.drafts?.[normalizeKey(state.note?.activeKey)] || null;
   }
 
   function addTagToActiveDraft(rawValue) {
@@ -36134,7 +36154,7 @@ renderStudioShell();
     draft.text = normalizeText(template.text);
     draft.tags = tagsFrom(template.tags);
     draft.templateKey = template.key;
-    renderNoteDestination(state.forms.noteActiveKey);
+    renderNoteDestination(state.note?.activeKey);
   }
 
   async function apiRequest(path, options = {}) {
