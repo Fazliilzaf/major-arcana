@@ -4042,7 +4042,7 @@
       <article class="portal-activity">
         <div class="portal-activity-head">
           <div class="portal-activity-heading">
-            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared customer activity" : "Portal activity")}</span>
+            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared activity" : "Portal activity")}</span>
             <strong>${escapeHtml(portalActivityTitle)}</strong>
           </div>
           <span class="portal-activity-meta">${escapeHtml(portalActivityCountLabel)} · ${escapeHtml(portalSyncLabel)}</span>
