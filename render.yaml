@@ -2,7 +2,12 @@ services:
   - type: web
     name: arcana-cco
     runtime: node
-    plan: starter
+    # Uppgraderad från starter till standard 2026-05-12: 512MB RAM räckte
+    # inte för Playwright + Node + Express + ~25 deps under last (orsakade
+    # 20+ deploy-fails med status 134 SIGABRT pga OOM). Standard ger 2GB
+    # RAM + 1 dedikerad CPU, vilket ger ~3x headroom för current load
+    # och stöd för samtidiga PDF/screenshot-genereringar.
+    plan: standard
     # Build: standard npm ci + post-install playwright-chromium till
     # persistent disk så browsers cachas mellan deploys.
     # (Status 134 var runtime-crash, INTE build-fail — server.js har
