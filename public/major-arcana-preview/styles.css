@@ -1605,6 +1605,22 @@ button {
   box-shadow: var(--panel-card-shadow);
 }
 
+.customers-portal-owner-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--panel-radius);
+  border: 1px solid rgba(120, 105, 90, 0.14);
+  background: var(--panel-card-top);
+  box-shadow: var(--panel-card-shadow);
+}
+
+.customers-portal-owner-history > div {
+  display: grid;
+  gap: 10px;
+}
+
 .customers-portal-draft-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1785,6 +1801,20 @@ button {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
+.customers-portal-version-card--owner {
+  align-items: flex-start;
+}
+
+.customers-portal-version-card.is-draft {
+  border-style: dashed;
+  border-color: rgba(177, 132, 88, 0.22);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.customers-portal-version-card.is-published {
+  border-color: rgba(109, 146, 160, 0.24);
+}
+
 .customers-portal-version-card strong,
 .customers-portal-notification-card strong {
   display: block;
@@ -1811,6 +1841,24 @@ button {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.customers-portal-version-card--owner span {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.customers-portal-version-card--owner em {
+  font-style: normal;
+  color: var(--copy-warm-muted);
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .customers-portal-version-card.is-active {
@@ -1883,6 +1931,7 @@ button {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .customers-portal-owner-history,
   .customers-portal-layer-row {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
@@ -4525,6 +4574,30 @@ button {
   background: linear-gradient(180deg, rgba(252, 248, 244, 0.94), rgba(250, 245, 241, 0.9));
 }
 
+.aftercare-lane-card[data-aftercare-queue-bucket="critical"],
+.aftercare-lane-card[data-aftercare-queue-bucket="due"] {
+  border-color: rgba(168, 77, 53, 0.34);
+  box-shadow:
+    0 9px 22px rgba(100, 45, 28, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+.aftercare-lane-card[data-aftercare-queue-bucket="today"] {
+  border-color: rgba(184, 133, 63, 0.28);
+}
+
+.aftercare-lane-card[data-aftercare-priority-rank="1"] {
+  box-shadow:
+    0 12px 26px rgba(81, 40, 24, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.aftercare-lane-card[data-aftercare-priority-rank="2"] {
+  box-shadow:
+    0 8px 18px rgba(81, 40, 24, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
 .aftercare-lane-card.is-selected,
 .aftercare-lane-card.thread-card-selected {
   border-color: rgba(143, 92, 207, 0.32);
@@ -4539,6 +4612,22 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.aftercare-lane-card-priority {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aftercare-lane-priority-kicker {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(126, 86, 55, 0.8);
 }
 
 .aftercare-lane-card-cta {
@@ -4569,6 +4658,10 @@ button {
   color: rgba(90, 72, 58, 0.78);
 }
 
+.aftercare-lane-priority-reason {
+  color: rgba(112, 78, 54, 0.92);
+}
+
 .aftercare-lane-card-body p {
   font-size: 13px;
   line-height: 1.45;
@@ -4578,6 +4671,40 @@ button {
 .aftercare-lane-card-meta {
   font-size: 12px;
   line-height: 1.4;
+}
+
+.aftercare-lane-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.aftercare-lane-inline-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 89, 67, 0.18);
+  background: linear-gradient(180deg, rgba(111, 77, 56, 0.94) 0%, rgba(84, 54, 37, 0.98) 100%);
+  box-shadow:
+    0 4px 10px rgba(45, 28, 18, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  color: rgba(255, 248, 241, 0.96);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.aftercare-lane-inline-action--secondary {
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(78, 58, 45, 0.92);
+  box-shadow:
+    0 3px 8px rgba(45, 28, 18, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .focus-customer-stat-card {

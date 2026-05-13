@@ -300,6 +300,7 @@
   const portalCustomerKey = document.querySelector("[data-portal-customer-key]");
   const portalOwnerSummary = document.querySelector("[data-portal-owner-summary]");
   const portalOwnerList = document.querySelector("[data-portal-owner-list]");
+  const portalOwnerHistory = document.querySelector("[data-portal-owner-history]");
   const portalDraftTitleInput = document.querySelector("[data-portal-draft-title]");
   const portalDraftSummaryInput = document.querySelector("[data-portal-draft-summary]");
   const portalDraftNoteInput = document.querySelector("[data-portal-draft-note]");
@@ -20536,10 +20537,67 @@
       .join("");
   }
 
+  function renderPortalOwnerHistory(selectedPortalRecord = null) {
+    if (!portalOwnerHistory) return;
+    const currentDraft = selectedPortalRecord?.currentDraft || null;
+    const versions = asArray(selectedPortalRecord?.versions);
+    const draftItems = currentDraft
+      ? [
+          {
+            key: `draft-${currentDraft.draftId || currentDraft.title || "current"}`,
+            status: "Utkast",
+            tone: "draft",
+            title: currentDraft.title || "Utkast saknas",
+            summary:
+              currentDraft.summary ||
+              "Det här är det aktiva ägarutkastet som väntar på sparning eller publicering.",
+            meta: `Uppdaterat ${currentDraft.updatedAt || "nyss"}`,
+          },
+        ]
+      : [];
+    const versionItems = versions.map((version) => ({
+      key: version.versionId || `version-${version.versionNumber || "current"}`,
+      status: `Version ${version.versionNumber || "—"}`,
+      tone: "published",
+      title: version.title || "Utan titel",
+      summary: version.summary || "Publicerad layers-version.",
+      meta: `Publicerad ${version.publishedAt || "nyss"}`,
+    }));
+    const items = [...draftItems, ...versionItems];
+
+    if (!items.length) {
+      portalOwnerHistory.innerHTML = `
+        <article class="customers-portal-owner-empty">
+          <strong>Ingen versionshistorik ännu</strong>
+          <p>Spara eller publicera en layers-sketch för att se ägarhistoriken här.</p>
+        </article>
+      `;
+      return;
+    }
+
+    portalOwnerHistory.innerHTML = items
+      .map(
+        (item) => `
+          <article class="customers-portal-version-card customers-portal-version-card--owner is-${escapeHtml(item.tone)}">
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.summary)}</p>
+            </div>
+            <span>
+              ${escapeHtml(item.status)}
+              <em>${escapeHtml(item.meta)}</em>
+            </span>
+          </article>
+        `
+      )
+      .join("");
+  }
+
   function renderPortalCustomerView() {
     if (!portalCustomerTitle || !portalCustomerSummary || !portalCustomerVersion) return;
     const detail = getCustomerDetail(getPortalSelectedCustomerKey());
-    const customerPortal = state.portalRuntime.customerPortal || findPortalOverviewCustomer(detail.key);
+    const selectedOverview = findPortalOverviewCustomer(detail.key);
+    const customerPortal = state.portalRuntime.customerPortal || selectedOverview;
     const selectedVersion = customerPortal?.currentPublishedVersion || null;
     const versions = asArray(customerPortal?.versions);
     const notifications = asArray(customerPortal?.notifications);
@@ -20567,6 +20625,7 @@
     if (portalOwnerSummary) {
       renderPortalOwnerSummary(detail, findPortalOverviewCustomer(detail.key), asArray(state.portalRuntime.ownerOverview?.customers));
     }
+    renderPortalOwnerHistory(state.portalRuntime.customerPortal || selectedOverview);
 
     if (portalCustomerVersions) {
       if (!versions.length) {
@@ -36587,9 +36646,12 @@ renderStudioShell();
           };
         }
         if (runtimeThread) {
+          if (window.__ccoWorkspace?.setActiveLaneId) {
+            window.__ccoWorkspace.setActiveLaneId("aftercare");
+          }
           selectRuntimeThread(runtimeThread.id);
           setAppView("conversations");
-          applyFocusSection("conversation");
+          applyFocusSection("customer");
         }
         normalizeWorkspaceState();
         renderRuntimeConversationShell();
@@ -36889,15 +36951,28 @@ renderStudioShell();
 	    const aftercareLaneButton = event.target.closest('[data-queue-lane="aftercare"]');
 	    if (!aftercareLaneButton) return;
 	    window.setTimeout(() => {
-	      state.ui = {
-	        ...(state.ui || {}),
-	        appView: "workspace",
-	        focusSection: "customer",
-	      };
+	      const workspaceApi = window.__ccoWorkspace;
+	      if (workspaceApi && typeof workspaceApi.setActiveLaneId === "function") {
+	        workspaceApi.setActiveLaneId("aftercare");
+	        if (typeof workspaceApi.setView === "function") {
+	          workspaceApi.setView("conversations");
+	        }
+	        if (typeof workspaceApi.setFocusSection === "function") {
+	          workspaceApi.setFocusSection("customer");
+	        }
+	      } else {
+	        state.ui = {
+	          ...(state.ui || {}),
+	          appView: "workspace",
+	          focusSection: "customer",
+	        };
+	      }
 	      if (focusStatusLine) {
 	        focusStatusLine.textContent = "Eftervårdskön filtrerades fram i arbetskön.";
 	      }
-	      renderShell();
+	      if (typeof window.__renderApp === "function") {
+	        window.__renderApp();
+	      }
 	    }, 120);
 	  });
 
