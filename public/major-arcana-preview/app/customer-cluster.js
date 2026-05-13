@@ -82,6 +82,9 @@
       delete c.dataset.customerClusterKey;
       const oldBadge = c.querySelector(':scope > .customer-cluster-badge');
       if (oldBadge) oldBadge.remove();
+      // Rensa även inline-badge + separator (kan annars staplas mellan scans)
+      c.querySelectorAll('.warm-top-meta .customer-cluster-badge-inline').forEach((b) => b.remove());
+      c.querySelectorAll('.warm-top-meta .customer-cluster-sep').forEach((s) => s.remove());
     });
 
     // Applicera nya cluster
@@ -97,14 +100,29 @@
       primary.dataset.customerClusterCount = String(groupCards.length);
       primary.dataset.customerClusterKey = key;
 
-      // Lägg en badge med count + chevron
-      let badge = primary.querySelector(':scope > .customer-cluster-badge');
-      if (!badge) {
+      // Lägg en INLINE-badge i .warm-top-meta efter "Ej tilldelad" så att
+      // den blir suffix på tids/status-raden istället för en egen rad som
+      // pushar resten nedåt (tidigare bug: 36 px extra höjd förstörde 96 px-
+      // grid). Klick på badgen expandar/kollapsar sub-trådar.
+      // Rensa ev. legacy-badge i kort-roten (om gammal version körts först).
+      const legacy = primary.querySelector(':scope > .customer-cluster-badge');
+      if (legacy) legacy.remove();
+
+      const metaRow = primary.querySelector('.warm-top-meta');
+      let badge = metaRow?.querySelector('.customer-cluster-badge-inline');
+      if (metaRow && !badge) {
+        // Skapa separator + button i samma stil som befintlig meta-sep
+        const sep = document.createElement('span');
+        sep.className = 'meta-sep customer-cluster-sep';
+        sep.setAttribute('aria-hidden', 'true');
+        sep.textContent = '·';
+        metaRow.appendChild(sep);
+
         badge = document.createElement('button');
         badge.type = 'button';
-        badge.className = 'customer-cluster-badge';
+        badge.className = 'customer-cluster-badge-inline';
         badge.setAttribute('aria-label', `Visa ${subs.length} fler trådar från samma kund`);
-        primary.appendChild(badge);
+        metaRow.appendChild(badge);
         badge.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -116,14 +134,9 @@
           scanAndCluster();
         });
       }
-      badge.innerHTML = `
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 6h10M3 10h7"/>
-        </svg>
-        <span class="customer-cluster-count">${groupCards.length} trådar</span>
-        <svg class="customer-cluster-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M5 6l3 3 3-3"/>
-        </svg>`;
+      if (badge) {
+        badge.innerHTML = `${groupCards.length} trådar <svg class="customer-cluster-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l3 3 3-3"/></svg>`;
+      }
 
       // Sub-cards: göm om inte expanderat
       subs.forEach((sub) => {

@@ -2626,6 +2626,43 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Inline-variant: cluster-count som suffix i .warm-top-meta (efter
+     "Ej tilldelad"). Tar 0 px extra höjd — sitter på samma rad som
+     tid/status. Klick = expand/collapse. */
+  .customer-cluster-badge-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #F5F3FF;
+    color: #4F46E5;
+    border: 1px solid #DDD6FE;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    cursor: pointer;
+    margin-left: 2px;
+    vertical-align: baseline;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .customer-cluster-badge-inline:hover {
+    background: #EDE9FE;
+    border-color: #C4B5FD;
+  }
+  .customer-cluster-badge-inline svg {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+  .customer-cluster-badge-inline .customer-cluster-chevron {
+    transition: transform 160ms ease;
+  }
+  .thread-card.customer-cluster-expanded .customer-cluster-badge-inline .customer-cluster-chevron {
+    transform: rotate(180deg);
+  }
+
   /* Göm lane-badge på .has-inline-signals — den ÄR nu första pillen i
      warm-why-extras, så top-left lane-badge blir duplikat. */
   .thread-card.has-inline-signals .lane-badge {
