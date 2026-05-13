@@ -127,13 +127,23 @@
     bindToggleChange();
     bindOutsideClick();
 
-    // SEN: vänta tills appen är settled, DÅ applicera persisted intent
+    // PARALLELLT med settle-väntan: aggressiv 100ms-polling under första 10s
+    // så dropdown-state överlever renderApp-bootstrap-wipes (annars hoppar
+    // den synligt under de första sekunderna).
+    let bootPollCount = 0;
+    const bootPoll = setInterval(() => {
+      bindToggleChange();
+      applyIntent();
+      bootPollCount += 1;
+      if (bootPollCount >= 100) clearInterval(bootPoll); // 100 * 100ms = 10s
+    }, 100);
+
+    // SEN: vänta tills appen är settled, DÅ ta över med MutationObserver
     waitForSettled(() => {
-      // Re-bind ifall toggle re-skapats under load
       bindToggleChange();
       applyIntent();
 
-      // Efter settle: börja persistera över renderApp-wipes med MutationObserver
+      // Efter settle: persistera över renderApp-wipes med MutationObserver
       const observer = new MutationObserver(() => {
         requestAnimationFrame(() => {
           bindToggleChange();
@@ -141,6 +151,8 @@
         });
       });
       observer.observe(document.body, { childList: true, subtree: true });
+      // Fallback-poll på 1 s efter boot (boot-poll fortsätter parallellt
+      // tills den klockar ut på 10 s).
       setInterval(() => {
         bindToggleChange();
         applyIntent();
