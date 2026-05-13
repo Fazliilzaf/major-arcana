@@ -13976,7 +13976,7 @@
             .toLowerCase()
             .normalize("NFKD")
             .replace(/[\u0300-\u036f]/g, "") === "demo"
-      )
+        )
     );
   }
 
@@ -13985,7 +13985,19 @@
     const selectedMailboxIds = asArray(state.selection?.mailboxIds || state.runtime?.selectedMailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value, availableMailboxes))
       .filter(Boolean);
-    const threads = Array.isArray(state.data?.threads) ? state.data.threads : asArray(state.runtime?.threads);
+    const demoThreads = asArray(state.runtime?.threads).filter(
+      (thread) =>
+        String(thread?.worklistSource || "")
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "") === "demo"
+    );
+    const shouldPreferDemoThreads = !availableMailboxes.length && demoThreads.length > 1;
+    const threads = shouldPreferDemoThreads
+      ? demoThreads
+      : Array.isArray(state.data?.threads)
+        ? state.data.threads
+        : asArray(state.runtime?.threads);
     if (!selectedMailboxIds.length) {
       return availableMailboxes.length ? [] : threads;
     }
@@ -14591,6 +14603,8 @@
         "truth_primary";
     const readOnly = truthDriven && FOCUS_TRUTH_PRIMARY?.readOnly !== false;
     const foundationState = resolveRuntimeFoundationState(focusThread);
+    const isDemoFocusThread =
+      normalizeKey(focusThread?.worklistSource || focusThread?.raw?.worklistSource || "") === "demo";
     const foundationProvenance =
       foundationState &&
       (normalizeKey(foundationState?.source) || asNumber(foundationState?.messageCount, 0) > 0)
@@ -14610,9 +14624,10 @@
             fallbackDriven: true,
             foundationLabel: "",
             foundationDetail: "",
-            fallbackLabel: "Legacy fallback",
-            fallbackDetail:
-              "Canonical threaddata saknas för den här tråden just nu, så fokusytan läser preview/body via kompatibilitetskedjan.",
+            fallbackLabel: isDemoFocusThread ? "Showcase-läge" : "Legacy fallback",
+            fallbackDetail: isDemoFocusThread
+              ? "Showcase använder kuraterad demo-data för att visa arbetsläget tydligt även utan live-mailfoundation."
+              : "Canonical threaddata saknas för den här tråden just nu, så fokusytan läser preview/body via kompatibilitetskedjan.",
           };
 
     if (truthDriven) {

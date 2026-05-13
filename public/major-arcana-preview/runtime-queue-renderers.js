@@ -5715,7 +5715,7 @@
       if (useUnifiedQueueList && state.runtime.error && runtimeMode !== "offline_history") {
         // v5: om demo-fixtures finns, visa dem istället för error-fallback så
         // operatören ser v5-layouten med riktiga lane-badges, What/Why osv.
-        const demoFixtures = getQueueScopedRuntimeThreads().filter(
+        const demoFixtures = asArray(state.runtime.threads).filter(
           (t) => asText(t?.worklistSource) === "demo"
         );
         if (demoFixtures.length) {
