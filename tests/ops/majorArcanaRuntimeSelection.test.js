@@ -246,7 +246,7 @@ function createNormalizeScopeHarness({
       return filteredThreads;
     },
     () => mailboxScopedThreads,
-    () => ['later', 'sprint', 'act-now', 'high-risk'],
+    () => ['later', 'sprint', 'act-now', 'consultation', 'operation', 'commercial', 'high-risk'],
     (laneId, laneThreads = []) => {
       const normalizedLaneId =
         typeof laneId === 'string'
@@ -288,7 +288,16 @@ function createNormalizeScopeHarness({
           : value === undefined || value === null
             ? 'all'
             : String(value).trim().toLowerCase();
-      const allowedLaneIds = ['all', 'later', 'sprint', 'act-now', 'high-risk'];
+      const allowedLaneIds = [
+        'all',
+        'later',
+        'sprint',
+        'act-now',
+        'consultation',
+        'operation',
+        'commercial',
+        'high-risk',
+      ];
       return allowedLaneIds.includes(normalizedLaneId) ? normalizedLaneId : 'all';
     },
     (left, right) =>
@@ -729,13 +738,13 @@ test('reconcileRuntimeSelection behaller vald trad nar den fortfarande ar synlig
   assert.equal(harness.getResetCount(), 0);
 });
 
-test('preview shell prioriterar act-now fore commercial och operation nar traden ar akut', () => {
+test('preview shell prioriterar act-now fore consultation, commercial och operation nar traden ar akut', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
   const laneSource = extractFunctionSource(source, 'getThreadPrimaryLaneId');
 
   assert.match(
     laneSource,
-    /if \(isAftercareRuntimeThread\(thread\)\) return "aftercare";\s*if \(asArray\(thread\?\.tags\)\.includes\("act-now"\)\) return "act-now";\s*if \(isCommercialRuntimeThread\(thread\)\) return "commercial";\s*if \(isOperationRuntimeThread\(thread\)\) return "operation";/
+    /if \(isAftercareRuntimeThread\(thread\)\) return "aftercare";\s*if \(asArray\(thread\?\.tags\)\.includes\("act-now"\)\) return "act-now";\s*if \(explicitPrimaryLane === "consultation" \|\| isConsultationRuntimeThread\(thread\)\)\s*return "consultation";\s*if \(isCommercialRuntimeThread\(thread\)\) return "commercial";\s*if \(isOperationRuntimeThread\(thread\)\) return "operation";/
   );
 });
 
@@ -761,9 +770,12 @@ test('preview shell bygger operation surface fran workspace readout och bar bloc
   assert.match(surfaceSource, /describeOperationQueueBucket/);
   assert.match(surfaceSource, /blockerLabel/);
   assert.match(surfaceSource, /handoffCopy/);
+  assert.match(surfaceSource, /operatorActions/);
   assert.match(surfaceSource, /queueLabel/);
   assert.match(source, /data-operation-module-card/);
   assert.match(source, /patient360-operation-card-footer/);
+  assert.match(source, /patient360-operation-action-row/);
+  assert.match(source, /buildOperationActionButtonMarkup/);
 });
 
 test('preview shell bygger consultation surface fran workspace readout och bar blocker/handoff ut i ytan', () => {
@@ -774,9 +786,59 @@ test('preview shell bygger consultation surface fran workspace readout och bar b
   assert.match(surfaceSource, /describeConsultationQueueBucket/);
   assert.match(surfaceSource, /blockerLabel/);
   assert.match(surfaceSource, /handoffCopy/);
+  assert.match(surfaceSource, /operatorActions/);
   assert.match(surfaceSource, /queueLabel/);
   assert.match(source, /data-consultation-module-card/);
   assert.match(source, /patient360-consultation-card-footer/);
+  assert.match(source, /patient360-consultation-action-row/);
+  assert.match(source, /buildConsultationActionButtonMarkup/);
+});
+
+test('preview shell bygger commercial surface fran workspace readout och bar actions ut i ytan', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const surfaceSource = extractFunctionSource(source, 'getPreviewCommercialWorkspaceSurface');
+
+  assert.match(surfaceSource, /state\.commercial\?\.readout/);
+  assert.match(surfaceSource, /describeCommercialQueueBucket/);
+  assert.match(surfaceSource, /blockerLabel/);
+  assert.match(surfaceSource, /operatorActions/);
+  assert.match(surfaceSource, /handoffCopy/);
+  assert.match(source, /data-commercial-module-card/);
+  assert.match(source, /patient360-commercial-card-footer/);
+  assert.match(source, /patient360-commercial-action-row/);
+  assert.match(source, /buildCommercialActionButtonMarkup/);
+});
+
+test('runtime focus-renderer markerar aktivt domankort med data-is-active-module for starkare coherence', () => {
+  const source = fs.readFileSync(
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'major-arcana-preview',
+      'runtime-focus-intel-renderers.js'
+    ),
+    'utf8'
+  );
+
+  assert.match(source, /const activeWorkspaceDomainId =/);
+  assert.match(
+    source,
+    /data-is-active-module="\$\{escapeHtml\(\s*activeWorkspaceDomainId === "operation" \? "true" : "false"\s*\)\}"/
+  );
+  assert.match(
+    source,
+    /data-is-active-module="\$\{escapeHtml\(\s*activeWorkspaceDomainId === "consultation" \? "true" : "false"\s*\)\}"/
+  );
+  assert.match(
+    source,
+    /data-is-active-module="\$\{escapeHtml\(\s*activeWorkspaceDomainId === "commercial" \? "true" : "false"\s*\)\}"/
+  );
+  assert.match(
+    source,
+    /data-is-active-module="\$\{escapeHtml\(\s*activeWorkspaceDomainId === "aftercare" \? "true" : "false"\s*\)\}"/
+  );
 });
 
 test('reconcileRuntimeSelection synkar mailboxscope med vald trad även när samma thread redan var vald', () => {
@@ -1092,6 +1154,56 @@ test('normalizeVisibleRuntimeScope valjer lane med riktig kundtrad fore lane med
   assert.deepEqual(harness.getReconcileCalls(), [
     {
       visibleThreadIds: ['thread-customer'],
+      options: {
+        preferredThreadId: '',
+        resetHistoryOnChange: true,
+      },
+    },
+  ]);
+});
+
+test('normalizeVisibleRuntimeScope prioriterar consultation fore commercial och operation nar flera arbetslaner ar synliga', () => {
+  const consultationThread = {
+    id: 'thread-consultation',
+    mailboxAddress: 'contact@hairtpclinic.com',
+    tags: ['consultation'],
+  };
+  const operationThread = {
+    id: 'thread-operation',
+    mailboxAddress: 'contact@hairtpclinic.com',
+    tags: ['operation'],
+  };
+  const commercialThread = {
+    id: 'thread-commercial',
+    mailboxAddress: 'contact@hairtpclinic.com',
+    tags: ['commercial'],
+  };
+  const harness = createNormalizeScopeHarness({
+    threads: [consultationThread, operationThread, commercialThread],
+    filteredThreads: [],
+    filteredThreadsByLane: {
+      all: [],
+      consultation: [consultationThread],
+      operation: [operationThread],
+      commercial: [commercialThread],
+    },
+    mailboxScopedThreads: [consultationThread, operationThread, commercialThread],
+    queueScopedThreads: [consultationThread, operationThread, commercialThread],
+    selectedMailboxIds: ['contact@hairtpclinic.com'],
+    activeLaneId: 'all',
+    selectedThreadId: '',
+  });
+
+  harness.run({
+    preferredThreadId: '',
+    resetHistoryOnChange: true,
+    allowLaneFallback: true,
+  });
+
+  assert.deepEqual(harness.getLaneWrites(), ['consultation']);
+  assert.deepEqual(harness.getReconcileCalls(), [
+    {
+      visibleThreadIds: ['thread-consultation'],
       options: {
         preferredThreadId: '',
         resetHistoryOnChange: true,
