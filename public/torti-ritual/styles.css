@@ -359,6 +359,15 @@ input {
   font-weight: 700;
 }
 
+.portal-hero-notice.is-emphasis {
+  border-color: rgba(88, 63, 46, 0.18);
+  background: rgba(255, 251, 244, 0.96);
+}
+
+.portal-hero-notice.is-muted {
+  opacity: 0.82;
+}
+
 .portal-card {
   display: grid;
   gap: 10px;

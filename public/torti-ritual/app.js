@@ -3904,8 +3904,7 @@
           <div class="portal-hero-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
             <span>${escapeHtml(customerStatus)}</span>
-            <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : `${unreadCount} unread notifications`)}</span>
-            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
         </article>
