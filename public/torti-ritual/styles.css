@@ -287,6 +287,18 @@ input {
   gap: 12px;
 }
 
+.portal-grid--customer-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.portal-grid--customer-only .portal-card--owner {
+  display: none;
+}
+
+.portal-grid--customer-only .portal-card--customer {
+  grid-column: 1 / -1;
+}
+
 .portal-card {
   display: grid;
   gap: 10px;

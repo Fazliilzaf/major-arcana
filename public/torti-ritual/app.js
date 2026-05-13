@@ -1039,6 +1039,7 @@
     savedSheets: [],
     currentSheetId: null,
     portalFocusCustomerKey: getPortalQueryCustomerKey(),
+    portalView: getPortalQueryPortalView(),
     portalRemoteStatus: {},
     portalRemoteHydrationSignatures: {},
     portalRemoteSyncSignatures: {},
@@ -1230,6 +1231,24 @@
       return normalize(params.get("portalCustomerKey") || params.get("customerKey") || "");
     } catch (error) {
       return "";
+    }
+  }
+
+  function getPortalQueryPortalView() {
+    if (typeof window === "undefined" || !window.location) {
+      return "split";
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const view = normalize(params.get("portalView") || "");
+      if (view === "customer" || view === "owner") {
+        return view;
+      }
+
+      return "split";
+    } catch (error) {
+      return "split";
     }
   }
 
@@ -2347,6 +2366,7 @@
     const customerKey = getPortalCustomerKey(snapshot);
     const url = new URL(window.location.href);
     url.searchParams.set("portalCustomerKey", customerKey);
+    url.searchParams.set("portalView", "customer");
     return url.toString();
   }
 
@@ -3839,6 +3859,8 @@
     const customerKey = getPortalCustomerKey(snapshot);
     const customerName = getPortalCustomerName(snapshot);
     const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const portalView = state.portalView || "split";
+    const customerOnlyView = portalView === "customer";
     schedulePortalRemoteHydration(snapshot);
     const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
     const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
@@ -3860,20 +3882,27 @@
         : "Customer has seen the latest version"
       : "Draft not published yet";
     const portalSyncLabel = getPortalConnectionLabel(customerKey);
+    const portalPanelTitle = customerOnlyView ? "Customer portal" : "Owner & customer portal";
+    const portalPanelCopy = customerOnlyView
+      ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
+      : "Publish the active Torti draft and keep the customer version in sync.";
 
     portalPanel.innerHTML = `
       <div class="panel-intro">
         <div class="panel-copy">
           <p>Portal flow</p>
-          <h2>Owner & customer portal</h2>
-          <span>Publish the active Torti draft and keep the customer version in sync.</span>
+          <h2>${escapeHtml(portalPanelTitle)}</h2>
+          <span>${escapeHtml(portalPanelCopy)}</span>
         </div>
         <div class="panel-meta">
           <span class="panel-count">${escapeHtml(`${versions.length} versions`)}</span>
-          <button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>
+          ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
         </div>
       </div>
-      <div class="portal-grid">
+      <div class="portal-grid${customerOnlyView ? " portal-grid--customer-only" : ""}">
+        ${customerOnlyView
+          ? ""
+          : `
         <article class="portal-card portal-card--owner">
           <div class="portal-card-head">
             <span class="portal-card-kicker">Owner portal</span>
@@ -3907,7 +3936,7 @@
                 .join("")
               : '<div class="portal-empty">Publish the draft to create the first customer version.</div>'}
           </div>
-        </article>
+        </article>`}
 
         <article class="portal-card portal-card--customer">
           <div class="portal-card-head">
