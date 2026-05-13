@@ -3894,6 +3894,7 @@
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared customer view" : "Owner workspace";
+    const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
     const portalHero = customerOnlyView
       ? `
         <article class="portal-hero">
@@ -3943,6 +3944,7 @@
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
             <button class="ghost-button portal-action" type="button" data-copy-portal-link>Copy portal link</button>
+            <button class="ghost-button portal-action" type="button" data-preview-customer-portal>Preview customer view</button>
           </div>
           <div class="portal-card-list">
             ${versions.length > 0
@@ -4022,6 +4024,15 @@
           }, 1500);
         } catch (error) {
           window.prompt("Copy portal link", buildPortalShareUrl(snapshot));
+        }
+      });
+    }
+
+    const previewCustomerButton = portalPanel.querySelector("[data-preview-customer-portal]");
+    if (previewCustomerButton) {
+      previewCustomerButton.addEventListener("click", function () {
+        if (portalPreviewUrl) {
+          window.location.assign(portalPreviewUrl);
         }
       });
     }
