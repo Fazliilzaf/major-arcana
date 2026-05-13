@@ -844,6 +844,29 @@ if [[ "$CURRENT_ROLE" == "OWNER" ]]; then
   fi
   echo "✅ monitor/metrics/reset OK"
 
+  OPS_SCHED_ALERT_RECONCILE_RESPONSE="$(curl -s -X POST "$BASE_URL/api/v1/ops/scheduler/run" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jobId":"alert_probe"}')"
+  OPS_SCHED_ALERT_RECONCILE_OK="$(printf '%s' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE" | json_get ok 2>/dev/null || true)"
+  OPS_SCHED_ALERT_RECONCILE_ERROR="$(printf '%s' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE" | json_get error 2>/dev/null || true)"
+  if [[ "$OPS_SCHED_ALERT_RECONCILE_OK" == "true" ]]; then
+    OPS_SCHED_ALERT_RECONCILE_AUTO_RESOLVED="$(printf '%s' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE" | json_get result.sloAutoTicketing.autoResolved 2>/dev/null || true)"
+    OPS_SCHED_ALERT_RECONCILE_BREACHES="$(printf '%s' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE" | json_get result.sloAutoTicketing.breachesDetected 2>/dev/null || true)"
+    if [[ -z "$OPS_SCHED_ALERT_RECONCILE_AUTO_RESOLVED" || -z "$OPS_SCHED_ALERT_RECONCILE_BREACHES" ]]; then
+      echo "❌ ops/scheduler/run alert_probe reconcile saknar expected SLO-fält"
+      printf '%s\n' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE"
+      exit 1
+    fi
+    echo "✅ ops/scheduler/run alert_probe reconcile OK (breaches: ${OPS_SCHED_ALERT_RECONCILE_BREACHES}, autoResolved: ${OPS_SCHED_ALERT_RECONCILE_AUTO_RESOLVED})"
+  elif [[ "$OPS_SCHED_ALERT_RECONCILE_ERROR" == "disabled_job" || "$OPS_SCHED_ALERT_RECONCILE_ERROR" == "job_running" ]]; then
+    echo "ℹ️ ops/scheduler/run alert_probe reconcile SKIP (${OPS_SCHED_ALERT_RECONCILE_ERROR})"
+  else
+    echo "❌ ops/scheduler/run alert_probe reconcile misslyckades"
+    printf '%s\n' "$OPS_SCHED_ALERT_RECONCILE_RESPONSE"
+    exit 1
+  fi
+
   curl -s "$BASE_URL/healthz" >/dev/null
   curl -s "$BASE_URL/readyz" >/dev/null
   curl -s "$BASE_URL/api/v1/monitor/status" -H "Authorization: Bearer $TOKEN" >/dev/null
