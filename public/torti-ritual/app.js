@@ -3876,6 +3876,8 @@
     const unreadCount = Array.isArray(record.notifications)
       ? record.notifications.filter((notification) => !notification.readAt).length
       : 0;
+    const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
+    const recentPortalEvents = portalEvents.slice(0, 4);
     const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
     const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
     const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
@@ -4009,6 +4011,37 @@
           </div>
         </article>
       </div>
+      <article class="portal-activity">
+        <div class="portal-activity-head">
+          <div class="portal-activity-heading">
+            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared customer activity" : "Portal activity")}</span>
+            <strong>${escapeHtml("Latest portal events")}</strong>
+          </div>
+          <span class="portal-activity-meta">${escapeHtml(portalSyncLabel)}</span>
+        </div>
+        <div class="portal-activity-list">
+          ${recentPortalEvents.length > 0
+            ? recentPortalEvents
+              .map((event) => {
+                const eventTitle = event.message || event.type || "Portal event";
+                const eventType = event.type ? event.type.replace(/_/g, " ") : "event";
+                return `
+                  <article class="portal-activity-item">
+                    <div class="portal-activity-item-head">
+                      <strong>${escapeHtml(eventTitle)}</strong>
+                      <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
+                    </div>
+                    <div class="portal-activity-item-foot">
+                      <span>${escapeHtml(eventType)}</span>
+                      <span>${escapeHtml(event.actorUserId || "owner")}</span>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")
+            : '<div class="portal-empty">No portal events yet. Publish a draft to create the first activity.</div>'}
+        </div>
+      </article>
     `;
 
     portalPanel.querySelectorAll("[data-publish-portal]").forEach((button) => {
