@@ -8022,12 +8022,14 @@ test('buildThreadCardMarkup marks truth-primary rows clearly in the worklist UI'
   assert.match(markup, /data-thread-signal-icon="bolt"/);
 });
 
-test('queue renderers ger operation och commercial eget v5-lane-sprak', () => {
+test('queue renderers ger operation, consultation och commercial eget v5-lane-sprak', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
 
   assert.match(source, /operation:\s*"operation"/);
+  assert.match(source, /consultation:\s*"consultation"/);
   assert.match(source, /commercial:\s*"commercial"/);
   assert.match(source, /operation:\s*"Operation"/);
+  assert.match(source, /consultation:\s*"Konsultation"/);
   assert.match(source, /commercial:\s*"Commercial"/);
 });
 
@@ -8046,19 +8048,36 @@ test('queue renderers visar lane-specifika what/why/next-signaler for operation 
   assert.match(source, /if \(normalizedLaneId === "commercial"\) return "Öppna commercial";/);
 });
 
-test('queue renderers ger operation och commercial egna primära radactions', () => {
+test('queue renderers ger operation, consultation och commercial egna primära radactions', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
 
   assert.match(source, /v5Lane === "operation"\s*\?\s*"Öppna operation"/);
+  assert.match(source, /v5Lane === "consultation"[\s\S]*"Öppna konsultation"/);
   assert.match(source, /v5Lane === "commercial"\s*\?\s*"Öppna commercial"/);
+  assert.match(
+    source,
+    /data-runtime-domain-open="operation"\s+data-runtime-domain-thread-id="\$\{escapeHtml\(\s*runtimeThreadId\s*\)\}"/
+  );
+  assert.match(
+    source,
+    /data-runtime-domain-open="consultation"\s+data-runtime-domain-thread-id="\$\{escapeHtml\(\s*runtimeThreadId\s*\)\}"/
+  );
+  assert.match(
+    source,
+    /data-runtime-domain-open="commercial"\s+data-runtime-domain-thread-id="\$\{escapeHtml\(\s*runtimeThreadId\s*\)\}"/
+  );
 });
 
-test('queue renderers ger operation och commercial lane-specifika snabbactions', () => {
+test('queue renderers ger operation, consultation och commercial lane-specifika snabbactions', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
 
   assert.match(
     source,
     /laneQuickActionSignal\.includes\("operationsplan"\)[\s\S]*laneQuickActionSignal\.includes\("klarering"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Klarering"/
+  );
+  assert.match(
+    source,
+    /laneQuickActionSignal\.includes\("samtycke"\)[\s\S]*laneQuickActionSignal\.includes\("konsultation"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Samtyckesnot"/
   );
   assert.match(
     source,

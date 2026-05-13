@@ -87,6 +87,9 @@ test('buildConsultationCaseReadout prioriterar dokument och samtycke som blocker
   assert.equal(readout.waitingOn, 'patient');
   assert.match(readout.nextStep, /samtycke|dokument/i);
   assert.equal(readout.operatorActions[0].action, 'resolve_consultation_documents');
+  assert.equal(readout.operatorActions[0].type, 'surface_action');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'consultation_open');
+  assert.equal(readout.operatorActions[1].surfaceAction, 'note_open');
 });
 
 test('buildConsultationCaseReadout lämnar konsultation vidare till booking när den är klar', () => {
@@ -105,4 +108,17 @@ test('buildConsultationCaseReadout lämnar konsultation vidare till booking när
   assert.equal(readout.waitingOn, 'booking');
   assert.match(readout.nextStep, /bokning|behandlingsplan/i);
   assert.match(readout.handoffCopy, /bokning|behandlingsplan/i);
+});
+
+test('buildConsultationCaseReadout lyfter klinisk validering med konsultations- och note-vägar', () => {
+  const readout = buildConsultationCaseReadout({
+    consultationStatus: 'needs_review',
+    clinicalStatus: 'needs_validation',
+    documentStatus: 'validated',
+    consentStatus: 'confirmed',
+  });
+
+  assert.equal(readout.phase, 'clinical_validation');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'consultation_open');
+  assert.equal(readout.operatorActions[1].surfaceAction, 'note_open');
 });

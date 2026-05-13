@@ -3142,6 +3142,9 @@
       bookable: "bokning",
       booking: "bokning",
       bokning: "bokning",
+      consultation: "consultation",
+      consult: "consultation",
+      consultation_request: "consultation",
       operation: "operation",
       operations: "operation",
       commercial: "commercial",
@@ -3166,6 +3169,7 @@
       if (tags.includes("sprint")) return "sprint";
       if (tags.includes("later")) return "senare";
       if (tags.includes("bookable") || tags.includes("booking")) return "bokning";
+      if (tags.includes("consultation") || tags.includes("consult")) return "consultation";
       if (tags.includes("operation")) return "operation";
       if (tags.includes("commercial")) return "commercial";
       if (tags.includes("review") || tags.includes("granska")) return "granska";
@@ -3183,6 +3187,7 @@
       oklart: "Oklart",
       eftervard: "Eftervård",
       bokning: "Bokning",
+      consultation: "Konsultation",
       operation: "Operation",
       commercial: "Commercial",
       medicinsk: "Medicinsk",
@@ -3604,23 +3609,40 @@
           </div>`
         : "";
 
-      // Action cluster — primary-action använder data-runtime-studio-open så
-      // runtime-action-engine kan binda klick precis som tidigare för chip-green.
+      // Action cluster — primärknappen går normalt via studio-open, men
+      // operations- och commercialrader kan nu öppna sin egen workspace-surface direkt.
       const studioThreadAttr = runtimeThreadId
         ? ` data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(runtimeThreadId)}"`
         : "";
+      const operationThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="operation"';
+      const consultationThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="consultation"';
+      const commercialThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="commercial"';
       const primaryLabel =
         v5Lane === "bokning"
           ? "Bekräfta bokning"
           : v5Lane === "operation"
             ? "Öppna operation"
-            : v5Lane === "commercial"
-              ? "Öppna commercial"
-              : v5Lane === "granska"
-                ? "Granska"
-                : v5Lane === "oklart"
-                  ? "Öppna"
-                  : "Svara";
+            : v5Lane === "consultation"
+              ? "Öppna konsultation"
+              : v5Lane === "commercial"
+                ? "Öppna commercial"
+                : v5Lane === "granska"
+                  ? "Granska"
+                  : v5Lane === "oklart"
+                    ? "Öppna"
+                    : "Svara";
       const normalizedNextStr = normalizeKey(nextStr);
       const laneQuickActionSignal = normalizeKey(
         [
@@ -3647,8 +3669,23 @@
         laneQuickActionSignal.includes("deposition") ||
         laneQuickActionSignal.includes("betalning") ||
         laneQuickActionSignal.includes("pris");
-      const laneQuickActionDestination = hasCommercialQuickAction ? "betalning" : "medicinsk";
-      const laneQuickActionTemplate = hasCommercialQuickAction ? "betalning" : "allergi";
+      const hasConsultationQuickAction =
+        v5Lane === "consultation" ||
+        normalizedNextStr === "oppna_konsultation" ||
+        laneQuickActionSignal.includes("samtycke") ||
+        laneQuickActionSignal.includes("konsultation") ||
+        laneQuickActionSignal.includes("dokument") ||
+        laneQuickActionSignal.includes("klinis");
+      const laneQuickActionDestination = hasCommercialQuickAction
+        ? "betalning"
+        : hasConsultationQuickAction
+          ? "medicinsk"
+          : "medicinsk";
+      const laneQuickActionTemplate = hasCommercialQuickAction
+        ? "betalning"
+        : hasConsultationQuickAction
+          ? "samtycke"
+          : "allergi";
       const laneQuickAction = hasOperationQuickAction
         ? {
             action: "note",
@@ -3656,14 +3693,21 @@
             label: "Klarering",
             aria: "Öppna klareringsanteckning",
           }
-        : hasCommercialQuickAction
+        : hasConsultationQuickAction
           ? {
               action: "note",
-              key: "commercial",
-              label: "Prisnot",
-              aria: "Öppna prisanteckning",
+              key: "consultation",
+              label: "Samtyckesnot",
+              aria: "Öppna konsultationsanteckning",
             }
-          : null;
+          : hasCommercialQuickAction
+            ? {
+                action: "note",
+                key: "commercial",
+                label: "Prisnot",
+                aria: "Öppna prisanteckning",
+              }
+            : null;
       const laneQuickActionMarkup = laneQuickAction
         ? `<button class="queue-inline-lane-action quick-action-pill" type="button"
             data-quick-action="${escapeHtml(laneQuickAction.action)}"
@@ -3684,7 +3728,27 @@
         <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
         <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
         ${laneQuickActionMarkup}
-        <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+        <button class="primary-action" type="button" data-quick-action="${escapeHtml(
+          v5Lane === "operation"
+            ? "operation_surface"
+            : v5Lane === "consultation"
+              ? "consultation_surface"
+              : v5Lane === "commercial"
+                ? "commercial_surface"
+                : "studio"
+        )}" data-quick-mode="reply"${
+          v5Lane === "operation"
+            ? operationThreadAttr
+            : v5Lane === "consultation"
+              ? consultationThreadAttr
+              : v5Lane === "commercial"
+                ? commercialThreadAttr
+                : studioThreadAttr
+        }${
+          v5Lane === "operation" || v5Lane === "consultation" || v5Lane === "commercial"
+            ? ""
+            : ' aria-controls="studio-shell"'
+        }>
           ${escapeHtml(primaryLabel)}
           ${V5_ACTION_ICONS.arrowRight}
         </button>

@@ -64,6 +64,9 @@ test('operation readout prioriterar blockerad klarering och bygger operatorlage'
   assert.equal(readout.waitingOn, 'clinic');
   assert.match(readout.nextStep, /klarering/i);
   assert.equal(readout.operatorActions[0].action, 'resolve_operation_clearance');
+  assert.equal(readout.operatorActions[0].type, 'surface_action');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'note_open');
+  assert.equal(readout.operatorActions[0].noteDestination, 'medicinsk');
 });
 
 test('operation readout gor avslutad operation till eftervards-handoff', () => {

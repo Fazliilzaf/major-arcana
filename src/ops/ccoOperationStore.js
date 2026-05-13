@@ -74,56 +74,83 @@ function buildOperationOperatorActions({
 
   if (phase === 'review') {
     actions.push({
+      key: 'review_operation_case',
       action: 'review_operation_case',
-      label: 'Granska ärendet',
+      label: 'Granska operationsspår',
+      type: 'surface_action',
+      surfaceAction: 'studio_open',
       emphasis: 'primary',
     });
   }
 
   if (phase === 'clearance_blocked' || phase === 'clearance_pending') {
     actions.push({
+      key: 'resolve_operation_clearance',
       action: 'resolve_operation_clearance',
       label: 'Driv klarering',
+      type: 'surface_action',
+      surfaceAction: 'note_open',
+      noteDestination: 'medicinsk',
+      noteTemplate: 'allergi',
       emphasis: 'primary',
     });
   }
 
   if (phase === 'ready_for_operation' || phase === 'operation_today') {
     actions.push({
+      key: 'confirm_operation_handoff',
       action: 'confirm_operation_handoff',
       label: 'Bekräfta handoff',
+      type: 'surface_action',
+      surfaceAction: 'studio_open',
       emphasis: 'primary',
     });
   }
 
   if (phase === 'in_progress') {
     actions.push({
+      key: 'capture_operation_progress',
       action: 'capture_operation_progress',
       label: 'Logga status',
+      type: 'surface_action',
+      surfaceAction: 'note_open',
+      noteDestination: 'medicinsk',
+      noteTemplate: 'allergi',
       emphasis: 'secondary',
     });
   }
 
   if (phase === 'clinical_follow_up') {
     actions.push({
+      key: 'escalate_operation_outcome',
       action: 'escalate_operation_outcome',
       label: 'Eskalera utfall',
+      type: 'surface_action',
+      surfaceAction: 'note_open',
+      noteDestination: 'medicinsk',
+      noteTemplate: 'allergi',
       emphasis: 'primary',
     });
   }
 
   if (phase === 'closed') {
     actions.push({
+      key: 'review_aftercare_handoff',
       action: 'review_aftercare_handoff',
       label: 'Öppna eftervård',
+      type: 'surface_action',
+      surfaceAction: 'aftercare_open',
       emphasis: 'secondary',
     });
   }
 
   if (clearanceStatus === 'cleared' && scheduledForIso) {
     actions.push({
+      key: 'share_operation_time',
       action: 'share_operation_time',
       label: 'Dela tid',
+      type: 'surface_action',
+      surfaceAction: 'schedule_open',
       emphasis: 'secondary',
     });
   }

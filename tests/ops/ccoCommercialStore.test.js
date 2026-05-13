@@ -63,4 +63,7 @@ test('cco commercial readout prioriterar blockerad betalning och tydlig n√§sta √
   assert.equal(readout.waitingOn, 'operator');
   assert.match(readout.nextStep, /betalningsblockerare|deposition/i);
   assert.equal(readout.operatorActions[0]?.key, 'resolve_payment_blocker');
+  assert.equal(readout.operatorActions[0]?.type, 'surface_action');
+  assert.equal(readout.operatorActions[0]?.surfaceAction, 'commercial_open');
+  assert.equal(readout.operatorActions[1]?.surfaceAction, 'note_open');
 });

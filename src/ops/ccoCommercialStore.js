@@ -83,9 +83,18 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
       {
         key: 'resolve_payment_blocker',
         label: 'Lås upp betalning',
-        type: 'update_commercial',
+        type: 'surface_action',
         surfaceAction: 'commercial_open',
         emphasis: 'primary',
+      },
+      {
+        key: 'open_commercial_note',
+        label: 'Prisnot',
+        type: 'surface_action',
+        surfaceAction: 'note_open',
+        noteDestination: 'betalning',
+        noteTemplate: 'betalning',
+        emphasis: 'secondary',
       },
     ];
   }
@@ -94,9 +103,16 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
       {
         key: 'follow_up_quote',
         label: dueDateIso ? 'Följ upp offert' : 'Planera uppföljning',
-        type: 'update_commercial',
+        type: 'surface_action',
         surfaceAction: 'schedule_open',
         emphasis: waitingOn === 'customer' ? 'primary' : 'secondary',
+      },
+      {
+        key: 'review_commercial_case',
+        label: 'Öppna commercial',
+        type: 'surface_action',
+        surfaceAction: 'commercial_open',
+        emphasis: 'secondary',
       },
     ];
   }
@@ -105,8 +121,17 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
       {
         key: 'open_commercial_note',
         label: phase === 'ready_for_booking' ? 'Bekräfta klartecken' : 'Dokumentera prisdialog',
-        type: 'note',
+        type: 'surface_action',
         surfaceAction: 'note_open',
+        noteDestination: 'betalning',
+        noteTemplate: 'betalning',
+        emphasis: 'primary',
+      },
+      {
+        key: 'review_commercial_case',
+        label: 'Öppna commercial',
+        type: 'surface_action',
+        surfaceAction: 'commercial_open',
         emphasis: 'secondary',
       },
     ];
@@ -115,9 +140,9 @@ function buildCommercialOperatorActions({ phase = '', waitingOn = '', dueDateIso
     {
       key: 'review_commercial_case',
       label: 'Granska commercial',
-      type: 'update_commercial',
+      type: 'surface_action',
       surfaceAction: 'commercial_open',
-      emphasis: 'secondary',
+      emphasis: 'primary',
     },
   ];
 }
