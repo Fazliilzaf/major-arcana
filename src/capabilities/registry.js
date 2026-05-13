@@ -19,9 +19,11 @@ const { SuggestTemplateImprovementCapability } = require('./suggestTemplateImpro
 const { ValidateDisclaimersCapability } = require('./validateDisclaimers');
 const { OptimizeVariablesCapability } = require('./optimizeVariables');
 const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
+const { FinanceGovernanceCapability } = require('./financeGovernance');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
 const { CAO_AGENT_NAME } = require('../agents/caoTemplateAdvisorAgent');
+const { CFO_AGENT_NAME } = require('../agents/cfoCostAdvisorAgent');
 const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
 
 function normalizeText(value) {
@@ -48,6 +50,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(ValidateDisclaimersCapability),
   assertCapabilityClass(OptimizeVariablesCapability),
   assertCapabilityClass(AnalyzeRiskTrendCapability),
+  assertCapabilityClass(FinanceGovernanceCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(
@@ -82,6 +85,17 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
     outputType: 'TemplateAdvisor',
+    plannedCapabilities: Object.freeze([]),
+  }),
+  Object.freeze({
+    name: CFO_AGENT_NAME,
+    version: '1.0.0',
+    role: 'CFO',
+    capabilities: Object.freeze(['FinanceGovernance']),
+    allowedRoles: Object.freeze([ROLE_OWNER]),
+    allowedChannels: Object.freeze(['admin']),
+    persistStrategy: 'analysis',
+    outputType: 'CostAdvisor',
     plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({

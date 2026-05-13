@@ -24,6 +24,12 @@ const {
   composeCaoTemplateAdvisor,
 } = require('../agents/caoTemplateAdvisorAgent');
 const {
+  CFO_AGENT_NAME,
+  cfoCostAdvisorInputSchema,
+  cfoCostAdvisorOutputSchema,
+  composeCfoCostAdvisor,
+} = require('../agents/cfoCostAdvisorAgent');
+const {
   CCO_AGENT_NAME,
   CCO_INBOX_ANALYSIS_CAPABILITY_REF,
   ccoInboxAnalysisInputSchema,
@@ -1521,6 +1527,14 @@ function createCapabilityExecutor({
         errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
         label: 'Agent input',
       });
+    } else if (normalizedAgentName === CFO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: cfoCostAdvisorInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
     } else if (normalizedAgentName === CCO_AGENT_NAME) {
       ensureSchemaValidity({
         schema: ccoInboxAnalysisInputSchema,
@@ -1711,6 +1725,45 @@ function createCapabilityExecutor({
         });
         agentOutputSchema = caoTemplateAdvisorOutputSchema;
         agentCapabilityRef = 'CAO.TemplateAdvisor';
+      } else if (normalizedAgentName === CFO_AGENT_NAME) {
+        const financeRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'FinanceGovernance',
+          input: {
+            windowDays: Number(validatedInput.windowDays || 30) || 30,
+            includeProjections: validatedInput.includeProjections !== false,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:finance` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          financeRun?.gatewayResult?.decision === 'blocked' ||
+          financeRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'FinanceGovernance blockerade agent-korning.'
+          );
+        }
+
+        dependencyRuns = [toDependencyRunSummary(financeRun)];
+        agentOutput = composeCfoCostAdvisor({
+          financeOutput: toCapabilityResponseOutput(financeRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = cfoCostAdvisorOutputSchema;
+        agentCapabilityRef = 'CFO.CostAdvisor';
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,
