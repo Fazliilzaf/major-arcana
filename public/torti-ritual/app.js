@@ -3898,8 +3898,8 @@
     const latestVisiblePortalEvent = recentPortalEvents[0] || null;
     const summaryPortalEvent = customerOnlyView ? latestVisiblePortalEvent : latestPortalEvent;
     const portalActivityCountLabel = customerOnlyView
-      ? `${sharedPortalEvents.length} shared events`
-      : `${portalEvents.length} portal events`;
+      ? `${sharedPortalEvents.length} events`
+      : `${portalEvents.length} events`;
     const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
     const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
     const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
