@@ -10040,6 +10040,7 @@
       const source = asText(candidate?.source);
       const messageCount = asNumber(candidate?.messageCount, 0);
       if (!normalizeKey(source) && messageCount <= 0) return null;
+      const isFallback = candidate?.fallbackDriven === true;
       return {
         source: source || "thread_document",
         label: asText(candidate?.label, "Mail foundation"),
@@ -10049,7 +10050,8 @@
         hasSystemBlocks: candidate?.hasSystemBlocks === true,
         truthDriven: candidate?.truthDriven === true,
         foundationDriven: candidate?.foundationDriven !== false,
-        fallbackDriven: candidate?.fallbackDriven === true ? true : false,
+        fallbackDriven: isFallback,
+        legacySunsetReady: !isFallback && messageCount > 0 && (candidate?.foundationDriven !== false),
       };
     };
 
