@@ -9,6 +9,7 @@ const {
   buildPatient360SyncContext,
 } = require('./ccoRouteShared');
 const { buildBookingCaseBlockerReadout } = require('../ops/ccoBookingStore');
+const { buildConsultationCaseReadout } = require('../ops/ccoConsultationStore');
 const { buildAftercareCaseReadout } = require('../ops/ccoAftercareStore');
 const { buildOperationCaseReadout } = require('../ops/ccoOperationStore');
 const { buildCommercialCaseReadout } = require('../ops/ccoCommercialStore');
@@ -543,6 +544,30 @@ function buildOperationReadout(operationCase, workspaceContext = null) {
   };
 }
 
+function buildConsultationReadout(consultationCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase =
+    consultationCase && typeof consultationCase === 'object' ? consultationCase : null;
+  const base = buildConsultationCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    consultationType:
+      normalizeText(safeCase?.consultationType) ||
+      contentContext.treatmentName ||
+      base.consultationType,
+    requestedTreatment:
+      normalizeText(safeCase?.requestedTreatment) ||
+      contentContext.treatmentName ||
+      base.requestedTreatment,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt konsultationsnästa steg.`
+        : base.notes),
+  };
+}
+
 function buildCommercialReadout(commercialCase, workspaceContext = null) {
   const contentContext = toWorkspaceContentContext(workspaceContext);
   const safeCase = commercialCase && typeof commercialCase === 'object' ? commercialCase : null;
@@ -860,6 +885,7 @@ function createCcoWorkspaceRouter({
         operationCase,
         commercialCase,
         bookingReadout: buildBookingReadout(bookingCase, context),
+        consultationReadout: buildConsultationReadout(consultationCase, context),
         aftercareReadout: buildAftercareReadout(aftercareCase, context),
         operationReadout: buildOperationReadout(operationCase, context),
         commercialReadout: buildCommercialReadout(commercialCase, context),

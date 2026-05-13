@@ -66,11 +66,15 @@
       buildAftercareActionButtonMarkup,
       buildAftercareQueueItemMarkup,
       describeAftercareQueueBucket,
+      describeCommercialQueueBucket,
+      describeConsultationQueueBucket,
+      describeOperationQueueBucket,
       buildPreviewPatient360Backbone,
       buildPreviewPatient360Journey,
       getJourneyPrimaryActionConfig,
       getPreviewAftercareWorkspaceSurface,
       getPreviewCommercialWorkspaceSurface,
+      getPreviewConsultationWorkspaceSurface,
       getPreviewOperationWorkspaceSurface,
       buildRuntimeSummaryCards,
       compactRuntimeCopy,
@@ -340,6 +344,81 @@
         queueSummary: asText(queueState.summary),
         queueTone: asText(queueState.tone || "planned"),
         focusQueueTone: asText(queueState.focusTone || "commercial-active"),
+        requiredActions: asArray(readout?.requiredActions)
+          .map((item) => humanizeCode(item, ""))
+          .filter(Boolean)
+          .slice(0, 3),
+      };
+    }
+
+    function getBootstrapConsultationCustomerSurface() {
+      const readout =
+        state.consultation?.readout && typeof state.consultation.readout === "object"
+          ? state.consultation.readout
+          : null;
+      const consultationCase =
+        state.consultation?.case && typeof state.consultation.case === "object"
+          ? state.consultation.case
+          : null;
+      if (!readout && !consultationCase) return null;
+      const customerName = asText(
+        consultationCase?.customerName || state.schedule?.draft?.customerName,
+        "Kund i workspace"
+      );
+      const phaseKey = normalizeKey(readout?.phase || "");
+      const phaseTitleByKey = {
+        review: "Konsultationsspåret behöver bedömas",
+        documents_blocked: "Dokument eller samtycke blockerar konsultationen",
+        clinical_validation: "Kliniskt underlag behöver verifieras",
+        ready_for_consultation: "Konsultationen är redo för nästa steg",
+        scheduled: "Konsultationen är planerad",
+        closed: "Konsultationen är klar",
+      };
+      const blockerLabel = asText(
+        readout?.blocker?.label,
+        humanizeCode(readout?.blocker?.key, "Operativ kontroll")
+      );
+      const waitingOnLabel = humanizeCode(
+        readout?.waitingOn || consultationCase?.waitingOn || "",
+        "Operatör"
+      );
+      const queueState =
+        typeof describeConsultationQueueBucket === "function"
+          ? describeConsultationQueueBucket(readout?.queueBucket || "", readout?.phase || "")
+          : {
+              label: "Konsultation i kö",
+              shortLabel: "Konsultation",
+              summary: "Konsultationsspåret behöver ett tydligt nästa steg i workspace.",
+              tone: "planned",
+              focusTone: "consultation-active",
+            };
+      return {
+        customerName,
+        customerId: asText(consultationCase?.customerId),
+        consultationType: asText(readout?.consultationType || consultationCase?.consultationType),
+        requestedTreatment: asText(
+          readout?.requestedTreatment || consultationCase?.requestedTreatment
+        ),
+        phaseTitle: asText(phaseTitleByKey[phaseKey], humanizeCode(readout?.phase, "Konsultation")),
+        blockerLabel,
+        waitingOnLabel,
+        nextStep: asText(
+          readout?.nextStep,
+          consultationCase?.nextStep || "Öppna konsultationsspåret"
+        ),
+        attention: asText(
+          readout?.attention?.what,
+          readout?.handoffCopy ||
+            consultationCase?.notes ||
+            "Workspace-bootstrap har ett aktivt konsultationsläge redo."
+        ),
+        handoffCopy: asText(readout?.handoffCopy),
+        note: asText(readout?.notes || consultationCase?.notes),
+        queueLabel: asText(queueState.label, "Konsultation i kö"),
+        queueShortLabel: asText(queueState.shortLabel, "Konsultation"),
+        queueSummary: asText(queueState.summary),
+        queueTone: asText(queueState.tone || "planned"),
+        focusQueueTone: asText(queueState.focusTone || "consultation-active"),
         requiredActions: asArray(readout?.requiredActions)
           .map((item) => humanizeCode(item, ""))
           .filter(Boolean)
@@ -2558,6 +2637,10 @@
         typeof getPreviewOperationWorkspaceSurface === "function"
           ? getPreviewOperationWorkspaceSurface(thread, focusReadState)
           : null;
+      const consultationSurface =
+        typeof getPreviewConsultationWorkspaceSurface === "function"
+          ? getPreviewConsultationWorkspaceSurface(thread, focusReadState)
+          : null;
       const aftercareSurface =
         typeof getPreviewAftercareWorkspaceSurface === "function"
           ? getPreviewAftercareWorkspaceSurface(thread, focusReadState)
@@ -2614,6 +2697,21 @@
                     : aftercareSurface.title
               }`,
               tone: aftercareSurface.focusQueueTone || "aftercare-active",
+              icon: "spark",
+            }
+          : null,
+        consultationSurface && consultationSurface.status !== "closed"
+          ? {
+              label: `Konsultation · ${
+                consultationSurface.queueShortLabel &&
+                consultationSurface.queueShortLabel !== "Konsultation"
+                  ? consultationSurface.queueShortLabel
+                  : consultationSurface.queueLabel &&
+                      consultationSurface.queueLabel !== "Konsultation i kö"
+                    ? consultationSurface.queueLabel
+                    : consultationSurface.title
+              }`,
+              tone: consultationSurface.focusQueueTone || "consultation-active",
               icon: "spark",
             }
           : null,
@@ -2863,6 +2961,7 @@
       if (!thread) {
         const bootstrapOperationSurface = getBootstrapOperationCustomerSurface();
         const bootstrapCommercialSurface = getBootstrapCommercialCustomerSurface();
+        const bootstrapConsultationSurface = getBootstrapConsultationCustomerSurface();
         const bootstrapAftercareSurface = getBootstrapAftercareCustomerSurface();
         const bootstrapLaneId = normalizeKey(
           state.workspace?.activeLaneId || state.runtime?.activeLaneId || ""
@@ -3001,6 +3100,148 @@
                     )}</h4>
                     <p class="focus-history-entry-text">${escapeHtml(
                       bootstrapOperationSurface.attention
+                    )}</p>
+                  </div>
+                </div>
+              </article>`;
+          }
+          return;
+        }
+        if (
+          bootstrapConsultationSurface &&
+          (bootstrapLaneId === "consultation" ||
+            (!bootstrapAftercareSurface && !bootstrapCommercialSurface))
+        ) {
+          renderFocusSummaryCards(focusCustomerSummary, [], "customer");
+          if (focusCustomerHistoryTitle) {
+            focusCustomerHistoryTitle.textContent = "Workspace-bootstrap för konsultation";
+          }
+          if (focusCustomerHistoryDescription) {
+            focusCustomerHistoryDescription.textContent =
+              "Ingen aktiv tråd är vald just nu, men workspace-bootstrap bär ett aktivt konsultationsläge.";
+          }
+          focusCustomerHero.innerHTML = `
+            <div class="focus-customer-hero-main">
+              <div class="focus-customer-avatar">${escapeHtml(
+                initialsForName(bootstrapConsultationSurface.customerName)
+              )}</div>
+              <div class="focus-customer-copy">
+                <h3>${escapeHtml(bootstrapConsultationSurface.customerName)}</h3>
+                <div class="focus-customer-contact-line">
+                  <span>${escapeHtml(
+                    bootstrapConsultationSurface.customerId || "Preview-local workspace"
+                  )}</span>
+                  <span>·</span>
+                  <span>Workspace-bootstrap</span>
+                </div>
+                <div class="focus-customer-chip-row">
+                  <span class="focus-customer-chip focus-customer-chip--blue">Konsultation</span>
+                  <span class="focus-customer-chip focus-customer-chip--gold">${escapeHtml(
+                    bootstrapConsultationSurface.phaseTitle
+                  )}</span>
+                  <span class="focus-customer-chip focus-customer-chip--green">Ingen aktiv tråd vald</span>
+                </div>
+              </div>
+            </div>`;
+          focusCustomerStats.innerHTML = `
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">ARBETSKÖ</span><strong>${escapeHtml(
+              bootstrapConsultationSurface.queueLabel || bootstrapConsultationSurface.phaseTitle
+            )}</strong><p>${escapeHtml(
+              bootstrapConsultationSurface.queueSummary || bootstrapConsultationSurface.blockerLabel
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">VÄNTAR PÅ</span><strong>${escapeHtml(
+              bootstrapConsultationSurface.waitingOnLabel
+            )}</strong><p>${escapeHtml(
+              bootstrapConsultationSurface.consultationType ||
+                bootstrapConsultationSurface.requestedTreatment ||
+                "Konsultationsspåret"
+            )}</p></article>
+            <article class="focus-customer-stat-card"><span class="focus-customer-stat-label">NÄSTA STEG</span><strong>${escapeHtml(
+              bootstrapConsultationSurface.consultationType || "Konsultation"
+            )}</strong><p>${escapeHtml(bootstrapConsultationSurface.nextStep)}</p></article>`;
+          focusCustomerGrid.innerHTML = `
+            <article class="focus-customer-data-card patient360-consultation-card" data-tone="${escapeHtml(
+              bootstrapConsultationSurface.queueTone || "planned"
+            )}"><h4>Konsultation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.queueLabel || "-"
+              )}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(bootstrapConsultationSurface.phaseTitle)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.blockerLabel
+              )}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.waitingOnLabel
+              )}</dd></div>
+              <div><dt>Typ</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.consultationType ||
+                  bootstrapConsultationSurface.requestedTreatment ||
+                  "-"
+              )}</dd></div>
+            </dl>${
+              bootstrapConsultationSurface.requiredActions.length ||
+              bootstrapConsultationSurface.handoffCopy ||
+              bootstrapConsultationSurface.note
+                ? `<div class="patient360-consultation-card-footer">
+                    ${
+                      bootstrapConsultationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            `Kräver: ${bootstrapConsultationSurface.requiredActions.join(", ")}`
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      bootstrapConsultationSurface.handoffCopy
+                        ? `<p>${escapeHtml(bootstrapConsultationSurface.handoffCopy)}</p>`
+                        : bootstrapConsultationSurface.note
+                          ? `<p>${escapeHtml(bootstrapConsultationSurface.note)}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>
+            <article class="focus-customer-data-card"><h4>Nästa steg</h4><dl>
+              <div><dt>Nu</dt><dd>${escapeHtml(bootstrapConsultationSurface.nextStep)}</dd></div>
+              <div><dt>Kölogik</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.queueSummary || "-"
+              )}</dd></div>
+              <div><dt>Behandling</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.requestedTreatment || "-"
+              )}</dd></div>
+              <div><dt>Kontext</dt><dd>Workspace-bootstrap</dd></div>
+              <div><dt>Kundyta</dt><dd>${escapeHtml(
+                bootstrapConsultationSurface.consultationType || "Konsultation"
+              )}</dd></div>
+            </dl></article>`;
+          if (focusCustomerHistoryCount) {
+            focusCustomerHistoryCount.textContent = "Visar workspace-baserad konsultation";
+          }
+          if (focusCustomerHistoryMeta) {
+            focusCustomerHistoryMeta.textContent =
+              "Ingen aktiv tråd vald · bootstrap-baserad konsultation";
+          }
+          setCustomerHistoryState("Bootstrap-läge", "blue");
+          setCustomerHistoryListState(
+            "Bootstrap-läge",
+            bootstrapConsultationSurface.attention,
+            "blue"
+          );
+          if (focusCustomerHistoryReadoutButton) {
+            focusCustomerHistoryReadoutButton.disabled = true;
+          }
+          if (focusCustomerHistoryList) {
+            focusCustomerHistoryList.innerHTML = `
+              <article class="focus-history-entry focus-history-entry--state">
+                <div class="focus-history-entry-head">
+                  <div>
+                    <div class="focus-history-meta-row">
+                      <span class="focus-customer-chip focus-customer-chip--blue">Bootstrap-läge</span>
+                    </div>
+                    <h4 class="focus-history-entry-title">${escapeHtml(
+                      bootstrapConsultationSurface.phaseTitle
+                    )}</h4>
+                    <p class="focus-history-entry-text">${escapeHtml(
+                      bootstrapConsultationSurface.attention
                     )}</p>
                   </div>
                 </div>
@@ -3423,6 +3664,10 @@
         typeof getPreviewOperationWorkspaceSurface === "function"
           ? getPreviewOperationWorkspaceSurface(thread, focusReadState)
           : null;
+      const consultationSurface =
+        typeof getPreviewConsultationWorkspaceSurface === "function"
+          ? getPreviewConsultationWorkspaceSurface(thread, focusReadState)
+          : null;
       const commercialSurface =
         typeof getPreviewCommercialWorkspaceSurface === "function"
           ? getPreviewCommercialWorkspaceSurface(thread, focusReadState)
@@ -3631,6 +3876,60 @@
                         : operationSurface.note
                           ? `<p>${escapeHtml(
                               compactRuntimeCopy(operationSurface.note, operationSurface.note, 84)
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }</article>`
+            : ""
+        }
+        ${
+          consultationSurface
+            ? `<article class="focus-customer-data-card patient360-consultation-card" data-tone="${escapeHtml(
+                consultationSurface.tone || "planned"
+              )}" data-consultation-module-card><h4>Konsultation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(consultationSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(consultationSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(consultationSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(
+                consultationSurface.waitingOnLabel
+              )}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(consultationSurface.nextStep, "-", 64)
+              )}</dd></div>
+            </dl>${
+              consultationSurface.requiredActions.length ||
+              consultationSurface.handoffCopy ||
+              consultationSurface.note
+                ? `<div class="patient360-consultation-card-footer">
+                    ${
+                      consultationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${consultationSurface.requiredActions.join(", ")}`,
+                              consultationSurface.requiredActions.join(", "),
+                              84
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      consultationSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              consultationSurface.handoffCopy,
+                              consultationSurface.handoffCopy,
+                              84
+                            )
+                          )}</p>`
+                        : consultationSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(
+                                consultationSurface.note,
+                                consultationSurface.note,
+                                84
+                              )
                             )}</p>`
                           : ""
                     }

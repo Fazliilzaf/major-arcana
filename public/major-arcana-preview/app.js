@@ -1930,6 +1930,8 @@
       publishing: false,
       error: "",
       selectedView: "owner",
+      initialRouteCustomerKey: "",
+      routeCustomerKey: "",
       selectedCustomerKey: "",
       lastLoadedAt: "",
       loadToken: 0,
@@ -2131,6 +2133,12 @@
       auditPreviewMode: "short",
     },
     aftercare: {
+      case: null,
+      readout: null,
+      contextConversationId: "",
+      contextCustomerId: "",
+    },
+    consultation: {
       case: null,
       readout: null,
       contextConversationId: "",
@@ -4782,7 +4790,10 @@
     const shellView = resolveShellView(requestedView);
     const selectedAutomationSection = normalizeKey(state.selection.automationSection) || "byggare";
     const selectedPortalCustomerKey = normalizeKey(
-      state.portalRuntime.selectedCustomerKey || state.selection.customerIdentity
+      state.portalRuntime.routeCustomerKey ||
+        state.portalRuntime.initialRouteCustomerKey ||
+        state.portalRuntime.selectedCustomerKey ||
+        state.selection.customerIdentity
     );
 
     if (shellView === "conversations") {
@@ -13103,6 +13114,9 @@
       buildAftercareActionButtonMarkup,
       buildAftercareQueueItemMarkup,
       describeAftercareQueueBucket,
+      describeCommercialQueueBucket,
+      describeConsultationQueueBucket,
+      describeOperationQueueBucket,
       buildFocusHistoryScopeCards,
       buildIntelHelperConversation,
       getJourneyPrimaryActionConfig,
@@ -13119,6 +13133,7 @@
       getCustomerHistoryMailboxOptions,
       getPreviewAftercareWorkspaceSurface,
       getPreviewCommercialWorkspaceSurface,
+      getPreviewConsultationWorkspaceSurface,
       getPreviewOperationWorkspaceSurface,
       getPreviewAftercareQueueEntries,
       getRelatedCustomerThreads,
@@ -16165,6 +16180,7 @@
 
   function buildPreviewPatient360Backbone(thread, focusReadState = {}) {
     if (!thread) return null;
+    const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);
     const operationSurface = getPreviewOperationWorkspaceSurface(thread, focusReadState);
     const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
     const backendPatient360 =
@@ -16194,6 +16210,18 @@
               status: normalizeKey(operationSurface.status || value.status || "inactive") || "inactive",
               nextAction: asText(operationSurface.nextStep, value.nextAction),
               confidence: Number(value.confidence || 0.84),
+            };
+          }
+          if (moduleId === "consultation" && consultationSurface) {
+            return {
+              id: moduleId,
+              label: asText(value.label || moduleId, moduleId),
+              detail: asText(consultationSurface.title, value.nextAction),
+              status:
+                normalizeKey(consultationSurface.status || value.status || "inactive") ||
+                "inactive",
+              nextAction: asText(consultationSurface.nextStep, value.nextAction),
+              confidence: Number(value.confidence || 0.82),
             };
           }
           if (moduleId === "commercial" && commercialSurface) {
@@ -16272,10 +16300,16 @@
       {
         id: "consultation",
         label: "Konsultation",
-        detail: "Behandlingsbehov läses som operatörsunderlag",
-        status: getPreviewPatient360ModuleStatus(thread, "consultation", bodyText),
-        nextAction: "Verifiera behov innan råd",
-        confidence: 0.66,
+        detail: asText(
+          consultationSurface?.title,
+          "Behandlingsbehov läses som operatörsunderlag"
+        ),
+        status: normalizeKey(
+          consultationSurface?.status ||
+            getPreviewPatient360ModuleStatus(thread, "consultation", bodyText)
+        ),
+        nextAction: asText(consultationSurface?.nextStep, "Verifiera behov innan råd"),
+        confidence: consultationSurface ? 0.82 : 0.66,
       },
       {
         id: "documents",
@@ -16622,6 +16656,197 @@
       theatreName: asText(readout?.theatreName || operationCase?.theatreName),
       handoffCopy: asText(readout?.handoffCopy),
       note: asText(readout?.notes || operationCase?.notes),
+    };
+  }
+
+  function describeConsultationQueueBucket(queueBucket = "", phase = "") {
+    const bucketKey = normalizeKey(queueBucket || phase);
+    const definitions = {
+      critical: {
+        label: "Blockerad konsultation",
+        shortLabel: "Blockerad",
+        summary: "Dokument eller klinisk validering blockerar konsultationens nästa steg.",
+        tone: "critical",
+        focusTone: "consultation-critical",
+      },
+      active: {
+        label: "Aktiv konsultation",
+        shortLabel: "Aktiv",
+        summary: "Konsultationsspåret behöver aktivt operatörsarbete nu.",
+        tone: "active",
+        focusTone: "consultation-active",
+      },
+      planned: {
+        label: "Konsultation redo",
+        shortLabel: "Planerad",
+        summary: "Konsultationen är redo att planeras eller lämnas vidare.",
+        tone: "planned",
+        focusTone: "consultation-planned",
+      },
+      closed: {
+        label: "Konsultation avslutad",
+        shortLabel: "Stängd",
+        summary: "Konsultationsspåret är klart och ska inte bära arbetsfokus längre.",
+        tone: "closed",
+        focusTone: "consultation-closed",
+      },
+      paused: {
+        label: "Konsultation pausad",
+        shortLabel: "Pausad",
+        summary: "Konsultationsspåret ligger parkerat tills nytt klartecken eller nytt behov finns.",
+        tone: "paused",
+        focusTone: "consultation-paused",
+      },
+    };
+    return (
+      definitions[bucketKey] || {
+        label: "Konsultation i kö",
+        shortLabel: "Konsultation",
+        summary: "Konsultationsspåret behöver ett tydligt nästa steg i workspace.",
+        tone: "planned",
+        focusTone: "consultation-active",
+      }
+    );
+  }
+
+  function getPreviewConsultationWorkspaceSurface(thread, focusReadState = {}) {
+    if (!thread) return null;
+    const contextConversationId = normalizeKey(state.consultation?.contextConversationId || "");
+    const contextCustomerId = normalizeKey(state.consultation?.contextCustomerId || "");
+    const threadConversationId = normalizeKey(thread.id);
+    const threadCustomerId = normalizeKey(
+      getRuntimeCustomerEmail(thread) || thread.customerEmail || thread.id
+    );
+    const readoutMatchesThread =
+      Boolean(contextConversationId && contextConversationId === threadConversationId) ||
+      Boolean(contextCustomerId && threadCustomerId && contextCustomerId === threadCustomerId);
+    const readout =
+      readoutMatchesThread &&
+      state.consultation?.readout &&
+      typeof state.consultation.readout === "object"
+        ? state.consultation.readout
+        : null;
+    const consultationCase =
+      readoutMatchesThread &&
+      state.consultation?.case &&
+      typeof state.consultation.case === "object"
+        ? state.consultation.case
+        : null;
+    const backendPatient360 =
+      state.booking?.patient360 && typeof state.booking.patient360 === "object"
+        ? state.booking.patient360
+        : null;
+    const consultationModule =
+      backendPatient360?.modules?.consultation &&
+      typeof backendPatient360.modules.consultation === "object"
+        ? backendPatient360.modules.consultation
+        : null;
+    const bodySignal = normalizeKey(
+      [
+        thread?.bodyPreview,
+        thread?.preview,
+        thread?.raw?.bodyPreview,
+        thread?.raw?.textPreview,
+        thread?.raw?.subject,
+        thread?.subject,
+      ]
+        .map((value) => asText(value, ""))
+        .join(" ")
+    );
+    const hasConsultationSignal =
+      bodySignal.includes("konsult") ||
+      bodySignal.includes("behandlingsplan") ||
+      bodySignal.includes("samtycke");
+    if (!readout && !consultationCase && !consultationModule && !hasConsultationSignal) return null;
+
+    const phase = normalizeKey(readout?.phase || "");
+    const status = normalizeKey(readout?.status || consultationModule?.status || "");
+    const phaseMeta = {
+      review: {
+        kicker: "Konsultation · Granska",
+        title: "Konsultationsspåret behöver bedömas",
+        tone: "active",
+      },
+      documents_blocked: {
+        kicker: "Konsultation · Dokument",
+        title: "Dokument eller samtycke blockerar konsultationen",
+        tone: "critical",
+      },
+      clinical_validation: {
+        kicker: "Konsultation · Kliniskt",
+        title: "Kliniskt underlag behöver verifieras",
+        tone: "critical",
+      },
+      ready_for_consultation: {
+        kicker: "Konsultation · Klar",
+        title: "Konsultationen är redo för nästa steg",
+        tone: "planned",
+      },
+      scheduled: {
+        kicker: "Konsultation · Planerad",
+        title: "Konsultationen är planerad",
+        tone: "active",
+      },
+      closed: {
+        kicker: "Konsultation · Slutförd",
+        title: "Konsultationsspåret är klart",
+        tone: "closed",
+      },
+    };
+    const phaseState = phaseMeta[phase] || {
+      kicker: "Konsultation",
+      title: "Konsultationsspåret behöver ägas",
+      tone: "planned",
+    };
+    const queueBucket = normalizeKey(readout?.queueBucket || "");
+    const queueState = describeConsultationQueueBucket(queueBucket, phase);
+    const blockerLabel = asText(
+      readout?.blocker?.label,
+      consultationModule?.nextAction || "Operativ kontroll"
+    );
+    const waitingOnLabel = humanizeCode(
+      readout?.waitingOn || consultationModule?.waitingOn || "",
+      "Operatör"
+    );
+    const nextStep = asText(
+      readout?.nextStep,
+      consultationModule?.nextAction || thread.nextActionLabel || "Öppna konsultationsspåret"
+    );
+    const summary = asText(
+      readout?.attention?.what,
+      readout?.handoffCopy || consultationCase?.notes || thread.nextActionSummary
+    );
+    const requiredActions = asArray(readout?.requiredActions)
+      .map((item) => humanizeCode(item, ""))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return {
+      phase,
+      status,
+      tone: phaseState.tone,
+      kicker: phaseState.kicker,
+      title: phaseState.title,
+      blockerLabel,
+      waitingOnLabel,
+      nextStep,
+      summary,
+      requiredActions,
+      queueBucket,
+      queueLabel: queueState.label,
+      queueShortLabel: queueState.shortLabel,
+      queueSummary: queueState.summary,
+      queueTone: queueState.tone,
+      focusQueueTone: queueState.focusTone,
+      consultationType: asText(
+        readout?.consultationType || consultationCase?.consultationType,
+        "Konsultation"
+      ),
+      requestedTreatment: asText(
+        readout?.requestedTreatment || consultationCase?.requestedTreatment
+      ),
+      handoffCopy: asText(readout?.handoffCopy),
+      note: asText(readout?.notes || consultationCase?.notes),
     };
   }
 
@@ -18506,6 +18731,71 @@
             }
           </article>`
         : "";
+      const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);
+      const consultationCardMarkup = consultationSurface
+        ? `<article class="focus-customer-data-card patient360-data-card patient360-consultation-card" data-consultation-module-card data-tone="${escapeHtml(
+            consultationSurface.tone || "planned"
+          )}">
+            <h4>Konsultation</h4><dl>
+              <div><dt>Arbetskö</dt><dd>${escapeHtml(consultationSurface.queueLabel)}</dd></div>
+              <div><dt>Fas</dt><dd>${escapeHtml(consultationSurface.title)}</dd></div>
+              <div><dt>Blocker</dt><dd>${escapeHtml(consultationSurface.blockerLabel)}</dd></div>
+              <div><dt>Väntar på</dt><dd>${escapeHtml(consultationSurface.waitingOnLabel)}</dd></div>
+              <div><dt>Nästa steg</dt><dd>${escapeHtml(
+                compactRuntimeCopy(consultationSurface.nextStep, "-", 58)
+              )}</dd></div>
+            </dl>
+            ${
+              consultationSurface.requiredActions.length ||
+              consultationSurface.handoffCopy ||
+              consultationSurface.note
+                ? `<div class="patient360-consultation-card-footer">
+                    ${
+                      consultationSurface.queueSummary
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Köläge: ${consultationSurface.queueSummary}`,
+                              consultationSurface.queueSummary,
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      consultationSurface.requiredActions.length
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              `Kräver: ${consultationSurface.requiredActions.join(", ")}`,
+                              consultationSurface.requiredActions.join(", "),
+                              74
+                            )
+                          )}</p>`
+                        : ""
+                    }
+                    ${
+                      consultationSurface.handoffCopy
+                        ? `<p>${escapeHtml(
+                            compactRuntimeCopy(
+                              consultationSurface.handoffCopy,
+                              consultationSurface.handoffCopy,
+                              74
+                            )
+                          )}</p>`
+                        : consultationSurface.note
+                          ? `<p>${escapeHtml(
+                              compactRuntimeCopy(
+                                consultationSurface.note,
+                                consultationSurface.note,
+                                74
+                              )
+                            )}</p>`
+                          : ""
+                    }
+                  </div>`
+                : ""
+            }
+          </article>`
+        : "";
       const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
       const commercialCardMarkup = commercialSurface
         ? `<article class="focus-customer-data-card patient360-data-card patient360-commercial-card" data-commercial-module-card data-tone="${escapeHtml(
@@ -18673,6 +18963,9 @@
         : "";
       const existingCard = focusCustomerGrid.querySelector("[data-patient360-module-card]");
       const existingOperationCard = focusCustomerGrid.querySelector("[data-operation-module-card]");
+      const existingConsultationCard = focusCustomerGrid.querySelector(
+        "[data-consultation-module-card]"
+      );
       const existingCommercialCard = focusCustomerGrid.querySelector("[data-commercial-module-card]");
       const existingAftercareCard = focusCustomerGrid.querySelector("[data-aftercare-module-card]");
       if (existingCard) {
@@ -18694,11 +18987,28 @@
       } else if (existingOperationCard) {
         existingOperationCard.remove();
       }
+      if (consultationCardMarkup) {
+        if (existingConsultationCard) {
+          existingConsultationCard.outerHTML = consultationCardMarkup;
+        } else {
+          const insertAfterTarget =
+            focusCustomerGrid.querySelector("[data-operation-module-card]") ||
+            focusCustomerGrid.querySelector("[data-patient360-module-card]");
+          if (insertAfterTarget) {
+            insertAfterTarget.insertAdjacentHTML("afterend", consultationCardMarkup);
+          } else {
+            focusCustomerGrid.insertAdjacentHTML("afterbegin", consultationCardMarkup);
+          }
+        }
+      } else if (existingConsultationCard) {
+        existingConsultationCard.remove();
+      }
       if (commercialCardMarkup) {
         if (existingCommercialCard) {
           existingCommercialCard.outerHTML = commercialCardMarkup;
         } else {
           const insertAfterTarget =
+            focusCustomerGrid.querySelector("[data-consultation-module-card]") ||
             focusCustomerGrid.querySelector("[data-operation-module-card]") ||
             focusCustomerGrid.querySelector("[data-patient360-module-card]");
           if (insertAfterTarget) {
@@ -21051,7 +21361,12 @@
   }
 
   function getPortalSelectedCustomerKey() {
-    return normalizeKey(state.portalRuntime.selectedCustomerKey || state.selection.customerIdentity);
+    return normalizeKey(
+      state.portalRuntime.routeCustomerKey ||
+        state.portalRuntime.initialRouteCustomerKey ||
+        state.portalRuntime.selectedCustomerKey ||
+        state.selection.customerIdentity
+    );
   }
 
   function findPortalOverviewCustomer(customerKey) {
@@ -24396,6 +24711,18 @@
   function applyCustomerFilters() {
     ensureCustomerRuntimeProfilesFromLive();
     const visibleKeys = getVisibleCustomerKeys();
+    const portalLockedCustomerKey = normalizeKey(
+      state.portalRuntime.routeCustomerKey || state.portalRuntime.initialRouteCustomerKey
+    );
+    const isPortalCustomerView = normalizeKey(state.portalRuntime.selectedView) === "customer";
+
+    if (portalLockedCustomerKey && isPortalCustomerView) {
+      if (normalizeKey(state.selection.customerIdentity) !== portalLockedCustomerKey) {
+        setSelectedCustomerIdentity(portalLockedCustomerKey);
+      }
+      return;
+    }
+
     renderCustomerRows(visibleKeys);
     renderCustomerDetailCards();
     refreshCustomerNodeRefs();
@@ -38084,6 +38411,7 @@ renderStudioShell();
     if (!button) return;
     const customerKey = normalizeKey(button.dataset.portalCustomer);
     if (!customerKey) return;
+    state.portalRuntime.routeCustomerKey = customerKey;
     setSelectedCustomerIdentity(customerKey);
     setPortalSelectedView("owner");
   });
@@ -38733,6 +39061,7 @@ renderStudioShell();
 
   window.addEventListener("resize", normalizeWorkspaceState);
   void (async () => {
+    const initialShellViewState = readShellViewStateFromLocation();
     await ensurePreviewBootstrapSession();
     state.forms.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
     setSelectedCustomerIdentity("");
@@ -38770,11 +39099,12 @@ renderStudioShell();
     setAuxStatus(settingsStatus, "", "");
     setAuxStatus(showcaseStatus, "", "");
     initializeWorkspaceSurface();
-    const initialShellViewState = readShellViewStateFromLocation();
     if (initialShellViewState.view !== "conversations") {
       setAppView(initialShellViewState.view);
     }
     if (initialShellViewState.portalCustomerKey) {
+      state.portalRuntime.initialRouteCustomerKey = initialShellViewState.portalCustomerKey;
+      state.portalRuntime.routeCustomerKey = initialShellViewState.portalCustomerKey;
       setSelectedCustomerIdentity(initialShellViewState.portalCustomerKey);
       setPortalSelectedView("customer");
     }

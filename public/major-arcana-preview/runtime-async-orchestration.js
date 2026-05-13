@@ -196,6 +196,17 @@
                 : "") || bootstrapContextThread?.customerEmail
             ),
           };
+          state.consultation = {
+            ...(state.consultation || {}),
+            case: payload.consultationCase || null,
+            readout: payload.consultationReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
             ? followUpPayload.followUps

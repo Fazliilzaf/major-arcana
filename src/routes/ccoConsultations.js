@@ -14,6 +14,7 @@ const {
   CLINICAL_STATUSES,
   DOCUMENT_STATUSES,
   CONSENT_STATUSES,
+  buildConsultationCaseReadout,
 } = require('../ops/ccoConsultationStore');
 const { syncPatient360FromConsultationCase } = require('../ops/ccoPatient360Bridge');
 
@@ -93,6 +94,7 @@ function createCcoConsultationsRouter({
       });
       return res.json({
         consultationCase,
+        consultationReadout: buildConsultationCaseReadout(consultationCase),
         patient360: serializePatient360(patientRecord),
         statuses: {
           consultation: CONSULTATION_STATUSES,
@@ -135,6 +137,7 @@ function createCcoConsultationsRouter({
       });
       return res.json({
         consultationCase,
+        consultationReadout: buildConsultationCaseReadout(consultationCase),
         patient360: serializePatient360(patientRecord),
       });
     })
@@ -159,6 +162,7 @@ function createCcoConsultationsRouter({
       });
       return res.json({
         consultationCase,
+        consultationReadout: buildConsultationCaseReadout(consultationCase),
         patient360: serializePatient360(patientRecord),
       });
     })

@@ -4,7 +4,10 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoConsultationStore } = require('../../src/ops/ccoConsultationStore');
+const {
+  buildConsultationCaseReadout,
+  createCcoConsultationStore,
+} = require('../../src/ops/ccoConsultationStore');
 
 test('ccoConsultationStore skapar och uppdaterar konsultationsärenden idempotent', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-consultation-store-'));
@@ -65,4 +68,41 @@ test('ccoConsultationStore registrerar dokumentkontroll som egen händelse', asy
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
+});
+
+test('buildConsultationCaseReadout prioriterar dokument och samtycke som blockerande konsultationsyta', () => {
+  const readout = buildConsultationCaseReadout({
+    consultationType: 'Fysisk konsultation',
+    consultationStatus: 'ready',
+    requestedTreatment: 'PRP håravfall',
+    clinicalStatus: 'needs_validation',
+    documentStatus: 'needs_validation',
+    consentStatus: 'required',
+    requiredActions: ['Kontrollera samtycke och dokumentunderlag'],
+    notes: 'Dokumentkedjan måste vara klar före konsultation.',
+  });
+
+  assert.equal(readout.phase, 'documents_blocked');
+  assert.equal(readout.queueBucket, 'critical');
+  assert.equal(readout.waitingOn, 'patient');
+  assert.match(readout.nextStep, /samtycke|dokument/i);
+  assert.equal(readout.operatorActions[0].action, 'resolve_consultation_documents');
+});
+
+test('buildConsultationCaseReadout lämnar konsultation vidare till booking när den är klar', () => {
+  const readout = buildConsultationCaseReadout({
+    consultationType: 'Videokonsultation',
+    consultationStatus: 'complete',
+    requestedTreatment: 'Hårtransplantation',
+    clinicalStatus: 'validated',
+    documentStatus: 'validated',
+    consentStatus: 'confirmed',
+    notes: 'Konsultationen är klar och behandlingsplanen kan fortsätta.',
+  });
+
+  assert.equal(readout.phase, 'closed');
+  assert.equal(readout.queueBucket, 'closed');
+  assert.equal(readout.waitingOn, 'booking');
+  assert.match(readout.nextStep, /bokning|behandlingsplan/i);
+  assert.match(readout.handoffCopy, /bokning|behandlingsplan/i);
 });

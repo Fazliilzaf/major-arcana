@@ -26,6 +26,195 @@ const DOCUMENT_STATUSES = Object.freeze(['inactive', 'missing', 'needs_validatio
 
 const CONSENT_STATUSES = Object.freeze(['required', 'confirmed', 'not_applicable']);
 
+function uniqueActions(value) {
+  return [
+    ...new Set(
+      asArray(value)
+        .map((item) => normalizeText(item))
+        .filter(Boolean)
+    ),
+  ];
+}
+
+function buildConsultationOperatorActions({ phase = '', waitingOn = '', consentStatus = '' } = {}) {
+  if (phase === 'closed' || phase === 'cancelled') return [];
+  if (phase === 'documents_blocked') {
+    return [
+      {
+        action: 'resolve_consultation_documents',
+        key: 'resolve_consultation_documents',
+        label:
+          normalizeKey(consentStatus) === 'required' ? 'Säkra samtycke' : 'Lås upp dokumentflöde',
+        type: 'update_consultation',
+        surfaceAction: 'consultation_open',
+        emphasis: 'primary',
+      },
+    ];
+  }
+  if (phase === 'clinical_validation') {
+    return [
+      {
+        action: 'resolve_consultation_clinical',
+        key: 'resolve_consultation_clinical',
+        label: 'Verifiera kliniskt',
+        type: 'update_consultation',
+        surfaceAction: 'consultation_open',
+        emphasis: waitingOn === 'clinic' ? 'primary' : 'secondary',
+      },
+    ];
+  }
+  if (phase === 'scheduled' || phase === 'ready_for_consultation') {
+    return [
+      {
+        action: 'handoff_consultation_ready',
+        key: 'handoff_consultation_ready',
+        label: phase === 'scheduled' ? 'Bekräfta konsultation' : 'Förbered konsultation',
+        type: 'update_consultation',
+        surfaceAction: 'consultation_open',
+        emphasis: 'secondary',
+      },
+    ];
+  }
+  return [
+    {
+      action: 'review_consultation_case',
+      key: 'review_consultation_case',
+      label: 'Granska konsultation',
+      type: 'update_consultation',
+      surfaceAction: 'consultation_open',
+      emphasis: 'secondary',
+    },
+  ];
+}
+
+function buildConsultationCaseReadout(consultationCase = {}) {
+  const safeCase = consultationCase && typeof consultationCase === 'object' ? consultationCase : {};
+  const consultationStatus = normalizeConsultationStatus(safeCase.consultationStatus);
+  const clinicalStatus = normalizeClinicalStatus(safeCase.clinicalStatus);
+  const documentStatus = normalizeDocumentStatus(safeCase.documentStatus);
+  const consentStatus = normalizeConsentStatus(safeCase.consentStatus);
+  const requiredActions = uniqueActions(safeCase.requiredActions);
+
+  let phase = 'review';
+  let blocker = {
+    key: 'consultation_review',
+    action: 'review_consultation_case',
+    label: 'Konsultationsärendet behöver bedömas',
+    score: 70,
+  };
+  let nextStep = 'Verifiera konsultationsbehov och välj nästa tydliga arbetssteg';
+  let waitingOn = 'operator';
+  let queueBucket = 'active';
+  let handoffCopy = '';
+
+  if (consultationStatus === 'complete') {
+    phase = 'closed';
+    blocker = {
+      key: 'consultation_complete',
+      action: 'consultation_complete',
+      label: 'Konsultationen är klar',
+      score: 12,
+    };
+    nextStep = 'Konsultationen är klar och nästa handoff kan tas i bokning eller behandling';
+    waitingOn = 'booking';
+    queueBucket = 'closed';
+    handoffCopy =
+      'Konsultationen är klar. Bokning eller nästa behandlingssteg kan nu ta över utan nytt konsultationsarbete.';
+  } else if (
+    documentStatus === 'missing' ||
+    documentStatus === 'needs_validation' ||
+    consentStatus === 'required'
+  ) {
+    phase = 'documents_blocked';
+    blocker = {
+      key: 'consultation_documents',
+      action: 'resolve_consultation_documents',
+      label:
+        consentStatus === 'required'
+          ? 'Samtycke och dokumentunderlag blockerar konsultationen'
+          : 'Dokumentunderlaget blockerar konsultationen',
+      score: 94,
+    };
+    nextStep =
+      consentStatus === 'required'
+        ? 'Säkra samtycke och dokumentunderlag innan konsultationen kan drivas vidare'
+        : 'Validera dokumentunderlaget innan konsultationen kan drivas vidare';
+    waitingOn = consentStatus === 'required' ? 'patient' : 'operator';
+    queueBucket = 'critical';
+  } else if (clinicalStatus === 'needs_validation') {
+    phase = 'clinical_validation';
+    blocker = {
+      key: 'consultation_clinical',
+      action: 'resolve_consultation_clinical',
+      label: 'Kliniskt underlag behöver verifieras före konsultation',
+      score: 88,
+    };
+    nextStep = 'Verifiera kliniskt underlag innan konsultationen lämnas vidare';
+    waitingOn = 'clinic';
+    queueBucket = 'critical';
+  } else if (consultationStatus === 'scheduled') {
+    phase = 'scheduled';
+    blocker = {
+      key: 'consultation_scheduled',
+      action: 'handoff_consultation_ready',
+      label: 'Konsultationen är planerad och behöver operativ handoff',
+      score: 76,
+    };
+    nextStep = requiredActions[0] || 'Förbered planerad konsultation och håll ihop nästa handoff';
+    waitingOn = 'operator';
+    queueBucket = 'active';
+  } else if (consultationStatus === 'ready') {
+    phase = 'ready_for_consultation';
+    blocker = {
+      key: 'consultation_ready',
+      action: 'handoff_consultation_ready',
+      label: 'Konsultationen är redo att planeras eller lämnas vidare',
+      score: 68,
+    };
+    nextStep = requiredActions[0] || 'Planera eller bekräfta konsultationens nästa steg';
+    waitingOn = 'operator';
+    queueBucket = 'planned';
+  }
+
+  return {
+    enabled: true,
+    status: consultationStatus,
+    phase,
+    blocker,
+    consultationType: normalizeText(safeCase.consultationType),
+    requestedTreatment: normalizeText(safeCase.requestedTreatment),
+    clinicalStatus,
+    documentStatus,
+    consentStatus,
+    treatmentPlanStatus: normalizeText(safeCase.treatmentPlanStatus),
+    nextStep,
+    requiredActions,
+    queueBucket,
+    operatorActions: buildConsultationOperatorActions({
+      phase,
+      waitingOn,
+      consentStatus,
+    }),
+    notes: normalizeText(safeCase.notes),
+    waitingOn,
+    attention: {
+      what: nextStep,
+      where:
+        phase === 'documents_blocked'
+          ? 'Dokument & samtycke'
+          : phase === 'clinical_validation'
+            ? 'Kliniskt underlag'
+            : 'Konsultation',
+      when: normalizeText(safeCase.updatedAt),
+      confidence:
+        phase === 'documents_blocked' || phase === 'clinical_validation'
+          ? 'Hög - blockerande konsultationssignal'
+          : 'Medel - aktiv konsultationssignal',
+    },
+    handoffCopy,
+  };
+}
+
 function normalizeConsultationStatus(value) {
   const normalized = normalizeKey(value);
   return CONSULTATION_STATUSES.includes(normalized) ? normalized : 'needs_review';
@@ -257,5 +446,6 @@ module.exports = {
   CLINICAL_STATUSES,
   DOCUMENT_STATUSES,
   CONSENT_STATUSES,
+  buildConsultationCaseReadout,
   createCcoConsultationStore,
 };

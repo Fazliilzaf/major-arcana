@@ -460,6 +460,10 @@ test('cco workspace bootstrap läser first-class konsultationsärende och priori
       assert.equal(bootstrapResponse.status, 200);
       const bootstrapPayload = await bootstrapResponse.json();
       assert.equal(bootstrapPayload.consultationCase.consultationType, 'Fysisk konsultation');
+      assert.equal(bootstrapPayload.consultationReadout.phase, 'documents_blocked');
+      assert.equal(bootstrapPayload.consultationReadout.queueBucket, 'critical');
+      assert.equal(bootstrapPayload.consultationReadout.waitingOn, 'patient');
+      assert.match(bootstrapPayload.consultationReadout.nextStep, /samtycke|dokument/i);
       assert.equal(bootstrapPayload.patient360.modules.consultation.status, 'ready');
       assert.equal(bootstrapPayload.patient360.modules.documents.status, 'blocked');
       assert.equal(bootstrapPayload.patient360.attention.where, 'Dokument & samtycke');
@@ -494,6 +498,9 @@ test('cco workspace bootstrap låter konsultation bära fokus före stödjande t
       );
       assert.equal(bootstrapResponse.status, 200);
       const bootstrapPayload = await bootstrapResponse.json();
+      assert.equal(bootstrapPayload.consultationReadout.phase, 'scheduled');
+      assert.equal(bootstrapPayload.consultationReadout.queueBucket, 'active');
+      assert.equal(bootstrapPayload.consultationReadout.waitingOn, 'operator');
       assert.equal(bootstrapPayload.patient360.modules.consultation.status, 'scheduled');
       assert.equal(bootstrapPayload.patient360.modules.tasks.status, 'needs_action');
       assert.equal(bootstrapPayload.patient360.attention.where, 'Konsultation');

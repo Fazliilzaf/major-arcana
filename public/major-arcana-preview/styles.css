@@ -3157,6 +3157,10 @@ button {
   color: rgba(176, 86, 92, 0.95);
 }
 
+.focus-status-token-consultation-critical {
+  color: rgba(169, 86, 117, 0.95);
+}
+
 .focus-status-token-aftercare-today {
   color: rgba(184, 124, 45, 0.96);
 }
@@ -3181,6 +3185,10 @@ button {
   color: rgba(91, 142, 98, 0.94);
 }
 
+.focus-status-token-consultation-active {
+  color: rgba(86, 122, 173, 0.95);
+}
+
 .focus-status-token-aftercare-planned {
   color: rgba(74, 132, 150, 0.94);
 }
@@ -3193,6 +3201,10 @@ button {
   color: rgba(84, 138, 104, 0.92);
 }
 
+.focus-status-token-consultation-planned {
+  color: rgba(76, 132, 156, 0.94);
+}
+
 .focus-status-token-aftercare-closed,
 .focus-status-token-aftercare-paused {
   color: rgba(91, 120, 88, 0.88);
@@ -3200,6 +3212,8 @@ button {
 
 .focus-status-token-operation-closed,
 .focus-status-token-operation-paused,
+.focus-status-token-consultation-closed,
+.focus-status-token-consultation-paused,
 .focus-status-token-commercial-closed,
 .focus-status-token-commercial-paused {
   color: rgba(91, 120, 88, 0.88);
@@ -4634,12 +4648,21 @@ button {
 }
 
 .patient360-operation-card,
+.patient360-consultation-card,
 .patient360-commercial-card,
 .patient360-aftercare-card {
   --focus-card-accent: #4f73b3;
 }
 
 .patient360-operation-card[data-tone="critical"] {
+  --focus-card-accent: #9f5f78;
+}
+
+.patient360-consultation-card {
+  --focus-card-accent: #5f779f;
+}
+
+.patient360-consultation-card[data-tone="critical"] {
   --focus-card-accent: #9f5f78;
 }
 
@@ -4658,6 +4681,7 @@ button {
 }
 
 .patient360-operation-card-footer,
+.patient360-consultation-card-footer,
 .patient360-commercial-card-footer,
 .patient360-aftercare-card-footer {
   display: grid;

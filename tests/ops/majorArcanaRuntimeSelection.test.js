@@ -766,6 +766,19 @@ test('preview shell bygger operation surface fran workspace readout och bar bloc
   assert.match(source, /patient360-operation-card-footer/);
 });
 
+test('preview shell bygger consultation surface fran workspace readout och bar blocker/handoff ut i ytan', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+  const surfaceSource = extractFunctionSource(source, 'getPreviewConsultationWorkspaceSurface');
+
+  assert.match(surfaceSource, /state\.consultation\?\.readout/);
+  assert.match(surfaceSource, /describeConsultationQueueBucket/);
+  assert.match(surfaceSource, /blockerLabel/);
+  assert.match(surfaceSource, /handoffCopy/);
+  assert.match(surfaceSource, /queueLabel/);
+  assert.match(source, /data-consultation-module-card/);
+  assert.match(source, /patient360-consultation-card-footer/);
+});
+
 test('reconcileRuntimeSelection synkar mailboxscope med vald trad även när samma thread redan var vald', () => {
   const harness = createReconcileHarness({
     initialSelectedThreadId: 'thread-2',

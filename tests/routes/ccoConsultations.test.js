@@ -63,6 +63,7 @@ test('cco consultations route uppdaterar konsultation och dokument till samma Pa
       assert.equal(caseResponse.status, 200);
       const casePayload = await caseResponse.json();
       assert.equal(casePayload.consultationCase.consultationStatus, 'needs_review');
+      assert.equal(casePayload.consultationReadout.phase, 'documents_blocked');
 
       const updateResponse = await fetch(`${baseUrl}/cco-consultations/case?${qs}`, {
         method: 'PUT',
@@ -72,6 +73,8 @@ test('cco consultations route uppdaterar konsultation och dokument till samma Pa
           requestedTreatment: 'PRP håravfall',
           consultationStatus: 'ready',
           clinicalStatus: 'needs_validation',
+          documentStatus: 'validated',
+          consentStatus: 'confirmed',
           notes: 'Kunden behöver klinisk kontroll före råd.',
           requiredActions: ['Verifiera kliniskt underlag'],
         }),
@@ -79,6 +82,13 @@ test('cco consultations route uppdaterar konsultation och dokument till samma Pa
       assert.equal(updateResponse.status, 200);
       const updatePayload = await updateResponse.json();
       assert.equal(updatePayload.consultationCase.consultationStatus, 'ready');
+      assert.equal(updatePayload.consultationReadout.phase, 'clinical_validation');
+      assert.equal(updatePayload.consultationReadout.queueBucket, 'critical');
+      assert.equal(updatePayload.consultationReadout.waitingOn, 'clinic');
+      assert.equal(
+        updatePayload.consultationReadout.operatorActions[0].action,
+        'resolve_consultation_clinical'
+      );
       assert.equal(updatePayload.patient360.modules.consultation.status, 'ready');
       assert.equal(updatePayload.patient360.modules.clinical.status, 'needs_validation');
 
@@ -94,6 +104,8 @@ test('cco consultations route uppdaterar konsultation och dokument till samma Pa
       assert.equal(documentResponse.status, 200);
       const documentPayload = await documentResponse.json();
       assert.equal(documentPayload.consultationCase.documentStatus, 'needs_validation');
+      assert.equal(documentPayload.consultationReadout.phase, 'documents_blocked');
+      assert.equal(documentPayload.consultationReadout.waitingOn, 'patient');
       assert.equal(documentPayload.patient360.modules.documents.status, 'blocked');
       assert.equal(
         documentPayload.patient360.attention.what,
