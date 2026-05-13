@@ -30,6 +30,12 @@ const {
   composeCfoCostAdvisor,
 } = require('../agents/cfoCostAdvisorAgent');
 const {
+  CMO_AGENT_NAME,
+  cmoContentInputSchema,
+  cmoContentOutputSchema,
+  composeCmoContentAdvisor,
+} = require('../agents/cmoContentAgent');
+const {
   CCO_AGENT_NAME,
   CCO_INBOX_ANALYSIS_CAPABILITY_REF,
   ccoInboxAnalysisInputSchema,
@@ -1527,6 +1533,14 @@ function createCapabilityExecutor({
         errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
         label: 'Agent input',
       });
+    } else if (normalizedAgentName === CMO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: cmoContentInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
     } else if (normalizedAgentName === CFO_AGENT_NAME) {
       ensureSchemaValidity({
         schema: cfoCostAdvisorInputSchema,
@@ -1764,6 +1778,45 @@ function createCapabilityExecutor({
         });
         agentOutputSchema = cfoCostAdvisorOutputSchema;
         agentCapabilityRef = 'CFO.CostAdvisor';
+      } else if (normalizedAgentName === CMO_AGENT_NAME) {
+        const contentRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateContentBrief',
+          input: {
+            maxTopics: Number(validatedInput.maxTopics || 5) || 5,
+            targetAudience: normalizeText(validatedInput.targetAudience) || '',
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:content` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          contentRun?.gatewayResult?.decision === 'blocked' ||
+          contentRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'GenerateContentBrief blockerade agent-korning.'
+          );
+        }
+
+        dependencyRuns = [toDependencyRunSummary(contentRun)];
+        agentOutput = composeCmoContentAdvisor({
+          contentBriefOutput: toCapabilityResponseOutput(contentRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = cmoContentOutputSchema;
+        agentCapabilityRef = 'CMO.ContentAdvisor';
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,

@@ -20,10 +20,14 @@ const { ValidateDisclaimersCapability } = require('./validateDisclaimers');
 const { OptimizeVariablesCapability } = require('./optimizeVariables');
 const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
 const { FinanceGovernanceCapability } = require('./financeGovernance');
+const { GenerateContentBriefCapability } = require('./generateContentBrief');
+const { PatientChatResponseCapability } = require('./patientChatResponse');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
 const { CAO_AGENT_NAME } = require('../agents/caoTemplateAdvisorAgent');
 const { CFO_AGENT_NAME } = require('../agents/cfoCostAdvisorAgent');
+const { CMO_AGENT_NAME } = require('../agents/cmoContentAgent');
+const { PATIENT_AGENT_NAME } = require('../agents/patientAgent');
 const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
 
 function normalizeText(value) {
@@ -51,6 +55,8 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(OptimizeVariablesCapability),
   assertCapabilityClass(AnalyzeRiskTrendCapability),
   assertCapabilityClass(FinanceGovernanceCapability),
+  assertCapabilityClass(GenerateContentBriefCapability),
+  assertCapabilityClass(PatientChatResponseCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(
@@ -99,6 +105,17 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({
+    name: CMO_AGENT_NAME,
+    version: '1.0.0',
+    role: 'CMO',
+    capabilities: Object.freeze(['GenerateContentBrief']),
+    allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
+    allowedChannels: Object.freeze(['admin']),
+    persistStrategy: 'analysis',
+    outputType: 'ContentAdvisor',
+    plannedCapabilities: Object.freeze([]),
+  }),
+  Object.freeze({
     name: CCO_AGENT_NAME,
     version: '1.0.0',
     role: 'CCO',
@@ -108,6 +125,17 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     persistStrategy: 'analysis',
     outputType: 'InboxAnalysis',
     plannedCapabilities: Object.freeze(['PrepareResponseDrafts']),
+  }),
+  Object.freeze({
+    name: PATIENT_AGENT_NAME,
+    version: '1.0.0',
+    role: 'Patient',
+    capabilities: Object.freeze(['PatientChatResponse']),
+    allowedRoles: Object.freeze([ROLE_OWNER]),
+    allowedChannels: Object.freeze(['patient', 'admin']),
+    persistStrategy: 'analysis',
+    outputType: 'ChatResponse',
+    plannedCapabilities: Object.freeze([]),
   }),
 ]);
 
