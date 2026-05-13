@@ -11658,6 +11658,47 @@
     return state.studio;
   }
 
+  function getDraftStorageKey(threadId) {
+    return threadId ? "cco.studio.draft." + normalizeKey(threadId) : "";
+  }
+
+  function saveDraftToStorage(threadId, draftBody) {
+    const key = getDraftStorageKey(threadId);
+    if (!key || !normalizeText(draftBody)) {
+      if (key) { try { window.localStorage.removeItem(key); } catch (_e) { /* ignore */ } }
+      return;
+    }
+    try {
+      window.localStorage.setItem(key, JSON.stringify({
+        body: draftBody,
+        savedAt: new Date().toISOString(),
+        threadId: threadId,
+      }));
+    } catch (_e) { /* quota exceeded or unavailable */ }
+  }
+
+  function loadDraftFromStorage(threadId) {
+    const key = getDraftStorageKey(threadId);
+    if (!key) return null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      const savedAt = parsed.savedAt ? new Date(parsed.savedAt) : null;
+      if (savedAt && (Date.now() - savedAt.getTime()) > 7 * 24 * 60 * 60 * 1000) {
+        window.localStorage.removeItem(key);
+        return null;
+      }
+      return normalizeText(parsed.body) || null;
+    } catch (_e) { return null; }
+  }
+
+  function clearDraftFromStorage(threadId) {
+    const key = getDraftStorageKey(threadId);
+    if (key) { try { window.localStorage.removeItem(key); } catch (_e) { /* ignore */ } }
+  }
+
   function ensureStudioState(thread) {
     if (!thread) return null;
     const replyContextThreadId = asText(state.studio.replyContextThreadId);
@@ -11671,6 +11712,11 @@
       hasReplyContextMismatch
     ) {
       state.studio = createStudioState(thread);
+      const savedDraft = loadDraftFromStorage(thread.id);
+      if (savedDraft) {
+        state.studio.draftBody = savedDraft;
+        state.forms.studioDraftBody = savedDraft;
+      }
     }
     if (!normalizeText(state.forms.studioDraftBody)) {
       state.forms.studioDraftBody =
@@ -11691,6 +11737,27 @@
 
   function setStudioFeedback(message = "", tone = "") {
     setFeedback(studioFeedback, tone, message);
+  }
+
+  let _draftSaveTimer = null;
+  function debouncedDraftSave() {
+    if (_draftSaveTimer) clearTimeout(_draftSaveTimer);
+    _draftSaveTimer = setTimeout(function () {
+      _draftSaveTimer = null;
+      const threadId = asText(state.studio?.threadId || state.studio?.replyContextThreadId);
+      const body = asText(state.studio?.draftBody);
+      if (threadId && body && body !== asText(state.studio?.baseDraftBody)) {
+        saveDraftToStorage(threadId, body);
+      }
+    }, 1500);
+  }
+
+  if (studioEditorInput) {
+    studioEditorInput.addEventListener("input", function () {
+      state.studio.draftBody = studioEditorInput.value;
+      state.forms.studioDraftBody = studioEditorInput.value;
+      debouncedDraftSave();
+    });
   }
 
   function renderStudioSelection(buttons, activeValue, datasetKey) {
