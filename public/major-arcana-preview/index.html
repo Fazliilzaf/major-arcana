@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv" data-build="build-bbe7758">
+<html lang="sv" data-build="build-2a26a7b">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,10 +21,10 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important) -->
-    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-bbe7758" />
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-2a26a7b" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=pills-bottom-v8" />
-    <script src="./cco-polish.js?v=build-bbe7758" defer></script>
+    <link rel="stylesheet" href="./cco-polish.css?v=build-2a26a7b" />
+    <script src="./cco-polish.js?v=build-2a26a7b" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <main class="preview-page">
@@ -10089,31 +10089,31 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
     <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
-    <script src="./runtime-config.js?v=build-bbe7758"></script>
+    <script src="./runtime-config.js?v=build-2a26a7b"></script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js -->
-    <script src="./app.bundle.min.js?v=hotfix-a2b36b8"></script>
+    <script src="./app.bundle.min.js?v=build-2a26a7b"></script>
     <!-- Demo-fixtures + customer-name-seed: seedar P0-2-resolvern med fake-customers för demo-trådar (demo-mb-001 → Morten Bak Kristoffersen, etc.). MÅSTE laddas EFTER bundle (resolver finns där) men före renderApp använder cards. -->
-    <script src="./app/demo-fixtures-data.js?v=fix-2026-05-13"></script>
+    <script src="./app/demo-fixtures-data.js?v=build-2a26a7b"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
-    <script src="./app/mock-worklist-api.js?v=build-bbe7758"></script>
-    <script src="./app/state-paths.js?v=build-bbe7758"></script>
-    <script src="./app/render-components.js?v=build-bbe7758"></script>
-    <script src="./app.js?v=build-bbe7758"></script>
+    <script src="./app/mock-worklist-api.js?v=build-2a26a7b"></script>
+    <script src="./app/state-paths.js?v=build-2a26a7b"></script>
+    <script src="./app/render-components.js?v=build-2a26a7b"></script>
+    <script src="./app.js?v=build-2a26a7b"></script>
     <!-- runtime-v5-layout-guard.js raderad i Fas 1 cleanup (2026-05-08) — tvingade gammal v5-grid via MutationObserver mot warm-row-markup -->
     <!-- runtime-fix-shims.js raderad — 3 kvarvarande shims flyttade till app/cco-shims.js -->
-    <script src="./app/cco-shims.js?v=build-bbe7758"></script>
+    <script src="./app/cco-shims.js?v=build-2a26a7b"></script>
     <!-- Cmd+K snabbsök — laddas sist eftersom den behöver __ccoWorkspace + state -->
-    <script src="./app/cmd-k.js?v=build-bbe7758"></script>
+    <script src="./app/cmd-k.js?v=build-2a26a7b"></script>
     <!-- Tangentbordsnav (j/k/e/r/s/?) — fungerar utanför andra overlays -->
-    <script src="./app/keyboard-nav.js?v=build-bbe7758"></script>
+    <script src="./app/keyboard-nav.js?v=build-2a26a7b"></script>
     <!-- Bulk-actions: x togglar val, *a/*n select all/none, Shift+E/S/D batch -->
-    <script src="./app/bulk-actions.js?v=build-bbe7758"></script>
+    <script src="./app/bulk-actions.js?v=build-2a26a7b"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
-    <script src="./app/inbox-streak.js?v=build-bbe7758"></script>
+    <script src="./app/inbox-streak.js?v=build-2a26a7b"></script>
     <!-- AI-utkast inline-edit + Snooze + keyboard-footer + inbox-filter-toggle + mailbox-merge-badge + smart-filter-bar + mailbox-menu-persist är alla bundlade i app.bundle.min.js (laddad högre upp i body) -->
     <!-- Signal-bar: inline-pills bredvid "Behöver svar" med tillhörande färg+symbol -->
-    <script src="./app/signal-bar.js?v=signal-multimailbox-v7"></script>
+    <script src="./app/signal-bar.js?v=build-2a26a7b"></script>
     <!-- Customer-cluster: flera trådar från samma kund samlas till EN kort -->
-    <script src="./app/customer-cluster.js?v=cluster-v1"></script>
+    <script src="./app/customer-cluster.js?v=build-2a26a7b"></script>
     </body>
 </html>
