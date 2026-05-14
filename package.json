@@ -146,7 +146,8 @@
     "express": "^5.2.1",
     "openai": "^6.22.0",
     "playwright": "1.58.2",
-    "redis": "^4.7.1"
+    "redis": "^4.7.1",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
