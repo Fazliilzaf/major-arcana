@@ -147,3 +147,59 @@ test('RecordDraftFeedback: oförändrat utkast → accepted_unchanged', async ()
   assert.equal(output.data.identicalDraft, true);
   assert.ok(output.data.classifications.includes('accepted_unchanged'));
 });
+
+test('RecordDraftFeedback: saknat originalutkast ger warning', async () => {
+  const output = await new recordDraftFeedbackCapability().execute({
+    ...baseContext,
+    input: {
+      conversationId: 'conv-no-orig',
+      originalDraft: '',
+      editedDraft: 'Endast sluttext.',
+    },
+  });
+  assert.ok(
+    output.warnings.some((w) => /Originalutkastet saknades/i.test(w)),
+  );
+});
+
+test('RecordDraftFeedback: tenantId defaultar till okand nar saknas', async () => {
+  const output = await new recordDraftFeedbackCapability().execute({
+    actor: { id: 'owner-a', role: 'OWNER' },
+    channel: 'admin',
+    input: {
+      originalDraft: 'a',
+      editedDraft: 'b',
+    },
+  });
+  assert.equal(output.metadata.tenantId, 'okand');
+});
+
+test('RecordDraftFeedback: conversationId kapas till max 1024 tecken', async () => {
+  const longId = 'x'.repeat(2000);
+  const output = await new recordDraftFeedbackCapability().execute({
+    ...baseContext,
+    input: {
+      conversationId: longId,
+      originalDraft: 'same',
+      editedDraft: 'same',
+    },
+  });
+  assert.equal(output.data.conversationId.length, 1024);
+  assert.equal(output.data.conversationId.endsWith('…'), true);
+});
+
+test('RecordDraftFeedback: minimal execute utan conversationId ar schema-giltig', async () => {
+  const output = await new recordDraftFeedbackCapability().execute({
+    ...baseContext,
+    input: {
+      originalDraft: 'Hej.',
+      editedDraft: 'Hej!',
+    },
+  });
+  const schemaResult = validateJsonSchema({
+    schema: recordDraftFeedbackCapability.outputSchema,
+    value: output,
+  });
+  assert.equal(schemaResult.ok, true, JSON.stringify(schemaResult.errors));
+  assert.equal(output.data.conversationId, '');
+});

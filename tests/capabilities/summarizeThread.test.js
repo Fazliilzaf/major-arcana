@@ -122,6 +122,24 @@ test('detectKeyTokens extraherar tider, datum, priser och frågor', () => {
   assert.equal(tokens.cancellations, 1);
 });
 
+test('detectKeyTokens läser bodyPreview och text när body saknas', () => {
+  const tokens = detectKeyTokens([
+    { bodyPreview: 'Ring 08.15 angående 1 200 kr?' },
+    { text: 'Jag kommer in imorgon för konsultation.' },
+  ]);
+  assert.ok(tokens.times.includes('08:15'));
+  assert.ok(tokens.prices.some((p) => /1\s*200\s*kr/i.test(p)));
+  assert.equal(tokens.questions, 1);
+  assert.equal(tokens.bookings, 1);
+});
+
+test('detectKeyTokens räknar bokningssignal separat från avbokning', () => {
+  const tokens = detectKeyTokens([{ body: 'Vi bokar dig nu — reserverar kl 16:00.' }]);
+  assert.equal(tokens.bookings, 1);
+  assert.equal(tokens.cancellations, 0);
+  assert.ok(tokens.times.includes('16:00'));
+});
+
 test('buildHeuristicSummary respekterar fakta — hittar inte på tider eller priser', () => {
   const result = buildHeuristicSummary({
     messages: [
@@ -140,6 +158,33 @@ test('buildHeuristicSummary respekterar fakta — hittar inte på tider eller pr
   assert.doesNotMatch(allText, /\d+\s*kr/);
 });
 
+test('buildHeuristicSummary sorterar på recordedAt när sentAt saknas', () => {
+  const earlier = '2026-01-10T10:00:00.000Z';
+  const later = '2026-01-11T12:00:00.000Z';
+  const result = buildHeuristicSummary({
+    messages: [
+      { direction: 'inbound', body: 'Nyare rad', recordedAt: later },
+      { direction: 'outbound', body: 'Äldre rad', recordedAt: earlier },
+    ],
+  });
+  assert.match(result.headline, /2 meddelanden/);
+  assert.match(result.bullets[0], /Nyare rad/);
+});
+
+test('buildHeuristicSummary använder etiketten kund vid blankt kundnamn', () => {
+  const result = buildHeuristicSummary({
+    messages: [
+      {
+        direction: 'inbound',
+        body: 'Hej',
+        sentAt: new Date('2026-03-01T12:00:00.000Z').toISOString(),
+      },
+    ],
+    customerName: '   \t',
+  });
+  assert.match(result.headline, /mellan kund och kliniken/);
+});
+
 test('SummarizeThread blockerar för många meddelanden via schema (maxItems 200)', async () => {
   const tooMany = Array.from({ length: 201 }, (_, i) => ({
     direction: 'inbound',
@@ -151,4 +196,61 @@ test('SummarizeThread blockerar för många meddelanden via schema (maxItems 200
     value: { messages: tooMany },
   });
   assert.equal(inputSchemaResult.ok, false);
+});
+
+test('SummarizeThread saknad tenantId ger metadata okand', async () => {
+  const output = await new summarizeThreadCapability().execute({
+    channel: 'admin',
+    input: {
+      conversationId: 'c1',
+      messages: [{ direction: 'inbound', body: 'Hej', sentAt: new Date().toISOString() }],
+    },
+  });
+  assert.equal(output.metadata.tenantId, 'okand');
+});
+
+test('SummarizeThread kapar langt conversationId till 1024 tecken', async () => {
+  const longId = `id-${'x'.repeat(1100)}`;
+  const output = await new summarizeThreadCapability().execute({
+    ...baseContext,
+    input: {
+      conversationId: longId,
+      messages: [{ direction: 'inbound', body: 'Kort', sentAt: new Date().toISOString() }],
+    },
+  });
+  assert.equal(output.data.conversationId.length, 1024);
+  assert.ok(output.data.conversationId.endsWith('…'));
+});
+
+test('SummarizeThread openai som kastar ger varning och heuristic source', async () => {
+  const openai = {
+    chat: {
+      completions: {
+        create: async () => {
+          throw new Error('rate limit');
+        },
+      },
+    },
+  };
+  const output = await new summarizeThreadCapability().execute({
+    ...baseContext,
+    openai,
+    openaiModel: 'gpt-4o-mini',
+    input: {
+      conversationId: 'c-openai-fail',
+      messages: [{ direction: 'inbound', body: 'Hej', sentAt: new Date().toISOString() }],
+    },
+  });
+  assert.equal(output.data.source, 'heuristic');
+  assert.ok(output.warnings.some((w) => /AI-summary kunde inte genereras/i.test(w)));
+});
+
+test('detectKeyTokens tom array ger inga träffar', () => {
+  const tokens = detectKeyTokens([]);
+  assert.deepEqual(tokens.times, []);
+  assert.deepEqual(tokens.dates, []);
+  assert.deepEqual(tokens.prices, []);
+  assert.equal(tokens.bookings, 0);
+  assert.equal(tokens.cancellations, 0);
+  assert.equal(tokens.questions, 0);
 });

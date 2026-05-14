@@ -127,3 +127,75 @@ test('monitor gateway dead-letters blocks cross-tenant read for STAFF', async ()
     assert.equal(response.status, 403);
   });
 });
+
+test('monitor gateway dead-letters clamps limit between 1 and 200', async () => {
+  const executionGateway = createExecutionGateway({
+    agentRetryMaxAttempts: 1,
+  });
+  const app = express();
+  app.use('/api/v1', createRouter({ executionGateway, role: 'OWNER' }));
+
+  await withServer(app, async (baseUrl) => {
+    const high = await fetch(`${baseUrl}/api/v1/monitor/gateway/dead-letters?limit=9999`);
+    assert.equal(high.status, 200);
+    assert.equal((await high.json()).limit, 200);
+
+    const low = await fetch(`${baseUrl}/api/v1/monitor/gateway/dead-letters?limit=0`);
+    assert.equal(low.status, 200);
+    assert.equal((await low.json()).limit, 1);
+  });
+});
+
+test('monitor gateway dead-letters returns empty when gateway has no dead letters', async () => {
+  const executionGateway = createExecutionGateway({
+    agentRetryMaxAttempts: 1,
+  });
+  const app = express();
+  app.use('/api/v1', createRouter({ executionGateway, role: 'OWNER' }));
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/monitor/gateway/dead-letters?limit=10`);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.count, 0);
+    assert.deepEqual(payload.deadLetters, []);
+  });
+});
+
+test('monitor gateway dead-letters allows STAFF for explicit own tenant', async () => {
+  const executionGateway = createExecutionGateway({
+    agentRetryMaxAttempts: 1,
+  });
+  await seedDeadLetter(executionGateway);
+  const app = express();
+  app.use('/api/v1', createRouter({ executionGateway, role: 'STAFF' }));
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/api/v1/monitor/gateway/dead-letters?tenantId=tenant-a&limit=5`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.tenantId, 'tenant-a');
+    assert.equal(payload.count > 0, true);
+  });
+});
+
+test('monitor gateway dead-letters allows OWNER to read another tenant scope', async () => {
+  const executionGateway = createExecutionGateway({
+    agentRetryMaxAttempts: 1,
+  });
+  await seedDeadLetter(executionGateway);
+  const app = express();
+  app.use('/api/v1', createRouter({ executionGateway, role: 'OWNER' }));
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(
+      `${baseUrl}/api/v1/monitor/gateway/dead-letters?tenantId=tenant-b&limit=10`
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.tenantId, 'tenant-b');
+    assert.equal(Array.isArray(payload.deadLetters), true);
+  });
+});

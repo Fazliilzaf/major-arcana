@@ -876,10 +876,9 @@ test('renderRuntimeMailboxMenu markerar valt canonical mailboxscope och renderar
   assert.ok(konsOption);
   assert.match(konsOption.innerHTML, /mailbox-option-status">Aktiv/);
   assert.match(konsOption.innerHTML, /mailbox-option-email">kons@hairtpclinic\.com/);
-  assert.match(
-    konsOption.innerHTML,
-    /mailbox-option-meta">Läs: live · Skicka: aktiv · Signatur: Kons/
-  );
+  // Meta-raden visas inte längre i innerHTML (se runtime-queue-renderers renderRuntimeMailboxMenu);
+  // capability-linjen exponeras som label.title när getRuntimeMailboxCapabilityMeta returnerar text.
+  assert.equal(konsOption.title, 'Läs: live · Skicka: aktiv · Signatur: Kons');
   assert.match(konsOption.innerHTML, /data-runtime-mailbox="kons@hairtpclinic\.com" checked/);
 });
 
@@ -978,7 +977,11 @@ test('renderRuntimeMailboxMenu behaller Live-status for live-mailboxar med lokal
   );
   assert.ok(fazliOption);
   assert.match(fazliOption.innerHTML, /mailbox-option-status">Aktiv/);
-  assert.match(fazliOption.innerHTML, /mailbox-option-meta">Lokal signatur: Fazli/);
+  assert.doesNotMatch(
+    fazliOption.innerHTML,
+    /mailbox-option-meta/,
+    'Signatur-/capability-rad ska inte längre renderas som mailbox-option-meta (title-only när capability finns).'
+  );
 });
 
 test('renderQueueHistoryList markerar vald offline-historikruta med selected state och canonical conversation id', () => {
@@ -2482,10 +2485,14 @@ test('major arcana preview exposes a clearly labeled secondary truth worklist su
   assert.match(html, /aria-controls="truth-worklist-shell"/);
   assert.match(html, /data-truth-worklist-shell/);
   assert.match(html, /data-truth-worklist-close/);
-  assert.match(html, /Sanningsstyrd/);
-  assert.match(html, /Sekundär vy/);
-  assert.match(html, /Ordinarie kö styr fortfarande/);
-  assert.match(html, /Jämförelseskydd aktiv/);
+  // Copy har gått SV → EN för truth-chips; behåll semantisk signal (truth + sekundär + primary queue + guardrail).
+  assert.match(truthSectionMatch[0], /Sanningsstyrd/);
+  assert.match(truthSectionMatch[0], /Sekundär vy/);
+  assert.match(
+    truthSectionMatch[0],
+    /(Ordinarie kö styr fortfarande|Legacy queue fortfarande styrande)/
+  );
+  assert.match(truthSectionMatch[0], /(Jämförelseskydd aktiv|Shadow guardrail aktiv)/);
   assert.match(html, /data-truth-worklist-relay-note/);
   assert.doesNotMatch(html, /<section class="queue-truth-view"/);
   assert.doesNotMatch(truthSectionMatch[0], /data-runtime-thread/);

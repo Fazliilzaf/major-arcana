@@ -44,11 +44,13 @@ function createDashboardRouter({
       runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
         ? runtimeMetricsStore.getSnapshot({ areaLimit: 6 })
         : null;
+    const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
     const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
     const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
+    const errorRateDenom = totalRequests > 0 ? totalRequests : sampledRequests;
     const errorRatePct =
-      sampledRequests > 0
-        ? Number(((serverErrors / Math.max(1, sampledRequests)) * 100).toFixed(3))
+      errorRateDenom > 0
+        ? Number(((serverErrors / Math.max(1, errorRateDenom)) * 100).toFixed(3))
         : 0;
     const incidents =
       typeof templateStore?.summarizeIncidents === 'function'
@@ -84,6 +86,7 @@ function createDashboardRouter({
         p99Ms: Number(runtimeMetrics?.latency?.p99Ms || 0),
       },
       availability: {
+        totalRequests,
         sampledRequests,
         serverErrors,
         errorRatePct,

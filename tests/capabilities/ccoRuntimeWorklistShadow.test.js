@@ -13,10 +13,12 @@ const { createCcoCustomerStore } = require('../../src/ops/ccoCustomerStore');
 
 async function withServer(app, run) {
   const server = await new Promise((resolve) => {
-    const started = app.listen(0, () => resolve(started));
+    const started = app.listen(0, '127.0.0.1', () => resolve(started));
   });
   const address = server.address();
-  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const host = address && typeof address === 'object' ? address.address : '127.0.0.1';
+  const port = address && typeof address === 'object' ? address.port : address;
+  const baseUrl = `http://${host}:${port}`;
   try {
     await run(baseUrl);
   } finally {

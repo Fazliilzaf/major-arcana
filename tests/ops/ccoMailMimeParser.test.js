@@ -110,3 +110,29 @@ test('parseMailMime extraherar både inline assets och attachments för html/tab
   assert.equal(parsed.diagnostics.attachmentCount, 1);
   assert.equal(parsed.diagnostics.partCount, 3);
 });
+
+test('parseMailMime tom strang ger tomt preferred body', () => {
+  const parsed = parseMailMime('');
+  assert.equal(parsed.preferredBodyKind, 'empty');
+  assert.equal(parsed.body.preferredText, '');
+  assert.equal(parsed.body.preferredHtml, null);
+  assert.equal(parsed.assets.inlineAssets.length, 0);
+  assert.equal(parsed.assets.attachments.length, 0);
+  assert.equal(parsed.diagnostics.partCount, 0);
+});
+
+test('parseMailMime enkel text/plain utan multipart', () => {
+  const raw = ['Subject: Test', 'From: sender@example.com', '', 'Line one', 'Line two'].join('\n');
+  const parsed = parseMailMime(raw);
+  assert.equal(parsed.preferredBodyKind, 'text');
+  assert.equal(parsed.body.preferredText, 'Line one\nLine two');
+  assert.equal(parsed.body.preferredHtml, null);
+  assert.equal(parsed.diagnostics.textPartCount, 1);
+  assert.equal(parsed.diagnostics.htmlPartCount, 0);
+});
+
+test('parseMailMime utan dubbel radbrytning ger tomt body', () => {
+  const parsed = parseMailMime('Subject: Bara rubrik utan kropp');
+  assert.equal(parsed.preferredBodyKind, 'empty');
+  assert.equal(parsed.body.preferredText, '');
+});

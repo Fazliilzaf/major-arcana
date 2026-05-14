@@ -237,3 +237,65 @@ test('buildCanonicalMailThreadDocument bär canonical assetfamiljer vidare i mai
   assert.equal(threadDocument.messages[0].assets.mimeInlineAssetCount, 2);
   assert.equal(threadDocument.messages[0].assets.mimeAttachmentCount, 1);
 });
+
+test('buildCanonicalMailThreadDocument tom meddelandelista', () => {
+  const doc = buildCanonicalMailThreadDocument([], {
+    sourceStore: 'mailbox_truth_store',
+    conversationId: 'conv-empty',
+  });
+  assert.equal(doc.messageCount, 0);
+  assert.equal(doc.messages.length, 0);
+  assert.equal(doc.conversationId, 'conv-empty');
+  assert.equal(doc.latestMessageId, null);
+  assert.equal(doc.hasMimeBackedMessages, false);
+});
+
+test('buildCanonicalMailThreadDocument icke-array messages behandlas som tom lista', () => {
+  const doc = buildCanonicalMailThreadDocument(null, { conversationId: 'conv-null' });
+  assert.equal(doc.messageCount, 0);
+  assert.equal(doc.messages.length, 0);
+});
+
+test('buildCanonicalMailThreadDocument hydrerar runtime-meddelande utan mailDocument', () => {
+  const doc = buildCanonicalMailThreadDocument(
+    [
+      {
+        messageId: 'msg-runtime-1',
+        conversationId: 'conv-runtime',
+        mailboxId: 'inbox@clinic.com',
+        subject: 'Rubrik',
+        direction: 'inbound',
+        sentAt: '2026-06-01T08:00:00.000Z',
+        bodyPreview: 'Förhandsvisning',
+        body: 'Full brödtext utan MIME.',
+      },
+    ],
+    { sourceStore: 'graph_runtime_fallback', conversationId: 'conv-runtime' }
+  );
+
+  assert.equal(doc.messageCount, 1);
+  const m = doc.messages[0];
+  assert.equal(m.messageId, 'msg-runtime-1');
+  assert.equal(m.primaryBody.text, 'Full brödtext utan MIME.');
+  assert.equal(m.mimeBacked, false);
+  assert.equal(m.contentSections.source, 'text');
+  assert.equal(m.contentSections.mode, 'text_fallback');
+  assert.equal(m.sourceDepth, 'text');
+});
+
+test('buildCanonicalMailThreadDocument sorterar nyast först när sentAt skiljer', () => {
+  const doc = buildCanonicalMailThreadDocument(
+    [
+      { messageId: 'older', sentAt: '2026-06-01T10:00:00.000Z', subject: 'A', mailboxId: 'a@b.com' },
+      { messageId: 'newer', sentAt: '2026-06-03T10:00:00.000Z', subject: 'B', mailboxId: 'a@b.com' },
+      { messageId: 'mid', sentAt: '2026-06-02T10:00:00.000Z', subject: 'C', mailboxId: 'a@b.com' },
+    ],
+    { conversationId: 'conv-sort', sourceStore: 'mailbox_truth_store' }
+  );
+
+  assert.deepEqual(
+    doc.messages.map((m) => m.messageId),
+    ['newer', 'mid', 'older']
+  );
+  assert.equal(doc.latestMessageId, 'newer');
+});

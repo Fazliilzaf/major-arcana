@@ -390,21 +390,23 @@ function buildObservabilitySnapshot({
   runtimeMetrics = null,
   config = null,
 } = {}) {
+  const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
   const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
   const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
   const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
   const slowRequestMs = Number(runtimeMetrics?.settings?.slowRequestMs || config?.metricsSlowRequestMs || 1500);
   const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
   const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
+  const errorRateDenom = totalRequests > 0 ? totalRequests : sampledRequests;
   const errorRatePct =
-    sampledRequests > 0 ? Number(((serverErrors / sampledRequests) * 100).toFixed(3)) : 0;
+    errorRateDenom > 0 ? Number(((serverErrors / errorRateDenom) * 100).toFixed(3)) : 0;
   const thresholds = {
     maxErrorRatePct: clampNumber(config?.observabilityAlertMaxErrorRatePct, 0.01, 100, 2.5),
     maxP95Ms: clampNumber(config?.observabilityAlertMaxP95Ms, 50, 120000, 1800),
     maxSlowRequests: clampNumber(config?.observabilityAlertMaxSlowRequests, 1, 100000, 25),
   };
 
-  const hasTraffic = sampledRequests > 0;
+  const hasTraffic = totalRequests > 0 || sampledRequests > 0;
   const errorRateStatus = hasTraffic
     ? errorRatePct > thresholds.maxErrorRatePct
       ? 'red'
@@ -435,6 +437,7 @@ function buildObservabilitySnapshot({
       required: true,
       target: `<=${thresholds.maxErrorRatePct}%`,
       value: {
+        totalRequests,
         sampledRequests,
         serverErrors,
         errorRatePct,
@@ -482,11 +485,13 @@ function buildObservabilitySnapshot({
     summary: {
       overallStatus,
       hasTraffic,
+      totalRequests,
       sampledRequests,
       triggeredAlertsCount: triggeredAlerts.length,
     },
     thresholds,
     metrics: {
+      totalRequests,
       sampledRequests,
       serverErrors,
       errorRatePct,
@@ -1837,12 +1842,16 @@ function createMonitorRouter({
           nowMs,
         });
 
+        const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
         const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
         const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
         const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
+        const availDenom = totalRequests > 0 ? totalRequests : sampledRequests;
         const availabilityPct =
-          sampledRequests > 0
-            ? Number((((sampledRequests - serverErrors) / sampledRequests) * 100).toFixed(3))
+          availDenom > 0
+            ? Number(
+                Math.max(0, Math.min(100, ((availDenom - serverErrors) / availDenom) * 100)).toFixed(3)
+              )
             : 100;
         const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
         const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
@@ -1878,6 +1887,7 @@ function createMonitorRouter({
             sliPct: availabilityPct,
             status: statusFromPercentTarget(availabilityPct, 99.5, { yellowDelta: 0.5 }),
             evidence: {
+              totalRequests,
               sampledRequests,
               serverErrors,
             },
@@ -1889,6 +1899,7 @@ function createMonitorRouter({
             sliMs: p95Ms,
             status: latencyStatus,
             evidence: {
+              totalRequests,
               sampledRequests,
               slowRequests,
               p99Ms,

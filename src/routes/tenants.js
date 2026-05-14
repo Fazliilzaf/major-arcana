@@ -126,6 +126,13 @@ function createTenantsRouter({
         });
         if (ownerPassword) {
           await authStore.setUserPassword(req.auth.userId, ownerPassword);
+          if (typeof authStore.revokeSessionsByUser === 'function') {
+            await authStore.revokeSessionsByUser(req.auth.userId, {
+              tenantId: '',
+              excludeSessionId: req.auth.sessionId,
+              reason: 'password_changed',
+            });
+          }
         }
       } else {
         if (!ownerPassword) {

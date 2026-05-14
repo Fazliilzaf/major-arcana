@@ -38,7 +38,7 @@ const CAPTURE_LIVE_THREAD_SAMPLES_PATH = path.join(
   __dirname,
   '..',
   '..',
-  '.tmp',
+  'scripts',
   'diagnostics',
   'capture-live-thread-samples.js'
 );

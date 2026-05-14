@@ -251,10 +251,12 @@ function toSafeIncident(incident) {
           userId: incident.owner.userId || null,
         }
       : null,
+    ownerUserId: normalizeText(incident.ownerUserId) || normalizeText(incident.owner?.userId) || null,
     ownerActionsCount: Number(incident.ownerActionsCount || 0),
     openedAt: incident.openedAt || null,
     updatedAt: incident.updatedAt || null,
     resolutionTs: incident.resolutionTs || null,
+    slaDeadline: incident.slaDeadline || incident.sla?.deadline || null,
     sla: incident.sla
       ? {
           targetMs: Number(incident.sla.targetMs || 0),
@@ -1215,7 +1217,7 @@ async function createTemplateStore({
         evaluationId: String(evaluation.id || ''),
         severity: String(incident.severity || ''),
         previousOwnerDecision: ownerDecision,
-        slaDeadline: incident?.sla?.deadline || null,
+        slaDeadline: incident.slaDeadline || incident?.sla?.deadline || null,
         breachedByMs: Math.max(0, -Number(incident?.sla?.remainingMs || 0)),
       });
     }
@@ -1311,6 +1313,7 @@ async function createTemplateStore({
         evaluationId: String(evaluation.id || ''),
         severity: String(incident.severity || ''),
         assignedOwnerUserId: normalizedOwnerUserId,
+        slaDeadline: incident.slaDeadline || incident?.sla?.deadline || null,
       });
     }
 
@@ -1443,6 +1446,7 @@ async function createTemplateStore({
           incident.status,
           incident.severity,
           incident.ownerDecision,
+          incident.ownerUserId,
           incident.owner?.userId,
           ...(Array.isArray(incident.reasonCodes) ? incident.reasonCodes : []),
         ]

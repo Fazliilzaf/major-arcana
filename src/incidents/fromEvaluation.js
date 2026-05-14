@@ -138,6 +138,14 @@ function buildIncidentFromEvaluation(evaluation, { nowMs = Date.now() } = {}) {
   const resolutionTs = status === INCIDENT_STATUS.RESOLVED ? updatedAt : null;
   const ownerUserId = pickOwnerUserId(evaluation.ownerActions);
 
+  const sla = buildSla({
+    severity,
+    status,
+    openedAtMs,
+    resolutionTs,
+    nowMs,
+  });
+
   return {
     id: incidentId,
     sourceEvaluationId: incidentId,
@@ -156,17 +164,13 @@ function buildIncidentFromEvaluation(evaluation, { nowMs = Date.now() } = {}) {
           userId: ownerUserId,
         }
       : null,
+    ownerUserId: ownerUserId || null,
     ownerActionsCount: Array.isArray(evaluation.ownerActions) ? evaluation.ownerActions.length : 0,
     openedAt,
     updatedAt,
     resolutionTs,
-    sla: buildSla({
-      severity,
-      status,
-      openedAtMs,
-      resolutionTs,
-      nowMs,
-    }),
+    sla,
+    slaDeadline: sla.deadline,
   };
 }
 

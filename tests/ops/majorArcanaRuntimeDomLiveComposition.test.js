@@ -304,17 +304,15 @@ test('runtime-dom-live-composition bär vidare customerIdentity genom live-threa
     /function carryRuntimeCustomerIdentity\(/,
     'Förväntade en smal helper som bara bär vidare customerIdentity och reviewbeslut genom runtime/worklist.'
   );
-  assert.ok(
-    source.includes(
-      'const legacyThreads = carryRuntimeCustomerIdentity(\n            buildLiveThreads(liveData, {'
-    ),
-    'Förväntade att thin-history-refresh bär vidare samma identity-envelope till legacy-trådar.'
+  assert.match(
+    source,
+    /let legacyThreads = carryRuntimeCustomerIdentity\(\s*buildLiveThreads\(liveData,\s*\{\s*historyMessages:\s*\[\],\s*historyEvents:\s*\[\],\s*\}\)/,
+    'Förväntade att initial legacy-trådlista bär vidare customerIdentity utan att vänta på historikmerge.'
   );
-  assert.ok(
-    source.includes(
-      'const threads = carryRuntimeCustomerIdentity(\n            buildLiveThreads(mergedWorklistData, {'
-    ),
-    'Förväntade att merged worklist threads bär samma envelope utan ny härledning.'
+  assert.match(
+    source,
+    /let threads = carryRuntimeCustomerIdentity\(\s*buildLiveThreads\(mergedWorklistData,\s*\{\s*historyMessages:\s*\[\],\s*historyEvents:\s*\[\],\s*\}\)/,
+    'Förväntade att merged worklist-trådar bär samma identity-envelope utan bulk-historik i första passet.'
   );
   assert.match(
     source,
@@ -425,19 +423,19 @@ test('loadLiveRuntime sparar mailboxdiagnostik för loading, auth, offline, live
   );
 });
 
-test('loadLiveRuntime öppnar live-listan först och värmer sedan tunn/rik historik i bakgrunden', () => {
+test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cachar conversation-history', () => {
   const source = fs.readFileSync(COMPOSITION_PATH, 'utf8');
   const loadLiveRuntimeSource = extractFunctionSource(source, 'loadLiveRuntime');
 
   assert.match(
     source,
-    /function scheduleRuntimeThinHistoryRefresh\(/,
-    'Förväntade en separat helper som laddar tunn mailboxhistorik i bakgrunden efter att live-listan redan har öppnats.'
+    /const RUNTIME_THREAD_HISTORY_CACHE_TTL_MS/,
+    'Förväntade TTL-konstant för lazy conversation-history cache.'
   );
   assert.match(
     source,
-    /historyParams\.set\("includeBodyHtml",\s*"0"\);/,
-    'Förväntade att den bakgrundsladdade mailboxhistoriken uttryckligen begär tunn historik utan bodyHtml.'
+    /runtimeThreadHistoryPayloadCache\.clear\(\)/,
+    'Förväntade att full live-reload tömmer thread-history cache så mailbox-byte inte återanvänder fel scope.'
   );
   assert.match(
     source,
@@ -521,13 +519,13 @@ test('loadLiveRuntime öppnar live-listan först och värmer sedan tunn/rik hist
   );
   assert.match(
     loadLiveRuntimeSource,
-    /await finalizeRuntimeLoad\(\{[\s\S]*scheduleRuntimeThinHistoryRefresh\(\{[\s\S]*scheduleRuntimeHistoryCoverageWarmup\(runtimeMailboxIds,\s*\{[\s\S]*await requestRuntimeThreadHydration\(preferredThreadId,\s*\{\s*mailboxIds:\s*runtimeMailboxIds,\s*\}\);/,
-    'Förväntade att tunn historik, historikvärmning och rik trådhydrering nu triggas efter att initial live-load har finaliserats, även om selection-to-hydration-handoffen behöver ett smalt retry-spår.'
+    /await finalizeRuntimeLoad\(\{[\s\S]*scheduleRuntimeHistoryCoverageWarmup\(runtimeMailboxIds,\s*\{[\s\S]*await requestRuntimeThreadHydration\(preferredThreadId,\s*\{\s*mailboxIds:\s*runtimeMailboxIds,\s*\}\);/,
+    'Förväntade att historikvärmning och prefetch-hydrering av vald tråd triggas efter finalisering utan bulk-mailboxhistorik-fetch.'
   );
   assert.match(
     source,
     /await requestRuntimeThreadHydration\(preferredThreadId,\s*\{\s*mailboxIds:\s*runtimeMailboxIds,\s*\}\);/,
-    'Förväntade att loadLiveRuntime hydrera vald tråd via det smala request-spåret direkt efter den tunna initiala mailboxladdningen.'
+    'Förväntade att loadLiveRuntime prefetch-hydrerar vald tråd via det smala request-spåret efter finalisering (utan bulk-historik).'
   );
   assert.match(
     source,

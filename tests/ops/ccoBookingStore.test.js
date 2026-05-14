@@ -152,3 +152,69 @@ test('ccoBookingStore kan sortera bokningsärenden efter blockeringsgrad', async
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingStore normalizes unknown status to needs_triage on upsert', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-status-norm-'));
+  try {
+    const store = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+    const c = await store.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-unknown-status',
+      customerEmail: 'status@example.com',
+      status: 'not_a_real_booking_status',
+    });
+    assert.equal(c.status, 'needs_triage');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('setCandidateSlots clears selection when slots lack startsAt', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-slots-invalid-'));
+  try {
+    const store = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+    const base = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-no-starts',
+      customerEmail: 'slots@example.com',
+    };
+    await store.setCandidateSlots({
+      ...base,
+      selectedSlots: [{ id: 'slot-a', startsAt: '2026-05-08T09:30:00.000Z', resourceLabel: 'Dr A' }],
+    });
+    const cleared = await store.setCandidateSlots({
+      ...base,
+      selectedSlots: [{ id: 'missing-time', resourceLabel: 'Dr B' }],
+    });
+    assert.equal(cleared.selectedSlots.length, 0);
+    assert.ok(cleared.events.some((e) => e.type === 'candidate_slots_cleared'));
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('getCase returns null when tenantId is blank', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-get-null-'));
+  try {
+    const store = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+    assert.equal(
+      await store.getCase({
+        tenantId: '  ',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'c1',
+        customerEmail: 'a@e.com',
+      }),
+      null
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

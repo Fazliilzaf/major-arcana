@@ -25,6 +25,14 @@ function inferArea(pathValue = '') {
   if (path.startsWith('/api/v1/incidents')) return 'incidents';
   if (path.startsWith('/api/v1/monitor')) return 'monitor';
   if (path.startsWith('/api/v1/ops')) return 'ops';
+  if (path.startsWith('/api/v1/capabilities/')) {
+    const tail = path.slice('/api/v1/capabilities/'.length);
+    const firstSeg = tail.split('/').filter(Boolean)[0] || '';
+    if (/^[A-Za-z0-9_-]+$/.test(firstSeg)) {
+      return `cap:${firstSeg}`;
+    }
+    return 'cap:other';
+  }
   if (path.startsWith('/api/v1/templates')) return 'templates';
   if (path.startsWith('/api/public')) return 'public_api';
   if (path === '/chat' || path.startsWith('/chat')) return 'public_chat';
@@ -201,19 +209,21 @@ function createRuntimeMetricsStore({
     };
   }
 
-  // SF2 (fyller MT6): tenant-usage-aggregat. Stub-värden om granular per-tenant-
-  // tracking ej implementerat ännu — returnerar struktur som
-  // TenantUsageMetricsCapability förväntar sig.
+  // SF2 / MT6: tenant-usage från runtime-snapshot (totals.requests + cap:*-rader).
   async function getTenantUsage(tenantId, options = {}) {
     const windowDays = Math.max(1, Math.min(365, Number(options?.windowDays) || 30));
-    const snapshot = getSnapshot();
-    const overallTotal = snapshot?.overall?.totalRequests || 0;
-    const byArea = snapshot?.byArea || {};
+    const snapshot = getSnapshot({ areaLimit: 100 });
+    const overallTotal = Number(snapshot?.totals?.requests || 0);
+    const byAreaRows = Array.isArray(snapshot?.byArea) ? snapshot.byArea : [];
 
     const capabilityRunsByName = {};
-    for (const [area, info] of Object.entries(byArea)) {
+    for (const row of byAreaRows) {
+      const area = row?.area;
       if (typeof area === 'string' && area.startsWith('cap:')) {
-        capabilityRunsByName[area.slice(4)] = info?.totalRequests || 0;
+        const capKey = area.slice(4);
+        if (capKey) {
+          capabilityRunsByName[capKey] = Number(row?.requests || 0);
+        }
       }
     }
     const capabilityRunsTotal = Object.values(capabilityRunsByName).reduce(

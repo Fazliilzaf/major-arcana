@@ -648,3 +648,72 @@ test('release governance store enforces distinct sign-off users when enabled', a
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('createReleaseGovernanceStore rejects missing filePath', async () => {
+  await assert.rejects(() => createReleaseGovernanceStore({}), /filePath saknas/i);
+  await assert.rejects(() => createReleaseGovernanceStore({ filePath: '' }), /filePath saknas/i);
+});
+
+test('startCycle throws when tenantId is blank', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-release-gov-tenant-'));
+  const filePath = path.join(tmpDir, 'release-governance.json');
+  try {
+    const store = await createReleaseGovernanceStore({ filePath, maxCycles: 200 });
+    await assert.rejects(() => store.startCycle({ tenantId: '   \n' }), /tenantId/i);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('listCycles returns empty when tenantId is blank', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-release-gov-list-'));
+  const filePath = path.join(tmpDir, 'release-governance.json');
+  try {
+    const store = await createReleaseGovernanceStore({ filePath, maxCycles: 200 });
+    await store.startCycle({ tenantId: 'tenant-list', actorUserId: 'a1' });
+    const out = await store.listCycles({ tenantId: '' });
+    assert.equal(out.count, 0);
+    assert.deepEqual(out.cycles, []);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('evaluateCycle returns null cycle and evaluation when cycleId is unknown', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-release-gov-eval-miss-'));
+  const filePath = path.join(tmpDir, 'release-governance.json');
+  try {
+    const store = await createReleaseGovernanceStore({ filePath, maxCycles: 200 });
+    await store.startCycle({ tenantId: 'tenant-eval', actorUserId: 'a1' });
+    const res = await store.evaluateCycle({
+      tenantId: 'tenant-eval',
+      cycleId: 'rel_does_not_exist_00000000',
+    });
+    assert.equal(res.cycle, null);
+    assert.equal(res.evaluation, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('recordSignoff rejects unknown signoffRole', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-release-gov-role-'));
+  const filePath = path.join(tmpDir, 'release-governance.json');
+  try {
+    const store = await createReleaseGovernanceStore({ filePath, maxCycles: 200 });
+    const started = await store.startCycle({ tenantId: 'tenant-role', actorUserId: 'owner-1' });
+    await assert.rejects(
+      () =>
+        store.recordSignoff({
+          tenantId: 'tenant-role',
+          cycleId: started.id,
+          signoffRole: 'security_champion',
+          actorUserId: 'user-1',
+          actorMembershipRole: 'OWNER',
+        }),
+      /signoffRole/i
+    );
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
