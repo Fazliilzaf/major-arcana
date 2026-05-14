@@ -3629,6 +3629,19 @@
             runtimeThreadId
           )}"`
         : ' data-runtime-domain-open="commercial"';
+      const normalizedNextStr = normalizeKey(nextStr);
+      const laneQuickActionSignal = normalizeKey(
+        [
+          whatStr,
+          nextStr,
+          unifiedModel.previewLine,
+          unifiedModel.explanatoryLine,
+          unifiedModel.secondarySnippet,
+          ...whyEntries.map((entry) => asText(typeof entry === "string" ? entry : entry?.text)),
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
       const primaryLabel =
         v5Lane === "bokning"
           ? "Bekräfta bokning"
@@ -3680,19 +3693,6 @@
                   : v5Lane === "oklart"
                     ? "Öppna"
                     : "Svara";
-      const normalizedNextStr = normalizeKey(nextStr);
-      const laneQuickActionSignal = normalizeKey(
-        [
-          whatStr,
-          nextStr,
-          unifiedModel.previewLine,
-          unifiedModel.explanatoryLine,
-          unifiedModel.secondarySnippet,
-          ...whyEntries.map((entry) => asText(typeof entry === "string" ? entry : entry?.text)),
-        ]
-          .filter(Boolean)
-          .join(" ")
-      );
       const hasOperationQuickAction =
         v5Lane === "operation" ||
         normalizedNextStr === "oppna_operationsspar" ||

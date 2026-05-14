@@ -8100,6 +8100,37 @@ test('queue renderers ger operation, consultation och commercial lane-specifika 
   assert.match(source, /data-runtime-note-template="\$\{escapeHtml\(laneQuickActionTemplate\)\}"/);
 });
 
+test('buildThreadCardMarkup renderar operation-rad utan TDZ-fel och visar situationsanpassad primary action', () => {
+  const buildThreadCardMarkup = createBuildThreadCardMarkupHarness();
+
+  const markup = buildThreadCardMarkup(
+    {
+      id: 'thread-operation-runtime',
+      customerName: 'Anna',
+      displaySubject: 'Operationsklarering behöver säkras',
+      subject: 'Operationsklarering behöver säkras',
+      lastActivityLabel: '09:12',
+      lastActivityAt: '2026-05-14T09:12:00.000Z',
+      displayOwnerLabel: 'Dr. Eriksson',
+      mailboxLabel: 'Operation',
+      primaryLaneId: 'operation',
+      preview: 'Klarering saknas inför operationsstart.',
+      plannedTreatment: 'FUE',
+      nextActionSummary: 'Driv klarering för att säkra handoff.',
+      nextActionLabel: 'Öppna operation',
+      whyInFocus: 'Klarering saknas inför handoff',
+      rowFamily: 'workspace_case',
+      worklistSource: 'truth_primary',
+      tags: ['operation'],
+    },
+    0,
+    false
+  );
+
+  assert.match(markup, /Driv klarering/);
+  assert.match(markup, /thread-intelligence-item--next/);
+});
+
 test('buildThreadCardMarkup kan visa preview fran raw latestMessage bodyHtml nar preview ar tom', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
   const pillMarkupSource = extractFunctionSource(source, 'buildQueuePillMarkup');
