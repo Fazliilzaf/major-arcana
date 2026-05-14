@@ -3946,7 +3946,7 @@
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
     const portalViewBadge = customerOnlyView ? "Shared portal" : "Owner workspace";
-    const portalActivityTitle = customerOnlyView ? "Timeline" : "Portal timeline";
+    const portalActivityTitle = customerOnlyView ? "Shared timeline" : "Portal timeline";
     const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
@@ -4073,7 +4073,7 @@
       <article class="portal-activity">
         <div class="portal-activity-head">
           <div class="portal-activity-heading">
-            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Shared activity" : "Portal activity")}</span>
+            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Activity" : "Portal activity")}</span>
             <strong>${escapeHtml(portalActivityTitle)}</strong>
           </div>
           <span class="portal-activity-meta">${escapeHtml(portalActivityCountLabel)} · ${escapeHtml(portalSyncLabel)}</span>
