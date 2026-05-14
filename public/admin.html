@@ -11835,6 +11835,7 @@
   </style>
 </head>
 <body>
+  <a href="#dashboardPanel" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.cssText='position:fixed;top:8px;left:8px;z-index:9999;padding:12px 20px;background:#543940;color:#FAF4EE;border-radius:14px;font-size:16px;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2)'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999'">Hoppa till innehåll</a>
   <div class="container">
     <div id="adminHeader" class="header">
       <div class="brand-stack">
@@ -11869,7 +11870,7 @@
       <div class="grid" style="margin-top:10px">
         <div>
           <label for="emailInput" data-i18n="label_email">E-post</label>
-          <input id="emailInput" type="email" value="fazli@hairtpclinic.se" />
+          <input id="emailInput" type="email" value="fazli@hairtpclinic.se" autocomplete="email" />
         </div>
         <div>
           <label for="tenantInput" data-i18n="label_tenant_optional">Klinik (valfri)</label>
@@ -11877,7 +11878,7 @@
         </div>
         <div>
           <label for="passwordInput" data-i18n="label_password">Lösenord</label>
-          <input id="passwordInput" type="password" />
+          <input id="passwordInput" type="password" autocomplete="current-password" />
         </div>
       </div>
       <div style="margin-top:12px">
