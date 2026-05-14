@@ -4148,13 +4148,22 @@
     }
 
     function buildQueueInlineLaneHistoryItem(thread) {
+      // Local helper — duplicerar __pickFirstNonEmptyText så funktionen
+      // är självförsörjande när tester extraherar den via new Function().
+      const pickFirstNonEmpty = (...candidates) => {
+        for (const c of candidates) {
+          const t = String(c ?? "").trim();
+          if (t) return t;
+        }
+        return "";
+      };
       if (typeof applyDemoFixtureFallback === "function" && thread && typeof thread === "object") {
         thread = applyDemoFixtureFallback(thread);
       }
       const primaryLaneId = normalizeKey(thread?.primaryLaneId || thread?.laneId || "");
       const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       const counterpartyLabel = asText(
-        __pickFirstNonEmptyText(
+        pickFirstNonEmpty(
           thread.customerName,
           thread.fromName,
           raw.customerSummary?.customerName,
