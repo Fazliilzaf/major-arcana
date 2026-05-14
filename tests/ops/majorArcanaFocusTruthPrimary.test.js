@@ -264,6 +264,21 @@ test('commercial actions kan öppna bokningsytan direkt från commercial-card', 
   );
 });
 
+test('operation actions kan öppna operationsytan och eftervård direkt från operation-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /buildOperationActionButtonMarkup[\s\S]*surfaceAction === "operation_open"[\s\S]*data-runtime-domain-open="operation" data-runtime-domain-thread-id=/,
+    'Förväntade att operation-action-knappar kan öppna operationsytan direkt när readouten ber om handoff, koordinering eller klinisk uppföljning.'
+  );
+  assert.match(
+    source,
+    /key === "review_aftercare_handoff"[\s\S]*data-runtime-domain-open="aftercare" data-runtime-domain-thread-id=/,
+    'Förväntade att avslutad operation leder eftervårdshandoff direkt till eftervårdsytan i stället för tillbaka till operation eller studio.'
+  );
+});
+
 test('focus renderers låser truth-driven focus i read-only gren utan studio-knappar och med tydlig provenance', () => {
   const source = fs.readFileSync(FOCUS_RENDERERS_PATH, 'utf8');
   const appSource = fs.readFileSync(APP_PATH, 'utf8');

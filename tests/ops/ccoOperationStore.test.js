@@ -54,7 +54,7 @@ test('operation readout prioriterar blockerad klarering och bygger operatorlage'
     operationStatus: 'planned',
     clearanceStatus: 'blocked',
     outcomeStatus: 'unknown',
-    scheduledForIso: '2026-03-29T08:00:00.000Z',
+    scheduledForIso: '2026-06-29T08:00:00.000Z',
     doctorName: 'Dr. Eriksson',
     theatreName: 'Rum 2',
   });
@@ -65,8 +65,9 @@ test('operation readout prioriterar blockerad klarering och bygger operatorlage'
   assert.match(readout.nextStep, /klarering/i);
   assert.equal(readout.operatorActions[0].action, 'resolve_operation_clearance');
   assert.equal(readout.operatorActions[0].type, 'surface_action');
-  assert.equal(readout.operatorActions[0].surfaceAction, 'note_open');
-  assert.equal(readout.operatorActions[0].noteDestination, 'medicinsk');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'operation_open');
+  assert.equal(readout.operatorActions[1].surfaceAction, 'note_open');
+  assert.equal(readout.operatorActions[1].noteDestination, 'medicinsk');
 });
 
 test('operation readout gor avslutad operation till eftervards-handoff', () => {
@@ -88,4 +89,30 @@ test('operation readout gor avslutad operation till eftervards-handoff', () => {
   assert.equal(readout.queueBucket, 'closed');
   assert.equal(readout.waitingOn, 'aftercare');
   assert.match(readout.nextStep, /eftervård/i);
+  assert.equal(readout.operatorActions[0].key, 'review_aftercare_handoff');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'aftercare_open');
+});
+
+test('operation readout gor planerad operation till tydlig handoff och tid-delning', () => {
+  const readout = buildOperationCaseReadout({
+    tenantId: 'tenant-a',
+    workspaceId: 'major-arcana-preview',
+    conversationId: 'conv-op-3',
+    customerId: 'anna@example.com',
+    customerName: 'Anna',
+    procedureType: 'Hårtransplantation',
+    operationStatus: 'ready',
+    clearanceStatus: 'cleared',
+    outcomeStatus: 'unknown',
+    scheduledForIso: '2026-06-29T08:00:00.000Z',
+    doctorName: 'Dr. Eriksson',
+    theatreName: 'Rum 2',
+  });
+
+  assert.equal(readout.phase, 'ready_for_operation');
+  assert.equal(readout.operatorActions[0].key, 'confirm_operation_handoff');
+  assert.equal(readout.operatorActions[0].surfaceAction, 'operation_open');
+  assert.equal(readout.operatorActions[0].label, 'Lås handoff');
+  assert.equal(readout.operatorActions[1].key, 'share_operation_time');
+  assert.equal(readout.operatorActions[1].surfaceAction, 'schedule_open');
 });

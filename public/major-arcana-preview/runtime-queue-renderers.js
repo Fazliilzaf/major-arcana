@@ -3633,7 +3633,25 @@
         v5Lane === "bokning"
           ? "Bekräfta bokning"
           : v5Lane === "operation"
-            ? "Öppna operation"
+            ? laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+              ? "Eskalera utfall"
+              : laneQuickActionSignal.includes("pågår") ||
+                  laneQuickActionSignal.includes("pagar") ||
+                  laneQuickActionSignal.includes("status")
+                ? "Koordinera operation"
+                : laneQuickActionSignal.includes("eftervård") ||
+                    laneQuickActionSignal.includes("slutförd") ||
+                    laneQuickActionSignal.includes("slutford")
+                  ? "Öppna eftervård"
+                  : laneQuickActionSignal.includes("klarering")
+                    ? "Driv klarering"
+                    : laneQuickActionSignal.includes("handoff") ||
+                        laneQuickActionSignal.includes("operationsstart") ||
+                        laneQuickActionSignal.includes("idag") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Lås handoff"
+                      : "Öppna operation"
             : v5Lane === "consultation"
               ? laneQuickActionSignal.includes("samtycke")
                 ? "Säkra samtycke"
@@ -3716,8 +3734,24 @@
         ? {
             action: "note",
             key: "operation",
-            label: "Klarering",
-            aria: "Öppna klareringsanteckning",
+            label:
+              laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+                ? "Utfallsnot"
+                : laneQuickActionSignal.includes("pågår") ||
+                    laneQuickActionSignal.includes("pagar") ||
+                    laneQuickActionSignal.includes("status")
+                  ? "Statusnot"
+                  : "Klareringsnot",
+            aria:
+              laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+                ? "Öppna utfallsanteckning"
+                : laneQuickActionSignal.includes("pågår") ||
+                    laneQuickActionSignal.includes("pagar") ||
+                    laneQuickActionSignal.includes("status")
+                  ? "Öppna statusanteckning"
+                  : "Öppna klareringsanteckning",
           }
         : hasConsultationQuickAction
           ? {

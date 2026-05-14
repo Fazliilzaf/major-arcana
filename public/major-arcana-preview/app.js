@@ -17471,7 +17471,11 @@
     };
     if (type === "surface_action") {
       const actionAttributes =
-        surfaceAction === "schedule_open"
+        surfaceAction === "operation_open"
+          ? `data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
+              asText(threadId)
+            )}"`
+          : surfaceAction === "schedule_open"
           ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
           : surfaceAction === "note_open"
             ? buildNoteAttributes()
@@ -17490,16 +17494,24 @@
       )}</button>`;
     }
     const fallbackActionAttributes =
-      key === "resolve_operation_clearance" ||
+      key === "capture_operation_clearance_note" ||
       key === "capture_operation_progress" ||
-      key === "escalate_operation_outcome"
+      key === "capture_operation_outcome_note"
         ? buildNoteAttributes()
         : key === "share_operation_time"
           ? 'data-runtime-schedule-open aria-controls="schedule-shell"'
-          : key === "review_aftercare_handoff"
+        : key === "review_aftercare_handoff"
             ? `data-runtime-domain-open="aftercare" data-runtime-domain-thread-id="${escapeHtml(
                 asText(threadId)
               )}"`
+            : key === "resolve_operation_clearance" ||
+                key === "review_operation_case" ||
+                key === "confirm_operation_handoff" ||
+                key === "review_operation_progress" ||
+                key === "escalate_operation_outcome"
+              ? `data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
+                  asText(threadId)
+                )}"`
             : `data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
                 asText(threadId)
               )}" aria-controls="studio-shell"`;

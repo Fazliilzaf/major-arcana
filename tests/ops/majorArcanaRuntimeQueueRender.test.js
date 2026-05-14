@@ -8051,7 +8051,10 @@ test('queue renderers visar lane-specifika what/why/next-signaler for operation 
 test('queue renderers ger operation, consultation och commercial egna primära radactions', () => {
   const source = fs.readFileSync(RENDERERS_PATH, 'utf8');
 
-  assert.match(source, /v5Lane === "operation"\s*\?\s*"Öppna operation"/);
+  assert.match(
+    source,
+    /v5Lane === "operation"[\s\S]*"Eskalera utfall"[\s\S]*"Koordinera operation"[\s\S]*"Öppna eftervård"[\s\S]*"Driv klarering"[\s\S]*"Lås handoff"[\s\S]*"Öppna operation"/
+  );
   assert.match(
     source,
     /v5Lane === "consultation"[\s\S]*"Säkra samtycke"[\s\S]*"Lås upp dokument"[\s\S]*"Verifiera kliniskt"[\s\S]*"Planera konsultation"[\s\S]*"Öppna konsultation"/
@@ -8079,7 +8082,7 @@ test('queue renderers ger operation, consultation och commercial lane-specifika 
 
   assert.match(
     source,
-    /laneQuickActionSignal\.includes\("operationsplan"\)[\s\S]*laneQuickActionSignal\.includes\("klarering"\)[\s\S]*action:\s*"note"[\s\S]*label:\s*"Klarering"/
+    /laneQuickActionSignal\.includes\("operationsplan"\)[\s\S]*laneQuickActionSignal\.includes\("klarering"\)[\s\S]*"Utfallsnot"[\s\S]*"Statusnot"[\s\S]*"Klareringsnot"/
   );
   assert.match(
     source,

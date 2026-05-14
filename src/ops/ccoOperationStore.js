@@ -76,9 +76,9 @@ function buildOperationOperatorActions({
     actions.push({
       key: 'review_operation_case',
       action: 'review_operation_case',
-      label: 'Granska operationsspår',
+      label: 'Öppna operation',
       type: 'surface_action',
-      surfaceAction: 'studio_open',
+      surfaceAction: 'operation_open',
       emphasis: 'primary',
     });
   }
@@ -87,12 +87,22 @@ function buildOperationOperatorActions({
     actions.push({
       key: 'resolve_operation_clearance',
       action: 'resolve_operation_clearance',
-      label: 'Driv klarering',
+      label: phase === 'clearance_blocked' ? 'Lås upp klarering' : 'Driv klarering',
+      type: 'surface_action',
+      surfaceAction: 'operation_open',
+      noteDestination: 'medicinsk',
+      noteTemplate: 'allergi',
+      emphasis: 'primary',
+    });
+    actions.push({
+      key: 'capture_operation_clearance_note',
+      action: 'capture_operation_clearance_note',
+      label: 'Klareringsnot',
       type: 'surface_action',
       surfaceAction: 'note_open',
       noteDestination: 'medicinsk',
       noteTemplate: 'allergi',
-      emphasis: 'primary',
+      emphasis: 'secondary',
     });
   }
 
@@ -100,18 +110,26 @@ function buildOperationOperatorActions({
     actions.push({
       key: 'confirm_operation_handoff',
       action: 'confirm_operation_handoff',
-      label: 'Bekräfta handoff',
+      label: phase === 'operation_today' ? 'Bekräfta operationsstart' : 'Lås handoff',
       type: 'surface_action',
-      surfaceAction: 'studio_open',
+      surfaceAction: 'operation_open',
       emphasis: 'primary',
     });
   }
 
   if (phase === 'in_progress') {
     actions.push({
+      key: 'review_operation_progress',
+      action: 'review_operation_progress',
+      label: 'Koordinera operation',
+      type: 'surface_action',
+      surfaceAction: 'operation_open',
+      emphasis: 'primary',
+    });
+    actions.push({
       key: 'capture_operation_progress',
       action: 'capture_operation_progress',
-      label: 'Logga status',
+      label: 'Statusnot',
       type: 'surface_action',
       surfaceAction: 'note_open',
       noteDestination: 'medicinsk',
@@ -126,10 +144,20 @@ function buildOperationOperatorActions({
       action: 'escalate_operation_outcome',
       label: 'Eskalera utfall',
       type: 'surface_action',
-      surfaceAction: 'note_open',
+      surfaceAction: 'operation_open',
       noteDestination: 'medicinsk',
       noteTemplate: 'allergi',
       emphasis: 'primary',
+    });
+    actions.push({
+      key: 'capture_operation_outcome_note',
+      action: 'capture_operation_outcome_note',
+      label: 'Utfallsnot',
+      type: 'surface_action',
+      surfaceAction: 'note_open',
+      noteDestination: 'medicinsk',
+      noteTemplate: 'allergi',
+      emphasis: 'secondary',
     });
   }
 
@@ -140,11 +168,15 @@ function buildOperationOperatorActions({
       label: 'Öppna eftervård',
       type: 'surface_action',
       surfaceAction: 'aftercare_open',
-      emphasis: 'secondary',
+      emphasis: 'primary',
     });
   }
 
-  if (clearanceStatus === 'cleared' && scheduledForIso) {
+  if (
+    clearanceStatus === 'cleared' &&
+    scheduledForIso &&
+    (phase === 'ready_for_operation' || phase === 'operation_today')
+  ) {
     actions.push({
       key: 'share_operation_time',
       action: 'share_operation_time',
