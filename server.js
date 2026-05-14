@@ -420,6 +420,12 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
+const { createBillingRouter } = require('./src/routes/billing');
+const { createKnowledgeRouter } = require('./src/routes/knowledge');
+const { createBillingService } = require('./src/billing/billingService');
+const { createStripeClient } = require('./src/billing/stripeClient');
+const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
+const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeStore');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
@@ -470,6 +476,15 @@ const runtimeMetricsStore = createRuntimeMetricsStore({
   maxSamples: config.metricsMaxSamples,
   slowRequestMs: config.metricsSlowRequestMs,
 });
+
+const stripeInstance = createStripeClient();
+const knowledgeStore = createTenantKnowledgeStore({
+  storePath: path.join(config.stateRoot || './data', 'knowledge.json'),
+});
+knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
+
+let billingService = null;
+let stripeWebhookHandler = null;
 
 let server = null;
 let scheduler = null;
@@ -991,6 +1006,18 @@ process.once('SIGTERM', () => {
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
   });
+
+  billingService = createBillingService({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+  stripeWebhookHandler = createStripeWebhookHandler({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+
   const secretRotationStore = await createSecretRotationStore({
     filePath: config.secretRotationStorePath,
     config,
@@ -1489,6 +1516,25 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       executionGateway,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createBillingRouter({
+      billingService,
+      stripeWebhookHandler: stripeWebhookHandler.isAvailable() ? stripeWebhookHandler : null,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createKnowledgeRouter({
+      knowledgeStore,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
     })
   );
 
