@@ -492,6 +492,20 @@ function createExecutionGateway({
         },
       });
 
+      const estimateTokens = (obj) => {
+        if (!obj) return 0;
+        try {
+          const str = typeof obj === 'string' ? obj : JSON.stringify(obj);
+          return Math.ceil(str.length / 4);
+        } catch (_e) { return 0; }
+      };
+      const tokenUsage = {
+        inputTokens: estimateTokens(ingressContext?.payload),
+        outputTokens: estimateTokens(agentResult),
+        totalTokens: estimateTokens(ingressContext?.payload) + estimateTokens(agentResult),
+        estimation: 'chars_div_4',
+      };
+
       const riskSummary = {
         input: inputRisk?.evaluation || null,
         output: outputRisk?.evaluation || null,
@@ -530,6 +544,7 @@ function createExecutionGateway({
         run_id: runId,
         risk_summary: riskSummary,
         policy_summary: policySummary,
+        token_usage: tokenUsage,
         artifact_refs: persisted?.artifact_refs || null,
         audit_refs: {
           correlation_id: ingressContext.correlation_id,

@@ -636,6 +636,34 @@ app.get('/healthz', (req, res) => {
   });
 });
 
+app.get('/api/public/status', (req, res) => {
+  const uptimeSec = runtimeState.startedAt
+    ? Math.round((Date.now() - new Date(runtimeState.startedAt).getTime()) / 1000)
+    : 0;
+  const metrics = runtimeMetricsStore?.getSnapshot?.() || null;
+  const errorRate = Number(metrics?.totals?.statusBuckets?.['5xx'] || 0);
+  const totalRequests = Number(metrics?.totals?.sampledRequests || 0);
+  const hasErrors = errorRate > 0 && totalRequests > 0 && (errorRate / totalRequests) > 0.05;
+
+  const overallStatus = !runtimeState.ready ? 'degraded'
+    : hasErrors ? 'degraded'
+    : 'operational';
+
+  return res.json({
+    status: overallStatus,
+    services: {
+      api: runtimeState.ready ? 'operational' : 'degraded',
+      cco: runtimeState.ready ? 'operational' : 'degraded',
+      patientChat: runtimeState.ready ? 'operational' : 'degraded',
+    },
+    uptime: {
+      startedAt: runtimeState.startedAt || null,
+      uptimeSeconds: uptimeSec,
+    },
+    lastCheckedAt: new Date().toISOString(),
+  });
+});
+
 app.get('/readyz', (req, res) => {
   if (!runtimeState.ready) {
     return res.status(503).json({
