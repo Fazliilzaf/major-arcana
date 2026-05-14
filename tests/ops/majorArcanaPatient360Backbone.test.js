@@ -42,6 +42,30 @@ test('Major Arcana kundpanelen har Patient 360-ryggrad från BOOK Systemets CCO'
   assert.match(appSource, /Validering/);
 });
 
+test('Patient 360-renderern deklarerar domänsurfaces innan operationskortet byggs', () => {
+  const operationSurfaceDecl = appSource.indexOf(
+    'const operationSurface = getPreviewOperationWorkspaceSurface(thread, focusReadState);'
+  );
+  const consultationSurfaceDecl = appSource.indexOf(
+    'const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);'
+  );
+  const commercialSurfaceDecl = appSource.indexOf(
+    'const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);'
+  );
+  const operationCardMarkup = appSource.indexOf('const operationCardMarkup = operationSurface');
+
+  assert.notEqual(operationSurfaceDecl, -1);
+  assert.notEqual(consultationSurfaceDecl, -1);
+  assert.notEqual(commercialSurfaceDecl, -1);
+  assert.notEqual(operationCardMarkup, -1);
+  assert.ok(
+    operationSurfaceDecl < operationCardMarkup &&
+      consultationSurfaceDecl < operationCardMarkup &&
+      commercialSurfaceDecl < operationCardMarkup,
+    'Domänsurfaces måste deklareras innan Patient 360-korten läser dem, annars kraschar previewn och faller tillbaka till ett nästan ostylat shell.'
+  );
+});
+
 test('Patient 360-yta behåller kompakt mailklientkänsla och använder statusfärg utan tung panel', () => {
   assert.match(
     cssSource,

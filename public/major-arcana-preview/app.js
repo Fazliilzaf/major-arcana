@@ -18923,6 +18923,9 @@
     const backbone = buildPreviewPatient360Backbone(thread, focusReadState);
     if (!backbone) return;
     const aftercareSurface = getPreviewAftercareWorkspaceSurface(thread, focusReadState);
+    const operationSurface = getPreviewOperationWorkspaceSurface(thread, focusReadState);
+    const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);
+    const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
     const aftercareQueueEntries = getPreviewAftercareQueueEntries({
       activeConversationId: thread?.id,
       includeClosed: false,
@@ -19140,7 +19143,6 @@
             }
           </article>`
         : "";
-      const consultationSurface = getPreviewConsultationWorkspaceSurface(thread, focusReadState);
       const consultationCardMarkup = consultationSurface
         ? `<article class="focus-customer-data-card patient360-data-card patient360-consultation-card" data-consultation-module-card data-is-active-module="${escapeHtml(
             activeWorkspaceDomainId === "consultation" ||
@@ -19225,7 +19227,6 @@
             }
           </article>`
         : "";
-      const commercialSurface = getPreviewCommercialWorkspaceSurface(thread, focusReadState);
       const commercialCardMarkup = commercialSurface
         ? `<article class="focus-customer-data-card patient360-data-card patient360-commercial-card" data-commercial-module-card data-is-active-module="${escapeHtml(
             activeWorkspaceDomainId === "commercial" ? "true" : "false"
