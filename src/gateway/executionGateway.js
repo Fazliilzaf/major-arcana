@@ -492,6 +492,16 @@ function createExecutionGateway({
         },
       });
 
+      const gatelineTimeline = [
+        { gate: 'ingress', status: ingressContext ? 'passed' : 'failed', durationMs: null },
+        { gate: 'inputRisk', status: inputRisk?.decision === 'blocked' ? 'blocked' : inputRisk ? 'passed' : 'skipped', score: inputRisk?.evaluation?.riskScore ?? null, decision: inputRisk?.decision || null, policyRefs: [] },
+        { gate: 'agentRun', status: agentResult ? 'passed' : errorStage === 'agentRun' ? 'failed' : 'skipped', attempts: stageAttempts.agentRun, fallbackUsed: false },
+        { gate: 'outputRisk', status: outputRisk?.decision === 'blocked' ? 'blocked' : outputRisk ? 'passed' : 'skipped', score: outputRisk?.evaluation?.riskScore ?? null, decision: outputRisk?.decision || null, policyRefs: [] },
+        { gate: 'policyFloor', status: policy?.blocked ? 'blocked' : policy ? 'passed' : 'skipped', reasonCodes: Array.isArray(policy?.reasonCodes) ? policy.reasonCodes : [], fallbackUsed: Boolean(policy?.blocked) },
+        { gate: 'persist', status: persisted ? 'passed' : stageAttempts.persist > 1 ? 'failed' : 'skipped', attempts: stageAttempts.persist },
+        { gate: 'audit', status: 'passed' },
+      ];
+
       const estimateTokens = (obj) => {
         if (!obj) return 0;
         try {
@@ -545,6 +555,7 @@ function createExecutionGateway({
         risk_summary: riskSummary,
         policy_summary: policySummary,
         token_usage: tokenUsage,
+        gateway_timeline: gatelineTimeline,
         artifact_refs: persisted?.artifact_refs || null,
         audit_refs: {
           correlation_id: ingressContext.correlation_id,
