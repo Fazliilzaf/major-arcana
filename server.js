@@ -483,6 +483,9 @@ const knowledgeStore = createTenantKnowledgeStore({
 });
 knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
 
+const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
+const executiveDecisionFeed = createExecutiveDecisionFeed();
+
 let billingService = null;
 let stripeWebhookHandler = null;
 
@@ -649,6 +652,30 @@ app.get('/healthz', (req, res) => {
     startupPhase: runtimeState.startupPhase,
     uptimeSec: Number(process.uptime().toFixed(1)),
   });
+});
+
+app.get('/api/v1/executive/feed', (req, res) => {
+  const entries = executiveDecisionFeed.list({
+    severity: req.query?.severity || undefined,
+    requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
+    limit: Math.min(50, Math.max(1, Number(req.query?.limit) || 20)),
+  });
+  const summary = executiveDecisionFeed.getSummary();
+  return res.json({ ok: true, entries, summary });
+});
+
+app.get('/api/v1/executive/feed/summary', (req, res) => {
+  return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
+});
+
+app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
+  const result = executiveDecisionFeed.resolve({
+    entryId: req.params?.entryId,
+    resolvedBy: req.body?.resolvedBy || 'owner',
+    resolution: req.body?.resolution || 'acknowledged',
+  });
+  if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
+  return res.json({ ok: true, entry: result });
 });
 
 app.get('/api/public/status', (req, res) => {
