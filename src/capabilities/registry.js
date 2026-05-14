@@ -20,6 +20,7 @@ const { ValidateDisclaimersCapability } = require('./validateDisclaimers');
 const { OptimizeVariablesCapability } = require('./optimizeVariables');
 const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
 const { FinanceGovernanceCapability } = require('./financeGovernance');
+const { PrepareResponseDraftsCapability } = require('./prepareResponseDrafts');
 const { GenerateContentBriefCapability } = require('./generateContentBrief');
 const { AnalyzeAudienceSegmentsCapability } = require('./analyzeAudienceSegments');
 const { GenerateOutreachCampaignCapability } = require('./generateOutreachCampaign');
@@ -55,6 +56,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(SuggestTemplateImprovementCapability),
   assertCapabilityClass(ValidateDisclaimersCapability),
   assertCapabilityClass(OptimizeVariablesCapability),
+  assertCapabilityClass(PrepareResponseDraftsCapability),
   assertCapabilityClass(AnalyzeRiskTrendCapability),
   assertCapabilityClass(FinanceGovernanceCapability),
   assertCapabilityClass(GenerateContentBriefCapability),
@@ -123,12 +125,12 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     name: CCO_AGENT_NAME,
     version: '1.0.0',
     role: 'CCO',
-    capabilities: Object.freeze(['AnalyzeInbox']),
+    capabilities: Object.freeze(['AnalyzeInbox', 'PrepareResponseDrafts', 'RefineReplyDraft']),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
     outputType: 'InboxAnalysis',
-    plannedCapabilities: Object.freeze(['PrepareResponseDrafts']),
+    plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({
     name: PATIENT_AGENT_NAME,
