@@ -420,6 +420,12 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
+const { createBillingRouter } = require('./src/routes/billing');
+const { createKnowledgeRouter } = require('./src/routes/knowledge');
+const { createBillingService } = require('./src/billing/billingService');
+const { createStripeClient } = require('./src/billing/stripeClient');
+const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
+const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeStore');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
@@ -470,6 +476,18 @@ const runtimeMetricsStore = createRuntimeMetricsStore({
   maxSamples: config.metricsMaxSamples,
   slowRequestMs: config.metricsSlowRequestMs,
 });
+
+const stripeInstance = createStripeClient();
+const knowledgeStore = createTenantKnowledgeStore({
+  storePath: path.join(config.stateRoot || './data', 'knowledge.json'),
+});
+knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
+
+const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
+const executiveDecisionFeed = createExecutiveDecisionFeed();
+
+let billingService = null;
+let stripeWebhookHandler = null;
 
 let server = null;
 let scheduler = null;
@@ -633,6 +651,58 @@ app.get('/healthz', (req, res) => {
     startedAt: runtimeState.startedAt,
     startupPhase: runtimeState.startupPhase,
     uptimeSec: Number(process.uptime().toFixed(1)),
+  });
+});
+
+app.get('/api/v1/executive/feed', (req, res) => {
+  const entries = executiveDecisionFeed.list({
+    severity: req.query?.severity || undefined,
+    requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
+    limit: Math.min(50, Math.max(1, Number(req.query?.limit) || 20)),
+  });
+  const summary = executiveDecisionFeed.getSummary();
+  return res.json({ ok: true, entries, summary });
+});
+
+app.get('/api/v1/executive/feed/summary', (req, res) => {
+  return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
+});
+
+app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
+  const result = executiveDecisionFeed.resolve({
+    entryId: req.params?.entryId,
+    resolvedBy: req.body?.resolvedBy || 'owner',
+    resolution: req.body?.resolution || 'acknowledged',
+  });
+  if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
+  return res.json({ ok: true, entry: result });
+});
+
+app.get('/api/public/status', (req, res) => {
+  const uptimeSec = runtimeState.startedAt
+    ? Math.round((Date.now() - new Date(runtimeState.startedAt).getTime()) / 1000)
+    : 0;
+  const metrics = runtimeMetricsStore?.getSnapshot?.() || null;
+  const errorRate = Number(metrics?.totals?.statusBuckets?.['5xx'] || 0);
+  const totalRequests = Number(metrics?.totals?.sampledRequests || 0);
+  const hasErrors = errorRate > 0 && totalRequests > 0 && (errorRate / totalRequests) > 0.05;
+
+  const overallStatus = !runtimeState.ready ? 'degraded'
+    : hasErrors ? 'degraded'
+    : 'operational';
+
+  return res.json({
+    status: overallStatus,
+    services: {
+      api: runtimeState.ready ? 'operational' : 'degraded',
+      cco: runtimeState.ready ? 'operational' : 'degraded',
+      patientChat: runtimeState.ready ? 'operational' : 'degraded',
+    },
+    uptime: {
+      startedAt: runtimeState.startedAt || null,
+      uptimeSeconds: uptimeSec,
+    },
+    lastCheckedAt: new Date().toISOString(),
   });
 });
 
@@ -963,6 +1033,18 @@ process.once('SIGTERM', () => {
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
   });
+
+  billingService = createBillingService({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+  stripeWebhookHandler = createStripeWebhookHandler({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+
   const secretRotationStore = await createSecretRotationStore({
     filePath: config.secretRotationStorePath,
     config,
@@ -1461,6 +1543,25 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       executionGateway,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createBillingRouter({
+      billingService,
+      stripeWebhookHandler: stripeWebhookHandler.isAvailable() ? stripeWebhookHandler : null,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createKnowledgeRouter({
+      knowledgeStore,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
     })
   );
 

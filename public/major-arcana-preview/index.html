@@ -27,7 +27,8 @@
     <script src="./cco-polish.js?v=build-2a26a7b" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
-    <main class="preview-page">
+    <a href="#cco-main-content" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.cssText='position:fixed;top:8px;left:8px;z-index:9999;padding:12px 20px;background:#543940;color:#FAF4EE;border-radius:14px;font-size:16px;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2)'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999'">Hoppa till innehåll</a>
+    <main class="preview-page" id="cco-main-content">
       <div class="preview-canvas">
         <header class="preview-topbar" aria-label="Huvudnavigation">
           <div class="preview-topbar-left">
@@ -9260,6 +9261,7 @@ Hör av dig om du har några frågor.</textarea
                     <span
                       class="note-feedback"
                       data-studio-feedback
+                      aria-live="polite"
                       hidden
                       aria-live="polite"
                     ></span>

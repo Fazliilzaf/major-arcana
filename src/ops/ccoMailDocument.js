@@ -261,21 +261,81 @@ function mergeAttachmentMetadata(primary = [], secondary = []) {
   return merged;
 }
 
+function resolveCidInHtml(html = '', attachments = [], message = {}) {
+  const source = normalizeText(html);
+  if (!source || !/\bcid:/i.test(source)) return source;
+
+  const cidMap = new Map();
+
+  for (const att of asArray(attachments)) {
+    const contentType = normalizeText(att?.contentType).toLowerCase();
+    const contentId = normalizeText(att?.contentId).toLowerCase();
+    const contentBytes = normalizeText(att?.contentBytes);
+    const name = normalizeText(att?.name);
+    const id = normalizeText(att?.id);
+    if (!contentId && !name && !id) continue;
+
+    const candidates = [contentId, name?.toLowerCase(), id?.toLowerCase()].filter(Boolean);
+    let replacement = '';
+
+    if (contentType.startsWith('image/') && contentBytes) {
+      replacement = `data:${contentType};base64,${contentBytes}`;
+    } else if (id) {
+      const mailboxId = normalizeText(
+        message?.mailboxId || message?.mailboxAddress || message?.userPrincipalName
+      );
+      const messageId = normalizeText(message?.graphMessageId || message?.messageId);
+      if (mailboxId && messageId) {
+        const params = new URLSearchParams({
+          mailboxId,
+          messageId,
+          attachmentId: id,
+          mode: 'open',
+        });
+        if (name) params.set('fileName', name);
+        replacement = `/api/v1/cco/runtime/mail-asset/content?${params.toString()}`;
+      }
+    }
+
+    if (replacement) {
+      candidates.forEach((c) => {
+        if (!cidMap.has(c)) cidMap.set(c, replacement);
+      });
+    }
+  }
+
+  if (cidMap.size === 0) return source;
+
+  return source.replace(
+    /(<img\b[^>]*\bsrc\s*=\s*['"])\s*cid:([^'"]+)(['"][^>]*>)/gi,
+    (match, prefix, rawCid, suffix) => {
+      const candidates = [
+        normalizeText(rawCid).toLowerCase(),
+        normalizeText(rawCid).toLowerCase().replace(/^<|>$/g, ''),
+      ].filter(Boolean);
+      const resolved = candidates.find((c) => cidMap.has(c));
+      if (!resolved) return match;
+      return `${prefix}${cidMap.get(resolved)}${suffix}`;
+    }
+  );
+}
+
 function buildCanonicalMailDocument(message = {}, { sourceStore = 'unknown' } = {}) {
   const mime = normalizeMimeMetadata(message?.mime);
   const mimePreferredHtml = normalizeText(mime?.parsed?.body?.preferredHtml);
   const mimePreferredText = normalizeText(mime?.parsed?.body?.preferredText);
-  const primaryBodyHtml = mimePreferredHtml || normalizeText(message?.bodyHtml);
+  const primaryBodyHtmlBeforeCidResolve = mimePreferredHtml || normalizeText(message?.bodyHtml);
   const explicitBodyText =
     mimePreferredText ||
     normalizeText(message?.body || message?.detail || message?.summary || message?.content);
   const previewText = normalizeText(
     message?.bodyPreview || message?.preview || message?.snippet || message?.summary
   );
-  const htmlDerivedText = extractTextFromHtml(primaryBodyHtml);
+  const htmlDerivedText = extractTextFromHtml(primaryBodyHtmlBeforeCidResolve);
   const primaryBodyText = explicitBodyText || htmlDerivedText || previewText;
-  const hasStructuredHtml =
-    /<table\b|<img\b|<a\b|<div\b|<p\b|<ul\b|<ol\b|style=/i.test(primaryBodyHtml);
+  const hasStructuredHtml = /<table\b|<img\b|<a\b|<div\b|<p\b|<ul\b|<ol\b|style=/i.test(
+    primaryBodyHtmlBeforeCidResolve
+  );
   const mergedAttachments = mergeAttachmentMetadata(
     asArray(message?.attachments),
     toMimeAttachmentMetadata(mime)
@@ -283,22 +343,28 @@ function buildCanonicalMailDocument(message = {}, { sourceStore = 'unknown' } = 
   const canonicalAssets = buildCanonicalMailAssets({
     messageId: normalizeText(message?.messageId || message?.graphMessageId),
     graphMessageId: normalizeText(message?.graphMessageId || message?.messageId),
-    bodyHtml: primaryBodyHtml,
+    bodyHtml: primaryBodyHtmlBeforeCidResolve,
     attachments: mergedAttachments,
     sourceStore,
   });
+  const primaryBodyHtml = resolveCidInHtml(
+    primaryBodyHtmlBeforeCidResolve,
+    asArray(message?.attachments),
+    message
+  );
   const attachments = canonicalAssets.attachments;
   const inlineAssets = canonicalAssets.inlineAssets;
   const assets = canonicalAssets.assets;
   const declaredHasAttachments = message?.hasAttachments === true;
   const hasAttachmentMetadata = attachments.length > 0;
-  const sourceDepth = mime?.available === true
-    ? 'mime'
-    : primaryBodyHtml
-      ? 'html'
-      : primaryBodyText
-        ? 'text'
-        : 'empty';
+  const sourceDepth =
+    mime?.available === true
+      ? 'mime'
+      : primaryBodyHtml
+        ? 'html'
+        : primaryBodyText
+          ? 'text'
+          : 'empty';
 
   return {
     version: 'phase_2',
@@ -359,7 +425,8 @@ function buildCanonicalMailDocument(message = {}, { sourceStore = 'unknown' } = 
       hasHtmlBody: Boolean(primaryBodyHtml),
       hasStructuredHtml,
       hasInlineAssets: inlineAssets.length > 0,
-      hasRenderableInlineAssets: Number(canonicalAssets.assetSummary?.renderableInlineCount || 0) > 0,
+      hasRenderableInlineAssets:
+        Number(canonicalAssets.assetSummary?.renderableInlineCount || 0) > 0,
       mimeAvailable: mime?.available === true,
       mimeBacked: mime?.mimeBacked === true,
       mimePreferredBodyKind: normalizeText(mime?.parsed?.preferredBodyKind) || 'empty',
