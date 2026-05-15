@@ -31,7 +31,6 @@ const PRECACHE_URLS = [
   '/major-arcana-preview/runtime-workspace-state.js',
   '/major-arcana-preview/runtime-reentry-state.js',
   '/major-arcana-preview/runtime-focus-intel-renderers.js',
-  '/major-arcana-preview/runtime-queue-renderers.js',
   '/major-arcana-preview/runtime-overlay-renderers.js',
   '/major-arcana-preview/runtime-async-orchestration.js',
   '/major-arcana-preview/runtime-dom-live-composition.js',

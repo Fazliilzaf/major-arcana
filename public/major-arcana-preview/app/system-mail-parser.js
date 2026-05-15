@@ -16,7 +16,7 @@
  *     // r = { customerName: 'Anna Karlsson', systemLabel: 'via Cliento' }
  *   }
  *
- * Integrationen sitter i runtime-queue-renderers.js's customer-name-resolver
+ * Integrationen sitter i app.js customer-name-resolver (getQueueHistoryCounterpartyLabel)
  * (samma path som "Okänd avsändare"-fixet). När parser hittar ett kundnamn
  * skrivs både sender-text och en system-label-pill ut.
  */

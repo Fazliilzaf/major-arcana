@@ -8,7 +8,7 @@
  *   • Imorgon         — uppföljning imorgon (tag: tomorrow)
  *   • Väntar svar     — vi skickade senast, kund har inte svarat (tag: followup + later)
  *
- * Förlitar sig på data-runtime-tags="..." som sätts av runtime-queue-renderers.js
+ * Förlitar sig på data-runtime-tags="..." som sätts av app.js
  * (efter patch). Tags är t.ex. "act-now,today,sprint" — kommaseparerad lista.
  *
  * Filtret applicerar display:none på trådar som inte matchar — och re-applicerar

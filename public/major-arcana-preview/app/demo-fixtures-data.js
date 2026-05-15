@@ -9,7 +9,7 @@
  * renderar normalt utan att behöva FIX12-overriden.
  *
  * Den här filen behålls för:
- *   - Customer-name-seed: P0-2-resolvern (runtime-queue-renderers.js) kan
+ *   - Customer-name-seed: P0-2-resolvern (app.js) kan
  *     vid edge-cases behöva extra namn-mappning för demo-trådar
  *   - window.__DemoFixtures.data: konsumerad av tools/coverage/verify-demo-fixtures.js
  *     och kan användas av framtida features som vill ha demo-conversations
@@ -503,7 +503,7 @@
     },
   };
 
-  // Seedar P0-2-resolvern (runtime-queue-renderers.js) så att demo-trådar
+  // Seedar P0-2-resolvern (app.js) så att demo-trådar
   // kan slå upp customer-name via samma path som live-data.
   function seedDemoCustomers() {
     const resolver = window.MajorArcanaCustomerNameResolver;
