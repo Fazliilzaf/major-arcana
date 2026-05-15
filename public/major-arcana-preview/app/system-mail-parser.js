@@ -41,9 +41,152 @@
       'okänd', 'unknown', 'no reply', 'noreply', 'notifications', 'system',
       'support', 'admin', 'info', 'kontakt', 'contact', 'team',
       'bekräftelse', 'bokning', 'order', 'faktura', 'invoice', 'receipt',
+      'hair tp', 'hairtp', 'klinik', 'clinic',
+      // Dokument-prefix som annars råkar fångas in i namn
+      'behandling', 'behandlingsavtal', 'avtal', 'samtycke', 'fullmakt',
+      'document', 'dokument',
     ];
     if (blocklist.some((b) => t.toLowerCase().includes(b))) return false;
     return true;
+  }
+
+  // ====== Body-parsing helpers (Phase 2) ======
+  // Förstärker alla per-system parsers när subject inte räcker till.
+
+  // Namn-separator får INTE inkludera \n/\r — annars äter regex sig vidare
+  // till nästa rad och plockar med t.ex. "Tel" som tredje "förnamn".
+  const NAME_PATTERN = '[A-ZÅÄÖ][a-zåäöéüø]+(?:[ \\t-][A-ZÅÄÖ][a-zåäöéüø]+){1,3}';
+  const NAME_RX = new RegExp(NAME_PATTERN);
+
+  /**
+   * Försök matcha ett "label: Name" mönster (Kund/Patient/Mottagare/Customer/etc.)
+   * Returnerar namnet eller null.
+   */
+  function matchLabeledName(body, labels) {
+    if (!body) return null;
+    for (const label of labels) {
+      const rx = new RegExp(
+        `(?:^|[\\n\\r])\\s*${label}\\s*[:|]\\s*(${NAME_PATTERN})`,
+        'i',
+      );
+      const m = body.match(rx);
+      if (m && looksLikePersonName(m[1])) return m[1].trim();
+    }
+    return null;
+  }
+
+  /**
+   * Hej Name, / Hi Name, / Hallå Name — vanlig greeting i body.
+   * OBS: greeting används bara om body innehåller en signatur eller "from"-rad
+   * som indikerar att avsändaren faktiskt heter Name. Annars är "Hej Anna"
+   * troligen riktad TILL Anna (mottagaren), inte FRÅN Anna.
+   */
+  function matchGreeting(body) {
+    if (!body) return null;
+    const m = body.match(new RegExp(`(?:^|[\\n\\r])\\s*(?:hej|hi|hallå|hello|tjena|dear)\\s+(${NAME_PATTERN})\\s*[,!]`, 'i'));
+    if (m && looksLikePersonName(m[1])) return m[1].trim();
+    return null;
+  }
+
+  /**
+   * Signature på sista raden: "Med vänlig hälsning,\nAnna Karlsson" eller "Best regards,\nAnna"
+   */
+  function matchSignature(body) {
+    if (!body) return null;
+    const closers = [
+      'med vänlig hälsning', 'mvh', 'vänligen', 'hälsningar',
+      'best regards', 'kind regards', 'regards', 'sincerely', 'thanks',
+    ];
+    for (const c of closers) {
+      const rx = new RegExp(`${c}[,\\s]*[\\n\\r]+\\s*(${NAME_PATTERN})`, 'i');
+      const m = body.match(rx);
+      if (m && looksLikePersonName(m[1])) return m[1].trim();
+    }
+    return null;
+  }
+
+  /**
+   * Quoted reply-header: "Från: Anna Karlsson <email>" / "From: Anna Karlsson <email>"
+   * Vanligt i forwarded system-mejl när en kund-tråd vidarebefordrats.
+   */
+  function matchQuotedFrom(body) {
+    if (!body) return null;
+    const rx = new RegExp(
+      `(?:^|[\\n\\r])\\s*(?:från|from)\\s*[:|]?\\s*(${NAME_PATTERN})\\s*[<(]`,
+      'i',
+    );
+    const m = body.match(rx);
+    if (m && looksLikePersonName(m[1])) return m[1].trim();
+    return null;
+  }
+
+  /**
+   * Sista chansen: extrahera namn från en email-adress.
+   * "anna.karlsson@hotmail.com" -> "Anna Karlsson"
+   * "anna-karlsson@..." -> "Anna Karlsson"
+   * Returnerar null för kryptiska localparts ("akarlsson", "anna123", "fr0ggy").
+   */
+  function nameFromEmail(emailAddr) {
+    if (!emailAddr || typeof emailAddr !== 'string') return null;
+    const localPart = emailAddr.split('@')[0] || '';
+    if (!localPart || localPart.length < 4 || localPart.length > 40) return null;
+    if (/\d/.test(localPart)) return null;
+    // Måste innehålla separator (.,-,_) som ger två ordkomponenter
+    const parts = localPart.split(/[._-]/).filter(Boolean);
+    if (parts.length < 2 || parts.length > 4) return null;
+    if (parts.some((p) => p.length < 2)) return null;
+    const cap = parts
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+      .join(' ');
+    if (looksLikePersonName(cap)) return cap;
+    return null;
+  }
+
+  /**
+   * Kombinerad body-extractor: kör matchLabeledName + matchGreeting +
+   * matchSignature + matchQuotedFrom i den ordningen. Använder en kombinerad
+   * lista av kund-labels som täcker svenska + engelska.
+   */
+  const KUND_LABELS = [
+    'kund', 'patient', 'mottagare', 'customer', 'client', 'till',
+    'namn', 'name', 'avsändare', 'sender', 'kontakt', 'contact person',
+    'för', 'for', 'patientnamn', 'kundnamn',
+  ];
+  /**
+   * Skanna en rad bakifrån och plocka SISTA 2-3-ords-sekvensen som ser ut
+   * som ett namn. Användbart för dokumentrubriker där kundens namn står
+   * sist: "Behandlingsavtal Erik Svensson" → "Erik Svensson".
+   */
+  function tailNameFromLine(line) {
+    if (!line) return null;
+    const words = String(line).split(/[\s,]+/).filter(Boolean);
+    // Försök 3, 2 ords-namn (i den ordningen — föredra 3 om båda passar)
+    for (const len of [3, 2]) {
+      for (let i = words.length - len; i >= 0; i--) {
+        const candidate = words.slice(i, i + len).join(' ');
+        if (looksLikePersonName(candidate) && /^[A-ZÅÄÖ]/.test(words[i])) {
+          // Alla orden måste börja med stor bokstav
+          if (words.slice(i, i + len).every((w) => /^[A-ZÅÄÖ]/.test(w))) {
+            return candidate;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function extractFromBody(body) {
+    if (!body) return null;
+    // Prio: label (Kund:/Customer:) > signature (kunden signerar) > quoted From
+    // OBS: greeting ("Hej Anna,") UTELÄMNAS — det adresserar mottagaren (oss),
+    // inte avsändaren. Att lägga in den skulle felaktigt visa vår personal
+    // som "kund" på interna eskaleringsmejl.
+    return (
+      matchLabeledName(body, KUND_LABELS) ||
+      matchSignature(body) ||
+      matchQuotedFrom(body) ||
+      null
+    );
   }
 
   // ====== Per-system parsers ======
@@ -63,9 +206,9 @@
     // "Namn har bokat" eller "Namn har bekräftat"
     m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(bokat|bekräftat|avbokat)/i);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
-    // Fallback: leta i body
-    m = b.match(/(?:kund|patient|namn)[\s:]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
-    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Cliento' };
+    // Body: "Kund:/Patient:/Namn:" labeled, sedan generic greeting/signature
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via Cliento' };
     return null;
   }
 
@@ -73,11 +216,21 @@
     // Smartdocs-format: 'Dokumentet "Andreas Monasterio ..." version 1 har öppnats'
     //                   'Andreas Monasterio har signerat dokument X'
     const s = subject || '';
+    const b = body || '';
     let m;
     m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(signerat|öppnat|granskat)/i);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
     m = s.match(/[Dd]okumentet\s+["']([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)[\s\S]*?["']/);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Smartdocs' };
+    // Body: "Dokument: Behandlingsavtal Erik Svensson" — scanna varje rad
+    // som börjar med dokument/avtal och plocka SISTA 2-3-ords-namnet.
+    const docLine = b.match(/(?:^|[\n\r])\s*(?:dokument(?:et|namn)?|avtal|fil)\s*[:|]?\s*([^\n\r]+)/i);
+    if (docLine) {
+      const tail = tailNameFromLine(docLine[1]);
+      if (tail) return { customerName: tail, systemLabel: 'via Smartdocs' };
+    }
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via Smartdocs' };
     return null;
   }
 
@@ -85,9 +238,15 @@
     // Bokadirekt-format: "Booking Request from Jimmy Skoglund"
     //                    "Bokningsförfrågan: Jimmy Skoglund"
     const s = subject || '';
+    const b = body || '';
     let m;
-    m = s.match(/(?:booking request|bokningsförfrågan)[\s:from-]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    // OBS: använder INTE /i på hela regexen — då blir [A-ZÅÄÖ] case-insensitive
+    // och kan börja matcha namnet mitt i ordet "from". Case-sensitive prefix:
+    m = s.match(/(?:[Bb]ooking [Rr]equest|[Bb]okningsförfrågan)[\s:.,-]+(?:[Ff]rom\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Bokadirekt' };
+    // Body: "Customer: Jimmy Skoglund\nPhone: ..." vanligt format
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via Bokadirekt' };
     return null;
   }
 
@@ -101,6 +260,11 @@
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
     m = s.match(/^([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)\s+har\s+(öppnat|signerat)/i);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
+    // Body: "Mottagare: Albert Mattsson <email>"
+    m = b.match(/(?:mottagare|recipient|signer)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via GetAccept' };
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via GetAccept' };
     return null;
   }
 
@@ -109,8 +273,15 @@
     //                  "Accepterat: Anna Karlsson | Klinikbesök"
     //                  "Avböjt: Lars Andersson"
     const s = subject || '';
+    const b = body || '';
     let m;
     m = s.match(/(?:preliminärt tackat ja|accepterat|avböjt|tackat ja)[\s:]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[a-zåäöéüø][a-zåäöéüø]+)+)/i);
+    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
+    // Body: "Gäster: Anna Karlsson <email>, Erik <email>"  → ta första gästen
+    m = b.match(/(?:gäster|guests|attendees|deltagare)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
+    // Body: "Organiserad av Anna Karlsson" / "Organized by"
+    m = b.match(/(?:organiserad? av|organized by|invited by)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kalender' };
     return null;
   }
@@ -119,9 +290,13 @@
     // Kivra-format: "Du har fått ett dokument från [Anna Karlsson]"
     //               "Påminnelse: kvitto från Anna Karlsson"
     const s = subject || '';
+    const b = body || '';
     let m;
     m = s.match(/(?:från|from)\s+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Kivra' };
+    // Body: "Avsändare: Anna Karlsson"
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via Kivra' };
     return null;
   }
 
@@ -129,9 +304,16 @@
     // Pipedrive Notifications: "Activity assigned: Anna Karlsson - Follow up"
     //                          "New deal: Anna Karlsson"
     const s = subject || '';
+    const b = body || '';
     let m;
-    m = s.match(/(?:activity|deal|task|note)[\s:assigned-]+([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    // Case-sensitive prefix (samma anledning som Bokadirekt — /i förstör namnet)
+    m = s.match(/(?:[Aa]ctivity|[Dd]eal|[Tt]ask|[Nn]ote|[Nn]ew\s+[Dd]eal)[\s:.,-]+(?:[Aa]ssigned[\s:.,-]+)?(?:to\s+)?([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
+    // Body: "Contact: Anna Karlsson" / "Person: Anna Karlsson"
+    m = b.match(/(?:contact|person|lead)\s*[:|]\s*([A-ZÅÄÖ][a-zåäöéüø]+(?:\s+[A-ZÅÄÖ][a-zåäöéüø]+)+)/i);
+    if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: 'via Pipedrive' };
+    const bodyName = extractFromBody(b);
+    if (bodyName) return { customerName: bodyName, systemLabel: 'via Pipedrive' };
     return null;
   }
 
@@ -147,6 +329,9 @@
     // Annars: leta efter ett tvåordigt namn i början av subject
     m = (subject || '').match(/^([A-ZÅÄÖ][a-zåäöéüø]+\s+[A-ZÅÄÖ][a-zåäöéüø]+)\b/);
     if (m && looksLikePersonName(m[1])) return { customerName: m[1].trim(), systemLabel: null };
+    // Body-fallback: KUND_LABELS / greeting / signature / quoted From
+    const bodyName = extractFromBody(body);
+    if (bodyName) return { customerName: bodyName, systemLabel: null };
     return null;
   }
 
@@ -177,8 +362,18 @@
 
   function isSystemSender(senderEmail, senderName) {
     if (!senderEmail && !senderName) return false;
-    const lowercased = (senderEmail || senderName || '').toLowerCase();
-    return /no.?reply|noreply|notifications?|do.?not.?reply|automated|system|robot/.test(lowercased);
+    const rx = /no.?reply|noreply|notifications?|do.?not.?reply|automated|system|robot/i;
+    // Kolla email OCH name var för sig — annars missar vi fall där email är
+    // en riktig adress men display-name är "Noreply" (eller tvärtom).
+    if (rx.test(senderEmail || '') || rx.test(senderName || '')) return true;
+    // Eller känd system-domän (t.ex. transactional@bokadirekt.se,
+    // calendar-notification@google.com) — de använder inte alltid no-reply
+    // som localpart men är ändå system-mejl.
+    const domain = (senderEmail || '').split('@')[1] || '';
+    if (!domain) return false;
+    if (DOMAIN_LABELS[domain]) return true;
+    if (SYSTEM_PARSERS.some((sp) => sp.match.test(domain))) return true;
+    return false;
   }
 
   function systemLabelFromEmail(senderEmail) {
@@ -221,6 +416,12 @@
     const generic = parseGeneric({ subject, body });
     const domainLabel = systemLabelFromEmail(senderEmail);
     if (generic) return { customerName: generic.customerName, systemLabel: domainLabel };
+    // Sista chansen: extrahera namn ur email-localpart (anna.karlsson@... -> Anna Karlsson)
+    // Bara om vi har en email som inte är en no-reply-kanonisk
+    if (senderEmail && !/no.?reply|noreply|notifications?|do.?not.?reply/i.test(senderEmail)) {
+      const fromEmail = nameFromEmail(senderEmail);
+      if (fromEmail) return { customerName: fromEmail, systemLabel: domainLabel };
+    }
     if (domainLabel) return { customerName: null, systemLabel: domainLabel };
     return null;
   }
@@ -230,7 +431,7 @@
       parse,
       isSystemSender,
       systemLabelFromEmail,
-      // Exponera per-parsers för testning
+      // Exponera per-parsers + body-helpers för testning
       parsers: {
         cliento: parseCliento,
         smartdocs: parseSmartdocs,
@@ -240,6 +441,15 @@
         kivra: parseKivra,
         pipedrive: parsePipedrive,
         generic: parseGeneric,
+      },
+      bodyHelpers: {
+        matchLabeledName,
+        matchGreeting,
+        matchSignature,
+        matchQuotedFrom,
+        nameFromEmail,
+        tailNameFromLine,
+        extractFromBody,
       },
     });
   }
