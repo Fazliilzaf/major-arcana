@@ -12575,6 +12575,31 @@ button.booking-handoff-card-blocker:focus-visible {
   box-shadow: none;
 }
 
+.booking-work-zone {
+  margin-top: 12px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 105, 90, 0.14);
+  background: rgba(252, 248, 244, 0.72);
+  scroll-margin-top: 96px;
+}
+
+.booking-work-zone .booking-slot-list {
+  margin-top: 10px;
+}
+
+.focus-workrail.is-booking-active .conversation-next-step {
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.focus-workrail.is-booking-active .conversation-next-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .booking-advanced-disclosure {
   margin-top: 14px;
   border-top: 1px solid rgba(120, 105, 90, 0.12);

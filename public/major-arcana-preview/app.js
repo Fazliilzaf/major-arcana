@@ -22140,6 +22140,7 @@
 
 	  function openBookingOperatorSurface({
 	    scroll = true,
+	    scrollToWorkZone = false,
 	    message = "Bokningsytan öppnades i arbetsytan.",
   } = {}) {
     state.runtime.queueInlinePanel = {
@@ -22161,17 +22162,24 @@
 	    if (message) {
 	      setFeedback(bookingDom.feedback, "success", message);
 	    }
+	    const scrollBookingTarget = () => {
+	      if (!scroll || !bookingDom.surface) return;
+	      const anchor = bookingDom.surface.querySelector("[data-booking-work-anchor]");
+	      const target = scrollToWorkZone && anchor ? anchor : bookingDom.surface;
+	      target.scrollIntoView({ behavior: "smooth", block: "start" });
+	    };
 	    if (isSingleWorkspaceViewport()) {
 	      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
 	      window.setTimeout(resetSingleWorkspaceScrollPosition, 0);
 	      window.setTimeout(resetSingleWorkspaceScrollPosition, 160);
+	      if (scroll) {
+	        window.setTimeout(scrollBookingTarget, scrollToWorkZone ? 220 : 80);
+	      }
 	      return;
 	    }
 	    if (scroll && bookingDom.surface) {
-	      window.setTimeout(() => {
-	        bookingDom.surface.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-    }
+	      window.setTimeout(scrollBookingTarget, scrollToWorkZone ? 120 : 80);
+	    }
   }
 
   function getBookingReadoutForThread(thread) {
@@ -23885,7 +23893,11 @@
     window.setTimeout(() => {
       targetButton.classList.remove("is-recommended-pulse");
     }, 900);
-    setFeedback(bookingDom.feedback, "success", "Rekommenderad knapp är markerad. Ingen åtgärd utfördes.");
+    setFeedback(
+      bookingDom.feedback,
+      "success",
+      "Knappen är markerad (ingen åtgärd körd). Utför nästa steg manuellt om du vill."
+    );
   }
 
   function renderAvailableBookingSlots(bookingDom) {
@@ -23919,19 +23931,50 @@
       .join("");
   }
 
+  function buildBookingJumpButtonLabel(action = "") {
+    const raw = asText(action);
+    if (!raw) return "Gå till nästa steg";
+    if (raw.startsWith("set_status:")) {
+      const target = normalizeKey(raw.split(":")[1]);
+      if (target === "closed") return "Gå till: Stäng ärende";
+      return `Gå till: sätt status (${target || "?"})`;
+    }
+    const key = normalizeKey(raw);
+    const labels = {
+      candidate_slots: "Gå till: Välj 3 tider",
+      insert_studio: "Gå till: Infoga i Studio",
+      schedule_followup: "Gå till: Schemalägg",
+      confirm_external: "Gå till: Bekräftad externt",
+      waiting_customer: "Gå till: Väntar kund",
+      select_live_slot: "Gå till: välj tid i listan",
+      clear_slots: "Gå till: Rensa tider",
+      copy_handoff: "Gå till: Kopiera handoff",
+      copy_audit_summary: "Gå till: Kopiera audit",
+    };
+    return labels[key] || `Gå till: ${raw}`;
+  }
+
   function ensureBookingAdvancedDisclosure(surface) {
     if (!surface || surface.querySelector("[data-booking-advanced-panel]")) return;
     const actionRow = surface.querySelector(".booking-action-row");
     const advancedNodes = [
+      surface.querySelector("[data-booking-source]"),
+      surface.querySelector("[data-booking-health]"),
+      surface.querySelector("[data-booking-decision-source]"),
+      surface.querySelector(".booking-attention-grid"),
+      surface.querySelector("[data-booking-notes]"),
+      surface.querySelector("[data-booking-status-flow]"),
       surface.querySelector("[data-booking-status-filter-row]"),
       surface.querySelector("[data-booking-status-filter-note]"),
       surface.querySelector("[data-booking-audit-next-case]"),
       surface.querySelector("[data-booking-case-list]"),
+      surface.querySelector("[data-booking-decision-grid]"),
+      surface.querySelector("[data-booking-handoff-checklist]"),
+      surface.querySelector("[data-booking-handoff-summary]"),
       surface.querySelector("[data-booking-audit-preview]"),
       surface.querySelector("[data-booking-slot-controls]"),
       surface.querySelector("[data-booking-ref-status]"),
       surface.querySelector("[data-booking-available-slot-list]"),
-      surface.querySelector("[data-booking-slot-list]"),
       surface.querySelector("[data-booking-event-filter-row]"),
       surface.querySelector("[data-booking-event-list]"),
     ].filter(Boolean);
@@ -23941,7 +23984,8 @@
     details.dataset.bookingAdvancedPanel = "true";
     const summary = document.createElement("summary");
     summary.className = "booking-advanced-summary";
-    summary.innerHTML = '<span>Avancerat</span><strong>Tider, logg och historik</strong>';
+    summary.innerHTML =
+      '<span>Avancerat</span><strong>Sammanhang, externa tider och logg</strong>';
     const content = document.createElement("div");
     content.className = "booking-advanced-content";
     details.append(summary, content);
@@ -23951,6 +23995,32 @@
     } else {
       surface.appendChild(details);
     }
+  }
+
+  function ensureBookingWorkZone(surface) {
+    if (!surface || surface.querySelector("[data-booking-work-anchor]")) return;
+    const head = surface.querySelector(".booking-operator-head");
+    const nextAction = surface.querySelector("[data-booking-next-action]");
+    const jump = surface.querySelector("[data-booking-focus-recommended]");
+    const hint = surface.querySelector("#booking-next-action-hint");
+    const slotList = surface.querySelector("[data-booking-slot-list]");
+    const actionRow = surface.querySelector(".booking-action-row");
+    const actionHint = surface.querySelector("[data-booking-action-hint]");
+    const feedback = surface.querySelector("[data-booking-feedback]");
+    if (!actionRow || !head) return;
+    const zone = document.createElement("div");
+    zone.className = "booking-work-zone";
+    zone.dataset.bookingWorkAnchor = "true";
+    zone.setAttribute("data-booking-work-anchor", "");
+    const insertRef = head.nextSibling;
+    if (insertRef) {
+      surface.insertBefore(zone, insertRef);
+    } else {
+      surface.appendChild(zone);
+    }
+    [nextAction, jump, hint, slotList, actionRow, actionHint, feedback].forEach((node) => {
+      if (node) zone.appendChild(node);
+    });
   }
 
   function ensureBookingActionDisclosure(surface) {
@@ -23992,7 +24062,7 @@
           <p class="booking-health-line" data-booking-health>Hälsa: saknar kandidat-tider</p>
           <p class="booking-next-action-line" data-booking-next-action>Nästa: välj kandidat-tider</p>
           <p class="booking-decision-source-line" data-booking-decision-source>Beslutskälla: lokal bedömning</p>
-          <button class="booking-next-action-jump" type="button" data-booking-focus-recommended>Visa knapp</button>
+          <button class="booking-next-action-jump" type="button" data-booking-focus-recommended>Gå till nästa steg</button>
           <span class="sr-only" id="booking-next-action-hint">Rekommenderad nästa manuella bokningsåtgärd.</span>
           <div class="booking-attention-grid" aria-label="Bokningssignaler">
             <div><span>Vad</span><strong data-booking-treatment>Bokningsdialog</strong></div>
@@ -24062,6 +24132,7 @@
       surface = document.querySelector("[data-booking-surface]");
     }
     ensureBookingAdvancedDisclosure(surface);
+    ensureBookingWorkZone(surface);
     ensureBookingActionDisclosure(surface);
     return {
       surface,
@@ -24112,6 +24183,10 @@
     const isBooking = isBookingRuntimeThread(thread);
     bookingDom.surface.hidden = !isBooking;
     bookingDom.surface.setAttribute("aria-hidden", isBooking ? "false" : "true");
+    const focusWorkrail = bookingDom.surface.closest("[data-focus-workrail]");
+    if (focusWorkrail) {
+      focusWorkrail.classList.toggle("is-booking-active", isBooking);
+    }
     if (!isBooking) return;
 
     const readout = getBookingReadoutForThread(thread);
@@ -24142,8 +24217,9 @@
         bookingDom.nextActionJump.hidden = !nextAction.action;
         bookingDom.nextActionJump.disabled = !nextAction.action;
         bookingDom.nextActionJump.dataset.bookingRecommendedAction = nextAction.action;
+        bookingDom.nextActionJump.textContent = buildBookingJumpButtonLabel(nextAction.action);
         bookingDom.nextActionJump.title = nextAction.action
-          ? "Visa den rekommenderade knappen utan att utföra åtgärden."
+          ? `${buildBookingJumpButtonLabel(nextAction.action)} — markerar rätt knapp utan att köra åtgärden.`
           : "Ingen aktiv rekommenderad åtgärd.";
       }
     }
@@ -26703,6 +26779,7 @@ renderStudioShell();
 	      event.stopPropagation();
 	      openBookingOperatorSurface({
 	        scroll: true,
+	        scrollToWorkZone: true,
 	        message: "Bokningsytan öppnades. Hämta externa tider eller välj kandidat-tider.",
 	      });
 	      return;
@@ -26910,13 +26987,38 @@ renderStudioShell();
 
 	  document.addEventListener("pointerup", (event) => {
 	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
-	    if (!bookingLaneButton) return;
+	    if (bookingLaneButton) {
+	      window.setTimeout(() => {
+	        openBookingOperatorSurface({
+	          scroll: true,
+	          scrollToWorkZone: true,
+	          message: "Bokningsytan öppnades från Bokning-kön.",
+	        });
+	      }, 120);
+	      return;
+	    }
+	    if (
+	      event.target.closest(
+	        'button, [role="button"], [data-quick-action], a, input, textarea, select, label'
+	      )
+	    )
+	      return;
+	    if (event.target.closest("#cmd-k-overlay")) return;
+	    const threadCard = event.target.closest("[data-runtime-thread]");
+	    if (!threadCard) return;
+	    const threadId = asText(threadCard.dataset.runtimeThread);
+	    if (!threadId) return;
+	    const thread = getMailboxScopedRuntimeThreads().find((t) =>
+	      runtimeConversationIdsMatch(t.id, threadId)
+	    );
+	    if (!thread || !isBookingRuntimeThread(thread)) return;
 	    window.setTimeout(() => {
 	      openBookingOperatorSurface({
 	        scroll: true,
-	        message: "Bokningsytan öppnades från Bokning-kön.",
+	        scrollToWorkZone: true,
+	        message: "",
 	      });
-	    }, 120);
+	    }, 220);
 	  });
 
   window.addEventListener("blur", () => {
@@ -28007,6 +28109,7 @@ renderStudioShell();
 	    window.setTimeout(() => {
 	      openBookingOperatorSurface({
 	        scroll: true,
+	        scrollToWorkZone: true,
 	        message: "Bokningsytan öppnades från direktlänken.",
 	      });
 	    }, 900);
