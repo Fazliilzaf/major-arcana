@@ -286,6 +286,19 @@
       });
     }
 
+    // System-mail label: när app/system-mail-display.js har parsat ett
+    // system-mejl (Cliento, Smartdocs, Bokadirekt, etc.) och bytt sender
+    // till kundnamn — markera kortet med vilket system det kom från.
+    const systemMailLabel = card.dataset.systemMailLabel;
+    if (systemMailLabel) {
+      out.push({
+        label: systemMailLabel,
+        color: '#64748B',
+        icon: 'gear',
+        type: 'system-mail',
+      });
+    }
+
     // 8) Next-action (Svara nu / Granska tråden / Bekräfta bokning) från
     //    eventuell .warm-cta / next-action-element (om de finns i DOM)
     const ctaText = (
