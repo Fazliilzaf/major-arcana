@@ -1512,7 +1512,7 @@
                               type="button"
                               data-booking-focus-recommended
                             >
-                              Visa knapp
+                              Gå till nästa steg
                             </button>
                             <span class="sr-only" id="booking-next-action-hint">
                               Rekommenderad nästa manuella bokningsåtgärd.
@@ -1713,6 +1713,13 @@
                                 <span>Hämta Cliento-slots eller välj kandidater manuellt.</span>
                               </li>
                             </ul>
+
+                            <div
+                              class="booking-event-filter-row"
+                              data-booking-event-filter-row
+                              aria-label="Filtrera bokningshändelser"
+                              hidden
+                            ></div>
 
                             <ol
                               class="booking-event-timeline"
@@ -10092,8 +10099,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-collaboration.js"></script>
     <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
     <script src="./runtime-config.js?v=build-01afc5c"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: c44fa6d88d) -->
-    <script src="./app.bundle.c44fa6d88d.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: bfe70ca8c2) -->
+    <script src="./app.bundle.bfe70ca8c2.min.js"></script>
     <!-- Demo-fixtures + customer-name-seed: seedar P0-2-resolvern med fake-customers för demo-trådar (demo-mb-001 → Morten Bak Kristoffersen, etc.). MÅSTE laddas EFTER bundle (resolver finns där) men före renderApp använder cards. -->
     <script src="./app/demo-fixtures-data.js?v=build-01afc5c"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
@@ -10112,14 +10119,14 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="./app/bulk-actions.js?v=build-01afc5c"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
     <script src="./app/inbox-streak.js?v=build-01afc5c"></script>
-    <!-- AI-utkast inline-edit + Snooze + keyboard-footer + inbox-filter-toggle + mailbox-merge-badge + smart-filter-bar + mailbox-menu-persist är alla bundlade i app.bundle.min.js (laddad högre upp i body) -->
+    <!-- 2026-05-15 cleanup: app/snooze.js, app/inline-draft-edit.js, app/onboarding-tour.js,
+         app/mailbox-menu-persist.js, app/mailbox-merge-badge.js, app/smart-filter-bar.js,
+         app/inbox-filter-toggle.js, app/keyboard-footer.js + 35 runtime-*.js raderade —
+         de var aldrig faktiskt bundlade i app.bundle.min.js (verifierat via grep) och
+         deras window.__X-globals användes inte från live-koden. ~1.2 MB skräp borttaget. -->
     <!-- Signal-bar: inline-pills bredvid "Behöver svar" med tillhörande färg+symbol -->
     <script src="./app/signal-bar.js?v=build-01afc5c"></script>
     <!-- Customer-cluster: flera trådar från samma kund samlas till EN kort -->
     <script src="./app/customer-cluster.js?v=build-01afc5c"></script>
-    <!-- System-mail parser: extraherar kundnamn ur Cliento/Smartdocs/Bokadirekt/etc. -->
-    <script src="./app/system-mail-parser.js?v=build-01afc5c"></script>
-    <!-- System-mail display: applicerar parsern på live-cards, byter sender-text till kundnamn -->
-    <script src="./app/system-mail-display.js?v=build-01afc5c"></script>
     </body>
 </html>
