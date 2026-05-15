@@ -14399,6 +14399,26 @@
     return localPart ? localPart.charAt(0).toUpperCase() + localPart.slice(1) : "Mailbox";
   }
 
+  // System-mail-parser-integration: när explicit-label ser ut som system-namn
+  // (No Reply, Notifications, Smartdocs, etc.) — kör parsern på subject+preview
+  // för att plocka ut det faktiska kundnamnet. Resultatet skrivs som retur
+  // av denna funktion (counterpartyLabel) + på item.systemMailLabel för
+  // pill-rendering.
+  function __resolveSystemMailNameForItem(item, currentLabel, customerEmail) {
+    if (typeof window === "undefined") return null;
+    const parser = window.MajorArcanaSystemMailParser;
+    if (!parser || typeof parser.parse !== "function") return null;
+    const senderEmail = asText(customerEmail || item.customerEmail || item.fromEmail || item.senderEmail);
+    const senderName = asText(currentLabel || item.fromName || item.senderName);
+    if (typeof parser.isSystemSender === "function") {
+      if (!parser.isSystemSender(senderEmail, senderName)) return null;
+    }
+    const subject = asText(item.subject || item.summary || item.title);
+    const body = asText(item.detail || item.preview || item.summary || item.systemPreview);
+    const r = parser.parse({ senderEmail, senderName, subject, body });
+    return r || null;
+  }
+
   function getQueueHistoryCounterpartyLabel(item = {}, customerEmail = "", mailboxLabel = "") {
     const explicitLabel = asText(
       item.customerName ||
@@ -14409,6 +14429,23 @@
         item.contactLabel
     );
     if (explicitLabel) {
+      // Om explicit-namnet ser ut som system-mejl-avsändare, försök parsa.
+      const looksSystem =
+        /^(no.?reply|noreply|notifications?|smartdocs|getaccept|bokadirekt|cliento|kivra|pipedrive|automated|do.?not.?reply)/i.test(
+          explicitLabel
+        );
+      if (looksSystem) {
+        const parsed = __resolveSystemMailNameForItem(item, explicitLabel, customerEmail);
+        if (parsed && parsed.customerName) {
+          // Skriv parser-resultatet tillbaka i item så markup-builders kan
+          // emit data-system-mail-label och .warm-sender direkt.
+          if (parsed.systemLabel) item.systemMailLabel = parsed.systemLabel;
+          item.customerName = parsed.customerName;
+          return parsed.customerName;
+        }
+        // Inget namn kunde parsas men vi har systemLabel — sätt så pillen visas
+        if (parsed && parsed.systemLabel) item.systemMailLabel = parsed.systemLabel;
+      }
       const explicitEmail = extractEmail(explicitLabel);
       if (explicitEmail && normalizeKey(explicitLabel) === normalizeKey(explicitEmail)) {
         return humanizeHistoryCounterpartyEmail(explicitEmail) || explicitLabel;
@@ -14417,6 +14454,14 @@
     }
     const normalizedEmail = asText(customerEmail);
     if (normalizedEmail) {
+      // Email finns men ingen explicit-label — om email är system-mejl, försök parsa
+      const parsed = __resolveSystemMailNameForItem(item, "", normalizedEmail);
+      if (parsed && parsed.customerName) {
+        if (parsed.systemLabel) item.systemMailLabel = parsed.systemLabel;
+        item.customerName = parsed.customerName;
+        return parsed.customerName;
+      }
+      if (parsed && parsed.systemLabel) item.systemMailLabel = parsed.systemLabel;
       const derivedLabel =
         humanizeHistoryCounterpartyEmail(normalizedEmail) || deriveMailboxLabel(normalizedEmail);
       return derivedLabel || normalizedEmail;
@@ -14439,13 +14484,23 @@
         );
         const mailboxId = normalizeMailboxId(item.mailboxId);
         const primaryLaneId = derivePrimaryRuntimeLane(item);
+        // OBS: getQueueHistoryCounterpartyLabel kan mutera item.systemMailLabel +
+        // item.customerName via system-mail-parsern. Anropet körs FÖRE returobjektet
+        // konstrueras så att systemMailLabel kan propageras nedåt till markup.
+        const counterpartyLabel = getQueueHistoryCounterpartyLabel(
+          item,
+          customerEmail,
+          getQueueHistoryMailboxLabel(mailboxId)
+        );
         return {
           id: asText(item.messageId || `${item.conversationId}-${item.recordedAt}-${subject}`),
           conversationId: asText(item.conversationId),
           customerEmail,
           mailboxId,
           mailboxLabel: getQueueHistoryMailboxLabel(mailboxId),
-          counterpartyLabel: getQueueHistoryCounterpartyLabel(item, customerEmail, getQueueHistoryMailboxLabel(mailboxId)),
+          counterpartyLabel,
+          customerName: asText(item.customerName, counterpartyLabel),
+          systemMailLabel: asText(item.systemMailLabel),
           title: compactRuntimeCopy(subject, subject, 108),
           detail,
           direction: normalizeKey(item.direction || "message") === "outbound" ? "Skickat" : "Mottaget",
@@ -14453,9 +14508,7 @@
           recordedAt: toIso(item.recordedAt),
           primaryLaneId,
           laneId: primaryLaneId,
-          initials: initialsForName(
-            getQueueHistoryCounterpartyLabel(item, customerEmail, getQueueHistoryMailboxLabel(mailboxId))
-          ),
+          initials: initialsForName(counterpartyLabel),
         };
       })
       .sort(compareHistoryEventsDesc);
