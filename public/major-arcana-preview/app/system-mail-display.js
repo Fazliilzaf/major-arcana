@@ -108,12 +108,23 @@
     });
   }
 
+  // Polling-cap: undvik att polla för evigt om .queue-history-list aldrig
+  // dyker upp (t.ex. om användaren aldrig öppnar kö-vyn). 60 försök × 500 ms
+  // = 30 s sammantaget. Efter det ger vi upp tills nästa interval-tick.
+  let bindAttempts = 0;
+  const MAX_BIND_ATTEMPTS = 60;
+  let intervalHandle = null;
+
   function bindObserver() {
     const list = document.querySelector('.queue-history-list');
     if (!list) {
-      setTimeout(bindObserver, 500);
+      bindAttempts++;
+      if (bindAttempts < MAX_BIND_ATTEMPTS) {
+        setTimeout(bindObserver, 500);
+      }
       return;
     }
+    bindAttempts = 0;
     const obs = new MutationObserver(() => {
       // Reset FIXED_FLAG på kort som muterats så vi kan re-applicera
       // (t.ex. när customer-name-resolver också körts efter oss).
@@ -121,11 +132,20 @@
     });
     obs.observe(list, { childList: true, subtree: true });
     schedule();
+    // Stoppa intervall-pollen när observer är ansluten — MutationObserver
+    // täcker alla framtida mutationer.
+    if (intervalHandle != null) {
+      clearInterval(intervalHandle);
+      intervalHandle = null;
+    }
   }
 
   function init() {
     bindObserver();
-    setInterval(schedule, 3000);
+    // Backup-poll var 3:e sek tills observern hittar listan (då stoppas den).
+    intervalHandle = setInterval(() => {
+      if (intervalHandle != null) bindObserver();
+    }, 3000);
   }
 
   if (document.readyState === 'loading') {
