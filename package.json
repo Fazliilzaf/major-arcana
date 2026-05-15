@@ -32,6 +32,7 @@
     "build:bundle": "node ./bin/build-bundle.js",
     "test:visual": "playwright test --config=playwright.config.js",
     "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
+    "test:system-mail-parser": "node scripts/test/system-mail-parser.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",
     "check-cache-busters": "bash ./bin/check-cache-busters.sh",
     "pre-commit": "bash ./bin/pre-commit-cco.sh",

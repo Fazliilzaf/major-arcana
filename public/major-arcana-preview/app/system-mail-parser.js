@@ -59,6 +59,48 @@
   const NAME_RX = new RegExp(NAME_PATTERN);
 
   /**
+   * Phase 3: strippa HTML-taggar och dekoda vanliga entities innan body
+   * skickas till regex-parsers. System-mejl är ofta HTML och vi vill att
+   * "<p>Kund: <strong>Maria</strong></p>" ska bete sig som "Kund: Maria".
+   */
+  function stripHtml(s) {
+    if (!s || typeof s !== 'string') return '';
+    // Skydda email-adresser inom <...> så de inte strippas som HTML.
+    // Exempel: "Från: Sofia Andersson <sofia@x.com>" — vi behöver behålla
+    // hela <sofia@x.com> för matchQuotedFrom-regexen.
+    const emailPlaceholders = [];
+    let out = s.replace(/<([^<>\s]+@[^<>\s]+)>/g, (_match, email) => {
+      emailPlaceholders.push(email);
+      return `EMAIL${emailPlaceholders.length - 1}`;
+    });
+    // Behåll line-break för <br> + </p> + </div> + </tr> så att radvis
+    // parsing fortsätter att fungera korrekt.
+    out = out
+      .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+      .replace(/<\s*\/\s*(?:p|div|tr|li|h[1-6])\s*>/gi, '\n')
+      .replace(/<[^>]+>/g, '');
+    // Återställ emails
+    out = out.replace(/EMAIL(\d+)/g, (_m, idx) => {
+      return `<${emailPlaceholders[Number(idx)]}>`;
+    });
+    // Vanliga HTML-entities
+    out = out
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&aring;/g, 'å')
+      .replace(/&Aring;/g, 'Å')
+      .replace(/&auml;/g, 'ä')
+      .replace(/&Auml;/g, 'Ä')
+      .replace(/&ouml;/g, 'ö')
+      .replace(/&Ouml;/g, 'Ö');
+    return out;
+  }
+
+  /**
    * Försök matcha ett "label: Name" mönster (Kund/Patient/Mottagare/Customer/etc.)
    * Returnerar namnet eller null.
    */
@@ -398,7 +440,10 @@
    * @returns {object|null} - { customerName, systemLabel } eller null
    */
   function parse(input = {}) {
-    const { senderEmail, senderName, subject, body } = input;
+    const { senderEmail, senderName, subject } = input;
+    // Phase 3: strippa HTML från body innan per-system parsers ser den.
+    // Då fungerar Kund:/Patient:/Mottagare:-labels även för HTML-mejl.
+    const body = stripHtml(input.body || '');
     if (!isSystemSender(senderEmail, senderName)) return null;
 
     // Hitta system-specifik parser
@@ -450,6 +495,7 @@
         nameFromEmail,
         tailNameFromLine,
         extractFromBody,
+        stripHtml,
       },
     });
   }
