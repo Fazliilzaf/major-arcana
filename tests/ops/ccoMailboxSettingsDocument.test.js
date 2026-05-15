@@ -5,6 +5,9 @@ const {
   buildCanonicalCcoMailboxSettingsDocument,
   buildApprovedEgzonaSignatureHtml,
   buildApprovedFazliSignatureHtml,
+  normalizeCcoMailFoundation,
+  normalizeCustomMailboxDefinition,
+  normalizeMailFoundationDefaults,
   resolveCcoMailboxSignatureProfile,
 } = require('../../src/ops/ccoMailboxSettingsDocument');
 
@@ -147,4 +150,56 @@ test('egzona base profile carries approved provided html for send/profile parity
     resolvedProfile.html.includes('img2.gimm.io/9e99c2fb-11b4-402b-8a43-6022ede8aa2b/image.png'),
     true
   );
+});
+
+test('normalizeCustomMailboxDefinition null eller saknad email returnerar null', () => {
+  assert.equal(normalizeCustomMailboxDefinition(null), null);
+  assert.equal(normalizeCustomMailboxDefinition({}), null);
+  assert.equal(normalizeCustomMailboxDefinition({ label: 'utan adress' }), null);
+});
+
+test('normalizeCustomMailboxDefinition normaliserar id email och ägare', () => {
+  const mailbox = normalizeCustomMailboxDefinition(
+    {
+      id: 'Owner@Clinic.SE',
+      email: 'owner@clinic.se',
+      label: '  Owner ',
+      owner: '  Reception ',
+      toneClass: 'CALM',
+    },
+    2
+  );
+  assert.equal(mailbox.id, 'owner@clinic.se');
+  assert.equal(mailbox.email, 'owner@clinic.se');
+  assert.equal(mailbox.label, 'Owner');
+  assert.equal(mailbox.owner, 'Reception');
+  assert.equal(mailbox.toneClass, 'CALM');
+  assert.equal(mailbox.source, 'mailbox_admin');
+});
+
+test('normalizeMailFoundationDefaults läser defaultSenderMailboxId och defaultSignatureProfileId', () => {
+  const defaults = normalizeMailFoundationDefaults({
+    defaultSenderMailboxId: 'A@B.com',
+    defaultSignatureProfileId: '  fazli  ',
+  });
+  assert.equal(defaults.senderMailboxId, 'a@b.com');
+  assert.equal(defaults.signatureProfileId, 'fazli');
+});
+
+test('normalizeCcoMailFoundation filtrerar bort ogiltiga mailbox-poster', () => {
+  const foundation = normalizeCcoMailFoundation({
+    defaults: { senderMailboxId: 'x@y.com' },
+    customMailboxes: [{}, null, { email: 'ok@clinic.com', label: 'OK' }],
+  });
+  assert.equal(foundation.customMailboxes.length, 1);
+  assert.equal(foundation.customMailboxes[0].email, 'ok@clinic.com');
+  assert.equal(foundation.defaults.senderMailboxId, 'x@y.com');
+});
+
+test('normalizeCcoMailFoundation icke-array customMailboxes blir tom lista', () => {
+  const foundation = normalizeCcoMailFoundation({
+    defaults: {},
+    customMailboxes: 'ignored',
+  });
+  assert.deepEqual(foundation.customMailboxes, []);
 });

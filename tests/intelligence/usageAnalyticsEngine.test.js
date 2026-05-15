@@ -130,3 +130,244 @@ test('Health score clamps into 0-100', () => {
   assert.equal(low >= 0, true);
 });
 
+test('Worklist snapshot metrics return zeros for empty worklist', () => {
+  const snapshot = computeWorklistSnapshotMetrics([]);
+  assert.equal(snapshot.unresolvedCount, 0);
+  assert.equal(snapshot.slaBreachRate, 0);
+  assert.equal(snapshot.conversionSignal, 0);
+  assert.equal(snapshot.bookingCount, 0);
+});
+
+test('Worklist snapshot metrics count unanswered at 48h inclusive', () => {
+  const below = computeWorklistSnapshotMetrics([
+    { needsReplyStatus: 'needs_reply', slaStatus: 'safe', hoursSinceInbound: 47 },
+  ]);
+  const at = computeWorklistSnapshotMetrics([
+    { needsReplyStatus: 'needs_reply', slaStatus: 'safe', hoursSinceInbound: 48 },
+  ]);
+  assert.equal(below.unansweredOver48hCount, 0);
+  assert.equal(at.unansweredOver48hCount, 1);
+});
+
+test('Worklist snapshot metrics derive conversion signal from booking intents', () => {
+  const snapshot = computeWorklistSnapshotMetrics([
+    { needsReplyStatus: 'needs_reply', intent: 'booking_request', slaStatus: 'safe', hoursSinceInbound: 1 },
+    { needsReplyStatus: 'needs_reply', intent: 'complaint', slaStatus: 'warning', hoursSinceInbound: 2 },
+  ]);
+  assert.equal(snapshot.bookingCount, 1);
+  assert.equal(snapshot.conversionSignal, 0.5);
+});
+
+test('computeHealthScore tolerates null snapshotMetrics', () => {
+  const score = computeHealthScore({
+    snapshotMetrics: null,
+    avgResponseTimeHours: 10,
+    recommendationFollowRate: 0.5,
+    ccoUsageRate: 0.5,
+    sprintCompletionRate: 0.5,
+  });
+  assert.ok(Number.isFinite(score));
+  assert.equal(score <= 100, true);
+});
+
+test('computeUsageAnalytics returns +100% trend when previous baseline is zero', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [],
+    analysisEntries: [],
+    currentConversationWorklist: [
+      { needsReplyStatus: 'needs_reply', slaStatus: 'breach', intent: 'complaint' },
+    ],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.slaBreachTrendPercent, 100);
+  assert.equal(metrics.slaBreachTrend, '+100%');
+  assert.equal(metrics.complaintTrendPercent, 100);
+});
+
+test('computeUsageAnalytics counts active days from analysisEntries and clamps windowDays max 90', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 999,
+    auditEvents: [],
+    analysisEntries: [
+      { ts: '2026-03-01T10:00:00.000Z' },
+      { ts: '2026-03-02T10:00:00.000Z' },
+    ],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.windowDays, 90);
+  assert.equal(metrics.activeDays, 2);
+});
+
+test('computeUsageAnalytics computes follow/ignored rates from draft mode selections', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [
+      { ts: '2026-03-01T10:00:00.000Z', action: 'cco.draft.mode_selected', metadata: { ignoredRecommended: false } },
+      { ts: '2026-03-01T10:01:00.000Z', action: 'cco.draft.mode_selected', metadata: { ignoredRecommended: true } },
+      { ts: '2026-03-01T10:02:00.000Z', action: 'cco.draft.mode_selected', metadata: { ignoredRecommended: false } },
+    ],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.systemRecommendationFollowRate, 0.667);
+  assert.equal(metrics.ignoredRecommendedRate, 0.333);
+});
+
+test('computeWorklistSnapshotMetrics treats non-array worklist as empty', () => {
+  const snap = computeWorklistSnapshotMetrics(null);
+  assert.equal(snap.unresolvedCount, 0);
+  assert.equal(snap.slaBreachCount, 0);
+});
+
+test('Worklist snapshot treats spaced handled status as resolved', () => {
+  const snap = computeWorklistSnapshotMetrics([
+    { needsReplyStatus: '  HANDLED  ', slaStatus: 'breach', hoursSinceInbound: 99, intent: 'complaint' },
+  ]);
+  assert.equal(snap.unresolvedCount, 0);
+});
+
+test('Worklist snapshot counts SLA breach case-insensitively', () => {
+  const snap = computeWorklistSnapshotMetrics([
+    { needsReplyStatus: 'needs_reply', slaStatus: 'BREACH', hoursSinceInbound: 1 },
+  ]);
+  assert.equal(snap.slaBreachCount, 1);
+});
+
+test('computeUsageAnalytics clamps windowDays minimum to 1', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 0,
+    auditEvents: [],
+    analysisEntries: [{ ts: '2026-03-01T10:00:00.000Z' }],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.windowDays, 1);
+  assert.equal(metrics.activeDays, 1);
+});
+
+test('computeHealthScore treats array snapshotMetrics like empty snapshot', () => {
+  const fromArray = computeHealthScore({
+    snapshotMetrics: [],
+    avgResponseTimeHours: 8,
+    recommendationFollowRate: 0.5,
+    ccoUsageRate: 0.5,
+    sprintCompletionRate: 0.5,
+  });
+  const fromObject = computeHealthScore({
+    snapshotMetrics: {},
+    avgResponseTimeHours: 8,
+    recommendationFollowRate: 0.5,
+    ccoUsageRate: 0.5,
+    sprintCompletionRate: 0.5,
+  });
+  assert.equal(fromArray, fromObject);
+});
+
+test('computeUsageAnalytics counts capability.run.complete toward active days', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 7,
+    auditEvents: [
+      { ts: '2026-03-05T10:00:00.000Z', action: 'capability.run.complete', metadata: {} },
+    ],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.activeDays, 1);
+  assert.ok(metrics.ccoUsageRate > 0);
+});
+
+test('computeUsageAnalytics derives positive volatility from multi-point health history', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [
+      { ts: '2026-03-01T10:00:00.000Z', score: 60 },
+      { ts: '2026-03-02T10:00:00.000Z', score: 90 },
+      { ts: '2026-03-03T10:00:00.000Z', score: 70 },
+    ],
+  });
+  assert.ok(metrics.volatilityIndex > 0);
+});
+
+test('computeUsageAnalytics highRiskHandledFirstRate counts critical and high sprint items', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [
+      { ts: '2026-03-01T10:00:00.000Z', action: 'cco.sprint.item_completed', metadata: { slaAgeHours: 4, priorityLevel: 'Critical' } },
+      { ts: '2026-03-01T10:01:00.000Z', action: 'cco.sprint.item_completed', metadata: { slaAgeHours: 5, priorityLevel: 'low' } },
+    ],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.highRiskHandledFirstRate, 0.5);
+});
+
+test('computeUsageAnalytics volatilityIndex is zero when health history has at most one score', () => {
+  const empty = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  const onePoint = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [{ ts: '2026-03-01T10:00:00.000Z', score: 82 }],
+  });
+  assert.equal(empty.volatilityIndex, 0);
+  assert.equal(onePoint.volatilityIndex, 0);
+});
+
+test('computeUsageAnalytics counts active day from audit metadata.timestamp when ts is missing', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 7,
+    auditEvents: [
+      {
+        action: 'cco.sprint.start',
+        metadata: { timestamp: '2026-04-10T15:30:00.000Z' },
+      },
+    ],
+    analysisEntries: [],
+    currentConversationWorklist: [],
+    previousConversationWorklist: [],
+    healthHistory: [],
+  });
+  assert.equal(metrics.activeDays, 1);
+});
+
+test('computeUsageAnalytics slaBreachTrend shows negative percent when breach rate falls', () => {
+  const metrics = computeUsageAnalytics({
+    windowDays: 14,
+    auditEvents: [],
+    analysisEntries: [],
+    currentConversationWorklist: [
+      { needsReplyStatus: 'needs_reply', slaStatus: 'safe', intent: 'follow_up', hoursSinceInbound: 2 },
+    ],
+    previousConversationWorklist: [
+      { needsReplyStatus: 'needs_reply', slaStatus: 'breach', intent: 'complaint', hoursSinceInbound: 10 },
+    ],
+    healthHistory: [],
+  });
+  assert.equal(metrics.slaBreachTrendPercent, -100);
+  assert.equal(metrics.slaBreachTrend, '-100%');
+});
+

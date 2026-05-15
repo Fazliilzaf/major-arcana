@@ -4788,13 +4788,42 @@
         : null;
 
     if (providedSla) {
-      const slaState = String(providedSla.state || '')
+      let slaState = String(providedSla.state || '')
         .trim()
         .toLowerCase();
-      const remainingMs = Number(providedSla.remainingMs || 0);
+      const deadlineRaw = String(
+        providedSla.deadline || evaluation?.slaDeadline || ''
+      ).trim();
+      const deadlineMs = parseIsoToMs(deadlineRaw);
+      const targetMsFromMinutes =
+        Number(providedSla.targetMinutes) > 0 ? Number(providedSla.targetMinutes) * 60000 : 0;
+      const targetMsBase =
+        Number(providedSla.targetMs) > 0
+          ? Number(providedSla.targetMs)
+          : targetMsFromMinutes > 0
+          ? targetMsFromMinutes
+          : level >= 5
+          ? 30 * 60 * 1000
+          : 4 * 60 * 60 * 1000;
+
+      let remainingMs = Number(providedSla.remainingMs || 0);
+
+      if (slaState !== 'resolved' && deadlineMs !== null) {
+        remainingMs = deadlineMs - Date.now();
+        if (remainingMs <= 0) {
+          slaState = 'breached';
+        } else {
+          const ratio = remainingMs / targetMsBase;
+          if (ratio <= 0.25) slaState = 'critical';
+          else if (ratio <= 0.5) slaState = 'warn';
+          else slaState = 'ok';
+        }
+      }
+
       const targetMinutes = Number(providedSla.targetMinutes || 0);
-      const targetMs = targetMinutes > 0 ? targetMinutes * 60 * 1000 : level >= 5 ? 30 * 60 * 1000 : 4 * 60 * 60 * 1000;
-      const deadlineLabel = formatDateTime(providedSla.deadline);
+      const targetMs =
+        targetMinutes > 0 ? targetMinutes * 60 * 1000 : targetMsBase;
+      const deadlineLabel = formatDateTime(deadlineRaw || providedSla.deadline);
       const targetLabel = formatDurationCompact(targetMs);
 
       if (slaState === 'resolved') {
@@ -4910,6 +4939,49 @@
       className: 'sla-ok',
       detail: `Inom SLA. Mål: ${formatDurationCompact(targetMs)}.`,
     };
+  }
+
+  let incidentSlaRefreshTimer = null;
+
+  function clearIncidentSlaRefreshTimer() {
+    if (incidentSlaRefreshTimer) {
+      clearInterval(incidentSlaRefreshTimer);
+      incidentSlaRefreshTimer = null;
+    }
+  }
+
+  function scheduleIncidentSlaLiveRefresh() {
+    clearIncidentSlaRefreshTimer();
+    const tick = () => {
+      const liveNodes =
+        els.riskIncidentsTableBody?.querySelectorAll?.('span.incident-sla-live[data-sla-live="1"]') || [];
+      if (!liveNodes.length) {
+        clearIncidentSlaRefreshTimer();
+        return;
+      }
+      liveNodes.forEach((node) => {
+        const evaluation = {
+          riskLevel: Number(node.getAttribute('data-risk-level') || 4),
+          ownerDecision: node.getAttribute('data-owner-decision') || 'pending',
+          slaDeadline: node.getAttribute('data-sla-deadline') || '',
+          incidentSla: {
+            deadline: node.getAttribute('data-sla-deadline') || '',
+            targetMs: Number(node.getAttribute('data-sla-target-ms') || 0),
+            targetMinutes: Math.max(
+              0,
+              Math.round(Number(node.getAttribute('data-sla-target-ms') || 0) / 60000)
+            ),
+            state: 'ok',
+          },
+        };
+        const sla = computeIncidentSla(evaluation);
+        node.className = `badge sla-chip ${sla.className} incident-sla-live`;
+        node.setAttribute('title', sla.detail);
+        node.textContent = sla.label;
+      });
+    };
+    incidentSlaRefreshTimer = setInterval(tick, 30000);
+    tick();
   }
 
   function renderRiskEmptyRow(tbody, colSpan, text) {
@@ -5157,6 +5229,7 @@
   }
 
   function renderRiskTable(evaluations, incidentRows = null) {
+    clearIncidentSlaRefreshTimer();
     saveListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
     saveListScrollPosition('riskIncidentsWrap', els.riskIncidentsWrap);
     const sourceRows = Array.isArray(evaluations) ? evaluations : [];
@@ -5179,6 +5252,7 @@
     renderRiskQueueSummary(state.riskEvaluations);
 
     if (!displayEvaluations.length) {
+      clearIncidentSlaRefreshTimer();
       renderRiskEmptyRow(els.riskReviewsTableBody, 12, 'Inga granskningar (L3) för valt filter.');
       renderRiskEmptyRow(els.riskIncidentsTableBody, 11, 'Inga incidenter (L4-L5) för valt filter.');
       syncSelectAllCheckbox(els.riskSelectAllReviews, []);
@@ -5285,9 +5359,32 @@
       const updatedAt = evaluation.updatedAt || evaluation.evaluatedAt || '';
       const updatedAtLabel = formatDateTime(updatedAt);
       const ageLabel = formatRelativeAge(updatedAt);
+      const deadlineForLive = String(evaluation.slaDeadline || evaluation.incidentSla?.deadline || '').trim();
+      const slaTargetMsAttr =
+        Number(evaluation.incidentSla?.targetMs) > 0
+          ? Number(evaluation.incidentSla.targetMs)
+          : riskLevel >= 5
+          ? 30 * 60 * 1000
+          : 4 * 60 * 60 * 1000;
+      const normalizedOwnerDec = String(ownerDecision || '').trim().toLowerCase();
+      const canSlaLive =
+        parseIsoToMs(deadlineForLive) !== null &&
+        String(evaluation.incidentSla?.state || '').toLowerCase() !== 'resolved' &&
+        (normalizedOwnerDec === 'pending' ||
+          normalizedOwnerDec === 'revision_requested' ||
+          normalizedOwnerDec === 'escalated');
+      const slaLiveAttrs = canSlaLive
+        ? ` data-sla-live="1" data-sla-deadline="${escapeHtml(deadlineForLive)}" data-sla-target-ms="${escapeHtml(
+            String(slaTargetMsAttr)
+          )}" data-risk-level="${escapeHtml(String(riskLevel))}" data-owner-decision="${escapeHtml(ownerDecision)}"`
+        : '';
+      const slaChipClass = `badge sla-chip ${escapeHtml(sla.className)}${canSlaLive ? ' incident-sla-live' : ''}`;
+      const deadlineLine = deadlineForLive
+        ? `<div class="mini muted">${escapeHtml(formatDateTime(deadlineForLive))}</div>`
+        : '';
       tr.innerHTML = `
         <td><input type="checkbox" class="riskSelectChk" data-eid="${evaluationId}" ${isChecked ? 'checked' : ''} /></td>
-        <td><span class="badge sla-chip ${escapeHtml(sla.className)}" title="${escapeHtml(sla.detail)}">${escapeHtml(sla.label)}</span></td>
+        <td><span${slaLiveAttrs} class="${slaChipClass}" title="${escapeHtml(sla.detail)}">${escapeHtml(sla.label)}</span>${deadlineLine}</td>
         <td class="code">${escapeHtml(incidentId || '-')}</td>
         <td class="code">${escapeHtml(evaluation.templateId || '-')}<br/>v:${escapeHtml(evaluation.templateVersionId || '-')}</td>
         <td><span class="chip">${escapeHtml(categoryLabel)}</span></td>
@@ -5351,6 +5448,7 @@
     }
     restoreListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
     restoreListScrollPosition('riskIncidentsWrap', els.riskIncidentsWrap);
+    scheduleIncidentSlaLiveRefresh();
   }
 
   function normalizeRiskRange(minRaw, maxRaw) {
@@ -27760,6 +27858,7 @@
     const status = String(summary?.overallStatus || 'unknown').toLowerCase();
     const alerts = Number(summary?.triggeredAlertsCount || 0);
     const hasTraffic = summary?.hasTraffic === true;
+    const totalRequests = Number(summary?.totalRequests || 0);
     const sampledRequests = Number(summary?.sampledRequests || 0);
     const metrics = observabilityResponse?.metrics && typeof observabilityResponse.metrics === 'object'
       ? observabilityResponse.metrics
@@ -27774,12 +27873,12 @@
       : [];
 
     els.monitorObservabilitySummary.textContent = isEnglishLanguage()
-      ? `status=${status} alerts=${alerts} hasTraffic=${hasTraffic ? 'yes' : 'no'} sampled=${sampledRequests}`
-      : `status=${status} varningar=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} urval=${sampledRequests}`;
+      ? `status=${status} alerts=${alerts} hasTraffic=${hasTraffic ? 'yes' : 'no'} total=${totalRequests} sampled=${sampledRequests}`
+      : `status=${status} varningar=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} totalt=${totalRequests} urval=${sampledRequests}`;
 
     const lines = [];
     lines.push(
-      `mätvärden: felgradProcent=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} långsammaAnrop=${Number(metrics?.slowRequests || 0)}`
+      `mätvärden: totaltFörfrågningar=${Number(metrics?.totalRequests || 0)} felgradProcent=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} långsammaAnrop=${Number(metrics?.slowRequests || 0)}`
     );
     lines.push(
       `gränsvärden: maxFelgradProcent=${Number(thresholds?.maxErrorRatePct || 0)} maxP95Ms=${Number(thresholds?.maxP95Ms || 0)} maxLångsammaAnrop=${Number(thresholds?.maxSlowRequests || 0)}`
@@ -28855,6 +28954,7 @@
       incidentStatus: incident.status || '',
       incidentSeverity: severity || '',
       incidentSla: incident.sla && typeof incident.sla === 'object' ? incident.sla : null,
+      slaDeadline: incident.slaDeadline || (incident.sla && incident.sla.deadline) || null,
     };
   }
 
@@ -28921,6 +29021,7 @@
           row.ownerDecision,
           row.incidentStatus,
           row.incidentSeverity,
+          row.slaDeadline,
           ...(Array.isArray(row.reasonCodes) ? row.reasonCodes : []),
         ]
           .map((part) => String(part || '').toLowerCase())

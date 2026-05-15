@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   buildCanonicalMailMimeMetadata,
   getMailMimeTriggerReasons,
+  shouldFetchMimeForOpenMail,
 } = require('../../src/ops/ccoMailMimeLayer');
 
 test('getMailMimeTriggerReasons markerar structured high-risk html', () => {
@@ -20,6 +21,56 @@ test('getMailMimeTriggerReasons markerar structured high-risk html', () => {
     'rich_layout_html',
     'attachment_backed_html',
   ]);
+});
+
+test('getMailMimeTriggerReasons tom eller blank bodyHtml ger tom lista', () => {
+  assert.deepEqual(getMailMimeTriggerReasons({}), []);
+  assert.deepEqual(getMailMimeTriggerReasons({ bodyHtml: '' }), []);
+  assert.deepEqual(getMailMimeTriggerReasons({ bodyHtml: '  \n' }), []);
+});
+
+test('getMailMimeTriggerReasons flaggar long_html_body nar bodyHtml ar minst 4000 tecken', () => {
+  const bodyHtml = `<p>${'x'.repeat(3995)}</p>`;
+  assert.ok(bodyHtml.length >= 4000);
+  const reasons = getMailMimeTriggerReasons({ bodyHtml });
+  assert.ok(reasons.includes('long_html_body'));
+});
+
+test('getMailMimeTriggerReasons deduplicerar tabular_html vid flera tabeller', () => {
+  const reasons = getMailMimeTriggerReasons({
+    bodyHtml: '<table></table><table></table>',
+  });
+  assert.deepEqual(
+    reasons.filter((r) => r === 'tabular_html'),
+    ['tabular_html']
+  );
+});
+
+test('shouldFetchMimeForOpenMail ar false utan triggers och true vid blockquote', () => {
+  assert.equal(shouldFetchMimeForOpenMail({}), false);
+  assert.equal(
+    shouldFetchMimeForOpenMail({ bodyHtml: '<blockquote>tidigare trad</blockquote>' }),
+    true
+  );
+});
+
+test('buildCanonicalMailMimeMetadata utan rawMime ger phase_a och available false', () => {
+  const meta = buildCanonicalMailMimeMetadata({
+    rawMime: '',
+    fetchState: 'skipped',
+  });
+  assert.equal(meta.version, 'phase_a');
+  assert.equal(meta.available, false);
+  assert.equal(meta.mimeBacked, false);
+  assert.equal(meta.fetchState, 'skipped');
+});
+
+test('buildCanonicalMailMimeMetadata deduplicerar triggerReasons', () => {
+  const meta = buildCanonicalMailMimeMetadata({
+    rawMime: '',
+    triggerReasons: ['tabular_html', 'tabular_html', 'html_images'],
+  });
+  assert.deepEqual(meta.triggerReasons, ['tabular_html', 'html_images']);
 });
 
 test('buildCanonicalMailMimeMetadata bygger phase_b-metadata med canonical body och assets fran raw MIME', () => {

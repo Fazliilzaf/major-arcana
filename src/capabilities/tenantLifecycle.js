@@ -240,7 +240,10 @@ class TenantCreateCapability extends BaseCapability {
         if (existing) {
           alreadyExists = true;
           warnings.push(`Tenant "${newTenantId}" finns redan.`);
-        } else if (typeof tenantConfigStore.updateTenantConfig === 'function') {
+        } else if (
+          newTenantId &&
+          typeof tenantConfigStore.updateTenantConfig === 'function'
+        ) {
           await tenantConfigStore.updateTenantConfig({
             tenantId: newTenantId,
             patch: {

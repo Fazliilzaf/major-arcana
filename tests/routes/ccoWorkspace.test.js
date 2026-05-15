@@ -377,3 +377,141 @@ test('cco workspace router läcker inte tidigare tråddata till tomt live-läge'
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('cco workspace router validate-visibility accepterar tillåtna kombinationer och avvisar otillåtna', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const ok = await fetch(`${baseUrl}/cco-workspace/notes/validate-visibility`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'major-arcana-preview',
+          destinationKey: 'medicinsk',
+          visibility: 'internal',
+        }),
+      });
+      assert.equal(ok.status, 200);
+      const okBody = await ok.json();
+      assert.equal(okBody.ok, true);
+      assert.equal(okBody.visibility, 'internal');
+      assert.ok(okBody.allowed.includes('internal'));
+
+      const badVisibility = await fetch(`${baseUrl}/cco-workspace/notes/validate-visibility`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'major-arcana-preview',
+          destinationKey: 'konversation',
+          visibility: 'internal',
+        }),
+      });
+      assert.equal(badVisibility.status, 400);
+      const badVisBody = await badVisibility.json();
+      assert.match(badVisBody.error, /Synlighet/);
+
+      const unknownKey = await fetch(`${baseUrl}/cco-workspace/notes/validate-visibility`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'major-arcana-preview',
+          destinationKey: 'finns_inte',
+          visibility: 'team',
+        }),
+      });
+      assert.equal(unknownKey.status, 400);
+      const unknownBody = await unknownKey.json();
+      assert.equal(unknownBody.error, 'Okänd anteckningskategori.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco workspace router validate-conflict ogiltigt datum ger 400', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco-workspace/follow-ups/validate-conflict`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'major-arcana-preview',
+          date: '',
+          time: '10:30',
+          doctorName: 'Dr. Eriksson',
+        }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.error, 'Ogiltigt datum eller tid.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco workspace router preferences PUT avvisar icke-numeriska bredder', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/cco-workspace/preferences`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'major-arcana-preview',
+          leftWidth: 'wide',
+          rightWidth: 300,
+        }),
+      });
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.error, 'Ogiltiga panelbredder.');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco workspace router follow-up POST returnerar 409 vid dubbelbokning', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const body = {
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-dup',
+        customerId: 'dup@example.com',
+        customerName: 'Dup Kund',
+        date: '2026-04-10',
+        time: '14:00',
+        doctorName: 'Dr. Lindberg',
+        category: 'Konsultation',
+        reminderLeadMinutes: 120,
+        notes: 'Första',
+      };
+
+      const first = await fetch(`${baseUrl}/cco-workspace/follow-ups`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      assert.equal(first.status, 200);
+
+      const second = await fetch(`${baseUrl}/cco-workspace/follow-ups`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...body, notes: 'Andra' }),
+      });
+      assert.equal(second.status, 409);
+      const conflictPayload = await second.json();
+      assert.match(conflictPayload.error, /redan bokad/);
+      assert.ok(conflictPayload.metadata && conflictPayload.metadata.conflict);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

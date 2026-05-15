@@ -3,6 +3,10 @@ const assert = require('node:assert/strict');
 
 const {
   extractAndPersistWritingIdentityProfile,
+  extractAndPersistWritingIdentityProfiles,
+  extractWritingProfileFromSamples,
+  listMailboxesWithSentSamples,
+  listRecentSentSamplesForMailbox,
 } = require('../../src/intelligence/writingProfileExtractor');
 const {
   getWritingIdentityProfile,
@@ -123,4 +127,117 @@ test('Writing profile extractor returns no_samples when no sent mail exists', as
   assert.equal(result.reason, 'no_samples');
   assert.equal(result.sampleCount, 0);
   assert.equal(result.record, null);
+});
+
+test('listRecentSentSamplesForMailbox clamps sampleSize and filters invalid samples', async () => {
+  const tenantId = 'tenant-samples';
+  const mailbox = 'ops@hairtpclinic.com';
+  const entries = [];
+  for (let i = 0; i < 60; i += 1) {
+    entries.push(
+      buildSendEntry({
+        tenantId,
+        mailbox,
+        body: `Hej\n\nBody ${i}\n\nVänliga hälsningar`,
+        ts: `2026-03-01T10:${String(i % 60).padStart(2, '0')}:00.000Z`,
+      })
+    );
+  }
+  entries.push({
+    tenantId,
+    capability: { name: 'CCO.SendReply' },
+    input: { senderMailboxId: mailbox, body: '   ' },
+    output: { senderMailboxId: mailbox, body: '' },
+    ts: '2026-03-02T00:00:00.000Z',
+  });
+  const analysisStore = createAnalysisStoreMock(entries);
+
+  const samples = await listRecentSentSamplesForMailbox({
+    analysisStore,
+    tenantId,
+    mailboxAddress: mailbox,
+    sampleSize: 10, // clamps to 30
+  });
+  assert.equal(samples.length, 30);
+  assert.equal(samples.every((item) => item.mailbox === mailbox), true);
+});
+
+test('listMailboxesWithSentSamples normalizes, dedupes and sorts addresses', async () => {
+  const tenantId = 'tenant-mailboxes';
+  const analysisStore = createAnalysisStoreMock([
+    buildSendEntry({ tenantId, mailbox: 'Zeta@Example.com', body: 'Hej', ts: '2026-03-01T10:00:00.000Z' }),
+    buildSendEntry({ tenantId, mailbox: 'alpha@example.com', body: 'Hej', ts: '2026-03-01T10:01:00.000Z' }),
+    buildSendEntry({ tenantId, mailbox: 'zeta@example.com', body: 'Hej', ts: '2026-03-01T10:02:00.000Z' }),
+  ]);
+
+  const mailboxes = await listMailboxesWithSentSamples({ analysisStore, tenantId, maxMailboxes: 1 });
+  assert.deepEqual(mailboxes, ['zeta@example.com']);
+
+  const all = await listMailboxesWithSentSamples({ analysisStore, tenantId, maxMailboxes: 10 });
+  assert.deepEqual(all, ['alpha@example.com', 'zeta@example.com']);
+});
+
+test('extractAndPersistWritingIdentityProfiles uses explicit mailboxes and reports skipped invalid', async () => {
+  const tenantId = 'tenant-batch';
+  const analysisStore = createAnalysisStoreMock([
+    buildSendEntry({
+      tenantId,
+      mailbox: 'valid@hairtpclinic.com',
+      body: 'Hej\n\nTack för ditt meddelande.\n\nVänliga hälsningar',
+      ts: '2026-03-01T11:00:00.000Z',
+    }),
+  ]);
+  const authStore = { async addAuditEvent() {} };
+
+  const result = await extractAndPersistWritingIdentityProfiles({
+    analysisStore,
+    authStore,
+    tenantId,
+    mailboxes: ['valid@hairtpclinic.com', 'not-an-email'],
+    actorUserId: 'owner-2',
+    sampleSize: 100, // clamps to 50 in return payload
+  });
+
+  assert.deepEqual(result.requestedMailboxes, ['valid@hairtpclinic.com']);
+  assert.equal(result.updatedProfiles.length, 1);
+  assert.equal(result.updatedProfiles[0].updated, true);
+  assert.equal(result.sampleSize, 50);
+  assert.equal(result.skipped.length, 0);
+});
+
+test('extractWritingProfileFromSamples uses fallback profile when samples empty', () => {
+  const p = extractWritingProfileFromSamples([], {
+    fallbackProfile: { greetingStyle: 'Hallå,' },
+  });
+  assert.equal(p.greetingStyle, 'Hallå,');
+});
+
+test('extractWritingProfileFromSamples detects Hello greeting on first line', () => {
+  const p = extractWritingProfileFromSamples([
+    { body: 'Hello\n\nThanks for your message.\n\nBest' },
+  ]);
+  assert.match(p.greetingStyle, /^Hello/i);
+});
+
+test('extractWritingProfileFromSamples aggregates closing from repeated samples', () => {
+  const p = extractWritingProfileFromSamples([
+    { body: 'Hej\n\nText one.\n\nVänliga hälsningar' },
+    { body: 'Hej\n\nText two.\n\nVänliga hälsningar' },
+  ]);
+  assert.ok(/hälsningar/i.test(p.closingStyle));
+});
+
+test('extractWritingProfileFromSamples sets emojiUsage when body contains emoji', () => {
+  const p = extractWritingProfileFromSamples([
+    { body: 'Hej! 😊\n\nKlart.\n\nVänliga hälsningar' },
+  ]);
+  assert.equal(p.emojiUsage, true);
+});
+
+test('extractWritingProfileFromSamples ignores null entries in sample list', () => {
+  const p = extractWritingProfileFromSamples([
+    null,
+    { body: 'Hej\n\nKort svar.\n\nVänliga hälsningar' },
+  ]);
+  assert.ok(/hej/i.test(p.greetingStyle));
 });

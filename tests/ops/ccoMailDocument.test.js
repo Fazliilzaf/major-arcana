@@ -307,3 +307,47 @@ test('buildCanonicalMailDocument foredrar MIME-backed body och asset metadata na
     external: 0,
   });
 });
+
+test('extractTextFromHtml tom eller blank strang ger tom text', () => {
+  assert.equal(extractTextFromHtml(''), '');
+  assert.equal(extractTextFromHtml('   \n\t  '), '');
+});
+
+test('extractTextFromHtml decodar vanliga html-entiteter', () => {
+  const text = extractTextFromHtml('<p>A&nbsp;&amp;&nbsp;B &lt;tag&gt;</p>');
+  assert.equal(text, 'A & B <tag>');
+});
+
+test('extractTextFromHtml decodar decimal och hex numeriska entiteter', () => {
+  const decimal = extractTextFromHtml('<span>&#8364;</span>');
+  assert.equal(decimal, '€');
+  const hex = extractTextFromHtml('<span>&#x20ac;</span>');
+  assert.equal(hex, '€');
+});
+
+test('extractTextFromHtml listpunkter fran li-element', () => {
+  const text = extractTextFromHtml('<ul><li>Första</li><li>Andra</li></ul>');
+  assert.equal(text, '• Första\n• Andra');
+});
+
+test('buildCanonicalMailDocument normaliserar okänd direction till inbound', () => {
+  const document = buildCanonicalMailDocument({
+    messageId: 'msg-dir-unknown',
+    subject: 'S',
+    direction: 'sideways',
+    bodyPreview: 'Preview',
+  });
+  assert.equal(document.direction, 'inbound');
+});
+
+test('buildCanonicalMailDocument accepterar outbound med varierande casing', () => {
+  const document = buildCanonicalMailDocument({
+    messageId: 'msg-dir-out',
+    subject: 'Utgående',
+    direction: 'OUTBOUND',
+    bodyPreview: 'Hej',
+    senderEmail: 'klinik@example.com',
+    recipients: ['kund@example.com'],
+  });
+  assert.equal(document.direction, 'outbound');
+});

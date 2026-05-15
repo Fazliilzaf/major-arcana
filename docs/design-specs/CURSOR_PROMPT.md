@@ -63,6 +63,12 @@ interface HistorikCard {
 - Om `mailboxTrail.length <= 3` → visa alla
 - Om `mailboxTrail.length > 3` → visa första 3 + `+{N} till` som klickbar länk
 
+### Datakälla: `mailboxTrail` (backend vs tillfällig mock)
+
+- **Målbild (backend):** när API:erna för arbetskö / historik (`AnalyzeInbox`-rader, runtime history, el.dyl.) kan leverera en explicit `mailboxTrail: string[]` (unika postlådor i visningsordning för kunden/tråden), ska korten använda den som **source of truth** — samma fält i rapporter och andra klienter.
+- **Tills dess:** mocka eller **härled** spåret i klienten (t.ex. från befintliga fält som `customerSummary.historyMailboxIds`, `mailboxAddress`, `mailboxProvenanceDetail` / liknande) så UI:t matchar prototypen. Dokumentera var mocken ligger så den enkelt kan tas bort när backend finns.
+- **Cursor-uppgift:** om du implementerar serverändring, föreslå minimal payload-utökning (typer + ett ställe där tråden redan materialiseras) i stället för att duplicera logik i flera endpoints.
+
 ---
 
 ## Uppgifter för Cursor
@@ -73,7 +79,7 @@ interface HistorikCard {
 
 **3.** Extrahera CSS från HTML-filen till motsvarande styling-lösning i projektet (styled-components, CSS-modules, Tailwind, eller vilken som redan används).
 
-**4.** Koppla till befintlig data-source. Det kan behöva en backend-ändring för att börja skicka `mailboxTrail` — om det inte redan finns, lägg till det som TODO och mocka data för nu.
+**4.** Koppla till befintlig data-source. **`mailboxTrail`:** om backend redan skickar fältet — använd det. Om det **saknas** i API-svaret: antingen lägg till en **minimal backend-annotering** (t.ex. på samma objekt som redan bär `customerSummary` / mailbox-provenance) *eller*, tills det finns, **mocka eller härled** enligt avsnittet *Datakälla: mailboxTrail* ovan och märk koden tydligt som tillfällig.
 
 **5.** Bevara alla interaktiva effekter:
    - Status-prick på avatar (röd pulsande, gul, grön)

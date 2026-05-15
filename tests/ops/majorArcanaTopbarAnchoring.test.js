@@ -160,11 +160,24 @@ test('arbetsko-toppen har expanded 3x5-lage och lokalt kompakt bubbellage utan l
     'Den nedre actionraden med aktiv kategori plus snabbatgarder ska fortsatt finnas kvar.'
   );
 
-  assert.match(
-    indexSource,
-    /Skickade[\s\S]*Historik[\s\S]*Svarstudio[\s\S]*Klar[\s\S]*Radera[\s\S]*Admin[\s\S]*Granska[\s\S]*Oklart[\s\S]*Bokning[\s\S]*Medicinsk/,
-    'Expanded-laget ska ateranvanda tre rader med fem bubblor i ratt ordning.'
+  // Invarianter (cco-ny-project-lock): samma snabbåtgärder och köspår i arbetsköns sekundära rad —
+  // visningsetiketter får ändras (t.ex. Studio vs Svarstudio) men data-attribut och kölogik ska finnas kvar.
+  const secondaryQueues = indexSource.match(
+    /<div class="collapsed-list"[^>]*aria-label="Sekundära köer"[\s\S]*?<\/div>\s*\n\s*<div class="queue-bottom-row"/
   );
+  assert.ok(secondaryQueues, 'Sekundära köer-blocket (collapsed-list) ska finnas före queue-bottom-row.');
+  const strip = secondaryQueues[0];
+  assert.match(strip, /Skickade/, 'Skickade-kö ska synas i arbetsköns sekundära rad.');
+  assert.match(strip, /Historik/, 'Historik-entry (delad hub) ska synas i sekundära raden.');
+  assert.match(strip, /data-quick-action="studio"/, 'Studio/Svarstudio-snabbåtgärd ska finnas (data-quick-action="studio").');
+  assert.match(strip, /(Svarstudio|Studio)/, 'Synlig studio-etikett ska finnas (Svarstudio eller kortat Studio).');
+  assert.match(strip, /data-quick-action="handled"/, 'Klar-snabbåtgärd ska finnas.');
+  assert.match(strip, /data-quick-action="delete"/, 'Radera-snabbåtgärd ska finnas.');
+  assert.match(strip, /data-queue-lane="admin"/, 'Admin-köspår ska finnas.');
+  assert.match(strip, /Granska/, 'Granska-köetikett ska finnas.');
+  assert.match(strip, /data-queue-lane="unclear"/, 'Oklart-köspår ska finnas.');
+  assert.match(strip, /Bokning/, 'Bokning-köetikett ska finnas.');
+  assert.match(strip, /Medicinsk/, 'Medicinsk-köetikett ska finnas.');
 
   assert.match(
     appSource,

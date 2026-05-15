@@ -67,6 +67,16 @@ test('intent=booking_request + positive → reply_with_booking_suggestion (hög 
   assert.ok(r.primaryAction.confidence >= 0.9);
 });
 
+test('intent booking_request utan positive sentiment far standard confidence', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'neutral', confidence: 0.5 },
+    intent: { code: 'booking_request', confidence: 0.8 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'reply_with_booking_suggestion');
+  assert.equal(r.primaryAction.confidence, 0.85);
+});
+
 test('intent=pricing_question → reply_with_pricing', () => {
   const r = recommendNextBestAction({
     sentiment: { code: 'neutral', confidence: 0.3 },
@@ -110,6 +120,49 @@ test('vi skickade senast bara 1 dag sedan → await_response', () => {
   assert.equal(r.primaryAction.code, 'await_response');
 });
 
+test('vi skickade senast strax under 3 dagar sedan → await_response (inte send_reminder)', () => {
+  const justUnderThreeDays = new Date(Date.now() - 3 * 86400000 + 3600 * 1000).toISOString();
+  const r = recommendNextBestAction({
+    sentiment: { code: 'neutral' },
+    intent: { code: 'unclear' },
+    messages: [
+      { direction: 'inbound', body: 'Hej', sentAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { direction: 'outbound', body: 'Svar', sentAt: justUnderThreeDays },
+    ],
+  });
+  assert.equal(r.primaryAction.code, 'await_response');
+});
+
+test('complaint + negative sentiment ger forstarkt reasoning med negative', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'negative', confidence: 0.9 },
+    intent: { code: 'complaint', confidence: 0.9 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'escalate_complaint');
+  assert.ok(r.primaryAction.reasoning.some((line) => /negative/i.test(line)));
+});
+
+test('intent=follow_up secondaryActions inkluderar schedule_followup', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'positive', confidence: 0.5 },
+    intent: { code: 'follow_up', confidence: 0.7 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'mark_handled');
+  assert.ok(r.secondaryActions.some((a) => a.code === 'schedule_followup'));
+});
+
+test('intent=pricing_question secondaryActions foreslar booking', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'neutral', confidence: 0.3 },
+    intent: { code: 'pricing_question', confidence: 0.8 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'reply_with_pricing');
+  assert.ok(r.secondaryActions.some((a) => a.code === 'reply_with_booking_suggestion'));
+});
+
 test('intent=unclear utan andra signaler → ask_clarification', () => {
   const r = recommendNextBestAction({
     sentiment: { code: 'neutral' },
@@ -143,13 +196,92 @@ test('getThreadDirectionStats räknar inbound/outbound korrekt', () => {
   assert.equal(stats.lastDirection, 'inbound');
 });
 
-test('reasoning är begränsad till 6 items i secondary actions', () => {
+test('intent=anxiety_pre_op utan anxious sentiment → reply_with_empathy', () => {
   const r = recommendNextBestAction({
-    sentiment: { code: 'positive' },
-    intent: { code: 'booking_request' },
+    sentiment: { code: 'neutral', confidence: 0.5 },
+    intent: { code: 'anxiety_pre_op', confidence: 0.85 },
     messages: [],
   });
-  for (const a of r.secondaryActions) {
-    assert.ok(a.reasoning.length <= 5, `${a.code} reasoning too long`);
-  }
+  assert.equal(r.primaryAction.code, 'reply_with_empathy');
+  assert.ok(r.topLevelReasoning.some((line) => line.includes('behandling')));
+});
+
+test('okänd intent utan matchande regler → default ask_clarification med låg confidence', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'neutral', confidence: 0.4 },
+    intent: { code: 'legacy_unknown_intent', confidence: 0.2 },
+    messages: [{ direction: 'inbound', body: 'Hej', sentAt: new Date().toISOString() }],
+  });
+  assert.equal(r.primaryAction.code, 'ask_clarification');
+  assert.ok(r.primaryAction.confidence <= 0.35);
+  assert.ok(r.topLevelReasoning.some((line) => line.includes('Inga matchande')));
+});
+
+test('complaint + anxious lägger till förstärkt reasoning-rad', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'anxious', confidence: 0.8 },
+    intent: { code: 'complaint', confidence: 0.9 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'escalate_complaint');
+  assert.ok(r.primaryAction.reasoning.some((line) => line.includes('Förstärkt')));
+});
+
+test('getThreadDirectionStats: tom/ogiltig input ger nollor', () => {
+  const stats = getThreadDirectionStats(null);
+  assert.equal(stats.inbound, 0);
+  assert.equal(stats.outbound, 0);
+  assert.equal(stats.lastDirection, '');
+  assert.equal(stats.lastTs, 0);
+  assert.equal(stats.ageMs, 0);
+});
+
+test('getThreadDirectionStats: okänd direction räknas som inbound', () => {
+  const stats = getThreadDirectionStats([
+    { direction: 'SIDEWAYS', sentAt: '2026-04-25T10:00:00Z' },
+    { direction: 'OUTBOUND', sentAt: '2026-04-25T11:00:00Z' },
+  ]);
+  assert.equal(stats.inbound, 1);
+  assert.equal(stats.outbound, 1);
+  assert.equal(stats.lastDirection, 'outbound');
+});
+
+test('getThreadDirectionStats anvander recordedAt nar sentAt saknas', () => {
+  const stats = getThreadDirectionStats([
+    { direction: 'outbound', recordedAt: '2026-05-01T12:00:00.000Z' },
+    { direction: 'inbound', recordedAt: '2026-05-01T13:00:00.000Z' },
+  ]);
+  assert.equal(stats.lastDirection, 'inbound');
+  assert.ok(stats.lastTs > 0);
+});
+
+test('getThreadDirectionStats hoppar ogiltiga datum vid val av sista meddelande', () => {
+  const stats = getThreadDirectionStats([
+    { direction: 'outbound', sentAt: 'not-a-date' },
+    { direction: 'inbound', sentAt: '2026-05-01T15:00:00.000Z' },
+  ]);
+  assert.equal(stats.lastDirection, 'inbound');
+});
+
+test('recommendNextBestAction() utan argument ger unclear-intent och ask_clarification', () => {
+  const r = recommendNextBestAction();
+  assert.equal(r.primaryAction.code, 'ask_clarification');
+  assert.equal(r.primaryAction.confidence, 0.55);
+  assert.deepEqual(r.secondaryActions, []);
+});
+
+test('complaint-intent prioriteras over anxious sentiment', () => {
+  const r = recommendNextBestAction({
+    sentiment: { code: 'anxious', confidence: 0.9 },
+    intent: { code: 'complaint', confidence: 0.85 },
+    messages: [],
+  });
+  assert.equal(r.primaryAction.code, 'escalate_complaint');
+});
+
+test('getThreadDirectionStats icke-array behandlas som tom lista', () => {
+  const stats = getThreadDirectionStats('not-array');
+  assert.equal(stats.inbound, 0);
+  assert.equal(stats.outbound, 0);
+  assert.equal(stats.lastDirection, '');
 });

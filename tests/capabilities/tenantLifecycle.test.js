@@ -25,6 +25,76 @@ test('normalizeTenantId konverterar till kebab-case', () => {
   assert.equal(normalizeTenantId('  --foo--  '), 'foo');
 });
 
+test('normalizeTenantId tom eller bara ogiltiga tecken blir tom sträng', () => {
+  assert.equal(normalizeTenantId(''), '');
+  assert.equal(normalizeTenantId('   '), '');
+  assert.equal(normalizeTenantId('@@@'), '');
+});
+
+test('TenantCreate: ogiltigt tenantId efter normalisering ger warning och ingen patch', async () => {
+  const created = [];
+  const stubStore = {
+    findTenantConfig: async () => null,
+    updateTenantConfig: async (args) => created.push(args),
+  };
+  const output = await new tenantCreateCapability().execute({
+    ...baseContext,
+    tenantConfigStore: stubStore,
+    input: { tenantId: '###', brand: 'X' },
+  });
+  assert.ok(output.warnings.some((w) => /Ogiltigt tenantId/i.test(w)));
+  assert.equal(created.length, 0);
+});
+
+test('TenantList: includeDisabled true visar avstängda tenants', async () => {
+  const stubStore = {
+    listTenants: async () => [
+      { tenantId: 'a', brand: 'A', disabled: false },
+      { tenantId: 'b', brand: 'B', disabled: true },
+    ],
+  };
+  const output = await new tenantListCapability().execute({
+    ...baseContext,
+    tenantConfigStore: stubStore,
+    input: { includeDisabled: true },
+  });
+  assert.equal(output.data.tenants.length, 2);
+  assert.equal(output.data.count, 2);
+});
+
+test('TenantList: limit kapar listan', async () => {
+  const many = Array.from({ length: 20 }, (_, i) => ({
+    tenantId: `t${i}`,
+    brand: `Brand ${i}`,
+    planTier: 'free',
+  }));
+  const stubStore = {
+    listTenants: async () => many,
+  };
+  const output = await new tenantListCapability().execute({
+    ...baseContext,
+    tenantConfigStore: stubStore,
+    input: { limit: 4 },
+  });
+  assert.equal(output.data.tenants.length, 4);
+  assert.equal(output.data.count, 4);
+});
+
+test('TenantList: listTenants som kastar ger warning', async () => {
+  const stubStore = {
+    listTenants: async () => {
+      throw new Error('db down');
+    },
+  };
+  const output = await new tenantListCapability().execute({
+    ...baseContext,
+    tenantConfigStore: stubStore,
+    input: {},
+  });
+  assert.equal(output.data.tenants.length, 0);
+  assert.ok(output.warnings.some((w) => /db down/.test(w)));
+});
+
 test('TenantList: utan store returnerar tom lista + warning', async () => {
   const output = await new tenantListCapability().execute({ ...baseContext, input: {} });
   assert.equal(output.data.tenants.length, 0);

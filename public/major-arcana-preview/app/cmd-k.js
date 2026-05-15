@@ -334,10 +334,12 @@
         }
       }, 50);
     } else if (data.kind === 'customer') {
-      // Hoppa till kund-vyn + öppna kunden
-      const navBtn = document.querySelector('[data-nav-view="customers"]');
-      if (navBtn) navBtn.click();
-      // TODO: öppna specifik kund — behöver veta hur det görs i app.js
+      if (typeof window.__ccoCustomerList?.selectCustomerKey === 'function') {
+        window.__ccoCustomerList.selectCustomerKey(data.id);
+      } else {
+        const navBtn = document.querySelector('[data-nav-view="customers"]');
+        if (navBtn) navBtn.click();
+      }
     } else if (data.kind === 'macro') {
       const navBtn = document.querySelector('[data-nav-view="macros"]');
       if (navBtn) navBtn.click();

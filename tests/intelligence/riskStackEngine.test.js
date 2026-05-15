@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { evaluateRiskStack } = require('../../src/intelligence/riskStackEngine');
+const { evaluateRiskStack, normalizeRiskKind } = require('../../src/intelligence/riskStackEngine');
 
 test('riskStackEngine: SLA breach always forces miss-risk as dominant', () => {
   const result = evaluateRiskStack({
@@ -139,4 +139,146 @@ test('riskStackEngine: calibration cue steers action when repeated negative foll
   assert.equal(result.dominantRisk, 'follow_up');
   assert.equal(result.explanation.includes('Utfallshistorik'), true);
   assert.equal(result.recommendedAction.includes('varm ton'), true);
+});
+
+test('riskStackEngine: explicit risk overrides are clamped and can force dominant risk', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'safe',
+    missRisk: -5,
+    toneRisk: 3,
+    followUpRisk: 0.1,
+    relationshipRisk: 0.1,
+  });
+
+  assert.equal(result.breakdown.missRisk, 0);
+  assert.equal(result.breakdown.toneRisk, 1);
+  assert.equal(result.dominantRisk, 'tone');
+  assert.equal(result.weightedScore, 0.8);
+});
+
+test('riskStackEngine: breach explanation/action prefer history cue for miss risk', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'breach',
+    historySignals: {
+      actionCue: 'Skicka kort ursäkt och tydlig lösning nu.',
+    },
+  });
+
+  assert.equal(result.dominantRisk, 'miss');
+  assert.equal(result.recommendedAction.includes('Skicka kort ursäkt'), true);
+  assert.equal(result.recommendedAction.includes('Svara omedelbart'), true);
+});
+
+test('riskStackEngine: unknown history fields normalize to neutral fallbacks', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'safe',
+    tone: 'positive',
+    historySignals: {
+      pattern: 'weird',
+      outcomeCode: 'other',
+      dominantFailureOutcome: 'n/a',
+      dominantFailureRisk: 'other',
+      mailboxCount: -10,
+      recentMessageCount: 'x',
+      negativeOutcomeCount: -2,
+    },
+  });
+
+  assert.equal(result.breakdown.followUpRisk < 0.25, true);
+  assert.equal(result.breakdown.relationshipRisk < 0.25, true);
+  assert.equal(result.dominantRisk, 'neutral');
+});
+
+test('normalizeRiskKind mappar okanda varden till neutral', () => {
+  assert.equal(normalizeRiskKind(''), 'neutral');
+  assert.equal(normalizeRiskKind('unknown_kind'), 'neutral');
+});
+
+test('normalizeRiskKind icke-sträng mappas till neutral', () => {
+  assert.equal(normalizeRiskKind(null), 'neutral');
+  assert.equal(normalizeRiskKind(undefined), 'neutral');
+  assert.equal(normalizeRiskKind(999), 'neutral');
+});
+
+test('normalizeRiskKind ar case-insensitive', () => {
+  assert.equal(normalizeRiskKind('MISS'), 'miss');
+  assert.equal(normalizeRiskKind('Tone'), 'tone');
+  assert.equal(normalizeRiskKind('FOLLOW_UP'), 'follow_up');
+});
+
+test('riskStackEngine: SLA warning med obesvarad tråd driver miss som dominant', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'warning',
+    isUnanswered: true,
+    hoursSinceInbound: 48,
+    unansweredThresholdHours: 24,
+    tone: 'positive',
+    followUpSuggested: false,
+    relationshipStatus: 'new',
+  });
+  assert.equal(result.dominantRisk, 'miss');
+  assert.ok(result.explanation.toLowerCase().includes('sla'));
+});
+
+test('evaluateRiskStack null array eller saknad input ger samma tomma payload', () => {
+  const a = evaluateRiskStack();
+  const b = evaluateRiskStack(null);
+  const c = evaluateRiskStack([]);
+  assert.deepEqual(a, b);
+  assert.deepEqual(b, c);
+});
+
+test('riskStackEngine: tone dominant anxious recommends calming next steps', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'safe',
+    tone: 'anxious',
+    toneConfidence: 0.99,
+    followUpSuggested: false,
+    relationshipStatus: 'new',
+    isUnanswered: false,
+  });
+  assert.equal(result.dominantRisk, 'tone');
+  assert.ok(/lugnande/i.test(result.recommendedAction));
+});
+
+test('riskStackEngine: relationship dominant uses complaint actionCue when pattern matches', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'safe',
+    tone: 'neutral',
+    toneConfidence: 0.5,
+    followUpSuggested: false,
+    relationshipStatus: 'loyal',
+    interactionCount: 10,
+    historySignals: {
+      pattern: 'complaint',
+      actionCue: 'Prioritera återkoppling enligt klagomålsrutinen.',
+    },
+  });
+  assert.equal(result.dominantRisk, 'relationship');
+  assert.ok(result.recommendedAction.includes('klagomålsrutinen'));
+});
+
+test('riskStackEngine: breach prepends outcomeActionCue ahead of actionCue', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'breach',
+    historySignals: {
+      actionCue: 'ACTION_FIRST',
+      outcomeActionCue: 'OUTCOME_FIRST',
+    },
+  });
+  assert.ok(result.recommendedAction.startsWith('OUTCOME_FIRST'));
+});
+
+test('riskStackEngine: long unanswered thread elevates miss without SLA breach', () => {
+  const result = evaluateRiskStack({
+    slaStatus: 'safe',
+    isUnanswered: true,
+    hoursSinceInbound: 100,
+    unansweredThresholdHours: 10,
+    tone: 'positive',
+    toneConfidence: 0.2,
+    followUpSuggested: false,
+    relationshipStatus: 'new',
+  });
+  assert.equal(result.dominantRisk, 'miss');
 });

@@ -207,3 +207,125 @@ test('worklist consumer projection applies reply_later and handled overrides fro
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('writeConversationState rejects unknown actionState', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-convstate-bad-action-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state.json');
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+    await assert.rejects(
+      () =>
+        store.writeConversationState({
+          tenantId: 'tenant-a',
+          canonicalConversationKey: 'conversationKey:mb@x.com:conv-bad-action',
+          canonicalConversationSource: 'mailbox_conversation_fallback',
+          canonicalConversationType: 'conversationKey',
+          primaryConversationId: 'conv-bad-action',
+          underlyingConversationIds: ['conv-bad-action'],
+          underlyingMailboxIds: ['mb@x.com'],
+          actionState: 'snoozed',
+          needsReplyStatusOverride: 'needs_reply',
+          actionAt: '2026-04-16T08:00:00.000Z',
+          actionByUserId: 'owner-a',
+          actionByEmail: 'owner@x.se',
+          idempotencyKey: 'bad-action-1',
+        }),
+      /obligatoriska/
+    );
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('writeConversationState rejects unknown needsReplyStatusOverride', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-convstate-bad-override-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state.json');
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+    await assert.rejects(
+      () =>
+        store.writeConversationState({
+          tenantId: 'tenant-a',
+          canonicalConversationKey: 'conversationKey:mb@x.com:conv-bad-override',
+          canonicalConversationSource: 'mailbox_conversation_fallback',
+          canonicalConversationType: 'conversationKey',
+          primaryConversationId: 'conv-bad-override',
+          underlyingConversationIds: ['conv-bad-override'],
+          underlyingMailboxIds: ['mb@x.com'],
+          actionState: 'handled',
+          needsReplyStatusOverride: 'maybe_later',
+          actionAt: '2026-04-16T08:00:00.000Z',
+          actionByUserId: 'owner-a',
+          actionByEmail: 'owner@x.se',
+          idempotencyKey: 'bad-override-1',
+        }),
+      /obligatoriska/
+    );
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('supersedeConversationState defaults unknown reason to manual_clear', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-convstate-supersede-reason-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state.json');
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+    await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:mb@x.com:conv-super',
+      canonicalConversationSource: 'mailbox_conversation_fallback',
+      canonicalConversationType: 'conversationKey',
+      primaryConversationId: 'conv-super',
+      underlyingConversationIds: ['conv-super'],
+      underlyingMailboxIds: ['mb@x.com'],
+      actionState: 'reply_later',
+      needsReplyStatusOverride: 'needs_reply',
+      actionAt: '2026-04-16T08:00:00.000Z',
+      actionByUserId: 'owner-a',
+      actionByEmail: 'owner@x.se',
+      idempotencyKey: 'super-1',
+    });
+    const out = await store.supersedeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: 'conversationKey:mb@x.com:conv-super',
+      supersededReason: 'not_a_catalog_reason',
+    });
+    assert.equal(out.superseded, true);
+    assert.equal(out.supersededReason, 'manual_clear');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('migrateConversationState returns null when from and to keys are identical', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-convstate-migrate-same-'));
+  const filePath = path.join(tmpDir, 'cco-conversation-state.json');
+  try {
+    const store = await createCcoConversationStateStore({ filePath });
+    const key = 'conversationKey:mb@x.com:conv-same';
+    await store.writeConversationState({
+      tenantId: 'tenant-a',
+      canonicalConversationKey: key,
+      canonicalConversationSource: 'mailbox_conversation_fallback',
+      canonicalConversationType: 'conversationKey',
+      primaryConversationId: 'conv-same',
+      underlyingConversationIds: ['conv-same'],
+      underlyingMailboxIds: ['mb@x.com'],
+      actionState: 'handled',
+      needsReplyStatusOverride: 'handled',
+      actionAt: '2026-04-16T08:00:00.000Z',
+      actionByUserId: 'owner-a',
+      actionByEmail: 'owner@x.se',
+      idempotencyKey: 'mig-same-1',
+    });
+    const migrated = await store.migrateConversationState({
+      tenantId: 'tenant-a',
+      fromCanonicalConversationKey: key,
+      toCanonicalConversationKey: key,
+    });
+    assert.equal(migrated, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});

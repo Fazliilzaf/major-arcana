@@ -38,7 +38,7 @@ const CAPTURE_LIVE_THREAD_SAMPLES_PATH = path.join(
   __dirname,
   '..',
   '..',
-  '.tmp',
+  'scripts',
   'diagnostics',
   'capture-live-thread-samples.js'
 );
@@ -89,7 +89,7 @@ test('runtime-dom-live-composition sparar legacythreads parallellt och håller s
 
   assert.match(
     source,
-    /const legacyThreads = carryRuntimeCustomerIdentity\(\s*buildLiveThreads\(liveData,/,
+    /(?:const|let) legacyThreads = carryRuntimeCustomerIdentity\(\s*buildLiveThreads\(liveData,/,
     'Förväntade att live-composition bär vidare identity när legacythreads byggs för focus-rollback.'
   );
   assert.match(

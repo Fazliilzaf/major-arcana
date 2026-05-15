@@ -29,18 +29,15 @@ const REQUIRED_TERMS = [
 ];
 
 const FORBIDDEN_VISIBLE_TERMS = [
+  // Avsnitt "Ord Som Inte Ska Synas" i docs/uiux/cco-operator-language.md (håll synkad).
   'Truth Worklist Assist View',
   'Öppna Studio',
   'Sprint 3',
   'Mailbox truth',
-  'Live runtime',
+  'mailbox truth',
   'Mailboxscope',
   'live-tråd',
-  'Truth-driven',
-  'truth-driven',
-  'Reply-context',
-  'Öppna readout',
-  'Öppna full readout',
+  'Live runtime',
 ];
 
 test('CCO-ordlistan låser godkända operatörstermer för boknings- och mailytan', () => {

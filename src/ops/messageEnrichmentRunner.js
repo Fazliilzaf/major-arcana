@@ -68,9 +68,10 @@ async function runEnrichment({
     perMailbox: {},
   };
 
-  const messages = ccoMailboxTruthStore.listMessages({
+  const rawMessages = ccoMailboxTruthStore.listMessages({
     mailboxIds: Array.isArray(mailboxIds) ? mailboxIds : [],
   });
+  const messages = Array.isArray(rawMessages) ? rawMessages : [];
 
   for (let i = 0; i < messages.length; i += 1) {
     const msg = asObject(messages[i]);

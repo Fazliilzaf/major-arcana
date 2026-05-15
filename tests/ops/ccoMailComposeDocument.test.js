@@ -93,3 +93,88 @@ test('buildCanonicalMailComposeDocument requires explicit recipients for cross-m
   assert.equal(composeDocument.validation.valid, false);
   assert.deepEqual(composeDocument.validation.errors.map((item) => item.field), ['to']);
 });
+
+test('buildCanonicalMailComposeDocument accepterar snake_case mailbox- och svarsfält', () => {
+  const doc = buildCanonicalMailComposeDocument(
+    {
+      mailbox_id: 'inbox@clinic.se',
+      sender_mailbox_id: 'inbox@clinic.se',
+      conversation_id: 'conv-snake',
+      reply_to_message_id: 'msg-snake',
+      subject: 'Re: Test',
+      body: 'Svarstext.',
+    },
+    { renderedBodyText: 'Svarstext.' }
+  );
+
+  assert.equal(doc.mode, 'reply');
+  assert.equal(doc.sourceMailboxId, 'inbox@clinic.se');
+  assert.equal(doc.senderMailboxId, 'inbox@clinic.se');
+  assert.equal(doc.replyContext.conversationId, 'conv-snake');
+  assert.equal(doc.replyContext.replyToMessageId, 'msg-snake');
+  assert.equal(doc.validation.valid, true);
+});
+
+test('buildCanonicalMailComposeDocument send_mode alias styr compose-läge', () => {
+  const doc = buildCanonicalMailComposeDocument(
+    {
+      send_mode: 'COMPOSE',
+      mailboxId: 'mailbox@clinic.com',
+      senderMailboxId: 'mailbox@clinic.com',
+      to: ['patient@example.com'],
+      subject: 'Rubrik',
+      body: 'Brödtext',
+    },
+    { renderedBodyText: 'Brödtext' }
+  );
+
+  assert.equal(doc.mode, 'compose');
+  assert.equal(doc.delivery.sendStrategy, 'send_mail');
+  assert.equal(doc.validation.valid, true);
+});
+
+test('buildCanonicalMailComposeDocument begränsar to-lista till 20 adresser', () => {
+  const to = Array.from({ length: 21 }, (_, i) => `user${i}@example.com`);
+  const doc = buildCanonicalMailComposeDocument(
+    {
+      mode: 'compose',
+      mailboxId: 'm@clinic.com',
+      senderMailboxId: 'm@clinic.com',
+      to,
+      subject: 'Massutskick',
+      body: 'Hej.',
+    },
+    { renderedBodyText: 'Hej.' }
+  );
+
+  assert.equal(doc.recipients.to.length, 20);
+  assert.equal(doc.recipients.to[0], 'user0@example.com');
+  assert.equal(doc.recipients.to[19], 'user19@example.com');
+});
+
+test('buildCanonicalMailComposeDocument icke-array to ger valideringsfel i compose', () => {
+  const doc = buildCanonicalMailComposeDocument(
+    {
+      mode: 'compose',
+      mailboxId: 'm@clinic.com',
+      senderMailboxId: 'm@clinic.com',
+      to: 'not-an-array@example.com',
+      subject: 'S',
+      body: 'B',
+    },
+    { renderedBodyText: 'B' }
+  );
+
+  assert.deepEqual(doc.recipients.to, []);
+  assert.equal(doc.validation.valid, false);
+  assert.ok(doc.validation.errors.some((e) => e.field === 'to'));
+});
+
+test('buildCanonicalMailComposeDocument null-input ger compose med valideringsfel', () => {
+  const doc = buildCanonicalMailComposeDocument(null, { renderedBodyText: '' });
+
+  assert.equal(doc.mode, 'compose');
+  assert.equal(doc.validation.valid, false);
+  assert.ok(doc.validation.errors.some((e) => e.field === 'sourceMailboxId'));
+  assert.ok(doc.validation.errors.some((e) => e.field === 'body'));
+});

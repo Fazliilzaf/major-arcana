@@ -342,8 +342,8 @@ test('mailbox-dropdownen separerar namn, e-post och capability-info i samma komp
 
   assert.match(
     indexSource,
-    /mailbox-option-status">Aktiv/,
-    'Preset-mailboxarna ska ha en tydlig liten statusmarkör direkt i dropdownen.'
+    /mailbox-option-status">(Aktiv|Live)/,
+    'Preset-mailboxarna ska ha en tydlig liten statusmarkör direkt i dropdownen (Live i statisk HTML mappas till Aktiv vid runtime).'
   );
   assert.match(
     stylesSource,

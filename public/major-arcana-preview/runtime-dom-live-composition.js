@@ -226,6 +226,42 @@
     let liveThreadHydrationSequence = 0;
     let draggedQueueLaneId = "";
     const FULL_MAILBOX_LOOKBACK_DAYS = 1095;
+    const RUNTIME_THREAD_HISTORY_CACHE_TTL_MS = 90_000;
+    const RUNTIME_THREAD_HISTORY_CACHE_MAX = 48;
+    const runtimeThreadHistoryPayloadCache = new Map();
+
+    function normalizeRuntimeHistoryMailboxList(mailboxIds = []) {
+      return [...asArray(mailboxIds)]
+        .map((value) =>
+          typeof canonicalizeRuntimeMailboxId === "function"
+            ? canonicalizeRuntimeMailboxId(value)
+            : normalizeMailboxId(value)
+        )
+        .filter(Boolean)
+        .sort();
+    }
+
+    function buildRuntimeThreadHistoryCacheKey(mailboxIds = [], conversationId = "") {
+      const normalizedConversation = asText(conversationId).trim().toLowerCase();
+      const mailboxKey = normalizeRuntimeHistoryMailboxList(mailboxIds).join(",");
+      return `${normalizedConversation}\x00${mailboxKey}`;
+    }
+
+    function pruneRuntimeThreadHistoryCache() {
+      while (runtimeThreadHistoryPayloadCache.size > RUNTIME_THREAD_HISTORY_CACHE_MAX) {
+        let oldestKey = "";
+        let oldestAt = Infinity;
+        for (const [key, value] of runtimeThreadHistoryPayloadCache) {
+          const stamp = typeof value?.fetchedAt === "number" ? value.fetchedAt : 0;
+          if (stamp < oldestAt) {
+            oldestAt = stamp;
+            oldestKey = key;
+          }
+        }
+        if (!oldestKey) break;
+        runtimeThreadHistoryPayloadCache.delete(oldestKey);
+      }
+    }
 
     function isPipelineDebugEnabled() {
       try {
@@ -1411,15 +1447,37 @@
       return "";
     }
 
-    async function fetchRuntimeThreadHistoryPayload({ mailboxIds = [], conversationId = "" } = {}) {
+    async function fetchRuntimeThreadHistoryPayload({
+      mailboxIds = [],
+      conversationId = "",
+      bypassCache = false,
+    } = {}) {
       const targetConversationId = asText(conversationId);
       if (!mailboxIds.length || !targetConversationId) return null;
+      const cacheKey = buildRuntimeThreadHistoryCacheKey(mailboxIds, targetConversationId);
+      if (!bypassCache) {
+        const cached = runtimeThreadHistoryPayloadCache.get(cacheKey);
+        if (
+          cached &&
+          typeof cached.fetchedAt === "number" &&
+          Date.now() - cached.fetchedAt < RUNTIME_THREAD_HISTORY_CACHE_TTL_MS &&
+          cached.payload
+        ) {
+          return cached.payload;
+        }
+      }
       const params = new URLSearchParams();
       params.set("mailboxIds", mailboxIds.join(","));
       params.set("conversationId", targetConversationId);
       params.set("lookbackDays", String(FULL_MAILBOX_LOOKBACK_DAYS));
       params.set("includeBodyHtml", "1");
-      return apiRequest(`/api/v1/cco/runtime/history?${params.toString()}`);
+      const payload = await apiRequest(`/api/v1/cco/runtime/history?${params.toString()}`);
+      runtimeThreadHistoryPayloadCache.set(cacheKey, {
+        fetchedAt: Date.now(),
+        payload,
+      });
+      pruneRuntimeThreadHistoryCache();
+      return payload;
     }
 
     function applyHydratedRuntimeThreadHistory(conversationId, historyPayload) {
@@ -1967,124 +2025,6 @@
         attempt: attempt + 1,
         maxAttempts,
       });
-    }
-
-    function scheduleRuntimeThinHistoryRefresh({
-      runtimeMailboxIds = [],
-      liveData = null,
-      mergedWorklistData = null,
-      metadata = {},
-      requestedMailboxIds = [],
-      configuredTruthPrimaryMailboxIds = [],
-      activeTruthPrimaryMailboxIds = [],
-      truthPrimaryPayload = null,
-      isCurrentRequest = () => true,
-      onApplied = null,
-    } = {}) {
-      if (
-        !runtimeMailboxIds.length ||
-        !liveData ||
-        typeof liveData !== "object" ||
-        !mergedWorklistData ||
-        typeof mergedWorklistData !== "object"
-      ) {
-        return;
-      }
-
-      windowObject.setTimeout(async () => {
-        try {
-          const historyParams = new URLSearchParams();
-          historyParams.set("mailboxIds", runtimeMailboxIds.join(","));
-          historyParams.set("lookbackDays", String(FULL_MAILBOX_LOOKBACK_DAYS));
-          historyParams.set("includeBodyHtml", "0");
-          const historyPayload = await apiRequest(
-            `/api/v1/cco/runtime/history?${historyParams.toString()}`
-          );
-          if (!isCurrentRequest()) return;
-
-          const legacyThreads = carryRuntimeCustomerIdentity(
-            buildLiveThreads(liveData, {
-              historyMessages: historyPayload?.messages,
-              historyEvents: historyPayload?.events,
-            })
-          );
-          const legacyThreadsWithPhase = asArray(legacyThreads).map((thread) =>
-            thread && typeof thread === "object" ? { ...thread, dataPhase: "B" } : thread
-          );
-          const sortedLegacyThreads = sortRuntimeThreadsDeterministic(legacyThreadsWithPhase);
-          const threads = carryRuntimeCustomerIdentity(
-            buildLiveThreads(mergedWorklistData, {
-              historyMessages: historyPayload?.messages,
-              historyEvents: historyPayload?.events,
-            })
-          );
-          const threadsWithPhase = asArray(threads).map((thread) =>
-            thread && typeof thread === "object" ? { ...thread, dataPhase: "B" } : thread
-          );
-          const sortedThreads = sortRuntimeThreadsDeterministic(threadsWithPhase);
-
-          recordRuntimeThreadAssignment("thin_history_refresh", {
-            stage: "before_apply",
-            historyPayload,
-            threadCount: sortedThreads.length,
-            legacyThreadCount: sortedLegacyThreads.length,
-          });
-          const nextRuntimeThreads = mergeRuntimeThreadsPreferNewer(
-            state.runtime.threads,
-            sortedThreads
-          );
-          state.runtime.truthPrimaryLegacyThreads = sortedLegacyThreads;
-          state.runtime.threads = nextRuntimeThreads;
-          if (typeof onApplied === "function") {
-            onApplied();
-          }
-          recordRuntimeThreadAssignment("thin_history_refresh", {
-            stage: "after_apply",
-            historyPayload,
-            threadCount: nextRuntimeThreads.length,
-            legacyThreadCount: sortedLegacyThreads.length,
-          });
-          state.runtime.mailboxes = buildMailboxCatalog(
-            nextRuntimeThreads.map((thread) => {
-              const mailboxAddress = asText(thread?.mailboxAddress);
-              return {
-                mailboxId: mailboxAddress,
-                mailboxAddress,
-                userPrincipalName: mailboxAddress,
-              };
-            }),
-            {
-              ...metadata,
-              sourceMailboxIds: Array.from(
-                new Set([...requestedMailboxIds, ...asArray(metadata?.sourceMailboxIds)])
-              ),
-              mailboxCapabilities: state.runtime.mailboxCapabilities,
-            }
-          );
-          state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-            phase: "live",
-            requestedMailboxIds,
-            liveData,
-            mergedWorklistData,
-            threads: nextRuntimeThreads,
-            legacyThreads,
-            historyPayload,
-            truthPrimaryPayload,
-            configuredTruthPrimaryMailboxIds,
-            activeTruthPrimaryMailboxIds,
-          });
-          renderRuntimeConversationShell();
-        } catch (historyLoadError) {
-          if (typeof onApplied === "function") {
-            onApplied();
-          }
-          console.warn(
-            "CCO kunde inte ladda tunn mailboxhistorik i bakgrunden efter initial live-load.",
-            historyLoadError
-          );
-          renderRuntimeConversationShell();
-        }
-      }, 0);
     }
 
     function scheduleRuntimeHistoryCoverageWarmup(
@@ -2669,6 +2609,7 @@
         if (shouldApplyPhaseA) {
           state.runtime.truthPrimaryLegacyThreads = [];
           state.runtime.liveHydratedThreadIds = [];
+          runtimeThreadHistoryPayloadCache.clear();
         }
         resetRuntimeOpenFlowDiagnostics({
           requestSequence: runtimeRequestSequence,
@@ -2985,21 +2926,12 @@
         });
         debugRuntimePipeline("AFTER FINALIZE");
         if (!isCurrentRequest()) return;
-        scheduleRuntimeThinHistoryRefresh({
-          runtimeMailboxIds,
-          liveData,
-          mergedWorklistData,
-          metadata,
-          requestedMailboxIds: runtimeMailboxIds,
-          configuredTruthPrimaryMailboxIds,
-          activeTruthPrimaryMailboxIds,
-          truthPrimaryPayload,
-          isCurrentRequest,
-          onApplied: () => {
-            state.runtime.pendingFullRefresh = false;
-            stableFocusThread = null;
-          },
-        });
+        // Ingen bulk GET /runtime/history utan conversationId: tråddetaljer laddas lazy
+        // vid öppning (selectRuntimeThread) och prefetch av vald tråd nedan.
+        if (isBackgroundRefresh) {
+          state.runtime.pendingFullRefresh = false;
+        }
+        stableFocusThread = null;
         scheduleRuntimeHistoryCoverageWarmup(runtimeMailboxIds, {
           isCurrentRequest,
         });

@@ -2,7 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  extractEmail,
   humanizeCounterpartyEmail,
+  normalizeCounterpartyDirection,
+  resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('../../src/ops/ccoCounterpartyTruth');
 const {
@@ -11,6 +14,28 @@ const {
 const {
   createCcoMailboxTruthReadAdapter,
 } = require('../../src/ops/ccoMailboxTruthReadAdapter');
+
+test('extractEmail trims casing and picks first address-like token', () => {
+  assert.equal(extractEmail('  Foo@Bar.COM  '), 'foo@bar.com');
+  assert.equal(extractEmail('no email here'), '');
+  assert.equal(extractEmail(null), '');
+});
+
+test('normalizeCounterpartyDirection maps draft to outbound and unknown otherwise', () => {
+  assert.equal(normalizeCounterpartyDirection('  DRAFT '), 'outbound');
+  assert.equal(normalizeCounterpartyDirection('Inbound'), 'inbound');
+  assert.equal(normalizeCounterpartyDirection('OUTBOUND'), 'outbound');
+  assert.equal(normalizeCounterpartyDirection('weird'), 'unknown');
+  assert.equal(normalizeCounterpartyDirection(''), 'unknown');
+});
+
+test('resolveCounterpartyDisplayName prefers real name over email-derived label', () => {
+  assert.equal(resolveCounterpartyDisplayName('Anna Example', 'anna@example.com'), 'Anna Example');
+});
+
+test('resolveCounterpartyDisplayName falls back to humanized email when name is only the address', () => {
+  assert.equal(resolveCounterpartyDisplayName('anna@example.com', 'anna@example.com'), 'Anna');
+});
 
 test('humanizeCounterpartyEmail prefers domain label for generic sender local parts', () => {
   assert.equal(humanizeCounterpartyEmail('info@e.circlekextra.se'), 'Circlekextra Se');

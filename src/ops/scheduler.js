@@ -1199,13 +1199,14 @@ function createScheduler({
       runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
         ? runtimeMetricsStore.getSnapshot({ areaLimit: 8 })
         : null;
+    const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
     const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
     const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
     const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
     const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
     const errorRatePct =
-      sampledRequests > 0
-        ? Number(((serverErrors / Math.max(1, sampledRequests)) * 100).toFixed(3))
+      totalRequests > 0
+        ? Number(((serverErrors / Math.max(1, totalRequests)) * 100).toFixed(3))
         : 0;
     const maxErrorRatePct = Number(config?.observabilityAlertMaxErrorRatePct || 2.5);
     const maxP95Ms = Number(
@@ -1239,7 +1240,7 @@ function createScheduler({
         },
       });
     }
-    if (sampledRequests > 0 && errorRatePct > maxErrorRatePct) {
+    if (totalRequests > 0 && errorRatePct > maxErrorRatePct) {
       sloBreachCandidates.push({
         signature: 'availability_http_breach',
         severity: errorRatePct > maxErrorRatePct * 1.5 ? 'critical' : 'high',
@@ -1247,6 +1248,7 @@ function createScheduler({
         details: `5xx rate ${errorRatePct}% över tröskel ${maxErrorRatePct}%.`,
         metadata: {
           trigger,
+          totalRequests,
           sampledRequests,
           serverErrors,
           errorRatePct,
@@ -1262,6 +1264,7 @@ function createScheduler({
         details: `p95 ${p95Ms}ms över tröskel ${maxP95Ms}ms.`,
         metadata: {
           trigger,
+          totalRequests,
           sampledRequests,
           p95Ms,
           thresholdMs: maxP95Ms,
@@ -1276,6 +1279,7 @@ function createScheduler({
         details: `${slowRequests} slow requests över tröskel ${maxSlowRequests}.`,
         metadata: {
           trigger,
+          totalRequests,
           sampledRequests,
           slowRequests,
           threshold: maxSlowRequests,

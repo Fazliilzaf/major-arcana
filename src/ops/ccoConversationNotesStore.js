@@ -84,10 +84,15 @@ async function createCcoConversationNotesStore({ filePath } = {}) {
     const key = normalizeText(conversationKey);
     if (!key) return [];
     const arr = asArray(state.notesByConversation[key]);
-    // Returnera nyast först, defensiv kopia
-    return [...arr]
-      .sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')))
-      .map((n) => cloneJson(n));
+    // Returnera nyast först, defensiv kopia. Vid samma createdAt (samma ms) behåll append-ordning.
+    return arr
+      .map((n, index) => ({ n, index }))
+      .sort((a, b) => {
+        const byTime = String(b.n?.createdAt || '').localeCompare(String(a.n?.createdAt || ''));
+        if (byTime !== 0) return byTime;
+        return b.index - a.index;
+      })
+      .map(({ n }) => cloneJson(n));
   }
 
   async function addNote({ conversationKey, body, authorEmail, authorName } = {}) {

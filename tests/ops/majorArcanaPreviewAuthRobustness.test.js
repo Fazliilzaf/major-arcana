@@ -228,6 +228,11 @@ test('apiRequest rensar stale token och retryar utan bearer-token i localhost-pr
       return {
         ok: false,
         status: 401,
+        headers: {
+          get(name) {
+            return String(name).toLowerCase() === 'content-type' ? 'application/json' : '';
+          },
+        },
         async text() {
           return JSON.stringify({ error: 'Sessionen är ogiltig eller har gått ut.' });
         },
@@ -236,6 +241,11 @@ test('apiRequest rensar stale token och retryar utan bearer-token i localhost-pr
     return {
       ok: true,
       status: 200,
+      headers: {
+        get(name) {
+          return String(name).toLowerCase() === 'content-type' ? 'application/json' : '';
+        },
+      },
       async text() {
         return JSON.stringify({ ok: true });
       },
