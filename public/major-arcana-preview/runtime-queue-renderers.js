@@ -1088,11 +1088,80 @@
       return "?";
     }
 
+    // System-mail-parser fallback (integrerad 2026-05-15 från app/system-mail-display.js).
+    // Kör window.MajorArcanaSystemMailParser.parse på thread:s sender/subject/body
+    // när customerName är tomt ELLER ser ut som system-namn (No Reply, Notifications,
+    // Smartdocs, etc.). Resultatet skrivs DIREKT i thread så cards renderar med
+    // kundnamn första gången — ingen MutationObserver-flash längre.
+    function __extractSenderEmail(thread) {
+      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+      return (
+        thread.customerEmail ||
+        thread.fromEmail ||
+        thread.from?.address ||
+        thread.from?.emailAddress?.address ||
+        raw.from?.address ||
+        raw.from?.emailAddress?.address ||
+        raw.sender?.emailAddress?.address ||
+        raw.latestMessage?.from?.address ||
+        raw.latestMessage?.from?.emailAddress?.address ||
+        ""
+      );
+    }
+    function __extractSenderName(thread) {
+      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+      return (
+        thread.customerName ||
+        thread.fromName ||
+        thread.from?.name ||
+        thread.from?.emailAddress?.name ||
+        raw.from?.name ||
+        raw.from?.emailAddress?.name ||
+        raw.sender?.emailAddress?.name ||
+        raw.latestMessage?.from?.name ||
+        ""
+      );
+    }
+    function __extractSubject(thread) {
+      return String(thread.displaySubject || thread.subject || "").trim();
+    }
+    function __extractBody(thread) {
+      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+      return String(
+        thread.preview ||
+        thread.systemPreview ||
+        raw.bodyPreview ||
+        raw.latestMessage?.bodyPreview ||
+        ""
+      );
+    }
+    function __tryParseSystemMail(thread) {
+      if (typeof window === "undefined") return null;
+      const parser = window.MajorArcanaSystemMailParser;
+      if (!parser || typeof parser.parse !== "function") return null;
+      const senderEmail = __extractSenderEmail(thread);
+      const senderName = __extractSenderName(thread);
+      // Bara om sender ser ut som system — annars riskerar vi att skriva över
+      // riktiga kundnamn med en false positive.
+      if (typeof parser.isSystemSender === "function") {
+        if (!parser.isSystemSender(senderEmail, senderName)) return null;
+      }
+      const result = parser.parse({
+        senderEmail,
+        senderName,
+        subject: __extractSubject(thread),
+        body: __extractBody(thread),
+      });
+      return result || null;
+    }
+
     function applyDemoFixtureFallback(thread) {
       if (!thread || typeof thread !== "object") return thread;
-      const needsName =
-        !String(thread.customerName || "").trim() ||
-        /^okänd/i.test(String(thread.customerName || "").trim());
+      const currentName = String(thread.customerName || "").trim();
+      const looksSystem =
+        currentName !== "" &&
+        /^(no.?reply|noreply|notifications?|smartdocs|getaccept|bokadirekt|cliento|kivra|pipedrive|automated)/i.test(currentName);
+      const needsName = !currentName || /^okänd/i.test(currentName) || looksSystem;
       if (!needsName) return thread;
 
       const tid = String(thread.id || "");
@@ -1136,7 +1205,33 @@
         );
       }
 
+      // System-mail-parser fallback: när raw-fallback också gav oss något
+      // som "No Reply"/"Notifications"/"Smartdocs", kör parsern på subject+body
+      // för att plocka ut det FAKTISKA kundnamnet ur mejlet.
+      let systemMailLabel = "";
+      const resolvedLooksSystem =
+        resolvedName &&
+        /^(no.?reply|noreply|notifications?|smartdocs|getaccept|bokadirekt|cliento|kivra|pipedrive|automated)/i.test(
+          resolvedName
+        );
+      if (!resolvedName || /^okänd/i.test(resolvedName) || resolvedLooksSystem) {
+        const parserResult = __tryParseSystemMail(thread);
+        if (parserResult) {
+          if (parserResult.customerName) {
+            resolvedName = parserResult.customerName;
+            resolvedInitials = ""; // räkna om initialer på riktiga namnet
+          }
+          if (parserResult.systemLabel) {
+            systemMailLabel = parserResult.systemLabel;
+          }
+        }
+      }
+
       if (!resolvedName || /^okänd/i.test(resolvedName)) {
+        // Inget namn kunde lösas, men om vi vet vilket system det är — behåll
+        // åtminstone via-pillen på kortet så användaren förstår att det är
+        // ett system-mejl.
+        if (systemMailLabel) return { ...thread, systemMailLabel };
         return thread;
       }
 
@@ -1153,6 +1248,7 @@
         customerName: resolvedName,
         customerInitials: initials,
         avatarInitials,
+        ...(systemMailLabel ? { systemMailLabel } : {}),
       };
     }
 
@@ -1973,9 +2069,12 @@
                 provenanceCopy
               )}</p></div>`
             : "";
+        const systemMailLabelAttr = thread?.systemMailLabel
+          ? ` data-system-mail-label="${escapeHtml(String(thread.systemMailLabel))}"`
+          : "";
         return `<article class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}" data-runtime-thread="${escapeHtml(
           asText(thread?.id)
-        )}" data-worklist-source="${escapeHtml(source)}" data-row-family="${escapeHtml(rowFamily)}"${foundationMode ? ` data-foundation-mode="${escapeHtml(foundationMode)}"` : ""}${foundationSource ? ` data-foundation-source="${escapeHtml(foundationSource)}"` : ""}>
+        )}" data-worklist-source="${escapeHtml(source)}" data-row-family="${escapeHtml(rowFamily)}"${foundationMode ? ` data-foundation-mode="${escapeHtml(foundationMode)}"` : ""}${foundationSource ? ` data-foundation-source="${escapeHtml(foundationSource)}"` : ""}${systemMailLabelAttr}>
           <div class="thread-card-head">
             <div class="thread-card-identity">
               <span class="avatar" aria-hidden="true">${escapeHtml(
@@ -2058,9 +2157,12 @@
           : "active"
       );
       const selectedClass = selected ? " is-selected thread-card-selected" : "";
+      const sysLabelAttrV3 = thread?.systemMailLabel
+        ? ` data-system-mail-label="${escapeHtml(String(thread.systemMailLabel))}"`
+        : "";
       return `<article class="thread-card queue-history-item unified-queue-card${selectedClass}" data-runtime-thread="${escapeHtml(
         asText(thread?.id)
-      )}" data-history-conversation="${escapeHtml(asText(thread?.id))}">
+      )}" data-history-conversation="${escapeHtml(asText(thread?.id))}"${sysLabelAttrV3}>
         <div class="card-top">
           <div class="avatar-wrap">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(

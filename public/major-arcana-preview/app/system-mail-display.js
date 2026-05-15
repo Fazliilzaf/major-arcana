@@ -47,6 +47,14 @@
     const parser = window.MajorArcanaSystemMailParser;
     if (!parser || typeof parser.parse !== 'function') return;
 
+    // Om runtime-queue-renderers redan löste sender via parsern och satte
+    // data-system-mail-label på elementet — då behöver vi inte parsa igen.
+    // Vi flaggar bara kortet som klart så vi inte skannar det igen.
+    if (card.dataset.systemMailLabel) {
+      card.dataset[FIXED_FLAG] = 'pre-resolved';
+      return;
+    }
+
     const senderName = getSenderText(card);
     const senderEmail = getSenderEmail(card);
 
