@@ -273,6 +273,19 @@
       out.push({ label: 'Återkommer', color: '#3B82F6', icon: 'undo', type: 'returned' });
     }
 
+    // Customer-cluster: om kortet är primary i en kund-grupp, visa "N trådar"
+    // som en signal-pill i samma rad. Klick på pillen expandar/kollapsar
+    // (delegerad handler i app/customer-cluster.js fångar [data-signal-type="cluster"]).
+    const clusterCount = Number(card.dataset.customerClusterCount);
+    if (card.classList.contains('customer-cluster-primary') && clusterCount > 1) {
+      out.push({
+        label: `${clusterCount} trådar`,
+        color: '#7C3AED',
+        icon: 'inbox',
+        type: 'cluster',
+      });
+    }
+
     // 8) Next-action (Svara nu / Granska tråden / Bekräfta bokning) från
     //    eventuell .warm-cta / next-action-element (om de finns i DOM)
     const ctaText = (

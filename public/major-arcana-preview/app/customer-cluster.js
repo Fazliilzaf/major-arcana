@@ -121,41 +121,14 @@
       primary.dataset.customerClusterCount = String(displayCount);
       primary.dataset.customerClusterKey = key;
 
+      // Rensa LEGACY badge-injekten i .warm-top-meta — pillen renderas nu
+      // av app/signal-bar.js som en signal-pill med data-signal-type="cluster"
+      // i .warm-why-extras-raden (tillsammans med "Tid kan erbjudas",
+      // "Bokning", "Ej tilldelad" osv).
       const legacy = primary.querySelector(':scope > .customer-cluster-badge');
       if (legacy) legacy.remove();
-
-      const metaRow = primary.querySelector('.warm-top-meta');
-      let badge = metaRow?.querySelector('.customer-cluster-badge-inline');
-      if (metaRow && !badge) {
-        const sep = document.createElement('span');
-        sep.className = 'meta-sep customer-cluster-sep';
-        sep.setAttribute('aria-hidden', 'true');
-        sep.textContent = '·';
-        metaRow.appendChild(sep);
-
-        badge = document.createElement('button');
-        badge.type = 'button';
-        badge.className = 'customer-cluster-badge-inline';
-        badge.setAttribute('aria-label', `Visa ${subs.length} fler trådar från samma kund`);
-        metaRow.appendChild(badge);
-        badge.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const k = primary.dataset.customerClusterKey;
-          const next = readExpanded();
-          if (next.has(k)) next.delete(k);
-          else next.add(k);
-          writeExpanded(next);
-          scanAndCluster();
-        });
-      }
-      if (badge) {
-        const newCountText = `${displayCount} trådar`;
-        const currentText = badge.textContent.trim();
-        if (!currentText.startsWith(newCountText)) {
-          badge.innerHTML = `${newCountText} <svg class="customer-cluster-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l3 3 3-3"/></svg>`;
-        }
-      }
+      primary.querySelectorAll('.warm-top-meta .customer-cluster-badge-inline').forEach((b) => b.remove());
+      primary.querySelectorAll('.warm-top-meta .customer-cluster-sep').forEach((s) => s.remove());
 
       subs.forEach((sub) => {
         sub.classList.add('customer-cluster-sub');
@@ -204,8 +177,29 @@
     schedule();
   }
 
+  // Delegerad click-handler för cluster-pillen som renderas av signal-bar.js
+  // som .warm-why-extra[data-signal-type="cluster"]. Klick → expand/collapse.
+  function bindClusterPillClicks() {
+    document.addEventListener('click', (e) => {
+      const pill = e.target.closest('.warm-why-extra[data-signal-type="cluster"]');
+      if (!pill) return;
+      const card = pill.closest('.thread-card.customer-cluster-primary');
+      if (!card) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const k = card.dataset.customerClusterKey;
+      if (!k) return;
+      const next = readExpanded();
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      writeExpanded(next);
+      scanAndCluster();
+    }, true);
+  }
+
   function init() {
     bindObserver();
+    bindClusterPillClicks();
     setInterval(schedule, 4000);
   }
 
