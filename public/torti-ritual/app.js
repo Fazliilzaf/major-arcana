@@ -2234,6 +2234,15 @@
     return true;
   }
 
+  function jumpToPortalFlow(source) {
+    const didScroll = scrollToSection("[data-portal-panel]");
+    recordAnalyticsEvent("portal jump", "Portal flow opened", {
+      target: "portal",
+      source,
+      scrolled: didScroll,
+    });
+  }
+
   function bindTopNavigationActions() {
     if (state.analyticsJumpTrackingBound) {
       return;
@@ -2261,11 +2270,7 @@
 
     if (openPortalButton) {
       openPortalButton.addEventListener("click", function () {
-        const didScroll = scrollToSection("[data-portal-panel]");
-        recordAnalyticsEvent("portal jump", "Portal flow opened", {
-          target: "portal",
-          scrolled: didScroll,
-        });
+        jumpToPortalFlow("top-navigation");
       });
     }
   }
@@ -3852,6 +3857,7 @@
     const hasPlannerProduct = Boolean(activeProduct);
     const zoneGroups = getPlannerZoneGroups();
     const activePlannerType = hasPlannerProduct ? getPlacementType(activeProduct.type) : "";
+    const selectedZoneCount = activeBottle && Array.isArray(activeBottle.zones) ? activeBottle.zones.length : 0;
     const allowedLevels = hasPlannerProduct
       ? getProductAllowedLevels(activeProduct, activeBottle ? activeBottle.catalogId : activeProduct.id)
       : [];
@@ -3934,6 +3940,14 @@
             </div>
           </div>
         </div>
+        ${selectedZoneCount > 0
+          ? `
+            <div class="zone-editor-actions">
+              <span class="zone-editor-actions-label">${escapeHtml(activeProduct.name)} · ${selectedZoneCount} spray ${selectedZoneCount === 1 ? "area" : "areas"}</span>
+              <button class="ghost-button zone-editor-review" type="button" data-zone-review-portal>Review portal</button>
+            </div>
+          `
+          : ""}
       </div>
     `;
 
@@ -3942,6 +3956,13 @@
         toggleZone(button.getAttribute("data-zone-check-toggle"));
       });
     });
+
+    const reviewPortalButton = selectedBottlePanel.querySelector("[data-zone-review-portal]");
+    if (reviewPortalButton) {
+      reviewPortalButton.addEventListener("click", function () {
+        jumpToPortalFlow("zone-planner");
+      });
+    }
   }
 
   function renderStatus() {

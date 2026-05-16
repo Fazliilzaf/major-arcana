@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-build-layers-handoff/);
-  assert.match(htmlSource, /app\.js\?v=20260517-build-layers-handoff/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-zone-review-handoff/);
+  assert.match(htmlSource, /app\.js\?v=20260517-zone-review-handoff/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -114,4 +114,14 @@ test('Torti Build layers handoff focuses the first owned bottle before scrolling
   assert.match(appSource, /const preparedBuildHandoff = target === "layers" \? prepareLibraryBuildHandoff\(ownedItems\) : false;/);
   assert.match(appSource, /preparedBuildHandoff\s*\?\s*"\[data-selected-bottle-panel\]"/);
   assert.match(appSource, /preparedBuildHandoff,/);
+});
+
+test('Torti zone planner exposes a compact portal handoff after spray areas are selected', () => {
+  assert.match(appSource, /function jumpToPortalFlow\(source\)/);
+  assert.match(appSource, /source,\s*\n\s*scrolled: didScroll/);
+  assert.match(appSource, /const selectedZoneCount = activeBottle && Array\.isArray\(activeBottle\.zones\) \? activeBottle\.zones\.length : 0;/);
+  assert.match(appSource, /data-zone-review-portal/);
+  assert.match(appSource, /jumpToPortalFlow\("zone-planner"\)/);
+  assert.match(cssSource, /\.zone-editor-actions\s*\{/);
+  assert.match(cssSource, /\.zone-editor-actions-label\s*\{/);
 });
