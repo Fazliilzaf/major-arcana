@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lit Preview — arcana-thread-card varianter</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+        background: #fafaf7;
+        margin: 0;
+        padding: 32px 24px 64px;
+        color: #1e293b;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .sub {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0 0 28px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 760px;
+      }
+      .case {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      .case-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #94a3b8;
+        padding-top: 8px;
+      }
+      .case-label small {
+        display: block;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 11px;
+        color: #cbd5e1;
+        margin-top: 4px;
+      }
+      .note {
+        font-size: 12px;
+        color: #64748b;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        max-width: 760px;
+        margin-top: 28px;
+        line-height: 1.5;
+      }
+      .note code {
+        background: rgba(15, 23, 42, 0.06);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-family: 'SF Mono', Menlo, monospace;
+        font-size: 11.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Lit Preview — arcana-thread-card</h1>
+    <p class="sub">
+      6 thread-card-varianter rendrade av <code>&lt;arcana-thread-card&gt;</code>.
+      Jämför visuellt mot dagens cards på <a href="./">huvudappen</a>.
+    </p>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="note">
+      <strong>Fas 2 av Lit-migration.</strong> Detta är en standalone-vy där
+      komponenten testas isolerat. Render-pipeline är declarative — inga
+      MutationObservers, inga shims, ingen FOUC. När alla varianter ser rätt ut
+      → Fas 3: bygg adapter <code>threadToCardProps(thread)</code> som
+      konverterar dagens API-data till komponentens <code>thread</code>-prop.
+    </div>
+
+    <script type="module">
+      import './app/components/arcana-thread-card.js';
+
+      const cases = [
+        {
+          label: 'Vanlig kund',
+          sub: 'demo-fixtures, customerName satt',
+          thread: {
+            id: 'demo-as-005',
+            sender: 'Anna Svensson',
+            subject: 'Frågor om uppföljning',
+            preview: 'Hej, jag vill stämma av efter behandlingen — har en del frågor om läkningen.',
+            lane: 'unclear',
+            time: 'Idag 11:42',
+            owner: 'Egzona',
+            pills: [
+              { type: 'status', label: 'Behöver svar', color: '#4f46e5' },
+              { type: 'lane', label: 'Oklart', color: '#7c3aed' },
+              { type: 'owner', label: 'Ej tilldelad', color: '#64748b' },
+            ],
+          },
+        },
+        {
+          label: 'System-mail m. namn',
+          sub: 'Cliento, parser hittade kund',
+          thread: {
+            id: 'no-reply@cliento.com',
+            sender: 'Anna Karlsson',
+            subject: 'Bokning · Anna Karlsson · 15 maj 14:00',
+            preview: 'Anna har bekräftat sin tid för PRP-behandling fredag.',
+            lane: 'bookable',
+            time: '12:29',
+            owner: 'Ej tilldelad',
+            pills: [
+              { type: 'status', label: 'Tid kan erbjudas', color: '#16a34a' },
+              { type: 'lane', label: 'Bokning', color: '#0891b2' },
+            ],
+            systemMailLabel: 'via Cliento',
+          },
+        },
+        {
+          label: 'System-mail u. namn',
+          sub: 'fallback till system-namn',
+          thread: {
+            id: 'noreply@hello.klarna.com',
+            sender: 'Klarna',
+            subject: '(Öppen)',
+            preview: 'Skaffa det smartare kreditkortet',
+            lane: 'unclear',
+            time: '11:02',
+            owner: 'Ej tilldelad',
+            pills: [
+              { type: 'status', label: 'Svar krävs nu', color: '#4f46e5' },
+              { type: 'lane', label: 'Oklart', color: '#7c3aed' },
+            ],
+            systemMailLabel: 'via Klarna',
+          },
+        },
+        {
+          label: 'Cluster primary',
+          sub: 'flera trådar samma kund',
+          thread: {
+            id: 'demo-el-004',
+            sender: 'Erik Lindqvist',
+            subject: 'Samma kund har skrivit från flera mejlkonton',
+            preview: 'AI-utkast flaggat för granskning — innehåller prisuppgift som kräver review',
+            lane: 'granska',
+            time: 'Idag 09:15',
+            owner: 'Ej tilldelad',
+            pills: [
+              { type: 'status', label: 'Behöver granskning', color: '#f59e0b' },
+              { type: 'lane', label: 'Granska', color: '#f59e0b' },
+              { type: 'risk', label: 'Hög risk', color: '#ef4444' },
+              { type: 'cluster', label: '3 trådar', color: '#7c3aed' },
+            ],
+          },
+        },
+        {
+          label: 'Cross-mailbox',
+          sub: 'kund skickat till flera mejlkonton',
+          thread: {
+            id: 'demo-eg-101',
+            sender: 'Lisa Andersson',
+            subject: 'Klagomål',
+            preview: 'Vill prata med någon — uppföljning på reklamation om förra behandlingen.',
+            lane: 'act-now',
+            time: 'Idag 08:33',
+            owner: 'Egzona',
+            pills: [
+              { type: 'status', label: 'Svar krävs nu', color: '#4f46e5' },
+              { type: 'lane', label: 'Agera nu', color: '#ef4444' },
+              { type: 'mailbox', label: 'Egzona + Kontakt', color: '#ec4899' },
+            ],
+          },
+        },
+        {
+          label: 'Okänd avsändare',
+          sub: 'edge case, ingen data alls',
+          thread: {
+            id: 'unknown-001',
+            sender: 'Okänd avsändare',
+            subject: '(utan ämne)',
+            preview: '',
+            lane: 'oklart',
+            time: '15 maj',
+            owner: 'Ej tilldelad',
+            pills: [
+              { type: 'lane', label: 'Oklart', color: '#7c3aed' },
+            ],
+          },
+        },
+      ];
+
+      const grid = document.getElementById('grid');
+      for (const c of cases) {
+        const wrap = document.createElement('div');
+        wrap.className = 'case';
+        wrap.innerHTML = `
+          <div class="case-label">${c.label}<small>${c.sub}</small></div>
+          <arcana-thread-card></arcana-thread-card>
+        `;
+        wrap.querySelector('arcana-thread-card').thread = c.thread;
+        grid.appendChild(wrap);
+      }
+    </script>
+  </body>
+</html>
