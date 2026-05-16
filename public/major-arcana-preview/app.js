@@ -28205,6 +28205,21 @@
         : resourceLabels.length === 1
           ? { label: resourceLabels[0], tone: "count" }
           : { label: "Flera behandlare", tone: "count" };
+    const serviceLabels = [
+      ...new Set(
+        selectedSlots
+          .map((slot) =>
+            asText(slot.serviceLabel || slot.serviceName || slot.serviceId || slot.serviceKey)
+          )
+          .filter(Boolean)
+      ),
+    ];
+    const proposalServiceBadge =
+      serviceLabels.length === 0
+        ? { label: "Behandling saknas", tone: "attention" }
+        : serviceLabels.length === 1
+          ? { label: serviceLabels[0], tone: "count" }
+          : { label: "Flera behandlingar", tone: "count" };
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28218,6 +28233,7 @@
           proposalTimeBandBadge,
           proposalTimingBadge,
           proposalResourceBadge,
+          proposalServiceBadge,
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
           deliveryBadge,
@@ -28245,6 +28261,7 @@
           proposalTimeBandBadge,
           proposalTimingBadge,
           proposalResourceBadge,
+          proposalServiceBadge,
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
           deliveryBadge,
@@ -28273,6 +28290,7 @@
         proposalTimeBandBadge,
         proposalTimingBadge,
         proposalResourceBadge,
+        proposalServiceBadge,
         {
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",
