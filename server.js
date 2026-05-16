@@ -449,6 +449,7 @@ const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore')
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
+const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
@@ -459,6 +460,7 @@ const { createSloTicketStore } = require('./src/ops/sloTicketStore');
 const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceStore');
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
 const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
+const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
@@ -1012,6 +1014,9 @@ process.once('SIGTERM', () => {
   const ccoBookingStore = await createCcoBookingStore({
     filePath: config.ccoBookingStorePath,
   });
+  const ccoBookingEngineStore = await createCcoBookingEngineStore({
+    filePath: config.ccoBookingEngineStorePath,
+  });
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1435,6 +1440,17 @@ process.once('SIGTERM', () => {
   app.use(
     '/api/v1',
     createCcoBookingsRouter({
+      bookingStore: ccoBookingStore,
+      bookingEngineStore: ccoBookingEngineStore,
+      authStore,
+      config,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoBookingEngineRouter({
+      bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
       authStore,
       config,

@@ -2013,6 +2013,10 @@
     booking: {
       case: null,
       readout: null,
+      provider: "cco_engine",
+      engineSummary: null,
+      engineSummaryThreadId: "",
+      loadingEngineSummary: false,
       statuses: [],
       saving: false,
       loadingSlots: false,
@@ -23921,7 +23925,15 @@
         return `<li class="booking-live-slot${selected ? " is-selected" : ""}">
           <div>
             <strong>${escapeHtml(formatBookingSlot(slot))}</strong>
-            <span>${escapeHtml(slot.locationLabel || (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) || "Extern kalender")}</span>
+            <span>${escapeHtml(
+              slot.locationLabel ||
+                (normalizeKey(slot.source) === "cliento"
+                  ? "Extern kalender"
+                  : normalizeKey(slot.source) === "cco_engine"
+                    ? "CCO-kalender"
+                    : slot.source) ||
+                "CCO-kalender"
+            )}</span>
           </div>
           <button class="booking-slot-select" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(getBookingSlotKey(slot))}">
             ${selected ? "Vald" : "Välj"}
@@ -23944,7 +23956,7 @@
       candidate_slots: "Gå till: Välj 3 tider",
       insert_studio: "Gå till: Infoga i Studio",
       schedule_followup: "Gå till: Schemalägg",
-      confirm_external: "Gå till: Bekräftad externt",
+      confirm_external: "Gå till: Bekräfta i CCO",
       waiting_customer: "Gå till: Väntar kund",
       select_live_slot: "Gå till: välj tid i listan",
       clear_slots: "Gå till: Rensa tider",
@@ -23985,7 +23997,7 @@
     const summary = document.createElement("summary");
     summary.className = "booking-advanced-summary";
     summary.innerHTML =
-      '<span>Avancerat</span><strong>Sammanhang, externa tider och logg</strong>';
+      '<span>Avancerat</span><strong>Sammanhang, CCO-kalender och logg</strong>';
     const content = document.createElement("div");
     content.className = "booking-advanced-content";
     details.append(summary, content);
@@ -24027,7 +24039,13 @@
     if (!surface || surface.querySelector("[data-booking-more-actions]")) return;
     const actionRow = surface.querySelector(".booking-action-row");
     if (!actionRow) return;
-    const primaryActions = new Set(["candidate_slots", "insert_studio", "schedule_followup"]);
+    const primaryActions = new Set([
+      "candidate_slots",
+      "reserve_slots",
+      "insert_studio",
+      "schedule_followup",
+      "confirm_external",
+    ]);
     const secondaryButtons = Array.from(actionRow.querySelectorAll("[data-booking-action]")).filter(
       (button) => !primaryActions.has(asText(button.dataset.bookingAction))
     );
@@ -24119,7 +24137,8 @@
             <button class="booking-action booking-action-primary" type="button" data-booking-action="insert_studio" data-booking-requires-slots="true" title="Välj minst en tid innan förslaget infogas i Svarstudio.">Infoga i Svarstudio</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="waiting_customer">Väntar kund</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="schedule_followup">Schemalägg</button>
-            <button class="booking-action booking-action-confirmed" type="button" data-booking-action="confirm_external">Bekräftad externt</button>
+            <button class="booking-action booking-action-confirmed" type="button" data-booking-action="reserve_slots" data-booking-requires-slots="true" title="Reservera valda tider i CCO-kalendern.">Reservera i CCO</button>
+            <button class="booking-action booking-action-confirmed" type="button" data-booking-action="confirm_external">Bekräfta i CCO</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_handoff" data-booking-requires-slots="true" title="Välj minst en tid innan överlämningen kopieras.">Kopiera överlämning</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_audit_summary" title="Kopiera strukturerad bokningslogg för intern ärendeöverlämning.">Kopiera logg</button>
           </div>
@@ -24188,6 +24207,12 @@
       focusWorkrail.classList.toggle("is-booking-active", isBooking);
     }
     if (!isBooking) return;
+
+    if (isBookingEnginePrimary()) {
+      loadBookingEngineSummary(thread).catch((error) => {
+        console.warn("CCO bokningsmotor kunde inte sammanfattas.", error);
+      });
+    }
 
     const readout = getBookingReadoutForThread(thread);
     const nextAction = buildBookingNextActionReadout(readout);
@@ -24264,7 +24289,11 @@
               (slot) =>
                 `<li><strong>${escapeHtml(formatBookingSlot(slot))}</strong><span>${escapeHtml(
                   slot.locationLabel ||
-                    (normalizeKey(slot.source) === "cliento" ? "Extern kalender" : slot.source) ||
+                    (normalizeKey(slot.source) === "cliento"
+                      ? "Extern kalender"
+                      : normalizeKey(slot.source) === "cco_engine"
+                        ? "CCO-kalender"
+                        : slot.source) ||
                     "Extern kalender"
                 )}</span></li>`
             )
@@ -24474,6 +24503,85 @@
     return { fromDate, toDate, resIds, srvIds };
   }
 
+  function isBookingEnginePrimary() {
+    const provider = normalizeKey(state.booking.provider);
+    return !provider || provider === "cco_engine";
+  }
+
+  async function apiRequestWithQuery(path, { query = {}, method = "GET", body } = {}) {
+    const url = new URL(path, window.location.origin);
+    Object.entries(query).forEach(([key, value]) => {
+      const normalized = asText(value);
+      if (normalized) url.searchParams.set(key, normalized);
+    });
+    return apiRequest(`${url.pathname}${url.search}`, { method, body });
+  }
+
+  function syncBookingRuntimePayload(payload = {}) {
+    if (payload.bookingCase) {
+      state.booking.case = payload.bookingCase;
+      state.booking.readout = {
+        ...(state.booking.readout || {}),
+        status: state.booking.case?.status,
+        selectedSlots: asArray(state.booking.case?.selectedSlots),
+        events: asArray(state.booking.case?.events),
+        allEvents: asArray(state.booking.case?.events),
+        offeredAt: asText(state.booking.case?.offeredAt),
+        confirmedExternalAt: asText(state.booking.case?.confirmedExternalAt),
+        updatedAt: asText(state.booking.case?.updatedAt),
+        blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
+      };
+    }
+    if (payload.bookingEngine && typeof payload.bookingEngine === "object") {
+      state.booking.engineSummary = {
+        ...payload.bookingEngine,
+        provider: asText(payload.bookingEngine.provider, "cco_engine"),
+        reservations: asArray(payload.bookingEngine.reservations),
+        booking:
+          payload.bookingEngine.booking && typeof payload.bookingEngine.booking === "object"
+            ? payload.bookingEngine.booking
+            : null,
+      };
+    }
+    if (asText(payload.provider)) {
+      state.booking.provider = asText(payload.provider);
+    }
+  }
+
+  async function loadBookingEngineSummary(thread, { force = false } = {}) {
+    if (!thread || !isBookingRuntimeThread(thread) || !isBookingEnginePrimary()) {
+      return state.booking.engineSummary || null;
+    }
+    const threadId = asText(thread.id);
+    if (
+      state.booking.engineSummary &&
+      state.booking.engineSummaryThreadId === threadId &&
+      !force
+    ) {
+      return state.booking.engineSummary;
+    }
+    if (state.booking.loadingEngineSummary && !force) {
+      return state.booking.engineSummary || null;
+    }
+    state.booking.loadingEngineSummary = true;
+    try {
+      const payload = await apiRequestWithQuery("/api/v1/cco-booking-engine/case-summary", {
+        query: buildBookingRequestBody(thread),
+      });
+      state.booking.engineSummary = {
+        ...payload,
+        provider: asText(payload?.provider, "cco_engine"),
+        reservations: asArray(payload?.reservations),
+        booking: payload?.booking && typeof payload.booking === "object" ? payload.booking : null,
+      };
+      state.booking.engineSummaryThreadId = threadId;
+      state.booking.provider = asText(payload?.provider, state.booking.provider || "cco_engine");
+      return state.booking.engineSummary;
+    } finally {
+      state.booking.loadingEngineSummary = false;
+    }
+  }
+
   async function loadBookingRefData({ force = false } = {}) {
     if (state.booking.loadingRefData) return;
     if (state.booking.refDataLoaded && !force) return;
@@ -24484,17 +24592,18 @@
       const payload = await apiRequest("/api/v1/cco-bookings/ref-data");
       state.booking.resources = asArray(payload.resources);
       state.booking.services = asArray(payload.services);
+      state.booking.provider = asText(payload.provider, "cco_engine");
       state.booking.refDataLoaded = true;
       state.booking.refDataError = "";
       setFeedback(
         getBookingDom().feedback,
         "success",
-        `Externa val hämtade: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
+        `CCO-kalender: ${state.booking.resources.length} behandlare, ${state.booking.services.length} behandlingar.`
       );
     } catch (error) {
       state.booking.refDataError = formatBookingOperatorError(
         error,
-        "Externa val kunde inte hämtas."
+        "CCO-kalendern kunde inte hämtas."
       );
       setFeedback(getBookingDom().feedback, "error", state.booking.refDataError);
     } finally {
@@ -24556,18 +24665,7 @@
         selectedSlots,
       }),
     });
-    state.booking.case = payload.bookingCase || state.booking.case;
-    state.booking.readout = {
-      ...(state.booking.readout || {}),
-      status: state.booking.case?.status,
-      selectedSlots: state.booking.case?.selectedSlots || [],
-      events: state.booking.case?.events || state.booking.readout?.events || [],
-      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
-      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
-      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
-      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
-      blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
-    };
+    syncBookingRuntimePayload(payload);
     if (successMessage) {
       setFeedback(getBookingDom().feedback, "success", successMessage);
     }
@@ -24582,18 +24680,7 @@
       method: "POST",
       body: buildBookingRequestBody(thread, { status }),
     });
-    state.booking.case = payload.bookingCase || state.booking.case;
-    state.booking.readout = {
-      ...(state.booking.readout || {}),
-      status: state.booking.case?.status || status,
-      selectedSlots: state.booking.case?.selectedSlots || state.booking.readout?.selectedSlots || [],
-      events: state.booking.case?.events || state.booking.readout?.events || [],
-      allEvents: state.booking.case?.events || state.booking.readout?.allEvents || [],
-      offeredAt: state.booking.case?.offeredAt || state.booking.readout?.offeredAt || "",
-      confirmedExternalAt: state.booking.case?.confirmedExternalAt || state.booking.readout?.confirmedExternalAt || "",
-      updatedAt: state.booking.case?.updatedAt || state.booking.readout?.updatedAt || "",
-      blocker: state.booking.case?.blocker || state.booking.readout?.blocker || null,
-    };
+    syncBookingRuntimePayload(payload);
     if (successMessage) {
       setFeedback(getBookingDom().feedback, "success", successMessage);
     }
@@ -24732,9 +24819,10 @@
             console.warn("Extern bokningsdata kunde inte hämtas inför tidssökning.", error);
           });
         }
+        syncBookingManualIdsFromSelects(bookingDom);
         const request = getBookingSlotsRequestFromDom(bookingDom);
-        if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
-          setFeedback(bookingDom.feedback, "error", "Ange från, till, resurs-id och service-id för externa tider.");
+        if (!request.fromDate || !request.toDate) {
+          setFeedback(bookingDom.feedback, "error", "Ange från- och till-datum för att hämta lediga tider.");
           return;
         }
         state.booking.loadingSlots = true;
@@ -24753,8 +24841,8 @@
           getBookingDom().feedback,
           state.booking.availableSlots.length ? "success" : "error",
           state.booking.availableSlots.length
-            ? `${state.booking.availableSlots.length} externa tider hämtades. Välj 1-3 tider.`
-            : "Den externa kalendern svarade utan lediga tider för valt urval."
+            ? `${state.booking.availableSlots.length} lediga tider hämtades från CCO-kalendern. Välj 1-3 tider.`
+            : "CCO-kalendern hade inga lediga tider för valt datum och urval."
         );
       }
 
@@ -24876,12 +24964,84 @@
         setFeedback(getBookingDom().feedback, "success", "Uppföljningsmodalen öppnades för bokningen.");
       }
 
-      if (action === "confirm_external") {
-        await updateBookingStatus(
-          thread,
-          "confirmed_external",
-          "Bokningen markerades som bekräftad externt. Ingen direkt extern bokning skapades av CCO."
+      if (action === "reserve_slots") {
+        const readout = getBookingReadoutForThread(thread);
+        const selectedSlots = asArray(readout.selectedSlots).slice(0, 3);
+        if (!selectedSlots.length) {
+          setFeedback(bookingDom.feedback, "error", "Välj minst en tid innan tiderna reserveras i CCO.");
+          return;
+        }
+        const payload = await apiRequest("/api/v1/cco-booking-engine/reservations", {
+          method: "POST",
+          body: buildBookingRequestBody(thread, {
+            selectedSlots,
+            requestedTreatment: readout.requestedTreatment,
+            preferredWindow: readout.preferredWindow,
+            notes: readout.notes,
+          }),
+        });
+        syncBookingRuntimePayload(payload);
+        setFeedback(
+          bookingDom.feedback,
+          "success",
+          selectedSlots.length === 1
+            ? "Tiden reserverades i CCO-kalendern."
+            : `${selectedSlots.length} tider reserverades i CCO-kalendern.`
         );
+      }
+
+      if (action === "confirm_external") {
+        if (isBookingEnginePrimary()) {
+          const readout = getBookingReadoutForThread(thread);
+          const engineSummary = await loadBookingEngineSummary(thread, { force: true });
+          const selectedSlot =
+            asArray(readout.selectedSlots)[0] ||
+            asArray(engineSummary?.reservations)[0]?.slot ||
+            engineSummary?.booking?.slot ||
+            null;
+          if (!selectedSlot) {
+            setFeedback(
+              bookingDom.feedback,
+              "error",
+              "Välj eller reservera minst en tid innan du bekräftar bokningen i CCO."
+            );
+            return;
+          }
+          const confirmedBooking =
+            engineSummary?.booking && normalizeKey(engineSummary.booking.status) === "confirmed"
+              ? engineSummary.booking
+              : null;
+          const confirmedSlotId = getBookingSlotKey(confirmedBooking?.slot || {});
+          const selectedSlotId = getBookingSlotKey(selectedSlot);
+          const payload =
+            confirmedBooking && confirmedSlotId && selectedSlotId && confirmedSlotId !== selectedSlotId
+              ? await apiRequest("/api/v1/cco-booking-engine/rebook", {
+                  method: "POST",
+                  body: buildBookingRequestBody(thread, {
+                    selectedSlots: [selectedSlot],
+                    slot: selectedSlot,
+                    reason: "Operatören bekräftade en ny tid i CCO.",
+                  }),
+                })
+              : await apiRequest("/api/v1/cco-booking-engine/confirm", {
+                  method: "POST",
+                  body: buildBookingRequestBody(thread, { slot: selectedSlot }),
+                });
+          syncBookingRuntimePayload(payload);
+          setFeedback(
+            bookingDom.feedback,
+            "success",
+            confirmedBooking && confirmedSlotId && selectedSlotId && confirmedSlotId !== selectedSlotId
+              ? "Bokningen bokades om och bekräftades i CCO-kalendern."
+              : "Bokningen bekräftades i CCO-kalendern."
+          );
+        } else {
+          await updateBookingStatus(
+            thread,
+            "confirmed_external",
+            "Bokningen markerades som bekräftad utanför CCO."
+          );
+        }
       }
 
       if (action === "copy_handoff") {

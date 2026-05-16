@@ -8,7 +8,15 @@ const {
   normalizeClientoSlotsPayload,
   normalizeCsvParam,
 } = require('../infra/clientoApi');
-const { BOOKING_STATUSES } = require('../ops/ccoBookingStore');
+const {
+  BOOKING_STATUSES,
+  buildWaitingCustomerBlocker,
+  buildWaitingCustomerContext,
+  buildPostConfirmationContext,
+  buildBookingCaseRecommendationMeta,
+  enrichBookingCaseWithHistorySignals,
+} = require('../ops/ccoBookingStore');
+const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 
@@ -22,6 +30,224 @@ function normalizeKey(value) {
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function hasBookingEvent(bookingCase = {}, eventTypes = []) {
+  const wanted = new Set(
+    asArray(eventTypes)
+      .map((item) => normalizeKey(item))
+      .filter(Boolean)
+  );
+  if (!wanted.size) return false;
+  return asArray(bookingCase.events).some((event) => wanted.has(normalizeKey(event?.type)));
+}
+
+function getLatestBookingEvent(bookingCase = {}, eventTypes = []) {
+  const wanted = new Set(
+    asArray(eventTypes)
+      .map((item) => normalizeKey(item))
+      .filter(Boolean)
+  );
+  if (!wanted.size) return null;
+  return (
+    asArray(bookingCase.events)
+      .filter((event) => wanted.has(normalizeKey(event?.type)))
+      .sort(
+        (left, right) =>
+          Date.parse(normalizeText(left?.createdAt)) - Date.parse(normalizeText(right?.createdAt))
+      )
+      .at(-1) || null
+  );
+}
+
+function isBookingOfferStaleAfterRebook(bookingCase = {}) {
+  const latestRebook = getLatestBookingEvent(bookingCase, ['engine_booking_rebooked']);
+  const latestOffer = getLatestBookingEvent(bookingCase, ['offer_draft_inserted']);
+  const rebookMs = Date.parse(normalizeText(latestRebook?.createdAt));
+  const offerMs = Date.parse(normalizeText(latestOffer?.createdAt));
+  return Number.isFinite(rebookMs) && (!Number.isFinite(offerMs) || rebookMs > offerMs);
+}
+
+function createWorkflowBlocker({
+  key = '',
+  label = '',
+  score = 0,
+  action = '',
+  nextActionLabel = '',
+  tone = 'stable',
+} = {}) {
+  return {
+    key: normalizeText(key),
+    label: normalizeText(label),
+    score: Math.max(0, Number(score) || 0),
+    action: normalizeText(action),
+    nextActionLabel: normalizeText(nextActionLabel),
+    tone: normalizeText(tone) || 'stable',
+  };
+}
+
+function buildBookingCaseWorkflowBlocker(bookingCase = {}, bookingEngine = null) {
+  const safeCase = bookingCase && typeof bookingCase === 'object' ? bookingCase : {};
+  const safeEngine = bookingEngine && typeof bookingEngine === 'object' ? bookingEngine : {};
+  const postConfirmationContext = buildPostConfirmationContext(safeCase);
+  const status = normalizeKey(safeCase.status);
+  const slotCount = asArray(safeCase.selectedSlots).length;
+  const hasOffer =
+    status === 'offered' ||
+    status === 'waiting_customer' ||
+    Boolean(normalizeText(safeCase.offeredAt)) ||
+    hasBookingEvent(safeCase, ['offer_draft_inserted']);
+
+  if (status === 'cancelled' || status === 'closed') {
+    return createWorkflowBlocker({
+      label: 'Redo',
+      tone: 'closed',
+      nextActionLabel: status === 'closed' ? 'stängd' : 'avbruten',
+    });
+  }
+  if (postConfirmationContext) {
+    const scoreByMode = {
+      post_confirmation_reply: postConfirmationContext.customerReplyStale ? 25 : 22,
+      post_confirmation_follow_up_due: 23,
+      post_confirmation_follow_up_active: 12,
+    };
+    return createWorkflowBlocker({
+      key: normalizeText(postConfirmationContext.action) || 'customer_state',
+      label: postConfirmationContext.label,
+      score: scoreByMode[postConfirmationContext.mode] || 22,
+      action: postConfirmationContext.action,
+      nextActionLabel: postConfirmationContext.nextActionLabel,
+      tone: postConfirmationContext.tone,
+    });
+  }
+  if (isBookingOfferStaleAfterRebook(safeCase)) {
+    return createWorkflowBlocker({
+      key: 'insert_studio',
+      label: 'Erbjudandet är gammalt',
+      score: 23,
+      action: 'insert_studio',
+      nextActionLabel: 'uppdatera Svarstudio',
+      tone: 'attention',
+    });
+  }
+  if (!slotCount) {
+    return createWorkflowBlocker({
+      key: 'candidate_slots',
+      label: 'Saknar tider',
+      score: 30,
+      action: 'candidate_slots',
+      nextActionLabel: 'välj kandidat-tider',
+      tone: 'attention',
+    });
+  }
+  if (status === 'waiting_customer' && hasOffer) {
+    return buildWaitingCustomerBlocker(safeCase);
+  }
+  if (safeEngine.hasConfirmedBooking === true) {
+    if (status === 'confirmed_external' || normalizeText(safeCase.confirmedExternalAt)) {
+      return createWorkflowBlocker({
+        key: 'customer_state',
+        label: 'Redo att stänga',
+        score: 10,
+        action: 'set_status:closed',
+        nextActionLabel: 'stäng ärendet',
+        tone: 'ready',
+      });
+    }
+    return createWorkflowBlocker({
+      key: 'customer_state',
+      label: 'Bokning klar i CCO',
+      score: 20,
+      action: 'confirm_external',
+      nextActionLabel: 'markera bekräftad',
+      tone: 'ready',
+    });
+  }
+  if (safeEngine.hasReservations === true && safeEngine.expiresSoon === true) {
+    return createWorkflowBlocker({
+      key: 'reservation_expiring',
+      label: 'Reservation utgår snart',
+      score: 26,
+      action: 'renew_reservation',
+      nextActionLabel: 'förnya håll',
+      tone: 'attention',
+    });
+  }
+  if (safeEngine.hasReservations === false && safeEngine.state === 'idle') {
+    return createWorkflowBlocker({
+      key: 'reserve_slots',
+      label: 'Tider ej reserverade',
+      score: 24,
+      action: 'reserve_slots',
+      nextActionLabel: 'reservera i CCO',
+      tone: 'attention',
+    });
+  }
+  if (!hasOffer) {
+    return createWorkflowBlocker({
+      key: 'insert_studio',
+      label: 'Saknar Svarstudio',
+      score: 20,
+      action: 'insert_studio',
+      nextActionLabel: 'infoga i Svarstudio',
+      tone: 'attention',
+    });
+  }
+  if (status === 'confirmed_external' || normalizeText(safeCase.confirmedExternalAt)) {
+    return createWorkflowBlocker({
+      key: 'customer_state',
+      label: 'Redo att stänga',
+      score: 10,
+      action: 'set_status:closed',
+      nextActionLabel: 'stäng ärendet',
+      tone: 'ready',
+    });
+  }
+  return createWorkflowBlocker({
+    key: 'customer_state',
+    label: 'Saknar kundläge',
+    score: 10,
+    action: 'waiting_customer',
+    nextActionLabel: 'markera kundläge',
+    tone: 'stable',
+  });
+}
+
+async function enrichBookingCaseWithEngine(bookingCase, bookingEngineStore) {
+  if (!bookingEngineStore || !bookingCase || typeof bookingCase !== 'object') return bookingCase;
+  const bookingEngine = await bookingEngineStore.getCaseSummary({
+    tenantId: bookingCase.tenantId,
+    workspaceId: bookingCase.workspaceId,
+    conversationId: bookingCase.conversationId,
+    customerEmail: bookingCase.customerEmail,
+  });
+  const blocker = buildBookingCaseWorkflowBlocker(bookingCase, bookingEngine);
+  const waitingCustomer =
+    normalizeKey(bookingCase?.status) === 'waiting_customer'
+      ? buildWaitingCustomerContext(bookingCase)
+      : null;
+  const postConfirmation =
+    normalizeKey(bookingCase?.status) === 'confirmed_external'
+      ? buildPostConfirmationContext(bookingCase)
+      : null;
+  const recommendationMeta = buildBookingCaseRecommendationMeta(
+    bookingCase,
+    blocker,
+    waitingCustomer
+  );
+  return {
+    ...bookingCase,
+    blocker,
+    recommendedAction: normalizeText(blocker.action),
+    ...recommendationMeta,
+    bookingEngineState: normalizeText(bookingEngine?.state),
+    postConfirmation,
+    waitingCustomer,
+  };
 }
 
 function isLocalPreviewRequest(req) {
@@ -181,8 +407,27 @@ function buildOfferDraft({ bookingCase }) {
   return `Hej,\n\nJag hjälper dig gärna med bokningen. Här är tiderna jag kan erbjuda just nu:\n\n${slotCopy}\n\nSvara gärna med vilken tid som passar bäst, så hjälper vi dig vidare.`;
 }
 
-function createCcoBookingsRouter({ bookingStore, authStore, config }) {
+function createCcoBookingsRouter({
+  bookingStore,
+  bookingEngineStore = null,
+  historyStore = null,
+  patientSystemStore = null,
+  authStore,
+  config,
+}) {
   const router = express.Router();
+
+  async function syncBookingPatient360(context, bookingCase, options = {}) {
+    const latestEvent = Array.isArray(bookingCase?.events) ? bookingCase.events.at(-1) : null;
+    return syncPatient360FromBookingCase({
+      patientSystemStore,
+      context,
+      bookingCase,
+      source: options.source || 'cco_bookings',
+      includeTimelineEvent: options.includeTimelineEvent === true,
+      event: options.event || latestEvent,
+    });
+  }
 
   async function handle(req, res, run) {
     try {
@@ -208,8 +453,33 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
         ...toCaseInput(context),
         status: 'needs_triage',
       });
-      return res.json({
+      const bookingEngine = bookingEngineStore
+        ? await bookingEngineStore.getCaseSummary(context)
+        : null;
+      const bookingCaseWithHistory = await enrichBookingCaseWithHistorySignals(
         bookingCase,
+        historyStore
+      );
+      const enrichedBookingCase = bookingEngineStore
+        ? await enrichBookingCaseWithEngine(bookingCaseWithHistory, bookingEngineStore)
+        : bookingCaseWithHistory;
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_case_read',
+      });
+      return res.json({
+        bookingCase: enrichedBookingCase,
+        bookingEngine,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
         statuses: BOOKING_STATUSES,
       });
     })
@@ -221,15 +491,60 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
       if (status && status !== 'all' && !BOOKING_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Okänd bokningsstatus.' });
       }
-      const cases = await bookingStore.listCases({
+      const requestedLimit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+      const rawCases = await bookingStore.listCases({
         tenantId: context.tenantId,
         customerEmail: normalizeText(req.query.customerEmail),
         status: status && status !== 'all' ? status : '',
-        sort: normalizeKey(req.query.sort) === 'blocked' ? 'blocked' : 'recent',
-        limit: req.query.limit,
+        sort: 'recent',
+        limit: bookingEngineStore ? Math.max(requestedLimit, 50) : requestedLimit,
       });
+      const historyAwareCases = await Promise.all(
+        rawCases.map((bookingCase) =>
+          enrichBookingCaseWithHistorySignals(bookingCase, historyStore)
+        )
+      );
+      const cases = bookingEngineStore
+        ? await Promise.all(
+            historyAwareCases.map((bookingCase) =>
+              enrichBookingCaseWithEngine(bookingCase, bookingEngineStore)
+            )
+          )
+        : historyAwareCases;
+      const sortMode = normalizeKey(req.query.sort) === 'blocked' ? 'blocked' : 'recent';
+      const sortedCases = cases
+        .slice()
+        .sort((left, right) => {
+          if (sortMode === 'blocked') {
+            const scoreDelta =
+              Number(right?.blocker?.score || 0) - Number(left?.blocker?.score || 0);
+            if (scoreDelta) return scoreDelta;
+            const recommendationDelta =
+              ({
+                act_now_overdue: 60,
+                reengage_now: 50,
+                act_now: 40,
+                set_customer_state: 30,
+                monitor: 20,
+                ready_to_close: 10,
+              }[normalizeKey(right?.recommendedActionState)] || 0) -
+              ({
+                act_now_overdue: 60,
+                reengage_now: 50,
+                act_now: 40,
+                set_customer_state: 30,
+                monitor: 20,
+                ready_to_close: 10,
+              }[normalizeKey(left?.recommendedActionState)] || 0);
+            if (recommendationDelta) return recommendationDelta;
+          }
+          return (
+            Date.parse(normalizeText(right?.updatedAt)) - Date.parse(normalizeText(left?.updatedAt))
+          );
+        })
+        .slice(0, requestedLimit);
       return res.json({
-        cases,
+        cases: sortedCases,
         statuses: BOOKING_STATUSES,
       });
     })
@@ -239,18 +554,67 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
     handle(req, res, async (context) => {
       requireBookingContext(context);
       const bookingCase = await bookingStore.upsertCase(toCaseInput(context, req.body));
-      return res.json({ bookingCase });
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_case_upsert',
+        includeTimelineEvent: true,
+      });
+      return res.json({
+        bookingCase,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
+      });
     })
   );
 
   router.post('/cco-bookings/candidates', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      const reservedSlots = bookingEngineStore
+        ? await bookingEngineStore.reserveSlots({
+            ...toCaseInput(context, req.body),
+            selectedSlots: req.body?.selectedSlots || req.body?.slots,
+          })
+        : null;
       const bookingCase = await bookingStore.setCandidateSlots({
         ...toCaseInput(context, req.body),
-        selectedSlots: req.body?.selectedSlots || req.body?.slots,
+        selectedSlots: reservedSlots
+          ? reservedSlots.map((item) => item.slot)
+          : req.body?.selectedSlots || req.body?.slots,
       });
-      return res.json({ bookingCase });
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_candidates',
+        includeTimelineEvent: true,
+      });
+      return res.json({
+        bookingCase,
+        bookingEngine:
+          bookingEngineStore && reservedSlots
+            ? {
+                reservations: reservedSlots,
+                booking: null,
+              }
+            : null,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
+      });
     })
   );
 
@@ -265,7 +629,24 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
         ...toCaseInput(context, req.body),
         status,
       });
-      return res.json({ bookingCase });
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_status',
+        includeTimelineEvent: true,
+      });
+      return res.json({
+        bookingCase,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
+      });
     })
   );
 
@@ -284,7 +665,24 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
         detail,
         metadata: asObject(req.body?.metadata),
       });
-      return res.json({ bookingCase });
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_event',
+        includeTimelineEvent: true,
+      });
+      return res.json({
+        bookingCase,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
+      });
     })
   );
 
@@ -295,21 +693,52 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
         ...toCaseInput(context, req.body),
         status: 'offered',
       });
+      const patientRecord = await syncBookingPatient360(context, bookingCase, {
+        source: 'cco_bookings_offer_draft',
+        includeTimelineEvent: true,
+      });
       return res.json({
         bookingCase,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
         draft: buildOfferDraft({ bookingCase }),
       });
     })
   );
 
   router.get('/cco-bookings/slots', async (req, res) =>
-    handle(req, res, async () => {
+    handle(req, res, async (context) => {
       const fromDate = normalizeText(req.query.fromDate);
       const toDate = normalizeText(req.query.toDate);
       const resIds = normalizeCsvParam(req.query.resIds);
       const srvIds = normalizeCsvParam(req.query.srvIds);
-      if (!fromDate || !toDate || !resIds || !srvIds) {
-        return res.status(400).json({ error: 'cliento_slots_params_missing' });
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+      if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
+        const slots = await bookingEngineStore.listAvailability({
+          tenantId: context.tenantId,
+          fromDate,
+          toDate,
+          resIds: resIds || '',
+          srvIds: srvIds || '',
+          excludeConversationId: normalizeText(req.query.conversationId),
+        });
+        return res.json({
+          raw: null,
+          provider: 'cco_engine',
+          slots,
+          bookingUrl: null,
+        });
       }
       const brand = resolveBrandFromRequest(req, config);
       const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
@@ -329,6 +758,18 @@ function createCcoBookingsRouter({ bookingStore, authStore, config }) {
 
   router.get('/cco-bookings/ref-data', async (req, res) =>
     handle(req, res, async () => {
+      if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
+        const [resources, services] = await Promise.all([
+          bookingEngineStore.listResources(),
+          bookingEngineStore.listServices(),
+        ]);
+        return res.json({
+          raw: null,
+          provider: 'cco_engine',
+          resources: resources.map((item) => ({ id: item.id, label: item.label })),
+          services: services.map((item) => ({ id: item.id, label: item.label })),
+        });
+      }
       const brand = resolveBrandFromRequest(req, config);
       const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
       if (!clientoApiConfig.partnerId) {
