@@ -1647,6 +1647,11 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('bookingDom.phoneSlotEntrySelectionTitle') &&
       source.includes('bookingDom.phoneSlotEntrySelectionDetail') &&
       source.includes('bookingDom.phoneSlotEntrySelectionMeta') &&
+      source.includes('renderBookingPhonePostConfirmationState(bookingDom, readout)') &&
+      source.includes('bookingDom.phonePostConfirmation') &&
+      source.includes('bookingDom.phonePostConfirmationTitle') &&
+      source.includes('bookingDom.phonePostConfirmationCopy') &&
+      source.includes('Efter bekräftelse') &&
       source.includes('Den här tiden gäller nu') &&
       source.includes('Tiden är säkrad externt') &&
       source.includes('topSlot?.recommendation?.rankLabel || "Bäst just nu"') &&
@@ -1659,8 +1664,8 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-entry-controls[\s\S]*data-booking-phone-slot-from[\s\S]*data-booking-phone-slot-to[\s\S]*data-booking-phone-slot-resource-select[\s\S]*data-booking-phone-slot-service-select[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-why[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval[\s\S]*data-booking-phone-slot-selection[\s\S]*data-booking-phone-slot-selection-title[\s\S]*data-booking-phone-slot-selection-detail[\s\S]*data-booking-phone-slot-selection-meta/,
-    'Förväntade att telefonkortet renderar en egen snabbyta för slotval, inline-kontroller för bokningskontext, ett tydligt bäst-just-nu-lager och en egen vald-slot-yta så att operatören slipper gå hela vägen ner till avancerat läge först.'
+    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-entry-controls[\s\S]*data-booking-phone-slot-from[\s\S]*data-booking-phone-slot-to[\s\S]*data-booking-phone-slot-resource-select[\s\S]*data-booking-phone-slot-service-select[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-why[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval[\s\S]*data-booking-phone-slot-selection[\s\S]*data-booking-phone-slot-selection-title[\s\S]*data-booking-phone-slot-selection-detail[\s\S]*data-booking-phone-slot-selection-meta[\s\S]*data-booking-phone-post-confirmation[\s\S]*data-booking-phone-post-confirmation-title[\s\S]*data-booking-phone-post-confirmation-copy/,
+    'Förväntade att telefonkortet renderar en egen snabbyta för slotval, inline-kontroller för bokningskontext, ett tydligt bäst-just-nu-lager, en egen vald-slot-yta och ett efter-bekräftelse-läge så att operatören slipper gå hela vägen ner till avancerat läge först.'
   );
 
   assertMatchFast(

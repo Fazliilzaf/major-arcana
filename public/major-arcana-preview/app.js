@@ -28243,6 +28243,30 @@
     }
   }
 
+  function renderBookingPhonePostConfirmationState(bookingDom, readout = {}) {
+    if (
+      !bookingDom.phonePostConfirmation ||
+      !bookingDom.phonePostConfirmationTitle ||
+      !bookingDom.phonePostConfirmationCopy
+    ) {
+      return;
+    }
+    const phoneWorkflow = getBookingPhoneWorkflowSummary(readout);
+    if (!phoneWorkflow.isConfirmed) {
+      bookingDom.phonePostConfirmation.hidden = true;
+      bookingDom.phonePostConfirmationTitle.textContent = "";
+      bookingDom.phonePostConfirmationCopy.textContent = "";
+      return;
+    }
+    const nextAction = buildBookingNextActionReadout(readout);
+    bookingDom.phonePostConfirmation.hidden = false;
+    bookingDom.phonePostConfirmationTitle.textContent =
+      asText(nextAction.label).replace(/^Nästa:\s*/i, "") || "Fortsätt efter bekräftelse";
+    bookingDom.phonePostConfirmationCopy.textContent =
+      asText(nextAction.meta) ||
+      "Följ kunddialogen vidare med rätt handoff eller uppföljning utan att lämna booking-läget.";
+  }
+
   function hasBookingEvent(readout = {}, eventTypes = []) {
     const wanted = asArray(eventTypes).map((type) => normalizeKey(type)).filter(Boolean);
     if (!wanted.length) return false;
@@ -34955,6 +34979,11 @@
               <p data-booking-phone-slot-selection-detail></p>
               <small data-booking-phone-slot-selection-meta></small>
             </div>
+            <div class="booking-phone-post-confirmation" data-booking-phone-post-confirmation hidden>
+              <span>Efter bekräftelse</span>
+              <strong data-booking-phone-post-confirmation-title></strong>
+              <p data-booking-phone-post-confirmation-copy></p>
+            </div>
             <div class="booking-phone-workflow-guidance" aria-label="Bekräftelseflöde">
               <article class="booking-phone-workflow-guidance-card" data-booking-phone-confirmation-card>
                 <span>Bekräftelse</span>
@@ -35110,6 +35139,13 @@
       phoneSlotEntrySelectionMeta: surface?.querySelector(
         "[data-booking-phone-slot-selection-meta]"
       ),
+      phonePostConfirmation: surface?.querySelector("[data-booking-phone-post-confirmation]"),
+      phonePostConfirmationTitle: surface?.querySelector(
+        "[data-booking-phone-post-confirmation-title]"
+      ),
+      phonePostConfirmationCopy: surface?.querySelector(
+        "[data-booking-phone-post-confirmation-copy]"
+      ),
       phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
       phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),
       phoneNextTitle: surface?.querySelector("[data-booking-phone-next-title]"),
@@ -35236,6 +35272,7 @@
         bookingDom.phoneSecondary.dataset.bookingAction = phoneWorkflow.secondaryAction;
       }
     }
+    renderBookingPhonePostConfirmationState(bookingDom, readout);
     let healthReadout = null;
     if (bookingDom.source) {
       const source = buildBookingSourceReadout(thread);
