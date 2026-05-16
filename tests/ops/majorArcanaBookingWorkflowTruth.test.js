@@ -1582,10 +1582,19 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assert.ok(
     source.includes('function getBookingPhoneWorkflowSummary(readout = {})') &&
+      source.includes('function getBookingPhoneLatestActivityReadout(readout = {})') &&
       source.includes('function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {})') &&
       source.includes('1. Kontekst') &&
       source.includes('2. Tid') &&
       source.includes('3. Bekräftelse') &&
+      source.includes(
+        'const latestEvent = asArray(readout.allEvents || readout.events).at(-1) || null;'
+      ) &&
+      source.includes(
+        'const provenance = getBookingEventProvenanceReadout(latestEvent, readout);'
+      ) &&
+      source.includes('const eventTitleByType = {') &&
+      source.includes('external_confirmation_marked: "Extern bekräftelse markerad"') &&
       source.includes(
         'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
       ) &&
@@ -1601,14 +1610,14 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
-    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med stegstatus, slotstatus, extern bekräftelse, guidance och audit sammanhållna.'
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
+    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med stegstatus, slotstatus, extern bekräftelse, senaste bookinghändelse, guidance och audit sammanhållna.'
   );
 
   assertMatchFast(
     source,
-    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
-    'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet, inklusive en tydlig progressionsrad i stället för att lämna läget statiskt.'
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*const phoneActivity = getBookingPhoneLatestActivityReadout\(readout\);[\s\S]*bookingDom\.phoneActivityTitle[\s\S]*bookingDom\.phoneActivityMeta[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet, inklusive en tydlig progressionsrad och en kompakt senaste-händelse-yta i stället för att lämna läget statiskt.'
   );
 
   assertMatchFast(
@@ -1652,6 +1661,9 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('bookingDom.phonePostConfirmationTitle') &&
       source.includes('bookingDom.phonePostConfirmationCopy') &&
       source.includes('bookingDom.phonePostConfirmationAction') &&
+      source.includes('bookingDom.phoneActivityCard') &&
+      source.includes('bookingDom.phoneActivityTitle') &&
+      source.includes('bookingDom.phoneActivityMeta') &&
       source.includes('Efter bekräftelse') &&
       source.includes('Den här tiden gäller nu') &&
       source.includes('Tiden är säkrad externt') &&
@@ -1665,8 +1677,8 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-entry-controls[\s\S]*data-booking-phone-slot-from[\s\S]*data-booking-phone-slot-to[\s\S]*data-booking-phone-slot-resource-select[\s\S]*data-booking-phone-slot-service-select[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-why[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval[\s\S]*data-booking-phone-slot-selection[\s\S]*data-booking-phone-slot-selection-title[\s\S]*data-booking-phone-slot-selection-detail[\s\S]*data-booking-phone-slot-selection-meta[\s\S]*data-booking-phone-post-confirmation[\s\S]*data-booking-phone-post-confirmation-title[\s\S]*data-booking-phone-post-confirmation-copy[\s\S]*data-booking-phone-post-confirmation-action/,
-    'Förväntade att telefonkortet renderar en egen snabbyta för slotval, inline-kontroller för bokningskontext, ett tydligt bäst-just-nu-lager, en egen vald-slot-yta och ett efter-bekräftelse-läge med direkt nästa-knapp så att operatören slipper gå hela vägen ner till avancerat läge först.'
+    /data-booking-phone-activity-card[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-entry-controls[\s\S]*data-booking-phone-slot-from[\s\S]*data-booking-phone-slot-to[\s\S]*data-booking-phone-slot-resource-select[\s\S]*data-booking-phone-slot-service-select[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-why[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval[\s\S]*data-booking-phone-slot-selection[\s\S]*data-booking-phone-slot-selection-title[\s\S]*data-booking-phone-slot-selection-detail[\s\S]*data-booking-phone-slot-selection-meta[\s\S]*data-booking-phone-post-confirmation[\s\S]*data-booking-phone-post-confirmation-title[\s\S]*data-booking-phone-post-confirmation-copy[\s\S]*data-booking-phone-post-confirmation-action/,
+    'Förväntade att telefonkortet renderar en egen senaste-händelse-yta, en snabbyta för slotval, inline-kontroller för bokningskontext, ett tydligt bäst-just-nu-lager, en egen vald-slot-yta och ett efter-bekräftelse-läge med direkt nästa-knapp så att operatören slipper gå hela vägen ner till avancerat läge först.'
   );
 
   assertMatchFast(

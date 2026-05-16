@@ -28012,6 +28012,53 @@
     };
   }
 
+  function getBookingPhoneLatestActivityReadout(readout = {}) {
+    const latestEvent = asArray(readout.allEvents || readout.events).at(-1) || null;
+    if (!latestEvent) {
+      return {
+        title: "Ingen bookinghändelse ännu",
+        meta: "När tider väljs, erbjudande infogas eller extern bekräftelse loggas syns senaste steget här.",
+        tone: "neutral",
+      };
+    }
+    const eventType = normalizeKey(latestEvent.type);
+    const eventChip = getBookingEventTypeChip(eventType);
+    const provenance = getBookingEventProvenanceReadout(latestEvent, readout);
+    const transition = getBookingEventStatusTransition(latestEvent);
+    const eventTitleByType = {
+      case_created: "Case öppnat",
+      candidate_slots_selected: "Tider valda",
+      candidate_slots_cleared: "Tider rensade",
+      offer_draft_inserted: "Erbjudande infogat",
+      follow_up_opened: "Uppföljning öppnad",
+      follow_up_scheduled: "Uppföljning schemalagd",
+      audit_summary_copied: "Logg kopierad",
+      external_confirmation_marked: "Extern bekräftelse markerad",
+      engine_slots_reserved: "Tider reserverade i CCO",
+      engine_booking_confirmed: "Bokning bekräftad i CCO",
+      engine_booking_cancelled: "Bokning avbokad i CCO",
+      engine_booking_rebooked: "Bokning ombokad i CCO",
+    };
+    const rawTitle = transition
+      ? `${transition.previous} -> ${transition.next}`
+      : asText(
+          eventTitleByType[eventType] ||
+            latestEvent.label ||
+            latestEvent.value ||
+            latestEvent.detail ||
+            eventChip.label,
+          "Senaste bookinghändelse"
+        );
+    const title = formatBookingVisibleLogText(rawTitle, "Senaste bookinghändelse");
+    const eventAt = asText(latestEvent.createdAt || latestEvent.signalAt || "");
+    const eventTime = eventAt ? formatBookingEventTime(eventAt) : "";
+    return {
+      title,
+      meta: [provenance.label, eventTime, provenance.meta].filter(Boolean).join(" · "),
+      tone: provenance.tone || eventChip.tone || "neutral",
+    };
+  }
+
   function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {}) {
     const steps = [
       {
@@ -34941,6 +34988,11 @@
                 <strong data-booking-phone-confirmed-audit>Ej bekräftad externt</strong>
                 <p>Markera först när bokningen verkligen är lagd i Cliento.</p>
               </article>
+              <article class="booking-phone-workflow-card booking-phone-workflow-card-activity" data-booking-phone-activity-card>
+                <span>Senaste steg</span>
+                <strong data-booking-phone-activity-title>Ingen bookinghändelse ännu</strong>
+                <p data-booking-phone-activity-meta>När tider väljs, erbjudande infogas eller extern bekräftelse loggas syns senaste steget här.</p>
+              </article>
             </div>
             <div class="booking-phone-workflow-actions">
               <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
@@ -35140,6 +35192,9 @@
       phoneSlotDetail: surface?.querySelector("[data-booking-phone-slot-detail]"),
       phoneSelectedAudit: surface?.querySelector("[data-booking-phone-selected-audit]"),
       phoneConfirmedAudit: surface?.querySelector("[data-booking-phone-confirmed-audit]"),
+      phoneActivityCard: surface?.querySelector("[data-booking-phone-activity-card]"),
+      phoneActivityTitle: surface?.querySelector("[data-booking-phone-activity-title]"),
+      phoneActivityMeta: surface?.querySelector("[data-booking-phone-activity-meta]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
       phoneSlotEntry: surface?.querySelector("[data-booking-phone-slot-entry]"),
@@ -35277,6 +35332,16 @@
       }
       if (bookingDom.phoneConfirmedAudit) {
         bookingDom.phoneConfirmedAudit.textContent = phoneWorkflow.confirmedAudit;
+      }
+      const phoneActivity = getBookingPhoneLatestActivityReadout(readout);
+      if (bookingDom.phoneActivityCard) {
+        bookingDom.phoneActivityCard.dataset.tone = phoneActivity.tone || "neutral";
+      }
+      if (bookingDom.phoneActivityTitle) {
+        bookingDom.phoneActivityTitle.textContent = phoneActivity.title;
+      }
+      if (bookingDom.phoneActivityMeta) {
+        bookingDom.phoneActivityMeta.textContent = phoneActivity.meta;
       }
       if (bookingDom.phoneConfirmationTitle) {
         bookingDom.phoneConfirmationTitle.textContent = phoneWorkflow.confirmationTitle;
