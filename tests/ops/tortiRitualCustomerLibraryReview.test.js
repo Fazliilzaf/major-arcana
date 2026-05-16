@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-flow-surface-cleanup/);
-  assert.match(htmlSource, /app\.js\?v=20260517-flow-surface-cleanup/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-portal-entry-flow/);
+  assert.match(htmlSource, /app\.js\?v=20260517-portal-entry-flow/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -96,4 +96,14 @@ test('Torti owner flow uses the desktop width before the document surface', () =
   assert.match(cssSource, /\.zone-editor\s*\{[\s\S]*grid-column: 1 \/ -1;/);
   assert.match(cssSource, /\.portal-panel\s*\{[\s\S]*grid-column: 1 \/ -1;/);
   assert.match(cssSource, /\.layers-stack\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\);/);
+});
+
+test('Torti portal navigation can restore the build workspace from customer view', () => {
+  assert.match(appSource, /function updatePortalViewRoute\(portalView\)/);
+  assert.match(appSource, /url\.searchParams\.delete\("portalView"\)/);
+  assert.match(appSource, /function setPortalWorkspaceView\(portalView, scrollSelector\)/);
+  assert.match(appSource, /state\.portalView = portalView === "customer" \? "customer" : "split";/);
+  assert.match(appSource, /setPortalWorkspaceView\("split", "\.library-strip"\)/);
+  assert.match(appSource, /setPortalWorkspaceView\("split", "\[data-layers-panel\]"\)/);
+  assert.match(appSource, /restoredBuildView: wasCustomerPortalView/);
 });
