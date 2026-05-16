@@ -2225,10 +2225,15 @@
 
     if (browseCollectionsButton) {
       browseCollectionsButton.addEventListener("click", function () {
-        const didScroll = scrollToSection(".library-strip");
+        const wasCustomerPortalView = state.portalView === "customer";
+        if (wasCustomerPortalView) {
+          setPortalWorkspaceView("split", ".library-strip");
+        }
+        const didScroll = wasCustomerPortalView ? true : scrollToSection(".library-strip");
         recordAnalyticsEvent("browse collections", "Collections path opened", {
           target: "collections",
           scrolled: didScroll,
+          restoredBuildView: wasCustomerPortalView,
         });
       });
     }
@@ -2641,6 +2646,35 @@
     url.searchParams.set("portalCustomerKey", customerKey);
     url.searchParams.set("portalView", "customer");
     return url.toString();
+  }
+
+  function updatePortalViewRoute(portalView) {
+    if (typeof window === "undefined" || !window.location || !window.history) {
+      return;
+    }
+
+    try {
+      const url = new URL(window.location.href);
+      if (portalView === "customer") {
+        url.searchParams.set("portalView", "customer");
+      } else {
+        url.searchParams.delete("portalView");
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch (error) {
+      // Route updates are an enhancement; the in-memory view state is enough.
+    }
+  }
+
+  function setPortalWorkspaceView(portalView, scrollSelector) {
+    state.portalView = portalView === "customer" ? "customer" : "split";
+    updatePortalViewRoute(state.portalView);
+    render();
+    if (scrollSelector) {
+      window.setTimeout(() => {
+        scrollToSection(scrollSelector);
+      }, 0);
+    }
   }
 
   async function copyPortalShareUrl(snapshot) {
@@ -4532,10 +4566,15 @@
     const returnBuildButton = portalPanel.querySelector("[data-return-build]");
     if (returnBuildButton) {
       returnBuildButton.addEventListener("click", function () {
-        const didScroll = scrollToSection("[data-layers-panel]");
+        const wasCustomerPortalView = state.portalView === "customer";
+        if (wasCustomerPortalView) {
+          setPortalWorkspaceView("split", "[data-layers-panel]");
+        }
+        const didScroll = wasCustomerPortalView ? true : scrollToSection("[data-layers-panel]");
         recordAnalyticsEvent("portal return build", "Returned from portal to build", {
           target: "layers",
           scrolled: didScroll,
+          restoredBuildView: wasCustomerPortalView,
         });
       });
     }
