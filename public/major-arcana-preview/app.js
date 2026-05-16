@@ -28012,6 +28012,119 @@
     };
   }
 
+  function getBookingSlotContextSummary(bookingDom = getBookingDom(), readout = {}) {
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    const selectedResourceLabel = getBookingSelectedOptionLabel(bookingDom?.resourceSelect);
+    const selectedServiceLabel = getBookingSelectedOptionLabel(bookingDom?.serviceSelect);
+    const resourceId = asText(bookingDom?.slotResIds?.value || request.resIds);
+    const serviceId = asText(bookingDom?.slotSrvIds?.value || request.srvIds);
+    const resourceLabel =
+      selectedResourceLabel ||
+      (resourceId
+        ? `Resurs ${resourceId}`
+        : asText(readout.doctorName || readout.ownerLabel || readout.mailboxLabel || "Välj behandlare"));
+    const serviceLabel =
+      selectedServiceLabel ||
+      (serviceId ? `Tjänst ${serviceId}` : asText(readout.requestedTreatment || "Konsultation"));
+    const dateLabel =
+      request.fromDate && request.toDate
+        ? request.fromDate === request.toDate
+          ? request.fromDate
+          : `${request.fromDate} - ${request.toDate}`
+        : "Välj datumspann";
+    return {
+      dateLabel,
+      resourceLabel,
+      serviceLabel,
+      isReady: Boolean(request.fromDate && request.toDate && request.resIds && request.srvIds),
+    };
+  }
+
+  function renderBookingPhoneSlotEntry(bookingDom, readout = {}) {
+    if (!bookingDom.phoneSlotEntry) return;
+    const slotContext = getBookingSlotContextSummary(bookingDom, readout);
+    const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3);
+    const selectedCount = asArray(readout.selectedSlots).length;
+    if (bookingDom.phoneSlotEntryState) {
+      bookingDom.phoneSlotEntryState.textContent = state.booking.loadingSlots
+        ? "Hämtar tider"
+        : rankedSlots.length
+          ? `${rankedSlots.length} snabba val`
+          : state.booking.slotFetchAttempted
+            ? "Inga träffar"
+            : slotContext.isReady
+              ? "Redo att hämta"
+              : "Komplettera urval";
+    }
+    if (bookingDom.phoneSlotEntryMeta) {
+      bookingDom.phoneSlotEntryMeta.textContent = state.booking.loadingSlots
+        ? "Vi läser in de starkaste tiderna för samtalet."
+        : rankedSlots.length
+          ? selectedCount
+            ? "Du kan jämföra tre snabba kandidater här uppe innan du går vidare i det fulla tidsläget."
+            : "De starkaste tiderna ligger här direkt i telefonkortet så att samtalet kan fortsätta utan omväg."
+          : state.booking.slotFetchAttempted
+            ? "Justera datum, behandlare eller behandling i avancerat läge om träfflistan blev tom."
+            : "Sätt bokningskontexten här och öppna sedan tiderna när du är redo.";
+    }
+    if (bookingDom.phoneSlotEntryContext) {
+      bookingDom.phoneSlotEntryContext.innerHTML = [
+        {
+          label: "Datumspann",
+          value: slotContext.dateLabel,
+        },
+        {
+          label: "Behandlare",
+          value: slotContext.resourceLabel,
+        },
+        {
+          label: "Behandling",
+          value: slotContext.serviceLabel,
+        },
+      ]
+        .map(
+          (item) => `<article class="booking-phone-slot-context-item"><span>${escapeHtml(
+            item.label
+          )}</span><strong>${escapeHtml(item.value)}</strong></article>`
+        )
+        .join("");
+    }
+    if (bookingDom.phoneSlotEntryList) {
+      if (state.booking.loadingSlots) {
+        bookingDom.phoneSlotEntryList.innerHTML = `<li class="booking-phone-slot-entry-empty"><strong>Hämtar lediga tider</strong><span>Vänta ett ögonblick medan vi fyller snabblistan för samtalet.</span></li>`;
+      } else if (!rankedSlots.length) {
+        bookingDom.phoneSlotEntryList.innerHTML = `<li class="booking-phone-slot-entry-empty"><strong>${escapeHtml(
+          state.booking.slotFetchAttempted ? "Inga tider att visa ännu" : "Öppna tider för att få snabblistan"
+        )}</strong><span>${escapeHtml(
+          state.booking.slotFetchAttempted
+            ? "Prova ett annat spann eller hoppa vidare till avancerat läge om du behöver justera urvalet."
+            : "När tiderna är hämtade dyker de tre starkaste kandidaterna upp här direkt i telefonkortet."
+        )}</span></li>`;
+      } else {
+        bookingDom.phoneSlotEntryList.innerHTML = rankedSlots
+          .map(({ slot, recommendation }) => {
+            const slotKey = getBookingSlotKey(slot);
+            const isSelected = isBookingSlotSelected(slot);
+            const reason = asText(recommendation.reason);
+            return `<li class="booking-phone-slot-pick${isSelected ? " is-selected" : ""}">
+              <div class="booking-phone-slot-pick-body">
+                <strong>${escapeHtml(formatBookingSlot(slot))}</strong>
+                <span>${escapeHtml(
+                  [asText(slot.resourceLabel), asText(slot.serviceLabel)].filter(Boolean).join(" · ") ||
+                    asText(slot.locationLabel || "Extern kalender")
+                )}</span>
+                ${reason ? `<small>${escapeHtml(reason)}</small>` : ""}
+              </div>
+              <button class="booking-slot-select${isSelected ? " is-selected" : ""}" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(
+                slotKey
+              )}">${isSelected ? "Vald" : "Välj"}</button>
+            </li>`;
+          })
+          .join("");
+      }
+    }
+  }
+
   function hasBookingEvent(readout = {}, eventTypes = []) {
     const wanted = asArray(eventTypes).map((type) => normalizeKey(type)).filter(Boolean);
     if (!wanted.length) return false;
@@ -34615,6 +34728,7 @@
       (!surface.querySelector("[data-booking-phone-workflow]") ||
         !surface.querySelector("[data-booking-phone-primary]") ||
         !surface.querySelector("[data-booking-phone-confirmed-audit]") ||
+        !surface.querySelector("[data-booking-phone-slot-entry]") ||
         (!surface.querySelector("[data-booking-slot-overview]") ||
         !surface.querySelector("[data-booking-open-slots]") ||
         !surface.querySelector("[data-booking-slot-controls]") ||
@@ -34673,6 +34787,26 @@
               <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
               <button class="booking-action booking-action-secondary" type="button" data-booking-action="phone_booking" data-booking-phone-secondary>Öppna tider</button>
             </div>
+            <section class="booking-phone-slot-entry" data-booking-phone-slot-entry aria-label="Snabbval för tider">
+              <div class="booking-phone-slot-entry-head">
+                <div>
+                  <span>Snabbval i samtalet</span>
+                  <strong>Lyft fram rätt tider direkt här</strong>
+                  <p data-booking-phone-slot-entry-meta>När tiderna är hämtade visas de tre starkaste kandidaterna här så att du slipper gå hela vägen ner i arbetsytan.</p>
+                </div>
+                <span class="booking-phone-slot-entry-state" data-booking-phone-slot-entry-state>Redo att hämta</span>
+              </div>
+              <div class="booking-phone-slot-context" data-booking-phone-slot-context></div>
+              <ul class="booking-phone-slot-entry-list" data-booking-phone-slot-entry-list>
+                <li class="booking-phone-slot-entry-empty">
+                  <strong>Öppna tider för att få snabblistan</strong>
+                  <span>När tiderna är hämtade dyker de tre starkaste kandidaterna upp här direkt i telefonkortet.</span>
+                </li>
+              </ul>
+              <div class="booking-phone-slot-entry-actions">
+                <button class="booking-action booking-action-secondary" type="button" data-booking-open-slots>Justera urval</button>
+              </div>
+            </section>
             <div class="booking-phone-workflow-guidance" aria-label="Bekräftelseflöde">
               <article class="booking-phone-workflow-guidance-card" data-booking-phone-confirmation-card>
                 <span>Bekräftelse</span>
@@ -34806,6 +34940,11 @@
       phoneConfirmedAudit: surface?.querySelector("[data-booking-phone-confirmed-audit]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
+      phoneSlotEntry: surface?.querySelector("[data-booking-phone-slot-entry]"),
+      phoneSlotEntryMeta: surface?.querySelector("[data-booking-phone-slot-entry-meta]"),
+      phoneSlotEntryState: surface?.querySelector("[data-booking-phone-slot-entry-state]"),
+      phoneSlotEntryContext: surface?.querySelector("[data-booking-phone-slot-context]"),
+      phoneSlotEntryList: surface?.querySelector("[data-booking-phone-slot-entry-list]"),
       phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
       phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),
       phoneNextTitle: surface?.querySelector("[data-booking-phone-next-title]"),
@@ -35121,6 +35260,7 @@
     if (bookingDom.slotTo && !bookingDom.slotTo.value) bookingDom.slotTo.value = range.toDate;
     renderBookingRefDataControls(bookingDom);
     renderAvailableBookingSlots(bookingDom, stageMicrocopy, readout);
+    renderBookingPhoneSlotEntry(bookingDom, readout);
     const hasSelectedSlots = asArray(readout.selectedSlots).length > 0;
     const recommendedAction = asText(
       bookingDom.nextAction?.dataset.bookingRecommendedAction || nextAction.action

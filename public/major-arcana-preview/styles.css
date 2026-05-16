@@ -18254,6 +18254,163 @@ button.booking-handoff-card-blocker:focus-visible {
   gap: 12px;
 }
 
+.booking-phone-slot-entry {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(176, 145, 118, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    0 4px 12px rgba(120, 92, 70, 0.06);
+}
+
+.booking-phone-slot-entry-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.booking-phone-slot-entry-head span,
+.booking-phone-slot-context-item span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(142, 109, 87, 0.84);
+}
+
+.booking-phone-slot-entry-head strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+  line-height: 1.25;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-slot-entry-head p {
+  margin: 8px 0 0;
+  color: rgba(96, 79, 67, 0.82);
+}
+
+.booking-phone-slot-entry-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(176, 145, 118, 0.18);
+  color: rgba(128, 78, 100, 0.88);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.booking-phone-slot-context {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-phone-slot-context-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(252, 248, 244, 0.78);
+  border: 1px solid rgba(176, 145, 118, 0.12);
+}
+
+.booking-phone-slot-context-item strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.35;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-slot-entry-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.booking-phone-slot-entry-empty {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(252, 248, 244, 0.74);
+  border: 1px dashed rgba(176, 145, 118, 0.22);
+}
+
+.booking-phone-slot-entry-empty strong {
+  font-size: 15px;
+  line-height: 1.25;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-slot-entry-empty span {
+  color: rgba(96, 79, 67, 0.82);
+}
+
+.booking-phone-slot-pick {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(176, 145, 118, 0.14);
+}
+
+.booking-phone-slot-pick.is-selected {
+  background: linear-gradient(180deg, rgba(91, 61, 43, 0.94), rgba(55, 35, 24, 0.98));
+  box-shadow:
+    0 6px 14px rgba(35, 22, 15, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.booking-phone-slot-pick-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.booking-phone-slot-pick-body strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.3;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-slot-pick-body span,
+.booking-phone-slot-pick-body small {
+  display: block;
+  color: rgba(96, 79, 67, 0.82);
+  font-size: 13px;
+  line-height: 1.38;
+}
+
+.booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body strong,
+.booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body span,
+.booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body small {
+  color: #fff8f0;
+}
+
+.booking-phone-slot-entry-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .booking-phone-workflow-guidance {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -18326,7 +18483,16 @@ button.booking-handoff-card-blocker:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .booking-phone-slot-context {
+    grid-template-columns: 1fr;
+  }
+
   .booking-phone-workflow-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .booking-phone-slot-entry-head {
     flex-direction: column;
     align-items: flex-start;
   }

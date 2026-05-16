@@ -1618,6 +1618,38 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
     /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i Cliento"/,
     'Förväntade att extern bekräftelse i telefonflödet också lämnar ett tydligt auditspår i bokningsloggen.'
   );
+
+  assert.ok(
+    source.includes(
+      'function getBookingSlotContextSummary(bookingDom = getBookingDom(), readout = {})'
+    ) &&
+      source.includes('dateLabel') &&
+      source.includes('resourceLabel') &&
+      source.includes('serviceLabel') &&
+      source.includes(
+        'isReady: Boolean(request.fromDate && request.toDate && request.resIds && request.srvIds)'
+      ) &&
+      source.includes('function renderBookingPhoneSlotEntry(bookingDom, readout = {})') &&
+      source.includes(
+        'rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3)'
+      ) &&
+      source.includes('bookingDom.phoneSlotEntryState') &&
+      source.includes('bookingDom.phoneSlotEntryContext') &&
+      source.includes('bookingDom.phoneSlotEntryList'),
+    'Förväntade en särskild helper som lyfter datumspann, behandlare, behandling och tre snabba tider direkt in i telefonkortet.'
+  );
+
+  assertMatchFast(
+    source,
+    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval/,
+    'Förväntade att telefonkortet renderar en egen snabbyta för slotval så att operatören slipper gå hela vägen ner till avancerat läge först.'
+  );
+
+  assertMatchFast(
+    source,
+    /renderBookingRefDataControls\(bookingDom\);[\s\S]*renderAvailableBookingSlots\(bookingDom, stageMicrocopy, readout\);[\s\S]*renderBookingPhoneSlotEntry\(bookingDom, readout\);/,
+    'Förväntade att telefonkortets snabblista hydratiseras efter referensdata och tillgängliga tider, så den alltid speglar det aktuella bookingurvalet.'
+  );
 });
 
 test('kundlänken kan inferera booking default landing utan booking=1 när booking redan är den tydliga arbetsytan', () => {
