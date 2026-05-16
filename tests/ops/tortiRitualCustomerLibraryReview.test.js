@@ -35,6 +35,32 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260516-library-review-state/);
-  assert.match(htmlSource, /app\.js\?v=20260516-library-review-state/);
+  assert.match(htmlSource, /styles\.css\?v=20260516-portal-flow-cleanup/);
+  assert.match(htmlSource, /app\.js\?v=20260516-portal-flow-cleanup/);
+});
+
+test('Torti portal viewed badge uses every persisted viewed signal', () => {
+  assert.match(appSource, /const portalViewedEvent = portalEvents\.find/);
+  assert.match(appSource, /eventType === "customer viewed"/);
+  assert.match(appSource, /eventType === "version viewed"/);
+  assert.match(appSource, /const portalViewedAt =/);
+  assert.match(appSource, /normalizeText\(record\.viewedAt\)/);
+  assert.match(appSource, /normalizeText\(record\.lastViewedAt\)/);
+  assert.match(appSource, /normalizeText\(latestVersion && latestVersion\.viewedAt\)/);
+  assert.match(appSource, /portalViewedAt \? `Seen \$\{formatPortalMoment\(portalViewedAt\)\}` : "Not opened yet"/);
+});
+
+test('Torti portal workspace has one directed flow and hides build tools in customer view', () => {
+  assert.match(appSource, /const portalFlowSteps = \[/);
+  assert.match(appSource, /label: "Build"/);
+  assert.match(appSource, /label: "Published"/);
+  assert.match(appSource, /label: "Seen"/);
+  assert.match(appSource, /label: "Acknowledged"/);
+  assert.match(appSource, /data-return-build/);
+  assert.match(appSource, /portal return build/);
+  assert.match(appSource, /Review and share/);
+  assert.match(appSource, /Customer status/);
+  assert.match(cssSource, /\.portal-flow-steps\s*\{/);
+  assert.match(cssSource, /\.portal-flow-step\.is-current\s*\{/);
+  assert.match(cssSource, /\.sheet-app\.is-customer-portal-view \.library-strip/);
 });

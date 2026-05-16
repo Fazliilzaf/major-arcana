@@ -1622,6 +1622,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const proposalTimingBadge =') &&
       source.includes('const proposalResourceBadge =') &&
       source.includes('const proposalServiceBadge =') &&
+      source.includes('const serviceSummary =') &&
       source.includes('getBookingSlotTimeBand(slot)') &&
       source.includes('Ett tydligt förslag') &&
       source.includes('Samma dag') &&
@@ -1631,6 +1632,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Snabb tid') &&
       source.includes('Behandlare saknas') &&
       source.includes('Behandling saknas') &&
+      source.includes('Behandling är ännu inte kopplad till kundförslaget.') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
       ) &&
@@ -1655,6 +1657,8 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Längre fram') &&
       source.includes('Flera behandlare') &&
       source.includes('Flera behandlingar') &&
+      source.includes('Förslaget blandar flera behandlingar i samma kundförslag.') &&
+      source.includes('Förslaget gäller ${serviceLabels[0]} genom hela kundförslaget.') &&
       source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'
@@ -1671,6 +1675,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('{ label: "Föråldrat förslag", tone: "attention" }') &&
       source.includes('slotCarry,') &&
       source.includes('carrySummary,') &&
+      source.includes('serviceSummary,') &&
       source.includes('activitySummary: studioActivitySummary,') &&
       source.includes('handoffSummary,') &&
       source.includes('actionSummary,') &&
@@ -1681,7 +1686,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const eventTitleByType = {') &&
       source.includes('external_confirmation_marked: "Extern bekräftelse markerad"') &&
       source.includes(
-        'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
+        'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i CCO" : "Boka via telefon"'
       ) &&
       source.includes('secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider"') &&
       source.includes('confirmationTitle') &&
@@ -1695,13 +1700,13 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-wait-title[\s\S]*data-booking-phone-wait-meta[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-studio-title[\s\S]*data-booking-phone-studio-meta[\s\S]*data-booking-phone-studio-badges[\s\S]*data-booking-phone-studio-slots[\s\S]*data-booking-phone-studio-summary[\s\S]*data-booking-phone-studio-activity[\s\S]*data-booking-phone-studio-handoff[\s\S]*data-booking-phone-studio-action-summary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-wait-title[\s\S]*data-booking-phone-wait-meta[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-studio-title[\s\S]*data-booking-phone-studio-meta[\s\S]*data-booking-phone-studio-badges[\s\S]*data-booking-phone-studio-slots[\s\S]*data-booking-phone-studio-summary[\s\S]*data-booking-phone-studio-service-summary[\s\S]*data-booking-phone-studio-activity[\s\S]*data-booking-phone-studio-handoff[\s\S]*data-booking-phone-studio-action-summary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
     'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med stegstatus, slotstatus, extern bekräftelse, senaste bookinghändelse, kundvänteläge, Svarstudio-läge, guidance och audit sammanhållna.'
   );
 
   assertMatchFast(
     source,
-    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*const phoneActivity = getBookingPhoneLatestActivityReadout\(readout\);[\s\S]*bookingDom\.phoneActivityTitle[\s\S]*bookingDom\.phoneActivityMeta[\s\S]*const phoneWait = getBookingPhoneCustomerWaitReadout\(readout\);[\s\S]*bookingDom\.phoneWaitTitle[\s\S]*bookingDom\.phoneWaitMeta[\s\S]*const phoneStudio = getBookingPhoneStudioReadout\(readout\);[\s\S]*bookingDom\.phoneStudioTitle[\s\S]*bookingDom\.phoneStudioMeta[\s\S]*bookingDom\.phoneStudioBadges[\s\S]*bookingDom\.phoneStudioSlots[\s\S]*bookingDom\.phoneStudioSummary[\s\S]*bookingDom\.phoneStudioActivity[\s\S]*bookingDom\.phoneStudioHandoff[\s\S]*bookingDom\.phoneStudioActionSummary[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*const phoneActivity = getBookingPhoneLatestActivityReadout\(readout\);[\s\S]*bookingDom\.phoneActivityTitle[\s\S]*bookingDom\.phoneActivityMeta[\s\S]*const phoneWait = getBookingPhoneCustomerWaitReadout\(readout\);[\s\S]*bookingDom\.phoneWaitTitle[\s\S]*bookingDom\.phoneWaitMeta[\s\S]*const phoneStudio = getBookingPhoneStudioReadout\(readout\);[\s\S]*bookingDom\.phoneStudioTitle[\s\S]*bookingDom\.phoneStudioMeta[\s\S]*bookingDom\.phoneStudioBadges[\s\S]*bookingDom\.phoneStudioSlots[\s\S]*bookingDom\.phoneStudioSummary[\s\S]*bookingDom\.phoneStudioServiceSummary[\s\S]*bookingDom\.phoneStudioActivity[\s\S]*bookingDom\.phoneStudioHandoff[\s\S]*bookingDom\.phoneStudioActionSummary[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
     'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet, inklusive en tydlig progressionsrad, en kompakt senaste-händelse-yta, ett synligt kundvänteläge och ett eget Svarstudio-läge i stället för att lämna läget statiskt.'
   );
 
@@ -1713,7 +1718,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i Cliento"/,
+    /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i CCO"/,
     'Förväntade att extern bekräftelse i telefonflödet också lämnar ett tydligt auditspår i bokningsloggen.'
   );
 

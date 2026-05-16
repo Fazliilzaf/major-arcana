@@ -4297,6 +4297,15 @@
       : 0;
     const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
     const latestPortalEvent = portalEvents[0] || null;
+    const portalViewedEvent = portalEvents.find((event) => {
+      const eventType = normalize(event.type);
+      return eventType === "customer viewed" || eventType === "version viewed" || eventType === "customer read";
+    });
+    const portalViewedAt =
+      normalizeText(record.viewedAt) ||
+      normalizeText(record.lastViewedAt) ||
+      normalizeText(latestVersion && latestVersion.viewedAt) ||
+      normalizeText(portalViewedEvent && portalViewedEvent.createdAt);
     const sharedPortalEvents = customerOnlyView
       ? portalEvents.filter((event) => {
           const eventType = normalize(event.type);
@@ -4332,7 +4341,7 @@
         : "Customer has seen the latest version"
       : "Draft not published yet";
     const portalSyncLabel = customerOnlyView ? "Shared customer view" : getPortalConnectionLabel(customerKey);
-    const portalPanelTitle = customerOnlyView ? "Customer portal" : "Owner & customer portal";
+    const portalPanelTitle = customerOnlyView ? "Customer portal" : "Portal workspace";
     const portalPanelCopy = customerOnlyView
       ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
       : "Publish the active Torti draft and keep the customer version in sync.";
@@ -4341,23 +4350,32 @@
     const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
-    const portalHero = customerOnlyView
-      ? `
-        <article class="portal-hero">
-          <div class="portal-hero-head">
-            <span class="portal-card-kicker">Customer portal</span>
-            <strong>${escapeHtml(customerName)}</strong>
-          </div>
-          <div class="portal-hero-summary">
-            <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
-            <span>${escapeHtml(customerStatus)}</span>
-            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
-            <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
-            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
-          </div>
-        </article>
-      `
-      : "";
+    const portalFlowSteps = [
+      { key: "draft", label: "Build", detail: draftSummary, isDone: snapshot.customerLibrary.length > 0 },
+      { key: "published", label: "Published", detail: latestVersion ? formatPortalMoment(latestVersion.publishedAt) : "Waiting", isDone: Boolean(latestVersion) },
+      { key: "seen", label: "Seen", detail: portalViewedAt ? formatPortalMoment(portalViewedAt) : "Not opened", isDone: Boolean(portalViewedAt) },
+      { key: "acknowledged", label: "Acknowledged", detail: record.lastAcknowledgedAt ? formatPortalMoment(record.lastAcknowledgedAt) : "Waiting", isDone: Boolean(record.lastAcknowledgedAt) },
+    ];
+    const portalFlowMarkup = `
+      <div class="portal-flow-steps" aria-label="Portal progress">
+        ${portalFlowSteps
+          .map((step, index) => {
+            const isCurrent = step.isDone
+              ? !portalFlowSteps.slice(index + 1).some((nextStep) => nextStep.isDone)
+              : !portalFlowSteps.slice(0, index).some((previousStep) => !previousStep.isDone);
+            return `
+              <span class="portal-flow-step${step.isDone ? " is-done" : ""}${isCurrent ? " is-current" : ""}">
+                <span class="portal-flow-step-index">${escapeHtml(String(index + 1))}</span>
+                <span class="portal-flow-step-copy">
+                  <strong>${escapeHtml(step.label)}</strong>
+                  <span>${escapeHtml(step.detail)}</span>
+                </span>
+              </span>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
     const analyticsMarkup = customerOnlyView
       ? ""
       : `
@@ -4377,34 +4395,31 @@
           ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
         </div>
       </div>
-      ${portalHero}
+      ${portalFlowMarkup}
       ${analyticsMarkup}
       <div class="portal-grid${customerOnlyView ? " portal-grid--customer-only" : ""}">
         ${customerOnlyView
           ? ""
           : `
-        <article class="portal-card portal-card--owner">
+        <article class="portal-card portal-card--owner portal-card--control">
           <div class="portal-card-head">
-            <span class="portal-card-kicker">Owner portal</span>
+            <span class="portal-card-kicker">Review and share</span>
             <strong>${escapeHtml(customerName)}</strong>
           </div>
           <div class="portal-card-summary">
             <span>${escapeHtml(draftSummary)}</span>
             <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
-            <span>Customer key ${escapeHtml(customerKey)}</span>
             <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
-            <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
-            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
-            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
-            <span>${escapeHtml(record.lastAcknowledgedAt ? `Acknowledged ${formatPortalMoment(record.lastAcknowledgedAt)}` : "Not acknowledged yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
+            <button class="ghost-button portal-action" type="button" data-return-build>Back to build</button>
             <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
             <button class="ghost-button portal-action" type="button" data-copy-portal-link>Copy portal link</button>
             <button class="ghost-button portal-action" type="button" data-preview-customer-portal>Preview customer view</button>
           </div>
           <div class="portal-card-list">
+            <div class="portal-card-list-title">Published versions</div>
             ${versions.length > 0
               ? versions
                 .map((version) => {
@@ -4426,13 +4441,14 @@
 
         <article class="portal-card portal-card--customer">
           <div class="portal-card-head">
-            <span class="portal-card-kicker">Customer portal</span>
-            <strong>${escapeHtml(customerStatus)}</strong>
+            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Customer view" : "Customer status")}</span>
+            <strong>${escapeHtml(customerOnlyView ? customerName : customerStatus)}</strong>
           </div>
           <div class="portal-card-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
             <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
-            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span>${escapeHtml(portalViewedAt ? `Seen ${formatPortalMoment(portalViewedAt)}` : "Not opened yet")}</span>
+            <span>${escapeHtml(record.lastAcknowledgedAt ? `Acknowledged ${formatPortalMoment(record.lastAcknowledgedAt)}` : "Not acknowledged yet")}</span>
             <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
@@ -4444,6 +4460,7 @@
             <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
           </div>`}
           <div class="portal-card-list">
+            <div class="portal-card-list-title">${escapeHtml(customerOnlyView ? "Latest notices" : "Customer notifications")}</div>
             ${notifications.length > 0
               ? notifications
                 .map((notification) => {
@@ -4509,6 +4526,17 @@
         publishPortalVersion();
       });
     });
+
+    const returnBuildButton = portalPanel.querySelector("[data-return-build]");
+    if (returnBuildButton) {
+      returnBuildButton.addEventListener("click", function () {
+        const didScroll = scrollToSection("[data-layers-panel]");
+        recordAnalyticsEvent("portal return build", "Returned from portal to build", {
+          target: "layers",
+          scrolled: didScroll,
+        });
+      });
+    }
 
     const copyLinkButton = portalPanel.querySelector("[data-copy-portal-link]");
     if (copyLinkButton) {

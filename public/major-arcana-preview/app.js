@@ -28220,6 +28220,12 @@
         : serviceLabels.length === 1
           ? { label: serviceLabels[0], tone: "count" }
           : { label: "Flera behandlingar", tone: "count" };
+    const serviceSummary =
+      serviceLabels.length === 0
+        ? "Behandling är ännu inte kopplad till kundförslaget."
+        : serviceLabels.length === 1
+          ? `Förslaget gäller ${serviceLabels[0]} genom hela kundförslaget.`
+          : "Förslaget blandar flera behandlingar i samma kundförslag.";
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28240,6 +28246,7 @@
         ],
         slotCarry,
         carrySummary,
+        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28268,6 +28275,7 @@
         ],
         slotCarry,
         carrySummary,
+        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28300,6 +28308,7 @@
       ],
       slotCarry,
       carrySummary,
+      serviceSummary,
       activitySummary: studioActivitySummary,
       handoffSummary,
       actionSummary,
@@ -35267,6 +35276,7 @@
                 <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
                 <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
                 <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
+                <p class="booking-phone-studio-service-summary" data-booking-phone-studio-service-summary hidden></p>
                 <p class="booking-phone-studio-activity" data-booking-phone-studio-activity hidden></p>
                 <p class="booking-phone-studio-handoff" data-booking-phone-studio-handoff hidden></p>
                 <p class="booking-phone-studio-action-summary" data-booking-phone-studio-action-summary hidden></p>
@@ -35485,6 +35495,7 @@
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
+      phoneStudioServiceSummary: surface?.querySelector("[data-booking-phone-studio-service-summary]"),
       phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
       phoneStudioHandoff: surface?.querySelector("[data-booking-phone-studio-handoff]"),
       phoneStudioActionSummary: surface?.querySelector("[data-booking-phone-studio-action-summary]"),
@@ -35691,6 +35702,10 @@
       if (bookingDom.phoneStudioSummary) {
         bookingDom.phoneStudioSummary.hidden = !asText(phoneStudio.carrySummary);
         bookingDom.phoneStudioSummary.textContent = phoneStudio.carrySummary;
+      }
+      if (bookingDom.phoneStudioServiceSummary) {
+        bookingDom.phoneStudioServiceSummary.hidden = !asText(phoneStudio.serviceSummary);
+        bookingDom.phoneStudioServiceSummary.textContent = phoneStudio.serviceSummary;
       }
       if (bookingDom.phoneStudioActivity) {
         bookingDom.phoneStudioActivity.hidden = !asText(phoneStudio.activitySummary);
