@@ -4608,8 +4608,8 @@
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
-                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
                   </span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added" : "Tap to add"}</span>
                 </span>
               </button>
             `;
@@ -4640,8 +4640,8 @@
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
-                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
                   </span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added" : "Tap to add"}</span>
                 </span>
               </button>
             `;

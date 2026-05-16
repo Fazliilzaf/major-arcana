@@ -3041,6 +3041,22 @@ input {
   align-content: start;
 }
 
+.collection-result-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(88, 63, 46, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--muted);
+  font-size: 0.46rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
 .collection-result:active {
   cursor: grabbing;
 }
