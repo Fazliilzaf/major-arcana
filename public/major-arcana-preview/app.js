@@ -28139,6 +28139,11 @@
       : !hasOffer
         ? { label: "Kundläge väntar på studio", tone: "studio" }
         : { label: "Redo för kundläge", tone: "confirmed" };
+    const deliveryBadge = staleOfferAfterRebook
+      ? { label: "Kunden bär fel förslag", tone: "attention" }
+      : !hasOffer
+        ? { label: "Kundförslag saknas", tone: "studio" }
+        : { label: "Kunden bär rätt förslag", tone: "confirmed" };
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28155,6 +28160,7 @@
           { label: countLabel, tone: "count" },
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
+          deliveryBadge,
         ],
         slotCarry,
         carrySummary,
@@ -28176,6 +28182,7 @@
           { label: countLabel, tone: "count" },
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
+          deliveryBadge,
         ],
         slotCarry,
         carrySummary,
@@ -28201,6 +28208,7 @@
           tone: "confirmed",
         },
         handoffBadge,
+        deliveryBadge,
       ],
       slotCarry,
       carrySummary,

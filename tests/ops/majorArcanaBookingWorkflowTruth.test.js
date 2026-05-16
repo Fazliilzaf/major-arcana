@@ -1611,8 +1611,10 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Ingen studiohändelse loggad ännu.') &&
       source.includes('const handoffSummary = staleOfferAfterRebook') &&
       source.includes('const handoffBadge = staleOfferAfterRebook') &&
+      source.includes('const deliveryBadge = staleOfferAfterRebook') &&
       source.includes('Kundläge bör vänta tills Svarstudio bär det uppdaterade förslaget igen.') &&
       source.includes('Vänta med kundläge') &&
+      source.includes('Kunden bär fel förslag') &&
       source.includes('const actionSummary = staleOfferAfterRebook') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
@@ -1621,11 +1623,13 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
         'När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag.'
       ) &&
       source.includes('Kundläge väntar på studio') &&
+      source.includes('Kundförslag saknas') &&
       source.includes('Infoga kundförslaget i Svarstudio innan kundläge eller väntan markeras.') &&
       source.includes(
         'Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.'
       ) &&
       source.includes('Redo för kundläge') &&
+      source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'
       ) &&
