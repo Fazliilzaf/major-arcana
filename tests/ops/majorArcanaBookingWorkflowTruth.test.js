@@ -1617,7 +1617,9 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Kunden bär fel förslag') &&
       source.includes('const actionSummary = staleOfferAfterRebook') &&
       source.includes('const proposalShapeBadge =') &&
+      source.includes('const proposalSpanBadge =') &&
       source.includes('Ett tydligt förslag') &&
+      source.includes('Samma dag') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
       ) &&
@@ -1633,6 +1635,8 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       ) &&
       source.includes('Redo för kundläge') &&
       source.includes('Tre alternativ') &&
+      source.includes('Två dagar') &&
+      source.includes('Flera dagar') &&
       source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'

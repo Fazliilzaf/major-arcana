@@ -28156,6 +28156,15 @@
         : selectedCount === 2
           ? { label: "Två alternativ", tone: "count" }
           : { label: "Tre alternativ", tone: "count" };
+    const dayKeyCount = new Set(
+      selectedSlots.map((slot) => asText(slot.startsAt).slice(0, 10)).filter(Boolean)
+    ).size;
+    const proposalSpanBadge =
+      dayKeyCount <= 1
+        ? { label: "Samma dag", tone: "count" }
+        : dayKeyCount === 2
+          ? { label: "Två dagar", tone: "count" }
+          : { label: "Flera dagar", tone: "count" };
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28165,6 +28174,7 @@
         badges: [
           { label: countLabel, tone: "count" },
           proposalShapeBadge,
+          proposalSpanBadge,
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
           deliveryBadge,
@@ -28188,6 +28198,7 @@
         badges: [
           { label: countLabel, tone: "count" },
           proposalShapeBadge,
+          proposalSpanBadge,
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
           deliveryBadge,
@@ -28212,6 +28223,7 @@
       badges: [
         { label: countLabel, tone: "count" },
         proposalShapeBadge,
+        proposalSpanBadge,
         {
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",
