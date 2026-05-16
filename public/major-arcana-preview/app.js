@@ -28150,6 +28150,12 @@
         : selectedCount === 2
           ? "2 valda tider"
           : `${selectedCount} valda tider`;
+    const proposalShapeBadge =
+      selectedCount === 1
+        ? { label: "Ett tydligt förslag", tone: "count" }
+        : selectedCount === 2
+          ? { label: "Två alternativ", tone: "count" }
+          : { label: "Tre alternativ", tone: "count" };
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28158,6 +28164,7 @@
           "Tiderna har ändrats sedan senaste kundförslaget. Uppdatera förslaget innan kundläge eller ny bekräftelse.",
         badges: [
           { label: countLabel, tone: "count" },
+          proposalShapeBadge,
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
           deliveryBadge,
@@ -28180,6 +28187,7 @@
           "Tiderna är valda, men kundförslaget är ännu inte infogat. Bär vidare samma tider till Svarstudio innan ärendet lämnas till kund.",
         badges: [
           { label: countLabel, tone: "count" },
+          proposalShapeBadge,
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
           deliveryBadge,
@@ -28203,6 +28211,7 @@
         : "Kundförslaget finns redan i flödet och håller samma tider som bookingytan.",
       badges: [
         { label: countLabel, tone: "count" },
+        proposalShapeBadge,
         {
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",

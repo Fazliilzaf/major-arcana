@@ -1616,6 +1616,8 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Vänta med kundläge') &&
       source.includes('Kunden bär fel förslag') &&
       source.includes('const actionSummary = staleOfferAfterRebook') &&
+      source.includes('const proposalShapeBadge =') &&
+      source.includes('Ett tydligt förslag') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
       ) &&
@@ -1623,12 +1625,14 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
         'När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag.'
       ) &&
       source.includes('Kundläge väntar på studio') &&
+      source.includes('Två alternativ') &&
       source.includes('Kundförslag saknas') &&
       source.includes('Infoga kundförslaget i Svarstudio innan kundläge eller väntan markeras.') &&
       source.includes(
         'Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.'
       ) &&
       source.includes('Redo för kundläge') &&
+      source.includes('Tre alternativ') &&
       source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'
