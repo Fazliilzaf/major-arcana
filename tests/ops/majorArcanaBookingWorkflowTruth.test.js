@@ -1633,16 +1633,19 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes(
         'rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3)'
       ) &&
+      source.includes('bookingDom.phoneSlotEntryWhy') &&
+      source.includes('topSlot?.recommendation?.rankLabel || "Bäst just nu"') &&
+      source.includes('getBookingSlotTimeBand(slot)') &&
       source.includes('bookingDom.phoneSlotEntryState') &&
       source.includes('bookingDom.phoneSlotEntryContext') &&
       source.includes('bookingDom.phoneSlotEntryList'),
-    'Förväntade en särskild helper som lyfter datumspann, behandlare, behandling och tre snabba tider direkt in i telefonkortet.'
+    'Förväntade en särskild helper som lyfter datumspann, behandlare, behandling och tre snabba tider direkt in i telefonkortet, inklusive varför den starkaste tiden ligger först.'
   );
 
   assertMatchFast(
     source,
-    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval/,
-    'Förväntade att telefonkortet renderar en egen snabbyta för slotval så att operatören slipper gå hela vägen ner till avancerat läge först.'
+    /data-booking-phone-slot-entry[\s\S]*Snabbval i samtalet[\s\S]*data-booking-phone-slot-entry-meta[\s\S]*data-booking-phone-slot-entry-state[\s\S]*data-booking-phone-slot-context[\s\S]*data-booking-phone-slot-entry-why[\s\S]*data-booking-phone-slot-entry-list[\s\S]*Justera urval/,
+    'Förväntade att telefonkortet renderar en egen snabbyta för slotval och ett tydligt bäst-just-nu-lager så att operatören slipper gå hela vägen ner till avancerat läge först.'
   );
 
   assertMatchFast(

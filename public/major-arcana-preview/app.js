@@ -28045,6 +28045,7 @@
     const slotContext = getBookingSlotContextSummary(bookingDom, readout);
     const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3);
     const selectedCount = asArray(readout.selectedSlots).length;
+    const topSlot = rankedSlots[0] || null;
     if (bookingDom.phoneSlotEntryState) {
       bookingDom.phoneSlotEntryState.textContent = state.booking.loadingSlots
         ? "Hämtar tider"
@@ -28101,6 +28102,18 @@
             : "När tiderna är hämtade dyker de tre starkaste kandidaterna upp här direkt i telefonkortet."
         )}</span></li>`;
       } else {
+        const topSlotReason = asText(topSlot?.recommendation?.reason);
+        const topSlotLabel = topSlot ? formatBookingSlot(topSlot.slot) : "";
+        if (bookingDom.phoneSlotEntryWhy) {
+          bookingDom.phoneSlotEntryWhy.hidden = false;
+          bookingDom.phoneSlotEntryWhy.innerHTML = `<strong>${escapeHtml(
+            topSlot?.recommendation?.rankLabel || "Bäst just nu"
+          )}</strong><span>${escapeHtml(
+            topSlotReason
+              ? `${topSlotLabel} - ${topSlotReason}`
+              : topSlotLabel || "Det starkaste alternativet ligger först i listan."
+          )}</span>`;
+        }
         bookingDom.phoneSlotEntryList.innerHTML = rankedSlots
           .map(({ slot, recommendation }) => {
             const slotKey = getBookingSlotKey(slot);
@@ -28109,11 +28122,17 @@
             return `<li class="booking-phone-slot-pick${isSelected ? " is-selected" : ""}">
               <div class="booking-phone-slot-pick-body">
                 <strong>${escapeHtml(formatBookingSlot(slot))}</strong>
+                <div class="booking-phone-slot-pick-badges">
+                  ${recommendation.rankLabel ? `<small class="booking-slot-recommendation" data-tone="recommended">${escapeHtml(recommendation.rankLabel)}</small>` : ""}
+                  ${getBookingSlotTimeBand(slot) ? `<small class="booking-phone-slot-band">${escapeHtml(getBookingSlotTimeBand(slot))}</small>` : ""}
+                </div>
                 <span>${escapeHtml(
                   [asText(slot.resourceLabel), asText(slot.serviceLabel)].filter(Boolean).join(" · ") ||
                     asText(slot.locationLabel || "Extern kalender")
                 )}</span>
-                ${reason ? `<small>${escapeHtml(reason)}</small>` : ""}
+                <small>${escapeHtml(
+                  reason || "Tidigaste starka kandidat för det här bokningsläget."
+                )}</small>
               </div>
               <button class="booking-slot-select${isSelected ? " is-selected" : ""}" type="button" data-booking-action="select_live_slot" data-booking-slot-id="${escapeHtml(
                 slotKey
@@ -28121,7 +28140,12 @@
             </li>`;
           })
           .join("");
+        return;
       }
+    }
+    if (bookingDom.phoneSlotEntryWhy) {
+      bookingDom.phoneSlotEntryWhy.hidden = true;
+      bookingDom.phoneSlotEntryWhy.innerHTML = "";
     }
   }
 
@@ -34797,6 +34821,7 @@
                 <span class="booking-phone-slot-entry-state" data-booking-phone-slot-entry-state>Redo att hämta</span>
               </div>
               <div class="booking-phone-slot-context" data-booking-phone-slot-context></div>
+              <div class="booking-phone-slot-entry-why" data-booking-phone-slot-entry-why hidden></div>
               <ul class="booking-phone-slot-entry-list" data-booking-phone-slot-entry-list>
                 <li class="booking-phone-slot-entry-empty">
                   <strong>Öppna tider för att få snabblistan</strong>
@@ -34944,6 +34969,7 @@
       phoneSlotEntryMeta: surface?.querySelector("[data-booking-phone-slot-entry-meta]"),
       phoneSlotEntryState: surface?.querySelector("[data-booking-phone-slot-entry-state]"),
       phoneSlotEntryContext: surface?.querySelector("[data-booking-phone-slot-context]"),
+      phoneSlotEntryWhy: surface?.querySelector("[data-booking-phone-slot-entry-why]"),
       phoneSlotEntryList: surface?.querySelector("[data-booking-phone-slot-entry-list]"),
       phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
       phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),

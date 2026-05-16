@@ -18341,6 +18341,35 @@ button.booking-handoff-card-blocker:focus-visible {
   list-style: none;
 }
 
+.booking-phone-slot-entry-why {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(248, 243, 255, 0.88), rgba(255, 255, 255, 0.84)),
+    rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(163, 134, 193, 0.18);
+}
+
+.booking-phone-slot-entry-why strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8d5da2;
+}
+
+.booking-phone-slot-entry-why span {
+  display: block;
+  color: rgba(72, 56, 77, 0.86);
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 560;
+}
+
 .booking-phone-slot-entry-empty {
   display: grid;
   gap: 6px;
@@ -18385,6 +18414,13 @@ button.booking-handoff-card-blocker:focus-visible {
   flex: 1 1 auto;
 }
 
+.booking-phone-slot-pick-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
 .booking-phone-slot-pick-body strong {
   display: block;
   font-size: 15px;
@@ -18400,9 +18436,29 @@ button.booking-handoff-card-blocker:focus-visible {
   line-height: 1.38;
 }
 
+.booking-phone-slot-band {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px 1px;
+  border-radius: 999px;
+  border: 1px solid rgba(176, 145, 118, 0.16);
+  background: rgba(252, 248, 244, 0.88);
+  color: rgba(120, 92, 70, 0.88);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body strong,
 .booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body span,
 .booking-phone-slot-pick.is-selected .booking-phone-slot-pick-body small {
+  color: #fff8f0;
+}
+
+.booking-phone-slot-pick.is-selected .booking-phone-slot-band {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.16);
   color: #fff8f0;
 }
 
