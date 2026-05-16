@@ -18438,12 +18438,12 @@
     const recommendation = getBookingRecommendationMeta(readout);
     const recommendationState = normalizeKey(recommendation.state);
     const base = {
-      refStatus: "Hämta externa tider eller skriv id manuellt.",
+      refStatus: "Hämta CCO-tider eller skriv id manuellt.",
       availableEmptyTitle: "Kandidatlistan väntar på första hämtningen",
       availableEmptyMeta:
         "Välj resurs och behandling här nedanför för att fylla kandidatlistan, eller använd manuella reservtider när underlaget redan är tydligt.",
       selectedEmptyTitle: "Inga tider valda",
-      selectedEmptyMeta: "Hämta externa tider eller välj kandidater manuellt.",
+      selectedEmptyMeta: "Hämta CCO-tider eller välj kandidater manuellt.",
       actionLabels: {
         candidate_slots: slotCount ? "Justera tider" : "Välj 3 tider",
         reserve_slots: "Reservera i CCO",
@@ -18630,7 +18630,7 @@
       ...base,
       refStatus: "Triage leder nu. Bekräfta kundmatch, önskemål och tidsfönster innan tider hämtas.",
       availableEmptyTitle: "Tider kommer efter triage",
-      availableEmptyMeta: "Validera underlaget först, hämta sedan externa tider eller manuella kandidater.",
+      availableEmptyMeta: "Validera underlaget först, hämta sedan CCO-tider eller manuella kandidater.",
       selectedEmptyTitle: "Triage före tider",
       selectedEmptyMeta: "Börja med kundmatch och bokningsavsikt innan du låser kandidat-tider.",
       actionLabels: {
@@ -18703,7 +18703,7 @@
     if (bookingDom?.refStatus && !state.booking.loadingRefData && !state.booking.refDataError) {
       bookingDom.refStatus.textContent = asText(
         stageMicrocopy?.refStatus,
-        "Hämta externa tider eller skriv id manuellt."
+        "Hämta CCO-tider eller skriv id manuellt."
       );
     }
   }
@@ -27961,14 +27961,14 @@
     const confirmationTitle = isConfirmed
       ? "Bekräftelsen är loggad"
       : selectedSlot
-        ? "Bekräfta först när tiden är lagd i Cliento"
+        ? "Bekräfta först när tiden är lagd i CCO"
         : "Först: välj och spara en tid i CCO";
     const confirmationCopy = isConfirmed
       ? confirmedAt
         ? `Bokningen markerades som externt bekräftad ${formatBookingEventTime(confirmedAt)} och kan nu följas upp lugnt.`
         : "Bokningen är markerad som externt bekräftad och redo för nästa handoff."
       : selectedSlot
-        ? "Använd bara bekräftelseknappen efter att operatören faktiskt har lagt tiden manuellt i Cliento."
+        ? "Använd bekräftelseknappen när tiden är reserverad och bekräftad i CCO."
         : "Öppna tiderna, välj slot och spara valet i caset innan extern bekräftelse blir möjlig.";
     const nextTitle = isConfirmed ? "Efter bekräftelse" : selectedSlot ? "Direkt efter samtalet" : "När du valt en tid";
     const nextCopy = isConfirmed
@@ -27991,7 +27991,7 @@
               .join(" · ")
           : asText(readout.requestedTreatment || "Bokningsdialog"),
       stateLabel: isConfirmed
-        ? "Bekräftad i Cliento"
+        ? "Bekräftad i CCO"
         : selectedSlot
           ? "Vald i CCO"
           : "Inte bokad ännu",
@@ -28005,7 +28005,7 @@
       confirmationCopy,
       nextTitle,
       nextCopy,
-      primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon",
+      primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i CCO" : "Boka via telefon",
       primaryAction: isConfirmed ? "phone_booking" : selectedSlot ? "confirm_external" : "phone_booking",
       secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider",
       secondaryAction: "phone_booking",
@@ -28327,7 +28327,7 @@
       },
       {
         label: "3. Bekräftelse",
-        title: phoneWorkflow.isConfirmed ? "Extern bokning säkrad" : "Bekräfta i Cliento",
+        title: phoneWorkflow.isConfirmed ? "Bokning säkrad i CCO" : "Bekräfta i CCO",
         meta: phoneWorkflow.isConfirmed
           ? phoneWorkflow.confirmedAudit || "Bekräftad externt"
           : "Markera först när tiden faktiskt är lagd manuellt.",
@@ -28473,7 +28473,7 @@
         bookingDom.phoneSlotEntrySelectionDetail.textContent = phoneWorkflow.selectedSlotLabel;
         bookingDom.phoneSlotEntrySelectionMeta.textContent = phoneWorkflow.isConfirmed
           ? `${phoneWorkflow.confirmedAudit} · Fortsätt med kundbekräftelse eller handoff.`
-          : `${phoneWorkflow.selectedAudit} · Nästa klick här blir Bekräftad i Cliento när tiden är lagd manuellt.`;
+          : `${phoneWorkflow.selectedAudit} · Nästa steg: bekräfta tiden i CCO.`;
       } else {
         bookingDom.phoneSlotEntrySelection.hidden = true;
         bookingDom.phoneSlotEntrySelectionTitle.textContent = "";
@@ -29813,7 +29813,7 @@
     if (!slotCount) {
       return {
         label: "Nästa: välj kandidat-tider",
-        meta: "Använd externa tider eller manuella reservtider för 1-3 förslag.",
+        meta: "Använd CCO-tider eller manuella reservtider för 1-3 förslag.",
         action: "candidate_slots",
         tone: "attention",
       };
@@ -31228,7 +31228,7 @@
           ? `${formatBookingSlot(slots[0])}${
               asText(slots[0]?.recommendation?.reason) ? ` · ${slots[0].recommendation.reason}` : ""
             }`
-          : "Hämta externa tider eller välj manuellt",
+          : "Hämta CCO-tider eller välj manuellt",
       },
       isConfirmed && recentWorkflowAction === "copy_audit_summary"
         ? {
@@ -34680,7 +34680,7 @@
         "Vi läser in kandidater från bokningsmotorn innan du väljer vad som ska bäras vidare.",
         "loading"
       );
-      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Hämtar externa tider</strong><span>Kontrollerar tillgängliga tider för vald resurs och service.</span></li>`;
+      bookingDom.availableList.innerHTML = `<li class="booking-slot-empty"><strong>Hämtar CCO-tider</strong><span>Kontrollerar tillgängliga tider för vald resurs och service.</span></li>`;
       return;
     }
     if (state.booking.slotsError) {
@@ -35135,7 +35135,7 @@
         </div>
         <ul class="booking-available-slot-list" data-booking-available-slot-list data-booking-stage-focus-zone="available_slots">
           <li class="booking-slot-empty">
-            <strong>Inga externa tider hämtade</strong>
+            <strong>Inga CCO-tider hämtade</strong>
             <span>Ange resurs och service, eller använd manuella reservtider.</span>
           </li>
         </ul>
@@ -35151,7 +35151,7 @@
         <ul class="booking-slot-list" data-booking-slot-list data-booking-stage-focus-zone="selected_slots">
           <li class="booking-slot-empty">
             <strong>Inga tider valda</strong>
-            <span>Hämta externa tider eller välj kandidater manuellt.</span>
+            <span>Hämta CCO-tider eller välj kandidater manuellt.</span>
           </li>
         </ul>
       `);
@@ -35236,7 +35236,7 @@
               <article class="booking-phone-workflow-card">
                 <span>Extern bekräftelse</span>
                 <strong data-booking-phone-confirmed-audit>Ej bekräftad externt</strong>
-                <p>Markera först när bokningen verkligen är lagd i Cliento.</p>
+                <p>Markera först när bokningen är bekräftad i CCO.</p>
               </article>
               <article class="booking-phone-workflow-card booking-phone-workflow-card-activity" data-booking-phone-activity-card>
                 <span>Senaste steg</span>
@@ -35404,7 +35404,7 @@
           </div>
           <ul class="booking-available-slot-list" data-booking-available-slot-list data-booking-stage-focus-zone="available_slots">
             <li class="booking-slot-empty">
-              <strong>Inga externa tider hämtade</strong>
+              <strong>Inga CCO-tider hämtade</strong>
               <span>Ange resurs och service, eller använd manuella reservtider.</span>
             </li>
           </ul>
@@ -35416,7 +35416,7 @@
           <ul class="booking-slot-list" data-booking-slot-list data-booking-stage-focus-zone="selected_slots">
             <li class="booking-slot-empty">
               <strong>Inga tider valda</strong>
-              <span>Hämta externa tider eller välj kandidater manuellt.</span>
+              <span>Hämta CCO-tider eller välj kandidater manuellt.</span>
             </li>
           </ul>
           <div class="booking-event-filter-row" data-booking-event-filter-row aria-label="Filtrera bokningshändelser"></div>
@@ -35916,7 +35916,7 @@
         : `<li class="booking-slot-empty"><strong>${escapeHtml(
             asText(stageMicrocopy.selectedEmptyTitle, "Inga tider valda")
           )}</strong><span>${escapeHtml(
-            asText(stageMicrocopy.selectedEmptyMeta, "Hämta externa tider eller välj kandidater manuellt.")
+            asText(stageMicrocopy.selectedEmptyMeta, "Hämta CCO-tider eller välj kandidater manuellt.")
           )}</span></li>`;
     }
     renderBookingEventFilter(bookingDom, readout);
@@ -36936,7 +36936,7 @@
       return {
         ok: false,
         reason: "missing_request",
-        message: "Ange från, till, resurs-id och service-id för externa tider.",
+        message: "Ange från, till, resurs-id och service-id för CCO-tider.",
       };
     }
     state.booking.loadingSlots = true;
@@ -37452,7 +37452,7 @@
           );
           await recordBookingEvent(thread, {
             type: "external_confirmation_marked",
-            label: "Bekräftad i Cliento",
+            label: "Bekräftad i CCO",
             detail: [
               "Operatören markerade bokningen som manuellt lagd externt.",
               asArray(getBookingReadoutForThread(thread).selectedSlots)[0]
@@ -39575,7 +39575,7 @@ renderStudioShell();
 	      event.stopPropagation();
 	      openBookingOperatorSurface({
 	        scroll: true,
-	        message: "Bokningsytan öppnades. Hämta externa tider eller välj kandidat-tider.",
+	        message: "Bokningsytan öppnades. Hämta CCO-tider eller välj kandidat-tider.",
 	      });
 	      return;
 	    }
