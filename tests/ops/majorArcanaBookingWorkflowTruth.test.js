@@ -1613,14 +1613,25 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const handoffBadge = staleOfferAfterRebook') &&
       source.includes('Kundläge bör vänta tills Svarstudio bär det uppdaterade förslaget igen.') &&
       source.includes('Vänta med kundläge') &&
+      source.includes('const actionSummary = staleOfferAfterRebook') &&
+      source.includes(
+        'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
+      ) &&
       source.includes(
         'När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag.'
       ) &&
       source.includes('Kundläge väntar på studio') &&
+      source.includes('Infoga kundförslaget i Svarstudio innan kundläge eller väntan markeras.') &&
       source.includes(
         'Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.'
       ) &&
       source.includes('Redo för kundläge') &&
+      source.includes(
+        'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'
+      ) &&
+      source.includes(
+        'Inget nytt studioingrepp krävs just nu. Förslaget kan följas vidare i nästa kundsteg.'
+      ) &&
       source.includes('Förslaget bär ett spann från') &&
       source.includes('Den här tiden bärs i kundförslaget just nu.') &&
       source.includes('const countLabel =') &&
@@ -1632,6 +1643,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('carrySummary,') &&
       source.includes('activitySummary: studioActivitySummary,') &&
       source.includes('handoffSummary,') &&
+      source.includes('actionSummary,') &&
       source.includes('action: "insert_studio"') &&
       source.includes(
         'const provenance = getBookingEventProvenanceReadout(latestEvent, readout);'
@@ -1653,13 +1665,13 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-wait-title[\s\S]*data-booking-phone-wait-meta[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-studio-title[\s\S]*data-booking-phone-studio-meta[\s\S]*data-booking-phone-studio-badges[\s\S]*data-booking-phone-studio-slots[\s\S]*data-booking-phone-studio-summary[\s\S]*data-booking-phone-studio-activity[\s\S]*data-booking-phone-studio-handoff[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-activity-title[\s\S]*data-booking-phone-activity-meta[\s\S]*data-booking-phone-wait-title[\s\S]*data-booking-phone-wait-meta[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-studio-title[\s\S]*data-booking-phone-studio-meta[\s\S]*data-booking-phone-studio-badges[\s\S]*data-booking-phone-studio-slots[\s\S]*data-booking-phone-studio-summary[\s\S]*data-booking-phone-studio-activity[\s\S]*data-booking-phone-studio-handoff[\s\S]*data-booking-phone-studio-action-summary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
     'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med stegstatus, slotstatus, extern bekräftelse, senaste bookinghändelse, kundvänteläge, Svarstudio-läge, guidance och audit sammanhållna.'
   );
 
   assertMatchFast(
     source,
-    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*const phoneActivity = getBookingPhoneLatestActivityReadout\(readout\);[\s\S]*bookingDom\.phoneActivityTitle[\s\S]*bookingDom\.phoneActivityMeta[\s\S]*const phoneWait = getBookingPhoneCustomerWaitReadout\(readout\);[\s\S]*bookingDom\.phoneWaitTitle[\s\S]*bookingDom\.phoneWaitMeta[\s\S]*const phoneStudio = getBookingPhoneStudioReadout\(readout\);[\s\S]*bookingDom\.phoneStudioTitle[\s\S]*bookingDom\.phoneStudioMeta[\s\S]*bookingDom\.phoneStudioBadges[\s\S]*bookingDom\.phoneStudioSlots[\s\S]*bookingDom\.phoneStudioSummary[\s\S]*bookingDom\.phoneStudioActivity[\s\S]*bookingDom\.phoneStudioHandoff[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*const phoneActivity = getBookingPhoneLatestActivityReadout\(readout\);[\s\S]*bookingDom\.phoneActivityTitle[\s\S]*bookingDom\.phoneActivityMeta[\s\S]*const phoneWait = getBookingPhoneCustomerWaitReadout\(readout\);[\s\S]*bookingDom\.phoneWaitTitle[\s\S]*bookingDom\.phoneWaitMeta[\s\S]*const phoneStudio = getBookingPhoneStudioReadout\(readout\);[\s\S]*bookingDom\.phoneStudioTitle[\s\S]*bookingDom\.phoneStudioMeta[\s\S]*bookingDom\.phoneStudioBadges[\s\S]*bookingDom\.phoneStudioSlots[\s\S]*bookingDom\.phoneStudioSummary[\s\S]*bookingDom\.phoneStudioActivity[\s\S]*bookingDom\.phoneStudioHandoff[\s\S]*bookingDom\.phoneStudioActionSummary[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
     'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet, inklusive en tydlig progressionsrad, en kompakt senaste-händelse-yta, ett synligt kundvänteläge och ett eget Svarstudio-läge i stället för att lämna läget statiskt.'
   );
 

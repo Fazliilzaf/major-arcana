@@ -18407,6 +18407,13 @@ button.booking-handoff-card-blocker:focus-visible {
   color: rgba(116, 89, 70, 0.86);
 }
 
+.booking-phone-studio-action-summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(101, 78, 63, 0.8);
+}
+
 .booking-phone-studio[data-tone="studio"] {
   border-color: rgba(172, 126, 184, 0.22);
   background: rgba(251, 245, 253, 0.88);

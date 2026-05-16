@@ -28100,6 +28100,7 @@
         carrySummary: "",
         activitySummary: "",
         handoffSummary: "",
+        actionSummary: "",
         tone: "neutral",
         action: "",
         actionLabel: "",
@@ -28126,6 +28127,13 @@
       : !hasOffer
         ? "När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag."
         : "Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.";
+    const actionSummary = staleOfferAfterRebook
+      ? "Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare."
+      : !hasOffer
+        ? "Infoga kundförslaget i Svarstudio innan kundläge eller väntan markeras."
+        : asText(nextAction.action) === "insert_studio"
+          ? "Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar."
+          : "Inget nytt studioingrepp krävs just nu. Förslaget kan följas vidare i nästa kundsteg.";
     const handoffBadge = staleOfferAfterRebook
       ? { label: "Vänta med kundläge", tone: "attention" }
       : !hasOffer
@@ -28152,6 +28160,7 @@
         carrySummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
+        actionSummary,
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28172,6 +28181,7 @@
         carrySummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
+        actionSummary,
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28196,6 +28206,7 @@
       carrySummary,
       activitySummary: studioActivitySummary,
       handoffSummary,
+      actionSummary,
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35162,6 +35173,7 @@
                 <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
                 <p class="booking-phone-studio-activity" data-booking-phone-studio-activity hidden></p>
                 <p class="booking-phone-studio-handoff" data-booking-phone-studio-handoff hidden></p>
+                <p class="booking-phone-studio-action-summary" data-booking-phone-studio-action-summary hidden></p>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35379,6 +35391,7 @@
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
       phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
       phoneStudioHandoff: surface?.querySelector("[data-booking-phone-studio-handoff]"),
+      phoneStudioActionSummary: surface?.querySelector("[data-booking-phone-studio-action-summary]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35590,6 +35603,10 @@
       if (bookingDom.phoneStudioHandoff) {
         bookingDom.phoneStudioHandoff.hidden = !asText(phoneStudio.handoffSummary);
         bookingDom.phoneStudioHandoff.textContent = phoneStudio.handoffSummary;
+      }
+      if (bookingDom.phoneStudioActionSummary) {
+        bookingDom.phoneStudioActionSummary.hidden = !asText(phoneStudio.actionSummary);
+        bookingDom.phoneStudioActionSummary.textContent = phoneStudio.actionSummary;
       }
       if (bookingDom.phoneStudioAction) {
         if (phoneStudio.showCard && phoneStudio.action) {
