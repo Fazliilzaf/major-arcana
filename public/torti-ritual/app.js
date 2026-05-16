@@ -2213,6 +2213,27 @@
     return true;
   }
 
+  function prepareLibraryBuildHandoff(ownedItems) {
+    if (!Array.isArray(ownedItems) || ownedItems.length === 0) {
+      return false;
+    }
+
+    const selectedBottle = getSelectedBottle();
+    const hasFocusedLibraryProduct = Boolean(
+      selectedBottle ||
+      (state.activeLibraryCatalogId && ownedItems.some((item) => item.id === state.activeLibraryCatalogId)) ||
+      (state.pendingCatalogId && ownedItems.some((item) => item.id === state.pendingCatalogId))
+    );
+
+    if (hasFocusedLibraryProduct) {
+      return false;
+    }
+
+    focusLibraryCatalog(ownedItems[0].id);
+    render();
+    return true;
+  }
+
   function bindTopNavigationActions() {
     if (state.analyticsJumpTrackingBound) {
       return;
@@ -4268,18 +4289,22 @@
     if (reviewLibraryButton) {
       reviewLibraryButton.addEventListener("click", function () {
         const target = reviewLibraryButton.getAttribute("data-review-library-target") || "layers";
+        const preparedBuildHandoff = target === "layers" ? prepareLibraryBuildHandoff(ownedItems) : false;
         const targetSelector =
           target === "collections"
             ? ".library-strip"
             : target === "portal"
               ? "[data-portal-panel]"
-              : "[data-layers-panel]";
+              : preparedBuildHandoff
+                ? "[data-selected-bottle-panel]"
+                : "[data-layers-panel]";
         const didScroll = scrollToSection(targetSelector);
         recordAnalyticsEvent("library review jumped", "Library review opened", {
           target,
           scrolled: didScroll,
           ownedCount: ownedItems.length,
           placedCount: placedLibraryCount,
+          preparedBuildHandoff,
         });
       });
     }

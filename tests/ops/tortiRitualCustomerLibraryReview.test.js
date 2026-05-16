@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-portal-entry-flow/);
-  assert.match(htmlSource, /app\.js\?v=20260517-portal-entry-flow/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-build-layers-handoff/);
+  assert.match(htmlSource, /app\.js\?v=20260517-build-layers-handoff/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -106,4 +106,12 @@ test('Torti portal navigation can restore the build workspace from customer view
   assert.match(appSource, /setPortalWorkspaceView\("split", "\.library-strip"\)/);
   assert.match(appSource, /setPortalWorkspaceView\("split", "\[data-layers-panel\]"\)/);
   assert.match(appSource, /restoredBuildView: wasCustomerPortalView/);
+});
+
+test('Torti Build layers handoff focuses the first owned bottle before scrolling to planner', () => {
+  assert.match(appSource, /function prepareLibraryBuildHandoff\(ownedItems\)/);
+  assert.match(appSource, /focusLibraryCatalog\(ownedItems\[0\]\.id\)/);
+  assert.match(appSource, /const preparedBuildHandoff = target === "layers" \? prepareLibraryBuildHandoff\(ownedItems\) : false;/);
+  assert.match(appSource, /preparedBuildHandoff\s*\?\s*"\[data-selected-bottle-panel\]"/);
+  assert.match(appSource, /preparedBuildHandoff,/);
 });
