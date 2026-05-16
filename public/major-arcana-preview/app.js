@@ -28096,12 +28096,19 @@
         meta: "",
         badges: [],
         slotCarry: [],
+        carrySummary: "",
         tone: "neutral",
         action: "",
         actionLabel: "",
       };
     }
     const slotCarry = selectedSlots.slice(0, 3).map((slot) => formatBookingSlot(slot));
+    const carrySummary =
+      slotCarry.length > 1
+        ? `Förslaget bär ett spann från ${slotCarry[0]} till ${slotCarry[slotCarry.length - 1]}.`
+        : slotCarry[0]
+          ? "Den här tiden bärs i kundförslaget just nu."
+          : "";
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28119,6 +28126,7 @@
           { label: "Föråldrat förslag", tone: "attention" },
         ],
         slotCarry,
+        carrySummary,
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28135,6 +28143,7 @@
           { label: "Ej infogat ännu", tone: "studio" },
         ],
         slotCarry,
+        carrySummary,
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28155,6 +28164,7 @@
         },
       ],
       slotCarry,
+      carrySummary,
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35118,6 +35128,7 @@
                 <p data-booking-phone-studio-meta>Tiderna är valda, men kundförslaget är ännu inte infogat.</p>
                 <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
                 <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
+                <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35332,6 +35343,7 @@
       phoneStudioMeta: surface?.querySelector("[data-booking-phone-studio-meta]"),
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
+      phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35531,6 +35543,10 @@
         bookingDom.phoneStudioSlots.innerHTML = studioSlots
           .map((slotLabel) => `<li class="booking-phone-studio-slot">${escapeHtml(slotLabel)}</li>`)
           .join("");
+      }
+      if (bookingDom.phoneStudioSummary) {
+        bookingDom.phoneStudioSummary.hidden = !asText(phoneStudio.carrySummary);
+        bookingDom.phoneStudioSummary.textContent = phoneStudio.carrySummary;
       }
       if (bookingDom.phoneStudioAction) {
         if (phoneStudio.showCard && phoneStudio.action) {
