@@ -28099,6 +28099,7 @@
         slotCarry: [],
         carrySummary: "",
         activitySummary: "",
+        handoffSummary: "",
         tone: "neutral",
         action: "",
         actionLabel: "",
@@ -28120,6 +28121,11 @@
           .filter(Boolean)
           .join(" · ")
       : "Ingen studiohändelse loggad ännu.";
+    const handoffSummary = staleOfferAfterRebook
+      ? "Kundläge bör vänta tills Svarstudio bär det uppdaterade förslaget igen."
+      : !hasOffer
+        ? "När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag."
+        : "Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.";
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28139,6 +28145,7 @@
         slotCarry,
         carrySummary,
         activitySummary: studioActivitySummary,
+        handoffSummary,
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28157,6 +28164,7 @@
         slotCarry,
         carrySummary,
         activitySummary: studioActivitySummary,
+        handoffSummary,
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28179,6 +28187,7 @@
       slotCarry,
       carrySummary,
       activitySummary: studioActivitySummary,
+      handoffSummary,
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35144,6 +35153,7 @@
                 <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
                 <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
                 <p class="booking-phone-studio-activity" data-booking-phone-studio-activity hidden></p>
+                <p class="booking-phone-studio-handoff" data-booking-phone-studio-handoff hidden></p>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35360,6 +35370,7 @@
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
       phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
+      phoneStudioHandoff: surface?.querySelector("[data-booking-phone-studio-handoff]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35567,6 +35578,10 @@
       if (bookingDom.phoneStudioActivity) {
         bookingDom.phoneStudioActivity.hidden = !asText(phoneStudio.activitySummary);
         bookingDom.phoneStudioActivity.textContent = phoneStudio.activitySummary;
+      }
+      if (bookingDom.phoneStudioHandoff) {
+        bookingDom.phoneStudioHandoff.hidden = !asText(phoneStudio.handoffSummary);
+        bookingDom.phoneStudioHandoff.textContent = phoneStudio.handoffSummary;
       }
       if (bookingDom.phoneStudioAction) {
         if (phoneStudio.showCard && phoneStudio.action) {
