@@ -28042,6 +28042,7 @@
 
   function renderBookingPhoneSlotEntry(bookingDom, readout = {}) {
     if (!bookingDom.phoneSlotEntry) return;
+    const phoneWorkflow = getBookingPhoneWorkflowSummary(readout);
     const slotContext = getBookingSlotContextSummary(bookingDom, readout);
     const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3);
     const selectedCount = asArray(readout.selectedSlots).length;
@@ -28120,6 +28121,28 @@
           )}</span><strong>${escapeHtml(item.value)}</strong></article>`
         )
         .join("");
+    }
+    if (
+      bookingDom.phoneSlotEntrySelection &&
+      bookingDom.phoneSlotEntrySelectionTitle &&
+      bookingDom.phoneSlotEntrySelectionDetail &&
+      bookingDom.phoneSlotEntrySelectionMeta
+    ) {
+      if (phoneWorkflow.hasSelectedSlot) {
+        bookingDom.phoneSlotEntrySelection.hidden = false;
+        bookingDom.phoneSlotEntrySelectionTitle.textContent = phoneWorkflow.isConfirmed
+          ? "Tiden är säkrad externt"
+          : "Den här tiden gäller nu";
+        bookingDom.phoneSlotEntrySelectionDetail.textContent = phoneWorkflow.selectedSlotLabel;
+        bookingDom.phoneSlotEntrySelectionMeta.textContent = phoneWorkflow.isConfirmed
+          ? `${phoneWorkflow.confirmedAudit} · Fortsätt med kundbekräftelse eller handoff.`
+          : `${phoneWorkflow.selectedAudit} · Nästa klick här blir Bekräftad i Cliento när tiden är lagd manuellt.`;
+      } else {
+        bookingDom.phoneSlotEntrySelection.hidden = true;
+        bookingDom.phoneSlotEntrySelectionTitle.textContent = "";
+        bookingDom.phoneSlotEntrySelectionDetail.textContent = "";
+        bookingDom.phoneSlotEntrySelectionMeta.textContent = "";
+      }
     }
     if (bookingDom.phoneSlotEntryList) {
       if (state.booking.loadingSlots) {
@@ -34885,6 +34908,12 @@
                 <button class="booking-action booking-action-secondary" type="button" data-booking-open-slots>Justera urval</button>
               </div>
             </section>
+            <div class="booking-phone-slot-selection" data-booking-phone-slot-selection hidden>
+              <span>Valt just nu</span>
+              <strong data-booking-phone-slot-selection-title></strong>
+              <p data-booking-phone-slot-selection-detail></p>
+              <small data-booking-phone-slot-selection-meta></small>
+            </div>
             <div class="booking-phone-workflow-guidance" aria-label="Bekräftelseflöde">
               <article class="booking-phone-workflow-guidance-card" data-booking-phone-confirmation-card>
                 <span>Bekräftelse</span>
@@ -35029,6 +35058,16 @@
       phoneSlotEntryContext: surface?.querySelector("[data-booking-phone-slot-context]"),
       phoneSlotEntryWhy: surface?.querySelector("[data-booking-phone-slot-entry-why]"),
       phoneSlotEntryList: surface?.querySelector("[data-booking-phone-slot-entry-list]"),
+      phoneSlotEntrySelection: surface?.querySelector("[data-booking-phone-slot-selection]"),
+      phoneSlotEntrySelectionTitle: surface?.querySelector(
+        "[data-booking-phone-slot-selection-title]"
+      ),
+      phoneSlotEntrySelectionDetail: surface?.querySelector(
+        "[data-booking-phone-slot-selection-detail]"
+      ),
+      phoneSlotEntrySelectionMeta: surface?.querySelector(
+        "[data-booking-phone-slot-selection-meta]"
+      ),
       phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
       phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),
       phoneNextTitle: surface?.querySelector("[data-booking-phone-next-title]"),

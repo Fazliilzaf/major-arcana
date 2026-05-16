@@ -18487,6 +18487,45 @@ button.booking-handoff-card-blocker:focus-visible {
   justify-content: flex-start;
 }
 
+.booking-phone-slot-selection {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(244, 251, 242, 0.9), rgba(255, 255, 255, 0.82)),
+    rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(136, 176, 124, 0.22);
+}
+
+.booking-phone-slot-selection span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(106, 137, 84, 0.92);
+}
+
+.booking-phone-slot-selection strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.25;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-slot-selection p,
+.booking-phone-slot-selection small {
+  margin: 0;
+  display: block;
+  color: rgba(84, 101, 72, 0.9);
+  line-height: 1.4;
+}
+
+.booking-phone-slot-selection small {
+  font-size: 13px;
+}
+
 .booking-phone-workflow-guidance {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
