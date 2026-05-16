@@ -42,6 +42,7 @@ import {
 let panel = null;
 let replaceContainer = null;
 let renderScheduled = false;
+let renderDirty = false;
 
 const SEARCH = new URLSearchParams(location.search);
 // Fas 9: Lit-mode är default. ?layout=legacy gör no-op (visar rå app.js-DOM
@@ -74,19 +75,34 @@ function startObserver() {
   }
 
   schedule();
-  const observerTarget = document.querySelector('.queue-history-list') || document.body;
+  // Observa HELA document.body for att fanga list-rekreationer fran
+  // app.js's renderApp. Om vi bara observerar en specifik
+  // .queue-history-list-instans blir vi orphaned nar app.js byter ut den.
   const obs = new MutationObserver(() => schedule());
-  obs.observe(observerTarget, { childList: true, subtree: true });
+  obs.observe(document.body, { childList: true, subtree: true });
 }
 
 function schedule() {
-  if (renderScheduled) return;
+  // Dirty-flag-pattern: om redan pending, markera dirty och re-schedule
+  // efter pending render kort. Forhindrar att vi missar uppdateringar
+  // som kommer in MELLAN schedule och setTimeout firande.
+  if (renderScheduled) {
+    renderDirty = true;
+    return;
+  }
   renderScheduled = true;
-  requestAnimationFrame(() => {
+  renderDirty = false;
+  // setTimeout(0) istallet for rAF - rAF triggas inte palitligt i
+  // bakgrundstabs/throttlade tabs. setTimeout kor alltid.
+  setTimeout(() => {
     renderScheduled = false;
-    if (MODE === 'panel') renderLitPreview();
-    else renderLitReplacement();
-  });
+    try {
+      if (MODE === 'panel') renderLitPreview();
+      else renderLitReplacement();
+    } finally {
+      if (renderDirty) schedule();
+    }
+  }, 0);
 }
 
 // ─────────── Helpers delade mellan panel- och replace-mode ───────────
@@ -195,7 +211,13 @@ function mountReplaceContainer() {
 }
 
 function renderLitReplacement() {
-  if (!replaceContainer) return;
+  // Self-healing: replaceContainer kan ha blivit raderad av app.js's
+  // renderApp som re-renderar parent. Re-mounta i sa fall.
+  if (!replaceContainer || !document.contains(replaceContainer)) {
+    mountReplaceContainer();
+    if (replaceContainer) setTimeout(() => renderLitReplacement(), 0);
+    return;
+  }
   const grid = replaceContainer.querySelector('.lit-replace-grid');
   const statusText = replaceContainer.querySelector('.lit-replace-status-text');
   if (!grid) return;
