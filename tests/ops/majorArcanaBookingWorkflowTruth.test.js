@@ -1686,7 +1686,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const eventTitleByType = {') &&
       source.includes('external_confirmation_marked: "Extern bekräftelse markerad"') &&
       source.includes(
-        'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
+        'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i CCO" : "Boka via telefon"'
       ) &&
       source.includes('secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider"') &&
       source.includes('confirmationTitle') &&
@@ -1718,7 +1718,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i Cliento"/,
+    /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i CCO"/,
     'Förväntade att extern bekräftelse i telefonflödet också lämnar ett tydligt auditspår i bokningsloggen.'
   );
 
