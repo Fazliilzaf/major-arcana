@@ -1582,6 +1582,10 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assert.ok(
     source.includes('function getBookingPhoneWorkflowSummary(readout = {})') &&
+      source.includes('function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {})') &&
+      source.includes('1. Kontekst') &&
+      source.includes('2. Tid') &&
+      source.includes('3. Bekräftelse') &&
       source.includes(
         'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
       ) &&
@@ -1597,14 +1601,14 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
 
   assertMatchFast(
     source,
-    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
-    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med slotstatus, extern bekräftelse, guidance och audit sammanhållna.'
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-progress[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
+    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med stegstatus, slotstatus, extern bekräftelse, guidance och audit sammanhållna.'
   );
 
   assertMatchFast(
     source,
-    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
-    'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet i stället för att lämna det statiskt.'
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneProgress[\s\S]*buildBookingPhoneWorkflowProgressMarkup\(phoneWorkflow\)[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet, inklusive en tydlig progressionsrad i stället för att lämna läget statiskt.'
   );
 
   assertMatchFast(

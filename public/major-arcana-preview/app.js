@@ -28012,6 +28012,46 @@
     };
   }
 
+  function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {}) {
+    const steps = [
+      {
+        label: "1. Kontekst",
+        title: "Sätt bokningsramen",
+        meta: "Datum, behandlare och behandling är klara för samtalet.",
+        state: "done",
+      },
+      {
+        label: "2. Tid",
+        title: phoneWorkflow.hasSelectedSlot ? "Tid vald i CCO" : "Välj och spara tid",
+        meta: phoneWorkflow.hasSelectedSlot
+          ? phoneWorkflow.selectedAudit || "Vald i CCO"
+          : "Spara en tydlig slot i caset innan du går vidare.",
+        state: phoneWorkflow.hasSelectedSlot ? "done" : "active",
+      },
+      {
+        label: "3. Bekräftelse",
+        title: phoneWorkflow.isConfirmed ? "Extern bokning säkrad" : "Bekräfta i Cliento",
+        meta: phoneWorkflow.isConfirmed
+          ? phoneWorkflow.confirmedAudit || "Bekräftad externt"
+          : "Markera först när tiden faktiskt är lagd manuellt.",
+        state: phoneWorkflow.isConfirmed
+          ? "done"
+          : phoneWorkflow.hasSelectedSlot
+            ? "active"
+            : "upcoming",
+      },
+    ];
+    return steps
+      .map(
+        (step) => `<article class="booking-phone-progress-step" data-state="${escapeHtml(step.state)}">
+          <span>${escapeHtml(step.label)}</span>
+          <strong>${escapeHtml(step.title)}</strong>
+          <small>${escapeHtml(step.meta)}</small>
+        </article>`
+      )
+      .join("");
+  }
+
   function getBookingSlotContextSummary(bookingDom = getBookingDom(), readout = {}) {
     const request = getBookingSlotsRequestFromDom(bookingDom);
     const selectedResourceLabel = getBookingSelectedOptionLabel(bookingDom?.resourceSelect);
@@ -34844,6 +34884,7 @@
               </div>
               <span class="booking-phone-workflow-state" data-booking-phone-state>Inte bokad ännu</span>
             </div>
+            <div class="booking-phone-progress" data-booking-phone-progress aria-label="Telefonbokning steg"></div>
             <div class="booking-phone-workflow-grid">
               <article class="booking-phone-workflow-card">
                 <span>Vald tid</span>
@@ -35041,6 +35082,7 @@
       phoneTitle: surface?.querySelector("[data-booking-phone-title]"),
       phoneCopy: surface?.querySelector("[data-booking-phone-copy]"),
       phoneState: surface?.querySelector("[data-booking-phone-state]"),
+      phoneProgress: surface?.querySelector("[data-booking-phone-progress]"),
       phoneSlot: surface?.querySelector("[data-booking-phone-slot]"),
       phoneSlotDetail: surface?.querySelector("[data-booking-phone-slot-detail]"),
       phoneSelectedAudit: surface?.querySelector("[data-booking-phone-selected-audit]"),
@@ -35162,6 +35204,9 @@
       if (bookingDom.phoneTitle) bookingDom.phoneTitle.textContent = phoneWorkflow.title;
       if (bookingDom.phoneCopy) bookingDom.phoneCopy.textContent = phoneWorkflow.copy;
       if (bookingDom.phoneState) bookingDom.phoneState.textContent = phoneWorkflow.stateLabel;
+      if (bookingDom.phoneProgress) {
+        bookingDom.phoneProgress.innerHTML = buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow);
+      }
       if (bookingDom.phoneSlot) bookingDom.phoneSlot.textContent = phoneWorkflow.selectedSlotLabel;
       if (bookingDom.phoneSlotDetail) bookingDom.phoneSlotDetail.textContent = phoneWorkflow.selectedDetail;
       if (bookingDom.phoneSelectedAudit) {

@@ -18254,6 +18254,58 @@ button.booking-handoff-card-blocker:focus-visible {
   gap: 12px;
 }
 
+.booking-phone-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-phone-progress-step {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(176, 145, 118, 0.14);
+}
+
+.booking-phone-progress-step span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(142, 109, 87, 0.84);
+}
+
+.booking-phone-progress-step strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.25;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-progress-step small {
+  display: block;
+  color: rgba(96, 79, 67, 0.82);
+  font-size: 13px;
+  line-height: 1.38;
+}
+
+.booking-phone-progress-step[data-state="done"] {
+  background:
+    linear-gradient(180deg, rgba(244, 251, 242, 0.9), rgba(255, 255, 255, 0.82)),
+    rgba(255, 255, 255, 0.8);
+  border-color: rgba(136, 176, 124, 0.22);
+}
+
+.booking-phone-progress-step[data-state="active"] {
+  background:
+    linear-gradient(180deg, rgba(248, 243, 255, 0.88), rgba(255, 255, 255, 0.84)),
+    rgba(255, 255, 255, 0.8);
+  border-color: rgba(163, 134, 193, 0.18);
+}
+
 .booking-phone-slot-entry {
   display: grid;
   gap: 14px;
@@ -18595,6 +18647,10 @@ button.booking-handoff-card-blocker:focus-visible {
   }
 
   .booking-phone-workflow-guidance {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-phone-progress {
     grid-template-columns: 1fr;
   }
 
