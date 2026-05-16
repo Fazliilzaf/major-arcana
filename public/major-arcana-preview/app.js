@@ -73,6 +73,19 @@
     );
   }
 
+  function shouldInferBookingWorkspaceFromPortalCustomer() {
+    const params = new URLSearchParams(window.location.search || "");
+    const portalCustomerKey = normalizeKey(
+      params.get("portalCustomerKey") ||
+        params.get("customerKey") ||
+        state.portalRuntime.routeCustomerKey ||
+        state.portalRuntime.initialRouteCustomerKey
+    );
+    if (!portalCustomerKey) return false;
+    if (resolveShellView(state.ui.view) !== "conversations") return false;
+    return true;
+  }
+
   function setMobileWorkspaceView(view, { persist = false, resetScroll = true } = {}) {
     if (!canvas) return;
     const nextView = view === "focus" ? "focus" : "queue";
@@ -40171,16 +40184,16 @@ renderStudioShell();
 	  }
 
 	  function scheduleBookingSurfaceFromUrl() {
-	    const params = new URLSearchParams(window.location.search || "");
-	    const wantsBookingSurface =
-	      params.get("booking") === "1" ||
-	      normalizeKey(params.get("surface")) === "booking" ||
-	      normalizeKey(params.get("view")) === "booking";
-	    if (!wantsBookingSurface) return;
+	    const wantsBookingSurface = urlWantsBookingWorkspace();
+      const wantsInferredBookingSurface =
+        !wantsBookingSurface && shouldInferBookingWorkspaceFromPortalCustomer();
+	    if (!wantsBookingSurface && !wantsInferredBookingSurface) return;
 	    window.setTimeout(() => {
 	      openBookingOperatorSurface({
 	        scroll: true,
-	        message: "Bokningsytan öppnades från direktlänken.",
+	        message: wantsBookingSurface
+            ? "Bokningsytan öppnades från direktlänken."
+            : "Bokningsytan öppnades direkt för kundens aktiva booking-case.",
 	      });
 	    }, 900);
 	  }
