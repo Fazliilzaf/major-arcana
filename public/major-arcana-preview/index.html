@@ -10099,8 +10099,19 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-collaboration.js"></script>
     <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
     <script src="./runtime-config.js?v=build-01afc5c"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: faed4f571e) -->
-    <script src="./app.bundle.faed4f571e.min.js"></script>
+    <!-- Runtime moduler (sätter window.MajorArcanaPreview*-globaler som app.js läser) -->
+    <script src="./runtime-thread-ops.js?v=build-01afc5c"></script>
+    <script src="./runtime-queue-renderers.js?v=build-01afc5c"></script>
+    <script src="./runtime-action-engine.js?v=build-01afc5c"></script>
+    <script src="./runtime-workspace-state.js?v=build-01afc5c"></script>
+    <script src="./runtime-reentry-state.js?v=build-01afc5c"></script>
+    <script src="./runtime-focus-intel-renderers.js?v=build-01afc5c"></script>
+    <script src="./runtime-overlay-renderers.js?v=build-01afc5c"></script>
+    <script src="./runtime-async-orchestration.js?v=build-01afc5c"></script>
+    <script src="./runtime-dom-live-composition.js?v=build-01afc5c"></script>
+    <script src="./runtime-theme.js?v=build-01afc5c"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 2e86f5d123) -->
+    <script src="./app.bundle.2e86f5d123.min.js"></script>
     <!-- Demo-fixtures + customer-name-seed: seedar P0-2-resolvern med fake-customers för demo-trådar (demo-mb-001 → Morten Bak Kristoffersen, etc.). MÅSTE laddas EFTER bundle (resolver finns där) men före renderApp använder cards. -->
     <script src="./app/demo-fixtures-data.js?v=build-01afc5c"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
