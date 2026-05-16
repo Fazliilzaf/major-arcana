@@ -10098,50 +10098,25 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
     <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
-    <script src="./runtime-config.js?v=build-01afc5c"></script>
     <!-- Runtime moduler (sätter window.MajorArcanaPreview*-globaler som app.js läser) -->
-    <script src="./runtime-thread-ops.js?v=build-01afc5c"></script>
-    <script src="./runtime-queue-renderers.js?v=build-01afc5c"></script>
-    <script src="./runtime-action-engine.js?v=build-01afc5c"></script>
-    <script src="./runtime-workspace-state.js?v=build-01afc5c"></script>
-    <script src="./runtime-reentry-state.js?v=build-01afc5c"></script>
-    <script src="./runtime-focus-intel-renderers.js?v=build-01afc5c"></script>
-    <script src="./runtime-overlay-renderers.js?v=build-01afc5c"></script>
-    <script src="./runtime-async-orchestration.js?v=build-01afc5c"></script>
-    <script src="./runtime-dom-live-composition.js?v=build-01afc5c"></script>
-    <script src="./runtime-theme.js?v=build-01afc5c"></script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 2e86f5d123) -->
     <script src="./app.bundle.2e86f5d123.min.js"></script>
     <!-- Demo-fixtures + customer-name-seed: seedar P0-2-resolvern med fake-customers för demo-trådar (demo-mb-001 → Morten Bak Kristoffersen, etc.). MÅSTE laddas EFTER bundle (resolver finns där) men före renderApp använder cards. -->
-    <script src="./app/demo-fixtures-data.js?v=build-01afc5c"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
-    <script src="./app/mock-worklist-api.js?v=build-01afc5c"></script>
-    <script src="./app/state-paths.js?v=build-01afc5c"></script>
-    <script src="./app/render-components.js?v=build-01afc5c"></script>
-    <script src="./app.js?v=build-01afc5c"></script>
     <!-- runtime-v5-layout-guard.js raderad i Fas 1 cleanup (2026-05-08) — tvingade gammal v5-grid via MutationObserver mot warm-row-markup -->
     <!-- runtime-fix-shims.js raderad — 3 kvarvarande shims flyttade till app/cco-shims.js -->
-    <script src="./app/cco-shims.js?v=build-01afc5c"></script>
     <!-- Cmd+K snabbsök — laddas sist eftersom den behöver __ccoWorkspace + state -->
-    <script src="./app/cmd-k.js?v=build-01afc5c"></script>
     <!-- Tangentbordsnav (j/k/e/r/s/?) — fungerar utanför andra overlays -->
-    <script src="./app/keyboard-nav.js?v=build-01afc5c"></script>
     <!-- Bulk-actions: x togglar val, *a/*n select all/none, Shift+E/S/D batch -->
-    <script src="./app/bulk-actions.js?v=build-01afc5c"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
-    <script src="./app/inbox-streak.js?v=build-01afc5c"></script>
     <!-- 2026-05-15 cleanup: app/snooze.js, app/inline-draft-edit.js, app/onboarding-tour.js,
          app/mailbox-menu-persist.js, app/mailbox-merge-badge.js, app/smart-filter-bar.js,
          app/inbox-filter-toggle.js, app/keyboard-footer.js + 35 runtime-*.js raderade —
          de var aldrig faktiskt bundlade i app.bundle.min.js (verifierat via grep) och
          deras window.__X-globals användes inte från live-koden. ~1.2 MB skräp borttaget. -->
     <!-- Signal-bar: inline-pills bredvid "Behöver svar" med tillhörande färg+symbol -->
-    <script src="./app/signal-bar.js?v=build-01afc5c"></script>
     <!-- Customer-cluster: flera trådar från samma kund samlas till EN kort -->
-    <script src="./app/customer-cluster.js?v=build-01afc5c"></script>
     <!-- System-mail parser: extraherar kundnamn ur Cliento/Smartdocs/Bokadirekt-mejl -->
-    <script src="./app/system-mail-parser.js?v=build-01afc5c"></script>
     <!-- System-mail display: applicerar parsern på live-cards via MutationObserver -->
-    <script src="./app/system-mail-display.js?v=build-01afc5c"></script>
     </body>
 </html>

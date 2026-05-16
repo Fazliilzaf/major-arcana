@@ -30,24 +30,25 @@ const PREVIEW_DIR = path.join(ROOT, 'public/major-arcana-preview');
 const INDEX_HTML = path.join(PREVIEW_DIR, 'index.html');
 const OUT_CONCAT = path.join(PREVIEW_DIR, 'app.bundle.js');
 const LATEST_JSON = path.join(PREVIEW_DIR, 'app.bundle.latest.json');
+const MANIFEST = path.join(__dirname, 'bundle-manifest.json');
 
-// 1. Läs script-taggar i ordning
-const html = fs.readFileSync(INDEX_HTML, 'utf8');
-const SCRIPT_RE = /<script\s+src="\.\/([^"?]+)(?:\?[^"]*)?"\s*><\/script>/g;
-const scripts = [];
-let m;
-while ((m = SCRIPT_RE.exec(html)) !== null) {
-  // Skippa självreferens till tidigare bundle (annars dubbel-bundling)
-  if (/^app\.bundle(\.[a-f0-9]+)?(\.min)?\.js$/.test(m[1])) continue;
-  scripts.push(m[1]);
+// 1. Läs filer att bundla från bin/bundle-manifest.json
+//    (Tidigare lästes script-taggar i index.html, men det skapade en
+//    circular dependency när vi tog bort de separata script-tagsen för
+//    att eliminera dubbel-load. Manifest är nu source-of-truth.)
+if (!fs.existsSync(MANIFEST)) {
+  console.error('FEL: bin/bundle-manifest.json saknas.');
+  process.exit(1);
 }
+const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
+const scripts = manifest.sources || [];
 
 if (scripts.length === 0) {
-  console.error('FEL: hittade inga ./*.js script-taggar i index.html');
+  console.error('FEL: bundle-manifest.json sources-array är tom.');
   process.exit(1);
 }
 
-console.log(`Hittade ${scripts.length} script-taggar i index.html`);
+console.log(`Läste ${scripts.length} filer från bin/bundle-manifest.json`);
 
 // 2. Verifiera att alla filer finns
 const missing = [];
