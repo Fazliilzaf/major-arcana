@@ -4112,6 +4112,37 @@
     const activeCatalogId = selectedBottle ? selectedBottle.catalogId : state.activeLibraryCatalogId;
     const activeBottleId = selectedBottle ? selectedBottle.id : state.activeLibraryBottleId;
     const hasLibraryItems = ownedItems.length > 0;
+    const activeLayer = getActiveLayer();
+    const activeLayerBottleCount = activeLayer && Array.isArray(activeLayer.bottles)
+      ? activeLayer.bottles.length
+      : 0;
+    const placedLibraryCount = ownedItems.filter((item) =>
+      state.layers.some((layer) =>
+        Array.isArray(layer.bottles) &&
+        layer.bottles.some((bottle) => bottle.catalogId === item.id)
+      )
+    ).length;
+    const reviewTarget = !hasLibraryItems ? "collections" : placedLibraryCount > 0 ? "portal" : "layers";
+    const reviewButtonLabel = !hasLibraryItems
+      ? "Browse bottles"
+      : placedLibraryCount > 0
+        ? "Review portal"
+        : "Build layers";
+    const reviewTitle = !hasLibraryItems
+      ? "Start with the purchased bottles"
+      : placedLibraryCount > 0
+        ? "Layer draft is ready to review"
+        : "Build from the customer library";
+    const reviewCopy = !hasLibraryItems
+      ? "Choose bottles from the collections below before building a customer layer."
+      : placedLibraryCount > 0
+        ? `${placedLibraryCount} of ${ownedItems.length} owned ${ownedItems.length === 1 ? "bottle is" : "bottles are"} already placed. Review the portal flow before sharing.`
+        : `${ownedItems.length} owned ${ownedItems.length === 1 ? "bottle is" : "bottles are"} ready. Select one and place it into the active layer.`;
+    const reviewMeta = !hasLibraryItems
+      ? "No bottles yet"
+      : placedLibraryCount > 0
+        ? `${activeLayerBottleCount} in ${activeLayer ? activeLayer.name : "active layer"}`
+        : "No layer placement yet";
 
     customerLibraryPanel.innerHTML = `
       <div class="panel-intro">
@@ -4121,8 +4152,13 @@
         </div>
         <div class="panel-meta panel-meta-inline">
           <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
-          ${hasLibraryItems ? '<button class="ghost-button panel-header-action" type="button" data-review-library>Build layers</button>' : ""}
+          <button class="ghost-button panel-header-action" type="button" data-review-library data-review-library-target="${escapeHtml(reviewTarget)}">${escapeHtml(reviewButtonLabel)}</button>
         </div>
+      </div>
+      <div class="library-review-strip" data-review-library-strip>
+        <span class="library-review-kicker">${escapeHtml(reviewMeta)}</span>
+        <strong>${escapeHtml(reviewTitle)}</strong>
+        <span>${escapeHtml(reviewCopy)}</span>
       </div>
       ${
         ownedItems.length === 0
@@ -4197,11 +4233,19 @@
     const reviewLibraryButton = customerLibraryPanel.querySelector("[data-review-library]");
     if (reviewLibraryButton) {
       reviewLibraryButton.addEventListener("click", function () {
-        const didScroll = scrollToSection("[data-layers-panel]");
+        const target = reviewLibraryButton.getAttribute("data-review-library-target") || "layers";
+        const targetSelector =
+          target === "collections"
+            ? ".library-strip"
+            : target === "portal"
+              ? "[data-portal-panel]"
+              : "[data-layers-panel]";
+        const didScroll = scrollToSection(targetSelector);
         recordAnalyticsEvent("library review jumped", "Library review opened", {
-          target: "layers",
+          target,
           scrolled: didScroll,
           ownedCount: ownedItems.length,
+          placedCount: placedLibraryCount,
         });
       });
     }
