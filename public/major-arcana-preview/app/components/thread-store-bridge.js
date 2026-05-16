@@ -142,6 +142,22 @@ export function startBridge() {
     _observer = new MutationObserver(() => _scheduleSync());
     _observer.observe(document.body, { childList: true, subtree: true });
     _scheduleSync(); // Initial sync — fångar redan-rendrade cards
+
+    // Backup-polling: app.js's renderApp() kan re-skapa hela
+    // queue-history-list som ett nytt element i ett pattern som
+    // MutationObservern missar (t.ex. om mutationer batchas synkront
+    // innan observern hinner attacha till nya elementet). Polling var
+    // 1s ger oss en self-healing fallback. Pollar bara i 60s sen
+    // stoppar — efter det är DOM stabil och MutationObservern räcker.
+    let pollCount = 0;
+    const pollInterval = setInterval(() => {
+      pollCount += 1;
+      if (pollCount > 60) {
+        clearInterval(pollInterval);
+        return;
+      }
+      _scheduleSync();
+    }, 1000);
   };
 
   if (document.readyState === 'loading') {

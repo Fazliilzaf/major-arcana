@@ -210,7 +210,13 @@ function mountReplaceContainer() {
 }
 
 function renderLitReplacement() {
-  if (!replaceContainer) return;
+  // Defensiv: replaceContainer kan ha blivit orphaned av app.js re-render.
+  // Re-mounta i så fall och kör om nästa frame (data finns redan i store).
+  if (!replaceContainer || !document.contains(replaceContainer)) {
+    mountReplaceContainer();
+    if (replaceContainer) requestAnimationFrame(() => renderLitReplacement());
+    return;
+  }
   const grid = replaceContainer.querySelector('.lit-replace-grid');
   const statusText = replaceContainer.querySelector('.lit-replace-status-text');
   if (!grid) return;
