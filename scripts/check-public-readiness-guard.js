@@ -3,7 +3,10 @@ require('dotenv').config();
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const crypto = require('node:crypto');
+const {
+  buildMfaVerifyAttempts,
+  isMfaCodeError,
+} = require('./lib/mfa-totp');
 
 function parseBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -300,43 +303,6 @@ async function writeJsonReport(filePath, payload) {
   return absolutePath;
 }
 
-function generateTotpCode(secretRaw) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const secret = String(secretRaw || '')
-    .toUpperCase()
-    .replace(/[^A-Z2-7]/g, '');
-  if (!secret) return '';
-
-  let bits = 0;
-  let value = 0;
-  const bytes = [];
-  for (const char of secret) {
-    const idx = alphabet.indexOf(char);
-    if (idx < 0) continue;
-    value = (value << 5) | idx;
-    bits += 5;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes.push((value >>> bits) & 0xff);
-    }
-  }
-
-  const key = Buffer.from(bytes);
-  if (!key.length) return '';
-
-  const counter = Math.floor(Date.now() / 1000 / 30);
-  const msg = Buffer.alloc(8);
-  msg.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
-  msg.writeUInt32BE(counter >>> 0, 4);
-
-  const hmac = crypto.createHmac('sha1', key).update(msg).digest();
-  const offset = hmac[hmac.length - 1] & 0x0f;
-  const code = ((hmac.readUInt32BE(offset) & 0x7fffffff) % 1000000)
-    .toString()
-    .padStart(6, '0');
-  return code;
-}
-
 async function fetchJson(baseUrl, routePath, { method = 'GET', token = '', body } = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -483,21 +449,23 @@ async function resolveToken({
 
   let authStep = loginResponse;
   if (authStep?.requiresMfa === true) {
-    const providedCode = String(mfaCode || '').trim();
-    const providedRecoveryCode = String(mfaRecoveryCode || '').trim();
-    let resolvedMfaSecret = String(mfaSecret || '').trim();
-    if (!providedCode && !providedRecoveryCode && !resolvedMfaSecret) {
-      resolvedMfaSecret = normalizeText(authStep?.mfa?.secret) || '';
-    }
-    if (!providedCode && !providedRecoveryCode && !resolvedMfaSecret) {
-      resolvedMfaSecret = await readMfaSecretFromStore({
-        email,
-        authStorePath,
-      });
-    }
-    const generatedCode = providedCode || generateTotpCode(resolvedMfaSecret);
-    const verifyCode = generatedCode || providedRecoveryCode;
-    if (!verifyCode) {
+    const setupSecret = normalizeText(authStep?.mfa?.secret) || '';
+    const setupRecoveryCodes = Array.isArray(authStep?.mfa?.recoveryCodes)
+      ? authStep.mfa.recoveryCodes
+      : [];
+    const storeSecret = await readMfaSecretFromStore({
+      email,
+      authStorePath,
+    });
+    const attempts = buildMfaVerifyAttempts({
+      mfaCode,
+      mfaSecret,
+      mfaRecoveryCode,
+      setupSecret,
+      setupRecoveryCodes,
+      storeSecret,
+    });
+    if (attempts.length === 0) {
       throw new Error(
         'MFA krävs men saknar kod. Sätt --mfa-code, --mfa-secret eller --mfa-recovery-code (eller motsvarande ARCANA_OWNER_MFA_* env / AUTH_STORE_PATH med lokal mfaSecret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
       );
@@ -506,14 +474,28 @@ async function resolveToken({
     if (!mfaTicket) {
       throw new Error('MFA krävs men mfaTicket saknas i login-svaret.');
     }
-    authStep = await fetchJson(baseUrl, '/api/v1/auth/mfa/verify', {
-      method: 'POST',
-      body: {
-        mfaTicket,
-        code: verifyCode,
-        tenantId: tenantId || undefined,
-      },
-    });
+    let lastMfaError = null;
+    for (const code of attempts) {
+      try {
+        authStep = await fetchJson(baseUrl, '/api/v1/auth/mfa/verify', {
+          method: 'POST',
+          body: {
+            mfaTicket,
+            code,
+            tenantId: tenantId || undefined,
+          },
+        });
+        if (authStep?.token || authStep?.requiresTenantSelection === true) {
+          break;
+        }
+      } catch (error) {
+        lastMfaError = error;
+        if (!isMfaCodeError(error)) throw error;
+      }
+    }
+    if (!authStep?.token && authStep?.requiresTenantSelection !== true) {
+      throw lastMfaError || new Error('MFA verifiering misslyckades.');
+    }
   }
 
   if (authStep?.token) {
