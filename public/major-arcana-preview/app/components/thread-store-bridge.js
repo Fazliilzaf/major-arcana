@@ -71,6 +71,7 @@ export function getLiveCardForThread(threadId) {
 let _started = false;
 let _syncScheduled = false;
 let _observer = null;
+let _currentList = null;
 
 function _scheduleSync() {
   if (_syncScheduled) return;
@@ -83,9 +84,22 @@ function _scheduleSync() {
 
 function _syncDomToStore() {
   const list = document.querySelector('.queue-history-list');
+
+  // Detektera list-identity-byte (app.js re-render skapar ny instans).
+  // Dispatcha event så lit-switchover kan re-applicera display:none +
+  // re-mounta sin replacement-container i nya parent.
+  if (list !== _currentList) {
+    _currentList = list;
+    document.dispatchEvent(
+      new CustomEvent('lit-list-changed', { detail: { list } }),
+    );
+  }
+
   if (!list) {
-    clear();
-    _liveCardRefs.clear();
+    if (_liveCardRefs.size > 0 || (typeof window !== 'undefined' && window.__threadStore?.size() > 0)) {
+      clear();
+      _liveCardRefs.clear();
+    }
     return;
   }
 
@@ -111,27 +125,29 @@ function _syncDomToStore() {
 
 /**
  * Starta bridge:n. Idempotent — säker att kalla flera gånger.
+ *
+ * Observerar HELA document.body subtree:true så att vi fångar både:
+ * - cards som läggs till/tas bort inom .queue-history-list
+ * - hela .queue-history-list som re-skapas av app.js's renderApp()
+ *
+ * Throttling: alla mutations samlas via requestAnimationFrame så vi
+ * gör max EN sync per frame. För prod-volym (~100 cards) är detta
+ * billigt nog.
  */
 export function startBridge() {
   if (_started) return;
   _started = true;
 
-  const bindWhenReady = () => {
-    const list = document.querySelector('.queue-history-list');
-    if (!list) {
-      // App har inte renderat listan än — försök igen
-      setTimeout(bindWhenReady, 200);
-      return;
-    }
+  const begin = () => {
     _observer = new MutationObserver(() => _scheduleSync());
-    _observer.observe(list, { childList: true, subtree: true });
-    _scheduleSync(); // Initial sync
+    _observer.observe(document.body, { childList: true, subtree: true });
+    _scheduleSync(); // Initial sync — fångar redan-rendrade cards
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindWhenReady, { once: true });
+    document.addEventListener('DOMContentLoaded', begin, { once: true });
   } else {
-    bindWhenReady();
+    begin();
   }
 }
 
@@ -146,6 +162,7 @@ export function stopBridge() {
     _observer.disconnect();
     _observer = null;
   }
+  _currentList = null;
   _liveCardRefs.clear();
 }
 

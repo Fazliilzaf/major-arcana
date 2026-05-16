@@ -76,6 +76,24 @@ function start() {
     document.body.appendChild(panel);
   } else {
     mountReplaceContainer();
+    // Lyssna på list-identity-byte: app.js's renderApp re-skapar
+    // .queue-history-list som NY DOM-instans. Vi måste re-applicera
+    // display:none + re-mounta vår replacement-container i nya parent.
+    document.addEventListener('lit-list-changed', (e) => {
+      const newList = e.detail?.list;
+      if (!newList) return;
+      newList.dataset.litHidden = 'true';
+      newList.style.setProperty('display', 'none', 'important');
+      // Om replacement detached från DOM (re-render) → re-mounta
+      if (!replaceContainer || !document.contains(replaceContainer)) {
+        mountReplaceContainer();
+      } else if (replaceContainer.parentElement !== newList.parentElement) {
+        // Flytta replacement till nya parent, FÖRE listan så Lit hamnar
+        // exakt där listan skulle synas
+        newList.parentElement.insertBefore(replaceContainer, newList);
+      }
+      schedule();
+    });
   }
 
   // Subscribe på store — render när data ändras
@@ -147,9 +165,9 @@ function mountReplaceContainer() {
     return;
   }
 
-  // Göm originalet (display:none → behåll i DOM för bridge-scraping + click)
+  // Göm originalet med !important så CSS-regler inte overridrar
   list.dataset.litHidden = 'true';
-  list.style.display = 'none';
+  list.style.setProperty('display', 'none', 'important');
 
   replaceContainer = document.createElement('div');
   replaceContainer.className = 'lit-queue-replacement';
@@ -186,7 +204,9 @@ function mountReplaceContainer() {
   grid.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
   replaceContainer.appendChild(grid);
 
-  list.parentNode.insertBefore(replaceContainer, list.nextSibling);
+  // FÖRE listan så Lit hamnar exakt där listan skulle synas (inte under
+  // den eller efter andra siblings som queue-history-load-more)
+  list.parentNode.insertBefore(replaceContainer, list);
 }
 
 function renderLitReplacement() {
