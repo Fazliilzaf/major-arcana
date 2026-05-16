@@ -1639,7 +1639,7 @@
     box-shadow:
       0 2px 8px rgba(111, 78, 55, 0.04),
       0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
-    background-color: #FFFCF8 !important;
+    background-color: #FBF6F0 !important;
     border: 1px solid #F3E7DC !important;
     margin-bottom: 0 !important;
   }
@@ -1649,7 +1649,7 @@
     flex-direction: column !important;
   }
   .preview-shell .thread-card.unified-queue-card.warm-row:hover {
-    background-color: #FFF6EE !important;
+    background-color: #F4ECE3 !important;
     transform: none !important;
   }
   .preview-shell .thread-card.unified-queue-card.warm-row .warm-rail {
@@ -1701,7 +1701,7 @@
   }
   .preview-shell .thread-card.warm-row .warm-avatar .status-dot {
     background: #2D7CD3 !important;
-    box-shadow: 0 0 0 2px #FFFCF8 !important;
+    box-shadow: 0 0 0 2px #FBF6F0 !important;
     width: 8px !important;
     height: 8px !important;
   }
@@ -1863,11 +1863,11 @@
      - 128px konstant höjd
      - padding 16/20/16/34 (extra left för lane-rail)
      - lane-rail 4px bred (var 3px)
-     - Mockup card-bg #FFFCF8, border #F1E7DD
+     - Mockup card-bg #FBF6F0, border #F1E7DD
      ============================================================ */
   .thread-card.unified-queue-card.warm-row {
     border-radius: 24px !important;
-    background-color: #FFFCF8 !important;
+    background-color: #FBF6F0 !important;
     border-color: #F1E7DD !important;
     min-height: 128px !important;
     max-height: 128px !important;
@@ -1877,10 +1877,10 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
   }
   .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
-    background-color: #FFF9F1 !important;
+    background-color: #FBF6F0 !important;
   }
   .thread-card.unified-queue-card.warm-row:hover {
-    background-color: #FFF7EE !important;
+    background-color: #F4ECE3 !important;
     transform: translateY(-1px) !important;
     box-shadow:
       0 14px 34px rgba(111, 78, 55, 0.075),
@@ -1914,7 +1914,7 @@
   /* Status-dot på avatar — mockup-blå */
   .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
     background: #2D7CD3 !important;
-    box-shadow: 0 0 0 2px #FFFCF8 !important;
+    box-shadow: 0 0 0 2px #FBF6F0 !important;
   }
   /* Status-rad — kompaktare som mockup */
   .thread-card.unified-queue-card.warm-row .warm-why {
@@ -2160,7 +2160,7 @@
     color: var(--warm-text-3);
     font-weight: 500;
     letter-spacing: 0.005em;
-    background: linear-gradient(180deg, rgba(255,252,247,0) 0%, rgba(252,247,239,0.6) 100%);
+    background: linear-gradient(180deg, rgba(251,246,240,0) 0%, rgba(252,247,239,0.6) 100%);
     user-select: none;
   }
   .cco-keyboard-footer .kbd-hint {
@@ -2175,7 +2175,7 @@
     justify-content: center;
     min-width: 16px;
     padding: 1px 4px;
-    background: rgba(255, 252, 247, 0.95);
+    background: rgba(251, 246, 240, 0.95);
     border: 1px solid var(--warm-border-2);
     border-bottom-width: 1.5px;
     border-radius: 4px;
@@ -2226,7 +2226,7 @@
       right: 14px;
       top: 50%;
       transform: translateY(-50%);
-      background: linear-gradient(90deg, rgba(255,252,247,0) 0%, var(--warm-card) 18%);
+      background: linear-gradient(90deg, rgba(251,246,240,0) 0%, var(--warm-card) 18%);
       padding: 8px 8px 8px 28px;
       border-radius: 14px;
       z-index: 5;

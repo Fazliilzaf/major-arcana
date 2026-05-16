@@ -32,8 +32,8 @@ Alla färg-/spacing-/typografi-konstanter ska gå via CSS-variabler från `desig
 /* Ändra HÄR för att uppdatera hela inkorgens utseende */
 --warm-bg-soft:    #FFF8F1;
 --warm-bg-warmer:  #FFF6ED;
---warm-card:       #FFFCF8;
---warm-hover:      #FFF2E6;
+--warm-card:       #FBF6F0;
+--warm-hover:      #F4ECE3;
 --warm-border:     #F1E5DB;
 
 --warm-violet: #7C3AED;  /* Oklart */
