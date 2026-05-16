@@ -28046,6 +28046,37 @@
     const rankedSlots = rankBookingAvailableSlots(state.booking.availableSlots, readout).slice(0, 3);
     const selectedCount = asArray(readout.selectedSlots).length;
     const topSlot = rankedSlots[0] || null;
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    renderBookingRefSelect(
+      bookingDom.phoneResourceSelect,
+      state.booking.resources,
+      "Välj behandlare"
+    );
+    renderBookingRefSelect(
+      bookingDom.phoneServiceSelect,
+      state.booking.services,
+      "Välj behandling"
+    );
+    if (bookingDom.phoneFrom && request.fromDate && bookingDom.phoneFrom.value !== request.fromDate) {
+      bookingDom.phoneFrom.value = request.fromDate;
+    }
+    if (bookingDom.phoneTo && request.toDate && bookingDom.phoneTo.value !== request.toDate) {
+      bookingDom.phoneTo.value = request.toDate;
+    }
+    if (
+      bookingDom.phoneResourceSelect &&
+      request.resIds &&
+      bookingDom.phoneResourceSelect.value !== request.resIds
+    ) {
+      bookingDom.phoneResourceSelect.value = request.resIds;
+    }
+    if (
+      bookingDom.phoneServiceSelect &&
+      request.srvIds &&
+      bookingDom.phoneServiceSelect.value !== request.srvIds
+    ) {
+      bookingDom.phoneServiceSelect.value = request.srvIds;
+    }
     if (bookingDom.phoneSlotEntryState) {
       bookingDom.phoneSlotEntryState.textContent = state.booking.loadingSlots
         ? "Hämtar tider"
@@ -34820,6 +34851,28 @@
                 </div>
                 <span class="booking-phone-slot-entry-state" data-booking-phone-slot-entry-state>Redo att hämta</span>
               </div>
+              <div class="booking-phone-slot-entry-controls" data-booking-phone-slot-entry-controls>
+                <label>
+                  <span>Från</span>
+                  <input class="booking-slot-input" type="date" data-booking-phone-slot-from />
+                </label>
+                <label>
+                  <span>Till</span>
+                  <input class="booking-slot-input" type="date" data-booking-phone-slot-to />
+                </label>
+                <label>
+                  <span>Behandlare</span>
+                  <select class="booking-slot-input" data-booking-phone-slot-resource-select>
+                    <option value="">Välj behandlare</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Behandling</span>
+                  <select class="booking-slot-input" data-booking-phone-slot-service-select>
+                    <option value="">Välj behandling</option>
+                  </select>
+                </label>
+              </div>
               <div class="booking-phone-slot-context" data-booking-phone-slot-context></div>
               <div class="booking-phone-slot-entry-why" data-booking-phone-slot-entry-why hidden></div>
               <ul class="booking-phone-slot-entry-list" data-booking-phone-slot-entry-list>
@@ -34968,6 +35021,11 @@
       phoneSlotEntry: surface?.querySelector("[data-booking-phone-slot-entry]"),
       phoneSlotEntryMeta: surface?.querySelector("[data-booking-phone-slot-entry-meta]"),
       phoneSlotEntryState: surface?.querySelector("[data-booking-phone-slot-entry-state]"),
+      phoneSlotEntryControls: surface?.querySelector("[data-booking-phone-slot-entry-controls]"),
+      phoneFrom: surface?.querySelector("[data-booking-phone-slot-from]"),
+      phoneTo: surface?.querySelector("[data-booking-phone-slot-to]"),
+      phoneResourceSelect: surface?.querySelector("[data-booking-phone-slot-resource-select]"),
+      phoneServiceSelect: surface?.querySelector("[data-booking-phone-slot-service-select]"),
       phoneSlotEntryContext: surface?.querySelector("[data-booking-phone-slot-context]"),
       phoneSlotEntryWhy: surface?.querySelector("[data-booking-phone-slot-entry-why]"),
       phoneSlotEntryList: surface?.querySelector("[data-booking-phone-slot-entry-list]"),
@@ -39178,12 +39236,39 @@ renderStudioShell();
       captureBookingSlotRequestDraft(bookingDom);
       return;
     }
+    const phoneSelect = event.target.closest(
+      "[data-booking-phone-slot-resource-select], [data-booking-phone-slot-service-select]"
+    );
+    if (phoneSelect) {
+      const bookingDom = getBookingDom();
+      if (bookingDom.resourceSelect && bookingDom.phoneResourceSelect) {
+        bookingDom.resourceSelect.value = bookingDom.phoneResourceSelect.value;
+      }
+      if (bookingDom.serviceSelect && bookingDom.phoneServiceSelect) {
+        bookingDom.serviceSelect.value = bookingDom.phoneServiceSelect.value;
+      }
+      resetBookingAvailableSlotSearchState({ rerender: true });
+      syncBookingManualIdsFromSelects(bookingDom);
+      captureBookingSlotRequestDraft(bookingDom);
+      return;
+    }
     const slotField = event.target.closest(
       "[data-booking-slot-from], [data-booking-slot-to], [data-booking-slot-resids], [data-booking-slot-srvids]"
     );
     if (slotField) {
       resetBookingAvailableSlotSearchState({ rerender: true });
       captureBookingSlotRequestDraft(getBookingDom());
+      return;
+    }
+    const phoneSlotField = event.target.closest(
+      "[data-booking-phone-slot-from], [data-booking-phone-slot-to]"
+    );
+    if (phoneSlotField) {
+      const bookingDom = getBookingDom();
+      if (bookingDom.slotFrom && bookingDom.phoneFrom) bookingDom.slotFrom.value = bookingDom.phoneFrom.value;
+      if (bookingDom.slotTo && bookingDom.phoneTo) bookingDom.slotTo.value = bookingDom.phoneTo.value;
+      resetBookingAvailableSlotSearchState({ rerender: true });
+      captureBookingSlotRequestDraft(bookingDom);
     }
   });
 
@@ -39191,9 +39276,20 @@ renderStudioShell();
     const slotField = event.target.closest(
       "[data-booking-slot-from], [data-booking-slot-to], [data-booking-slot-resids], [data-booking-slot-srvids]"
     );
-    if (!slotField) return;
+    if (slotField) {
+      resetBookingAvailableSlotSearchState();
+      captureBookingSlotRequestDraft(getBookingDom());
+      return;
+    }
+    const phoneSlotField = event.target.closest(
+      "[data-booking-phone-slot-from], [data-booking-phone-slot-to]"
+    );
+    if (!phoneSlotField) return;
+    const bookingDom = getBookingDom();
+    if (bookingDom.slotFrom && bookingDom.phoneFrom) bookingDom.slotFrom.value = bookingDom.phoneFrom.value;
+    if (bookingDom.slotTo && bookingDom.phoneTo) bookingDom.slotTo.value = bookingDom.phoneTo.value;
     resetBookingAvailableSlotSearchState();
-    captureBookingSlotRequestDraft(getBookingDom());
+    captureBookingSlotRequestDraft(bookingDom);
   });
 
 	  document.addEventListener("pointerdown", (event) => {

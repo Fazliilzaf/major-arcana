@@ -18317,6 +18317,26 @@ button.booking-handoff-card-blocker:focus-visible {
   gap: 12px;
 }
 
+.booking-phone-slot-entry-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-phone-slot-entry-controls label {
+  min-width: 0;
+}
+
+.booking-phone-slot-entry-controls label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(70, 60, 50, 0.55);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 580;
+  letter-spacing: 0.02em;
+}
+
 .booking-phone-slot-context-item {
   display: grid;
   gap: 6px;
@@ -18540,6 +18560,10 @@ button.booking-handoff-card-blocker:focus-visible {
   }
 
   .booking-phone-slot-context {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-phone-slot-entry-controls {
     grid-template-columns: 1fr;
   }
 
