@@ -1576,3 +1576,42 @@ test('bookingytan bär backendens arbetsläge in i öppet case och blockerad sor
     'Förväntade att beslutskällan behåller sin meta även när journey-label läggs ovanpå i öppet case.'
   );
 });
+
+test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit högre upp i bookingytan', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.ok(
+    source.includes('function getBookingPhoneWorkflowSummary(readout = {})') &&
+      source.includes(
+        'primaryLabel: isConfirmed ? "Justera vald tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
+      ) &&
+      source.includes('secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider"') &&
+      source.includes('selectedAudit') &&
+      source.includes('confirmedAudit'),
+    'Förväntade en helper som översätter booking-readoutet till ett tydligt telefonbokningsläge med vald tid, extern bekräftelse och audit.'
+  );
+
+  assertMatchFast(
+    source,
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary/,
+    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med slotstatus, extern bekräftelse och audit sammanhållna.'
+  );
+
+  assertMatchFast(
+    source,
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet i stället för att lämna det statiskt.'
+  );
+
+  assertMatchFast(
+    source,
+    /if \(action === "phone_booking"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*loadBookingRefData\(\{ force: true \}\)|loadBookingRefData\(\{ force: true \}\)|loadBookingRefData\(\{ force: true \}\)|loadBookingRefData\(\{ force: true \}\)/,
+    'Förväntade att Boka via telefon öppnar ett uttryckligt telefonbokningsläge och säkrar referensdata innan tiderna används.'
+  );
+
+  assertMatchFast(
+    source,
+    /if \(action === "confirm_external"\) \{[\s\S]*state\.booking\.phoneMode = "phone";[\s\S]*type: "external_confirmation_marked"[\s\S]*label: "Bekräftad i Cliento"/,
+    'Förväntade att extern bekräftelse i telefonflödet också lämnar ett tydligt auditspår i bokningsloggen.'
+  );
+});

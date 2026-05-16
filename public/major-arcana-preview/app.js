@@ -2096,6 +2096,7 @@
       case: null,
       readout: null,
       patient360: null,
+      phoneMode: "",
       engineSummary: null,
       engineSummaryThreadId: "",
       provider: "",
@@ -27910,6 +27911,72 @@
     };
   }
 
+  function getBookingPhoneWorkflowSummary(readout = {}) {
+    const selectedSlots = asArray(readout.selectedSlots);
+    const selectedSlot = selectedSlots[0] || null;
+    const selectedEvent =
+      getLatestBookingEvent(readout, ["candidate_slots_selected"]) ||
+      getLatestBookingEvent(readout, ["engine_slots_reserved"]) ||
+      null;
+    const confirmedEvent =
+      getLatestBookingEvent(readout, ["external_confirmation_marked"]) ||
+      getLatestBookingEvent(readout, ["engine_booking_confirmed"]) ||
+      getLatestBookingEvent(readout, ["status_changed"]) ||
+      null;
+    const isConfirmed =
+      normalizeKey(readout.status) === "confirmed_external" || Boolean(asText(readout.confirmedExternalAt));
+    const selectedAt = asText(selectedEvent?.createdAt || selectedEvent?.signalAt || "");
+    const confirmedAt = asText(
+      readout.confirmedExternalAt || confirmedEvent?.createdAt || confirmedEvent?.signalAt || ""
+    );
+    const selectedAudit = selectedAt
+      ? `Vald ${formatBookingEventTime(selectedAt)}`
+      : selectedSlot
+        ? "Vald i CCO"
+        : "Ingen tid vald ännu";
+    const confirmedAudit = isConfirmed
+      ? confirmedAt
+        ? `Bekräftad ${formatBookingEventTime(confirmedAt)}`
+        : "Bekräftad externt"
+      : "Ej bekräftad externt";
+    const selectedSlotLabel = selectedSlot ? formatBookingSlot(selectedSlot) : "Ingen tid vald ännu";
+    const nextStep = isConfirmed
+      ? "Fortsätt med handoff, kundbekräftelse eller nästa domänsteg."
+      : selectedSlot
+        ? "Stäm av tiden i samtalet och markera sedan bokningen som bekräftad externt."
+        : "Öppna tiderna, välj en tydlig slot och spara den i caset under samtalet.";
+
+    return {
+      isConfirmed,
+      hasSelectedSlot: Boolean(selectedSlot),
+      selectedSlot,
+      selectedSlotLabel,
+      selectedAudit,
+      confirmedAudit,
+      selectedDetail:
+        selectedSlot && (selectedSlot.resourceLabel || selectedSlot.serviceLabel)
+          ? [asText(selectedSlot.resourceLabel), asText(selectedSlot.serviceLabel)]
+              .filter(Boolean)
+              .join(" · ")
+          : asText(readout.requestedTreatment || "Bokningsdialog"),
+      stateLabel: isConfirmed
+        ? "Bekräftad i Cliento"
+        : selectedSlot
+          ? "Vald i CCO"
+          : "Inte bokad ännu",
+      title: isConfirmed
+        ? "Telefonbokningen är säkrad"
+        : selectedSlot
+          ? "Tiden är vald i CCO"
+          : "Boka via telefon",
+      copy: nextStep,
+      primaryLabel: isConfirmed ? "Justera vald tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon",
+      primaryAction: isConfirmed ? "phone_booking" : selectedSlot ? "confirm_external" : "phone_booking",
+      secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider",
+      secondaryAction: "phone_booking",
+    };
+  }
+
   function hasBookingEvent(readout = {}, eventTypes = []) {
     const wanted = asArray(eventTypes).map((type) => normalizeKey(type)).filter(Boolean);
     if (!wanted.length) return false;
@@ -34510,13 +34577,16 @@
     let surface = document.querySelector("[data-booking-surface]");
     const needsSurfaceRefresh =
       surface &&
-      (!surface.querySelector("[data-booking-slot-overview]") ||
+      (!surface.querySelector("[data-booking-phone-workflow]") ||
+        !surface.querySelector("[data-booking-phone-primary]") ||
+        !surface.querySelector("[data-booking-phone-confirmed-audit]") ||
+        (!surface.querySelector("[data-booking-slot-overview]") ||
         !surface.querySelector("[data-booking-open-slots]") ||
         !surface.querySelector("[data-booking-slot-controls]") ||
         !surface.querySelector("[data-booking-audit-preview]") ||
         !surface.querySelector("[data-booking-event-filter-row]") ||
         !surface.querySelector('[data-booking-action="cancel_booking"]') ||
-        !surface.querySelector('[data-booking-action="renew_reservation"]'));
+        !surface.querySelector('[data-booking-action="renew_reservation"]')));
     if (needsSurfaceRefresh) {
       surface.remove();
       surface = null;
@@ -34538,6 +34608,37 @@
           <p class="booking-decision-source-line" data-booking-decision-source>Beslutskälla: lokal bedömning</p>
           <button class="booking-next-action-jump" type="button" data-booking-focus-recommended>Visa knapp</button>
           <span class="sr-only" id="booking-next-action-hint">Rekommenderad nästa manuella bokningsåtgärd.</span>
+          <section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">
+            <div class="booking-phone-workflow-head">
+              <div>
+                <span class="booking-phone-workflow-kicker">TELEFONBOKNING</span>
+                <strong data-booking-phone-title>Boka via telefon</strong>
+                <p data-booking-phone-copy>Öppna tiderna, välj en slot och säkra sedan bokningen externt.</p>
+              </div>
+              <span class="booking-phone-workflow-state" data-booking-phone-state>Inte bokad ännu</span>
+            </div>
+            <div class="booking-phone-workflow-grid">
+              <article class="booking-phone-workflow-card">
+                <span>Vald tid</span>
+                <strong data-booking-phone-slot>Ingen tid vald ännu</strong>
+                <p data-booking-phone-slot-detail>Bokningsdialog</p>
+              </article>
+              <article class="booking-phone-workflow-card">
+                <span>Vald i CCO</span>
+                <strong data-booking-phone-selected-audit>Ingen tid vald ännu</strong>
+                <p>Operatören sparar valet här innan extern bokning bekräftas.</p>
+              </article>
+              <article class="booking-phone-workflow-card">
+                <span>Extern bekräftelse</span>
+                <strong data-booking-phone-confirmed-audit>Ej bekräftad externt</strong>
+                <p>Markera först när bokningen verkligen är lagd i Cliento.</p>
+              </article>
+            </div>
+            <div class="booking-phone-workflow-actions">
+              <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
+              <button class="booking-action booking-action-secondary" type="button" data-booking-action="phone_booking" data-booking-phone-secondary>Öppna tider</button>
+            </div>
+          </section>
           <div class="booking-attention-grid" aria-label="Bokningssignaler">
             <div><span>Vad</span><strong data-booking-treatment>Bokningsdialog</strong></div>
             <div><span>När</span><strong data-booking-window>Väntar på tidsfönster</strong></div>
@@ -34648,6 +34749,16 @@
       nextAction: surface?.querySelector("[data-booking-next-action]"),
       decisionSource: surface?.querySelector("[data-booking-decision-source]"),
       nextActionJump: surface?.querySelector("[data-booking-focus-recommended]"),
+      phoneWorkflow: surface?.querySelector("[data-booking-phone-workflow]"),
+      phoneTitle: surface?.querySelector("[data-booking-phone-title]"),
+      phoneCopy: surface?.querySelector("[data-booking-phone-copy]"),
+      phoneState: surface?.querySelector("[data-booking-phone-state]"),
+      phoneSlot: surface?.querySelector("[data-booking-phone-slot]"),
+      phoneSlotDetail: surface?.querySelector("[data-booking-phone-slot-detail]"),
+      phoneSelectedAudit: surface?.querySelector("[data-booking-phone-selected-audit]"),
+      phoneConfirmedAudit: surface?.querySelector("[data-booking-phone-confirmed-audit]"),
+      phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
+      phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
       treatment: surface?.querySelector("[data-booking-treatment]") || bookingTreatment,
       window: surface?.querySelector("[data-booking-window]") || bookingWindow,
       confidence: surface?.querySelector("[data-booking-confidence]") || bookingConfidence,
@@ -34731,7 +34842,30 @@
     const nextAction = buildBookingNextActionReadout(readout);
     const recommendationPrompt = buildBookingRecommendedActionPrompt(readout, nextAction.action);
     const stageMicrocopy = buildBookingStageMicrocopy(preferredStatusStep, readout, nextAction);
+    const phoneWorkflow = getBookingPhoneWorkflowSummary(readout);
     if (bookingDom.status) bookingDom.status.textContent = formatBookingStatus(readout.status);
+    if (bookingDom.phoneWorkflow) {
+      bookingDom.phoneWorkflow.dataset.mode = state.booking.phoneMode === "phone" ? "phone" : "default";
+      if (bookingDom.phoneTitle) bookingDom.phoneTitle.textContent = phoneWorkflow.title;
+      if (bookingDom.phoneCopy) bookingDom.phoneCopy.textContent = phoneWorkflow.copy;
+      if (bookingDom.phoneState) bookingDom.phoneState.textContent = phoneWorkflow.stateLabel;
+      if (bookingDom.phoneSlot) bookingDom.phoneSlot.textContent = phoneWorkflow.selectedSlotLabel;
+      if (bookingDom.phoneSlotDetail) bookingDom.phoneSlotDetail.textContent = phoneWorkflow.selectedDetail;
+      if (bookingDom.phoneSelectedAudit) {
+        bookingDom.phoneSelectedAudit.textContent = phoneWorkflow.selectedAudit;
+      }
+      if (bookingDom.phoneConfirmedAudit) {
+        bookingDom.phoneConfirmedAudit.textContent = phoneWorkflow.confirmedAudit;
+      }
+      if (bookingDom.phonePrimary) {
+        bookingDom.phonePrimary.textContent = phoneWorkflow.primaryLabel;
+        bookingDom.phonePrimary.dataset.bookingAction = phoneWorkflow.primaryAction;
+      }
+      if (bookingDom.phoneSecondary) {
+        bookingDom.phoneSecondary.textContent = phoneWorkflow.secondaryLabel;
+        bookingDom.phoneSecondary.dataset.bookingAction = phoneWorkflow.secondaryAction;
+      }
+    }
     let healthReadout = null;
     if (bookingDom.source) {
       const source = buildBookingSourceReadout(thread);
@@ -36097,7 +36231,56 @@
         );
       }
 
+      if (action === "phone_booking") {
+        state.booking.phoneMode = "phone";
+        if (!state.booking.refDataLoaded) {
+          await loadBookingRefData({ force: true });
+        }
+        const refreshedDom = getBookingDom();
+        syncBookingManualIdsFromSelects(refreshedDom);
+        seedBookingSlotRequestDefaults(refreshedDom);
+        captureBookingSlotRequestDraft(refreshedDom);
+        const request = getBookingSlotsRequestFromDom(refreshedDom);
+        const canFetchSlots =
+          request.fromDate && request.toDate && request.resIds && request.srvIds;
+        if (!asArray(state.booking.availableSlots).length && canFetchSlots) {
+          const result = await fetchBookingAvailableSlots(refreshedDom);
+          if (result.ok) {
+            setFeedback(
+              getBookingDom().feedback,
+              result.slotCount ? "success" : "error",
+              result.slotCount
+                ? `${result.slotCount} lediga tider är redo för telefonsamtalet. Välj nu en tydlig slot för kunden.`
+                : `${getBookingProviderLabel(state.booking.provider)} svarade utan lediga tider för valt urval.`
+            );
+          } else {
+            setFeedback(
+              getBookingDom().feedback,
+              "error",
+              result.message || "Telefonbokningsläget kunde inte hämta tider ännu."
+            );
+          }
+        } else {
+          setFeedback(
+            getBookingDom().feedback,
+            "success",
+            asArray(state.booking.availableSlots).length
+              ? "Telefonbokningsläget är öppet. Välj en tid och markera sedan bokningen som bekräftad externt."
+              : "Telefonbokningsläget är öppet. Välj behandlare och öppna tiderna för kunden."
+          );
+        }
+        window.setTimeout(() => {
+          const latestDom = getBookingDom();
+          const focusTarget =
+            asArray(state.booking.availableSlots).length > 0
+              ? latestDom.availableList || latestDom.slotControls || latestDom.phoneWorkflow
+              : latestDom.slotControls || latestDom.slotOverview || latestDom.phoneWorkflow;
+          focusTarget?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 40);
+      }
+
       if (action === "select_live_slot") {
+        state.booking.phoneMode = "phone";
         const slotId = asText(
           event?.slotId ||
             event?.target?.closest("[data-booking-slot-id]")?.dataset.bookingSlotId
@@ -36343,6 +36526,7 @@
       }
 
       if (action === "confirm_external") {
+        state.booking.phoneMode = "phone";
         if (isBookingEnginePrimary()) {
           const readout = getBookingReadoutForThread(thread);
           const engineSummary = await loadBookingEngineSummary(thread, { force: true });
@@ -36394,6 +36578,22 @@
             "confirmed_external",
             "Bokningen markerades som bekräftad externt. Ingen direkt extern bokning skapades av CCO."
           );
+          await recordBookingEvent(thread, {
+            type: "external_confirmation_marked",
+            label: "Bekräftad i Cliento",
+            detail: [
+              "Operatören markerade bokningen som manuellt lagd externt.",
+              asArray(getBookingReadoutForThread(thread).selectedSlots)[0]
+                ? `Tid: ${formatBookingSlot(asArray(getBookingReadoutForThread(thread).selectedSlots)[0])}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            metadata: {
+              bookingConfirmationSource: "manual_external",
+              bookingConfirmationSurface: "phone_booking",
+            },
+          });
           state.booking.recentSelectedSlotId = "";
           state.booking.recentSelectedSlotAction = "";
           setBookingRecentWorkflowAction("confirm_external", "confirmed_external");
