@@ -23,6 +23,13 @@
 import './arcana-thread-card.js';
 import { threadToCardProps } from './thread-to-card-props.js';
 
+// OBS: dessa let-deklarationer MÅSTE ligga FÖRE init()-anropet eftersom
+// startObserver() refererar till `panel` och `renderScheduled` — annars
+// blir det TDZ-fel "Cannot access 'panel' before initialization" om
+// document.readyState !== 'loading' (= startObserver körs synkront).
+let panel = null;
+let renderScheduled = false;
+
 const SEARCH = new URLSearchParams(location.search);
 const ACTIVE = SEARCH.get('layout') === 'lit';
 
@@ -41,9 +48,6 @@ function init() {
     startObserver();
   }
 }
-
-let panel = null;
-let renderScheduled = false;
 
 function startObserver() {
   // Skapa sidopanel direkt så användaren ser att läget är aktivt
