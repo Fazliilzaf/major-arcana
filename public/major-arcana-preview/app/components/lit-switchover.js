@@ -22,6 +22,12 @@
  */
 import './arcana-thread-card.js';
 import { threadToCardProps } from './thread-to-card-props.js';
+import {
+  groupThreadsByCustomer,
+  orderForRender,
+  readExpandedKeys,
+  toggleExpanded,
+} from './customer-cluster-grouper.js';
 
 // OBS: dessa let-deklarationer MÅSTE ligga FÖRE init()-anropet eftersom
 // startObserver() refererar till `panel` och `renderScheduled` — annars
@@ -90,25 +96,74 @@ function renderLitPreview() {
     return;
   }
 
+  // Fas 7: gruppera per customer-cluster INNAN render
+  // Threads-shape (från scrapeCardData) → group-result med primary/sub-roller
+  const threadShapes = liveCards.slice(0, 8).map(scrapeCardData);
+  // Bygg sender via threadToCardProps innan grouping så customer-key-heuristik
+  // matchar samma sender-text som customer-cluster.js använder
+  const propsList = threadShapes.map((t) => ({
+    ...t,
+    ...threadToCardProps(t),
+    // behåll original-fältnamn customer-cluster-grouper förstår
+    ccClusterGroup: t.ccClusterGroup,
+    ccClusterRole: t.ccClusterRole,
+    ccClusterSize: t.ccClusterSize,
+  }));
+
+  const expanded = readExpandedKeys();
+  const grouped = groupThreadsByCustomer(propsList, expanded);
+  const ordered = orderForRender(propsList, grouped);
+
   // Bygg Lit-cards
   grid.innerHTML = '';
-  for (const live of liveCards.slice(0, 5)) {
-    const threadShape = scrapeCardData(live);
-    const props = threadToCardProps(threadShape);
+  let primaryCount = 0;
+  let subCount = 0;
+  ordered.forEach((props, idx) => {
+    const live = liveCards[propsList.indexOf(props)];
+    const state = grouped.threadStateById.get(String(props.id || ''));
+
     const litCard = document.createElement('arcana-thread-card');
     litCard.thread = props;
-    // Forwarda klick till original-cardet
-    litCard.addEventListener('click', () => {
-      live.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      live.click();
+
+    // Sätt cluster-attribut (rendreras via :host([cluster-role='sub']) etc.)
+    if (state && state.role) {
+      litCard.setAttribute('cluster-role', state.role);
+      litCard.setAttribute('cluster-key', state.key);
+      if (state.isExpanded) litCard.setAttribute('cluster-expanded', '');
+      if (state.hidden) litCard.setAttribute('cluster-hidden', '');
+      if (state.role === 'primary') primaryCount += 1;
+      if (state.role === 'sub') subCount += 1;
+    }
+
+    // Forwarda klick till original-cardet (men inte cluster-toggle)
+    litCard.addEventListener('click', (e) => {
+      // cluster-toggle propagerar genom shadow boundary; kolla composedPath
+      // för att se om det kommer från cluster-pillen
+      if (e.defaultPrevented) return;
+      if (live) {
+        live.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        live.click();
+      }
     });
+
+    // Lyssna på cluster-toggle event från cardets cluster-pill
+    litCard.addEventListener('cluster-toggle', (e) => {
+      const key = e.detail?.key;
+      if (!key) return;
+      toggleExpanded(key);
+      // Re-render hela panelen så hidden-state uppdateras
+      schedule();
+    });
+
     grid.appendChild(litCard);
-  }
+  });
 
   // Statusrad
   const status = panel.querySelector('.lit-status');
   if (status) {
-    status.textContent = `${Math.min(liveCards.length, 5)} av ${liveCards.length} bokning-cards rendrade som Lit`;
+    const groupCount = grouped.groups.length;
+    const groupNote = groupCount > 0 ? ` · ${groupCount} cluster (${subCount} sub)` : '';
+    status.textContent = `${ordered.length} av ${liveCards.length} bokning-cards rendrade${groupNote}`;
   }
 }
 
@@ -131,6 +186,11 @@ function scrapeCardData(card) {
     whyText: text('.warm-why-text, .warm-why .why-reason'),
     systemMailLabel: card.dataset.systemMailLabel || null,
     customerClusterCount: Number(card.dataset.customerClusterCount) || 0,
+    // Fas 7: skrapa server-styrd cluster-data så customer-cluster-grouper
+    // kan använda samma source-of-truth som customer-cluster.js
+    ccClusterGroup: card.dataset.ccClusterGroup || '',
+    ccClusterRole: card.dataset.ccClusterRole || '',
+    ccClusterSize: Number(card.dataset.ccClusterSize) || 0,
     crossMailboxProvenanceEvidence:
       card.classList.contains('cross-mailbox-card') ||
       card.dataset.crossMailbox === 'true',

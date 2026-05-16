@@ -44,6 +44,17 @@ export class ArcanaThreadCard extends LitElement {
      */
     thread: { type: Object },
     selected: { type: Boolean, reflect: true },
+    /**
+     * Customer-cluster role för detta card. Sätts av parent (lit-switchover.js)
+     * via groupThreadsByCustomer(). Värden:
+     *   'primary' → cluster-head, visar cluster-pill, klick togglar expanded
+     *   'sub'     → underordnad i cluster, indragen styling, hidden om inte expanded
+     *   null/''   → ingen cluster, normal rendering
+     */
+    clusterRole: { type: String, reflect: true, attribute: 'cluster-role' },
+    clusterKey: { type: String, attribute: 'cluster-key' },
+    clusterExpanded: { type: Boolean, reflect: true, attribute: 'cluster-expanded' },
+    clusterHidden: { type: Boolean, reflect: true, attribute: 'cluster-hidden' },
   };
 
   // Lit's encapsulation: scoped CSS. Stilar läcker inte ut, inga konflikter
@@ -123,12 +134,62 @@ export class ArcanaThreadCard extends LitElement {
       border-color: rgba(100, 116, 139, 0.2);
       font-style: italic;
     }
+    .pill--cluster {
+      cursor: pointer;
+      user-select: none;
+    }
+    .pill--cluster::after {
+      content: ' ▾';
+      font-size: 9px;
+      opacity: 0.7;
+      transition: transform 150ms ease;
+      display: inline-block;
+    }
+    :host([cluster-expanded]) .pill--cluster::after {
+      transform: rotate(180deg);
+    }
+    /* Sub-card styling: indragen + dämpad när expanded, helt dolt annars */
+    :host([cluster-role='sub']) article {
+      margin-left: 18px;
+      border-left-width: 2px;
+      box-shadow: none;
+      background: rgba(248, 250, 252, 0.7);
+    }
+    :host([cluster-role='sub']) .sender {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    :host([cluster-hidden]) {
+      display: none;
+    }
   `;
 
   constructor() {
     super();
     this.thread = null;
     this.selected = false;
+    this.clusterRole = '';
+    this.clusterKey = '';
+    this.clusterExpanded = false;
+    this.clusterHidden = false;
+  }
+
+  /**
+   * Klick på cluster-pill → emittera custom event så parent kan toggla
+   * expanded-state. Stoppar event-propagation så card-click inte triggas.
+   */
+  _onPillClick(e, pill) {
+    if (pill.type !== 'cluster') return;
+    if (!this.clusterKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('cluster-toggle', {
+        detail: { key: this.clusterKey, threadId: this.thread?.id },
+        bubbles: true,
+        composed: true, // Genom shadow boundary till parent i light DOM
+      }),
+    );
   }
 
   // Mappa lane till färg (matchar app.bundle.js's existerande färgschema)
@@ -177,9 +238,10 @@ export class ArcanaThreadCard extends LitElement {
                 ${pills.map(
                   (p) => html`
                     <span
-                      class="pill"
+                      class="pill ${p.type === 'cluster' ? 'pill--cluster' : ''}"
                       style="--pill-color: ${p.color || '#64748b'}"
                       data-pill-type="${p.type || ''}"
+                      @click=${(e) => this._onPillClick(e, p)}
                     >
                       ${p.label}
                     </span>
