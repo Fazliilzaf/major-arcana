@@ -157,18 +157,18 @@ export class ArcanaThreadCard extends LitElement {
     :host([cluster-hidden]) { display: none; }
     :host([cluster-role='sub']) article { margin-left: 18px; opacity: 0.82; }
 
-    /* ─────── Layout ─────── */
+    /* ─────── Layout (kompakt single-row) ─────── */
     article {
       position: relative;
       background: #FBF6F0;
       border: 0.5px solid #F1E5DB;
       border-radius: 12px;
-      padding: 11px 14px 11px 16px;
+      padding: 8px 12px 8px 16px;
       display: grid;
-      grid-template-columns: 32px 1fr auto;
-      grid-template-rows: auto auto;
-      gap: 4px 12px;
-      align-items: start;
+      grid-template-columns: 32px minmax(0, 1fr) auto;
+      grid-template-rows: auto;
+      gap: 0 12px;
+      align-items: center;
       cursor: pointer;
       transition: background 180ms ease, transform 180ms ease;
       box-shadow: 0 1px 2px rgba(120, 80, 40, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -189,7 +189,7 @@ export class ArcanaThreadCard extends LitElement {
     .avatar-wrap {
       position: relative;
       grid-column: 1; grid-row: 1;
-      margin-top: 2px;
+      align-self: center;
     }
     .avatar {
       width: 32px; height: 32px;
@@ -220,10 +220,13 @@ export class ArcanaThreadCard extends LitElement {
       grid-column: 2; grid-row: 1;
       min-width: 0;
       padding-right: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     .line-1 {
       display: flex; align-items: baseline; gap: 8px;
-      line-height: 1.4;
+      line-height: 1.3;
     }
     .sender { font-size: 13.5px; font-weight: 600; color: #0F172A; }
     .sep { font-size: 12px; color: rgba(107, 114, 128, 0.5); }
@@ -233,16 +236,17 @@ export class ArcanaThreadCard extends LitElement {
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .preview {
-      margin: 3px 0 7px;
+      margin: 0;
       font-size: 12px;
       color: #4B5563;
-      line-height: 1.45;
+      line-height: 1.35;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .pills {
-      display: flex; align-items: center; gap: 14px;
+      display: flex; align-items: center; gap: 12px;
       flex-wrap: wrap;
-      line-height: 1.3;
+      line-height: 1.2;
+      margin-top: 1px;
     }
     .pill {
       display: inline-flex; align-items: center; gap: 4px;
@@ -270,23 +274,24 @@ export class ArcanaThreadCard extends LitElement {
       transform: rotate(180deg);
     }
 
-    /* ─────── Meta + actions (höger kolumn) ─────── */
-    .meta {
+    /* ─────── Höger kolumn (meta ovan, actions under) ─────── */
+    .right-col {
       grid-column: 3; grid-row: 1;
-      align-self: start;
+      align-self: center;
+      display: flex; flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .meta {
       font-size: 11px;
       color: #6B7280;
       display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 4px;
       white-space: nowrap;
     }
     .meta i { font-size: 11px; }
 
     .actions {
-      grid-column: 2 / 4; grid-row: 2;
-      justify-self: end;
       display: flex; align-items: center; gap: 4px;
-      margin-top: 4px;
     }
 
     /* ─────── Action-knappar (18px runda) ─────── */
@@ -464,23 +469,24 @@ export class ArcanaThreadCard extends LitElement {
             : ''}
         </div>
 
-        <div class="meta">
-          ${showInfoIcon ? icon('info-circle') : ''}${ownerText}
-        </div>
-
-        <div class="actions">
-          <button class="rd-btn rd-snooze" aria-label="Snooze" @click=${(e) => this._onActionClick(e, 'snooze')}>${icon('clock-hour-9')}</button>
-          <button class="rd-btn rd-sched" aria-label="Schemalägg" @click=${(e) => this._onActionClick(e, 'schedule')}>${icon('clock')}</button>
-          <button class="rd-btn rd-cal" aria-label="Boka tid" @click=${(e) => this._onActionClick(e, 'calendar')}>${icon('calendar')}</button>
-          <button class="rd-btn rd-check" aria-label="Markera klar" @click=${(e) => this._onActionClick(e, 'done')}>${icon('check')}</button>
-          <button class="rd-btn rd-trash" aria-label="Radera" @click=${(e) => this._onActionClick(e, 'delete')}>${icon('trash')}</button>
-          <button
-            class="cta"
-            style="--glow: rgba(${railRgb}, 0.22);"
-            @click=${(e) => this._onActionClick(e, 'cta')}
-          >
-            ${ctaText} ${icon('chevron-right')}
-          </button>
+        <div class="right-col">
+          <div class="meta">
+            ${showInfoIcon ? icon('info-circle') : ''}${ownerText}
+          </div>
+          <div class="actions">
+            <button class="rd-btn rd-snooze" aria-label="Snooze" @click=${(e) => this._onActionClick(e, 'snooze')}>${icon('clock-hour-9')}</button>
+            <button class="rd-btn rd-sched" aria-label="Schemalägg" @click=${(e) => this._onActionClick(e, 'schedule')}>${icon('clock')}</button>
+            <button class="rd-btn rd-cal" aria-label="Boka tid" @click=${(e) => this._onActionClick(e, 'calendar')}>${icon('calendar')}</button>
+            <button class="rd-btn rd-check" aria-label="Markera klar" @click=${(e) => this._onActionClick(e, 'done')}>${icon('check')}</button>
+            <button class="rd-btn rd-trash" aria-label="Radera" @click=${(e) => this._onActionClick(e, 'delete')}>${icon('trash')}</button>
+            <button
+              class="cta"
+              style="--glow: rgba(${railRgb}, 0.22);"
+              @click=${(e) => this._onActionClick(e, 'cta')}
+            >
+              ${ctaText} ${icon('chevron-right')}
+            </button>
+          </div>
         </div>
       </article>
     `;
