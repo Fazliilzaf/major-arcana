@@ -76,11 +76,21 @@
       return;
     }
 
-    // Ersätt sender-text om vi har ett namn
-    if (result.customerName) {
-      const senderEl = card.querySelector('.warm-sender');
-      if (senderEl && senderEl.textContent.trim() !== result.customerName) {
-        senderEl.textContent = result.customerName;
+    // Ersätt sender-text — föredra customerName, fallback till system-namn
+    const senderEl = card.querySelector('.warm-sender');
+    if (senderEl) {
+      let newText = null;
+      if (result.customerName) {
+        // Bästa fall: parsern hittade riktigt kundnamn (t.ex. "Anna Karlsson")
+        newText = result.customerName;
+      } else if (result.systemLabel) {
+        // Fallback: parsern vet vilket system det är men inget namn —
+        // visa system-namnet (t.ex. "Cliento" istället för "No Reply").
+        // Mer informativt: användaren förstår direkt att det är system-mejl.
+        newText = result.systemLabel.replace(/^via\s+/i, '');
+      }
+      if (newText && senderEl.textContent.trim() !== newText) {
+        senderEl.textContent = newText;
       }
     }
 
