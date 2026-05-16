@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { ROLE_OWNER, ROLE_STAFF, ROLE_PATIENT } = require('../security/roles');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -12,11 +12,45 @@ function getIncomingCustomerState(body) {
 
 function createCcoCustomersRouter({
   customerStore,
+  portalStore = null,
   authStore,
   requireAuth,
   requireRole,
 }) {
   const router = express.Router();
+
+  function ensurePortalStore() {
+    if (
+      !portalStore ||
+      typeof portalStore.getTenantCustomerPortal !== 'function' ||
+      typeof portalStore.markTenantPortalViewed !== 'function' ||
+      typeof portalStore.acknowledgeTenantPortalNotification !== 'function'
+    ) {
+      const error = new Error('Portallagring saknas.');
+      error.statusCode = 503;
+      throw error;
+    }
+  }
+
+  function resolvePortalKey(req) {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const fromRequest =
+      normalizeText(req.query?.customerKey) ||
+      normalizeText(req.query?.customerEmail) ||
+      normalizeText(req.query?.customerId) ||
+      normalizeText(body.customerKey) ||
+      normalizeText(body.customerEmail) ||
+      normalizeText(body.customerId);
+    if (fromRequest) return fromRequest;
+    if (
+      String(req.auth?.role || '')
+        .trim()
+        .toUpperCase() === ROLE_PATIENT
+    ) {
+      return normalizeText(req.auth?.userId);
+    }
+    return '';
+  }
 
   router.get(
     '/cco/customers/state',
@@ -119,7 +153,8 @@ function createCcoCustomersRouter({
           primaryKey,
           secondaryKeys,
           suggestionId: normalizeText(req.body?.suggestionId),
-          options: req.body?.options && typeof req.body.options === 'object' ? req.body.options : {},
+          options:
+            req.body?.options && typeof req.body.options === 'object' ? req.body.options : {},
         });
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
@@ -299,7 +334,11 @@ function createCcoCustomersRouter({
             invalid: importSummary.invalid,
           },
         });
-        return res.json({ ok: true, importSummary, coverageReadout: importSummary.coverageReadout });
+        return res.json({
+          ok: true,
+          importSummary,
+          coverageReadout: importSummary.coverageReadout,
+        });
       } catch (error) {
         console.error(error);
         const message = normalizeText(error?.message);
@@ -311,7 +350,10 @@ function createCcoCustomersRouter({
             ? 400
             : 500;
         return res.status(statusCode).json({
-          error: statusCode === 400 ? message || 'Ogiltig importfil.' : 'Kunde inte förhandsgranska importen.',
+          error:
+            statusCode === 400
+              ? message || 'Ogiltig importfil.'
+              : 'Kunde inte förhandsgranska importen.',
         });
       }
     }
@@ -332,15 +374,16 @@ function createCcoCustomersRouter({
         if (!importText && !binaryBase64 && (!Array.isArray(rows) || !rows.length)) {
           return res.status(400).json({ error: 'Importkällan är tom.' });
         }
-        const { customerState, importSummary, coverageReadout } = await customerStore.commitTenantCustomerImport({
-          tenantId: req.auth.tenantId,
-          importText,
-          rows,
-          binaryBase64,
-          fileName,
-          defaultMailboxId,
-          sourceSystem,
-        });
+        const { customerState, importSummary, coverageReadout } =
+          await customerStore.commitTenantCustomerImport({
+            tenantId: req.auth.tenantId,
+            importText,
+            rows,
+            binaryBase64,
+            fileName,
+            defaultMailboxId,
+            sourceSystem,
+          });
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
@@ -379,7 +422,8 @@ function createCcoCustomersRouter({
             ? 400
             : 500;
         return res.status(statusCode).json({
-          error: statusCode === 400 ? message || 'Ogiltig importfil.' : 'Kunde inte importera kunderna.',
+          error:
+            statusCode === 400 ? message || 'Ogiltig importfil.' : 'Kunde inte importera kunderna.',
         });
       }
     }
@@ -407,6 +451,161 @@ function createCcoCustomersRouter({
       } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa importstatus.' });
+      }
+    }
+  );
+
+  router.get(
+    '/cco/customers/portal',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF, ROLE_PATIENT),
+    async (req, res) => {
+      try {
+        ensurePortalStore();
+        const customerKey = resolvePortalKey(req);
+        if (!customerKey) {
+          return res.status(400).json({ error: 'customerKey saknas.' });
+        }
+        const portal = await portalStore.getTenantCustomerPortal({
+          tenantId: req.auth.tenantId,
+          customerKey,
+          customerEmail:
+            normalizeText(req.query?.customerEmail) || normalizeText(req.body?.customerEmail),
+          customerId: normalizeText(req.query?.customerId) || normalizeText(req.body?.customerId),
+          customerName:
+            normalizeText(req.query?.customerName) || normalizeText(req.body?.customerName),
+          viewerScope:
+            String(req.auth.role || '')
+              .trim()
+              .toUpperCase() === ROLE_PATIENT
+              ? 'customer'
+              : 'owner',
+        });
+        if (!portal) {
+          return res.status(404).json({ error: 'Portalen kunde inte hittas.' });
+        }
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'cco.portal.read',
+          outcome: 'success',
+          targetType: 'cco_portal',
+          targetId: customerKey,
+          metadata: {
+            viewerRole: req.auth.role,
+          },
+        });
+        return res.json({ ok: true, portal });
+      } catch (error) {
+        console.error(error);
+        const statusCode = Number(error?.statusCode || 500);
+        if (statusCode < 500) {
+          return res
+            .status(statusCode)
+            .json({ error: error.message, metadata: error.metadata || null });
+        }
+        return res.status(500).json({ error: 'Kunde inte läsa kundportalen.' });
+      }
+    }
+  );
+
+  router.post(
+    '/cco/customers/portal/viewed',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF, ROLE_PATIENT),
+    async (req, res) => {
+      try {
+        ensurePortalStore();
+        const customerKey = resolvePortalKey(req);
+        if (!customerKey) {
+          return res.status(400).json({ error: 'customerKey saknas.' });
+        }
+        const payload = await portalStore.markTenantPortalViewed({
+          tenantId: req.auth.tenantId,
+          customerKey,
+          customerEmail:
+            normalizeText(req.query?.customerEmail) || normalizeText(req.body?.customerEmail),
+          customerId: normalizeText(req.query?.customerId) || normalizeText(req.body?.customerId),
+          customerName:
+            normalizeText(req.query?.customerName) || normalizeText(req.body?.customerName),
+          actorUserId: req.auth.userId,
+          viewerScope:
+            String(req.auth.role || '')
+              .trim()
+              .toUpperCase() === ROLE_PATIENT
+              ? 'customer'
+              : 'owner',
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'cco.portal.viewed',
+          outcome: 'success',
+          targetType: 'cco_portal',
+          targetId: customerKey,
+          metadata: {
+            viewerRole: req.auth.role,
+          },
+        });
+        return res.json({ ok: true, ...payload });
+      } catch (error) {
+        console.error(error);
+        const statusCode = Number(error?.statusCode || 500);
+        if (statusCode < 500) {
+          return res
+            .status(statusCode)
+            .json({ error: error.message, metadata: error.metadata || null });
+        }
+        return res.status(500).json({ error: 'Kunde inte markera portalen som öppnad.' });
+      }
+    }
+  );
+
+  router.post(
+    '/cco/customers/portal/notifications/:notificationId/ack',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF, ROLE_PATIENT),
+    async (req, res) => {
+      try {
+        ensurePortalStore();
+        const customerKey = resolvePortalKey(req);
+        const notificationId = normalizeText(req.params?.notificationId);
+        if (!customerKey || !notificationId) {
+          return res.status(400).json({ error: 'customerKey och notificationId krävs.' });
+        }
+        const payload = await portalStore.acknowledgeTenantPortalNotification({
+          tenantId: req.auth.tenantId,
+          customerKey,
+          customerEmail:
+            normalizeText(req.query?.customerEmail) || normalizeText(req.body?.customerEmail),
+          customerId: normalizeText(req.query?.customerId) || normalizeText(req.body?.customerId),
+          customerName:
+            normalizeText(req.query?.customerName) || normalizeText(req.body?.customerName),
+          notificationId,
+          actorUserId: req.auth.userId,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'cco.portal.notification.ack',
+          outcome: 'success',
+          targetType: 'cco_portal_notification',
+          targetId: notificationId,
+          metadata: {
+            customerKey,
+            viewerRole: req.auth.role,
+          },
+        });
+        return res.json({ ok: true, ...payload });
+      } catch (error) {
+        console.error(error);
+        const statusCode = Number(error?.statusCode || 500);
+        if (statusCode < 500) {
+          return res
+            .status(statusCode)
+            .json({ error: error.message, metadata: error.metadata || null });
+        }
+        return res.status(500).json({ error: 'Kunde inte kvittera notifieringen.' });
       }
     }
   );

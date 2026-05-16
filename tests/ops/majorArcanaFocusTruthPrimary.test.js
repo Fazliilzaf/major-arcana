@@ -76,6 +76,131 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
     /renderRuntimeIntel\(selectedFocusThread,\s*focusReadState\);/,
     'Förväntade att operativt stöd läser från samma focus-tråd i det här passet.'
   );
+  assert.match(
+    source,
+    /function syncJourneyDrivenIntelSelection\(thread, focusReadState = \{\}, \{ force = false \} = \{\}\)/,
+    'Förväntade en separat helper som kan synka journey-driven högerpanelfokus per vald tråd.'
+  );
+  assert.match(
+    source,
+    /state\.runtime\.journeyDrivenIntelThreadId = threadId;/,
+    'Förväntade att journey-driven högerpanelfokus minns vilken tråd som senast synkades för att undvika onödiga omslag.'
+  );
+  assert.match(
+    source,
+    /const currentCheckedId = normalizeKey\([\s\S]*\.intel-toggle:checked[\s\S]*\);/,
+    'Förväntade att journey-driven högerpanelfokus jämför mot faktisk vald flik, inte bara thread-id, när bootstrap byter domänläge på samma tråd.'
+  );
+  assert.match(
+    source,
+    /function syncJourneyDrivenWorkspaceLanding\(thread, focusReadState = \{\}, \{ force = false \} = \{\}\)/,
+    'Förväntade en separat helper som kan landa rätt första arbetsyta från patientresan när vald tråd byts.'
+  );
+  assert.match(
+    source,
+    /state\.runtime\.journeyDrivenWorkspaceThreadId = threadId;[\s\S]*state\.runtime\.journeyDrivenWorkspaceAction = preferredAction;/,
+    'Förväntade att journey-driven arbetsyta minns både vald tråd och senast landade verktyg.'
+  );
+  assert.match(
+    source,
+    /setStudioOpen\(false\);[\s\S]*setNoteOpen\(false\);[\s\S]*setNoteModeOpen\(false\);[\s\S]*setScheduleOpen\(false\);/,
+    'Förväntade att ett nytt journey-landningsläge först stänger tidigare overlay-läge innan nästa arbetsyta öppnas.'
+  );
+  assert.match(
+    source,
+    /preferredAction === "aftercare_open"[\s\S]*preferredAction === "operation_open"[\s\S]*preferredAction === "consultation_open"[\s\S]*preferredAction === "commercial_open"[\s\S]*openWorkspaceDomainSurface\(preferredAction\.replace\(\/_open\$\/, ""\),/,
+    'Förväntade att journey-driven landning öppnar rätt domänyta direkt för aftercare, operation, consultation och commercial i stället för att falla tillbaka till studio.'
+  );
+  assert.match(
+    source,
+    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
+    'Förväntade att journey-driven note-läge öppnar rätt destination och template direkt i anteckningsytan i stället för att först falla tillbaka till generiskt note-mode.'
+  );
+  assert.match(
+    source,
+    /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\)/,
+    'Förväntade en separat helper som kan förfina arbetsytans startläge efter att rätt domänverktyg öppnats.'
+  );
+  assert.match(
+    source,
+    /normalizedAction === "booking_surface"[\s\S]*seedBookingSurfaceForCurrentThread\(thread,\s*\{\s*moveActionFocus:\s*false,\s*announce:\s*false\s*\}\);/,
+    'Förväntade att journey-driven bokningsläge återanvänder en gemensam seed-helper för rätt delsteg, arbetsblock och mjuk knappmarkering.'
+  );
+  assert.match(
+    source,
+    /function getJourneyPreferredBookingStatusStep\(readout = \{\}\)/,
+    'Förväntade en separat helper som mappar bokningsblockerare till rätt visuellt delsteg.'
+  );
+  assert.match(
+    source,
+    /function getJourneyPreferredBookingSurfaceZone\(statusStep = "", readout = \{\}\)/,
+    'Förväntade en separat helper som mappar bokningsdelsteget vidare till rätt arbetsblock i ytan.'
+  );
+  assert.match(
+    source,
+    /function buildBookingStageContext\(statusStep = "", readout = \{\}\)/,
+    'Förväntade en separat helper som mappar bokningsdelsteget till stegmedveten copy i bokningsytan.'
+  );
+  assert.match(
+    source,
+    /function buildBookingSurfaceStageLayout\(statusStep = "", readout = \{\}\)/,
+    'Förväntade en separat helper som mappar bokningsdelsteget till blockordning och tyngd i samma yta.'
+  );
+  assert.match(
+    source,
+    /function buildBookingStageMicrocopy\(statusStep = "", readout = \{\}, nextAction = \{\}\)/,
+    'Förväntade en separat helper som mappar bokningsdelsteget till mikrocopy för actions och slotytor.'
+  );
+  assert.match(
+    source,
+    /function rankBookingAvailableSlots\(slots = \[\], readout = \{\}\)/,
+    'Förväntade en separat helper som rangordnar kandidat-tider innan de renderas i bokningsytan.'
+  );
+  assert.match(
+    source,
+    /function getBookingRankedSelectedSlots\(readout = \{\}\)/,
+    'Förväntade en separat helper som återanvänder samma ranking när valda tider renderas i bokningsytan.'
+  );
+  assert.match(
+    source,
+    /function buildBookingSelectedSlotSpreadAnalysis\(readout = \{\}\)/,
+    'Förväntade en separat helper som kan analysera spridningen mellan valda tider innan överlämning.'
+  );
+  assert.match(
+    source,
+    /function focusBookingSurfaceZone\(zoneKey = ""\)/,
+    'Förväntade en separat helper som kan lyfta fram rätt bokningsblock utan att ändra ärendestatus.'
+  );
+  assert.match(
+    source,
+    /function setBookingSurfaceZoneHighlight\(zoneKey = ""\)/,
+    'Förväntade en separat helper som håller kvar bokningsytans visuella primärblock även efter rerender.'
+  );
+  assert.match(
+    source,
+    /function seedBookingSurfaceForCurrentThread\(thread,\s*\{\s*moveActionFocus = false,\s*announce = false\s*\} = \{\}\)/,
+    'Förväntade en gemensam helper så både manuellt och journey-styrt bokningsöppnande landar på samma sätt.'
+  );
+  assert.match(
+    source,
+    /const preferredStatusStep = getJourneyPreferredBookingStatusStep\(readout\);[\s\S]*const stageContext = buildBookingStageContext\(preferredStatusStep,\s*readout\);[\s\S]*const stageLayout = buildBookingSurfaceStageLayout\(preferredStatusStep,\s*readout\);[\s\S]*const nextAction = buildBookingNextActionReadout\(readout\);[\s\S]*const stageMicrocopy = buildBookingStageMicrocopy\(preferredStatusStep,\s*readout,\s*nextAction\);/,
+    'Förväntade att rendern räknar ut stegmedveten booking-context innan bokningsblocken byggs.'
+  );
+  assert.match(
+    source,
+    /renderAvailableBookingSlots\(bookingDom,\s*stageMicrocopy,\s*readout\)/,
+    'Förväntade att rendern skickar både stegcopy och readout till slotlistan så kandidat-ranking kan byggas från rätt kontext.'
+  );
+  assert.match(
+    source,
+    /function focusBookingStatusStep\(status = ""\)/,
+    'Förväntade en separat helper som kan fokusera ett bokningssteg utan att utföra en statusändring.'
+  );
+  assert.match(
+    source,
+    /openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
+    'Förväntade att journey-driven anteckningsläge öppnar rätt destination och mall direkt i note-surface, inte via ett senare seed-steg.'
+  );
   assert.ok(
     source.includes(
       'renderStudioShell();\n    renderWorkspaceRuntimeContext();\n    renderAnalyticsRuntime();\n    renderRuntimeIntel(selectedFocusThread, focusReadState);'
@@ -106,6 +231,51 @@ test('runtime-dom-live-composition sparar legacythreads parallellt och håller s
     source,
     /state\.runtime\.focusTruthPrimary = \{[\s\S]*configuredMailboxIds: configuredFocusTruthMailboxIds,[\s\S]*activeMailboxIds: activeFocusTruthMailboxIds,[\s\S]*readOnly: true,/,
     'Förväntade att focus-pass håller en separat read-only truth-state i runtime.'
+  );
+});
+
+test('consultation actions kan öppna bokningsytan direkt från consultation-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /surfaceAction === "booking_surface"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att consultation-action-knappar kan öppna bokningsytan direkt när readouten ber om bokningshandoff.'
+  );
+  assert.match(
+    source,
+    /key === "review_consultation_booking_handoff"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att consultation fallback-beteendet leder Bokningshandoff till bokningsytan i stället för tillbaka till konsultationsspåret.'
+  );
+});
+
+test('commercial actions kan öppna bokningsytan direkt från commercial-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /buildCommercialActionButtonMarkup[\s\S]*surfaceAction === "booking_surface"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att commercial-action-knappar kan öppna bokningsytan direkt när readouten ber om bokningshandoff.'
+  );
+  assert.match(
+    source,
+    /key === "review_commercial_booking_handoff"[\s\S]*data-booking-open-surface data-runtime-studio-thread-id=/,
+    'Förväntade att commercial fallback-beteendet leder Bokningshandoff till bokningsytan i stället för tillbaka till commercial-spåret.'
+  );
+});
+
+test('operation actions kan öppna operationsytan och eftervård direkt från operation-card', () => {
+  const source = fs.readFileSync(APP_PATH, 'utf8');
+
+  assert.match(
+    source,
+    /buildOperationActionButtonMarkup[\s\S]*surfaceAction === "operation_open"[\s\S]*data-runtime-domain-open="operation" data-runtime-domain-thread-id=/,
+    'Förväntade att operation-action-knappar kan öppna operationsytan direkt när readouten ber om handoff, koordinering eller klinisk uppföljning.'
+  );
+  assert.match(
+    source,
+    /key === "review_aftercare_handoff"[\s\S]*data-runtime-domain-open="aftercare" data-runtime-domain-thread-id=/,
+    'Förväntade att avslutad operation leder eftervårdshandoff direkt till eftervårdsytan i stället för tillbaka till operation eller studio.'
   );
 });
 
@@ -353,8 +523,8 @@ test('focus/intel-renderers låser no-thread till en enda synlig ägare utan bak
   );
   assert.match(
     source,
-    /\n\s*applyIntelWaitingState\(false\);\n\s*focusIntelTitle\.textContent =/,
-    'Förväntade att intel-shellen återöppnas när en riktig live-tråd finns.'
+    /\n\s*applyIntelWaitingState\(false\);[\s\S]*?focusIntelTitle\.textContent =/,
+    'Förväntade att intel-shellen återöppnas när en riktig live-tråd finns, även när mellanliggande journey-state räknas ut först.'
   );
   assert.match(
     source,
@@ -903,10 +1073,17 @@ test('runtime focus-intel lämnar Nu utan separata medicinska kort', () => {
     /buildIntelMedicalNowCard/,
     'Medicinskt nu-kortet ska inte längre byggas i runtime.'
   );
+  assert.ok(
+    source.includes('buildIntelJourneyCard(thread, focusReadState, journeyState)') &&
+      source.includes('...asArray(baseCards.actions)') &&
+      source.includes('...asArray(baseCards.signals)') &&
+      source.includes('fallbackTitle: "Nu"'),
+    'Nu-panelen ska bara sammanfoga arbetsplan (actions) och prioriteringssignaler utan medicinsk data.'
+  );
   assert.match(
     source,
-    /actions:\s*normalizeIntelDisplayCards\(\s*\[[\s\S]*\.\.\.asArray\(baseCards\.actions\),[\s\S]*\.\.\.asArray\(baseCards\.signals\)\]/,
-    'Nu-panelen ska bara sammanfoga arbetsplan (actions) och prioriteringssignaler utan medicinsk data.'
+    /buildJourneyActionButtonMarkup\([\s\S]*"intel-card-action-button"[\s\S]*\)/,
+    'Nu-panelens journey-kort ska kunna rendera en riktig CTA-knapp till rätt arbetsyta.'
   );
   assert.match(
     source,

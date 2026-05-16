@@ -8,6 +8,9 @@ const express = require('express');
 
 const { createCcoBookingsRouter } = require('../../src/routes/ccoBookings');
 const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
+const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
+const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
+const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -26,12 +29,20 @@ async function createFixture() {
   const bookingStore = await createCcoBookingStore({
     filePath: path.join(tempDir, 'bookings.json'),
   });
+  const historyStore = await createCcoHistoryStore({
+    filePath: path.join(tempDir, 'history.json'),
+  });
+  const patientSystemStore = await createCcoPatientSystemStore({
+    filePath: path.join(tempDir, 'patient-system.json'),
+  });
   const app = express();
   app.use(express.json());
   app.use(
     '/api/v1',
     createCcoBookingsRouter({
       bookingStore,
+      historyStore,
+      patientSystemStore,
       authStore: {
         async getSessionContextByToken() {
           return null;
@@ -49,7 +60,50 @@ async function createFixture() {
       },
     })
   );
-  return { app, tempDir };
+  return { app, tempDir, bookingStore, historyStore };
+}
+
+async function createEngineFixture() {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-bookings-engine-route-'));
+  const bookingStore = await createCcoBookingStore({
+    filePath: path.join(tempDir, 'bookings.json'),
+  });
+  const bookingEngineStore = await createCcoBookingEngineStore({
+    filePath: path.join(tempDir, 'booking-engine.json'),
+  });
+  const historyStore = await createCcoHistoryStore({
+    filePath: path.join(tempDir, 'history.json'),
+  });
+  const patientSystemStore = await createCcoPatientSystemStore({
+    filePath: path.join(tempDir, 'patient-system.json'),
+  });
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/v1',
+    createCcoBookingsRouter({
+      bookingStore,
+      bookingEngineStore,
+      historyStore,
+      patientSystemStore,
+      authStore: {
+        async getSessionContextByToken() {
+          return null;
+        },
+        async touchSession() {
+          return true;
+        },
+      },
+      config: {
+        defaultTenantId: 'tenant-a',
+        brand: 'hair-tp-clinic',
+        brandByHost: {},
+        clientoPartnerId: '1650',
+        clientoApiBaseUrl: 'https://cliento.com/api/v2/partner/cliento',
+      },
+    })
+  );
+  return { app, tempDir, bookingStore, bookingEngineStore, historyStore };
 }
 
 test('cco bookings route sparar kandidater och genererar offer-draft utan direktbokning', async () => {
@@ -62,6 +116,7 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       assert.equal(caseResponse.status, 200);
       const casePayload = await caseResponse.json();
       assert.equal(casePayload.bookingCase.status, 'needs_triage');
+      assert.equal(casePayload.patient360.attention.where, 'Bokning');
 
       const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
         method: 'POST',
@@ -78,6 +133,7 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       assert.equal(candidatesPayload.bookingCase.status, 'slots_ready');
       assert.equal(candidatesPayload.bookingCase.selectedSlots.length, 2);
       assert.equal(candidatesPayload.bookingCase.events.at(-1).type, 'candidate_slots_selected');
+      assert.equal(candidatesPayload.patient360.modules.booking.status, 'needs_validation');
 
       const offerResponse = await fetch(`${baseUrl}/cco-bookings/offer-draft?${qs}`, {
         method: 'POST',
@@ -88,6 +144,7 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       const offerPayload = await offerResponse.json();
       assert.equal(offerPayload.bookingCase.status, 'offered');
       assert.equal(offerPayload.bookingCase.events.at(-1).type, 'offer_draft_inserted');
+      assert.equal(offerPayload.patient360.modules.booking.status, 'waiting_customer');
       assert.match(offerPayload.draft, /Här är tiderna jag kan erbjuda/);
       assert.match(offerPayload.draft, /Dr\. Eriksson/);
       assert.match(offerPayload.draft, /fre 8 maj kl\. \d{2}:\d{2}/);
@@ -141,6 +198,7 @@ test('cco bookings route sparar kandidater och genererar offer-draft utan direkt
       assert.equal(statusPayload.bookingCase.events.at(-1).type, 'status_changed');
       assert.equal(statusPayload.bookingCase.events.at(-1).previousStatus, 'offered');
       assert.equal(statusPayload.bookingCase.events.at(-1).nextStatus, 'waiting_customer');
+      assert.equal(statusPayload.patient360.attention.what, 'Invänta kundsvar på föreslagna tider');
 
       const listResponse = await fetch(`${baseUrl}/cco-bookings/cases?status=waiting_customer`);
       assert.equal(listResponse.status, 200);
@@ -315,13 +373,70 @@ test('cco bookings route sorterar ärendelistan med mest blockerade först', asy
         selectedSlots: [{ id: 'slot-ready-route', startsAt: '2026-05-09T10:00:00.000Z' }],
       });
       await createCase('conv-empty-route', 'empty-route@example.com');
+      await fixture.bookingStore.upsertCase({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-stale-reply-route',
+        customerEmail: 'stale-reply-route@example.com',
+        status: 'waiting_customer',
+        offeredAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+        updatedAt: new Date().toISOString(),
+        selectedSlots: [{ id: 'slot-stale-reply-route', startsAt: '2026-05-12T10:00:00.000Z' }],
+        events: [
+          {
+            type: 'offer_draft_inserted',
+            label: 'Erbjudande infogat',
+            detail: 'Förslag skickat till kund.',
+            createdAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+          },
+          {
+            type: 'customer_reply_received',
+            label: 'Kundsvar mottaget',
+            detail: 'Kunden svarade i samma tråd.',
+            createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+          },
+        ],
+      });
+      await fixture.bookingStore.upsertCase({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-followup-due-route',
+        customerEmail: 'followup-due-route@example.com',
+        status: 'waiting_customer',
+        offeredAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        updatedAt: new Date().toISOString(),
+        selectedSlots: [{ id: 'slot-followup-due-route', startsAt: '2026-05-12T11:00:00.000Z' }],
+        events: [
+          {
+            type: 'offer_draft_inserted',
+            label: 'Erbjudande infogat',
+            detail: 'Förslag skickat till kund.',
+            createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+          },
+          {
+            type: 'follow_up_scheduled',
+            label: 'Uppföljning schemalagd',
+            detail: 'Återuppta tråden senare.',
+            createdAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+            metadata: {
+              followUpDueAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+            },
+          },
+        ],
+      });
 
-      const listResponse = await fetch(`${baseUrl}/cco-bookings/cases?sort=blocked&limit=3`);
+      const listResponse = await fetch(`${baseUrl}/cco-bookings/cases?sort=blocked&limit=5`);
       assert.equal(listResponse.status, 200);
       const payload = await listResponse.json();
       assert.deepEqual(
         payload.cases.map((bookingCase) => bookingCase.conversationId),
-        ['conv-empty-route', 'conv-slots-route', 'conv-offered-route']
+        [
+          'conv-empty-route',
+          'conv-stale-reply-route',
+          'conv-followup-due-route',
+          'conv-slots-route',
+          'conv-offered-route',
+        ]
       );
       assert.deepEqual(
         payload.cases.map((bookingCase) => bookingCase.blocker),
@@ -332,6 +447,22 @@ test('cco bookings route sorterar ärendelistan med mest blockerade först', asy
             score: 30,
             action: 'candidate_slots',
             nextActionLabel: 'välj kandidat-tider',
+            tone: 'attention',
+          },
+          {
+            key: 'customer_state',
+            label: 'Bearbeta kundsvar',
+            score: 23,
+            action: 'insert_studio',
+            nextActionLabel: 'öppna Svarstudio',
+            tone: 'attention',
+          },
+          {
+            key: 'customer_state',
+            label: 'Följ upp igen',
+            score: 22,
+            action: 'schedule_followup',
+            nextActionLabel: 'påminn kunden',
             tone: 'attention',
           },
           {
@@ -355,5 +486,722 @@ test('cco bookings route sorterar ärendelistan med mest blockerade först', asy
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route bryter blocker-likaläge med arbetsläge före updatedAt', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      await fixture.bookingStore.upsertCase({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-followup-due-route-tie',
+        customerEmail: 'followup-due-route-tie@example.com',
+        status: 'waiting_customer',
+        offeredAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+        updatedAt: new Date().toISOString(),
+        selectedSlots: [
+          { id: 'slot-followup-due-route-tie', startsAt: '2026-05-12T10:00:00.000Z' },
+        ],
+        events: [
+          {
+            type: 'offer_draft_inserted',
+            label: 'Erbjudande infogat',
+            detail: 'Förslag skickat till kund.',
+            createdAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+          },
+          {
+            type: 'follow_up_scheduled',
+            label: 'Uppföljning schemalagd',
+            detail: 'Återuppta tråden senare.',
+            createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+            metadata: {
+              followUpDueAt: new Date(Date.now() - 25 * 36e5).toISOString(),
+            },
+          },
+        ],
+      });
+      await fixture.bookingStore.upsertCase({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-customer-reply-route-tie',
+        customerEmail: 'customer-reply-route-tie@example.com',
+        status: 'waiting_customer',
+        offeredAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+        updatedAt: new Date(Date.now() - 5 * 36e5).toISOString(),
+        selectedSlots: [
+          { id: 'slot-customer-reply-route-tie', startsAt: '2026-05-12T11:00:00.000Z' },
+        ],
+        events: [
+          {
+            type: 'offer_draft_inserted',
+            label: 'Erbjudande infogat',
+            detail: 'Förslag skickat till kund.',
+            createdAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+          },
+          {
+            type: 'customer_reply_received',
+            label: 'Kundsvar mottaget',
+            detail: 'Kunden svarade i samma tråd.',
+            createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+          },
+        ],
+      });
+
+      const listResponse = await fetch(`${baseUrl}/cco-bookings/cases?sort=blocked&limit=2`);
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.deepEqual(
+        payload.cases.map((bookingCase) => bookingCase.conversationId),
+        ['conv-customer-reply-route-tie', 'conv-followup-due-route-tie']
+      );
+      assert.deepEqual(
+        payload.cases.map((bookingCase) => bookingCase.recommendedActionState),
+        ['act_now_overdue', 'reengage_now']
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route låter case-listan följa engine-blocker när tider är reserverade men ännu inte erbjudna', async () => {
+  const fixture = await createEngineFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=conv-engine-backed-list&customerEmail=engine-list%40example.com&customerName=Engine%20List';
+      const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          selectedSlots: [
+            {
+              slotId: 'egzona::consultation::2026-05-11T09:30:00.000Z',
+              startsAt: '2026-05-11T09:30:00.000Z',
+              endsAt: '2026-05-11T10:30:00.000Z',
+              resourceId: 'egzona',
+              resourceLabel: 'Egzona',
+              serviceId: 'consultation',
+              serviceLabel: 'Konsultation',
+              source: 'cco_engine',
+            },
+          ],
+        }),
+      });
+      assert.equal(candidatesResponse.status, 200);
+
+      const listResponse = await fetch(`${baseUrl}/cco-bookings/cases?status=slots_ready`);
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.action, 'insert_studio');
+      assert.equal(payload.cases[0].recommendedAction, 'insert_studio');
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route visar när uppföljning redan pågår i waiting_customer-listan', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-followup-active',
+      customerEmail: 'route-followup@example.com',
+      customerName: 'Route Followup',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: '2026-05-09T09:00:00.000Z',
+      updatedAt: '2026-05-10T09:00:00.000Z',
+      selectedSlots: [{ id: 'slot-route-followup', startsAt: '2026-05-12T10:00:00.000Z' }],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: '2026-05-09T09:00:00.000Z',
+        },
+        {
+          type: 'follow_up_opened',
+          label: 'Uppföljning öppnad',
+          detail: 'Operatören öppnade uppföljningsspåret.',
+          createdAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+          metadata: {
+            bookingFollowUpReason: 'Kund väntar på nytt svar',
+          },
+        },
+      ],
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Uppföljning pågår');
+      assert.equal(payload.cases[0].blocker.action, 'confirm_external');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'invänta kundsvar');
+      assert.equal(payload.cases[0].recommendedActionState, 'monitor');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route låter inte intern handoff dölja att waiting_customer behöver följas upp', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-wait-anchor',
+      customerEmail: 'route-wait-anchor@example.com',
+      customerName: 'Route Wait Anchor',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedSlots: [{ id: 'slot-route-anchor', startsAt: '2026-05-12T10:00:00.000Z' }],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+        {
+          type: 'handoff_copied',
+          label: 'Överlämning kopierad',
+          detail: 'Intern överlämning kopierades.',
+          createdAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+        },
+      ],
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Saknar uppföljning');
+      assert.equal(payload.cases[0].blocker.action, 'schedule_followup');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'schemalägg uppföljning');
+      assert.equal(payload.cases[0].recommendedActionState, 'reengage_now');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route visar kundsvar inkommet före gammal follow-up i waiting_customer-listan', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-customer-reply',
+      customerEmail: 'route-customer-reply@example.com',
+      customerName: 'Route Customer Reply',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedSlots: [{ id: 'slot-route-reply', startsAt: '2026-05-12T10:00:00.000Z' }],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+        {
+          type: 'follow_up_opened',
+          label: 'Uppföljning öppnad',
+          detail: 'Operatören öppnade uppföljning.',
+          createdAt: new Date(Date.now() - 26 * 36e5).toISOString(),
+        },
+        {
+          type: 'customer_reply_received',
+          label: 'Kundsvar mottaget',
+          detail: 'Kunden svarade i samma tråd.',
+          createdAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+        },
+      ],
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Kundsvar inkommet');
+      assert.equal(payload.cases[0].blocker.action, 'insert_studio');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'uppdatera Svarstudio');
+      assert.equal(payload.cases[0].waitingCustomer.mode, 'customer_reply');
+      assert.equal(payload.cases[0].waitingCustomer.action, 'insert_studio');
+      assert.equal(payload.cases[0].waitingCustomer.urgencyLevel, 'normal');
+      assert.match(String(payload.cases[0].waitingCustomer.urgencyReason || ''), /svarat nyligen/i);
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now');
+      assert.match(
+        String(payload.cases[0].recommendedActionReason || ''),
+        /uppdaterat operatörssvar/i
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route kan läsa kundsvar från historik även utan booking-event i waiting_customer-listan', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-history-customer-reply',
+      customerEmail: 'route-history-customer-reply@example.com',
+      customerName: 'Route History Customer Reply',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      selectedSlots: [{ id: 'slot-route-history-reply', startsAt: '2026-05-12T10:00:00.000Z' }],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+        {
+          type: 'follow_up_opened',
+          label: 'Uppföljning öppnad',
+          detail: 'Operatören öppnade uppföljning.',
+          createdAt: new Date(Date.now() - 26 * 36e5).toISOString(),
+        },
+      ],
+    });
+    await fixture.historyStore.recordAction({
+      tenantId: context.tenantId,
+      conversationId: context.conversationId,
+      mailboxId: 'kons@hairtpclinic.com',
+      customerEmail: context.customerEmail,
+      actionType: 'customer_replied',
+      actionLabel: 'Kunden svarade',
+      recordedAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+      source: 'test',
+      waitingOn: 'owner',
+      nextActionLabel: 'Återuppta tråden',
+      nextActionSummary: 'Kunden har svarat och tråden bör öppnas igen.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Kundsvar inkommet');
+      assert.equal(payload.cases[0].blocker.action, 'insert_studio');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'uppdatera Svarstudio');
+      assert.equal(payload.cases[0].waitingCustomer.mode, 'customer_reply');
+      assert.equal(payload.cases[0].waitingCustomer.action, 'insert_studio');
+      assert.equal(payload.cases[0].waitingCustomer.urgencyLevel, 'normal');
+      assert.match(String(payload.cases[0].waitingCustomer.urgencyReason || ''), /svarat nyligen/i);
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now');
+      assert.match(
+        String(payload.cases[0].recommendedActionReason || ''),
+        /uppdaterat operatörssvar/i
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route markerar äldre kundsvar från historik som bearbetningskrävande i waiting_customer-listan', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-history-customer-reply-stale',
+      customerEmail: 'route-history-customer-reply-stale@example.com',
+      customerName: 'Route History Customer Reply Stale',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      selectedSlots: [
+        { id: 'slot-route-history-reply-stale', startsAt: '2026-05-12T10:00:00.000Z' },
+      ],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: new Date(Date.now() - 60 * 36e5).toISOString(),
+        },
+      ],
+    });
+    await fixture.historyStore.recordAction({
+      tenantId: context.tenantId,
+      conversationId: context.conversationId,
+      mailboxId: 'kons@hairtpclinic.com',
+      customerEmail: context.customerEmail,
+      actionType: 'customer_replied',
+      actionLabel: 'Kunden svarade',
+      recordedAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      source: 'test',
+      waitingOn: 'owner',
+      nextActionLabel: 'Återuppta tråden',
+      nextActionSummary: 'Kunden har svarat och tråden bör öppnas igen.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Bearbeta kundsvar');
+      assert.equal(payload.cases[0].blocker.action, 'insert_studio');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'öppna Svarstudio');
+      assert.equal(payload.cases[0].waitingCustomer.mode, 'customer_reply');
+      assert.equal(payload.cases[0].waitingCustomer.customerReplyStale, true);
+      assert.equal(payload.cases[0].waitingCustomer.urgencyLevel, 'high');
+      assert.match(
+        String(payload.cases[0].waitingCustomer.urgencyReason || ''),
+        /utan bearbetning/i
+      );
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now_overdue');
+      assert.match(String(payload.cases[0].recommendedActionReason || ''), /Svarstudio/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route återöppnar confirmed_external i listan när kunden svarar efter bekräftelsen', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-confirmed-history-reply',
+      customerEmail: 'route-confirmed-history-reply@example.com',
+      customerName: 'Route Confirmed History Reply',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'confirmed_external',
+      confirmedExternalAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      selectedSlots: [
+        { id: 'slot-route-confirmed-history-reply', startsAt: '2026-05-12T10:00:00.000Z' },
+      ],
+      events: [
+        {
+          type: 'engine_booking_confirmed',
+          label: 'Bokningen bekräftades i CCO',
+          detail: 'Tiden låstes i CCO.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+      ],
+    });
+    await fixture.historyStore.recordAction({
+      tenantId: context.tenantId,
+      conversationId: context.conversationId,
+      mailboxId: 'kons@hairtpclinic.com',
+      customerEmail: context.customerEmail,
+      actionType: 'customer_replied',
+      actionLabel: 'Kunden svarade',
+      recordedAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+      source: 'test',
+      waitingOn: 'owner',
+      nextActionLabel: 'Återuppta tråden',
+      nextActionSummary: 'Kunden har svarat efter bekräftelsen och tråden bör öppnas igen.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Kundsvar efter bekräftelse');
+      assert.equal(payload.cases[0].blocker.action, 'insert_studio');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'uppdatera Svarstudio');
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now');
+      assert.match(String(payload.cases[0].recommendedActionReason || ''), /efter bekräftelsen/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route håller confirmed_external levande i listan när uppföljning efter bekräftelsen förfaller', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-confirmed-followup-due',
+      customerEmail: 'route-confirmed-followup-due@example.com',
+      customerName: 'Route Confirmed Followup Due',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'confirmed_external',
+      confirmedExternalAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      selectedSlots: [
+        { id: 'slot-route-confirmed-followup-due', startsAt: '2026-05-12T10:00:00.000Z' },
+      ],
+      events: [
+        {
+          type: 'engine_booking_confirmed',
+          label: 'Bokningen bekräftades i CCO',
+          detail: 'Tiden låstes i CCO.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+      ],
+    });
+    await fixture.historyStore.recordAction({
+      tenantId: context.tenantId,
+      conversationId: context.conversationId,
+      mailboxId: 'kons@hairtpclinic.com',
+      customerEmail: context.customerEmail,
+      actionType: 'reply_later',
+      actionLabel: 'Svara senare',
+      recordedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      source: 'test',
+      waitingOn: 'customer',
+      nextActionLabel: 'Invänta kundens svar',
+      nextActionSummary: 'Återuppta tråden om kunden inte svarar efter bekräftelsen.',
+      followUpDueAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Följ upp efter bekräftelse');
+      assert.equal(payload.cases[0].blocker.action, 'schedule_followup');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'påminn kunden igen');
+      assert.equal(payload.cases[0].postConfirmation.mode, 'post_confirmation_follow_up_due');
+      assert.equal(payload.cases[0].recommendedActionState, 'reengage_now');
+      assert.match(String(payload.cases[0].recommendedActionReason || ''), /efter bekräftelsen/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route kan läsa reply_later från historik som förfallen uppföljning i waiting_customer-listan', async () => {
+  const fixture = await createFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-route-history-followup-due',
+      customerEmail: 'route-history-followup@example.com',
+      customerName: 'Route History Followup',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    await fixture.bookingStore.upsertCase({
+      ...context,
+      status: 'waiting_customer',
+      offeredAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      selectedSlots: [{ id: 'slot-route-history-followup', startsAt: '2026-05-12T10:00:00.000Z' }],
+      events: [
+        {
+          type: 'offer_draft_inserted',
+          label: 'Erbjudande infogat',
+          detail: 'Förslag skickat till kund.',
+          createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+        },
+      ],
+    });
+    await fixture.historyStore.recordAction({
+      tenantId: context.tenantId,
+      conversationId: context.conversationId,
+      mailboxId: 'kons@hairtpclinic.com',
+      customerEmail: context.customerEmail,
+      actionType: 'reply_later',
+      actionLabel: 'Svara senare',
+      recordedAt: new Date(Date.now() - 2 * 36e5).toISOString(),
+      source: 'test',
+      waitingOn: 'customer',
+      nextActionLabel: 'Invänta kundens svar',
+      nextActionSummary: 'Återuppta tråden om kunden inte svarar.',
+      followUpDueAt: new Date(Date.now() - 1 * 36e5).toISOString(),
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.label, 'Följ upp igen');
+      assert.equal(payload.cases[0].blocker.action, 'schedule_followup');
+      assert.equal(payload.cases[0].blocker.nextActionLabel, 'påminn kunden');
+      assert.equal(payload.cases[0].waitingCustomer.mode, 'follow_up_due');
+      assert.equal(payload.cases[0].waitingCustomer.urgencyLevel, 'high');
+      assert.match(String(payload.cases[0].waitingCustomer.urgencyReason || ''), /passerat/i);
+      assert.match(String(payload.cases[0].waitingCustomer.latestFollowUpDueAt || ''), /T/);
+      assert.equal(payload.cases[0].recommendedActionState, 'reengage_now');
+      assert.match(String(payload.cases[0].recommendedActionReason || ''), /återupptas nu/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route låter case-listan visa confirm_external när CCO redan har bokningen men caset inte är syncat', async () => {
+  const fixture = await createEngineFixture();
+  try {
+    const context = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-engine-backed-confirm',
+      customerEmail: 'engine-confirm@example.com',
+      customerName: 'Engine Confirm',
+      ownerUserId: 'preview-local',
+      ownerName: 'Preview',
+    };
+    const availability = await fixture.bookingEngineStore.listAvailability({
+      tenantId: context.tenantId,
+      fromDate: '2026-05-11',
+      toDate: '2026-05-11',
+      resIds: 'egzona',
+      srvIds: 'consultation',
+    });
+    const slot = availability[0];
+    await fixture.bookingStore.setCandidateSlots({
+      ...context,
+      selectedSlots: [slot],
+    });
+    await fixture.bookingEngineStore.confirmBooking({
+      ...context,
+      slot,
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const listResponse = await fetch(
+        `${baseUrl}/cco-bookings/cases?customerEmail=${encodeURIComponent(context.customerEmail)}`
+      );
+      assert.equal(listResponse.status, 200);
+      const payload = await listResponse.json();
+      assert.equal(payload.cases.length, 1);
+      assert.equal(payload.cases[0].blocker.action, 'confirm_external');
+      assert.equal(payload.cases[0].recommendedAction, 'confirm_external');
+      assert.equal(payload.cases[0].recommendedActionState, 'act_now');
+      assert.equal(payload.cases[0].bookingEngineState, 'confirmed');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings route kan läsa egen booking engine som source of truth för tider och referensdata', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-bookings-engine-route-'));
+  try {
+    const bookingStore = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+    const bookingEngineStore = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const patientSystemStore = await createCcoPatientSystemStore({
+      filePath: path.join(tempDir, 'patient-system.json'),
+    });
+    const app = express();
+    app.use(express.json());
+    app.use(
+      '/api/v1',
+      createCcoBookingsRouter({
+        bookingStore,
+        bookingEngineStore,
+        patientSystemStore,
+        authStore: {
+          async getSessionContextByToken() {
+            return null;
+          },
+          async touchSession() {
+            return true;
+          },
+        },
+        config: {
+          defaultTenantId: 'tenant-a',
+          brand: 'hair-tp-clinic',
+          brandByHost: {},
+        },
+      })
+    );
+    await withServer(app, async (baseUrl) => {
+      const refResponse = await fetch(`${baseUrl}/cco-bookings/ref-data`);
+      assert.equal(refResponse.status, 200);
+      const refPayload = await refResponse.json();
+      assert.equal(refPayload.provider, 'cco_engine');
+      assert.ok(refPayload.resources.length >= 1);
+      assert.ok(refPayload.services.length >= 1);
+
+      const slotsResponse = await fetch(
+        `${baseUrl}/cco-bookings/slots?fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation`
+      );
+      assert.equal(slotsResponse.status, 200);
+      const slotsPayload = await slotsResponse.json();
+      assert.equal(slotsPayload.provider, 'cco_engine');
+      assert.ok(slotsPayload.slots.length >= 1);
+      assert.equal(slotsPayload.slots[0].source, 'cco_engine');
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
   }
 });

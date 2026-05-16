@@ -50,8 +50,9 @@
       const next = {
         appView: normalizeView(current.appView || state.view || "conversations"),
         focusSection:
-          normalizeKey(current.focusSection || state.runtime.activeFocusSection || "conversation") ||
-          "conversation",
+          normalizeKey(
+            current.focusSection || state.runtime.activeFocusSection || "conversation"
+          ) || "conversation",
         selectedThreadId: asText(current.selectedThreadId || state.runtime.selectedThreadId),
         activeLaneId: normalizeLaneId(current.activeLaneId || state.runtime.activeLaneId || "all"),
         selectedMailboxIds: normalizeMailboxIds(
@@ -93,7 +94,9 @@
           // Inga ändringar — behåll samma referens, Proxy hoppar över.
           return state.workspace;
         }
-      } catch (_e) { /* fallback to assign */ }
+      } catch (_e) {
+        /* fallback to assign */
+      }
 
       state.workspace = next;
       syncLegacyState();
@@ -159,9 +162,7 @@
       const selected = visible.find(
         (thread) => normalizeKey(thread?.id || "") === normalizeKey(workspace.selectedThreadId)
       );
-      workspace.selectedThreadId = selected
-        ? asText(selected.id)
-        : asText(visible[0]?.id || "");
+      workspace.selectedThreadId = selected ? asText(selected.id) : asText(visible[0]?.id || "");
       syncLegacyState();
       return workspace.selectedThreadId;
     }
@@ -235,6 +236,10 @@
       return Boolean(ensureWorkspaceState().overlays[name]);
     }
 
+    function getState() {
+      return state;
+    }
+
     ensureWorkspaceState();
 
     return Object.freeze({
@@ -242,6 +247,7 @@
       ensureSelectedThread,
       getActiveLaneId,
       getFocusSection,
+      getState,
       getSelectedMailboxIds,
       getSelectedOwnerKey,
       getSelectedThreadId,

@@ -28,6 +28,7 @@ Den här ordlistan låser vilka systemord operatören ska se i CCO-ytan. Målet 
 | Cliento                   | Extern kalender | Synligt i bokningsytan; behåll `Cliento` i backend, audit och integrationstester. |
 | Handoff                   | Överlämning     | Status när ärendet lämnas vidare eller väntar på kund.                            |
 | Slots                     | Tider           | Kandidattider och tillgängliga bokningsalternativ.                                |
+| Audit                     | Logg            | Bokningsytans gransknings- och händelsevy.                                        |
 | Write endpoint            | Skrivstöd       | Endast i tekniska/adminnära felmeddelanden.                                       |
 
 ## Ord Som Inte Ska Synas I Operatörsytan
@@ -43,6 +44,7 @@ Följande ord får finnas i kod, tester, API:er och tekniska loggar, men ska int
 - `live-tråd`
 - `Live runtime`
 - `Cliento` i bokningsreadout, svarsförslag och operatörschips
+- `audit`, `handoff`, `slots` och `write` som synliga labels i bokningsytan
 
 ## Beslutsregel
 

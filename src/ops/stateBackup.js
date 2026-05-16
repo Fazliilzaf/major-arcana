@@ -20,7 +20,10 @@ function formatTimestamp(date = new Date()) {
 }
 
 function sha256(value) {
-  return crypto.createHash('sha256').update(String(value ?? ''), 'utf8').digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(value ?? ''), 'utf8')
+    .digest('hex');
 }
 
 function normalizeLimit(value, fallback = 20) {
@@ -59,6 +62,7 @@ function getStateFileMap(config) {
     ccoNotes: config.ccoNoteStorePath,
     ccoFollowUps: config.ccoFollowUpStorePath,
     ccoWorkspacePrefs: config.ccoWorkspacePrefsStorePath,
+    ccoPortal: config.ccoPortalStorePath,
     secretRotation: config.secretRotationStorePath,
     patientSignals: config.patientSignalStorePath,
     sloTickets: config.sloTicketStorePath,
@@ -191,7 +195,10 @@ async function listBackups({ backupDir, limit = 20 }) {
   await ensureDir(backupDir);
   const entries = await fs.readdir(backupDir, { withFileTypes: true });
   const files = entries
-    .filter((entry) => entry.isFile() && entry.name.startsWith('arcana-state-') && entry.name.endsWith('.json'))
+    .filter(
+      (entry) =>
+        entry.isFile() && entry.name.startsWith('arcana-state-') && entry.name.endsWith('.json')
+    )
     .map((entry) => entry.name);
 
   const withStats = [];
@@ -210,12 +217,7 @@ async function listBackups({ backupDir, limit = 20 }) {
   return withStats.slice(0, clampedLimit);
 }
 
-async function pruneBackups({
-  backupDir,
-  maxFiles = 50,
-  maxAgeDays = 30,
-  dryRun = false,
-}) {
+async function pruneBackups({ backupDir, maxFiles = 50, maxAgeDays = 30, dryRun = false }) {
   const maxFilesInt = Number.isFinite(Number(maxFiles))
     ? Math.max(1, Math.min(10000, Number.parseInt(String(maxFiles), 10)))
     : 50;
@@ -226,7 +228,10 @@ async function pruneBackups({
   await ensureDir(backupDir);
   const entries = await fs.readdir(backupDir, { withFileTypes: true });
   const files = entries
-    .filter((entry) => entry.isFile() && entry.name.startsWith('arcana-state-') && entry.name.endsWith('.json'))
+    .filter(
+      (entry) =>
+        entry.isFile() && entry.name.startsWith('arcana-state-') && entry.name.endsWith('.json')
+    )
     .map((entry) => entry.name);
 
   const withStats = [];

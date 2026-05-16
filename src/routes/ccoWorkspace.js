@@ -1,8 +1,27 @@
 const crypto = require('node:crypto');
 const express = require('express');
+const {
+  WORKSPACE_ID,
+  normalizeText,
+  resolveCcoRouteActor,
+  buildCcoRouteContext,
+  serializePatient360,
+  buildPatient360SyncContext,
+} = require('./ccoRouteShared');
 const { buildBookingCaseBlockerReadout } = require('../ops/ccoBookingStore');
+const { buildConsultationCaseReadout } = require('../ops/ccoConsultationStore');
+const { buildAftercareCaseReadout } = require('../ops/ccoAftercareStore');
+const { buildOperationCaseReadout } = require('../ops/ccoOperationStore');
+const { buildCommercialCaseReadout } = require('../ops/ccoCommercialStore');
+const {
+  syncPatient360FromAftercareCase,
+  syncPatient360FromBookingCase,
+  syncPatient360FromCommercialCase,
+  syncPatient360FromConsultationCase,
+  syncPatient360FromOperationCase,
+  syncPatient360FromWorkspaceSignals,
+} = require('../ops/ccoPatient360Bridge');
 
-const WORKSPACE_ID = 'major-arcana-preview';
 const DEFAULT_CONTEXT = Object.freeze({
   workspaceId: WORKSPACE_ID,
   conversationId: 'conv-anna-karlsson-prp-2026-04-22',
@@ -50,6 +69,10 @@ const NOTE_VISIBILITY_RULES = {
   uppfoljning: ['team', 'all_operators'],
 };
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 const NOTE_LABELS = {
   kundprofil: 'Kundprofil',
   konversation: 'Konversation',
@@ -85,10 +108,6 @@ const EMPTY_CONTEXT = Object.freeze({
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 function normalizeKey(value) {
@@ -168,57 +187,6 @@ function buildScheduleIsoOrThrow(date, time) {
     throw createValidationError('Ogiltigt datum eller tid.');
   }
   return parsed.toISOString();
-}
-
-function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host'))
-    .split(':')[0]
-    .toLowerCase();
-  const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
-  return (
-    ['localhost', '127.0.0.1', '::1'].includes(host) ||
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)
-  );
-}
-
-function getAuthToken(req) {
-  const authHeader = normalizeText(req.get('authorization'));
-  if (authHeader.toLowerCase().startsWith('bearer ')) {
-    return authHeader.slice(7).trim();
-  }
-  return normalizeText(req.get('x-auth-token'));
-}
-
-async function resolveWorkspaceActor(req, { authStore, config }) {
-  const token = getAuthToken(req);
-  if (token) {
-    const context = await authStore.getSessionContextByToken(token);
-    if (!context) {
-      const error = new Error('Sessionen är ogiltig eller har gått ut.');
-      error.statusCode = 401;
-      throw error;
-    }
-    await authStore.touchSession(context.session.id);
-    return {
-      tenantId: context.membership.tenantId,
-      userId: context.user.id,
-      role: context.membership.role,
-      authMode: 'session',
-    };
-  }
-
-  if (isLocalPreviewRequest(req)) {
-    return {
-      tenantId: config.defaultTenantId,
-      userId: 'preview-local',
-      role: 'OWNER',
-      authMode: 'preview_local',
-    };
-  }
-
-  const error = new Error('Inloggning krävs.');
-  error.statusCode = 401;
-  throw error;
 }
 
 function buildNoteDefinitions({ latestFollowUp = null, workspaceContext = null }) {
@@ -517,6 +485,105 @@ function buildBookingReadout(bookingCase, workspaceContext = null) {
   };
 }
 
+function buildAftercareReadout(aftercareCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase = aftercareCase && typeof aftercareCase === 'object' ? aftercareCase : null;
+  const base = buildAftercareCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    category: normalizeText(safeCase?.category) || contentContext.treatmentName || base.category,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt eftervårdsnästa steg.`
+        : base.notes),
+    attention: {
+      ...base.attention,
+      where:
+        base.outcomeStatus === 'needs_attention'
+          ? base.doctorName
+          : normalizeText(safeCase?.doctorName) || base.attention.where,
+    },
+  };
+}
+
+function buildAftercareQueueItem(aftercareCase, workspaceContext = null) {
+  const safeCase = aftercareCase && typeof aftercareCase === 'object' ? aftercareCase : null;
+  if (!safeCase) return null;
+  try {
+    const readout = buildAftercareReadout(safeCase, workspaceContext);
+    return {
+      aftercareCase: safeCase,
+      aftercareReadout: readout,
+      conversationId: normalizeText(safeCase.conversationId),
+      customerId: normalizeText(safeCase.customerId),
+      customerName: normalizeText(safeCase.customerName),
+      scheduledForIso: normalizeText(readout.scheduledForIso || safeCase.scheduledForIso),
+      queueBucket: normalizeText(readout.queueBucket),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildOperationReadout(operationCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase = operationCase && typeof operationCase === 'object' ? operationCase : null;
+  const base = buildOperationCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    procedureType:
+      normalizeText(safeCase?.procedureType) || contentContext.treatmentName || base.procedureType,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt operationsnästa steg.`
+        : base.notes),
+  };
+}
+
+function buildConsultationReadout(consultationCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase =
+    consultationCase && typeof consultationCase === 'object' ? consultationCase : null;
+  const base = buildConsultationCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    consultationType:
+      normalizeText(safeCase?.consultationType) ||
+      contentContext.treatmentName ||
+      base.consultationType,
+    requestedTreatment:
+      normalizeText(safeCase?.requestedTreatment) ||
+      contentContext.treatmentName ||
+      base.requestedTreatment,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt konsultationsnästa steg.`
+        : base.notes),
+  };
+}
+
+function buildCommercialReadout(commercialCase, workspaceContext = null) {
+  const contentContext = toWorkspaceContentContext(workspaceContext);
+  const safeCase = commercialCase && typeof commercialCase === 'object' ? commercialCase : null;
+  const base = buildCommercialCaseReadout(safeCase || {});
+  return {
+    ...base,
+    enabled: hasWorkspaceConversationContext(workspaceContext),
+    offerType: normalizeText(safeCase?.offerType) || contentContext.treatmentName || base.offerType,
+    notes:
+      normalizeText(safeCase?.notes) ||
+      (contentContext.customerName
+        ? `${contentContext.customerName} behöver ett tydligt kommersiellt nästa steg.`
+        : base.notes),
+  };
+}
+
 function createValidationError(message, statusCode = 400, metadata = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -554,6 +621,10 @@ function assertAllowedVisibility(destinationKey, visibility) {
   return normalized;
 }
 
+function pickLatestPatient360Record(...records) {
+  return records.filter(Boolean).at(-1) || null;
+}
+
 async function safeAudit(authStore, event) {
   if (!authStore || typeof authStore.addAuditEvent !== 'function') return;
   await authStore.addAuditEvent(event);
@@ -562,30 +633,85 @@ async function safeAudit(authStore, event) {
 function createCcoWorkspaceRouter({
   noteStore,
   followUpStore,
+  aftercareStore = null,
+  operationStore = null,
+  commercialStore = null,
   bookingStore,
+  consultationStore = null,
+  patientSystemStore = null,
   workspacePrefsStore,
+  portalStore = null,
   authStore,
   config,
 }) {
   const router = express.Router();
 
   async function getRequestContext(req) {
-    const actor = await resolveWorkspaceActor(req, { authStore, config });
-    const workspaceId =
-      normalizeText(req.query.workspaceId) || normalizeText(req.body?.workspaceId) || WORKSPACE_ID;
-    const conversationId =
-      normalizeText(req.query.conversationId) || normalizeText(req.body?.conversationId);
-    const customerId = normalizeText(req.query.customerId) || normalizeText(req.body?.customerId);
-    const customerName =
-      normalizeText(req.query.customerName) || normalizeText(req.body?.customerName);
+    const actor = await resolveCcoRouteActor(req, { authStore, config });
+    const baseContext = buildCcoRouteContext(req, actor);
     return {
       actor,
-      workspaceId,
+      workspaceId: baseContext.workspaceId,
       tenantId: actor.tenantId,
       userId: actor.userId,
-      conversationId,
-      customerId,
-      customerName,
+      conversationId: baseContext.conversationId,
+      customerId: baseContext.customerId,
+      customerName: baseContext.customerName,
+    };
+  }
+
+  function assertPortalOperator(context) {
+    const role = String(context?.actor?.role || '')
+      .trim()
+      .toUpperCase();
+    if (role !== 'OWNER' && role !== 'STAFF') {
+      const error = new Error('Du saknar behörighet för detta.');
+      error.statusCode = 403;
+      throw error;
+    }
+  }
+
+  function ensurePortalStore() {
+    if (
+      !portalStore ||
+      typeof portalStore.getTenantPortalOverview !== 'function' ||
+      typeof portalStore.getTenantCustomerPortal !== 'function' ||
+      typeof portalStore.saveTenantPortalDraft !== 'function' ||
+      typeof portalStore.publishTenantPortalDraft !== 'function'
+    ) {
+      const error = new Error('Portallagring saknas.');
+      error.statusCode = 503;
+      throw error;
+    }
+  }
+
+  function normalizePortalInput(req, context) {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    return {
+      tenantId: context.tenantId,
+      workspaceId: normalizeText(body.workspaceId) || context.workspaceId,
+      customerKey: normalizeText(body.customerKey) || normalizeText(req.query.customerKey),
+      customerEmail:
+        normalizeText(body.customerEmail) ||
+        normalizeText(req.query.customerEmail) ||
+        context.customerId,
+      customerId:
+        normalizeText(body.customerId) || normalizeText(req.query.customerId) || context.customerId,
+      customerName:
+        normalizeText(body.customerName) ||
+        normalizeText(req.query.customerName) ||
+        context.customerName,
+      customerPhone: normalizeText(body.customerPhone) || normalizeText(req.query.customerPhone),
+      title: normalizeText(body.title),
+      summary: normalizeText(body.summary),
+      note: normalizeText(body.note),
+      layers: body.layers,
+      librarySnapshot: body.librarySnapshot,
+      ownerUserId: context.userId,
+      ownerName: normalizeText(body.ownerName) || context.userId,
+      source: normalizeText(body.source) || 'cco_workspace',
+      draftId: normalizeText(body.draftId),
+      notificationMessage: normalizeText(body.notificationMessage),
     };
   }
 
@@ -593,7 +719,18 @@ function createCcoWorkspaceRouter({
     try {
       const context = await getRequestContext(req);
       const hasLiveContext = hasWorkspaceConversationContext(context);
-      const [savedNotes, latestFollowUp, bookingCase, prefs] = await Promise.all([
+      const [
+        savedNotes,
+        latestFollowUp,
+        bookingCase,
+        consultationCase,
+        aftercareCase,
+        aftercareQueueCases,
+        operationCase,
+        commercialCase,
+        prefs,
+        portalOverview,
+      ] = await Promise.all([
         hasLiveContext ? noteStore.getNotesByConversation(context) : Promise.resolve([]),
         hasLiveContext ? followUpStore.getLatestFollowUp(context) : Promise.resolve(null),
         hasLiveContext && bookingStore && typeof bookingStore.ensureCase === 'function'
@@ -607,18 +744,128 @@ function createCcoWorkspaceRouter({
               source: 'workspace_bootstrap',
             })
           : Promise.resolve(null),
+        hasLiveContext && consultationStore && typeof consultationStore.getCase === 'function'
+          ? consultationStore.getCase({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerId: context.customerId,
+            })
+          : Promise.resolve(null),
+        hasLiveContext && aftercareStore && typeof aftercareStore.getCase === 'function'
+          ? aftercareStore.getCase({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerId: context.customerId,
+            })
+          : Promise.resolve(null),
+        aftercareStore && typeof aftercareStore.listCases === 'function'
+          ? aftercareStore.listCases({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              includeClosed: false,
+              limit: 8,
+            })
+          : Promise.resolve([]),
+        hasLiveContext && operationStore && typeof operationStore.getCase === 'function'
+          ? operationStore.getCase({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerId: context.customerId,
+            })
+          : Promise.resolve(null),
+        hasLiveContext && commercialStore && typeof commercialStore.getCase === 'function'
+          ? commercialStore.getCase({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerId: context.customerId,
+            })
+          : Promise.resolve(null),
         workspacePrefsStore.getWorkspacePrefs({
           tenantId: context.tenantId,
           userId: context.userId,
           workspaceId: context.workspaceId,
         }),
+        hasLiveContext && portalStore && typeof portalStore.getTenantPortalOverview === 'function'
+          ? portalStore.getTenantPortalOverview({
+              tenantId: context.tenantId,
+            })
+          : Promise.resolve(null),
       ]);
+      const patientRecord =
+        hasLiveContext && patientSystemStore
+          ? await syncPatient360FromBookingCase({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              bookingCase,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
+      const workspacePatientRecord =
+        hasLiveContext && patientSystemStore
+          ? await syncPatient360FromWorkspaceSignals({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              bookingCase,
+              savedNotes,
+              latestFollowUp,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
+      const consultationPatientRecord =
+        hasLiveContext && patientSystemStore && consultationCase
+          ? await syncPatient360FromConsultationCase({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              consultationCase,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
+      const aftercarePatientRecord =
+        hasLiveContext && patientSystemStore && aftercareCase
+          ? await syncPatient360FromAftercareCase({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              aftercareCase,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
+      const operationPatientRecord =
+        hasLiveContext && patientSystemStore && operationCase
+          ? await syncPatient360FromOperationCase({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              operationCase,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
+      const commercialPatientRecord =
+        hasLiveContext && patientSystemStore && commercialCase
+          ? await syncPatient360FromCommercialCase({
+              patientSystemStore,
+              context: buildPatient360SyncContext(context),
+              commercialCase,
+              source: 'cco_workspace_bootstrap',
+              includeTimelineEvent: false,
+            })
+          : null;
 
       const noteDefinitions = mergeSavedNotes(
         buildNoteDefinitions({ latestFollowUp, workspaceContext: context }),
         savedNotes
       );
       const scheduleDraft = buildScheduleDraft(latestFollowUp, context);
+      const aftercareQueue = asArray(aftercareQueueCases)
+        .map((item) => buildAftercareQueueItem(item, context))
+        .filter(Boolean);
 
       return res.json({
         workspaceId: context.workspaceId,
@@ -633,7 +880,26 @@ function createCcoWorkspaceRouter({
         savedNotes,
         latestFollowUp,
         bookingCase,
+        consultationCase,
+        aftercareCase,
+        operationCase,
+        commercialCase,
         bookingReadout: buildBookingReadout(bookingCase, context),
+        consultationReadout: buildConsultationReadout(consultationCase, context),
+        aftercareReadout: buildAftercareReadout(aftercareCase, context),
+        operationReadout: buildOperationReadout(operationCase, context),
+        commercialReadout: buildCommercialReadout(commercialCase, context),
+        aftercareQueue,
+        patient360: serializePatient360(
+          pickLatestPatient360Record(
+            patientRecord,
+            workspacePatientRecord,
+            consultationPatientRecord,
+            aftercarePatientRecord,
+            operationPatientRecord,
+            commercialPatientRecord
+          )
+        ),
         scheduleDraft,
         scheduleOptions: SCHEDULE_OPTIONS,
         workspacePrefs: prefs
@@ -642,6 +908,7 @@ function createCcoWorkspaceRouter({
               rightWidth: prefs.rightWidth,
             }
           : null,
+        portalOverview,
         visibilityRules: NOTE_VISIBILITY_RULES,
       });
     } catch (error) {
@@ -653,6 +920,134 @@ function createCcoWorkspaceRouter({
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte ladda CCO workspace.' });
+    }
+  });
+
+  router.get('/cco-workspace/portal', async (req, res) => {
+    try {
+      const context = await getRequestContext(req);
+      assertPortalOperator(context);
+      ensurePortalStore();
+      const targetKey = normalizeText(
+        req.query.customerKey ||
+          req.query.customerEmail ||
+          req.query.customerId ||
+          req.body?.customerKey ||
+          req.body?.customerEmail ||
+          req.body?.customerId
+      );
+      const portalOverview = await portalStore.getTenantPortalOverview({
+        tenantId: context.tenantId,
+      });
+      const portal = targetKey
+        ? await portalStore.getTenantCustomerPortal({
+            tenantId: context.tenantId,
+            customerKey: targetKey,
+            viewerScope: 'owner',
+          })
+        : null;
+      await safeAudit(authStore, {
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
+        action: 'cco.portal.read',
+        outcome: 'success',
+        targetType: 'cco_portal',
+        targetId: targetKey || context.workspaceId,
+        metadata: {
+          workspaceId: context.workspaceId,
+          customerKey: targetKey || null,
+          authMode: context.actor.authMode,
+        },
+      });
+      return res.json({
+        workspaceId: context.workspaceId,
+        portalOverview,
+        portal,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa layers-portalen.' });
+    }
+  });
+
+  router.post('/cco-workspace/portal/drafts', async (req, res) => {
+    try {
+      const context = await getRequestContext(req);
+      assertPortalOperator(context);
+      ensurePortalStore();
+      const payload = await portalStore.saveTenantPortalDraft(normalizePortalInput(req, context));
+      await safeAudit(authStore, {
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
+        action: 'cco.portal.draft.save',
+        outcome: 'success',
+        targetType: 'cco_portal_draft',
+        targetId: payload.draft?.draftId || payload.portal?.customerKey || context.workspaceId,
+        metadata: {
+          workspaceId: context.workspaceId,
+          customerKey: payload.customerSummary?.customerKey || null,
+          title: payload.draft?.title || null,
+          authMode: context.actor.authMode,
+        },
+      });
+      return res.json({
+        ok: true,
+        ...payload,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte spara layers-utkast.' });
+    }
+  });
+
+  router.post('/cco-workspace/portal/publish', async (req, res) => {
+    try {
+      const context = await getRequestContext(req);
+      assertPortalOperator(context);
+      ensurePortalStore();
+      const payload = await portalStore.publishTenantPortalDraft(
+        normalizePortalInput(req, context)
+      );
+      await safeAudit(authStore, {
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
+        action: 'cco.portal.version.publish',
+        outcome: 'success',
+        targetType: 'cco_portal_version',
+        targetId: payload.version?.versionId || payload.portal?.customerKey || context.workspaceId,
+        metadata: {
+          workspaceId: context.workspaceId,
+          customerKey: payload.customerSummary?.customerKey || null,
+          versionNumber: payload.version?.versionNumber || null,
+          notificationId: payload.notification?.notificationId || null,
+          authMode: context.actor.authMode,
+        },
+      });
+      return res.json({
+        ok: true,
+        ...payload,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res
+          .status(statusCode)
+          .json({ error: error.message, metadata: error.metadata || null });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte publicera layers-skissen.' });
     }
   });
 
@@ -737,8 +1132,38 @@ function createCcoWorkspaceRouter({
         },
       });
 
+      const [bookingCase, latestFollowUp, savedNotes] = await Promise.all([
+        bookingStore.getCase({
+          tenantId: context.tenantId,
+          workspaceId: context.workspaceId,
+          conversationId: context.conversationId,
+          customerEmail: context.customerId,
+          customerId: context.customerId,
+          customerName: context.customerName,
+        }),
+        followUpStore.getLatestFollowUp(context),
+        noteStore.getNotesByConversation(context),
+      ]);
+      const patientRecord = await syncPatient360FromWorkspaceSignals({
+        patientSystemStore,
+        context: {
+          tenantId: context.tenantId,
+          workspaceId: context.workspaceId,
+          customerEmail: context.customerId,
+          customerName: context.customerName,
+          actor: context.actor,
+        },
+        bookingCase,
+        savedNotes,
+        latestFollowUp,
+        source: 'cco_workspace_note_save',
+        includeTimelineEvent: true,
+        note: saved,
+      });
+
       return res.json({
         note: saved,
+        patient360: serializePatient360(patientRecord),
         message: 'Anteckningen sparades.',
       });
     } catch (error) {
@@ -831,6 +1256,23 @@ function createCcoWorkspaceRouter({
         notes: req.body?.notes,
         actorUserId: context.userId,
       });
+      const aftercareCase =
+        aftercareStore && typeof aftercareStore.recordFollowUpSchedule === 'function'
+          ? await aftercareStore.recordFollowUpSchedule({
+              tenantId: context.tenantId,
+              workspaceId: context.workspaceId,
+              conversationId: context.conversationId,
+              customerId: context.customerId,
+              customerName: context.customerName,
+              category: created.category,
+              scheduledForIso: created.scheduledForIso,
+              doctorName: created.doctorName,
+              reminderLeadMinutes: created.reminderLeadMinutes,
+              notes: created.notes,
+              linkedFollowUpId: created.followUpId,
+              actorUserId: context.userId,
+            })
+          : null;
 
       await safeAudit(authStore, {
         tenantId: context.tenantId,
@@ -848,9 +1290,52 @@ function createCcoWorkspaceRouter({
         },
       });
 
+      const [bookingCase, savedNotes] = await Promise.all([
+        bookingStore.getCase({
+          tenantId: context.tenantId,
+          workspaceId: context.workspaceId,
+          conversationId: context.conversationId,
+          customerEmail: context.customerId,
+          customerId: context.customerId,
+          customerName: context.customerName,
+        }),
+        noteStore.getNotesByConversation(context),
+      ]);
+      const syncContext = {
+        tenantId: context.tenantId,
+        workspaceId: context.workspaceId,
+        customerEmail: context.customerId,
+        customerName: context.customerName,
+        actor: context.actor,
+      };
+      const workspacePatientRecord = await syncPatient360FromWorkspaceSignals({
+        patientSystemStore,
+        context: syncContext,
+        bookingCase,
+        savedNotes,
+        latestFollowUp: created,
+        source: 'cco_workspace_follow_up_create',
+        includeTimelineEvent: true,
+        followUp: created,
+      });
+      const patientRecord =
+        aftercareCase && patientSystemStore
+          ? await syncPatient360FromAftercareCase({
+              patientSystemStore,
+              context: syncContext,
+              aftercareCase,
+              source: 'cco_workspace_follow_up_create',
+              includeTimelineEvent: true,
+              event: Array.isArray(aftercareCase.events) ? aftercareCase.events.at(-1) : null,
+            })
+          : workspacePatientRecord;
+
       return res.json({
         followUp: created,
+        aftercareCase,
+        aftercareReadout: buildAftercareReadout(aftercareCase, context),
         scheduleDraft: buildScheduleDraft(created),
+        patient360: serializePatient360(patientRecord),
         message: 'Uppföljningen schemalades.',
       });
     } catch (error) {

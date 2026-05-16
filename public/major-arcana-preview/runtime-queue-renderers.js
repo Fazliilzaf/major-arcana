@@ -12,6 +12,91 @@
   const __CUSTOMER_DEFAULT_MAILBOXES = ["contact", "egzona", "fazli", "info", "kons", "marknad"];
   const __threadCustomerMap = new Map();
 
+  function asText(...values) {
+    for (const value of values) {
+      if (typeof value === "string") {
+        const normalized = value.trim();
+        if (normalized) return normalized;
+      }
+    }
+    return "";
+  }
+
+  function __normalizeKey(value) {
+    return asText(value).toLowerCase();
+  }
+
+  function __formatHistoryTimestamp(value) {
+    try {
+      if (typeof formatHistoryTimestamp === "function") {
+        return formatHistoryTimestamp(value);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return asText(value);
+  }
+
+  function __renderUnifiedCardIconMarkup(name) {
+    try {
+      if (typeof renderUnifiedCardIconMarkup === "function") {
+        return renderUnifiedCardIconMarkup(name);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return "";
+  }
+
+  function __getThreadPrimaryLaneId(thread) {
+    try {
+      if (typeof getThreadPrimaryLaneId === "function") {
+        return getThreadPrimaryLaneId(thread);
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return "";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => {
+      return (
+        {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[character] || character
+      );
+    });
+  }
+
+  function compactRuntimeCopy(value, fallback = "", limit = 160) {
+    const baseValue = asText(value, fallback).replace(/\s+/g, " ").trim();
+    if (!baseValue) return "";
+    if (!Number.isFinite(limit) || limit <= 0 || baseValue.length <= limit) {
+      return baseValue;
+    }
+    return `${baseValue.slice(0, Math.max(1, limit - 1)).trimEnd()}…`;
+  }
+
+  function __getPreviewState() {
+    try {
+      const workspaceApi = window.__ccoWorkspace;
+      if (workspaceApi && typeof workspaceApi.getState === "function") {
+        const previewState = workspaceApi.getState();
+        if (previewState && typeof previewState === "object") {
+          return previewState;
+        }
+      }
+    } catch (_error) {
+      /* tyst */
+    }
+    return null;
+  }
+
   function __buildWorklistConsumerUrl() {
     let mailboxIds = [];
     try {
@@ -88,15 +173,6 @@
     return null;
   }
 
-  function __lookupCustomerByThreadId(tid) {
-    if (!tid) return null;
-    const norm = String(tid).toLowerCase();
-    if (__threadCustomerMap.has(norm)) return __threadCustomerMap.get(norm);
-    const stripped = norm.replace(/[^a-z0-9]/g, "");
-    if (__threadCustomerMap.has(stripped)) return __threadCustomerMap.get(stripped);
-    return null;
-  }
-
   function __humanizeLocalpart(localpart) {
     if (!localpart) return "";
     return localpart
@@ -146,17 +222,6 @@
         if (m) email = m[0];
       }
       if (email) humanName = __humanizeLocalpart(email.split("@")[0]);
-    }
-
-    // Sista fallback: om thread-ID är ett demo-mönster (demo-XX-NNN),
-    // generera "Kund XX-NNN" istället för att lämna "Okänd avsändare".
-    // Mer informativt än fallback-text och visar tydligt att det är demo.
-    if (!humanName) {
-      const threadId = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || "";
-      const demoMatch = threadId.match(/^demo-([a-z]+)-(\d+)$/i);
-      if (demoMatch) {
-        humanName = `Kund ${demoMatch[1].toUpperCase()}-${demoMatch[2]}`;
-      }
     }
 
     if (!humanName) return;
@@ -236,8 +301,305 @@
       scanAndFix: __scanAndFixUnknownSenders,
       refetch: __fetchWorklistAndBuildMap,
       seed: __seedCustomers,
-      lookup: __lookupCustomerByThreadId,
     });
+  }
+
+  function __describeAftercareQueueBucket(bucket = "") {
+    const normalized = __normalizeKey(bucket);
+    const states = {
+      critical: {
+        label: "Kritisk",
+        tone: "escalation",
+        summary: "Kräver omedelbar uppföljning eller klinisk eskalering.",
+      },
+      due: {
+        label: "Förfallen",
+        tone: "due",
+        summary: "Planerad uppföljning är passerad och ska upp nu.",
+      },
+      today: {
+        label: "Idag",
+        tone: "today",
+        summary: "Planerad uppföljning ska tas idag.",
+      },
+      active: {
+        label: "Aktiv",
+        tone: "pending",
+        summary: "Aktivt eftervårdsarbete pågår.",
+      },
+      planned: {
+        label: "Planerad",
+        tone: "planned",
+        summary: "Uppföljningen är planerad men inte förfallen ännu.",
+      },
+      closed: {
+        label: "Stängd",
+        tone: "closed",
+        summary: "Eftervården är lugnt avslutad.",
+      },
+      paused: {
+        label: "Pausad",
+        tone: "cancelled",
+        summary: "Eftervården väntar eller är pausad.",
+      },
+    };
+    return states[normalized] || states.active;
+  }
+
+  function __describeAftercarePriority(entry = {}, index = 0) {
+    const bucket = __normalizeKey(entry.queueBucket || "active");
+    if (bucket === "critical") {
+      return {
+        rank: index + 1,
+        label: index === 0 ? "Nu först" : "Omedelbart efter",
+        reason: "Klinisk eskalering går före övrig eftervård.",
+      };
+    }
+    if (bucket === "due") {
+      return {
+        rank: index + 1,
+        label: index === 0 ? "Nu först" : "Ta härnäst",
+        reason: "Förfallen uppföljning ska upp innan planerade ärenden.",
+      };
+    }
+    if (bucket === "today") {
+      return {
+        rank: index + 1,
+        label: "Idag",
+        reason: "Dagens uppföljning bör göras innan planerade framtida ärenden.",
+      };
+    }
+    if (bucket === "active") {
+      return {
+        rank: index + 1,
+        label: "Pågår",
+        reason: "Arbetet är aktivt men blockerar inte kön före akuta lägen.",
+      };
+    }
+    return {
+      rank: index + 1,
+      label: "Planerat",
+      reason: "Kan vänta tills akuta och förfallna lägen är hanterade.",
+    };
+  }
+
+  function __getAftercareLaneEntries({ includeClosed = false, limit = 10 } = {}) {
+    const previewState = __getPreviewState();
+    const entries = Array.isArray(previewState?.aftercare?.queue)
+      ? previewState.aftercare.queue
+      : [];
+    const mappedEntries = entries
+      .map((item) => {
+        const safeItem = item && typeof item === "object" ? item : {};
+        const aftercareCase =
+          safeItem.aftercareCase && typeof safeItem.aftercareCase === "object"
+            ? safeItem.aftercareCase
+            : null;
+        const readout =
+          safeItem.aftercareReadout && typeof safeItem.aftercareReadout === "object"
+            ? safeItem.aftercareReadout
+            : null;
+        const queueBucket = asText(safeItem.queueBucket || readout?.queueBucket);
+        const queueMeta = __describeAftercareQueueBucket(queueBucket);
+        const conversationId = asText(safeItem.conversationId || aftercareCase?.conversationId);
+        return {
+          caseId: asText(aftercareCase?.aftercareCaseId),
+          conversationId,
+          customerId: asText(safeItem.customerId || aftercareCase?.customerId),
+          customerName: asText(
+            safeItem.customerName || aftercareCase?.customerName,
+            "Kund i eftervård"
+          ),
+          queueBucket: __normalizeKey(queueBucket),
+          queueLabel: queueMeta.label,
+          queueTone: queueMeta.tone,
+          queueSummary: asText(readout?.queueSummary, queueMeta.summary),
+          phase: __normalizeKey(readout?.phase || ""),
+          nextStep: asText(readout?.nextStep, aftercareCase?.nextStep || "Öppna eftervårdsytan"),
+          blockerLabel: asText(
+            readout?.blocker?.label,
+            aftercareCase?.blocker?.label || "Bedöm eftervårdsärendet och välj nästa steg"
+          ),
+          requiredActions: Array.isArray(readout?.requiredActions) ? readout.requiredActions : [],
+          operatorActions: Array.isArray(readout?.operatorActions) ? readout.operatorActions : [],
+          waitingOn: asText(readout?.waitingOn || aftercareCase?.waitingOn),
+          scheduledLabel: asText(
+            readout?.scheduledForIso ? __formatHistoryTimestamp(readout.scheduledForIso) : ""
+          ),
+          runtimeThreadId: conversationId,
+        };
+      })
+      .filter((entry) => entry.caseId && entry.conversationId)
+      .filter(
+        (entry) => includeClosed || !["closed", "paused", "cancelled"].includes(entry.queueBucket)
+      );
+    if (mappedEntries.length) {
+      return mappedEntries.slice(0, Math.max(1, limit));
+    }
+    const bootstrapReadout =
+      previewState?.aftercare?.readout && typeof previewState.aftercare.readout === "object"
+        ? previewState.aftercare.readout
+        : null;
+    const bootstrapCase =
+      previewState?.aftercare?.case && typeof previewState.aftercare.case === "object"
+        ? previewState.aftercare.case
+        : null;
+    if (!bootstrapReadout) return [];
+    const fallbackQueueBucket = __normalizeKey(bootstrapReadout.queueBucket || "active");
+    if (!includeClosed && ["closed", "paused", "cancelled"].includes(fallbackQueueBucket)) {
+      return [];
+    }
+    const queueMeta = __describeAftercareQueueBucket(fallbackQueueBucket);
+    return [
+      {
+        caseId: asText(bootstrapCase?.aftercareCaseId, "aftercare-bootstrap"),
+        conversationId: asText(
+          bootstrapCase?.conversationId || previewState?.aftercare?.contextConversationId,
+          "aftercare-bootstrap"
+        ),
+        customerId: asText(bootstrapCase?.customerId || previewState?.aftercare?.customerId),
+        customerName: asText(
+          bootstrapCase?.customerName ||
+            previewState?.schedule?.draft?.customerName ||
+            previewState?.status?.customerName,
+          "Eftervård i workspace"
+        ),
+        queueBucket: fallbackQueueBucket,
+        queueLabel: queueMeta.label,
+        queueTone: queueMeta.tone,
+        queueSummary: asText(bootstrapReadout.queueSummary, queueMeta.summary),
+        phase: __normalizeKey(bootstrapReadout.phase || ""),
+        nextStep: asText(bootstrapReadout.nextStep, "Öppna eftervårdsytan"),
+        blockerLabel: asText(
+          bootstrapReadout?.blocker?.label,
+          "Bedöm eftervårdsärendet och välj nästa steg"
+        ),
+        requiredActions: Array.isArray(bootstrapReadout?.requiredActions)
+          ? bootstrapReadout.requiredActions
+          : [],
+        operatorActions: Array.isArray(bootstrapReadout?.operatorActions)
+          ? bootstrapReadout.operatorActions
+          : [],
+        waitingOn: asText(bootstrapReadout.waitingOn),
+        scheduledLabel: asText(
+          bootstrapReadout?.scheduledForIso
+            ? __formatHistoryTimestamp(bootstrapReadout.scheduledForIso)
+            : ""
+        ),
+        runtimeThreadId: asText(
+          bootstrapCase?.conversationId || previewState?.aftercare?.contextConversationId
+        ),
+      },
+    ];
+  }
+
+  function __buildAftercareLaneCardMarkup(entry = {}, selected = false, index = 0) {
+    const selectedClass = selected ? " is-selected thread-card-selected" : "";
+    const priority = __describeAftercarePriority(entry, index);
+    const metaParts = [entry.scheduledLabel, entry.queueSummary].filter(Boolean);
+    const supportText = entry.requiredActions.length
+      ? entry.requiredActions.join(" · ")
+      : entry.waitingOn
+        ? `Väntar på ${entry.waitingOn}`
+        : entry.blockerLabel;
+    const primaryAction = Array.isArray(entry.operatorActions)
+      ? entry.operatorActions.find((action) => __normalizeKey(action?.emphasis) === "primary") ||
+        entry.operatorActions[0]
+      : null;
+    const actionType = __normalizeKey(primaryAction?.type);
+    const actionKey = asText(primaryAction?.key);
+    const actionLabel = asText(primaryAction?.label);
+    const actionSurface = __normalizeKey(primaryAction?.surfaceAction);
+    const actionMarkup =
+      actionType === "case_action" && actionKey && actionLabel
+        ? `<button class="aftercare-lane-inline-action" type="button"
+            data-aftercare-action-key="${escapeHtml(actionKey)}"
+            data-aftercare-thread-id="${escapeHtml(entry.runtimeThreadId || entry.conversationId)}">${escapeHtml(
+              compactRuntimeCopy(actionLabel, actionLabel, 30)
+            )}</button>`
+        : actionType === "surface_action" && actionLabel
+          ? actionSurface === "schedule_open"
+            ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                data-runtime-schedule-open aria-controls="schedule-shell">${escapeHtml(
+                  compactRuntimeCopy(actionLabel, actionLabel, 30)
+                )}</button>`
+            : actionSurface === "note_open"
+              ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                  data-runtime-note-open aria-controls="note-shell">${escapeHtml(
+                    compactRuntimeCopy(actionLabel, actionLabel, 30)
+                  )}</button>`
+              : actionSurface === "studio_open"
+                ? `<button class="aftercare-lane-inline-action aftercare-lane-inline-action--secondary" type="button"
+                    data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(
+                      entry.runtimeThreadId || entry.conversationId
+                    )}" aria-controls="studio-shell">${escapeHtml(
+                      compactRuntimeCopy(actionLabel, actionLabel, 30)
+                    )}</button>`
+                : ""
+          : "";
+    return `<button class="thread-card queue-history-item unified-queue-card aftercare-lane-card${selectedClass}" type="button"
+      data-aftercare-open-case-id="${escapeHtml(entry.caseId)}"
+      data-aftercare-open-conversation-id="${escapeHtml(entry.conversationId)}"
+      data-aftercare-open-customer-id="${escapeHtml(entry.customerId)}"
+      data-runtime-thread="${escapeHtml(entry.runtimeThreadId)}"
+      data-aftercare-queue-bucket="${escapeHtml(entry.queueBucket || "active")}"
+      data-aftercare-priority-rank="${escapeHtml(String(priority.rank || index + 1))}"
+      aria-pressed="${selected ? "true" : "false"}">
+        <div class="aftercare-lane-card-head">
+          <div class="aftercare-lane-card-priority">
+            <span class="patient360-aftercare-chip patient360-aftercare-chip--queue" data-priority="${escapeHtml(
+              entry.queueTone || "planned"
+            )}"><b>Kö</b><span>${escapeHtml(entry.queueLabel || "Eftervård")}</span></span>
+            <span class="aftercare-lane-priority-kicker">${escapeHtml(priority.label)}</span>
+          </div>
+          <span class="aftercare-lane-card-cta">${escapeHtml(
+            entry.runtimeThreadId ? "Öppna tråd" : "Ladda case"
+          )}</span>
+        </div>
+        <div class="aftercare-lane-card-body">
+          <strong>${escapeHtml(compactRuntimeCopy(entry.customerName, entry.customerName, 40))}</strong>
+          <p>${escapeHtml(compactRuntimeCopy(entry.nextStep, entry.blockerLabel || "-", 110))}</p>
+          <small class="aftercare-lane-priority-reason">${escapeHtml(
+            compactRuntimeCopy(priority.reason, priority.reason, 96)
+          )}</small>
+          ${
+            supportText
+              ? `<small>${escapeHtml(compactRuntimeCopy(supportText, supportText, 92))}</small>`
+              : ""
+          }
+        </div>
+        ${
+          metaParts.length
+            ? `<div class="aftercare-lane-card-meta">${escapeHtml(
+                compactRuntimeCopy(metaParts.join(" · "), metaParts.join(" · "), 76)
+              )}</div>`
+            : ""
+        }
+        ${actionMarkup ? `<div class="aftercare-lane-card-actions">${actionMarkup}</div>` : ""}
+      </button>`;
+  }
+
+  function __renderAftercareLaneList(entries = []) {
+    const listElement = document.querySelector(".queue-history-list");
+    if (!listElement) return;
+    if (listElement.dataset) {
+      listElement.dataset.queueListMode = "aftercare";
+    }
+    const previewState = __getPreviewState();
+    const selectedConversationId = __normalizeKey(
+      asText(
+        previewState?.runtime?.selectedThreadId || previewState?.aftercare?.contextConversationId
+      )
+    );
+    listElement.innerHTML = entries
+      .map((entry, index) =>
+        __buildAftercareLaneCardMarkup(
+          entry,
+          selectedConversationId && __normalizeKey(entry.conversationId) === selectedConversationId,
+          index
+        )
+      )
+      .join("");
   }
 
   // ============================================================
@@ -1038,9 +1400,9 @@
       ];
     }
 
-    // FIX9: hård fallback-tabell för demo-fixtures (22 id, speglar app.js +
-    // demo-fixtures-data.js). Pipeline kan fortfarande rensa customerName;
-    // tills root cause är spårad: lookup direkt på demo-id.
+    // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
+    // app.js fixture-init och denna renderer wipar customerName/customerInitials.
+    // Tills vi spårat root cause: lookup direkt på demo-id.
     const DEMO_FIXTURE_FALLBACKS = {
       "demo-mb-001": { customerName: "Morten Bak Kristoffersen", customerInitials: "MB" },
       "demo-jk-002": { customerName: "Johan Karlsson", customerInitials: "JK" },
@@ -1048,207 +1410,20 @@
       "demo-el-004": { customerName: "Erik Lindqvist", customerInitials: "EL" },
       "demo-as-005": { customerName: "Anna Svensson", customerInitials: "AS" },
       "demo-pn-006": { customerName: "Peter Nilsson", customerInitials: "PN" },
-      "demo-eg-101": { customerName: "Lisa Andersson", customerInitials: "LA" },
-      "demo-eg-102": { customerName: "Tomas Berg", customerInitials: "TB" },
-      "demo-ko-101": { customerName: "Maria Lund", customerInitials: "ML" },
-      "demo-ko-102": { customerName: "Anders Pettersson", customerInitials: "AP" },
-      "demo-fa-101": { customerName: "Carolina Holm", customerInitials: "CH" },
-      "demo-fa-102": { customerName: "Mikael Engström", customerInitials: "ME" },
-      "demo-re-101": { customerName: "Sofia Berg", customerInitials: "SB" },
-      "demo-re-102": { customerName: "Daniel Ek", customerInitials: "DE" },
-      "demo-in-101": { customerName: "Helena Nyström", customerInitials: "HN" },
-      "demo-in-102": { customerName: "Erik Lindberg", customerInitials: "EL" },
-      "demo-kn-101": { customerName: "Johanna Wikström", customerInitials: "JW" },
-      "demo-kn-102": { customerName: "Patrik Sandberg", customerInitials: "PS" },
-      "demo-ma-101": { customerName: "Kampanjbyrån AB", customerInitials: "KA" },
-      "demo-ma-102": { customerName: "Therese Falk", customerInitials: "TF" },
     };
-
-    function __pickFirstNonEmptyText(...candidates) {
-      for (const c of candidates) {
-        const t = String(c ?? "").trim();
-        if (t) return t;
-      }
-      return "";
-    }
-
-    function __deriveFixtureInitials(name) {
-      const parts = String(name || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-      if (parts.length >= 2) {
-        return `${(parts[0][0] || "").toUpperCase()}${(
-          parts[parts.length - 1][0] || ""
-        ).toUpperCase()}`;
-      }
-      if (parts.length === 1 && parts[0].length >= 2) {
-        return parts[0].slice(0, 2).toUpperCase();
-      }
-      return "?";
-    }
-
-    // System-mail-parser fallback (integrerad 2026-05-15 från app/system-mail-display.js).
-    // Kör window.MajorArcanaSystemMailParser.parse på thread:s sender/subject/body
-    // när customerName är tomt ELLER ser ut som system-namn (No Reply, Notifications,
-    // Smartdocs, etc.). Resultatet skrivs DIREKT i thread så cards renderar med
-    // kundnamn första gången — ingen MutationObserver-flash längre.
-    function __extractSenderEmail(thread) {
-      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
-      return (
-        thread.customerEmail ||
-        thread.fromEmail ||
-        thread.from?.address ||
-        thread.from?.emailAddress?.address ||
-        raw.from?.address ||
-        raw.from?.emailAddress?.address ||
-        raw.sender?.emailAddress?.address ||
-        raw.latestMessage?.from?.address ||
-        raw.latestMessage?.from?.emailAddress?.address ||
-        ""
-      );
-    }
-    function __extractSenderName(thread) {
-      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
-      return (
-        thread.customerName ||
-        thread.fromName ||
-        thread.from?.name ||
-        thread.from?.emailAddress?.name ||
-        raw.from?.name ||
-        raw.from?.emailAddress?.name ||
-        raw.sender?.emailAddress?.name ||
-        raw.latestMessage?.from?.name ||
-        ""
-      );
-    }
-    function __extractSubject(thread) {
-      return String(thread.displaySubject || thread.subject || "").trim();
-    }
-    function __extractBody(thread) {
-      const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
-      return String(
-        thread.preview ||
-        thread.systemPreview ||
-        raw.bodyPreview ||
-        raw.latestMessage?.bodyPreview ||
-        ""
-      );
-    }
-    function __tryParseSystemMail(thread) {
-      if (typeof window === "undefined") return null;
-      const parser = window.MajorArcanaSystemMailParser;
-      if (!parser || typeof parser.parse !== "function") return null;
-      const senderEmail = __extractSenderEmail(thread);
-      const senderName = __extractSenderName(thread);
-      // Bara om sender ser ut som system — annars riskerar vi att skriva över
-      // riktiga kundnamn med en false positive.
-      if (typeof parser.isSystemSender === "function") {
-        if (!parser.isSystemSender(senderEmail, senderName)) return null;
-      }
-      const result = parser.parse({
-        senderEmail,
-        senderName,
-        subject: __extractSubject(thread),
-        body: __extractBody(thread),
-      });
-      return result || null;
-    }
-
     function applyDemoFixtureFallback(thread) {
       if (!thread || typeof thread !== "object") return thread;
-      const currentName = String(thread.customerName || "").trim();
-      const looksSystem =
-        currentName !== "" &&
-        /^(no.?reply|noreply|notifications?|smartdocs|getaccept|bokadirekt|cliento|kivra|pipedrive|automated)/i.test(currentName);
-      const needsName = !currentName || /^okänd/i.test(currentName) || looksSystem;
+      const fb = DEMO_FIXTURE_FALLBACKS[String(thread.id || "")];
+      if (!fb) return thread;
+      const needsName =
+        !String(thread.customerName || "").trim() ||
+        /^okänd/i.test(String(thread.customerName || "").trim());
       if (!needsName) return thread;
-
-      const tid = String(thread.id || "");
-      let resolvedName = "";
-      let resolvedInitials = "";
-
-      const fbHard = DEMO_FIXTURE_FALLBACKS[tid];
-      if (fbHard) {
-        resolvedName = String(fbHard.customerName || "").trim();
-        resolvedInitials = String(fbHard.customerInitials || "").trim();
-      }
-
-      if (
-        !resolvedName &&
-        typeof window !== "undefined" &&
-        window.__DemoFixtures &&
-        typeof window.__DemoFixtures.data === "object"
-      ) {
-        const df = window.__DemoFixtures.data[tid];
-        if (df && typeof df === "object") {
-          resolvedName = __pickFirstNonEmptyText(df.name, df.customerName, df.displayName);
-          resolvedInitials = __pickFirstNonEmptyText(df.initials, df.customerInitials);
-        }
-      }
-
-      if (!resolvedName) {
-        const seeded = __lookupCustomerByThreadId(tid);
-        if (seeded?.name) resolvedName = String(seeded.name).trim();
-      }
-
-      if (!resolvedName) {
-        const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
-        resolvedName = __pickFirstNonEmptyText(
-          raw.customerSummary?.customerName,
-          raw.customerName,
-          raw.sender,
-          thread.fromName,
-          raw.from?.name,
-          raw.latestMessage?.from?.name,
-          raw.latestMessage?.sender
-        );
-      }
-
-      // System-mail-parser fallback: när raw-fallback också gav oss något
-      // som "No Reply"/"Notifications"/"Smartdocs", kör parsern på subject+body
-      // för att plocka ut det FAKTISKA kundnamnet ur mejlet.
-      let systemMailLabel = "";
-      const resolvedLooksSystem =
-        resolvedName &&
-        /^(no.?reply|noreply|notifications?|smartdocs|getaccept|bokadirekt|cliento|kivra|pipedrive|automated)/i.test(
-          resolvedName
-        );
-      if (!resolvedName || /^okänd/i.test(resolvedName) || resolvedLooksSystem) {
-        const parserResult = __tryParseSystemMail(thread);
-        if (parserResult) {
-          if (parserResult.customerName) {
-            resolvedName = parserResult.customerName;
-            resolvedInitials = ""; // räkna om initialer på riktiga namnet
-          }
-          if (parserResult.systemLabel) {
-            systemMailLabel = parserResult.systemLabel;
-          }
-        }
-      }
-
-      if (!resolvedName || /^okänd/i.test(resolvedName)) {
-        // Inget namn kunde lösas, men om vi vet vilket system det är — behåll
-        // åtminstone via-pillen på kortet så användaren förstår att det är
-        // ett system-mejl.
-        if (systemMailLabel) return { ...thread, systemMailLabel };
-        return thread;
-      }
-
-      const initials =
-        String(thread.customerInitials || "").trim() ||
-        String(thread.avatarInitials || "").trim() ||
-        resolvedInitials ||
-        __deriveFixtureInitials(resolvedName);
-      const avatarInitials =
-        String(thread.avatarInitials || "").trim() || initials || resolvedInitials;
-
       return {
         ...thread,
-        customerName: resolvedName,
-        customerInitials: initials,
-        avatarInitials,
-        ...(systemMailLabel ? { systemMailLabel } : {}),
+        customerName: fb.customerName,
+        customerInitials: thread.customerInitials || fb.customerInitials,
+        avatarInitials: thread.avatarInitials || fb.customerInitials,
       };
     }
 
@@ -1407,13 +1582,19 @@
           ["mailbox", "truth", "i", "wave"].every((part) =>
             normalizedRawPreview.includes(normalizeCardValue(part))
           );
-        const previewLooksRuntimeError =
-          normalizedRawPreview.includes(normalizeCardValue("is not defined")) ||
-          normalizedRawPreview.includes(normalizeCardValue("ReferenceError")) ||
-          normalizedRawPreview.includes(normalizeCardValue("TypeError")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("is not defined")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("ReferenceError")) ||
-          normalizedPreviewCopy.includes(normalizeCardValue("TypeError"));
+        const runtimeErrorNeedles = [
+          "is not defined",
+          "ReferenceError",
+          "TypeError",
+          "SyntaxError",
+          "Cannot access",
+          "Cannot read properties",
+          "Failed to fetch",
+        ].map((value) => normalizeCardValue(value));
+        const previewLooksRuntimeError = runtimeErrorNeedles.some(
+          (needle) =>
+            normalizedRawPreview.includes(needle) || normalizedPreviewCopy.includes(needle)
+        );
         const previewLooksProviderNoise =
           /^\s*du\s+f[åa]r\s+inte\s+ofta\s+e-post/i.test(cleanedValue) ||
           /^\s*you\s+don['’]t\s+often\s+get\s+email/i.test(cleanedValue) ||
@@ -1715,24 +1896,6 @@
       };
     }
 
-    function buildCustomerClusterArticleDataAttributes(thread = {}) {
-      const cluster = thread?.customerCluster;
-      if (!cluster || typeof cluster !== "object") return "";
-      if (Number(cluster.groupSize) < 2 || !cluster.groupId || !cluster.role) return "";
-      const groupId = asText(cluster.groupId);
-      const role = asText(cluster.role);
-      const size = asText(String(cluster.groupSize));
-      const customerKey = asText(
-        thread?.customerKey,
-        thread?.raw?.customerKey || thread?.raw?.customerSummary?.customerKey
-      ).toLowerCase();
-      let attrs = ` data-cc-cluster-group="${escapeHtml(groupId)}" data-cc-cluster-role="${escapeHtml(role)}" data-cc-cluster-size="${escapeHtml(size)}"`;
-      if (customerKey) {
-        attrs += ` data-customer-key="${escapeHtml(customerKey)}"`;
-      }
-      return attrs;
-    }
-
     function buildThreadCardMarkup(thread, index, selected) {
       const applyThreadFixtureFallback =
         typeof applyDemoFixtureFallback === "function"
@@ -1917,7 +2080,6 @@
             ),
             skipNormalizeCardContent: true,
             useThreadCardClass: true,
-            articleDataAttributes: buildCustomerClusterArticleDataAttributes(thread),
           }
         );
         // v5: alltid returnera unifiedMarkup direkt (innehåller card-footer + mailbox-stack
@@ -2069,12 +2231,9 @@
                 provenanceCopy
               )}</p></div>`
             : "";
-        const systemMailLabelAttr = thread?.systemMailLabel
-          ? ` data-system-mail-label="${escapeHtml(String(thread.systemMailLabel))}"`
-          : "";
         return `<article class="thread-card thread-card-live${crossMailboxClass}${selectedClass}${priorityClass}" data-runtime-thread="${escapeHtml(
           asText(thread?.id)
-        )}" data-worklist-source="${escapeHtml(source)}" data-row-family="${escapeHtml(rowFamily)}"${foundationMode ? ` data-foundation-mode="${escapeHtml(foundationMode)}"` : ""}${foundationSource ? ` data-foundation-source="${escapeHtml(foundationSource)}"` : ""}${systemMailLabelAttr}>
+        )}" data-worklist-source="${escapeHtml(source)}" data-row-family="${escapeHtml(rowFamily)}"${foundationMode ? ` data-foundation-mode="${escapeHtml(foundationMode)}"` : ""}${foundationSource ? ` data-foundation-source="${escapeHtml(foundationSource)}"` : ""}>
           <div class="thread-card-head">
             <div class="thread-card-identity">
               <span class="avatar" aria-hidden="true">${escapeHtml(
@@ -2157,12 +2316,9 @@
           : "active"
       );
       const selectedClass = selected ? " is-selected thread-card-selected" : "";
-      const sysLabelAttrV3 = thread?.systemMailLabel
-        ? ` data-system-mail-label="${escapeHtml(String(thread.systemMailLabel))}"`
-        : "";
       return `<article class="thread-card queue-history-item unified-queue-card${selectedClass}" data-runtime-thread="${escapeHtml(
         asText(thread?.id)
-      )}" data-history-conversation="${escapeHtml(asText(thread?.id))}"${sysLabelAttrV3}>
+      )}" data-history-conversation="${escapeHtml(asText(thread?.id))}">
         <div class="card-top">
           <div class="avatar-wrap">
             <span class="avatar queue-history-avatar" aria-hidden="true">${escapeHtml(
@@ -2196,18 +2352,18 @@
           </div>
         </div>
         <div class="card-footer">
-          <span class="chip chip-gray">${renderUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
+          <span class="chip chip-gray">${__renderUnifiedCardIconMarkup("mail")}<span class="chip-label">${escapeHtml(
             asText(historyItem.mailboxLabel, "Kons")
           )}</span></span>
-          <span class="chip chip-blue">${renderUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
-          <span class="chip chip-pink">${renderUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
-          <span class="chip chip-green">${renderUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
+          <span class="chip chip-blue">${__renderUnifiedCardIconMarkup("users")}<span class="chip-label">Samma kund har sk...</span></span>
+          <span class="chip chip-pink">${__renderUnifiedCardIconMarkup("alert")}<span class="chip-label">Behöver uppmärksa...</span></span>
+          <span class="chip chip-green">${__renderUnifiedCardIconMarkup("chevron-right")}<span class="chip-label">Fortsätt från samma</span></span>
         </div>
         ${
           trail.length > 1
             ? `<div class="mailbox-trail">
                 <span class="trail-bar" aria-hidden="true"></span>
-                ${renderUnifiedCardIconMarkup("inbox")}
+                ${__renderUnifiedCardIconMarkup("inbox")}
                 <span class="trail-label">MAILBOXSPÅR</span>
                 ${visibleTrail
                   .map(
@@ -2485,6 +2641,7 @@
       const normalizedLaneId = normalizeKey(laneId);
       const intentLabel = asText(thread?.intentLabel);
       const normalizedIntent = normalizeKey(intentLabel);
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       const intentDisplayMap = {
         pricing_question: "Prisfråga",
         price_question: "Prisfråga",
@@ -2520,6 +2677,12 @@
       if (normalizedIntent && normalizedIntent !== "oklart" && normalizedIntent !== "unclear") {
         return compactRuntimeCopy(intentLabel, "", 18);
       }
+      if (normalizedLaneId === "operation") {
+        return compactRuntimeCopy(asText(raw.plannedTreatment, raw.caseType, "Operation"), "", 22);
+      }
+      if (normalizedLaneId === "commercial") {
+        return compactRuntimeCopy(asText(raw.offerType, raw.paymentContext, "Offert"), "", 20);
+      }
       if (normalizedLaneId === "medical") return "Medicinsk fråga";
       if (normalizedLaneId === "bookable") return "Bokning";
       if (normalizedLaneId === "review") return "Granskning";
@@ -2536,8 +2699,37 @@
       const nextActionLabel = asText(thread?.nextActionLabel);
       const whyInFocus = asText(thread?.whyInFocus);
       const normalizedWhy = normalizeKey(whyInFocus);
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
       if (normalizedLaneId === "act_now") return "Svar krävs nu";
       if (normalizedLaneId === "review") return "Behöver granskning";
+      if (normalizedLaneId === "operation") {
+        const operationStatus = normalizeKey(
+          raw.operationStatus || raw.caseStatus || raw.plannedTreatmentStatus || statusLabel
+        );
+        const operationContext = normalizeKey(
+          asText(raw.treatmentContext, raw.medicalContext, whyInFocus)
+        );
+        if (operationStatus.includes("blocked") || operationContext.includes("klarering")) {
+          return "Klarering krävs";
+        }
+        if (operationStatus.includes("complete")) {
+          return "Operationsspår klart";
+        }
+        if (operationContext.includes("handoff") || operationContext.includes("genomforande")) {
+          return "Klinisk handoff";
+        }
+        return "Operationsspår aktivt";
+      }
+      if (normalizedLaneId === "commercial") {
+        const commercialStatus = normalizeKey(
+          raw.commercialStatus || raw.paymentStatus || raw.offerStatus || statusLabel
+        );
+        if (commercialStatus.includes("deposit")) return "Deposition väntar";
+        if (commercialStatus.includes("quote_sent")) return "Offert väntar";
+        if (commercialStatus.includes("needs_review")) return "Pris kräver granskning";
+        if (normalizedWhy.includes("betal")) return "Betalning driver";
+        return "Commercial aktiv";
+      }
       if (normalizedLaneId === "medical") return "Medicinsk bedömning";
       if (normalizedLaneId === "bookable") return "Tid kan erbjudas";
       if (normalizedLaneId === "later") {
@@ -2601,6 +2793,8 @@
       const normalizedLaneId = normalizeKey(laneId);
       const nextActionLabel = asText(thread?.nextActionLabel);
       if (nextActionLabel) return nextActionLabel;
+      if (normalizedLaneId === "operation") return "Öppna operationsspår";
+      if (normalizedLaneId === "commercial") return "Öppna commercial";
       if (normalizedLaneId === "bookable") return "Erbjud tid";
       if (normalizedLaneId === "review") return "Granska tråden";
       if (normalizedLaneId === "medical") return "Läs medicinskt";
@@ -2942,9 +3136,18 @@
       granska: "granska",
       unclear: "oklart",
       oklart: "oklart",
+      aftercare: "eftervard",
+      eftervard: "eftervard",
+      eftervård: "eftervard",
       bookable: "bokning",
       booking: "bokning",
       bokning: "bokning",
+      consultation: "consultation",
+      consult: "consultation",
+      consultation_request: "consultation",
+      operation: "operation",
+      operations: "operation",
+      commercial: "commercial",
       medical: "medicinsk",
       medicinsk: "medicinsk",
       handled: "admin",
@@ -2952,16 +3155,12 @@
       all: "admin",
     };
     function v5LaneCode(laneId, thread) {
-      const key =
-        typeof normalizeKey === "function" ? normalizeKey(laneId) : asText(laneId).toLowerCase();
+      const key = __normalizeKey(laneId);
       if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
       // Fallback: härled från tags eller via getThreadPrimaryLaneId
-      if (thread && typeof getThreadPrimaryLaneId === "function") {
-        const derived = getThreadPrimaryLaneId(thread);
-        const derivedKey =
-          typeof normalizeKey === "function"
-            ? normalizeKey(derived)
-            : asText(derived).toLowerCase();
+      if (thread) {
+        const derived = __getThreadPrimaryLaneId(thread);
+        const derivedKey = __normalizeKey(derived);
         if (V5_LANE_MAP[derivedKey]) return V5_LANE_MAP[derivedKey];
       }
       // Direkt tag-koll som sista fallback
@@ -2970,6 +3169,9 @@
       if (tags.includes("sprint")) return "sprint";
       if (tags.includes("later")) return "senare";
       if (tags.includes("bookable") || tags.includes("booking")) return "bokning";
+      if (tags.includes("consultation") || tags.includes("consult")) return "consultation";
+      if (tags.includes("operation")) return "operation";
+      if (tags.includes("commercial")) return "commercial";
       if (tags.includes("review") || tags.includes("granska")) return "granska";
       if (tags.includes("medical") || tags.includes("medicinsk")) return "medicinsk";
       if (tags.includes("unclear") || tags.includes("oklart")) return "oklart";
@@ -2983,7 +3185,11 @@
       admin: "Admin",
       granska: "Granska",
       oklart: "Oklart",
+      eftervard: "Eftervård",
       bokning: "Bokning",
+      consultation: "Konsultation",
+      operation: "Operation",
+      commercial: "Commercial",
       medicinsk: "Medicinsk",
     };
     function v5LaneLabel(code) {
@@ -3003,8 +3209,14 @@
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
         oklart:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        eftervard:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M7 12h2.8l1.7-3 2.7 7 2-4H19"/></svg>',
         bokning:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>',
+        operation:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 17V8l4-3 4 3v9"/><path d="M10 12h4"/><path d="M12 10v4"/></svg>',
+        commercial:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"/></svg>',
         medicinsk:
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
       };
@@ -3397,26 +3609,222 @@
           </div>`
         : "";
 
-      // Action cluster — primary-action använder data-runtime-studio-open så
-      // runtime-action-engine kan binda klick precis som tidigare för chip-green.
+      // Action cluster — primärknappen går normalt via studio-open, men
+      // operations- och commercialrader kan nu öppna sin egen workspace-surface direkt.
       const studioThreadAttr = runtimeThreadId
         ? ` data-runtime-studio-open data-runtime-studio-thread-id="${escapeHtml(runtimeThreadId)}"`
         : "";
+      const operationThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="operation" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="operation"';
+      const consultationThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="consultation" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="consultation"';
+      const commercialThreadAttr = runtimeThreadId
+        ? ` data-runtime-domain-open="commercial" data-runtime-domain-thread-id="${escapeHtml(
+            runtimeThreadId
+          )}"`
+        : ' data-runtime-domain-open="commercial"';
+      const normalizedNextStr = normalizeKey(nextStr);
+      const laneQuickActionSignal = normalizeKey(
+        [
+          whatStr,
+          nextStr,
+          unifiedModel.previewLine,
+          unifiedModel.explanatoryLine,
+          unifiedModel.secondarySnippet,
+          ...whyEntries.map((entry) => asText(typeof entry === "string" ? entry : entry?.text)),
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
       const primaryLabel =
         v5Lane === "bokning"
           ? "Bekräfta bokning"
-          : v5Lane === "granska"
-            ? "Granska"
-            : v5Lane === "oklart"
-              ? "Öppna"
-              : "Svara";
+          : v5Lane === "operation"
+            ? laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+              ? "Eskalera utfall"
+              : laneQuickActionSignal.includes("pågår") ||
+                  laneQuickActionSignal.includes("pagar") ||
+                  laneQuickActionSignal.includes("status")
+                ? "Koordinera operation"
+                : laneQuickActionSignal.includes("eftervård") ||
+                    laneQuickActionSignal.includes("slutförd") ||
+                    laneQuickActionSignal.includes("slutford")
+                  ? "Öppna eftervård"
+                  : laneQuickActionSignal.includes("klarering")
+                    ? "Driv klarering"
+                    : laneQuickActionSignal.includes("handoff") ||
+                        laneQuickActionSignal.includes("operationsstart") ||
+                        laneQuickActionSignal.includes("idag") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Lås handoff"
+                      : "Öppna operation"
+            : v5Lane === "consultation"
+              ? laneQuickActionSignal.includes("samtycke")
+                ? "Säkra samtycke"
+                : laneQuickActionSignal.includes("dokument")
+                  ? "Lås upp dokument"
+                  : laneQuickActionSignal.includes("klinis")
+                    ? "Verifiera kliniskt"
+                    : laneQuickActionSignal.includes("planera") ||
+                        laneQuickActionSignal.includes("bokning") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Planera konsultation"
+                      : "Öppna konsultation"
+              : v5Lane === "commercial"
+                ? laneQuickActionSignal.includes("betalning") ||
+                  laneQuickActionSignal.includes("deposition")
+                  ? "Lås upp betalning"
+                  : laneQuickActionSignal.includes("offert")
+                    ? "Följ upp offert"
+                    : laneQuickActionSignal.includes("bokning") ||
+                        laneQuickActionSignal.includes("klartecken") ||
+                        laneQuickActionSignal.includes("redo")
+                      ? "Lämna till bokning"
+                      : "Öppna commercial"
+                : v5Lane === "granska"
+                  ? "Granska"
+                  : v5Lane === "oklart"
+                    ? "Öppna"
+                    : "Svara";
+      const hasOperationQuickAction =
+        v5Lane === "operation" ||
+        normalizedNextStr === "oppna_operationsspar" ||
+        laneQuickActionSignal.includes("operationsplan") ||
+        laneQuickActionSignal.includes("operation") ||
+        laneQuickActionSignal.includes("klarering");
+      const hasCommercialQuickAction =
+        v5Lane === "commercial" ||
+        normalizedNextStr === "oppna_commercial" ||
+        laneQuickActionSignal.includes("offert") ||
+        laneQuickActionSignal.includes("deposition") ||
+        laneQuickActionSignal.includes("betalning") ||
+        laneQuickActionSignal.includes("pris");
+      const hasConsultationQuickAction =
+        v5Lane === "consultation" ||
+        normalizedNextStr === "oppna_konsultation" ||
+        laneQuickActionSignal.includes("samtycke") ||
+        laneQuickActionSignal.includes("konsultation") ||
+        laneQuickActionSignal.includes("dokument") ||
+        laneQuickActionSignal.includes("klinis");
+      const hasConsultationConsentSignal = laneQuickActionSignal.includes("samtycke");
+      const hasConsultationDocumentSignal = laneQuickActionSignal.includes("dokument");
+      const hasConsultationClinicalSignal = laneQuickActionSignal.includes("klinis");
+      const laneQuickActionDestination = hasCommercialQuickAction
+        ? "betalning"
+        : hasConsultationQuickAction
+          ? "medicinsk"
+          : "medicinsk";
+      const laneQuickActionTemplate = hasCommercialQuickAction
+        ? "betalning"
+        : hasConsultationClinicalSignal
+          ? "allergi"
+          : hasConsultationDocumentSignal
+            ? "behandling"
+            : hasConsultationQuickAction
+              ? "samtycke"
+              : "allergi";
+      const laneQuickAction = hasOperationQuickAction
+        ? {
+            action: "note",
+            key: "operation",
+            label:
+              laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+                ? "Utfallsnot"
+                : laneQuickActionSignal.includes("pågår") ||
+                    laneQuickActionSignal.includes("pagar") ||
+                    laneQuickActionSignal.includes("status")
+                  ? "Statusnot"
+                  : "Klareringsnot",
+            aria:
+              laneQuickActionSignal.includes("utfall") ||
+              laneQuickActionSignal.includes("postoperativ")
+                ? "Öppna utfallsanteckning"
+                : laneQuickActionSignal.includes("pågår") ||
+                    laneQuickActionSignal.includes("pagar") ||
+                    laneQuickActionSignal.includes("status")
+                  ? "Öppna statusanteckning"
+                  : "Öppna klareringsanteckning",
+          }
+        : hasConsultationQuickAction
+          ? {
+              action: "note",
+              key: "consultation",
+              label: hasConsultationClinicalSignal
+                ? "Klinisk not"
+                : hasConsultationDocumentSignal && !hasConsultationConsentSignal
+                  ? "Dokumentnot"
+                  : "Samtyckesnot",
+              aria: hasConsultationClinicalSignal
+                ? "Öppna klinisk anteckning"
+                : hasConsultationDocumentSignal && !hasConsultationConsentSignal
+                  ? "Öppna dokumentanteckning"
+                  : "Öppna samtyckesanteckning",
+            }
+          : hasCommercialQuickAction
+            ? {
+                action: "note",
+                key: "commercial",
+                label: laneQuickActionSignal.includes("deposition")
+                  ? "Depositionsnot"
+                  : laneQuickActionSignal.includes("betalning")
+                    ? "Betalningsnot"
+                    : "Prisnot",
+                aria: laneQuickActionSignal.includes("deposition")
+                  ? "Öppna depositionsanteckning"
+                  : laneQuickActionSignal.includes("betalning")
+                    ? "Öppna betalningsanteckning"
+                    : "Öppna prisanteckning",
+              }
+            : null;
+      const laneQuickActionMarkup = laneQuickAction
+        ? `<button class="queue-inline-lane-action quick-action-pill" type="button"
+            data-quick-action="${escapeHtml(laneQuickAction.action)}"
+            data-lane-quick-action="${escapeHtml(laneQuickAction.key)}"
+            data-runtime-note-open
+            data-runtime-note-thread-id="${escapeHtml(runtimeThreadId)}"
+            data-runtime-note-destination="${escapeHtml(laneQuickActionDestination)}"
+            data-runtime-note-template="${escapeHtml(laneQuickActionTemplate)}"
+            title="${escapeHtml(laneQuickAction.aria)}"
+            aria-label="${escapeHtml(laneQuickAction.aria)}">${escapeHtml(
+              laneQuickAction.label
+            )}</button>`
+        : "";
       const actionClusterMarkup = `<div class="action-cluster">
         <button class="action-icon" type="button" data-quick-action="history" title="Historik" aria-label="Öppna historik">${V5_ACTION_ICONS.history}</button>
         <button class="action-icon" type="button" data-quick-action="later" title="Svara senare" aria-label="Svara senare">${V5_ACTION_ICONS.later}</button>
         <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
         <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
         <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
-        <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
+        ${laneQuickActionMarkup}
+        <button class="primary-action" type="button" data-quick-action="${escapeHtml(
+          v5Lane === "operation"
+            ? "operation_surface"
+            : v5Lane === "consultation"
+              ? "consultation_surface"
+              : v5Lane === "commercial"
+                ? "commercial_surface"
+                : "studio"
+        )}" data-quick-mode="reply"${
+          v5Lane === "operation"
+            ? operationThreadAttr
+            : v5Lane === "consultation"
+              ? consultationThreadAttr
+              : v5Lane === "commercial"
+                ? commercialThreadAttr
+                : studioThreadAttr
+        }${
+          v5Lane === "operation" || v5Lane === "consultation" || v5Lane === "commercial"
+            ? ""
+            : ' aria-controls="studio-shell"'
+        }>
           ${escapeHtml(primaryLabel)}
           ${V5_ACTION_ICONS.arrowRight}
         </button>
@@ -3492,28 +3900,19 @@
       const rawPreviewBody = asText(unifiedModel.previewLine);
       const subtitleText = asText(unifiedModel.subtitle);
       const subjectText = subtitleText || whatStr;
-      // Prioriterad preview-resolution:
-      // 1. previewLine om unik från subject
-      // 2. fallback till bodyPreview / snippet / nextActionSummary / systemPreview
-      // 3. fallback till thread.preview (raw från worklist-API)
-      // 4. om allt tomt → tom string → .warm-preview döljs
-      const fallbackPreview = asText(
-        unifiedModel.bodyPreview ||
-          unifiedModel.snippet ||
-          unifiedModel.summary ||
-          unifiedModel.nextActionSummary ||
-          unifiedModel.systemPreview ||
-          unifiedModel.detail ||
-          ""
-      );
+      const previewLooksBroken =
+        /(?:Cannot access|ReferenceError|TypeError|SyntaxError|is not defined|Cannot read properties)/i.test(
+          rawPreviewBody
+        );
       const previewBody =
-        rawPreviewBody && rawPreviewBody !== subjectText && !rawPreviewBody.startsWith(subjectText)
+        !previewLooksBroken &&
+        rawPreviewBody &&
+        rawPreviewBody !== subjectText &&
+        !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
-          : rawPreviewBody.length > subjectText.length
+          : !previewLooksBroken && rawPreviewBody.length > subjectText.length
             ? rawPreviewBody
-            : fallbackPreview && fallbackPreview !== subjectText && !fallbackPreview.startsWith(subjectText)
-              ? fallbackPreview
-              : "";
+            : "";
 
       // ====== Bilageikoner: detektera enkelt från subject + preview ======
       const ATTACH_ICONS = {
@@ -3577,6 +3976,7 @@
             <button class="action-icon" type="button" data-quick-action="schedule" title="Schemalägg uppföljning" aria-label="Schemalägg uppföljning">${V5_ACTION_ICONS.schedule}</button>
             <button class="action-icon" type="button" data-quick-action="handled" title="Markera klar" aria-label="Markera klar">${V5_ACTION_ICONS.handled}</button>
             <button class="action-icon" type="button" data-quick-action="delete" title="Radera" aria-label="Radera">${V5_ACTION_ICONS.delete}</button>
+            ${laneQuickActionMarkup}
             <button class="primary-action" type="button" data-quick-action="studio" data-quick-mode="reply"${studioThreadAttr} aria-controls="studio-shell">
               ${escapeHtml(primaryLabel)}
               ${V5_ACTION_ICONS.arrowRight}
@@ -4250,31 +4650,8 @@
     }
 
     function buildQueueInlineLaneHistoryItem(thread) {
-      // Local helper — duplicerar __pickFirstNonEmptyText så funktionen
-      // är självförsörjande när tester extraherar den via new Function().
-      const pickFirstNonEmpty = (...candidates) => {
-        for (const c of candidates) {
-          const t = String(c ?? "").trim();
-          if (t) return t;
-        }
-        return "";
-      };
-      if (typeof applyDemoFixtureFallback === "function" && thread && typeof thread === "object") {
-        thread = applyDemoFixtureFallback(thread);
-      }
-      const primaryLaneId = normalizeKey(thread?.primaryLaneId || thread?.laneId || "");
-      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
-      const counterpartyLabel = asText(
-        pickFirstNonEmpty(
-          thread.customerName,
-          thread.fromName,
-          raw.customerSummary?.customerName,
-          raw.customerName,
-          raw.sender,
-          raw.from?.name
-        ),
-        "Okänd avsändare"
-      );
+      const primaryLaneId = normalizeKey(thread?.primaryLaneId || "");
+      const counterpartyLabel = asText(thread.customerName, "Okänd avsändare");
       const mailboxLabel = asText(thread.mailboxLabel || thread.mailboxAddress, "Arbetskö");
       const rawTitle = asText(thread.displaySubject || thread.subject, "Inget ämne");
       const rawDetail = asText(
@@ -4545,7 +4922,7 @@
           ? mailboxTrailFromRollup
           : mailboxTrailFromDetail;
       return {
-        initials: getQueueHistoryItemInitials(counterpartyLabel),
+        initials: getQueueHistoryItemInitials(thread.customerName),
         counterpartyLabel,
         conversationId: asText(thread?.conversationId || thread?.id || ""),
         ownerLabel: asText(thread.displayOwnerLabel || thread.ownerLabel || ""),
@@ -4586,6 +4963,9 @@
     }
 
     function getQueueCount(tag, threads = getQueueScopedRuntimeThreads()) {
+      if (normalizeKey(tag) === "aftercare") {
+        return __getAftercareLaneEntries().length;
+      }
       return getQueueLaneThreads(tag, threads).length;
     }
 
@@ -4790,11 +5170,9 @@
                   ? `<span class="mailbox-option-email">${escapeHtml(mailbox.email)}</span>`
                   : ""
               }
+              <span class="mailbox-option-meta">${escapeHtml(dropdownMeta)}</span>
             </span>
           </span>`;
-        // .mailbox-option-meta borttagen 2026-05-12: orsakade flicker
-        // mellan capability-text ('Läs: spärrad...') och tråd-count ('· 246')
-        // mellan renderApp-cykler. Användaren ville inte ha den info'n.
         mailboxMenuGrid.appendChild(label);
       });
       const addButton = document.createElement("button");
@@ -5413,7 +5791,7 @@
       if (useUnifiedQueueList && state.runtime.error && runtimeMode !== "offline_history") {
         // v5: om demo-fixtures finns, visa dem istället för error-fallback så
         // operatören ser v5-layouten med riktiga lane-badges, What/Why osv.
-        const demoFixtures = getQueueScopedRuntimeThreads().filter(
+        const demoFixtures = asArray(state.runtime.threads).filter(
           (t) => asText(t?.worklistSource) === "demo"
         );
         if (demoFixtures.length) {
@@ -5492,6 +5870,33 @@
           queueHistoryList.dataset.queueListMode = "live";
         }
         const laneId = normalizeKey(leftColumnState.laneId || state.runtime.activeLaneId || "all");
+        if (laneId === "aftercare") {
+          const aftercareEntries = __getAftercareLaneEntries({ limit: 12 });
+          if (queueTitle) {
+            queueTitle.textContent = `${QUEUE_LANE_LABELS.aftercare || "Eftervård"} (${aftercareEntries.length})`;
+          }
+          if (!aftercareEntries.length) {
+            renderQueueInlineLaneList([
+              buildUnifiedStateThread({
+                id: "runtime-lane-empty-aftercare",
+                customerName: "Inga eftervårdsärenden i kö",
+                ownerLabel: "Eftervård",
+                subject: "Eftervårdslanen är lugn just nu",
+                preview:
+                  "När uppföljningar blir förfallna, planerade för idag eller behöver klinisk eskalering syns de här först.",
+                mailboxLabel: "Eftervård",
+                statusLabel: "Ingen aktiv kö",
+                nextActionLabel: "Övervaka",
+                nextActionSummary:
+                  "Fortsätt i övriga arbetsköer tills nya eftervårdsärenden kliver upp i prioritet.",
+              }),
+            ]);
+          } else {
+            __renderAftercareLaneList(aftercareEntries);
+          }
+          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+          return;
+        }
         const laneThreads = getQueueLaneThreads(laneId, getQueueScopedRuntimeThreads());
         if (queueTitle) {
           queueTitle.textContent = `${QUEUE_LANE_LABELS[laneId] || QUEUE_LANE_LABELS.all} (${laneThreads.length})`;

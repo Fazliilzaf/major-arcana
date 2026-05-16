@@ -145,9 +145,67 @@
             ...(state.booking || {}),
             case: payload.bookingCase || null,
             readout: payload.bookingReadout || null,
+            engineSummary: payload.bookingEngine || state.booking?.engineSummary || null,
+            provider:
+              asText(payload.bookingEngine?.provider || payload.bookingProvider) ||
+              state.booking?.provider ||
+              "",
+            patient360:
+              payload.patient360 && typeof payload.patient360 === "object"
+                ? payload.patient360
+                : null,
             statuses: Array.isArray(payload.bookingStatuses)
               ? payload.bookingStatuses
               : state.booking?.statuses || [],
+          };
+          const bootstrapContextThread =
+            typeof getSelectedRuntimeFocusThread === "function"
+              ? getSelectedRuntimeFocusThread() || getSelectedRuntimeThread?.()
+              : getSelectedRuntimeThread?.();
+          state.aftercare = {
+            ...(state.aftercare || {}),
+            case: payload.aftercareCase || null,
+            readout: payload.aftercareReadout || null,
+            queue: Array.isArray(payload.aftercareQueue) ? payload.aftercareQueue : [],
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
+          state.operation = {
+            ...(state.operation || {}),
+            case: payload.operationCase || null,
+            readout: payload.operationReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
+          state.commercial = {
+            ...(state.commercial || {}),
+            case: payload.commercialCase || null,
+            readout: payload.commercialReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
+          };
+          state.consultation = {
+            ...(state.consultation || {}),
+            case: payload.consultationCase || null,
+            readout: payload.consultationReadout || null,
+            contextConversationId: asText(bootstrapContextThread?.id),
+            contextCustomerId: asText(
+              (typeof getRuntimeCustomerEmail === "function"
+                ? getRuntimeCustomerEmail(bootstrapContextThread)
+                : "") || bootstrapContextThread?.customerEmail
+            ),
           };
           state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
           state.activity.followUps = Array.isArray(followUpPayload?.followUps)
@@ -289,6 +347,143 @@
       return `Tiden krockar med ${conflict.customerName || "en annan kund"} hos ${conflict.doctorName}.`;
     }
 
+    function getAftercareActionContext(threadId = "") {
+      const selectedThread =
+        asText(threadId) && typeof getRuntimeThreadById === "function"
+          ? getRuntimeThreadById(threadId) || getSelectedRuntimeThread()
+          : getSelectedRuntimeThread();
+      if (selectedThread) {
+        const customerId =
+          (typeof getRuntimeCustomerEmail === "function"
+            ? getRuntimeCustomerEmail(selectedThread)
+            : "") || asText(selectedThread.customerEmail || selectedThread.id);
+        if (customerId) {
+          return {
+            workspaceId: "major-arcana-preview",
+            conversationId: asText(selectedThread.id),
+            customerId,
+            customerName: asText(selectedThread.customerName),
+            thread: selectedThread,
+          };
+        }
+      }
+
+      const workspaceContext =
+        typeof getScheduleWorkspaceContext === "function" ? getScheduleWorkspaceContext() : {};
+      if (asText(workspaceContext.conversationId) && asText(workspaceContext.customerId)) {
+        return { ...workspaceContext, thread: null };
+      }
+
+      const fallbackCase =
+        state.aftercare?.case && typeof state.aftercare.case === "object"
+          ? state.aftercare.case
+          : {};
+      const conversationId = asText(
+        state.aftercare?.contextConversationId || fallbackCase.conversationId
+      );
+      const customerId = asText(state.aftercare?.contextCustomerId || fallbackCase.customerId);
+      if (conversationId && customerId) {
+        return {
+          workspaceId: asText(fallbackCase.workspaceId, "major-arcana-preview"),
+          conversationId,
+          customerId,
+          customerName: asText(fallbackCase.customerName),
+          thread: null,
+        };
+      }
+
+      return null;
+    }
+
+    async function handleAftercareAction(actionKey, { threadId = "" } = {}) {
+      const safeActionKey = normalizeKey(actionKey);
+      if (!safeActionKey) return;
+      const context = getAftercareActionContext(threadId);
+      if (!context) {
+        if (focusStatusLine) {
+          focusStatusLine.textContent =
+            "Välj en aktiv tråd eller ett bootstrap-läge innan eftervårdsåtgärden används.";
+        }
+        return;
+      }
+      if (
+        context.thread &&
+        blockOfflineHistoryAction(
+          "Offline historik är läsläge. Öppna den aktiva tråden för att utföra eftervårdsåtgärder.",
+          "focusStatus"
+        )
+      ) {
+        return;
+      }
+
+      if (focusStatusLine) {
+        focusStatusLine.textContent = "Sparar eftervårdsåtgärd…";
+      }
+
+      try {
+        const payload = await apiRequest("/api/v1/cco-aftercare/case/action", {
+          method: "POST",
+          body: {
+            workspaceId: context.workspaceId,
+            conversationId: context.conversationId,
+            customerId: context.customerId,
+            customerName: context.customerName,
+            action: safeActionKey,
+          },
+        });
+        state.aftercare = {
+          ...(state.aftercare || {}),
+          case: payload.aftercareCase || state.aftercare?.case || null,
+          readout: payload.aftercareReadout || state.aftercare?.readout || null,
+          queue: Array.isArray(payload.aftercareQueue)
+            ? payload.aftercareQueue
+            : state.aftercare?.queue || [],
+          contextConversationId: asText(context.conversationId),
+          contextCustomerId: asText(context.customerId),
+        };
+        if (payload.patient360 && typeof payload.patient360 === "object") {
+          state.booking.patient360 = payload.patient360;
+        }
+        if (context.thread) {
+          updateRuntimeThread(context.thread.id, (current) => {
+            const readout =
+              payload.aftercareReadout && typeof payload.aftercareReadout === "object"
+                ? payload.aftercareReadout
+                : null;
+            current.followUpLabel = asText(
+              readout?.scheduledForIso
+                ? formatDueLabel(readout.scheduledForIso)
+                : current.followUpLabel
+            );
+            current.waitingLabel = asText(readout?.waitingOn, current.waitingLabel);
+            current.nextActionLabel = asText(readout?.blocker?.label, current.nextActionLabel);
+            current.nextActionSummary = asText(readout?.nextStep, current.nextActionSummary);
+            current.statusLabel = asText(readout?.phase, current.statusLabel);
+            current.cards = buildRuntimeSummaryCards(current.raw, current);
+            return current;
+          });
+        }
+        await loadBootstrap({
+          preserveActiveDestination: true,
+          applyWorkspacePrefs: false,
+          quiet: true,
+          forceReload: true,
+        });
+        await refreshWorkspaceBootstrapForSelectedThread("aftercare action");
+        renderRuntimeConversationShell();
+        if (typeof renderBookingSurface === "function") {
+          renderBookingSurface();
+        }
+        if (focusStatusLine) {
+          focusStatusLine.textContent = asText(payload.message, "Eftervårdsåtgärden sparades.");
+        }
+      } catch (error) {
+        if (focusStatusLine) {
+          focusStatusLine.textContent = error.message || "Kunde inte spara eftervårdsåtgärden.";
+        }
+      }
+    }
+
     async function saveNote() {
       const activeKey = normalizeText(state.note.activeKey).toLowerCase();
       const draft = getActiveNoteDraft();
@@ -319,6 +514,10 @@
             templateKey: draft.templateKey,
           },
         });
+        state.booking.patient360 =
+          payload.patient360 && typeof payload.patient360 === "object"
+            ? payload.patient360
+            : state.booking.patient360 || null;
 
         const savedNote = payload?.note || null;
         if (savedNote && state.activity && Array.isArray(state.activity.notes)) {
@@ -397,6 +596,10 @@
             notes: draft.notes,
           },
         });
+        state.booking.patient360 =
+          payload.patient360 && typeof payload.patient360 === "object"
+            ? payload.patient360
+            : state.booking.patient360 || null;
 
         const savedFollowUp = {
           ...draft,
@@ -419,6 +622,25 @@
         const scheduleBookingThread = isBookingSchedule
           ? bookingScheduleThread
           : selectedThread || bookingScheduleThread;
+        const payloadContextThread = selectedThread || scheduleBookingThread || null;
+        state.aftercare = {
+          ...(state.aftercare || {}),
+          case: payload.aftercareCase || state.aftercare?.case || null,
+          readout: payload.aftercareReadout || state.aftercare?.readout || null,
+          queue: Array.isArray(payload.aftercareQueue)
+            ? payload.aftercareQueue
+            : state.aftercare?.queue || [],
+          contextConversationId: asText(
+            payloadContextThread?.id || state.aftercare?.contextConversationId
+          ),
+          contextCustomerId: asText(
+            (typeof getRuntimeCustomerEmail === "function"
+              ? getRuntimeCustomerEmail(payloadContextThread)
+              : "") ||
+              payloadContextThread?.customerEmail ||
+              state.aftercare?.contextCustomerId
+          ),
+        };
         if (typeof recordBookingFollowUpSaved === "function" && scheduleBookingThread) {
           await recordBookingFollowUpSaved(scheduleBookingThread, {
             ...draft,
@@ -1165,6 +1387,7 @@
       handleStudioSend,
       loadBootstrap,
       resetWorkspacePrefs,
+      handleAftercareAction,
       saveNote,
       saveSchedule,
       scheduleWorkspacePrefsSave,

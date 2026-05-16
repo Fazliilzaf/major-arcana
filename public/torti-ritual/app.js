@@ -1,5 +1,15 @@
 (function () {
   const STORAGE_KEY = "torti-ritual-saved-sheets-v1";
+  const ANALYTICS_STORAGE_KEY = "torti-ritual-analytics-v1";
+  const PORTAL_STORAGE_KEY = "torti-ritual-portal-records-v1";
+  const PORTAL_REMOTE_PATHS = {
+    overview: "/api/v1/cco-workspace/portal",
+    draft: "/api/v1/cco-workspace/portal/drafts",
+    publish: "/api/v1/cco-workspace/portal/publish",
+    customer: "/api/v1/cco/customers/portal",
+    viewed: "/api/v1/cco/customers/portal/viewed",
+    acknowledgeBase: "/api/v1/cco/customers/portal/notifications",
+  };
   const ZONE_LAYOUT_VERSION = "cluster-horizontal-v1";
 
   const BODY_IMAGE_SIZE = {
@@ -1021,6 +1031,7 @@
     activeLibraryBottleId: null,
     layers: [],
     activeLayerId: null,
+    portalRecords: {},
     bottles: [],
     zoneLabelOffsets: {},
     isAdjustingLabels: false,
@@ -1028,6 +1039,15 @@
     pendingCatalogId: null,
     savedSheets: [],
     currentSheetId: null,
+    portalFocusCustomerKey: getPortalQueryCustomerKey(),
+    portalView: getPortalQueryPortalView(),
+    portalRemoteStatus: {},
+    portalRemoteHydrationSignatures: {},
+    portalRemoteSyncSignatures: {},
+    analyticsEvents: [],
+    analyticsScrollTrackingBound: false,
+    analyticsRailTrackingBound: false,
+    analyticsJumpTrackingBound: false,
   };
 
   let bottleSeed = 0;
@@ -1056,6 +1076,7 @@
   const downloadSavedButton = document.querySelector("[data-download-saved]");
   const savedSheetsPanel = document.querySelector("[data-saved-sheets-panel]");
   const layersPanel = document.querySelector("[data-layers-panel]");
+  const portalPanel = document.querySelector("[data-portal-panel]");
   const customerLibraryPanel = document.querySelector("[data-customer-library]");
   const pdfButtons = Array.from(document.querySelectorAll("[data-pdf-trigger]"));
   const levelRows = Array.from(document.querySelectorAll("[data-level-row]"));
@@ -1195,6 +1216,45 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  function normalizeText(value) {
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  function getPortalQueryCustomerKey() {
+    if (typeof window === "undefined" || !window.location) {
+      return "";
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return normalize(params.get("portalCustomerKey") || params.get("customerKey") || "");
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function getPortalQueryPortalView() {
+    if (typeof window === "undefined" || !window.location) {
+      return "split";
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const view = normalize(params.get("portalView") || "");
+      if (view === "customer" || view === "owner") {
+        return view;
+      }
+
+      return "split";
+    } catch (error) {
+      return "split";
+    }
   }
 
   function normalize(value) {
@@ -1439,6 +1499,11 @@
         };
       })
       .filter((section) => section.products.length > 0);
+  }
+
+  function getCollectionSectionProducts(sectionKey) {
+    const visibleSection = getVisibleCollectionSections().find((section) => section.key === sectionKey);
+    return visibleSection ? visibleSection.products.slice() : [];
   }
 
   function getActiveCollectionSection() {
@@ -1815,8 +1880,15 @@
       return;
     }
 
+    const product = getCatalogItem(catalogId);
     state.customerLibrary = normalizeCustomerLibrary(state.customerLibrary.concat(catalogId), state.layers);
     state.productLevelSelections = normalizeProductLevelSelections(state.productLevelSelections, state.customerLibrary, state.layers);
+    recordAnalyticsEvent("library added", "Product added to library", {
+      catalogId,
+      productName: product ? product.name : "",
+      collection: product ? product.collection : "",
+      type: product ? product.type : "",
+    });
   }
 
   function getSnapshotZoneLabelOffsets(snapshot) {
@@ -1944,6 +2016,234 @@
     }
   }
 
+  function normalizeAnalyticsEvent(input) {
+    const now = nowIso();
+    const event = input && typeof input === "object" ? input : {};
+
+    return {
+      eventId:
+        normalizeText(event.eventId) ||
+        `torti-analytics-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: normalizeText(event.type) || "signal",
+      label: normalizeText(event.label) || "Signal",
+      meta: event.meta && typeof event.meta === "object" ? { ...event.meta } : {},
+      createdAt: normalizeText(event.createdAt) || now,
+    };
+  }
+
+  function loadAnalyticsEvents() {
+    try {
+      const raw = window.localStorage.getItem(ANALYTICS_STORAGE_KEY);
+      if (!raw) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.map((item) => normalizeAnalyticsEvent(item));
+    } catch (error) {
+      console.warn("Could not load Torti analytics", error);
+      return [];
+    }
+  }
+
+  function persistAnalyticsEvents() {
+    try {
+      window.localStorage.setItem(ANALYTICS_STORAGE_KEY, JSON.stringify(state.analyticsEvents));
+    } catch (error) {
+      console.warn("Could not persist Torti analytics", error);
+    }
+  }
+
+  function recordAnalyticsEvent(type, label, meta = {}) {
+    const event = normalizeAnalyticsEvent({
+      type,
+      label,
+      meta,
+    });
+    state.analyticsEvents = [event].concat(state.analyticsEvents).slice(0, 80);
+    persistAnalyticsEvents();
+    renderPortalAnalytics();
+    return event;
+  }
+
+  function getAnalyticsSummary() {
+    return state.analyticsEvents.reduce(
+      (accumulator, event) => {
+        const type = normalize(event.type);
+        accumulator.total += 1;
+        if (!accumulator.latest) {
+          accumulator.latest = event;
+        }
+        if (type === "library added") accumulator.libraryAdds += 1;
+        if (type === "portal published") accumulator.publishes += 1;
+        if (type === "share copied") accumulator.shareCopies += 1;
+        if (type === "customer preview") accumulator.previews += 1;
+        if (type === "portal viewed") accumulator.views += 1;
+        if (type === "notification acknowledged") accumulator.acknowledgements += 1;
+        if (type === "scroll depth") accumulator.scrollDepth += 1;
+        if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
+        if (type === "collection shortcut opened") accumulator.collectionShortcuts += 1;
+        if (type === "collection card tapped") accumulator.collectionCardTaps += 1;
+        if (type === "library review jumped") accumulator.libraryReviewJumps += 1;
+        if (type === "browse collections") accumulator.browseCollections += 1;
+        if (type === "portal jump") accumulator.portalJumps += 1;
+        return accumulator;
+      },
+      {
+        total: 0,
+        libraryAdds: 0,
+        publishes: 0,
+        shareCopies: 0,
+        previews: 0,
+        views: 0,
+        acknowledgements: 0,
+        scrollDepth: 0,
+        collectionRailScrolls: 0,
+        collectionShortcuts: 0,
+        collectionCardTaps: 0,
+        libraryReviewJumps: 0,
+        browseCollections: 0,
+        portalJumps: 0,
+        latest: null,
+      }
+    );
+  }
+
+  function getRecordedScrollDepthThresholds() {
+    return new Set(
+      state.analyticsEvents
+        .filter((event) => normalize(event.type) === "scroll depth")
+        .map((event) => Number((event.meta && event.meta.depth) || 0))
+        .filter((depth) => Number.isFinite(depth) && depth > 0)
+    );
+  }
+
+  function getPageScrollDepth() {
+    const doc = document.documentElement;
+    const viewportHeight = window.innerHeight || doc.clientHeight || 0;
+    const documentHeight = Math.max(doc.scrollHeight || 0, document.body ? document.body.scrollHeight || 0 : 0);
+    const maxScroll = Math.max(documentHeight - viewportHeight, 0);
+
+    if (maxScroll <= 0) {
+      return 100;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(((window.scrollY || doc.scrollTop || 0) / maxScroll) * 100)));
+  }
+
+  function recordScrollDepthSignals() {
+    const depth = getPageScrollDepth();
+    const thresholds = [25, 50, 75, 90];
+    const recordedThresholds = getRecordedScrollDepthThresholds();
+    let recorded = false;
+
+    thresholds.forEach((threshold) => {
+      if (depth >= threshold && !recordedThresholds.has(threshold)) {
+        recordAnalyticsEvent("scroll depth", `Scrolled ${threshold}%`, {
+          depth: threshold,
+          pageDepth: depth,
+        });
+        recorded = true;
+      }
+    });
+
+    return recorded;
+  }
+
+  function bindAnalyticsScrollTracking() {
+    if (state.analyticsScrollTrackingBound) {
+      return;
+    }
+
+    state.analyticsScrollTrackingBound = true;
+
+    const handleScroll = function () {
+      recordScrollDepthSignals();
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+  }
+
+  function bindCollectionRailTracking() {
+    if (!productScroller || state.analyticsRailTrackingBound) {
+      return;
+    }
+
+    state.analyticsRailTrackingBound = true;
+
+    const handleRailScroll = function () {
+      if (productScroller.scrollLeft <= 0) {
+        return;
+      }
+
+      const alreadyRecorded = state.analyticsEvents.some(
+        (event) => normalize(event.type) === "collection rail scrolled"
+      );
+
+      if (alreadyRecorded) {
+        return;
+      }
+
+      recordAnalyticsEvent("collection rail scrolled", "Collections rail browsed", {
+        scrollLeft: Math.round(productScroller.scrollLeft),
+        activeSection: state.activeCollectionSection,
+      });
+    };
+
+    productScroller.addEventListener("scroll", handleRailScroll, { passive: true });
+    handleRailScroll();
+  }
+
+  function scrollToSection(selector) {
+    const target = document.querySelector(selector);
+    if (!target || typeof target.scrollIntoView !== "function") {
+      return false;
+    }
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    return true;
+  }
+
+  function bindTopNavigationActions() {
+    if (state.analyticsJumpTrackingBound) {
+      return;
+    }
+
+    state.analyticsJumpTrackingBound = true;
+
+    const browseCollectionsButton = document.querySelector("[data-browse-collections]");
+    const openPortalButton = document.querySelector("[data-open-portal]");
+
+    if (browseCollectionsButton) {
+      browseCollectionsButton.addEventListener("click", function () {
+        const didScroll = scrollToSection(".library-strip");
+        recordAnalyticsEvent("browse collections", "Collections path opened", {
+          target: "collections",
+          scrolled: didScroll,
+        });
+      });
+    }
+
+    if (openPortalButton) {
+      openPortalButton.addEventListener("click", function () {
+        const didScroll = scrollToSection("[data-portal-panel]");
+        recordAnalyticsEvent("portal jump", "Portal flow opened", {
+          target: "portal",
+          scrolled: didScroll,
+        });
+      });
+    }
+  }
+
   function loadSavedSheets() {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -1984,6 +2284,668 @@
       console.warn("Could not load saved Torti sheets", error);
       return [];
     }
+  }
+
+  function formatPortalMoment(value) {
+    if (!value) {
+      return "just now";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  }
+
+  function formatPortalActivityTypeLabel(value) {
+    const normalized = normalize(value).replace(/_/g, " ");
+    if (!normalized) {
+      return "Event";
+    }
+
+    const activityLabels = {
+      "layer draft saved": "Draft saved",
+      "version published": "Published",
+      "layer version published": "Published",
+      "customer notified": "Notified",
+      "customer viewed": "Viewed",
+      "customer acknowledged": "Acknowledged",
+      "customer read": "Viewed",
+      "version viewed": "Viewed",
+    };
+
+    if (activityLabels[normalized]) {
+      return activityLabels[normalized];
+    }
+
+    return normalized
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(" ");
+  }
+
+  function getPortalCustomerName(snapshot) {
+    const source = snapshot || getWorkingStateSnapshot();
+    const fullName = [source.firstName, source.lastName].filter(Boolean).join(" ").trim();
+    return fullName || "Unnamed customer";
+  }
+
+  function getPortalCustomerKey(snapshot) {
+    const source = snapshot || getWorkingStateSnapshot();
+    const fullName = getPortalCustomerName(source);
+    return state.portalFocusCustomerKey || normalize(fullName || "current-customer");
+  }
+
+  function normalizePortalVersion(version, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(version.createdAt) || normalizeText(version.publishedAt) || now;
+
+    return {
+      versionId: normalizeText(version.versionId) || crypto.randomUUID(),
+      versionNumber: Math.max(1, Number.parseInt(String(version.versionNumber ?? ""), 10) || index + 1),
+      title: normalizeText(version.title),
+      summary: normalizeText(version.summary),
+      note: normalizeText(version.note),
+      customerKey: normalize(version.customerKey),
+      customerName: normalizeText(version.customerName),
+      layers: cloneLayers(version.layers),
+      customerLibrary: Array.isArray(version.customerLibrary)
+        ? version.customerLibrary.filter((catalogId) => getCatalogItem(catalogId))
+        : [],
+      activeLayerId: normalizeText(version.activeLayerId),
+      createdAt,
+      publishedAt: normalizeText(version.publishedAt) || createdAt,
+      viewedAt: normalizeText(version.viewedAt),
+      acknowledgedAt: normalizeText(version.acknowledgedAt),
+    };
+  }
+
+  function normalizePortalDraft(draft, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(draft.createdAt) || now;
+
+    return {
+      draftId: normalizeText(draft.draftId) || `draft-${index + 1}`,
+      customerKey: normalize(draft.customerKey),
+      customerName: normalizeText(draft.customerName),
+      customerEmail: normalizeText(draft.customerEmail).toLowerCase(),
+      customerPhone: normalizeText(draft.customerPhone),
+      workspaceId: normalizeText(draft.workspaceId) || "torti-ritual",
+      title: normalizeText(draft.title),
+      summary: normalizeText(draft.summary),
+      note: normalizeText(draft.note),
+      layers: cloneLayers(draft.layers),
+      librarySnapshot: Array.isArray(draft.librarySnapshot) ? draft.librarySnapshot.slice() : [],
+      ownerUserId: normalizeText(draft.ownerUserId),
+      ownerName: normalizeText(draft.ownerName),
+      source: normalizeText(draft.source) || "workspace_draft",
+      status: normalizeText(draft.status) || "draft",
+      publishedVersionId: normalizeText(draft.publishedVersionId),
+      publishedAt: normalizeText(draft.publishedAt),
+      createdAt,
+      updatedAt: normalizeText(draft.updatedAt) || createdAt,
+    };
+  }
+
+  function normalizePortalEvent(event, index = 0) {
+    const now = nowIso();
+    return {
+      eventId: normalizeText(event.eventId) || `event-${index + 1}`,
+      type: normalizeText(event.type),
+      message: normalizeText(event.message),
+      payload: event && typeof event.payload === "object" ? JSON.parse(JSON.stringify(event.payload)) : {},
+      createdAt: normalizeText(event.createdAt) || now,
+      actorUserId: normalizeText(event.actorUserId),
+    };
+  }
+
+  function normalizePortalNotification(notification, index = 0) {
+    const now = nowIso();
+    const createdAt = normalizeText(notification.createdAt) || now;
+
+    return {
+      notificationId: normalizeText(notification.notificationId) || crypto.randomUUID(),
+      type: normalizeText(notification.type) || "layer_version_published",
+      title: normalizeText(notification.title),
+      message: normalizeText(notification.message),
+      versionId: normalizeText(notification.versionId),
+      versionNumber: Math.max(1, Number.parseInt(String(notification.versionNumber ?? ""), 10) || index + 1),
+      readAt: normalizeText(notification.readAt),
+      createdAt,
+    };
+  }
+
+  function normalizePortalRecord(record, customerKey) {
+    const now = nowIso();
+    const drafts = Array.isArray(record && record.drafts)
+      ? record.drafts.map((draft, index) => normalizePortalDraft(draft, index))
+      : [];
+    const versions = Array.isArray(record && record.versions)
+      ? record.versions.map((version, index) => normalizePortalVersion(version, index))
+      : [];
+    const notifications = Array.isArray(record && record.notifications)
+      ? record.notifications.map((notification, index) => normalizePortalNotification(notification, index))
+      : [];
+    const events = Array.isArray(record && record.events)
+      ? record.events.map((event, index) => normalizePortalEvent(event, index))
+      : [];
+    const currentDraftId = normalizeText(record && record.currentDraftId) || drafts.at(-1)?.draftId || "";
+    const currentPublishedVersionId =
+      normalizeText(record && record.currentPublishedVersionId) || versions.at(-1)?.versionId || "";
+
+    return {
+      customerKey: normalize((record && record.customerKey) || customerKey),
+      customerName: normalizeText(record && record.customerName),
+      customerEmail: normalizeText(record && record.customerEmail).toLowerCase(),
+      customerPhone: normalizeText(record && record.customerPhone),
+      workspaceId: normalizeText(record && record.workspaceId) || "torti-ritual",
+      drafts,
+      versions,
+      notifications,
+      events,
+      currentDraftId,
+      currentPublishedVersionId,
+      lastPublishedAt: normalizeText(record && record.lastPublishedAt) || normalizeText(versions.at(-1)?.publishedAt),
+      lastViewedAt: normalizeText(record && record.lastViewedAt) || normalizeText(record && record.viewedAt),
+      lastAcknowledgedAt:
+        normalizeText(record && record.lastAcknowledgedAt) || normalizeText(record && record.acknowledgedAt),
+      viewedAt: normalizeText(record && record.viewedAt),
+      acknowledgedAt: normalizeText(record && record.acknowledgedAt),
+      updatedAt: normalizeText(record && record.updatedAt) || now,
+    };
+  }
+
+  function loadPortalRecords() {
+    try {
+      const raw = window.localStorage.getItem(PORTAL_STORAGE_KEY);
+      if (!raw) {
+        return {};
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return Object.entries(parsed).reduce((accumulator, [key, record]) => {
+        const normalizedKey = normalize(key);
+        if (!normalizedKey) {
+          return accumulator;
+        }
+
+        accumulator[normalizedKey] = normalizePortalRecord(record, normalizedKey);
+        return accumulator;
+      }, {});
+    } catch (error) {
+      console.warn("Could not load Torti portal records", error);
+      return {};
+    }
+  }
+
+  function persistPortalRecords() {
+    try {
+      window.localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(state.portalRecords));
+    } catch (error) {
+      console.warn("Could not persist Torti portal records", error);
+    }
+  }
+
+  function ensurePortalRecord(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!state.portalRecords[customerKey]) {
+      state.portalRecords[customerKey] = normalizePortalRecord({
+        customerKey,
+        customerName: getPortalCustomerName(snapshot),
+      }, customerKey);
+    }
+
+    const record = state.portalRecords[customerKey];
+    if (!record.customerName) {
+      record.customerName = getPortalCustomerName(snapshot);
+    }
+
+    return record;
+  }
+
+  function getPortalRecord(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    return state.portalRecords[customerKey] || null;
+  }
+
+  function canUsePortalRemoteSync() {
+    return typeof window.fetch === "function" && window.location.protocol !== "file:";
+  }
+
+  function getPortalRemoteBase() {
+    const override = window.__TORTI_PORTAL_API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.trim().replace(/\/+$/, "");
+    }
+
+    return "";
+  }
+
+  function resolvePortalRemotePath(path) {
+    const base = getPortalRemoteBase();
+    return base ? `${base}${path}` : path;
+  }
+
+  function buildPortalRemoteHeaders() {
+    return {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+  }
+
+  async function requestPortalJson(path, options) {
+    const response = await window.fetch(resolvePortalRemotePath(path), {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...buildPortalRemoteHeaders(),
+        ...(options && options.headers ? options.headers : {}),
+      },
+    });
+
+    const text = await response.text();
+    let body = {};
+
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch (error) {
+        body = { raw: text };
+      }
+    }
+
+    if (!response.ok) {
+      const error = new Error(body.error || `Request failed with status ${response.status}`);
+      error.statusCode = response.status;
+      error.responseBody = body;
+      throw error;
+    }
+
+    return body;
+  }
+
+  function buildPortalRemotePayload(snapshot) {
+    const customerName = getPortalCustomerName(snapshot);
+    const customerKey = getPortalCustomerKey(snapshot);
+    const activeLayer = Array.isArray(snapshot.layers)
+      ? snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null
+      : null;
+
+    return {
+      workspaceId: state.currentSheetId || "torti-ritual",
+      customerKey,
+      customerName,
+      customerEmail: "",
+      customerPhone: "",
+      ownerUserId: "torti-ritual-browser",
+      ownerName: "Torti Ritual",
+      title: getSheetLabel(snapshot, 0),
+      summary: `${snapshot.customerLibrary.length} bottles · ${Array.isArray(snapshot.layers) ? snapshot.layers.length : 0} layers · ${activeLayer ? activeLayer.name : "Layer 1"}`,
+      note: "Published from the active Torti layer sketch.",
+      layers: cloneLayers(snapshot.layers),
+      librarySnapshot: snapshot.customerLibrary.slice(),
+      activeLayerId: snapshot.activeLayerId,
+      notificationMessage: "New layers sketch is ready in the customer portal.",
+    };
+  }
+
+  function normalizePortalSyncRecord(payload, customerKey) {
+    if (!payload) {
+      return null;
+    }
+
+    if (payload.portal) {
+      return normalizePortalRecord(payload.portal, customerKey);
+    }
+
+    if (payload.record) {
+      return normalizePortalRecord(payload.record, customerKey);
+    }
+
+    return normalizePortalRecord(payload, customerKey);
+  }
+
+  function recordPortalLocalStatus(customerKey) {
+    state.portalRemoteStatus[customerKey] = "local";
+  }
+
+  function getPortalConnectionLabel(customerKey) {
+    const status = state.portalRemoteStatus[customerKey] || "local";
+
+    if (status === "remote") {
+      return "Backend synced";
+    }
+
+    if (status === "syncing") {
+      return "Syncing…";
+    }
+
+    return "Local portal";
+  }
+
+  function buildPortalShareUrl(snapshot) {
+    const customerKey = getPortalCustomerKey(snapshot);
+    const url = new URL(window.location.href);
+    url.searchParams.set("portalCustomerKey", customerKey);
+    url.searchParams.set("portalView", "customer");
+    return url.toString();
+  }
+
+  async function copyPortalShareUrl(snapshot) {
+    const shareUrl = buildPortalShareUrl(snapshot);
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(shareUrl);
+      recordAnalyticsEvent("share copied", "Portal link copied", {
+        customerKey: getPortalCustomerKey(snapshot),
+      });
+      return true;
+    }
+
+    window.prompt("Copy portal link", shareUrl);
+    recordAnalyticsEvent("share copied", "Portal link copied", {
+      customerKey: getPortalCustomerKey(snapshot),
+      viaPrompt: true,
+    });
+    return false;
+  }
+
+  function schedulePortalRemoteHydration(snapshot, force = false) {
+    if (!canUsePortalRemoteSync()) {
+      return;
+    }
+
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!customerKey) {
+      return;
+    }
+
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const signature = [
+      customerKey,
+      record.updatedAt || "",
+      record.versions.length,
+      record.notifications.length,
+      record.currentDraftId || "",
+      record.currentPublishedVersionId || "",
+    ].join(":");
+
+    if (!force && state.portalRemoteHydrationSignatures[customerKey] === signature) {
+      return;
+    }
+
+    state.portalRemoteHydrationSignatures[customerKey] = signature;
+    state.portalRemoteStatus[customerKey] = "syncing";
+
+    void (async function () {
+      try {
+        const payload = await requestPortalJson(
+          `${PORTAL_REMOTE_PATHS.customer}?customerKey=${encodeURIComponent(customerKey)}&customerName=${encodeURIComponent(getPortalCustomerName(snapshot))}`,
+          { method: "GET" }
+        );
+        const remoteRecord = normalizePortalSyncRecord(payload.portal || payload, customerKey);
+        if (remoteRecord) {
+          state.portalRecords[customerKey] = remoteRecord;
+          state.portalRemoteStatus[customerKey] = "remote";
+          persistPortalRecords();
+          render();
+        }
+      } catch (error) {
+        state.portalRemoteStatus[customerKey] = "local";
+      }
+    })();
+  }
+
+  function syncPortalRemoteAction(action, snapshot, extras = {}) {
+    if (!canUsePortalRemoteSync()) {
+      return;
+    }
+
+    const customerKey = getPortalCustomerKey(snapshot);
+    if (!customerKey) {
+      return;
+    }
+
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const signature = [
+      action,
+      customerKey,
+      record.updatedAt || "",
+      record.versions.length,
+      record.notifications.length,
+      record.currentDraftId || "",
+      record.currentPublishedVersionId || "",
+      extras.notificationId || "",
+    ].join(":");
+
+    if (state.portalRemoteSyncSignatures[customerKey] === signature) {
+      return;
+    }
+
+    state.portalRemoteSyncSignatures[customerKey] = signature;
+    state.portalRemoteStatus[customerKey] = "syncing";
+
+    void (async function () {
+      try {
+        let payload = null;
+        if (action === "draft") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.draft, {
+            method: "POST",
+            body: JSON.stringify(buildPortalRemotePayload(snapshot)),
+          });
+        } else if (action === "publish") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.publish, {
+            method: "POST",
+            body: JSON.stringify(buildPortalRemotePayload(snapshot)),
+          });
+        } else if (action === "viewed") {
+          payload = await requestPortalJson(PORTAL_REMOTE_PATHS.viewed, {
+            method: "POST",
+            body: JSON.stringify({
+              customerKey,
+              customerName: getPortalCustomerName(snapshot),
+              viewerScope: "customer",
+            }),
+          });
+        } else if (action === "acknowledge" && extras.notificationId) {
+          payload = await requestPortalJson(
+            `${PORTAL_REMOTE_PATHS.acknowledgeBase}/${encodeURIComponent(extras.notificationId)}/ack`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                customerKey,
+                customerName: getPortalCustomerName(snapshot),
+              }),
+            }
+          );
+        }
+
+        const nextRecord = normalizePortalSyncRecord(payload && (payload.portal || payload), customerKey);
+        if (nextRecord) {
+          state.portalRecords[customerKey] = nextRecord;
+          state.portalRemoteStatus[customerKey] = "remote";
+          persistPortalRecords();
+          render();
+        } else {
+          state.portalRemoteStatus[customerKey] = "remote";
+        }
+      } catch (error) {
+        state.portalRemoteStatus[customerKey] = "local";
+      }
+    })();
+  }
+
+  function buildPortalVersionFromSheet(snapshot, versionNumber) {
+    const now = nowIso();
+    const sheetLabel = getSheetLabel(snapshot, 0);
+    const layerLabel = Array.isArray(snapshot.layers) && snapshot.layers.length
+      ? snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId)?.name || snapshot.layers[0].name
+      : "Layer 1";
+
+    return {
+      versionId: `portal-version-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      versionNumber,
+      customerKey: getPortalCustomerKey(snapshot),
+      customerName: getPortalCustomerName(snapshot),
+      title: sheetLabel,
+      summary: `${snapshot.customerLibrary.length} bottles · ${Array.isArray(snapshot.layers) ? snapshot.layers.length : 0} layers · ${layerLabel}`,
+      note: "Published from the active Torti layer sketch.",
+      layers: cloneLayers(snapshot.layers),
+      customerLibrary: snapshot.customerLibrary.slice(),
+      activeLayerId: snapshot.activeLayerId,
+      createdAt: now,
+      publishedAt: now,
+    };
+  }
+
+  function buildPortalNotificationFromVersion(version) {
+    const now = nowIso();
+
+    return {
+      notificationId: `portal-notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: "layer_version_published",
+      title: `Version ${version.versionNumber} published`,
+      message: `${version.title} is ready in the customer portal.`,
+      versionId: version.versionId,
+      versionNumber: version.versionNumber,
+      readAt: "",
+      createdAt: now,
+    };
+  }
+
+  function publishPortalVersion() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const versionNumber = (record.versions.at(-1)?.versionNumber || 0) + 1;
+    const version = buildPortalVersionFromSheet(snapshot, versionNumber);
+    const draftId = `portal-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const draft = {
+      draftId,
+      customerKey: getPortalCustomerKey(snapshot),
+      customerName: getPortalCustomerName(snapshot),
+      customerEmail: "",
+      customerPhone: "",
+      workspaceId: state.currentSheetId || "torti-ritual",
+      title: version.title,
+      summary: version.summary,
+      note: version.note,
+      layers: cloneLayers(snapshot.layers),
+      librarySnapshot: snapshot.customerLibrary.slice(),
+      ownerUserId: "torti-ritual-browser",
+      ownerName: "Torti Ritual",
+      source: "browser_publish",
+      status: "published",
+      publishedVersionId: version.versionId,
+      publishedAt: version.publishedAt,
+      createdAt: version.publishedAt,
+      updatedAt: version.publishedAt,
+    };
+    const event = {
+      eventId: `portal-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: "layer_version_published",
+      message: "Layer-version publicerades.",
+      payload: {
+        versionId: version.versionId,
+        versionNumber: version.versionNumber,
+        draftId,
+      },
+      createdAt: version.publishedAt,
+      actorUserId: "torti-ritual-browser",
+    };
+
+    record.versions.push(version);
+    record.notifications.push(buildPortalNotificationFromVersion(version));
+    record.drafts = Array.isArray(record.drafts) ? record.drafts : [];
+    record.events = Array.isArray(record.events) ? record.events : [];
+    record.drafts.push(draft);
+    record.events.push(event);
+    record.currentDraftId = draft.draftId;
+    record.currentPublishedVersionId = version.versionId;
+    record.lastPublishedAt = version.publishedAt;
+    record.lastViewedAt = record.lastViewedAt || "";
+    record.lastAcknowledgedAt = record.lastAcknowledgedAt || "";
+    record.updatedAt = nowIso();
+    record.customerName = getPortalCustomerName(snapshot);
+    record.customerKey = getPortalCustomerKey(snapshot);
+    state.currentSheetId = snapshot.id;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("portal published", "Portal version published", {
+      customerKey: record.customerKey,
+      versionId: version.versionId,
+      versionNumber: version.versionNumber,
+    });
+    syncPortalRemoteAction("publish", snapshot);
+    render();
+  }
+
+  function markPortalViewed() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const now = nowIso();
+    const latestVersion = record.versions.at(-1) || null;
+
+    record.viewedAt = now;
+    record.lastViewedAt = now;
+    if (latestVersion) {
+      latestVersion.viewedAt = now;
+    }
+
+    record.updatedAt = now;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("portal viewed", "Customer portal viewed", {
+      customerKey: record.customerKey,
+      latestVersionId: latestVersion ? latestVersion.versionId : "",
+    });
+    syncPortalRemoteAction("viewed", snapshot);
+    render();
+  }
+
+  function acknowledgeLatestPortalNotification() {
+    const snapshot = buildSheetSnapshot();
+    const record = ensurePortalRecord(snapshot);
+    const latestUnread = [...record.notifications].reverse().find((notification) => !notification.readAt);
+    const now = nowIso();
+
+    if (!latestUnread) {
+      return;
+    }
+
+    latestUnread.readAt = now;
+    record.acknowledgedAt = now;
+    const latestVersion = record.versions.find((version) => version.versionId === latestUnread.versionId) || record.versions.at(-1) || null;
+    if (latestVersion) {
+      latestVersion.acknowledgedAt = now;
+    }
+
+    record.updatedAt = now;
+    record.lastAcknowledgedAt = now;
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("notification acknowledged", "Latest notification acknowledged", {
+      customerKey: record.customerKey,
+      notificationId: latestUnread.notificationId,
+      versionId: latestUnread.versionId,
+    });
+    syncPortalRemoteAction("acknowledge", snapshot, {
+      notificationId: latestUnread.notificationId,
+    });
+    render();
   }
 
   function saveCurrentSheet() {
@@ -2083,12 +3045,13 @@
     const collectionClass = `collection-${slugify(product.collection)}`;
     const typeClass = `type-${slugify(product.type)}`;
     const hasImage = Boolean(product.image);
+    const altText = `${product.name} ${product.type} from ${product.collection} collection`;
 
     return `
-      <span class="${escapeHtml(baseClass)} ${escapeHtml(collectionClass)} ${escapeHtml(typeClass)}${hasImage ? " has-image" : ""}" aria-hidden="true">
+      <span class="${escapeHtml(baseClass)} ${escapeHtml(collectionClass)} ${escapeHtml(typeClass)}${hasImage ? " has-image" : ""}">
         ${
           hasImage
-            ? `<img src="${escapeHtml(product.image)}" alt="" loading="lazy" decoding="async" />`
+            ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" />`
             : ""
         }
         <span class="bottle-collection-mark"></span>
@@ -3019,6 +3982,53 @@
     }
   }
 
+  function renderPortalAnalytics() {
+    if (!portalPanel) {
+      return;
+    }
+
+    const analyticsSection = portalPanel.querySelector("[data-portal-analytics]");
+    if (!analyticsSection) {
+      return;
+    }
+
+    const summary = getAnalyticsSummary();
+    const latestSignal = summary.latest || null;
+
+    analyticsSection.innerHTML = `
+      <div class="portal-analytics-head">
+        <div class="portal-analytics-copy">
+          <span class="portal-card-kicker">Engagement signals</span>
+          <strong>Conversion telemetry</strong>
+        </div>
+        <span class="portal-analytics-count">${escapeHtml(String(summary.total))} signals</span>
+      </div>
+      <div class="portal-analytics-pills">
+        <span>${escapeHtml(`${summary.libraryAdds} library adds`)}</span>
+        <span>${escapeHtml(`${summary.publishes} publishes`)}</span>
+        <span>${escapeHtml(`${summary.shareCopies} share copies`)}</span>
+        <span>${escapeHtml(`${summary.previews} previews`)}</span>
+        <span>${escapeHtml(`${summary.views} views`)}</span>
+        <span>${escapeHtml(`${summary.acknowledgements} acknowledgements`)}</span>
+        <span>${escapeHtml(`${summary.scrollDepth} scroll milestones`)}</span>
+        <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
+        <span>${escapeHtml(`${summary.collectionShortcuts} collection shortcuts`)}</span>
+        <span>${escapeHtml(`${summary.collectionCardTaps} collection card taps`)}</span>
+        <span>${escapeHtml(`${summary.libraryReviewJumps} library review jumps`)}</span>
+        <span>${escapeHtml(`${summary.browseCollections} browse jumps`)}</span>
+        <span>${escapeHtml(`${summary.portalJumps} portal jumps`)}</span>
+      </div>
+      <div class="portal-analytics-latest">
+        <span>${escapeHtml(latestSignal ? latestSignal.label : "No signals yet")}</span>
+        <strong>${escapeHtml(
+          latestSignal
+            ? formatPortalMoment(latestSignal.createdAt)
+            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, collection shortcuts, collection card taps, and library review jumps."
+        )}</strong>
+      </div>
+    `;
+  }
+
   function renderLayersPanel() {
     if (!layersPanel) {
       return;
@@ -3101,6 +4111,38 @@
     const selectedBottle = getSelectedBottle();
     const activeCatalogId = selectedBottle ? selectedBottle.catalogId : state.activeLibraryCatalogId;
     const activeBottleId = selectedBottle ? selectedBottle.id : state.activeLibraryBottleId;
+    const hasLibraryItems = ownedItems.length > 0;
+    const activeLayer = getActiveLayer();
+    const activeLayerBottleCount = activeLayer && Array.isArray(activeLayer.bottles)
+      ? activeLayer.bottles.length
+      : 0;
+    const placedLibraryCount = ownedItems.filter((item) =>
+      state.layers.some((layer) =>
+        Array.isArray(layer.bottles) &&
+        layer.bottles.some((bottle) => bottle.catalogId === item.id)
+      )
+    ).length;
+    const reviewTarget = !hasLibraryItems ? "collections" : placedLibraryCount > 0 ? "portal" : "layers";
+    const reviewButtonLabel = !hasLibraryItems
+      ? "Browse bottles"
+      : placedLibraryCount > 0
+        ? "Review portal"
+        : "Build layers";
+    const reviewTitle = !hasLibraryItems
+      ? "Start with the purchased bottles"
+      : placedLibraryCount > 0
+        ? "Layer draft is ready to review"
+        : "Build from the customer library";
+    const reviewCopy = !hasLibraryItems
+      ? "Choose bottles from the collections below before building a customer layer."
+      : placedLibraryCount > 0
+        ? `${placedLibraryCount} of ${ownedItems.length} owned ${ownedItems.length === 1 ? "bottle is" : "bottles are"} already placed. Review the portal flow before sharing.`
+        : `${ownedItems.length} owned ${ownedItems.length === 1 ? "bottle is" : "bottles are"} ready. Select one and place it into the active layer.`;
+    const reviewMeta = !hasLibraryItems
+      ? "No bottles yet"
+      : placedLibraryCount > 0
+        ? `${activeLayerBottleCount} in ${activeLayer ? activeLayer.name : "active layer"}`
+        : "No layer placement yet";
 
     customerLibraryPanel.innerHTML = `
       <div class="panel-intro">
@@ -3108,7 +4150,15 @@
           <p>Purchased collection</p>
           <h2>Customer Library</h2>
         </div>
-        <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
+        <div class="panel-meta panel-meta-inline">
+          <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
+          <button class="ghost-button panel-header-action" type="button" data-review-library data-review-library-target="${escapeHtml(reviewTarget)}">${escapeHtml(reviewButtonLabel)}</button>
+        </div>
+      </div>
+      <div class="library-review-strip" data-review-library-strip>
+        <span class="library-review-kicker">${escapeHtml(reviewMeta)}</span>
+        <strong>${escapeHtml(reviewTitle)}</strong>
+        <span>${escapeHtml(reviewCopy)}</span>
       </div>
       ${
         ownedItems.length === 0
@@ -3180,6 +4230,334 @@
       });
     });
 
+    const reviewLibraryButton = customerLibraryPanel.querySelector("[data-review-library]");
+    if (reviewLibraryButton) {
+      reviewLibraryButton.addEventListener("click", function () {
+        const target = reviewLibraryButton.getAttribute("data-review-library-target") || "layers";
+        const targetSelector =
+          target === "collections"
+            ? ".library-strip"
+            : target === "portal"
+              ? "[data-portal-panel]"
+              : "[data-layers-panel]";
+        const didScroll = scrollToSection(targetSelector);
+        recordAnalyticsEvent("library review jumped", "Library review opened", {
+          target,
+          scrolled: didScroll,
+          ownedCount: ownedItems.length,
+          placedCount: placedLibraryCount,
+        });
+      });
+    }
+
+  }
+
+  function renderPortalPanel() {
+    if (!portalPanel) {
+      return;
+    }
+
+    const snapshot = buildSheetSnapshot();
+    const customerKey = getPortalCustomerKey(snapshot);
+    const record = state.portalRecords[customerKey] || ensurePortalRecord(snapshot);
+    const customerName =
+      [snapshot.firstName, snapshot.lastName].filter(Boolean).join(" ").trim() ||
+      record.customerName ||
+      getPortalCustomerName(snapshot);
+    const portalView = state.portalView || "split";
+    const customerOnlyView = portalView === "customer";
+    if (customerOnlyView) {
+      const hasRecordedCustomerOpen = state.analyticsEvents.some((event) => {
+        return (
+          normalize(event.type) === "portal viewed" &&
+          normalize(event.meta && event.meta.source) === "customer-open" &&
+          normalize(event.meta && event.meta.customerKey) === customerKey
+        );
+      });
+
+      if (!hasRecordedCustomerOpen) {
+        recordAnalyticsEvent("portal viewed", "Customer portal opened", {
+          customerKey,
+          source: "customer-open",
+          view: "customer",
+        });
+      }
+    }
+    if (sheetApp) {
+      sheetApp.classList.toggle("is-customer-portal-view", customerOnlyView);
+      sheetApp.classList.toggle("is-owner-portal-view", !customerOnlyView);
+    }
+    schedulePortalRemoteHydration(snapshot);
+    const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
+    const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
+    const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
+    const latestNotification = Array.isArray(record.notifications) ? record.notifications.at(-1) || null : null;
+    const unreadCount = Array.isArray(record.notifications)
+      ? record.notifications.filter((notification) => !notification.readAt).length
+      : 0;
+    const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
+    const latestPortalEvent = portalEvents[0] || null;
+    const sharedPortalEvents = customerOnlyView
+      ? portalEvents.filter((event) => {
+          const eventType = normalize(event.type);
+          return [
+            "version published",
+            "layer version published",
+            "customer notified",
+            "customer viewed",
+            "customer acknowledged",
+            "customer read",
+            "version viewed",
+          ].includes(eventType);
+        })
+      : portalEvents;
+    const recentPortalEvents = customerOnlyView
+      ? sharedPortalEvents.slice(0, 4)
+      : portalEvents.slice(0, 4);
+    const latestVisiblePortalEvent = recentPortalEvents[0] || null;
+    const summaryPortalEvent = customerOnlyView ? latestVisiblePortalEvent : latestPortalEvent;
+    const portalActivityCountLabel = customerOnlyView
+      ? `${sharedPortalEvents.length} events`
+      : `${portalEvents.length} events`;
+    const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
+    const draftLayer = snapshot.layers.find((layer) => layer.id === snapshot.activeLayerId) || snapshot.layers[0] || null;
+    const draftLayerName = draftLayer ? draftLayer.name : "Layer 1";
+    const draftSummary = `${snapshot.customerLibrary.length} bottles · ${snapshot.layers.length} layers · ${draftLayerName}`;
+    const latestVersionSummary = latestVersion
+      ? `${latestVersion.summary} · Published ${formatPortalMoment(latestVersion.publishedAt)}`
+      : "No version published yet.";
+    const customerStatus = latestVersion
+      ? unreadCount > 0
+        ? "New version waiting"
+        : "Customer has seen the latest version"
+      : "Draft not published yet";
+    const portalSyncLabel = customerOnlyView ? "Shared customer view" : getPortalConnectionLabel(customerKey);
+    const portalPanelTitle = customerOnlyView ? "Customer portal" : "Owner & customer portal";
+    const portalPanelCopy = customerOnlyView
+      ? "The customer sees the latest published Torti version, notifications, and acknowledgement status."
+      : "Publish the active Torti draft and keep the customer version in sync.";
+    const portalViewBadge = customerOnlyView ? "Read only" : "Owner workspace";
+    const portalActivityTitle = customerOnlyView ? "Shared timeline" : "Portal timeline";
+    const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
+    const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
+    const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
+    const portalHero = customerOnlyView
+      ? `
+        <article class="portal-hero">
+          <div class="portal-hero-head">
+            <span class="portal-card-kicker">Customer portal</span>
+            <strong>${escapeHtml(customerName)}</strong>
+          </div>
+          <div class="portal-hero-summary">
+            <span>${escapeHtml(latestVersion ? latestVersionSummary : "No version published yet.")}</span>
+            <span>${escapeHtml(customerStatus)}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-hero-notice${latestNotification ? " is-emphasis" : " is-muted"}">${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
+          </div>
+        </article>
+      `
+      : "";
+    const analyticsMarkup = customerOnlyView
+      ? ""
+      : `
+        <article class="portal-analytics" data-portal-analytics></article>
+      `;
+
+    portalPanel.innerHTML = `
+      <div class="panel-intro">
+        <div class="panel-copy">
+          <p>Portal flow</p>
+          <h2>${escapeHtml(portalPanelTitle)}</h2>
+          <span>${escapeHtml(portalPanelCopy)}</span>
+        </div>
+        <div class="panel-meta">
+          <span class="panel-count">${escapeHtml(`${versions.length} versions`)}</span>
+          <span class="panel-count panel-count--quiet">${escapeHtml(portalViewBadge)}</span>
+          ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
+        </div>
+      </div>
+      ${portalHero}
+      ${analyticsMarkup}
+      <div class="portal-grid${customerOnlyView ? " portal-grid--customer-only" : ""}">
+        ${customerOnlyView
+          ? ""
+          : `
+        <article class="portal-card portal-card--owner">
+          <div class="portal-card-head">
+            <span class="portal-card-kicker">Owner portal</span>
+            <strong>${escapeHtml(customerName)}</strong>
+          </div>
+          <div class="portal-card-summary">
+            <span>${escapeHtml(draftSummary)}</span>
+            <span>Next version ${escapeHtml(String(nextVersionNumber))}</span>
+            <span>Customer key ${escapeHtml(customerKey)}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span>${escapeHtml(latestNotification ? `Latest notice: ${latestNotification.title || `Version ${latestNotification.versionNumber}`}` : latestVersion ? "No new notifications yet" : "Waiting for first publish")}</span>
+            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span>${escapeHtml(record.lastAcknowledgedAt ? `Acknowledged ${formatPortalMoment(record.lastAcknowledgedAt)}` : "Not acknowledged yet")}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
+          </div>
+          <div class="portal-card-actions">
+            <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
+            <button class="ghost-button portal-action" type="button" data-copy-portal-link>Copy portal link</button>
+            <button class="ghost-button portal-action" type="button" data-preview-customer-portal>Preview customer view</button>
+          </div>
+          <div class="portal-card-list">
+            ${versions.length > 0
+              ? versions
+                .map((version) => {
+                  const isLatest = latestVersion && latestVersion.versionId === version.versionId;
+                  return `
+                    <article class="portal-item${isLatest ? " is-latest" : ""}">
+                      <div class="portal-item-head">
+                        <strong>Version ${escapeHtml(String(version.versionNumber))}</strong>
+                        <span>${escapeHtml(formatPortalMoment(version.publishedAt))}</span>
+                      </div>
+                      <p>${escapeHtml(version.summary || version.note || "Published Torti draft.")}</p>
+                    </article>
+                  `;
+                })
+                .join("")
+              : '<div class="portal-empty">Publish the draft to create the first customer version.</div>'}
+          </div>
+        </article>`}
+
+        <article class="portal-card portal-card--customer">
+          <div class="portal-card-head">
+            <span class="portal-card-kicker">Customer portal</span>
+            <strong>${escapeHtml(customerStatus)}</strong>
+          </div>
+          <div class="portal-card-summary">
+            <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
+            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span>${escapeHtml(record.viewedAt ? `Seen ${formatPortalMoment(record.viewedAt)}` : "Not opened yet")}</span>
+            <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
+            <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
+          </div>
+          ${customerOnlyView
+            ? ""
+            : `
+          <div class="portal-card-actions">
+            <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
+            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+          </div>`}
+          <div class="portal-card-list">
+            ${notifications.length > 0
+              ? notifications
+                .map((notification) => {
+                  const isLatest = latestNotification && latestNotification.notificationId === notification.notificationId;
+                  return `
+                    <article class="portal-item portal-notification${!notification.readAt ? " is-unread" : ""}${isLatest ? " is-latest" : ""}">
+                      <div class="portal-item-head">
+                        <strong>${escapeHtml(notification.title || `Notification ${notification.versionNumber}`)}</strong>
+                        <span>${escapeHtml(formatPortalMoment(notification.createdAt))}</span>
+                      </div>
+                      <p>${escapeHtml(notification.message || "A new Torti version is waiting in the customer portal.")}</p>
+                      <div class="portal-item-foot">
+                        <span>Version ${escapeHtml(String(notification.versionNumber))}</span>
+                        <span>${notification.readAt ? "Viewed" : "Unread"}</span>
+                      </div>
+                    </article>
+                  `;
+                })
+                .join("")
+              : '<div class="portal-empty">No notifications yet. Publish a draft to send one.</div>'}
+          </div>
+        </article>
+      </div>
+      <article class="portal-activity">
+        <div class="portal-activity-head">
+          <div class="portal-activity-heading">
+            <span class="portal-card-kicker">${escapeHtml(customerOnlyView ? "Activity" : "Portal activity")}</span>
+            <strong>${escapeHtml(portalActivityTitle)}</strong>
+          </div>
+          <span class="portal-activity-meta">${escapeHtml(portalActivityCountLabel)} · ${escapeHtml(portalSyncLabel)}</span>
+        </div>
+        <div class="portal-activity-list">
+          ${recentPortalEvents.length > 0
+            ? recentPortalEvents
+              .map((event) => {
+                const eventTitle = event.message || event.type || "Portal event";
+                const eventType = formatPortalActivityTypeLabel(event.type);
+                const isLatestActivity = latestVisiblePortalEvent && latestVisiblePortalEvent.eventId === event.eventId;
+                return `
+                  <article class="portal-activity-item${isLatestActivity ? " is-latest" : ""}">
+                    <div class="portal-activity-item-head">
+                      <strong>${escapeHtml(eventTitle)}</strong>
+                      <div class="portal-activity-item-head-meta">
+                        ${isLatestActivity ? `<span class="portal-activity-latest-pill">${escapeHtml(latestActivityBadgeLabel)}</span>` : ""}
+                        <span>${escapeHtml(formatPortalMoment(event.createdAt))}</span>
+                      </div>
+                    </div>
+                    <div class="portal-activity-item-foot">
+                      <span>${escapeHtml(eventType)}</span>
+                      <span>${escapeHtml(customerOnlyView ? "Shared portal" : (event.actorUserId || "owner"))}</span>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")
+            : '<div class="portal-empty">No portal events yet. Publish a draft to create the first activity.</div>'}
+        </div>
+      </article>
+    `;
+
+    portalPanel.querySelectorAll("[data-publish-portal]").forEach((button) => {
+      button.addEventListener("click", function () {
+        publishPortalVersion();
+      });
+    });
+
+    const copyLinkButton = portalPanel.querySelector("[data-copy-portal-link]");
+    if (copyLinkButton) {
+      copyLinkButton.addEventListener("click", async function () {
+        try {
+          await copyPortalShareUrl(snapshot);
+          copyLinkButton.textContent = "Copied";
+          window.setTimeout(() => {
+            copyLinkButton.textContent = "Copy portal link";
+          }, 1500);
+        } catch (error) {
+          window.prompt("Copy portal link", buildPortalShareUrl(snapshot));
+        }
+      });
+    }
+
+    const previewCustomerButton = portalPanel.querySelector("[data-preview-customer-portal]");
+    if (previewCustomerButton) {
+      previewCustomerButton.addEventListener("click", function () {
+        if (portalPreviewUrl) {
+          recordAnalyticsEvent("customer preview", "Customer preview opened", {
+            customerKey,
+            source: "owner-preview",
+            view: "customer",
+          });
+          const previewWindow = window.open(portalPreviewUrl, "_blank", "noopener");
+          if (!previewWindow) {
+            window.location.assign(portalPreviewUrl);
+          }
+        }
+      });
+    }
+
+    const markViewedButton = portalPanel.querySelector("[data-mark-portal-view]");
+    if (markViewedButton) {
+      markViewedButton.addEventListener("click", function () {
+        markPortalViewed();
+      });
+    }
+
+    const ackButton = portalPanel.querySelector("[data-ack-portal-notification]");
+    if (ackButton) {
+      ackButton.addEventListener("click", function () {
+        acknowledgeLatestPortalNotification();
+      });
+    }
+
+    renderPortalAnalytics();
+
   }
 
   function renderProductScroller() {
@@ -3235,9 +4613,42 @@
       state.hoveredCollectionSection !== activeSection.key &&
       visibleSections.find((section) => section.key === state.hoveredCollectionSection) ||
       null;
+    const featuredSections = visibleSections.slice(0, 3);
     const previewProducts = previewSection ? previewSection.products.slice(0, 3) : [];
     const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
     const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
+    const shortcutMarkup = featuredSections.length
+      ? `
+        <div class="collection-shortcuts" aria-label="Featured collections">
+          ${featuredSections
+            .map((section) => {
+              const previewProducts = section.products.slice(0, 2);
+              const previewNames = previewProducts.length ? previewProducts : section.products.slice(0, 1);
+              const countLabel = `${section.products.length} products`;
+
+              return `
+                <button
+                  class="collection-shortcut${section.key === activeSection.key ? " is-active" : ""}"
+                  type="button"
+                  data-collection-shortcut="${escapeHtml(section.key)}"
+                >
+                  <span class="collection-shortcut-copy">
+                    <span class="collection-shortcut-kicker">Featured path</span>
+                    <strong>${escapeHtml(section.label.replace(/\s+Collection$/i, ""))}</strong>
+                    <span class="collection-shortcut-meta">${escapeHtml(countLabel)}</span>
+                  </span>
+                  <span class="collection-shortcut-pills">
+                    ${previewNames
+                      .map((item) => `<span class="collection-shortcut-pill">${escapeHtml(item.name)}</span>`)
+                      .join("")}
+                  </span>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      `
+      : "";
     const resultsMarkup = activeQuery
       ? activeProducts.length > 0
         ? activeProducts
@@ -3263,8 +4674,8 @@
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
-                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
                   </span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added to library" : "Tap or drag to add"}</span>
                 </span>
               </button>
             `;
@@ -3295,8 +4706,8 @@
                     <span class="product-level-badges">
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
-                    ${owned ? '<span class="collection-result-owned">In library</span>' : ""}
                   </span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added to library" : "Tap or drag to add"}</span>
                 </span>
               </button>
             `;
@@ -3321,6 +4732,7 @@
       : "";
 
     productScroller.innerHTML = `
+      ${shortcutMarkup}
       <div class="collection-tabs" role="tablist" aria-label="Collections">
         ${tabsMarkup}
       </div>
@@ -3360,6 +4772,15 @@
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
         const catalogId = button.getAttribute("data-product-id");
+        const product = getCatalogItem(catalogId);
+        const ownedBefore = Boolean(catalogId && state.customerLibrary.includes(catalogId));
+        recordAnalyticsEvent("collection card tapped", "Collection card tapped", {
+          catalogId,
+          productName: product ? product.name : "",
+          collection: product ? product.collection : "",
+          type: product ? product.type : "",
+          ownedBefore,
+        });
         addCatalogToLibrary(catalogId);
         setPendingCatalog(catalogId);
       });
@@ -3428,6 +4849,29 @@
       });
     });
 
+    productScroller.querySelectorAll("[data-collection-shortcut]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const key = button.getAttribute("data-collection-shortcut");
+        if (!key) {
+          return;
+        }
+
+        state.activeCollectionSection = key;
+        state.hoveredCollectionSection = null;
+        recordAnalyticsEvent("collection shortcut opened", "Collection shortcut opened", {
+          target: key,
+          productCount: getCollectionSectionProducts(key).length,
+        });
+        renderProductScroller();
+        window.setTimeout(() => {
+          const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
+          if (input && typeof input.focus === "function") {
+            input.focus();
+          }
+        }, 0);
+      });
+    });
+
     productScroller.querySelectorAll("[data-collection-search]").forEach((input) => {
       input.addEventListener("input", function () {
         const key = input.getAttribute("data-collection-search");
@@ -3439,6 +4883,8 @@
         renderProductScroller();
       });
     });
+
+    bindCollectionRailTracking();
   }
 
   function render() {
@@ -3454,6 +4900,7 @@
     renderSavedSheets();
     renderLayersPanel();
     renderCustomerLibrary();
+    renderPortalPanel();
     renderActionState();
     renderProductScroller();
   }
@@ -3745,6 +5192,8 @@
   });
 
   state.savedSheets = loadSavedSheets();
+  state.portalRecords = loadPortalRecords();
+  state.analyticsEvents = loadAnalyticsEvents();
   state.layers = buildDefaultLayers();
   state.activeLayerId = state.layers[0].id;
   state.customerLibrary = [];
@@ -3754,4 +5203,8 @@
   syncFormFields();
   syncSheetPaperLock();
   render();
+  bindTopNavigationActions();
+  bindAnalyticsScrollTracking();
+  bindCollectionRailTracking();
+  recordScrollDepthSignals();
 })();

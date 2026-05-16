@@ -100,7 +100,7 @@
           from: 'Egzona Krasniqi (Hair TP Clinic)',
           tone: 'outbound',
           time: 'Igår 11:02',
-          text: 'Hej Sara!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga slots tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona',
+          text: 'Hej Sara!\n\nVad roligt! Jag återkommer med exakt tid inom dagen — vi har lediga tider tisdag 13:00 och torsdag 11:00.\n\nMvh,\nEgzona',
         },
       ],
       timeline: ['Första kontakt 22 april', 'Konsultation 28 april', 'Bekräftelse igår'],

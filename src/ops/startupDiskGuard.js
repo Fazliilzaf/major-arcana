@@ -30,10 +30,7 @@ function buildDirectorySet(config = {}) {
   return [...unique];
 }
 
-async function pruneTempFilesInDirectory({
-  directoryPath,
-  olderThanMs = 5 * 60 * 1000,
-}) {
+async function pruneTempFilesInDirectory({ directoryPath, olderThanMs = 5 * 60 * 1000 }) {
   const nowMs = Date.now();
   const deleted = [];
   await fs.mkdir(directoryPath, { recursive: true });
@@ -174,6 +171,12 @@ function buildStateFileGuards(config = {}) {
       filePath: config.ccoWorkspacePrefsStorePath,
       maxBytes: toPositiveInt(config.startupCcoWorkspacePrefsStoreMaxBytes, 4 * MB),
       fallback: { version: 1, createdAt: ts, updatedAt: ts, preferences: [] },
+    },
+    {
+      scope: 'cco_portal_store',
+      filePath: config.ccoPortalStorePath,
+      maxBytes: toPositiveInt(config.startupCcoPortalStoreMaxBytes, 12 * MB),
+      fallback: { version: 1, createdAt: ts, updatedAt: ts, tenants: {} },
     },
     {
       scope: 'template_store',

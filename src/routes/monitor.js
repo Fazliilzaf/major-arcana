@@ -34,7 +34,8 @@ const REMEDIATION_PRIORITY_ORDER = Object.freeze({
 const REMEDIATION_GUIDANCE_BY_NOGO = Object.freeze({
   output_without_risk_policy_gate: {
     owner: 'release_owner',
-    playbook: 'Verifiera att alla aktiva versioner har output-risk + policy metadata före aktivering.',
+    playbook:
+      'Verifiera att alla aktiva versioner har output-risk + policy metadata före aktivering.',
   },
   policy_floor_bypass: {
     owner: 'risk_owner',
@@ -269,9 +270,10 @@ function buildPatientFeedbackReadiness({
   patientConversionSummary = null,
   maxFreshnessHours = 72,
 }) {
-  const summary = patientConversionSummary && typeof patientConversionSummary === 'object'
-    ? patientConversionSummary
-    : null;
+  const summary =
+    patientConversionSummary && typeof patientConversionSummary === 'object'
+      ? patientConversionSummary
+      : null;
   const window = summary?.window && typeof summary.window === 'object' ? summary.window : {};
 
   const totalRequests = Number(window.totalRequests || 0);
@@ -386,27 +388,24 @@ function clampNumber(value, min, max, fallback) {
   return Math.max(min, Math.min(max, parsed));
 }
 
-function buildObservabilitySnapshot({
-  runtimeMetrics = null,
-  config = null,
-} = {}) {
-  const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
+function buildObservabilitySnapshot({ runtimeMetrics = null, config = null } = {}) {
   const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
   const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
   const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
-  const slowRequestMs = Number(runtimeMetrics?.settings?.slowRequestMs || config?.metricsSlowRequestMs || 1500);
+  const slowRequestMs = Number(
+    runtimeMetrics?.settings?.slowRequestMs || config?.metricsSlowRequestMs || 1500
+  );
   const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
   const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
-  const errorRateDenom = totalRequests > 0 ? totalRequests : sampledRequests;
   const errorRatePct =
-    errorRateDenom > 0 ? Number(((serverErrors / errorRateDenom) * 100).toFixed(3)) : 0;
+    sampledRequests > 0 ? Number(((serverErrors / sampledRequests) * 100).toFixed(3)) : 0;
   const thresholds = {
     maxErrorRatePct: clampNumber(config?.observabilityAlertMaxErrorRatePct, 0.01, 100, 2.5),
     maxP95Ms: clampNumber(config?.observabilityAlertMaxP95Ms, 50, 120000, 1800),
     maxSlowRequests: clampNumber(config?.observabilityAlertMaxSlowRequests, 1, 100000, 25),
   };
 
-  const hasTraffic = totalRequests > 0 || sampledRequests > 0;
+  const hasTraffic = sampledRequests > 0;
   const errorRateStatus = hasTraffic
     ? errorRatePct > thresholds.maxErrorRatePct
       ? 'red'
@@ -437,7 +436,6 @@ function buildObservabilitySnapshot({
       required: true,
       target: `<=${thresholds.maxErrorRatePct}%`,
       value: {
-        totalRequests,
         sampledRequests,
         serverErrors,
         errorRatePct,
@@ -485,13 +483,11 @@ function buildObservabilitySnapshot({
     summary: {
       overallStatus,
       hasTraffic,
-      totalRequests,
       sampledRequests,
       triggeredAlertsCount: triggeredAlerts.length,
     },
     thresholds,
     metrics: {
-      totalRequests,
       sampledRequests,
       serverErrors,
       errorRatePct,
@@ -505,17 +501,14 @@ function buildObservabilitySnapshot({
   };
 }
 
-function evaluateCategory({
-  id,
-  label,
-  weight = 25,
-  checks = [],
-} = {}) {
+function evaluateCategory({ id, label, weight = 25, checks = [] } = {}) {
   const safeChecks = Array.isArray(checks) ? checks : [];
   const hasRequiredRed = safeChecks.some((check) => check.required && check.status === 'red');
   const hasAnyRed = safeChecks.some((check) => check.status === 'red');
   const hasAnyYellow = safeChecks.some((check) => check.status === 'yellow');
-  const hasRequiredUnknown = safeChecks.some((check) => check.required && check.status === 'unknown');
+  const hasRequiredUnknown = safeChecks.some(
+    (check) => check.required && check.status === 'unknown'
+  );
   const avgScore =
     safeChecks.length > 0
       ? safeChecks.reduce((sum, check) => sum + Number(check.score || 0), 0) / safeChecks.length
@@ -594,7 +587,8 @@ function findLatestAuditEvent(events = [], { action = '', outcome = '' } = {}) {
   const normalizedOutcome = normalizeText(outcome).toLowerCase();
   for (const item of Array.isArray(events) ? events : []) {
     if (normalizedAction && normalizeText(item?.action) !== normalizedAction) continue;
-    if (normalizedOutcome && normalizeText(item?.outcome).toLowerCase() !== normalizedOutcome) continue;
+    if (normalizedOutcome && normalizeText(item?.outcome).toLowerCase() !== normalizedOutcome)
+      continue;
     return item;
   }
   return null;
@@ -767,7 +761,8 @@ function collectActiveTemplateVersions(templates = []) {
     }
     if (!activeVersion) {
       activeVersion =
-        versions.find((version) => normalizeText(version?.state).toLowerCase() === 'active') || null;
+        versions.find((version) => normalizeText(version?.state).toLowerCase() === 'active') ||
+        null;
     }
     if (!activeVersion) continue;
 
@@ -983,73 +978,72 @@ function createMonitorRouter({
           secretRotationFile,
           patientSignalFile,
           sloTicketFile,
-        ] =
-          await Promise.all([
-            templateStore.listTemplates({ tenantId }),
-            templateStore.summarizeRisk({ tenantId, minRiskLevel: 1 }),
-            supportsIncidents
-              ? templateStore.summarizeIncidents({ tenantId })
-              : Promise.resolve(null),
-            authStore.listTenantMembers(tenantId),
-            authStore.listAuditEvents({ tenantId, limit: 300 }),
-            typeof authStore.getLatestAuditEvent === 'function'
-              ? authStore.getLatestAuditEvent({
-                  tenantId,
-                  action: 'scheduler.job.restore_drill_preview.run',
-                  outcome: 'success',
-                })
-              : Promise.resolve(null),
-            typeof authStore.getLatestAuditEvent === 'function'
-              ? authStore.getLatestAuditEvent({
-                  tenantId,
-                  action: 'scheduler.job.restore_drill_full.run',
-                  outcome: 'success',
-                })
-              : Promise.resolve(null),
-            typeof authStore.getLatestAuditEvent === 'function'
-              ? authStore.getLatestAuditEvent({
-                  tenantId,
-                  action: 'scheduler.job.nightly_pilot_report.run',
-                  outcome: 'success',
-                })
-              : Promise.resolve(null),
-            typeof authStore.getLatestAuditEvent === 'function'
-              ? authStore.getLatestAuditEvent({
-                  tenantId,
-                  action: 'scheduler.job.audit_integrity_check.run',
-                  outcome: 'success',
-                })
-              : Promise.resolve(null),
-            typeof authStore.getLatestAuditEvent === 'function'
-              ? authStore.getLatestAuditEvent({
-                  tenantId,
-                  action: 'scheduler.job.secrets_rotation_snapshot.run',
-                  outcome: 'success',
-                })
-              : Promise.resolve(null),
-            listSchedulerPilotReports({
-              reportsDir: config?.reportsDir,
-              limit: 1,
-            }),
-            tenantConfigStore.getTenantConfig(tenantId),
-            patientConversionStore && typeof patientConversionStore.getSummary === 'function'
-              ? patientConversionStore.getSummary({
-                  tenantId,
-                  windowDays: parseDays(config?.patientSignalWindowDays, 14),
-                  freshnessHours: parsePositiveInt(config?.patientSignalFreshnessHours) || 72,
-                  topLimit: 8,
-                })
-              : Promise.resolve(null),
-            sloTicketStore && typeof sloTicketStore.summarize === 'function'
-              ? sloTicketStore.summarize({ tenantId })
-              : Promise.resolve(null),
-            readFileMeta(authStore.filePath),
-            readFileMeta(templateStore.filePath),
-            readFileMeta(tenantConfigStore.filePath),
-            readFileMeta(config?.secretRotationStorePath),
-            readFileMeta(config?.patientSignalStorePath),
-            readFileMeta(config?.sloTicketStorePath),
-          ]);
+        ] = await Promise.all([
+          templateStore.listTemplates({ tenantId }),
+          templateStore.summarizeRisk({ tenantId, minRiskLevel: 1 }),
+          supportsIncidents
+            ? templateStore.summarizeIncidents({ tenantId })
+            : Promise.resolve(null),
+          authStore.listTenantMembers(tenantId),
+          authStore.listAuditEvents({ tenantId, limit: 300 }),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.restore_drill_preview.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.restore_drill_full.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.nightly_pilot_report.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.audit_integrity_check.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          typeof authStore.getLatestAuditEvent === 'function'
+            ? authStore.getLatestAuditEvent({
+                tenantId,
+                action: 'scheduler.job.secrets_rotation_snapshot.run',
+                outcome: 'success',
+              })
+            : Promise.resolve(null),
+          listSchedulerPilotReports({
+            reportsDir: config?.reportsDir,
+            limit: 1,
+          }),
+          tenantConfigStore.getTenantConfig(tenantId),
+          patientConversionStore && typeof patientConversionStore.getSummary === 'function'
+            ? patientConversionStore.getSummary({
+                tenantId,
+                windowDays: parseDays(config?.patientSignalWindowDays, 14),
+                freshnessHours: parsePositiveInt(config?.patientSignalFreshnessHours) || 72,
+                topLimit: 8,
+              })
+            : Promise.resolve(null),
+          sloTicketStore && typeof sloTicketStore.summarize === 'function'
+            ? sloTicketStore.summarize({ tenantId })
+            : Promise.resolve(null),
+          readFileMeta(authStore.filePath),
+          readFileMeta(templateStore.filePath),
+          readFileMeta(tenantConfigStore.filePath),
+          readFileMeta(config?.secretRotationStorePath),
+          readFileMeta(config?.patientSignalStorePath),
+          readFileMeta(config?.sloTicketStorePath),
+        ]);
 
         const now = Date.now();
         const dayAgo = now - 24 * 60 * 60 * 1000;
@@ -1080,9 +1074,7 @@ function createMonitorRouter({
         });
         const activeTemplates = templates.filter((item) => item.currentActiveVersionId).length;
         const schedulerStatus =
-          scheduler && typeof scheduler.getStatus === 'function'
-            ? scheduler.getStatus()
-            : null;
+          scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
         const schedulerJobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
         const schedulerJobFreshness = schedulerJobs.map((job) => {
           const freshness = buildSchedulerFreshnessCheck(job);
@@ -1183,7 +1175,8 @@ function createMonitorRouter({
             platform: process.platform,
             aiProvider: config?.aiProvider || 'openai',
             aiModel: config?.openaiModel || '',
-            semanticModelMode: normalizeText(config?.semanticModelMode || 'heuristic') || 'heuristic',
+            semanticModelMode:
+              normalizeText(config?.semanticModelMode || 'heuristic') || 'heuristic',
             distributed: {
               configuredBackend: normalizeText(config?.distributedBackend || 'memory') || 'memory',
               active: runtimeState?.distributed?.active === true,
@@ -1371,9 +1364,7 @@ function createMonitorRouter({
               allowLocalhost: Boolean(config?.publicChatBetaAllowLocalhost),
               killSwitch: Boolean(config?.publicChatKillSwitch),
               maxTurns: Number(config?.publicChatMaxTurns || 0),
-              promptInjectionFilterEnabled: Boolean(
-                config?.publicChatPromptInjectionFilterEnabled
-              ),
+              promptInjectionFilterEnabled: Boolean(config?.publicChatPromptInjectionFilterEnabled),
             },
           },
           patientChannel: {
@@ -1387,9 +1378,7 @@ function createMonitorRouter({
               allowLocalhost: Boolean(config?.publicChatBetaAllowLocalhost),
               killSwitch: Boolean(config?.publicChatKillSwitch),
               maxTurns: Number(config?.publicChatMaxTurns || 0),
-              promptInjectionFilterEnabled: Boolean(
-                config?.publicChatPromptInjectionFilterEnabled
-              ),
+              promptInjectionFilterEnabled: Boolean(config?.publicChatPromptInjectionFilterEnabled),
             },
             conversionFeedback: patientConversionSummary
               ? {
@@ -1558,6 +1547,39 @@ function createMonitorRouter({
     }
   );
 
+  router.post('/monitor/metrics/reset', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!runtimeMetricsStore || typeof runtimeMetricsStore.reset !== 'function') {
+      return res.status(503).json({ error: 'Runtime metrics reset är inte tillgänglig.' });
+    }
+    try {
+      const snapshot = runtimeMetricsStore.reset();
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'monitor.metrics.reset',
+        outcome: 'success',
+        targetType: 'monitor_metrics',
+        targetId: req.auth.tenantId,
+        metadata: {
+          requests: Number(snapshot?.totals?.requests || 0),
+          sampledRequests: Number(snapshot?.totals?.sampledRequests || 0),
+        },
+      });
+
+      return res.json({
+        ok: true,
+        snapshot,
+      });
+    } catch (error) {
+      if (error?.message) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte nollställa monitor metrics.' });
+    }
+  });
+
   router.get(
     '/monitor/gateway/dead-letters',
     requireAuth,
@@ -1569,12 +1591,10 @@ function createMonitorRouter({
         const actorRole = normalizeText(req.auth?.role).toUpperCase();
         const actorTenantId = normalizeText(req.auth?.tenantId);
 
-        if (
-          requestedTenantId &&
-          requestedTenantId !== actorTenantId &&
-          actorRole !== ROLE_OWNER
-        ) {
-          return res.status(403).json({ error: 'Endast OWNER kan läsa dead-letters för annan tenant.' });
+        if (requestedTenantId && requestedTenantId !== actorTenantId && actorRole !== ROLE_OWNER) {
+          return res
+            .status(403)
+            .json({ error: 'Endast OWNER kan läsa dead-letters för annan tenant.' });
         }
 
         const tenantId = requestedTenantId || actorTenantId;
@@ -1729,327 +1749,308 @@ function createMonitorRouter({
     }
   );
 
-  router.get(
-    '/monitor/slo',
-    requireAuth,
-    requireRole(ROLE_OWNER, ROLE_STAFF),
-    async (req, res) => {
-      try {
-        const tenantId = req.auth.tenantId;
-        const schedulerStatus =
-          scheduler && typeof scheduler.getStatus === 'function'
-            ? scheduler.getStatus()
-            : null;
-        const [
-          incidentSummary,
-          latestRestoreDrillAudit,
-          latestRestoreDrillFullAudit,
-          latestNightlyReportAudit,
-          latestAuditIntegrityAudit,
-          latestSecretRotationAudit,
-          latestSchedulerReports,
-          sloTicketSummary,
-        ] =
-          await Promise.all([
-          typeof templateStore?.summarizeIncidents === 'function'
-            ? templateStore.summarizeIncidents({ tenantId })
-            : Promise.resolve(null),
-          typeof authStore.getLatestAuditEvent === 'function'
-            ? authStore.getLatestAuditEvent({
-                tenantId,
-                action: 'scheduler.job.restore_drill_preview.run',
-                outcome: 'success',
-              })
-            : Promise.resolve(null),
-          typeof authStore.getLatestAuditEvent === 'function'
-            ? authStore.getLatestAuditEvent({
-                tenantId,
-                action: 'scheduler.job.restore_drill_full.run',
-                outcome: 'success',
-              })
-            : Promise.resolve(null),
-          typeof authStore.getLatestAuditEvent === 'function'
-            ? authStore.getLatestAuditEvent({
-                tenantId,
-                action: 'scheduler.job.nightly_pilot_report.run',
-                outcome: 'success',
-              })
-            : Promise.resolve(null),
-          typeof authStore.getLatestAuditEvent === 'function'
-            ? authStore.getLatestAuditEvent({
-                tenantId,
-                action: 'scheduler.job.audit_integrity_check.run',
-                outcome: 'success',
-              })
-            : Promise.resolve(null),
-          typeof authStore.getLatestAuditEvent === 'function'
-            ? authStore.getLatestAuditEvent({
-                tenantId,
-                action: 'scheduler.job.secrets_rotation_snapshot.run',
-                outcome: 'success',
-              })
-            : Promise.resolve(null),
-          listSchedulerPilotReports({
-            reportsDir: config?.reportsDir,
-            limit: 1,
-          }),
-          sloTicketStore && typeof sloTicketStore.summarize === 'function'
-            ? sloTicketStore.summarize({ tenantId })
-            : Promise.resolve(null),
-        ]);
+  router.get('/monitor/slo', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
+    try {
+      const tenantId = req.auth.tenantId;
+      const schedulerStatus =
+        scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
+      const [
+        incidentSummary,
+        latestRestoreDrillAudit,
+        latestRestoreDrillFullAudit,
+        latestNightlyReportAudit,
+        latestAuditIntegrityAudit,
+        latestSecretRotationAudit,
+        latestSchedulerReports,
+        sloTicketSummary,
+      ] = await Promise.all([
+        typeof templateStore?.summarizeIncidents === 'function'
+          ? templateStore.summarizeIncidents({ tenantId })
+          : Promise.resolve(null),
+        typeof authStore.getLatestAuditEvent === 'function'
+          ? authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'scheduler.job.restore_drill_preview.run',
+              outcome: 'success',
+            })
+          : Promise.resolve(null),
+        typeof authStore.getLatestAuditEvent === 'function'
+          ? authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'scheduler.job.restore_drill_full.run',
+              outcome: 'success',
+            })
+          : Promise.resolve(null),
+        typeof authStore.getLatestAuditEvent === 'function'
+          ? authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'scheduler.job.nightly_pilot_report.run',
+              outcome: 'success',
+            })
+          : Promise.resolve(null),
+        typeof authStore.getLatestAuditEvent === 'function'
+          ? authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'scheduler.job.audit_integrity_check.run',
+              outcome: 'success',
+            })
+          : Promise.resolve(null),
+        typeof authStore.getLatestAuditEvent === 'function'
+          ? authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'scheduler.job.secrets_rotation_snapshot.run',
+              outcome: 'success',
+            })
+          : Promise.resolve(null),
+        listSchedulerPilotReports({
+          reportsDir: config?.reportsDir,
+          limit: 1,
+        }),
+        sloTicketStore && typeof sloTicketStore.summarize === 'function'
+          ? sloTicketStore.summarize({ tenantId })
+          : Promise.resolve(null),
+      ]);
 
-        const runtimeMetrics =
-          runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
-            ? runtimeMetricsStore.getSnapshot({ areaLimit: 10 })
-            : null;
-        const nowMs = Date.now();
-        const restoreGate = buildRestoreDrillGate({
-          schedulerStatus,
-          latestRestoreDrillAudit,
-          monitorRestoreDrillMaxAgeDays: config?.monitorRestoreDrillMaxAgeDays,
-          nowMs,
-        });
-        const latestSchedulerReport =
-          Array.isArray(latestSchedulerReports) && latestSchedulerReports.length > 0
-            ? latestSchedulerReports[0]
-            : null;
-        const pilotReportGate = buildNightlyPilotReportGate({
-          schedulerStatus,
-          latestNightlyReportAudit,
-          latestReportFile: latestSchedulerReport,
-          monitorPilotReportMaxAgeHours: config?.monitorPilotReportMaxAgeHours,
-          nowMs,
-        });
-        const restoreFullGate = buildSchedulerJobRecencyGate({
-          schedulerStatus,
-          latestAuditEvent: latestRestoreDrillFullAudit,
-          jobId: 'restore_drill_full',
-          maxAgeHours: 24 * 30,
-          nowMs,
-        });
-        const auditIntegrityDailyGate = buildSchedulerJobRecencyGate({
-          schedulerStatus,
-          latestAuditEvent: latestAuditIntegrityAudit,
-          jobId: 'audit_integrity_check',
-          maxAgeHours: 36,
-          nowMs,
-        });
-        const secretRotationDailyGate = buildSchedulerJobRecencyGate({
-          schedulerStatus,
-          latestAuditEvent: latestSecretRotationAudit,
-          jobId: 'secrets_rotation_snapshot',
-          maxAgeHours: 36,
-          nowMs,
-        });
+      const runtimeMetrics =
+        runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
+          ? runtimeMetricsStore.getSnapshot({ areaLimit: 10 })
+          : null;
+      const nowMs = Date.now();
+      const restoreGate = buildRestoreDrillGate({
+        schedulerStatus,
+        latestRestoreDrillAudit,
+        monitorRestoreDrillMaxAgeDays: config?.monitorRestoreDrillMaxAgeDays,
+        nowMs,
+      });
+      const latestSchedulerReport =
+        Array.isArray(latestSchedulerReports) && latestSchedulerReports.length > 0
+          ? latestSchedulerReports[0]
+          : null;
+      const pilotReportGate = buildNightlyPilotReportGate({
+        schedulerStatus,
+        latestNightlyReportAudit,
+        latestReportFile: latestSchedulerReport,
+        monitorPilotReportMaxAgeHours: config?.monitorPilotReportMaxAgeHours,
+        nowMs,
+      });
+      const restoreFullGate = buildSchedulerJobRecencyGate({
+        schedulerStatus,
+        latestAuditEvent: latestRestoreDrillFullAudit,
+        jobId: 'restore_drill_full',
+        maxAgeHours: 24 * 30,
+        nowMs,
+      });
+      const auditIntegrityDailyGate = buildSchedulerJobRecencyGate({
+        schedulerStatus,
+        latestAuditEvent: latestAuditIntegrityAudit,
+        jobId: 'audit_integrity_check',
+        maxAgeHours: 36,
+        nowMs,
+      });
+      const secretRotationDailyGate = buildSchedulerJobRecencyGate({
+        schedulerStatus,
+        latestAuditEvent: latestSecretRotationAudit,
+        jobId: 'secrets_rotation_snapshot',
+        maxAgeHours: 36,
+        nowMs,
+      });
 
-        const totalRequests = Number(runtimeMetrics?.totals?.requests || 0);
-        const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
-        const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
-        const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
-        const availDenom = totalRequests > 0 ? totalRequests : sampledRequests;
-        const availabilityPct =
-          availDenom > 0
-            ? Number(
-                Math.max(0, Math.min(100, ((availDenom - serverErrors) / availDenom) * 100)).toFixed(3)
-              )
-            : 100;
-        const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
-        const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
-        const latencyTargetMs = Math.max(
-          50,
-          Number(config?.observabilityAlertMaxP95Ms || config?.metricsSlowRequestMs || 1500)
-        );
-        const latencyStatus =
-          sampledRequests === 0
-            ? 'unknown'
-            : p95Ms <= latencyTargetMs
-              ? 'green'
-              : p95Ms <= latencyTargetMs * 1.2
-                ? 'yellow'
-                : 'red';
+      const sampledRequests = Number(runtimeMetrics?.totals?.sampledRequests || 0);
+      const serverErrors = Number(runtimeMetrics?.totals?.statusBuckets?.['5xx'] || 0);
+      const slowRequests = Number(runtimeMetrics?.totals?.slowRequests || 0);
+      const availabilityPct =
+        sampledRequests > 0
+          ? Number((((sampledRequests - serverErrors) / sampledRequests) * 100).toFixed(3))
+          : 100;
+      const p95Ms = Number(runtimeMetrics?.latency?.p95Ms || 0);
+      const p99Ms = Number(runtimeMetrics?.latency?.p99Ms || 0);
+      const latencyTargetMs = Math.max(
+        50,
+        Number(config?.observabilityAlertMaxP95Ms || config?.metricsSlowRequestMs || 1500)
+      );
+      const latencyStatus =
+        sampledRequests === 0
+          ? 'unknown'
+          : p95Ms <= latencyTargetMs
+            ? 'green'
+            : p95Ms <= latencyTargetMs * 1.2
+              ? 'yellow'
+              : 'red';
 
-        const openIncidents = Number(incidentSummary?.totals?.openUnresolved || 0);
-        const breachedOpen = Number(incidentSummary?.totals?.breachedOpen || 0);
-        const incidentResponsePct =
-          openIncidents > 0
-            ? Number((((openIncidents - breachedOpen) / openIncidents) * 100).toFixed(3))
-            : 100;
-        const breachRatePct =
-          openIncidents > 0 ? Number(((breachedOpen / openIncidents) * 100).toFixed(3)) : 0;
-        const sloOpenBreaches = Number(sloTicketSummary?.totals?.openBreaches || 0);
-        const sloOpenTickets = Number(sloTicketSummary?.totals?.open || 0);
+      const openIncidents = Number(incidentSummary?.totals?.openUnresolved || 0);
+      const breachedOpen = Number(incidentSummary?.totals?.breachedOpen || 0);
+      const incidentResponsePct =
+        openIncidents > 0
+          ? Number((((openIncidents - breachedOpen) / openIncidents) * 100).toFixed(3))
+          : 100;
+      const breachRatePct =
+        openIncidents > 0 ? Number(((breachedOpen / openIncidents) * 100).toFixed(3)) : 0;
+      const sloOpenBreaches = Number(sloTicketSummary?.totals?.openBreaches || 0);
+      const sloOpenTickets = Number(sloTicketSummary?.totals?.open || 0);
 
-        const slos = [
-          {
-            id: 'availability_http',
-            label: 'HTTP availability',
-            targetPct: 99.5,
-            sliPct: availabilityPct,
-            status: statusFromPercentTarget(availabilityPct, 99.5, { yellowDelta: 0.5 }),
-            evidence: {
-              totalRequests,
-              sampledRequests,
-              serverErrors,
-            },
-          },
-          {
-            id: 'latency_p95',
-            label: 'Latency p95',
-            target: `<=${latencyTargetMs}ms`,
-            sliMs: p95Ms,
-            status: latencyStatus,
-            evidence: {
-              totalRequests,
-              sampledRequests,
-              slowRequests,
-              p99Ms,
-            },
-          },
-          {
-            id: 'incident_response',
-            label: 'Incident response (open incidents utan breach)',
-            targetPct: 95,
-            sliPct: incidentResponsePct,
-            status: statusFromPercentTarget(incidentResponsePct, 95, { yellowDelta: 5 }),
-            evidence: {
-              openIncidents,
-              breachedOpen,
-              breachRatePct,
-            },
-          },
-          {
-            id: 'restore_drill_recency',
-            label: 'Restore drill recency',
-            target: '<=30 dagar',
-            sliDays: restoreGate.ageDays,
-            status: restoreGate.healthy30d
-              ? 'green'
-              : restoreGate.ageDays !== null && restoreGate.ageDays <= 45
-                ? 'yellow'
-                : 'red',
-            evidence: {
-              lastSuccessAt: restoreGate.lastSuccessAt,
-              schedulerEnabled: Boolean(schedulerStatus?.enabled),
-              schedulerStarted: Boolean(schedulerStatus?.started),
-            },
-          },
-          {
-            id: 'pilot_report_recency',
-            label: 'Nightly pilot report recency',
-            target: '<=24h',
-            sliHours: pilotReportGate.ageHours,
-            status: pilotReportGate.healthy24h
-              ? 'green'
-              : pilotReportGate.healthy
-                ? 'yellow'
-                : 'red',
-            evidence: {
-              lastSuccessAt: pilotReportGate.lastSuccessAt,
-              schedulerEnabled: Boolean(schedulerStatus?.enabled),
-              schedulerStarted: Boolean(schedulerStatus?.started),
-              latestReport: pilotReportGate.latestReport,
-            },
-          },
-          {
-            id: 'restore_drill_full_recency',
-            label: 'Restore drill full recency',
-            target: '<=30 dagar',
-            sliHours: restoreFullGate.ageHours,
-            status: restoreFullGate.healthy
-              ? 'green'
-              : restoreFullGate.ageHours !== null && restoreFullGate.ageHours <= 24 * 45
-                ? 'yellow'
-                : 'red',
-            evidence: {
-              lastSuccessAt: restoreFullGate.lastSuccessAt,
-              schedulerEnabled: Boolean(schedulerStatus?.enabled),
-              schedulerStarted: Boolean(schedulerStatus?.started),
-            },
-          },
-          {
-            id: 'audit_integrity_daily',
-            label: 'Audit integrity daily recency',
-            target: '<=36h',
-            sliHours: auditIntegrityDailyGate.ageHours,
-            status: auditIntegrityDailyGate.healthy ? 'green' : 'red',
-            evidence: {
-              lastSuccessAt: auditIntegrityDailyGate.lastSuccessAt,
-              schedulerEnabled: Boolean(schedulerStatus?.enabled),
-              schedulerStarted: Boolean(schedulerStatus?.started),
-            },
-          },
-          {
-            id: 'secrets_rotation_daily',
-            label: 'Secret rotation snapshot daily recency',
-            target: '<=36h',
-            sliHours: secretRotationDailyGate.ageHours,
-            status: secretRotationDailyGate.healthy ? 'green' : 'red',
-            evidence: {
-              lastSuccessAt: secretRotationDailyGate.lastSuccessAt,
-              schedulerEnabled: Boolean(schedulerStatus?.enabled),
-              schedulerStarted: Boolean(schedulerStatus?.started),
-            },
-          },
-          {
-            id: 'slo_ticket_backlog',
-            label: 'SLO ticket backlog',
-            target: 'openBreaches = 0',
-            value: sloOpenBreaches,
-            status:
-              sloOpenBreaches === 0 ? 'green' : sloOpenBreaches <= 2 ? 'yellow' : 'red',
-            evidence: {
-              openTickets: sloOpenTickets,
-              openBreaches: sloOpenBreaches,
-              latestOpenAt: sloTicketSummary?.latestOpenAt || null,
-            },
-          },
-        ];
-
-        const overallStatus = worstStatus(slos.map((item) => item.status));
-
-        await authStore.addAuditEvent({
-          tenantId,
-          actorUserId: req.auth.userId,
-          action: 'monitor.slo.read',
-          outcome: 'success',
-          targetType: 'monitor_slo',
-          targetId: tenantId,
-          metadata: {
-            overallStatus,
-            availabilityPct,
-            incidentResponsePct,
-            restoreDrillAgeDays: restoreGate.ageDays,
-            restoreDrillFullAgeHours: restoreFullGate.ageHours,
-            auditIntegrityDailyAgeHours: auditIntegrityDailyGate.ageHours,
-            secretRotationDailyAgeHours: secretRotationDailyGate.ageHours,
-            pilotReportAgeHours: pilotReportGate.ageHours,
-            sloOpenBreaches,
-            sloOpenTickets,
-          },
-        });
-
-        return res.json({
-          generatedAt: new Date().toISOString(),
-          tenantId,
-          summary: {
-            overallStatus,
+      const slos = [
+        {
+          id: 'availability_http',
+          label: 'HTTP availability',
+          targetPct: 99.5,
+          sliPct: availabilityPct,
+          status: statusFromPercentTarget(availabilityPct, 99.5, { yellowDelta: 0.5 }),
+          evidence: {
             sampledRequests,
+            serverErrors,
+          },
+        },
+        {
+          id: 'latency_p95',
+          label: 'Latency p95',
+          target: `<=${latencyTargetMs}ms`,
+          sliMs: p95Ms,
+          status: latencyStatus,
+          evidence: {
+            sampledRequests,
+            slowRequests,
+            p99Ms,
+          },
+        },
+        {
+          id: 'incident_response',
+          label: 'Incident response (open incidents utan breach)',
+          targetPct: 95,
+          sliPct: incidentResponsePct,
+          status: statusFromPercentTarget(incidentResponsePct, 95, { yellowDelta: 5 }),
+          evidence: {
             openIncidents,
             breachedOpen,
-            sloOpenTickets,
-            sloOpenBreaches,
+            breachRatePct,
           },
-          slos,
-        });
-      } catch (error) {
-        if (error?.message) {
-          return res.status(400).json({ error: error.message });
-        }
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa monitor SLO.' });
+        },
+        {
+          id: 'restore_drill_recency',
+          label: 'Restore drill recency',
+          target: '<=30 dagar',
+          sliDays: restoreGate.ageDays,
+          status: restoreGate.healthy30d
+            ? 'green'
+            : restoreGate.ageDays !== null && restoreGate.ageDays <= 45
+              ? 'yellow'
+              : 'red',
+          evidence: {
+            lastSuccessAt: restoreGate.lastSuccessAt,
+            schedulerEnabled: Boolean(schedulerStatus?.enabled),
+            schedulerStarted: Boolean(schedulerStatus?.started),
+          },
+        },
+        {
+          id: 'pilot_report_recency',
+          label: 'Nightly pilot report recency',
+          target: '<=24h',
+          sliHours: pilotReportGate.ageHours,
+          status: pilotReportGate.healthy24h ? 'green' : pilotReportGate.healthy ? 'yellow' : 'red',
+          evidence: {
+            lastSuccessAt: pilotReportGate.lastSuccessAt,
+            schedulerEnabled: Boolean(schedulerStatus?.enabled),
+            schedulerStarted: Boolean(schedulerStatus?.started),
+            latestReport: pilotReportGate.latestReport,
+          },
+        },
+        {
+          id: 'restore_drill_full_recency',
+          label: 'Restore drill full recency',
+          target: '<=30 dagar',
+          sliHours: restoreFullGate.ageHours,
+          status: restoreFullGate.healthy
+            ? 'green'
+            : restoreFullGate.ageHours !== null && restoreFullGate.ageHours <= 24 * 45
+              ? 'yellow'
+              : 'red',
+          evidence: {
+            lastSuccessAt: restoreFullGate.lastSuccessAt,
+            schedulerEnabled: Boolean(schedulerStatus?.enabled),
+            schedulerStarted: Boolean(schedulerStatus?.started),
+          },
+        },
+        {
+          id: 'audit_integrity_daily',
+          label: 'Audit integrity daily recency',
+          target: '<=36h',
+          sliHours: auditIntegrityDailyGate.ageHours,
+          status: auditIntegrityDailyGate.healthy ? 'green' : 'red',
+          evidence: {
+            lastSuccessAt: auditIntegrityDailyGate.lastSuccessAt,
+            schedulerEnabled: Boolean(schedulerStatus?.enabled),
+            schedulerStarted: Boolean(schedulerStatus?.started),
+          },
+        },
+        {
+          id: 'secrets_rotation_daily',
+          label: 'Secret rotation snapshot daily recency',
+          target: '<=36h',
+          sliHours: secretRotationDailyGate.ageHours,
+          status: secretRotationDailyGate.healthy ? 'green' : 'red',
+          evidence: {
+            lastSuccessAt: secretRotationDailyGate.lastSuccessAt,
+            schedulerEnabled: Boolean(schedulerStatus?.enabled),
+            schedulerStarted: Boolean(schedulerStatus?.started),
+          },
+        },
+        {
+          id: 'slo_ticket_backlog',
+          label: 'SLO ticket backlog',
+          target: 'openBreaches = 0',
+          value: sloOpenBreaches,
+          status: sloOpenBreaches === 0 ? 'green' : sloOpenBreaches <= 2 ? 'yellow' : 'red',
+          evidence: {
+            openTickets: sloOpenTickets,
+            openBreaches: sloOpenBreaches,
+            latestOpenAt: sloTicketSummary?.latestOpenAt || null,
+          },
+        },
+      ];
+
+      const overallStatus = worstStatus(slos.map((item) => item.status));
+
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: req.auth.userId,
+        action: 'monitor.slo.read',
+        outcome: 'success',
+        targetType: 'monitor_slo',
+        targetId: tenantId,
+        metadata: {
+          overallStatus,
+          availabilityPct,
+          incidentResponsePct,
+          restoreDrillAgeDays: restoreGate.ageDays,
+          restoreDrillFullAgeHours: restoreFullGate.ageHours,
+          auditIntegrityDailyAgeHours: auditIntegrityDailyGate.ageHours,
+          secretRotationDailyAgeHours: secretRotationDailyGate.ageHours,
+          pilotReportAgeHours: pilotReportGate.ageHours,
+          sloOpenBreaches,
+          sloOpenTickets,
+        },
+      });
+
+      return res.json({
+        generatedAt: new Date().toISOString(),
+        tenantId,
+        summary: {
+          overallStatus,
+          sampledRequests,
+          openIncidents,
+          breachedOpen,
+          sloOpenTickets,
+          sloOpenBreaches,
+        },
+        slos,
+      });
+    } catch (error) {
+      if (error?.message) {
+        return res.status(400).json({ error: error.message });
       }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa monitor SLO.' });
     }
-  );
+  });
 
   router.get(
     '/monitor/readiness/history',
@@ -2070,7 +2071,8 @@ function createMonitorRouter({
           .filter((item) => normalizeText(item?.action) === 'monitor.readiness.read')
           .slice(0, limit)
           .map((item) => {
-            const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+            const metadata =
+              item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
             const blockingRequiredChecksRaw = Number(metadata?.blockingRequiredChecks);
             const blockingRequiredChecks = Number.isFinite(blockingRequiredChecksRaw)
               ? Math.max(0, blockingRequiredChecksRaw)
@@ -2096,14 +2098,18 @@ function createMonitorRouter({
         const trend =
           latest && previous
             ? {
-                scoreDelta: Number((Number(latest.score || 0) - Number(previous.score || 0)).toFixed(2)),
-                triggeredNoGoDelta: Number(latest.triggeredNoGo || 0) - Number(previous.triggeredNoGo || 0),
+                scoreDelta: Number(
+                  (Number(latest.score || 0) - Number(previous.score || 0)).toFixed(2)
+                ),
+                triggeredNoGoDelta:
+                  Number(latest.triggeredNoGo || 0) - Number(previous.triggeredNoGo || 0),
                 blockingRequiredChecksDelta:
                   Number(latest.blockingRequiredChecks || 0) -
                   Number(previous.blockingRequiredChecks || 0),
                 remediationTotalDelta:
                   Number(latest.remediationTotal || 0) - Number(previous.remediationTotal || 0),
-                remediationP0Delta: Number(latest.remediationP0 || 0) - Number(previous.remediationP0 || 0),
+                remediationP0Delta:
+                  Number(latest.remediationP0 || 0) - Number(previous.remediationP0 || 0),
               }
             : null;
 
@@ -2155,9 +2161,7 @@ function createMonitorRouter({
         const supportsActiveVersionSnapshots =
           typeof templateStore?.listActiveVersionSnapshots === 'function';
         const schedulerStatus =
-          scheduler && typeof scheduler.getStatus === 'function'
-            ? scheduler.getStatus()
-            : null;
+          scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
 
         const [
           members,
@@ -2181,7 +2185,9 @@ function createMonitorRouter({
           authStore.listAuditEvents({ tenantId, limit: 500 }),
           authStore.verifyAuditIntegrity({ maxIssues: 25 }),
           templateStore.summarizeRisk({ tenantId, minRiskLevel: 1 }),
-          supportsIncidents ? templateStore.summarizeIncidents({ tenantId }) : Promise.resolve(null),
+          supportsIncidents
+            ? templateStore.summarizeIncidents({ tenantId })
+            : Promise.resolve(null),
           supportsIncidents && supportsListIncidents
             ? templateStore.listIncidents({ tenantId, status: 'open', limit: 300 })
             : Promise.resolve([]),
@@ -2282,9 +2288,7 @@ function createMonitorRouter({
           nowMs,
         });
         const schedulerJobs = Array.isArray(schedulerStatus?.jobs) ? schedulerStatus.jobs : [];
-        const schedulerJobMap = new Map(
-          schedulerJobs.map((job) => [normalizeText(job?.id), job])
-        );
+        const schedulerJobMap = new Map(schedulerJobs.map((job) => [normalizeText(job?.id), job]));
         const schedulerFreshnessChecks = REQUIRED_SCHEDULER_JOBS.map((jobId) =>
           buildSchedulerFreshnessCheck(schedulerJobMap.get(jobId))
         );
@@ -2375,20 +2379,18 @@ function createMonitorRouter({
           action: 'tenants.access_check',
           outcome: 'success',
         });
-        const tenantIsolationVerified = isRecentWithinDays(
-          latestTenantAccessCheck?.ts,
-          30,
-          nowMs
-        );
+        const tenantIsolationVerified = isRecentWithinDays(latestTenantAccessCheck?.ts, 30, nowMs);
 
         const riskVersion = parsePositiveInt(tenantConfig?.riskThresholdVersion) || 0;
         const riskHistoryCount = Array.isArray(tenantConfig?.riskThresholdHistory)
           ? tenantConfig.riskThresholdHistory.length
           : 0;
         const riskChangeEvents = (Array.isArray(auditEvents) ? auditEvents : []).filter((item) =>
-          ['risk.settings.update', 'risk.settings.rollback', 'risk.calibration.apply_suggestion'].includes(
-            normalizeText(item?.action)
-          )
+          [
+            'risk.settings.update',
+            'risk.settings.rollback',
+            'risk.calibration.apply_suggestion',
+          ].includes(normalizeText(item?.action))
         );
         const nonOwnerGovernedRiskChanges = riskChangeEvents.filter(
           (item) => !normalizeText(item?.actorUserId)
@@ -2396,7 +2398,9 @@ function createMonitorRouter({
 
         const riskDatasetCases = Number(riskPrecision?.dataset?.count || 0);
         const bandAccuracyPercent = Number(riskPrecision?.report?.totals?.bandAccuracyPercent || 0);
-        const levelAccuracyPercent = Number(riskPrecision?.report?.totals?.levelAccuracyPercent || 0);
+        const levelAccuracyPercent = Number(
+          riskPrecision?.report?.totals?.levelAccuracyPercent || 0
+        );
         const activeTemplateVersions = supportsActiveVersionSnapshots
           ? (Array.isArray(activeVersionSource) ? activeVersionSource : []).map((item) => ({
               templateId: normalizeText(item?.templateId),
@@ -2416,9 +2420,10 @@ function createMonitorRouter({
         const l5WithoutManualIntervention = [];
 
         for (const activeVersion of activeTemplateVersions) {
-          const risk = activeVersion?.risk && typeof activeVersion.risk === 'object'
-            ? activeVersion.risk
-            : null;
+          const risk =
+            activeVersion?.risk && typeof activeVersion.risk === 'object'
+              ? activeVersion.risk
+              : null;
           const decision = normalizeText(risk?.decision).toLowerCase();
           const ownerDecision = normalizeText(risk?.ownerDecision).toLowerCase();
           const outputEvaluation =
@@ -2457,7 +2462,9 @@ function createMonitorRouter({
           }
 
           if (hasPolicyMetadata) {
-            const policyHits = Array.isArray(outputEvaluation.policyHits) ? outputEvaluation.policyHits : [];
+            const policyHits = Array.isArray(outputEvaluation.policyHits)
+              ? outputEvaluation.policyHits
+              : [];
             for (const hit of policyHits) {
               const policyHitId = normalizeText(hit?.id);
               const floorFromHit = Number(hit?.floor || 0);
@@ -2515,8 +2522,7 @@ function createMonitorRouter({
               id: 'owner_mfa_enforced',
               label: 'OWNER MFA enforcement',
               status:
-                !ownerMfaEnforced ||
-                (activeOwners.length > 0 && ownersWithoutMfa.length === 0)
+                !ownerMfaEnforced || (activeOwners.length > 0 && ownersWithoutMfa.length === 0)
                   ? 'green'
                   : 'red',
               required: ownerMfaEnforced,
@@ -2581,14 +2587,13 @@ function createMonitorRouter({
             buildCheck({
               id: 'secrets_rotation',
               label: 'Secrets rotation freshness',
-              status:
-                !secretRotationStatus
-                  ? 'unknown'
-                  : Number(secretRotationStatus?.totals?.staleRequired || 0) > 0
-                    ? 'red'
-                    : Number(secretRotationStatus?.totals?.pendingRotation || 0) > 0
-                      ? 'yellow'
-                      : 'green',
+              status: !secretRotationStatus
+                ? 'unknown'
+                : Number(secretRotationStatus?.totals?.staleRequired || 0) > 0
+                  ? 'red'
+                  : Number(secretRotationStatus?.totals?.pendingRotation || 0) > 0
+                    ? 'yellow'
+                    : 'green',
               required: true,
               target: 'staleRequired=0',
               value: {
@@ -2648,8 +2653,7 @@ function createMonitorRouter({
             buildCheck({
               id: 'high_critical_incident_link',
               label: 'High/Critical kopplar till incidents',
-              status:
-                highCriticalOpenCount > 0 && incidentsTotal === 0 ? 'red' : 'green',
+              status: highCriticalOpenCount > 0 && incidentsTotal === 0 ? 'red' : 'green',
               required: true,
               value: {
                 highCriticalOpen: highCriticalOpenCount,
@@ -2702,7 +2706,8 @@ function createMonitorRouter({
               id: 'auto_assignment_evidence',
               label: 'Auto owner-assignment verifierad',
               status:
-                unownedOpenIncidents.length > 0 && !isRecentWithinDays(latestAutoAssign?.ts, 30, nowMs)
+                unownedOpenIncidents.length > 0 &&
+                !isRecentWithinDays(latestAutoAssign?.ts, 30, nowMs)
                   ? 'red'
                   : isRecentWithinDays(latestAutoAssign?.ts, 30, nowMs)
                     ? 'green'
@@ -2722,8 +2727,12 @@ function createMonitorRouter({
         const requiredJobsEnabled = REQUIRED_SCHEDULER_JOBS.every(
           (jobId) => schedulerJobMap.get(jobId)?.enabled === true
         );
-        const staleSchedulerChecks = schedulerFreshnessChecks.filter((item) => item.status === 'red');
-        const warnSchedulerChecks = schedulerFreshnessChecks.filter((item) => item.status === 'yellow');
+        const staleSchedulerChecks = schedulerFreshnessChecks.filter(
+          (item) => item.status === 'red'
+        );
+        const warnSchedulerChecks = schedulerFreshnessChecks.filter(
+          (item) => item.status === 'yellow'
+        );
 
         const categoryC = evaluateCategory({
           id: 'C',
@@ -2831,13 +2840,12 @@ function createMonitorRouter({
             buildCheck({
               id: 'nightly_pilot_report_freshness',
               label: 'Nightly pilot report verifierad inom tidsfönster',
-              status:
-                !pilotReportGate.healthy
-                  ? 'red'
-                  : pilotReportGate.ageHours !== null &&
-                      pilotReportGate.ageHours > pilotReportGate.maxAgeHours * 0.7
-                    ? 'yellow'
-                    : 'green',
+              status: !pilotReportGate.healthy
+                ? 'red'
+                : pilotReportGate.ageHours !== null &&
+                    pilotReportGate.ageHours > pilotReportGate.maxAgeHours * 0.7
+                  ? 'yellow'
+                  : 'green',
               required: true,
               target: `nightly_pilot_report success <= ${pilotReportGate.maxAgeHours}h`,
               value: {
@@ -2855,8 +2863,7 @@ function createMonitorRouter({
               label: 'Observability signaler inom trösklar',
               status: normalizeStatus(observability?.summary?.overallStatus),
               required: false,
-              target:
-                '5xx error-rate, p95 latency och slow requests inom observability-trösklar',
+              target: '5xx error-rate, p95 latency och slow requests inom observability-trösklar',
               value: {
                 overallStatus: observability?.summary?.overallStatus || 'unknown',
                 sampledRequests: Number(observability?.metrics?.sampledRequests || 0),
@@ -2880,14 +2887,13 @@ function createMonitorRouter({
             buildCheck({
               id: 'gold_set_coverage',
               label: 'Gold set storlek',
-              status:
-                riskPrecisionError
-                  ? 'red'
-                  : riskDatasetCases >= 150
-                    ? 'green'
-                    : riskDatasetCases >= 120
-                      ? 'yellow'
-                      : 'red',
+              status: riskPrecisionError
+                ? 'red'
+                : riskDatasetCases >= 150
+                  ? 'green'
+                  : riskDatasetCases >= 120
+                    ? 'yellow'
+                    : 'red',
               required: true,
               target: '>=150 cases',
               value: {
@@ -2899,14 +2905,13 @@ function createMonitorRouter({
             buildCheck({
               id: 'band_accuracy',
               label: 'Band accuracy',
-              status:
-                riskPrecisionError
-                  ? 'red'
-                  : bandAccuracyPercent >= 95
-                    ? 'green'
-                    : bandAccuracyPercent >= 90
-                      ? 'yellow'
-                      : 'red',
+              status: riskPrecisionError
+                ? 'red'
+                : bandAccuracyPercent >= 95
+                  ? 'green'
+                  : bandAccuracyPercent >= 90
+                    ? 'yellow'
+                    : 'red',
               required: true,
               target: '>=95%',
               value: {
@@ -2916,14 +2921,13 @@ function createMonitorRouter({
             buildCheck({
               id: 'level_accuracy',
               label: 'Level accuracy',
-              status:
-                riskPrecisionError
-                  ? 'red'
-                  : levelAccuracyPercent >= 90
-                    ? 'green'
-                    : levelAccuracyPercent >= 80
-                      ? 'yellow'
-                      : 'red',
+              status: riskPrecisionError
+                ? 'red'
+                : levelAccuracyPercent >= 90
+                  ? 'green'
+                  : levelAccuracyPercent >= 80
+                    ? 'yellow'
+                    : 'red',
               required: true,
               target: '>=90%',
               value: {
@@ -2944,10 +2948,7 @@ function createMonitorRouter({
             buildCheck({
               id: 'owner_governed_calibration',
               label: 'Owner-governed calibration',
-              status:
-                nonOwnerGovernedRiskChanges.length > 0
-                  ? 'red'
-                  : 'green',
+              status: nonOwnerGovernedRiskChanges.length > 0 ? 'red' : 'green',
               required: true,
               target: 'Ingen risk threshold-change utan actorUserId',
               value: {
@@ -2967,7 +2968,8 @@ function createMonitorRouter({
         });
 
         const categories = [categoryA, categoryB, categoryC, categoryD];
-        const totalWeight = categories.reduce((sum, item) => sum + Number(item.weight || 0), 0) || 1;
+        const totalWeight =
+          categories.reduce((sum, item) => sum + Number(item.weight || 0), 0) || 1;
         const weightedScore = categories.reduce(
           (sum, item) => sum + Number(item.score || 0) * Number(item.weight || 0),
           0

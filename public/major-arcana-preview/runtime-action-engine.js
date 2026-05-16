@@ -1,6 +1,7 @@
 (() => {
   function createRuntimeActionEngine({
     applyFocusSection,
+    applyTemplateToActiveDraft,
     applyStudioMode,
     buildIntelReadoutHref,
     buildReauthUrl,
@@ -17,6 +18,7 @@
     openLaterDialog,
     prepareComposeStudioState,
     renderScheduleDraft,
+    renderNoteDestination,
     scheduleFeedback,
     sentStatus,
     setAppView,
@@ -24,6 +26,7 @@
     setContextCollapsed,
     setFeedback,
     setNoteModeOpen,
+    setNoteOpen,
     setScheduleOpen,
     setStudioOpen,
     state,
@@ -67,7 +70,7 @@
       setContextCollapsed(false);
     }
 
-    function openRuntimeNote() {
+    function openRuntimeNote(options = {}) {
       const selectedThread = getSelectedRuntimeThread();
       if (
         typeof isOfflineHistoryContextThread === "function" &&
@@ -80,8 +83,22 @@
         );
         return Promise.resolve(false);
       }
+      const directOpen = options?.directOpen === true;
+      const destinationKey = String(options?.destinationKey || "").trim();
+      const templateKey = String(options?.templateKey || "").trim();
       return loadOverlayBootstrap().finally(() => {
         setFeedback(noteFeedback, "", "");
+        if (directOpen) {
+          if (destinationKey && typeof renderNoteDestination === "function") {
+            renderNoteDestination(destinationKey);
+          }
+          if (templateKey && typeof applyTemplateToActiveDraft === "function") {
+            applyTemplateToActiveDraft(templateKey);
+          }
+          setNoteModeOpen(false);
+          setNoteOpen(true);
+          return;
+        }
         setNoteModeOpen(true);
       });
     }
@@ -189,6 +206,10 @@
 
       if (action === "schedule") {
         return openRuntimeSchedule().then(() => true);
+      }
+
+      if (action === "note") {
+        return openRuntimeNote().then(() => true);
       }
 
       if (action === "readout") {
