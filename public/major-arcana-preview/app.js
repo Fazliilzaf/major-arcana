@@ -28078,6 +28078,61 @@
     };
   }
 
+  function getBookingPhoneStudioReadout(readout = {}) {
+    const selectedCount = asArray(readout.selectedSlots).length;
+    const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
+    const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
+    const nextAction = buildBookingNextActionReadout(readout);
+    const hasOffer =
+      normalizeKey(readout.status) === "offered" ||
+      normalizeKey(readout.status) === "waiting_customer" ||
+      Boolean(asText(readout.offeredAt)) ||
+      Boolean(offerEvent);
+    if (!selectedCount) {
+      return {
+        showCard: false,
+        title: "",
+        meta: "",
+        tone: "neutral",
+        action: "",
+        actionLabel: "",
+      };
+    }
+    if (staleOfferAfterRebook) {
+      return {
+        showCard: true,
+        title: "Svarstudio behöver uppdateras",
+        meta:
+          "Tiderna har ändrats sedan senaste kundförslaget. Uppdatera förslaget innan kundläge eller ny bekräftelse.",
+        tone: "attention",
+        action: "insert_studio",
+        actionLabel: "Uppdatera Svarstudio",
+      };
+    }
+    if (!hasOffer) {
+      return {
+        showCard: true,
+        title: "Förslaget väntar på Svarstudio",
+        meta:
+          "Tiderna är valda, men kundförslaget är ännu inte infogat. Bär vidare samma tider till Svarstudio innan ärendet lämnas till kund.",
+        tone: "studio",
+        action: "insert_studio",
+        actionLabel: "Infoga i Svarstudio",
+      };
+    }
+    const offerAt = asText(offerEvent?.createdAt || readout.offeredAt || "");
+    return {
+      showCard: true,
+      title: "Svarstudio bär kundförslaget",
+      meta: offerAt
+        ? `Senaste förslaget infogades ${formatBookingEventTime(offerAt)} och kan nu följas upp utan att tiderna tappas.`
+        : "Kundförslaget finns redan i flödet och håller samma tider som bookingytan.",
+      tone: "confirmed",
+      action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
+      actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
+    };
+  }
+
   function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {}) {
     const steps = [
       {
@@ -35028,6 +35083,19 @@
               <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
               <button class="booking-action booking-action-secondary" type="button" data-booking-action="phone_booking" data-booking-phone-secondary>Öppna tider</button>
             </div>
+            <div class="booking-phone-studio" data-booking-phone-studio hidden>
+              <div class="booking-phone-studio-copy">
+                <span>Förslag till kund</span>
+                <strong data-booking-phone-studio-title>Förslaget väntar på Svarstudio</strong>
+                <p data-booking-phone-studio-meta>Tiderna är valda, men kundförslaget är ännu inte infogat.</p>
+              </div>
+              <button
+                class="booking-action booking-action-secondary"
+                type="button"
+                data-booking-phone-studio-action
+                hidden
+              ></button>
+            </div>
             <section class="booking-phone-slot-entry" data-booking-phone-slot-entry aria-label="Snabbval för tider">
               <div class="booking-phone-slot-entry-head">
                 <div>
@@ -35229,6 +35297,10 @@
       phoneWaitTitle: surface?.querySelector("[data-booking-phone-wait-title]"),
       phoneWaitMeta: surface?.querySelector("[data-booking-phone-wait-meta]"),
       phoneWaitAction: surface?.querySelector("[data-booking-phone-wait-action]"),
+      phoneStudio: surface?.querySelector("[data-booking-phone-studio]"),
+      phoneStudioTitle: surface?.querySelector("[data-booking-phone-studio-title]"),
+      phoneStudioMeta: surface?.querySelector("[data-booking-phone-studio-meta]"),
+      phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
       phoneSlotEntry: surface?.querySelector("[data-booking-phone-slot-entry]"),
@@ -35396,6 +35468,28 @@
         } else {
           bookingDom.phoneWaitAction.hidden = true;
           bookingDom.phoneWaitAction.textContent = "";
+        }
+      }
+      const phoneStudio = getBookingPhoneStudioReadout(readout);
+      if (bookingDom.phoneStudio) {
+        bookingDom.phoneStudio.hidden = !phoneStudio.showCard;
+        bookingDom.phoneStudio.dataset.tone = phoneStudio.tone || "neutral";
+      }
+      if (bookingDom.phoneStudioTitle) {
+        bookingDom.phoneStudioTitle.textContent = phoneStudio.title;
+      }
+      if (bookingDom.phoneStudioMeta) {
+        bookingDom.phoneStudioMeta.textContent = phoneStudio.meta;
+      }
+      if (bookingDom.phoneStudioAction) {
+        if (phoneStudio.showCard && phoneStudio.action) {
+          bookingDom.phoneStudioAction.hidden = false;
+          bookingDom.phoneStudioAction.textContent =
+            phoneStudio.actionLabel || "Öppna Svarstudio";
+          bookingDom.phoneStudioAction.dataset.bookingAction = phoneStudio.action;
+        } else {
+          bookingDom.phoneStudioAction.hidden = true;
+          bookingDom.phoneStudioAction.textContent = "";
         }
       }
       if (bookingDom.phoneConfirmationTitle) {
