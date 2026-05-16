@@ -18434,6 +18434,13 @@ button.booking-handoff-card-blocker:focus-visible {
   color: rgba(102, 82, 68, 0.82);
 }
 
+.booking-phone-studio-service-summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.42;
+  color: rgba(109, 86, 69, 0.84);
+}
+
 .booking-phone-studio-activity {
   margin: 0;
   font-size: 12px;
