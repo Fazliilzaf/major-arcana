@@ -32,23 +32,24 @@
  */
 // Cache-buster on imports: app/components/*.js servas med max-age=300,
 // så browsers cachar gamla versioner i 5 min. För att tvinga fresh load
-// av ALLA Lit-pipelinen, lägg ?v=fas10d på varje import. Bumpa version
+// av ALLA Lit-pipelinen, lägg ?v=fas10e på varje import. Bumpa version
 // när nån fil i pipelinen ändras.
-import './arcana-thread-card.js?v=fas10d';
-import { threadToCardProps } from './thread-to-card-props.js?v=fas10d';
+import './arcana-thread-card.js?v=fas10e';
+import { threadToCardProps } from './thread-to-card-props.js?v=fas10e';
 import {
   groupThreadsByCustomer,
   orderForRender,
   readExpandedKeys,
   toggleExpanded,
-} from './customer-cluster-grouper.js?v=fas10d';
-import { subscribe, getThreads } from './thread-store.js?v=fas10d';
-import { startBridge, getLiveCardForThread } from './thread-store-bridge.js?v=fas10d';
+} from './customer-cluster-grouper.js?v=fas10e';
+import { subscribe, getThreads } from './thread-store.js?v=fas10e';
+import { startBridge, getLiveCardForThread } from './thread-store-bridge.js?v=fas10e';
 
 // OBS: dessa let-deklarationer MÅSTE ligga FÖRE init()-anropet (TDZ).
 let panel = null;
 let replaceContainer = null;
 let renderScheduled = false;
+let renderDirty = false;
 let storeUnsubscribe = null;
 
 const SEARCH = new URLSearchParams(location.search);
@@ -108,16 +109,26 @@ function start() {
 }
 
 function schedule() {
-  if (renderScheduled) return;
+  // Dirty-flag-pattern: om en render redan är pending, markera dirty.
+  // När pending render körts, kolla flag → re-schedule om den blivit
+  // dirty (t.ex. store uppdaterades efter att vi schemalade men innan
+  // setTimeout firade — utan dirty-flag missar vi den uppdateringen).
+  if (renderScheduled) {
+    renderDirty = true;
+    return;
+  }
   renderScheduled = true;
+  renderDirty = false;
   // setTimeout(0) istället för rAF — rAF triggar inte pålitligt i
-  // bakgrundstabs eller efter tab-throttling. setTimeout fortsätter
-  // även i pausad tab. Lit-Element batchar internt så vi förlorar
-  // inget genom att skippa rAF-sync.
+  // bakgrundstabs eller efter tab-throttling.
   setTimeout(() => {
     renderScheduled = false;
-    if (MODE === 'panel') renderLitPreview();
-    else renderLitReplacement();
+    try {
+      if (MODE === 'panel') renderLitPreview();
+      else renderLitReplacement();
+    } finally {
+      if (renderDirty) schedule();
+    }
   }, 0);
 }
 
