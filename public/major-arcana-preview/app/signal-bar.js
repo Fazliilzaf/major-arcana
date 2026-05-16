@@ -378,6 +378,19 @@
   function init() {
     bindObserver();
     setInterval(schedule, 3000);
+    // FOUC-safety: cco-polish.css döljer kort tills .has-inline-signals
+    // sätts. Om signal-bar av någon anledning inte applicerar (t.ex.
+    // queue-history-list ändrades innan observern hann binda), tvinga
+    // synlighet efter 1500 ms genom att sätta data-signal-bar-ready.
+    setTimeout(() => {
+      document
+        .querySelectorAll(
+          '.queue-history-list .thread-card[data-runtime-thread]:not(.has-inline-signals)',
+        )
+        .forEach((c) => {
+          c.dataset.signalBarReady = 'timeout';
+        });
+    }, 1500);
   }
 
   if (document.readyState === 'loading') {
