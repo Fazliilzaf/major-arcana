@@ -18327,6 +18327,46 @@ button.booking-handoff-card-blocker:focus-visible {
   color: rgba(96, 79, 67, 0.82);
 }
 
+.booking-phone-studio-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.booking-phone-studio-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(176, 145, 118, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(96, 79, 67, 0.88);
+}
+
+.booking-phone-studio-badge[data-tone="count"] {
+  border-color: rgba(136, 111, 86, 0.18);
+  background: rgba(255, 250, 245, 0.88);
+}
+
+.booking-phone-studio-badge[data-tone="studio"] {
+  border-color: rgba(172, 126, 184, 0.22);
+  background: rgba(250, 242, 252, 0.9);
+}
+
+.booking-phone-studio-badge[data-tone="attention"] {
+  border-color: rgba(210, 150, 79, 0.22);
+  background: rgba(255, 246, 235, 0.92);
+}
+
+.booking-phone-studio-badge[data-tone="confirmed"] {
+  border-color: rgba(86, 155, 111, 0.22);
+  background: rgba(243, 251, 245, 0.9);
+}
+
 .booking-phone-studio[data-tone="studio"] {
   border-color: rgba(172, 126, 184, 0.22);
   background: rgba(251, 245, 253, 0.88);

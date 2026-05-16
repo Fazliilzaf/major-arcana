@@ -28093,17 +28093,28 @@
         showCard: false,
         title: "",
         meta: "",
+        badges: [],
         tone: "neutral",
         action: "",
         actionLabel: "",
       };
     }
+    const countLabel =
+      selectedCount === 1
+        ? "1 vald tid"
+        : selectedCount === 2
+          ? "2 valda tider"
+          : `${selectedCount} valda tider`;
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
         title: "Svarstudio behöver uppdateras",
         meta:
           "Tiderna har ändrats sedan senaste kundförslaget. Uppdatera förslaget innan kundläge eller ny bekräftelse.",
+        badges: [
+          { label: countLabel, tone: "count" },
+          { label: "Föråldrat förslag", tone: "attention" },
+        ],
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28115,6 +28126,10 @@
         title: "Förslaget väntar på Svarstudio",
         meta:
           "Tiderna är valda, men kundförslaget är ännu inte infogat. Bär vidare samma tider till Svarstudio innan ärendet lämnas till kund.",
+        badges: [
+          { label: countLabel, tone: "count" },
+          { label: "Ej infogat ännu", tone: "studio" },
+        ],
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28127,6 +28142,13 @@
       meta: offerAt
         ? `Senaste förslaget infogades ${formatBookingEventTime(offerAt)} och kan nu följas upp utan att tiderna tappas.`
         : "Kundförslaget finns redan i flödet och håller samma tider som bookingytan.",
+      badges: [
+        { label: countLabel, tone: "count" },
+        {
+          label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
+          tone: "confirmed",
+        },
+      ],
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35088,6 +35110,7 @@
                 <span>Förslag till kund</span>
                 <strong data-booking-phone-studio-title>Förslaget väntar på Svarstudio</strong>
                 <p data-booking-phone-studio-meta>Tiderna är valda, men kundförslaget är ännu inte infogat.</p>
+                <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35300,6 +35323,7 @@
       phoneStudio: surface?.querySelector("[data-booking-phone-studio]"),
       phoneStudioTitle: surface?.querySelector("[data-booking-phone-studio-title]"),
       phoneStudioMeta: surface?.querySelector("[data-booking-phone-studio-meta]"),
+      phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35480,6 +35504,18 @@
       }
       if (bookingDom.phoneStudioMeta) {
         bookingDom.phoneStudioMeta.textContent = phoneStudio.meta;
+      }
+      if (bookingDom.phoneStudioBadges) {
+        const studioBadges = asArray(phoneStudio.badges);
+        bookingDom.phoneStudioBadges.hidden = !studioBadges.length;
+        bookingDom.phoneStudioBadges.innerHTML = studioBadges
+          .map(
+            (badge) =>
+              `<span class="booking-phone-studio-badge" data-tone="${escapeHtml(badge.tone || "neutral")}">${escapeHtml(
+                badge.label
+              )}</span>`
+          )
+          .join("");
       }
       if (bookingDom.phoneStudioAction) {
         if (phoneStudio.showCard && phoneStudio.action) {
