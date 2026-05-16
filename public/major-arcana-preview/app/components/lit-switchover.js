@@ -2,31 +2,32 @@
  * app/components/lit-switchover.js
  * Fas 4 av Lit-migration — preview-läge för Lit-cards i live-appen.
  * Fas 8 av Lit-migration — full switch-over för ALLA köer.
+ * Fas 9 av Lit-migration — Lit-mode default, shims rivna.
  *
- * AKTIVERAS BARA när URL har ?layout=lit. Annars helt inaktiv (no-op).
+ * Default: Lit replace-mode för alla cards i alla köer (no URL flag needed).
  *
- * Två lägen (välj via &mode=… i URL):
+ * URL-overrides:
  *
- *   mode=replace (DEFAULT — Fas 8)
- *     - Göm original .queue-history-list visuellt (display:none) men behåll
- *       i DOM som data-source och click-target
- *     - Mounta en ny Lit-list-container i samma föräldra-element
- *     - Rendera ALLA cards (inte bara bookable) genom arcana-thread-card
- *     - Click på Lit-card → kalla .click() på den dolda originalet → app.js's
- *       delegerade handlers triggas → panelen öppnas som vanligt
+ *   ?layout=legacy
+ *     - Helt no-op. Visar app.js's rå DOM-cards utan Lit-overlay.
+ *     - OBS: Eftersom shimsen (signal-bar.js, system-mail-display.js,
+ *       customer-cluster.js) raderats i Fas 9, kommer pillar, cluster
+ *       och system-mail-parsing INTE att appliceras i legacy-läge.
+ *     - Endast för akut-rollback om Lit-mode är trasigt.
  *
- *   mode=panel (Fas 4-7 legacy)
+ *   ?layout=lit&mode=panel
  *     - Original-cards orörda och synliga
  *     - Sidopanel höger om viewport visar Lit-versioner av Bokning-cards
- *     - Side-by-side preview
+ *     - Side-by-side preview (Fas 4-7 legacy panel-läge)
  *
- * Avstängning: ta bort ?layout=lit ur URL och ladda om.
+ *   ?layout=lit (eller utan flag — DEFAULT)
+ *     - Replace-mode: göm original-list (display:none), mounta Lit-container
+ *       i samma föräldra-element, rendera ALLA cards genom arcana-thread-card
  *
  * Säkerhet:
- *   - Opt-in via URL — inaktiv för vanliga användare
  *   - Replace-mode rör inte originalets innehåll, bara display
- *   - Cluster-toggle event delas mellan Lit (via parent) och legacy
- *     (via customer-cluster.js) via samma localStorage-key
+ *   - Cluster-toggle event går via customer-cluster-grouper.js's
+ *     localStorage-key (cco.customerCluster.expanded.v1)
  */
 import './arcana-thread-card.js';
 import { threadToCardProps } from './thread-to-card-props.js';
@@ -43,13 +44,16 @@ let replaceContainer = null;
 let renderScheduled = false;
 
 const SEARCH = new URLSearchParams(location.search);
-const ACTIVE = SEARCH.get('layout') === 'lit';
+// Fas 9: Lit-mode är default. ?layout=legacy gör no-op (visar rå app.js-DOM
+// utan shims, för akut-rollback).
+const LAYOUT = SEARCH.get('layout');
+const ACTIVE = LAYOUT !== 'legacy';
 const MODE = SEARCH.get('mode') === 'panel' ? 'panel' : 'replace';
 
 if (!ACTIVE) {
-  console.log('[lit-switchover] Inaktiv (lägg till ?layout=lit i URL för att aktivera)');
+  console.log('[lit-switchover] LEGACY-mode — Lit avaktiverad via ?layout=legacy');
 } else {
-  console.log(`[lit-switchover] AKTIVT — mode=${MODE}`);
+  console.log(`[lit-switchover] AKTIVT (default) — mode=${MODE}`);
   init();
 }
 
@@ -177,8 +181,8 @@ function mountReplaceContainer() {
     justify-content: space-between;
   `;
   status.innerHTML = `
-    <span class="lit-replace-status-text">Lit-replacement aktiv (alla köer)</span>
-    <span style="font-size:10px;color:#cbd5e1;">?layout=lit · <a href="?" style="color:#6366f1;text-decoration:none;">stäng av</a></span>
+    <span class="lit-replace-status-text">Lit-läget aktivt (default)</span>
+    <span style="font-size:10px;color:#cbd5e1;">Akut-rollback: <a href="?layout=legacy" style="color:#6366f1;text-decoration:none;">?layout=legacy</a></span>
   `;
   replaceContainer.appendChild(status);
 
