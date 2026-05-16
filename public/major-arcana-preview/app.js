@@ -28079,7 +28079,8 @@
   }
 
   function getBookingPhoneStudioReadout(readout = {}) {
-    const selectedCount = asArray(readout.selectedSlots).length;
+    const selectedSlots = asArray(readout.selectedSlots);
+    const selectedCount = selectedSlots.length;
     const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
     const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
     const nextAction = buildBookingNextActionReadout(readout);
@@ -28094,11 +28095,13 @@
         title: "",
         meta: "",
         badges: [],
+        slotCarry: [],
         tone: "neutral",
         action: "",
         actionLabel: "",
       };
     }
+    const slotCarry = selectedSlots.slice(0, 3).map((slot) => formatBookingSlot(slot));
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28115,6 +28118,7 @@
           { label: countLabel, tone: "count" },
           { label: "Föråldrat förslag", tone: "attention" },
         ],
+        slotCarry,
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28130,6 +28134,7 @@
           { label: countLabel, tone: "count" },
           { label: "Ej infogat ännu", tone: "studio" },
         ],
+        slotCarry,
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28149,6 +28154,7 @@
           tone: "confirmed",
         },
       ],
+      slotCarry,
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35111,6 +35117,7 @@
                 <strong data-booking-phone-studio-title>Förslaget väntar på Svarstudio</strong>
                 <p data-booking-phone-studio-meta>Tiderna är valda, men kundförslaget är ännu inte infogat.</p>
                 <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
+                <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35324,6 +35331,7 @@
       phoneStudioTitle: surface?.querySelector("[data-booking-phone-studio-title]"),
       phoneStudioMeta: surface?.querySelector("[data-booking-phone-studio-meta]"),
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
+      phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35515,6 +35523,13 @@
                 badge.label
               )}</span>`
           )
+          .join("");
+      }
+      if (bookingDom.phoneStudioSlots) {
+        const studioSlots = asArray(phoneStudio.slotCarry);
+        bookingDom.phoneStudioSlots.hidden = !studioSlots.length;
+        bookingDom.phoneStudioSlots.innerHTML = studioSlots
+          .map((slotLabel) => `<li class="booking-phone-studio-slot">${escapeHtml(slotLabel)}</li>`)
           .join("");
       }
       if (bookingDom.phoneStudioAction) {
