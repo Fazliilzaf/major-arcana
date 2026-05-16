@@ -10,7 +10,10 @@ const htmlSource = fs.readFileSync(path.join(ROOT, 'public/torti-ritual/index.ht
 
 test('Torti customer library review CTA covers empty, layer-build and portal-review states', () => {
   assert.match(appSource, /const placedLibraryCount = ownedItems\.filter/);
-  assert.match(appSource, /const reviewTarget = !hasLibraryItems \? "collections" : placedLibraryCount > 0 \? "portal" : "layers";/);
+  assert.match(
+    appSource,
+    /const reviewTarget = !hasLibraryItems \? "collections" : placedLibraryCount > 0 \? "portal" : "layers";/
+  );
   assert.match(appSource, /\? "Browse bottles"/);
   assert.match(appSource, /\? "Review portal"/);
   assert.match(appSource, /: "Build layers";/);
@@ -24,7 +27,10 @@ test('Torti customer library review strip has distinct copy for all review state
   assert.match(appSource, /Start with the purchased bottles/);
   assert.match(appSource, /Build from the customer library/);
   assert.match(appSource, /Layer draft is ready to review/);
-  assert.match(appSource, /Choose bottles from the collections below before building a customer layer\./);
+  assert.match(
+    appSource,
+    /Choose bottles from the collections below before building a customer layer\./
+  );
   assert.match(appSource, /Select one and place it into the active layer\./);
   assert.match(appSource, /Review the portal flow before sharing\./);
   assert.match(appSource, /No bottles yet/);
@@ -35,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-compact-customer-portal/);
-  assert.match(htmlSource, /app\.js\?v=20260517-compact-customer-portal/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-flow-surface-cleanup/);
+  assert.match(htmlSource, /app\.js\?v=20260517-flow-surface-cleanup/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -47,7 +53,10 @@ test('Torti portal viewed badge uses every persisted viewed signal', () => {
   assert.match(appSource, /normalizeText\(record\.viewedAt\)/);
   assert.match(appSource, /normalizeText\(record\.lastViewedAt\)/);
   assert.match(appSource, /normalizeText\(latestVersion && latestVersion\.viewedAt\)/);
-  assert.match(appSource, /portalViewedAt \? `Seen \$\{formatPortalMoment\(portalViewedAt\)\}` : "Not opened yet"/);
+  assert.match(
+    appSource,
+    /portalViewedAt \? `Seen \$\{formatPortalMoment\(portalViewedAt\)\}` : "Not opened yet"/
+  );
 });
 
 test('Torti portal workspace has one directed flow and hides build tools in customer view', () => {
@@ -68,10 +77,23 @@ test('Torti portal workspace has one directed flow and hides build tools in cust
 test('Torti customer portal uses a compact two-column customer-only layout', () => {
   assert.match(appSource, /const customerPortalFlowSteps = ownerPortalFlowSteps\.filter/);
   assert.match(appSource, /customerOnlyView\s*\?\s*sharedPortalEvents\.slice\(0, 3\)/);
-  assert.match(appSource, /const portalFlowSteps = customerOnlyView \? customerPortalFlowSteps : ownerPortalFlowSteps;/);
+  assert.match(
+    appSource,
+    /const portalFlowSteps = customerOnlyView \? customerPortalFlowSteps : ownerPortalFlowSteps;/
+  );
   assert.match(cssSource, /\.sheet-app\.is-customer-portal-view \.portal-panel\s*\{/);
   assert.match(cssSource, /grid-template-columns: minmax\(0, 1\.36fr\) minmax\(320px, 0\.64fr\);/);
   assert.match(cssSource, /\.sheet-app\.is-customer-portal-view \.portal-activity\s*\{/);
   assert.match(cssSource, /\.sheet-app\.is-customer-portal-view \.portal-flow-steps\s*\{/);
   assert.match(cssSource, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+});
+
+test('Torti owner flow uses the desktop width before the document surface', () => {
+  assert.match(cssSource, /\.composition-strip\s*\{/);
+  assert.match(cssSource, /grid-template-columns: minmax\(0, 1\.35fr\) minmax\(320px, 0\.65fr\);/);
+  assert.match(cssSource, /\.customer-library\s*\{[\s\S]*grid-column: 1;/);
+  assert.match(cssSource, /\.layers-panel\s*\{[\s\S]*grid-column: 2;/);
+  assert.match(cssSource, /\.zone-editor\s*\{[\s\S]*grid-column: 1 \/ -1;/);
+  assert.match(cssSource, /\.portal-panel\s*\{[\s\S]*grid-column: 1 \/ -1;/);
+  assert.match(cssSource, /\.layers-stack\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\);/);
 });
