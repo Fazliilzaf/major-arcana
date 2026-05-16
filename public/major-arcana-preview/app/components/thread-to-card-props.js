@@ -1,4 +1,5 @@
 import { buildPillsFromThread } from './thread-pills.js';
+import { resolveSystemMail } from './parser-resolver.js';
 
 /**
  * app/components/thread-to-card-props.js
@@ -8,6 +9,10 @@ import { buildPillsFromThread } from './thread-pills.js';
  * Fas 5: buildPills-logiken har flyttats till thread-pills.js (8 pill-typer
  * från signal-bar.js). Denna fil använder den importerade buildPillsFromThread
  * istället för sin tidigare lokala buildPills.
+ *
+ * Fas 6: parser-anrop har flyttats till parser-resolver.js (three-tier
+ * sender-resolving: customerName → systemLabel-fallback → nameFromEmail).
+ * Den inline-versionen applySystemMailParser är ersatt av resolveSystemMail.
  *
  * Tar ett thread (sådant som app.js's buildQueueHistoryItems producerar) och
  * returnerar en flat card-props-form:
@@ -78,48 +83,14 @@ function mailboxMeta(mailboxKey) {
 }
 
 /**
- * Hitta systemMailLabel + ev. customerName via window-parsern.
- * Returnerar { sender, systemMailLabel } eller null om parsern inte
- * är laddad eller om inputen inte ser ut som system-mail.
+ * @deprecated Fas 6: använd resolveSystemMail från parser-resolver.js.
+ * Logik flyttad. Funktionen behålls inte längre i flödet — threadToCardProps
+ * använder den importerade resolveSystemMail som har samma signatur men med
+ * three-tier sender-resolving (customerName → systemLabel-fallback →
+ * nameFromEmail).
  */
 function applySystemMailParser(thread) {
-  if (typeof window === 'undefined') return null;
-  const parser = window.MajorArcanaSystemMailParser;
-  if (!parser || typeof parser.parse !== 'function') return null;
-
-  const senderEmail = pickFirst(
-    thread.customerEmail,
-    thread.fromEmail,
-    thread.from?.address,
-    thread.from?.emailAddress?.address,
-    thread.raw?.from?.address,
-    thread.raw?.latestMessage?.from?.address,
-  );
-  const senderName = pickFirst(
-    thread.customerName,
-    thread.fromName,
-    thread.from?.name,
-    thread.raw?.from?.name,
-  );
-
-  if (typeof parser.isSystemSender === 'function') {
-    if (!parser.isSystemSender(senderEmail, senderName)) return null;
-  }
-
-  const subject = pickFirst(thread.subject, thread.displaySubject, thread.title);
-  const body = pickFirst(thread.preview, thread.systemPreview, thread.detail);
-  const result = parser.parse({ senderEmail, senderName, subject, body });
-  if (!result) return null;
-
-  let sender = result.customerName;
-  if (!sender && result.systemLabel) {
-    // Fallback: visa system-namn (Klarna, Cliento) istället för "No Reply"
-    sender = String(result.systemLabel).replace(/^via\s+/i, '');
-  }
-  return {
-    sender: sender || null,
-    systemMailLabel: result.systemLabel || null,
-  };
+  return resolveSystemMail(thread);
 }
 
 /**
@@ -219,7 +190,9 @@ export function threadToCardProps(thread) {
   }
 
   // Sender — prio: parser-resolved > customerName > fromName > email-localpart
-  const parsed = applySystemMailParser(thread);
+  // resolveSystemMail (Fas 6) ger oss three-tier: customerName, systemLabel
+  // fallback, eller nameFromEmail-extraction.
+  const parsed = resolveSystemMail(thread);
   let sender = parsed?.sender || pickFirst(
     thread.counterpartyLabel,
     thread.customerName,
