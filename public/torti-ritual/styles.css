@@ -2579,6 +2579,90 @@ input {
   padding-top: 10px;
 }
 
+.collection-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.collection-shortcut {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 90px;
+  padding: 10px 11px 11px;
+  border: 1px solid rgba(88, 63, 46, 0.08);
+  border-radius: 16px;
+  background: rgba(250, 246, 242, 0.88);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 2px 6px rgba(75, 53, 37, 0.04);
+  cursor: pointer;
+  text-align: left;
+}
+
+.collection-shortcut.is-active {
+  border-color: rgba(67, 50, 39, 0.2);
+  background: rgba(252, 248, 244, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 4px 10px rgba(75, 53, 37, 0.06);
+}
+
+.collection-shortcut-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.collection-shortcut-kicker {
+  color: var(--muted);
+  font-size: 0.44rem;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.collection-shortcut-copy strong {
+  color: var(--ink);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1rem;
+  line-height: 1.05;
+  font-weight: 600;
+}
+
+.collection-shortcut-meta {
+  color: var(--muted);
+  font-size: 0.48rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.collection-shortcut-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.collection-shortcut-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(88, 63, 46, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-size: 0.54rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
 .collection-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3209,6 +3293,10 @@ input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .collection-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .layers-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3289,6 +3377,10 @@ input {
   .brand-cta-note {
     width: 100%;
     line-height: 1.35;
+  }
+
+  .collection-shortcuts {
+    grid-template-columns: 1fr;
   }
 
   .sheet-meta {

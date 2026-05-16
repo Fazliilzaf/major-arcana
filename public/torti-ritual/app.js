@@ -1501,6 +1501,11 @@
       .filter((section) => section.products.length > 0);
   }
 
+  function getCollectionSectionProducts(sectionKey) {
+    const visibleSection = getVisibleCollectionSections().find((section) => section.key === sectionKey);
+    return visibleSection ? visibleSection.products.slice() : [];
+  }
+
   function getActiveCollectionSection() {
     const visibleSections = getVisibleCollectionSections();
     if (visibleSections.length === 0) {
@@ -2081,6 +2086,7 @@
         if (type === "notification acknowledged") accumulator.acknowledgements += 1;
         if (type === "scroll depth") accumulator.scrollDepth += 1;
         if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
+        if (type === "collection shortcut opened") accumulator.collectionShortcuts += 1;
         if (type === "browse collections") accumulator.browseCollections += 1;
         if (type === "portal jump") accumulator.portalJumps += 1;
         return accumulator;
@@ -2095,6 +2101,7 @@
         acknowledgements: 0,
         scrollDepth: 0,
         collectionRailScrolls: 0,
+        collectionShortcuts: 0,
         browseCollections: 0,
         portalJumps: 0,
         latest: null,
@@ -4001,6 +4008,7 @@
         <span>${escapeHtml(`${summary.acknowledgements} acknowledgements`)}</span>
         <span>${escapeHtml(`${summary.scrollDepth} scroll milestones`)}</span>
         <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
+        <span>${escapeHtml(`${summary.collectionShortcuts} collection shortcuts`)}</span>
         <span>${escapeHtml(`${summary.browseCollections} browse jumps`)}</span>
         <span>${escapeHtml(`${summary.portalJumps} portal jumps`)}</span>
       </div>
@@ -4009,7 +4017,7 @@
         <strong>${escapeHtml(
           latestSignal
             ? formatPortalMoment(latestSignal.createdAt)
-            : "Track library adds, publish, share, preview, viewed, acknowledge, and scroll depth."
+            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, and collection shortcuts."
         )}</strong>
       </div>
     `;
@@ -4539,9 +4547,42 @@
       state.hoveredCollectionSection !== activeSection.key &&
       visibleSections.find((section) => section.key === state.hoveredCollectionSection) ||
       null;
+    const featuredSections = visibleSections.slice(0, 3);
     const previewProducts = previewSection ? previewSection.products.slice(0, 3) : [];
     const pendingCount = activeSection.products.filter((item) => state.pendingCatalogId === item.id).length;
     const ownedCount = activeSection.products.filter((item) => state.customerLibrary.includes(item.id)).length;
+    const shortcutMarkup = featuredSections.length
+      ? `
+        <div class="collection-shortcuts" aria-label="Featured collections">
+          ${featuredSections
+            .map((section) => {
+              const previewProducts = section.products.slice(0, 2);
+              const previewNames = previewProducts.length ? previewProducts : section.products.slice(0, 1);
+              const countLabel = `${section.products.length} products`;
+
+              return `
+                <button
+                  class="collection-shortcut${section.key === activeSection.key ? " is-active" : ""}"
+                  type="button"
+                  data-collection-shortcut="${escapeHtml(section.key)}"
+                >
+                  <span class="collection-shortcut-copy">
+                    <span class="collection-shortcut-kicker">Featured path</span>
+                    <strong>${escapeHtml(section.label.replace(/\s+Collection$/i, ""))}</strong>
+                    <span class="collection-shortcut-meta">${escapeHtml(countLabel)}</span>
+                  </span>
+                  <span class="collection-shortcut-pills">
+                    ${previewNames
+                      .map((item) => `<span class="collection-shortcut-pill">${escapeHtml(item.name)}</span>`)
+                      .join("")}
+                  </span>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      `
+      : "";
     const resultsMarkup = activeQuery
       ? activeProducts.length > 0
         ? activeProducts
@@ -4625,6 +4666,7 @@
       : "";
 
     productScroller.innerHTML = `
+      ${shortcutMarkup}
       <div class="collection-tabs" role="tablist" aria-label="Collections">
         ${tabsMarkup}
       </div>
@@ -4722,6 +4764,29 @@
 
         state.activeCollectionSection = key;
         state.hoveredCollectionSection = null;
+        renderProductScroller();
+        window.setTimeout(() => {
+          const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
+          if (input && typeof input.focus === "function") {
+            input.focus();
+          }
+        }, 0);
+      });
+    });
+
+    productScroller.querySelectorAll("[data-collection-shortcut]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const key = button.getAttribute("data-collection-shortcut");
+        if (!key) {
+          return;
+        }
+
+        state.activeCollectionSection = key;
+        state.hoveredCollectionSection = null;
+        recordAnalyticsEvent("collection shortcut opened", "Collection shortcut opened", {
+          target: key,
+          productCount: getCollectionSectionProducts(key).length,
+        });
         renderProductScroller();
         window.setTimeout(() => {
           const input = productScroller.querySelector(`[data-collection-search="${key}"]`);
