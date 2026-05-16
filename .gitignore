@@ -21,9 +21,6 @@ major-arcana-cco-next/
 # render.yaml buildCommand. Source of truth är .js-källfilerna +
 # index.html-script-tag-ordningen.
 public/major-arcana-preview/app.bundle.js
-# TILLFÄLLIGT AVAKTIVERAT 2026-05-16 23:00: Render läser inte render.yaml
-# automatiskt — buildCommand kunde inte uppdateras till att bygga bundle.
-# Återinför tills vi triggat manuell sync i Render dashboard.
-# public/major-arcana-preview/app.bundle.*.min.js
-# public/major-arcana-preview/app.bundle.latest.json
+public/major-arcana-preview/app.bundle.*.min.js
+public/major-arcana-preview/app.bundle.latest.json
 major-arcana-test/
