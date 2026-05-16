@@ -3034,12 +3034,13 @@
     const collectionClass = `collection-${slugify(product.collection)}`;
     const typeClass = `type-${slugify(product.type)}`;
     const hasImage = Boolean(product.image);
+    const altText = `${product.name} ${product.type} from ${product.collection} collection`;
 
     return `
-      <span class="${escapeHtml(baseClass)} ${escapeHtml(collectionClass)} ${escapeHtml(typeClass)}${hasImage ? " has-image" : ""}" aria-hidden="true">
+      <span class="${escapeHtml(baseClass)} ${escapeHtml(collectionClass)} ${escapeHtml(typeClass)}${hasImage ? " has-image" : ""}">
         ${
           hasImage
-            ? `<img src="${escapeHtml(product.image)}" alt="" loading="lazy" decoding="async" />`
+            ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" />`
             : ""
         }
         <span class="bottle-collection-mark"></span>
