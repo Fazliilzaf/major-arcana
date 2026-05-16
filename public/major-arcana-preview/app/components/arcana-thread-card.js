@@ -15,7 +15,12 @@
  * Använder Lit 3.x från jsDelivr ESM-CDN. Inget build-step krävs.
  * Lit är ~8 KB gzipped.
  */
-import { LitElement, html, css } from 'https://cdn.jsdelivr.net/npm/lit@3.2.1/+esm';
+// Importerar från lokalt bundlad Lit (CSP tillåter inte externa CDN:s)
+// Bundlen byggdes en gång via:
+//   npx esbuild node_modules/lit/index.js --bundle --format=esm --minify \
+//     --outfile=public/major-arcana-preview/app/components/lit-vendor.js
+// 15 KB minified, innehåller LitElement + html + css.
+import { LitElement, html, css } from './lit-vendor.js';
 
 export class ArcanaThreadCard extends LitElement {
   static properties = {
