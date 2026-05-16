@@ -1583,23 +1583,27 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
   assert.ok(
     source.includes('function getBookingPhoneWorkflowSummary(readout = {})') &&
       source.includes(
-        'primaryLabel: isConfirmed ? "Justera vald tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
+        'primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon"'
       ) &&
       source.includes('secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider"') &&
+      source.includes('confirmationTitle') &&
+      source.includes('confirmationCopy') &&
+      source.includes('nextTitle') &&
+      source.includes('nextCopy') &&
       source.includes('selectedAudit') &&
       source.includes('confirmedAudit'),
-    'Förväntade en helper som översätter booking-readoutet till ett tydligt telefonbokningsläge med vald tid, extern bekräftelse och audit.'
+    'Förväntade en helper som översätter booking-readoutet till ett tydligt telefonbokningsläge med vald tid, extern bekräftelse, guidance och audit.'
   );
 
   assertMatchFast(
     source,
-    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary/,
-    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med slotstatus, extern bekräftelse och audit sammanhållna.'
+    /<section class="booking-phone-workflow" data-booking-phone-workflow aria-label="Telefonbokning">[\s\S]*data-booking-phone-title[\s\S]*data-booking-phone-slot[\s\S]*data-booking-phone-selected-audit[\s\S]*data-booking-phone-confirmed-audit[\s\S]*data-booking-phone-primary[\s\S]*data-booking-phone-secondary[\s\S]*data-booking-phone-confirmation-title[\s\S]*data-booking-phone-confirmation-copy[\s\S]*data-booking-phone-next-title[\s\S]*data-booking-phone-next-copy/,
+    'Förväntade att bookingytan renderar ett eget telefonbokningskort nära toppen med slotstatus, extern bekräftelse, guidance och audit sammanhållna.'
   );
 
   assertMatchFast(
     source,
-    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
+    /const phoneWorkflow = getBookingPhoneWorkflowSummary\(readout\);[\s\S]*bookingDom\.phoneTitle[\s\S]*bookingDom\.phoneState[\s\S]*bookingDom\.phoneSlot[\s\S]*bookingDom\.phoneSelectedAudit[\s\S]*bookingDom\.phoneConfirmedAudit[\s\S]*bookingDom\.phoneConfirmationTitle[\s\S]*bookingDom\.phoneConfirmationCopy[\s\S]*bookingDom\.phoneNextTitle[\s\S]*bookingDom\.phoneNextCopy[\s\S]*bookingDom\.phonePrimary[\s\S]*bookingDom\.phoneSecondary/,
     'Förväntade att rendern faktiskt hydratiserar telefonbokningskortet från booking-readoutet i stället för att lämna det statiskt.'
   );
 

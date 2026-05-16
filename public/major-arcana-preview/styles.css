@@ -18254,6 +18254,41 @@ button.booking-handoff-card-blocker:focus-visible {
   gap: 12px;
 }
 
+.booking-phone-workflow-guidance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.booking-phone-workflow-guidance-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(176, 145, 118, 0.14);
+}
+
+.booking-phone-workflow-guidance-card span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(142, 109, 87, 0.84);
+}
+
+.booking-phone-workflow-guidance-card strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.25;
+  color: rgba(57, 44, 37, 0.94);
+}
+
+.booking-phone-workflow-guidance-card p {
+  margin: 0;
+  color: rgba(96, 79, 67, 0.82);
+}
+
 .booking-audit-preview-head span {
   font-weight: 680;
   letter-spacing: 0.08em;
@@ -18284,6 +18319,10 @@ button.booking-handoff-card-blocker:focus-visible {
   }
 
   .booking-phone-workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-phone-workflow-guidance {
     grid-template-columns: 1fr;
   }
 

@@ -27958,6 +27958,24 @@
       : selectedSlot
         ? "Stäm av tiden i samtalet och markera sedan bokningen som bekräftad externt."
         : "Öppna tiderna, välj en tydlig slot och spara den i caset under samtalet.";
+    const confirmationTitle = isConfirmed
+      ? "Bekräftelsen är loggad"
+      : selectedSlot
+        ? "Bekräfta först när tiden är lagd i Cliento"
+        : "Först: välj och spara en tid i CCO";
+    const confirmationCopy = isConfirmed
+      ? confirmedAt
+        ? `Bokningen markerades som externt bekräftad ${formatBookingEventTime(confirmedAt)} och kan nu följas upp lugnt.`
+        : "Bokningen är markerad som externt bekräftad och redo för nästa handoff."
+      : selectedSlot
+        ? "Använd bara bekräftelseknappen efter att operatören faktiskt har lagt tiden manuellt i Cliento."
+        : "Öppna tiderna, välj slot och spara valet i caset innan extern bekräftelse blir möjlig.";
+    const nextTitle = isConfirmed ? "Efter bekräftelse" : selectedSlot ? "Direkt efter samtalet" : "När du valt en tid";
+    const nextCopy = isConfirmed
+      ? "Fortsätt med kundbekräftelse, handoff eller nästa domänsteg utan att tappa auditspåret."
+      : selectedSlot
+        ? "När du har lagt tiden externt kan du markera den som bekräftad här och låta bokningsläget gå vidare."
+        : "Det valda tidsförslaget kommer att synas här som `Vald i CCO` innan bokningen säkras externt.";
 
     return {
       isConfirmed,
@@ -27983,7 +28001,11 @@
           ? "Tiden är vald i CCO"
           : "Boka via telefon",
       copy: nextStep,
-      primaryLabel: isConfirmed ? "Justera vald tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon",
+      confirmationTitle,
+      confirmationCopy,
+      nextTitle,
+      nextCopy,
+      primaryLabel: isConfirmed ? "Välj ny tid" : selectedSlot ? "Bekräftad i Cliento" : "Boka via telefon",
       primaryAction: isConfirmed ? "phone_booking" : selectedSlot ? "confirm_external" : "phone_booking",
       secondaryLabel: selectedSlot ? "Välj annan tid" : "Öppna tider",
       secondaryAction: "phone_booking",
@@ -34651,6 +34673,18 @@
               <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
               <button class="booking-action booking-action-secondary" type="button" data-booking-action="phone_booking" data-booking-phone-secondary>Öppna tider</button>
             </div>
+            <div class="booking-phone-workflow-guidance" aria-label="Bekräftelseflöde">
+              <article class="booking-phone-workflow-guidance-card" data-booking-phone-confirmation-card>
+                <span>Bekräftelse</span>
+                <strong data-booking-phone-confirmation-title>Först: välj och spara en tid i CCO</strong>
+                <p data-booking-phone-confirmation-copy>Öppna tiderna, välj slot och spara valet i caset innan extern bekräftelse blir möjlig.</p>
+              </article>
+              <article class="booking-phone-workflow-guidance-card" data-booking-phone-next-card>
+                <span>Nästa läge</span>
+                <strong data-booking-phone-next-title>När du valt en tid</strong>
+                <p data-booking-phone-next-copy>Det valda tidsförslaget kommer att synas här som \`Vald i CCO\` innan bokningen säkras externt.</p>
+              </article>
+            </div>
           </section>
           <div class="booking-attention-grid" aria-label="Bokningssignaler">
             <div><span>Vad</span><strong data-booking-treatment>Bokningsdialog</strong></div>
@@ -34772,6 +34806,10 @@
       phoneConfirmedAudit: surface?.querySelector("[data-booking-phone-confirmed-audit]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
+      phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
+      phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),
+      phoneNextTitle: surface?.querySelector("[data-booking-phone-next-title]"),
+      phoneNextCopy: surface?.querySelector("[data-booking-phone-next-copy]"),
       treatment: surface?.querySelector("[data-booking-treatment]") || bookingTreatment,
       window: surface?.querySelector("[data-booking-window]") || bookingWindow,
       confidence: surface?.querySelector("[data-booking-confidence]") || bookingConfidence,
@@ -34869,6 +34907,18 @@
       }
       if (bookingDom.phoneConfirmedAudit) {
         bookingDom.phoneConfirmedAudit.textContent = phoneWorkflow.confirmedAudit;
+      }
+      if (bookingDom.phoneConfirmationTitle) {
+        bookingDom.phoneConfirmationTitle.textContent = phoneWorkflow.confirmationTitle;
+      }
+      if (bookingDom.phoneConfirmationCopy) {
+        bookingDom.phoneConfirmationCopy.textContent = phoneWorkflow.confirmationCopy;
+      }
+      if (bookingDom.phoneNextTitle) {
+        bookingDom.phoneNextTitle.textContent = phoneWorkflow.nextTitle;
+      }
+      if (bookingDom.phoneNextCopy) {
+        bookingDom.phoneNextCopy.textContent = phoneWorkflow.nextCopy;
       }
       if (bookingDom.phonePrimary) {
         bookingDom.phonePrimary.textContent = phoneWorkflow.primaryLabel;
