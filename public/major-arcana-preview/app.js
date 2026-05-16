@@ -28059,6 +28059,25 @@
     };
   }
 
+  function getBookingPhoneCustomerWaitReadout(readout = {}) {
+    const customerWait = buildBookingCustomerWaitReadout(readout);
+    const normalizedStatus = normalizeKey(readout.status || "");
+    const showCard =
+      normalizedStatus === "waiting_customer" ||
+      Boolean(customerWait.action) ||
+      normalizedStatus === "confirmed_external";
+    return {
+      showCard,
+      title: customerWait.label || "Kundläge",
+      meta:
+        customerWait.meta ||
+        "Det aktiva vänteläget mot kund eller efterbekräftelse syns här när caset behöver fortsatt kunddialog.",
+      tone: customerWait.tone || "neutral",
+      action: asText(customerWait.action),
+      actionLabel: asText(customerWait.actionLabel),
+    };
+  }
+
   function buildBookingPhoneWorkflowProgressMarkup(phoneWorkflow = {}) {
     const steps = [
       {
@@ -34993,6 +35012,17 @@
                 <strong data-booking-phone-activity-title>Ingen bookinghändelse ännu</strong>
                 <p data-booking-phone-activity-meta>När tider väljs, erbjudande infogas eller extern bekräftelse loggas syns senaste steget här.</p>
               </article>
+              <article class="booking-phone-workflow-card booking-phone-workflow-card-wait" data-booking-phone-wait-card hidden>
+                <span>Kundläge</span>
+                <strong data-booking-phone-wait-title>Ingen aktiv kundväntan ännu</strong>
+                <p data-booking-phone-wait-meta>Så fort caset lever på kundsvar, uppföljning eller efterbekräftelse syns läget här.</p>
+                <button
+                  class="booking-action booking-action-secondary"
+                  type="button"
+                  data-booking-phone-wait-action
+                  hidden
+                ></button>
+              </article>
             </div>
             <div class="booking-phone-workflow-actions">
               <button class="booking-action booking-action-primary" type="button" data-booking-action="phone_booking" data-booking-phone-primary>Boka via telefon</button>
@@ -35195,6 +35225,10 @@
       phoneActivityCard: surface?.querySelector("[data-booking-phone-activity-card]"),
       phoneActivityTitle: surface?.querySelector("[data-booking-phone-activity-title]"),
       phoneActivityMeta: surface?.querySelector("[data-booking-phone-activity-meta]"),
+      phoneWaitCard: surface?.querySelector("[data-booking-phone-wait-card]"),
+      phoneWaitTitle: surface?.querySelector("[data-booking-phone-wait-title]"),
+      phoneWaitMeta: surface?.querySelector("[data-booking-phone-wait-meta]"),
+      phoneWaitAction: surface?.querySelector("[data-booking-phone-wait-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
       phoneSlotEntry: surface?.querySelector("[data-booking-phone-slot-entry]"),
@@ -35342,6 +35376,27 @@
       }
       if (bookingDom.phoneActivityMeta) {
         bookingDom.phoneActivityMeta.textContent = phoneActivity.meta;
+      }
+      const phoneWait = getBookingPhoneCustomerWaitReadout(readout);
+      if (bookingDom.phoneWaitCard) {
+        bookingDom.phoneWaitCard.hidden = !phoneWait.showCard;
+        bookingDom.phoneWaitCard.dataset.tone = phoneWait.tone || "neutral";
+      }
+      if (bookingDom.phoneWaitTitle) {
+        bookingDom.phoneWaitTitle.textContent = phoneWait.title;
+      }
+      if (bookingDom.phoneWaitMeta) {
+        bookingDom.phoneWaitMeta.textContent = phoneWait.meta;
+      }
+      if (bookingDom.phoneWaitAction) {
+        if (phoneWait.showCard && phoneWait.action) {
+          bookingDom.phoneWaitAction.hidden = false;
+          bookingDom.phoneWaitAction.textContent = phoneWait.actionLabel || "Öppna nästa steg";
+          bookingDom.phoneWaitAction.dataset.bookingAction = phoneWait.action;
+        } else {
+          bookingDom.phoneWaitAction.hidden = true;
+          bookingDom.phoneWaitAction.textContent = "";
+        }
       }
       if (bookingDom.phoneConfirmationTitle) {
         bookingDom.phoneConfirmationTitle.textContent = phoneWorkflow.confirmationTitle;
