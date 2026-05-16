@@ -2088,6 +2088,7 @@
         if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
         if (type === "collection shortcut opened") accumulator.collectionShortcuts += 1;
         if (type === "collection card tapped") accumulator.collectionCardTaps += 1;
+        if (type === "library review jumped") accumulator.libraryReviewJumps += 1;
         if (type === "browse collections") accumulator.browseCollections += 1;
         if (type === "portal jump") accumulator.portalJumps += 1;
         return accumulator;
@@ -2104,6 +2105,7 @@
         collectionRailScrolls: 0,
         collectionShortcuts: 0,
         collectionCardTaps: 0,
+        libraryReviewJumps: 0,
         browseCollections: 0,
         portalJumps: 0,
         latest: null,
@@ -4012,6 +4014,7 @@
         <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
         <span>${escapeHtml(`${summary.collectionShortcuts} collection shortcuts`)}</span>
         <span>${escapeHtml(`${summary.collectionCardTaps} collection card taps`)}</span>
+        <span>${escapeHtml(`${summary.libraryReviewJumps} library review jumps`)}</span>
         <span>${escapeHtml(`${summary.browseCollections} browse jumps`)}</span>
         <span>${escapeHtml(`${summary.portalJumps} portal jumps`)}</span>
       </div>
@@ -4020,7 +4023,7 @@
         <strong>${escapeHtml(
           latestSignal
             ? formatPortalMoment(latestSignal.createdAt)
-            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, collection shortcuts, and collection card taps."
+            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, collection shortcuts, collection card taps, and library review jumps."
         )}</strong>
       </div>
     `;
@@ -4108,6 +4111,7 @@
     const selectedBottle = getSelectedBottle();
     const activeCatalogId = selectedBottle ? selectedBottle.catalogId : state.activeLibraryCatalogId;
     const activeBottleId = selectedBottle ? selectedBottle.id : state.activeLibraryBottleId;
+    const hasLibraryItems = ownedItems.length > 0;
 
     customerLibraryPanel.innerHTML = `
       <div class="panel-intro">
@@ -4115,7 +4119,10 @@
           <p>Purchased collection</p>
           <h2>Customer Library</h2>
         </div>
-        <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
+        <div class="panel-meta panel-meta-inline">
+          <span class="panel-count">${escapeHtml(`${ownedItems.length} owned`)}</span>
+          ${hasLibraryItems ? '<button class="ghost-button panel-header-action" type="button" data-review-library>Build layers</button>' : ""}
+        </div>
       </div>
       ${
         ownedItems.length === 0
@@ -4186,6 +4193,18 @@
         removeCatalogFromLibrary(button.getAttribute("data-remove-library-product"));
       });
     });
+
+    const reviewLibraryButton = customerLibraryPanel.querySelector("[data-review-library]");
+    if (reviewLibraryButton) {
+      reviewLibraryButton.addEventListener("click", function () {
+        const didScroll = scrollToSection("[data-layers-panel]");
+        recordAnalyticsEvent("library review jumped", "Library review opened", {
+          target: "layers",
+          scrolled: didScroll,
+          ownedCount: ownedItems.length,
+        });
+      });
+    }
 
   }
 
