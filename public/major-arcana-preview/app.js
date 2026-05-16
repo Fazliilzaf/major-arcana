@@ -28176,6 +28176,20 @@
               ? { label: "Eftermiddag", tone: "count" }
               : { label: "Morgon", tone: "count" }
           : { label: "Blandade tider", tone: "count" };
+    const sortedStartTimes = selectedSlots
+      .map((slot) => Date.parse(asText(slot.startsAt)))
+      .filter((value) => Number.isFinite(value))
+      .sort((left, right) => left - right);
+    const earliestStartAt = sortedStartTimes[0] || 0;
+    const msUntilEarliest = earliestStartAt ? earliestStartAt - Date.now() : 0;
+    const proposalTimingBadge =
+      !earliestStartAt
+        ? { label: "Starttid saknas", tone: "attention" }
+        : msUntilEarliest <= 36 * 60 * 60 * 1000
+        ? { label: "Snabb tid", tone: "confirmed" }
+        : msUntilEarliest <= 7 * 24 * 60 * 60 * 1000
+          ? { label: "Kommande dagar", tone: "count" }
+          : { label: "Längre fram", tone: "count" };
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28187,6 +28201,7 @@
           proposalShapeBadge,
           proposalSpanBadge,
           proposalTimeBandBadge,
+          proposalTimingBadge,
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
           deliveryBadge,
@@ -28212,6 +28227,7 @@
           proposalShapeBadge,
           proposalSpanBadge,
           proposalTimeBandBadge,
+          proposalTimingBadge,
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
           deliveryBadge,
@@ -28238,6 +28254,7 @@
         proposalShapeBadge,
         proposalSpanBadge,
         proposalTimeBandBadge,
+        proposalTimingBadge,
         {
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",
