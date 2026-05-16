@@ -370,6 +370,27 @@ input {
   grid-column: 1 / -1;
 }
 
+.sheet-app.is-customer-portal-view .portal-panel {
+  grid-template-columns: minmax(0, 1.36fr) minmax(320px, 0.64fr);
+  align-items: start;
+  gap: 12px 14px;
+}
+
+.sheet-app.is-customer-portal-view .portal-panel .panel-intro,
+.sheet-app.is-customer-portal-view .portal-flow-steps {
+  grid-column: 1 / -1;
+}
+
+.sheet-app.is-customer-portal-view .portal-grid--customer-only {
+  grid-column: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sheet-app.is-customer-portal-view .portal-activity {
+  grid-column: 2;
+  align-self: stretch;
+}
+
 .portal-hero {
   display: grid;
   gap: 10px;
@@ -516,6 +537,32 @@ input {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
+}
+
+.sheet-app.is-customer-portal-view .portal-flow-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sheet-app.is-customer-portal-view .portal-flow-step {
+  grid-template-columns: 22px minmax(0, 1fr);
+  min-height: 38px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.sheet-app.is-customer-portal-view .portal-flow-step.is-current {
+  box-shadow:
+    0 5px 12px rgba(75, 53, 37, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.sheet-app.is-customer-portal-view .portal-flow-step-index {
+  width: 22px;
+  height: 22px;
+  font-size: 0.56rem;
 }
 
 .portal-analytics {
@@ -821,6 +868,51 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.sheet-app.is-customer-portal-view .portal-card,
+.sheet-app.is-customer-portal-view .portal-activity {
+  min-height: auto;
+  padding: 16px 18px;
+}
+
+.sheet-app.is-customer-portal-view .portal-card-head strong {
+  font-size: 1.28rem;
+}
+
+.sheet-app.is-customer-portal-view .portal-card-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, max-content));
+  align-items: center;
+}
+
+.sheet-app.is-customer-portal-view .portal-summary-spotlight {
+  grid-column: 1 / -1;
+}
+
+.sheet-app.is-customer-portal-view .portal-card-list {
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.sheet-app.is-customer-portal-view .portal-item,
+.sheet-app.is-customer-portal-view .portal-activity-item {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.sheet-app.is-customer-portal-view .portal-activity {
+  gap: 8px;
+}
+
+.sheet-app.is-customer-portal-view .portal-activity-head {
+  display: grid;
+  gap: 4px;
+}
+
+.sheet-app.is-customer-portal-view .portal-activity-meta {
+  font-size: 0.52rem;
 }
 
 .portal-item {
@@ -3436,6 +3528,17 @@ input {
   .portal-grid,
   .portal-flow-steps {
     grid-template-columns: 1fr;
+  }
+
+  .sheet-app.is-customer-portal-view .portal-panel,
+  .sheet-app.is-customer-portal-view .portal-flow-steps,
+  .sheet-app.is-customer-portal-view .portal-card-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .sheet-app.is-customer-portal-view .portal-grid--customer-only,
+  .sheet-app.is-customer-portal-view .portal-activity {
+    grid-column: 1;
   }
 
   .collection-tabs {

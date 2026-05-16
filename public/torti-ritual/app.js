@@ -4321,7 +4321,7 @@
         })
       : portalEvents;
     const recentPortalEvents = customerOnlyView
-      ? sharedPortalEvents.slice(0, 4)
+      ? sharedPortalEvents.slice(0, 3)
       : portalEvents.slice(0, 4);
     const latestVisiblePortalEvent = recentPortalEvents[0] || null;
     const summaryPortalEvent = customerOnlyView ? latestVisiblePortalEvent : latestPortalEvent;
@@ -4350,12 +4350,14 @@
     const latestActivityLabel = customerOnlyView ? "Latest shared activity" : "Latest activity";
     const latestActivityBadgeLabel = customerOnlyView ? "Latest shared event" : "Latest portal event";
     const portalPreviewUrl = customerOnlyView ? "" : buildPortalShareUrl(snapshot);
-    const portalFlowSteps = [
+    const ownerPortalFlowSteps = [
       { key: "draft", label: "Build", detail: draftSummary, isDone: snapshot.customerLibrary.length > 0 },
       { key: "published", label: "Published", detail: latestVersion ? formatPortalMoment(latestVersion.publishedAt) : "Waiting", isDone: Boolean(latestVersion) },
       { key: "seen", label: "Seen", detail: portalViewedAt ? formatPortalMoment(portalViewedAt) : "Not opened", isDone: Boolean(portalViewedAt) },
       { key: "acknowledged", label: "Acknowledged", detail: record.lastAcknowledgedAt ? formatPortalMoment(record.lastAcknowledgedAt) : "Waiting", isDone: Boolean(record.lastAcknowledgedAt) },
     ];
+    const customerPortalFlowSteps = ownerPortalFlowSteps.filter((step) => step.key !== "draft");
+    const portalFlowSteps = customerOnlyView ? customerPortalFlowSteps : ownerPortalFlowSteps;
     const portalFlowMarkup = `
       <div class="portal-flow-steps" aria-label="Portal progress">
         ${portalFlowSteps
