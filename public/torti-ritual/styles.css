@@ -190,6 +190,12 @@ input {
   color: #fffefb;
 }
 
+#collections,
+#portal-flow,
+#sheet-document {
+  scroll-margin-top: 24px;
+}
+
 .sheet-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(140px, 250px)) minmax(0, 1fr);
@@ -3266,6 +3272,25 @@ input {
     height: 58px;
   }
 
+  .brand-strip {
+    align-items: stretch;
+  }
+
+  .brand-cta-row {
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .brand-cta {
+    width: 100%;
+    min-height: 34px;
+  }
+
+  .brand-cta-note {
+    width: 100%;
+    line-height: 1.35;
+  }
+
   .sheet-meta {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -3300,6 +3325,12 @@ input {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  #collections,
+  #portal-flow,
+  #sheet-document {
+    scroll-margin-top: 18px;
   }
 
   .download-button,
