@@ -1610,13 +1610,17 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Senaste studiohändelse') &&
       source.includes('Ingen studiohändelse loggad ännu.') &&
       source.includes('const handoffSummary = staleOfferAfterRebook') &&
+      source.includes('const handoffBadge = staleOfferAfterRebook') &&
       source.includes('Kundläge bör vänta tills Svarstudio bär det uppdaterade förslaget igen.') &&
+      source.includes('Vänta med kundläge') &&
       source.includes(
         'När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag.'
       ) &&
+      source.includes('Kundläge väntar på studio') &&
       source.includes(
         'Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.'
       ) &&
+      source.includes('Redo för kundläge') &&
       source.includes('Förslaget bär ett spann från') &&
       source.includes('Den här tiden bärs i kundförslaget just nu.') &&
       source.includes('const countLabel =') &&

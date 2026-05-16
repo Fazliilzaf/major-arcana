@@ -28126,6 +28126,11 @@
       : !hasOffer
         ? "När tiderna har infogats i Svarstudio kan kundläget markeras med samma förslag."
         : "Förslaget är redo att bäras vidare till kundläge utan att tiderna tolkas om.";
+    const handoffBadge = staleOfferAfterRebook
+      ? { label: "Vänta med kundläge", tone: "attention" }
+      : !hasOffer
+        ? { label: "Kundläge väntar på studio", tone: "studio" }
+        : { label: "Redo för kundläge", tone: "confirmed" };
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28141,6 +28146,7 @@
         badges: [
           { label: countLabel, tone: "count" },
           { label: "Föråldrat förslag", tone: "attention" },
+          handoffBadge,
         ],
         slotCarry,
         carrySummary,
@@ -28160,6 +28166,7 @@
         badges: [
           { label: countLabel, tone: "count" },
           { label: "Ej infogat ännu", tone: "studio" },
+          handoffBadge,
         ],
         slotCarry,
         carrySummary,
@@ -28183,6 +28190,7 @@
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",
         },
+        handoffBadge,
       ],
       slotCarry,
       carrySummary,
