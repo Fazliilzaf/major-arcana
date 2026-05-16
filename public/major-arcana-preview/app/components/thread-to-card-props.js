@@ -1,7 +1,13 @@
+import { buildPillsFromThread } from './thread-pills.js';
+
 /**
  * app/components/thread-to-card-props.js
  * Fas 3 av Lit-migration — adapter mellan dagens worklist-API thread-objekt
  * och arcana-thread-card-komponentens props.
+ *
+ * Fas 5: buildPills-logiken har flyttats till thread-pills.js (8 pill-typer
+ * från signal-bar.js). Denna fil använder den importerade buildPillsFromThread
+ * istället för sin tidigare lokala buildPills.
  *
  * Tar ett thread (sådant som app.js's buildQueueHistoryItems producerar) och
  * returnerar en flat card-props-form:
@@ -117,8 +123,10 @@ function applySystemMailParser(thread) {
 }
 
 /**
- * Bygg pills-array från thread. Replikerar förenklat buildSignals från
- * signal-bar.js. Pillar adderas baserat på thread-fält + härledda flags.
+ * @deprecated Fas 5: använd buildPillsFromThread från thread-pills.js.
+ * Behålls inte längre i flödet — threadToCardProps använder den importerade
+ * versionen. Lämnas inline ifall externa konsumenter använder __buildPills
+ * direkt.
  */
 function buildPills(thread) {
   const pills = [];
@@ -240,7 +248,9 @@ export function threadToCardProps(thread) {
     lane,
     time: pickFirst(thread.lastActivityLabel, thread.time, thread.timeLabel),
     owner: pickFirst(thread.displayOwnerLabel, thread.ownerLabel, 'Ej tilldelad'),
-    pills: buildPills(thread),
+    // Fas 5: använd thread-pills.js's buildPillsFromThread (8 pill-typer).
+    // Vidaresätt parsed systemMailLabel så den blir en system-mail-pill.
+    pills: buildPillsFromThread({ ...thread, systemMailLabel }),
     systemMailLabel,
   };
 }
