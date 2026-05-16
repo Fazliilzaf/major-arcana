@@ -1292,6 +1292,7 @@ async function createAuthStore({
 
     let rawUser = findRawUserByEmail(normalizedEmail);
     let createdUser = false;
+    let passwordRotatedForSessions = false;
 
     if (!rawUser) {
       const created = await createUser({ email: normalizedEmail, password, mfaRequired: true });
@@ -1301,8 +1302,18 @@ async function createAuthStore({
       rawUser.status = 'active';
       rawUser.updatedAt = nowIso();
       await setUserPassword(rawUser.id, password);
+      passwordRotatedForSessions = true;
     } else if (password.trim()) {
       await setUserPassword(rawUser.id, password);
+      passwordRotatedForSessions = true;
+    }
+
+    if (passwordRotatedForSessions) {
+      await revokeSessionsByUser(rawUser.id, {
+        tenantId: '',
+        excludeSessionId: '',
+        reason: 'owner_password_set_via_upsert',
+      });
     }
 
     const membership = await ensureMembership({
@@ -1408,6 +1419,10 @@ async function createAuthStore({
       await setUserPassword(rawUser.id, password);
       rawUser = state.users[rawUser.id] || rawUser;
       passwordReset = true;
+      const pwdRevoke = await revokeSessionsByUser(rawUser.id, {
+        reason: 'bootstrap_owner_password_reset',
+      });
+      revokedSessions += Number(pwdRevoke?.count || 0);
     }
 
     if (!createdUser && forceMfaReset) {
@@ -1428,7 +1443,7 @@ async function createAuthStore({
       const revokeResult = await revokeSessionsByUser(rawUser.id, {
         reason: 'bootstrap_owner_mfa_reset',
       });
-      revokedSessions = Number(revokeResult?.count || 0);
+      revokedSessions += Number(revokeResult?.count || 0);
       if (shouldResetMfaState && revokedSessions === 0) {
         await save();
       }

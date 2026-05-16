@@ -28,6 +28,10 @@
     }
 
     function patchStudioThreadAfterSend(thread, draftBody, sendResult = null) {
+      try {
+        const draftKey = thread?.id ? "cco.studio.draft." + String(thread.id).trim().toLowerCase().replace(/[^a-z0-9._@:-]/g, "_") : "";
+        if (draftKey) window.localStorage.removeItem(draftKey);
+      } catch (_e) { /* ignore */ }
       const recordedAt = new Date().toISOString();
       const senderLabel = titleCaseMailbox(
         asText(

@@ -7,12 +7,30 @@ const { CcoConversationActionCapability } = require('./ccoConversationAction');
 const { SummarizeThreadCapability } = require('./summarizeThread');
 const { RecordDraftFeedbackCapability } = require('./recordDraftFeedback');
 const { GdprExportCustomerCapability, GdprAnonymizeCustomerCapability } = require('./gdprCustomer');
-const { TenantListCapability, TenantCreateCapability, TenantDisableCapability } = require('./tenantLifecycle');
+const {
+  TenantListCapability,
+  TenantCreateCapability,
+  TenantDisableCapability,
+} = require('./tenantLifecycle');
 const { TenantUsageMetricsCapability } = require('./tenantUsageMetrics');
 const { CcoOperationalKpisCapability } = require('./ccoOperationalKpis');
 const { CcoCustomerBookingsCapability } = require('./ccoCustomerBookings');
+const { SuggestTemplateImprovementCapability } = require('./suggestTemplateImprovement');
+const { ValidateDisclaimersCapability } = require('./validateDisclaimers');
+const { OptimizeVariablesCapability } = require('./optimizeVariables');
+const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
+const { FinanceGovernanceCapability } = require('./financeGovernance');
+const { PrepareResponseDraftsCapability } = require('./prepareResponseDrafts');
+const { GenerateContentBriefCapability } = require('./generateContentBrief');
+const { AnalyzeAudienceSegmentsCapability } = require('./analyzeAudienceSegments');
+const { GenerateOutreachCampaignCapability } = require('./generateOutreachCampaign');
+const { PatientChatResponseCapability } = require('./patientChatResponse');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
+const { CAO_AGENT_NAME } = require('../agents/caoTemplateAdvisorAgent');
+const { CFO_AGENT_NAME } = require('../agents/cfoCostAdvisorAgent');
+const { CMO_AGENT_NAME } = require('../agents/cmoContentAgent');
+const { PATIENT_AGENT_NAME } = require('../agents/patientAgent');
 const { CCO_AGENT_NAME } = require('../agents/ccoInboxAgent');
 
 function normalizeText(value) {
@@ -35,10 +53,23 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(TenantUsageMetricsCapability),
   assertCapabilityClass(CcoOperationalKpisCapability),
   assertCapabilityClass(CcoCustomerBookingsCapability),
+  assertCapabilityClass(SuggestTemplateImprovementCapability),
+  assertCapabilityClass(ValidateDisclaimersCapability),
+  assertCapabilityClass(OptimizeVariablesCapability),
+  assertCapabilityClass(PrepareResponseDraftsCapability),
+  assertCapabilityClass(AnalyzeRiskTrendCapability),
+  assertCapabilityClass(FinanceGovernanceCapability),
+  assertCapabilityClass(GenerateContentBriefCapability),
+  assertCapabilityClass(AnalyzeAudienceSegmentsCapability),
+  assertCapabilityClass(GenerateOutreachCampaignCapability),
+  assertCapabilityClass(PatientChatResponseCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(
-  CAPABILITY_DEFINITIONS.map((capability) => [normalizeText(capability.name).toLowerCase(), capability])
+  CAPABILITY_DEFINITIONS.map((capability) => [
+    normalizeText(capability.name).toLowerCase(),
+    capability,
+  ])
 );
 
 const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
@@ -46,38 +77,71 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
     name: COO_AGENT_NAME,
     version: '1.0.0',
     role: 'COO',
-    capabilities: Object.freeze(['SummarizeIncidents', 'GenerateTaskPlan']),
+    capabilities: Object.freeze(['SummarizeIncidents', 'GenerateTaskPlan', 'AnalyzeRiskTrend']),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
     outputType: 'DailyBrief',
-    plannedCapabilities: Object.freeze(['AnalyzeRiskTrend']),
+    plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({
-    name: 'CAO',
+    name: CAO_AGENT_NAME,
     version: '1.0.0',
     role: 'CAO',
-    capabilities: Object.freeze([]),
-    allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
-    allowedChannels: Object.freeze(['admin']),
-    persistStrategy: 'none',
-    outputType: 'none',
-    plannedCapabilities: Object.freeze([
+    capabilities: Object.freeze([
       'SuggestTemplateImprovement',
       'ValidateDisclaimers',
       'OptimizeVariables',
     ]),
+    allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
+    allowedChannels: Object.freeze(['admin']),
+    persistStrategy: 'analysis',
+    outputType: 'TemplateAdvisor',
+    plannedCapabilities: Object.freeze([]),
+  }),
+  Object.freeze({
+    name: CFO_AGENT_NAME,
+    version: '1.0.0',
+    role: 'CFO',
+    capabilities: Object.freeze(['FinanceGovernance']),
+    allowedRoles: Object.freeze([ROLE_OWNER]),
+    allowedChannels: Object.freeze(['admin']),
+    persistStrategy: 'analysis',
+    outputType: 'CostAdvisor',
+    plannedCapabilities: Object.freeze([]),
+  }),
+  Object.freeze({
+    name: CMO_AGENT_NAME,
+    version: '1.0.0',
+    role: 'CMO',
+    capabilities: Object.freeze(['GenerateContentBrief', 'AnalyzeAudienceSegments', 'GenerateOutreachCampaign']),
+    allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
+    allowedChannels: Object.freeze(['admin']),
+    persistStrategy: 'analysis',
+    outputType: 'ContentAdvisor',
+    plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({
     name: CCO_AGENT_NAME,
     version: '1.0.0',
     role: 'CCO',
-    capabilities: Object.freeze(['AnalyzeInbox']),
+    capabilities: Object.freeze(['AnalyzeInbox', 'PrepareResponseDrafts', 'RefineReplyDraft']),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
     outputType: 'InboxAnalysis',
-    plannedCapabilities: Object.freeze(['PrepareResponseDrafts']),
+    plannedCapabilities: Object.freeze([]),
+  }),
+  Object.freeze({
+    name: PATIENT_AGENT_NAME,
+    version: '1.0.0',
+    role: 'Patient',
+    capabilities: Object.freeze(['PatientChatResponse']),
+    allowedRoles: Object.freeze([ROLE_OWNER]),
+    allowedChannels: Object.freeze(['patient', 'admin']),
+    persistStrategy: 'analysis',
+    outputType: 'ChatResponse',
+    plannedCapabilities: Object.freeze([]),
   }),
 ]);
 
@@ -96,7 +160,9 @@ function listCapabilities() {
     name: capability.name,
     version: capability.version,
     allowedRoles: Array.isArray(capability.allowedRoles) ? [...capability.allowedRoles] : [],
-    allowedChannels: Array.isArray(capability.allowedChannels) ? [...capability.allowedChannels] : [],
+    allowedChannels: Array.isArray(capability.allowedChannels)
+      ? [...capability.allowedChannels]
+      : [],
     channels: Array.isArray(capability.allowedChannels) ? [...capability.allowedChannels] : [],
     persistStrategy: capability.persistStrategy,
     auditStrategy: capability.auditStrategy,

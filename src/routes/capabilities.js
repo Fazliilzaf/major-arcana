@@ -76,8 +76,14 @@ const CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS = Object.freeze([
   'fazli@hairtpclinic.com',
 ]);
 const CCO_KONS_HISTORY_DEFAULT_MAILBOX = 'kons@hairtpclinic.com';
-const CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS = 1095;
-const CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS = 1825;
+// Sänkt 2026-05-14 från 1095/1825 (3 år / 5 år) — orsakade SIGABRT 134
+// på Render-instans pga OOM vid Graph API-backfill. Hair TP Clinic har
+// 6 mailboxar; 3 års historik per request = flera GB mail-data → 502/
+// instance-restart. 90 dagar default täcker normal use case, 365 max
+// räcker för rapporter. Om legitimate behov av >1 år finns: använd
+// streaming endpoint istället.
+const CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS = 90;
+const CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS = 365;
 const CCO_KONS_HISTORY_CHUNK_DAYS = 30;
 const CCO_KONS_HISTORY_RECENT_FRESHNESS_MS = 10 * 60 * 1000;
 const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
@@ -671,8 +677,17 @@ function toIncidentSnapshot(incident = {}) {
     severity: normalizeText(incident.severity) || null,
     status: normalizeText(incident.status) || null,
     ownerDecision: normalizeText(incident.ownerDecision) || null,
+    ownerUserId:
+      normalizeText(incident.ownerUserId) || normalizeText(incident.owner?.userId) || null,
     openedAt: normalizeText(incident.openedAt) || null,
     updatedAt: normalizeText(incident.updatedAt) || null,
+    resolutionTs: normalizeText(incident.resolutionTs) || null,
+    slaDeadline:
+      normalizeText(incident.slaDeadline) ||
+      (incident?.sla && typeof incident.sla === 'object'
+        ? normalizeText(incident.sla.deadline)
+        : null) ||
+      null,
     sla:
       incident?.sla && typeof incident.sla === 'object'
         ? {
@@ -2581,6 +2596,38 @@ async function maybeHydrateCapabilityPayload({
       systemStateSnapshot,
     });
   }
+  if (
+    normalizedName === 'suggesttemplateimprovement' ||
+    normalizedName === 'validatedisclaimers' ||
+    normalizedName === 'optimizevariables'
+  ) {
+    const safeSnapshot = asObject(systemStateSnapshot);
+    if (
+      templateStore &&
+      typeof templateStore.listTemplates === 'function' &&
+      !Array.isArray(safeSnapshot.templates)
+    ) {
+      const [allTemplates, templateMeta] = await Promise.all([
+        templateStore.listTemplates({ tenantId, limit: 100 }),
+        typeof templateStore.getTemplateMeta === 'function'
+          ? templateStore.getTemplateMeta({ tenantId })
+          : null,
+      ]);
+      return {
+        input: asObject(input),
+        systemStateSnapshot: {
+          ...safeSnapshot,
+          templates: Array.isArray(allTemplates) ? allTemplates : [],
+          variableWhitelist:
+            templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {},
+        },
+      };
+    }
+    return {
+      input: asObject(input),
+      systemStateSnapshot: safeSnapshot,
+    };
+  }
   if (normalizedName === 'analyzeinbox') {
     return hydrateAnalyzeInboxInput({
       tenantId,
@@ -2709,6 +2756,44 @@ async function maybeHydrateAgentPayload({
       actorUserId,
       correlationId,
     });
+  }
+
+  if (normalizedAgentName === 'cao') {
+    const safeSnapshot = asObject(systemStateSnapshot);
+    if (
+      templateStore &&
+      typeof templateStore.listTemplates === 'function' &&
+      !Array.isArray(safeSnapshot.templates)
+    ) {
+      const [allTemplates, templateMeta, riskSummary] = await Promise.all([
+        templateStore.listTemplates({ tenantId, limit: 100 }),
+        typeof templateStore.getTemplateMeta === 'function'
+          ? templateStore.getTemplateMeta({ tenantId })
+          : null,
+        typeof templateStore.getRiskSummary === 'function'
+          ? templateStore.getRiskSummary({ tenantId })
+          : null,
+      ]);
+      const variableWhitelist =
+        templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {};
+      return {
+        input: safeInput,
+        systemStateSnapshot: {
+          ...safeSnapshot,
+          templates: Array.isArray(allTemplates) ? allTemplates : [],
+          variableWhitelist,
+          riskSummary: riskSummary || {},
+          snapshotVersion: 'cao.snapshot.v1',
+          timestamps: {
+            capturedAt: new Date().toISOString(),
+          },
+        },
+      };
+    }
+    return {
+      input: safeInput,
+      systemStateSnapshot: safeSnapshot,
+    };
   }
 
   return {

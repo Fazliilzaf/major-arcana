@@ -28,11 +28,10 @@
   document.addEventListener('touchstart', markInteraction, true);
 
   function forceClose() {
-    // Mailbox-toggle
-    document.querySelectorAll('input[type="checkbox"][id*="menu-toggle"]:checked').forEach((c) => {
-      c.checked = false;
-      c.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // OBS: Tidigare stängde vi även #mailbox-menu-toggle + #owner-menu-toggle
+    // här, men det krockade med mailbox-menu-persist.js (som återställer öppen
+    // state från localStorage). Persist-modulen äger nu mailbox-/owner-toggle
+    // helt — vi rör bara preview-more-menu (kebab-menyn på korten).
     // Preview-more-menu — stäng via app.js inline-styles
     document.querySelectorAll('.preview-more-menu').forEach((m) => {
       m.setAttribute('hidden', '');
@@ -67,11 +66,9 @@
       for (const m of muts) {
         const t = m.target;
         if (!t || !t.matches) continue;
-        if (t.matches('.preview-more-menu, #mailbox-menu-toggle, .preview-more')) {
-          needsClose = true;
-          break;
-        }
-        if (t.matches('input[type="checkbox"][id*="menu-toggle"]') && t.checked) {
+        // Bara preview-more-menu (kebab på kort) — INTE mailbox/owner-toggle,
+        // de hanteras av mailbox-menu-persist.js.
+        if (t.matches('.preview-more-menu, .preview-more')) {
           needsClose = true;
           break;
         }

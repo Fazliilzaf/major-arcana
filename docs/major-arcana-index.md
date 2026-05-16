@@ -9,6 +9,10 @@ Regel:
 
 ## Läsordning
 
+0. Nuläge (uppdateras)
+   - [ops/status-2026-05-12.md](./ops/status-2026-05-12.md)
+   - Gemensam sanningskälla: verifiering, spår (Cursor vs Cloud AI), nästa tre leveranser.
+
 1. Ursprung och mål
    - [Arcana-mal-original-2026-02-25.txt](./archives/input/arcana-mal-original-2026-02-25.txt)
    - Beskriver varför Arcana blev ett OS och inte bara en chatt.
@@ -53,6 +57,7 @@ Om du vill läsa Major Arcana som en enda berättelse, använd denna sammanfattn
 
 ## Var man ska börja om man tappat tråden
 
+- För **nuläge och vad som gäller nu**: läs [ops/status-2026-05-12.md](./ops/status-2026-05-12.md) (eller senaste `ops/status-*.md`).
 - För strategi: läs målfilen först.
 - För leveransstatus: läs pilotrapporten.
 - För nästa steg: läs phase 2 masterplanen.

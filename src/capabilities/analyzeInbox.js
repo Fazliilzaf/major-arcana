@@ -22,6 +22,7 @@ const { evaluateTempoProfile } = require('../intelligence/tempoEngine');
 const { suggestFollowUpTiming } = require('../intelligence/timingEngine');
 const { estimateConversationWorkload } = require('../intelligence/workloadEngine');
 const { evaluateRiskStack } = require('../intelligence/riskStackEngine');
+const { annotateCustomerThreadClusters } = require('./customerThreadCluster');
 const crypto = require('node:crypto');
 
 function normalizeText(value) {
@@ -1445,6 +1446,21 @@ class AnalyzeInboxCapability extends BaseCapability {
                 },
                 messageClassification: { type: 'string', enum: ['actionable', 'system_mail'] },
                 needsReplyStatus: { type: 'string', enum: ['needs_reply', 'handled'] },
+                customerKey: { type: 'string', minLength: 1, maxLength: 120 },
+                customerEmail: { type: ['string', 'null'], maxLength: 320 },
+                customerSummary: { type: 'object', additionalProperties: true },
+                customerCluster: {
+                  type: 'object',
+                  required: ['groupId', 'role', 'groupSize', 'ordinal', 'seedKind'],
+                  additionalProperties: false,
+                  properties: {
+                    groupId: { type: 'string', minLength: 6, maxLength: 64 },
+                    role: { type: 'string', enum: ['primary', 'member'] },
+                    groupSize: { type: 'number', minimum: 2, maximum: 120 },
+                    ordinal: { type: 'number', minimum: 0, maximum: 119 },
+                    seedKind: { type: 'string', enum: ['customer_key', 'customer_email'] },
+                  },
+                },
               },
             },
           },
@@ -1705,6 +1721,18 @@ class AnalyzeInboxCapability extends BaseCapability {
                     { type: 'null' },
                     { type: 'string', enum: ['customer', 'owner', 'clinic'] },
                   ],
+                },
+                customerCluster: {
+                  type: 'object',
+                  required: ['groupId', 'role', 'groupSize', 'ordinal', 'seedKind'],
+                  additionalProperties: false,
+                  properties: {
+                    groupId: { type: 'string', minLength: 6, maxLength: 64 },
+                    role: { type: 'string', enum: ['primary', 'member'] },
+                    groupSize: { type: 'number', minimum: 2, maximum: 120 },
+                    ordinal: { type: 'number', minimum: 0, maximum: 119 },
+                    seedKind: { type: 'string', enum: ['customer_key', 'customer_email'] },
+                  },
                 },
               },
             },
@@ -2577,6 +2605,12 @@ class AnalyzeInboxCapability extends BaseCapability {
           priorityReasons,
           messageClassification,
           needsReplyStatus,
+          customerKey: customerSummary.customerKey,
+          customerEmail:
+            normalizeEmail(conversation.customerEmail || '') ||
+            normalizeEmail(customerSummary.customerEmail || '') ||
+            null,
+          customerSummary,
         });
       }
 
@@ -2741,6 +2775,11 @@ class AnalyzeInboxCapability extends BaseCapability {
     inboundFeed.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
     outboundFeed.sort((left, right) => toFeedTimestampMs(right.sentAt) - toFeedTimestampMs(left.sentAt));
 
+    const clusterTenantId = normalizeIdentifier(safeContext.tenantId, 120);
+    annotateCustomerThreadClusters([...conversationWorklist, ...needsReplyToday], {
+      tenantId: clusterTenantId,
+    });
+
     const suggestedDrafts = [];
     for (const item of unresolved.slice(0, maxDrafts)) {
       const riskWeight = item.riskFlags.reduce(
@@ -2890,6 +2929,7 @@ class AnalyzeInboxCapability extends BaseCapability {
       channel: normalizeText(safeContext.channel) || 'admin',
       deliveryMode: 'manual_review_required',
       toneStyleApplied: toneStyle,
+      customerThreadClusterVersion: 1,
       ccoDefaultSenderMailbox: CCO_DEFAULT_SENDER_MAILBOX,
       ccoSenderMailboxOptions: Array.from(
         new Set([

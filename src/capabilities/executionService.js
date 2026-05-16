@@ -18,6 +18,24 @@ const {
   composeCooDailyBrief,
 } = require('../agents/cooDailyBriefAgent');
 const {
+  CAO_AGENT_NAME,
+  caoTemplateAdvisorInputSchema,
+  caoTemplateAdvisorOutputSchema,
+  composeCaoTemplateAdvisor,
+} = require('../agents/caoTemplateAdvisorAgent');
+const {
+  CFO_AGENT_NAME,
+  cfoCostAdvisorInputSchema,
+  cfoCostAdvisorOutputSchema,
+  composeCfoCostAdvisor,
+} = require('../agents/cfoCostAdvisorAgent');
+const {
+  CMO_AGENT_NAME,
+  cmoContentInputSchema,
+  cmoContentOutputSchema,
+  composeCmoContentAdvisor,
+} = require('../agents/cmoContentAgent');
+const {
   CCO_AGENT_NAME,
   CCO_INBOX_ANALYSIS_CAPABILITY_REF,
   ccoInboxAnalysisInputSchema,
@@ -78,10 +96,7 @@ function stringifyForRisk(input = null) {
   }
 }
 
-function buildAllowRiskEvaluation({
-  scope = 'input',
-  buildVersion = 'dev',
-} = {}) {
+function buildAllowRiskEvaluation({ scope = 'input', buildVersion = 'dev' } = {}) {
   return {
     scope,
     category: 'INTERNAL',
@@ -112,8 +127,7 @@ async function getTenantRuntimeConfig(tenantConfigStore, tenantId) {
   return {
     tenantConfig,
     riskSensitivityModifier: Number(tenantConfig?.riskSensitivityModifier ?? 0) || 0,
-    riskThresholdVersion:
-      Number.parseInt(String(tenantConfig?.riskThresholdVersion ?? 1), 10) || 1,
+    riskThresholdVersion: Number.parseInt(String(tenantConfig?.riskThresholdVersion ?? 1), 10) || 1,
   };
 }
 
@@ -151,15 +165,13 @@ function summarizeComposeDocument(composeDocument = null) {
           fullName: normalizeText(composeDocument.signature?.fullName) || null,
           title: normalizeText(composeDocument.signature?.title) || null,
           email: normalizeText(composeDocument.signature?.email) || null,
-          senderMailboxId:
-            normalizeText(composeDocument.signature?.senderMailboxId) || null,
+          senderMailboxId: normalizeText(composeDocument.signature?.senderMailboxId) || null,
           source: normalizeText(composeDocument.signature?.source) || null,
         }
       : null,
     delivery: composeDocument.delivery
       ? {
-          requiresExplicitRecipients:
-            composeDocument.delivery?.requiresExplicitRecipients === true,
+          requiresExplicitRecipients: composeDocument.delivery?.requiresExplicitRecipients === true,
           sendStrategy: normalizeText(composeDocument.delivery?.sendStrategy) || null,
           capabilityName: normalizeText(composeDocument.delivery?.capabilityName) || null,
           intent: normalizeText(composeDocument.delivery?.intent) || null,
@@ -207,13 +219,9 @@ function ensureSchemaValidity({ schema, value, rootPath, errorCode, label }) {
     rootPath,
   });
   if (validation.ok) return;
-  throw makeCapabilityError(
-    errorCode,
-    `${label} schema validation failed.`,
-    {
-      errors: validation.errors,
-    }
-  );
+  throw makeCapabilityError(errorCode, `${label} schema validation failed.`, {
+    errors: validation.errors,
+  });
 }
 
 function enforceAgentAccess({ agentBundle, actorRole, channel }) {
@@ -263,7 +271,9 @@ function bindGatewayRunCapability(executionGateway) {
     return async ({ capabilityName, context, handlers }) =>
       executionGateway.runCapability(capabilityName, { context, handlers });
   }
-  throw new Error('Capability executor kräver executionGateway.runCapability eller executionGateway.run.');
+  throw new Error(
+    'Capability executor kräver executionGateway.runCapability eller executionGateway.run.'
+  );
 }
 
 function toCcoSendAllowlistSet(rawValue = '') {
@@ -287,7 +297,10 @@ const CCO_SIGNATURE_PROFILES = Object.freeze(
         title: normalizeText(profile?.title),
         html: normalizeText(profile?.html || profile?.bodyHtml || profile?.body_html),
         displayEmail: normalizeText(
-          profile?.displayEmail || profile?.visibleEmail || profile?.email || profile?.senderMailboxId
+          profile?.displayEmail ||
+            profile?.visibleEmail ||
+            profile?.email ||
+            profile?.senderMailboxId
         ),
         email:
           normalizeText(profile?.email || profile?.senderMailboxId) || CCO_DEFAULT_SENDER_MAILBOX,
@@ -301,7 +314,10 @@ const CCO_SIGNATURE_PROFILES = Object.freeze(
 );
 const APPROVED_CCO_SIGNATURE_PROFILE_KEYS = new Set(['fazli', 'egzona']);
 
-function getApprovedCcoSignatureProfile(profile = null, senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX) {
+function getApprovedCcoSignatureProfile(
+  profile = null,
+  senderMailboxId = CCO_DEFAULT_SENDER_MAILBOX
+) {
   const candidate = profile && typeof profile === 'object' ? profile : {};
   const candidateKey = normalizeText(candidate.key || candidate.id).toLowerCase();
   const candidateMailboxId = normalizeText(
@@ -341,9 +357,11 @@ function resolveCcoSignatureProfile(
 function sanitizeCcoSignatureOverrideHtml(html = '') {
   const normalizedHtml = normalizeText(html);
   if (!normalizedHtml) return '';
-  const publicBaseUrl = normalizeText(
-    process.env.PUBLIC_BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL
-  ).replace(/\/+$/, '') || 'https://arcana.hairtpclinic.se';
+  const publicBaseUrl =
+    normalizeText(process.env.PUBLIC_BASE_URL || process.env.ARCANA_PUBLIC_BASE_URL).replace(
+      /\/+$/,
+      ''
+    ) || 'https://arcana.hairtpclinic.se';
 
   return normalizedHtml
     .replace(/<script\b[\s\S]*?<\/script>/gi, '')
@@ -382,7 +400,10 @@ function buildCcoSignatureOverride(rawInput = {}) {
     source.label || source.signatureOverrideLabel || source.signature_override_label
   );
   const fullName = normalizeText(
-    source.fullName || source.full_name || source.signatureOverrideFullName || source.signature_override_full_name
+    source.fullName ||
+      source.full_name ||
+      source.signatureOverrideFullName ||
+      source.signature_override_full_name
   );
   const title = normalizeText(
     source.title || source.line || source.signatureOverrideTitle || source.signature_override_title
@@ -503,7 +524,10 @@ function buildCcoSignature({
   const safeProfile = getApprovedCcoSignatureProfile(profile, senderMailboxId);
   const safeDisplayEmail =
     normalizeText(
-      safeProfile.displayEmail || safeProfile.signatureEmail || safeProfile.email || safeProfile.senderMailboxId
+      safeProfile.displayEmail ||
+        safeProfile.signatureEmail ||
+        safeProfile.email ||
+        safeProfile.senderMailboxId
     ).toLowerCase() || CCO_DEFAULT_SENDER_MAILBOX;
   const safeTitle =
     normalizeCcoSignatureTitle(safeProfile.title) ||
@@ -687,15 +711,17 @@ function createCapabilityExecutor({
       mailboxIds: [],
       limit: 1000,
     });
-    const matchingRows = (Array.isArray(consumerModel?.rows) ? consumerModel.rows : []).filter((row) => {
-      const underlyingConversationKeys = Array.isArray(row?.rollup?.underlyingConversationKeys)
-        ? row.rollup.underlyingConversationKeys
-        : [];
-      return (
-        normalizeText(row?.conversation?.key) === rawConversationKey ||
-        underlyingConversationKeys.includes(rawConversationKey)
-      );
-    });
+    const matchingRows = (Array.isArray(consumerModel?.rows) ? consumerModel.rows : []).filter(
+      (row) => {
+        const underlyingConversationKeys = Array.isArray(row?.rollup?.underlyingConversationKeys)
+          ? row.rollup.underlyingConversationKeys
+          : [];
+        return (
+          normalizeText(row?.conversation?.key) === rawConversationKey ||
+          underlyingConversationKeys.includes(rawConversationKey)
+        );
+      }
+    );
     if (matchingRows.length === 0) {
       throw makeCapabilityError(
         'CCO_CONVERSATION_NOT_FOUND',
@@ -709,21 +735,28 @@ function createCapabilityExecutor({
       );
     }
     const row = matchingRows[0];
-    const hardConflictSignals = Array.isArray(row?.hardConflictSignals) ? row.hardConflictSignals : [];
-    if (hardConflictSignals.length > 0 && !isMergeReviewResolved(row?.mergeReviewDecisionsByPairId)) {
+    const hardConflictSignals = Array.isArray(row?.hardConflictSignals)
+      ? row.hardConflictSignals
+      : [];
+    if (
+      hardConflictSignals.length > 0 &&
+      !isMergeReviewResolved(row?.mergeReviewDecisionsByPairId)
+    ) {
       throw makeCapabilityError(
         'CCO_CONVERSATION_REVIEW_REQUIRED',
         'Conversation kräver review innan operator-state kan skrivas.'
       );
     }
-    const mergeKeyType = normalizeText(row?.rollup?.mergeKeyType || 'conversationKey') || 'conversationKey';
+    const mergeKeyType =
+      normalizeText(row?.rollup?.mergeKeyType || 'conversationKey') || 'conversationKey';
     return {
       canonicalConversationKey: normalizeText(row?.conversation?.key || row?.id),
       canonicalConversationSource:
         mergeKeyType === 'conversationKey' ? 'mailbox_conversation_fallback' : 'merge_identity',
       canonicalConversationType: mergeKeyType,
       primaryConversationId:
-        normalizeText(row?.rollup?.primaryConversationId || row?.conversation?.conversationId) || null,
+        normalizeText(row?.rollup?.primaryConversationId || row?.conversation?.conversationId) ||
+        null,
       underlyingConversationIds: Array.isArray(row?.rollup?.underlyingConversationIds)
         ? row.rollup.underlyingConversationIds
         : [normalizeText(conversationId)].filter(Boolean),
@@ -877,17 +910,11 @@ function createCapabilityExecutor({
     }
 
     const requestedAuditAction =
-      normalizedAction === 'handled'
-        ? 'cco.reply.handled.requested'
-        : 'cco.reply.later.requested';
+      normalizedAction === 'handled' ? 'cco.reply.handled.requested' : 'cco.reply.later.requested';
     const completedAuditAction =
-      normalizedAction === 'handled'
-        ? 'cco.reply.handled.completed'
-        : 'cco.reply.later.completed';
+      normalizedAction === 'handled' ? 'cco.reply.handled.completed' : 'cco.reply.later.completed';
     const failedAuditAction =
-      normalizedAction === 'handled'
-        ? 'cco.reply.handled.failed'
-        : 'cco.reply.later.failed';
+      normalizedAction === 'handled' ? 'cco.reply.handled.failed' : 'cco.reply.later.failed';
     const historyActionType = normalizedAction === 'handled' ? 'handled' : 'reply_later';
 
     let stateRecord;
@@ -937,7 +964,8 @@ function createCapabilityExecutor({
         conversationId,
         canonicalConversationKey: target.canonicalConversationKey,
         mailboxId,
-        customerEmail: normalizeText(target?.row?.customer?.email || target?.row?.customerEmail) || null,
+        customerEmail:
+          normalizeText(target?.row?.customer?.email || target?.row?.customerEmail) || null,
         messageId,
         actionType: historyActionType,
         actionLabel:
@@ -1497,6 +1525,30 @@ function createCapabilityExecutor({
         errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
         label: 'Agent input',
       });
+    } else if (normalizedAgentName === CAO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: caoTemplateAdvisorInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
+    } else if (normalizedAgentName === CMO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: cmoContentInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
+    } else if (normalizedAgentName === CFO_AGENT_NAME) {
+      ensureSchemaValidity({
+        schema: cfoCostAdvisorInputSchema,
+        value: validatedInput,
+        rootPath: 'agent.input',
+        errorCode: 'CAPABILITY_AGENT_INPUT_INVALID',
+        label: 'Agent input',
+      });
     } else if (normalizedAgentName === CCO_AGENT_NAME) {
       ensureSchemaValidity({
         schema: ccoInboxAnalysisInputSchema,
@@ -1547,9 +1599,7 @@ function createCapabilityExecutor({
           },
           systemStateSnapshot: validatedSystemStateSnapshot,
           correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey
-            ? `${normalizedIdempotencyKey}:summarize`
-            : null,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:summarize` : null,
           requestMetadata: {
             ...safeObject(requestMetadata),
             parentAgentRunId: agentRunId,
@@ -1596,7 +1646,10 @@ function createCapabilityExecutor({
           );
         }
 
-        dependencyRuns = [toDependencyRunSummary(summarizeRun), toDependencyRunSummary(taskPlanRun)];
+        dependencyRuns = [
+          toDependencyRunSummary(summarizeRun),
+          toDependencyRunSummary(taskPlanRun),
+        ];
         agentOutput = composeCooDailyBrief({
           incidentOutput: toCapabilityResponseOutput(summarizeRun),
           taskPlanOutput: toCapabilityResponseOutput(taskPlanRun),
@@ -1606,6 +1659,208 @@ function createCapabilityExecutor({
         });
         agentOutputSchema = cooDailyBriefOutputSchema;
         agentCapabilityRef = COO_DAILY_BRIEF_CAPABILITY_REF;
+      } else if (normalizedAgentName === CAO_AGENT_NAME) {
+        const suggestRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'SuggestTemplateImprovement',
+          input: {
+            maxSuggestions: Number(validatedInput.maxSuggestions || 5) || 5,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:suggest` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          suggestRun?.gatewayResult?.decision === 'blocked' ||
+          suggestRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'SuggestTemplateImprovement blockerade agent-korning.'
+          );
+        }
+
+        const disclaimerRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ValidateDisclaimers',
+          input: {
+            strictMode: validatedInput.strictDisclaimers === true,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:disclaimers`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const variableRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'OptimizeVariables',
+          input: {},
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:variables` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        dependencyRuns = [
+          toDependencyRunSummary(suggestRun),
+          toDependencyRunSummary(disclaimerRun),
+          toDependencyRunSummary(variableRun),
+        ];
+        agentOutput = composeCaoTemplateAdvisor({
+          suggestOutput: toCapabilityResponseOutput(suggestRun),
+          disclaimerOutput: toCapabilityResponseOutput(disclaimerRun),
+          variableOutput: toCapabilityResponseOutput(variableRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = caoTemplateAdvisorOutputSchema;
+        agentCapabilityRef = 'CAO.TemplateAdvisor';
+      } else if (normalizedAgentName === CFO_AGENT_NAME) {
+        const financeRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'FinanceGovernance',
+          input: {
+            windowDays: Number(validatedInput.windowDays || 30) || 30,
+            includeProjections: validatedInput.includeProjections !== false,
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:finance` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          financeRun?.gatewayResult?.decision === 'blocked' ||
+          financeRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'FinanceGovernance blockerade agent-korning.'
+          );
+        }
+
+        dependencyRuns = [toDependencyRunSummary(financeRun)];
+        agentOutput = composeCfoCostAdvisor({
+          financeOutput: toCapabilityResponseOutput(financeRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = cfoCostAdvisorOutputSchema;
+        agentCapabilityRef = 'CFO.CostAdvisor';
+      } else if (normalizedAgentName === CMO_AGENT_NAME) {
+        const contentRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateContentBrief',
+          input: {
+            maxTopics: Number(validatedInput.maxTopics || 5) || 5,
+            targetAudience: normalizeText(validatedInput.targetAudience) || '',
+          },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:content` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        if (
+          contentRun?.gatewayResult?.decision === 'blocked' ||
+          contentRun?.gatewayResult?.decision === 'critical_escalate'
+        ) {
+          throw makeCapabilityError(
+            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+            'GenerateContentBrief blockerade agent-korning.'
+          );
+        }
+
+        const audienceRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'AnalyzeAudienceSegments',
+          input: { maxSegments: 6 },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const campaignRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateOutreachCampaign',
+          input: {
+            maxCampaigns: 5,
+            targetSegment: normalizeText(validatedInput.targetSegment) || '',
+          },
+          systemStateSnapshot: {
+            ...validatedSystemStateSnapshot,
+            audienceSegments: toCapabilityResponseOutput(audienceRun)?.data?.segments || [],
+          },
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:campaign` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        dependencyRuns = [
+          toDependencyRunSummary(contentRun),
+          toDependencyRunSummary(audienceRun),
+          toDependencyRunSummary(campaignRun),
+        ];
+        agentOutput = composeCmoContentAdvisor({
+          contentBriefOutput: toCapabilityResponseOutput(contentRun),
+          audienceOutput: toCapabilityResponseOutput(audienceRun),
+          campaignOutput: toCapabilityResponseOutput(campaignRun),
+          channel: normalizedChannel,
+          tenantId: normalizedTenantId,
+          correlationId: normalizedCorrelationId,
+        });
+        agentOutputSchema = cmoContentOutputSchema;
+        agentCapabilityRef = 'CMO.ContentAdvisor';
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,
@@ -1875,7 +2130,10 @@ function createCapabilityExecutor({
       throw makeCapabilityError('CAPABILITY_ROLE_DENIED', 'Role saknar access till CCO send.');
     }
     if (normalizedChannel !== 'admin') {
-      throw makeCapabilityError('CAPABILITY_CHANNEL_DENIED', 'CCO send tillater endast admin-channel.');
+      throw makeCapabilityError(
+        'CAPABILITY_CHANNEL_DENIED',
+        'CCO send tillater endast admin-channel.'
+      );
     }
 
     const mailboxSettingsDocument = await getMailboxSettingsDocument({
@@ -1949,15 +2207,16 @@ function createCapabilityExecutor({
     const cc = toStringArray(composeDocument.recipients?.cc, 20);
     const bcc = toStringArray(composeDocument.recipients?.bcc, 20);
     const isComposeMode = composeDocument.mode === 'compose';
+    const isForwardMode = composeDocument.mode === 'forward';
     const capabilityName =
       normalizeText(composeDocument.delivery?.capabilityName) ||
-      (isComposeMode ? 'CCO.SendCompose' : 'CCO.SendReply');
+      (isForwardMode ? 'CCO.SendForward' : isComposeMode ? 'CCO.SendCompose' : 'CCO.SendReply');
     const sendIntent =
       normalizeText(composeDocument.delivery?.intent) ||
-      (isComposeMode ? 'cco.send.compose' : 'cco.send.reply');
+      (isForwardMode ? 'cco.send.forward' : isComposeMode ? 'cco.send.compose' : 'cco.send.reply');
     const sendStrategy =
       normalizeText(composeDocument.delivery?.sendStrategy) ||
-      (isComposeMode ? 'send_mail' : 'reply_draft');
+      (isForwardMode ? 'forward_draft' : isComposeMode ? 'send_mail' : 'reply_draft');
     const composeDocumentSummary = summarizeComposeDocument(composeDocument);
     const composeValidationErrors = Array.isArray(composeDocument.validation?.errors)
       ? composeDocument.validation.errors
@@ -1977,10 +2236,7 @@ function createCapabilityExecutor({
       );
     }
     if (!normalizedIdempotencyKey) {
-      throw makeCapabilityError(
-        'CCO_SEND_INPUT_INVALID',
-        'idempotencyKey kravs for CCO send.'
-      );
+      throw makeCapabilityError('CCO_SEND_INPUT_INVALID', 'idempotencyKey kravs for CCO send.');
     }
 
     if (!graphSendEnabled) {
@@ -2030,7 +2286,13 @@ function createCapabilityExecutor({
         sourceMailboxId,
         senderMailboxId,
         signatureProfile: signatureProfile.key,
-        mode: isComposeMode ? 'compose' : 'reply',
+        mode: isForwardMode
+          ? 'forward'
+          : isForwardMode
+            ? 'forward'
+            : isComposeMode
+              ? 'compose'
+              : 'reply',
         sendStrategy,
         conversationId,
         replyToMessageId,
@@ -2065,7 +2327,7 @@ function createCapabilityExecutor({
             body: composeDocument.content?.bodyText || '',
             bodyHtml: composeDocument.content?.bodyHtml || '',
             signatureProfile: signatureProfile.key,
-            mode: isComposeMode ? 'compose' : 'reply',
+            mode: isForwardMode ? 'forward' : isComposeMode ? 'compose' : 'reply',
             composeDocument: composeDocumentSummary,
           },
           correlation_id: normalizedCorrelationId,
@@ -2105,7 +2367,7 @@ function createCapabilityExecutor({
               body: composeDocument.content?.bodyText || '',
               bodyHtml: composeDocument.content?.bodyHtml || '',
               signatureProfile: signatureProfile.key,
-              mode: isComposeMode ? 'compose' : 'reply',
+              mode: isForwardMode ? 'forward' : isComposeMode ? 'compose' : 'reply',
               composeDocument: composeDocumentSummary,
               confidenceLevel: 'High',
             },
@@ -2142,7 +2404,7 @@ function createCapabilityExecutor({
             const persistedComposeDocument = buildCanonicalMailComposeDocument(
               {
                 ...normalizedInput,
-                mode: isComposeMode ? 'compose' : 'reply',
+                mode: isForwardMode ? 'forward' : isComposeMode ? 'compose' : 'reply',
                 sourceMailboxId,
                 senderMailboxId,
                 replyToMessageId,
@@ -2270,14 +2532,21 @@ function createCapabilityExecutor({
             };
           },
           safeResponse: ({ decision }) => ({
-            error:
-              isComposeMode
-                ? 'Mejlet blockerades av risk/policy och skickades inte. Justera texten och forsok igen.'
-                : 'Svar blockerades av risk/policy och skickades inte. Justera texten och forsok igen.',
+            error: isComposeMode
+              ? 'Mejlet blockerades av risk/policy och skickades inte. Justera texten och forsok igen.'
+              : 'Svar blockerades av risk/policy och skickades inte. Justera texten och forsok igen.',
             decision,
             ccoSendRunId,
           }),
-          response: ({ runId, decision, inputRisk, outputRisk, policy, persisted, safeResponse }) => ({
+          response: ({
+            runId,
+            decision,
+            inputRisk,
+            outputRisk,
+            policy,
+            persisted,
+            safeResponse,
+          }) => ({
             send: {
               ccoSendRunId,
               gatewayRunId: runId,
@@ -2324,7 +2593,7 @@ function createCapabilityExecutor({
           sourceMailboxId,
           senderMailboxId,
           signatureProfile: signatureProfile.key,
-          mode: isComposeMode ? 'compose' : 'reply',
+          mode: isForwardMode ? 'forward' : isComposeMode ? 'compose' : 'reply',
           sendStrategy,
           conversationId,
           replyToMessageId,
@@ -2338,8 +2607,7 @@ function createCapabilityExecutor({
     }
 
     const blocked =
-      gatewayResult?.decision === 'blocked' ||
-      gatewayResult?.decision === 'critical_escalate';
+      gatewayResult?.decision === 'blocked' || gatewayResult?.decision === 'critical_escalate';
     await writeAudit({
       tenantId: normalizedTenantId,
       actorUserId: normalizedActor.id,
@@ -2352,7 +2620,7 @@ function createCapabilityExecutor({
         sourceMailboxId,
         senderMailboxId,
         signatureProfile: signatureProfile.key,
-        mode: isComposeMode ? 'compose' : 'reply',
+        mode: isForwardMode ? 'forward' : isComposeMode ? 'compose' : 'reply',
         sendStrategy,
         conversationId,
         replyToMessageId,

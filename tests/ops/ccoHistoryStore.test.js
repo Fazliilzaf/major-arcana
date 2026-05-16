@@ -353,3 +353,92 @@ test('cco history store söker alias-aware historik och deduperar samma mail öv
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('createCcoHistoryStore rejects missing filePath', async () => {
+  await assert.rejects(() => createCcoHistoryStore({}), /filePath/i);
+  await assert.rejects(() => createCcoHistoryStore({ filePath: '' }), /filePath/i);
+});
+
+test('upsertMailboxWindow throws when tenantId or mailboxId is blank', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-history-guard-'));
+  const filePath = path.join(tmpDir, 'cco-history.json');
+  try {
+    const store = await createCcoHistoryStore({ filePath });
+    await assert.rejects(
+      () =>
+        store.upsertMailboxWindow({
+          tenantId: '  ',
+          mailboxId: 'kons@x.se',
+          windowStartIso: '2026-01-01T00:00:00.000Z',
+          windowEndIso: '2026-01-02T00:00:00.000Z',
+          messages: [],
+        }),
+      /tenantId och mailboxId/i
+    );
+    await assert.rejects(
+      () =>
+        store.upsertMailboxWindow({
+          tenantId: 't1',
+          mailboxId: '',
+          windowStartIso: '2026-01-01T00:00:00.000Z',
+          windowEndIso: '2026-01-02T00:00:00.000Z',
+          messages: [],
+        }),
+      /tenantId och mailboxId/i
+    );
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('getMailboxSummary returns null for unknown mailbox; listMailboxMessages is empty', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-history-miss-'));
+  const filePath = path.join(tmpDir, 'cco-history.json');
+  try {
+    const store = await createCcoHistoryStore({ filePath });
+    assert.equal(store.getMailboxSummary({ tenantId: 't1', mailboxId: 'nobody@x.se' }), null);
+    const rows = await store.listMailboxMessages({ tenantId: 't1', mailboxId: 'nobody@x.se' });
+    assert.deepEqual(rows, []);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('mailbox state persists across store instances', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-history-reload-'));
+  const filePath = path.join(tmpDir, 'cco-history.json');
+  try {
+    const a = await createCcoHistoryStore({ filePath });
+    await a.upsertMailboxWindow({
+      tenantId: 'tenant-persist',
+      mailboxId: 'desk@clinic.se',
+      windowStartIso: '2026-05-01T00:00:00.000Z',
+      windowEndIso: '2026-05-02T00:00:00.000Z',
+      messages: [
+        {
+          messageId: 'msg-p1',
+          conversationId: 'conv-p1',
+          subject: 'Hej',
+          customerEmail: 'c@x.com',
+          sentAt: '2026-05-01T12:00:00.000Z',
+          direction: 'inbound',
+          senderEmail: 'c@x.com',
+          recipients: ['desk@clinic.se'],
+        },
+      ],
+    });
+
+    const b = await createCcoHistoryStore({ filePath });
+    const summary = b.getMailboxSummary({ tenantId: 'tenant-persist', mailboxId: 'desk@clinic.se' });
+    assert.ok(summary);
+    assert.equal(summary.messageCount, 1);
+    const listed = await b.listMailboxMessages({
+      tenantId: 'tenant-persist',
+      mailboxId: 'desk@clinic.se',
+    });
+    assert.equal(listed.length, 1);
+    assert.equal(listed[0].messageId, 'msg-p1');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});

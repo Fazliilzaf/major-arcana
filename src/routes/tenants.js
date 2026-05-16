@@ -58,12 +58,7 @@ async function attachTenantConfigs(tenantConfigStore, memberships = []) {
   return rows;
 }
 
-function createTenantsRouter({
-  tenantConfigStore,
-  authStore,
-  requireAuth,
-  requireRole,
-}) {
+function createTenantsRouter({ tenantConfigStore, authStore, requireAuth, requireRole }) {
   const router = express.Router();
 
   router.get('/tenants/my', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
@@ -102,8 +97,7 @@ function createTenantsRouter({
       }
       if (!isValidTenantId(tenantId)) {
         return res.status(400).json({
-          error:
-            'tenantId måste vara slug-format (a-z, 0-9, bindestreck) och 3-63 tecken.',
+          error: 'tenantId måste vara slug-format (a-z, 0-9, bindestreck) och 3-63 tecken.',
         });
       }
 
@@ -126,12 +120,18 @@ function createTenantsRouter({
         });
         if (ownerPassword) {
           await authStore.setUserPassword(req.auth.userId, ownerPassword);
+          if (typeof authStore.revokeSessionsByUser === 'function') {
+            await authStore.revokeSessionsByUser(req.auth.userId, {
+              tenantId: '',
+              excludeSessionId: req.auth.sessionId,
+              reason: 'password_changed',
+            });
+          }
         }
       } else {
         if (!ownerPassword) {
           return res.status(400).json({
-            error:
-              'ownerPassword krävs när ownerEmail inte är din nuvarande inloggade användare.',
+            error: 'ownerPassword krävs när ownerEmail inte är din nuvarande inloggade användare.',
           });
         }
 
@@ -187,6 +187,56 @@ function createTenantsRouter({
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte onboarda tenant.' });
+    }
+  });
+
+  router.post('/disable', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const tenantId = normalizeText(req.body?.tenantId || req.auth?.activeTenantId);
+      const reason = normalizeText(req.body?.reason);
+      if (!tenantId) {
+        return res.status(400).json({ error: 'tenantId kravs.' });
+      }
+      if (!reason) {
+        return res
+          .status(400)
+          .json({ error: 'reason kravs (beskrivning av varfor tenant inaktiveras).' });
+      }
+
+      const config = await tenantConfigStore.getTenantConfig(tenantId);
+      if (!config) {
+        return res.status(404).json({ error: 'Tenant hittades inte.' });
+      }
+
+      await tenantConfigStore.updateTenantConfig({
+        tenantId,
+        patch: {
+          disabled: true,
+          disabledAt: new Date().toISOString(),
+          disabledReason: reason,
+        },
+        actorUserId: req.auth.userId,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: req.auth.userId,
+        action: 'tenants.disable',
+        outcome: 'success',
+        targetType: 'tenant',
+        targetId: tenantId,
+        metadata: { reason },
+      });
+
+      return res.json({
+        ok: true,
+        tenantId,
+        disabled: true,
+        disabledAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte inaktivera tenant.' });
     }
   });
 

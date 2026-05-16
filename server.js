@@ -3,7 +3,24 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('node:fs');
 const path = require('node:path');
-const { chromium } = require('playwright');
+
+// Lazy-load playwright: require synkront vid top-level kraschade Node-
+// processen med SIGABRT (status 134) vid Render-runtime när chromium-
+// binärerna saknades eller native deps inte var installerade. Nu laddas
+// playwright bara när PDF/screenshot-feature faktiskt anropas, och
+// failure där bryter inte hela servern.
+let __playwrightChromium = null;
+function getChromium() {
+  if (__playwrightChromium) return __playwrightChromium;
+  try {
+    const pw = require('playwright');
+    __playwrightChromium = pw.chromium;
+    return __playwrightChromium;
+  } catch (error) {
+    console.error('Playwright kunde inte laddas (chromium-feature otillgänglig):', error.message);
+    throw new Error('Playwright/Chromium är inte tillgängligt i denna miljö.');
+  }
+}
 
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
@@ -132,6 +149,7 @@ async function sendStaticPagePdf(
   let browser;
 
   try {
+    const chromium = getChromium();
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport, ...pageOptions });
     const origin = `${req.protocol}://${req.get('host')}`;
@@ -364,12 +382,21 @@ app.use(
   express.static('public', {
     setHeaders: (res, filePath) => {
       // P4: cache-strategi för major-arcana-preview/-assets.
-      // - Aggressiv cache med stale-while-revalidate så browser kan visa
-      //   cached version medan en ny laddas i bakgrunden vid nästa besök.
-      // - HTML har kort cache så ny deploy syns snabbt.
+      // - HASHADE bundle-filer (app.bundle.<hash>.min.js): 1 år immutable
+      //   eftersom hash byts vid varje content-ändring. Cloudflare och
+      //   browser kan cacha för evigt utan risk för stale content.
+      // - Övriga JS/CSS i major-arcana-preview: kort cache + SWR.
+      // - HTML: max-age=0 så ny deploy syns omedelbart, vilket triggar
+      //   browser att fetcha den nya hashade bundle-versionen.
       const safe = String(filePath || '').toLowerCase();
-      if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
-        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
+      if (/\/major-arcana-preview\/app\.bundle\.[a-f0-9]{6,}\.min\.js$/i.test(safe)) {
+        // Content-hashed bundle — säkert att cacha aggressivt
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
+        res.setHeader(
+          'Cache-Control',
+          'public, max-age=300, stale-while-revalidate=86400'
+        );
       } else if (/\.(woff2?|ttf|otf|eot|ico|png|jpe?g|svg|webp|gif)$/i.test(safe)) {
         res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
       } else if (/\.(js|css)$/i.test(safe)) {
@@ -423,6 +450,12 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
+const { createBillingRouter } = require('./src/routes/billing');
+const { createKnowledgeRouter } = require('./src/routes/knowledge');
+const { createBillingService } = require('./src/billing/billingService');
+const { createStripeClient } = require('./src/billing/stripeClient');
+const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
+const { createTenantKnowledgeStore } = require('./src/knowledge/tenantKnowledgeStore');
 const { createMicrosoftGraphReadConnector } = require('./src/infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGraphSendConnector');
 const { createScheduler } = require('./src/ops/scheduler');
@@ -485,6 +518,18 @@ const runtimeMetricsStore = createRuntimeMetricsStore({
   maxSamples: config.metricsMaxSamples,
   slowRequestMs: config.metricsSlowRequestMs,
 });
+
+const stripeInstance = createStripeClient();
+const knowledgeStore = createTenantKnowledgeStore({
+  storePath: path.join(config.stateRoot || './data', 'knowledge.json'),
+});
+knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
+
+const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
+const executiveDecisionFeed = createExecutiveDecisionFeed();
+
+let billingService = null;
+let stripeWebhookHandler = null;
 
 let server = null;
 const scheduler = null;
@@ -648,6 +693,58 @@ app.get('/healthz', (req, res) => {
     startedAt: runtimeState.startedAt,
     startupPhase: runtimeState.startupPhase,
     uptimeSec: Number(process.uptime().toFixed(1)),
+  });
+});
+
+app.get('/api/v1/executive/feed', (req, res) => {
+  const entries = executiveDecisionFeed.list({
+    severity: req.query?.severity || undefined,
+    requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
+    limit: Math.min(50, Math.max(1, Number(req.query?.limit) || 20)),
+  });
+  const summary = executiveDecisionFeed.getSummary();
+  return res.json({ ok: true, entries, summary });
+});
+
+app.get('/api/v1/executive/feed/summary', (req, res) => {
+  return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
+});
+
+app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
+  const result = executiveDecisionFeed.resolve({
+    entryId: req.params?.entryId,
+    resolvedBy: req.body?.resolvedBy || 'owner',
+    resolution: req.body?.resolution || 'acknowledged',
+  });
+  if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
+  return res.json({ ok: true, entry: result });
+});
+
+app.get('/api/public/status', (req, res) => {
+  const uptimeSec = runtimeState.startedAt
+    ? Math.round((Date.now() - new Date(runtimeState.startedAt).getTime()) / 1000)
+    : 0;
+  const metrics = runtimeMetricsStore?.getSnapshot?.() || null;
+  const errorRate = Number(metrics?.totals?.statusBuckets?.['5xx'] || 0);
+  const totalRequests = Number(metrics?.totals?.sampledRequests || 0);
+  const hasErrors = errorRate > 0 && totalRequests > 0 && (errorRate / totalRequests) > 0.05;
+
+  const overallStatus = !runtimeState.ready ? 'degraded'
+    : hasErrors ? 'degraded'
+    : 'operational';
+
+  return res.json({
+    status: overallStatus,
+    services: {
+      api: runtimeState.ready ? 'operational' : 'degraded',
+      cco: runtimeState.ready ? 'operational' : 'degraded',
+      patientChat: runtimeState.ready ? 'operational' : 'degraded',
+    },
+    uptime: {
+      startedAt: runtimeState.startedAt || null,
+      uptimeSeconds: uptimeSec,
+    },
+    lastCheckedAt: new Date().toISOString(),
   });
 });
 
@@ -1011,6 +1108,18 @@ process.once('SIGTERM', () => {
     filePath: config.tenantConfigStorePath,
     defaultBrand: config.brand,
   });
+
+  billingService = createBillingService({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+  stripeWebhookHandler = createStripeWebhookHandler({
+    stripe: stripeInstance,
+    tenantConfigStore,
+    authStore,
+  });
+
   const secretRotationStore = await createSecretRotationStore({
     filePath: config.secretRotationStorePath,
     config,
@@ -1576,6 +1685,25 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       executionGateway,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createBillingRouter({
+      billingService,
+      stripeWebhookHandler: stripeWebhookHandler.isAvailable() ? stripeWebhookHandler : null,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createKnowledgeRouter({
+      knowledgeStore,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
     })
   );
 

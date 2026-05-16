@@ -14,7 +14,8 @@ function safeOriginFromUrl(urlValue) {
 
 function addOrigin(allowedOrigins, originValue) {
   const normalized = normalizeOrigin(originValue);
-  if (normalized) allowedOrigins.add(normalized);
+  if (!normalized || normalized === '*') return;
+  allowedOrigins.add(normalized);
 }
 
 function addHostOrigins(allowedOrigins, hostValue) {

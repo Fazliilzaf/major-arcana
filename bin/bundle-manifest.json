@@ -1,0 +1,27 @@
+{
+  "_comment": "Lista av .js-filer som bundlas till app.bundle.<hash>.min.js. Ordningen är KRITISK — IIFE:erna måste exekvera i samma ordning som de gjorde när de var separata <script> i index.html. När en ny fil läggs till: lägg den HÄR + uppdatera dokumentation i build-bundle.js + commit. Aldrig ändra ordning utan att verifiera att globaler är satta innan konsumenter laddas.",
+  "sources": [
+    "runtime-config.js",
+    "runtime-thread-ops.js",
+    "runtime-queue-renderers.js",
+    "runtime-action-engine.js",
+    "runtime-workspace-state.js",
+    "runtime-reentry-state.js",
+    "runtime-focus-intel-renderers.js",
+    "runtime-overlay-renderers.js",
+    "runtime-async-orchestration.js",
+    "runtime-dom-live-composition.js",
+    "runtime-theme.js",
+    "app/demo-fixtures-data.js",
+    "app/mock-worklist-api.js",
+    "app/state-paths.js",
+    "app/render-components.js",
+    "app.js",
+    "app/cco-shims.js",
+    "app/cmd-k.js",
+    "app/keyboard-nav.js",
+    "app/bulk-actions.js",
+    "app/inbox-streak.js",
+    "app/system-mail-parser.js"
+  ]
+}

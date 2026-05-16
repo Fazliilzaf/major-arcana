@@ -2,8 +2,28 @@ services:
   - type: web
     name: arcana-cco
     runtime: node
-    plan: starter
-    buildCommand: npm ci
+    # Uppgraderad från starter till standard 2026-05-12: 512MB RAM räckte
+    # inte för Playwright + Node + Express + ~25 deps under last (orsakade
+    # 20+ deploy-fails med status 134 SIGABRT pga OOM). Standard ger 2GB
+    # RAM + 1 dedikerad CPU, vilket ger ~3x headroom för current load
+    # och stöd för samtidiga PDF/screenshot-genereringar.
+    plan: standard
+    # Build: standard npm ci + post-install playwright-chromium till
+    # persistent disk så browsers cachas mellan deploys.
+    # (Status 134 var runtime-crash, INTE build-fail — server.js har
+    # nu lazy-load av playwright så startup inte längre kraschar om
+    # browsers saknas.)
+    # Build-pipeline (i ordning):
+    #   1. npm ci             → installerar deps inkl. esbuild
+    #   2. npm run build:bundle → bygger app.bundle.<hash>.min.js från index.html-script-tags
+    #   3. node bin/inject-bundle.js → uppdaterar index.html till nya hashen
+    #   4. playwright install (non-fatal, samma som tidigare)
+    #
+    # Bundle-filerna är .gitignore:ade sedan 2026-05-16 så ingen committar dem
+    # längre. Det eliminerar push-konflikter när flera devs (eller Cursor) bygger
+    # parallellt med olika source-states. Source of truth är .js-källfilerna +
+    # index.html-script-tag-ordningen.
+    buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
     startCommand: npm start
     disk:
       name: arcana-cco-data
@@ -12,6 +32,8 @@ services:
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /var/data/playwright-browsers
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY
@@ -48,8 +70,13 @@ services:
         sync: false
       - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
         value: "true"
+      # Sänkt 2026-05-14 från 90 till 14 dagar. SIGABRT 134-grävning visade
+      # att bootstrap laddade 4340 messages × 4 folders × 6 mailboxar i
+      # ETT svep -> OOM på Standard 2GB. 14 d ger ~624 messages per
+      # mailbox -> under RAM-cap. Delta-sync (var 5 min) fyller på senaste
+      # mail efter bootstrap, så äldre historik läses on-demand vid behov.
       - key: ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS
-        value: "90"
+        value: "14"
       - key: ARCANA_BOOTSTRAP_PREFERRED_MAILBOX
         value: contact@hairtpclinic.com
       - key: ARCANA_BOOTSTRAP_TENANT_ID

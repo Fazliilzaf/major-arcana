@@ -1,4 +1,20 @@
 /* ============================================================
+   A11Y: Global focus-visible ring (WCAG 2.4.7)
+   ============================================================ */
+*:focus-visible {
+  outline: 2px solid rgba(84, 57, 64, 0.65);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgba(84, 57, 64, 0.7);
+  outline-offset: 3px;
+}
+
+/* ============================================================
    THREAD CARD v5 — peach-amber recipe (matchar --intel-panel-tint familjen)
    1) 2 bg-toner   2) topp-highlight   3) inset bottenskugga
    4) 3 yttre skuggor   5) ljus border som smälter in
@@ -14928,6 +14944,31 @@ button.booking-handoff-card-blocker:focus-visible {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.booking-work-zone {
+  margin-top: 12px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 105, 90, 0.14);
+  background: rgba(252, 248, 244, 0.72);
+  scroll-margin-top: 96px;
+}
+
+.booking-work-zone .booking-slot-list {
+  margin-top: 10px;
+}
+
+.focus-workrail.is-booking-active .conversation-next-step {
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.focus-workrail.is-booking-active .conversation-next-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .booking-advanced-disclosure {

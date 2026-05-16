@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildCanonicalMailContentSections } = require('../../src/ops/ccoMailContentParser');
+const {
+  buildCanonicalMailContentSections,
+  extractTextFromHtml,
+} = require('../../src/ops/ccoMailContentParser');
 
 test('buildCanonicalMailContentSections sectionerar html till primary, signature, quoted och system', () => {
   const sections = buildCanonicalMailContentSections({
@@ -84,4 +87,82 @@ test('buildCanonicalMailContentSections håller Hair TP-signaturer synliga i rea
   assert.equal(sections.signatureBlock.truth.confidence, 'high');
   assert.equal(sections.signatureBlock.truth.visibleInReadSurface, true);
   assert.equal(sections.diagnostics.signatureVisibleInReadSurface, true);
+});
+
+test('extractTextFromHtml returns empty for blank input', () => {
+  assert.equal(extractTextFromHtml(''), '');
+  assert.equal(extractTextFromHtml('   \n\t  '), '');
+});
+
+test('extractTextFromHtml decodes entities and line breaks', () => {
+  const text = extractTextFromHtml(
+    '<p>A &amp; B&nbsp;C</p><br /><div>&#x20AC; 100</div>'
+  );
+  assert.match(text, /A & B C/);
+  assert.match(text, /€ 100/);
+  assert.ok(text.includes('\n'));
+});
+
+test('extractTextFromHtml strips tags and collapses whitespace', () => {
+  const text = extractTextFromHtml('<li>First</li><li>Second</li>');
+  assert.match(text, /• First/);
+  assert.match(text, /• Second/);
+});
+
+test('extractTextFromHtml returnerar tom sträng for icke-strang input', () => {
+  assert.equal(extractTextFromHtml(null), '');
+  assert.equal(extractTextFromHtml(undefined), '');
+  assert.equal(extractTextFromHtml(123), '');
+});
+
+test('extractTextFromHtml avkodar decimal numeriska entiteter', () => {
+  const text = extractTextFromHtml('<p>&#8364; 50</p>');
+  assert.match(text, /€\s*50/);
+});
+
+test('extractTextFromHtml infogar radbrytning mellan stangande p-taggar', () => {
+  const text = extractTextFromHtml('<p>Rad ett</p><p>Rad två</p>');
+  assert.match(text, /Rad ett/);
+  assert.match(text, /Rad två/);
+  assert.ok(text.includes('\n'));
+});
+
+test('buildCanonicalMailContentSections anvander textfallback nar html ar blank efter trim', () => {
+  const sections = buildCanonicalMailContentSections({
+    primaryBodyHtml: '   \n\t  ',
+    sourceText: 'Endast text\nNästa rad',
+  });
+  assert.equal(sections.mode, 'text_fallback');
+  assert.match(sections.primaryBody.text, /Endast text/);
+  assert.match(sections.primaryBody.text, /Nästa rad/);
+  assert.equal(sections.primaryBody.html, null);
+});
+
+test('buildCanonicalMailContentSections enkel html utan citat signatur eller systemblock', () => {
+  const sections = buildCanonicalMailContentSections({
+    primaryBodyHtml: '<div>Bara ett stycke.</div>',
+    sourceText: 'Bara ett stycke.',
+  });
+  assert.equal(sections.mode, 'html_structured');
+  assert.equal(sections.quotedBlocks.length, 0);
+  assert.equal(sections.systemBlocks.length, 0);
+  assert.equal(sections.signatureBlock, null);
+  assert.equal(sections.primaryBody.text, 'Bara ett stycke.');
+});
+
+test('buildCanonicalMailContentSections harleder sourceText fran html nar sourceText ar tom', () => {
+  const sections = buildCanonicalMailContentSections({
+    primaryBodyHtml: '<p>Endast&nbsp;html</p>',
+    sourceText: '',
+  });
+  assert.equal(sections.mode, 'html_structured');
+  assert.equal(sections.primaryBody.text, 'Endast html');
+});
+
+test('extractTextFromHtml tar bort carriage return', () => {
+  const text = extractTextFromHtml('<p>A\r\nB\rC</p>');
+  assert.equal(text.includes('\r'), false);
+  assert.match(text, /A/);
+  assert.match(text, /B/);
+  assert.match(text, /C/);
 });

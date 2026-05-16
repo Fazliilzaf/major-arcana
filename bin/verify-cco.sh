@@ -61,7 +61,7 @@ fi
 
 # Test 2: Kritiska resurser laddas
 echo "  [3/8] Kritiska resurser..."
-for path in "design-tokens.css" "legacy-styles-loader.css" "cco-polish.css" "app.js" "runtime-queue-renderers.js"; do
+for path in "design-tokens.css" "legacy-styles-loader.css" "cco-polish.css" "app.js"; do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${URL}${path}")
   if [ "$STATUS" = "200" ]; then
     echo -e "${GREEN}  ✓ ${path}: HTTP $STATUS${NC}"

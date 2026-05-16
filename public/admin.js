@@ -4788,13 +4788,42 @@
         : null;
 
     if (providedSla) {
-      const slaState = String(providedSla.state || '')
+      let slaState = String(providedSla.state || '')
         .trim()
         .toLowerCase();
-      const remainingMs = Number(providedSla.remainingMs || 0);
+      const deadlineRaw = String(
+        providedSla.deadline || evaluation?.slaDeadline || ''
+      ).trim();
+      const deadlineMs = parseIsoToMs(deadlineRaw);
+      const targetMsFromMinutes =
+        Number(providedSla.targetMinutes) > 0 ? Number(providedSla.targetMinutes) * 60000 : 0;
+      const targetMsBase =
+        Number(providedSla.targetMs) > 0
+          ? Number(providedSla.targetMs)
+          : targetMsFromMinutes > 0
+          ? targetMsFromMinutes
+          : level >= 5
+          ? 30 * 60 * 1000
+          : 4 * 60 * 60 * 1000;
+
+      let remainingMs = Number(providedSla.remainingMs || 0);
+
+      if (slaState !== 'resolved' && deadlineMs !== null) {
+        remainingMs = deadlineMs - Date.now();
+        if (remainingMs <= 0) {
+          slaState = 'breached';
+        } else {
+          const ratio = remainingMs / targetMsBase;
+          if (ratio <= 0.25) slaState = 'critical';
+          else if (ratio <= 0.5) slaState = 'warn';
+          else slaState = 'ok';
+        }
+      }
+
       const targetMinutes = Number(providedSla.targetMinutes || 0);
-      const targetMs = targetMinutes > 0 ? targetMinutes * 60 * 1000 : level >= 5 ? 30 * 60 * 1000 : 4 * 60 * 60 * 1000;
-      const deadlineLabel = formatDateTime(providedSla.deadline);
+      const targetMs =
+        targetMinutes > 0 ? targetMinutes * 60 * 1000 : targetMsBase;
+      const deadlineLabel = formatDateTime(deadlineRaw || providedSla.deadline);
       const targetLabel = formatDurationCompact(targetMs);
 
       if (slaState === 'resolved') {
@@ -4910,6 +4939,49 @@
       className: 'sla-ok',
       detail: `Inom SLA. Mål: ${formatDurationCompact(targetMs)}.`,
     };
+  }
+
+  let incidentSlaRefreshTimer = null;
+
+  function clearIncidentSlaRefreshTimer() {
+    if (incidentSlaRefreshTimer) {
+      clearInterval(incidentSlaRefreshTimer);
+      incidentSlaRefreshTimer = null;
+    }
+  }
+
+  function scheduleIncidentSlaLiveRefresh() {
+    clearIncidentSlaRefreshTimer();
+    const tick = () => {
+      const liveNodes =
+        els.riskIncidentsTableBody?.querySelectorAll?.('span.incident-sla-live[data-sla-live="1"]') || [];
+      if (!liveNodes.length) {
+        clearIncidentSlaRefreshTimer();
+        return;
+      }
+      liveNodes.forEach((node) => {
+        const evaluation = {
+          riskLevel: Number(node.getAttribute('data-risk-level') || 4),
+          ownerDecision: node.getAttribute('data-owner-decision') || 'pending',
+          slaDeadline: node.getAttribute('data-sla-deadline') || '',
+          incidentSla: {
+            deadline: node.getAttribute('data-sla-deadline') || '',
+            targetMs: Number(node.getAttribute('data-sla-target-ms') || 0),
+            targetMinutes: Math.max(
+              0,
+              Math.round(Number(node.getAttribute('data-sla-target-ms') || 0) / 60000)
+            ),
+            state: 'ok',
+          },
+        };
+        const sla = computeIncidentSla(evaluation);
+        node.className = `badge sla-chip ${sla.className} incident-sla-live`;
+        node.setAttribute('title', sla.detail);
+        node.textContent = sla.label;
+      });
+    };
+    incidentSlaRefreshTimer = setInterval(tick, 30000);
+    tick();
   }
 
   function renderRiskEmptyRow(tbody, colSpan, text) {
@@ -5157,6 +5229,7 @@
   }
 
   function renderRiskTable(evaluations, incidentRows = null) {
+    clearIncidentSlaRefreshTimer();
     saveListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
     saveListScrollPosition('riskIncidentsWrap', els.riskIncidentsWrap);
     const sourceRows = Array.isArray(evaluations) ? evaluations : [];
@@ -5179,6 +5252,7 @@
     renderRiskQueueSummary(state.riskEvaluations);
 
     if (!displayEvaluations.length) {
+      clearIncidentSlaRefreshTimer();
       renderRiskEmptyRow(els.riskReviewsTableBody, 12, 'Inga granskningar (L3) för valt filter.');
       renderRiskEmptyRow(els.riskIncidentsTableBody, 11, 'Inga incidenter (L4-L5) för valt filter.');
       syncSelectAllCheckbox(els.riskSelectAllReviews, []);
@@ -5285,9 +5359,32 @@
       const updatedAt = evaluation.updatedAt || evaluation.evaluatedAt || '';
       const updatedAtLabel = formatDateTime(updatedAt);
       const ageLabel = formatRelativeAge(updatedAt);
+      const deadlineForLive = String(evaluation.slaDeadline || evaluation.incidentSla?.deadline || '').trim();
+      const slaTargetMsAttr =
+        Number(evaluation.incidentSla?.targetMs) > 0
+          ? Number(evaluation.incidentSla.targetMs)
+          : riskLevel >= 5
+          ? 30 * 60 * 1000
+          : 4 * 60 * 60 * 1000;
+      const normalizedOwnerDec = String(ownerDecision || '').trim().toLowerCase();
+      const canSlaLive =
+        parseIsoToMs(deadlineForLive) !== null &&
+        String(evaluation.incidentSla?.state || '').toLowerCase() !== 'resolved' &&
+        (normalizedOwnerDec === 'pending' ||
+          normalizedOwnerDec === 'revision_requested' ||
+          normalizedOwnerDec === 'escalated');
+      const slaLiveAttrs = canSlaLive
+        ? ` data-sla-live="1" data-sla-deadline="${escapeHtml(deadlineForLive)}" data-sla-target-ms="${escapeHtml(
+            String(slaTargetMsAttr)
+          )}" data-risk-level="${escapeHtml(String(riskLevel))}" data-owner-decision="${escapeHtml(ownerDecision)}"`
+        : '';
+      const slaChipClass = `badge sla-chip ${escapeHtml(sla.className)}${canSlaLive ? ' incident-sla-live' : ''}`;
+      const deadlineLine = deadlineForLive
+        ? `<div class="mini muted">${escapeHtml(formatDateTime(deadlineForLive))}</div>`
+        : '';
       tr.innerHTML = `
         <td><input type="checkbox" class="riskSelectChk" data-eid="${evaluationId}" ${isChecked ? 'checked' : ''} /></td>
-        <td><span class="badge sla-chip ${escapeHtml(sla.className)}" title="${escapeHtml(sla.detail)}">${escapeHtml(sla.label)}</span></td>
+        <td><span${slaLiveAttrs} class="${slaChipClass}" title="${escapeHtml(sla.detail)}">${escapeHtml(sla.label)}</span>${deadlineLine}</td>
         <td class="code">${escapeHtml(incidentId || '-')}</td>
         <td class="code">${escapeHtml(evaluation.templateId || '-')}<br/>v:${escapeHtml(evaluation.templateVersionId || '-')}</td>
         <td><span class="chip">${escapeHtml(categoryLabel)}</span></td>
@@ -5351,6 +5448,7 @@
     }
     restoreListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
     restoreListScrollPosition('riskIncidentsWrap', els.riskIncidentsWrap);
+    scheduleIncidentSlaLiveRefresh();
   }
 
   function normalizeRiskRange(minRaw, maxRaw) {
@@ -27760,6 +27858,7 @@
     const status = String(summary?.overallStatus || 'unknown').toLowerCase();
     const alerts = Number(summary?.triggeredAlertsCount || 0);
     const hasTraffic = summary?.hasTraffic === true;
+    const totalRequests = Number(summary?.totalRequests || 0);
     const sampledRequests = Number(summary?.sampledRequests || 0);
     const metrics = observabilityResponse?.metrics && typeof observabilityResponse.metrics === 'object'
       ? observabilityResponse.metrics
@@ -27774,12 +27873,12 @@
       : [];
 
     els.monitorObservabilitySummary.textContent = isEnglishLanguage()
-      ? `status=${status} alerts=${alerts} hasTraffic=${hasTraffic ? 'yes' : 'no'} sampled=${sampledRequests}`
-      : `status=${status} varningar=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} urval=${sampledRequests}`;
+      ? `status=${status} alerts=${alerts} hasTraffic=${hasTraffic ? 'yes' : 'no'} total=${totalRequests} sampled=${sampledRequests}`
+      : `status=${status} varningar=${alerts} harTrafik=${hasTraffic ? 'ja' : 'nej'} totalt=${totalRequests} urval=${sampledRequests}`;
 
     const lines = [];
     lines.push(
-      `mätvärden: felgradProcent=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} långsammaAnrop=${Number(metrics?.slowRequests || 0)}`
+      `mätvärden: totaltFörfrågningar=${Number(metrics?.totalRequests || 0)} felgradProcent=${Number(metrics?.errorRatePct || 0)} p95Ms=${Number(metrics?.p95Ms || 0)} p99Ms=${Number(metrics?.p99Ms || 0)} långsammaAnrop=${Number(metrics?.slowRequests || 0)}`
     );
     lines.push(
       `gränsvärden: maxFelgradProcent=${Number(thresholds?.maxErrorRatePct || 0)} maxP95Ms=${Number(thresholds?.maxP95Ms || 0)} maxLångsammaAnrop=${Number(thresholds?.maxSlowRequests || 0)}`
@@ -28855,6 +28954,7 @@
       incidentStatus: incident.status || '',
       incidentSeverity: severity || '',
       incidentSla: incident.sla && typeof incident.sla === 'object' ? incident.sla : null,
+      slaDeadline: incident.slaDeadline || (incident.sla && incident.sla.deadline) || null,
     };
   }
 
@@ -28921,6 +29021,7 @@
           row.ownerDecision,
           row.incidentStatus,
           row.incidentSeverity,
+          row.slaDeadline,
           ...(Array.isArray(row.reasonCodes) ? row.reasonCodes : []),
         ]
           .map((part) => String(part || '').toLowerCase())
@@ -31544,5 +31645,144 @@
   renderWritingIdentityProfiles();
 
   updateLifecyclePermissions();
+
+  (function mountAgentPanels() {
+    function getToken() {
+      return state?.token || '';
+    }
+    function agentPost(agentName) {
+      const token = getToken();
+      if (!token) return Promise.reject(new Error('Ej inloggad'));
+      return fetch(`/api/v1/agents/${agentName}/run`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      }).then(function (res) { return res.json(); });
+    }
+
+    var cooBtn = document.getElementById('runCooAgentBtn');
+    var cooStatus = document.getElementById('cooRunStatus');
+    if (cooBtn) {
+      cooBtn.addEventListener('click', function () {
+        cooBtn.disabled = true;
+        if (cooStatus) cooStatus.textContent = 'Kör...';
+        agentPost('COO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cooResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('cooPriorityLevel');
+          if (el) el.textContent = out.priorityLevel || '—';
+          el = document.getElementById('cooTaskCount');
+          if (el) el.textContent = String((out.taskPlan && out.taskPlan.tasks && out.taskPlan.tasks.length) || 0);
+          el = document.getElementById('cooIncidentRisk');
+          if (el) el.textContent = (out.incidentSummary && out.incidentSummary.escalationRisk) || '—';
+          el = document.getElementById('cooExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cooTaskList');
+          if (el) {
+            var tasks = (out.taskPlan && out.taskPlan.tasks) || [];
+            el.textContent = tasks.length ? tasks.map(function (t, i) { return (i + 1) + '. [' + (t.priority || '') + '] ' + (t.title || ''); }).join('\n') : 'Inga tasks genererade.';
+          }
+          if (cooStatus) cooStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cooStatus) cooStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cooBtn.disabled = false; });
+      });
+    }
+
+    var caoBtn = document.getElementById('runCaoAgentBtn');
+    var caoStatus = document.getElementById('caoRunStatus');
+    if (caoBtn) {
+      caoBtn.addEventListener('click', function () {
+        caoBtn.disabled = true;
+        if (caoStatus) caoStatus.textContent = 'Kör...';
+        agentPost('CAO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('caoResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('caoSuggestionCount');
+          if (el) el.textContent = String((out.templateSuggestions || []).length);
+          el = document.getElementById('caoDisclaimerStatus');
+          if (el) el.textContent = (out.disclaimerResults ? out.disclaimerResults.compliantCount + '/' + out.disclaimerResults.totalCount : '—');
+          el = document.getElementById('caoVariableScore');
+          if (el) el.textContent = ((out.variableOptimization && out.variableOptimization.averageScore) || 100) + '%';
+          el = document.getElementById('caoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('caoDisclaimerResults');
+          if (el) {
+            var nc = (out.disclaimerResults && out.disclaimerResults.nonCompliantTemplates) || [];
+            el.textContent = nc.length ? nc.map(function (t) { return t.templateName + ': saknar ' + (t.missing || []).join(', ') + (t.violations && t.violations.length ? ' | brott: ' + t.violations.map(function (v) { return v.label; }).join(', ') : ''); }).join('\n') : 'Alla mallar godkända.';
+          }
+          el = document.getElementById('caoVariableResults');
+          if (el) {
+            var top = (out.variableOptimization && out.variableOptimization.topImprovable) || [];
+            el.textContent = top.length ? top.map(function (t) { return t.templateName + ': ' + (t.suggestions || []).map(function (s) { return s.description; }).join('; '); }).join('\n') : 'Alla mallar har optimal variabelanvändning.';
+          }
+          if (caoStatus) caoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (caoStatus) caoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { caoBtn.disabled = false; });
+      });
+    }
+    var cfoBtn = document.getElementById('runCfoAgentBtn');
+    var cfoStatus = document.getElementById('cfoRunStatus');
+    if (cfoBtn) {
+      cfoBtn.addEventListener('click', function () {
+        cfoBtn.disabled = true;
+        if (cfoStatus) cfoStatus.textContent = 'Kör...';
+        agentPost('CFO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cfoResultPanel');
+          if (panel) panel.style.display = '';
+          var cs = out.costSummary || {};
+          var el = document.getElementById('cfoMonthlyCost');
+          if (el) el.textContent = (cs.totalMonthlySek || 0) + ' SEK';
+          el = document.getElementById('cfoLlmCost');
+          if (el) el.textContent = (cs.llmCostSek || 0) + ' SEK';
+          el = document.getElementById('cfoCostPerTenant');
+          if (el) el.textContent = (cs.costPerTenantSek || 0) + ' SEK';
+          el = document.getElementById('cfoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cfoAlerts');
+          if (el) {
+            var alerts = out.alerts || [];
+            el.textContent = alerts.length ? alerts.map(function (a) { return '[' + a.severity + '] ' + a.message; }).join('\n') : 'Inga kostnadsvarningar.';
+          }
+          if (cfoStatus) cfoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cfoStatus) cfoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cfoBtn.disabled = false; });
+      });
+    }
+
+    var cmoBtn = document.getElementById('runCmoAgentBtn');
+    var cmoStatus = document.getElementById('cmoRunStatus');
+    if (cmoBtn) {
+      cmoBtn.addEventListener('click', function () {
+        cmoBtn.disabled = true;
+        if (cmoStatus) cmoStatus.textContent = 'Kör...';
+        agentPost('CMO').then(function (d) {
+          var out = (d && d.output && d.output.data) || (d && d.data) || {};
+          var panel = document.getElementById('cmoResultPanel');
+          if (panel) panel.style.display = '';
+          var el = document.getElementById('cmoTopicCount');
+          if (el) el.textContent = String((out.topics || []).length);
+          el = document.getElementById('cmoCalendarCount');
+          if (el) el.textContent = String((out.contentCalendar || []).length);
+          el = document.getElementById('cmoExecutiveSummary');
+          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+          el = document.getElementById('cmoCalendar');
+          if (el) {
+            var cal = out.contentCalendar || [];
+            el.textContent = cal.length ? cal.map(function (c) { return 'Vecka ' + c.week + ': ' + c.topic + ' (' + c.format + ') — ' + c.targetDate; }).join('\n') : 'Ingen content-kalender genererad.';
+          }
+          if (cmoStatus) cmoStatus.textContent = 'Klar';
+        }).catch(function (err) {
+          if (cmoStatus) cmoStatus.textContent = 'Fel: ' + (err.message || err);
+        }).finally(function () { cmoBtn.disabled = false; });
+      });
+    }
+  })();
+
   restoreSession();
 })();

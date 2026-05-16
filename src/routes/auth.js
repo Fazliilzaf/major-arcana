@@ -225,6 +225,11 @@ function createAuthRouter({
         userId: user.id,
         membershipId: selectedMembership.id,
       });
+      const rotatedPreviewSessions = await rotateSessionsAfterLogin({
+        userId: user.id,
+        tenantId: selectedMembership.tenantId,
+        currentSessionId: session.id,
+      });
       if (typeof authStore.addAuditEvent === 'function') {
         try {
           await authStore.addAuditEvent({
@@ -238,6 +243,8 @@ function createAuthRouter({
               host: normalizeHost(
                 (typeof req.get === 'function' && (req.get('x-forwarded-host') || req.get('host'))) || ''
               ),
+              rotatedSessions: rotatedPreviewSessions,
+              rotationScope,
             },
           });
         } catch {

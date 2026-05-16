@@ -721,8 +721,24 @@ function createCcoBookingsRouter({
       const toDate = normalizeText(req.query.toDate);
       const resIds = normalizeCsvParam(req.query.resIds);
       const srvIds = normalizeCsvParam(req.query.srvIds);
-      if (!fromDate || !toDate || !resIds || !srvIds) {
-        return res.status(400).json({ error: 'cliento_slots_params_missing' });
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+      if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
+        const slots = await bookingEngineStore.listAvailability({
+          tenantId: context.tenantId,
+          fromDate,
+          toDate,
+          resIds: resIds || '',
+          srvIds: srvIds || '',
+          excludeConversationId: normalizeText(req.query.conversationId),
+        });
+        return res.json({
+          raw: null,
+          provider: 'cco_engine',
+          slots,
+          bookingUrl: null,
+        });
       }
       if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
         const slots = await bookingEngineStore.listAvailability({

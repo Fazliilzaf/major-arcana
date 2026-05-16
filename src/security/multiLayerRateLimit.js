@@ -56,33 +56,39 @@ function createMultiLayerRateLimit({
   const middlewares = [];
 
   if (layers.ip) {
+    const ipPoints = layers.ip.points || 200;
+    const ipDurationSec = layers.ip.durationSec || 60;
     const ipLimiter = createRateLimiter({
       store,
-      points: layers.ip.points || 200,
-      duration: layers.ip.durationSec || 60,
-      name: `${name}:ip`,
+      max: ipPoints,
+      windowMs: Math.max(1000, ipDurationSec * 1000),
+      scope: `${name}:ip`,
       keyGenerator: makeIpKey,
     });
     middlewares.push(ipLimiter);
   }
 
   if (layers.user) {
+    const userPoints = layers.user.points || 100;
+    const userDurationSec = layers.user.durationSec || 60;
     const userLimiter = createRateLimiter({
       store,
-      points: layers.user.points || 100,
-      duration: layers.user.durationSec || 60,
-      name: `${name}:user`,
+      max: userPoints,
+      windowMs: Math.max(1000, userDurationSec * 1000),
+      scope: `${name}:user`,
       keyGenerator: (req) => makeUserKey(req) || makeIpKey(req),
     });
     middlewares.push(userLimiter);
   }
 
   if (layers.tenant) {
+    const tenantPoints = layers.tenant.points || 1000;
+    const tenantDurationSec = layers.tenant.durationSec || 60;
     const tenantLimiter = createRateLimiter({
       store,
-      points: layers.tenant.points || 1000,
-      duration: layers.tenant.durationSec || 60,
-      name: `${name}:tenant`,
+      max: tenantPoints,
+      windowMs: Math.max(1000, tenantDurationSec * 1000),
+      scope: `${name}:tenant`,
       keyGenerator: (req) => makeTenantKey(req) || makeIpKey(req),
     });
     middlewares.push(tenantLimiter);

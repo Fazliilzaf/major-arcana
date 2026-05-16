@@ -95,6 +95,7 @@ test('scheduler alert_probe auto-creates slo tickets on breach signals', async (
           if (!breachMode) {
             return {
               totals: {
+                requests: 120,
                 sampledRequests: 120,
                 slowRequests: 0,
                 statusBuckets: {
@@ -108,6 +109,7 @@ test('scheduler alert_probe auto-creates slo tickets on breach signals', async (
           }
           return {
             totals: {
+              requests: 100,
               sampledRequests: 100,
               slowRequests: 9,
               statusBuckets: {

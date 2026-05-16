@@ -164,6 +164,7 @@ function createRouter() {
       getSnapshot() {
         return {
           totals: {
+            requests: 10,
             sampledRequests: 10,
             statusBuckets: {
               '5xx': 1,
@@ -247,7 +248,9 @@ test('dashboard owner stream emits status snapshots', async () => {
 
     assert.equal(envelope.event, 'status');
     assert.equal(envelope.data.tenantId, 'tenant-a');
+    assert.equal(envelope.data.availability.totalRequests, 10);
     assert.equal(envelope.data.availability.sampledRequests, 10);
+    assert.equal(envelope.data.availability.errorRatePct, 10);
     assert.equal(envelope.data.incidents.open, 0);
     assert.equal(envelope.data.sloTickets.openBreaches, 1);
     assert.equal(envelope.data.releaseGovernance.cycleId, 'rel_1');

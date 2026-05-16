@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0 <23.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
@@ -27,6 +30,10 @@
     "imac:start": "bash ./scripts/imac-start.sh",
     "dev:offline": "PORT=${PORT:-3100} ARCANA_AI_PROVIDER=fallback ARCANA_GRAPH_READ_ENABLED=false ARCANA_GRAPH_SEND_ENABLED=false node server.js",
     "build:bundle": "node ./bin/build-bundle.js",
+    "test:visual": "playwright test --config=playwright.config.js",
+    "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
+    "test:system-mail-parser": "node scripts/test/system-mail-parser.test.js",
+    "test:runtime-queue-integration": "node scripts/test/runtime-queue-renderers.integration.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",
     "check-cache-busters": "bash ./bin/check-cache-busters.sh",
     "pre-commit": "bash ./bin/pre-commit-cco.sh",
@@ -114,6 +121,7 @@
     "audit:repair": "node ./scripts/audit-repair.js",
     "test": "npm run test:unit",
     "test:unit": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 node --test",
+    "test:coverage": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 c8 --include=\"src/**/*.js\" --reporter=text-summary --reporter=html --reporter=text node --test",
     "ops:soak": "node ./scripts/run-load-soak.js",
     "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.js",
     "test:a11y": "npx playwright test tests/a11y/",
@@ -139,9 +147,11 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "lit": "^3.2.1",
     "openai": "^6.22.0",
     "playwright": "1.58.2",
-    "redis": "^4.7.1"
+    "redis": "^4.7.1",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
@@ -151,6 +161,7 @@
     "@playwright/test": "^1.48.0",
     "@stryker-mutator/core": "^8.6.0",
     "axe-core": "^4.10.0",
+    "c8": "^10.1.3",
     "esbuild": "^0.28.0",
     "eslint": "^9.13.0",
     "globals": "^15.11.0",

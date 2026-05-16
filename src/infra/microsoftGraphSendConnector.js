@@ -58,7 +58,10 @@ function parseGraphError(payload = {}, fallback = 'request_failed') {
   );
 }
 
-function createGraphError(message, { code = '', status = 0, retryAfterSeconds = null, details = null } = {}) {
+function createGraphError(
+  message,
+  { code = '', status = 0, retryAfterSeconds = null, details = null } = {}
+) {
   const error = new Error(normalizeText(message) || 'graph_request_failed');
   if (code) error.code = code;
   if (Number.isFinite(Number(status)) && Number(status) > 0) error.status = Number(status);
@@ -264,9 +267,12 @@ function createMicrosoftGraphSendConnector(config = {}) {
     const payload = await parseJsonResponse(response, 'Microsoft Graph token request');
     const accessToken = normalizeText(payload.access_token);
     if (!accessToken) {
-      throw createGraphError('Microsoft Graph token request succeeded but access_token is missing.', {
-        code: 'GRAPH_TOKEN_MISSING',
-      });
+      throw createGraphError(
+        'Microsoft Graph token request succeeded but access_token is missing.',
+        {
+          code: 'GRAPH_TOKEN_MISSING',
+        }
+      );
     }
     return accessToken;
   }
@@ -287,8 +293,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
       idType: normalizeText(claims.idtyp) || null,
       roles,
       scopes,
-      hasMailReadWrite:
-        roles.includes('Mail.ReadWrite') || scopes.includes('Mail.ReadWrite'),
+      hasMailReadWrite: roles.includes('Mail.ReadWrite') || scopes.includes('Mail.ReadWrite'),
     };
   }
 
@@ -306,8 +311,7 @@ function createMicrosoftGraphSendConnector(config = {}) {
     timeoutMs = requestTimeoutMs,
   } = {}) {
     const normalizedSenderMailboxId = requiredConfig('mailboxId', mailboxId);
-    const normalizedSourceMailboxId =
-      normalizeText(sourceMailboxId) || normalizedSenderMailboxId;
+    const normalizedSourceMailboxId = normalizeText(sourceMailboxId) || normalizedSenderMailboxId;
     const shouldReplyInThread = normalizedSenderMailboxId === normalizedSourceMailboxId;
     return sendComposeDocument({
       composeDocument: {
@@ -371,6 +375,12 @@ function createMicrosoftGraphSendConnector(config = {}) {
     const shouldReplyInThread =
       (normalizeText(composeDocument.delivery?.sendStrategy) || '') === 'reply_draft' &&
       normalizedMode === 'reply';
+    const shouldForward =
+      (normalizeText(composeDocument.delivery?.sendStrategy) || '') === 'forward_draft' &&
+      normalizedMode === 'forward';
+    const normalizedForwardMessageId = normalizeText(
+      composeDocument.forwardContext?.forwardToMessageId
+    );
     const normalizedHtmlContent = normalizedBodyHtml || formatPlainTextAsHtml(normalizedBody);
     if (!normalizedBody) {
       throw new Error('MicrosoftGraphSendConnector sendComposeDocument requires body.');
@@ -381,12 +391,53 @@ function createMicrosoftGraphSendConnector(config = {}) {
     if (normalizedMode === 'reply' && !normalizedMessageId) {
       throw new Error('MicrosoftGraphSendConnector sendComposeDocument requires replyToMessageId.');
     }
-    if (!shouldReplyInThread && !recipientPayload.toRecipients.length) {
+    if (normalizedMode === 'forward' && !normalizedForwardMessageId) {
+      throw new Error(
+        'MicrosoftGraphSendConnector sendComposeDocument requires forwardToMessageId.'
+      );
+    }
+    if (!shouldReplyInThread && !shouldForward && !recipientPayload.toRecipients.length) {
       throw new Error('MicrosoftGraphSendConnector sendComposeDocument requires to[].');
+    }
+    if (shouldForward && !recipientPayload.toRecipients.length) {
+      throw new Error('MicrosoftGraphSendConnector sendComposeDocument forward requires to[].');
     }
     const accessToken = await fetchAccessToken();
     let sendMode = 'send_mail';
-    if (shouldReplyInThread) {
+    if (shouldForward) {
+      requiredConfig('forwardToMessageId', normalizedForwardMessageId);
+      const createForwardUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+        normalizedSenderMailboxId
+      )}/messages/${encodeURIComponent(normalizedForwardMessageId)}/createForward`;
+      const createForwardResponse = await postGraphJson({
+        fetchImpl,
+        url: createForwardUrl,
+        accessToken,
+        payload: {
+          toRecipients: recipientPayload.toRecipients,
+          comment: normalizedHtmlContent,
+        },
+        timeoutMs,
+        label: 'Microsoft Graph createForward',
+      });
+      const forwardDraft = await parseJsonResponse(
+        createForwardResponse,
+        'Microsoft Graph createForward response'
+      );
+      const draftId = requiredConfig('forwardDraftId', forwardDraft?.id);
+      const sendDraftUrl = `${graphBaseUrl}/users/${encodeURIComponent(
+        normalizedSenderMailboxId
+      )}/messages/${encodeURIComponent(draftId)}/send`;
+      await postGraphJson({
+        fetchImpl,
+        url: sendDraftUrl,
+        accessToken,
+        payload: {},
+        timeoutMs,
+        label: 'Microsoft Graph sendForwardDraft',
+      });
+      sendMode = 'forward_draft';
+    } else if (shouldReplyInThread) {
       requiredConfig('replyToMessageId', normalizedMessageId);
       const createReplyUrl = `${graphBaseUrl}/users/${encodeURIComponent(
         normalizedSenderMailboxId
@@ -537,7 +588,10 @@ function createMicrosoftGraphSendConnector(config = {}) {
       timeoutMs,
       label: 'Microsoft Graph moveMessageToFolder',
     });
-    const payload = await parseJsonResponse(response, 'Microsoft Graph moveMessageToFolder response');
+    const payload = await parseJsonResponse(
+      response,
+      'Microsoft Graph moveMessageToFolder response'
+    );
     const now = new Date().toISOString();
     return {
       provider: 'microsoft_graph',

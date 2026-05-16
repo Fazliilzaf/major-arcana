@@ -32,7 +32,7 @@ function requestContextMiddleware({
     };
     req.correlationId = correlationId;
     res.setHeader(normalizedHeaderName, correlationId);
-    requestContextStorage.run(context, () => next());
+    return requestContextStorage.run(context, () => next());
   };
 }
 

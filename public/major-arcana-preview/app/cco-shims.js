@@ -7,7 +7,7 @@
  *  - P1-A: Theme-switcher delegerad click-handler
  *
  * Alla tidigare shims (P0-2, P1-1, P1-4, P2-1, P2-3, P1-B, P1-C, P1-D) har
- * migrerats till runtime-queue-renderers.js eller cco-polish.css. Denna fil
+ * migrerats till app.js eller cco-polish.css. Denna fil
  * ersatte runtime-fix-shims.js (raderad i samma commit).
  *
  * Inga beroenden utöver document/window/localStorage. Säker att ladda när

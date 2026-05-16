@@ -1517,6 +1517,111 @@
         radial-gradient(120% 90% at 8% -12%, rgba(255, 223, 190, 0.19) 0%, transparent 72%);
       box-shadow: 0 16px 28px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
+    .overview-card.overview-card--cco-booking-doc {
+      border-color: rgba(255, 233, 212, 0.45);
+      background:
+        linear-gradient(160deg, rgba(255, 240, 228, 0.1), rgba(255, 220, 196, 0.05)),
+        linear-gradient(160deg, rgba(52, 44, 38, 0.3), rgba(40, 34, 29, 0.26));
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .overview-card.overview-card--cco-booking-doc > summary {
+      list-style: none;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .overview-card.overview-card--cco-booking-doc > summary::-webkit-details-marker {
+      display: none;
+    }
+    .cco-booking-doc-mount {
+      font-size: 13px;
+      line-height: 1.55;
+      padding: 4px 14px 12px;
+      color: var(--text);
+    }
+    .cco-booking-doc-mount h4 {
+      margin: 14px 0 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .cco-booking-doc-mount p {
+      margin: 0 0 8px;
+      color: var(--muted);
+    }
+    .cco-booking-doc-mount ul {
+      margin: 0 0 10px 1.1rem;
+      padding: 0;
+      color: var(--muted);
+    }
+    .cco-booking-doc-mount li {
+      margin-bottom: 4px;
+    }
+    .cco-booking-doc-mount table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 12px;
+      font-size: 12px;
+    }
+    .cco-booking-doc-mount th,
+    .cco-booking-doc-mount td {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .cco-booking-doc-mount th {
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .cco-booking-doc-mount pre {
+      margin: 6px 0 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 230, 201, 0.35);
+      background: rgba(0, 0, 0, 0.22);
+      font-size: 11px;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .cco-workspace .cco-workspace-doc-banner {
+      margin: 10px 12px 0;
+      border: 1px solid var(--cco-border);
+      border-radius: 8px;
+      background: var(--cco-panel);
+      color: var(--cco-text);
+      box-shadow: var(--cco-shadow-1);
+    }
+    .cco-workspace .cco-workspace-doc-banner > summary {
+      list-style: none;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--cco-text);
+    }
+    .cco-workspace .cco-workspace-doc-banner > summary::-webkit-details-marker {
+      display: none;
+    }
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount {
+      border-top: 1px solid var(--cco-border);
+      padding: 8px 12px 12px;
+      color: var(--cco-text);
+    }
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount p,
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount li {
+      color: var(--cco-muted);
+    }
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount th,
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount td {
+      border-color: rgba(62, 46, 41, 0.18);
+    }
+    .cco-workspace .cco-workspace-doc-banner .cco-booking-doc-mount pre {
+      border-color: rgba(62, 46, 41, 0.22);
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--cco-text);
+    }
     .cco-workspace-entry-meta {
       margin-top: 8px;
       font-size: 13px;
@@ -5564,6 +5669,10 @@
     }
     [data-section-group="overviewSection"] { --section-tint: rgba(214, 173, 132, 0.2); }
     [data-section-group="templateLifecycleSection"] { --section-tint: rgba(201, 152, 108, 0.22); }
+    [data-section-group="cooSection"] { --section-tint: rgba(180, 148, 118, 0.24); }
+    [data-section-group="caoSection"] { --section-tint: rgba(168, 140, 115, 0.22); }
+    [data-section-group="cfoSection"] { --section-tint: rgba(155, 132, 108, 0.22); }
+    [data-section-group="cmoSection"] { --section-tint: rgba(142, 125, 105, 0.20); }
     [data-section-group="reviewsIncidentsSection"] { --section-tint: rgba(195, 159, 126, 0.24); }
     [data-section-group="auditSection"] { --section-tint: rgba(158, 132, 111, 0.22); }
     [data-section-group="teamSection"] { --section-tint: rgba(172, 146, 120, 0.23); }
@@ -11831,6 +11940,7 @@
   </style>
 </head>
 <body>
+  <a href="#dashboardPanel" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.cssText='position:fixed;top:8px;left:8px;z-index:9999;padding:12px 20px;background:#543940;color:#FAF4EE;border-radius:14px;font-size:16px;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2)'" onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999'">Hoppa till innehåll</a>
   <div class="container">
     <div id="adminHeader" class="header">
       <div class="brand-stack">
@@ -11865,7 +11975,7 @@
       <div class="grid" style="margin-top:10px">
         <div>
           <label for="emailInput" data-i18n="label_email">E-post</label>
-          <input id="emailInput" type="email" value="fazli@hairtpclinic.se" />
+          <input id="emailInput" type="email" value="fazli@hairtpclinic.se" autocomplete="email" />
         </div>
         <div>
           <label for="tenantInput" data-i18n="label_tenant_optional">Klinik (valfri)</label>
@@ -11873,7 +11983,7 @@
         </div>
         <div>
           <label for="passwordInput" data-i18n="label_password">Lösenord</label>
-          <input id="passwordInput" type="password" />
+          <input id="passwordInput" type="password" autocomplete="current-password" />
         </div>
       </div>
       <div style="margin-top:12px">
@@ -11901,6 +12011,10 @@
           <button class="btn small sectionNavBtn" data-target="teamSection" data-i18n="nav_team">Team</button>
           <button class="btn small sectionNavBtn" data-target="settingsSection" data-i18n="nav_settings">Inställningar</button>
           <button class="btn small sectionNavBtn" data-target="opsSection" data-i18n="nav_ops">Drift</button>
+          <button class="btn small sectionNavBtn" data-target="cooSection" data-i18n="nav_coo">COO</button>
+          <button class="btn small sectionNavBtn" data-target="caoSection" data-i18n="nav_cao">CAO</button>
+          <button class="btn small sectionNavBtn" data-target="cfoSection" data-i18n="nav_cfo">CFO</button>
+          <button class="btn small sectionNavBtn" data-target="cmoSection" data-i18n="nav_cmo">CMO</button>
           <a class="btn small sectionNavBtn" href="/major-arcana-preview/" data-i18n="nav_cco" style="display:inline-flex;align-items:center;text-decoration:none">CCO</a>
         </nav>
       </div>
@@ -11959,10 +12073,18 @@
               </ul>
             </article>
           </div>
+            <details id="cco-booking-referens" class="overview-card overview-card--cco-booking-doc" style="margin-top:14px">
+              <summary>CCO Booking — vad det är (referens)</summary>
+              <div id="ccoBookingDocOverviewMount" class="cco-booking-doc-mount"></div>
+            </details>
         </section>
       </div>
 
       <section id="ccoWorkspaceSection" data-section-group="ccoWorkspaceSection" data-cco-skin="major-arcana" class="cco-workspace cco-layout-root" hidden aria-hidden="true" style="display:none !important">
+        <details class="cco-workspace-doc-banner">
+          <summary>CCO Booking — referens</summary>
+          <div id="ccoBookingDocCcoMount" class="cco-booking-doc-mount"></div>
+        </details>
         <div class="cco-utility-rail" aria-label="CCO verktygsrad" data-cco-topbar="workspace">
           <div class="cco-utility-search">
             <input
@@ -13419,6 +13541,120 @@
         </div>
       </section>
 
+      <section id="cooSection" data-section-group="cooSection" class="panel" style="margin-top:14px">
+        <h2>COO — Daglig Driftöversikt</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Operating Officer-agenten sammanfattar incidenter, genererar taskplaner och analyserar risktrender.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCooAgentBtn" class="btn small">Kör COO Daily Brief</button>
+          <span id="cooRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="cooResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Prioritet</h4>
+              <div id="cooPriorityLevel" class="value" style="font-size:28px">—</div>
+            </div>
+            <div class="overview-card">
+              <h4>Tasks</h4>
+              <div id="cooTaskCount" class="value" style="font-size:28px">0</div>
+            </div>
+            <div class="overview-card">
+              <h4>Incidentrisk</h4>
+              <div id="cooIncidentRisk" class="value" style="font-size:28px">—</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="cooExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Taskplan</h3>
+          <div id="cooTaskList" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
+      <section id="caoSection" data-section-group="caoSection" class="panel" style="margin-top:14px">
+        <h2>CAO — Mallkvalitetsrådgivare</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Administrative Officer-agenten analyserar mallar, validerar disclaimers och optimerar variabelanvändning.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCaoAgentBtn" class="btn small">Kör CAO Template Advisor</button>
+          <span id="caoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="caoResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Förbättringsförslag</h4>
+              <div id="caoSuggestionCount" class="value" style="font-size:28px">0</div>
+            </div>
+            <div class="overview-card">
+              <h4>Disclaimer-godkända</h4>
+              <div id="caoDisclaimerStatus" class="value" style="font-size:22px">—</div>
+            </div>
+            <div class="overview-card">
+              <h4>Variabel-optimering</h4>
+              <div id="caoVariableScore" class="value" style="font-size:28px">—</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="caoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Disclaimer-resultat</h3>
+          <div id="caoDisclaimerResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <h3 style="margin-top:14px">Variabelförslag</h3>
+          <div id="caoVariableResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
+      <section id="cfoSection" data-section-group="cfoSection" class="panel" style="margin-top:14px">
+        <h2>CFO — Kostnadsrådgivare</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Financial Officer-agenten bevakar LLM-kostnader, hosting, lagring och genererar projektioner.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCfoAgentBtn" class="btn small">Kör CFO Cost Advisor</button>
+          <span id="cfoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="cfoResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Månadskostnad</h4>
+              <div id="cfoMonthlyCost" class="value" style="font-size:24px">— SEK</div>
+            </div>
+            <div class="overview-card">
+              <h4>LLM-kostnad</h4>
+              <div id="cfoLlmCost" class="value" style="font-size:24px">— SEK</div>
+            </div>
+            <div class="overview-card">
+              <h4>Kostnad/tenant</h4>
+              <div id="cfoCostPerTenant" class="value" style="font-size:24px">— SEK</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="cfoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Kostnadsvarningar</h3>
+          <div id="cfoAlerts" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
+      <section id="cmoSection" data-section-group="cmoSection" class="panel" style="margin-top:14px">
+        <h2>CMO — Content-rådgivare</h2>
+        <div class="muted" style="margin-bottom:14px">Chief Marketing Officer-agenten identifierar content-ämnen från mail-insikter, FAQ och mallar och bygger en content-kalender.</div>
+        <div class="seg glass-toolbar" style="margin-bottom:14px">
+          <button id="runCmoAgentBtn" class="btn small">Kör CMO Content Advisor</button>
+          <span id="cmoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        </div>
+        <div id="cmoResultPanel" class="seg" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="overview-card">
+              <h4>Content-ämnen</h4>
+              <div id="cmoTopicCount" class="value" style="font-size:28px">0</div>
+            </div>
+            <div class="overview-card">
+              <h4>Planerade inlägg</h4>
+              <div id="cmoCalendarCount" class="value" style="font-size:28px">0</div>
+            </div>
+          </div>
+          <h3>Executive Summary</h3>
+          <div id="cmoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Content-kalender</h3>
+          <div id="cmoCalendar" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+        </div>
+      </section>
+
       <section id="reviewsIncidentsSection" data-section-group="reviewsIncidentsSection" class="panel" style="margin-top:14px">
         <h2>Granskningar & incidenter</h2>
         <div class="muted" style="margin-bottom:10px">Granskningar = L3 • Incidenter = L4–L5 med SLA (L4: 4h, L5: 30m)</div>
@@ -13766,6 +14002,134 @@
     </div>
   </div>
   <div id="toastViewport" class="toast-viewport" aria-live="polite" aria-atomic="false"></div>
+
+  <template id="ccoBookingDocTemplate">
+    <div class="cco-booking-doc">
+      <h4>CCO Booking — vad det är</h4>
+      <p>
+        Operatörsstöd för bokning i CCO-workspace: ett <strong>bokningsärende</strong> per kombination av tenant,
+        workspace, konversation och kund-e-post. Utformat som <strong>manuell triage</strong> och förslag till kund —
+        inte automatisk kalenderbokning i CCO.
+      </p>
+      <h4>Viktiga designval</h4>
+      <ul>
+        <li>
+          <strong>Cliento</strong> används för tillgängliga tider (<code>getSlots</code>) och referensdata
+          (<code>getRefData</code>); partner-id och boknings-URL kommer från <code>runtimeConfig</code> per brand.
+        </li>
+        <li>
+          <strong>Ingen direkt kalenderskrivning i CCO:</strong> statusen <code>confirmed_external</code> loggas som att
+          operatören markerat extern bekräftelse (CCO skriver inte själv i kalendern).
+        </li>
+      </ul>
+      <h4>1. Persistens — <code>ccoBookingStore</code></h4>
+      <p>Filbaserad JSON-store med atomisk skrivning, statusmaskin och blocker-readout (nästa steg för operatören).</p>
+      <pre>const BOOKING_STATUSES = Object.freeze([
+  'needs_triage',
+  'slots_ready',
+  'offered',
+  'waiting_customer',
+  'confirmed_external',
+  'cancelled',
+  'closed',
+]);</pre>
+      <ul>
+        <li>Nyckel: <code>tenantId</code> + <code>workspaceId</code> + <code>conversationId</code> + <code>customerEmail</code>.</li>
+        <li>Max tre kandidat-slotar; max 50 händelser per ärende.</li>
+        <li><code>buildBookingCaseBlockerReadout</code> styr UI-läge (t.ex. saknar tider → <code>candidate_slots</code>).</li>
+      </ul>
+      <h4>2. HTTP API — <code>ccoBookings</code></h4>
+      <p>Auth: session eller lokal preview enligt samma mönster som workspace.</p>
+      <table>
+        <thead>
+          <tr><th>Route</th><th>Roll</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GET /cco-bookings/case</code></td><td>Säkerställ/läs ärende för aktuell tråd</td></tr>
+          <tr><td><code>GET /cco-bookings/cases</code></td><td>Lista med filter/sortering</td></tr>
+          <tr><td><code>PUT /cco-bookings/case</code></td><td>Upsert metadata</td></tr>
+          <tr><td><code>POST /cco-bookings/candidates</code></td><td>Spara valda slot-kandidater</td></tr>
+          <tr><td><code>POST /cco-bookings/status</code></td><td>Byt status</td></tr>
+          <tr><td><code>POST /cco-bookings/event</code></td><td>Operatorhändelser / anteckningar</td></tr>
+          <tr><td><code>POST /cco-bookings/offer-draft</code></td><td>Status <code>offered</code> + mejlutkast (<code>buildOfferDraft</code>)</td></tr>
+          <tr><td><code>GET /cco-bookings/slots</code></td><td>Cliento slots (<code>fromDate</code>, <code>toDate</code>, <code>resIds</code>, <code>srvIds</code>)</td></tr>
+          <tr><td><code>GET /cco-bookings/ref-data</code></td><td>Cliento ref-data (resurser, tjänster m.m.)</td></tr>
+        </tbody>
+      </table>
+      <h4>3. Workspace-bootstrap — <code>ccoWorkspace</code></h4>
+      <p>
+        Vid <code>GET /cco-workspace/bootstrap</code> hämtas anteckningar, follow-up, <strong>bokningsärende</strong> och
+        prefs. Vid live-kontext anropas <code>bookingStore.ensureCase</code> med <code>status: 'needs_triage'</code> och
+        <code>source: 'workspace_bootstrap'</code>. <code>bookingReadout</code> berikar UI (status, blocker,
+        handoffCopy).
+      </p>
+      <h4>4. Server &amp; frontend</h4>
+      <ul>
+        <li><code>server.js</code> skapar <code>ccoBookingStore</code> (<code>config.ccoBookingStorePath</code>) och monterar boknings-routern.</li>
+        <li><code>runtime-async-orchestration.js</code> läser <code>bookingCase</code> / <code>bookingReadout</code> från bootstrap.</li>
+      </ul>
+      <h4>5. Tester</h4>
+      <p>
+        <code>tests/routes/ccoBookings.test.js</code>, <code>tests/routes/ccoWorkspace.test.js</code>,
+        <code>tests/ops/ccoBookingStore.test.js</code>
+      </p>
+      <h4>6. <code>cco-server</code> (intelligens)</h4>
+      <p>Ingen <code>ccoBookings.js</code> där ännu; <code>booking_request</code> finns i bl.a. intentClassifier, workload/priority/timing/lifecycle, capabilities och usageAnalytics.</p>
+      <h4>7. Agent / handoff</h4>
+      <ul>
+        <li><code>runtimeRegistry.js</code>: allowlist inkl. <code>booking_handoff</code>.</li>
+        <li><code>nextBestAction.js</code>: vid <code>booking_request</code> → <code>reply_with_booking_suggestion</code>.</li>
+      </ul>
+      <h4>8. Datadog MCP (<code>/ddsetup</code>)</h4>
+      <p>För loggar/metrics/traces i Cursor: konfigurera Datadog MCP-plugin enligt er site.</p>
+      <table>
+        <thead>
+          <tr><th>Site</th><th>MCP-domän</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>us1</td><td><code>mcp.datadoghq.com</code></td></tr>
+          <tr><td>us3</td><td><code>mcp.us3.datadoghq.com</code></td></tr>
+          <tr><td>us5</td><td><code>mcp.us5.datadoghq.com</code></td></tr>
+          <tr><td>eu</td><td><code>mcp.datadoghq.eu</code></td></tr>
+          <tr><td>ap1</td><td><code>mcp.ap1.datadoghq.com</code></td></tr>
+          <tr><td>ap2</td><td><code>mcp.ap2.datadoghq.com</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+  <script>
+    (function () {
+      function mountCcoBookingDocs() {
+        var template = document.getElementById('ccoBookingDocTemplate');
+        if (!template || !template.content) return;
+        ['ccoBookingDocOverviewMount', 'ccoBookingDocCcoMount'].forEach(function (mountId) {
+          var target = document.getElementById(mountId);
+          if (!target || target.getAttribute('data-mounted') === '1') return;
+          target.appendChild(document.importNode(template.content, true));
+          target.setAttribute('data-mounted', '1');
+        });
+      }
+      function applyCcoBookingDocHash() {
+        if (String(location.hash || '').trim() !== '#cco-booking-referens') return;
+        var el = document.getElementById('cco-booking-referens');
+        if (!el) return;
+        el.open = true;
+        requestAnimationFrame(function () {
+          el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+      }
+      function bootCcoBookingDocUi() {
+        mountCcoBookingDocs();
+        applyCcoBookingDocHash();
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootCcoBookingDocUi);
+      } else {
+        bootCcoBookingDocUi();
+      }
+      window.addEventListener('hashchange', applyCcoBookingDocHash);
+    })();
+  </script>
 
   <script src="/cco-next-customer-intelligence.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/cco-next-collaboration.js?v=__ARCANA_UI_BUILD__"></script>

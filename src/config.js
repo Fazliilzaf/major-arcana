@@ -563,9 +563,15 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_RECENT_WINDOW_DAYS,
     30
   ),
+  // Sänkt 2026-05-14 från 1095 (3 år) — orsakade SIGABRT 134 OOM-loop på
+  // Render Standard (2 GB RAM). Backfill-job processar lookbackDays i
+  // 30-day chunks per mailbox: 1095/30 × 6 mailboxar = 218 chunks per
+  // cykel × Graph API-payload = OOM. 90 dagar = 18 chunks total. Räcker
+  // för normal use case (recent history); för längre historik finns
+  // streaming endpoints separat.
   schedulerCcoHistoryBackfillLookbackDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_BACKFILL_LOOKBACK_DAYS,
-    1095
+    90
   ),
   schedulerCcoHistoryBackfillChunkDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_BACKFILL_CHUNK_DAYS,

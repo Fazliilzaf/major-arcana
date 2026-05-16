@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  ALLOWED_DRAFT_MODES,
   composeContextAwareDraft,
   resolveRecommendedMode,
 } = require('../../src/intelligence/draftComposer');
@@ -248,4 +249,119 @@ test('Draft composer can prefer calibrated mode when positive history is strong'
   });
 
   assert.equal(result.recommendedMode, 'professional');
+});
+
+test('resolveRecommendedMode prioritizes complaint and urgent tone', () => {
+  assert.equal(resolveRecommendedMode({ intent: 'complaint', tone: 'neutral' }), 'professional');
+  assert.equal(resolveRecommendedMode({ intent: 'follow_up', tone: 'urgent' }), 'short');
+});
+
+test('resolveRecommendedMode honors calibrated preferred mode when evidence is strong', () => {
+  const mode = resolveRecommendedMode({
+    intent: 'follow_up',
+    tone: 'neutral',
+    customerProfile: {
+      historyCalibrationPreferredMode: 'short',
+      historyCalibrationPositiveOutcomeCount: 3,
+      historyCalibrationNegativeOutcomeCount: 1,
+    },
+  });
+  assert.equal(mode, 'short');
+});
+
+test('resolveRecommendedMode maps concise tenant style to short', () => {
+  assert.equal(
+    resolveRecommendedMode({
+      intent: 'unclear',
+      tone: 'neutral',
+      tenantToneStyle: 'Vi vill vara korta och koncisa.',
+    }),
+    'short'
+  );
+});
+
+test('resolveRecommendedMode prefers professional for high-formality writing profile', () => {
+  assert.equal(
+    resolveRecommendedMode({
+      intent: 'unclear',
+      tone: 'neutral',
+      tenantToneStyle: 'balanserad',
+      writingProfile: { formalityLevel: 9, warmthIndex: 3 },
+    }),
+    'professional'
+  );
+});
+
+test('ALLOWED_DRAFT_MODES exporterar frysta tre standardlagen', () => {
+  assert.deepEqual(new Set(ALLOWED_DRAFT_MODES), new Set(['short', 'warm', 'professional']));
+  assert.throws(() => {
+    ALLOWED_DRAFT_MODES.push('extra');
+  });
+});
+
+test('resolveRecommendedMode cancellation med neutral ton blir professional', () => {
+  assert.equal(
+    resolveRecommendedMode({ intent: 'cancellation', tone: 'neutral', tenantToneStyle: '' }),
+    'professional'
+  );
+});
+
+test('composeContextAwareDraft med blank originalMessage ger alla tre lagen', async () => {
+  const result = await composeContextAwareDraft({
+    intent: 'unclear',
+    tone: 'neutral',
+    priorityLevel: 'Low',
+    tenantToneStyle: 'balanserad',
+    originalMessage: '   ',
+    customerProfile: {},
+  });
+  for (const mode of ['short', 'warm', 'professional']) {
+    assert.ok(String(result.draftModes[mode]).length > 20);
+  }
+});
+
+test('Draft composer injects medical safety when isMedicalTopic flag is true', async () => {
+  const result = await composeContextAwareDraft({
+    intent: 'follow_up',
+    tone: 'neutral',
+    priorityLevel: 'Medium',
+    tenantToneStyle: 'balanserad',
+    originalMessage: 'Hej, jag har en fraga om min bokning.',
+    customerProfile: {},
+    isMedicalTopic: true,
+    isAcute: false,
+  });
+  const text = String(result.draftModes.professional || '').toLowerCase();
+  assert.ok(text.includes('medicinsk'));
+});
+
+test('Draft composer injects acute safety when isAcute flag is true', async () => {
+  const result = await composeContextAwareDraft({
+    intent: 'follow_up',
+    tone: 'neutral',
+    priorityLevel: 'Medium',
+    tenantToneStyle: 'balanserad',
+    originalMessage: 'Enkel fraga om tider.',
+    customerProfile: {},
+    isMedicalTopic: false,
+    isAcute: true,
+  });
+  const text = String(result.draftModes.warm || '').toLowerCase();
+  assert.ok(text.includes('112') || text.includes('akutmottagning'));
+});
+
+test('Draft composer combines medical and acute safety copy', async () => {
+  const result = await composeContextAwareDraft({
+    intent: 'unclear',
+    tone: 'neutral',
+    priorityLevel: 'High',
+    tenantToneStyle: 'professionell',
+    originalMessage: 'Jag mar illa.',
+    customerProfile: {},
+    isMedicalTopic: true,
+    isAcute: true,
+  });
+  const text = String(result.draftModes.professional || '').toLowerCase();
+  assert.ok(text.includes('112'));
+  assert.ok(text.includes('medicinsk'));
 });

@@ -1261,6 +1261,7 @@ async function main() {
       0
   );
   const observabilityHasTraffic = observability?.summary?.hasTraffic === true;
+  const observabilityTotalRequests = Number(observability?.summary?.totalRequests || 0);
   const observabilitySampledRequests = Number(observability?.summary?.sampledRequests || 0);
   const observabilityErrorRatePct = Number(observability?.metrics?.errorRatePct || 0);
   const observabilityP95Ms = Number(observability?.metrics?.p95Ms || 0);
@@ -1680,7 +1681,7 @@ async function main() {
     `   tenantAccessCheck: enabled=${tenantAccessCheckEnabled ? 'yes' : 'no'} attempted=${tenantAccessCheckAttempted ? 'yes' : 'no'} ok=${tenantAccessCheckOk ? 'yes' : 'no'} status=${tenantAccessCheckStatus || '-'} tenant=${tenantAccessCheckTenantId}\n`
   );
   process.stdout.write(
-    `   observability: status=${observabilityOverall} alerts=${observabilityAlertsCount} hasTraffic=${observabilityHasTraffic ? 'yes' : 'no'} sampled=${observabilitySampledRequests} errorRatePct=${observabilityErrorRatePct} p95Ms=${observabilityP95Ms} slowRequests=${observabilitySlowRequests}\n`
+    `   observability: status=${observabilityOverall} alerts=${observabilityAlertsCount} hasTraffic=${observabilityHasTraffic ? 'yes' : 'no'} total=${observabilityTotalRequests} sampled=${observabilitySampledRequests} errorRatePct=${observabilityErrorRatePct} p95Ms=${observabilityP95Ms} slowRequests=${observabilitySlowRequests}\n`
   );
   process.stdout.write(
     `   releaseGovernance: cycle=${releaseCycleId} status=${releaseCycleStatus} gatePassed=${releaseGatePassed ? 'yes' : 'no'} blockers=${releaseBlockers} postLaunchReviewHealthy=${releasePostLaunchReviewHealthy ? 'yes' : 'no'} postLaunchStabilizationHealthy=${releasePostLaunchStabilizationHealthy ? 'yes' : 'no'} stabilizationEnforced=${releaseStabilizationEnforced ? 'yes' : 'no'} finalLiveSignoffLocked=${releaseFinalLiveSignoffLocked ? 'yes' : 'no'} finalLiveSignoffLockedAt=${releaseFinalLiveSignoffLockedAt} realityAuditHealthy=${releaseRealityAuditHealthy ? 'yes' : 'no'}\n`
