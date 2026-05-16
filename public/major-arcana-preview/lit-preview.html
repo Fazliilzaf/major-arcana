@@ -90,6 +90,9 @@
 
     <script type="module">
       import './app/components/arcana-thread-card.js';
+      import { threadToCardProps } from './app/components/thread-to-card-props.js';
+      // Vänta tills parser har laddats (system-mail-parser.js är non-module)
+      await new Promise((r) => setTimeout(r, 300));
 
       const cases = [
         {
@@ -211,6 +214,97 @@
         `;
         wrap.querySelector('arcana-thread-card').thread = c.thread;
         grid.appendChild(wrap);
+      }
+
+      // ─────────────────────────────────────────────────────────
+      // FAS 3: Adapter-test
+      // Sample API-thread (sådan som worklist-API:t skickar) går
+      // genom threadToCardProps() och visas. Bevisar att adaptern
+      // matchar hand-craftade cases ovan.
+      // ─────────────────────────────────────────────────────────
+      const adapterSection = document.createElement('div');
+      adapterSection.style.cssText = 'grid-column: 1 / -1; margin-top: 36px; padding-top: 24px; border-top: 1px solid #e2e8f0;';
+      adapterSection.innerHTML = `
+        <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 4px; color: #1e293b;">Fas 3 — Adapter-test</h2>
+        <p class="sub" style="margin: 0 0 16px;">
+          Äkta worklist-API-thread → <code>threadToCardProps()</code> → komponent.
+          Adaptern producerar samma form som hand-craftade cases ovan.
+        </p>
+      `;
+      grid.appendChild(adapterSection);
+
+      const apiSamples = [
+        {
+          label: 'API: Cliento booking',
+          rawThread: {
+            id: 'no-reply@cliento.com',
+            conversationId: 'cliento-123',
+            customerEmail: 'no-reply@cliento.com',
+            customerName: 'No Reply',
+            fromName: 'No Reply',
+            from: { name: 'No Reply', address: 'no-reply@cliento.com' },
+            subject: 'Bokning · Maria Lindberg · 17 maj 10:00',
+            preview: 'Bekräftelse: Maria Lindberg har bokat tid.',
+            primaryLaneId: 'bookable',
+            lastActivityLabel: 'Idag 12:29',
+            displayOwnerLabel: 'Ej tilldelad',
+            mailboxLabel: 'contact',
+            whyText: 'Tid kan erbjudas',
+            customerClusterCount: 0,
+          },
+        },
+        {
+          label: 'API: Klagomål (cluster primary, hög risk)',
+          rawThread: {
+            id: 'demo-el-004',
+            conversationId: 'klagomal-456',
+            customerEmail: 'erik@example.com',
+            customerName: 'Erik Lindqvist',
+            fromName: 'Erik Lindqvist',
+            subject: 'Återkoppling om PRP-resultat',
+            preview: 'AI-utkast flaggat för granskning — innehåller prisuppgift.',
+            primaryLaneId: 'review',
+            lastActivityLabel: 'Idag 09:15',
+            displayOwnerLabel: 'Ej tilldelad',
+            mailboxLabel: 'egzona',
+            whyText: 'Hög risk',
+            customerClusterCount: 3,
+            hasAiDraft: true,
+          },
+        },
+        {
+          label: 'API: Klarna marketing',
+          rawThread: {
+            id: 'noreply@hello.klarna.com',
+            conversationId: 'klarna-789',
+            customerEmail: 'noreply@hello.klarna.com',
+            customerName: 'Noreply',
+            fromName: 'Noreply',
+            from: { name: 'Noreply', address: 'noreply@hello.klarna.com' },
+            subject: 'Skaffa det smartare kreditkortet',
+            preview: 'Marknadsföring från Klarna — inget kund-svar krävs.',
+            primaryLaneId: 'unclear',
+            lastActivityLabel: '11:02',
+            displayOwnerLabel: 'Ej tilldelad',
+            mailboxLabel: 'info',
+            whyText: 'Svar krävs nu',
+          },
+        },
+      ];
+
+      for (const sample of apiSamples) {
+        const wrap = document.createElement('div');
+        wrap.className = 'case';
+        wrap.innerHTML = `
+          <div class="case-label">${sample.label}<small>via threadToCardProps()</small></div>
+          <arcana-thread-card></arcana-thread-card>
+        `;
+        const props = threadToCardProps(sample.rawThread);
+        wrap.querySelector('arcana-thread-card').thread = props;
+        grid.appendChild(wrap);
+
+        // Logga adapter-output till console för debug
+        console.log('[adapter]', sample.label, '→', props);
       }
     </script>
   </body>
