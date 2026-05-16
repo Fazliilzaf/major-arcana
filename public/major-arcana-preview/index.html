@@ -1694,7 +1694,7 @@
                               </button>
                             </div>
                             <p class="booking-ref-status" data-booking-ref-status>
-                              Hämta Cliento-val eller skriv id manuellt.
+                              Hämta behandlare och behandlingar från CCO-kalendern, eller skriv id manuellt.
                             </p>
 
                             <ul
@@ -1710,7 +1710,7 @@
                             <ul class="booking-slot-list" data-booking-slot-list>
                               <li class="booking-slot-empty">
                                 <strong>Inga tider valda</strong>
-                                <span>Hämta Cliento-slots eller välj kandidater manuellt.</span>
+                                <span>Hämta tider från CCO-kalendern eller välj kandidater manuellt.</span>
                               </li>
                             </ul>
 
@@ -1739,6 +1739,15 @@
                                 data-booking-action="candidate_slots"
                               >
                                 Välj 3 tider
+                              </button>
+                              <button
+                                class="booking-action booking-action-confirmed"
+                                type="button"
+                                data-booking-action="reserve_slots"
+                                data-booking-requires-slots="true"
+                                title="Reservera valda tider i CCO-kalendern."
+                              >
+                                Reservera i CCO
                               </button>
                               <button
                                 class="booking-action booking-action-secondary"
@@ -1777,7 +1786,7 @@
                                 type="button"
                                 data-booking-action="confirm_external"
                               >
-                                Bekräftad externt
+                                Bekräfta i CCO
                               </button>
                               <button
                                 class="booking-action booking-action-secondary"
@@ -10097,21 +10106,6 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     </main>
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
-    <!-- Lit web components (Fas 1 av state-driven UI migration, 2026-05-16).
-         Komponenten är registrerad som <arcana-thread-card> men används INTE
-         ännu av någon renderare. Testas manuellt via:
-           const c = document.createElement('arcana-thread-card');
-           c.thread = { sender: 'X', subject: 'Y', pills: [] };
-           document.body.appendChild(c);
-         När den valideras visuellt över alla cases → byts buildThreadCardMarkup
-         ut mot komponenten i nästa fas. -->
-    <script type="module" src="./app/components/arcana-thread-card.js?v=fas10-revert2"></script>
-    <!-- Fas 4: Lit-switchover för Bokning-kö. Aktiveras BARA när URL har
-         ?layout=lit. Visar sidopanel med Lit-cards från live worklist-data.
-         Original-cards orörda.
-         Fas 7: Customer-cluster-grouping integrerat — Lit-cards renderas
-         med primary/sub-roller och cluster-pillen togglar expand/collapse. -->
-    <script type="module" src="./app/components/lit-switchover.js?v=fas10-revert2"></script>
     <!-- Preview-config: definierar window.MajorArcanaPreviewConfig som app.js läser. MÅSTE laddas före allt annat. -->
     <script src="./runtime-config.js?v=build-01afc5c"></script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 902ffae184) -->
@@ -10139,13 +10133,13 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          app/inbox-filter-toggle.js, app/keyboard-footer.js + 35 runtime-*.js raderade —
          de var aldrig faktiskt bundlade i app.bundle.min.js (verifierat via grep) och
          deras window.__X-globals användes inte från live-koden. ~1.2 MB skräp borttaget. -->
-    <!-- Fas 9 av Lit-migration (2026-05-16): 3 DOM-shims rivna eftersom
-         arcana-thread-card + pure functions (thread-pills.js,
-         parser-resolver.js, customer-cluster-grouper.js) ersätter dem helt.
-         Borttagna: signal-bar.js (406 LOC), customer-cluster.js (227 LOC),
-         system-mail-display.js (173 LOC). Total: 806 LOC + 31 KB. -->
-    <!-- System-mail parser: BEHÅLLS — används av parser-resolver.js via
-         window.MajorArcanaSystemMailParser för three-tier sender-resolving. -->
-    <script src="./app/system-mail-parser.js?v=fas10-revert2"></script>
+    <!-- Signal-bar: inline-pills bredvid "Behöver svar" med tillhörande färg+symbol -->
+    <script src="./app/signal-bar.js?v=build-01afc5c"></script>
+    <!-- Customer-cluster: flera trådar från samma kund samlas till EN kort -->
+    <script src="./app/customer-cluster.js?v=build-01afc5c"></script>
+    <!-- System-mail parser: extraherar kundnamn ur Cliento/Smartdocs/Bokadirekt-mejl -->
+    <script src="./app/system-mail-parser.js?v=build-01afc5c"></script>
+    <!-- System-mail display: applicerar parsern på live-cards via MutationObserver -->
+    <script src="./app/system-mail-display.js?v=build-01afc5c"></script>
     </body>
 </html>
