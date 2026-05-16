@@ -3,17 +3,18 @@
  * Fas 4 av Lit-migration — preview-läge för Lit-cards i live-appen.
  * Fas 8 av Lit-migration — full switch-over för ALLA köer.
  * Fas 9 av Lit-migration — Lit-mode default, shims rivna.
+ * Fas 10 av Lit-migration — state-store ersätter DOM-scraping.
  *
  * Default: Lit replace-mode för alla cards i alla köer (no URL flag needed).
+ *
+ * Data-källa: thread-store via subscribe(). DOM-scraping är flyttad till
+ * thread-store-bridge.js — denna fil läser BARA från store.
  *
  * URL-overrides:
  *
  *   ?layout=legacy
  *     - Helt no-op. Visar app.js's rå DOM-cards utan Lit-overlay.
- *     - OBS: Eftersom shimsen (signal-bar.js, system-mail-display.js,
- *       customer-cluster.js) raderats i Fas 9, kommer pillar, cluster
- *       och system-mail-parsing INTE att appliceras i legacy-läge.
- *     - Endast för akut-rollback om Lit-mode är trasigt.
+ *     - Akut-rollback. Bridge & store är inaktiva, ingen overhead.
  *
  *   ?layout=lit&mode=panel
  *     - Original-cards orörda och synliga
@@ -26,8 +27,8 @@
  *
  * Säkerhet:
  *   - Replace-mode rör inte originalets innehåll, bara display
- *   - Cluster-toggle event går via customer-cluster-grouper.js's
- *     localStorage-key (cco.customerCluster.expanded.v1)
+ *   - Click på Lit-card → bridge.getLiveCardForThread(id) → .click() på det
+ *     dolda originalet → app.js's delegerade handlers triggas
  */
 import './arcana-thread-card.js';
 import { threadToCardProps } from './thread-to-card-props.js';
@@ -37,15 +38,16 @@ import {
   readExpandedKeys,
   toggleExpanded,
 } from './customer-cluster-grouper.js';
+import { subscribe, getThreads } from './thread-store.js';
+import { startBridge, getLiveCardForThread } from './thread-store-bridge.js';
 
 // OBS: dessa let-deklarationer MÅSTE ligga FÖRE init()-anropet (TDZ).
 let panel = null;
 let replaceContainer = null;
 let renderScheduled = false;
+let storeUnsubscribe = null;
 
 const SEARCH = new URLSearchParams(location.search);
-// Fas 9: Lit-mode är default. ?layout=legacy gör no-op (visar rå app.js-DOM
-// utan shims, för akut-rollback).
 const LAYOUT = SEARCH.get('layout');
 const ACTIVE = LAYOUT !== 'legacy';
 const MODE = SEARCH.get('mode') === 'panel' ? 'panel' : 'replace';
@@ -59,13 +61,16 @@ if (!ACTIVE) {
 
 function init() {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startObserver, { once: true });
+    document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
-    startObserver();
+    start();
   }
 }
 
-function startObserver() {
+function start() {
+  // Starta bridge:n (DOM → store) FÖRST så vi har data när Lit subscribar
+  startBridge();
+
   if (MODE === 'panel') {
     panel = createPanel();
     document.body.appendChild(panel);
@@ -73,10 +78,11 @@ function startObserver() {
     mountReplaceContainer();
   }
 
+  // Subscribe på store — render när data ändras
+  storeUnsubscribe = subscribe(() => schedule());
+
+  // Initial render (för fallet där store redan har data)
   schedule();
-  const observerTarget = document.querySelector('.queue-history-list') || document.body;
-  const obs = new MutationObserver(() => schedule());
-  obs.observe(observerTarget, { childList: true, subtree: true });
 }
 
 function schedule() {
@@ -91,17 +97,10 @@ function schedule() {
 
 // ─────────── Helpers delade mellan panel- och replace-mode ───────────
 
-function scrapeAllLiveCards(filter) {
-  return Array.from(
-    document.querySelectorAll(
-      '.queue-history-list .thread-card[data-runtime-thread]:not([data-runtime-thread="runtime-unified-empty"])',
-    ),
-  ).filter((c) => (filter ? filter(c) : true));
-}
-
-function buildPropsListFromCards(cards) {
-  const shapes = cards.map(scrapeCardData);
-  return shapes.map((t) => ({
+function buildPropsListFromStore(filter) {
+  const threads = getThreads();
+  const filtered = filter ? threads.filter(filter) : threads;
+  return filtered.map((t) => ({
     ...t,
     ...threadToCardProps(t),
     // Behåll original-fältnamn customer-cluster-grouper förstår
@@ -119,13 +118,12 @@ function applyClusterAttributes(litCard, state) {
   if (state.hidden) litCard.setAttribute('cluster-hidden', '');
 }
 
-function wireCardEvents(litCard, liveCard) {
+function wireCardEvents(litCard, threadId) {
   litCard.addEventListener('click', (e) => {
     if (e.defaultPrevented) return;
+    // Slå upp live-cardet via bridge istället för att hålla en direkt-ref
+    const liveCard = getLiveCardForThread(threadId);
     if (liveCard) {
-      // OBS: scrollIntoView fungerar inte på display:none element, så det
-      // är hoppas-över i replace-mode. Click() bubblar fortfarande till
-      // app.js's delegerade handlers.
       if (liveCard.offsetParent !== null) {
         liveCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
@@ -140,21 +138,19 @@ function wireCardEvents(litCard, liveCard) {
   });
 }
 
-// ─────────── Mode: REPLACE (Fas 8) ───────────
+// ─────────── Mode: REPLACE (Fas 8+10) ───────────
 
 function mountReplaceContainer() {
   const list = document.querySelector('.queue-history-list');
   if (!list) {
-    // App har inte renderat listan än — försök igen om 200 ms
     setTimeout(mountReplaceContainer, 200);
     return;
   }
 
-  // Göm originalet (display:none → behåll i DOM för scraping + click)
+  // Göm originalet (display:none → behåll i DOM för bridge-scraping + click)
   list.dataset.litHidden = 'true';
   list.style.display = 'none';
 
-  // Skapa Lit-container precis efter originalet
   replaceContainer = document.createElement('div');
   replaceContainer.className = 'lit-queue-replacement';
   replaceContainer.dataset.litMode = 'replace';
@@ -166,7 +162,6 @@ function mountReplaceContainer() {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   `;
 
-  // Liten statusrad högst upp för debug
   const status = document.createElement('div');
   status.className = 'lit-replace-status';
   status.style.cssText = `
@@ -181,7 +176,7 @@ function mountReplaceContainer() {
     justify-content: space-between;
   `;
   status.innerHTML = `
-    <span class="lit-replace-status-text">Lit-läget aktivt (default)</span>
+    <span class="lit-replace-status-text">Lit-läget aktivt (default · state-store)</span>
     <span style="font-size:10px;color:#cbd5e1;">Akut-rollback: <a href="?layout=legacy" style="color:#6366f1;text-decoration:none;">?layout=legacy</a></span>
   `;
   replaceContainer.appendChild(status);
@@ -200,35 +195,29 @@ function renderLitReplacement() {
   const statusText = replaceContainer.querySelector('.lit-replace-status-text');
   if (!grid) return;
 
-  // ALLA cards (inget lane-filter — det är skillnaden mot panel-mode)
-  const liveCards = scrapeAllLiveCards();
-
-  if (liveCards.length === 0) {
+  const propsList = buildPropsListFromStore(); // ALLA threads
+  if (propsList.length === 0) {
     grid.innerHTML =
       '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">Inga cards i kön just nu.</div>';
-    if (statusText) statusText.textContent = 'Lit-replacement aktiv · 0 cards';
+    if (statusText) statusText.textContent = 'Lit-läget aktivt · 0 cards';
     return;
   }
 
-  const propsList = buildPropsListFromCards(liveCards);
   const expanded = readExpandedKeys();
   const grouped = groupThreadsByCustomer(propsList, expanded);
   const ordered = orderForRender(propsList, grouped);
 
-  // Re-render: enkel diff-strategi → bygg om hela grid. Lit-Element batchar
-  // sin egen rendering så detta är snabbt nog för <500 cards.
+  // Diff-strategi: bygg om hela grid. Lit-Element batchar internt.
   grid.innerHTML = '';
   let subCount = 0;
   ordered.forEach((props) => {
-    const idx = propsList.indexOf(props);
-    const live = liveCards[idx];
     const state = grouped.threadStateById.get(String(props.id || ''));
 
     const litCard = document.createElement('arcana-thread-card');
     litCard.thread = props;
     applyClusterAttributes(litCard, state);
     if (state?.role === 'sub') subCount += 1;
-    wireCardEvents(litCard, live);
+    wireCardEvents(litCard, props.id);
     grid.appendChild(litCard);
   });
 
@@ -236,7 +225,7 @@ function renderLitReplacement() {
     const groupCount = grouped.groups.length;
     const groupNote = groupCount > 0 ? ` · ${groupCount} cluster (${subCount} sub)` : '';
     const lanes = new Set(propsList.map((p) => p.lane).filter(Boolean));
-    statusText.textContent = `Lit-replacement · ${liveCards.length} cards · ${lanes.size} köer${groupNote}`;
+    statusText.textContent = `Lit (state-store) · ${propsList.length} cards · ${lanes.size} köer${groupNote}`;
   }
 }
 
@@ -247,35 +236,32 @@ function renderLitPreview() {
   const grid = panel.querySelector('.lit-grid');
   if (!grid) return;
 
-  const liveCards = scrapeAllLiveCards((c) => {
-    const lane = (c.dataset.lane || '').toLowerCase();
+  const propsList = buildPropsListFromStore((t) => {
+    const lane = (t.primaryLaneId || '').toLowerCase();
     return lane === 'bookable' || lane === 'bokning' || lane === 'booking';
   });
 
-  if (liveCards.length === 0) {
+  if (propsList.length === 0) {
     grid.innerHTML =
       '<div class="lit-empty">Inga Bokning-cards i kön just nu. Visa Bokning-filter eller vänta på data.</div>';
     return;
   }
 
-  const visibleCards = liveCards.slice(0, 8);
-  const propsList = buildPropsListFromCards(visibleCards);
+  const visiblePropsList = propsList.slice(0, 8);
   const expanded = readExpandedKeys();
-  const grouped = groupThreadsByCustomer(propsList, expanded);
-  const ordered = orderForRender(propsList, grouped);
+  const grouped = groupThreadsByCustomer(visiblePropsList, expanded);
+  const ordered = orderForRender(visiblePropsList, grouped);
 
   grid.innerHTML = '';
   let subCount = 0;
   ordered.forEach((props) => {
-    const idx = propsList.indexOf(props);
-    const live = visibleCards[idx];
     const state = grouped.threadStateById.get(String(props.id || ''));
 
     const litCard = document.createElement('arcana-thread-card');
     litCard.thread = props;
     applyClusterAttributes(litCard, state);
     if (state?.role === 'sub') subCount += 1;
-    wireCardEvents(litCard, live);
+    wireCardEvents(litCard, props.id);
     grid.appendChild(litCard);
   });
 
@@ -283,40 +269,8 @@ function renderLitPreview() {
   if (status) {
     const groupCount = grouped.groups.length;
     const groupNote = groupCount > 0 ? ` · ${groupCount} cluster (${subCount} sub)` : '';
-    status.textContent = `${ordered.length} av ${liveCards.length} bokning-cards rendrade${groupNote}`;
+    status.textContent = `${ordered.length} av ${propsList.length} bokning-cards rendrade${groupNote}`;
   }
-}
-
-/**
- * Skrapa data från ett befintligt thread-card-element och bygg ett
- * thread-objekt som threadToCardProps kan konsumera.
- */
-function scrapeCardData(card) {
-  const text = (sel) => card.querySelector(sel)?.textContent?.trim() || '';
-  return {
-    id: card.dataset.runtimeThread || card.dataset.historyConversation || '',
-    customerEmail: card.dataset.runtimeThread || '',
-    customerName: text('.warm-sender, .thread-subject-primary'),
-    subject: text('.warm-subject, .thread-subject-context'),
-    preview: text('.warm-preview, .thread-story'),
-    primaryLaneId: card.dataset.lane || '',
-    lastActivityLabel: text('.warm-meta time, .thread-card-stamp-top time'),
-    displayOwnerLabel: text('.meta-status, .thread-owner'),
-    mailboxLabel: text('.warm-mailbox, .thread-intelligence-item--mailbox'),
-    whyText: text('.warm-why-text, .warm-why .why-reason'),
-    systemMailLabel: card.dataset.systemMailLabel || null,
-    customerClusterCount: Number(card.dataset.customerClusterCount) || 0,
-    // Fas 7: server-styrd cluster-data
-    ccClusterGroup: card.dataset.ccClusterGroup || '',
-    ccClusterRole: card.dataset.ccClusterRole || '',
-    ccClusterSize: Number(card.dataset.ccClusterSize) || 0,
-    crossMailboxProvenanceEvidence:
-      card.classList.contains('cross-mailbox-card') ||
-      card.dataset.crossMailbox === 'true',
-    raw: {
-      from: { address: card.dataset.runtimeThread || '' },
-    },
-  };
 }
 
 function createPanel() {
@@ -344,8 +298,7 @@ function createPanel() {
     <p class="lit-status" style="font-size:11px;color:#94a3b8;margin:0 0 12px;">Söker bokning-cards…</p>
     <div class="lit-grid" style="display:flex;flex-direction:column;gap:12px;"></div>
     <p style="font-size:11px;color:#cbd5e1;margin:16px 0 0;line-height:1.4;">
-      Lit-cards rendrade från live worklist-data via threadToCardProps.
-      Klick scrollar till original-cardet och triggrar dess action.
+      Lit-cards från state-store (Fas 10). Klick triggar original-cardets action.
       <br><br>
       Bytte till full replace? Använd <code>?layout=lit</code> utan mode-param.
       <br>
@@ -368,5 +321,6 @@ if (typeof window !== 'undefined') {
     get mode() { return MODE; },
     get active() { return ACTIVE; },
     rerender: schedule,
+    unsubscribe: () => { if (storeUnsubscribe) storeUnsubscribe(); },
   };
 }
