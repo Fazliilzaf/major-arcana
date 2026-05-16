@@ -1620,6 +1620,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const proposalSpanBadge =') &&
       source.includes('const proposalTimeBandBadge =') &&
       source.includes('const proposalTimingBadge =') &&
+      source.includes('const proposalResourceBadge =') &&
       source.includes('getBookingSlotTimeBand(slot)') &&
       source.includes('Ett tydligt förslag') &&
       source.includes('Samma dag') &&
@@ -1627,6 +1628,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Tid saknas') &&
       source.includes('Starttid saknas') &&
       source.includes('Snabb tid') &&
+      source.includes('Behandlare saknas') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
       ) &&
@@ -1649,6 +1651,7 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Blandade tider') &&
       source.includes('Kommande dagar') &&
       source.includes('Längre fram') &&
+      source.includes('Flera behandlare') &&
       source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'

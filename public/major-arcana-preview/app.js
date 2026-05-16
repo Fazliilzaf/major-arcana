@@ -28190,6 +28190,21 @@
         : msUntilEarliest <= 7 * 24 * 60 * 60 * 1000
           ? { label: "Kommande dagar", tone: "count" }
           : { label: "Längre fram", tone: "count" };
+    const resourceLabels = [
+      ...new Set(
+        selectedSlots
+          .map((slot) =>
+            asText(slot.resourceLabel || slot.resourceName || slot.resourceId || slot.resourceKey)
+          )
+          .filter(Boolean)
+      ),
+    ];
+    const proposalResourceBadge =
+      resourceLabels.length === 0
+        ? { label: "Behandlare saknas", tone: "attention" }
+        : resourceLabels.length === 1
+          ? { label: resourceLabels[0], tone: "count" }
+          : { label: "Flera behandlare", tone: "count" };
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28202,6 +28217,7 @@
           proposalSpanBadge,
           proposalTimeBandBadge,
           proposalTimingBadge,
+          proposalResourceBadge,
           { label: "Föråldrat förslag", tone: "attention" },
           handoffBadge,
           deliveryBadge,
@@ -28228,6 +28244,7 @@
           proposalSpanBadge,
           proposalTimeBandBadge,
           proposalTimingBadge,
+          proposalResourceBadge,
           { label: "Ej infogat ännu", tone: "studio" },
           handoffBadge,
           deliveryBadge,
@@ -28255,6 +28272,7 @@
         proposalSpanBadge,
         proposalTimeBandBadge,
         proposalTimingBadge,
+        proposalResourceBadge,
         {
           label: offerAt ? `Infogat ${formatBookingEventTime(offerAt)}` : "Synkat med förslaget",
           tone: "confirmed",
