@@ -2087,6 +2087,7 @@
         if (type === "scroll depth") accumulator.scrollDepth += 1;
         if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
         if (type === "collection shortcut opened") accumulator.collectionShortcuts += 1;
+        if (type === "collection card tapped") accumulator.collectionCardTaps += 1;
         if (type === "browse collections") accumulator.browseCollections += 1;
         if (type === "portal jump") accumulator.portalJumps += 1;
         return accumulator;
@@ -2102,6 +2103,7 @@
         scrollDepth: 0,
         collectionRailScrolls: 0,
         collectionShortcuts: 0,
+        collectionCardTaps: 0,
         browseCollections: 0,
         portalJumps: 0,
         latest: null,
@@ -4009,6 +4011,7 @@
         <span>${escapeHtml(`${summary.scrollDepth} scroll milestones`)}</span>
         <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
         <span>${escapeHtml(`${summary.collectionShortcuts} collection shortcuts`)}</span>
+        <span>${escapeHtml(`${summary.collectionCardTaps} collection card taps`)}</span>
         <span>${escapeHtml(`${summary.browseCollections} browse jumps`)}</span>
         <span>${escapeHtml(`${summary.portalJumps} portal jumps`)}</span>
       </div>
@@ -4017,7 +4020,7 @@
         <strong>${escapeHtml(
           latestSignal
             ? formatPortalMoment(latestSignal.createdAt)
-            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, and collection shortcuts."
+            : "Track library adds, publish, share, preview, viewed, acknowledge, scroll depth, collection shortcuts, and collection card taps."
         )}</strong>
       </div>
     `;
@@ -4609,7 +4612,7 @@
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
                   </span>
-                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added" : "Tap to add"}</span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added to library" : "Tap or drag to add"}</span>
                 </span>
               </button>
             `;
@@ -4641,7 +4644,7 @@
                       ${renderProductLevelBadges(item, item.id, "product-level-badge")}
                     </span>
                   </span>
-                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added" : "Tap to add"}</span>
+                  <span class="collection-result-action">${owned ? "In library" : pending ? "Added to library" : "Tap or drag to add"}</span>
                 </span>
               </button>
             `;
@@ -4706,6 +4709,15 @@
     productScroller.querySelectorAll("[data-product-id]").forEach((button) => {
       button.addEventListener("click", function () {
         const catalogId = button.getAttribute("data-product-id");
+        const product = getCatalogItem(catalogId);
+        const ownedBefore = Boolean(catalogId && state.customerLibrary.includes(catalogId));
+        recordAnalyticsEvent("collection card tapped", "Collection card tapped", {
+          catalogId,
+          productName: product ? product.name : "",
+          collection: product ? product.collection : "",
+          type: product ? product.type : "",
+          ownedBefore,
+        });
         addCatalogToLibrary(catalogId);
         setPendingCatalog(catalogId);
       });
