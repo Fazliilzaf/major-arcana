@@ -1,13 +1,14 @@
 (function () {
   const STORAGE_KEY = "torti-ritual-saved-sheets-v1";
+  const ANALYTICS_STORAGE_KEY = "torti-ritual-analytics-v1";
   const PORTAL_STORAGE_KEY = "torti-ritual-portal-records-v1";
   const PORTAL_REMOTE_PATHS = {
-    overview: "/cco-workspace/portal",
-    draft: "/cco-workspace/portal/drafts",
-    publish: "/cco-workspace/portal/publish",
-    customer: "/cco/customers/portal",
-    viewed: "/cco/customers/portal/viewed",
-    acknowledgeBase: "/cco/customers/portal/notifications",
+    overview: "/api/v1/cco-workspace/portal",
+    draft: "/api/v1/cco-workspace/portal/drafts",
+    publish: "/api/v1/cco-workspace/portal/publish",
+    customer: "/api/v1/cco/customers/portal",
+    viewed: "/api/v1/cco/customers/portal/viewed",
+    acknowledgeBase: "/api/v1/cco/customers/portal/notifications",
   };
   const ZONE_LAYOUT_VERSION = "cluster-horizontal-v1";
 
@@ -1043,6 +1044,9 @@
     portalRemoteStatus: {},
     portalRemoteHydrationSignatures: {},
     portalRemoteSyncSignatures: {},
+    analyticsEvents: [],
+    analyticsScrollTrackingBound: false,
+    analyticsRailTrackingBound: false,
   };
 
   let bottleSeed = 0;
@@ -1870,8 +1874,15 @@
       return;
     }
 
+    const product = getCatalogItem(catalogId);
     state.customerLibrary = normalizeCustomerLibrary(state.customerLibrary.concat(catalogId), state.layers);
     state.productLevelSelections = normalizeProductLevelSelections(state.productLevelSelections, state.customerLibrary, state.layers);
+    recordAnalyticsEvent("library added", "Product added to library", {
+      catalogId,
+      productName: product ? product.name : "",
+      collection: product ? product.collection : "",
+      type: product ? product.type : "",
+    });
   }
 
   function getSnapshotZoneLabelOffsets(snapshot) {
@@ -1997,6 +2008,180 @@
     } catch (error) {
       console.warn("Could not persist saved Torti sheets", error);
     }
+  }
+
+  function normalizeAnalyticsEvent(input) {
+    const now = nowIso();
+    const event = input && typeof input === "object" ? input : {};
+
+    return {
+      eventId:
+        normalizeText(event.eventId) ||
+        `torti-analytics-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: normalizeText(event.type) || "signal",
+      label: normalizeText(event.label) || "Signal",
+      meta: event.meta && typeof event.meta === "object" ? { ...event.meta } : {},
+      createdAt: normalizeText(event.createdAt) || now,
+    };
+  }
+
+  function loadAnalyticsEvents() {
+    try {
+      const raw = window.localStorage.getItem(ANALYTICS_STORAGE_KEY);
+      if (!raw) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.map((item) => normalizeAnalyticsEvent(item));
+    } catch (error) {
+      console.warn("Could not load Torti analytics", error);
+      return [];
+    }
+  }
+
+  function persistAnalyticsEvents() {
+    try {
+      window.localStorage.setItem(ANALYTICS_STORAGE_KEY, JSON.stringify(state.analyticsEvents));
+    } catch (error) {
+      console.warn("Could not persist Torti analytics", error);
+    }
+  }
+
+  function recordAnalyticsEvent(type, label, meta = {}) {
+    const event = normalizeAnalyticsEvent({
+      type,
+      label,
+      meta,
+    });
+    state.analyticsEvents = [event].concat(state.analyticsEvents).slice(0, 80);
+    persistAnalyticsEvents();
+    renderPortalAnalytics();
+    return event;
+  }
+
+  function getAnalyticsSummary() {
+    return state.analyticsEvents.reduce(
+      (accumulator, event) => {
+        const type = normalize(event.type);
+        accumulator.total += 1;
+        if (!accumulator.latest) {
+          accumulator.latest = event;
+        }
+        if (type === "library added") accumulator.libraryAdds += 1;
+        if (type === "portal published") accumulator.publishes += 1;
+        if (type === "share copied") accumulator.shareCopies += 1;
+        if (type === "customer preview") accumulator.previews += 1;
+        if (type === "portal viewed") accumulator.views += 1;
+        if (type === "notification acknowledged") accumulator.acknowledgements += 1;
+        if (type === "scroll depth") accumulator.scrollDepth += 1;
+        if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
+        return accumulator;
+      },
+      {
+        total: 0,
+        libraryAdds: 0,
+        publishes: 0,
+        shareCopies: 0,
+        previews: 0,
+        views: 0,
+        acknowledgements: 0,
+        scrollDepth: 0,
+        collectionRailScrolls: 0,
+        latest: null,
+      }
+    );
+  }
+
+  function getRecordedScrollDepthThresholds() {
+    return new Set(
+      state.analyticsEvents
+        .filter((event) => normalize(event.type) === "scroll depth")
+        .map((event) => Number((event.meta && event.meta.depth) || 0))
+        .filter((depth) => Number.isFinite(depth) && depth > 0)
+    );
+  }
+
+  function getPageScrollDepth() {
+    const doc = document.documentElement;
+    const viewportHeight = window.innerHeight || doc.clientHeight || 0;
+    const documentHeight = Math.max(doc.scrollHeight || 0, document.body ? document.body.scrollHeight || 0 : 0);
+    const maxScroll = Math.max(documentHeight - viewportHeight, 0);
+
+    if (maxScroll <= 0) {
+      return 100;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(((window.scrollY || doc.scrollTop || 0) / maxScroll) * 100)));
+  }
+
+  function recordScrollDepthSignals() {
+    const depth = getPageScrollDepth();
+    const thresholds = [25, 50, 75, 90];
+    const recordedThresholds = getRecordedScrollDepthThresholds();
+    let recorded = false;
+
+    thresholds.forEach((threshold) => {
+      if (depth >= threshold && !recordedThresholds.has(threshold)) {
+        recordAnalyticsEvent("scroll depth", `Scrolled ${threshold}%`, {
+          depth: threshold,
+          pageDepth: depth,
+        });
+        recorded = true;
+      }
+    });
+
+    return recorded;
+  }
+
+  function bindAnalyticsScrollTracking() {
+    if (state.analyticsScrollTrackingBound) {
+      return;
+    }
+
+    state.analyticsScrollTrackingBound = true;
+
+    const handleScroll = function () {
+      recordScrollDepthSignals();
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+  }
+
+  function bindCollectionRailTracking() {
+    if (!productScroller || state.analyticsRailTrackingBound) {
+      return;
+    }
+
+    state.analyticsRailTrackingBound = true;
+
+    const handleRailScroll = function () {
+      if (productScroller.scrollLeft <= 0) {
+        return;
+      }
+
+      const alreadyRecorded = state.analyticsEvents.some(
+        (event) => normalize(event.type) === "collection rail scrolled"
+      );
+
+      if (alreadyRecorded) {
+        return;
+      }
+
+      recordAnalyticsEvent("collection rail scrolled", "Collections rail browsed", {
+        scrollLeft: Math.round(productScroller.scrollLeft),
+        activeSection: state.activeCollectionSection,
+      });
+    };
+
+    productScroller.addEventListener("scroll", handleRailScroll, { passive: true });
+    handleRailScroll();
   }
 
   function loadSavedSheets() {
@@ -2402,10 +2587,17 @@
     const shareUrl = buildPortalShareUrl(snapshot);
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       await navigator.clipboard.writeText(shareUrl);
+      recordAnalyticsEvent("share copied", "Portal link copied", {
+        customerKey: getPortalCustomerKey(snapshot),
+      });
       return true;
     }
 
     window.prompt("Copy portal link", shareUrl);
+    recordAnalyticsEvent("share copied", "Portal link copied", {
+      customerKey: getPortalCustomerKey(snapshot),
+      viaPrompt: true,
+    });
     return false;
   }
 
@@ -2630,6 +2822,11 @@
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
     recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("portal published", "Portal version published", {
+      customerKey: record.customerKey,
+      versionId: version.versionId,
+      versionNumber: version.versionNumber,
+    });
     syncPortalRemoteAction("publish", snapshot);
     render();
   }
@@ -2650,6 +2847,10 @@
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
     recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("portal viewed", "Customer portal viewed", {
+      customerKey: record.customerKey,
+      latestVersionId: latestVersion ? latestVersion.versionId : "",
+    });
     syncPortalRemoteAction("viewed", snapshot);
     render();
   }
@@ -2676,6 +2877,11 @@
     state.portalRecords[record.customerKey] = record;
     persistPortalRecords();
     recordPortalLocalStatus(record.customerKey);
+    recordAnalyticsEvent("notification acknowledged", "Latest notification acknowledged", {
+      customerKey: record.customerKey,
+      notificationId: latestUnread.notificationId,
+      versionId: latestUnread.versionId,
+    });
     syncPortalRemoteAction("acknowledge", snapshot, {
       notificationId: latestUnread.notificationId,
     });
@@ -3715,6 +3921,48 @@
     }
   }
 
+  function renderPortalAnalytics() {
+    if (!portalPanel) {
+      return;
+    }
+
+    const analyticsSection = portalPanel.querySelector("[data-portal-analytics]");
+    if (!analyticsSection) {
+      return;
+    }
+
+    const summary = getAnalyticsSummary();
+    const latestSignal = summary.latest || null;
+
+    analyticsSection.innerHTML = `
+      <div class="portal-analytics-head">
+        <div class="portal-analytics-copy">
+          <span class="portal-card-kicker">Engagement signals</span>
+          <strong>Conversion telemetry</strong>
+        </div>
+        <span class="portal-analytics-count">${escapeHtml(String(summary.total))} signals</span>
+      </div>
+      <div class="portal-analytics-pills">
+        <span>${escapeHtml(`${summary.libraryAdds} library adds`)}</span>
+        <span>${escapeHtml(`${summary.publishes} publishes`)}</span>
+        <span>${escapeHtml(`${summary.shareCopies} share copies`)}</span>
+        <span>${escapeHtml(`${summary.previews} previews`)}</span>
+        <span>${escapeHtml(`${summary.views} views`)}</span>
+        <span>${escapeHtml(`${summary.acknowledgements} acknowledgements`)}</span>
+        <span>${escapeHtml(`${summary.scrollDepth} scroll milestones`)}</span>
+        <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
+      </div>
+      <div class="portal-analytics-latest">
+        <span>${escapeHtml(latestSignal ? latestSignal.label : "No signals yet")}</span>
+        <strong>${escapeHtml(
+          latestSignal
+            ? formatPortalMoment(latestSignal.createdAt)
+            : "Track library adds, publish, share, preview, viewed, acknowledge, and scroll depth."
+        )}</strong>
+      </div>
+    `;
+  }
+
   function renderLayersPanel() {
     if (!layersPanel) {
       return;
@@ -3892,6 +4140,23 @@
       getPortalCustomerName(snapshot);
     const portalView = state.portalView || "split";
     const customerOnlyView = portalView === "customer";
+    if (customerOnlyView) {
+      const hasRecordedCustomerOpen = state.analyticsEvents.some((event) => {
+        return (
+          normalize(event.type) === "portal viewed" &&
+          normalize(event.meta && event.meta.source) === "customer-open" &&
+          normalize(event.meta && event.meta.customerKey) === customerKey
+        );
+      });
+
+      if (!hasRecordedCustomerOpen) {
+        recordAnalyticsEvent("portal viewed", "Customer portal opened", {
+          customerKey,
+          source: "customer-open",
+          view: "customer",
+        });
+      }
+    }
     if (sheetApp) {
       sheetApp.classList.toggle("is-customer-portal-view", customerOnlyView);
       sheetApp.classList.toggle("is-owner-portal-view", !customerOnlyView);
@@ -3967,6 +4232,11 @@
         </article>
       `
       : "";
+    const analyticsMarkup = customerOnlyView
+      ? ""
+      : `
+        <article class="portal-analytics" data-portal-analytics></article>
+      `;
 
     portalPanel.innerHTML = `
       <div class="panel-intro">
@@ -3982,6 +4252,7 @@
         </div>
       </div>
       ${portalHero}
+      ${analyticsMarkup}
       <div class="portal-grid${customerOnlyView ? " portal-grid--customer-only" : ""}">
         ${customerOnlyView
           ? ""
@@ -4132,6 +4403,11 @@
     if (previewCustomerButton) {
       previewCustomerButton.addEventListener("click", function () {
         if (portalPreviewUrl) {
+          recordAnalyticsEvent("customer preview", "Customer preview opened", {
+            customerKey,
+            source: "owner-preview",
+            view: "customer",
+          });
           const previewWindow = window.open(portalPreviewUrl, "_blank", "noopener");
           if (!previewWindow) {
             window.location.assign(portalPreviewUrl);
@@ -4153,6 +4429,8 @@
         acknowledgeLatestPortalNotification();
       });
     }
+
+    renderPortalAnalytics();
 
   }
 
@@ -4413,6 +4691,8 @@
         renderProductScroller();
       });
     });
+
+    bindCollectionRailTracking();
   }
 
   function render() {
@@ -4721,6 +5001,7 @@
 
   state.savedSheets = loadSavedSheets();
   state.portalRecords = loadPortalRecords();
+  state.analyticsEvents = loadAnalyticsEvents();
   state.layers = buildDefaultLayers();
   state.activeLayerId = state.layers[0].id;
   state.customerLibrary = [];
@@ -4730,4 +5011,7 @@
   syncFormFields();
   syncSheetPaperLock();
   render();
+  bindAnalyticsScrollTracking();
+  bindCollectionRailTracking();
+  recordScrollDepthSignals();
 })();
