@@ -18393,6 +18393,13 @@ button.booking-handoff-card-blocker:focus-visible {
   color: rgba(102, 82, 68, 0.82);
 }
 
+.booking-phone-studio-activity {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(122, 98, 82, 0.76);
+}
+
 .booking-phone-studio[data-tone="studio"] {
   border-color: rgba(172, 126, 184, 0.22);
   background: rgba(251, 245, 253, 0.88);

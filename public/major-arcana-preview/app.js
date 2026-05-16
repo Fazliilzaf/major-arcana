@@ -28084,6 +28084,7 @@
     const offerEvent = getLatestBookingEvent(readout, ["offer_draft_inserted"]);
     const staleOfferAfterRebook = isBookingOfferStaleAfterRebook(readout);
     const nextAction = buildBookingNextActionReadout(readout);
+    const offerProvenance = offerEvent ? getBookingEventProvenanceReadout(offerEvent, readout) : null;
     const hasOffer =
       normalizeKey(readout.status) === "offered" ||
       normalizeKey(readout.status) === "waiting_customer" ||
@@ -28097,6 +28098,7 @@
         badges: [],
         slotCarry: [],
         carrySummary: "",
+        activitySummary: "",
         tone: "neutral",
         action: "",
         actionLabel: "",
@@ -28109,6 +28111,15 @@
         : slotCarry[0]
           ? "Den här tiden bärs i kundförslaget just nu."
           : "";
+    const studioActivitySummary = offerEvent
+      ? [
+          "Senaste studiohändelse",
+          offerProvenance?.label,
+          formatBookingEventTime(offerEvent.createdAt || offerEvent.signalAt || ""),
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "Ingen studiohändelse loggad ännu.";
     const countLabel =
       selectedCount === 1
         ? "1 vald tid"
@@ -28127,6 +28138,7 @@
         ],
         slotCarry,
         carrySummary,
+        activitySummary: studioActivitySummary,
         tone: "attention",
         action: "insert_studio",
         actionLabel: "Uppdatera Svarstudio",
@@ -28144,6 +28156,7 @@
         ],
         slotCarry,
         carrySummary,
+        activitySummary: studioActivitySummary,
         tone: "studio",
         action: "insert_studio",
         actionLabel: "Infoga i Svarstudio",
@@ -28165,6 +28178,7 @@
       ],
       slotCarry,
       carrySummary,
+      activitySummary: studioActivitySummary,
       tone: "confirmed",
       action: asText(nextAction.action) === "insert_studio" ? "insert_studio" : "",
       actionLabel: asText(nextAction.action) === "insert_studio" ? "Öppna Svarstudio" : "",
@@ -35129,6 +35143,7 @@
                 <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
                 <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
                 <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
+                <p class="booking-phone-studio-activity" data-booking-phone-studio-activity hidden></p>
               </div>
               <button
                 class="booking-action booking-action-secondary"
@@ -35344,6 +35359,7 @@
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
+      phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
       phoneStudioAction: surface?.querySelector("[data-booking-phone-studio-action]"),
       phonePrimary: surface?.querySelector("[data-booking-phone-primary]"),
       phoneSecondary: surface?.querySelector("[data-booking-phone-secondary]"),
@@ -35547,6 +35563,10 @@
       if (bookingDom.phoneStudioSummary) {
         bookingDom.phoneStudioSummary.hidden = !asText(phoneStudio.carrySummary);
         bookingDom.phoneStudioSummary.textContent = phoneStudio.carrySummary;
+      }
+      if (bookingDom.phoneStudioActivity) {
+        bookingDom.phoneStudioActivity.hidden = !asText(phoneStudio.activitySummary);
+        bookingDom.phoneStudioActivity.textContent = phoneStudio.activitySummary;
       }
       if (bookingDom.phoneStudioAction) {
         if (phoneStudio.showCard && phoneStudio.action) {
