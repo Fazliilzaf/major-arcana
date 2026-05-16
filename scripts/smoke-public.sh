@@ -132,10 +132,12 @@ if (secret) process.stdout.write(secret);
 
 generate_totp_code() {
   local secret="$1"
+  local step_offset="${2:-0}"
   node -e "
 const crypto = require('crypto');
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const secret = String(process.argv[1] || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+const stepOffset = Number(process.argv[2] || 0);
 if (!secret) process.exit(1);
 let bits = 0;
 let value = 0;
@@ -152,7 +154,7 @@ for (const ch of secret) {
 }
 const key = Buffer.from(bytes);
 if (!key.length) process.exit(1);
-const counter = Math.floor(Date.now() / 1000 / 30);
+const counter = Math.floor(Date.now() / 1000 / 30) + stepOffset;
 const counterBuffer = Buffer.alloc(8);
 counterBuffer.writeBigUInt64BE(BigInt(counter));
 const hmac = crypto.createHmac('sha1', key).update(counterBuffer).digest();
@@ -164,7 +166,51 @@ const binary =
   (hmac[offset + 3] & 0xff);
 const otp = String(binary % 1000000).padStart(6, '0');
 process.stdout.write(otp);
-" "$secret"
+" "$secret" "$step_offset"
+}
+
+verify_mfa_ticket() {
+  local mfa_ticket="$1"
+  local requested_tenant_id="$2"
+  local verify_code="$3"
+
+  local mfa_verify_response=""
+  mfa_verify_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
+    -H "Content-Type: application/json" \
+    -d "{\"mfaTicket\":\"$mfa_ticket\",\"code\":\"$verify_code\",\"tenantId\":\"$requested_tenant_id\"}")"
+
+  local mfa_token=""
+  mfa_token="$(printf '%s' "$mfa_verify_response" | json_get token 2>/dev/null || true)"
+  if [[ -n "$mfa_token" ]]; then
+    printf '%s' "$mfa_verify_response"
+    return 0
+  fi
+
+  local requires_tenant_selection=""
+  requires_tenant_selection="$(printf '%s' "$mfa_verify_response" | json_get requiresTenantSelection 2>/dev/null || true)"
+  if [[ "$requires_tenant_selection" == "true" ]]; then
+    local login_ticket=""
+    login_ticket="$(printf '%s' "$mfa_verify_response" | json_get loginTicket 2>/dev/null || true)"
+    local selected_tenant_id="$requested_tenant_id"
+    if [[ -z "$selected_tenant_id" ]]; then
+      selected_tenant_id="$(printf '%s' "$mfa_verify_response" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const t=(Array.isArray(d?.tenants)?d.tenants:[])[0]; process.stdout.write(String(t?.tenantId||''));" 2>/dev/null || true)"
+    fi
+    if [[ -n "$login_ticket" && -n "$selected_tenant_id" ]]; then
+      local tenant_select_response=""
+      tenant_select_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/select-tenant" \
+        -H "Content-Type: application/json" \
+        -d "{\"loginTicket\":\"$login_ticket\",\"tenantId\":\"$selected_tenant_id\"}")"
+      local tenant_token=""
+      tenant_token="$(printf '%s' "$tenant_select_response" | json_get token 2>/dev/null || true)"
+      if [[ -n "$tenant_token" ]]; then
+        printf '%s' "$tenant_select_response"
+        return 0
+      fi
+    fi
+  fi
+
+  printf '%s' "$mfa_verify_response"
+  return 1
 }
 
 complete_login_with_optional_mfa() {
@@ -193,63 +239,50 @@ complete_login_with_optional_mfa() {
     return 0
   fi
 
-  local resolved_mfa_code="$MFA_CODE"
   local resolved_mfa_recovery_code="$MFA_RECOVERY_CODE"
-  if [[ -z "$resolved_mfa_code" ]]; then
-    local resolved_mfa_secret="$MFA_SECRET"
-    if [[ -z "$resolved_mfa_secret" ]]; then
-      resolved_mfa_secret="$(printf '%s' "$login_response" | json_get mfa.secret 2>/dev/null || true)"
-    fi
-    if [[ -z "$resolved_mfa_secret" ]]; then
-      resolved_mfa_secret="$(read_mfa_secret_from_store "$email" 2>/dev/null || true)"
-    fi
-    if [[ -n "$resolved_mfa_secret" ]]; then
-      resolved_mfa_code="$(generate_totp_code "$resolved_mfa_secret" 2>/dev/null || true)"
-    fi
+  local resolved_mfa_secret="$MFA_SECRET"
+  if [[ -z "$resolved_mfa_secret" ]]; then
+    resolved_mfa_secret="$(printf '%s' "$login_response" | json_get mfa.secret 2>/dev/null || true)"
+  fi
+  if [[ -z "$resolved_mfa_secret" ]]; then
+    resolved_mfa_secret="$(read_mfa_secret_from_store "$email" 2>/dev/null || true)"
   fi
 
-  local verify_code="$resolved_mfa_code"
-  if [[ -z "$verify_code" ]]; then
-    verify_code="$resolved_mfa_recovery_code"
+  local verify_candidates=()
+  if [[ -n "$MFA_CODE" ]]; then
+    verify_candidates+=("$MFA_CODE")
+  fi
+  if [[ -n "$resolved_mfa_secret" ]]; then
+    for step_offset in -1 0 1; do
+      local generated_code=""
+      generated_code="$(generate_totp_code "$resolved_mfa_secret" "$step_offset" 2>/dev/null || true)"
+      if [[ -n "$generated_code" ]]; then
+        verify_candidates+=("$generated_code")
+      fi
+    done
+  fi
+  if [[ -n "$resolved_mfa_recovery_code" ]]; then
+    verify_candidates+=("$resolved_mfa_recovery_code")
   fi
 
-  if [[ -z "$verify_code" ]]; then
+  if [[ "${#verify_candidates[@]}" -eq 0 ]]; then
     printf '%s' "$login_response"
     return 0
   fi
 
-  local mfa_verify_response=""
-  mfa_verify_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/mfa/verify" \
-    -H "Content-Type: application/json" \
-    -d "{\"mfaTicket\":\"$mfa_ticket\",\"code\":\"$verify_code\",\"tenantId\":\"$requested_tenant_id\"}")"
-
-  local mfa_token=""
-  mfa_token="$(printf '%s' "$mfa_verify_response" | json_get token 2>/dev/null || true)"
-  if [[ -n "$mfa_token" ]]; then
-    printf '%s' "$mfa_verify_response"
-    return 0
-  fi
-
-  local requires_tenant_selection=""
-  requires_tenant_selection="$(printf '%s' "$mfa_verify_response" | json_get requiresTenantSelection 2>/dev/null || true)"
-  if [[ "$requires_tenant_selection" == "true" ]]; then
-    local login_ticket=""
-    login_ticket="$(printf '%s' "$mfa_verify_response" | json_get loginTicket 2>/dev/null || true)"
-    local selected_tenant_id="$requested_tenant_id"
-    if [[ -z "$selected_tenant_id" ]]; then
-      selected_tenant_id="$(printf '%s' "$mfa_verify_response" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0,'utf8')); const t=(Array.isArray(d?.tenants)?d.tenants:[])[0]; process.stdout.write(String(t?.tenantId||''));" 2>/dev/null || true)"
-    fi
-    if [[ -n "$login_ticket" && -n "$selected_tenant_id" ]]; then
-      local tenant_select_response=""
-      tenant_select_response="$(curl -sS -X POST "$BASE_URL/api/v1/auth/select-tenant" \
-        -H "Content-Type: application/json" \
-        -d "{\"loginTicket\":\"$login_ticket\",\"tenantId\":\"$selected_tenant_id\"}")"
-      printf '%s' "$tenant_select_response"
+  local last_mfa_verify_response="$login_response"
+  local candidate=""
+  for candidate in "${verify_candidates[@]}"; do
+    [[ -z "$candidate" ]] && continue
+    local attempt_response=""
+    if attempt_response="$(verify_mfa_ticket "$mfa_ticket" "$requested_tenant_id" "$candidate")"; then
+      printf '%s' "$attempt_response"
       return 0
     fi
-  fi
+    last_mfa_verify_response="$attempt_response"
+  done
 
-  printf '%s' "$mfa_verify_response"
+  printf '%s' "$last_mfa_verify_response"
   return 0
 }
 
@@ -283,6 +316,23 @@ else
   exit 1
 fi
 
+PREVIEW_HTML="$(curl -sS "$BASE_URL/major-arcana-preview/")"
+PREVIEW_BUNDLE_FILE="$(printf '%s' "$PREVIEW_HTML" | node -e "
+const html = require('fs').readFileSync(0, 'utf8');
+const match = html.match(/app\\.bundle\\.[a-f0-9]+\\.min\\.js/);
+process.stdout.write(match ? match[0] : '');
+")"
+if [[ -z "$PREVIEW_BUNDLE_FILE" ]]; then
+  echo "❌ major-arcana-preview saknar hashad app.bundle"
+  exit 1
+fi
+PREVIEW_BUNDLE_BODY="$(curl -sS "$BASE_URL/major-arcana-preview/$PREVIEW_BUNDLE_FILE")"
+if [[ "$PREVIEW_BUNDLE_BODY" != *"Reservera i CCO"* || "$PREVIEW_BUNDLE_BODY" != *"cco-booking-engine"* ]]; then
+  echo "❌ major-arcana-preview bundle saknar CCO booking operator-yta"
+  exit 1
+fi
+echo "✅ major-arcana-preview bundle + booking UI OK (${PREVIEW_BUNDLE_FILE})"
+
 if [[ "$SKIP_AUTH" == "true" ]]; then
   echo "ℹ️ Hoppar auth-smoke (ARCANA_SMOKE_SKIP_AUTH=true)"
   echo
@@ -306,7 +356,8 @@ if [[ -z "$TOKEN" ]]; then
   echo
   echo "Åtgärd:"
   echo "- Verifiera att ARCANA_OWNER_EMAIL/ARCANA_OWNER_PASSWORD i Render är korrekt satta."
-  echo "- Om MFA är aktivt: sätt ARCANA_OWNER_MFA_CODE, ARCANA_OWNER_MFA_SECRET eller ARCANA_OWNER_MFA_RECOVERY_CODE."
+  echo "- Om MFA är aktivt: sätt ARCANA_OWNER_MFA_SECRET (samma som i Render /var/data auth) eller ARCANA_OWNER_MFA_RECOVERY_CODE."
+  echo "- GitHub secret måste matcha produktionens MFA — kör owner:mfa:setup mot prod och uppdatera ARCANA_OWNER_MFA_SECRET i repo secrets."
   echo "- Om du saknar MFA-kod/secret/recovery: sätt ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true i Render, deploya en gång, kör owner:mfa:setup och sätt sedan tillbaka till false."
   echo "- För setup av OWNER MFA med samma credentials:"
   echo "  BASE_URL=$BASE_URL ARCANA_OWNER_EMAIL=<email> ARCANA_OWNER_PASSWORD=<password> npm run owner:mfa:setup"
@@ -342,6 +393,38 @@ MAIL_INSIGHTS_RESPONSE="$(curl -sS "$BASE_URL/api/v1/mail/insights" \
   -H "Authorization: Bearer $TOKEN")"
 MAIL_READY="$(printf '%s' "$MAIL_INSIGHTS_RESPONSE" | json_get ready || true)"
 echo "✅ mail/insights reachable (ready: ${MAIL_READY:-false})"
+
+BOOKING_CATALOG_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-booking-engine/catalog" \
+  -H "Authorization: Bearer $TOKEN")"
+BOOKING_PROVIDER="$(printf '%s' "$BOOKING_CATALOG_RESPONSE" | json_get provider 2>/dev/null || true)"
+if [[ "$BOOKING_PROVIDER" != "cco_engine" ]]; then
+  echo "❌ cco-booking-engine/catalog saknar provider=cco_engine"
+  printf '%s\n' "$BOOKING_CATALOG_RESPONSE"
+  exit 1
+fi
+echo "✅ cco-booking-engine/catalog OK"
+
+BOOKING_REF_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-bookings/ref-data?workspaceId=major-arcana-preview" \
+  -H "Authorization: Bearer $TOKEN")"
+BOOKING_REF_PROVIDER="$(printf '%s' "$BOOKING_REF_RESPONSE" | json_get provider 2>/dev/null || true)"
+if [[ "$BOOKING_REF_PROVIDER" != "cco_engine" ]]; then
+  echo "❌ cco-bookings/ref-data använder inte cco_engine som standard"
+  printf '%s\n' "$BOOKING_REF_RESPONSE"
+  exit 1
+fi
+echo "✅ cco-bookings/ref-data OK (provider: cco_engine)"
+
+FROM_DATE="$(node -e "const d=new Date(); d.setDate(d.getDate()+1); process.stdout.write(d.toISOString().slice(0,10));")"
+TO_DATE="$(node -e "const d=new Date(); d.setDate(d.getDate()+8); process.stdout.write(d.toISOString().slice(0,10));")"
+BOOKING_SLOTS_RESPONSE="$(curl -sS "$BASE_URL/api/v1/cco-bookings/slots?workspaceId=major-arcana-preview&fromDate=${FROM_DATE}&toDate=${TO_DATE}" \
+  -H "Authorization: Bearer $TOKEN")"
+BOOKING_SLOTS_PROVIDER="$(printf '%s' "$BOOKING_SLOTS_RESPONSE" | json_get provider 2>/dev/null || true)"
+if [[ "$BOOKING_SLOTS_PROVIDER" != "cco_engine" ]]; then
+  echo "❌ cco-bookings/slots använder inte cco_engine som standard"
+  printf '%s\n' "$BOOKING_SLOTS_RESPONSE"
+  exit 1
+fi
+echo "✅ cco-bookings/slots OK (provider: cco_engine)"
 
 echo
 echo "🎯 Public smoke klart."
