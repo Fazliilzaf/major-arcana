@@ -1047,6 +1047,7 @@
     analyticsEvents: [],
     analyticsScrollTrackingBound: false,
     analyticsRailTrackingBound: false,
+    analyticsJumpTrackingBound: false,
   };
 
   let bottleSeed = 0;
@@ -2080,6 +2081,8 @@
         if (type === "notification acknowledged") accumulator.acknowledgements += 1;
         if (type === "scroll depth") accumulator.scrollDepth += 1;
         if (type === "collection rail scrolled") accumulator.collectionRailScrolls += 1;
+        if (type === "browse collections") accumulator.browseCollections += 1;
+        if (type === "portal jump") accumulator.portalJumps += 1;
         return accumulator;
       },
       {
@@ -2092,6 +2095,8 @@
         acknowledgements: 0,
         scrollDepth: 0,
         collectionRailScrolls: 0,
+        browseCollections: 0,
+        portalJumps: 0,
         latest: null,
       }
     );
@@ -2182,6 +2187,50 @@
 
     productScroller.addEventListener("scroll", handleRailScroll, { passive: true });
     handleRailScroll();
+  }
+
+  function scrollToSection(selector) {
+    const target = document.querySelector(selector);
+    if (!target || typeof target.scrollIntoView !== "function") {
+      return false;
+    }
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    return true;
+  }
+
+  function bindTopNavigationActions() {
+    if (state.analyticsJumpTrackingBound) {
+      return;
+    }
+
+    state.analyticsJumpTrackingBound = true;
+
+    const browseCollectionsButton = document.querySelector("[data-browse-collections]");
+    const openPortalButton = document.querySelector("[data-open-portal]");
+
+    if (browseCollectionsButton) {
+      browseCollectionsButton.addEventListener("click", function () {
+        const didScroll = scrollToSection(".library-strip");
+        recordAnalyticsEvent("browse collections", "Collections path opened", {
+          target: "collections",
+          scrolled: didScroll,
+        });
+      });
+    }
+
+    if (openPortalButton) {
+      openPortalButton.addEventListener("click", function () {
+        const didScroll = scrollToSection("[data-portal-panel]");
+        recordAnalyticsEvent("portal jump", "Portal flow opened", {
+          target: "portal",
+          scrolled: didScroll,
+        });
+      });
+    }
   }
 
   function loadSavedSheets() {
@@ -3951,6 +4000,8 @@
         <span>${escapeHtml(`${summary.acknowledgements} acknowledgements`)}</span>
         <span>${escapeHtml(`${summary.scrollDepth} scroll milestones`)}</span>
         <span>${escapeHtml(`${summary.collectionRailScrolls} rail browses`)}</span>
+        <span>${escapeHtml(`${summary.browseCollections} browse jumps`)}</span>
+        <span>${escapeHtml(`${summary.portalJumps} portal jumps`)}</span>
       </div>
       <div class="portal-analytics-latest">
         <span>${escapeHtml(latestSignal ? latestSignal.label : "No signals yet")}</span>
@@ -5011,6 +5062,7 @@
   syncFormFields();
   syncSheetPaperLock();
   render();
+  bindTopNavigationActions();
   bindAnalyticsScrollTracking();
   bindCollectionRailTracking();
   recordScrollDepthSignals();

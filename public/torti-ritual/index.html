@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260514-portal-sync-61" />
+    <link rel="stylesheet" href="./styles.css?v=20260514-portal-sync-62" />
   </head>
   <body>
     <main class="sheet-app" data-export-root>
@@ -37,6 +37,13 @@
               <span>PERSONAL OLFACTORY STRATIFICATION</span>
             </div>
           </div>
+          <div class="brand-cta-row">
+            <button class="brand-cta brand-cta-primary" type="button" data-browse-collections>
+              Browse collections
+            </button>
+            <button class="brand-cta" type="button" data-open-portal>Open portal</button>
+            <span class="brand-cta-note">Start with the bottles, then review the portal flow.</span>
+          </div>
         </div>
       </header>
 
@@ -55,10 +62,10 @@
         <section class="customer-library" data-customer-library></section>
         <section class="zone-editor" data-selected-bottle-panel data-pdf-exclude hidden></section>
         <section class="layers-panel" data-layers-panel></section>
-        <section class="portal-panel" data-portal-panel data-pdf-exclude></section>
+        <section class="portal-panel" data-portal-panel data-pdf-exclude id="portal-flow"></section>
       </section>
 
-      <section class="sheet-document">
+      <section class="sheet-document" id="sheet-document">
         <div class="sheet-grid">
           <div class="document-stage" data-document-stage>
             <div class="stage-steps" aria-hidden="true">
@@ -131,7 +138,7 @@
         </div>
       </section>
 
-      <section class="library-strip" data-pdf-exclude>
+      <section class="library-strip" data-pdf-exclude id="collections">
         <div class="library-head">
           <div class="library-copy">
             <p>Add product</p>
@@ -146,6 +153,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-    <script src="./app.js?v=20260514-portal-sync-61"></script>
+    <script src="./app.js?v=20260514-portal-sync-62"></script>
   </body>
 </html>

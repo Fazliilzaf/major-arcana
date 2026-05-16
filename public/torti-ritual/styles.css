@@ -138,6 +138,58 @@ input {
   white-space: nowrap;
 }
 
+.brand-cta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.brand-cta-note {
+  color: var(--muted);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.brand-cta {
+  border: 1px solid rgba(88, 63, 46, 0.18);
+  border-radius: 14px;
+  min-height: 30px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  box-shadow: var(--control-shadow);
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.brand-cta-primary {
+  background: linear-gradient(180deg, rgba(99, 72, 54, 0.96), rgba(78, 55, 42, 0.98));
+  border-color: rgba(67, 50, 39, 0.3);
+  color: #fffdf8;
+  box-shadow:
+    0 10px 22px rgba(75, 53, 37, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.brand-cta:hover {
+  border-color: rgba(67, 50, 39, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.brand-cta-primary:hover {
+  background: linear-gradient(180deg, rgba(112, 83, 64, 0.96), rgba(89, 63, 49, 0.98));
+  color: #fffefb;
+}
+
 .sheet-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(140px, 250px)) minmax(0, 1fr);
