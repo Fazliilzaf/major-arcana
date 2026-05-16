@@ -2495,210 +2495,24 @@
     display: none !important;
   }
 
-  /* ──────────────────────────────────────────────────────────────────
-     Inline signal-pills bredvid "Behöver svar"-pillen.
-     app/signal-bar.js bygger <span class="warm-why-extra"> som syskon
-     till .warm-why i .warm-content. Pillarna matchar .warm-why-stilen
-     (ikon + text, färgad efter signal-typ) — inga grid-/höjd-ändringar
-     på kortet.
-     ────────────────────────────────────────────────────────────────── */
-
-  /* Wrapper-container för extra pills, ligger i samma rad som .warm-why */
-  .warm-why-extras {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-right: 6px;
-  }
-
-  /* Individual pill — samma textstorlek/struktur som .warm-why,
-     färg styrs av --signal-color custom property */
-  .warm-why-extra {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 9.6px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--signal-color, #4F46E5);
-    white-space: nowrap;
-    letter-spacing: 0.01em;
-  }
-  .warm-why-extra-icon {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .warm-why-extra-icon svg {
-    width: 12px;
-    height: 12px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-
-  /* Cirkel-initial för mailbox-pill (istället för SVG) — ser ut som en
-     mini-avatar med mailbox-färg. */
-  .warm-why-extra-circle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    font-size: 8.5px;
-    font-weight: 700;
-    line-height: 1;
-    color: #fff;
-    flex-shrink: 0;
-    letter-spacing: 0;
-  }
-
   /* Dölj .warm-sender när den matchar mailbox-namn — mailbox-pillen
-     visar samma info, gamla texten är duplikat. */
+     visar samma info, gamla texten är duplikat. Klassen sätts av app.js
+     runtime-queue-renderers, fortfarande aktiv. */
   .thread-card.has-mailbox-sender .warm-sender,
   .thread-card.has-mailbox-sender .warm-sep {
     display: none !important;
   }
 
-  /* ──────────────────────────────────────────────────────────────────
-     Customer-cluster: flera trådar från samma kund samlas till EN kort.
-     Primary-kortet får en badge med "N trådar" som man klickar för att
-     expandera/kollapsa sub-trådarna.
-     ────────────────────────────────────────────────────────────────── */
-
-  /* Dölj sub-cards när cluster är kollapsad */
-  .thread-card.customer-cluster-sub.customer-cluster-hidden {
-    display: none !important;
-  }
-
-  /* Sub-cards när expanderade: indragna lite för visuell hierarki */
-  .thread-card.customer-cluster-sub:not(.customer-cluster-hidden) {
-    margin-left: 18px;
-    position: relative;
-  }
-  .thread-card.customer-cluster-sub:not(.customer-cluster-hidden)::before {
-    content: '';
-    position: absolute;
-    left: -10px;
-    top: 50%;
-    width: 8px;
-    height: 1px;
-    background: rgba(15, 23, 42, 0.18);
-  }
-
-  /* FOUC-fix (2026-05-16): kort i kö-historiken fadear in när signal-bar.js
-     har applicerat sina pills (200 ms). Förhindrar att användaren ser
-     "partiell render"-flash där cards visas utan pills i 200-800 ms innan
-     MutationObservern triggar.
-     Safety-net: app/signal-bar.js sätter data-signal-bar-ready="timeout"
-     efter 1.5 s på cards som ännu inte har has-inline-signals — så kort
-     blir aldrig osynliga för evigt om signal-bar skulle krascha. */
-  .queue-history-list .thread-card[data-runtime-thread] {
-    opacity: 0;
-    transition: opacity 200ms ease-out;
-  }
-  .queue-history-list .thread-card.has-inline-signals,
-  .queue-history-list .thread-card[data-signal-bar-ready],
-  .queue-history-list .thread-card[data-runtime-thread="runtime-unified-empty"] {
-    opacity: 1;
-  }
-
-  /* Legacy .customer-cluster-badge + .customer-cluster-badge-inline raderade
-     2026-05-16: cluster-pillen är nu en signal-pill (data-signal-type="cluster")
-     som renderas av app/signal-bar.js i .warm-why-extras-raden.
-     app/customer-cluster.js har defensiv cleanup som tar bort ev. stale
-     badge-element från äldre HTML-cache. */
-
-  .customer-cluster-count {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Göm lane-badge på .has-inline-signals — den ÄR nu första pillen i
-     warm-why-extras, så top-left lane-badge blir duplikat. */
-  .thread-card.has-inline-signals .lane-badge {
-    display: none !important;
-  }
-
-  /* Göm originale .warm-why — dess innehåll är migrerat till första
-     pill i .warm-why-extras (Behöver svar / Miss-risk / etc.). */
-  .thread-card.has-inline-signals .warm-why {
-    display: none !important;
-  }
-
-  /* När lane-badge är gömd hamnar .warm-top-meta (07:31 · Ej tilldelad)
-     till vänster pga justify-content:space-between. Tvinga den till
-     höger med margin-left: auto. */
-  .thread-card.has-inline-signals .warm-top-meta {
-    margin-left: auto;
-  }
-
-  /* Kompaktera vertikal spacing — flytta tid+ägar-status till absolut
-     position top-right + minska padding/avatar/action så all content
-     (avatar + namn + preview + pills + actions) ryms inom 96px-höjden. */
-  .preview-shell .queue-history-list .thread-card.has-inline-signals,
-  .preview-shell .thread-card.has-inline-signals {
-    position: relative !important;
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-  }
-  .preview-shell .thread-card.has-inline-signals .warm-top {
-    position: absolute !important;
-    top: 8px !important;
-    right: 14px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-    background: transparent !important;
-    z-index: 1;
-  }
-  .preview-shell .thread-card.has-inline-signals .warm-mid {
-    align-items: flex-start !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    gap: 0 8px !important;
-  }
-  /* Avatar mindre + start från top */
-  .preview-shell .thread-card.has-inline-signals .warm-avatar {
-    margin-top: 0 !important;
-    align-self: flex-start !important;
-  }
-  /* Action-buttons mer kompakta */
-  .preview-shell .thread-card.has-inline-signals .warm-actions .action-icon {
-    width: 26px !important;
-    height: 26px !important;
-  }
-  .preview-shell .thread-card.has-inline-signals .warm-actions .action-icon svg {
-    width: 13px !important;
-    height: 13px !important;
-  }
-  /* CTA-knapp (Svara / Bekräfta bokning / Öppna) kompakt */
-  .preview-shell .thread-card.has-inline-signals .warm-cta-button,
-  .preview-shell .thread-card.has-inline-signals .warm-actions > button:not(.action-icon),
-  .preview-shell .thread-card.has-inline-signals .warm-actions a {
-    height: 26px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    line-height: 26px !important;
-    font-size: 12px !important;
-  }
-  /* Tightare line-height på namn-rad + preview */
-  .preview-shell .thread-card.has-inline-signals .warm-line-1 {
-    line-height: 1.15 !important;
-  }
-  .preview-shell .thread-card.has-inline-signals .warm-preview {
-    line-height: 1.2 !important;
-    margin-top: 1px !important;
-  }
-
-  /* Pusha pill-raden till nedre kanten av kortet — fyll ut content
-     med utrymme ovanför pillsen */
-  .preview-shell .thread-card.has-inline-signals .warm-content {
-    height: 100% !important;
-  }
-  .preview-shell .thread-card.has-inline-signals .warm-why-extras {
-    margin-top: auto !important;
-    padding-top: 2px !important;
-  }
+  /* Fas 9 av Lit-migration (2026-05-16): ~200 rader CSS raderade härifrån.
+     De stilade klasser som skapades av 3 nu-rivna DOM-shims:
+       - .warm-why-extras / .warm-why-extra* (signal-bar.js)
+       - .customer-cluster-sub / .customer-cluster-hidden /
+         .customer-cluster-count (customer-cluster.js)
+       - .has-inline-signals / [data-signal-bar-ready] (signal-bar.js
+         FOUC-fix)
+       - 80+ rader .preview-shell .has-inline-signals layout-overrides
+     Inget JS skapar dessa klasser/attribut längre. Lit-cards renderar
+     pillar och cluster-roller via Shadow DOM. */
 
   /* ──────────────────────────────────────────────────────────────────
      Onboarding-tour (app/onboarding-tour.js, 2026-05-12)
