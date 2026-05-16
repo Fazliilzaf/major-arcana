@@ -22,9 +22,6 @@
     "app/keyboard-nav.js",
     "app/bulk-actions.js",
     "app/inbox-streak.js",
-    "app/signal-bar.js",
-    "app/customer-cluster.js",
-    "app/system-mail-parser.js",
-    "app/system-mail-display.js"
+    "app/system-mail-parser.js"
   ]
 }
