@@ -1618,8 +1618,12 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('const actionSummary = staleOfferAfterRebook') &&
       source.includes('const proposalShapeBadge =') &&
       source.includes('const proposalSpanBadge =') &&
+      source.includes('const proposalTimeBandBadge =') &&
+      source.includes('getBookingSlotTimeBand(slot)') &&
       source.includes('Ett tydligt förslag') &&
       source.includes('Samma dag') &&
+      source.includes('Morgon') &&
+      source.includes('Tid saknas') &&
       source.includes(
         'Uppdatera Svarstudio först så kundförslaget matchar den nya tiden innan något lämnas vidare.'
       ) &&
@@ -1637,6 +1641,9 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
       source.includes('Tre alternativ') &&
       source.includes('Två dagar') &&
       source.includes('Flera dagar') &&
+      source.includes('Eftermiddag') &&
+      source.includes('Sen tid') &&
+      source.includes('Blandade tider') &&
       source.includes('Kunden bär rätt förslag') &&
       source.includes(
         'Öppna Svarstudio igen om kundförslaget behöver justeras eller bäras vidare med nytt svar.'
