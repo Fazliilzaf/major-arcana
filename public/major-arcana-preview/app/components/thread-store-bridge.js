@@ -76,10 +76,11 @@ let _currentList = null;
 function _scheduleSync() {
   if (_syncScheduled) return;
   _syncScheduled = true;
-  requestAnimationFrame(() => {
+  // setTimeout(0) — rAF unreliable i bakgrundstabs
+  setTimeout(() => {
     _syncScheduled = false;
     _syncDomToStore();
-  });
+  }, 0);
 }
 
 function _syncDomToStore() {

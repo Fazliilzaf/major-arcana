@@ -32,18 +32,18 @@
  */
 // Cache-buster on imports: app/components/*.js servas med max-age=300,
 // så browsers cachar gamla versioner i 5 min. För att tvinga fresh load
-// av ALLA Lit-pipelinen, lägg ?v=fas10c på varje import. Bumpa version
+// av ALLA Lit-pipelinen, lägg ?v=fas10d på varje import. Bumpa version
 // när nån fil i pipelinen ändras.
-import './arcana-thread-card.js?v=fas10c';
-import { threadToCardProps } from './thread-to-card-props.js?v=fas10c';
+import './arcana-thread-card.js?v=fas10d';
+import { threadToCardProps } from './thread-to-card-props.js?v=fas10d';
 import {
   groupThreadsByCustomer,
   orderForRender,
   readExpandedKeys,
   toggleExpanded,
-} from './customer-cluster-grouper.js?v=fas10c';
-import { subscribe, getThreads } from './thread-store.js?v=fas10c';
-import { startBridge, getLiveCardForThread } from './thread-store-bridge.js?v=fas10c';
+} from './customer-cluster-grouper.js?v=fas10d';
+import { subscribe, getThreads } from './thread-store.js?v=fas10d';
+import { startBridge, getLiveCardForThread } from './thread-store-bridge.js?v=fas10d';
 
 // OBS: dessa let-deklarationer MÅSTE ligga FÖRE init()-anropet (TDZ).
 let panel = null;
@@ -110,11 +110,15 @@ function start() {
 function schedule() {
   if (renderScheduled) return;
   renderScheduled = true;
-  requestAnimationFrame(() => {
+  // setTimeout(0) istället för rAF — rAF triggar inte pålitligt i
+  // bakgrundstabs eller efter tab-throttling. setTimeout fortsätter
+  // även i pausad tab. Lit-Element batchar internt så vi förlorar
+  // inget genom att skippa rAF-sync.
+  setTimeout(() => {
     renderScheduled = false;
     if (MODE === 'panel') renderLitPreview();
     else renderLitReplacement();
-  });
+  }, 0);
 }
 
 // ─────────── Helpers delade mellan panel- och replace-mode ───────────
@@ -218,7 +222,7 @@ function renderLitReplacement() {
   // Re-mounta i så fall och kör om nästa frame (data finns redan i store).
   if (!replaceContainer || !document.contains(replaceContainer)) {
     mountReplaceContainer();
-    if (replaceContainer) requestAnimationFrame(() => renderLitReplacement());
+    if (replaceContainer) setTimeout(() => renderLitReplacement(), 0);
     return;
   }
   const grid = replaceContainer.querySelector('.lit-replace-grid');
