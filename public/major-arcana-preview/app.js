@@ -28256,6 +28256,10 @@
       bookingDom.phonePostConfirmation.hidden = true;
       bookingDom.phonePostConfirmationTitle.textContent = "";
       bookingDom.phonePostConfirmationCopy.textContent = "";
+      if (bookingDom.phonePostConfirmationAction) {
+        bookingDom.phonePostConfirmationAction.hidden = true;
+        bookingDom.phonePostConfirmationAction.textContent = "";
+      }
       return;
     }
     const nextAction = buildBookingNextActionReadout(readout);
@@ -28265,6 +28269,18 @@
     bookingDom.phonePostConfirmationCopy.textContent =
       asText(nextAction.meta) ||
       "Följ kunddialogen vidare med rätt handoff eller uppföljning utan att lämna booking-läget.";
+    if (bookingDom.phonePostConfirmationAction) {
+      const actionKey = asText(nextAction.action);
+      if (actionKey) {
+        bookingDom.phonePostConfirmationAction.hidden = false;
+        bookingDom.phonePostConfirmationAction.textContent =
+          asText(nextAction.label).replace(/^Nästa:\s*/i, "") || "Fortsätt";
+        bookingDom.phonePostConfirmationAction.dataset.bookingAction = actionKey;
+      } else {
+        bookingDom.phonePostConfirmationAction.hidden = true;
+        bookingDom.phonePostConfirmationAction.textContent = "";
+      }
+    }
   }
 
   function hasBookingEvent(readout = {}, eventTypes = []) {
@@ -34983,6 +34999,14 @@
               <span>Efter bekräftelse</span>
               <strong data-booking-phone-post-confirmation-title></strong>
               <p data-booking-phone-post-confirmation-copy></p>
+              <div class="booking-phone-post-confirmation-actions">
+                <button
+                  class="booking-action booking-action-secondary"
+                  type="button"
+                  data-booking-phone-post-confirmation-action
+                  hidden
+                ></button>
+              </div>
             </div>
             <div class="booking-phone-workflow-guidance" aria-label="Bekräftelseflöde">
               <article class="booking-phone-workflow-guidance-card" data-booking-phone-confirmation-card>
@@ -35145,6 +35169,9 @@
       ),
       phonePostConfirmationCopy: surface?.querySelector(
         "[data-booking-phone-post-confirmation-copy]"
+      ),
+      phonePostConfirmationAction: surface?.querySelector(
+        "[data-booking-phone-post-confirmation-action]"
       ),
       phoneConfirmationTitle: surface?.querySelector("[data-booking-phone-confirmation-title]"),
       phoneConfirmationCopy: surface?.querySelector("[data-booking-phone-confirmation-copy]"),
