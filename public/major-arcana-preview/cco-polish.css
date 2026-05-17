@@ -1608,14 +1608,22 @@
   }
 
   /* ============================================================
-     A: BREDDA INBOX-KOLUMN till 760px (2026-05-11)
+     KOLUMN-OMFÖRDELNING (2026-05-17, Fas 13):
      ------------------------------------------------------------
-     Override JS-driven inline --workspace-left-width så kort
-     följer specen utan att kläms. Right-panel + focus krymps
-     hellre än kort.
+     Vision: konversationen (mitten) är hjälten. Inbox krymps,
+     mitten vidgas, höger förblir kompakt helper. Designen är
+     100% bevarad — bara storlekarna ändras.
+
+     Inbox  : 760 → 440 px  (–42%)
+     Mitten : 564 → 760 px  (+35%, via --workspace-main-width)
+     Höger  : 360 → 280 px  (–22%, via --workspace-right-width)
      ============================================================ */
+  .preview-canvas {
+    --workspace-main-width: 760px !important;
+    --workspace-right-width: 280px !important;
+  }
   .preview-canvas .preview-workspace {
-    grid-template-columns: 760px minmax(0, 1fr) !important;
+    grid-template-columns: 440px minmax(0, 1fr) !important;
   }
 
   /* ============================================================
