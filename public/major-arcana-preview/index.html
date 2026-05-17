@@ -918,7 +918,6 @@
                       </span>
                       <strong data-queue-lane-count="medical">0</strong>
                     </button>
-                  </div>
 
                   <div class="queue-bottom-row" aria-label="Skickade och urval">
                     <div class="mailbox-dropdown queue-bottom-control">
@@ -1187,6 +1186,7 @@
                         <div class="mailbox-menu-grid" data-owner-menu-grid></div>
                       </div>
                     </div>
+                  </div>
                   </div>
 
                   <div
@@ -10557,12 +10557,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- System-mail-parser: extraherar kundnamn ur system-mejl (Klarna/Cliento/Foodora).
          Måste laddas FÖRE lit-switchover så parser-resolver.js har tillgång till
          window.MajorArcanaSystemMailParser via parser.parse(). -->
-    <script src="./app/system-mail-parser.js?v=fas12-compact"></script>
+    <script src="./app/system-mail-parser.js?v=fas12-chrome"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
          replace-mode för alla köer. -->
-    <script type="module" src="./app/components/arcana-thread-card.js?v=fas12-compact"></script>
-    <script type="module" src="./app/components/lit-switchover.js?v=fas12-compact"></script>
+    <script type="module" src="./app/components/arcana-thread-card.js?v=fas12-chrome"></script>
+    <script type="module" src="./app/components/lit-switchover.js?v=fas12-chrome"></script>
   </body>
 </html>

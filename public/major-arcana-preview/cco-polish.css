@@ -2803,4 +2803,54 @@
     .action-icon[data-quick-action="delete"]:hover {
     color: #b43a3a;
   }
+
+  /* ============================================================
+     ARBETSKÖ-CHROME (2026-05-17, Fas 12):
+     - queue-bottom-row flyttad INTO collapsed-list via index.html
+     - display: contents låter dropdowns bli direkta grid-items
+     - dropdowns fyller rad 3 slot 4-5 (intill Medicinsk)
+     - Dölj indikator-rad + signal-strip (aktiv kö syns via chip-highlight)
+     ============================================================ */
+  .collapsed-list > .queue-bottom-row {
+    display: contents;
+  }
+  .collapsed-list > .queue-bottom-row > .mailbox-dropdown {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+  }
+  .collapsed-list > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger {
+    width: 100%;
+    height: 23px;
+    min-height: 0;
+    padding: 2px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+
+  /* Dölj indikator-rad (Bokning + check + trash) — överflödig nu */
+  .queue-action-row.queue-bubble-row,
+  .queue-secondary-signal-strip {
+    display: none !important;
+  }
+
+  /* Highlight aktiv kö-chip prominent (ersätter den dolda indikator-raden) */
+  .queue-filter-chip.is-active {
+    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%);
+    box-shadow:
+      0 0 0 2px rgba(199, 125, 42, 0.35),
+      0 1px 3px rgba(199, 125, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border-color: #c77d2a;
+    transform: translateY(-0.5px);
+  }
+  .queue-filter-chip.is-active > span,
+  .queue-filter-chip.is-active > strong {
+    font-weight: 700;
+  }
 }
