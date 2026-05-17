@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-current-notice-status/);
-  assert.match(htmlSource, /app\.js\?v=20260517-current-notice-status/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-compact-history-flow/);
+  assert.match(htmlSource, /app\.js\?v=20260517-compact-history-flow/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -139,7 +139,9 @@ test('Torti customer portal lets the customer acknowledge the latest notice', ()
   assert.match(appSource, /portal-card-actions portal-card-actions--customer/);
   assert.match(appSource, /data-ack-portal-notification\$\{currentUnreadCount > 0 \? "" : " disabled"\}>Acknowledge latest/);
   assert.match(appSource, /function getLatestUnreadPortalNotification\(record\)/);
+  assert.match(appSource, /function getSortedPortalNotifications\(record\)/);
   assert.match(appSource, /function getLatestPortalNotification\(record\)/);
+  assert.match(appSource, /function getSortedPortalVersions\(record\)/);
   assert.match(appSource, /function getLatestPortalVersion\(record\)/);
   assert.match(appSource, /Date\.parse\(normalizeText\(right\.createdAt\)\) \|\| 0;/);
   assert.match(appSource, /Date\.parse\(normalizeText\(right\.publishedAt\) \|\| normalizeText\(right\.createdAt\)\) \|\| 0;/);
@@ -151,4 +153,17 @@ test('Torti customer portal lets the customer acknowledge the latest notice', ()
   assert.match(appSource, /const latestVersion = getLatestPortalVersion\(record\);/);
   assert.match(appSource, /acknowledgeLatestPortalNotification\(\);/);
   assert.match(cssSource, /\.portal-card-actions--customer\s*\{/);
+});
+
+test('Torti portal history keeps focus by collapsing older versions and notices', () => {
+  assert.match(appSource, /const versions = getSortedPortalVersions\(record\);/);
+  assert.match(appSource, /const notifications = getSortedPortalNotifications\(record\);/);
+  assert.match(appSource, /const visibleVersions = versions\.slice\(0, 3\);/);
+  assert.match(appSource, /const hiddenVersionCount = Math\.max\(versions\.length - visibleVersions\.length, 0\);/);
+  assert.match(appSource, /const visibleNotifications = notifications\.slice\(0, 3\);/);
+  assert.match(appSource, /const hiddenNotificationCount = Math\.max\(notifications\.length - visibleNotifications\.length, 0\);/);
+  assert.match(appSource, /const portalEvents = getSortedPortalEvents\(record\);/);
+  assert.match(appSource, /older versions kept in history/);
+  assert.match(appSource, /older notices kept in history/);
+  assert.match(cssSource, /\.portal-history-summary\s*\{/);
 });

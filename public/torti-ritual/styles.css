@@ -988,6 +988,20 @@ input {
   line-height: 1.42;
 }
 
+.portal-history-summary {
+  min-height: 30px;
+  padding: 8px 12px;
+  border: 1px dashed rgba(120, 105, 90, 0.2);
+  border-radius: 12px;
+  background: rgba(252, 248, 244, 0.68);
+  color: var(--muted);
+  font-size: 0.54rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
 .panel-intro {
   display: flex;
   align-items: end;
