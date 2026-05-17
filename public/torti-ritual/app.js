@@ -3024,6 +3024,24 @@
       })[0] || null;
   }
 
+  function getLatestPortalNotification(record) {
+    if (!record || !Array.isArray(record.notifications)) {
+      return null;
+    }
+
+    return record.notifications
+      .slice()
+      .sort((left, right) => {
+        const rightTime = Date.parse(normalizeText(right.createdAt)) || 0;
+        const leftTime = Date.parse(normalizeText(left.createdAt)) || 0;
+        if (rightTime !== leftTime) {
+          return rightTime - leftTime;
+        }
+
+        return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
+      })[0] || null;
+  }
+
   function getLatestPortalVersion(record) {
     if (!record || !Array.isArray(record.versions)) {
       return null;
@@ -4442,11 +4460,9 @@
     schedulePortalRemoteHydration(snapshot);
     const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
     const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
-    const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
-    const latestNotification = Array.isArray(record.notifications) ? record.notifications.at(-1) || null : null;
-    const unreadCount = Array.isArray(record.notifications)
-      ? record.notifications.filter((notification) => !notification.readAt).length
-      : 0;
+    const latestVersion = getLatestPortalVersion(record);
+    const latestNotification = getLatestPortalNotification(record);
+    const currentUnreadCount = latestNotification && !latestNotification.readAt ? 1 : 0;
     const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
     const latestPortalEvent = portalEvents[0] || null;
     const portalViewedEvent = portalEvents.find((event) => {
@@ -4488,7 +4504,7 @@
       ? `${latestVersion.summary} · Published ${formatPortalMoment(latestVersion.publishedAt)}`
       : "No version published yet.";
     const customerStatus = latestVersion
-      ? unreadCount > 0
+      ? currentUnreadCount > 0
         ? "New version waiting"
         : "Customer has seen the latest version"
       : "Draft not published yet";
@@ -4600,7 +4616,7 @@
           </div>
           <div class="portal-card-summary">
             <span>${escapeHtml(latestVersion ? latestVersionSummary : "Publish a draft to open the portal.")}</span>
-            <span>${escapeHtml(`${unreadCount} unread notifications`)}</span>
+            <span>${escapeHtml(`${currentUnreadCount} unread notifications`)}</span>
             <span>${escapeHtml(portalViewedAt ? `Seen ${formatPortalMoment(portalViewedAt)}` : "Not opened yet")}</span>
             <span>${escapeHtml(record.lastAcknowledgedAt ? `Acknowledged ${formatPortalMoment(record.lastAcknowledgedAt)}` : "Not acknowledged yet")}</span>
             <span class="portal-summary-spotlight">${escapeHtml(summaryPortalEvent ? `${latestActivityLabel}: ${summaryPortalEvent.message || summaryPortalEvent.type || "Portal event"}` : "No portal activity yet")}</span>
@@ -4609,12 +4625,12 @@
           ${customerOnlyView
             ? `
           <div class="portal-card-actions portal-card-actions--customer">
-            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
           </div>`
             : `
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
-            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
           </div>`}
           <div class="portal-card-list">
             <div class="portal-card-list-title">${escapeHtml(customerOnlyView ? "Latest notices" : "Customer notifications")}</div>
