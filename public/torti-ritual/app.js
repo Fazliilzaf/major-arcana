@@ -2980,7 +2980,7 @@
       return false;
     }
 
-    const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
+    const latestVersion = getLatestPortalVersion(record);
     const alreadyViewed = Boolean(
       normalizeText(record.viewedAt) ||
       normalizeText(record.lastViewedAt) ||
@@ -3011,22 +3011,13 @@
       return null;
     }
 
-    return record.notifications
-      .filter((notification) => !notification.readAt)
-      .sort((left, right) => {
-        const rightTime = Date.parse(normalizeText(right.createdAt)) || 0;
-        const leftTime = Date.parse(normalizeText(left.createdAt)) || 0;
-        if (rightTime !== leftTime) {
-          return rightTime - leftTime;
-        }
-
-        return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
-      })[0] || null;
+    return getSortedPortalNotifications(record)
+      .filter((notification) => !notification.readAt)[0] || null;
   }
 
-  function getLatestPortalNotification(record) {
+  function getSortedPortalNotifications(record) {
     if (!record || !Array.isArray(record.notifications)) {
-      return null;
+      return [];
     }
 
     return record.notifications
@@ -3039,12 +3030,16 @@
         }
 
         return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
-      })[0] || null;
+      });
   }
 
-  function getLatestPortalVersion(record) {
+  function getLatestPortalNotification(record) {
+    return getSortedPortalNotifications(record)[0] || null;
+  }
+
+  function getSortedPortalVersions(record) {
     if (!record || !Array.isArray(record.versions)) {
-      return null;
+      return [];
     }
 
     return record.versions
@@ -3057,7 +3052,29 @@
         }
 
         return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
-      })[0] || null;
+      });
+  }
+
+  function getLatestPortalVersion(record) {
+    return getSortedPortalVersions(record)[0] || null;
+  }
+
+  function getSortedPortalEvents(record) {
+    if (!record || !Array.isArray(record.events)) {
+      return [];
+    }
+
+    return record.events
+      .slice()
+      .sort((left, right) => {
+        const rightTime = Date.parse(normalizeText(right.createdAt)) || 0;
+        const leftTime = Date.parse(normalizeText(left.createdAt)) || 0;
+        if (rightTime !== leftTime) {
+          return rightTime - leftTime;
+        }
+
+        return normalizeText(right.eventId).localeCompare(normalizeText(left.eventId));
+      });
   }
 
   function acknowledgeLatestPortalNotification() {
@@ -4458,12 +4475,16 @@
       sheetApp.classList.toggle("is-owner-portal-view", !customerOnlyView);
     }
     schedulePortalRemoteHydration(snapshot);
-    const versions = Array.isArray(record.versions) ? record.versions.slice().reverse() : [];
-    const notifications = Array.isArray(record.notifications) ? record.notifications.slice().reverse() : [];
+    const versions = getSortedPortalVersions(record);
+    const notifications = getSortedPortalNotifications(record);
+    const visibleVersions = versions.slice(0, 3);
+    const hiddenVersionCount = Math.max(versions.length - visibleVersions.length, 0);
+    const visibleNotifications = notifications.slice(0, 3);
+    const hiddenNotificationCount = Math.max(notifications.length - visibleNotifications.length, 0);
     const latestVersion = getLatestPortalVersion(record);
     const latestNotification = getLatestPortalNotification(record);
     const currentUnreadCount = latestNotification && !latestNotification.readAt ? 1 : 0;
-    const portalEvents = Array.isArray(record.events) ? record.events.slice().reverse() : [];
+    const portalEvents = getSortedPortalEvents(record);
     const latestPortalEvent = portalEvents[0] || null;
     const portalViewedEvent = portalEvents.find((event) => {
       const eventType = normalize(event.type);
@@ -4591,7 +4612,7 @@
           <div class="portal-card-list">
             <div class="portal-card-list-title">Published versions</div>
             ${versions.length > 0
-              ? versions
+              ? `${visibleVersions
                 .map((version) => {
                   const isLatest = latestVersion && latestVersion.versionId === version.versionId;
                   return `
@@ -4604,7 +4625,10 @@
                     </article>
                   `;
                 })
-                .join("")
+                .join("")}
+                ${hiddenVersionCount > 0
+                  ? `<div class="portal-history-summary">${escapeHtml(`${hiddenVersionCount} older versions kept in history`)}</div>`
+                  : ""}`
               : '<div class="portal-empty">Publish the draft to create the first customer version.</div>'}
           </div>
         </article>`}
@@ -4635,7 +4659,7 @@
           <div class="portal-card-list">
             <div class="portal-card-list-title">${escapeHtml(customerOnlyView ? "Latest notices" : "Customer notifications")}</div>
             ${notifications.length > 0
-              ? notifications
+              ? `${visibleNotifications
                 .map((notification) => {
                   const isLatest = latestNotification && latestNotification.notificationId === notification.notificationId;
                   return `
@@ -4652,7 +4676,10 @@
                     </article>
                   `;
                 })
-                .join("")
+                .join("")}
+                ${hiddenNotificationCount > 0
+                  ? `<div class="portal-history-summary">${escapeHtml(`${hiddenNotificationCount} older notices kept in history`)}</div>`
+                  : ""}`
               : '<div class="portal-empty">No notifications yet. Publish a draft to send one.</div>'}
           </div>
         </article>
