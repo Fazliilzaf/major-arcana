@@ -18963,37 +18963,13 @@
     setNoteModeOpen(false);
     setScheduleOpen(false);
     setContextCollapsed(false);
-    if (
-      preferredAction === "booking_surface" &&
-      state.runtime?.authRequired !== true &&
-      state.runtime?.loading !== true
-    ) {
-      openBookingOperatorSurface({
-        scroll: false,
-        message: "",
-      });
-    } else if (
-      preferredAction === "aftercare_open" ||
-      preferredAction === "operation_open" ||
-      preferredAction === "consultation_open" ||
-      preferredAction === "commercial_open"
-    ) {
-      openWorkspaceDomainSurface(preferredAction.replace(/_open$/, ""), {
-        threadId: thread.id,
-        message: "",
-      });
-    } else if (
-      preferredAction === "schedule_open" ||
-      preferredAction === "note_open" ||
-      preferredAction === "studio_open"
-    ) {
-      // Patientresa får styra snabbåtgärder i fokusytan, men öppna inte modal
-      // (Smart anteckning / Svarstudio / Schemalägg) passivt vid trådbyte eller login.
-    } else {
-      runtimeActionEngine.openRuntimeStudio("reply", thread.id, {
-        readOnly: false,
-      });
-    }
+    // 2026-05-18: INGEN workspace-modal öppnas passivt vid login eller
+    // trådbyte. Tidigare öppnade preferredAction automatiskt en av
+    // bokningsyta/aftercare/operation/consultation/commercial-workspaces
+    // — det irriterade användaren ("varför ploppar Behöver triage upp?").
+    // Patientresa styr fortfarande snabbåtgärderna i fokusytan, och
+    // användaren klickar själv för att öppna en modal.
+    // Alla preferredAction-grenar är borttagna — INGEN auto-open.
     seedJourneyDrivenWorkspace(thread, focusReadState, preferredAction);
   }
 
