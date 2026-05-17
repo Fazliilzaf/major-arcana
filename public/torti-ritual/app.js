@@ -3006,10 +3006,46 @@
     return true;
   }
 
+  function getLatestUnreadPortalNotification(record) {
+    if (!record || !Array.isArray(record.notifications)) {
+      return null;
+    }
+
+    return record.notifications
+      .filter((notification) => !notification.readAt)
+      .sort((left, right) => {
+        const rightTime = Date.parse(normalizeText(right.createdAt)) || 0;
+        const leftTime = Date.parse(normalizeText(left.createdAt)) || 0;
+        if (rightTime !== leftTime) {
+          return rightTime - leftTime;
+        }
+
+        return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
+      })[0] || null;
+  }
+
+  function getLatestPortalVersion(record) {
+    if (!record || !Array.isArray(record.versions)) {
+      return null;
+    }
+
+    return record.versions
+      .slice()
+      .sort((left, right) => {
+        const rightTime = Date.parse(normalizeText(right.publishedAt) || normalizeText(right.createdAt)) || 0;
+        const leftTime = Date.parse(normalizeText(left.publishedAt) || normalizeText(left.createdAt)) || 0;
+        if (rightTime !== leftTime) {
+          return rightTime - leftTime;
+        }
+
+        return (Number(right.versionNumber) || 0) - (Number(left.versionNumber) || 0);
+      })[0] || null;
+  }
+
   function acknowledgeLatestPortalNotification() {
     const snapshot = buildSheetSnapshot();
     const record = ensurePortalRecord(snapshot);
-    const latestUnread = [...record.notifications].reverse().find((notification) => !notification.readAt);
+    const latestUnread = getLatestUnreadPortalNotification(record);
     const now = nowIso();
 
     if (!latestUnread) {
@@ -3018,8 +3054,12 @@
 
     latestUnread.readAt = now;
     record.acknowledgedAt = now;
-    const latestVersion = record.versions.find((version) => version.versionId === latestUnread.versionId) || record.versions.at(-1) || null;
-    if (latestVersion) {
+    const matchingVersion = record.versions.find((version) => version.versionId === latestUnread.versionId) || null;
+    const latestVersion = getLatestPortalVersion(record);
+    if (matchingVersion) {
+      matchingVersion.acknowledgedAt = now;
+    }
+    if (latestVersion && latestVersion !== matchingVersion) {
       latestVersion.acknowledgedAt = now;
     }
 
@@ -4567,7 +4607,10 @@
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           ${customerOnlyView
-            ? ""
+            ? `
+          <div class="portal-card-actions portal-card-actions--customer">
+            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${unreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+          </div>`
             : `
           <div class="portal-card-actions">
             <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>

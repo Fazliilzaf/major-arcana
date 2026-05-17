@@ -738,6 +738,10 @@ input {
   flex-wrap: wrap;
 }
 
+.portal-card-actions--customer {
+  justify-content: flex-start;
+}
+
 .portal-action {
   min-height: 24px;
   padding: 0 10px;
