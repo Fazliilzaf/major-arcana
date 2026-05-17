@@ -43,6 +43,16 @@
       scheduleTimeHint,
       scheduleTimeInput,
       laterShell,
+      focusContextShell,
+      focusContextTitle,
+      focusContextLabel,
+      focusContextBody,
+      focusContextMeta,
+      focusContextItems,
+      bookingShell,
+      bookingShellTitle,
+      bookingShellStatus,
+      bookingShellMount,
       studioAvatar,
       studioCustomerEmail,
       studioCustomerMood,
@@ -1242,6 +1252,107 @@
       noteShell.style.transform = isOpen ? "translateY(0)" : "translateY(14px)";
     }
 
+    function renderFocusContextShell(payload = {}) {
+      const label = asText(payload.label, "Kontext");
+      const title = asText(payload.title, label);
+      const body = asText(payload.body, "");
+      const meta = asText(payload.meta, "");
+      const items = asArray(payload.items)
+        .map((item) => asText(item))
+        .filter(Boolean);
+      if (focusContextTitle) focusContextTitle.textContent = title;
+      if (focusContextLabel) focusContextLabel.textContent = label;
+      if (focusContextBody) focusContextBody.textContent = body;
+      if (focusContextMeta) {
+        if (meta) {
+          focusContextMeta.textContent = meta;
+          focusContextMeta.hidden = false;
+        } else {
+          focusContextMeta.textContent = "";
+          focusContextMeta.hidden = true;
+        }
+      }
+      if (focusContextItems) {
+        if (items.length) {
+          focusContextItems.innerHTML = items
+            .map((item) => `<li>${escapeHtml(item)}</li>`)
+            .join("");
+          focusContextItems.hidden = false;
+        } else {
+          focusContextItems.innerHTML = "";
+          focusContextItems.hidden = true;
+        }
+      }
+    }
+
+    function setFocusContextOpen(open) {
+      const isOpen = workspaceSourceOfTruth.setOverlayOpen("focusContext", open);
+      if (canvas) {
+        canvas.classList.toggle("is-focus-context-open", isOpen);
+      }
+      if (!focusContextShell) return;
+      focusContextShell.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      focusContextShell.style.opacity = isOpen ? "1" : "0";
+      focusContextShell.style.pointerEvents = isOpen ? "auto" : "none";
+      focusContextShell.style.visibility = isOpen ? "visible" : "hidden";
+      focusContextShell.style.transform = isOpen ? "translateY(0)" : "translateY(14px)";
+    }
+
+    function openFocusContextPanel(payload = {}) {
+      state.runtime = state.runtime || {};
+      state.runtime.focusContextPayload = {
+        label: asText(payload.label, "Kontext"),
+        title: asText(payload.title, payload.label || "Kontext"),
+        body: asText(payload.body, ""),
+        meta: asText(payload.meta, ""),
+        items: asArray(payload.items).map((item) => asText(item)).filter(Boolean),
+      };
+      renderFocusContextShell(state.runtime.focusContextPayload);
+      setFocusContextOpen(true);
+    }
+
+    function renderBookingShellChrome(payload = {}) {
+      const title = asText(payload.title, "Bokningsarbete");
+      const status = asText(payload.status, "Behöver triage");
+      if (bookingShellTitle) bookingShellTitle.textContent = title;
+      if (bookingShellStatus) bookingShellStatus.textContent = status;
+    }
+
+    function setBookingOpen(open) {
+      const isOpen = workspaceSourceOfTruth.setOverlayOpen("booking", open);
+      state.runtime = state.runtime || {};
+      state.runtime.bookingShellOpen = isOpen;
+      if (!isOpen) {
+        state.runtime.bookingShellDismissed = true;
+      }
+      if (canvas) {
+        canvas.classList.toggle("is-booking-open", isOpen);
+      }
+      if (!bookingShell) return;
+      bookingShell.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      bookingShell.style.opacity = isOpen ? "1" : "0";
+      bookingShell.style.pointerEvents = isOpen ? "auto" : "none";
+      bookingShell.style.visibility = isOpen ? "visible" : "hidden";
+      bookingShell.style.transform = isOpen ? "translateY(0)" : "translateY(14px)";
+      const surface = document.querySelector("[data-booking-surface]");
+      if (surface) {
+        surface.hidden = !isOpen;
+        surface.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      }
+      const dock = document.querySelector("[data-booking-workspace-dock]");
+      if (dock) {
+        const unified = state.runtime?.bookingWorkrailUnified === true;
+        const hideDock = isOpen || unified;
+        dock.hidden = hideDock;
+        dock.setAttribute("aria-hidden", hideDock ? "true" : "false");
+      }
+    }
+
+    function openBookingPanel(payload = {}) {
+      renderBookingShellChrome(payload);
+      setBookingOpen(true);
+    }
+
     function setScheduleOpen(open) {
       const isOpen = workspaceSourceOfTruth.setOverlayOpen("schedule", open);
       if (canvas) {
@@ -2114,6 +2225,12 @@
       setMailboxAdminOpen,
       setNoteModeOpen,
       setNoteOpen,
+      openFocusContextPanel,
+      renderFocusContextShell,
+      setFocusContextOpen,
+      openBookingPanel,
+      renderBookingShellChrome,
+      setBookingOpen,
       setScheduleOpen,
       setStudioOpen,
       syncNoteCount,

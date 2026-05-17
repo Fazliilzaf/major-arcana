@@ -97,6 +97,10 @@
       initialsForName,
       isOfflineHistoryContextThread,
       isOfflineHistorySelectionActive,
+      isBookingRuntimeThread,
+      threadShowsBookingWorkrailDock,
+      getBookingWorkrailDockCue,
+      openFocusContextPanel,
       getPreviewPatient360JourneyForThread,
       joinReadableList,
       normalizeKey,
@@ -2248,11 +2252,12 @@
       setElementVisibility(focusBadgeRow, showPrimaryShell);
       if (focusWorkrail) {
         focusWorkrail.classList.remove("is-placeholder");
-        setElementVisibility(focusWorkrail, showPrimaryShell);
         if (isAuthFallback) {
-          focusWorkrail.hidden = false;
+          focusWorkrail.hidden = true;
           focusWorkrail.classList.add("is-placeholder");
           focusWorkrail.setAttribute("aria-hidden", "true");
+        } else {
+          setElementVisibility(focusWorkrail, showPrimaryShell);
         }
       }
       if (focusConversationLayout) {
@@ -2591,8 +2596,12 @@
       const isOfflineHistoryThread = Boolean(
         typeof isOfflineHistoryContextThread === "function" && isOfflineHistoryContextThread(thread)
       );
+      const isBookingOperational =
+        typeof isBookingRuntimeThread === "function" && isBookingRuntimeThread(thread);
       const isTruthDrivenReadOnly =
-        focusReadState?.truthDriven === true && focusReadState?.readOnly === true;
+        focusReadState?.truthDriven === true &&
+        focusReadState?.readOnly === true &&
+        !isBookingOperational;
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         applyFocusWaitingState(true);
@@ -2610,7 +2619,9 @@
           : isLoading
             ? "Den aktiva kön synkar just nu. Tråd, historik och kundstöd fylls tillbaka automatiskt när uppdateringen är klar."
             : isAuthRequired
-              ? state.runtime.error ||
+              ? (normalizeKey(state.runtime.error).includes("sessionen är ogiltig")
+                  ? "Öppna admin och logga in igen för att läsa aktiv trådar, historik och kundstöd i samma arbetsyta."
+                  : state.runtime.error) ||
                 "Öppna admin och logga in igen för att läsa aktiv trådar, historik och kundstöd i samma arbetsyta."
               : state.runtime.error ||
                 "När du väljer en aktiv aktiv tråd i arbetskön visas hela konversationen här.";
@@ -2633,7 +2644,15 @@
               ? "Logga in i admin för att återställa aktiva läget i fokusytan."
               : "Välj en aktiv aktiv tråd i arbetskön för att öppna konversationen här.";
         focusBadgeRow.innerHTML = "";
-        focusWorkrail.innerHTML = "";
+        if (focusWorkrail) {
+          const conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
+          if (conversationNextHost) conversationNextHost.innerHTML = "";
+          const bookingSurface = focusWorkrail.querySelector("[data-booking-surface]");
+          if (bookingSurface) {
+            bookingSurface.hidden = true;
+            bookingSurface.setAttribute("aria-hidden", "true");
+          }
+        }
         focusConversationSection.innerHTML = `
           <article class="conversation-entry conversation-entry-empty">
             <div class="conversation-empty-card">
@@ -2777,10 +2796,17 @@
       const focusStatusMarkup = buildFocusStatusRowMarkup(focusStatusItems);
       focusStatusLine.innerHTML = isOfflineHistoryThread
         ? `Offline historik · läsläge<span class="focus-status-alert"> · Live-actions spärrade tills en aktiv tråd väljs</span>`
-        : isTruthDrivenReadOnly
-          ? `Läsläge i fokusytan<span class="focus-status-alert"> · Reply/studio ligger kvar utanför detta pass</span>`
-          : focusStatusMarkup ||
-            escapeHtml(asText(thread.nextActionLabel, thread.statusLabel || "Aktiv tråd"));
+        : isBookingOperational
+          ? escapeHtml(
+              asText(
+                thread.nextActionLabel,
+                "Bokningsarbete · välj tider och bekräfta i ärendet"
+              )
+            )
+          : isTruthDrivenReadOnly
+            ? `Läsläge i fokusytan<span class="focus-status-alert"> · Reply/studio ligger kvar utanför detta pass</span>`
+            : focusStatusMarkup ||
+              escapeHtml(asText(thread.nextActionLabel, thread.statusLabel || "Aktiv tråd"));
       focusBadgeRow.innerHTML = "";
       focusBadgeRow.hidden = true;
 
@@ -2850,20 +2876,104 @@
         typeof getJourneyPrimaryActionConfig === "function"
           ? getJourneyPrimaryActionConfig(thread, focusReadState)
           : { action: "studio_open", label: "Öppna Svarstudio" };
+      const bookingWorkrailCue =
+        typeof getBookingWorkrailDockCue === "function"
+          ? getBookingWorkrailDockCue(thread)
+          : { show: false, title: "", meta: "" };
+      const mergeBookingWorkrail =
+        bookingWorkrailCue.show &&
+        !isOfflineHistoryThread &&
+        !isTruthDrivenReadOnly;
+      const journeyPrimaryIsBooking =
+        normalizeKey(primaryJourneyAction.action) === "booking_surface";
       const recommendedActionTitle = isOfflineHistoryThread
         ? "Läsläge från historik"
         : isTruthDrivenReadOnly
           ? `${focusWaveLabel} · Läsläge`
-          : asText(primaryJourneyAction.label, thread.nextActionLabel);
+          : mergeBookingWorkrail
+            ? asText(bookingWorkrailCue.title, thread.nextActionLabel)
+            : asText(primaryJourneyAction.label, thread.nextActionLabel);
       const recommendedActionSummary = isOfflineHistoryThread
         ? nextActionSummaryCopy
         : isTruthDrivenReadOnly
           ? nextActionSummaryCopy
-          : compactRuntimeCopy(
-              primaryJourneyAction.summary || thread.nextActionSummary,
-              "Var konkret med tider eller nästa steg direkt i svaret.",
-              88
+          : mergeBookingWorkrail
+            ? compactRuntimeCopy(
+                bookingWorkrailCue.meta,
+                "Öppna bokningsytan för att välja och spara tider.",
+                120
+              )
+            : compactRuntimeCopy(
+                primaryJourneyAction.summary || thread.nextActionSummary,
+                "Var konkret med tider eller nästa steg direkt i svaret.",
+                88
+              );
+      const journeyQuickToolAction = normalizeKey(primaryJourneyAction.action);
+      const showJourneyQuickTool =
+        journeyQuickToolAction &&
+        journeyQuickToolAction !== "studio_open" &&
+        journeyQuickToolAction !== "booking_surface";
+      function tagConversationActionChip(html = "", chipClass = "") {
+        if (!html) return "";
+        const extra = chipClass ? ` ${chipClass}` : "";
+        return html.replace(
+          'class="conversation-next-button"',
+          `class="conversation-next-button conversation-next-action-chip${extra}"`
+        );
+      }
+      const studioWorkrailActionMarkup = tagConversationActionChip(
+        buildConversationJourneyActionMarkup(
+          {
+            action: "studio_open",
+            label: "Svarstudio",
+            summary: primaryJourneyAction.summary || thread.nextActionSummary,
+          },
+          thread.id
+        ),
+        " conversation-next-action-chip--studio"
+      );
+      const bookingWorkrailOpenButtonMarkup = tagConversationActionChip(
+        `<button class="conversation-next-button" type="button" data-booking-open>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>
+            Bokningsyta
+          </button>`,
+        " conversation-next-action-chip--booking"
+      );
+      const noteWorkrailActionMarkup =
+        journeyQuickToolAction === "note_open"
+          ? tagConversationActionChip(
+              buildConversationJourneyActionMarkup(primaryJourneyAction, thread.id),
+              " conversation-next-action-chip--note"
+            )
+          : tagConversationActionChip(
+              `<button class="conversation-next-button" type="button" data-runtime-note-open aria-controls="note-shell">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>
+            Smart anteckning
+          </button>`,
+              " conversation-next-action-chip--note"
             );
+      const scheduleWorkrailActionMarkup =
+        journeyQuickToolAction === "schedule_open"
+          ? tagConversationActionChip(
+              buildConversationJourneyActionMarkup(primaryJourneyAction, thread.id),
+              " conversation-next-action-chip--schedule"
+            )
+          : tagConversationActionChip(
+              `<button class="conversation-next-button" type="button" data-runtime-schedule-open aria-controls="schedule-shell">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>
+            Kalender
+          </button>`,
+              " conversation-next-action-chip--schedule"
+            );
+      const otherJourneyQuickMarkup =
+        showJourneyQuickTool &&
+        journeyQuickToolAction !== "note_open" &&
+        journeyQuickToolAction !== "schedule_open"
+          ? tagConversationActionChip(
+              buildConversationJourneyActionMarkup(primaryJourneyAction, thread.id),
+              " conversation-next-action-chip--quick"
+            )
+          : "";
       const conversationNextActionsMarkup = isOfflineHistoryThread
         ? `<div class="conversation-next-actions conversation-next-actions--offline">
             <button class="conversation-next-button" type="button" data-runtime-studio-open data-runtime-studio-read-only="true" data-runtime-studio-thread-id="${escapeHtml(
@@ -2879,7 +2989,15 @@
                 `${focusReadState.label || "Sanningsstyrt fokus"} · ${focusWaveLabel}`
               )}</span>
             </div>`
-          : `<div class="conversation-next-actions">
+          : mergeBookingWorkrail
+            ? `<div class="conversation-next-actions conversation-next-actions--toolbar-row" role="toolbar" aria-label="Svar, bokning och verktyg">
+            ${studioWorkrailActionMarkup}
+            ${bookingWorkrailOpenButtonMarkup}
+            ${noteWorkrailActionMarkup}
+            ${scheduleWorkrailActionMarkup}
+            ${otherJourneyQuickMarkup}
+          </div>`
+            : `<div class="conversation-next-actions">
             ${buildConversationJourneyActionMarkup(primaryJourneyAction, thread.id)}
             <div class="conversation-next-icons" aria-label="Snabbverktyg">
               <button class="conversation-next-icon-button conversation-next-icon-button-calendar" type="button" data-runtime-schedule-open aria-controls="schedule-shell" aria-label="Schemalägg uppföljning"${
@@ -2887,7 +3005,7 @@
               }>
                 <svg viewBox="0 0 16 16"><rect x="2.8" y="3.6" width="10.4" height="9.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.2 2.7v2M10.8 2.7v2M2.9 6.1h10.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3" /></svg>
               </button>
-              <button class="conversation-next-icon-button conversation-next-icon-button-note" type="button" data-runtime-note-open aria-controls="note-shell" aria-label="Öppna Smart anteckning"${
+              <button class="conversation-next-icon-button conversation-next-icon-button-note" type="button" data-runtime-note-open aria-controls="note-shell" aria-label="Smart anteckning"${
                 primaryJourneyAction.action === "note_open" ? " hidden" : ""
               }>
                 <svg viewBox="0 0 16 16"><path d="M4 2.7h6.5L13 5.2v7.1a1.1 1.1 0 0 1-1.1 1.1H4A1.1 1.1 0 0 1 2.9 12.3V3.8A1.1 1.1 0 0 1 4 2.7Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.2" /><path d="M10.5 2.8v2.6H13M5.2 7.4h5.2M5.2 9.6h4.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2" /></svg>
@@ -2901,21 +3019,56 @@
               </button>
             </div>
           </div>`;
-      const conversationNextStepMarkup = `<div class="conversation-next-step">
+      const contextLabel = isOfflineHistoryThread
+        ? "Offline kontext"
+        : isTruthDrivenReadOnly
+          ? "Sanningsstyrt fokus"
+          : mergeBookingWorkrail
+            ? "Svar & bokning"
+            : "Rekommenderat drag";
+      state.runtime = state.runtime || {};
+      state.runtime.bookingWorkrailUnified = mergeBookingWorkrail;
+      state.runtime.focusContextPreview = {
+        label: contextLabel,
+        title: recommendedActionTitle,
+        body: [
+          recommendedActionSummary,
+          isTruthDrivenReadOnly ? asText(focusReadState?.detail) : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        meta: isTruthDrivenReadOnly ? asText(focusWaveLabel, "Wave 1") : "",
+        items: isTruthDrivenReadOnly
+          ? focusStatusItems.map((item) => asText(item?.label)).filter(Boolean)
+          : [],
+      };
+      const showContextChip =
+        !isOfflineHistoryThread &&
+        !mergeBookingWorkrail &&
+        (isTruthDrivenReadOnly ||
+          asText(recommendedActionSummary).length > 72 ||
+          asText(focusReadState?.detail).length > 40);
+      const contextChipMarkup = showContextChip
+        ? `<button class="conversation-context-chip" type="button" data-focus-context-open aria-controls="focus-context-shell">Visa kontext</button>`
+        : "";
+      const conversationNextStepMarkup = mergeBookingWorkrail
+        ? `<div class="conversation-next-step conversation-next-step--toolbar-only">
+          ${conversationNextActionsMarkup}
+        </div>`
+        : `<div class="conversation-next-step${showContextChip ? " conversation-next-step--compact" : ""}">
           <div class="conversation-next-summary">
-            <span class="conversation-next-label">${escapeHtml(
-              isOfflineHistoryThread
-                ? "Offline kontext"
-                : isTruthDrivenReadOnly
-                  ? "Sanningsstyrt fokus"
-                  : "Rekommenderat drag"
-            )}</span>
+            <span class="conversation-next-label">${escapeHtml(contextLabel)}</span>
             <strong class="conversation-next-title">${escapeHtml(recommendedActionTitle)}</strong>
-            <p class="conversation-next-text">${escapeHtml(recommendedActionSummary)}</p>
+            ${contextChipMarkup}
+            ${
+              showContextChip
+                ? ""
+                : `<p class="conversation-next-text">${escapeHtml(recommendedActionSummary)}</p>`
+            }
           </div>
           ${conversationNextActionsMarkup}
         </div>`;
-      const latestConversationBodyRaw = asText(latestMessage.conversationBody).trim();
+            const latestConversationBodyRaw = asText(latestMessage.conversationBody).trim();
       const latestMessageBodyRaw = asText(latestMessage.body).trim();
       const latestConversationLooksNoisy =
         /(?:^|\n)(?:Från|From):|(?:^|\n)(?:Datum|Date):|(?:^|\n)(?:Till|To):|(?:^|\n)(?:Ämne|Subject):/i.test(
@@ -2972,7 +3125,35 @@
           </div>
         </article>
         ${olderHistoryMarkup}`;
-      focusWorkrail.innerHTML = conversationNextStepMarkup;
+      if (focusWorkrail) {
+        focusWorkrail.querySelectorAll(":scope > .conversation-next-step").forEach((node) => {
+          node.remove();
+        });
+        let conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
+        if (!conversationNextHost) {
+          conversationNextHost = document.createElement("div");
+          conversationNextHost.className = "conversation-next-host";
+          conversationNextHost.setAttribute("data-conversation-next-host", "");
+          const bookingSurface = focusWorkrail.querySelector("[data-booking-surface]");
+          if (bookingSurface) {
+            focusWorkrail.insertBefore(conversationNextHost, bookingSurface);
+          } else {
+            focusWorkrail.prepend(conversationNextHost);
+          }
+        }
+        conversationNextHost.innerHTML = conversationNextStepMarkup;
+        const hideConversationNextHost =
+          isBookingOperational &&
+          state.runtime?.bookingShellOpen !== false &&
+          !mergeBookingWorkrail;
+        if (hideConversationNextHost) {
+          conversationNextHost.hidden = true;
+          conversationNextHost.setAttribute("aria-hidden", "true");
+        } else {
+          conversationNextHost.hidden = false;
+          conversationNextHost.removeAttribute("aria-hidden");
+        }
+      }
       decorateStaticPills();
     }
 
@@ -4580,7 +4761,13 @@
 
     function buildConversationJourneyActionMarkup(config = {}, threadId = "") {
       const action = asText(config.action);
-      const label = asText(config.label, "Öppna Svarstudio");
+      let label = asText(
+        config.label,
+        action === "note_open" ? "Smart anteckning" : "Öppna Svarstudio"
+      );
+      if (action === "note_open") {
+        label = label.replace(/^Öppna\s+/i, "");
+      }
       const safeThreadId = asText(threadId);
       const noteDestination = asText(config.noteDestination);
       const noteTemplate = asText(config.noteTemplate);

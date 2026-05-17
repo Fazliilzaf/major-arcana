@@ -31,6 +31,8 @@
   const bookingActionButtons = Array.from(document.querySelectorAll("[data-booking-action]"));
   const studioShell = document.getElementById("studio-shell");
   const noteShell = document.getElementById("note-shell");
+  const focusContextShell = document.getElementById("focus-context-shell");
+  const bookingShell = document.getElementById("booking-shell");
   const scheduleShell = document.getElementById("schedule-shell");
   const laterShell = document.getElementById("later-shell");
   const laterContext = document.querySelector("[data-later-context]");
@@ -4720,6 +4722,36 @@
     } catch {}
   }
 
+  async function validateStoredAdminSession() {
+    const token = normalizeText(getAdminToken());
+    if (!token || token === "__preview_local__") {
+      return true;
+    }
+    try {
+      const response = await fetch(
+        new URL("/api/v1/auth/me", window.location.origin).toString(),
+        {
+          method: "GET",
+          credentials: "same-origin",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.ok) {
+        return true;
+      }
+      if (response.status === 401 || response.status === 403) {
+        clearAdminToken();
+        return false;
+      }
+    } catch {
+      // Nätverksfel: behåll token och låt efterföljande anrop avgöra.
+    }
+    return true;
+  }
+
   /**
    * Staging-style convenience: when the server enables GET /api/v1/auth/preview-bootstrap-session
    * for this host, fetch a fresh session before the first authenticated API calls (no password in the client).
@@ -4730,7 +4762,10 @@
     }
     const existing = normalizeText(getAdminToken());
     if (existing && existing !== "__preview_local__") {
-      return;
+      const valid = await validateStoredAdminSession();
+      if (valid) {
+        return;
+      }
     }
     try {
       const response = await fetch(
@@ -12899,6 +12934,11 @@
     setMailboxAdminOpen,
     setNoteModeOpen,
     setNoteOpen,
+    openFocusContextPanel,
+    setFocusContextOpen,
+    openBookingPanel,
+    renderBookingShellChrome,
+    setBookingOpen,
     setScheduleOpen,
     setStudioOpen,
     syncNoteCount,
@@ -12922,6 +12962,16 @@
       noteModeShell,
       notePrioritySelect,
       noteShell,
+      focusContextShell,
+      bookingShell,
+      bookingShellTitle: document.querySelector("[data-booking-shell-title]"),
+      bookingShellStatus: document.querySelector("[data-booking-shell-status]"),
+      bookingShellMount: document.querySelector("[data-booking-shell-mount]"),
+      focusContextTitle: document.querySelector("[data-focus-context-title]"),
+      focusContextLabel: document.querySelector("[data-focus-context-label]"),
+      focusContextBody: document.querySelector("[data-focus-context-body]"),
+      focusContextMeta: document.querySelector("[data-focus-context-meta]"),
+      focusContextItems: document.querySelector("[data-focus-context-items]"),
       noteTagsRow,
       noteText,
       noteVisibilitySelect,
@@ -13193,6 +13243,10 @@
       initialsForName,
       isOfflineHistoryContextThread,
       isOfflineHistorySelectionActive,
+      isBookingRuntimeThread,
+      threadShowsBookingWorkrailDock,
+      getBookingWorkrailDockCue,
+      openFocusContextPanel,
       getPreviewPatient360JourneyForThread,
       joinReadableList,
       normalizeKey,
@@ -13447,6 +13501,10 @@
     setFeedback,
     setNoteModeOpen,
     setNoteOpen,
+    openFocusContextPanel,
+    setFocusContextOpen,
+    openBookingPanel,
+    setBookingOpen,
     setScheduleOpen,
     setStudioOpen,
     state,
@@ -13563,6 +13621,7 @@
       buildMailboxCatalog,
       buildReauthUrl,
       buildTruthPrimaryWorklistConsumerHref,
+      clearAdminToken,
       canonicalizeRuntimeMailboxId,
       createIdempotencyKey,
       decorateStaticPills,
@@ -13654,6 +13713,13 @@
       setMailboxAdminOpen,
       setNoteModeOpen,
       setNoteOpen,
+      openFocusContextPanel,
+      setFocusContextOpen,
+      openBookingOperatorSurface,
+      openBookingSlotsPanel,
+      primeBookingSurfaceAfterOpen,
+      openBookingPanel,
+      setBookingOpen,
       setScheduleOpen,
       setStudioFeedback,
       setStudioOpen,
@@ -14615,7 +14681,10 @@
       state.runtime?.focusTruthPrimary?.enabled === true &&
       normalizeKey(focusThread?.worklistSource || focusThread?.raw?.worklistSource || "legacy") ===
         "truth_primary";
-    const readOnly = truthDriven && FOCUS_TRUTH_PRIMARY?.readOnly !== false;
+    const readOnly =
+      truthDriven &&
+      FOCUS_TRUTH_PRIMARY?.readOnly !== false &&
+      !isBookingRuntimeThread(focusThread);
     const foundationState = resolveRuntimeFoundationState(focusThread);
     const isDemoFocusThread =
       normalizeKey(focusThread?.worklistSource || focusThread?.raw?.worklistSource || "") === "demo";
@@ -14645,13 +14714,15 @@
           };
 
     if (truthDriven) {
+      const bookingOperational = isBookingRuntimeThread(focusThread);
       return {
         source: "truth_primary",
         truthDriven: true,
         readOnly,
-        label: "Sanningsstyrt fokus",
-        detail:
-          "Trådid, meddelandeordning, mejlkontoidentitet, riktning, tidsstämplar och oläst-läge läses från mejlsanning och mejlsanningshistorik i wave 1. Svarflödet och svarsstudion ligger kvar utanför detta pass.",
+        label: bookingOperational ? "Bokningsarbete" : "Sanningsstyrt fokus",
+        detail: bookingOperational
+          ? "Välj tider, spara i ärendet och bekräfta i CCO. Svarstudio finns i snabbverktygen när kunden ska kontaktas."
+          : "Trådid, meddelandeordning, mejlkontoidentitet, riktning, tidsstämplar och oläst-läge läses från mejlsanning och mejlsanningshistorik i wave 1. Svarflödet och svarsstudion ligger kvar utanför detta pass.",
         waveLabel: asText(
           focusThread?.worklistWaveLabel || focusThread?.raw?.worklistWaveLabel,
           "Wave 1"
@@ -17868,7 +17939,7 @@
       return {
         action: "note_open",
         quickAction: "note",
-        label: "Öppna Smart anteckning",
+        label: "Smart anteckning",
         tone: "compose",
         summary: "Samla och validera underlag i Smart anteckning innan svar eller handoff.",
         noteDestination: getJourneyPreferredNoteDestination(thread, focusReadState),
@@ -18827,7 +18898,9 @@
     focusBookingSurfaceZone(
       getJourneyPreferredBookingSurfaceZone(preferredStatusStep, bookingReadout)
     );
-    focusRecommendedBookingAction("", { moveFocus: moveActionFocus, announce });
+    focusRecommendedBookingAction("", { moveFocus: moveActionFocus, announce }).catch((error) => {
+      console.warn("Rekommenderad bokningsåtgärd kunde inte fokuseras.", error);
+    });
   }
 
   function seedJourneyDrivenWorkspace(thread, focusReadState = {}, preferredAction = "") {
@@ -18890,7 +18963,11 @@
     setNoteModeOpen(false);
     setScheduleOpen(false);
     setContextCollapsed(false);
-    if (preferredAction === "booking_surface") {
+    if (
+      preferredAction === "booking_surface" &&
+      state.runtime?.authRequired !== true &&
+      state.runtime?.loading !== true
+    ) {
       openBookingOperatorSurface({
         scroll: false,
         message: "",
@@ -18905,20 +18982,13 @@
         threadId: thread.id,
         message: "",
       });
-    } else if (preferredAction === "schedule_open") {
-      runtimeActionEngine.openRuntimeSchedule({ renderDraft: true }).catch((error) => {
-        console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
-      });
-    } else if (preferredAction === "note_open") {
-      runtimeActionEngine
-        .openRuntimeNote({
-          directOpen: true,
-          destinationKey: getJourneyPreferredNoteDestination(thread, focusReadState),
-          templateKey: getJourneyPreferredNoteTemplate(thread, focusReadState),
-        })
-        .catch((error) => {
-        console.warn("Journey-driven anteckningsyta kunde inte öppnas.", error);
-      });
+    } else if (
+      preferredAction === "schedule_open" ||
+      preferredAction === "note_open" ||
+      preferredAction === "studio_open"
+    ) {
+      // Patientresa får styra snabbåtgärder i fokusytan, men öppna inte modal
+      // (Smart anteckning / Svarstudio / Schemalägg) passivt vid trådbyte eller login.
     } else {
       runtimeActionEngine.openRuntimeStudio("reply", thread.id, {
         readOnly: false,
@@ -27616,6 +27686,32 @@
     renderSignalRows(focusSignalRows, []);
   }
 
+  function findBookingCaseForThread(thread) {
+    if (!thread) return null;
+    const conversationId = asText(thread.id);
+    const customerEmail = normalizeKey(getRuntimeCustomerEmail(thread) || thread?.customerEmail);
+    const fromList = asArray(state.booking.caseList).find(
+      (item) =>
+        asText(item.conversationId) === conversationId ||
+        (customerEmail && normalizeKey(item.customerEmail) === customerEmail)
+    );
+    if (fromList) return fromList;
+    const activeCase =
+      state.booking?.case && typeof state.booking.case === "object" ? state.booking.case : null;
+    if (!activeCase) return null;
+    if (
+      asText(activeCase.conversationId) === conversationId ||
+      (customerEmail && normalizeKey(activeCase.customerEmail) === customerEmail)
+    ) {
+      return activeCase;
+    }
+    return null;
+  }
+
+  function threadHasBookingCase(thread) {
+    return isBookingRuntimeThread(thread) || Boolean(findBookingCaseForThread(thread));
+  }
+
   function isBookingRuntimeThread(thread) {
     if (!thread) return false;
     const tags = asArray(thread.tags).map((tag) => normalizeKey(tag));
@@ -27686,6 +27782,58 @@
     );
   }
 
+  function threadShowsBookingWorkrailDock(thread) {
+    if (!thread) return false;
+    if (state.runtime?.bookingShellOpen === true) return false;
+    return threadHasBookingCase(thread) || hasBookingSurfaceCue(thread);
+  }
+
+  function syncBookingWorkspaceDockVisibility(thread = null) {
+    const dock =
+      (focusWorkrail && focusWorkrail.querySelector("[data-booking-workspace-dock]")) ||
+      document.querySelector("[data-booking-workspace-dock]");
+    if (!dock) return false;
+    const focusThread =
+      thread ||
+      (typeof getSelectedRuntimeFocusThread === "function"
+        ? getSelectedRuntimeFocusThread()
+        : null);
+    const workrailCue =
+      typeof getBookingWorkrailDockCue === "function"
+        ? getBookingWorkrailDockCue(focusThread)
+        : { show: false };
+    const mergeActive = workrailCue.show === true;
+    const shellOpen = state.runtime?.bookingShellOpen === true;
+    const hideDock = mergeActive || shellOpen;
+    state.runtime = state.runtime || {};
+    state.runtime.bookingWorkrailUnified = mergeActive;
+    dock.hidden = hideDock;
+    dock.setAttribute("aria-hidden", hideDock ? "true" : "false");
+    return unified;
+  }
+
+  function getBookingWorkrailDockCue(thread) {
+    if (!threadShowsBookingWorkrailDock(thread)) {
+      return { show: false, title: "", meta: "" };
+    }
+    const readout = getBookingReadoutForThread(thread);
+    const metaParts = [
+      asText(readout.blocker?.label),
+      asText(readout.recommendedActionReason),
+      asText(readout.attention?.summary),
+      asText(readout.nextActionMeta),
+    ].filter(Boolean);
+    return {
+      show: true,
+      title: formatBookingStatus(readout.status),
+      meta: compactRuntimeCopy(
+        metaParts.join(" · "),
+        "Öppna bokningsytan för att välja och spara tider.",
+        132
+      ),
+    };
+  }
+
   function getManualBookingLaneThread() {
     const activeLaneId = normalizePrimaryQueueLaneId(state.runtime?.activeLaneId || "all");
     const inlineLaneId =
@@ -27739,9 +27887,13 @@
       if (focusedThread) return focusedThread;
     }
     const selectedThread = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread();
-	    if (isBookingRuntimeThread(selectedThread)) return selectedThread;
-	    return getManualBookingLaneThread();
-	  }
+    if (selectedThread && threadHasBookingCase(selectedThread)) {
+      return selectedThread;
+    }
+    const manualThread = getManualBookingLaneThread();
+    if (manualThread) return manualThread;
+    return selectedThread;
+  }
 
 	  function isSingleWorkspaceViewport() {
 	    return (
@@ -27768,6 +27920,16 @@
 	    scroll = true,
 	    message = "Bokningsytan öppnades i arbetsytan.",
   } = {}) {
+    if (state.runtime?.authRequired === true || state.runtime?.loading === true) {
+      return;
+    }
+    const focusThread =
+      typeof getSelectedRuntimeFocusThread === "function"
+        ? getSelectedRuntimeFocusThread()
+        : null;
+    if (!focusThread) {
+      return;
+    }
     state.runtime.queueInlinePanel = {
       ...(state.runtime.queueInlinePanel || {}),
       open: true,
@@ -27782,29 +27944,23 @@
     setAppView("conversations");
     applyFocusSection("conversation");
     renderRuntimeConversationShell();
+    state.runtime = state.runtime || {};
+    state.runtime.bookingShellOpen = true;
     renderBookingSurface();
     const bookingDom = getBookingDom();
+    setBookingOpen(true);
 	    if (message) {
 	      setFeedback(bookingDom.feedback, "success", message);
-        const bookingThread = getBookingWorkThread();
-        window.setTimeout(() => {
-          seedBookingSurfaceForCurrentThread(bookingThread, {
-            moveActionFocus: false,
-            announce: false,
-          });
-        }, 120);
 	    }
+	    window.setTimeout(() => {
+	      primeBookingSurfaceAfterOpen({ announce: Boolean(message) }).catch((error) => {
+	        console.warn("Bokningsytan kunde inte förberedas med tider.", error);
+	      });
+	    }, 160);
 	    if (isSingleWorkspaceViewport()) {
 	      setMobileWorkspaceView("focus", { persist: false, resetScroll: false });
-	      window.setTimeout(resetSingleWorkspaceScrollPosition, 0);
-	      window.setTimeout(resetSingleWorkspaceScrollPosition, 160);
 	      return;
 	    }
-	    if (scroll && bookingDom.surface) {
-	      window.setTimeout(() => {
-	        bookingDom.surface.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-    }
   }
 
   function openWorkspaceDomainSurface(domainId = "", { threadId = "", message = "" } = {}) {
@@ -28220,12 +28376,6 @@
         : serviceLabels.length === 1
           ? { label: serviceLabels[0], tone: "count" }
           : { label: "Flera behandlingar", tone: "count" };
-    const serviceSummary =
-      serviceLabels.length === 0
-        ? "Behandling är ännu inte kopplad till kundförslaget."
-        : serviceLabels.length === 1
-          ? `Förslaget gäller ${serviceLabels[0]} genom hela kundförslaget.`
-          : "Förslaget blandar flera behandlingar i samma kundförslag.";
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28246,7 +28396,6 @@
         ],
         slotCarry,
         carrySummary,
-        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28275,7 +28424,6 @@
         ],
         slotCarry,
         carrySummary,
-        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28308,7 +28456,6 @@
       ],
       slotCarry,
       carrySummary,
-      serviceSummary,
       activitySummary: studioActivitySummary,
       handoffSummary,
       actionSummary,
@@ -34628,7 +34775,218 @@
     );
   }
 
-  function focusRecommendedBookingAction(actionOverride = "", { moveFocus = true, announce = true } = {}) {
+  function scrollBookingSlotsPanel(bookingDom = getBookingDom(), { preferAvailableList = false } = {}) {
+    if (!bookingDom) return;
+    if (bookingDom.advancedPanel) bookingDom.advancedPanel.open = true;
+    const hasAvailable = asArray(state.booking.availableSlots).length > 0;
+    const targetNode =
+      preferAvailableList && hasAvailable
+        ? bookingDom.availableList || bookingDom.slotControls || bookingDom.refStatus
+        : state.booking.loadingSlots || !hasAvailable
+          ? bookingDom.slotControls || bookingDom.refStatus
+          : bookingDom.availableList || bookingDom.slotControls || bookingDom.refStatus;
+    if (targetNode) {
+      targetNode.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (typeof targetNode.focus === "function") {
+        targetNode.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function shouldAutoFetchBookingAvailableSlots(bookingDom = getBookingDom()) {
+    if (!bookingDom || state.booking.loadingSlots || state.booking.saving) return false;
+    if (asArray(state.booking.availableSlots).length > 0) return false;
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
+      return false;
+    }
+    if (!state.booking.slotFetchAttempted) return true;
+    return Boolean(state.booking.slotsError);
+  }
+
+  function getBookingSurfaceRecommendedAction(bookingDom = getBookingDom(), readout = null) {
+    const bookingReadout = readout || getBookingReadoutForThread(getBookingWorkThread());
+    const blocker = bookingReadout?.blocker && typeof bookingReadout.blocker === "object" ? bookingReadout.blocker : {};
+    return normalizeKey(
+      bookingDom?.nextActionJump?.dataset.bookingRecommendedAction ||
+        bookingDom?.nextAction?.dataset.bookingRecommendedAction ||
+        blocker.nextAction ||
+        blocker.action ||
+        bookingReadout?.nextAction?.action ||
+        ""
+    );
+  }
+
+  function bookingSurfaceNeedsSlotFetch(readout = getBookingReadoutForThread(getBookingWorkThread()), bookingDom = getBookingDom()) {
+    if (asArray(readout?.selectedSlots).length > 0) return false;
+    const recommendedAction = getBookingSurfaceRecommendedAction(bookingDom, readout);
+    if (["candidate_slots", "focus_slots", "fetch_slots"].includes(recommendedAction)) {
+      return true;
+    }
+    const blockerKey = normalizeKey(readout?.blocker?.key || readout?.blockerKey);
+    const blockerAction = normalizeKey(readout?.blocker?.nextAction || readout?.blocker?.action);
+    if (blockerKey === "candidate_slots" || blockerAction === "candidate_slots") {
+      return true;
+    }
+    return asArray(readout?.checklist).some((item) => {
+      const itemKey = normalizeKey(item?.key || item?.id);
+      return itemKey === "candidate_slots" && item?.complete !== true;
+    });
+  }
+
+  function queueBookingSlotAutoPrime(thread = getBookingWorkThread()) {
+    const threadId = asText(thread?.id);
+    if (!threadId || state.runtime?.bookingShellOpen === false) return;
+    const readout = getBookingReadoutForThread(thread);
+    if (!bookingSurfaceNeedsSlotFetch(readout)) return;
+    if (state.booking.loadingSlots) return;
+    state.booking.autoPrimeQueuedThreadId = threadId;
+    window.clearTimeout(state.booking.autoPrimeTimer);
+    state.booking.autoPrimeTimer = window.setTimeout(() => {
+      if (asText(state.booking.autoPrimeQueuedThreadId) !== threadId) return;
+      const activeThread = getBookingWorkThread();
+      if (asText(activeThread?.id) !== threadId) return;
+      const activeReadout = getBookingReadoutForThread(activeThread);
+      if (!bookingSurfaceNeedsSlotFetch(activeReadout)) return;
+      if (
+        state.booking.slotFetchAttempted &&
+        asArray(state.booking.availableSlots).length > 0
+      ) {
+        return;
+      }
+      openBookingSlotsPanel({ autoFetch: true }).catch((error) => {
+        console.warn("Automatisk tids-hämtning misslyckades.", error);
+      });
+    }, 280);
+  }
+
+  async function primeBookingSurfaceAfterOpen({ announce = false } = {}) {
+    const bookingThread = getBookingWorkThread();
+    if (!bookingThread) return;
+    const bookingReadout = getBookingReadoutForThread(bookingThread);
+    const preferredStatusStep = getJourneyPreferredBookingStatusStep(bookingReadout);
+    focusBookingStatusStep(preferredStatusStep);
+    focusBookingSurfaceZone(
+      getJourneyPreferredBookingSurfaceZone(preferredStatusStep, bookingReadout)
+    );
+    if (!bookingSurfaceNeedsSlotFetch(bookingReadout)) {
+      await focusRecommendedBookingAction("", { moveFocus: false, announce });
+      return;
+    }
+    await openBookingSlotsPanel({ autoFetch: true });
+    const bookingDom = getBookingDom();
+    const refreshedReadout = getBookingReadoutForThread(bookingThread);
+    if (asArray(refreshedReadout.selectedSlots).length > 0) {
+      if (announce) {
+        setFeedback(bookingDom.feedback, "success", "Valda tider finns redan i ärendet.");
+      }
+      return;
+    }
+    if (asArray(state.booking.availableSlots).length > 0) {
+      if (announce) {
+        setFeedback(
+          bookingDom.feedback,
+          "success",
+          "Lediga tider är hämtade. Klicka Lägg till på 1–3 rader så försvinner Saknar tider."
+        );
+      }
+      return;
+    }
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    if (announce) {
+      setFeedback(
+        bookingDom.feedback,
+        request.fromDate && request.toDate && request.resIds && request.srvIds
+          ? state.booking.slotsError
+            ? "error"
+            : "success"
+          : "error",
+        state.booking.slotsError ||
+          (request.fromDate && request.toDate && request.resIds && request.srvIds
+            ? "Inga lediga tider för urvalet. Justera datum/resurs eller använd manuella reservtider."
+            : "Fyll i från, till, resurs-id och service-id (eller välj i listorna) och klicka Visa lediga tider.")
+      );
+    }
+  }
+
+  async function prepareBookingSlotsPanel(bookingDom = getBookingDom()) {
+    scrollBookingSlotsPanel(bookingDom);
+    if (!state.booking.refDataLoaded && !state.booking.loadingRefData) {
+      try {
+        await loadBookingRefData({ force: false });
+      } catch (_error) {
+        /* ref-data är valfritt om id redan är ifyllda manuellt */
+      }
+    }
+    const refreshedDom = getBookingDom();
+    syncBookingManualIdsFromSelects(refreshedDom);
+    seedBookingSlotRequestDefaults(refreshedDom);
+    captureBookingSlotRequestDraft(refreshedDom);
+    return refreshedDom;
+  }
+
+  async function openBookingSlotsPanel({ autoFetch = true } = {}) {
+    const bookingDom = await prepareBookingSlotsPanel();
+    const readout = getBookingReadoutForThread(getBookingWorkThread());
+    if (asArray(readout.selectedSlots).length > 0) {
+      scrollBookingSlotsPanel(bookingDom, { preferAvailableList: true });
+      return;
+    }
+    if (autoFetch && shouldAutoFetchBookingAvailableSlots(bookingDom)) {
+      await handleBookingAction("fetch_slots");
+      scrollBookingSlotsPanel(getBookingDom(), {
+        preferAvailableList: asArray(state.booking.availableSlots).length > 0,
+      });
+      return;
+    }
+    const request = getBookingSlotsRequestFromDom(bookingDom);
+    if (!request.fromDate || !request.toDate || !request.resIds || !request.srvIds) {
+      setFeedback(
+        bookingDom.feedback,
+        "error",
+        "Fyll i från, till, resurs-id och service-id (eller välj i listorna) och klicka Visa lediga tider."
+      );
+    }
+  }
+
+  async function runBookingSequenceSlotsAction(sequenceAction = "") {
+    const action = normalizeKey(sequenceAction);
+    if (action === "focus_slots" || action === "candidate_slots") {
+      await openBookingSlotsPanel({ autoFetch: true });
+      const bookingDom = getBookingDom();
+      const readout = getBookingReadoutForThread(getBookingWorkThread());
+      if (!asArray(readout.selectedSlots).length && asArray(state.booking.availableSlots).length > 0) {
+        setFeedback(
+          bookingDom.feedback,
+          "success",
+          "Lediga tider är hämtade. Klicka Lägg till på 1–3 rader så försvinner Saknar tider."
+        );
+      } else if (action === "candidate_slots") {
+        const request = getBookingSlotsRequestFromDom(bookingDom);
+        if (!request.resIds || !request.srvIds) {
+          await handleBookingAction("candidate_slots");
+        } else {
+          setFeedback(
+            bookingDom.feedback,
+            asArray(state.booking.availableSlots).length ? "success" : "error",
+            asArray(state.booking.availableSlots).length
+              ? "Välj 1–3 tider i listan med Lägg till."
+              : "Inga lediga tider för urvalet. Justera datum/resurs eller använd manuella reservtider."
+          );
+        }
+      } else {
+        setFeedback(bookingDom.feedback, "success", "Tidssteget är öppnat i bokningsytan.");
+      }
+      return;
+    }
+    if (action) {
+      await openBookingSlotsPanel({ autoFetch: false });
+      await focusRecommendedBookingAction(action, { moveFocus: true, announce: false });
+      setFeedback(getBookingDom().feedback, "success", "Valt bokningssteg är öppnat.");
+    }
+  }
+
+  async function focusRecommendedBookingAction(actionOverride = "", { moveFocus = true, announce = true } = {}) {
     const bookingDom = getBookingDom();
     const bookingThread = getBookingWorkThread();
     const readout = getBookingReadoutForThread(bookingThread);
@@ -34637,6 +34995,24 @@
         bookingDom.nextActionJump?.dataset.bookingRecommendedAction ||
         bookingDom.nextAction?.dataset.bookingRecommendedAction
     );
+    const normalizedAction = normalizeKey(recommendedAction);
+    if (
+      ["candidate_slots", "focus_slots", "fetch_slots"].includes(normalizedAction) &&
+      bookingSurfaceNeedsSlotFetch(readout, bookingDom)
+    ) {
+      await openBookingSlotsPanel({ autoFetch: true });
+      if (announce) {
+        setFeedback(
+          bookingDom.feedback,
+          asArray(state.booking.availableSlots).length ? "success" : state.booking.slotsError ? "error" : "success",
+          asArray(state.booking.availableSlots).length
+            ? "Lediga tider är hämtade. Klicka Lägg till på 1–3 rader så försvinner Saknar tider."
+            : state.booking.slotsError ||
+                "Öppnade tidssteget. Fyll i urval och hämta tider om listan fortfarande är tom."
+        );
+      }
+      return;
+    }
     const recommendationPrompt = buildBookingRecommendedActionPrompt(readout, recommendedAction);
     const targetButton = findRecommendedBookingActionButton(bookingDom, recommendedAction);
     if (!targetButton) {
@@ -35185,7 +35561,44 @@
     }
   }
 
+  function getBookingShellMount() {
+    return document.querySelector("[data-booking-shell-mount]");
+  }
+
+  function ensureBookingWorkspaceDock() {
+    if (!focusWorkrail) return null;
+    let dock = focusWorkrail.querySelector("[data-booking-workspace-dock]");
+    if (!dock) {
+      dock = document.createElement("div");
+      dock.className = "booking-workspace-dock";
+      dock.setAttribute("data-booking-workspace-dock", "");
+      dock.hidden = true;
+      dock.setAttribute("aria-hidden", "true");
+      dock.innerHTML = `
+        <div class="booking-workspace-dock-copy">
+          <span class="booking-workspace-dock-kicker">BOKNING</span>
+          <strong data-booking-dock-title>Bokningsarbete</strong>
+          <p data-booking-dock-meta>Öppna panelen för att välja tider och bekräfta.</p>
+        </div>
+        <button type="button" class="booking-workspace-dock-open" data-booking-open>
+          Öppna bokningsyta
+        </button>`;
+      const conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
+      if (conversationNextHost) {
+        focusWorkrail.insertBefore(dock, conversationNextHost);
+      } else {
+        focusWorkrail.prepend(dock);
+      }
+    }
+    return {
+      dock,
+      title: dock.querySelector("[data-booking-dock-title]"),
+      meta: dock.querySelector("[data-booking-dock-meta]"),
+    };
+  }
+
   function getBookingDom() {
+    const mount = getBookingShellMount();
     let surface = document.querySelector("[data-booking-surface]");
     const needsSurfaceRefresh =
       surface &&
@@ -35204,16 +35617,30 @@
       surface.remove();
       surface = null;
     }
-    if (!surface && focusWorkrail) {
-      focusWorkrail.insertAdjacentHTML(
-        "afterend",
+    if (surface && mount && !mount.contains(surface)) {
+      mount.appendChild(surface);
+    }
+    const insertParent = mount || focusWorkrail;
+    if (!surface && insertParent) {
+      insertParent.insertAdjacentHTML(
+        "beforeend",
         `<section class="booking-operator-surface" data-booking-surface aria-label="Bokningsarbete" hidden>
           <div class="booking-operator-head">
             <div>
               <span class="booking-operator-kicker">BOKNING</span>
               <h3>Bokningsarbete</h3>
             </div>
-            <span class="booking-status-pill" data-booking-status>Behöver triage</span>
+            <div class="booking-operator-head-actions">
+              <button
+                class="booking-context-open"
+                type="button"
+                data-booking-context-open
+                aria-controls="focus-context-shell"
+              >
+                Kontext
+              </button>
+              <span class="booking-status-pill" data-booking-status>Behöver triage</span>
+            </div>
           </div>
           <p class="booking-source-line" data-booking-source>Källa: manuell operator-yta</p>
           <p class="booking-health-line" data-booking-health>Hälsa: saknar kandidat-tider</p>
@@ -35276,7 +35703,6 @@
                 <div class="booking-phone-studio-badges" data-booking-phone-studio-badges hidden></div>
                 <ul class="booking-phone-studio-slots" data-booking-phone-studio-slots hidden></ul>
                 <p class="booking-phone-studio-summary" data-booking-phone-studio-summary hidden></p>
-                <p class="booking-phone-studio-service-summary" data-booking-phone-studio-service-summary hidden></p>
                 <p class="booking-phone-studio-activity" data-booking-phone-studio-activity hidden></p>
                 <p class="booking-phone-studio-handoff" data-booking-phone-studio-handoff hidden></p>
                 <p class="booking-phone-studio-action-summary" data-booking-phone-studio-action-summary hidden></p>
@@ -35495,7 +35921,6 @@
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
-      phoneStudioServiceSummary: surface?.querySelector("[data-booking-phone-studio-service-summary]"),
       phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
       phoneStudioHandoff: surface?.querySelector("[data-booking-phone-studio-handoff]"),
       phoneStudioActionSummary: surface?.querySelector("[data-booking-phone-studio-action-summary]"),
@@ -35602,11 +36027,36 @@
   function renderBookingSurface() {
     const bookingDom = getBookingDom();
     if (!bookingDom.surface) return;
+    const mount = getBookingShellMount();
+    if (mount && bookingDom.surface && !mount.contains(bookingDom.surface)) {
+      mount.appendChild(bookingDom.surface);
+    }
+    const dockUi = ensureBookingWorkspaceDock();
+    const focusThread =
+      typeof getSelectedRuntimeFocusThread === "function"
+        ? getSelectedRuntimeFocusThread()
+        : null;
     const thread = getBookingWorkThread();
-    const isBooking = isBookingRuntimeThread(thread);
-    bookingDom.surface.hidden = !isBooking;
-    bookingDom.surface.setAttribute("aria-hidden", isBooking ? "false" : "true");
-    if (!isBooking) return;
+    const isBooking =
+      isBookingRuntimeThread(thread) &&
+      Boolean(focusThread) &&
+      state.runtime?.authRequired !== true &&
+      state.runtime?.loading !== true;
+    if (focusConversationLayout) {
+      focusConversationLayout.classList.remove("is-booking-workspace");
+    }
+    if (focusWorkrail) {
+      const bookingInlineExpanded =
+        isBooking && state.runtime?.bookingShellOpen !== false;
+      focusWorkrail.classList.toggle("is-booking-active", bookingInlineExpanded);
+    }
+    if (!isBooking) {
+      bookingDom.surface.hidden = true;
+      bookingDom.surface.setAttribute("aria-hidden", "true");
+      syncBookingWorkspaceDockVisibility(focusThread || thread);
+      setBookingOpen(false);
+      return;
+    }
 
     const readout = getBookingReadoutForThread(thread);
     ensureBookingRuntimeContext(thread);
@@ -35702,10 +36152,6 @@
       if (bookingDom.phoneStudioSummary) {
         bookingDom.phoneStudioSummary.hidden = !asText(phoneStudio.carrySummary);
         bookingDom.phoneStudioSummary.textContent = phoneStudio.carrySummary;
-      }
-      if (bookingDom.phoneStudioServiceSummary) {
-        bookingDom.phoneStudioServiceSummary.hidden = !asText(phoneStudio.serviceSummary);
-        bookingDom.phoneStudioServiceSummary.textContent = phoneStudio.serviceSummary;
       }
       if (bookingDom.phoneStudioActivity) {
         bookingDom.phoneStudioActivity.hidden = !asText(phoneStudio.activitySummary);
@@ -35813,6 +36259,62 @@
       bookingDom.decisionSource.textContent = compactDecisionText;
       bookingDom.decisionSource.dataset.tone = decisionSource.tone;
       bookingDom.decisionSource.title = fullDecisionText;
+    }
+    state.runtime = state.runtime || {};
+    state.runtime.bookingContextPayload = {
+      label: "Bokningsarbete",
+      title: formatBookingStatus(readout.status),
+      body: [
+        healthReadout ? `${healthReadout.label} · ${healthReadout.meta}` : "",
+        `${nextAction.label} · ${nextAction.meta}`,
+        phoneWorkflow.copy,
+        asText(stageMicrocopy.refStatus),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      meta: [activeJourneyLabel, nextJourneyLabel, asText(stageContext?.title)]
+        .filter(Boolean)
+        .join(" · "),
+      items: [
+        phoneWorkflow.stateLabel,
+        phoneWorkflow.selectedSlotLabel,
+        phoneWorkflow.confirmedAudit,
+      ].filter((item) => item && !/^(?:Ingen tid vald ännu|Ej bekräftad externt)$/i.test(item)),
+    };
+    const bookingStatusLabel = formatBookingStatus(readout.status);
+    const bookingDockMeta = [
+      healthReadout ? healthReadout.meta : "",
+      nextAction.meta,
+      phoneWorkflow.copy,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    renderBookingShellChrome({
+      title: bookingStatusLabel,
+      status: bookingStatusLabel,
+    });
+    if (dockUi) {
+      if (dockUi.title) dockUi.title.textContent = bookingStatusLabel;
+      if (dockUi.meta) {
+        dockUi.meta.textContent =
+          bookingDockMeta || "Öppna panelen för att välja tider och bekräfta.";
+      }
+    }
+    const bookingThreadId = asText(thread?.id);
+    const bookingThreadChanged = state.runtime.bookingShellThreadId !== bookingThreadId;
+    if (bookingThreadChanged) {
+      state.runtime.bookingShellThreadId = bookingThreadId;
+      state.runtime.bookingShellOpen = true;
+      state.booking.slotFetchAttempted = false;
+      state.booking.slotsError = "";
+      state.booking.availableSlots = [];
+    }
+    if (state.runtime.bookingShellOpen !== false) {
+      setBookingOpen(true);
+    } else {
+      syncBookingWorkspaceDockVisibility(focusThread || thread);
+      bookingDom.surface.hidden = true;
+      bookingDom.surface.setAttribute("aria-hidden", "true");
     }
     if (bookingDom.treatment) bookingDom.treatment.textContent = readout.requestedTreatment;
     if (bookingDom.window) bookingDom.window.textContent = readout.preferredWindow || "Väntar på tidsfönster";
@@ -36116,6 +36618,9 @@
       }
     });
     ensureBookingActionDisclosure(bookingDom.surface);
+    if (state.runtime.bookingShellOpen !== false) {
+      queueBookingSlotAutoPrime(thread);
+    }
   }
 
   function buildBookingRequestBody(thread, extra = {}) {
@@ -36322,7 +36827,15 @@
       state.booking.caseListError = error?.message || "Bokningsärenden kunde inte hämtas.";
     } finally {
       state.booking.caseListLoading = false;
+      const selectedThread = getSelectedRuntimeFocusThread() || getSelectedRuntimeThread();
+      if (selectedThread && findBookingCaseForThread(selectedThread)) {
+        state.booking.engineSummaryThreadId = "";
+        ensureBookingRuntimeContext(selectedThread);
+      }
       renderBookingSurface();
+      if (state.runtime.bookingShellOpen !== false) {
+        queueBookingSlotAutoPrime(getBookingWorkThread());
+      }
     }
   }
 
@@ -36831,7 +37344,7 @@
   }
 
   async function loadBookingEngineSummary(thread, { force = false } = {}) {
-    if (!thread || !isBookingRuntimeThread(thread)) return state.booking.engineSummary || null;
+    if (!thread || !threadHasBookingCase(thread)) return state.booking.engineSummary || null;
     const threadId = asText(thread.id);
     if (
       state.booking.engineSummary &&
@@ -36866,9 +37379,34 @@
   }
 
   function ensureBookingRuntimeContext(thread) {
-    if (!thread || !isBookingRuntimeThread(thread)) return;
+    if (!thread || !threadHasBookingCase(thread)) return;
     const threadId = asText(thread.id);
     if (!threadId) return;
+    const matchingCase = findBookingCaseForThread(thread);
+    if (matchingCase) {
+      const activeCaseId = asText(state.booking.case?.bookingCaseId);
+      const nextCaseId = asText(matchingCase.bookingCaseId);
+      if (activeCaseId !== nextCaseId) {
+        state.booking.case = matchingCase;
+        state.booking.readout = {
+          ...(state.booking.readout || {}),
+          status: matchingCase.status || "needs_triage",
+          requestedTreatment: matchingCase.requestedTreatment || "Bokningsdialog",
+          preferredWindow: matchingCase.preferredWindow || "",
+          notes: matchingCase.notes || "",
+          selectedSlots: asArray(matchingCase.selectedSlots),
+          events: asArray(matchingCase.events),
+          allEvents: asArray(matchingCase.events),
+          offeredAt: matchingCase.offeredAt || "",
+          confirmedExternalAt: matchingCase.confirmedExternalAt || "",
+          updatedAt: matchingCase.updatedAt || "",
+          blocker: matchingCase.blocker || null,
+          waitingCustomer: matchingCase.waitingCustomer || null,
+          recommendedActionState: matchingCase.recommendedActionState || "",
+          recommendedActionReason: matchingCase.recommendedActionReason || "",
+        };
+      }
+    }
     if (
       state.booking.contextThreadId === threadId &&
       (state.booking.refDataLoaded || state.booking.loadingRefData) &&
@@ -37806,6 +38344,7 @@ renderStudioShell();
             })();
       renderQuickActionRows(focusActionRows, focusQuickActions);
       renderRuntimeFocusConversation(selectedFocusThread, focusReadState);
+      syncBookingWorkspaceDockVisibility(selectedFocusThread);
       renderBookingSurface();
       renderRuntimeCustomerPanel(selectedFocusThread, focusReadState);
       renderPreviewPatient360Backbone(selectedFocusThread, focusReadState);
@@ -38876,13 +39415,14 @@ renderStudioShell();
       if (
         !response.ok &&
         allowRetry &&
-        typeof isLocalPreviewHost === "function" &&
-        isLocalPreviewHost() &&
         isAuthFailure(response.status, payload?.error || "") &&
         normalizeText(authToken) &&
         normalizeText(authToken) !== "__preview_local__"
       ) {
         clearAdminToken();
+        if (typeof ensurePreviewBootstrapSession === "function") {
+          await ensurePreviewBootstrapSession();
+        }
         return executeRequest({
           authToken: getAdminToken(),
           allowRetry: false,
@@ -39638,48 +40178,28 @@ renderStudioShell();
         bookingEventList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         return;
       }
-      focusRecommendedBookingAction();
+      focusRecommendedBookingAction().catch((error) => {
+        console.warn("Rekommenderad bokningsåtgärd misslyckades.", error);
+      });
       return;
     }
     const sequenceActionButton = event.target.closest("[data-booking-sequence-action]");
     if (sequenceActionButton) {
+      event.preventDefault();
+      event.stopPropagation();
       const sequenceAction = normalizeKey(sequenceActionButton.dataset.bookingSequenceAction || "");
-      if (sequenceAction === "focus_slots") {
-        const bookingDom = getBookingDom();
-        const targetNode =
-          asArray(state.booking.availableSlots).length > 0
-            ? bookingDom.availableList || bookingDom.slotControls
-            : bookingDom.slotControls || bookingDom.refStatus;
-        if (bookingDom.advancedPanel) bookingDom.advancedPanel.open = true;
-        if (targetNode) {
-          targetNode.scrollIntoView({ behavior: "smooth", block: "start" });
-          if (typeof targetNode.focus === "function") {
-            targetNode.focus({ preventScroll: true });
-          }
-        }
-        setFeedback(getBookingDom().feedback, "success", "Tidssteget är öppnat i bokningsytan.");
-        return;
-      }
-      if (sequenceAction) {
-        focusRecommendedBookingAction(sequenceAction, { moveFocus: true, announce: false });
-        setFeedback(getBookingDom().feedback, "success", "Valt bokningssteg är markerat. Ingen åtgärd utfördes.");
-        return;
-      }
+      runBookingSequenceSlotsAction(sequenceAction).catch((error) => {
+        console.warn("Bokningssekvens kunde inte öppnas.", error);
+      });
+      return;
     }
     const openSlotsButton = event.target.closest("[data-booking-open-slots]");
     if (openSlotsButton) {
-      const bookingDom = getBookingDom();
-      if (bookingDom.advancedPanel) bookingDom.advancedPanel.open = true;
-      const targetNode =
-        state.booking.loadingSlots || !asArray(state.booking.availableSlots).length
-          ? bookingDom.slotControls || bookingDom.refStatus
-          : bookingDom.availableList || bookingDom.slotControls;
-      if (targetNode) {
-        targetNode.scrollIntoView({ behavior: "smooth", block: "start" });
-        if (typeof targetNode.focus === "function") {
-          targetNode.focus({ preventScroll: true });
-        }
-      }
+      event.preventDefault();
+      event.stopPropagation();
+      openBookingSlotsPanel({ autoFetch: true }).catch((error) => {
+        console.warn("Bokningstider kunde inte öppnas.", error);
+      });
       return;
     }
     const eventFilterClearButton = event.target.closest("[data-booking-event-filter-clear]");
@@ -39708,7 +40228,11 @@ renderStudioShell();
     if (auditPreviewAction) {
       const action = normalizeKey(auditPreviewAction.dataset.bookingAuditPreviewAction || "");
       if (action === "focus_recommended") {
-        focusRecommendedBookingAction(auditPreviewAction.dataset.bookingRecommendedAction || "");
+        focusRecommendedBookingAction(auditPreviewAction.dataset.bookingRecommendedAction || "").catch(
+          (error) => {
+            console.warn("Rekommenderad bokningsåtgärd från logg misslyckades.", error);
+          }
+        );
         return;
       }
       if (action === "filter_event") {
@@ -39730,8 +40254,9 @@ renderStudioShell();
         return;
       }
       if (action === "focus_slots") {
-        getBookingDom().slotList?.scrollIntoView({ behavior: "smooth", block: "center" });
-        setFeedback(getBookingDom().feedback, "success", "Valda tider är markerade i bokningsytan.");
+        openBookingSlotsPanel({ autoFetch: true }).catch((error) => {
+          console.warn("Bokningstider kunde inte öppnas från loggförhandsvisning.", error);
+        });
         return;
       }
     }

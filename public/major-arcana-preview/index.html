@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv" data-build="build-0ebefa3">
+<html lang="sv" data-build="build-811c10b">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,10 +21,10 @@
     <link rel="stylesheet" href="./design-tokens.css" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important) -->
-    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-0ebefa3" />
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-811c10b" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-0ebefa3" />
-    <script src="./cco-polish.js?v=build-0ebefa3" defer></script>
+    <link rel="stylesheet" href="./cco-polish.css?v=build-811c10b" />
+    <script src="./cco-polish.js?v=build-811c10b" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <main class="preview-page">
@@ -1573,7 +1573,7 @@
                                   type="button"
                                   data-note-open
                                   aria-controls="note-shell"
-                                  aria-label="Öppna Smart anteckning"
+                                  aria-label="Smart anteckning"
                                 >
                                   <svg viewBox="0 0 16 16">
                                     <path
@@ -10214,6 +10214,80 @@ Kunden önskar ombokning av PRP 2/3. Föredrar fredagar 09:00-12:00 med Dr. Erik
           </section>
 
           <section
+            class="focus-context-shell"
+            id="focus-context-shell"
+            aria-labelledby="focus-context-title"
+            aria-hidden="true"
+          >
+            <div class="focus-context-surface">
+              <div class="focus-context-toolbar">
+                <div class="focus-context-toolbar-main">
+                  <span class="focus-context-toolbar-kicker">ARBETSYTA</span>
+                  <h2 id="focus-context-title" data-focus-context-title>Kontext</h2>
+                  <span class="focus-context-status-pill" data-focus-context-label>Kontext</span>
+                </div>
+                <div class="focus-context-toolbar-actions">
+                  <button
+                    class="focus-context-close-button"
+                    type="button"
+                    data-focus-context-close
+                    aria-label="Stäng kontext"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path
+                        d="M4 4 12 12M12 4 4 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="1.5"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="focus-context-body" data-focus-context-body></div>
+              <p class="focus-context-meta" data-focus-context-meta hidden></p>
+              <ul class="focus-context-items" data-focus-context-items hidden></ul>
+            </div>
+          </section>
+
+          <section
+            class="booking-shell"
+            id="booking-shell"
+            aria-labelledby="booking-shell-title"
+            aria-hidden="true"
+          >
+            <div class="booking-shell-surface">
+              <div class="booking-shell-toolbar">
+                <div class="booking-shell-toolbar-main">
+                  <span class="booking-shell-toolbar-kicker">ARBETSYTA</span>
+                  <h2 id="booking-shell-title" data-booking-shell-title>Bokningsarbete</h2>
+                  <span class="booking-shell-status-pill" data-booking-shell-status>Behöver triage</span>
+                </div>
+                <div class="booking-shell-toolbar-actions">
+                  <button
+                    class="booking-shell-close-button"
+                    type="button"
+                    data-booking-close
+                    aria-label="Stäng bokningsyta"
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path
+                        d="M4 4 12 12M12 4 4 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="1.5"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="booking-shell-body" data-booking-shell-mount></div>
+            </div>
+          </section>
+
+          <section
             class="schedule-shell"
             id="schedule-shell"
             aria-labelledby="schedule-title"
@@ -10534,24 +10608,26 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-collaboration.js"></script>
     <!-- Previewn kör nu på explicita källfiler.
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
-    <!-- Bundlade scripts: 10 filer → 1, byggt av bin/build-bundle.js (content-hash: 9c98739393) -->
-    <script src="./app.bundle.9c98739393.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3b294f05e3) -->
+    <script src="./app.bundle.3b294f05e3.min.js"></script>
+    <!-- Källfil efter bundle så workrail-merge inte ligger kvar i äldre bundle-hash. -->
+    <script src="./runtime-focus-intel-renderers.js?v=build-811c10b"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
-    <script src="./app/mock-worklist-api.js?v=build-0ebefa3"></script>
-    <script src="./app/state-paths.js?v=build-0ebefa3"></script>
-    <script src="./app/render-components.js?v=build-0ebefa3"></script>
-    <script src="./app.js?v=build-0ebefa3"></script>
+    <script src="./app/mock-worklist-api.js?v=build-811c10b"></script>
+    <script src="./app/state-paths.js?v=build-811c10b"></script>
+    <script src="./app/render-components.js?v=build-811c10b"></script>
+    <script src="./app.js?v=build-811c10b"></script>
     <!-- runtime-v5-layout-guard.js raderad i Fas 1 cleanup (2026-05-08) — tvingade gammal v5-grid via MutationObserver mot warm-row-markup -->
     <!-- runtime-fix-shims.js raderad — 3 kvarvarande shims flyttade till app/cco-shims.js -->
-    <script src="./app/cco-shims.js?v=build-0ebefa3"></script>
+    <script src="./app/cco-shims.js?v=build-811c10b"></script>
     <!-- Cmd+K snabbsök — laddas sist eftersom den behöver __ccoWorkspace + state -->
-    <script src="./app/cmd-k.js?v=build-0ebefa3"></script>
+    <script src="./app/cmd-k.js?v=build-811c10b"></script>
     <!-- Tangentbordsnav (j/k/e/r/s/?) — fungerar utanför andra overlays -->
-    <script src="./app/keyboard-nav.js?v=build-0ebefa3"></script>
+    <script src="./app/keyboard-nav.js?v=build-811c10b"></script>
     <!-- Bulk-actions: x togglar val, *a/*n select all/none, Shift+E/S/D batch -->
-    <script src="./app/bulk-actions.js?v=build-0ebefa3"></script>
+    <script src="./app/bulk-actions.js?v=build-811c10b"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
-    <script src="./app/inbox-streak.js?v=build-0ebefa3"></script>
+    <script src="./app/inbox-streak.js?v=build-811c10b"></script>
     <!-- AI-utkast inline-edit: klicka i utkast direkt i thread-card -->
     <script src="./app/inline-draft-edit.js?v=build-0ebefa3"></script>
     <!-- System-mail-parser: extraherar kundnamn ur system-mejl (Klarna/Cliento/Foodora).
