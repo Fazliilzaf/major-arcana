@@ -2813,6 +2813,150 @@
   }
 
   /* ============================================================
+     DESIGN-BUNDLE 2026-05-17 (Fas 14): warm-glass cushion-design
+     ============================================================ */
+
+  /* --- KOLUMN-BREDDER: 500 / 700 / 280 (var 440/760/280) --- */
+  .preview-canvas {
+    --workspace-left-width: 500px !important;
+    --workspace-main-width: 700px !important;
+    --workspace-right-width: 280px !important;
+    --workspace-left-width-locked: 500px !important;
+    --workspace-main-width-locked: 700px !important;
+    --workspace-right-width-locked: 280px !important;
+  }
+  .preview-canvas .preview-workspace {
+    grid-template-columns: 500px minmax(0, 1fr) !important;
+  }
+
+  /* --- EGZONA/ÄGARE LABEL-OVERRIDE via ::before --- */
+  [data-mailbox-trigger-label] {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+  }
+  [data-mailbox-trigger-label]::before {
+    content: "Egzona";
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 600;
+    color: #6a564a;
+  }
+  [data-owner-trigger-label] {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+  }
+  [data-owner-trigger-label]::before {
+    content: "Ägare";
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 600;
+    color: #6a564a;
+  }
+
+  /* --- LAUNCHER-KNAPPAR (Svarstudio/Bokningsyta/Smart anteckning/Kalender) --- */
+  /* Dölj vita wrapper-rutan */
+  .conversation-next-step,
+  .conversation-next-step--toolbar-only {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .conversation-next-actions,
+  .conversation-next-actions--toolbar-row {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px 0 !important;
+  }
+  /* Cushion-look på knapparna (matchar focus-tabs) */
+  .conversation-next-action-chip,
+  .conversation-next-button.conversation-next-action-chip,
+  .conversation-next-button.conversation-next-action-chip--studio,
+  .conversation-next-button.conversation-next-action-chip--booking,
+  .conversation-next-button.conversation-next-action-chip--note,
+  .conversation-next-button.conversation-next-action-chip--schedule {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 238, 232, 0.90) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.82) !important;
+    border-radius: 14px !important;
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+    font-weight: 600 !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    max-height: 27px !important;
+    padding: 0 16px !important;
+    transition: all 220ms ease !important;
+  }
+  .conversation-next-action-chip:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 232, 226, 0.94)) !important;
+    box-shadow:
+      0 4px 10px rgba(56, 40, 28, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+    transform: translateY(-1px) !important;
+  }
+  /* Per-modifier färg på text + ikon */
+  .conversation-next-button.conversation-next-action-chip--studio,
+  .conversation-next-button.conversation-next-action-chip--studio svg,
+  .conversation-next-button.conversation-next-action-chip--studio path {
+    color: #b43a3a !important;
+    stroke: #b43a3a !important;
+  }
+  .conversation-next-button.conversation-next-action-chip--booking,
+  .conversation-next-button.conversation-next-action-chip--booking svg,
+  .conversation-next-button.conversation-next-action-chip--booking path {
+    color: #4f8a55 !important;
+    stroke: #4f8a55 !important;
+  }
+  .conversation-next-button.conversation-next-action-chip--note,
+  .conversation-next-button.conversation-next-action-chip--note svg,
+  .conversation-next-button.conversation-next-action-chip--note path {
+    color: #1f66a8 !important;
+    stroke: #1f66a8 !important;
+  }
+  .conversation-next-button.conversation-next-action-chip--schedule,
+  .conversation-next-button.conversation-next-action-chip--schedule svg,
+  .conversation-next-button.conversation-next-action-chip--schedule path {
+    color: #c77d2a !important;
+    stroke: #c77d2a !important;
+  }
+
+  /* --- DROPDOWN-PLACERING (egen rad ovanför quickstrip) --- */
+  /* Görs via index.html DOM-move, men säkra layout-CSS här */
+  .queue-bottom-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
+    margin-bottom: 4px !important;
+  }
+  .queue-bottom-row > .mailbox-dropdown {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* --- HIGHLIGHT AKTIV QUEUE-CHIP --- */
+  .queue-filter-chip.is-active {
+    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%) !important;
+    box-shadow:
+      0 0 0 2px rgba(199, 125, 42, 0.35),
+      0 1px 3px rgba(199, 125, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    border-color: #c77d2a !important;
+    transform: translateY(-0.5px) !important;
+  }
+
+  /* --- DÖLJ INDIKATOR-RAD + SIGNAL-STRIP --- */
+  .queue-action-row.queue-bubble-row,
+  .queue-secondary-signal-strip {
+    display: none !important;
+  }
+
+  /* ============================================================
      ARBETSKÖ-CHROME (2026-05-17, Fas 12):
      - queue-bottom-row flyttad INTO collapsed-list via index.html
      - display: contents låter dropdowns bli direkta grid-items
