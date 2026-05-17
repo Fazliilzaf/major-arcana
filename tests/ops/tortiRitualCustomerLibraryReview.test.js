@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-zone-review-handoff/);
-  assert.match(htmlSource, /app\.js\?v=20260517-zone-review-handoff/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-publish-preview-flow/);
+  assert.match(htmlSource, /app\.js\?v=20260517-publish-preview-flow/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -124,4 +124,13 @@ test('Torti zone planner exposes a compact portal handoff after spray areas are 
   assert.match(appSource, /jumpToPortalFlow\("zone-planner"\)/);
   assert.match(cssSource, /\.zone-editor-actions\s*\{/);
   assert.match(cssSource, /\.zone-editor-actions-label\s*\{/);
+});
+
+test('Torti customer portal open persists the viewed signal without a manual owner click', () => {
+  assert.match(appSource, /function markPortalViewedFromCustomerOpen\(snapshot, record\)/);
+  assert.match(appSource, /const alreadyViewed = Boolean\(/);
+  assert.match(appSource, /record\.lastViewedAt = now;/);
+  assert.match(appSource, /latestVersion\.viewedAt = now;/);
+  assert.match(appSource, /syncPortalRemoteAction\("viewed", snapshot\)/);
+  assert.match(appSource, /if \(customerOnlyView\) \{\s*\n\s*markPortalViewedFromCustomerOpen\(snapshot, record\);/);
 });

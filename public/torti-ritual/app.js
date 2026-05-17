@@ -2975,6 +2975,37 @@
     render();
   }
 
+  function markPortalViewedFromCustomerOpen(snapshot, record) {
+    if (!snapshot || !record) {
+      return false;
+    }
+
+    const latestVersion = Array.isArray(record.versions) ? record.versions.at(-1) || null : null;
+    const alreadyViewed = Boolean(
+      normalizeText(record.viewedAt) ||
+      normalizeText(record.lastViewedAt) ||
+      normalizeText(latestVersion && latestVersion.viewedAt)
+    );
+
+    if (alreadyViewed) {
+      return false;
+    }
+
+    const now = nowIso();
+    record.viewedAt = now;
+    record.lastViewedAt = now;
+    record.updatedAt = now;
+    if (latestVersion) {
+      latestVersion.viewedAt = now;
+    }
+
+    state.portalRecords[record.customerKey] = record;
+    persistPortalRecords();
+    recordPortalLocalStatus(record.customerKey);
+    syncPortalRemoteAction("viewed", snapshot);
+    return true;
+  }
+
   function acknowledgeLatestPortalNotification() {
     const snapshot = buildSheetSnapshot();
     const record = ensurePortalRecord(snapshot);
@@ -4347,6 +4378,7 @@
     const portalView = state.portalView || "split";
     const customerOnlyView = portalView === "customer";
     if (customerOnlyView) {
+      markPortalViewedFromCustomerOpen(snapshot, record);
       const hasRecordedCustomerOpen = state.analyticsEvents.some((event) => {
         return (
           normalize(event.type) === "portal viewed" &&
