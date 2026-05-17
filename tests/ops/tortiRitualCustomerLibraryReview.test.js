@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-customer-ack-flow/);
-  assert.match(htmlSource, /app\.js\?v=20260517-customer-ack-flow/);
+  assert.match(htmlSource, /styles\.css\?v=20260517-current-notice-status/);
+  assert.match(htmlSource, /app\.js\?v=20260517-current-notice-status/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -137,12 +137,15 @@ test('Torti customer portal open persists the viewed signal without a manual own
 
 test('Torti customer portal lets the customer acknowledge the latest notice', () => {
   assert.match(appSource, /portal-card-actions portal-card-actions--customer/);
-  assert.match(appSource, /data-ack-portal-notification\$\{unreadCount > 0 \? "" : " disabled"\}>Acknowledge latest/);
+  assert.match(appSource, /data-ack-portal-notification\$\{currentUnreadCount > 0 \? "" : " disabled"\}>Acknowledge latest/);
   assert.match(appSource, /function getLatestUnreadPortalNotification\(record\)/);
+  assert.match(appSource, /function getLatestPortalNotification\(record\)/);
   assert.match(appSource, /function getLatestPortalVersion\(record\)/);
   assert.match(appSource, /Date\.parse\(normalizeText\(right\.createdAt\)\) \|\| 0;/);
   assert.match(appSource, /Date\.parse\(normalizeText\(right\.publishedAt\) \|\| normalizeText\(right\.createdAt\)\) \|\| 0;/);
   assert.match(appSource, /Number\(right\.versionNumber\) \|\| 0/);
+  assert.match(appSource, /const latestNotification = getLatestPortalNotification\(record\);/);
+  assert.match(appSource, /const currentUnreadCount = latestNotification && !latestNotification\.readAt \? 1 : 0;/);
   assert.match(appSource, /const ackButton = portalPanel\.querySelector\("\[data-ack-portal-notification\]"\);/);
   assert.match(appSource, /const latestUnread = getLatestUnreadPortalNotification\(record\);/);
   assert.match(appSource, /const latestVersion = getLatestPortalVersion\(record\);/);
