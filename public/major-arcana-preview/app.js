@@ -18904,13 +18904,16 @@
   }
 
   function seedJourneyDrivenWorkspace(thread, focusReadState = {}, preferredAction = "") {
-    const normalizedAction = normalizeKey(preferredAction);
-    if (normalizedAction === "booking_surface") {
-      window.setTimeout(() => {
-        seedBookingSurfaceForCurrentThread(thread, { moveActionFocus: false, announce: false });
-      }, 120);
-      return;
-    }
+    // 2026-05-18 (Fas 16): inaktiverad. Tidigare körde funktionen
+    // seedBookingSurfaceForCurrentThread → focusRecommendedBookingAction
+    // → potentiellt openBookingSlotsPanel({autoFetch:true}) — vilket tyst
+    // triggade network-calls + DOM-mutationer (expanderade <details>,
+    // scrollIntoView) även när workspace var stängd.
+    //
+    // Nu: ingen seed-kedja vid trådbyte/login. Användaren öppnar
+    // Bokningsyta själv via klick — då körs seeding inom workspace-flödet
+    // istället (focusRecommendedBookingAction anropas från click-handlers).
+    return;
   }
 
   function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
@@ -36599,7 +36602,9 @@
       }
     });
     ensureBookingActionDisclosure(bookingDom.surface);
-    if (state.runtime.bookingShellOpen !== false) {
+    // 2026-05-18 (Fas 16): strikt === true (var !== false). Förhindrar
+    // tyst auto-prime av booking-slots när bookingShellOpen är undefined.
+    if (state.runtime.bookingShellOpen === true) {
       queueBookingSlotAutoPrime(thread);
     }
   }
@@ -36814,7 +36819,9 @@
         ensureBookingRuntimeContext(selectedThread);
       }
       renderBookingSurface();
-      if (state.runtime.bookingShellOpen !== false) {
+      // 2026-05-18 (Fas 16): strikt === true (var !== false). Förhindrar
+      // tyst auto-prime efter case-list-load när workspace är stängd.
+      if (state.runtime.bookingShellOpen === true) {
         queueBookingSlotAutoPrime(getBookingWorkThread());
       }
     }
