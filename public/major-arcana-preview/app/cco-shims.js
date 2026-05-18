@@ -42,21 +42,14 @@
   }
 
   function applyPersistedMailboxes() {
-    const persisted = readPersistedMailboxes();
-    if (!persisted || persisted.length === 0) return false;
-
-    let applied = 0;
-    const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-    allCheckboxes.forEach((cb) => {
-      const labelEl = cb.closest('label') || cb.parentElement;
-      const labelText = (labelEl?.textContent || '').toLowerCase();
-      const matchedKey = persisted.find((k) => labelText.includes(k.toLowerCase()));
-      if (matchedKey && !cb.checked) {
-        cb.click();
-        applied += 1;
-      }
-    });
-    return applied > 0;
+    // 2026-05-18 (Fas 17): NO-OP. Tidigare gjorde funktionen `cb.click()`
+    // på dolda checkboxar inuti mailbox-admin-shellen för att "applicera"
+    // persisted state. Click-event:en bubblade upp genom shellen och
+    // triggade render-cykler som kortvarigt visade dropdownen som öppen
+    // direkt efter login. workspaceSourceOfTruth.setSelectedMailboxIds()
+    // (i app.js) sköter persistens av mailbox-val självständigt — denna
+    // shim är dead code och får inte skapa syntetiska events.
+    return false;
   }
 
   function findMailboxToggleButton() {
@@ -85,30 +78,16 @@
   }
 
   async function autoOpenAndApplyAtBootstrap() {
-    // 2026-05-18 (Fas 15): aggressiv mode borttagen. Tidigare öppnade
-    // funktionen mailbox-dropdown via toggle.click() vid load, satte
-    // checkboxar via cb.click(), och stängde sedan med body.click() +
-    // syntetisk Escape-key — vilket gav "blink"-effekt och spammade
-    // syntetiska event som app.js tolkar som user actions.
-    //
-    // Nu: applicera persisted state DIREKT om checkboxar redan finns
-    // i DOM. Om inte finns — skippa helt (dropdown öppnas inte
-    // programmatiskt). Användaren öppnar själv vid behov och state
-    // appliceras då via watchMailboxChanges()-listenern.
-    const persisted = readPersistedMailboxes();
-    if (!persisted || persisted.length === 0) return;
-
-    const existingCheckboxes = Array.from(
-      document.querySelectorAll('input[type="checkbox"]')
-    ).filter((cb) => {
-      const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-      return DEFAULT_MAILBOXES.some((m) => lbl.includes(m));
-    });
-    if (existingCheckboxes.length > 0) {
-      applyPersistedMailboxes();
-    }
-    // Ingen toggle.click()/cb.click()/Escape längre — inga syntetiska
-    // event som "ploppar upp" UI vid sidladdning.
+    // 2026-05-18 (Fas 17): NO-OP. Tidigare anropade vi
+    // applyPersistedMailboxes() här om checkboxar fanns i DOM.
+    // applyPersistedMailboxes anropade i sin tur cb.click() på dolda
+    // checkboxar inuti mailbox-admin-shellen, vilket bubblade click-
+    // events genom shellen och kortvarigt visade dropdownen som öppen
+    // direkt efter login. Vi har redan brutit ut toggle.click(), body.
+    // click() och Escape-keydown i Fas 15. Nu river vi även det sista
+    // cb.click()-anropet och låter workspaceSourceOfTruth sköta
+    // mailbox-val-persistens på egen hand.
+    return;
   }
 
   function watchMailboxChanges() {
