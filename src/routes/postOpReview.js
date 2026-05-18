@@ -23,6 +23,7 @@
  */
 
 const express = require('express');
+const path = require('node:path');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -92,6 +93,16 @@ function createPostOpReviewRouter({
   }
 
   const router = express.Router();
+
+  // ── PATIENT-VY ────────────────────────────────────────────────────
+  // GET /uppfoljning/:token — serverar public/uppfoljning/index.html.
+  // Klient-JS:n läser token från window.location.pathname och fetchar
+  // /api/v1/post-op-review/:token/lookup för att rendera rätt state.
+  router.get('/uppfoljning/:token', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.sendFile(path.join(process.cwd(), 'public', 'uppfoljning', 'index.html'));
+  });
 
   // ── OPERATOR-TRIGGER ──────────────────────────────────────────────
   // POST /api/v1/cco-bookings/:caseId/mark-follow-up-completed

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Hair TP Clinic — Uppföljning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300;400&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+      color:#231F1D;background:#FAF6F2;
+      min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:620px;margin:0 auto;padding:32px 20px 80px}
+    .brand{
+      display:flex;align-items:center;gap:12px;margin-bottom:32px;
+      color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;
+    }
+    .brand-dot{width:32px;height:32px;border-radius:50%;background:#231F1D}
+    h1{
+      font-family:Newsreader,Georgia,serif;font-weight:200;font-size:32px;
+      line-height:1.2;margin:0 0 12px;color:#231F1D;
+    }
+    h1 em{font-style:italic;font-weight:300;color:#8B6D5E}
+    .lead{font-size:16px;color:#231F1D;margin:0 0 28px}
+    .card{
+      background:#fff;border-radius:20px;padding:28px;
+      box-shadow:0 2px 12px rgba(35,31,29,0.06);margin-bottom:20px;
+    }
+    .card h2{
+      font-family:Newsreader,Georgia,serif;font-weight:300;font-size:22px;
+      margin:0 0 12px;color:#231F1D;
+    }
+    .muted{color:#6B5F58;font-size:14px;line-height:1.6}
+    textarea{
+      width:100%;padding:14px;border:1px solid #E5DDD3;border-radius:12px;
+      font:inherit;font-size:15px;color:#231F1D;background:#FCFAF8;
+      resize:vertical;min-height:96px;
+    }
+    textarea:focus{outline:none;border-color:#231F1D;background:#fff}
+    label.consent{
+      display:flex;align-items:flex-start;gap:12px;padding:16px;
+      border:1px solid #E5DDD3;border-radius:12px;cursor:pointer;
+      background:#FCFAF8;transition:all .15s;
+    }
+    label.consent:hover{background:#fff;border-color:#231F1D}
+    label.consent input{margin-top:3px;width:18px;height:18px;cursor:pointer;flex-shrink:0}
+    label.consent .text{font-size:14px;color:#231F1D;line-height:1.55}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:14px 28px;font:inherit;font-weight:600;font-size:14px;
+      letter-spacing:0.05em;text-transform:uppercase;
+      border:0;border-radius:999px;cursor:pointer;transition:all .15s;
+    }
+    .btn-primary{background:#231F1D;color:#FAF6F2}
+    .btn-primary:hover{background:#000}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+    .btn-secondary{background:#fff;color:#231F1D;border:1px solid #231F1D}
+    .btn-secondary:hover{background:#231F1D;color:#FAF6F2}
+    .error{
+      padding:16px;background:#FAE6E2;color:#9A4A38;border-radius:12px;
+      font-size:14px;margin-bottom:20px;
+    }
+    .success-hero{
+      text-align:center;padding:40px 24px;
+      background:linear-gradient(180deg,#fff 0%,#FCFAF8 100%);
+      border-radius:20px;box-shadow:0 2px 12px rgba(35,31,29,0.06);margin-bottom:20px;
+    }
+    .success-hero h2{
+      font-family:Newsreader,Georgia,serif;font-weight:200;font-size:28px;
+      margin:0 0 12px;color:#231F1D;
+    }
+    .checkmark{
+      width:64px;height:64px;border-radius:50%;background:#E8DDD4;
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 20px;color:#231F1D;
+    }
+    .checkmark svg{width:32px;height:32px}
+    .footer{margin-top:32px;font-size:13px;color:#6B5F58;text-align:center;line-height:1.6}
+    .footer a{color:#6B5F58}
+    .hidden{display:none}
+    .photos-note{
+      padding:14px 18px;background:#F0EAE3;border-radius:12px;
+      font-size:13px;color:#6B5F58;line-height:1.6;margin:16px 0;
+    }
+    @media (max-width:520px){
+      .wrap{padding:20px 16px 60px}
+      h1{font-size:26px}
+      .card{padding:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span>Hair TP Clinic — Uppföljning</span>
+    </div>
+
+    <div id="loading-state">
+      <p class="muted">Hämtar din uppföljning…</p>
+    </div>
+
+    <div id="invalid-state" class="hidden">
+      <div class="card">
+        <h2>Länken är inte giltig längre</h2>
+        <p class="muted">Den här länken har gått ut eller är inte korrekt. Ring oss gärna på <a href="tel:+46318811166" style="color:#231F1D">031 88 11 66</a> så hjälper vi dig direkt.</p>
+      </div>
+    </div>
+
+    <div id="form-state" class="hidden">
+      <h1>Tack <em id="patient-name">för förtroendet</em></h1>
+      <p class="lead">Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.</p>
+
+      <div id="error-box" class="hidden"></div>
+
+      <form id="submit-form" class="card">
+        <h2>Hur har det gått?</h2>
+        <p class="muted" style="margin:0 0 16px">Skriv gärna en mening eller två — helt frivilligt.</p>
+        <textarea id="patient-note" maxlength="2000" placeholder="Hur upplevde du behandlingen och resultatet?"></textarea>
+
+        <div class="photos-note">
+          📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.
+        </div>
+
+        <label class="consent">
+          <input type="checkbox" id="consent-publish">
+          <span class="text">
+            <strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.
+          </span>
+        </label>
+
+        <div style="margin-top:24px;display:flex;justify-content:flex-end">
+          <button type="submit" id="submit-btn" class="btn btn-primary">Skicka in</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="success-state" class="hidden">
+      <div class="success-hero">
+        <div class="checkmark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2>Tack, det betyder mycket</h2>
+        <p class="muted" style="max-width:420px;margin:0 auto">Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.</p>
+      </div>
+
+      <div class="card" style="text-align:center">
+        <h2 style="margin-bottom:16px">Lämna ett Google-omdöme?</h2>
+        <p class="muted" style="margin:0 0 24px;max-width:380px;margin-left:auto;margin-right:auto">Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.</p>
+        <a id="gbp-link" href="https://maps.google.com/?cid=17939638689643749556" class="btn btn-primary" style="text-decoration:none">Lämna omdöme på Google →</a>
+      </div>
+    </div>
+
+    <p class="footer">
+      Hair TP Clinic · Vasaplatsen 2, 411 34 Göteborg<br>
+      <a href="tel:+46318811166">031 88 11 66</a> · <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a>
+    </p>
+  </div>
+
+  <script>
+    (function(){
+      'use strict';
+
+      // Token ligger sist i path: /uppfoljning/:token
+      var parts = window.location.pathname.split('/').filter(Boolean);
+      var token = parts[parts.length - 1] || '';
+
+      var $loading = document.getElementById('loading-state');
+      var $invalid = document.getElementById('invalid-state');
+      var $form = document.getElementById('form-state');
+      var $success = document.getElementById('success-state');
+      var $name = document.getElementById('patient-name');
+      var $error = document.getElementById('error-box');
+      var $submitForm = document.getElementById('submit-form');
+      var $submitBtn = document.getElementById('submit-btn');
+      var $gbp = document.getElementById('gbp-link');
+
+      function show(el){ el.classList.remove('hidden'); }
+      function hide(el){ el.classList.add('hidden'); }
+      function showError(msg){
+        $error.textContent = msg;
+        $error.className = 'error';
+        show($error);
+      }
+      function escapeText(s){
+        var d = document.createElement('div');
+        d.textContent = String(s || '');
+        return d.innerHTML;
+      }
+
+      if (!token || token.length < 8) {
+        hide($loading);
+        show($invalid);
+        return;
+      }
+
+      fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/lookup', { credentials: 'omit' })
+        .then(function(r){
+          if (!r.ok) throw new Error('lookup_failed_' + r.status);
+          return r.json();
+        })
+        .then(function(data){
+          hide($loading);
+          if (!data.ok || !data.submission) {
+            show($invalid);
+            return;
+          }
+          if (data.submission.submittedAt) {
+            show($success);
+            return;
+          }
+          var first = (data.submission.patientName || '').trim().split(/\s+/)[0];
+          $name.textContent = first || 'för förtroendet';
+          show($form);
+        })
+        .catch(function(){
+          hide($loading);
+          show($invalid);
+        });
+
+      $submitForm.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        hide($error);
+        $submitBtn.disabled = true;
+        $submitBtn.textContent = 'Skickar…';
+        var consent = document.getElementById('consent-publish').checked;
+        var note = document.getElementById('patient-note').value;
+        fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
+          method: 'POST',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ consentToPublish: consent, patientNote: note })
+        })
+          .then(function(r){
+            if (!r.ok) throw new Error('submit_failed_' + r.status);
+            return r.json();
+          })
+          .then(function(data){
+            if (!data.ok) throw new Error('submit_not_ok');
+            hide($form);
+            show($success);
+          })
+          .catch(function(){
+            $submitBtn.disabled = false;
+            $submitBtn.textContent = 'Skicka in';
+            showError('Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.');
+          });
+      });
+
+      // GBP-länken pekar på beacon-endpoint så vi loggar klick + redirectar
+      $gbp.addEventListener('click', function(){
+        // Inte preventDefault — låt browsern följa länken; beacon endpoint
+        // 302-redirectar till GBP så användaren märker ingen extra hop.
+      });
+      $gbp.setAttribute('href', '/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-clicked');
+    })();
+  </script>
+</body>
+</html>
