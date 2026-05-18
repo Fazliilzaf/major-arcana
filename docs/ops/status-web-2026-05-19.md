@@ -110,28 +110,32 @@ Detta är den stora leveransen sedan masterplanen sist uppdaterades. Bridge-doc 
 
 4.1. **Sjuksköterskor (Veronica/Clara/Wendela/Louise) inte bookable än.** Per Fazli "håll teamet åt sidan". Avvaktar beslut om scope (PRP självständigt vs assistans) innan vi lägger till dem som resources.
 
-4.2. **Resend e-postbekräftelse efter reservation är stub.** `POST /reservations` loggar `[public-reservation] web booking by X for slot Y` men skickar inget email. Aktiveras när `RESEND_API_KEY` finns i Render-env + Resend-template skapad.
+4.2. **`RESEND_API_KEY` inte satt på Render → confirmation-mail i mock-mode.** Koden är klar (`src/infra/resendMailer.js` + `src/templates/bookingReservationEmail.js`) och wirad in i `POST /reservations`. När key sätts: går automatiskt från `mode:'mock'` till `mode:'live'`. Audit-event `reservation_confirmation_sent` fires redan idag i båda modes.
 
-4.3. **Post-op review & photo flow är design-only.** Spec finns i `docs/strategy/post-op-review-photo-flow.md` — kod är inte implementerad. Behöver kod-pass på 3 dagar för Fas 1 (manual trigger).
+4.3. **Post-op review photo-upload saknas.** Token + store + capability + 4 routes + patient-UI är live. Foto-upload kräver multer + sharp för EXIF-strip — npm install hängde sig i iCloud-foldern (10+ min utan resultat). Mellanlösning i UI: patienten mejlar foton till contact@hairtpclinic.com. Lösning för nästa pass: installera multer + lättviktigt piexifjs (pure JS, ~50KB) istället för sharp.
 
-4.4. **Inget CAPTCHA/honeypot på POST /reservations.** Rate-limit per IP räcker tills vi ser abuse-mönster.
+4.4. **CCO operator-UI för trigger-knapp saknas.** Routes är klara — operatör kan POSTa till `/api/v1/cco-bookings/:caseId/mark-follow-up-completed` via curl idag. En knapp i CCO-shellen (`public/major-arcana-preview/app.js`, 41 635 rader) kräver dedicated UX-pass.
+
+4.5. **Inget CAPTCHA/honeypot på POST /reservations.** Rate-limit per IP räcker tills vi ser abuse-mönster.
 
 ---
 
-## 5. Nästa tre leveranser
+## 5. Leveranser sen-kväll 2026-05-19 (post-bridge-rundan)
 
-5.1. **Resend-integration för reservation-bekräftelse (2 timmar):**
-- Lägg till `from contact@hairtpclinic.com` + locale-aware template ("Vi har reserverat din tid…").
-- Trigga från `POST /reservations` när reservation lyckats.
-- Audit-event `reservation_confirmation_sent` på CCO-case.
+5.1. ✓ **Resend-integration för reservation-bekräftelse** — wirad in i `POST /reservations`. SV+EN templates med Stockholm-tid. Mock-mode utan key, live när `RESEND_API_KEY` sätts i Render. Audit-event `reservation_confirmation_sent` / `reservation_confirmation_failed`.
 
-5.2. **Arcana post-op review Fas 1 (3 dagar):**
-- `src/capabilities/requestPostOpReview.js` + `src/ops/postOpReviewStore.js` + `src/routes/postOpReview.js`.
-- Patient-template på `arcana.hairtpclinic.se/uppfoljning/[token]`.
-- M365 Graph send via befintlig connector. Operatör godkänner draft i CCO-vyn.
+5.2. ✓ **Arcana post-op review Fas 1 (backend + patient-UI):**
+- `src/ops/postOpReviewStore.js` (372 rader) — full CRUD + token-helpers + GDPR-radering + cron-prune.
+- `src/capabilities/requestPostOpReview.js` (312 rader) — locale-aware mail-templates, registrerad i `registry.js`.
+- `src/routes/postOpReview.js` (298 rader) — 4 endpoints: `mark-follow-up-completed`, `/:token/lookup`, `/:token/submit`, `/:token/review-clicked`, `GET /uppfoljning/:token`.
+- `public/uppfoljning/index.html` (276 rader) — patient-UI med 4 states (loading/invalid/form/success), Newsreader+Inter, GDPR-grade consent-checkbox med "ögonbryn-och-uppåt"-formulering.
+- Live på `https://arcana.hairtpclinic.se/uppfoljning/:token` (HTTP 200 verifierat).
 
-5.3. **Pre-fill operator-notes från web-leads (1 dag):**
-- När operator öppnar en `web_public_reservation`-case ska CCO visa "Patient valde Hårtransplantation som intresseområde" + foton uppladdade via /boka step 4.
+5.3. **Sparas till nästa pass:**
+- Photo-upload med multer + EXIF-strip (npm install hängde sig i iCloud).
+- CCO operator-UI för trigger-knapp (41k-rad vanilla JS shell, kräver UX-pass).
+- M365 Graph send-integration (Fas 1 är manuell copy-paste från operator).
+- Pre-fill operator-notes från web-leads i CCO-vyn (1 dag).
 - Just nu skickas det med i lead-payload men CCO-vyn renderar det inte tydligt.
 
 ---
