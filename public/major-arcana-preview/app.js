@@ -27788,7 +27788,7 @@
     state.runtime.bookingWorkrailUnified = mergeActive;
     dock.hidden = hideDock;
     dock.setAttribute("aria-hidden", hideDock ? "true" : "false");
-    return unified;
+    return mergeActive;
   }
 
   function getBookingWorkrailDockCue(thread) {
