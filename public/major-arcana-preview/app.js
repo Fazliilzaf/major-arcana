@@ -2598,7 +2598,7 @@
         laneId: "",
         feedKey: "",
       },
-      queueCategoriesCompact: false,
+      queueCategoriesCompact: true, // Fas 23: default kompakt 1-rads filter-layout
       queueHistory: {
         open: false,
         loading: false,
