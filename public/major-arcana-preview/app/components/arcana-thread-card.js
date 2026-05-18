@@ -291,20 +291,16 @@ export class ArcanaThreadCard extends LitElement {
     }
     .meta i { font-size: 11px; }
 
-    /* Fas 18: actions stackade i 2-kol grid (3 rader á 2 knappar)
-       så right-col-bredden krymper från ~180px → ~85px,
-       vilket frigör plats åt body (mer text + pills syns utan klamring). */
-    .actions {
-      display: grid;
-      grid-template-columns: auto auto;
-      gap: 4px 6px;
-      justify-content: end;
+    /* Fas 19: right-col stackad vertikalt — meta överst, sen Svara-pillen
+       (primary action på egen rad), sen 5 små ikoner på en horisontell
+       rad nederst. Frigör body-bredd och gör primary-actionen tydligare. */
+    .icon-row {
+      display: flex;
       align-items: center;
+      gap: 4px;
     }
-    .actions .cta {
-      /* Svara-pillen sitter på sista raden i högra kolumnen
-         (delar rad med trash-knappen). */
-      margin-left: 0;
+    .cta {
+      align-self: flex-end;
     }
 
     /* ─────── Action-knappar (18px runda) ─────── */
@@ -486,19 +482,19 @@ export class ArcanaThreadCard extends LitElement {
           <div class="meta">
             ${showInfoIcon ? icon('info-circle') : ''}${ownerText}
           </div>
-          <div class="actions">
+          <button
+            class="cta"
+            style="--glow: rgba(${railRgb}, 0.22);"
+            @click=${(e) => this._onActionClick(e, 'cta')}
+          >
+            ${ctaText} ${icon('chevron-right')}
+          </button>
+          <div class="icon-row">
             <button class="rd-btn rd-snooze" aria-label="Snooze" @click=${(e) => this._onActionClick(e, 'snooze')}>${icon('clock-hour-9')}</button>
             <button class="rd-btn rd-sched" aria-label="Schemalägg" @click=${(e) => this._onActionClick(e, 'schedule')}>${icon('clock')}</button>
             <button class="rd-btn rd-cal" aria-label="Boka tid" @click=${(e) => this._onActionClick(e, 'calendar')}>${icon('calendar')}</button>
             <button class="rd-btn rd-check" aria-label="Markera klar" @click=${(e) => this._onActionClick(e, 'done')}>${icon('check')}</button>
             <button class="rd-btn rd-trash" aria-label="Radera" @click=${(e) => this._onActionClick(e, 'delete')}>${icon('trash')}</button>
-            <button
-              class="cta"
-              style="--glow: rgba(${railRgb}, 0.22);"
-              @click=${(e) => this._onActionClick(e, 'cta')}
-            >
-              ${ctaText} ${icon('chevron-right')}
-            </button>
           </div>
         </div>
       </article>
