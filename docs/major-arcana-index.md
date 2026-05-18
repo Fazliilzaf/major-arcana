@@ -44,6 +44,15 @@ Regel:
    - [cco-new-salvage-matrix.md](./cco-new-salvage-matrix.md)
    - [cco-mail-mime-fidelity-plan.md](./cco-mail-mime-fidelity-plan.md)
 
+8. Publik webb (hairtpclinic.com)
+   - [strategy/web-hairtpclinic-com-masterplan.md](./strategy/web-hairtpclinic-com-masterplan.md)
+   - [ops/status-web-2026-05-19.md](./ops/status-web-2026-05-19.md) (senaste, Workstream B+C levererade)
+   - [ops/status-web-2026-05-18.md](./ops/status-web-2026-05-18.md) (initial sprint, EN-paritet + Workstream A)
+   - Den publika klinikwebben — egen Next.js-monorepo, separat deploy (Vercel),
+     men ägs av samma roadmap. Patientkanal-pelaren är fortsatt blockerad i
+     Arcana-core; webben är publik kanal för konvertering och SEO.
+   - Repo (lokal): `../../Hairtpclinic webb/next-app/`
+
 ## Canon i kort form
 
 Om du vill läsa Major Arcana som en enda berättelse, använd denna sammanfattning:
@@ -63,4 +72,5 @@ Om du vill läsa Major Arcana som en enda berättelse, använd denna sammanfattn
 - För nästa steg: läs phase 2 masterplanen.
 - För drift och release: läs runbooken.
 - För CCO/informationsstruktur: läs CCO-indexet.
+- För **publika webben** (hairtpclinic.com): läs [strategy/web-hairtpclinic-com-masterplan.md](./strategy/web-hairtpclinic-com-masterplan.md) + senaste `ops/status-web-*.md`.
 

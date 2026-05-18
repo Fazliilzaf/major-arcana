@@ -74,6 +74,8 @@
               ? currentOverlays.noteMode
               : Boolean(state.noteMode?.open),
           schedule: Boolean(currentOverlays.schedule),
+          focusContext: Boolean(currentOverlays.focusContext),
+          booking: Boolean(currentOverlays.booking),
           later: Boolean(currentOverlays.later),
           mailboxAdmin:
             typeof currentOverlays.mailboxAdmin === "boolean"

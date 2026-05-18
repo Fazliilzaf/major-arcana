@@ -87,6 +87,9 @@
     const RUNTIME_TRANSIENT_RETRY_GROWTH = 1.7;
     const RUNTIME_TRANSIENT_RETRY_MAX_ATTEMPTS = 12;
     let runtimeVisibilityRecoveryBound = false;
+    let adminTokenStorageRecoveryBound = false;
+    const RUNTIME_AUTH_REQUIRED_USER_MESSAGE =
+      "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.";
 
     const {
       CCO_DEFAULT_REPLY_SENDER,
@@ -120,6 +123,7 @@
       buildMailboxCatalog,
       buildReauthUrl,
       buildTruthPrimaryWorklistConsumerHref,
+      clearAdminToken,
       canonicalizeRuntimeMailboxId,
       createIdempotencyKey,
       decorateStaticPills,
@@ -215,6 +219,11 @@
       setMailboxAdminOpen,
       setNoteModeOpen,
       setNoteOpen,
+      openFocusContextPanel,
+      setFocusContextOpen,
+      openBookingOperatorSurface,
+      openBookingPanel,
+      setBookingOpen,
       setScheduleOpen,
       setStudioFeedback,
       setStudioOpen,
@@ -1066,7 +1075,25 @@
       if (!doc || typeof doc.addEventListener !== "function") return;
       doc.addEventListener("visibilitychange", () => {
         if (doc.visibilityState !== "visible") return;
-        if (state.runtime?.authRequired === true) return;
+        if (state.runtime?.authRequired === true) {
+          const adminToken = normalizeText(
+            typeof getAdminToken === "function" ? getAdminToken() : ""
+          );
+          if (!adminToken) {
+            return;
+          }
+          state.runtime.authRecoveryArmed = true;
+          setRuntimeAuthRecoveryPollingEnabled(true);
+          resetRuntimeAuthRecoveryBackoff();
+          loadLiveRuntime({
+            requestedMailboxIds: getRequestedRuntimeMailboxIds(),
+            preferredThreadId: getRuntimeReentryThreadId(),
+            allowAuthRecovery: true,
+          }).catch((error) => {
+            console.warn("CCO auth visibility-recovery misslyckades.", error);
+          });
+          return;
+        }
         if (state.runtime?.mode !== "runtime_error") return;
         resetRuntimeTransientRetry();
         loadLiveRuntime({
@@ -1076,6 +1103,26 @@
         });
       });
       runtimeVisibilityRecoveryBound = true;
+    }
+
+    function bindAdminTokenStorageRecovery() {
+      if (adminTokenStorageRecoveryBound) return;
+      if (!windowObject || typeof windowObject.addEventListener !== "function") return;
+      adminTokenStorageRecoveryBound = true;
+      windowObject.addEventListener("storage", (event) => {
+        if (event.key !== "ARCANA_ADMIN_TOKEN" || !normalizeText(event.newValue)) return;
+        if (state.runtime?.authRequired !== true) return;
+        state.runtime.authRecoveryArmed = true;
+        setRuntimeAuthRecoveryPollingEnabled(true);
+        resetRuntimeAuthRecoveryBackoff();
+        loadLiveRuntime({
+          requestedMailboxIds: getRequestedRuntimeMailboxIds(),
+          preferredThreadId: getRuntimeReentryThreadId(),
+          allowAuthRecovery: true,
+        }).catch((error) => {
+          console.warn("CCO auth storage-recovery misslyckades.", error);
+        });
+      });
     }
 
     function getRuntimeReentryThreadId() {
@@ -2599,9 +2646,9 @@
           }
           setRuntimeModeState("auth_required", {
             authRequired: true,
-            error: "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.",
+            error: RUNTIME_AUTH_REQUIRED_USER_MESSAGE,
           });
-          setRuntimeAuthRecoveryPollingEnabled(false);
+          setRuntimeAuthRecoveryPollingEnabled(true);
           resetRuntimeAuthRecoveryBackoff();
           scheduleRuntimeAuthRecovery({
             requestedMailboxIds: runtimeMailboxIds,
@@ -2964,18 +3011,22 @@
           requestedMailboxIds: runtimeMailboxIds,
           error: message,
         });
+        const authRequired = isAuthFailure(statusCode, message);
+        if (authRequired && typeof clearAdminToken === "function") {
+          clearAdminToken();
+        }
         setRuntimeModeState(
-          isAuthFailure(statusCode, message) ? "auth_required" : "runtime_error",
+          authRequired ? "auth_required" : "runtime_error",
           {
-            error: message,
+            error: authRequired ? RUNTIME_AUTH_REQUIRED_USER_MESSAGE : message,
             live: false,
             offline: normalizeKey(message).includes("offline"),
-            authRequired: isAuthFailure(statusCode, message),
+            authRequired,
           }
         );
         clearRuntimeLiveRefreshTimer();
-        if (isAuthFailure(statusCode, message)) {
-          setRuntimeAuthRecoveryPollingEnabled(false);
+        if (authRequired) {
+          setRuntimeAuthRecoveryPollingEnabled(true);
           resetRuntimeAuthRecoveryBackoff();
           if (hasMeaningfulRuntimeReentryState()) {
             captureRuntimeReentrySnapshot("auth_failure");
@@ -3057,6 +3108,12 @@
       noteCloseButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setNoteOpen(false);
+        });
+      });
+
+      document.querySelectorAll("[data-focus-context-close]").forEach((button) => {
+        button.addEventListener("click", () => {
+          setFocusContextOpen(false);
         });
       });
 
@@ -3838,6 +3895,57 @@
         return true;
       }
 
+      const focusContextOpenButton = event.target.closest("[data-focus-context-open]");
+      if (focusContextOpenButton) {
+        const preview = state.runtime?.focusContextPreview || state.runtime?.bookingContextPayload;
+        if (preview && typeof openFocusContextPanel === "function") {
+          openFocusContextPanel(preview);
+        }
+        return true;
+      }
+
+      const bookingContextOpenButton = event.target.closest("[data-booking-context-open]");
+      if (bookingContextOpenButton) {
+        const payload = state.runtime?.bookingContextPayload || state.runtime?.focusContextPreview;
+        if (payload && typeof openFocusContextPanel === "function") {
+          openFocusContextPanel(payload);
+        }
+        return true;
+      }
+
+      const bookingOpenButton = event.target.closest(
+        '[data-booking-open], [data-booking-open-surface], [data-quick-action="booking_surface"]'
+      );
+      if (bookingOpenButton) {
+        if (typeof openBookingOperatorSurface === "function") {
+          openBookingOperatorSurface({
+            scroll: false,
+            message: "Bokningsytan öppnades. Lediga tider hämtas automatiskt när urvalet är ifyllt.",
+          });
+        } else {
+          state.runtime = state.runtime || {};
+          state.runtime.bookingShellOpen = true;
+          if (typeof openBookingPanel === "function") {
+            openBookingPanel();
+          } else {
+            setBookingOpen(true);
+          }
+        }
+        return true;
+      }
+
+      const bookingCloseButton = event.target.closest("[data-booking-close]");
+      if (bookingCloseButton) {
+        setBookingOpen(false);
+        return true;
+      }
+
+      const focusContextCloseButton = event.target.closest("[data-focus-context-close]");
+      if (focusContextCloseButton) {
+        setFocusContextOpen(false);
+        return true;
+      }
+
       const runtimeCollapseButton = event.target.closest("[data-runtime-conversation-collapse]");
       if (runtimeCollapseButton) {
         workspaceSourceOfTruth.toggleHistoryExpanded();
@@ -4068,6 +4176,16 @@
         return true;
       }
 
+      if (canvas.classList.contains("is-focus-context-open")) {
+        setFocusContextOpen(false);
+        return true;
+      }
+
+      if (canvas.classList.contains("is-booking-open")) {
+        setBookingOpen(false);
+        return true;
+      }
+
       if (canvas.classList.contains("is-studio-open")) {
         setStudioOpen(false);
         setContextCollapsed(false);
@@ -4116,6 +4234,7 @@
 
       // Self-healing: lyssna på flikfokus så att transient-fel återställs när användaren kommer tillbaka.
       bindRuntimeVisibilityRecovery();
+      bindAdminTokenStorageRecovery();
 
       loadBootstrap({
         preserveActiveDestination: true,

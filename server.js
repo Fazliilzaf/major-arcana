@@ -25,7 +25,10 @@ function getChromium() {
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
-const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
+const {
+  getClientoConfigForBrand,
+  getKnowledgeDirForBrand,
+} = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
 const { requestContextMiddleware } = require('./src/observability/requestContext');
 
@@ -60,45 +63,6 @@ function sendAdminHtml(res) {
   res.type('html').send(renderAdminHtml());
 }
 
-function isLoopbackHostValue(value) {
-  const normalized = String(value || '')
-    .trim()
-    .toLowerCase();
-  if (!normalized) return false;
-  const withoutPrefix = normalized.replace(/^\[?::ffff:/, '').replace(/\]$/, '');
-  const withoutPort = withoutPrefix.split(':')[0];
-  return withoutPort === 'localhost' || withoutPort === '127.0.0.1' || withoutPort === '::1';
-}
-
-function isLoopbackRequest(req) {
-  const candidates = [
-    req.hostname,
-    req.ip,
-    req.headers?.host,
-    req.headers?.origin,
-    req.headers?.referer,
-    req.headers?.['x-forwarded-for'],
-  ];
-  return candidates.some((value) => {
-    if (!value) return false;
-    const text = String(value).trim().toLowerCase();
-    if (!text) return false;
-    if (text.includes('://')) {
-      try {
-        return isLoopbackHostValue(new URL(text).hostname);
-      } catch {
-        return false;
-      }
-    }
-    const firstForwarded = text.split(',')[0].trim();
-    return isLoopbackHostValue(firstForwarded);
-  });
-}
-
-function isLocalPreviewReadBypass(req) {
-  return req.headers?.['x-arcana-preview-local'] === '1' && isLoopbackRequest(req);
-}
-
 function getCcoNextBuild() {
   if (fs.existsSync(CCO_NEXT_RELEASE_HTML_PATH)) {
     return {
@@ -115,6 +79,10 @@ function getCcoNextBuild() {
     };
   }
   return null;
+}
+
+function hasCcoNextBuild() {
+  return Boolean(getCcoNextBuild());
 }
 
 function sendCcoNextUpstreamHtml(res) {
@@ -160,7 +128,7 @@ async function sendStaticPagePdf(
 
     if (bodyClass) {
       await page.evaluate((className) => {
-        globalThis.document.body.classList.add(className);
+        document.body.classList.add(className);
       }, bodyClass);
     }
 
@@ -169,21 +137,21 @@ async function sendStaticPagePdf(
     }
 
     await page.evaluate(async () => {
-      if (globalThis.document.fonts?.ready) {
-        await globalThis.document.fonts.ready;
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
       }
     });
 
     let pageSize = null;
     if (pageSizeFromDocument || rasterizePage) {
       pageSize = await page.evaluate(() => ({
-        width: Math.ceil(globalThis.document.documentElement.scrollWidth),
+        width: Math.ceil(document.documentElement.scrollWidth),
         height: Math.ceil(
           Math.max(
-            globalThis.document.documentElement.scrollHeight,
-            globalThis.document.body.scrollHeight,
-            globalThis.document.documentElement.offsetHeight,
-            globalThis.document.body.offsetHeight
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight,
+            document.documentElement.offsetHeight,
+            document.body.offsetHeight
           )
         ),
       }));
@@ -312,9 +280,7 @@ app.use((req, res, next) => {
 // Referrer-Policy, Permissions-Policy, HSTS för HTTPS).
 // Strikt CSP eftersom 0 inline-scripts finns i major-arcana-preview/index.html.
 app.use((req, res, next) => {
-  const path = String(req.path || '')
-    .trim()
-    .toLowerCase();
+  const path = String(req.path || '').trim().toLowerCase();
   const isApi = path.startsWith('/api/');
   const isStream = path.endsWith('/runtime/stream');
 
@@ -343,18 +309,22 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
   // HSTS — endast för HTTPS-anslutningar (Render serverar HTTPS i prod)
   if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    );
   }
   next();
 });
 
 app.use((req, res, next) => {
-  const path = String(req.path || '')
-    .trim()
-    .toLowerCase();
+  const path = String(req.path || '').trim().toLowerCase();
   const disableCachePaths = new Set([
     '/admin',
     '/admin.html',
@@ -379,7 +349,7 @@ app.use((req, res, next) => {
 
 app.get('/admin.html', (_req, res) => sendAdminHtml(res));
 app.use(
-  express.static('public', {
+  express.static("public", {
     setHeaders: (res, filePath) => {
       // P4: cache-strategi för major-arcana-preview/-assets.
       // - HASHADE bundle-filer (app.bundle.<hash>.min.js): 1 år immutable
@@ -478,15 +448,9 @@ const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNo
 const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
-const { createCcoAftercareStore } = require('./src/ops/ccoAftercareStore');
-const { createCcoOperationStore } = require('./src/ops/ccoOperationStore');
-const { createCcoCommercialStore } = require('./src/ops/ccoCommercialStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
-const { createCcoPatientSystemStore } = require('./src/ops/ccoPatientSystemStore');
-const { createCcoConsultationStore } = require('./src/ops/ccoConsultationStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
-const { createCcoPortalStore } = require('./src/ops/ccoPortalStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
@@ -497,10 +461,6 @@ const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceSto
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
 const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
 const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine');
-const { createCcoConsultationsRouter } = require('./src/routes/ccoConsultations');
-const { createCcoAftercareRouter } = require('./src/routes/ccoAftercare');
-const { createCcoOperationsRouter } = require('./src/routes/ccoOperations');
-const { createCcoCommercialRouter } = require('./src/routes/ccoCommercial');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
@@ -532,7 +492,7 @@ let billingService = null;
 let stripeWebhookHandler = null;
 
 let server = null;
-const scheduler = null;
+let scheduler = null;
 let redisConnection = null;
 let isShuttingDown = false;
 
@@ -560,8 +520,8 @@ function createRuntimeGraphReadConnector() {
   });
 }
 
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: __dirname + '/public' });
+app.get("/", (req, res) => {
+  res.sendFile("index.html", { root: __dirname + "/public" });
 });
 
 app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
@@ -621,7 +581,7 @@ app.get('/patientinformation/ogonlocksplastik-curatiio.pdf', (req, res) =>
   })
 );
 
-app.get('/admin', (req, res) => {
+app.get("/admin", (req, res) => {
   sendAdminHtml(res);
 });
 
@@ -852,9 +812,7 @@ process.once('SIGTERM', () => {
       );
     }
   } else {
-    console.log(
-      'Auth bootstrap hoppades över (ARCANA_OWNER_EMAIL / ARCANA_OWNER_PASSWORD saknas).'
-    );
+    console.log('Auth bootstrap hoppades över (ARCANA_OWNER_EMAIL / ARCANA_OWNER_PASSWORD saknas).');
   }
 
   const auth = createAuthMiddleware({ authStore, config, previewAuthContext });
@@ -910,7 +868,8 @@ process.once('SIGTERM', () => {
     windowMs: config.authLoginRateLimitWindowSec * 1000,
     max: config.authLoginRateLimitMax,
     keyGenerator: (req) => {
-      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      const email =
+        typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
       return `${String(req.ip || 'unknown-ip')}|${email || 'no-email'}`;
     },
     message: 'För många inloggningsförsök. Vänta en stund och prova igen.',
@@ -983,11 +942,6 @@ process.once('SIGTERM', () => {
     const method = String(req.method || 'GET').toUpperCase();
     const isReadMethod = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
     if (isReadMethod) {
-      // The local major-arcana preview fans out many bootstrap reads at once.
-      // Only explicit loopback-marked preview requests may bypass the generic read limiter.
-      if (isLocalPreviewReadBypass(req)) {
-        return next();
-      }
       return apiReadRateLimiter(req, res, next);
     }
     return apiWriteRateLimiter(req, res, next);
@@ -1030,23 +984,17 @@ process.once('SIGTERM', () => {
   const messageIntelligenceStore = await createMessageIntelligenceStore({
     filePath:
       config.messageIntelligenceStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/message-intelligence.json`
-        : './data/cco/message-intelligence.json'),
+      (config.dataDir ? `${config.dataDir}/cco/message-intelligence.json` : './data/cco/message-intelligence.json'),
   });
   const customerPreferenceStore = await createCustomerPreferenceStore({
     filePath:
       config.customerPreferenceStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/customer-preferences.json`
-        : './data/cco/customer-preferences.json'),
+      (config.dataDir ? `${config.dataDir}/cco/customer-preferences.json` : './data/cco/customer-preferences.json'),
   });
   const clientoBookingStore = await createClientoBookingStore({
     filePath:
       config.clientoBookingStorePath ||
-      (config.dataDir
-        ? `${config.dataDir}/cco/cliento-bookings.json`
-        : './data/cco/cliento-bookings.json'),
+      (config.dataDir ? `${config.dataDir}/cco/cliento-bookings.json` : './data/cco/cliento-bookings.json'),
   });
   const ccoConversationStateStore = await createCcoConversationStateStore({
     filePath: config.ccoConversationStateStorePath,
@@ -1063,32 +1011,14 @@ process.once('SIGTERM', () => {
   const ccoFollowUpStore = await createCcoFollowUpStore({
     filePath: config.ccoFollowUpStorePath,
   });
-  const ccoAftercareStore = await createCcoAftercareStore({
-    filePath: config.ccoAftercareStorePath,
-  });
-  const ccoOperationStore = await createCcoOperationStore({
-    filePath: config.ccoOperationStorePath,
-  });
-  const ccoCommercialStore = await createCcoCommercialStore({
-    filePath: config.ccoCommercialStorePath,
-  });
   const ccoBookingStore = await createCcoBookingStore({
     filePath: config.ccoBookingStorePath,
   });
   const ccoBookingEngineStore = await createCcoBookingEngineStore({
     filePath: config.ccoBookingEngineStorePath,
   });
-  const ccoPatientSystemStore = await createCcoPatientSystemStore({
-    filePath: config.ccoPatientSystemStorePath,
-  });
-  const ccoConsultationStore = await createCcoConsultationStore({
-    filePath: config.ccoConsultationStorePath,
-  });
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
-  });
-  const ccoPortalStore = await createCcoPortalStore({
-    filePath: config.ccoPortalStorePath,
   });
   const ccoIntegrationStore = await createCcoIntegrationStore({
     filePath: config.ccoIntegrationStorePath,
@@ -1232,7 +1162,8 @@ process.once('SIGTERM', () => {
 
   setStartupPhase('routes');
   async function getKnowledgeRetriever(brand) {
-    const resolvedBrand = typeof brand === 'string' && brand.trim() ? brand.trim() : config.brand;
+    const resolvedBrand =
+      typeof brand === 'string' && brand.trim() ? brand.trim() : config.brand;
     const existing = knowledgeRetrieverByBrand.get(resolvedBrand);
     if (existing) return existing;
 
@@ -1418,9 +1349,7 @@ process.once('SIGTERM', () => {
   // annars HairTP-defaults (alla 6 mailboxar). Behåller fallback i sync med
   // bootstrapRunner.resolveMailboxIds() så vi alltid täcker hela kontot.
   const allowlistSyncMailboxIds = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
-    .split(/[\s,]+/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+    .split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
   const hairTpFallbackMailboxIds = [
     'contact@hairtpclinic.com',
     'info@hairtpclinic.com',
@@ -1431,11 +1360,7 @@ process.once('SIGTERM', () => {
   ];
   const schedulerCcoHistoryMailboxIds = Array.isArray(config.schedulerCcoHistoryMailboxIds)
     ? config.schedulerCcoHistoryMailboxIds
-        .map((s) =>
-          String(s || '')
-            .trim()
-            .toLowerCase()
-        )
+        .map((s) => String(s || '').trim().toLowerCase())
         .filter(Boolean)
     : [];
   const defaultSyncMailboxIds =
@@ -1505,14 +1430,8 @@ process.once('SIGTERM', () => {
     createCcoWorkspaceRouter({
       noteStore: ccoNoteStore,
       followUpStore: ccoFollowUpStore,
-      aftercareStore: ccoAftercareStore,
-      operationStore: ccoOperationStore,
-      commercialStore: ccoCommercialStore,
       bookingStore: ccoBookingStore,
-      consultationStore: ccoConsultationStore,
-      patientSystemStore: ccoPatientSystemStore,
       workspacePrefsStore: ccoWorkspacePrefsStore,
-      portalStore: ccoPortalStore,
       authStore,
       config,
     })
@@ -1523,8 +1442,6 @@ process.once('SIGTERM', () => {
     createCcoBookingsRouter({
       bookingStore: ccoBookingStore,
       bookingEngineStore: ccoBookingEngineStore,
-      historyStore: ccoHistoryStore,
-      patientSystemStore: ccoPatientSystemStore,
       authStore,
       config,
     })
@@ -1535,48 +1452,6 @@ process.once('SIGTERM', () => {
     createCcoBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
-      historyStore: ccoHistoryStore,
-      patientSystemStore: ccoPatientSystemStore,
-      authStore,
-      config,
-    })
-  );
-
-  app.use(
-    '/api/v1',
-    createCcoConsultationsRouter({
-      consultationStore: ccoConsultationStore,
-      patientSystemStore: ccoPatientSystemStore,
-      authStore,
-      config,
-    })
-  );
-
-  app.use(
-    '/api/v1',
-    createCcoAftercareRouter({
-      aftercareStore: ccoAftercareStore,
-      patientSystemStore: ccoPatientSystemStore,
-      authStore,
-      config,
-    })
-  );
-
-  app.use(
-    '/api/v1',
-    createCcoOperationsRouter({
-      operationStore: ccoOperationStore,
-      patientSystemStore: ccoPatientSystemStore,
-      authStore,
-      config,
-    })
-  );
-
-  app.use(
-    '/api/v1',
-    createCcoCommercialRouter({
-      commercialStore: ccoCommercialStore,
-      patientSystemStore: ccoPatientSystemStore,
       authStore,
       config,
     })
@@ -1617,7 +1492,6 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoCustomersRouter({
       customerStore: ccoCustomerStore,
-      portalStore: ccoPortalStore,
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,

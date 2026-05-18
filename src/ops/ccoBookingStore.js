@@ -631,9 +631,10 @@ function createSyntheticHistoryFollowUpEvent(historyAction = {}) {
 }
 
 async function enrichBookingCaseWithHistorySignals(bookingCase = {}, historyStore = null) {
+  if (!bookingCase || typeof bookingCase !== 'object') {
+    return null;
+  }
   if (
-    !bookingCase ||
-    typeof bookingCase !== 'object' ||
     !['waiting_customer', 'confirmed_external'].includes(normalizeStatus(bookingCase.status)) ||
     !historyStore ||
     typeof historyStore.searchHistoryRecords !== 'function'
@@ -733,6 +734,16 @@ function getBookingCaseBlockerScore(bookingCase = {}) {
 }
 
 function buildBookingCaseBlockerReadout(bookingCase = {}) {
+  if (!bookingCase || typeof bookingCase !== 'object') {
+    return {
+      key: 'candidate_slots',
+      label: 'Saknar tider',
+      score: 30,
+      action: 'candidate_slots',
+      nextActionLabel: 'välj kandidat-tider',
+      tone: 'warning',
+    };
+  }
   const status = normalizeStatus(bookingCase.status);
   const postConfirmationContext = buildPostConfirmationContext(bookingCase);
   if (status === 'cancelled' || status === 'closed') {

@@ -740,22 +740,6 @@ function createCcoBookingsRouter({
           bookingUrl: null,
         });
       }
-      if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
-        const slots = await bookingEngineStore.listAvailability({
-          tenantId: context.tenantId,
-          fromDate,
-          toDate,
-          resIds,
-          srvIds,
-          excludeConversationId: normalizeText(req.query.conversationId),
-        });
-        return res.json({
-          raw: null,
-          provider: 'cco_engine',
-          slots,
-          bookingUrl: null,
-        });
-      }
       const brand = resolveBrandFromRequest(req, config);
       const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
       const cliento = getClientoConfigForBrand(brand, config);
