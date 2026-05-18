@@ -3020,6 +3020,20 @@
     display: none !important;
   }
 
+  /* --- FIX: tom-state-card i fokus-pane (session expired etc.) ---
+     Parent .conversation-entry-empty är CSS Grid med 2 kolumner
+     (~32px avatar-slot + 1fr content-slot) som ärvts från regular
+     conversation-entry. Tom-state-cardet hamnar fel i avatar-slot
+     (32px) → text radbryts ord-för-ord. Fix: bara 1 kolumn. */
+  .conversation-entry.conversation-entry-empty {
+    grid-template-columns: 1fr !important;
+  }
+  .conversation-empty-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   /* Highlight aktiv kö-chip prominent (ersätter den dolda indikator-raden) */
   .queue-filter-chip.is-active {
     background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%);
