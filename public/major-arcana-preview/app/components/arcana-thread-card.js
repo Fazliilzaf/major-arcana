@@ -72,6 +72,21 @@ const LANE_CTA = {
   'medicinsk': 'Öppna', 'medical':   'Öppna',
 };
 
+// Mailbox-konto → namn-färg (Fas 20: matchar VÄLJ MEJLKONTON-dropdown)
+// Används för att färga ägar-namnet i meta-raden så användaren ser
+// vilket konto tråden tillhör direkt på samma vis som i kontolistan.
+const MAILBOX_COLORS = {
+  egzona:   '#BE185D', // magenta/rose
+  kontakt:  '#1D4ED8', // mid-blue
+  contact:  '#1D4ED8',
+  fazli:    '#6D28D9', // violet
+  kvitto:   '#B45309', // amber/orange
+  receipt:  '#B45309',
+  info:     '#047857', // emerald-teal
+  kons:     '#4338CA', // indigo
+  marknad:  '#B91C1C', // deep red
+};
+
 // Lane → CTA-glow-färg (RGB tripple)
 const LANE_CTA_GLOW = {
   'oklart':    '124,58,237', 'unclear':   '124,58,237',
@@ -429,6 +444,10 @@ export class ArcanaThreadCard extends LitElement {
     const railRgb = LANE_CTA_GLOW[lane] || '107, 114, 128';
     const ctaText = LANE_CTA[lane] || 'Öppna';
 
+    // Fas 20: matcha ägar-namnets färg mot mailkonto-nyans (samma palett som dropdown)
+    const ownerKey = String(ownerText || '').toLowerCase().trim().split(/\s+/)[0];
+    const ownerColor = MAILBOX_COLORS[ownerKey] || null;
+
     // Filter ut owner-pill och mailbox-pill (visas i meta höger istället)
     const visiblePills = pills.filter((p) => p.type !== 'owner' && p.type !== 'mailbox');
 
@@ -479,7 +498,10 @@ export class ArcanaThreadCard extends LitElement {
         </div>
 
         <div class="right-col">
-          <div class="meta">
+          <div
+            class="meta"
+            style="${ownerColor ? `color: ${ownerColor}; font-weight: 600;` : ''}"
+          >
             ${showInfoIcon ? icon('info-circle') : ''}${ownerText}
           </div>
           <button
