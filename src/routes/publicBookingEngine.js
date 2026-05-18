@@ -19,6 +19,8 @@ const express = require('express');
 const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
+const { sendEmail } = require('../infra/resendMailer');
+const { buildBookingReservationEmail } = require('../templates/bookingReservationEmail');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -276,12 +278,56 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         }
       }
 
-      // ── 6. Resend-bekräftelse (stub — aktiveras när RESEND_API_KEY finns)
-      // TODO: integrera Resend-mall "Vi har reserverat din tid" här. Tills
-      // dess loggar vi bara så ops kan följa upp manuellt.
-      console.log(`[public-reservation] web booking by ${email} for slot ${slotId}`);
-
+      // ── 6. Resend-bekräftelse ─────────────────────────────────────
+      // Skickas best-effort. Om Resend failar bryts inte boknings-flowet —
+      // operatören har patientens telefonnummer och ringer ändå.
       const primary = reservations[0] || null;
+      const locale = (normalizeText(body.locale) === 'en') ? 'en' : 'sv';
+      const resolvedResource =
+        primary?.slot?.resourceLabel || primary?.slot?.resourceId || slotResourceId;
+      const resolvedService =
+        primary?.slot?.serviceLabel || primary?.slot?.serviceId || slotServiceId;
+      const emailContent = buildBookingReservationEmail({
+        patientName: name,
+        slotStart: primary?.slot?.startsAt || slotStart,
+        resourceLabel: resolvedResource,
+        serviceLabel: resolvedService,
+        caseId: conversationId,
+        expiresAt: primary?.expiresAt,
+        locale,
+      });
+      const emailResult = await sendEmail({
+        to: email,
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+        // idempotency: samma conversationId + slot ger samma key →
+        // Resend skickar inte två kopior om endpoint kallas flera gånger
+        idempotencyKey: `booking-${conversationId}-${primary?.reservationId || slotId}`,
+      });
+      if (bookingStore && typeof bookingStore.addEvent === 'function') {
+        await bookingStore.addEvent({
+          tenantId,
+          workspaceId,
+          conversationId,
+          customerEmail: email,
+          type: emailResult.ok ? 'reservation_confirmation_sent' : 'reservation_confirmation_failed',
+          label: emailResult.ok
+            ? `Bekräftelse skickad (${emailResult.mode})`
+            : 'Bekräftelse-mail failade',
+          detail: emailResult.ok
+            ? `Resend ${emailResult.mode}-mode${emailResult.messageId ? `, id ${emailResult.messageId}` : ''}`
+            : `Resend-fel: ${emailResult.error || 'unknown'}. Operatör ringer manuellt.`,
+          metadata: {
+            provider: 'resend',
+            mode: emailResult.mode,
+            messageId: emailResult.messageId || null,
+            error: emailResult.error || null,
+          },
+        });
+      }
+      console.log(`[public-reservation] web booking by ${email} for slot ${slotId} email:${emailResult.mode}`);
+
       return res.json({
         ok: true,
         provider: 'cco_engine',
