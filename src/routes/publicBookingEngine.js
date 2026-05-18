@@ -121,6 +121,57 @@ function synthConversationId(email, slotId) {
 function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, config }) {
   const router = express.Router();
 
+  // ── DEBUG: /api/debug/resend (TEMPORÄR — ta bort efter diagnos) ──
+  // Visar om RESEND_API_KEY är exponerad till process.env och försöker
+  // skicka ett test-email. Inkluderas BARA i denna pass för att hitta
+  // varför booking-confirmation inte landar i Resend. Tas bort i nästa
+  // commit när root-cause är hittad.
+  router.get('/api/debug/resend', async (req, res) => {
+    const key = process.env.RESEND_API_KEY || '';
+    const from = process.env.RESEND_FROM || '';
+    const masked = key ? `${key.slice(0, 6)}...${key.slice(-4)} (len=${key.length})` : 'MISSING';
+
+    let testResult = { skipped: true };
+    if (key) {
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: from || 'Hair TP Clinic <onboarding@resend.dev>',
+            to: ['info@fazli.se'],
+            subject: 'Render debug-test',
+            html: '<p>Direkt fetch från Render-server vid /api/debug/resend.</p>',
+          }),
+        });
+        const body = await r.text();
+        testResult = {
+          httpStatus: r.status,
+          body: body.slice(0, 300),
+        };
+      } catch (err) {
+        testResult = {
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+
+    return res.json({
+      env: {
+        RESEND_API_KEY_present: !!key,
+        RESEND_API_KEY_masked: masked,
+        RESEND_FROM: from || 'MISSING',
+        NODE_VERSION: process.version,
+        hasGlobalFetch: typeof fetch === 'function',
+      },
+      sendTest: testResult,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // ── GET /api/public/booking-engine/catalog ────────────────────────
   router.get('/public/booking-engine/catalog', async (req, res) => {
     try {
