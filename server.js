@@ -1199,6 +1199,7 @@ process.once('SIGTERM', () => {
     '/api',
     createPublicBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
+      bookingStore: ccoBookingStore,
       config,
     })
   );

@@ -16,6 +16,7 @@
  */
 
 const express = require('express');
+const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
 
@@ -95,7 +96,27 @@ function sanitizeSlot(slot) {
   };
 }
 
-function createPublicBookingEngineRouter({ bookingEngineStore, config }) {
+// ── E-post + telefon validering (mjuk) ─────────────────────────────
+function isValidEmail(value) {
+  const v = normalizeText(value);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 254;
+}
+function isValidPhone(value) {
+  const v = normalizeText(value).replace(/[\s()+\-]/g, '');
+  return /^\d{6,15}$/.test(v);
+}
+
+// ── conversationId-syntes ───────────────────────────────────────────
+// Webb-leads har ingen CCO-thread från början. Vi genererar ett deterministiskt
+// conversationId per (email + slotId) så att refresh av booking-formuläret inte
+// skapar dubletter. CCO-operatören filtrerar dessa via workspaceId-prefix.
+function synthConversationId(email, slotId) {
+  const seed = `${normalizeText(email).toLowerCase()}::${normalizeText(slotId)}`;
+  const hash = crypto.createHash('sha256').update(seed).digest('hex').slice(0, 12);
+  return `web-${hash}`;
+}
+
+function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, config }) {
   const router = express.Router();
 
   // ── GET /api/public/booking-engine/catalog ────────────────────────
@@ -148,6 +169,142 @@ function createPublicBookingEngineRouter({ bookingEngineStore, config }) {
     } catch (error) {
       console.error('[public-booking-engine/availability]', error);
       return res.status(500).json({ ok: false, error: 'booking_engine_availability_failed' });
+    }
+  });
+
+  // ── POST /api/public/booking-engine/reservations ───────────────────
+  // Fas C: webb-besökaren reserverar en slot direkt. Auto-skapar CCO-thread
+  // (synthetic conversationId) så operatören ser ärendet som needs_triage.
+  // Se docs/strategy/web-to-arcana-bridge.md sektion 3.3 för fullt kontrakt.
+  router.post('/public/booking-engine/reservations', async (req, res) => {
+    try {
+      const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
+
+      // ── 1. Consent + body-validering ──────────────────────────────
+      const consent = typeof body.consent === 'object' && body.consent !== null ? body.consent : {};
+      if (consent.gdpr !== true) {
+        return res.status(400).json({ ok: false, error: 'gdpr_consent_required' });
+      }
+
+      const contact = typeof body.contact === 'object' && body.contact !== null ? body.contact : {};
+      const name = normalizeText(contact.name);
+      const email = normalizeText(contact.email).toLowerCase();
+      const phone = normalizeText(contact.phone);
+      if (!name || name.length < 2 || name.length > 80) {
+        return res.status(400).json({ ok: false, error: 'invalid_name' });
+      }
+      if (!isValidEmail(email)) {
+        return res.status(400).json({ ok: false, error: 'invalid_email' });
+      }
+      if (!isValidPhone(phone)) {
+        return res.status(400).json({ ok: false, error: 'invalid_phone' });
+      }
+
+      const slot = typeof body.slot === 'object' && body.slot !== null ? body.slot : null;
+      const slotId = normalizeText(slot?.slotId);
+      const slotStart = normalizeText(slot?.startsAt || slot?.start);
+      const slotResourceId = normalizeText(slot?.resourceId);
+      const slotServiceId = normalizeText(slot?.serviceId);
+      if (!slotId || !slotStart || !slotResourceId || !slotServiceId) {
+        return res.status(400).json({ ok: false, error: 'invalid_slot' });
+      }
+
+      // ── 2. Brand → tenantId ───────────────────────────────────────
+      const brand = resolveBrandFromRequest(req, config);
+      const tenantId = normalizeText(brand?.id || brand);
+      if (!tenantId) {
+        return res.status(500).json({ ok: false, error: 'brand_resolution_failed' });
+      }
+
+      // ── 3. Synthesize conversationId från email + slot ────────────
+      const conversationId = synthConversationId(email, slotId);
+      const workspaceId = 'web-public';
+
+      // ── 4. Reservera i booking-engine ─────────────────────────────
+      const reservations = await bookingEngineStore.reserveSlots({
+        tenantId,
+        workspaceId,
+        conversationId,
+        customerEmail: email,
+        customerName: name,
+        ownerUserId: 'web-public',
+        ownerName: 'Webb-bokning',
+        selectedSlots: [
+          {
+            slotId,
+            startsAt: slotStart,
+            endsAt: normalizeText(slot.endsAt || slot.end),
+            resourceId: slotResourceId,
+            serviceId: slotServiceId,
+          },
+        ],
+      });
+
+      // ── 5. Skapa/uppdatera CCO-case (operatörens kö-vy) ──────────
+      // Om bookingStore inte är inkopplad, hoppa förbi — då kör vi rent
+      // engine-only-läge (testbart utan CCO-shell igång).
+      let bookingCase = null;
+      if (bookingStore && typeof bookingStore.setCandidateSlots === 'function') {
+        bookingCase = await bookingStore.setCandidateSlots({
+          tenantId,
+          workspaceId,
+          conversationId,
+          customerEmail: email,
+          customerName: name,
+          ownerUserId: 'web-public',
+          requestedTreatment: slotServiceId,
+          notes: `Webb-bokning från ${normalizeText(contact.phone)}. Patient samtyckte GDPR ${new Date().toISOString()}.`,
+          selectedSlots: reservations.map((r) => r.slot),
+        });
+
+        if (typeof bookingStore.addEvent === 'function') {
+          bookingCase = await bookingStore.addEvent({
+            tenantId,
+            workspaceId,
+            conversationId,
+            customerEmail: email,
+            type: 'web_public_reservation',
+            label: 'Webb-bokning skapad',
+            detail: `Patient ${name} (${phone}) reserverade ${slotStart} via hairtpclinic.com.`,
+            metadata: {
+              slotId,
+              source: 'public_booking_engine',
+              gdprConsentAt: new Date().toISOString(),
+              marketingConsent: consent.marketing === true,
+            },
+          });
+        }
+      }
+
+      // ── 6. Resend-bekräftelse (stub — aktiveras när RESEND_API_KEY finns)
+      // TODO: integrera Resend-mall "Vi har reserverat din tid" här. Tills
+      // dess loggar vi bara så ops kan följa upp manuellt.
+      console.log(`[public-reservation] web booking by ${email} for slot ${slotId}`);
+
+      const primary = reservations[0] || null;
+      return res.json({
+        ok: true,
+        provider: 'cco_engine',
+        reservation: primary
+          ? {
+              reservationId: primary.reservationId,
+              expiresAt: primary.expiresAt,
+              slot: sanitizeSlot(primary.slot),
+            }
+          : null,
+        caseId: conversationId,
+        operatorWillContact: true,
+        operatorEtaMinutes: 60,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode === 409) {
+        return res
+          .status(409)
+          .json({ ok: false, error: 'slot_unavailable', message: error.message || 'Tiden är inte längre ledig.' });
+      }
+      console.error('[public-booking-engine/reservations]', error);
+      return res.status(500).json({ ok: false, error: 'reservation_failed' });
     }
   });
 
