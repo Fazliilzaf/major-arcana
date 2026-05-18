@@ -25,6 +25,7 @@ const { GenerateContentBriefCapability } = require('./generateContentBrief');
 const { AnalyzeAudienceSegmentsCapability } = require('./analyzeAudienceSegments');
 const { GenerateOutreachCampaignCapability } = require('./generateOutreachCampaign');
 const { PatientChatResponseCapability } = require('./patientChatResponse');
+const { RequestPostOpReviewCapability } = require('./requestPostOpReview');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { COO_AGENT_NAME } = require('../agents/cooDailyBriefAgent');
 const { CAO_AGENT_NAME } = require('../agents/caoTemplateAdvisorAgent');
@@ -63,6 +64,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(AnalyzeAudienceSegmentsCapability),
   assertCapabilityClass(GenerateOutreachCampaignCapability),
   assertCapabilityClass(PatientChatResponseCapability),
+  assertCapabilityClass(RequestPostOpReviewCapability),
 ]);
 
 const CAPABILITY_MAP = new Map(

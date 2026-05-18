@@ -187,6 +187,7 @@ function createStatusEvent(status, previousStatus = '', options = {}) {
     confirmed_external: 'Bekräftad externt',
     cancelled: 'Bokningen avbröts',
     closed: 'Bokningsärendet stängdes',
+    follow_up_completed: 'Sista uppföljning klar — post-op-review-flow triggad',
   };
   const previous = normalizeStatus(previousStatus);
   if (normalized === 'confirmed_external') {
