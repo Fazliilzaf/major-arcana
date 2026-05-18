@@ -10629,7 +10629,7 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
     <script src="./app/inbox-streak.js?v=build-0e30fa8"></script>
     <!-- AI-utkast inline-edit: klicka i utkast direkt i thread-card -->
-    <script src="./app/inline-draft-edit.js?v=build-0e30fa8"></script>
+    <!-- inline-draft-edit.js: raderad i b341f2a (dead-cleanup), import borttagen i Fas 21 — fixar 502 → JSON parse-fel som bröt rendering -->
     <!-- System-mail-parser: extraherar kundnamn ur system-mejl (Klarna/Cliento/Foodora).
          Måste laddas FÖRE lit-switchover så parser-resolver.js har tillgång till
          window.MajorArcanaSystemMailParser via parser.parse(). -->
