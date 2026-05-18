@@ -3136,3 +3136,20 @@
 .queue-scope-strip .queue-filter-chip {
   flex-shrink: 0 !important;
 }
+
+/* Fas 24b fix: queue-history-shell är ett dolt panel-barn (w=0)
+   men med h=622px innehåll. När strippen flexas till en rad blir den
+   därför 626px hög. Tar shell-panelen UR flex-flow genom position:absolute
+   så strippen bara behöver höjden av de 3 synliga sektionerna (~28px). */
+.queue-scope-strip > .queue-history-shell,
+.queue-scope-strip > .queue-action-row,
+.queue-scope-strip > .queue-secondary-signal-strip {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  pointer-events: none !important;
+}
+.queue-scope-strip {
+  position: relative !important;
+  max-height: 36px !important;
+}
