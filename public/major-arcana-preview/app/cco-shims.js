@@ -85,6 +85,16 @@
   }
 
   async function autoOpenAndApplyAtBootstrap() {
+    // 2026-05-18 (Fas 15): aggressiv mode borttagen. Tidigare öppnade
+    // funktionen mailbox-dropdown via toggle.click() vid load, satte
+    // checkboxar via cb.click(), och stängde sedan med body.click() +
+    // syntetisk Escape-key — vilket gav "blink"-effekt och spammade
+    // syntetiska event som app.js tolkar som user actions.
+    //
+    // Nu: applicera persisted state DIREKT om checkboxar redan finns
+    // i DOM. Om inte finns — skippa helt (dropdown öppnas inte
+    // programmatiskt). Användaren öppnar själv vid behov och state
+    // appliceras då via watchMailboxChanges()-listenern.
     const persisted = readPersistedMailboxes();
     if (!persisted || persisted.length === 0) return;
 
@@ -96,18 +106,9 @@
     });
     if (existingCheckboxes.length > 0) {
       applyPersistedMailboxes();
-      return;
     }
-
-    const toggle = findMailboxToggleButton();
-    if (!toggle) return;
-
-    toggle.click();
-    await new Promise((r) => setTimeout(r, 600));
-    applyPersistedMailboxes();
-    await new Promise((r) => setTimeout(r, 300));
-    document.body.click();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    // Ingen toggle.click()/cb.click()/Escape längre — inga syntetiska
+    // event som "ploppar upp" UI vid sidladdning.
   }
 
   function watchMailboxChanges() {

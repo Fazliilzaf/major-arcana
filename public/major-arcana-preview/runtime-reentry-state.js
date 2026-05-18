@@ -536,11 +536,16 @@
           normalizeKey(savedSnapshot.historyResultTypeFilter || "all") || "all";
         runtime.historyRangeFilter = normalizeKey(savedSnapshot.historyRangeFilter || "all") || "all";
         if (applyPanelState) {
+          // 2026-05-18 (Fas 15): tvinga `open: false` vid rehydrate.
+          // Tidigare återställdes `open: true` från förra sessionen vilket
+          // gav "Panel ploppar upp tyst vid retur"-effekt. Användaren
+          // klickar själv för att öppna panelen igen — lane + feed-state
+          // bevaras dock så panel-content är förberedd när användaren öppnar.
           runtime.queueInlinePanel = {
             ...(runtime.queueInlinePanel && typeof runtime.queueInlinePanel === "object"
               ? runtime.queueInlinePanel
               : {}),
-            open: savedSnapshot.queueInlinePanel?.open === true,
+            open: false,
             laneId: normalizeKey(savedSnapshot.queueInlinePanel?.laneId || ""),
             feedKey: normalizeKey(savedSnapshot.queueInlinePanel?.feedKey || ""),
           };

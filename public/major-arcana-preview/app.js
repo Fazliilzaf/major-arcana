@@ -36280,12 +36280,17 @@
     const bookingThreadChanged = state.runtime.bookingShellThreadId !== bookingThreadId;
     if (bookingThreadChanged) {
       state.runtime.bookingShellThreadId = bookingThreadId;
-      state.runtime.bookingShellOpen = true;
+      // 2026-05-18 (Fas 15): tog bort `state.runtime.bookingShellOpen = true`
+      // — tidigare auto-öppnade Bokningsyta vid trådbyte. Användaren klickar
+      // själv på Bokningsyta-knappen för att öppna.
       state.booking.slotFetchAttempted = false;
       state.booking.slotsError = "";
       state.booking.availableSlots = [];
     }
-    if (state.runtime.bookingShellOpen !== false) {
+    // 2026-05-18 (Fas 15): strikt `=== true`-check (var `!== false`).
+    // Tidigare öppnade `bookingShellOpen === undefined` workspace vid
+    // varje re-render. Nu krävs explicit `true` från användar-klick.
+    if (state.runtime.bookingShellOpen === true) {
       setBookingOpen(true);
     } else {
       syncBookingWorkspaceDockVisibility(focusThread || thread);
@@ -41597,21 +41602,14 @@ renderStudioShell();
 	  }
 
 	  function scheduleBookingSurfaceFromUrl() {
-	    const wantsBookingSurface = urlWantsBookingWorkspace();
-      const wantsInferredBookingSurface =
-        !wantsBookingSurface && shouldInferBookingWorkspaceFromPortalCustomer();
-	    if (!wantsBookingSurface && !wantsInferredBookingSurface) return;
-	    window.setTimeout(() => {
-	      openBookingOperatorSurface({
-	        scroll: true,
-	        message: wantsBookingSurface
-            ? "Bokningsytan öppnades från direktlänken."
-            : "Bokningsytan öppnades direkt för kundens aktiva booking-case.",
-	      });
-	    }, 900);
+	    // 2026-05-18 (Fas 15): inaktiverad. Tidigare auto-öppnade
+	    // Bokningsyta från ?portalCustomerKey= / ?customerKey= / ?booking=1
+	    // — det irriterade användaren ("varför ploppar Behöver triage upp?").
+	    // Användaren klickar själv på Bokningsyta-knappen för att öppna.
+	    return;
 	  }
 
-	  scheduleBookingSurfaceFromUrl();
+	  // scheduleBookingSurfaceFromUrl() — INTE anropad, se kommentar ovan.
 
 	  window.MajorArcanaPreviewDiagnostics = Object.freeze({
     captureRuntimeReentrySnapshot,
