@@ -3051,7 +3051,88 @@
 
   /* ────────────────────────────────────────────────────────────────
      Fas 22 (2026-05-18): Konsolidera 4 filter-lager — försök 1 reverterades
-     pga inre grid-collapse som blåste upp strippen till 14315px width.
-     Lämnar default CSS-grid intakt; fortsätter med subtil approach
-     (krympta gap + nedhöjda rader) i framtida iteration. */
+     pga inre grid-collapse. Fas 23 aktiverade is-compact-mode som default.
+     Fas 24 (nedan, utanför @layer) plattar ut alla 3 lager till EN rad. */
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 24 (2026-05-18): Allt på EN rad — utanför @layer
+   ════════════════════════════════════════════════════════════════════
+   UNLAYERED CSS vinner över @layer legacy/components-regler i CSS-cascade.
+   Detta säkerställer att vår flex-layout vinner över styles.css:
+     .queue-scope-strip { display: grid; grid-template-columns: 1fr; }
+     .queue-lane-quickstrip { display: grid; grid-template-columns: repeat(5, 1fr); }
+     .queue-bottom-row { display: grid; grid-template-columns: 1fr max-content; }
+
+   Resultat: alla 3 sektioner sitter sida-vid-sida med horizontal scroll. */
+.queue-scope-strip {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin !important;
+  width: 100% !important;
+  padding: 2px 4px !important;
+}
+.queue-scope-strip::-webkit-scrollbar {
+  height: 4px;
+}
+.queue-scope-strip::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 40, 0.18);
+  border-radius: 2px;
+}
+
+/* Bottom-row (Egzona + Ägare) — flex istället för grid, naturlig bredd */
+.queue-scope-strip > .queue-bottom-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  width: auto !important;
+  grid-template-columns: none !important;
+  gap: 6px !important;
+}
+
+/* Quickstrip (Alla, Agera nu, Fokuspass, Senare + chevron) — flex */
+.queue-scope-strip > .queue-lane-quickstrip {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  width: auto !important;
+  grid-template-columns: none !important;
+  gap: 4px !important;
+}
+
+/* Collapsed-list (sekundära filter) — flex nowrap, is-compact ger 28px chips */
+.queue-scope-strip > .collapsed-list {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  width: auto !important;
+  gap: 4px !important;
+}
+
+/* Visuell separator mellan grupperna */
+.queue-scope-strip > .queue-lane-quickstrip::before,
+.queue-scope-strip > .collapsed-list::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 20px;
+  background: rgba(120, 80, 40, 0.22);
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+/* Chipsen inuti behåller compact-storlek */
+.queue-scope-strip .queue-filter-chip {
+  flex-shrink: 0 !important;
 }
