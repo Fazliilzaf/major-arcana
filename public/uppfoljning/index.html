@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Hair TP Clinic — Uppföljning</title>
+  <title data-i18n="title">Hair TP Clinic — Uppföljning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300;400&family=Inter:wght@400;500;600&display=swap">
@@ -83,6 +83,12 @@
     .checkmark svg{width:32px;height:32px}
     .footer{margin-top:32px;font-size:13px;color:#6B5F58;text-align:center;line-height:1.6}
     .footer a{color:#6B5F58}
+    .lang-switch{
+      position:absolute;top:24px;right:24px;font-size:12px;
+      text-transform:uppercase;letter-spacing:0.12em;
+    }
+    .lang-switch a{color:#6B5F58;text-decoration:none;padding:0 6px}
+    .lang-switch a.active{color:#231F1D;font-weight:600;text-decoration:underline}
     .hidden{display:none}
     .photos-note{
       padding:14px 18px;background:#F0EAE3;border-radius:12px;
@@ -92,51 +98,62 @@
       .wrap{padding:20px 16px 60px}
       h1{font-size:26px}
       .card{padding:20px}
+      .lang-switch{top:16px;right:16px}
     }
   </style>
 </head>
 <body>
+  <div class="lang-switch">
+    <a href="?lang=sv" id="lang-sv">SV</a><span style="color:#D4C7B8">/</span><a href="?lang=en" id="lang-en">EN</a>
+  </div>
   <div class="wrap">
     <div class="brand">
       <span class="brand-dot"></span>
-      <span>Hair TP Clinic — Uppföljning</span>
+      <span data-i18n="brandLabel">Hair TP Clinic — Uppföljning</span>
     </div>
 
     <div id="loading-state">
-      <p class="muted">Hämtar din uppföljning…</p>
+      <p class="muted" data-i18n="loading">Hämtar din uppföljning…</p>
     </div>
 
     <div id="invalid-state" class="hidden">
       <div class="card">
-        <h2>Länken är inte giltig längre</h2>
-        <p class="muted">Den här länken har gått ut eller är inte korrekt. Ring oss gärna på <a href="tel:+46318811166" style="color:#231F1D">031 88 11 66</a> så hjälper vi dig direkt.</p>
+        <h2 data-i18n="invalidTitle">Länken är inte giltig längre</h2>
+        <p class="muted">
+          <span data-i18n="invalidBody">Den här länken har gått ut eller är inte korrekt. Ring oss gärna på </span>
+          <a href="tel:+46318811166" style="color:#231F1D">031 88 11 66</a>
+          <span data-i18n="invalidBodyTail"> så hjälper vi dig direkt.</span>
+        </p>
       </div>
     </div>
 
     <div id="form-state" class="hidden">
-      <h1>Tack <em id="patient-name">för förtroendet</em></h1>
-      <p class="lead">Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.</p>
+      <h1>
+        <span data-i18n="formGreetingPre">Tack </span>
+        <em id="patient-name" data-i18n-default="för förtroendet">för förtroendet</em>
+      </h1>
+      <p class="lead" data-i18n="formLead">Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.</p>
 
       <div id="error-box" class="hidden"></div>
 
       <form id="submit-form" class="card">
-        <h2>Hur har det gått?</h2>
-        <p class="muted" style="margin:0 0 16px">Skriv gärna en mening eller två — helt frivilligt.</p>
-        <textarea id="patient-note" maxlength="2000" placeholder="Hur upplevde du behandlingen och resultatet?"></textarea>
+        <h2 data-i18n="formCardTitle">Hur har det gått?</h2>
+        <p class="muted" style="margin:0 0 16px" data-i18n="formCardSub">Skriv gärna en mening eller två — helt frivilligt.</p>
+        <textarea id="patient-note" maxlength="2000" data-i18n-placeholder="formPlaceholder" placeholder="Hur upplevde du behandlingen och resultatet?"></textarea>
 
         <div class="photos-note">
-          📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.
+          <span data-i18n="photosNoteHtml">📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.</span>
         </div>
 
         <label class="consent">
           <input type="checkbox" id="consent-publish">
-          <span class="text">
+          <span class="text" data-i18n="consentHtml">
             <strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.
           </span>
         </label>
 
         <div style="margin-top:24px;display:flex;justify-content:flex-end">
-          <button type="submit" id="submit-btn" class="btn btn-primary">Skicka in</button>
+          <button type="submit" id="submit-btn" class="btn btn-primary" data-i18n="submitBtn">Skicka in</button>
         </div>
       </form>
     </div>
@@ -146,19 +163,19 @@
         <div class="checkmark">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
-        <h2>Tack, det betyder mycket</h2>
-        <p class="muted" style="max-width:420px;margin:0 auto">Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.</p>
+        <h2 data-i18n="successTitle">Tack, det betyder mycket</h2>
+        <p class="muted" style="max-width:420px;margin:0 auto" data-i18n="successBody">Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.</p>
       </div>
 
       <div class="card" style="text-align:center">
-        <h2 style="margin-bottom:16px">Lämna ett Google-omdöme?</h2>
-        <p class="muted" style="margin:0 0 24px;max-width:380px;margin-left:auto;margin-right:auto">Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.</p>
-        <a id="gbp-link" href="https://maps.google.com/?cid=17939638689643749556" class="btn btn-primary" style="text-decoration:none">Lämna omdöme på Google →</a>
+        <h2 style="margin-bottom:16px" data-i18n="gbpTitle">Lämna ett Google-omdöme?</h2>
+        <p class="muted" style="margin:0 0 24px;max-width:380px;margin-left:auto;margin-right:auto" data-i18n="gbpBody">Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.</p>
+        <a id="gbp-link" href="https://maps.google.com/?cid=17939638689643749556" class="btn btn-primary" style="text-decoration:none" data-i18n="gbpCta">Lämna omdöme på Google →</a>
       </div>
     </div>
 
     <p class="footer">
-      Hair TP Clinic · Vasaplatsen 2, 411 34 Göteborg<br>
+      Hair TP Clinic · Vasaplatsen 2, 411 34 <span data-i18n="city">Göteborg</span><br>
       <a href="tel:+46318811166">031 88 11 66</a> · <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a>
     </p>
   </div>
@@ -167,7 +184,88 @@
     (function(){
       'use strict';
 
-      // Token ligger sist i path: /uppfoljning/:token
+      // ── i18n: SV (default) + EN ─────────────────────────────────────
+      var I18N = {
+        sv: {
+          title:           'Hair TP Clinic — Uppföljning',
+          brandLabel:      'Hair TP Clinic — Uppföljning',
+          loading:         'Hämtar din uppföljning…',
+          invalidTitle:    'Länken är inte giltig längre',
+          invalidBody:     'Den här länken har gått ut eller är inte korrekt. Ring oss gärna på ',
+          invalidBodyTail: ' så hjälper vi dig direkt.',
+          formGreetingPre: 'Tack ',
+          greetingFallback:'för förtroendet',
+          formLead:        'Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.',
+          formCardTitle:   'Hur har det gått?',
+          formCardSub:     'Skriv gärna en mening eller två — helt frivilligt.',
+          formPlaceholder: 'Hur upplevde du behandlingen och resultatet?',
+          photosNoteHtml:  '📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.',
+          consentHtml:     '<strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.',
+          submitBtn:       'Skicka in',
+          submitSending:   'Skickar…',
+          submitError:     'Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.',
+          successTitle:    'Tack, det betyder mycket',
+          successBody:     'Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.',
+          gbpTitle:        'Lämna ett Google-omdöme?',
+          gbpBody:         'Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.',
+          gbpCta:          'Lämna omdöme på Google →',
+          city:            'Göteborg',
+        },
+        en: {
+          title:           'Hair TP Clinic — Follow-up',
+          brandLabel:      'Hair TP Clinic — Follow-up',
+          loading:         'Loading your follow-up…',
+          invalidTitle:    'This link is no longer valid',
+          invalidBody:     'The link has expired or is not correct. Please call us at ',
+          invalidBodyTail: ' and we will help you directly.',
+          formGreetingPre: 'Thank you ',
+          greetingFallback:'for your trust',
+          formLead:        'We hope you are happy with the result. A few words from you mean a lot — and help others considering the same journey.',
+          formCardTitle:   'How did it go?',
+          formCardSub:     'Write a sentence or two if you like — completely optional.',
+          formPlaceholder: 'How did you experience the treatment and the result?',
+          photosNoteHtml:  '📸 <strong>Want to share after-photos?</strong> Email them to <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> with your case number — we will add them to your record. Direct upload coming soon.',
+          consentHtml:     '<strong>I consent to Hair TP Clinic using my photos anonymously</strong> in marketing (hairtpclinic.com, Instagram, other digital channels). Only the area <strong>from the eyebrows up</strong> is published — no features that could identify me. I can withdraw consent at any time by contacting contact@hairtpclinic.com.',
+          submitBtn:       'Submit',
+          submitSending:   'Sending…',
+          submitError:     'Could not send right now. Try again or email contact@hairtpclinic.com.',
+          successTitle:    'Thank you, this means a lot',
+          successBody:     'We have saved your feedback. If you have a moment, we would be grateful if you also left a short review on Google — it helps others find us.',
+          gbpTitle:        'Leave a Google review?',
+          gbpBody:         'Takes less than a minute. We already have 197 reviews with a 4.8★ average — every new voice counts.',
+          gbpCta:          'Leave a Google review →',
+          city:            'Gothenburg',
+        },
+      };
+
+      function detectLocale() {
+        // Prio: ?lang=en URL param → navigator.language → 'sv'
+        var params = new URLSearchParams(window.location.search);
+        var lang = (params.get('lang') || '').toLowerCase();
+        if (lang === 'en' || lang === 'sv') return lang;
+        var nav = (navigator.language || 'sv').toLowerCase();
+        return nav.startsWith('en') ? 'en' : 'sv';
+      }
+
+      var locale = detectLocale();
+      var t = I18N[locale] || I18N.sv;
+
+      // Sätt <html lang> + title + applicera översättningar
+      document.documentElement.lang = locale;
+      document.title = t.title;
+      Array.from(document.querySelectorAll('[data-i18n]')).forEach(function(el){
+        var key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined) el.innerHTML = t[key];
+      });
+      Array.from(document.querySelectorAll('[data-i18n-placeholder]')).forEach(function(el){
+        var key = el.getAttribute('data-i18n-placeholder');
+        if (t[key] !== undefined) el.setAttribute('placeholder', t[key]);
+      });
+      // Markera aktiv lang i switchen
+      var langActive = document.getElementById('lang-' + locale);
+      if (langActive) langActive.classList.add('active');
+
+      // ── Patient flow ────────────────────────────────────────────────
       var parts = window.location.pathname.split('/').filter(Boolean);
       var token = parts[parts.length - 1] || '';
 
@@ -187,11 +285,6 @@
         $error.textContent = msg;
         $error.className = 'error';
         show($error);
-      }
-      function escapeText(s){
-        var d = document.createElement('div');
-        d.textContent = String(s || '');
-        return d.innerHTML;
       }
 
       if (!token || token.length < 8) {
@@ -216,7 +309,7 @@
             return;
           }
           var first = (data.submission.patientName || '').trim().split(/\s+/)[0];
-          $name.textContent = first || 'för förtroendet';
+          $name.textContent = first || t.greetingFallback;
           show($form);
         })
         .catch(function(){
@@ -228,7 +321,7 @@
         ev.preventDefault();
         hide($error);
         $submitBtn.disabled = true;
-        $submitBtn.textContent = 'Skickar…';
+        $submitBtn.textContent = t.submitSending;
         var consent = document.getElementById('consent-publish').checked;
         var note = document.getElementById('patient-note').value;
         fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
@@ -248,16 +341,12 @@
           })
           .catch(function(){
             $submitBtn.disabled = false;
-            $submitBtn.textContent = 'Skicka in';
-            showError('Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.');
+            $submitBtn.textContent = t.submitBtn;
+            showError(t.submitError);
           });
       });
 
       // GBP-länken pekar på beacon-endpoint så vi loggar klick + redirectar
-      $gbp.addEventListener('click', function(){
-        // Inte preventDefault — låt browsern följa länken; beacon endpoint
-        // 302-redirectar till GBP så användaren märker ingen extra hop.
-      });
       $gbp.setAttribute('href', '/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-clicked');
     })();
   </script>
