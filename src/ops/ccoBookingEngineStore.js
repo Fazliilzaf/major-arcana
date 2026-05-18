@@ -82,39 +82,156 @@ function defaultState() {
     version: 1,
     createdAt: ts,
     updatedAt: ts,
+    // Riktigt Hair TP-team verifierat 2026-05-18.
+    // Sjuksköterskor (Veronica, Clara, Wendela, Louise) görs bokningsbara senare
+    // när vi har klart vilka behandlingar de utför självständigt.
+    // Back-office (Måns, Felix, Britt-louise) är aldrig patient-bokningsbara.
     resources: [
-      { id: 'egzona', label: 'Egzona', active: true },
-      { id: 'dr-eriksson', label: 'Dr. Eriksson', active: true },
-      { id: 'dr-sara', label: 'Dr. Sara', active: true },
+      { id: 'fazli', label: 'Fazli Krasniqi', active: true },
+      { id: 'egzona', label: 'Egzona Krasniqi', active: true },
+      { id: 'arya', label: 'Dr. Arya Emami', active: true },
     ],
+    // Tjänstekatalog speglar fastpris-listan på hairtpclinic.com.
+    // Konsultation är alltid 30 min och kostnadsfri.
     services: [
-      { id: 'consultation', label: 'Konsultation', durationMinutes: 60, active: true },
-      { id: 'prp', label: 'PRP-behandling', durationMinutes: 45, active: true },
-      { id: 'transplant-followup', label: 'Efterkontroll', durationMinutes: 30, active: true },
+      { id: 'consultation', label: 'Kostnadsfri konsultation', durationMinutes: 30, active: true },
+      { id: 'fue', label: 'FUE-hårtransplantation', durationMinutes: 480, active: true },
+      { id: 'dhi', label: 'DHI-hårtransplantation', durationMinutes: 480, active: true },
+      { id: 'beard', label: 'Skäggtransplantation', durationMinutes: 360, active: true },
+      { id: 'eyebrow', label: 'Ögonbrynstransplantation', durationMinutes: 240, active: true },
+      { id: 'prp-hair', label: 'PRP för hår', durationMinutes: 45, active: true },
+      { id: 'prp-skin', label: 'PRP för hud', durationMinutes: 60, active: true },
+      { id: 'microneedling', label: 'Microneedling + PRP', durationMinutes: 60, active: true },
+      { id: 'followup', label: 'Efterkontroll', durationMinutes: 30, active: true },
     ],
+    // Schema: Fazli + Egzona delar hårtransplantations-veckan (max 2 patienter/dag enligt
+    // kvalitetslöfte). Arya tar konsultation + ögonbrynstransplantation.
+    // Tider följer kliniköppettiderna Mån-Fre 08-20, Lör 10-18.
     availabilityRules: [
+      // ── Konsultation (alla tre, korta möten) ──
+      {
+        ruleId: 'rule-consultation-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['09:00', '11:00', '14:00', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
       {
         ruleId: 'rule-consultation-egzona',
         resourceId: 'egzona',
         serviceId: 'consultation',
         weekdays: [1, 2, 3, 4, 5],
-        startTimes: ['09:30', '13:30', '15:00'],
+        startTimes: ['09:30', '11:30', '14:30', '16:30'],
         locationLabel: 'Hair TP Clinic',
       },
       {
-        ruleId: 'rule-consultation-eriksson',
-        resourceId: 'dr-eriksson',
+        ruleId: 'rule-consultation-arya',
+        resourceId: 'arya',
         serviceId: 'consultation',
         weekdays: [1, 3, 5],
-        startTimes: ['10:00', '14:00'],
+        startTimes: ['10:00', '13:00', '15:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      // ── Hårtransplantation (Fazli + Egzona, hela arbetsdagar) ──
+      {
+        ruleId: 'rule-fue-fazli',
+        resourceId: 'fazli',
+        serviceId: 'fue',
+        weekdays: [2, 4],
+        startTimes: ['08:00'],
         locationLabel: 'Hair TP Clinic',
       },
       {
-        ruleId: 'rule-prp-sara',
-        resourceId: 'dr-sara',
-        serviceId: 'prp',
+        ruleId: 'rule-fue-egzona',
+        resourceId: 'egzona',
+        serviceId: 'fue',
+        weekdays: [1, 3],
+        startTimes: ['08:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-dhi-fazli',
+        resourceId: 'fazli',
+        serviceId: 'dhi',
+        weekdays: [5],
+        startTimes: ['08:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-dhi-egzona',
+        resourceId: 'egzona',
+        serviceId: 'dhi',
+        weekdays: [5],
+        startTimes: ['08:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-beard-fazli',
+        resourceId: 'fazli',
+        serviceId: 'beard',
+        weekdays: [3],
+        startTimes: ['10:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      // ── Ögonbrynstransplantation (Arya, ögonplastikkirurg) ──
+      {
+        ruleId: 'rule-eyebrow-arya',
+        resourceId: 'arya',
+        serviceId: 'eyebrow',
+        weekdays: [3, 5],
+        startTimes: ['09:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      // ── PRP-behandlingar (alla tre kan göra) ──
+      {
+        ruleId: 'rule-prp-hair-fazli',
+        resourceId: 'fazli',
+        serviceId: 'prp-hair',
         weekdays: [2, 4],
-        startTimes: ['11:00', '15:30'],
+        startTimes: ['15:00', '16:30'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-hair-egzona',
+        resourceId: 'egzona',
+        serviceId: 'prp-hair',
+        weekdays: [1, 3, 5],
+        startTimes: ['10:00', '15:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-skin-arya',
+        resourceId: 'arya',
+        serviceId: 'prp-skin',
+        weekdays: [1, 3, 5],
+        startTimes: ['11:00', '13:30'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      // ── Microneedling + PRP (Arya) ──
+      {
+        ruleId: 'rule-microneedling-arya',
+        resourceId: 'arya',
+        serviceId: 'microneedling',
+        weekdays: [1, 5],
+        startTimes: ['12:00', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      // ── Efterkontroller (alla tre) ──
+      {
+        ruleId: 'rule-followup-fazli',
+        resourceId: 'fazli',
+        serviceId: 'followup',
+        weekdays: [1, 3, 5],
+        startTimes: ['17:00', '17:30'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-followup-egzona',
+        resourceId: 'egzona',
+        serviceId: 'followup',
+        weekdays: [2, 4],
+        startTimes: ['17:00', '17:30'],
         locationLabel: 'Hair TP Clinic',
       },
     ],
