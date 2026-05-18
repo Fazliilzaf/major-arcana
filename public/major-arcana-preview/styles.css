@@ -1,3 +1,15 @@
+/* ════════════════════════════════════════════════════════════════
+   Fas 27D (2026-05-18): Wrap entire styles.css i @layer legacy
+   ROT-ORSAK-FIX: tidigare var detta unlayered CSS som vann över alla
+   layered regler i cco-polish.css → krävde 290 !important för att vinna.
+   Nu följer styles.css @layer-ordningen deklarerad i design-tokens.css:
+     @layer reset, base, legacy, components, utilities, overrides
+   Detta gör att cco-polish.css (@layer components) vinner naturligt
+   utan !important — vilket vi kan gradvis städa bort.
+   ════════════════════════════════════════════════════════════════ */
+
+@layer legacy {
+
 /* ============================================================
    A11Y: Global focus-visible ring (WCAG 2.4.7)
    ============================================================ */
@@ -19672,3 +19684,5 @@ button.booking-handoff-card-blocker:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+} /* end @layer legacy */
