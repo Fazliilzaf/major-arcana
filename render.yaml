@@ -64,6 +64,13 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      # Resend för transactional emails (booking-bekräftelse + post-op
+      # review). sync: false betyder UI-managed — värdet sätts i Render
+      # dashboard, inte här (key:et stannar då i secret store).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
       - key: PUBLIC_BASE_URL
         sync: false
       - key: CORS_ALLOWED_ORIGINS
