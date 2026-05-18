@@ -450,6 +450,9 @@ const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
+const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
+const { RequestPostOpReviewCapability } = require('./src/capabilities/requestPostOpReview');
+const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
@@ -1018,6 +1021,10 @@ process.once('SIGTERM', () => {
   const ccoBookingEngineStore = await createCcoBookingEngineStore({
     filePath: config.ccoBookingEngineStorePath,
   });
+  const postOpReviewStore = await createPostOpReviewStore({
+    filePath: config.postOpReviewStorePath,
+  });
+  const requestPostOpReviewCapability = new RequestPostOpReviewCapability();
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1200,6 +1207,19 @@ process.once('SIGTERM', () => {
     createPublicBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
+      config,
+    })
+  );
+
+  // Post-op review routes — operator-trigger + token-skyddade patient-endpoints.
+  // Patient-UI (vanilla HTML på /uppfoljning/:token) sparas till nästa pass;
+  // detta är minimum så operatör kan generera reviewLink + emailDraft idag.
+  app.use(
+    createPostOpReviewRouter({
+      postOpReviewStore,
+      capability: requestPostOpReviewCapability,
+      bookingStore: ccoBookingStore,
+      authStore,
       config,
     })
   );

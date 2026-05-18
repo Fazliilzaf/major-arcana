@@ -227,6 +227,11 @@ const config = {
     stateRoot,
     fileName: 'cco-bookings.json',
   }),
+  postOpReviewStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_POST_OP_REVIEW_STORE_PATH,
+    stateRoot,
+    fileName: 'post-op-reviews.json',
+  }),
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
     stateRoot,
