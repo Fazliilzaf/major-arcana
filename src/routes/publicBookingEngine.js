@@ -126,7 +126,7 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
   // skicka ett test-email. Inkluderas BARA i denna pass för att hitta
   // varför booking-confirmation inte landar i Resend. Tas bort i nästa
   // commit när root-cause är hittad.
-  router.get('/api/debug/resend', async (req, res) => {
+  router.get('/debug/resend', async (req, res) => {
     const key = process.env.RESEND_API_KEY || '';
     const from = process.env.RESEND_FROM || '';
     const masked = key ? `${key.slice(0, 6)}...${key.slice(-4)} (len=${key.length})` : 'MISSING';
