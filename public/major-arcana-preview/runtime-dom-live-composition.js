@@ -3917,6 +3917,8 @@
         '[data-booking-open], [data-booking-open-surface], [data-quick-action="booking_surface"]'
       );
       if (bookingOpenButton) {
+        event.preventDefault();
+        event.stopPropagation();
         if (typeof openBookingOperatorSurface === "function") {
           openBookingOperatorSurface({
             scroll: false,

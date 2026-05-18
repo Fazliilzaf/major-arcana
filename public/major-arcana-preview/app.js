@@ -27925,10 +27925,11 @@
     renderRuntimeConversationShell();
     state.runtime = state.runtime || {};
     state.runtime.bookingShellOpen = true;
+    state.runtime.bookingShellDismissed = false;
+    setBookingOpen(true);
     renderBookingSurface();
     const bookingDom = getBookingDom();
-    setBookingOpen(true);
-	    if (message) {
+	    if (message && bookingDom?.feedback) {
 	      setFeedback(bookingDom.feedback, "success", message);
 	    }
 	    window.setTimeout(() => {
@@ -36016,11 +36017,14 @@
         ? getSelectedRuntimeFocusThread()
         : null;
     const thread = getBookingWorkThread();
+    const userRequestedBookingOpen = state.runtime?.bookingShellOpen === true;
     const isBooking =
-      isBookingRuntimeThread(thread) &&
       Boolean(focusThread) &&
       state.runtime?.authRequired !== true &&
-      state.runtime?.loading !== true;
+      state.runtime?.loading !== true &&
+      (userRequestedBookingOpen ||
+        threadHasBookingCase(thread) ||
+        hasBookingSurfaceCue(thread));
     if (focusConversationLayout) {
       focusConversationLayout.classList.remove("is-booking-workspace");
     }
