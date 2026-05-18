@@ -277,10 +277,11 @@ export class ArcanaThreadCard extends LitElement {
     /* ─────── Höger kolumn (meta ovan, actions under) ─────── */
     .right-col {
       grid-column: 3; grid-row: 1;
-      align-self: center;
+      align-self: start;
       display: flex; flex-direction: column;
       align-items: flex-end;
       gap: 6px;
+      padding-top: 2px;
     }
     .meta {
       font-size: 11px;
@@ -290,8 +291,20 @@ export class ArcanaThreadCard extends LitElement {
     }
     .meta i { font-size: 11px; }
 
+    /* Fas 18: actions stackade i 2-kol grid (3 rader á 2 knappar)
+       så right-col-bredden krymper från ~180px → ~85px,
+       vilket frigör plats åt body (mer text + pills syns utan klamring). */
     .actions {
-      display: flex; align-items: center; gap: 4px;
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 4px 6px;
+      justify-content: end;
+      align-items: center;
+    }
+    .actions .cta {
+      /* Svara-pillen sitter på sista raden i högra kolumnen
+         (delar rad med trash-knappen). */
+      margin-left: 0;
     }
 
     /* ─────── Action-knappar (18px runda) ─────── */
