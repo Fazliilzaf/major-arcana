@@ -461,6 +461,7 @@ const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceSto
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
 const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
 const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine');
+const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
@@ -1187,6 +1188,17 @@ process.once('SIGTERM', () => {
     '/api',
     createPublicClinicRouter({
       tenantConfigStore,
+      config,
+    })
+  );
+
+  // Web-to-Arcana bridge Fas B: hairtpclinic.com pollar dessa endpoints
+  // istället för /public/cliento/* när ARCANA_PROVIDER=booking-engine.
+  // Se docs/strategy/web-to-arcana-bridge.md.
+  app.use(
+    '/api',
+    createPublicBookingEngineRouter({
+      bookingEngineStore: ccoBookingEngineStore,
       config,
     })
   );
