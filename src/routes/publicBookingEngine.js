@@ -60,10 +60,13 @@ function resolveBrandFromRequest(req, config) {
  * Översätt ccoBookingEngineStore-resurser till samma shape som
  * webben förväntar sig (arcana-client.ts ArcanaResource).
  */
+// ccoBookingEngineStore använder { label, durationMinutes, startsAt, endsAt }-shape.
+// Vi översätter till webbens förväntade shape (title, start, end) så att
+// arcana-client.ts inte behöver känna till skillnaden mellan providers.
 function sanitizeResource(resource) {
   return {
     id: normalizeText(resource?.id || resource?.resourceId) || 'resource',
-    title: normalizeText(resource?.title || resource?.name) || 'Resurs',
+    title: normalizeText(resource?.label || resource?.title || resource?.name) || 'Resurs',
     role: normalizeText(resource?.role || resource?.specialty) || undefined,
   };
 }
@@ -73,7 +76,7 @@ function sanitizeService(service) {
   const fromPrice = Number(service?.fromPriceSek ?? service?.price ?? 0);
   return {
     id: normalizeText(service?.id || service?.serviceId) || 'service',
-    title: normalizeText(service?.title || service?.name) || 'Service',
+    title: normalizeText(service?.label || service?.title || service?.name) || 'Service',
     description: normalizeText(service?.description) || undefined,
     durationMinutes: Number.isFinite(duration) ? Math.max(10, Math.min(1440, Math.round(duration))) : 60,
     fromPriceSek: Number.isFinite(fromPrice) ? Math.max(0, Math.round(fromPrice)) : 0,
@@ -81,10 +84,12 @@ function sanitizeService(service) {
 }
 
 function sanitizeSlot(slot) {
+  const start = normalizeText(slot?.startsAt || slot?.start || slot?.from);
+  const end = normalizeText(slot?.endsAt || slot?.end || slot?.to);
   return {
-    slotId: normalizeText(slot?.slotId || slot?.id) || `${slot?.resourceId || 'res'}-${slot?.start || ''}`,
-    start: normalizeText(slot?.start) || normalizeText(slot?.from) || '',
-    end: normalizeText(slot?.end) || normalizeText(slot?.to) || '',
+    slotId: normalizeText(slot?.slotId || slot?.id) || `${slot?.resourceId || 'res'}-${start}`,
+    start,
+    end,
     serviceId: normalizeText(slot?.serviceId || slot?.srvId) || '',
     resourceId: normalizeText(slot?.resourceId || slot?.resId) || '',
   };
