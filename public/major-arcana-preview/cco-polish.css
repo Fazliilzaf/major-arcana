@@ -3050,63 +3050,8 @@
   }
 
   /* ────────────────────────────────────────────────────────────────
-     Fas 22 (2026-05-18): Konsolidera 4 filter-lager till 1 horisontell rad
-     ────────────────────────────────────────────────────────────────
-     Tidigare layout (4 stackade rader, ~128px höjd):
-       1. .queue-bottom-row     (Egzona + Ägare dropdowns)
-       2. .queue-lane-quickstrip (Alla/Agera nu/Fokuspass/Senare)
-       3. .collapsed-list rad A  (Skickade/Historik/Svarstudio/Klar/Radera)
-       4. .collapsed-list rad B  (Admin/Granska/Oklart/Eftervård/...)
-
-     Ny layout: alla direkta barn till .queue-scope-strip sitter på en
-     enda horisontell rad med overflow-x: auto för att rymma overflow.
-     Sparar ~100px vertikalt — tråd-listan börjar nästan direkt under
-     topbaren istället för 128px ned. */
-  .queue-scope-strip {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 12px !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    scrollbar-width: thin !important;
-    padding: 4px 8px !important;
-    margin-bottom: 4px !important;
-  }
-  .queue-scope-strip::-webkit-scrollbar {
-    height: 4px;
-  }
-  .queue-scope-strip::-webkit-scrollbar-thumb {
-    background: rgba(120, 80, 40, 0.2);
-    border-radius: 2px;
-  }
-  /* Varje sektion blir en inline-flex som inte krymper. */
-  .queue-scope-strip > .queue-bottom-row,
-  .queue-scope-strip > .queue-lane-quickstrip,
-  .queue-scope-strip > .collapsed-list {
-    display: inline-flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    flex-shrink: 0 !important;
-    align-items: center !important;
-    width: auto !important;
-    margin: 0 !important;
-  }
-  /* Separator mellan grupperna för visuell struktur */
-  .queue-scope-strip > .queue-lane-quickstrip::before,
-  .queue-scope-strip > .collapsed-list::before {
-    content: '';
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    background: rgba(120, 80, 40, 0.18);
-    margin-right: 4px;
-    flex-shrink: 0;
-  }
-  /* Inre chips behåller storlek men inget wrap. */
-  .queue-scope-strip > .collapsed-list > * {
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-  }
+     Fas 22 (2026-05-18): Konsolidera 4 filter-lager — försök 1 reverterades
+     pga inre grid-collapse som blåste upp strippen till 14315px width.
+     Lämnar default CSS-grid intakt; fortsätter med subtil approach
+     (krympta gap + nedhöjda rader) i framtida iteration. */
 }
