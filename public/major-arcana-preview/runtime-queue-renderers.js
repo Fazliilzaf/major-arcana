@@ -2888,11 +2888,26 @@
 
     function buildQueueInlineLaneSignalItems(thread = {}) {
       const laneId = normalizeKey(thread?.primaryLaneId || "");
-      const whatValue = compactRuntimeCopy(
+      const rawWhatValue = compactRuntimeCopy(
         asText(getQueueInlineLaneSignalWhat(thread, laneId)),
         "",
         20
       );
+      // Fas 27F-A2: skippa what-pillen om den säger samma sak som lane-rail.
+      // Lane-rail kommunicerar redan kategorin visuellt (grön = Bokning,
+      // röd = Agera nu, lila = Operation, etc). Att också visa textpill
+      // 'Bokning' när lane='bookable' är ren redundans.
+      const LANE_REDUNDANT_WHAT = {
+        bookable: "Bokning",
+        bokning: "Bokning",
+        booking: "Bokning",
+        review: "Granskning",
+        admin: "Administrativt",
+        medical: "Medicinsk fråga",
+        medicinsk: "Medicinsk fråga",
+      };
+      const whatValue =
+        LANE_REDUNDANT_WHAT[laneId] === rawWhatValue ? "" : rawWhatValue;
       const whyValue = compactRuntimeCopy(
         asText(getQueueInlineLaneSignalWhy(thread, laneId)),
         "",
