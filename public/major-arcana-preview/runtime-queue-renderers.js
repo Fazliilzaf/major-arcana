@@ -3942,9 +3942,14 @@
         ? `<span class="warm-file-icons" aria-hidden="true">${attachIconsArr.join("")}</span>`
         : "";
 
+      // Fas 27F-A: skippa subject om identisk med sender (system-mejl utan parsed
+      // kundnamn fick tidigare "Booking Request · Booking Request"-duplikat).
+      const showSubject =
+        subjectText &&
+        subjectText.trim().toLowerCase() !== senderText.trim().toLowerCase();
       const senderSubjectMarkup = `<div class="warm-line-1">
         <span class="warm-sender">${escapeHtml(senderText)}</span>
-        ${subjectText ? `<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="${escapeHtml(subjectText)}">${escapeHtml(subjectText)}</span>` : ""}
+        ${showSubject ? `<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="${escapeHtml(subjectText)}">${escapeHtml(subjectText)}</span>` : ""}
         ${attachIconsMarkup}
       </div>`;
 
@@ -4226,13 +4231,24 @@
             item.mailboxLabel
           )}</span></span>`
         : "";
-      const mailboxProvenancePill = asText(item.mailboxProvenanceLabel)
-        ? `<span class="queue-history-pill queue-history-pill--provenance queue-filter-chip--green" data-pill-icon="layers" title="${escapeHtml(
-            item.mailboxProvenanceDetail || ""
-          )}"><span class="queue-history-pill-label">${escapeHtml(
-            item.mailboxProvenanceLabel
-          )}</span></span>`
-        : "";
+      // Fas 27F-A: skippa provenance-pillen om den säger samma sak som
+      // mailbox-pillen. Tidigare visades "Hairtpclinic" + "via Hairtpclinic"
+      // sida-vid-sida → ren duplikat.
+      const provenanceLabelClean = asText(item.mailboxProvenanceLabel)
+        .replace(/^via\s+/i, "")
+        .trim()
+        .toLowerCase();
+      const mailboxLabelClean = asText(item.mailboxLabel).trim().toLowerCase();
+      const isRedundantProvenance =
+        provenanceLabelClean && provenanceLabelClean === mailboxLabelClean;
+      const mailboxProvenancePill =
+        asText(item.mailboxProvenanceLabel) && !isRedundantProvenance
+          ? `<span class="queue-history-pill queue-history-pill--provenance queue-filter-chip--green" data-pill-icon="layers" title="${escapeHtml(
+              item.mailboxProvenanceDetail || ""
+            )}"><span class="queue-history-pill-label">${escapeHtml(
+              item.mailboxProvenanceLabel
+            )}</span></span>`
+          : "";
       const showDirectionPill = !runtimeThreadId;
       const directionMeta = resolveDirectionMeta(item.direction);
       const directionPill =
