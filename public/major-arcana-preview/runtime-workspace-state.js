@@ -42,6 +42,35 @@
       );
     }
 
+    // Fas 27C (2026-05-18): localStorage-persistens flyttad in i workspace
+    // SoT. Tidigare ägdes detta av cco-shims.js som simulerade cb.click()
+    // för att applicera persisted state → orsakade auto-popup-buggar.
+    // Nu skriver setSelectedMailboxIds() direkt till localStorage och
+    // loadPersistedMailboxIds() läses vid init (ensureWorkspaceState).
+    const LS_MAILBOX_KEY = "cco.selectedMailboxIds.v1";
+
+    function loadPersistedMailboxIds() {
+      try {
+        const raw = localStorage.getItem(LS_MAILBOX_KEY);
+        if (!raw) return null;
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) && arr.length > 0
+          ? normalizeMailboxIds(arr)
+          : null;
+      } catch (_e) {
+        return null;
+      }
+    }
+
+    function persistMailboxIds(mailboxIds) {
+      try {
+        const safe = Array.isArray(mailboxIds) ? mailboxIds : [];
+        localStorage.setItem(LS_MAILBOX_KEY, JSON.stringify(safe));
+      } catch (_e) {
+        /* localStorage blockerad i privat-läge — tyst fallback. */
+      }
+    }
+
     function ensureWorkspaceState() {
       const current = state.workspace && typeof state.workspace === "object" ? state.workspace : {};
       const currentOverlays =
@@ -55,9 +84,18 @@
           ) || "conversation",
         selectedThreadId: asText(current.selectedThreadId || state.runtime.selectedThreadId),
         activeLaneId: normalizeLaneId(current.activeLaneId || state.runtime.activeLaneId || "all"),
-        selectedMailboxIds: normalizeMailboxIds(
-          current.selectedMailboxIds || state.runtime.selectedMailboxIds
-        ),
+        selectedMailboxIds: (() => {
+          // Fas 27C: fallback-kedja för att hämta persisted state:
+          // 1. current.selectedMailboxIds (om något redan satt i workspace)
+          // 2. state.runtime.selectedMailboxIds (från app.js init)
+          // 3. localStorage cco.selectedMailboxIds.v1 (vår nya persistens)
+          // 4. tom array
+          const fromCurrent = normalizeMailboxIds(current.selectedMailboxIds);
+          if (fromCurrent.length) return fromCurrent;
+          const fromState = normalizeMailboxIds(state.runtime.selectedMailboxIds);
+          if (fromState.length) return fromState;
+          return loadPersistedMailboxIds() || [];
+        })(),
         selectedOwnerKey:
           normalizeKey(current.selectedOwnerKey || state.runtime.selectedOwnerKey || "all") ||
           "all",
@@ -183,6 +221,10 @@
     function setSelectedMailboxIds(mailboxIds) {
       const workspace = ensureWorkspaceState();
       workspace.selectedMailboxIds = normalizeMailboxIds(mailboxIds);
+      // Fas 27C: auto-persistens vid varje set. Tidigare var detta ansvar
+      // av en shim som simulerade cb.click() → render-loopar. Nu skrivs
+      // direkt till localStorage utan UI-side-effects.
+      persistMailboxIds(workspace.selectedMailboxIds);
       syncLegacyState();
       return [...workspace.selectedMailboxIds];
     }

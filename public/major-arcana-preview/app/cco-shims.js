@@ -1,141 +1,22 @@
 /**
- * app/cco-shims.js — slutgiltiga shims efter postmortem-städning 2026-05-08.
+ * app/cco-shims.js — slutgiltiga shims efter Fas 27C state-konsolidering.
  *
- * Tre kvarvarande shims som lever utanför app.js bootstrap-flow:
- *  - P0-1: Mailbox-val persistens till localStorage
+ * Endast två shims kvar efter konsolidering (2026-05-18):
  *  - P0-3: Logout-knapp + Cmd+Shift+L kortkommando
  *  - P1-A: Theme-switcher delegerad click-handler
  *
- * Alla tidigare shims (P0-2, P1-1, P1-4, P2-1, P2-3, P1-B, P1-C, P1-D) har
- * migrerats till app.js eller cco-polish.css. Denna fil
- * ersatte runtime-fix-shims.js (raderad i samma commit).
+ * RIVET 2026-05-18 (Fas 27C): P0-1 Mailbox-val persistens.
+ * Tidigare läste denna shim cco.selectedMailboxIds.v1 från localStorage
+ * och försökte applicera state via syntetiska cb.click() på dolda
+ * checkboxar inuti mailbox-admin-shellen — det triggade render-loopar
+ * som fick dropdownen att poppa upp ofrivilligt direkt efter login.
  *
- * Inga beroenden utöver document/window/localStorage. Säker att ladda när
- * som helst i index.html.
+ * Nu äger workspaceSourceOfTruth.setSelectedMailboxIds() persistensen
+ * direkt: skriver till samma localStorage-key utan UI-side-effects.
+ * loadPersistedMailboxIds() i runtime-workspace-state.js läser vid init.
  */
 (() => {
   'use strict';
-
-  const LS_KEY_SELECTED = 'cco.selectedMailboxIds.v1';
-  const DEFAULT_MAILBOXES = ['contact', 'egzona', 'fazli', 'info', 'kons', 'marknad'];
-
-  // ============================================================
-  // P0-1: Mailbox-val persistens
-  // ============================================================
-
-  function readPersistedMailboxes() {
-    try {
-      const raw = localStorage.getItem(LS_KEY_SELECTED);
-      if (!raw) return null;
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function writePersistedMailboxes(ids) {
-    try {
-      const safe = Array.isArray(ids) ? ids : [];
-      localStorage.setItem(LS_KEY_SELECTED, JSON.stringify(safe));
-    } catch (e) {}
-  }
-
-  function applyPersistedMailboxes() {
-    // 2026-05-18 (Fas 17): NO-OP. Tidigare gjorde funktionen `cb.click()`
-    // på dolda checkboxar inuti mailbox-admin-shellen för att "applicera"
-    // persisted state. Click-event:en bubblade upp genom shellen och
-    // triggade render-cykler som kortvarigt visade dropdownen som öppen
-    // direkt efter login. workspaceSourceOfTruth.setSelectedMailboxIds()
-    // (i app.js) sköter persistens av mailbox-val självständigt — denna
-    // shim är dead code och får inte skapa syntetiska events.
-    return false;
-  }
-
-  function findMailboxToggleButton() {
-    const selectors = [
-      '[data-mailbox-toggle]',
-      '[data-mailbox-picker-toggle]',
-      '[data-truth-mailbox-toggle]',
-      '.mailbox-toggle',
-      '.mailbox-picker-toggle',
-    ];
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-    // Fallback: text-baserad sökning
-    const candidates = document.querySelectorAll(
-      'button, label, [role="button"], [role="combobox"]'
-    );
-    for (const el of candidates) {
-      const txt = (el.textContent || '').trim();
-      if (txt.length > 0 && txt.length < 80 && /Hair TP Clinic|mailboxar|mailboxes/i.test(txt)) {
-        return el;
-      }
-    }
-    return null;
-  }
-
-  async function autoOpenAndApplyAtBootstrap() {
-    // 2026-05-18 (Fas 17): NO-OP. Tidigare anropade vi
-    // applyPersistedMailboxes() här om checkboxar fanns i DOM.
-    // applyPersistedMailboxes anropade i sin tur cb.click() på dolda
-    // checkboxar inuti mailbox-admin-shellen, vilket bubblade click-
-    // events genom shellen och kortvarigt visade dropdownen som öppen
-    // direkt efter login. Vi har redan brutit ut toggle.click(), body.
-    // click() och Escape-keydown i Fas 15. Nu river vi även det sista
-    // cb.click()-anropet och låter workspaceSourceOfTruth sköta
-    // mailbox-val-persistens på egen hand.
-    return;
-  }
-
-  function watchMailboxChanges() {
-    document.addEventListener(
-      'change',
-      (e) => {
-        if (e.target?.type !== 'checkbox') return;
-        const labelEl = e.target.closest('label') || e.target.parentElement;
-        const labelText = (labelEl?.textContent || '').toLowerCase();
-        const isMailboxCheckbox = DEFAULT_MAILBOXES.some((m) => labelText.includes(m));
-        if (!isMailboxCheckbox) return;
-
-        const checked = [];
-        document.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
-          const lbl = (cb.closest('label')?.textContent || '').toLowerCase();
-          const matched = DEFAULT_MAILBOXES.find((m) => lbl.includes(m));
-          if (matched) checked.push(matched);
-        });
-        writePersistedMailboxes([...new Set(checked)]);
-      },
-      true
-    );
-  }
-
-  function bootstrapMailboxPersistence() {
-    watchMailboxChanges();
-    const persisted = readPersistedMailboxes();
-    if (!persisted || persisted.length === 0) return;
-
-    if (findMailboxToggleButton()) {
-      autoOpenAndApplyAtBootstrap().catch(() => {});
-      return;
-    }
-
-    let triggered = false;
-    const observer = new MutationObserver(() => {
-      if (triggered) return;
-      if (findMailboxToggleButton()) {
-        triggered = true;
-        observer.disconnect();
-        autoOpenAndApplyAtBootstrap().catch(() => {});
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => {
-      if (!triggered) observer.disconnect();
-    }, 30000);
-  }
 
   // ============================================================
   // P0-3: Logout-knapp i Mer-meny
@@ -213,11 +94,6 @@
   // ============================================================
 
   function init() {
-    try {
-      bootstrapMailboxPersistence();
-    } catch (e) {
-      console.warn('[cco-shims] mailbox-persistens fel:', e);
-    }
     try {
       bootstrapLogout();
     } catch (e) {
