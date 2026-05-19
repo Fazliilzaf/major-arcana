@@ -5622,7 +5622,15 @@
       // hydrerades synkront + 6 O(N)-post-passes → main-thread blockerades
       // 30-45s ("frysningen"). Nu: rendera i bitar om CHUNK-storlek över
       // animation-frames så UI aldrig blockerar mer än ~en bit i taget.
-      const __list = asArray(threads);
+      // Fas 45 (2026-05-20): hård cap på antal renderade kort. Vid alla 6
+      // mailboxar laddas 100+ trådar → render fryser även med progressiv
+      // render + memoization (tung kostnad i Lit-hydration + post-passes).
+      // Cap till MAX_CARDS = säkerställer att render aldrig blir tung nog
+      // att frysa. Användaren ser de senaste trådarna; filter/sök/mailbox-
+      // växling når resten. (Tills full virtualisering med profilering.)
+      const MAX_CARDS = 30;
+      const __fullList = asArray(threads);
+      const __list = __fullList.slice(0, MAX_CARDS);
       const CHUNK = 18;
 
       // Avbryt ev. pågående progressiv render (ny render-request kom in).
