@@ -3,7 +3,13 @@
  * Fas 27G (2026-05-18): tydlig banner när showcase-mode (portalCustomerKey)
  * är aktiv. Användaren ska aldrig kunna missa att de tittar på fixtures.
  *
- * Triggas av: URL-param ?portalCustomerKey=X
+ * Fas 37 (2026-05-19): showcase kräver nu EXPLICIT ?showcase=1. Om URL bara
+ * har portalCustomerKey (utan showcase=1) → auto-strip från URL via
+ * history.replaceState OCH visa ingen banner. Detta är säkerhetsnätet mot
+ * "olika kunder på varje reload"-buggen där lingering URL-params poisonade
+ * state.
+ *
+ * Triggas av: URL-param ?portalCustomerKey=X + ?showcase=1
  * Visar: orange banner överst med "Visa live"-knapp som tar bort param + reload.
  */
 (() => {
@@ -11,7 +17,24 @@
 
   const params = new URLSearchParams(location.search);
   const portalKey = params.get('portalCustomerKey') || params.get('customerKey');
-  if (!portalKey) return; // ingen showcase-mode — visa inget
+  const wantsShowcase = params.get('showcase') === '1';
+
+  // Fas 37: portalCustomerKey utan ?showcase=1 = lingering URL-trash.
+  // Strip från URL silently så normal mode kan ta över helt.
+  if (portalKey && !wantsShowcase) {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete('portalCustomerKey');
+      url.searchParams.delete('customerKey');
+      const cleaned = `${url.pathname}${url.search}${url.hash}`;
+      history.replaceState(history.state, '', cleaned);
+    } catch (_e) {
+      /* tyst — om history.replaceState faller appen fortsätter normalt */
+    }
+    return;
+  }
+
+  if (!portalKey || !wantsShowcase) return; // ingen showcase-mode
 
   function injectBanner() {
     if (document.querySelector('.showcase-banner')) return;
@@ -41,6 +64,7 @@
       const url = new URL(location.href);
       url.searchParams.delete('portalCustomerKey');
       url.searchParams.delete('customerKey');
+      url.searchParams.delete('showcase');
       url.searchParams.delete('_v');
       location.href = url.toString();
     });

@@ -4830,12 +4830,22 @@
       return { view: "conversations", automationSection: "", portalCustomerKey: "" };
     }
     const params = new URLSearchParams(window.location.search || "");
+    // Fas 37 (2026-05-19): portalCustomerKey kräver nu EXPLICIT opt-in via
+    // ?showcase=1. Tidigare räckte det med portalCustomerKey ensam — vilket
+    // poisonade state vid varje reload av en URL som råkat ha keyen kvar
+    // (system-mejl no-reply@verisure, support@aretrotale osv hamnade som
+    // "vald kund" → fel showcase-state vid varje reload).
+    // Normal mode = unconditional default. Showcase = opt-in.
+    const rawPortalKey = normalizeKey(
+      params.get("portalCustomerKey") || params.get("customerKey")
+    ) || "";
+    const wantsShowcase = params.get("showcase") === "1";
+    const portalCustomerKey = wantsShowcase ? rawPortalKey : "";
     return {
       view: normalizeKey(params.get("view")) || "conversations",
       automationSection:
         normalizeKey(params.get("automationSection") || params.get("section")) || "",
-      portalCustomerKey:
-        normalizeKey(params.get("portalCustomerKey") || params.get("customerKey")) || "",
+      portalCustomerKey,
     };
   }
 
