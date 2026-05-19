@@ -18904,16 +18904,51 @@
   }
 
   function seedJourneyDrivenWorkspace(thread, focusReadState = {}, preferredAction = "") {
-    // 2026-05-18 (Fas 16): inaktiverad. Tidigare körde funktionen
-    // seedBookingSurfaceForCurrentThread → focusRecommendedBookingAction
-    // → potentiellt openBookingSlotsPanel({autoFetch:true}) — vilket tyst
-    // triggade network-calls + DOM-mutationer (expanderade <details>,
-    // scrollIntoView) även när workspace var stängd.
-    //
-    // Nu: ingen seed-kedja vid trådbyte/login. Användaren öppnar
-    // Bokningsyta själv via klick — då körs seeding inom workspace-flödet
-    // istället (focusRecommendedBookingAction anropas från click-handlers).
-    return;
+    const normalizedAction = normalizeKey(preferredAction);
+    if (!thread || !normalizedAction) return;
+    if (normalizedAction === "booking_surface") {
+      if (preferredAction === "booking_surface") {
+        openBookingOperatorSurface({
+          scroll: false,
+          message: "",
+        });
+        focusRecommendedBookingAction();
+      }
+      seedBookingSurfaceForCurrentThread(thread, {
+        moveActionFocus: false,
+        announce: false
+      });
+      return;
+    }
+    if (
+      preferredAction === "aftercare_open" ||
+      preferredAction === "operation_open" ||
+      preferredAction === "consultation_open" ||
+      preferredAction === "commercial_open"
+    ) {
+      openWorkspaceDomainSurface(preferredAction.replace(/_open$/, ""), {
+        threadId: normalizeKey(thread.id),
+        message: "Arbetsytan öppnades från patientresans rekommenderade nästa steg.",
+      });
+      return;
+    }
+    if (preferredAction === "schedule_open" && runtimeActionEngine?.openRuntimeSchedule) {
+      runtimeActionEngine.openRuntimeSchedule({ renderDraft: true }).catch((error) => {
+        console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
+      });
+      return;
+    }
+    if (preferredAction === "note_open" && runtimeActionEngine?.openRuntimeNote) {
+      runtimeActionEngine
+        .openRuntimeNote({
+          directOpen: true,
+          destinationKey: getJourneyPreferredNoteDestination(thread, focusReadState),
+          templateKey: getJourneyPreferredNoteTemplate(thread, focusReadState),
+        })
+        .catch((error) => {
+          console.warn("Journey-driven anteckningsyta kunde inte öppnas.", error);
+        });
+    }
   }
 
   function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
@@ -18966,13 +19001,6 @@
     setNoteModeOpen(false);
     setScheduleOpen(false);
     setContextCollapsed(false);
-    // 2026-05-18: INGEN workspace-modal öppnas passivt vid login eller
-    // trådbyte. Tidigare öppnade preferredAction automatiskt en av
-    // bokningsyta/aftercare/operation/consultation/commercial-workspaces
-    // — det irriterade användaren ("varför ploppar Behöver triage upp?").
-    // Patientresa styr fortfarande snabbåtgärderna i fokusytan, och
-    // användaren klickar själv för att öppna en modal.
-    // Alla preferredAction-grenar är borttagna — INGEN auto-open.
     seedJourneyDrivenWorkspace(thread, focusReadState, preferredAction);
   }
 
@@ -27932,6 +27960,11 @@
 	    if (message && bookingDom?.feedback) {
 	      setFeedback(bookingDom.feedback, "success", message);
 	    }
+    const bookingThread = getBookingWorkThread();
+    seedBookingSurfaceForCurrentThread(bookingThread, {
+      moveActionFocus: false,
+      announce: false,
+    });
 	    window.setTimeout(() => {
 	      primeBookingSurfaceAfterOpen({ announce: Boolean(message) }).catch((error) => {
 	        console.warn("Bokningsytan kunde inte förberedas med tider.", error);
@@ -28356,6 +28389,12 @@
         : serviceLabels.length === 1
           ? { label: serviceLabels[0], tone: "count" }
           : { label: "Flera behandlingar", tone: "count" };
+    const serviceSummary =
+      serviceLabels.length === 0
+        ? "Behandling är ännu inte kopplad till kundförslaget."
+        : serviceLabels.length === 1
+          ? `Förslaget gäller ${serviceLabels[0]} genom hela kundförslaget.`
+          : "Förslaget blandar flera behandlingar i samma kundförslag.";
     if (staleOfferAfterRebook) {
       return {
         showCard: true,
@@ -28376,6 +28415,7 @@
         ],
         slotCarry,
         carrySummary,
+        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28404,6 +28444,7 @@
         ],
         slotCarry,
         carrySummary,
+        serviceSummary,
         activitySummary: studioActivitySummary,
         handoffSummary,
         actionSummary,
@@ -28436,6 +28477,7 @@
       ],
       slotCarry,
       carrySummary,
+      serviceSummary,
       activitySummary: studioActivitySummary,
       handoffSummary,
       actionSummary,
@@ -35901,6 +35943,7 @@
       phoneStudioBadges: surface?.querySelector("[data-booking-phone-studio-badges]"),
       phoneStudioSlots: surface?.querySelector("[data-booking-phone-studio-slots]"),
       phoneStudioSummary: surface?.querySelector("[data-booking-phone-studio-summary]"),
+      phoneStudioServiceSummary: surface?.querySelector("[data-booking-phone-studio-service-summary]"),
       phoneStudioActivity: surface?.querySelector("[data-booking-phone-studio-activity]"),
       phoneStudioHandoff: surface?.querySelector("[data-booking-phone-studio-handoff]"),
       phoneStudioActionSummary: surface?.querySelector("[data-booking-phone-studio-action-summary]"),
@@ -36135,6 +36178,10 @@
       if (bookingDom.phoneStudioSummary) {
         bookingDom.phoneStudioSummary.hidden = !asText(phoneStudio.carrySummary);
         bookingDom.phoneStudioSummary.textContent = phoneStudio.carrySummary;
+      }
+      if (bookingDom.phoneStudioServiceSummary) {
+        bookingDom.phoneStudioServiceSummary.hidden = !asText(phoneStudio.serviceSummary);
+        bookingDom.phoneStudioServiceSummary.textContent = phoneStudio.serviceSummary;
       }
       if (bookingDom.phoneStudioActivity) {
         bookingDom.phoneStudioActivity.hidden = !asText(phoneStudio.activitySummary);
@@ -41613,14 +41660,19 @@ renderStudioShell();
 	  }
 
 	  function scheduleBookingSurfaceFromUrl() {
-	    // 2026-05-18 (Fas 15): inaktiverad. Tidigare auto-öppnade
-	    // Bokningsyta från ?portalCustomerKey= / ?customerKey= / ?booking=1
-	    // — det irriterade användaren ("varför ploppar Behöver triage upp?").
-	    // Användaren klickar själv på Bokningsyta-knappen för att öppna.
-	    return;
+	    const wantsBookingSurface = urlWantsBookingWorkspace();
+	    const wantsInferredBookingSurface =
+	      shouldInferBookingWorkspaceFromPortalCustomer();
+	    if (!wantsBookingSurface && !wantsInferredBookingSurface) return;
+	    window.setTimeout(() => {
+	      openBookingOperatorSurface({
+	        scroll: false,
+	        message: "Bokningsytan öppnades direkt för kundens aktiva booking-case.",
+	      });
+	    }, 0);
 	  }
 
-	  // scheduleBookingSurfaceFromUrl() — INTE anropad, se kommentar ovan.
+	  scheduleBookingSurfaceFromUrl();
 
 	  window.MajorArcanaPreviewDiagnostics = Object.freeze({
     captureRuntimeReentrySnapshot,

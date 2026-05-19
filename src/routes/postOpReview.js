@@ -110,14 +110,14 @@ async function resolveOperatorActor(req, { authStore, config }) {
 /**
  * @param {object} deps
  * @param {object} deps.postOpReviewStore     — från createPostOpReviewStore
- * @param {object} deps.capability            — RequestPostOpReviewCapability-instans
+ * @param {object} deps.capabilityExecutor    — gateway-backed capability executor
  * @param {object} [deps.bookingStore]        — ccoBookingStore för audit-event (optional)
  * @param {object} [deps.authStore]           — för operator-auth
  * @param {object} [deps.config]              — server-config (defaultTenantId)
  */
 function createPostOpReviewRouter({
   postOpReviewStore,
-  capability,
+  capabilityExecutor,
   bookingStore = null,
   authStore = null,
   config = {},
@@ -125,8 +125,8 @@ function createPostOpReviewRouter({
   if (!postOpReviewStore) {
     throw new Error('createPostOpReviewRouter: postOpReviewStore krävs');
   }
-  if (!capability || typeof capability.execute !== 'function') {
-    throw new Error('createPostOpReviewRouter: capability krävs');
+  if (!capabilityExecutor || typeof capabilityExecutor.runCapability !== 'function') {
+    throw new Error('createPostOpReviewRouter: capabilityExecutor krävs');
   }
 
   const router = express.Router();
@@ -158,18 +158,31 @@ function createPostOpReviewRouter({
       const locale = body.locale === 'en' ? 'en' : 'sv';
       const baseUrl = normalizeText(body.baseUrl) || 'https://arcana.hairtpclinic.se';
 
-      const result = await capability.execute({
+      const run = await capabilityExecutor.runCapability({
         tenantId: actor.tenantId,
+        actor: {
+          id: actor.userId,
+          role: actor.role,
+        },
         channel: 'admin',
-        actor,
-        postOpReviewStore,
+        capabilityName: 'RequestPostOpReview',
         input: {
           bookingCaseId: caseId,
           customerName,
           locale,
           baseUrl,
         },
+        correlationId: normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null,
+        idempotencyKey:
+          normalizeText(req.get('x-idempotency-key')) ||
+          normalizeText(body.idempotencyKey) ||
+          null,
+        requestMetadata: {
+          route: 'post_op_review_trigger',
+          caseId,
+        },
       });
+      const result = run?.gatewayResult?.response_payload?.output || {};
 
       if (!result?.data) {
         return res.status(400).json({

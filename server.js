@@ -508,7 +508,6 @@ const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
-const { RequestPostOpReviewCapability } = require('./src/capabilities/requestPostOpReview');
 const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
@@ -546,6 +545,7 @@ const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
 const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
 const { createCapabilityAnalysisStore } = require('./src/capabilities/analysisStore');
+const { createCapabilityExecutor } = require('./src/capabilities/executionService');
 const { createSloTicketStore } = require('./src/ops/sloTicketStore');
 const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceStore');
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
@@ -1110,7 +1110,6 @@ process.once('SIGTERM', () => {
   const postOpReviewStore = await createPostOpReviewStore({
     filePath: config.postOpReviewStorePath,
   });
-  const requestPostOpReviewCapability = new RequestPostOpReviewCapability();
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1218,6 +1217,14 @@ process.once('SIGTERM', () => {
     buildVersion: process.env.npm_package_version || 'dev',
     runtimeBackend: gatewayRuntimeBackend,
   });
+  const postOpReviewCapabilityExecutor = createCapabilityExecutor({
+    executionGateway,
+    authStore,
+    tenantConfigStore,
+    capabilityAnalysisStore,
+    postOpReviewStore,
+    buildVersion: process.env.npm_package_version || 'dev',
+  });
 
   const knowledgeRetrieverByBrand = new Map();
 
@@ -1302,7 +1309,7 @@ process.once('SIGTERM', () => {
   app.use(
     createPostOpReviewRouter({
       postOpReviewStore,
-      capability: requestPostOpReviewCapability,
+      capabilityExecutor: postOpReviewCapabilityExecutor,
       bookingStore: ccoBookingStore,
       authStore,
       config,

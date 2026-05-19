@@ -734,18 +734,53 @@ input {
 .portal-card-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   flex-wrap: wrap;
+  padding-top: 2px;
 }
 
 .portal-card-actions--customer {
   justify-content: flex-start;
 }
 
+.portal-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.portal-action-group--secondary {
+  opacity: 0.82;
+}
+
 .portal-action {
   min-height: 24px;
   padding: 0 10px;
   font-size: 0.58rem;
+}
+
+.portal-action--primary {
+  border-color: rgba(74, 56, 44, 0.34);
+  background: linear-gradient(180deg, rgba(87, 62, 45, 0.94), rgba(58, 39, 28, 0.98));
+  color: rgba(255, 252, 246, 0.98);
+  box-shadow:
+    0 7px 14px rgba(45, 28, 18, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.portal-action--primary:disabled {
+  border-color: var(--line-soft);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
+  box-shadow: var(--control-shadow);
+}
+
+.portal-action--quiet {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
 }
 
 .portal-card-list {

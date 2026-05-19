@@ -3111,7 +3111,11 @@
         });
       });
 
-      document.querySelectorAll("[data-focus-context-close]").forEach((button) => {
+      const focusContextCloseButtons =
+        windowObject?.document && typeof windowObject.document.querySelectorAll === "function"
+          ? Array.from(windowObject.document.querySelectorAll("[data-focus-context-close]"))
+          : [];
+      focusContextCloseButtons.forEach((button) => {
         button.addEventListener("click", () => {
           setFocusContextOpen(false);
         });

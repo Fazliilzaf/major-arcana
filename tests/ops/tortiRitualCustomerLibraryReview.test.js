@@ -41,8 +41,8 @@ test('Torti customer library review styling and cache-busters are wired', () => 
   assert.match(cssSource, /\.library-review-strip\s*\{/);
   assert.match(cssSource, /\.library-review-kicker\s*\{/);
   assert.match(cssSource, /background: rgba\(252, 248, 244, 0\.88\);/);
-  assert.match(htmlSource, /styles\.css\?v=20260517-compact-history-flow/);
-  assert.match(htmlSource, /app\.js\?v=20260517-compact-history-flow/);
+  assert.match(htmlSource, /styles\.css\?v=20260519-action-focus-flow/);
+  assert.match(htmlSource, /app\.js\?v=20260519-action-focus-flow/);
 });
 
 test('Torti portal viewed badge uses every persisted viewed signal', () => {
@@ -166,4 +166,18 @@ test('Torti portal history keeps focus by collapsing older versions and notices'
   assert.match(appSource, /older versions kept in history/);
   assert.match(appSource, /older notices kept in history/);
   assert.match(cssSource, /\.portal-history-summary\s*\{/);
+});
+
+test('Torti portal actions separate primary flow from secondary utilities', () => {
+  assert.match(appSource, /portal-action-group portal-action-group--primary/);
+  assert.match(appSource, /portal-action portal-action--primary" type="button" data-publish-portal/);
+  assert.doesNotMatch(appSource, /panel-header-action" type="button" data-publish-portal/);
+  assert.match(appSource, /portal-action portal-action--primary" type="button" data-ack-portal-notification/);
+  assert.match(appSource, /portal-action-group portal-action-group--secondary/);
+  assert.match(appSource, /portal-action portal-action--quiet" type="button" data-return-build/);
+  assert.match(appSource, /portal-action portal-action--quiet" type="button" data-copy-portal-link/);
+  assert.match(appSource, /portal-action portal-action--quiet" type="button" data-mark-portal-view/);
+  assert.match(cssSource, /\.portal-action-group\s*\{/);
+  assert.match(cssSource, /\.portal-action--primary\s*\{/);
+  assert.match(cssSource, /\.portal-action--quiet\s*\{/);
 });

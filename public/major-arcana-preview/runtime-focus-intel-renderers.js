@@ -2645,13 +2645,7 @@
               : "Välj en aktiv aktiv tråd i arbetskön för att öppna konversationen här.";
         focusBadgeRow.innerHTML = "";
         if (focusWorkrail) {
-          const conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
-          if (conversationNextHost) conversationNextHost.innerHTML = "";
-          const bookingSurface = focusWorkrail.querySelector("[data-booking-surface]");
-          if (bookingSurface) {
-            bookingSurface.hidden = true;
-            bookingSurface.setAttribute("aria-hidden", "true");
-          }
+          focusWorkrail.innerHTML = "";
         }
         focusConversationSection.innerHTML = `
           <article class="conversation-entry conversation-entry-empty">
@@ -3126,32 +3120,36 @@
         </article>
         ${olderHistoryMarkup}`;
       if (focusWorkrail) {
-        focusWorkrail.querySelectorAll(":scope > .conversation-next-step").forEach((node) => {
-          node.remove();
-        });
-        let conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
-        if (!conversationNextHost) {
-          conversationNextHost = document.createElement("div");
-          conversationNextHost.className = "conversation-next-host";
-          conversationNextHost.setAttribute("data-conversation-next-host", "");
-          const bookingSurface = focusWorkrail.querySelector("[data-booking-surface]");
-          if (bookingSurface) {
-            focusWorkrail.insertBefore(conversationNextHost, bookingSurface);
-          } else {
-            focusWorkrail.prepend(conversationNextHost);
-          }
-        }
-        conversationNextHost.innerHTML = conversationNextStepMarkup;
-        const hideConversationNextHost =
-          isBookingOperational &&
-          state.runtime?.bookingShellOpen !== false &&
-          !mergeBookingWorkrail;
-        if (hideConversationNextHost) {
-          conversationNextHost.hidden = true;
-          conversationNextHost.setAttribute("aria-hidden", "true");
+        if (!isBookingOperational && !mergeBookingWorkrail) {
+          focusWorkrail.innerHTML = conversationNextStepMarkup;
         } else {
-          conversationNextHost.hidden = false;
-          conversationNextHost.removeAttribute("aria-hidden");
+          focusWorkrail.querySelectorAll(":scope > .conversation-next-step").forEach((node) => {
+            node.remove();
+          });
+          let conversationNextHost = focusWorkrail.querySelector("[data-conversation-next-host]");
+          if (!conversationNextHost) {
+            conversationNextHost = document.createElement("div");
+            conversationNextHost.className = "conversation-next-host";
+            conversationNextHost.setAttribute("data-conversation-next-host", "");
+            const bookingSurface = focusWorkrail.querySelector("[data-booking-surface]");
+            if (bookingSurface) {
+              focusWorkrail.insertBefore(conversationNextHost, bookingSurface);
+            } else {
+              focusWorkrail.prepend(conversationNextHost);
+            }
+          }
+          conversationNextHost.innerHTML = conversationNextStepMarkup;
+          const hideConversationNextHost =
+            isBookingOperational &&
+            state.runtime?.bookingShellOpen !== false &&
+            !mergeBookingWorkrail;
+          if (hideConversationNextHost) {
+            conversationNextHost.hidden = true;
+            conversationNextHost.setAttribute("aria-hidden", "true");
+          } else {
+            conversationNextHost.hidden = false;
+            conversationNextHost.removeAttribute("aria-hidden");
+          }
         }
       }
       decorateStaticPills();
