@@ -2861,6 +2861,19 @@
           })
         );
         threads = sortRuntimeThreadsDeterministic(preserveBackgroundQueuePreviewText(threads, "A"));
+        // Fas 47 (2026-05-20): cap worklist vid DATAKÄLLAN (inte bara render).
+        // Frysningen vid alla 6 mailboxar satt i hela pipelinen — buildMailbox
+        // Catalog, fokus-processning, Lit-hydration, kundintelligens — som alla
+        // körde över 100+ trådar synkront. Fas 45-render-capen räckte inte.
+        // Genom att kapa här (sorterat → mest relevanta först) hålls ALLT
+        // downstream lätt. Resten finns i cachen + nås via mailbox/lane-filter.
+        const FAS47_MAX_WORKLIST = 40;
+        if (Array.isArray(threads) && threads.length > FAS47_MAX_WORKLIST) {
+          threads = threads.slice(0, FAS47_MAX_WORKLIST);
+        }
+        if (Array.isArray(legacyThreads) && legacyThreads.length > FAS47_MAX_WORKLIST) {
+          legacyThreads = legacyThreads.slice(0, FAS47_MAX_WORKLIST);
+        }
         const activeFocusTruthMailboxIds = configuredFocusTruthMailboxIds.filter((mailboxId) =>
           activeTruthPrimaryMailboxIds.includes(mailboxId)
         );
