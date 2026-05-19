@@ -1314,6 +1314,11 @@ process.once('SIGTERM', () => {
       bookingStore: ccoBookingStore,
       authStore,
       config,
+      // M365 Graph send-integration: emailDraft skickas automatiskt om
+      // patientEmail finns i request body. Operator slipper copy-paste
+      // till Outlook. Faller tillbaka till copy-paste-flow om Graph
+      // inte är wired (env-vars saknas) eller om patientEmail saknas.
+      graphSendConnector,
     })
   );
 

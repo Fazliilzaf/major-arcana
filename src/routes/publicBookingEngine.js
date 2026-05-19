@@ -260,6 +260,30 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         });
 
         if (typeof bookingStore.addEvent === 'function') {
+          // leadContext: rik metadata från /boka-formuläret som webben
+          // skickar med så operator har full kontext direkt vid case-
+          // öppning (slipper dyka i email-kopian). Lagras i event-metadata
+          // för att inte ändra ccoBookingStore-schemat — frontend läser
+          // från events-arrayen.
+          const leadContextRaw = (body.leadContext && typeof body.leadContext === 'object')
+            ? body.leadContext
+            : {};
+          // Sanitize: bara whitelistade fält + size-limit på fritext-fält.
+          const leadContext = {
+            source: normalizeText(leadContextRaw.source) || 'hairtpclinic.com',
+            submittedAt: normalizeText(leadContextRaw.submittedAt) || new Date().toISOString(),
+            service: normalizeText(leadContextRaw.service) || null,
+            healthYes: Array.isArray(leadContextRaw.healthYes)
+              ? leadContextRaw.healthYes.slice(0, 20).map((v) => normalizeText(v)).filter(Boolean)
+              : [],
+            healthNotes: normalizeText(leadContextRaw.healthNotes).slice(0, 1000),
+            timeWindow: normalizeText(leadContextRaw.timeWindow) || null,
+            country: normalizeText(leadContextRaw.country) || 'SE',
+            city: normalizeText(leadContextRaw.city) || '',
+            languagePref: normalizeText(leadContextRaw.languagePref) || 'sv',
+            photos: normalizeText(leadContextRaw.photos) || 'none',
+            marketingConsent: leadContextRaw.marketingConsent === true,
+          };
           bookingCase = await bookingStore.addEvent({
             tenantId,
             workspaceId,
@@ -273,6 +297,7 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
               source: 'public_booking_engine',
               gdprConsentAt: new Date().toISOString(),
               marketingConsent: consent.marketing === true,
+              leadContext,
             },
           });
         }

@@ -246,6 +246,12 @@ const config = {
   schedulerPostOpPhotoPruneIntervalHours: Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
     ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
     : 24,
+  // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
+  // Default contact@hairtpclinic.com. Faller tillbaka till config.defaultMailbox.
+  postOpReviewFromMailbox: asNonEmptyString(
+    process.env.ARCANA_POST_OP_REVIEW_FROM_MAILBOX,
+    'contact@hairtpclinic.com'
+  ),
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
     stateRoot,

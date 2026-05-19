@@ -114,6 +114,11 @@ async function resolveOperatorActor(req, { authStore, config }) {
  * @param {object} [deps.bookingStore]        — ccoBookingStore för audit-event (optional)
  * @param {object} [deps.authStore]           — för operator-auth
  * @param {object} [deps.config]              — server-config (defaultTenantId)
+ * @param {object} [deps.graphSendConnector]  — Microsoft Graph send connector;
+ *                                              om satt + patientEmail finns i
+ *                                              request body skickas emailDraft
+ *                                              automatiskt istället för manuell
+ *                                              copy-paste från operator.
  */
 function createPostOpReviewRouter({
   postOpReviewStore,
@@ -121,6 +126,7 @@ function createPostOpReviewRouter({
   bookingStore = null,
   authStore = null,
   config = {},
+  graphSendConnector = null,
 }) {
   if (!postOpReviewStore) {
     throw new Error('createPostOpReviewRouter: postOpReviewStore krävs');
@@ -192,26 +198,100 @@ function createPostOpReviewRouter({
         });
       }
 
+      // ── M365 Graph send: auto-skicka emailDraft om Graph är wired ──
+      // Operator skickar `patientEmail` i body — vi kallar då Graph sendMail
+      // istället för att tvinga operator till copy-paste i Outlook.
+      // Operator kan välja att skippa auto-send via `skipGraphSend:true`
+      // (om mottagaren är tveksam eller om de vill verifiera först).
+      const patientEmail = normalizeText(body.patientEmail).toLowerCase();
+      const skipGraphSend = body.skipGraphSend === true;
+      let graphSendResult = null;
+      const draft = result.data.emailDraft;
+
+      if (graphSendConnector && patientEmail && !skipGraphSend && draft && !result.data.alreadyExists) {
+        // Förhindra dubbel-send: kolla om submission redan har sentAt satt.
+        const existing = postOpReviewStore.findById?.(result.data.submissionId);
+        if (existing?.sentAt) {
+          graphSendResult = { ok: false, mode: 'skipped', reason: 'already_sent_at_' + existing.sentAt };
+        } else {
+          try {
+            const senderMailbox = normalizeText(
+              config?.postOpReviewFromMailbox || config?.defaultMailbox
+            ) || 'contact@hairtpclinic.com';
+            const sent = await graphSendConnector.sendComposeDocument({
+              composeDocument: {
+                version: 'phase_5',
+                kind: 'mail_compose_document',
+                mode: 'compose',
+                senderMailboxId: senderMailbox,
+                sourceMailboxId: senderMailbox,
+                recipients: { to: [patientEmail], cc: [], bcc: [] },
+                subject: draft.subject,
+                content: { bodyText: draft.plain, bodyHtml: draft.html },
+                delivery: { sendStrategy: 'send_mail' },
+              },
+            });
+            // Markera submission som skickad så vi inte dubblar vid retry.
+            if (typeof postOpReviewStore.markSent === 'function') {
+              await postOpReviewStore.markSent(result.data.submissionId, sent.sentAt);
+            }
+            graphSendResult = {
+              ok: true,
+              mode: 'graph_send_mail',
+              from: sent.mailboxId,
+              to: patientEmail,
+              sentAt: sent.sentAt,
+            };
+          } catch (graphErr) {
+            console.warn('[post-op-review/graph-send] failed:', graphErr?.message);
+            graphSendResult = {
+              ok: false,
+              mode: 'graph_error',
+              error: graphErr?.message || 'graph_send_failed',
+            };
+          }
+        }
+      } else if (!graphSendConnector) {
+        graphSendResult = { ok: false, mode: 'no_graph_connector' };
+      } else if (!patientEmail) {
+        graphSendResult = { ok: false, mode: 'no_patient_email_in_request' };
+      } else if (skipGraphSend) {
+        graphSendResult = { ok: false, mode: 'operator_skipped' };
+      } else if (result.data.alreadyExists) {
+        graphSendResult = { ok: false, mode: 'submission_already_existed' };
+      }
+
       // Audit-event i booking-case så operator-vyn visar att triggern körts
       if (bookingStore && typeof bookingStore.addEvent === 'function') {
+        const sendSummary = graphSendResult?.ok
+          ? ` · 📤 Email skickad via M365 Graph till ${graphSendResult.to}`
+          : graphSendResult
+            ? ` · 📋 Email INTE auto-skickad (${graphSendResult.mode})`
+            : '';
         await bookingStore.addEvent({
           tenantId: actor.tenantId,
           conversationId: caseId,
-          customerEmail: '',
+          customerEmail: patientEmail || '',
           type: 'final_followup_marked',
           label: 'Sista uppföljning markerad klar',
-          detail: result.data.alreadyExists
+          detail: (result.data.alreadyExists
             ? 'Submission fanns redan — ingen ny token genererad.'
-            : `Token-länk genererad. Operator: ${actor.userId}`,
+            : `Token-länk genererad. Operator: ${actor.userId}`) + sendSummary,
           metadata: {
             submissionId: result.data.submissionId,
             reviewLink: result.data.reviewLink,
             alreadyExists: result.data.alreadyExists === true,
+            graphSend: graphSendResult,
           },
         });
       }
 
-      return res.json({ ok: true, ...result.data, warnings: result.warnings || [] });
+      return res.json({
+        ok: true,
+        ...result.data,
+        graphSend: graphSendResult,
+        warnings: result.warnings || [],
+      });
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode < 500) {

@@ -35896,6 +35896,15 @@
             Välj minst en tid för att aktivera Svarstudio och överlämning.
           </p>
           <p class="booking-feedback" data-booking-feedback aria-live="polite"></p>
+          <!-- Web-lead context från /boka-formuläret. Renderas av
+               renderWebLeadContext() när operatören öppnar en case
+               som kom in via hairtpclinic.com bridge. Tom för CCO-
+               native cases (mail/telefon-leads). -->
+          <section class="booking-web-lead-context" data-booking-web-lead-context hidden>
+            <h3 class="booking-web-lead-context-title">🌐 Web-formulär från hairtpclinic.com</h3>
+            <p class="booking-web-lead-context-meta" data-booking-web-lead-context-meta></p>
+            <dl class="booking-web-lead-context-fields" data-booking-web-lead-context-fields></dl>
+          </section>
           <!-- Efter-bilder från post-op review-flödet. Renderas av
                renderPostOpThumbnails() när operatören öppnar tråd med
                post-op submission. Tom om inga foton finns. -->
@@ -36045,6 +36054,9 @@
       postOpPhotos: surface?.querySelector("[data-booking-post-op-photos]"),
       postOpPhotosMeta: surface?.querySelector("[data-booking-post-op-meta]"),
       postOpPhotosGrid: surface?.querySelector("[data-booking-post-op-photos-grid]"),
+      webLeadContext: surface?.querySelector("[data-booking-web-lead-context]"),
+      webLeadContextMeta: surface?.querySelector("[data-booking-web-lead-context-meta]"),
+      webLeadContextFields: surface?.querySelector("[data-booking-web-lead-context-fields]"),
     };
   }
 
@@ -36054,9 +36066,9 @@
   const __postOpPhotoCache = new Map();
   const POST_OP_PHOTO_TTL_MS = 60_000;
 
-  // One-time style injection för post-op thumbnails. Vi undviker att
-  // röra cco-polish.css så vi slipper cache-buster-konflikter med
-  // andra Cursor-sessioner.
+  // One-time style injection för post-op thumbnails + web-lead-context.
+  // Vi undviker att röra cco-polish.css så vi slipper cache-buster-
+  // konflikter med andra Cursor-sessioner.
   (function injectPostOpPhotoStyles() {
     if (document.getElementById("__post-op-photo-styles")) return;
     const style = document.createElement("style");
@@ -36069,9 +36081,115 @@
       .booking-post-op-photo-tile{display:inline-flex;width:96px;height:96px;border-radius:8px;overflow:hidden;background:#E5DACE;border:1px solid rgba(108,79,52,.2);text-decoration:none;cursor:zoom-in;transition:transform .15s ease,box-shadow .15s ease}
       .booking-post-op-photo-tile:hover{transform:scale(1.04);box-shadow:0 6px 16px rgba(35,31,29,.18)}
       .booking-post-op-photo-tile img{width:100%;height:100%;object-fit:cover;display:block}
+      .booking-web-lead-context{margin:18px 0 8px;padding:14px 16px;border:1px solid rgba(108,79,52,.22);border-radius:12px;background:linear-gradient(135deg,rgba(246,239,231,.7),rgba(241,232,219,.4))}
+      .booking-web-lead-context-title{margin:0 0 4px;font-family:'Newsreader',serif;font-size:16px;font-weight:300;color:#231F1D}
+      .booking-web-lead-context-meta{margin:0 0 12px;font-size:12px;color:#6B5F58;letter-spacing:.01em}
+      .booking-web-lead-context-fields{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;color:#231F1D}
+      .booking-web-lead-context-fields dt{font-weight:600;color:#5C4D40}
+      .booking-web-lead-context-fields dd{margin:0;color:#231F1D}
+      .booking-web-lead-context-fields .web-lead-warning{color:#9A4A38;font-weight:500}
     `;
     document.head.appendChild(style);
   })();
+
+  // SV-labels för web-lead-context-fält. Operator-vyn är svensk.
+  const WEB_LEAD_SERVICE_LABELS = {
+    konsultation: "Konsultation (kostnadsfri)",
+    consultation: "Konsultation (kostnadsfri)",
+    fue: "FUE-hårtransplantation",
+    dhi: "DHI-hårtransplantation",
+    beard: "Skäggtransplantation",
+    "skagg": "Skäggtransplantation",
+    eyebrow: "Ögonbrynstransplantation",
+    "ogonbryn": "Ögonbrynstransplantation",
+    "prp-hair": "PRP för hår",
+    "prp-har": "PRP för hår",
+    "prp-skin": "PRP för hud",
+    "prp-hud": "PRP för hud",
+    microneedling: "Microneedling",
+  };
+  const WEB_LEAD_TIME_WINDOW_LABELS = {
+    morning: "Förmiddag",
+    afternoon: "Eftermiddag",
+    evening: "Kväll",
+    helg: "Helger",
+  };
+  function formatWebLeadHealthYes(list) {
+    if (!Array.isArray(list) || list.length === 0) return "Inga ja-svar";
+    return list.map((v) => v.replace(/_/g, " ")).join(", ");
+  }
+
+  function renderWebLeadContext(thread) {
+    const bookingDom = getBookingDom();
+    if (!bookingDom.webLeadContext) return;
+
+    // Läs senaste web_public_reservation-event från case-events.
+    // Webb-bridge skickar leadContext i metadata; ingen sådan event = inte
+    // ett web-case (mail/telefon) → göm sektionen.
+    const readout = typeof getBookingReadoutForThread === "function"
+      ? getBookingReadoutForThread(thread)
+      : null;
+    const events = asArray(readout?.allEvents || readout?.events);
+    const webEvent = events.find((ev) => normalizeKey(ev?.type) === "web_public_reservation");
+    const lead = webEvent?.metadata?.leadContext;
+    if (!webEvent || !lead || typeof lead !== "object") {
+      bookingDom.webLeadContext.hidden = true;
+      return;
+    }
+
+    bookingDom.webLeadContext.hidden = false;
+    if (bookingDom.webLeadContextMeta) {
+      const submittedAt = lead.submittedAt
+        ? new Date(lead.submittedAt).toLocaleString("sv-SE")
+        : "okänt";
+      const langLabel = lead.languagePref === "en" ? "EN" : "SV";
+      bookingDom.webLeadContextMeta.textContent = `Submittat ${submittedAt} · Språk ${langLabel} · ${lead.country || "SE"}${lead.city ? " · " + lead.city : ""}`;
+    }
+    if (bookingDom.webLeadContextFields) {
+      const fields = [];
+      const serviceLabel = WEB_LEAD_SERVICE_LABELS[lead.service] || lead.service || "Ej angiven";
+      fields.push(["Önskad behandling", serviceLabel]);
+      if (lead.timeWindow) {
+        fields.push(["Önskad tid", WEB_LEAD_TIME_WINDOW_LABELS[lead.timeWindow] || lead.timeWindow]);
+      }
+      const healthYes = formatWebLeadHealthYes(lead.healthYes);
+      const healthClass = Array.isArray(lead.healthYes) && lead.healthYes.length > 0
+        ? "web-lead-warning"
+        : "";
+      fields.push(["Hälsodeklaration", { text: healthYes, className: healthClass }]);
+      if (lead.healthNotes) {
+        fields.push(["Övrigt (patientens text)", lead.healthNotes]);
+      }
+      if (lead.photos && lead.photos !== "none") {
+        const photosLabel = lead.photos === "pending_email"
+          ? "Patient mejlar foton separat"
+          : lead.photos.startsWith("attached_")
+            ? `${lead.photos.replace("attached_", "")} foton bifogade i lead-mail`
+            : lead.photos;
+        fields.push(["Foton", photosLabel]);
+      }
+      fields.push([
+        "Marknadsföring",
+        lead.marketingConsent ? "✓ Samtycke givet" : "Inget samtycke",
+      ]);
+
+      // Render
+      bookingDom.webLeadContextFields.innerHTML = "";
+      for (const [label, value] of fields) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        if (typeof value === "object" && value.text !== undefined) {
+          dd.textContent = value.text;
+          if (value.className) dd.className = value.className;
+        } else {
+          dd.textContent = String(value);
+        }
+        bookingDom.webLeadContextFields.appendChild(dt);
+        bookingDom.webLeadContextFields.appendChild(dd);
+      }
+    }
+  }
 
   async function renderPostOpThumbnails(thread) {
     const bookingDom = getBookingDom();
@@ -36149,6 +36267,14 @@
     // Async — non-blocking. Render-callen är synchron men photo-fetchen
     // är async, hidden state hanteras av render-funktionen själv.
     renderPostOpThumbnails(thread).catch(() => {});
+    // Web-lead-context är synchron: data finns redan i thread.events
+    // som readout-hjälparen läser. Inget API-call behövs.
+    try {
+      renderWebLeadContext(thread);
+    } catch (err) {
+      // Non-fatal — bara säkerhetsnät om event-shape skiljer i framtid.
+      console.warn("[renderWebLeadContext]", err?.message);
+    }
     const userRequestedBookingOpen = state.runtime?.bookingShellOpen === true;
     const isBooking =
       Boolean(focusThread) &&
@@ -38212,8 +38338,10 @@
 
       if (action === "mark_followup_done") {
         // Triggar post-op review: skapar token + reviewLink + emailDraft.
-        // emailDraft kopieras till urklipp så operatören kan klistra in
-        // i Outlook (M365 Graph send är spårad till Fas 2).
+        // Om patientEmail finns i tråd-context (vilket är fallet för
+        // mailbox-trådar) skickas emailDraft automatiskt via M365 Graph.
+        // Annars faller flowet tillbaka till urklipp-copy så operator
+        // kan klistra in i Outlook manuellt.
         // Spec: docs/strategy/post-op-review-photo-flow.md
         const caseId = asText(thread?.conversationId);
         if (!caseId) {
@@ -38221,13 +38349,17 @@
           return;
         }
         const customerName = asText(thread?.customerName, "");
+        const patientEmail = asText(
+          thread?.customerEmail || thread?.contactEmail || thread?.email,
+          ""
+        ).toLowerCase();
         const language = asText(thread?.locale || thread?.preferredLocale || "sv").toLowerCase();
         const locale = language.startsWith("en") ? "en" : "sv";
         const result = await apiRequest(
           `/api/v1/cco-bookings/${encodeURIComponent(caseId)}/mark-follow-up-completed`,
           {
             method: "POST",
-            body: { customerName, locale },
+            body: { customerName, locale, patientEmail },
           }
         );
         if (!result || result.ok === false) {
@@ -38246,24 +38378,32 @@
               console.warn("[mark_followup_done] clipboard copy failed:", clipErr?.message);
             }
           }
+          const graphSend = result.graphSend || null;
+          const graphSendOk = graphSend?.ok === true;
+          const graphSendMode = asText(graphSend?.mode || "");
           await recordBookingEvent(thread, {
             type: "final_followup_marked",
             label: alreadyExists ? "Uppföljning re-genererad" : "Uppföljning markerad klar",
             detail: alreadyExists
               ? "Submission fanns redan. Email-draft kopierad till urklipp — klistra in i Outlook."
-              : "Token-länk genererad. Email-draft kopierad till urklipp — klistra in i Outlook.",
+              : graphSendOk
+                ? `Token-länk genererad. Email-skickat automatiskt via M365 Graph till ${graphSend.to}.`
+                : "Token-länk genererad. Email-draft kopierad till urklipp — klistra in i Outlook.",
             metadata: {
               reviewLink,
               alreadyExists,
               submissionId: result.submissionId || null,
+              graphSend,
             },
           });
           setFeedback(
             getBookingDom().feedback,
-            "success",
-            emailDraft
-              ? `Email-draft kopierad till urklipp. Klistra in i Outlook → skicka till patient. Review-länk: ${reviewLink}`
-              : `Review-länk kopierad till urklipp: ${reviewLink}`
+            graphSendOk ? "success" : "success",
+            graphSendOk
+              ? `📤 Email skickat automatiskt till ${graphSend.to} kl. ${new Date(graphSend.sentAt).toLocaleTimeString("sv-SE")}. Review-länk: ${reviewLink}`
+              : emailDraft
+                ? `Email-draft kopierad till urklipp (${graphSendMode || "ingen auto-send"}). Klistra in i Outlook → skicka manuellt. Review-länk: ${reviewLink}`
+                : `Review-länk kopierad till urklipp: ${reviewLink}`
           );
           // Invalidate photo cache så thumbnails refreshas vid nästa
           // renderBookingSurface (om patient redan hade laddat upp foton
