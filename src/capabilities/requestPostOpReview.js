@@ -23,6 +23,7 @@
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
+const { renderEmailShell } = require('../templates/emailLayout');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -87,24 +88,21 @@ function buildEmailSv({ patientFirstName, reviewLink }) {
     `Återkalla samtycke: ${CLINIC_FROM}`,
   ].join('\n');
 
-  const html = [
-    `<p>Hej${escapeHtml(greetName)},</p>`,
-    `<p>Det har gått ungefär ett år sedan din behandling hos oss. Vi hoppas du är nöjd med resultatet — och om du har möjlighet vore vi väldigt tacksamma om du kunde göra två snabba saker:</p>`,
-    `<ol>`,
-    `  <li>Ladda upp 1–6 efter-bilder via denna privata länk:<br>`,
-    `      <a href="${escapeHtml(reviewLink)}">${escapeHtml(reviewLink)}</a></li>`,
+  const bodyHtml = [
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hej${escapeHtml(greetName)},</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Det har gått ungefär ett år sedan din behandling hos oss. Vi hoppas du är nöjd med resultatet — och om du har möjlighet vore vi väldigt tacksamma om du kunde göra två snabba saker:</p>`,
+    `<ol style="font-size:15px;line-height:24px;margin:0 0 20px;padding-left:20px;">`,
+    `  <li style="margin-bottom:12px;">Ladda upp 1–6 efter-bilder via denna privata länk:<br>`,
+    `      <a href="${escapeHtml(reviewLink)}" style="color:#231F1D;">${escapeHtml(reviewLink)}</a></li>`,
     `  <li>(Frivilligt) Lämna ett kort omdöme på Google:<br>`,
-    `      <a href="${escapeHtml(GBP_REVIEW_URL)}">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
+    `      <a href="${escapeHtml(GBP_REVIEW_URL)}" style="color:#231F1D;">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
     `</ol>`,
-    `<p>Bilderna används bara om du själv ger samtycke, och då publiceras endast bildutsnitt <strong>från ögonbryn och uppåt</strong> — inga drag som kan identifiera dig som person. Du kan när som helst be oss radera bilderna.</p>`,
-    `<p>Tack för förtroendet — det betyder mycket för oss och för andra som funderar på samma resa.</p>`,
-    `<p style="margin-top:24px;color:#6B7280;font-size:13px;">`,
-    `  ${escapeHtml(CLINIC_NAME)}<br>`,
-    `  ${escapeHtml(CLINIC_ADDRESS)}<br>`,
-    `  ${escapeHtml(CLINIC_PHONE)}<br>`,
-    `  Återkalla samtycke: <a href="mailto:${escapeHtml(CLINIC_FROM)}">${escapeHtml(CLINIC_FROM)}</a>`,
-    `</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Bilderna används bara om du själv ger samtycke, och då publiceras endast bildutsnitt <strong>från ögonbryn och uppåt</strong> — inga drag som kan identifiera dig som person. Du kan när som helst be oss radera bilderna.</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Tack för förtroendet — det betyder mycket för oss och för andra som funderar på samma resa.</p>`,
+    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Återkalla samtycke: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
   ].join('\n');
+
+  const html = renderEmailShell({ locale: 'sv', bodyHtml });
 
   return { subject, plain, html };
 }
@@ -140,24 +138,21 @@ function buildEmailEn({ patientFirstName, reviewLink }) {
     `Withdraw consent: ${CLINIC_FROM}`,
   ].join('\n');
 
-  const html = [
-    `<p>Hi${escapeHtml(greetName)},</p>`,
-    `<p>It's been about a year since your treatment with us. We hope you're happy with the results — and if you have the time, we'd be very grateful if you could do two quick things:</p>`,
-    `<ol>`,
-    `  <li>Upload 1–6 after photos via this private link:<br>`,
-    `      <a href="${escapeHtml(reviewLink)}">${escapeHtml(reviewLink)}</a></li>`,
+  const bodyHtml = [
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hi${escapeHtml(greetName)},</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">It's been about a year since your treatment with us. We hope you're happy with the results — and if you have the time, we'd be very grateful if you could do two quick things:</p>`,
+    `<ol style="font-size:15px;line-height:24px;margin:0 0 20px;padding-left:20px;">`,
+    `  <li style="margin-bottom:12px;">Upload 1–6 after photos via this private link:<br>`,
+    `      <a href="${escapeHtml(reviewLink)}" style="color:#231F1D;">${escapeHtml(reviewLink)}</a></li>`,
     `  <li>(Optional) Leave a short review on Google:<br>`,
-    `      <a href="${escapeHtml(GBP_REVIEW_URL)}">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
+    `      <a href="${escapeHtml(GBP_REVIEW_URL)}" style="color:#231F1D;">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
     `</ol>`,
-    `<p>Photos are only used with your consent, and we only publish <strong>the area from the eyebrows up</strong> — never anything that could identify you. You can ask us to delete the photos at any time.</p>`,
-    `<p>Thank you — it means a lot to us and to others considering the same journey.</p>`,
-    `<p style="margin-top:24px;color:#6B7280;font-size:13px;">`,
-    `  ${escapeHtml(CLINIC_NAME)}<br>`,
-    `  ${escapeHtml(CLINIC_ADDRESS)}<br>`,
-    `  +46 ${escapeHtml(CLINIC_PHONE.replace(/^0/, ''))}<br>`,
-    `  Withdraw consent: <a href="mailto:${escapeHtml(CLINIC_FROM)}">${escapeHtml(CLINIC_FROM)}</a>`,
-    `</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Photos are only used with your consent, and we only publish <strong>the area from the eyebrows up</strong> — never anything that could identify you. You can ask us to delete the photos at any time.</p>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Thank you — it means a lot to us and to others considering the same journey.</p>`,
+    `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Withdraw consent: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
   ].join('\n');
+
+  const html = renderEmailShell({ locale: 'en', bodyHtml });
 
   return { subject, plain, html };
 }
