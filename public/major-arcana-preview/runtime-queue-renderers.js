@@ -5593,35 +5593,70 @@
           "</div></article>"
         );
       };
-      queueHistoryList.innerHTML = asArray(threads)
-        .map((thread, index) =>
-          renderLiveThreadCard(thread, index, thread.id === state.runtime.selectedThreadId)
-        )
-        .join("");
-      if (typeof enforceUnifiedCardV3Sections === "function") {
-        enforceUnifiedCardV3Sections(queueHistoryList);
+      // Fas 43 (2026-05-20): tidsskivad progressiv rendering (virtualisering-lite).
+      // Tidigare byggdes ALLA korten + innerHTML på en gång → 83 Lit-kort
+      // hydrerades synkront + 6 O(N)-post-passes → main-thread blockerades
+      // 30-45s ("frysningen"). Nu: rendera i bitar om CHUNK-storlek över
+      // animation-frames så UI aldrig blockerar mer än ~en bit i taget.
+      const __list = asArray(threads);
+      const CHUNK = 18;
+
+      // Avbryt ev. pågående progressiv render (ny render-request kom in).
+      if (queueHistoryList.__fas43Token) {
+        try {
+          cancelAnimationFrame(queueHistoryList.__fas43Token);
+        } catch (_e) {}
+        queueHistoryList.__fas43Token = 0;
       }
-      // P0-2 (migrerad): patcha "Okänd avsändare" direkt efter render
-      try {
-        __scanAndFixUnknownSenders(queueHistoryList);
-      } catch (_e) {}
-      // P1-B (migrerad): re-applicera secondary-filter om aktivt
-      try {
-        __applySecondaryFilter();
-      } catch (_e) {}
-      // P1-C (migrerad): re-applicera sök-filter om aktivt
-      try {
-        __applySearchFilter();
-      } catch (_e) {}
-      // P2-1 (migrerad): översätt raw status-codes + rensa "undefined"
-      try {
-        __runAllStatusFixes(queueHistoryList);
-      } catch (_e) {}
-      // P1-4 (migrerad): uppdatera live-pill med nytt thread-count
-      try {
-        __updateLivePill();
-      } catch (_e) {}
-      if (typeof decorateStaticPills === "function") decorateStaticPills();
+
+      const __runQueuePostPasses = () => {
+        if (typeof enforceUnifiedCardV3Sections === "function") {
+          try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
+        }
+        try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+        try { __applySecondaryFilter(); } catch (_e) {}
+        try { __applySearchFilter(); } catch (_e) {}
+        try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+        try { __updateLivePill(); } catch (_e) {}
+        if (typeof decorateStaticPills === "function") {
+          try { decorateStaticPills(); } catch (_e) {}
+        }
+      };
+
+      const __selectedId = state.runtime.selectedThreadId;
+      const __renderRange = (start, end) =>
+        __list
+          .slice(start, end)
+          .map((thread, i) =>
+            renderLiveThreadCard(thread, start + i, thread.id === __selectedId)
+          )
+          .join("");
+
+      // Första biten synkront (= det användaren ser direkt). Liten → ingen frys.
+      const __firstCount = Math.min(CHUNK, __list.length);
+      queueHistoryList.innerHTML = __renderRange(0, __firstCount);
+      __runQueuePostPasses();
+
+      // Resten strömmas in i bitar över rAF. Post-passes körs BARA efter
+      // sista biten (inte per bit) → undviker O(N²). Korten syns ändå direkt
+      // eftersom HTML appendas varje frame.
+      if (__list.length > __firstCount) {
+        let __offset = __firstCount;
+        const __step = () => {
+          const __end = Math.min(__offset + CHUNK, __list.length);
+          try {
+            queueHistoryList.insertAdjacentHTML("beforeend", __renderRange(__offset, __end));
+          } catch (_e) {}
+          __offset = __end;
+          if (__offset < __list.length) {
+            queueHistoryList.__fas43Token = requestAnimationFrame(__step);
+          } else {
+            queueHistoryList.__fas43Token = 0;
+            __runQueuePostPasses(); // en gång när allt är inne
+          }
+        };
+        queueHistoryList.__fas43Token = requestAnimationFrame(__step);
+      }
     }
 
     function renderQueueHistorySection() {
@@ -5793,7 +5828,26 @@
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
-        // v5: ingen riktig data i scope men kanske demo-fixtures utanför scope?
+        // Fas 41 (2026-05-20): om scope-filtret returnerar tomt MEN vi har
+        // riktiga (icke-demo) trådar i state → visa dem ändå. Detta händer
+        // vid bakgrunds-refresh när scope-matchningen tillfälligt missar
+        // (t.ex. "*"-mailbox i urvalet) — vi vill INTE flippa till "Synkar
+        // aktivt"-placeholder och tappa bort de redan laddade mejlen.
+        const liveThreadsAnyScope = asArray(state.runtime.threads).filter(
+          (t) => asText(t?.worklistSource) !== "demo"
+        );
+        if (liveThreadsAnyScope.length) {
+          if (queueTitle) {
+            queueTitle.textContent = `Arbetslista (${liveThreadsAnyScope.length})`;
+          }
+          renderQueueInlineLaneList(liveThreadsAnyScope);
+          if (typeof enforceUnifiedCardV3Sections === "function") {
+            enforceUnifiedCardV3Sections(queueHistoryList);
+          }
+          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+          return;
+        }
+        // v5: ingen riktig data alls men kanske demo-fixtures utanför scope?
         const demoFixtures = asArray(state.runtime.threads).filter(
           (t) => asText(t?.worklistSource) === "demo"
         );
