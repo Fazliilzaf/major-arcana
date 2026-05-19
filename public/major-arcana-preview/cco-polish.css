@@ -3138,3 +3138,60 @@
 .warm-row .thread-card-stamp:has(.thread-owner:not([data-owner-state="owned"])) .thread-owner {
   /* Behåll original färg om vi inte vet med säkerhet */
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 27F-C (2026-05-18): Glance default minimal, hover/selected avslöjar
+   ════════════════════════════════════════════════════════════════════
+   Default-state (Glance): bara avatar + sender + subject + tid + lane-rail
+   synliga. AI-tip (.warm-why) och action-cluster (.warm-actions) döljs
+   med max-height collapse + opacity fade. Klick eller hover avslöjar.
+
+   Höjd: ~70px default · ~110px hover/selected.
+
+   Bara på enheter med (hover: hover) — touch-devices visar alltid allt
+   så användaren inte missar actions. */
+
+@media (hover: hover) {
+  .warm-row .warm-why,
+  .warm-row .warm-actions {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-top: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    transition:
+      max-height 200ms ease,
+      opacity 180ms ease,
+      margin-top 200ms ease !important;
+  }
+
+  .warm-row:hover .warm-why,
+  .warm-row:focus-within .warm-why,
+  .warm-row.is-selected .warm-why,
+  .warm-row[data-selected="true"] .warm-why,
+  .warm-row[aria-selected="true"] .warm-why {
+    max-height: 60px !important;
+    opacity: 1 !important;
+    margin-top: 6px !important;
+    pointer-events: auto !important;
+  }
+
+  .warm-row:hover .warm-actions,
+  .warm-row:focus-within .warm-actions,
+  .warm-row.is-selected .warm-actions,
+  .warm-row[data-selected="true"] .warm-actions,
+  .warm-row[aria-selected="true"] .warm-actions {
+    max-height: 50px !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* På touch-devices: visa allt alltid (ingen hover-trigger möjlig).
+   media (hover: none) matchar touch + ingen hover-mus. */
+@media (hover: none) {
+  .warm-row .warm-why,
+  .warm-row .warm-actions {
+    /* Behåll default-visning — no overrides needed */
+  }
+}
