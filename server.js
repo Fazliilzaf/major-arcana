@@ -506,6 +506,7 @@ const { createOpsRouter } = require('./src/routes/ops');
 const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
+const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
 const { createBillingService } = require('./src/billing/billingService');
@@ -1273,6 +1274,18 @@ process.once('SIGTERM', () => {
     '/api',
     createPublicClinicRouter({
       tenantConfigStore,
+      config,
+    })
+  );
+
+  // Web-to-Arcana bridge Fas B: hairtpclinic.com pollar dessa endpoints
+  // istället för /public/cliento/* när ARCANA_PROVIDER=booking-engine.
+  // Se docs/strategy/web-to-arcana-bridge.md.
+  app.use(
+    '/api',
+    createPublicBookingEngineRouter({
+      bookingEngineStore: ccoBookingEngineStore,
+      bookingStore: ccoBookingStore,
       config,
     })
   );
