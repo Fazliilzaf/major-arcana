@@ -14052,12 +14052,19 @@
       return;
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
-    // Fas 38 (2026-05-19): bootstrap-default = ALLA mailboxar.
-    // Tidigare default = [preferredMailboxId] → användaren såg bara sin egen
-    // inbox vid cold boot, vilket är fel för clinic-CCO där FK ska se alla
-    // konton. Behåll preferred-fallback bara om explicit demo-scope krävs.
+    // Fas 48 (2026-05-20): bootstrap-default = EN primär mailbox (inte alla).
+    // Fas 38 satte default=alla, men multi-mailbox first-load fryser pga tung
+    // synkron processning av 100+ trådar (buildLiveThreads + fokus + Lit-
+    // hydration). En mailbox laddar lätt och snabbt + fyller IndexedDB-cachen.
+    // Användaren lägger till fler konton via mailbox-dropdownen vid behov.
+    // (All-mailboxar-default kan återställas när render-pipen profilerats och
+    // optimerats — se Fas 43-47 + den dedikerade perf-uppgiften.)
+    const defaultScope =
+      preferredMailboxId && availableIds.includes(preferredMailboxId)
+        ? [preferredMailboxId]
+        : availableIds.slice(0, 1);
     if (!selectedMailboxIds.length) {
-      workspaceSourceOfTruth.setSelectedMailboxIds([...availableIds]);
+      workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
       return;
     }
     const validIds = new Set(availableIds);
@@ -14065,7 +14072,7 @@
       selectedMailboxIds.filter((id) => validIds.has(canonicalizeRuntimeMailboxId(id)))
     );
     if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
-      workspaceSourceOfTruth.setSelectedMailboxIds([...availableIds]);
+      workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
     }
   }
 
