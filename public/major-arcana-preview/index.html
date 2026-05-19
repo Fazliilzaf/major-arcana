@@ -10524,6 +10524,9 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <script src="/cco-next-collaboration.js"></script>
     <!-- Previewn kör nu på explicita källfiler.
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
+    <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
+         window.CcoThreadCache finns när bootstrap + live-load kör. -->
+    <script src="./app/thread-cache-idb.js?v=build-d1befb4"></script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3b294f05e3) -->
     <script src="./app.bundle.3b294f05e3.min.js"></script>
     <!-- Källfil efter bundle så workrail-merge inte ligger kvar i äldre bundle-hash. -->

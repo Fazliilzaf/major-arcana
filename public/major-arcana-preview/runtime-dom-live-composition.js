@@ -2895,6 +2895,16 @@
         if (shouldApplyPhaseA) {
           state.runtime.truthPrimaryLegacyThreads = legacyThreads;
           state.runtime.threads = threads;
+          // Fas 46 (2026-05-20): cacha live-threads till IndexedDB (async,
+          // off-main-thread). Nästa bootstrap renderar inboxen INSTANT från
+          // cachen medan en ny live-fetch kör i bakgrunden. Fire-and-forget.
+          try {
+            if (window.CcoThreadCache && Array.isArray(threads) && threads.length) {
+              window.CcoThreadCache.saveThreads(threads);
+            }
+          } catch (_e) {
+            /* tyst — cache är best-effort */
+          }
           if (stableFocusThread) {
             const stableFocusThreadIndex = state.runtime.threads.findIndex((thread) =>
               runtimeConversationIdsMatch(thread?.id, selectedThreadId)

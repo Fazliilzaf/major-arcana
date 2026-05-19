@@ -27,6 +27,13 @@
       localStorage.removeItem('ARCANA_ADMIN_TOKEN');
       localStorage.removeItem('cco.selectedMailboxIds.v1');
     } catch (_e) {}
+    // Fas 46: rensa IndexedDB-thread-cachen vid logout så nästa användare
+    // inte ser föregående kontos cachade inbox.
+    try {
+      if (window.CcoThreadCache && window.CcoThreadCache.clearThreads) {
+        window.CcoThreadCache.clearThreads();
+      }
+    } catch (_e) {}
     window.location.href = '/';
   }
 

@@ -41586,6 +41586,39 @@ renderStudioShell();
   void (async () => {
     const initialShellViewState = readShellViewStateFromLocation();
     await ensurePreviewBootstrapSession();
+    // Fas 46 (2026-05-20): Apple-Mail-pattern steg 3 — instant inbox från
+    // IndexedDB-cache. Läs cachen async (blockerar inte). Om den finns OCH
+    // live-load inte hunnit klart → injicera cachade trådar + rendera direkt
+    // så användaren ser sin inbox på en gång. Live-fetchen overrider sedan
+    // med färsk data när den är klar (Fas 39-logiken i live-composition).
+    try {
+      const __hasTokenFas46 =
+        typeof localStorage !== "undefined" &&
+        Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
+      if (__hasTokenFas46 && window.CcoThreadCache?.loadThreads) {
+        window.CcoThreadCache.loadThreads()
+          .then((cached) => {
+            if (!Array.isArray(cached) || cached.length === 0) return;
+            // Bara injicera om live-load INTE redan fyllt kön — annars
+            // skulle vi skriva över färskare data med äldre cache.
+            const alreadyLive =
+              state.runtime?.loaded === true ||
+              asArray(state.runtime?.threads).some(
+                (t) => String(t?.worklistSource || "").toLowerCase() !== "demo"
+              );
+            if (alreadyLive) return;
+            state.runtime.threads = cached;
+            try {
+              renderRuntimeConversationShell();
+            } catch (_e) {
+              if (typeof window.__renderApp === "function") window.__renderApp();
+            }
+          })
+          .catch(() => {});
+      }
+    } catch (_e) {
+      /* tyst — cache är best-effort */
+    }
     state.forms.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
     setSelectedCustomerIdentity("");
     setSelectedAnalyticsPeriod("week");
