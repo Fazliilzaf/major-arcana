@@ -37,7 +37,11 @@
                 ? canonicalizeMailboxId(mailboxId)
                 : normalizeMailboxId(mailboxId)
             )
-            .filter(Boolean)
+            // Fas 42 (2026-05-20): filtrera bort "*"-wildcard och andra
+            // icke-email-entries. En "*"-mailbox i urvalet får live-fetchen
+            // att begära en katalog-katalog-mailbox som inte finns → hänger
+            // och fryser render-pipen. Bara riktiga email-adresser tillåts.
+            .filter((id) => Boolean(id) && id !== "*" && id.indexOf("@") !== -1)
         )
       );
     }
