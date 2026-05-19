@@ -149,3 +149,130 @@ Detta är den stora leveransen sedan masterplanen sist uppdaterades. Bridge-doc 
 - Bridge-doc: `docs/strategy/web-to-arcana-bridge.md`
 - Föregående status: `docs/ops/status-web-2026-05-18.md`
 - Nästa status: `docs/ops/status-web-2026-05-26.md` (planerad)
+
+---
+
+## 7. Leveranser sen-natt 2026-05-19 (runda II — webb→CCO closure)
+
+Detta är leveranserna efter den första post-bridge-rundan (sektion 5),
+fokuserade på att stänga sista gapet i webb→Arcana-flödet plus skydd
+mot framtida regression.
+
+### 7.1. Webb /api/lead → Arcana CCO bridge (Task #100)
+
+- `next-app/app/api/lead/route.ts` fick en `forwardToArcana()`-helper
+  som POSTar till `/api/public/booking-engine/reservations` när
+  lead-payloaden innehåller `data.arcana.{slotId, slotStart, slotEnd,
+  serviceId, resourceId}`.
+- Best-effort: 10s timeout, try/catch, lead-flowet bryts inte om
+  Arcana är nere — email-notifikationen till klinik körs ändå.
+- Response från `/api/lead` returnerar nu:
+  `{ ok: true, arcana: { caseId, reservationId } | null }`.
+- **E2E verifierat** mot prod: lead med slot → CCO case `web-34f197b6424b`
+  + reservation `9f3b80da-ebe0…` skapade på en request. Dubbelbokning
+  på samma slot returnerar `arcana: null` (Arcana svarade `slot_unavailable`,
+  lead-flowet fortsatte).
+
+### 7.2. Tyst regression hittad + fixad (Task #103)
+
+Cursor-commit `d82d515` ("Fas 27E: server-side asset pipeline") hade
+pushat server.js från en gammal snapshot och raderat:
+
+- `require('./src/routes/publicBookingEngine')` + `app.use('/api', createPublicBookingEngineRouter(...))`
+- `require('./src/routes/postOpReview')` + `app.use(createPostOpReviewRouter(...))`
+
+Resultat på Render: alla `/api/public/booking-engine/*` returnerade 404,
+hairtpclinic.com `/api/availability`-proxy föll tillbaka till Cliento
+mock-mode (mocked: true, provider: cliento). Patient-UI på
+`/uppfoljning/:token` returnerade 404 också.
+
+Återställd via commits `3e87551` + `0d3bd47`. Verifierat post-deploy:
+
+- `/api/public/booking-engine/catalog?host=hairtpclinic.com` → 200, 9 services
+- `/api/public/booking-engine/availability` → 200, 78 slots från CCO-engine
+- `/api/availability` proxy: `provider: cco_engine, mocked: false, 76 slots`
+- `/uppfoljning/INVALID-TOKEN` → 200 (patient-UI renderar "invalid"-state)
+- `/api/v1/post-op-review/INVALID/lookup` → 404 `invalid_or_expired_token`
+
+### 7.3. Regression-guard mot framtida server.js-överskrivning (Task #104)
+
+`bin/pre-commit-cco.sh` fick ett nytt step `[4/4]` som failar commit
+om någon av dessa mountings saknar minst 2 förekomster i server.js
+(require + app.use):
+
+- `createPublicBookingEngineRouter`
+- `createPostOpReviewRouter`
+
+Pre-commit hooken är redan symlinkad (`.git/hooks/pre-commit →
+bin/pre-commit-cco.sh`) så guarden är aktiv direkt. Verifierat genom
+att tillfälligt sed-radera importen — guarden fail:ar som förväntat.
+
+### 7.4. Photo-upload Fas 1.B (Task #102)
+
+Patient kan nu ladda upp 1-6 efter-bilder direkt på
+`/uppfoljning/:token` istället för att mejla dem.
+
+Backend (`src/routes/postOpReview.js`):
+
+- `POST /api/v1/post-op-review/:token/photos` (multer.array, memoryStorage)
+- JPEG → `piexif.remove(binaryString)` strippar ALL EXIF (Make, Model,
+  DateTimeOriginal, GPS) före disk-skrivning. PNG passar igenom.
+- Limits: max 6 filer × 8 MB per submission (totalt över alla requests).
+- Storage: `<config.postOpPhotosDir>/<submissionId>/<photoId>.{jpg,png}`
+  med mode 0600. Default `/var/data/post-op-photos` på Render
+  (via `config.js` med `ARCANA_POST_OP_PHOTOS_DIR` override).
+- Audit-event `post_op_photo_uploaded` på CCO-caset.
+
+Frontend (`public/uppfoljning/index.html`):
+
+- File-picker med chip-lista (filnamn + size + ta-bort)
+- Klient-validering MIME (JPEG/PNG) + size före upload
+- Submit-flow: upload photos FÖRST → submit consent+note
+- SV+EN locale-strängar för alla nya texter
+
+Varför piexifjs istället för sharp: sharp har stora native binaries
+och `npm install sharp` hängde sig i iCloud-foldern (10+ min utan
+resultat). piexifjs är pure JS (~50KB) och strippar EXIF deterministiskt.
+Vi behöver inte resize/convert — den biten skjuts till Fas 2.
+
+EXIF-strip verifierat lokalt med syntetisk JPEG:
+461 byte med Make=Apple + GPS koordinater → 285 byte (-38%), Make
+stripped, GPS stripped.
+
+### 7.5. CCO operator-UI Markera-knapp (Task #101)
+
+`public/major-arcana-preview/app.js` fick:
+
+- **Ny knapp** i Steg 4-lane "Fortsätt med förslaget":
+  `<button data-booking-action="mark_followup_done">Markera uppföljning klar</button>`
+- **Ny handler** i `handleBookingAction`-switchen som POSTar till
+  `/api/v1/cco-bookings/:caseId/mark-follow-up-completed` med
+  `customerName` + `locale` från aktiv tråd.
+- **Auto-copy till urklipp**: emailDraft (om finns) kopieras till
+  urklipp så operatören kan klistra in i Outlook med ⌘V. Review-länken
+  visas i feedback-banneret.
+- **Audit-event** `final_followup_marked` skrivs till booking-caset.
+
+Operatören slipper därmed curl-kommandot — flow är nu: välj tråd →
+klicka knappen → ⌘V i Outlook → skicka. M365 Graph send-integration
+för auto-send kvarstår som Fas 2.
+
+### 7.6. Open issues / nästa pass
+
+- M365 Graph send-integration (auto-send istället för manuell copy-paste).
+- HEIC/HEIF-photo-support (kräver sharp eller heic2any på server).
+- Cron för `pruneNoConsentPhotos` — koden finns i store:n men ingen
+  scheduler triggar den. GDPR kräver radering 12 mån efter submit
+  utan consent.
+- Image-thumbnails i CCO operator-vyn (idag visar caset bara
+  filnamn + size, inte preview).
+- Pre-fill operator-notes från web-leads i CCO-vyn (lead-payload
+  innehåller fältet men CCO-vyn renderar det inte tydligt).
+
+### 7.7. Commit-trace för runda II
+
+- `8f656fd` — feat(lead): forward web bookings to Arcana CCO when slot picked
+- `3e87551` — fix(server): restore publicBookingEngine mounting
+- `0d3bd47` — fix(server): restore postOpReview mount + add regression-guard
+- `4111dfe` — feat(post-op-review): photo-upload Fas 1.B (multer + piexifjs)
+- (CCO operator-knapp commit följer efter denna doc-update)

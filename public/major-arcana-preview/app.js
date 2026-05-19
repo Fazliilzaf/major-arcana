@@ -35859,6 +35859,7 @@
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="cancel_booking">Avboka</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_handoff" data-booking-requires-slots="true" title="Välj minst en tid innan överlämningen kopieras.">Kopiera överlämning</button>
             <button class="booking-action booking-action-secondary" type="button" data-booking-action="copy_audit_summary" title="Kopiera strukturerad bokningslogg för intern ärendeöverlämning.">Kopiera logg</button>
+            <button class="booking-action booking-action-secondary" type="button" data-booking-action="mark_followup_done" title="Markera att sista uppföljningsbesöket är klart. Genererar reviewLink + emailDraft som kopieras till urklipp så du kan klistra in i Outlook.">Markera uppföljning klar</button>
           </div>
           <p class="booking-action-hint" data-booking-action-hint>
             Välj minst en tid för att aktivera Svarstudio och överlämning.
@@ -38073,6 +38074,65 @@
           setFeedback(getBookingDom().feedback, "success", "Strukturerad bokningslogg kopierades.");
         }
       }
+
+      if (action === "mark_followup_done") {
+        // Triggar post-op review: skapar token + reviewLink + emailDraft.
+        // emailDraft kopieras till urklipp så operatören kan klistra in
+        // i Outlook (M365 Graph send är spårad till Fas 2).
+        // Spec: docs/strategy/post-op-review-photo-flow.md
+        const caseId = asText(thread?.conversationId);
+        if (!caseId) {
+          setFeedback(bookingDom.feedback, "error", "Saknar caseId för aktiv tråd — kan inte trigga uppföljning.");
+          return;
+        }
+        const customerName = asText(thread?.customerName, "");
+        const language = asText(thread?.locale || thread?.preferredLocale || "sv").toLowerCase();
+        const locale = language.startsWith("en") ? "en" : "sv";
+        const result = await apiRequest(
+          `/api/v1/cco-bookings/${encodeURIComponent(caseId)}/mark-follow-up-completed`,
+          {
+            method: "POST",
+            body: { customerName, locale },
+          }
+        );
+        if (!result || result.ok === false) {
+          const errMsg = asText(result?.error, "Kunde inte trigga uppföljningen.");
+          setFeedback(getBookingDom().feedback, "error", errMsg);
+        } else {
+          const reviewLink = asText(result.reviewLink, "");
+          const emailDraft = asText(result.emailDraft, "");
+          const alreadyExists = result.alreadyExists === true;
+          // Kopiera emailDraft till clipboard om finns, annars reviewLink
+          const clipboardText = emailDraft || reviewLink;
+          if (clipboardText) {
+            try {
+              await copyTextToClipboard(clipboardText);
+            } catch (clipErr) {
+              console.warn("[mark_followup_done] clipboard copy failed:", clipErr?.message);
+            }
+          }
+          await recordBookingEvent(thread, {
+            type: "final_followup_marked",
+            label: alreadyExists ? "Uppföljning re-genererad" : "Uppföljning markerad klar",
+            detail: alreadyExists
+              ? "Submission fanns redan. Email-draft kopierad till urklipp — klistra in i Outlook."
+              : "Token-länk genererad. Email-draft kopierad till urklipp — klistra in i Outlook.",
+            metadata: {
+              reviewLink,
+              alreadyExists,
+              submissionId: result.submissionId || null,
+            },
+          });
+          setFeedback(
+            getBookingDom().feedback,
+            "success",
+            emailDraft
+              ? `Email-draft kopierad till urklipp. Klistra in i Outlook → skicka till patient. Review-länk: ${reviewLink}`
+              : `Review-länk kopierad till urklipp: ${reviewLink}`
+          );
+        }
+      }
+
       if (!deferSurfaceRender) {
         renderBookingSurface();
       }
