@@ -3085,3 +3085,56 @@
   font-weight: 700 !important;
   min-height: 23px !important;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 27F-B (2026-05-18): Separera AI-tip visuellt från kund-preview
+   ════════════════════════════════════════════════════════════════════
+   .warm-preview = kundens egen text (eller fallback)
+   .warm-why     = AI-rekommendation / handlingsråd
+   Båda renderas i samma yta — visuell separation gör det tydligt
+   vem som "skrev" vad. */
+
+.warm-row .warm-why {
+  margin: 4px 0 0 !important;
+  padding: 4px 10px 4px 8px !important;
+  background: rgba(167, 139, 250, 0.10) !important;
+  border-left: 2px solid #8B5CF6 !important;
+  border-radius: 0 8px 8px 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 11.5px !important;
+}
+
+.warm-row .warm-why .warm-why-icon {
+  color: #8B5CF6 !important;
+  width: 12px !important;
+  height: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.warm-row .warm-why .why-reason {
+  color: #6D28D9 !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+}
+
+/* Ej tilldelad — gör mer synlig (orange) istället för diskret grå */
+.warm-row .thread-card-stamp .thread-owner,
+.warm-row .meta-status,
+.thread-card .meta-status.unowned,
+.thread-card .thread-owner:not(.is-owned) {
+  /* Targetar 'Ej tilldelad'-texten via attribut eller fallback-värde */
+}
+
+/* Använd attribut-selector om mailen är "Ej tilldelad" */
+.warm-row .thread-owner[data-owner-state="unassigned"],
+.warm-row .meta-status[data-owner-state="unassigned"] {
+  color: #C77D2A !important;
+  font-weight: 500 !important;
+}
+
+/* Fallback: matcha på text-innehåll via :has (modern CSS) */
+.warm-row .thread-card-stamp:has(.thread-owner:not([data-owner-state="owned"])) .thread-owner {
+  /* Behåll original färg om vi inte vet med säkerhet */
+}
