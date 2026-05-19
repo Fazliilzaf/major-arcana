@@ -4583,7 +4583,6 @@
         <div class="panel-meta">
           <span class="panel-count">${escapeHtml(`${versions.length} versions`)}</span>
           <span class="panel-count panel-count--quiet">${escapeHtml(portalViewBadge)}</span>
-          ${customerOnlyView ? "" : '<button class="ghost-button panel-header-action" type="button" data-publish-portal>Publish to customer</button>'}
         </div>
       </div>
       ${portalFlowMarkup}
@@ -4604,10 +4603,14 @@
             <span class="portal-card-sync">${escapeHtml(portalSyncLabel)}</span>
           </div>
           <div class="portal-card-actions">
-            <button class="ghost-button portal-action" type="button" data-return-build>Back to build</button>
-            <button class="ghost-button portal-action" type="button" data-publish-portal>Publish current draft</button>
-            <button class="ghost-button portal-action" type="button" data-copy-portal-link>Copy portal link</button>
-            <button class="ghost-button portal-action" type="button" data-preview-customer-portal>Preview customer view</button>
+            <div class="portal-action-group portal-action-group--primary">
+              <button class="ghost-button portal-action portal-action--primary" type="button" data-publish-portal>Publish current draft</button>
+              <button class="ghost-button portal-action" type="button" data-preview-customer-portal>Preview customer view</button>
+            </div>
+            <div class="portal-action-group portal-action-group--secondary">
+              <button class="ghost-button portal-action portal-action--quiet" type="button" data-return-build>Back to build</button>
+              <button class="ghost-button portal-action portal-action--quiet" type="button" data-copy-portal-link>Copy portal link</button>
+            </div>
           </div>
           <div class="portal-card-list">
             <div class="portal-card-list-title">Published versions</div>
@@ -4649,12 +4652,18 @@
           ${customerOnlyView
             ? `
           <div class="portal-card-actions portal-card-actions--customer">
-            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            <div class="portal-action-group portal-action-group--primary">
+              <button class="ghost-button portal-action portal-action--primary" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            </div>
           </div>`
             : `
           <div class="portal-card-actions">
-            <button class="ghost-button portal-action" type="button" data-mark-portal-view>Mark as viewed</button>
-            <button class="ghost-button portal-action" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            <div class="portal-action-group portal-action-group--primary">
+              <button class="ghost-button portal-action portal-action--primary" type="button" data-ack-portal-notification${currentUnreadCount > 0 ? "" : " disabled"}>Acknowledge latest</button>
+            </div>
+            <div class="portal-action-group portal-action-group--secondary">
+              <button class="ghost-button portal-action portal-action--quiet" type="button" data-mark-portal-view>Mark as viewed</button>
+            </div>
           </div>`}
           <div class="portal-card-list">
             <div class="portal-card-list-title">${escapeHtml(customerOnlyView ? "Latest notices" : "Customer notifications")}</div>

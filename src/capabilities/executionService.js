@@ -592,6 +592,7 @@ function createCapabilityExecutor({
   ccoConversationStateStore = null,
   runtimeMetricsStore = null,
   clientoBookingStore = null,
+  postOpReviewStore = null,
   buildVersion = 'dev',
 }) {
   const runCapabilityThroughGateway = bindGatewayRunCapability(executionGateway);
@@ -1225,6 +1226,7 @@ function createCapabilityExecutor({
               authStore,
               runtimeMetricsStore,
               clientoBookingStore,
+              postOpReviewStore,
             });
             ensureSchemaValidity({
               schema: CapabilityClass.outputSchema,

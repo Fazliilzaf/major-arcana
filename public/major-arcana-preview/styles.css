@@ -2651,6 +2651,8 @@ button {
   padding-bottom: 8px;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overscroll-behavior: contain;
   scroll-padding-bottom: 12px;
 }
@@ -4381,8 +4383,8 @@ button {
 
 .focus-workrail {
   position: relative;
-  flex: 1 1 auto;
-  margin: 0;
+  flex: 0 0 auto;
+  margin: auto 0 0;
   padding: 0;
   z-index: 1;
   background: transparent;
