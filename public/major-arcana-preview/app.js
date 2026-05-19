@@ -4904,12 +4904,15 @@
       url.searchParams.delete("automationSection");
       url.searchParams.delete("section");
     }
-    if (portalCustomerKey) {
-      url.searchParams.set("portalCustomerKey", portalCustomerKey);
-    } else {
-      url.searchParams.delete("portalCustomerKey");
-      url.searchParams.delete("customerKey");
-    }
+    // Fas 36 (2026-05-19): SLUTA sätta portalCustomerKey i URL automatiskt.
+    // Tidigare skrev appen tråd-kundens email till URL varje gång användaren
+    // klickade på en tråd → vid reload trodde appen att man avsiktligt
+    // navigerat till showcase-mode för den kunden → triggade fixture-fallback.
+    // Nu: URL kan FORTFARANDE BÄRA portalCustomerKey vid extern delning
+    // (rad 4832-4833 läser från URL) — men appen skriver ALDRIG till URL.
+    // Vid normal tråd-byte = ren URL.
+    url.searchParams.delete("portalCustomerKey");
+    url.searchParams.delete("customerKey");
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (nextUrl !== currentUrl) {
