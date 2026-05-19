@@ -33,8 +33,10 @@ const BRAND = {
   cream: '#FAF6F2',        // page background
   white: '#FFFFFF',        // card background
   divider: '#EFE6E0',      // subtle border
-  // Logo
-  logoUrl: 'https://hairtpclinic.com/assets/htp-logo-circle-email.png',
+  // Logo — hostas på Arcana/Render (ma.hairtpclinic.se) eftersom den
+  // deployar pålitligt. Samma sköld-logga som headern på hairtpclinic.com
+  // (htp-logo.svg → 480x602 retina-PNG i public/htp-logo-email.png).
+  logoUrl: 'https://ma.hairtpclinic.se/htp-logo-email.png',
   logoAlt: 'Hair TP Clinic',
   logoDisplayWidth: 120,   // rendered width in email (px)
   // Footer-kontakt
