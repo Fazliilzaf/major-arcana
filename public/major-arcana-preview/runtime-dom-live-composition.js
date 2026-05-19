@@ -2262,14 +2262,28 @@
         offlineWorkingSetSource,
         offlineWorkingSetMeta,
       });
-      // v5: bevara demo-fixtures om history-load returnerar tomt (utan backend)
-      // så v5-layouten visas snyggt även när servern inte kan nås.
+      // Fas 39 (2026-05-19): demo-fallback ska INTE trigga när användaren är
+      // autentiserad. Tidigare: när live-load returnerade 0 threads behöll vi
+      // de 6 hårdkodade demo-fixtures (Morten, Sara Holm, Anna Svensson osv)
+      // → "Live · 6"-pillen visades MED demo-data → mellanläge.
+      // Nu: bevara demo-fixtures BARA om ingen ARCANA_ADMIN_TOKEN finns
+      // (= marknadsdemot utan backend).
+      let _hasAdminToken_fas39 = false;
+      try {
+        _hasAdminToken_fas39 = Boolean(
+          (typeof localStorage !== "undefined" &&
+            localStorage.getItem("ARCANA_ADMIN_TOKEN")) || ""
+        );
+      } catch (_e) {
+        _hasAdminToken_fas39 = false;
+      }
       if (
+        !_hasAdminToken_fas39 &&
         threads.length === 0 &&
         Array.isArray(state.runtime.threads) &&
         state.runtime.threads.some((t) => asText(t?.worklistSource) === "demo")
       ) {
-        // Threads-arrayen innehåller redan demo-fixtures — överskriv inte.
+        // Demo-mode (ingen token) + tomt servar → behåll demo-fixtures
       } else {
         state.runtime.threads = threads;
       }

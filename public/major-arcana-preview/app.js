@@ -2836,6 +2836,26 @@
   });
   __stateRefs.proxy = state;
 
+  // Fas 39 (2026-05-19): rensa demo-fixtures vid bootstrap om admin-token finns.
+  // De 6 demo-threads (Morten Bak, Sara Holm, Anna Svensson osv) är seedade
+  // för marknads-demot utan backend. När användaren är inloggad ska CCO
+  // starta TOMT och vänta på live-data — annars visas "Live · 6"-pillen
+  // med demo-data → mellanläge. Detta är komplement till Fas 39-fixen i
+  // runtime-dom-live-composition.js som ser till att live-load alltid
+  // overrider demo (även när live returnerar tomt).
+  try {
+    const __hasAdminTokenFas39 =
+      typeof localStorage !== "undefined" &&
+      Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
+    if (__hasAdminTokenFas39 && Array.isArray(__stateInternal.runtime?.threads)) {
+      __stateInternal.runtime.threads = __stateInternal.runtime.threads.filter(
+        (thread) => String(thread?.worklistSource || "").toLowerCase() !== "demo"
+      );
+    }
+  } catch (_e) {
+    /* tyst — localStorage blockerad eller annat fel */
+  }
+
   // ============================================================
   // renderApp(state) → DOM (steg 4 av state-konsolidering)
   // ============================================================
