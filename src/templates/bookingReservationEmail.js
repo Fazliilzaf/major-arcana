@@ -12,16 +12,12 @@
  *
  * Tonen är samma som Hair TP Clinics övriga kommunikation: varm,
  * professionell, ärlig. INGA AI-genererade ord — statisk mall.
+ *
+ * Layout (logga, brand-färger, footer) kommer från ./emailLayout.js
+ * så alla transactional emails delar samma identitet utan copy-paste.
  */
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
 
 function formatSlotForLocale(isoStart, locale) {
   const d = new Date(isoStart);
@@ -73,33 +69,26 @@ Thank you for booking with Hair TP Clinic. Here are your details:
 
 Your time is held for ${expiresHours} hours while we confirm. We will call you within 1 hour to verify the booking and answer any questions.
 
-If anything changes, reply to this email or call us at +46 31 88 11 66.
+If anything changes, reply to this email or call us at ${BRAND.phoneIntlDisplay}.
 
 Looking forward to meeting you,
 Hair TP Clinic
-Vasaplatsen 2, 411 34 Gothenburg
-contact@hairtpclinic.com`;
+${BRAND.addressEn}
+${BRAND.email}`;
 
-    const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"></head>
-<body style="font-family:Inter,Helvetica,sans-serif;color:#231F1D;background:#FAF6F2;padding:24px;">
-  <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(35,31,29,0.06);">
-    <div style="text-align:center;margin:0 0 24px;">
-      <img src="https://hairtpclinic.com/assets/htp-logo-circle-email.png" alt="Hair TP Clinic" width="120" height="144" style="display:inline-block;width:120px;height:auto;border:0;outline:none;text-decoration:none;">
-    </div>
-    <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:#231F1D;margin:0 0 12px;">Your appointment is reserved</h1>
+    const bodyHtml = `
+    <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Your appointment is reserved</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hi ${escapeHtml(fName) || 'there'},</p>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Thank you for booking with Hair TP Clinic. Here are your details:</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Service</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Specialist</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(resource)}</td></tr>
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Time</td><td style="padding:8px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot)}</strong></td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Service</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Specialist</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(resource)}</td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Time</td><td style="padding:8px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot)}</strong></td></tr>
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Your time is held for <strong>${expiresHours} hours</strong> while we confirm. We will call you within 1 hour to verify the booking and answer any questions.</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">If anything changes, reply to this email or call us at <a href="tel:+46318811166" style="color:#231F1D;">+46 31 88 11 66</a>.</p>
-    <p style="font-size:14px;line-height:22px;margin:32px 0 0;color:#6B5F58;">Looking forward to meeting you,<br><strong style="color:#231F1D;">Hair TP Clinic</strong><br>Vasaplatsen 2, 411 34 Gothenburg<br><a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58;">contact@hairtpclinic.com</a></p>
-  </div>
-</body></html>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">If anything changes, reply to this email or call us at <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneIntlDisplay}</a>.</p>`;
+
+    const html = renderEmailShell({ locale: 'en', bodyHtml });
     return { subject, html, text };
   }
 
@@ -115,33 +104,26 @@ Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:
 
 Din tid är reserverad i ${expiresHours} timmar medan vi bekräftar. Vi ringer dig inom 1 timme för att verifiera bokningen och svara på frågor.
 
-Om något ändras, svara på det här mejlet eller ring oss på 031 88 11 66.
+Om något ändras, svara på det här mejlet eller ring oss på ${BRAND.phoneSeDisplay}.
 
 Vi ses snart,
 Hair TP Clinic
-Vasaplatsen 2, 411 34 Göteborg
-contact@hairtpclinic.com`;
+${BRAND.addressSv}
+${BRAND.email}`;
 
-  const html = `<!doctype html>
-<html lang="sv"><head><meta charset="utf-8"></head>
-<body style="font-family:Inter,Helvetica,sans-serif;color:#231F1D;background:#FAF6F2;padding:24px;">
-  <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(35,31,29,0.06);">
-    <div style="text-align:center;margin:0 0 24px;">
-      <img src="https://hairtpclinic.com/assets/htp-logo-circle-email.png" alt="Hair TP Clinic" width="120" height="144" style="display:inline-block;width:120px;height:auto;border:0;outline:none;text-decoration:none;">
-    </div>
-    <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:#231F1D;margin:0 0 12px;">Din tid är reserverad</h1>
+  const bodyHtml = `
+    <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:${BRAND.ink};margin:0 0 12px;">Din tid är reserverad</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hej ${escapeHtml(fName) || 'där'},</p>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Behandling</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Specialist</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(resource)}</td></tr>
-      <tr><td style="padding:8px 0;color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Tid</td><td style="padding:8px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot)}</strong></td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Behandling</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Specialist</td><td style="padding:8px 0;font-size:15px;text-align:right;">${escapeHtml(resource)}</td></tr>
+      <tr><td style="padding:8px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Tid</td><td style="padding:8px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot)}</strong></td></tr>
     </table>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Din tid är reserverad i <strong>${expiresHours} timmar</strong> medan vi bekräftar. Vi ringer dig inom 1 timme för att verifiera bokningen och svara på frågor.</p>
-    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Om något ändras, svara på det här mejlet eller ring oss på <a href="tel:+46318811166" style="color:#231F1D;">031 88 11 66</a>.</p>
-    <p style="font-size:14px;line-height:22px;margin:32px 0 0;color:#6B5F58;">Vi ses snart,<br><strong style="color:#231F1D;">Hair TP Clinic</strong><br>Vasaplatsen 2, 411 34 Göteborg<br><a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58;">contact@hairtpclinic.com</a></p>
-  </div>
-</body></html>`;
+    <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Om något ändras, svara på det här mejlet eller ring oss på <a href="tel:${BRAND.phoneIntl}" style="color:${BRAND.ink};">${BRAND.phoneSeDisplay}</a>.</p>`;
+
+  const html = renderEmailShell({ locale: 'sv', bodyHtml });
 
   return { subject, html, text };
 }
