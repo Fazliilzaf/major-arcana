@@ -63,13 +63,14 @@
     </style>
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
-         Fas 30: async load via preload+onload-hack så critical CSS ovan
-         renderas omedelbart. -->
-    <link rel="preload" as="style" href="./legacy-styles-loader.css?v=build-0e30fa8" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="./legacy-styles-loader.css?v=build-0e30fa8" /></noscript>
+         Fas 30b (REVERT): tillbaka till synkron load. Async-preload-hack
+         orsakade tom arbetskö under första 200-500ms när styles.css inte
+         hunnit ladda — listan var ostylad och kollapsade till 0 höjd.
+         Inline critical CSS ovan behåller dock för snabbare paint av
+         layout-bas innan stylesheets är klara. -->
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-0e30fa8" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="preload" as="style" href="./cco-polish.css?v=build-0e30fa8" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="./cco-polish.css?v=build-0e30fa8" /></noscript>
+    <link rel="stylesheet" href="./cco-polish.css?v=build-0e30fa8" />
     <script src="./cco-polish.js?v=build-0e30fa8" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
