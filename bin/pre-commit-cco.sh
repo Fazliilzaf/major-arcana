@@ -49,7 +49,7 @@ else
 fi
 
 # 3. Brackets balanserade i cco-polish.css (vanlig fel efter manuell edit)
-echo "  [3/3] CSS bracket-balance..."
+echo "  [3/4] CSS bracket-balance..."
 OPEN=$(grep -c '{' public/major-arcana-preview/cco-polish.css)
 CLOSE=$(grep -c '}' public/major-arcana-preview/cco-polish.css)
 if [ "$OPEN" -ne "$CLOSE" ]; then
@@ -57,6 +57,38 @@ if [ "$OPEN" -ne "$CLOSE" ]; then
   FAILED=1
 else
   echo -e "${GREEN}  ✓ Brackets balanserade ($OPEN/$CLOSE)${NC}"
+fi
+
+# 4. Critical server.js mountings — booking-engine + post-op-review.
+# Bakgrund: 2026-05-19 skrev en Cursor-commit (Fas 27E, d82d515) över
+# server.js från en gammal snapshot och tog bort publicBookingEngine-
+# mountingen. /api/public/booking-engine/* började returnera 404 i
+# production → hairtpclinic.com booking-flow degradede silent till
+# Cliento mock. Denna check fångar samma sak innan commit.
+echo "  [4/4] server.js mounts (booking-engine + post-op-review)..."
+SERVER_FAIL=0
+require_pattern() {
+  local file=$1
+  local pattern=$2
+  local label=$3
+  local min_count=${4:-1}
+  local found
+  found=$(grep -cE "$pattern" "$file" || true)
+  if [ "$found" -lt "$min_count" ]; then
+    echo -e "${RED}  ✗ server.js saknar: $label (matchade $found gånger, behöver $min_count)${NC}"
+    SERVER_FAIL=1
+  fi
+}
+if [ -f server.js ]; then
+  # require + app.use för booking-engine = 2 träffar minst
+  require_pattern server.js "createPublicBookingEngineRouter" "publicBookingEngine require + mount" 2
+  require_pattern server.js "createPostOpReviewRouter" "post-op-review require + mount" 2
+fi
+if [ $SERVER_FAIL -eq 0 ]; then
+  echo -e "${GREEN}  ✓ server.js har kritiska mountings${NC}"
+else
+  echo -e "${YELLOW}  Hint: läs docs/strategy/web-to-arcana-bridge.md innan du rör server.js${NC}"
+  FAILED=1
 fi
 
 if [ $FAILED -eq 0 ]; then

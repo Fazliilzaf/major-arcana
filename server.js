@@ -507,6 +507,9 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
+const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
+const { RequestPostOpReviewCapability } = require('./src/capabilities/requestPostOpReview');
+const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
 const { createBillingService } = require('./src/billing/billingService');
@@ -1104,6 +1107,10 @@ process.once('SIGTERM', () => {
   const ccoBookingEngineStore = await createCcoBookingEngineStore({
     filePath: config.ccoBookingEngineStorePath,
   });
+  const postOpReviewStore = await createPostOpReviewStore({
+    filePath: config.postOpReviewStorePath,
+  });
+  const requestPostOpReviewCapability = new RequestPostOpReviewCapability();
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1286,6 +1293,18 @@ process.once('SIGTERM', () => {
     createPublicBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
+      config,
+    })
+  );
+
+  // Post-op review routes — operator-trigger + token-skyddade patient-endpoints.
+  // Patient-UI (vanilla HTML på /uppfoljning/:token) på public/uppfoljning/.
+  app.use(
+    createPostOpReviewRouter({
+      postOpReviewStore,
+      capability: requestPostOpReviewCapability,
+      bookingStore: ccoBookingStore,
+      authStore,
       config,
     })
   );
