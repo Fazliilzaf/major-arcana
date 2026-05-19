@@ -128,6 +128,86 @@ ${BRAND.email}`;
   return { subject, html, text };
 }
 
+/**
+ * Bygg operatörs-notifiering — skickas till kliniken (INTE patienten) när en
+ * webbbokning kommer in, så operatör ser ärendet direkt i inkorgen utöver
+ * CCO-kö-kortet. Intern ton, all patient-kontext samlad.
+ *
+ * @param {object} input
+ * @param {string} input.patientName
+ * @param {string} input.patientEmail
+ * @param {string} input.patientPhone
+ * @param {string} input.slotStart       ISO 8601
+ * @param {string} input.resourceLabel
+ * @param {string} input.serviceLabel
+ * @param {string} input.caseId
+ * @param {object} [input.leadContext]    { healthYes[], healthNotes, timeWindow, city, photos, languagePref }
+ * @returns {{subject: string, html: string, text: string}}
+ */
+function buildOperatorNotificationEmail(input = {}) {
+  const fName = firstName(input.patientName) || 'okänd';
+  const slot = formatSlotForLocale(input.slotStart, 'sv');
+  const resource = input.resourceLabel || '—';
+  const service = input.serviceLabel || '—';
+  const phone = input.patientPhone || '—';
+  const patientEmail = input.patientEmail || '—';
+  const lc = (input.leadContext && typeof input.leadContext === 'object') ? input.leadContext : {};
+  const healthYes = Array.isArray(lc.healthYes) && lc.healthYes.length ? lc.healthYes.join(', ') : 'inga';
+  const healthNotes = lc.healthNotes ? String(lc.healthNotes) : '';
+  const timeWindow = lc.timeWindow || '—';
+  const city = lc.city || '—';
+  const photos = lc.photos || 'none';
+  const langPref = lc.languagePref || 'sv';
+
+  const subject = `Ny webbbokning: ${input.patientName || fName} — ${slot}`;
+
+  const text = `Ny webbbokning via hairtpclinic.com — ring patienten inom 1 timme.
+
+Patient:    ${input.patientName || fName}
+Telefon:    ${phone}
+E-post:     ${patientEmail}
+Tid:        ${slot}
+Behandling: ${service}
+Specialist: ${resource}
+Ärende-ID:  ${input.caseId || '—'}
+
+Patient-kontext:
+  Hälsodeklaration (ja): ${healthYes}
+  Anteckningar: ${healthNotes || '—'}
+  Önskat tidsfönster: ${timeWindow}
+  Stad: ${city}
+  Foton: ${photos}
+  Språk: ${langPref}
+
+Hantera ärendet i CCO-vyn.`;
+
+  const bodyHtml = `
+    <h1 style="font-family:Georgia,serif;font-weight:300;font-size:24px;color:${BRAND.ink};margin:0 0 8px;">Ny webbbokning</h1>
+    <p style="font-size:14px;line-height:22px;margin:0 0 20px;color:${BRAND.taupe};">Ring patienten inom 1 timme för att bekräfta.</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 20px;">
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Patient</td><td style="padding:6px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(input.patientName || fName)}</strong></td></tr>
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Telefon</td><td style="padding:6px 0;font-size:15px;text-align:right;"><a href="tel:${escapeHtml(phone)}" style="color:${BRAND.ink};">${escapeHtml(phone)}</a></td></tr>
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">E-post</td><td style="padding:6px 0;font-size:15px;text-align:right;"><a href="mailto:${escapeHtml(patientEmail)}" style="color:${BRAND.ink};">${escapeHtml(patientEmail)}</a></td></tr>
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Tid</td><td style="padding:6px 0;font-size:15px;text-align:right;"><strong>${escapeHtml(slot)}</strong></td></tr>
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Behandling</td><td style="padding:6px 0;font-size:15px;text-align:right;">${escapeHtml(service)}</td></tr>
+      <tr><td style="padding:6px 0;color:${BRAND.taupe};font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Specialist</td><td style="padding:6px 0;font-size:15px;text-align:right;">${escapeHtml(resource)}</td></tr>
+    </table>
+    <p style="font-size:13px;line-height:20px;margin:0 0 4px;color:${BRAND.taupe};text-transform:uppercase;letter-spacing:0.05em;">Patient-kontext</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14px;">
+      <tr><td style="padding:4px 0;color:${BRAND.taupe};">Hälsodeklaration (ja)</td><td style="padding:4px 0;text-align:right;">${escapeHtml(healthYes)}</td></tr>
+      ${healthNotes ? `<tr><td style="padding:4px 0;color:${BRAND.taupe};">Anteckningar</td><td style="padding:4px 0;text-align:right;">${escapeHtml(healthNotes)}</td></tr>` : ''}
+      <tr><td style="padding:4px 0;color:${BRAND.taupe};">Önskat tidsfönster</td><td style="padding:4px 0;text-align:right;">${escapeHtml(timeWindow)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.taupe};">Stad</td><td style="padding:4px 0;text-align:right;">${escapeHtml(city)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.taupe};">Foton</td><td style="padding:4px 0;text-align:right;">${escapeHtml(photos)}</td></tr>
+      <tr><td style="padding:4px 0;color:${BRAND.taupe};">Språk</td><td style="padding:4px 0;text-align:right;">${escapeHtml(langPref)}</td></tr>
+    </table>
+    <p style="font-size:13px;line-height:20px;margin:0;color:${BRAND.taupe};">Ärende-ID: ${escapeHtml(input.caseId || '—')} · Hantera i CCO-vyn.</p>`;
+
+  const html = renderEmailShell({ locale: 'sv', bodyHtml, showFooter: false });
+  return { subject, html, text };
+}
+
 module.exports = {
   buildBookingReservationEmail,
+  buildOperatorNotificationEmail,
 };

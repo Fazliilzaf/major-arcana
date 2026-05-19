@@ -20,7 +20,7 @@ const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
 const { sendEmail } = require('../infra/resendMailer');
-const { buildBookingReservationEmail } = require('../templates/bookingReservationEmail');
+const { buildBookingReservationEmail, buildOperatorNotificationEmail } = require('../templates/bookingReservationEmail');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -352,6 +352,35 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         });
       }
       console.log(`[public-reservation] web booking by ${email} for slot ${slotId} email:${emailResult.mode}`);
+
+      // ── 6b. Operatörs-notifiering ─────────────────────────────────
+      // Skicka intern notis till kliniken så operatör ser bokningen i
+      // inkorgen utöver CCO-kortet. Best-effort — failar tyst.
+      const operatorTo = (process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com').trim();
+      if (operatorTo) {
+        try {
+          const opContent = buildOperatorNotificationEmail({
+            patientName: name,
+            patientEmail: email,
+            patientPhone: phone,
+            slotStart: primary?.slot?.startsAt || slotStart,
+            resourceLabel: resolvedResource,
+            serviceLabel: resolvedService,
+            caseId: conversationId,
+            leadContext: (body.leadContext && typeof body.leadContext === 'object') ? body.leadContext : {},
+          });
+          const opResult = await sendEmail({
+            to: operatorTo,
+            subject: opContent.subject,
+            html: opContent.html,
+            text: opContent.text,
+            idempotencyKey: `op-notify-${conversationId}-${primary?.reservationId || slotId}`,
+          });
+          console.log(`[public-reservation] operator notify to ${operatorTo} email:${opResult.mode}`);
+        } catch (opErr) {
+          console.warn(`[public-reservation] operator notify failed: ${opErr && opErr.message ? opErr.message : opErr}`);
+        }
+      }
 
       return res.json({
         ok: true,
