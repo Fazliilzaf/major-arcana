@@ -2861,16 +2861,16 @@
   .conversation-next-step--toolbar-only {
     background: transparent !important;
     background-image: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
+    border: none;
+    box-shadow: none;
+    padding: 0;
   }
   .conversation-next-actions,
   .conversation-next-actions--toolbar-row {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 8px 0 !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 8px 0;
   }
   /* Cushion-look på knapparna (matchar focus-tabs) */
   .conversation-next-action-chip,
@@ -2879,81 +2879,81 @@
   .conversation-next-button.conversation-next-action-chip--booking,
   .conversation-next-button.conversation-next-action-chip--note,
   .conversation-next-button.conversation-next-action-chip--schedule {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 238, 232, 0.90) 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.82) !important;
-    border-radius: 14px !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 238, 232, 0.90) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 14px;
     box-shadow:
       0 2px 6px rgba(56, 40, 28, 0.10),
-      inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
-    font-weight: 600 !important;
-    height: 27px !important;
-    min-height: 27px !important;
-    max-height: 27px !important;
-    padding: 0 16px !important;
-    transition: all 220ms ease !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    font-weight: 600;
+    height: 27px;
+    min-height: 27px;
+    max-height: 27px;
+    padding: 0 16px;
+    transition: all 220ms ease;
   }
   .conversation-next-action-chip:hover {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 232, 226, 0.94)) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 232, 226, 0.94));
     box-shadow:
       0 4px 10px rgba(56, 40, 28, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    transform: translateY(-1px) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    transform: translateY(-1px);
   }
   /* Per-modifier färg på text + ikon */
   .conversation-next-button.conversation-next-action-chip--studio,
   .conversation-next-button.conversation-next-action-chip--studio svg,
   .conversation-next-button.conversation-next-action-chip--studio path {
-    color: #b43a3a !important;
-    stroke: #b43a3a !important;
+    color: #b43a3a;
+    stroke: #b43a3a;
   }
   .conversation-next-button.conversation-next-action-chip--booking,
   .conversation-next-button.conversation-next-action-chip--booking svg,
   .conversation-next-button.conversation-next-action-chip--booking path {
-    color: #4f8a55 !important;
-    stroke: #4f8a55 !important;
+    color: #4f8a55;
+    stroke: #4f8a55;
   }
   .conversation-next-button.conversation-next-action-chip--note,
   .conversation-next-button.conversation-next-action-chip--note svg,
   .conversation-next-button.conversation-next-action-chip--note path {
-    color: #1f66a8 !important;
-    stroke: #1f66a8 !important;
+    color: #1f66a8;
+    stroke: #1f66a8;
   }
   .conversation-next-button.conversation-next-action-chip--schedule,
   .conversation-next-button.conversation-next-action-chip--schedule svg,
   .conversation-next-button.conversation-next-action-chip--schedule path {
-    color: #c77d2a !important;
-    stroke: #c77d2a !important;
+    color: #c77d2a;
+    stroke: #c77d2a;
   }
 
   /* --- DROPDOWN-PLACERING (egen rad ovanför quickstrip) --- */
   /* Görs via index.html DOM-move, men säkra layout-CSS här */
   .queue-bottom-row {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 4px !important;
-    margin-bottom: 4px !important;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
   }
   .queue-bottom-row > .mailbox-dropdown {
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
   }
 
   /* --- HIGHLIGHT AKTIV QUEUE-CHIP --- */
   .queue-filter-chip.is-active {
-    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%) !important;
+    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%);
     box-shadow:
       0 0 0 2px rgba(199, 125, 42, 0.35),
       0 1px 3px rgba(199, 125, 42, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
-    border-color: #c77d2a !important;
-    transform: translateY(-0.5px) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border-color: #c77d2a;
+    transform: translateY(-0.5px);
   }
 
   /* --- DÖLJ INDIKATOR-RAD + SIGNAL-STRIP --- */
   .queue-action-row.queue-bubble-row,
   .queue-secondary-signal-strip {
-    display: none !important;
+    display: none;
   }
 
   /* ============================================================
@@ -3005,19 +3005,19 @@
     transform: translateY(-1px);
   }
   .mailbox-menu-toggle:checked + .mailbox-trigger {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 232, 226, 0.96) 100%) !important;
-    border-color: rgba(232, 220, 212, 0.96) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 232, 226, 0.96) 100%);
+    border-color: rgba(232, 220, 212, 0.96);
     box-shadow:
       0 5px 12px rgba(56, 40, 28, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    transform: translateY(-1px) !important;
-    font-weight: 700 !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    transform: translateY(-1px);
+    font-weight: 700;
   }
 
   /* Dölj indikator-rad (Bokning + check + trash) — överflödig nu */
   .queue-action-row.queue-bubble-row,
   .queue-secondary-signal-strip {
-    display: none !important;
+    display: none;
   }
 
   /* --- FIX: tom-state-card i fokus-pane (session expired etc.) ---
@@ -3026,12 +3026,12 @@
      conversation-entry. Tom-state-cardet hamnar fel i avatar-slot
      (32px) → text radbryts ord-för-ord. Fix: bara 1 kolumn. */
   .conversation-entry.conversation-entry-empty {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
   .conversation-empty-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* Highlight aktiv kö-chip prominent (ersätter den dolda indikator-raden) */
