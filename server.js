@@ -1195,6 +1195,7 @@ process.once('SIGTERM', () => {
     secretRotationStore,
     sloTicketStore,
     releaseGovernanceStore,
+    postOpReviewStore,
     alertNotifier: createAlertNotifier({
       webhookUrl: config.alertWebhookUrl,
       webhookSecret: config.alertWebhookSecret,

@@ -35896,6 +35896,14 @@
             Välj minst en tid för att aktivera Svarstudio och överlämning.
           </p>
           <p class="booking-feedback" data-booking-feedback aria-live="polite"></p>
+          <!-- Efter-bilder från post-op review-flödet. Renderas av
+               renderPostOpThumbnails() när operatören öppnar tråd med
+               post-op submission. Tom om inga foton finns. -->
+          <section class="booking-post-op-photos" data-booking-post-op-photos hidden>
+            <h3 class="booking-post-op-photos-title">📸 Efter-bilder från patient</h3>
+            <p class="booking-post-op-photos-meta" data-booking-post-op-meta></p>
+            <div class="booking-post-op-photos-grid" data-booking-post-op-photos-grid></div>
+          </section>
         </section>`
       );
       surface = document.querySelector("[data-booking-surface]");
@@ -36034,7 +36042,95 @@
       actionHint: surface?.querySelector("[data-booking-action-hint]"),
       feedback: surface?.querySelector("[data-booking-feedback]") || bookingFeedback,
       actionButtons: Array.from(surface?.querySelectorAll("[data-booking-action]") || bookingActionButtons),
+      postOpPhotos: surface?.querySelector("[data-booking-post-op-photos]"),
+      postOpPhotosMeta: surface?.querySelector("[data-booking-post-op-meta]"),
+      postOpPhotosGrid: surface?.querySelector("[data-booking-post-op-photos-grid]"),
     };
+  }
+
+  // Cache av post-op photo-fetches per caseId så vi inte hammrar
+  // /api/v1/cco-bookings/:caseId/post-op-photos vid varje render.
+  // TTL: 60s — räcker för operatörens session.
+  const __postOpPhotoCache = new Map();
+  const POST_OP_PHOTO_TTL_MS = 60_000;
+
+  // One-time style injection för post-op thumbnails. Vi undviker att
+  // röra cco-polish.css så vi slipper cache-buster-konflikter med
+  // andra Cursor-sessioner.
+  (function injectPostOpPhotoStyles() {
+    if (document.getElementById("__post-op-photo-styles")) return;
+    const style = document.createElement("style");
+    style.id = "__post-op-photo-styles";
+    style.textContent = `
+      .booking-post-op-photos{margin:18px 0 8px;padding:14px 16px;border:1px solid rgba(108,79,52,.18);border-radius:12px;background:rgba(248,244,240,.6)}
+      .booking-post-op-photos-title{margin:0 0 4px;font-family:'Newsreader',serif;font-size:16px;font-weight:300;color:#231F1D}
+      .booking-post-op-photos-meta{margin:0 0 12px;font-size:12px;color:#6B5F58;letter-spacing:.01em}
+      .booking-post-op-photos-grid{display:flex;flex-wrap:wrap;gap:10px}
+      .booking-post-op-photo-tile{display:inline-flex;width:96px;height:96px;border-radius:8px;overflow:hidden;background:#E5DACE;border:1px solid rgba(108,79,52,.2);text-decoration:none;cursor:zoom-in;transition:transform .15s ease,box-shadow .15s ease}
+      .booking-post-op-photo-tile:hover{transform:scale(1.04);box-shadow:0 6px 16px rgba(35,31,29,.18)}
+      .booking-post-op-photo-tile img{width:100%;height:100%;object-fit:cover;display:block}
+    `;
+    document.head.appendChild(style);
+  })();
+
+  async function renderPostOpThumbnails(thread) {
+    const bookingDom = getBookingDom();
+    if (!bookingDom.postOpPhotos) return;
+
+    const caseId = asText(thread?.conversationId);
+    if (!caseId) {
+      bookingDom.postOpPhotos.hidden = true;
+      return;
+    }
+
+    const cached = __postOpPhotoCache.get(caseId);
+    let data;
+    if (cached && cached.expiresAt > Date.now()) {
+      data = cached.data;
+    } else {
+      try {
+        data = await apiRequest(`/api/v1/cco-bookings/${encodeURIComponent(caseId)}/post-op-photos`);
+        __postOpPhotoCache.set(caseId, { data, expiresAt: Date.now() + POST_OP_PHOTO_TTL_MS });
+      } catch (err) {
+        // Inte fatal — kanske ingen submission finns, eller en 401 i offline-läge.
+        bookingDom.postOpPhotos.hidden = true;
+        return;
+      }
+    }
+
+    const photos = Array.isArray(data?.photos) ? data.photos : [];
+    if (photos.length === 0) {
+      bookingDom.postOpPhotos.hidden = true;
+      return;
+    }
+
+    bookingDom.postOpPhotos.hidden = false;
+    if (bookingDom.postOpPhotosMeta) {
+      const sub = data.submission || {};
+      const consent = sub.consentToPublish ? "Samtycke till publicering ✓" : "Endast klinisk journal · INTE för marknadsföring";
+      const submittedAt = sub.submittedAt ? new Date(sub.submittedAt).toLocaleString("sv-SE") : "—";
+      const purgedNote = sub.photosDeletedAt ? " · 🗑 raderade av GDPR-cron" : "";
+      bookingDom.postOpPhotosMeta.textContent = `${photos.length} foto(n) · Submittade ${submittedAt} · ${consent}${purgedNote}`;
+    }
+    if (bookingDom.postOpPhotosGrid) {
+      bookingDom.postOpPhotosGrid.innerHTML = "";
+      for (const p of photos) {
+        const a = document.createElement("a");
+        a.href = p.url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.title = `${p.filename} · ${(p.size / 1024).toFixed(0)} kB · ${new Date(p.uploadedAt).toLocaleString("sv-SE")}`;
+        a.className = "booking-post-op-photo-tile";
+
+        const img = document.createElement("img");
+        img.src = p.url;
+        img.alt = p.filename || "Patient-foto";
+        img.loading = "lazy";
+
+        a.appendChild(img);
+        bookingDom.postOpPhotosGrid.appendChild(a);
+      }
+    }
   }
 
   function renderBookingSurface() {
@@ -36050,6 +36146,9 @@
         ? getSelectedRuntimeFocusThread()
         : null;
     const thread = getBookingWorkThread();
+    // Async — non-blocking. Render-callen är synchron men photo-fetchen
+    // är async, hidden state hanteras av render-funktionen själv.
+    renderPostOpThumbnails(thread).catch(() => {});
     const userRequestedBookingOpen = state.runtime?.bookingShellOpen === true;
     const isBooking =
       Boolean(focusThread) &&
@@ -38166,6 +38265,10 @@
               ? `Email-draft kopierad till urklipp. Klistra in i Outlook → skicka till patient. Review-länk: ${reviewLink}`
               : `Review-länk kopierad till urklipp: ${reviewLink}`
           );
+          // Invalidate photo cache så thumbnails refreshas vid nästa
+          // renderBookingSurface (om patient redan hade laddat upp foton
+          // genom en tidigare submission, eller renew av token).
+          __postOpPhotoCache.delete(caseId);
         }
       }
 

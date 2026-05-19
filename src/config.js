@@ -237,6 +237,15 @@ const config = {
   postOpPhotosDir: process.env.ARCANA_POST_OP_PHOTOS_DIR
     ? String(process.env.ARCANA_POST_OP_PHOTOS_DIR).trim()
     : require('path').join(stateRoot, 'post-op-photos'),
+  // GDPR-retention för foton submittade utan publicerings-consent.
+  // Default 365 dagar (12 mån) per Hair TP:s sekretesspolicy.
+  postOpPhotoRetentionDays: Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS) > 0
+    ? Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS)
+    : 365,
+  // Cron-interval för pruneNoConsentPhotos (default 24h).
+  schedulerPostOpPhotoPruneIntervalHours: Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
+    ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
+    : 24,
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
     stateRoot,

@@ -8,6 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300;400&family=Inter:wght@400;500;600&display=swap">
+  <!-- heic2any: konverterar iPhone HEIC/HEIF till JPEG i browsern.
+       Laddas async eftersom de flesta patienter laddar PNG/JPEG och inte
+       behöver libheif-WASM. Vi gate:ar konvertering på MIME type. -->
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js" async></script>
   <style>
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;padding:0}
@@ -174,7 +178,9 @@
             <span>+</span>
             <span data-i18n="photosAddBtn">Välj bilder</span>
           </label>
-          <input id="photo-input" type="file" accept="image/jpeg,image/png" multiple>
+          <!-- accept inkluderar HEIC/HEIF; iPhone-foton heter .heic men många browsers
+               rapporterar mime som tomt eller image/heic. Vi konverterar i JS innan upload. -->
+          <input id="photo-input" type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" multiple>
           <div id="photo-chips" class="photo-chips"></div>
         </div>
 
@@ -236,10 +242,12 @@
           photosHelper:    'Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.',
           photosAddBtn:    'Välj bilder',
           photoTooLarge:   'För stor fil (max 8 MB):',
-          photoBadType:    'Filtypen stöds inte (endast JPEG/PNG):',
+          photoBadType:    'Filtypen stöds inte (endast JPEG/PNG/HEIC):',
           photoLimitMsg:   'Max 6 bilder totalt.',
           photoUploadErr:  'Kunde inte ladda upp bilderna just nu. Försök igen.',
           photoUploading:  'Laddar upp bilder…',
+          photoConverting: 'Konverterar iPhone-bild…',
+          photoConvertFail:'Kunde inte konvertera iPhone-bild. Spara om i Foton som JPEG och försök igen.',
           consentHtml:     '<strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.',
           submitBtn:       'Skicka in',
           submitSending:   'Skickar…',
@@ -268,10 +276,12 @@
           photosHelper:    'Up to 6 photos, JPEG or PNG, max 8 MB per photo. We automatically remove location and camera data before saving.',
           photosAddBtn:    'Choose photos',
           photoTooLarge:   'File too large (max 8 MB):',
-          photoBadType:    'File type not supported (JPEG/PNG only):',
+          photoBadType:    'File type not supported (JPEG/PNG/HEIC only):',
           photoLimitMsg:   'Max 6 photos total.',
           photoUploadErr:  'Could not upload photos right now. Please try again.',
           photoUploading:  'Uploading photos…',
+          photoConverting: 'Converting iPhone photo…',
+          photoConvertFail:'Could not convert iPhone photo. Re-save as JPEG in Photos and try again.',
           consentHtml:     '<strong>I consent to Hair TP Clinic using my photos anonymously</strong> in marketing (hairtpclinic.com, Instagram, other digital channels). Only the area <strong>from the eyebrows up</strong> is published — no features that could identify me. I can withdraw consent at any time by contacting contact@hairtpclinic.com.',
           submitBtn:       'Submit',
           submitSending:   'Sending…',
@@ -368,6 +378,15 @@
       var MAX_PHOTO_BYTES = 8 * 1024 * 1024;
       var MAX_PHOTOS = 6;
       var ALLOWED_TYPES = ['image/jpeg', 'image/png'];
+      // iPhone-foton: vissa browsers rapporterar 'image/heic', andra '' (tom string).
+      // Vi använder file-namnsslutfix som fallback.
+      var HEIC_TYPES = ['image/heic', 'image/heif'];
+      function isHeicFile(f) {
+        var type = String(f && f.type || '').toLowerCase();
+        if (HEIC_TYPES.indexOf(type) !== -1) return true;
+        var name = String(f && f.name || '').toLowerCase();
+        return /\.(heic|heif)$/.test(name);
+      }
       var $photoInput = document.getElementById('photo-input');
       var $photoChips = document.getElementById('photo-chips');
       var pickedFiles = [];
@@ -388,7 +407,8 @@
           name.textContent = f.name;
           var size = document.createElement('span');
           size.className = 'size';
-          size.textContent = fmtBytes(f.size);
+          // För HEIC-placeholders som konverteras: visa "Konverterar…" istället för size.
+          size.textContent = f._converting ? (t.photoConverting || 'Konverterar…') : fmtBytes(f.size);
           var remove = document.createElement('button');
           remove.type = 'button';
           remove.setAttribute('aria-label', 'Remove');
@@ -404,12 +424,38 @@
         });
       }
 
-      $photoInput.addEventListener('change', function(ev){
+      // Lazy-loadar heic2any vid behov; libheif-WASM är ~600KB så vi väntar
+      // med konvertering tills patient faktiskt valt HEIC-bild.
+      async function convertHeicToJpeg(file) {
+        // heic2any-skripttaggen är async så den kanske inte är klar ännu.
+        // Vänta upp till 8s på att den dyker upp.
+        var deadline = Date.now() + 8000;
+        while (typeof window.heic2any !== 'function' && Date.now() < deadline) {
+          await new Promise(function(r){ setTimeout(r, 200); });
+        }
+        if (typeof window.heic2any !== 'function') {
+          throw new Error('heic2any_not_loaded');
+        }
+        var blob = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+        // heic2any returnerar Blob eller Array<Blob> för multi-frame HEIC; vi tar första.
+        var jpegBlob = Array.isArray(blob) ? blob[0] : blob;
+        // Bygg en File med .jpg-suffix så server får rätt extension.
+        var newName = String(file.name || 'photo').replace(/\.(heic|heif)$/i, '') + '.jpg';
+        return new File([jpegBlob], newName, { type: 'image/jpeg' });
+      }
+
+      $photoInput.addEventListener('change', async function(ev){
         hide($error);
         var newFiles = Array.from(ev.target.files || []);
+        // Tillåt re-pick av samma fil; rensa input nu så vi inte triggar
+        // change igen om vi modifierar pickedFiles.
+        ev.target.value = '';
+
         for (var i = 0; i < newFiles.length; i++) {
           var f = newFiles[i];
-          if (ALLOWED_TYPES.indexOf(f.type) === -1) {
+          var heic = isHeicFile(f);
+
+          if (!heic && ALLOWED_TYPES.indexOf(f.type) === -1) {
             showError(t.photoBadType + ' ' + f.name);
             continue;
           }
@@ -421,17 +467,37 @@
             showError(t.photoLimitMsg);
             break;
           }
-          pickedFiles.push(f);
+
+          if (heic) {
+            // Visa "konverterar"-statust i chip-listan medan libheif jobbar.
+            var placeholder = { name: f.name, size: f.size, _converting: true };
+            pickedFiles.push(placeholder);
+            renderChips();
+            try {
+              var converted = await convertHeicToJpeg(f);
+              // Ersätt placeholdern med konverterade filen
+              var idx = pickedFiles.indexOf(placeholder);
+              if (idx !== -1) pickedFiles[idx] = converted;
+            } catch (err) {
+              var idx2 = pickedFiles.indexOf(placeholder);
+              if (idx2 !== -1) pickedFiles.splice(idx2, 1);
+              showError(t.photoConvertFail + ' ' + f.name);
+            }
+            renderChips();
+          } else {
+            pickedFiles.push(f);
+            renderChips();
+          }
         }
-        renderChips();
-        // Tillåt re-pick av samma fil om patient ångrar sig
-        ev.target.value = '';
       });
 
       function uploadPhotos(){
-        if (pickedFiles.length === 0) return Promise.resolve({ ok: true, uploaded: [] });
+        // Filtrera bort placeholders som fortfarande konverteras — annars
+        // POST:ar vi ett objekt utan binary data och servern svarar 400.
+        var ready = pickedFiles.filter(function(f){ return !f._converting && f instanceof File; });
+        if (ready.length === 0) return Promise.resolve({ ok: true, uploaded: [] });
         var fd = new FormData();
-        pickedFiles.forEach(function(f){ fd.append('photos', f, f.name); });
+        ready.forEach(function(f){ fd.append('photos', f, f.name); });
         return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/photos', {
           method: 'POST',
           credentials: 'omit',

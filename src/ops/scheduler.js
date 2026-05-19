@@ -278,6 +278,7 @@ function createScheduler({
   secretRotationStore = null,
   sloTicketStore = null,
   releaseGovernanceStore = null,
+  postOpReviewStore = null,
   alertNotifier = null,
   logger = console,
 } = {}) {
@@ -434,6 +435,52 @@ function createScheduler({
       pruneDeletedCount: prune.deletedCount,
       pruneScannedCount: prune.scannedCount,
       pruneKeptCount: prune.keptCount,
+    };
+  }
+
+  /**
+   * GDPR-radering av post-op-foton: patient som submittade utan
+   * publicerings-consent får sina foton raderade efter `ttlDays` (default
+   * 365 = 12 mån). Store-funktionen nollställer photos[] + sätter
+   * photosDeletedAt; vi tar dessutom bort filerna på disk här.
+   *
+   * Föregående status-doc 2026-05-19 sektion 7.6 flaggade detta som
+   * GDPR-skyldighet. Wirad in 2026-05-19 runda III.
+   */
+  async function runPostOpPhotoPrune({ tenantId }) {
+    if (!postOpReviewStore || typeof postOpReviewStore.pruneNoConsentPhotos !== 'function') {
+      return { tenantId, skipped: true, reason: 'postOpReviewStore_missing' };
+    }
+    const ttlDays = Math.max(30, Number(config.postOpPhotoRetentionDays) || 365);
+    const pruned = await postOpReviewStore.pruneNoConsentPhotos({ ttlDays });
+    const fsPromises = require('node:fs/promises');
+    const pathLib = require('node:path');
+    const photosDir = config.postOpPhotosDir || pathLib.join(config.stateRoot || process.cwd(), 'post-op-photos');
+    let filesDeleted = 0;
+    let dirsDeleted = 0;
+    let diskErrors = 0;
+    for (const sub of pruned) {
+      const subDir = pathLib.join(photosDir, sub.submissionId);
+      try {
+        const entries = await fsPromises.readdir(subDir).catch(() => []);
+        for (const f of entries) {
+          await fsPromises.unlink(pathLib.join(subDir, f)).catch(() => { diskErrors++; });
+          filesDeleted++;
+        }
+        await fsPromises.rmdir(subDir).catch(() => { /* non-fatal */ });
+        dirsDeleted++;
+      } catch (err) {
+        diskErrors++;
+        logger.warn?.('[post-op-photo-prune] disk delete failed', sub.submissionId, err?.message);
+      }
+    }
+    return {
+      tenantId,
+      ttlDays,
+      submissionsPruned: pruned.length,
+      filesDeleted,
+      dirsDeleted,
+      diskErrors,
     };
   }
 
@@ -2737,6 +2784,14 @@ function createScheduler({
       name: 'High/Critical alert probe',
       intervalMs: toMinutesMs(config.schedulerAlertProbeIntervalMinutes, 15),
       run: runAlertProbe,
+    },
+    {
+      id: 'post_op_photo_prune',
+      name: 'Post-op photo GDPR prune (no-consent + age > 12 mån)',
+      intervalMs: postOpReviewStore
+        ? toHoursMs(config.schedulerPostOpPhotoPruneIntervalHours, 24)
+        : 0,
+      run: runPostOpPhotoPrune,
     },
   ];
 

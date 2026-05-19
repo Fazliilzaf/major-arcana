@@ -222,6 +222,123 @@ function createPostOpReviewRouter({
     }
   });
 
+  // ── OPERATOR THUMBNAIL READ (auth-protected) ──────────────────────
+  //
+  // GET /api/v1/cco-bookings/:caseId/post-op-photos
+  //   Returnerar metadata för alla foton kopplade till caset.
+  //
+  // GET /api/v1/cco-bookings/:caseId/post-op-photos/:photoId
+  //   Streamar bildfilen från disk så CCO kan rendera <img>-tags.
+  //
+  // Vi gör auth tenant-scoped: submission.tenantId måste matcha operatörens
+  // tenant så en operatör i klinik A inte kan se foton från klinik B.
+
+  router.get('/api/v1/cco-bookings/:caseId/post-op-photos', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const caseId = normalizeText(req.params.caseId);
+      if (!caseId) return res.status(400).json({ ok: false, error: 'caseId_missing' });
+
+      const submission = postOpReviewStore.findByBookingCaseId(caseId);
+      if (!submission) {
+        return res.json({ ok: true, submission: null, photos: [] });
+      }
+      if (submission.tenantId && submission.tenantId !== actor.tenantId) {
+        return res.status(403).json({ ok: false, error: 'tenant_mismatch' });
+      }
+
+      const photos = (Array.isArray(submission.photos) ? submission.photos : []).map((p) => ({
+        photoId: p.photoId,
+        filename: p.filename,
+        size: p.size,
+        uploadedAt: p.uploadedAt,
+        // Operator-vyn använder denna URL för <img src>. Auth följer med
+        // via existing session token (apiRequest sätter Authorization).
+        url: `/api/v1/cco-bookings/${encodeURIComponent(caseId)}/post-op-photos/${encodeURIComponent(p.photoId)}`,
+      }));
+
+      return res.json({
+        ok: true,
+        submission: {
+          submissionId: submission.submissionId,
+          patientName: submission.patientName || '',
+          submittedAt: submission.submittedAt || null,
+          consentToPublish: submission.consentToPublish === true,
+          patientNote: submission.patientNote || '',
+          photosDeletedAt: submission.photosDeletedAt || null,
+        },
+        photos,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/photos-meta]', error);
+      return res.status(500).json({ ok: false, error: 'photos_meta_failed' });
+    }
+  });
+
+  router.get('/api/v1/cco-bookings/:caseId/post-op-photos/:photoId', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const caseId = normalizeText(req.params.caseId);
+      const photoId = normalizeText(req.params.photoId);
+      if (!caseId || !photoId) {
+        return res.status(400).json({ ok: false, error: 'missing_params' });
+      }
+
+      const submission = postOpReviewStore.findByBookingCaseId(caseId);
+      if (!submission) {
+        return res.status(404).json({ ok: false, error: 'submission_not_found' });
+      }
+      if (submission.tenantId && submission.tenantId !== actor.tenantId) {
+        return res.status(403).json({ ok: false, error: 'tenant_mismatch' });
+      }
+
+      // Verifiera att photoId tillhör submission (förhindrar att operator
+      // sniffar andra patienters foton via gissad UUID).
+      const photoMeta = (Array.isArray(submission.photos) ? submission.photos : []).find(
+        (p) => p.photoId === photoId
+      );
+      if (!photoMeta) {
+        return res.status(404).json({ ok: false, error: 'photo_not_found_in_submission' });
+      }
+
+      // Hitta filen på disk. Stödjer .jpg och .png — multer-routen sparar
+      // med ext baserat på MIME.
+      const photosDir = (config && config.postOpPhotosDir)
+        || path.join(process.cwd(), 'data', 'post-op-photos');
+      const submissionDir = path.join(photosDir, submission.submissionId);
+      const fsSync = require('node:fs');
+      let onDiskPath = null;
+      let contentType = null;
+      for (const ext of ['.jpg', '.jpeg', '.png']) {
+        const candidate = path.join(submissionDir, photoId + ext);
+        if (fsSync.existsSync(candidate)) {
+          onDiskPath = candidate;
+          contentType = ext === '.png' ? 'image/png' : 'image/jpeg';
+          break;
+        }
+      }
+      if (!onDiskPath) {
+        return res.status(404).json({ ok: false, error: 'photo_file_missing_on_disk' });
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return fsSync.createReadStream(onDiskPath).pipe(res);
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/photo-stream]', error);
+      return res.status(500).json({ ok: false, error: 'photo_stream_failed' });
+    }
+  });
+
   // ── PATIENT-FACING (token-only, public) ───────────────────────────
 
   // GET /api/v1/post-op-review/:token/lookup
