@@ -232,6 +232,11 @@ const config = {
     stateRoot,
     fileName: 'post-op-reviews.json',
   }),
+  // Fotofilerna ligger separat från JSON-storen (foton kan vara stora;
+  // JSON läses ofta). Default: <stateRoot>/post-op-photos/<submissionId>/<photoId>.jpg
+  postOpPhotosDir: process.env.ARCANA_POST_OP_PHOTOS_DIR
+    ? String(process.env.ARCANA_POST_OP_PHOTOS_DIR).trim()
+    : require('path').join(stateRoot, 'post-op-photos'),
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
     stateRoot,

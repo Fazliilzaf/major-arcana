@@ -94,6 +94,32 @@
       padding:14px 18px;background:#F0EAE3;border-radius:12px;
       font-size:13px;color:#6B5F58;line-height:1.6;margin:16px 0;
     }
+    .photo-upload{margin:16px 0 4px}
+    .photo-upload .label{
+      font-size:14px;color:#231F1D;font-weight:600;margin-bottom:8px;display:block;
+    }
+    .photo-upload .helper{font-size:12px;color:#8B8079;line-height:1.5;margin:0 0 12px}
+    .photo-upload input[type=file]{display:none}
+    .photo-upload .add-btn{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 18px;
+      border:1px dashed #C2AA9C;border-radius:24px;background:#fff;
+      font-size:13px;color:#6B5F58;cursor:pointer;
+      text-transform:uppercase;letter-spacing:0.08em;
+    }
+    .photo-upload .add-btn:hover{background:#F8F4F0;border-color:#231F1D;color:#231F1D}
+    .photo-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .photo-chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px 6px 12px;background:#fff;border:1px solid #E5DACE;
+      border-radius:20px;font-size:12px;color:#231F1D;max-width:240px;
+    }
+    .photo-chip .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+    .photo-chip .size{color:#8B8079;font-size:11px}
+    .photo-chip button{
+      background:none;border:none;cursor:pointer;color:#8B8079;font-size:16px;
+      line-height:1;padding:0 4px;
+    }
+    .photo-chip button:hover{color:#231F1D}
     @media (max-width:520px){
       .wrap{padding:20px 16px 60px}
       h1{font-size:26px}
@@ -141,8 +167,15 @@
         <p class="muted" style="margin:0 0 16px" data-i18n="formCardSub">Skriv gärna en mening eller två — helt frivilligt.</p>
         <textarea id="patient-note" maxlength="2000" data-i18n-placeholder="formPlaceholder" placeholder="Hur upplevde du behandlingen och resultatet?"></textarea>
 
-        <div class="photos-note">
-          <span data-i18n="photosNoteHtml">📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.</span>
+        <div class="photo-upload">
+          <span class="label" data-i18n="photosLabel">📸 Lägg till efter-bilder (frivilligt)</span>
+          <p class="helper" data-i18n="photosHelper">Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.</p>
+          <label for="photo-input" class="add-btn">
+            <span>+</span>
+            <span data-i18n="photosAddBtn">Välj bilder</span>
+          </label>
+          <input id="photo-input" type="file" accept="image/jpeg,image/png" multiple>
+          <div id="photo-chips" class="photo-chips"></div>
         </div>
 
         <label class="consent">
@@ -199,7 +232,14 @@
           formCardTitle:   'Hur har det gått?',
           formCardSub:     'Skriv gärna en mening eller två — helt frivilligt.',
           formPlaceholder: 'Hur upplevde du behandlingen och resultatet?',
-          photosNoteHtml:  '📸 <strong>Vill du dela efter-bilder?</strong> Mejla dem till <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> med ärendenumret du har — vi lägger dem på din journal. Direktuppladdning kommer snart.',
+          photosLabel:     '📸 Lägg till efter-bilder (frivilligt)',
+          photosHelper:    'Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.',
+          photosAddBtn:    'Välj bilder',
+          photoTooLarge:   'För stor fil (max 8 MB):',
+          photoBadType:    'Filtypen stöds inte (endast JPEG/PNG):',
+          photoLimitMsg:   'Max 6 bilder totalt.',
+          photoUploadErr:  'Kunde inte ladda upp bilderna just nu. Försök igen.',
+          photoUploading:  'Laddar upp bilder…',
           consentHtml:     '<strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.',
           submitBtn:       'Skicka in',
           submitSending:   'Skickar…',
@@ -224,7 +264,14 @@
           formCardTitle:   'How did it go?',
           formCardSub:     'Write a sentence or two if you like — completely optional.',
           formPlaceholder: 'How did you experience the treatment and the result?',
-          photosNoteHtml:  '📸 <strong>Want to share after-photos?</strong> Email them to <a href="mailto:contact@hairtpclinic.com" style="color:#6B5F58">contact@hairtpclinic.com</a> with your case number — we will add them to your record. Direct upload coming soon.',
+          photosLabel:     '📸 Add after-photos (optional)',
+          photosHelper:    'Up to 6 photos, JPEG or PNG, max 8 MB per photo. We automatically remove location and camera data before saving.',
+          photosAddBtn:    'Choose photos',
+          photoTooLarge:   'File too large (max 8 MB):',
+          photoBadType:    'File type not supported (JPEG/PNG only):',
+          photoLimitMsg:   'Max 6 photos total.',
+          photoUploadErr:  'Could not upload photos right now. Please try again.',
+          photoUploading:  'Uploading photos…',
           consentHtml:     '<strong>I consent to Hair TP Clinic using my photos anonymously</strong> in marketing (hairtpclinic.com, Instagram, other digital channels). Only the area <strong>from the eyebrows up</strong> is published — no features that could identify me. I can withdraw consent at any time by contacting contact@hairtpclinic.com.',
           submitBtn:       'Submit',
           submitSending:   'Sending…',
@@ -317,19 +364,102 @@
           show($invalid);
         });
 
+      // ── Photo picker state ──────────────────────────────────────────
+      var MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+      var MAX_PHOTOS = 6;
+      var ALLOWED_TYPES = ['image/jpeg', 'image/png'];
+      var $photoInput = document.getElementById('photo-input');
+      var $photoChips = document.getElementById('photo-chips');
+      var pickedFiles = [];
+
+      function fmtBytes(n){
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' kB';
+        return (n / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      function renderChips(){
+        $photoChips.innerHTML = '';
+        pickedFiles.forEach(function(f, i){
+          var chip = document.createElement('div');
+          chip.className = 'photo-chip';
+          var name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = f.name;
+          var size = document.createElement('span');
+          size.className = 'size';
+          size.textContent = fmtBytes(f.size);
+          var remove = document.createElement('button');
+          remove.type = 'button';
+          remove.setAttribute('aria-label', 'Remove');
+          remove.textContent = '×';
+          remove.addEventListener('click', function(){
+            pickedFiles.splice(i, 1);
+            renderChips();
+          });
+          chip.appendChild(name);
+          chip.appendChild(size);
+          chip.appendChild(remove);
+          $photoChips.appendChild(chip);
+        });
+      }
+
+      $photoInput.addEventListener('change', function(ev){
+        hide($error);
+        var newFiles = Array.from(ev.target.files || []);
+        for (var i = 0; i < newFiles.length; i++) {
+          var f = newFiles[i];
+          if (ALLOWED_TYPES.indexOf(f.type) === -1) {
+            showError(t.photoBadType + ' ' + f.name);
+            continue;
+          }
+          if (f.size > MAX_PHOTO_BYTES) {
+            showError(t.photoTooLarge + ' ' + f.name);
+            continue;
+          }
+          if (pickedFiles.length >= MAX_PHOTOS) {
+            showError(t.photoLimitMsg);
+            break;
+          }
+          pickedFiles.push(f);
+        }
+        renderChips();
+        // Tillåt re-pick av samma fil om patient ångrar sig
+        ev.target.value = '';
+      });
+
+      function uploadPhotos(){
+        if (pickedFiles.length === 0) return Promise.resolve({ ok: true, uploaded: [] });
+        var fd = new FormData();
+        pickedFiles.forEach(function(f){ fd.append('photos', f, f.name); });
+        return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/photos', {
+          method: 'POST',
+          credentials: 'omit',
+          body: fd
+        }).then(function(r){
+          if (!r.ok) throw new Error('photo_upload_failed_' + r.status);
+          return r.json();
+        });
+      }
+
       $submitForm.addEventListener('submit', function(ev){
         ev.preventDefault();
         hide($error);
         $submitBtn.disabled = true;
-        $submitBtn.textContent = t.submitSending;
+        $submitBtn.textContent = pickedFiles.length > 0 ? t.photoUploading : t.submitSending;
         var consent = document.getElementById('consent-publish').checked;
         var note = document.getElementById('patient-note').value;
-        fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
-          method: 'POST',
-          credentials: 'omit',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consentToPublish: consent, patientNote: note })
-        })
+
+        uploadPhotos()
+          .then(function(){
+            $submitBtn.textContent = t.submitSending;
+            return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
+              method: 'POST',
+              credentials: 'omit',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ consentToPublish: consent, patientNote: note })
+            });
+          })
           .then(function(r){
             if (!r.ok) throw new Error('submit_failed_' + r.status);
             return r.json();
@@ -339,10 +469,15 @@
             hide($form);
             show($success);
           })
-          .catch(function(){
+          .catch(function(err){
             $submitBtn.disabled = false;
             $submitBtn.textContent = t.submitBtn;
-            showError(t.submitError);
+            // Använd photo-specifikt error om upload var problemet
+            if (String(err && err.message || '').indexOf('photo_upload_failed') === 0) {
+              showError(t.photoUploadErr);
+            } else {
+              showError(t.submitError);
+            }
           });
       });
 

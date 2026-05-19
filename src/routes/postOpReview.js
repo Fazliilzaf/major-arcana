@@ -1,33 +1,70 @@
 'use strict';
 
 /**
- * Post-Op Review routes — Fas 1 minimal trigger + token-lookup.
+ * Post-Op Review routes — Fas 1 + Fas 1.B (photo upload).
  *
  * Spec: docs/strategy/post-op-review-photo-flow.md
  *
- * Detta är minsta funktionella routes-skikt:
- * - Operator triggar via auth-skyddad endpoint → får reviewLink + emailDraft
- *   som de manuellt skickar via Outlook tills M365 Graph-integration är wirad.
- * - Patient hämtar submission-status via token (public).
- * - Patient bekräftar submission med consent + note (public).
- * - Patient klickar "lämna omdöme" → beacon-pixel.
+ * Endpoints:
+ * - Operator trigger (auth) → reviewLink + emailDraft
+ * - Patient lookup, submit, review-clicked beacon (token-skyddat)
+ * - Patient photo-upload (token-skyddat, multer + piexifjs EXIF-strip)
  *
- * Vad som INTE finns ännu:
- * - Photo-upload (kräver multer + sharp för EXIF-strip).
- * - Patient-frontend (vanilla HTML/CSS/JS — separat 1-dags pass).
- * - Direkt M365 Graph send från capability — operator copy-paste:ar
- *   emailDraft till Outlook manuellt i Fas 1.
+ * GDPR: piexifjs strippar ALL EXIF från JPEG (inkl. GPS, kamera-serie,
+ * timestamp) innan disk-skrivning. PNG passar igenom — saknar EXIF-segment
+ * i baseline-spec. HEIC/HEIF avvisas (skulle behöva separate dekoder).
  *
- * Spec sektion 2.3 listar full endpoint-tabell — denna fil är subset:n
- * som inte kräver ytterligare dependencies.
+ * Photo-disk: <config.postOpPhotosDir>/<submissionId>/<photoId>.{jpg,png}
+ * Cron `pruneNoConsentPhotos` rensar foton 12 mån efter submit utan consent.
  */
 
 const express = require('express');
 const path = require('node:path');
+const fs = require('node:fs/promises');
+const multer = require('multer');
+const piexif = require('piexifjs');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
+
+// ── EXIF-strip via piexifjs ────────────────────────────────────────
+// piexifjs jobbar med binary-strings ("\xFF\xD8\xFF…"), inte Buffers.
+// Vi konverterar Buffer→binary-string→stripped→Buffer.
+function stripExifFromJpeg(buffer) {
+  const binary = buffer.toString('binary');
+  // piexif.remove kastar om input inte är giltig JPEG. Vi vill failsafe
+  // returnera original-buffern om strip:en kraschar — bättre att spara
+  // bilden med EXIF än att förlora den helt.
+  try {
+    const stripped = piexif.remove(binary);
+    return Buffer.from(stripped, 'binary');
+  } catch (err) {
+    console.warn('[post-op-review] EXIF-strip failed, keeping original:', err?.message);
+    return buffer;
+  }
+}
+
+// Multer setup: max 6 filer × 8 MB. memoryStorage så vi kan strippa EXIF
+// innan disk-skrivning. fileFilter avvisar allt utom JPEG/PNG.
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+const MAX_PHOTOS_PER_REQUEST = 6;
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png']);
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_PHOTO_BYTES,
+    files: MAX_PHOTOS_PER_REQUEST,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME.has(String(file.mimetype || '').toLowerCase())) {
+      cb(Object.assign(new Error('unsupported_media_type'), { statusCode: 415 }));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 function isLocalPreviewRequest(req) {
   const host = normalizeText(req.hostname || req.get('host'))
@@ -247,6 +284,102 @@ function createPostOpReviewRouter({
       return res.status(500).json({ ok: false, error: 'submit_failed' });
     }
   });
+
+  // POST /api/v1/post-op-review/:token/photos
+  // Fas 1.B: patient laddar upp 1-6 efter-bilder. multer parsar multipart,
+  // piexifjs strippar EXIF (GPS, kamera-serie, datum) före disk-skrivning.
+  // Bilder lagras under <config.postOpPhotosDir>/<submissionId>/<photoId>.<ext>.
+  // Max 6 totalt per submission (även över flera requests).
+  router.post(
+    '/api/v1/post-op-review/:token/photos',
+    (req, res, next) => {
+      photoUpload.array('photos', MAX_PHOTOS_PER_REQUEST)(req, res, (err) => {
+        if (!err) return next();
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ ok: false, error: 'photo_too_large', maxBytes: MAX_PHOTO_BYTES });
+        }
+        if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({ ok: false, error: 'too_many_photos', maxFiles: MAX_PHOTOS_PER_REQUEST });
+        }
+        if (err.statusCode === 415 || err.message === 'unsupported_media_type') {
+          return res.status(415).json({ ok: false, error: 'unsupported_media_type' });
+        }
+        console.error('[post-op-review/photos] multer error:', err);
+        return res.status(400).json({ ok: false, error: 'upload_failed' });
+      });
+    },
+    async (req, res) => {
+      const token = normalizeText(req.params.token);
+      if (!token) return res.status(400).json({ ok: false, error: 'token_missing' });
+      const submission = postOpReviewStore.findByToken(token);
+      if (!submission) {
+        return res.status(404).json({ ok: false, error: 'invalid_or_expired_token' });
+      }
+      const files = Array.isArray(req.files) ? req.files : [];
+      if (files.length === 0) {
+        return res.status(400).json({ ok: false, error: 'no_photos_in_request' });
+      }
+      // Kontrollera max-total över flera requests
+      const existingCount = Array.isArray(submission.photos) ? submission.photos.length : 0;
+      if (existingCount + files.length > MAX_PHOTOS_PER_REQUEST) {
+        return res.status(400).json({
+          ok: false,
+          error: 'photo_limit_exceeded',
+          existing: existingCount,
+          maxTotal: MAX_PHOTOS_PER_REQUEST,
+        });
+      }
+
+      const photosDir = (config && config.postOpPhotosDir) || path.join(process.cwd(), 'data', 'post-op-photos');
+      const submissionDir = path.join(photosDir, submission.submissionId);
+
+      const uploaded = [];
+      try {
+        await fs.mkdir(submissionDir, { recursive: true });
+
+        for (const file of files) {
+          const isJpeg = String(file.mimetype || '').toLowerCase() === 'image/jpeg';
+          const ext = isJpeg ? '.jpg' : '.png';
+          const cleanBuffer = isJpeg ? stripExifFromJpeg(file.buffer) : file.buffer;
+
+          // Lägg till photo i store FÖRST så vi får en officiell photoId
+          const { photoId } = await postOpReviewStore.addPhoto(submission.submissionId, {
+            filename: normalizeText(file.originalname) || `photo${ext}`,
+            size: cleanBuffer.length,
+          });
+          const target = path.join(submissionDir, `${photoId}${ext}`);
+          await fs.writeFile(target, cleanBuffer, { mode: 0o600 });
+          uploaded.push({ photoId, size: cleanBuffer.length, mime: file.mimetype });
+        }
+
+        // Audit-event
+        if (bookingStore && typeof bookingStore.addEvent === 'function') {
+          await bookingStore.addEvent({
+            tenantId: submission.tenantId,
+            conversationId: submission.bookingCaseId,
+            customerEmail: '',
+            type: 'post_op_photo_uploaded',
+            label: 'Patient laddade upp efter-bild',
+            detail: `${uploaded.length} foto(n) tagna emot, EXIF strippad där tillämpligt.`,
+            metadata: {
+              submissionId: submission.submissionId,
+              photoIds: uploaded.map((p) => p.photoId),
+              totalAfter: existingCount + uploaded.length,
+            },
+          });
+        }
+
+        return res.json({
+          ok: true,
+          uploaded,
+          totalPhotos: existingCount + uploaded.length,
+        });
+      } catch (err) {
+        console.error('[post-op-review/photos]', err);
+        return res.status(500).json({ ok: false, error: 'photo_save_failed' });
+      }
+    }
+  );
 
   // GET /api/v1/post-op-review/:token/review-clicked
   // Beacon → markReviewClicked + 302 till Google Business Profile.
