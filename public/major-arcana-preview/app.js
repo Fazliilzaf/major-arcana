@@ -3222,6 +3222,11 @@
 
   function asText(value, fallback = "") {
     const normalized = String(value ?? "").trim();
+    // Fas 32: [object Object]-skydd. String(plainObj) ger "[object Object]"
+    // som passerade truthy-check tidigare → renderade ut i UI (sett under
+    // 'Eftervård kräver genomgång' med t.ex. readout.attention = {...}).
+    // Nu: om vi får "[object Object]"-strängen, ignorera och gå till fallback.
+    if (normalized === "[object Object]") return String(fallback ?? "");
     if (normalized) return normalized;
     return String(fallback ?? "");
   }
@@ -4899,12 +4904,15 @@
       url.searchParams.delete("automationSection");
       url.searchParams.delete("section");
     }
-    if (portalCustomerKey) {
-      url.searchParams.set("portalCustomerKey", portalCustomerKey);
-    } else {
-      url.searchParams.delete("portalCustomerKey");
-      url.searchParams.delete("customerKey");
-    }
+    // Fas 36 (2026-05-19): SLUTA sätta portalCustomerKey i URL automatiskt.
+    // Tidigare skrev appen tråd-kundens email till URL varje gång användaren
+    // klickade på en tråd → vid reload trodde appen att man avsiktligt
+    // navigerat till showcase-mode för den kunden → triggade fixture-fallback.
+    // Nu: URL kan FORTFARANDE BÄRA portalCustomerKey vid extern delning
+    // (rad 4832-4833 läser från URL) — men appen skriver ALDRIG till URL.
+    // Vid normal tråd-byte = ren URL.
+    url.searchParams.delete("portalCustomerKey");
+    url.searchParams.delete("customerKey");
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (nextUrl !== currentUrl) {
@@ -41952,14 +41960,19 @@ renderStudioShell();
 	  }
 
 	  function scheduleBookingSurfaceFromUrl() {
+	    // Fas 33 (2026-05-19): bara EXPLICIT URL-flag triggar auto-open.
+	    // Tidigare öppnade shouldInferBookingWorkspaceFromPortalCustomer()
+	    // bokningsytan när portalCustomerKey fanns ELLER state.portalRuntime
+	    // hade restored data — vilket orsakade 'Behöver triage'-modal
+	    // ploppade upp av sig själv vid reload även utan URL-params.
+	    // Nu: bara om ?booking=1 / ?surface=booking / ?view=booking explicit
+	    // i URL → öppna. Inferrence från portalCustomerKey är borta.
 	    const wantsBookingSurface = urlWantsBookingWorkspace();
-	    const wantsInferredBookingSurface =
-	      shouldInferBookingWorkspaceFromPortalCustomer();
-	    if (!wantsBookingSurface && !wantsInferredBookingSurface) return;
+	    if (!wantsBookingSurface) return;
 	    window.setTimeout(() => {
 	      openBookingOperatorSurface({
 	        scroll: false,
-	        message: "Bokningsytan öppnades direkt för kundens aktiva booking-case.",
+	        message: "Bokningsytan öppnades via URL-flag.",
 	      });
 	    }, 0);
 	  }
