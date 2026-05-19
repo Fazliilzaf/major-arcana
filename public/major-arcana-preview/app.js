@@ -3222,6 +3222,11 @@
 
   function asText(value, fallback = "") {
     const normalized = String(value ?? "").trim();
+    // Fas 32: [object Object]-skydd. String(plainObj) ger "[object Object]"
+    // som passerade truthy-check tidigare → renderade ut i UI (sett under
+    // 'Eftervård kräver genomgång' med t.ex. readout.attention = {...}).
+    // Nu: om vi får "[object Object]"-strängen, ignorera och gå till fallback.
+    if (normalized === "[object Object]") return String(fallback ?? "");
     if (normalized) return normalized;
     return String(fallback ?? "");
   }
