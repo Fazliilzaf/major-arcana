@@ -2287,6 +2287,22 @@
       } else {
         state.runtime.threads = threads;
       }
+      // Fas 40 (2026-05-19): cache lyckad live-load till localStorage.
+      // Apple-Mail-pattern: nästa bootstrap kan rendera inboxen INSTANT från
+      // cachen, sedan refresha i bakgrunden. Ingen mer "Synkar aktivt"-state.
+      try {
+        if (_hasAdminToken_fas39 && Array.isArray(threads) && threads.length > 0) {
+          localStorage.setItem(
+            "cco.cachedThreads.v1",
+            JSON.stringify({
+              ts: Date.now(),
+              threads: threads.slice(0, 200), // skydd mot localStorage-quota
+            })
+          );
+        }
+      } catch (_e) {
+        /* tyst — quota eller blockerad */
+      }
       state.runtime.mailboxes = buildMailboxCatalog(
         (state.runtime.threads || []).map((thread) => {
           const mailboxAddress = asText(thread?.mailboxAddress);

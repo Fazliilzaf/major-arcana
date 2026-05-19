@@ -2840,9 +2840,12 @@
   // De 6 demo-threads (Morten Bak, Sara Holm, Anna Svensson osv) är seedade
   // för marknads-demot utan backend. När användaren är inloggad ska CCO
   // starta TOMT och vänta på live-data — annars visas "Live · 6"-pillen
-  // med demo-data → mellanläge. Detta är komplement till Fas 39-fixen i
-  // runtime-dom-live-composition.js som ser till att live-load alltid
-  // overrider demo (även när live returnerar tomt).
+  // med demo-data → mellanläge.
+  //
+  // Fas 40 (2026-05-19): Apple-Mail-pattern. Efter att ha rensat demo-fixtures,
+  // INSTANT-restora cached live-threads från localStorage så användaren ser
+  // sin inbox direkt (utan "Synkar aktivt"-placeholders). Live-fetchen
+  // kör i bakgrunden och uppdaterar både cache och state.
   try {
     const __hasAdminTokenFas39 =
       typeof localStorage !== "undefined" &&
@@ -2851,6 +2854,26 @@
       __stateInternal.runtime.threads = __stateInternal.runtime.threads.filter(
         (thread) => String(thread?.worklistSource || "").toLowerCase() !== "demo"
       );
+      // Fas 40: instant-restore från cache
+      try {
+        const cachedRaw = localStorage.getItem("cco.cachedThreads.v1");
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          const ttlMs = 24 * 60 * 60 * 1000; // 24h
+          if (
+            cached &&
+            typeof cached === "object" &&
+            Array.isArray(cached.threads) &&
+            cached.threads.length > 0 &&
+            typeof cached.ts === "number" &&
+            Date.now() - cached.ts < ttlMs
+          ) {
+            __stateInternal.runtime.threads = cached.threads;
+          }
+        }
+      } catch (_e) {
+        /* tyst — korrupt cache eller localStorage-fel */
+      }
     }
   } catch (_e) {
     /* tyst — localStorage blockerad eller annat fel */

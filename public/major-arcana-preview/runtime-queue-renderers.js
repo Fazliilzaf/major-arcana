@@ -1360,44 +1360,11 @@
     }
 
     function buildUnifiedQueueLoadingItems() {
-      return [
-        {
-          id: "runtime-loading-1",
-          avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
-          customerName: "Synkar aktiv kö",
-          lastActivityAt: "",
-          lastActivityLabel: "Pågår",
-          ownerLabel: "System",
-          displayOwnerLabel: "System",
-          displaySubject: "Hämtar mejl i valt mejlurval",
-          subject: "Hämtar mejl i valt mejlurval",
-          preview: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
-          mailboxLabel: "Live",
-          intentLabel: "Synkar",
-          statusLabel: "Synkar",
-          nextActionLabel: "Vänta",
-          nextActionSummary: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
-          tags: ["all"],
-        },
-        {
-          id: "runtime-loading-2",
-          avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
-          customerName: "Förbereder arbetsyta",
-          lastActivityAt: "",
-          lastActivityLabel: "Nu",
-          ownerLabel: "System",
-          displayOwnerLabel: "System",
-          displaySubject: "Urval och prioritering uppdateras",
-          subject: "Urval och prioritering uppdateras",
-          preview: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
-          mailboxLabel: "Live",
-          intentLabel: "Synkar",
-          statusLabel: "Förbereder",
-          nextActionLabel: "Vänta",
-          nextActionSummary: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
-          tags: ["all"],
-        },
-      ];
+      // Fas 40 (2026-05-19): inga fake "Synkar aktiv kö"-placeholder-cards.
+      // Cache i localStorage (cco.cachedThreads.v1) ger instant-render från
+      // föregående session → behöver ingen synthetic loading-fixture.
+      // Vid kall start (ingen cache) → tom kö med subtil status-text räcker.
+      return [];
     }
 
     // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
