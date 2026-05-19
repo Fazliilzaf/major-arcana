@@ -387,6 +387,24 @@
         var name = String(f && f.name || '').toLowerCase();
         return /\.(heic|heif)$/.test(name);
       }
+
+      // Magic-byte detektering: HEIC/HEIF har "ftyp" + brand-kod vid offset 4-16.
+      // Detta fångar fall där iPhone-foton har döpts om till .jpg/.png men
+      // fortfarande är HEIC-content (vanligt vid kopiera-från-Foton i macOS).
+      // ISO base media file format: 4 bytes box-size + "ftyp" + 4 bytes major brand.
+      async function detectHeicByMagicBytes(file) {
+        try {
+          var head = await file.slice(0, 16).arrayBuffer();
+          var bytes = new Uint8Array(head);
+          // Position 4-7: "ftyp"
+          if (bytes[4] !== 0x66 || bytes[5] !== 0x74 || bytes[6] !== 0x79 || bytes[7] !== 0x70) return false;
+          // Position 8-11: major brand. HEIC-varianter: "heic","heix","hevc","hevx","heim","heis","hevm","hevs","mif1","msf1".
+          var brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+          return ['heic','heix','hevc','hevx','heim','heis','hevm','hevs','mif1','msf1'].indexOf(brand) !== -1;
+        } catch (_) {
+          return false;
+        }
+      }
       var $photoInput = document.getElementById('photo-input');
       var $photoChips = document.getElementById('photo-chips');
       var pickedFiles = [];
@@ -454,6 +472,11 @@
         for (var i = 0; i < newFiles.length; i++) {
           var f = newFiles[i];
           var heic = isHeicFile(f);
+          // Fallback för iPhone-foton som döpts om till .jpg/.png:
+          // läs första 16 bytes och kolla efter HEIC magic-bytes.
+          if (!heic) {
+            heic = await detectHeicByMagicBytes(f);
+          }
 
           if (!heic && ALLOWED_TYPES.indexOf(f.type) === -1) {
             showError(t.photoBadType + ' ' + f.name);
