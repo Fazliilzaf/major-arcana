@@ -5520,6 +5520,30 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "live";
       }
+      // Fas 44 (2026-05-20): memoization-guard mot re-render-storm.
+      // renderQueueInlineLaneList anropas på VARJE state-render. Post-passes
+      // (__updateLivePill m.fl.) muterar state → schemalägger ny render →
+      // anropar oss igen. Med progressiv rAF-render (Fas 43) startade varje
+      // anrop om loopen → oändlig storm → frysning. Nu: bygg en signatur av
+      // (selectedThreadId + trådarnas id:n i ordning). Om identisk med förra
+      // renderingen → hoppa helt. Bryter stormen vid källan.
+      try {
+        const __sig =
+          asText(state.runtime?.selectedThreadId) +
+          "|" +
+          asArray(threads)
+            .map((t) => asText(t?.id))
+            .join(",");
+        if (queueHistoryList.__fas44Sig === __sig) {
+          // Identisk lista (oavsett om progressiv render pågår) → hoppa.
+          // En aktiv rAF-loop slutför sig själv. Detta bryter stormen där
+          // post-passes triggar re-render av samma lista.
+          return;
+        }
+        queueHistoryList.__fas44Sig = __sig;
+      } catch (_e) {
+        /* signatur misslyckades — fortsätt rendera normalt */
+      }
       // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
       // som producerade tomma rader när någon av build-funktionerna saknades.
       const renderLiveThreadCard = (thread, index, selected) => {
