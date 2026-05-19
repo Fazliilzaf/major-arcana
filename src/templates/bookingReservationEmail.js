@@ -84,6 +84,9 @@ contact@hairtpclinic.com`;
 <html lang="en"><head><meta charset="utf-8"></head>
 <body style="font-family:Inter,Helvetica,sans-serif;color:#231F1D;background:#FAF6F2;padding:24px;">
   <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(35,31,29,0.06);">
+    <div style="text-align:center;margin:0 0 24px;">
+      <img src="https://hairtpclinic.com/assets/htp-logo-circle-email.png" alt="Hair TP Clinic" width="120" height="144" style="display:inline-block;width:120px;height:auto;border:0;outline:none;text-decoration:none;">
+    </div>
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:#231F1D;margin:0 0 12px;">Your appointment is reserved</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hi ${escapeHtml(fName) || 'there'},</p>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Thank you for booking with Hair TP Clinic. Here are your details:</p>
@@ -123,6 +126,9 @@ contact@hairtpclinic.com`;
 <html lang="sv"><head><meta charset="utf-8"></head>
 <body style="font-family:Inter,Helvetica,sans-serif;color:#231F1D;background:#FAF6F2;padding:24px;">
   <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(35,31,29,0.06);">
+    <div style="text-align:center;margin:0 0 24px;">
+      <img src="https://hairtpclinic.com/assets/htp-logo-circle-email.png" alt="Hair TP Clinic" width="120" height="144" style="display:inline-block;width:120px;height:auto;border:0;outline:none;text-decoration:none;">
+    </div>
     <h1 style="font-family:Georgia,serif;font-weight:300;font-size:26px;color:#231F1D;margin:0 0 12px;">Din tid är reserverad</h1>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hej ${escapeHtml(fName) || 'där'},</p>
     <p style="font-size:15px;line-height:24px;margin:0 0 20px;">Tack för att du bokat hos Hair TP Clinic. Här är dina uppgifter:</p>
