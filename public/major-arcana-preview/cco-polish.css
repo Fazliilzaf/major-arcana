@@ -3064,26 +3064,26 @@
 
 /* Kalender (.schedule-shell): byt rose-accent till violet */
 .schedule-mark {
-  color: #a35cd7 !important;
+  color: #a35cd7;
 }
 .schedule-status-pill-rose {
-  color: #8b4fc3 !important;
-  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%) !important;
+  color: #8b4fc3;
+  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
 }
 .schedule-section-label {
-  color: #8f3b67 !important;
+  color: #8f3b67;
 }
 
 /* Operationsspår / Bokningsyta (.booking-shell): byt accent till violet */
 .booking-shell-status-pill {
-  color: #8b4fc3 !important;
-  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.84) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
-  font-size: 10.5px !important;
-  line-height: 12px !important;
-  font-weight: 700 !important;
-  min-height: 23px !important;
+  color: #8b4fc3;
+  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  min-height: 23px;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -3095,28 +3095,28 @@
    vem som "skrev" vad. */
 
 .warm-row .warm-why {
-  margin: 4px 0 0 !important;
-  padding: 4px 10px 4px 8px !important;
-  background: rgba(167, 139, 250, 0.10) !important;
-  border-left: 2px solid #8B5CF6 !important;
-  border-radius: 0 8px 8px 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  font-size: 11.5px !important;
+  margin: 4px 0 0;
+  padding: 4px 10px 4px 8px;
+  background: rgba(167, 139, 250, 0.10);
+  border-left: 2px solid #8B5CF6;
+  border-radius: 0 8px 8px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
 }
 
 .warm-row .warm-why .warm-why-icon {
-  color: #8B5CF6 !important;
-  width: 12px !important;
-  height: 12px !important;
-  flex-shrink: 0 !important;
+  color: #8B5CF6;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .warm-row .warm-why .why-reason {
-  color: #6D28D9 !important;
-  font-weight: 500 !important;
-  line-height: 1.4 !important;
+  color: #6D28D9;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 /* Ej tilldelad — gör mer synlig (orange) istället för diskret grå */
@@ -3130,8 +3130,8 @@
 /* Använd attribut-selector om mailen är "Ej tilldelad" */
 .warm-row .thread-owner[data-owner-state="unassigned"],
 .warm-row .meta-status[data-owner-state="unassigned"] {
-  color: #C77D2A !important;
-  font-weight: 500 !important;
+  color: #C77D2A;
+  font-weight: 500;
 }
 
 /* Fallback: matcha på text-innehåll via :has (modern CSS) */
@@ -3154,15 +3154,15 @@
 @media (hover: hover) {
   .warm-row .warm-why,
   .warm-row .warm-actions {
-    max-height: 0 !important;
-    opacity: 0 !important;
-    margin-top: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+    pointer-events: none;
     transition:
       max-height 200ms ease,
       opacity 180ms ease,
-      margin-top 200ms ease !important;
+      margin-top 200ms ease;
   }
 
   .warm-row:hover .warm-why,
@@ -3170,10 +3170,10 @@
   .warm-row.is-selected .warm-why,
   .warm-row[data-selected="true"] .warm-why,
   .warm-row[aria-selected="true"] .warm-why {
-    max-height: 60px !important;
-    opacity: 1 !important;
-    margin-top: 6px !important;
-    pointer-events: auto !important;
+    max-height: 60px;
+    opacity: 1;
+    margin-top: 6px;
+    pointer-events: auto;
   }
 
   .warm-row:hover .warm-actions,
@@ -3181,9 +3181,9 @@
   .warm-row.is-selected .warm-actions,
   .warm-row[data-selected="true"] .warm-actions,
   .warm-row[aria-selected="true"] .warm-actions {
-    max-height: 50px !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+    max-height: 50px;
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
