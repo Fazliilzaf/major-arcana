@@ -18932,23 +18932,12 @@
       });
       return;
     }
-    if (preferredAction === "schedule_open" && runtimeActionEngine?.openRuntimeSchedule) {
-      runtimeActionEngine.openRuntimeSchedule({ renderDraft: true }).catch((error) => {
-        console.warn("Journey-driven uppföljningsyta kunde inte öppnas.", error);
-      });
-      return;
-    }
-    if (preferredAction === "note_open" && runtimeActionEngine?.openRuntimeNote) {
-      runtimeActionEngine
-        .openRuntimeNote({
-          directOpen: true,
-          destinationKey: getJourneyPreferredNoteDestination(thread, focusReadState),
-          templateKey: getJourneyPreferredNoteTemplate(thread, focusReadState),
-        })
-        .catch((error) => {
-          console.warn("Journey-driven anteckningsyta kunde inte öppnas.", error);
-        });
-    }
+    // Fas 31 (2026-05-19): tog bort kvarvarande auto-open-grenar för
+    // schedule_open + note_open. Dessa missades när Fas 15 rev resten av
+    // preferredAction-grenarna och orsakade att Smart anteckning + Kalender
+    // ploppade upp av sig själv vid login/reload (samma bug-kategori som
+    // mailbox-dropdown). Patientresa styr fortfarande snabbåtgärderna i
+    // fokusytan — användaren klickar själv för att öppna en modal.
   }
 
   function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
