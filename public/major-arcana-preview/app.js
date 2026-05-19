@@ -41957,14 +41957,19 @@ renderStudioShell();
 	  }
 
 	  function scheduleBookingSurfaceFromUrl() {
+	    // Fas 33 (2026-05-19): bara EXPLICIT URL-flag triggar auto-open.
+	    // Tidigare öppnade shouldInferBookingWorkspaceFromPortalCustomer()
+	    // bokningsytan när portalCustomerKey fanns ELLER state.portalRuntime
+	    // hade restored data — vilket orsakade 'Behöver triage'-modal
+	    // ploppade upp av sig själv vid reload även utan URL-params.
+	    // Nu: bara om ?booking=1 / ?surface=booking / ?view=booking explicit
+	    // i URL → öppna. Inferrence från portalCustomerKey är borta.
 	    const wantsBookingSurface = urlWantsBookingWorkspace();
-	    const wantsInferredBookingSurface =
-	      shouldInferBookingWorkspaceFromPortalCustomer();
-	    if (!wantsBookingSurface && !wantsInferredBookingSurface) return;
+	    if (!wantsBookingSurface) return;
 	    window.setTimeout(() => {
 	      openBookingOperatorSurface({
 	        scroll: false,
-	        message: "Bokningsytan öppnades direkt för kundens aktiva booking-case.",
+	        message: "Bokningsytan öppnades via URL-flag.",
 	      });
 	    }, 0);
 	  }
