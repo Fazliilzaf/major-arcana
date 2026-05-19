@@ -5793,26 +5793,7 @@
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
-        // Fas 41 (2026-05-20): om scope-filtret returnerar tomt MEN vi har
-        // riktiga (icke-demo) trådar i state → visa dem ändå. Detta händer
-        // vid bakgrunds-refresh när scope-matchningen tillfälligt missar
-        // (t.ex. "*"-mailbox i urvalet) — vi vill INTE flippa till "Synkar
-        // aktivt"-placeholder och tappa bort de redan laddade mejlen.
-        const liveThreadsAnyScope = asArray(state.runtime.threads).filter(
-          (t) => asText(t?.worklistSource) !== "demo"
-        );
-        if (liveThreadsAnyScope.length) {
-          if (queueTitle) {
-            queueTitle.textContent = `Arbetslista (${liveThreadsAnyScope.length})`;
-          }
-          renderQueueInlineLaneList(liveThreadsAnyScope);
-          if (typeof enforceUnifiedCardV3Sections === "function") {
-            enforceUnifiedCardV3Sections(queueHistoryList);
-          }
-          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
-          return;
-        }
-        // v5: ingen riktig data alls men kanske demo-fixtures utanför scope?
+        // v5: ingen riktig data i scope men kanske demo-fixtures utanför scope?
         const demoFixtures = asArray(state.runtime.threads).filter(
           (t) => asText(t?.worklistSource) === "demo"
         );
