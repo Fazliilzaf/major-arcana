@@ -14032,14 +14032,12 @@
       return;
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
+    // Fas 38 (2026-05-19): bootstrap-default = ALLA mailboxar.
+    // Tidigare default = [preferredMailboxId] → användaren såg bara sin egen
+    // inbox vid cold boot, vilket är fel för clinic-CCO där FK ska se alla
+    // konton. Behåll preferred-fallback bara om explicit demo-scope krävs.
     if (!selectedMailboxIds.length) {
-      workspaceSourceOfTruth.setSelectedMailboxIds(
-        shouldPreserveDemoMailboxScope()
-          ? [...availableIds]
-          : preferredMailboxId && availableIds.includes(preferredMailboxId)
-          ? [preferredMailboxId]
-          : [...availableIds]
-      );
+      workspaceSourceOfTruth.setSelectedMailboxIds([...availableIds]);
       return;
     }
     const validIds = new Set(availableIds);
@@ -14047,13 +14045,7 @@
       selectedMailboxIds.filter((id) => validIds.has(canonicalizeRuntimeMailboxId(id)))
     );
     if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
-      workspaceSourceOfTruth.setSelectedMailboxIds(
-        shouldPreserveDemoMailboxScope()
-          ? [...availableIds]
-          : preferredMailboxId && availableIds.includes(preferredMailboxId)
-          ? [preferredMailboxId]
-          : [...availableIds]
-      );
+      workspaceSourceOfTruth.setSelectedMailboxIds([...availableIds]);
     }
   }
 

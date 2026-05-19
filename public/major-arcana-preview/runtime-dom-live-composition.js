@@ -1353,15 +1353,28 @@
       const currentMailboxIds = asArray(workspaceSourceOfTruth.getSelectedMailboxIds())
         .map((value) => canonicalizeRuntimeMailboxId(value))
         .filter(Boolean);
-      const hasSameSelection =
-        currentMailboxIds.length === nextMailboxIds.length &&
-        currentMailboxIds.every(
-          (mailboxId, index) => canonicalizeRuntimeMailboxId(mailboxId) === nextMailboxIds[index]
-        );
-      if (!hasSameSelection) {
+      // Fas 38 (2026-05-19): UNION istället för OVERWRITE.
+      // Tidigare: en thread-klick smalnade scope från ex. 7 mailboxar till
+      // bara trådens egen mailbox — vilket skickar användaren in i ett
+      // single-mailbox-läge utan att de bett om det. Persist-callen
+      // klobberade också localStorage så reload behöll det smala scopet.
+      // Nu: om current är tom → sätt till thread's mailbox; annars säkerställ
+      // att thread's mailbox ingår (UNION) utan att ta bort något.
+      if (!currentMailboxIds.length) {
         workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
+        return nextMailboxIds;
       }
-      return nextMailboxIds;
+      const currentSet = new Set(
+        currentMailboxIds.map((id) => canonicalizeRuntimeMailboxId(id))
+      );
+      const missing = nextMailboxIds.filter((id) => !currentSet.has(id));
+      if (missing.length) {
+        const union = [...currentMailboxIds, ...missing];
+        workspaceSourceOfTruth.setSelectedMailboxIds(union);
+        return union;
+      }
+      // Trådens mailbox redan i selection → behåll user's bredare scope
+      return currentMailboxIds;
     }
 
     function hasRuntimeHistoryPayloadContent(historyPayload = null) {
