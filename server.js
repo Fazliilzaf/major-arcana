@@ -348,6 +348,92 @@ app.use((req, res, next) => {
 });
 
 app.get('/admin.html', (_req, res) => sendAdminHtml(res));
+
+// ════════════════════════════════════════════════════════════════════
+// Fas 27E (2026-05-18): server-side asset pipeline för major-arcana-preview
+// ════════════════════════════════════════════════════════════════════
+// Ersätt manuell cache-busting (?v=build-XXX) med content-hash baserat
+// på faktisk fil. Strippa <script>/<link>-taggar som pekar på filer som
+// inte finns på disk (förhindrar 502-buggar typ inline-draft-edit).
+const PREVIEW_ROOT = path.join(__dirname, 'public', 'major-arcana-preview');
+const __assetHashCache = new Map();
+
+function getAssetHash(relPath) {
+  const cleanRel = String(relPath).replace(/^\.\//, '').split('?')[0];
+  const fullPath = path.join(PREVIEW_ROOT, cleanRel);
+  try {
+    const stat = fs.statSync(fullPath);
+    const cached = __assetHashCache.get(fullPath);
+    if (cached && cached.mtimeMs === stat.mtimeMs) {
+      return { hash: cached.hash, exists: true };
+    }
+    const crypto = require('node:crypto');
+    const hash = crypto
+      .createHash('sha256')
+      .update(fs.readFileSync(fullPath))
+      .digest('hex')
+      .slice(0, 10);
+    __assetHashCache.set(fullPath, { hash, mtimeMs: stat.mtimeMs });
+    return { hash, exists: true };
+  } catch (_e) {
+    return { hash: '', exists: false };
+  }
+}
+
+function transformPreviewHtml(html) {
+  let dropped = 0;
+  let bumped = 0;
+  // <script src="./X"></script>
+  html = html.replace(
+    /<script\s+([^>]*?)src=["'](\.\/[^"'?]+)(\?[^"']*)?["']([^>]*?)><\/script>/g,
+    (_m, before, src, _q, after) => {
+      const { hash, exists } = getAssetHash(src);
+      if (!exists) {
+        dropped++;
+        console.warn(`[asset-pipeline] DEAD SCRIPT removed: ${src}`);
+        return `<!-- removed dead import: ${src} -->`;
+      }
+      bumped++;
+      return `<script ${before}src="${src}?v=${hash}"${after}></script>`;
+    }
+  );
+  // <link rel="stylesheet" href="./X.css" />
+  html = html.replace(
+    /<link\s+([^>]*?)href=["'](\.\/[^"'?]+\.css)(\?[^"']*)?["']([^>]*?)\/?>/g,
+    (_m, before, href, _q, after) => {
+      const { hash, exists } = getAssetHash(href);
+      if (!exists) {
+        dropped++;
+        console.warn(`[asset-pipeline] DEAD STYLESHEET removed: ${href}`);
+        return `<!-- removed dead import: ${href} -->`;
+      }
+      bumped++;
+      return `<link ${before}href="${href}?v=${hash}"${after}/>`;
+    }
+  );
+  if (dropped > 0 || bumped > 0) {
+    console.log(`[asset-pipeline] HTML transform: bumped=${bumped} dropped=${dropped}`);
+  }
+  return html;
+}
+
+function servePreviewHtml(req, res, next) {
+  try {
+    const htmlPath = path.join(PREVIEW_ROOT, 'index.html');
+    const rawHtml = fs.readFileSync(htmlPath, 'utf8');
+    const transformed = transformPreviewHtml(rawHtml);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.send(transformed);
+  } catch (error) {
+    console.error('[asset-pipeline] Transform misslyckades, fallback till static:', error.message);
+    return next();
+  }
+}
+
+app.get('/major-arcana-preview/', servePreviewHtml);
+app.get('/major-arcana-preview/index.html', servePreviewHtml);
+
 app.use(
   express.static("public", {
     setHeaders: (res, filePath) => {
@@ -450,9 +536,6 @@ const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
-const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
-const { RequestPostOpReviewCapability } = require('./src/capabilities/requestPostOpReview');
-const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
@@ -464,7 +547,6 @@ const { createReleaseGovernanceStore } = require('./src/ops/releaseGovernanceSto
 const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
 const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
 const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine');
-const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
@@ -1021,10 +1103,6 @@ process.once('SIGTERM', () => {
   const ccoBookingEngineStore = await createCcoBookingEngineStore({
     filePath: config.ccoBookingEngineStorePath,
   });
-  const postOpReviewStore = await createPostOpReviewStore({
-    filePath: config.postOpReviewStorePath,
-  });
-  const requestPostOpReviewCapability = new RequestPostOpReviewCapability();
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,
   });
@@ -1195,31 +1273,6 @@ process.once('SIGTERM', () => {
     '/api',
     createPublicClinicRouter({
       tenantConfigStore,
-      config,
-    })
-  );
-
-  // Web-to-Arcana bridge Fas B: hairtpclinic.com pollar dessa endpoints
-  // istället för /public/cliento/* när ARCANA_PROVIDER=booking-engine.
-  // Se docs/strategy/web-to-arcana-bridge.md.
-  app.use(
-    '/api',
-    createPublicBookingEngineRouter({
-      bookingEngineStore: ccoBookingEngineStore,
-      bookingStore: ccoBookingStore,
-      config,
-    })
-  );
-
-  // Post-op review routes — operator-trigger + token-skyddade patient-endpoints.
-  // Patient-UI (vanilla HTML på /uppfoljning/:token) sparas till nästa pass;
-  // detta är minimum så operatör kan generera reviewLink + emailDraft idag.
-  app.use(
-    createPostOpReviewRouter({
-      postOpReviewStore,
-      capability: requestPostOpReviewCapability,
-      bookingStore: ccoBookingStore,
-      authStore,
       config,
     })
   );
