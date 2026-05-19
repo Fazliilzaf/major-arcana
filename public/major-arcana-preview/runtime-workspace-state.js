@@ -202,7 +202,13 @@
       const selected = visible.find(
         (thread) => normalizeKey(thread?.id || "") === normalizeKey(workspace.selectedThreadId)
       );
-      workspace.selectedThreadId = selected ? asText(selected.id) : asText(visible[0]?.id || "");
+      // Fas 35 (2026-05-19): ta bort autoselect av första tråden.
+      // Tidigare hamnade CCO ALLTID i första-tråden-state vid bootstrap
+      // (Anna Karlsson + Akut ombokning), vilket triggade journey-
+      // recommendations + showcase-fixture-data — fel state om
+      // användaren inte aktivt valt tråden.
+      // Nu: ingen tråd vald = tom focus-pane med "Välj en aktiv tråd…".
+      workspace.selectedThreadId = selected ? asText(selected.id) : "";
       syncLegacyState();
       return workspace.selectedThreadId;
     }
