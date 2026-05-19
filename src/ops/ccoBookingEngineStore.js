@@ -83,13 +83,18 @@ function defaultState() {
     createdAt: ts,
     updatedAt: ts,
     // Riktigt Hair TP-team verifierat 2026-05-18.
-    // Sjuksköterskor (Veronica, Clara, Wendela, Louise) görs bokningsbara senare
-    // när vi har klart vilka behandlingar de utför självständigt.
+    // Sjuksköterskor (Veronica, Clara, Wendela, Louise) lagdes till 2026-05-19
+    // som bokningsbara resurser för konsultation, PRP, microneedling + efterkontroll.
+    // De syns INTE på publik Team-sida (interna) — bara i operator-CCO-vyn.
     // Back-office (Måns, Felix, Britt-louise) är aldrig patient-bokningsbara.
     resources: [
       { id: 'fazli', label: 'Fazli Krasniqi', active: true },
       { id: 'egzona', label: 'Egzona Krasniqi', active: true },
       { id: 'arya', label: 'Dr. Arya Emami', active: true },
+      { id: 'veronica', label: 'Veronica', active: true },
+      { id: 'clara', label: 'Clara', active: true },
+      { id: 'wendela', label: 'Wendela', active: true },
+      { id: 'louise', label: 'Louise', active: true },
     ],
     // Tjänstekatalog speglar fastpris-listan på hairtpclinic.com.
     // Konsultation är alltid 30 min och kostnadsfri.
@@ -234,6 +239,40 @@ function defaultState() {
         startTimes: ['17:00', '17:30'],
         locationLabel: 'Hair TP Clinic',
       },
+
+      // ── Sjuksköterskor (Veronica, Clara, Wendela, Louise) ──
+      // Var och en gör konsultation, PRP-hår, PRP-hud, microneedling + followup.
+      // Vi spreader veckodagar så de täcker hela arbetsveckan utan att alla bookas
+      // samma slot. Mellan-tider (mest 10:00-15:00) reserveras för PRP/microneedling
+      // som tar 45-60 min. Followup blir morgon/eftermiddag, korta 30-min-slots.
+
+      // — Veronica: prp-hair Mån/Ons, prp-skin Fre, microneedling Tor, followup Tis —
+      { ruleId: 'rule-cons-veronica', resourceId: 'veronica', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-hair-veronica', resourceId: 'veronica', serviceId: 'prp-hair', weekdays: [1, 3], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-skin-veronica', resourceId: 'veronica', serviceId: 'prp-skin', weekdays: [5], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-micro-veronica', resourceId: 'veronica', serviceId: 'microneedling', weekdays: [4], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-followup-veronica', resourceId: 'veronica', serviceId: 'followup', weekdays: [2], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+
+      // — Clara: prp-hair Tis/Tor, prp-skin Mån, microneedling Ons, followup Fre —
+      { ruleId: 'rule-cons-clara', resourceId: 'clara', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-hair-clara', resourceId: 'clara', serviceId: 'prp-hair', weekdays: [2, 4], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-skin-clara', resourceId: 'clara', serviceId: 'prp-skin', weekdays: [1], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-micro-clara', resourceId: 'clara', serviceId: 'microneedling', weekdays: [3], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-followup-clara', resourceId: 'clara', serviceId: 'followup', weekdays: [5], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+
+      // — Wendela: prp-hair Mån/Fre, prp-skin Ons, microneedling Tis, followup Tor —
+      { ruleId: 'rule-cons-wendela', resourceId: 'wendela', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['10:00', '15:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-hair-wendela', resourceId: 'wendela', serviceId: 'prp-hair', weekdays: [1, 5], startTimes: ['11:30', '14:30'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-skin-wendela', resourceId: 'wendela', serviceId: 'prp-skin', weekdays: [3], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-micro-wendela', resourceId: 'wendela', serviceId: 'microneedling', weekdays: [2], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-followup-wendela', resourceId: 'wendela', serviceId: 'followup', weekdays: [4], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+
+      // — Louise: prp-hair Ons, prp-skin Tor, microneedling Fre, followup Mån —
+      { ruleId: 'rule-cons-louise', resourceId: 'louise', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['11:30', '15:30'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-hair-louise', resourceId: 'louise', serviceId: 'prp-hair', weekdays: [3], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-prp-skin-louise', resourceId: 'louise', serviceId: 'prp-skin', weekdays: [4], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-micro-louise', resourceId: 'louise', serviceId: 'microneedling', weekdays: [5], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
+      { ruleId: 'rule-followup-louise', resourceId: 'louise', serviceId: 'followup', weekdays: [1], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
     ],
     reservations: [],
     bookings: [],
