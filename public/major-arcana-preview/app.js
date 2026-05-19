@@ -14933,21 +14933,25 @@
         resetRuntimeHistoryFilters();
       }
     }
-    const preserveMailboxScope =
-      state.prefs?.mailboxScopePinned === true ||
-      state.runtime?.mailboxScopePinned === true ||
-      (() => {
-        const previewThreads = Array.isArray(state.data?.threads)
-          ? state.data.threads
-          : asArray(state.runtime?.threads);
-        return (
-          previewThreads.length > 1 &&
-          previewThreads.every((thread) => normalizeKey(thread?.worklistSource || "") === "demo")
+    // Fas 38 (2026-05-19): UNION istället för OVERWRITE — thread-select smalnar
+    // aldrig mailbox-scope. Om current är tom → sätt till thread's mailboxes;
+    // annars säkerställ att thread's mailboxes ingår (UNION) men ta inget bort.
+    if (mailboxScopeChanged) {
+      if (!currentMailboxIds.length) {
+        workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
+      } else {
+        const currentSet = new Set(
+          currentMailboxIds.map((id) => canonicalizeRuntimeMailboxId(id))
         );
-      })() ||
-      Boolean(options.preserveMailboxSelection);
-    if (mailboxScopeChanged && !preserveMailboxScope) {
-      workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
+        const missing = nextMailboxIds.filter((id) => !currentSet.has(id));
+        if (missing.length) {
+          workspaceSourceOfTruth.setSelectedMailboxIds([
+            ...currentMailboxIds,
+            ...missing,
+          ]);
+        }
+        // else: thread's mailboxes redan i selection → keep user's bredare scope
+      }
     }
 
     return {
