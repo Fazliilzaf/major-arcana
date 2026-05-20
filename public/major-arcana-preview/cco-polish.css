@@ -3266,18 +3266,35 @@
 html.is-admin-embed,
 body.is-admin-embed {
   height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
 }
 
 body.is-admin-embed .preview-page,
 body.is-admin-embed .preview-canvas {
   min-height: 100%;
   height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
 }
 
 body.is-admin-embed .preview-topbar {
   display: none !important;
 }
 
-body.is-admin-embed .preview-workspace {
-  min-height: calc(100vh - 24px);
+body.is-admin-embed .preview-workspace,
+body.is-admin-embed .preview-shell {
+  min-height: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.is-admin-embed .preview-canvas {
+  border-radius: 0;
+  box-shadow: none;
 }

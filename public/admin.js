@@ -5820,8 +5820,12 @@
       isCcoNextRoutePath(window.location.pathname || '');
     const ccoNextModeActive =
       normalized === 'ccoNextWorkspaceSection' || isCcoNextRoutePath(window.location.pathname || '');
+    const ccoEmbedWorkspaceActive =
+      normalized === 'ccoWorkspaceSection' && isCcoEmbedMode();
     document.body.classList.toggle('cco-light-mode', ccoModeActive);
     document.body.classList.toggle('cco-next-preview-route', ccoNextModeActive);
+    document.body.classList.toggle('cco-compact-header-disabled', ccoEmbedWorkspaceActive);
+    document.body.classList.toggle('cco-admin-embed-active', ccoEmbedWorkspaceActive);
     document.body.classList.remove('cco-compact-header');
     if (els.adminHeader) {
       if (ccoNextModeActive) {
