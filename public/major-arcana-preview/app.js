@@ -12240,6 +12240,107 @@
     return buildTruthWorklistConsumerHref(mailboxIds, Math.max(1, Number(limit || 120)));
   }
 
+  function mapTruthConsumerLaneToRuntimeSignals(item = {}) {
+    const rawLane = normalizePrimaryQueueLaneId(normalizeKey(item?.lane || "all"));
+    const needsReply = item?.state?.needsReply === true;
+    const hasUnreadInbound = item?.state?.hasUnreadInbound === true;
+    const followUpDueAt = asText(item?.state?.operatorState?.followUpDueAt || "");
+    const operatorState = asText(item?.state?.operatorState?.actionState || "").toLowerCase();
+    const tags = ["all"];
+    let primaryLaneId = rawLane;
+    let workflowLane = "";
+    let priorityLevel = "low";
+    let slaStatus = "safe";
+    let dominantRisk = "safe";
+    let needsReview = false;
+
+    if (rawLane === "act-now") {
+      tags.push("act-now", "today");
+      workflowLane = "action_now";
+      priorityLevel = "medium";
+      slaStatus = "warning";
+      dominantRisk = "warning";
+    } else if (rawLane === "review") {
+      tags.push("admin");
+      needsReview = true;
+      workflowLane = "medical_review";
+      priorityLevel = "medium";
+      slaStatus = "warning";
+    } else if (rawLane === "later" || operatorState === "reply_later") {
+      primaryLaneId = "later";
+      tags.push("later", "followup");
+      workflowLane = "waiting_reply";
+      priorityLevel = "medium";
+      slaStatus = "warning";
+    } else if (needsReply && hasUnreadInbound) {
+      tags.push("today");
+    }
+
+    if (followUpDueAt) {
+      tags.push("followup");
+      if (!tags.includes("later")) tags.push("later");
+      if (!workflowLane) workflowLane = "waiting_reply";
+    }
+    if (!asText(item?.mailbox?.ownershipMailbox)) {
+      tags.push("unassigned");
+    }
+
+    return {
+      tags: Array.from(new Set(tags)),
+      primaryLaneId,
+      workflowLane,
+      priorityLevel,
+      slaStatus,
+      dominantRisk,
+      needsReview,
+      followUpDueAt,
+    };
+  }
+
+  function buildTruthPrimaryTransportOverlay(truthRow = {}) {
+    const truthPreview = getUsableRuntimeRowPreview(truthRow);
+    const overlay = {
+      conversationId: asText(truthRow?.conversationId),
+      mailboxId: asText(truthRow?.mailboxId),
+      mailboxAddress: asText(truthRow?.mailboxAddress),
+      userPrincipalName: asText(truthRow?.userPrincipalName),
+      subject: asText(truthRow?.subject),
+      lastInboundAt: asText(truthRow?.lastInboundAt),
+      lastOutboundAt: asText(truthRow?.lastOutboundAt),
+      latestMessageAt: asText(truthRow?.latestMessageAt),
+      hasUnreadInbound: truthRow?.hasUnreadInbound === true,
+      isUnanswered: truthRow?.isUnanswered === true,
+      waitingOn: asText(truthRow?.waitingOn),
+      owner: asText(truthRow?.owner),
+      sender: asText(truthRow?.sender),
+      senderName: asText(truthRow?.senderName),
+      customerEmail: asText(truthRow?.customerEmail),
+      truthConversationKey: asText(truthRow?.truthConversationKey),
+      truthPrimaryMailbox: true,
+      worklistSource: "truth_primary_enriched",
+      worklistSourceLabel: "Truth + enrichment",
+      worklistWave: asText(truthRow?.worklistWave, "wave_1"),
+      worklistWaveLabel: asText(truthRow?.worklistWaveLabel, "Wave 1"),
+    };
+    if (truthPreview) {
+      overlay.preview = truthPreview;
+      overlay.bodyPreview = truthPreview;
+      overlay.latestPreview = truthPreview;
+      overlay.systemPreview = truthPreview;
+      overlay.latestInboundPreview = truthPreview;
+    }
+    if (truthRow?.latestMessage && typeof truthRow.latestMessage === "object") {
+      overlay.latestMessage = truthRow.latestMessage;
+    }
+    if (truthRow?.conversation && typeof truthRow.conversation === "object") {
+      overlay.conversation = truthRow.conversation;
+    }
+    if (asText(truthRow?.bodyHtml)) {
+      overlay.bodyHtml = asText(truthRow.bodyHtml);
+    }
+    return overlay;
+  }
+
   function buildTruthPrimaryRuntimeRow(item = {}) {
     const conversationId = asText(item?.conversation?.conversationId || item?.id);
     const mailboxId = canonicalizeRuntimeMailboxId(
@@ -12255,11 +12356,9 @@
     const latestPreview = resolveRuntimePreviewText(item, {
       fallback: "Ingen förhandsvisning tillgänglig.",
     });
-    const lane = normalizeKey(item?.lane || "all") === "act-now" ? "act-now" : "all";
+    const laneSignals = mapTruthConsumerLaneToRuntimeSignals(item);
     const needsReply = item?.state?.needsReply === true;
     const hasUnreadInbound = item?.state?.hasUnreadInbound === true;
-    const tags = ["all"];
-    if (lane === "act-now") tags.push("act-now");
 
     return {
       conversationId,
@@ -12277,7 +12376,8 @@
       latestMessageAt: asText(item?.timing?.latestMessageAt),
       hasUnreadInbound,
       isUnanswered: needsReply,
-      waitingOn: needsReply ? "owner" : "",
+      waitingOn: needsReply ? "owner" : laneSignals.followUpDueAt ? "owner" : "",
+      followUpDueAt: laneSignals.followUpDueAt,
       owner: ownershipMailbox ? titleCaseMailbox(ownershipMailbox) : "Oägd",
       intent: needsReply ? "needs_reply" : "active_dialogue",
       recommendedAction: needsReply
@@ -12290,14 +12390,23 @@
       operatorCue: needsReply
         ? "Sanningsstyrd rad: svara kunden via arbetslistan."
         : "Sanningsstyrd rad: kontrollera senaste aktivitet.",
-      workflowLane: lane === "act-now" ? "action_now" : "",
+      primaryLaneId: laneSignals.primaryLaneId,
+      workflowLane: laneSignals.workflowLane,
       bookingState: "",
-      priorityLevel: lane === "act-now" ? "medium" : "low",
-      slaStatus: lane === "act-now" ? "warning" : "safe",
-      dominantRisk: lane === "act-now" ? "warning" : "safe",
+      priorityLevel: laneSignals.priorityLevel,
+      slaStatus: laneSignals.slaStatus,
+      dominantRisk: laneSignals.dominantRisk,
+      needsReview: laneSignals.needsReview === true,
       customerEmail,
       sender: customerEmail || customerName,
       senderName: customerName,
+      customerIdentity: item?.customerIdentity || item?.customer?.identity || null,
+      hardConflictSignals: asArray(item?.hardConflictSignals),
+      mergeReviewDecisionsByPairId:
+        item?.mergeReviewDecisionsByPairId && typeof item.mergeReviewDecisionsByPairId === "object"
+          ? item.mergeReviewDecisionsByPairId
+          : {},
+      identityProvenance: item?.identityProvenance || null,
       customerSummary: {
         customerName,
         customerKey: customerEmail,
@@ -12313,7 +12422,7 @@
         engagementScore: 0.42,
         caseCount: 1,
       },
-      tags,
+      tags: laneSignals.tags,
       rowFamily:
         typeof classifyRuntimeRowFamily === "function"
           ? classifyRuntimeRowFamily({
@@ -12363,43 +12472,76 @@
   function mergeTruthPrimaryRuntimeRowWithLegacyRow(truthRow = {}, legacyRow = null) {
     if (!legacyRow || typeof legacyRow !== "object") return truthRow;
 
-    const truthPreview = getUsableRuntimeRowPreview(truthRow);
-    const legacyPreview = getUsableRuntimeRowPreview(legacyRow);
-    const mergedPreview = truthPreview || legacyPreview;
+    const transportOverlay = buildTruthPrimaryTransportOverlay(truthRow);
+    const legacyTags = asArray(legacyRow.tags)
+      .map((tag) => normalizeKey(tag))
+      .filter(Boolean);
+    const truthTags = asArray(truthRow.tags)
+      .map((tag) => normalizeKey(tag))
+      .filter(Boolean);
+    const legacyHasLaneTags = legacyTags.some(
+      (tag) => tag !== "all" && tag !== "today" && tag !== "unassigned"
+    );
 
     const mergedRow = {
       ...legacyRow,
-      ...truthRow,
-      sender: asText(truthRow?.sender, asText(legacyRow?.sender)),
-      senderName: asText(truthRow?.senderName, asText(legacyRow?.senderName)),
-      customerEmail: asText(truthRow?.customerEmail, asText(legacyRow?.customerEmail)),
+      ...transportOverlay,
       detail: asText(truthRow?.detail, asText(legacyRow?.detail)),
       summary: asText(truthRow?.summary, asText(legacyRow?.summary)),
-      bodyHtml: asText(truthRow?.bodyHtml, asText(legacyRow?.bodyHtml)),
-      latestMessage:
-        truthRow?.latestMessage && typeof truthRow.latestMessage === "object"
-          ? truthRow.latestMessage
-          : legacyRow?.latestMessage,
-      conversation:
-        truthRow?.conversation && typeof truthRow.conversation === "object"
-          ? truthRow.conversation
-          : legacyRow?.conversation,
       customerSummary: {
         ...(legacyRow?.customerSummary && typeof legacyRow.customerSummary === "object"
           ? legacyRow.customerSummary
           : {}),
-        ...(truthRow?.customerSummary && typeof truthRow.customerSummary === "object"
-          ? truthRow.customerSummary
-          : {}),
+        customerName: asText(
+          truthRow?.customerSummary?.customerName,
+          asText(legacyRow?.customerSummary?.customerName, asText(legacyRow?.senderName))
+        ),
+        customerKey: asText(
+          truthRow?.customerSummary?.customerKey,
+          asText(
+            legacyRow?.customerSummary?.customerKey,
+            asText(legacyRow?.customerKey, asText(legacyRow?.customerEmail))
+          )
+        ),
+        lastCaseSummary:
+          transportOverlay.preview ||
+          asText(legacyRow?.customerSummary?.lastCaseSummary, transportOverlay.preview),
+        historySignalSummary:
+          transportOverlay.preview ||
+          asText(legacyRow?.customerSummary?.historySignalSummary, transportOverlay.preview),
+        historyMessageCount: Math.max(
+          asNumber(legacyRow?.customerSummary?.historyMessageCount, 0),
+          asNumber(truthRow?.customerSummary?.historyMessageCount, 0),
+          1
+        ),
       },
+      customerIdentity:
+        truthRow?.customerIdentity ||
+        legacyRow?.customerIdentity ||
+        legacyRow?.customerSummary?.customerIdentity ||
+        null,
+      hardConflictSignals: asArray(truthRow?.hardConflictSignals).length
+        ? asArray(truthRow.hardConflictSignals)
+        : asArray(legacyRow?.hardConflictSignals),
+      mergeReviewDecisionsByPairId:
+        truthRow?.mergeReviewDecisionsByPairId &&
+        typeof truthRow.mergeReviewDecisionsByPairId === "object" &&
+        Object.keys(truthRow.mergeReviewDecisionsByPairId).length
+          ? truthRow.mergeReviewDecisionsByPairId
+          : legacyRow?.mergeReviewDecisionsByPairId,
+      identityProvenance: truthRow?.identityProvenance || legacyRow?.identityProvenance || null,
     };
 
-    if (mergedPreview) {
-      mergedRow.preview = mergedPreview;
-      mergedRow.bodyPreview = mergedPreview;
-      mergedRow.latestPreview = mergedPreview;
-      mergedRow.systemPreview = mergedPreview;
-      mergedRow.latestInboundPreview = mergedPreview;
+    if (!legacyHasLaneTags && truthTags.length) {
+      mergedRow.tags = Array.from(new Set([...legacyTags, ...truthTags]));
+    }
+
+    if (!asText(legacyRow?.followUpDueAt) && asText(truthRow?.followUpDueAt)) {
+      mergedRow.followUpDueAt = asText(truthRow.followUpDueAt);
+    }
+
+    if (legacyRow?.needsReview !== true && truthRow?.needsReview === true) {
+      mergedRow.needsReview = true;
     }
 
     return mergedRow;
