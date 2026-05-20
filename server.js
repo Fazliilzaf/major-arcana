@@ -577,8 +577,8 @@ const knowledgeStore = createTenantKnowledgeStore({
 });
 knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
 
-const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
-const executiveDecisionFeed = createExecutiveDecisionFeed();
+const { createPersistentExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
+let executiveDecisionFeed = null;
 
 let billingService = null;
 let stripeWebhookHandler = null;
@@ -752,6 +752,9 @@ app.get('/healthz', (req, res) => {
 });
 
 app.get('/api/v1/executive/feed', (req, res) => {
+  if (!executiveDecisionFeed) {
+    return res.status(503).json({ error: 'Executive feed initialiseras.' });
+  }
   const entries = executiveDecisionFeed.list({
     severity: req.query?.severity || undefined,
     requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
@@ -762,10 +765,16 @@ app.get('/api/v1/executive/feed', (req, res) => {
 });
 
 app.get('/api/v1/executive/feed/summary', (req, res) => {
+  if (!executiveDecisionFeed) {
+    return res.status(503).json({ error: 'Executive feed initialiseras.' });
+  }
   return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
 });
 
 app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
+  if (!executiveDecisionFeed) {
+    return res.status(503).json({ error: 'Executive feed initialiseras.' });
+  }
   const result = executiveDecisionFeed.resolve({
     entryId: req.params?.entryId,
     resolvedBy: req.body?.resolvedBy || 'owner',
@@ -1068,6 +1077,10 @@ process.once('SIGTERM', () => {
   });
   const adminTasksStore = await createAdminTasksStore({
     filePath: config.adminTasksStorePath,
+  });
+  executiveDecisionFeed = await createPersistentExecutiveDecisionFeed({
+    filePath: config.executiveFeedStorePath,
+    logger: console,
   });
   const capabilityAnalysisStore = await createCapabilityAnalysisStore({
     filePath: config.capabilityAnalysisStorePath,
