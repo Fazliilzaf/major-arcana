@@ -3182,7 +3182,15 @@
     if (selectedMailboxIds.length) {
       return selectedMailboxIds;
     }
-    return includePreferredFallback ? [getPreferredOperationalMailboxId()] : [];
+    if (!includePreferredFallback) {
+      return [];
+    }
+    const allMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
+    if (allMailboxIds.length) {
+      return allMailboxIds;
+    }
+    const preferredMailboxId = getPreferredOperationalMailboxId();
+    return preferredMailboxId ? [preferredMailboxId] : [];
   }
 
   function splitCustomerImportMultiValue(value) {
@@ -5055,10 +5063,7 @@
   }
 
   function isRuntimeUiBlockingSync() {
-    if (state.runtime?.authRequired === true) return false;
-    if (state.runtime?.staleCacheActive === true) return false;
-    if (runtimeHasLiveThreadsInState()) return false;
-    return state.runtime?.loading === true;
+    return false;
   }
 
   function deriveRuntimeVisualState() {
@@ -14078,24 +14083,24 @@
 
   function ensureRuntimeMailboxSelection() {
     const availableIds = getCanonicalAvailableRuntimeMailboxIds();
-    const preferredMailboxId = getPreferredOperationalMailboxId();
     if (!availableIds.length) {
       return;
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
-    // Fas 48 (2026-05-20): bootstrap-default = EN primär mailbox (inte alla).
-    // Fas 38 satte default=alla, men multi-mailbox first-load fryser pga tung
-    // synkron processning av 100+ trådar (buildLiveThreads + fokus + Lit-
-    // hydration). En mailbox laddar lätt och snabbt + fyller IndexedDB-cachen.
-    // Användaren lägger till fler konton via mailbox-dropdownen vid behov.
-    // (All-mailboxar-default kan återställas när render-pipen profilerats och
-    // optimerats — se Fas 43-47 + den dedikerade perf-uppgiften.)
-    const defaultScope =
-      preferredMailboxId && availableIds.includes(preferredMailboxId)
-        ? [preferredMailboxId]
-        : availableIds.slice(0, 1);
+    const defaultScope = availableIds;
+    const scopePinned = state.runtime?.mailboxScopePinned === true;
+    if (
+      !scopePinned &&
+      selectedMailboxIds.length > 0 &&
+      selectedMailboxIds.length < availableIds.length
+    ) {
+      workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
+      state.runtime.mailboxScopePinned = false;
+      return;
+    }
     if (!selectedMailboxIds.length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
+      state.runtime.mailboxScopePinned = false;
       return;
     }
     const validIds = new Set(availableIds);
@@ -14104,6 +14109,7 @@
     );
     if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
+      state.runtime.mailboxScopePinned = false;
     }
   }
 

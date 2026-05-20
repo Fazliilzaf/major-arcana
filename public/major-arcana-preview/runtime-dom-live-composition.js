@@ -3249,23 +3249,17 @@
           }
         }
 
-        const hasEarlyWorklist =
-          !isBackgroundRefresh &&
-          (truthPrimaryFastPathApplied ||
-            (staleWhileRevalidate &&
-              asArray(state.runtime.threads).some(
-                (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
-              )));
-
-        if (hasEarlyWorklist) {
+        if (!isBackgroundRefresh) {
           state.runtime.loading = false;
           renderRuntimeConversationShell();
           if (typeof syncRuntimeVisualStateMachine === "function") {
             syncRuntimeVisualStateMachine();
           }
-          await finalizeRuntimeLoad({
+          void finalizeRuntimeLoad({
             preferredThreadId,
             resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
+          }).catch((error) => {
+            console.warn("CCO finalizeRuntimeLoad misslyckades.", error);
           });
           captureRuntimeReentrySnapshot("live_runtime_early_ready");
           const deferredSequence = runtimeRequestSequence;

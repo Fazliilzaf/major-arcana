@@ -31,6 +31,7 @@
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/admin';
+  const CCO_PREVIEW_PRIMARY_PATH = '/major-arcana-preview/';
   const CCO_PREVIEW_EMBED_SRC = '/major-arcana-preview/?embed=admin';
   const CCO_NEXT_PRIMARY_PATH = '/cco-next';
   const CCO_UNANSWERED_PRIMARY_PATH = '/unanswered';
@@ -153,6 +154,28 @@
       onboard_tenant_btn: 'Add clinic',
     },
   });
+
+  function shouldOpenCcoPreviewFromAdminLocation() {
+    const hash = String(window.location.hash || '')
+      .trim()
+      .toLowerCase();
+    return (
+      hash === '#cco' ||
+      hash === '#cco-workspace' ||
+      resolveSectionGroupFromHash(hash) === 'ccoWorkspaceSection'
+    );
+  }
+
+  function openCcoPreviewWorkspace() {
+    window.location.replace(CCO_PREVIEW_PRIMARY_PATH);
+  }
+
+  function maybeRedirectAdminToCcoPreview() {
+    if (!shouldOpenCcoPreviewFromAdminLocation()) return false;
+    if (!state.token) return false;
+    openCcoPreviewWorkspace();
+    return true;
+  }
 
   function isCcoRoutePath(pathname = '') {
     const normalized = String(pathname || '').trim().toLowerCase();
@@ -3455,7 +3478,7 @@
     }
     if (isLoggedIn) {
       mountCcoHeaderNav();
-      ensureCcoPreviewEmbed();
+      if (maybeRedirectAdminToCcoPreview()) return;
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -5820,12 +5843,8 @@
       isCcoNextRoutePath(window.location.pathname || '');
     const ccoNextModeActive =
       normalized === 'ccoNextWorkspaceSection' || isCcoNextRoutePath(window.location.pathname || '');
-    const ccoEmbedWorkspaceActive =
-      normalized === 'ccoWorkspaceSection' && isCcoEmbedMode();
     document.body.classList.toggle('cco-light-mode', ccoModeActive);
     document.body.classList.toggle('cco-next-preview-route', ccoNextModeActive);
-    document.body.classList.toggle('cco-compact-header-disabled', ccoEmbedWorkspaceActive);
-    document.body.classList.toggle('cco-admin-embed-active', ccoEmbedWorkspaceActive);
     document.body.classList.remove('cco-compact-header');
     if (els.adminHeader) {
       if (ccoNextModeActive) {
@@ -5846,6 +5865,9 @@
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
+    if (String(groupId || '').trim() === 'ccoWorkspaceSection') {
+      if (maybeRedirectAdminToCcoPreview()) return;
+    }
     const enteringCco =
       String(groupId || '').trim() === 'ccoWorkspaceSection' &&
       String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
@@ -29989,22 +30011,19 @@
     const targetEl = document.getElementById(targetId);
     if (!targetEl) return;
     if (targetId === 'ccoWorkspaceSection') {
-      if (isCcoEmbedMode()) {
-        ensureCcoPreviewEmbed();
-      } else {
-        state.ccoInboxViewMode = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
-        if (state.ccoInboxSlaFilter === 'unanswered') {
-          state.ccoInboxSlaFilter = 'all';
-        }
-        persistCcoWorkspaceSessionState();
-        setActiveSectionNav(targetId);
-        renderCcoInbox(state.ccoInboxData);
+      if (maybeRedirectAdminToCcoPreview()) {
+        event.preventDefault();
+        return;
       }
     }
     event.preventDefault();
     scrollToSection(targetEl);
   });
   els.openCcoWorkspaceBtn?.addEventListener('click', () => {
+    if (state.token) {
+      openCcoPreviewWorkspace();
+      return;
+    }
     const target = els.ccoWorkspaceSection || document.getElementById('ccoWorkspaceSection');
     if (!target) return;
     scrollToSection(target);
@@ -31805,21 +31824,17 @@
   syncTemplateFilterInputs();
   bindScrollableListPersistence();
   applyLanguage();
-  state.activeSectionGroup = resolveInitialSectionGroup();
-  setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
-    targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
-    scroll: false,
-  });
-  if (isCcoWorkspaceActive()) {
-    if (isCcoEmbedMode()) {
-      ensureCcoPreviewEmbed();
-    } else {
-      renderCcoCenterReadTab();
-      renderCcoSidebar(null, null);
-      maybeShowCcoOnboarding();
+  if (maybeRedirectAdminToCcoPreview()) {
+    // Full CCO körs som egen app — hoppa över admin-init när #cco är målet.
+  } else {
+    state.activeSectionGroup = resolveInitialSectionGroup();
+    setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
+      targetId: resolveDefaultTargetForGroup(state.activeSectionGroup || 'overviewSection'),
+      scroll: false,
+    });
+    if (isCcoNextWorkspaceActive()) {
+      renderCcoNextPreview();
     }
-  } else if (isCcoNextWorkspaceActive()) {
-    renderCcoNextPreview();
   }
   renderTonePreview();
   renderTeamSummary([]);
