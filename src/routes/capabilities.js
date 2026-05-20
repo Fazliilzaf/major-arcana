@@ -88,6 +88,62 @@ const CCO_KONS_HISTORY_CHUNK_DAYS = 30;
 const CCO_KONS_HISTORY_RECENT_FRESHNESS_MS = 10 * 60 * 1000;
 const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
 const CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS = 45;
+const ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS = 45000;
+const ANALYZE_INBOX_HISTORY_IO_CONCURRENCY = 2;
+const analyzeInboxGraphSnapshotCache = new Map();
+
+async function mapSettledWithConcurrencyLimit(items = [], limit = 2, mapper = async () => null) {
+  const safeItems = asArray(items);
+  if (!safeItems.length) return [];
+  const results = new Array(safeItems.length);
+  let nextIndex = 0;
+  const workerCount = Math.max(1, Math.min(limit, safeItems.length));
+  async function worker() {
+    while (nextIndex < safeItems.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      try {
+        results[index] = { status: 'fulfilled', value: await mapper(safeItems[index], index) };
+      } catch (error) {
+        results[index] = { status: 'rejected', reason: error };
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
+function buildAnalyzeInboxGraphSnapshotCacheKey({
+  tenantId = '',
+  mailboxIds = [],
+  days = 0,
+} = {}) {
+  const normalizedMailboxIds = normalizeMailboxIdList(mailboxIds, 50)
+    .filter((mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId))
+    .sort();
+  return `${normalizeText(tenantId)}|${normalizedMailboxIds.join(',')}|${Number(days || 0)}`;
+}
+
+function readAnalyzeInboxGraphSnapshotCache(cacheKey = '') {
+  const safeKey = normalizeText(cacheKey);
+  if (!safeKey) return null;
+  const entry = analyzeInboxGraphSnapshotCache.get(safeKey);
+  if (!entry || typeof entry !== 'object') return null;
+  if (Date.now() - Number(entry.at || 0) > ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS) {
+    analyzeInboxGraphSnapshotCache.delete(safeKey);
+    return null;
+  }
+  return entry.snapshot && typeof entry.snapshot === 'object' ? entry.snapshot : null;
+}
+
+function writeAnalyzeInboxGraphSnapshotCache(cacheKey = '', snapshot = null) {
+  const safeKey = normalizeText(cacheKey);
+  if (!safeKey || !snapshot || typeof snapshot !== 'object') return;
+  analyzeInboxGraphSnapshotCache.set(safeKey, {
+    at: Date.now(),
+    snapshot,
+  });
+}
 const CCO_HISTORY_SIGNAL_RESCHEDULE_PATTERN =
   /\b(ombok|boka om|avbok|cancel|cancell|resched|ny tid|andra tid|ändra tid|flytta tid)\b/i;
 const CCO_HISTORY_SIGNAL_COMPLAINT_PATTERN =
@@ -1669,15 +1725,16 @@ async function buildAnalyzeInboxHistorySignalIndex({
   const { startIso, endIso } = toAnalyzeInboxHistoryWindowBounds(lookbackDays);
   const recentThresholdMs =
     Date.now() - CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-  const mailboxResults = await Promise.allSettled(
-    safeMailboxIds.map((mailboxId) =>
+  const mailboxResults = await mapSettledWithConcurrencyLimit(
+    safeMailboxIds,
+    ANALYZE_INBOX_HISTORY_IO_CONCURRENCY,
+    (mailboxId) =>
       ccoHistoryStore.listMailboxMessages({
         tenantId,
         mailboxId,
         sinceIso: startIso,
         untilIso: endIso,
       })
-    )
   );
 
   const aggregatesByCustomer = new Map();
@@ -1716,8 +1773,10 @@ async function buildAnalyzeInboxHistorySignalIndex({
   }
 
   if (typeof ccoHistoryStore.listCustomerOutcomes === 'function') {
-    const outcomeResults = await Promise.allSettled(
-      customerEmails.map((customerEmail) =>
+    const outcomeResults = await mapSettledWithConcurrencyLimit(
+      customerEmails,
+      ANALYZE_INBOX_HISTORY_IO_CONCURRENCY,
+      (customerEmail) =>
         ccoHistoryStore.listCustomerOutcomes({
           tenantId,
           customerEmail,
@@ -1725,7 +1784,6 @@ async function buildAnalyzeInboxHistorySignalIndex({
           sinceIso: startIso,
           untilIso: endIso,
         })
-      )
     );
     for (let index = 0; index < outcomeResults.length; index += 1) {
       const result = outcomeResults[index];
@@ -1753,6 +1811,7 @@ async function augmentAnalyzeInboxSnapshotWithHistorySignals({
   tenantId,
   systemStateSnapshot = {},
   ccoHistoryStore = null,
+  mailboxIds = CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS,
 } = {}) {
   const safeSnapshot = asObject(systemStateSnapshot);
   const conversations = asArray(safeSnapshot.conversations);
@@ -1761,6 +1820,7 @@ async function augmentAnalyzeInboxSnapshotWithHistorySignals({
     tenantId,
     conversations,
     ccoHistoryStore,
+    mailboxIds,
   });
   if (historySignalIndex.size === 0) return safeSnapshot;
   return {
@@ -2052,10 +2112,20 @@ async function hydrateAnalyzeInboxInput({
   }
 
   if (Array.isArray(safeSnapshot.conversations)) {
+    const historyMailboxIds =
+      requestedMailboxIds.length > 0
+        ? requestedMailboxIds
+        : normalizeMailboxIdList(
+            asArray(safeSnapshot?.metadata?.sourceMailboxIds),
+            20
+          ).filter((mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId));
     const augmentedSnapshot = await augmentAnalyzeInboxSnapshotWithHistorySignals({
       tenantId,
       systemStateSnapshot: safeSnapshot,
       ccoHistoryStore,
+      mailboxIds: historyMailboxIds.length
+        ? historyMailboxIds
+        : CCO_CUSTOMER_HISTORY_DEFAULT_MAILBOX_IDS,
     });
     return {
       input: normalizedInput,
@@ -2082,6 +2152,32 @@ async function hydrateAnalyzeInboxInput({
       : {}),
     ...asObject(graphReadOptionsOverride),
   };
+  const graphSnapshotCacheKey = buildAnalyzeInboxGraphSnapshotCacheKey({
+    tenantId,
+    mailboxIds:
+      requestedMailboxIds.length > 0
+        ? requestedMailboxIds
+        : asArray(graphReadOptions.allowlistMailboxIds),
+    days: graphReadOptions.days,
+  });
+  const cachedGraphSnapshot = readAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey);
+  if (cachedGraphSnapshot) {
+    const augmentedSnapshot = await augmentAnalyzeInboxSnapshotWithHistorySignals({
+      tenantId,
+      systemStateSnapshot: cachedGraphSnapshot,
+      ccoHistoryStore,
+      mailboxIds:
+        requestedMailboxIds.length > 0
+          ? requestedMailboxIds
+          : normalizeMailboxIdList(asArray(graphReadOptions.allowlistMailboxIds), 20).filter(
+              (mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId)
+            ),
+    });
+    return {
+      input: normalizedInput,
+      systemStateSnapshot: augmentedSnapshot,
+    };
+  }
   const capturedAt = new Date().toISOString();
 
   await writeMailboxReadAuditEvent({
@@ -2174,7 +2270,14 @@ async function hydrateAnalyzeInboxInput({
       tenantId,
       systemStateSnapshot: mergedSnapshot,
       ccoHistoryStore,
+      mailboxIds:
+        requestedMailboxIds.length > 0
+          ? requestedMailboxIds
+          : normalizeMailboxIdList(asArray(graphReadOptions.allowlistMailboxIds), 20).filter(
+              (mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId)
+            ),
     });
+    writeAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey, augmentedSnapshot);
 
     await writeMailboxReadAuditEvent({
       authStore,
@@ -2566,10 +2669,172 @@ async function hydrateSummarizeIncidentsInput({
   };
 }
 
+async function hydrateCaoSystemSnapshot({
+  tenantId,
+  templateStore,
+  adminTasksStore,
+  authStore = null,
+  tenantConfigStore = null,
+  scheduler = null,
+  config = null,
+  systemStateSnapshot,
+}) {
+  const safeSnapshot = asObject(systemStateSnapshot);
+  let nextSnapshot = { ...safeSnapshot };
+
+  if (
+    templateStore &&
+    typeof templateStore.listTemplates === 'function' &&
+    !Array.isArray(safeSnapshot.templates)
+  ) {
+    const [allTemplates, templateMeta, riskSummary] = await Promise.all([
+      templateStore.listTemplates({ tenantId, limit: 100, includeVersions: true }),
+      typeof templateStore.getTemplateMeta === 'function'
+        ? templateStore.getTemplateMeta({ tenantId })
+        : null,
+      typeof templateStore.getRiskSummary === 'function'
+        ? templateStore.getRiskSummary({ tenantId })
+        : null,
+    ]);
+    const variableWhitelist =
+      templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {};
+    nextSnapshot = {
+      ...nextSnapshot,
+      templates: Array.isArray(allTemplates) ? allTemplates : [],
+      variableWhitelist,
+      riskSummary: riskSummary || {},
+    };
+  }
+
+  if (
+    templateStore &&
+    typeof templateStore.listIncidents === 'function' &&
+    !Array.isArray(safeSnapshot.incidents)
+  ) {
+    const incidents = await templateStore.listIncidents({ tenantId, limit: 100 });
+    nextSnapshot = {
+      ...nextSnapshot,
+      incidents: Array.isArray(incidents) ? incidents : [],
+    };
+  }
+
+  if (
+    adminTasksStore &&
+    typeof adminTasksStore.listTasks === 'function' &&
+    !Array.isArray(safeSnapshot.adminTasks)
+  ) {
+    const adminTasks = await adminTasksStore.listTasks({ tenantId, limit: 200 });
+    nextSnapshot = {
+      ...nextSnapshot,
+      adminTasks: Array.isArray(adminTasks) ? adminTasks : [],
+    };
+  }
+  if (!Array.isArray(nextSnapshot.adminTasks)) {
+    nextSnapshot = { ...nextSnapshot, adminTasks: [] };
+  }
+  if (!Array.isArray(nextSnapshot.incidents)) {
+    nextSnapshot = { ...nextSnapshot, incidents: [] };
+  }
+
+  if (
+    authStore &&
+    typeof authStore.listAuditEvents === 'function' &&
+    !Array.isArray(safeSnapshot.auditEvents)
+  ) {
+    const auditEvents = await authStore.listAuditEvents({ tenantId, limit: 200 });
+    nextSnapshot = {
+      ...nextSnapshot,
+      auditEvents: Array.isArray(auditEvents) ? auditEvents : [],
+    };
+  }
+  if (!Array.isArray(nextSnapshot.auditEvents)) {
+    nextSnapshot = { ...nextSnapshot, auditEvents: [] };
+  }
+
+  if (
+    tenantConfigStore &&
+    typeof tenantConfigStore.getTenantConfig === 'function' &&
+    !nextSnapshot.tenantConfig
+  ) {
+    const tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+    nextSnapshot = {
+      ...nextSnapshot,
+      tenantConfig: tenantConfig && typeof tenantConfig === 'object' ? tenantConfig : {},
+    };
+  }
+
+  if (!nextSnapshot.documentationIndex) {
+    try {
+      const { loadDocumentationIndex } = require('../capabilities/caoCapabilityKit');
+      const docIndex = await loadDocumentationIndex(process.cwd());
+      nextSnapshot = {
+        ...nextSnapshot,
+        documentationIndex: docIndex,
+        repoRoot: process.cwd(),
+      };
+    } catch {
+      nextSnapshot = { ...nextSnapshot, documentationIndex: { links: [] } };
+    }
+  }
+
+  if (!normalizeText(nextSnapshot.snapshotVersion)) {
+    nextSnapshot.snapshotVersion = 'cao.snapshot.v2';
+    nextSnapshot.timestamps = {
+      capturedAt: new Date().toISOString(),
+      ...(nextSnapshot.timestamps && typeof nextSnapshot.timestamps === 'object'
+        ? nextSnapshot.timestamps
+        : {}),
+    };
+  }
+
+  if (!nextSnapshot.readiness) {
+    try {
+      const { buildCaoReadinessSnapshot } = require('../ops/readinessEvaluator');
+      nextSnapshot.readiness = await buildCaoReadinessSnapshot({
+        tenantId,
+        templateStore,
+        authStore,
+        scheduler,
+        adminTasksStore,
+        config,
+      });
+    } catch {
+      nextSnapshot.readiness = { score: null, blockers: [], band: 'unknown' };
+    }
+  }
+
+  return nextSnapshot;
+}
+
+const CAO_HYDRATED_CAPABILITY_NAMES = new Set(
+  [
+    'suggesttemplateimprovement',
+    'validatedisclaimers',
+    'optimizevariables',
+    'assesstemplatelibraryhealth',
+    'assessadminqualitygate',
+    'generateadmintemplatedraft',
+    'auditdocumentationmetadata',
+    'proposedocumentstructure',
+    'summarizeincidentadmin',
+    'flagunownedincidents',
+    'buildauditsummary',
+    'verifydecisiontraceability',
+    'tenantadminhealthsummary',
+    'generateadmindailybrief',
+    'generateadminweeklybrief',
+    'explainreadinessscore',
+  ].map((name) => name.toLowerCase())
+);
+
 async function maybeHydrateCapabilityPayload({
   capabilityName,
   tenantId,
   templateStore,
+  adminTasksStore = null,
+  tenantConfigStore = null,
+  scheduler = null,
+  config = null,
   input,
   systemStateSnapshot,
   graphReadConnector,
@@ -2596,36 +2861,19 @@ async function maybeHydrateCapabilityPayload({
       systemStateSnapshot,
     });
   }
-  if (
-    normalizedName === 'suggesttemplateimprovement' ||
-    normalizedName === 'validatedisclaimers' ||
-    normalizedName === 'optimizevariables'
-  ) {
-    const safeSnapshot = asObject(systemStateSnapshot);
-    if (
-      templateStore &&
-      typeof templateStore.listTemplates === 'function' &&
-      !Array.isArray(safeSnapshot.templates)
-    ) {
-      const [allTemplates, templateMeta] = await Promise.all([
-        templateStore.listTemplates({ tenantId, limit: 100 }),
-        typeof templateStore.getTemplateMeta === 'function'
-          ? templateStore.getTemplateMeta({ tenantId })
-          : null,
-      ]);
-      return {
-        input: asObject(input),
-        systemStateSnapshot: {
-          ...safeSnapshot,
-          templates: Array.isArray(allTemplates) ? allTemplates : [],
-          variableWhitelist:
-            templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {},
-        },
-      };
-    }
+  if (CAO_HYDRATED_CAPABILITY_NAMES.has(normalizedName)) {
     return {
       input: asObject(input),
-      systemStateSnapshot: safeSnapshot,
+      systemStateSnapshot: await hydrateCaoSystemSnapshot({
+        tenantId,
+        templateStore,
+        adminTasksStore,
+        authStore,
+        tenantConfigStore,
+        scheduler,
+        config,
+        systemStateSnapshot,
+      }),
     };
   }
   if (normalizedName === 'analyzeinbox') {
@@ -2651,6 +2899,10 @@ async function maybeHydrateAgentPayload({
   agentName,
   tenantId,
   templateStore,
+  adminTasksStore = null,
+  tenantConfigStore = null,
+  scheduler = null,
+  config = null,
   input,
   systemStateSnapshot,
   graphReadConnector,
@@ -2759,40 +3011,18 @@ async function maybeHydrateAgentPayload({
   }
 
   if (normalizedAgentName === 'cao') {
-    const safeSnapshot = asObject(systemStateSnapshot);
-    if (
-      templateStore &&
-      typeof templateStore.listTemplates === 'function' &&
-      !Array.isArray(safeSnapshot.templates)
-    ) {
-      const [allTemplates, templateMeta, riskSummary] = await Promise.all([
-        templateStore.listTemplates({ tenantId, limit: 100 }),
-        typeof templateStore.getTemplateMeta === 'function'
-          ? templateStore.getTemplateMeta({ tenantId })
-          : null,
-        typeof templateStore.getRiskSummary === 'function'
-          ? templateStore.getRiskSummary({ tenantId })
-          : null,
-      ]);
-      const variableWhitelist =
-        templateMeta?.variableWhitelist || templateMeta?.variableWhitelistByCategory || {};
-      return {
-        input: safeInput,
-        systemStateSnapshot: {
-          ...safeSnapshot,
-          templates: Array.isArray(allTemplates) ? allTemplates : [],
-          variableWhitelist,
-          riskSummary: riskSummary || {},
-          snapshotVersion: 'cao.snapshot.v1',
-          timestamps: {
-            capturedAt: new Date().toISOString(),
-          },
-        },
-      };
-    }
     return {
       input: safeInput,
-      systemStateSnapshot: safeSnapshot,
+      systemStateSnapshot: await hydrateCaoSystemSnapshot({
+        tenantId,
+        templateStore,
+        adminTasksStore,
+        authStore,
+        tenantConfigStore,
+        scheduler,
+        config,
+        systemStateSnapshot,
+      }),
     };
   }
 
@@ -5317,10 +5547,15 @@ async function runCapabilityHandler({
   executor,
   capabilityName,
   templateStore,
+  adminTasksStore,
+  tenantConfigStore,
+  scheduler,
+  config,
   graphReadConnector,
   capabilityAnalysisStore,
   ccoHistoryStore,
   authStore,
+  executiveDecisionFeed = null,
 }) {
   const actor = toActor(req);
   const correlationId = toCorrelationId(req);
@@ -5329,6 +5564,10 @@ async function runCapabilityHandler({
     capabilityName,
     tenantId: toTenantId(req),
     templateStore,
+    adminTasksStore,
+    tenantConfigStore,
+    scheduler,
+    config,
     input: toRunInputBody(rawPayload),
     systemStateSnapshot: rawPayload.systemStateSnapshot,
     graphReadConnector,
@@ -5376,10 +5615,15 @@ async function runAgentHandler({
   executor,
   agentName,
   templateStore,
+  adminTasksStore,
+  tenantConfigStore,
+  scheduler,
+  config,
   graphReadConnector,
   capabilityAnalysisStore,
   ccoHistoryStore,
   authStore,
+  executiveDecisionFeed = null,
 }) {
   const actor = toActor(req);
   const correlationId = toCorrelationId(req);
@@ -5388,6 +5632,10 @@ async function runAgentHandler({
     agentName,
     tenantId: toTenantId(req),
     templateStore,
+    adminTasksStore,
+    tenantConfigStore,
+    scheduler,
+    config,
     input: toRunInputBody(rawPayload),
     systemStateSnapshot: rawPayload.systemStateSnapshot,
     graphReadConnector,
@@ -5426,6 +5674,19 @@ async function runAgentHandler({
     correlationId,
     result,
   });
+  if (
+    executiveDecisionFeed &&
+    typeof executiveDecisionFeed.addFromAgentOutput === 'function'
+  ) {
+    const normalizedAgent = String(agentName || '').toUpperCase();
+    if (['CAO', 'COO', 'CFO', 'CMO'].includes(normalizedAgent)) {
+      executiveDecisionFeed.addFromAgentOutput({
+        agent: normalizedAgent,
+        output: result.output || result,
+        tenantId: toTenantId(req),
+      });
+    }
+  }
   return toCapabilityRunSuccess(res, result);
 }
 
@@ -6030,10 +6291,15 @@ function toMetaHandler({ executor }) {
 function toCapabilityRunHandler({
   executor,
   templateStore,
+  adminTasksStore,
+  tenantConfigStore,
+  scheduler,
+  config,
   graphReadConnector,
   capabilityAnalysisStore,
   ccoHistoryStore,
   authStore,
+  executiveDecisionFeed = null,
 }) {
   return async (req, res) => {
     const capabilityName = toCapabilityName(req);
@@ -6045,10 +6311,15 @@ function toCapabilityRunHandler({
         executor,
         capabilityName,
         templateStore,
+        adminTasksStore,
+        tenantConfigStore,
+        scheduler,
+        config,
         graphReadConnector,
         capabilityAnalysisStore,
         ccoHistoryStore,
         authStore,
+        executiveDecisionFeed,
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
@@ -6059,10 +6330,15 @@ function toCapabilityRunHandler({
 function toAgentRunHandler({
   executor,
   templateStore,
+  adminTasksStore,
+  tenantConfigStore,
+  scheduler,
+  config,
   graphReadConnector,
   capabilityAnalysisStore,
   ccoHistoryStore,
   authStore,
+  executiveDecisionFeed = null,
 }) {
   return async (req, res) => {
     const agentName = toAgentName(req);
@@ -6074,10 +6350,15 @@ function toAgentRunHandler({
         executor,
         agentName,
         templateStore,
+        adminTasksStore,
+        tenantConfigStore,
+        scheduler,
+        config,
         graphReadConnector,
         capabilityAnalysisStore,
         ccoHistoryStore,
         authStore,
+        executiveDecisionFeed,
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
@@ -8681,7 +8962,7 @@ function toCcoRuntimeCalibrationReadoutHandler({
 
 function createCapabilitiesRouter({
   authStore,
-  tenantConfigStore,
+  tenantConfigStore: tenantConfigStoreParam,
   ccoSettingsStore = null,
   ccoConversationStateStore = null,
   requireAuth,
@@ -8694,13 +8975,18 @@ function createCapabilitiesRouter({
   runtimeMetricsStore = null,
   clientoBookingStore = null,
   templateStore = null,
+  adminTasksStore = null,
   scheduler = null,
+  executiveDecisionFeed = null,
   graphReadConnector = null,
   graphReadConnectorFactory = createMicrosoftGraphReadConnector,
   graphSendConnector = null,
   graphSendConnectorFactory = createMicrosoftGraphSendConnector,
+  appConfig = null,
 }) {
   const router = express.Router();
+  const tenantConfigStore = tenantConfigStoreParam;
+  const config = appConfig || require('../config');
   const gateway =
     executionGateway ||
     createExecutionGateway({
@@ -8863,6 +9149,10 @@ function createCapabilitiesRouter({
       toCapabilityRunHandler({
         executor,
         templateStore,
+        adminTasksStore,
+        tenantConfigStore,
+        scheduler,
+        config,
         graphReadConnector: resolvedGraphReadConnector,
         capabilityAnalysisStore,
         ccoHistoryStore,
@@ -9243,10 +9533,15 @@ function createCapabilitiesRouter({
       toAgentRunHandler({
         executor,
         templateStore,
+        adminTasksStore,
+        tenantConfigStore,
+        scheduler,
+        config,
         graphReadConnector: resolvedGraphReadConnector,
         capabilityAnalysisStore,
         ccoHistoryStore,
         authStore,
+        executiveDecisionFeed,
       })
     )
   );
@@ -9257,6 +9552,7 @@ function createCapabilitiesRouter({
 module.exports = {
   createCapabilitiesRouter,
   hydrateAnalyzeInboxInput,
+  hydrateCaoSystemSnapshot,
   materializeCustomerReplyActions,
   toGraphReadOptionsFromEnv,
 };

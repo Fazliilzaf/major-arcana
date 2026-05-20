@@ -30,7 +30,8 @@
     opsSection: '#ops',
   });
   const ADMIN_PRIMARY_PATH = '/admin';
-  const CCO_PRIMARY_PATH = '/cco';
+  const CCO_PRIMARY_PATH = '/admin';
+  const CCO_PREVIEW_EMBED_SRC = '/major-arcana-preview/?embed=admin';
   const CCO_NEXT_PRIMARY_PATH = '/cco-next';
   const CCO_UNANSWERED_PRIMARY_PATH = '/unanswered';
   const AUTH_RETURN_TO_QUERY_PARAM = 'next';
@@ -1305,6 +1306,8 @@
     settingsSection: document.getElementById('settingsSection'),
     overviewSection: document.getElementById('overviewSection'),
     ccoWorkspaceSection: document.getElementById('ccoWorkspaceSection'),
+    ccoPreviewEmbedShell: document.getElementById('ccoPreviewEmbedShell'),
+    ccoPreviewEmbedFrame: document.getElementById('ccoPreviewEmbedFrame'),
     ccoNextWorkspaceSection: document.getElementById('ccoNextWorkspaceSection'),
     ccoNextPreviewRoot: document.getElementById('ccoNextPreviewRoot'),
     ccoWorkspaceLayout: document.getElementById('ccoWorkspaceLayout'),
@@ -1401,8 +1404,11 @@
     riskLabStatus: document.getElementById('riskLabStatus'),
     riskLabResult: document.getElementById('riskLabResult'),
     orchestratorPromptInput: document.getElementById('orchestratorPromptInput'),
+    orchestratorExecuteMode: document.getElementById('orchestratorExecuteMode'),
+    previewOrchestratorStepsBtn: document.getElementById('previewOrchestratorStepsBtn'),
     runOrchestratorBtn: document.getElementById('runOrchestratorBtn'),
     orchestratorStatus: document.getElementById('orchestratorStatus'),
+    orchestratorExecutePreview: document.getElementById('orchestratorExecutePreview'),
     orchestratorResult: document.getElementById('orchestratorResult'),
     orchestratorMetaSummary: document.getElementById('orchestratorMetaSummary'),
     orchestratorMetaResult: document.getElementById('orchestratorMetaResult'),
@@ -3449,6 +3455,7 @@
     }
     if (isLoggedIn) {
       mountCcoHeaderNav();
+      ensureCcoPreviewEmbed();
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -3461,6 +3468,7 @@
     if (!isLoggedIn) {
       syncWorkspaceTheme('');
       clearCcoAutoRefreshTimer();
+      teardownCcoPreviewEmbed();
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -3666,6 +3674,7 @@
     if (els.changeOwnPasswordBtn) els.changeOwnPasswordBtn.disabled = !hasSession;
     if (els.refreshProfileBtn) els.refreshProfileBtn.disabled = !hasSession;
     if (els.runRiskPreviewBtn) els.runRiskPreviewBtn.disabled = !writer;
+    if (els.previewOrchestratorStepsBtn) els.previewOrchestratorStepsBtn.disabled = !writer;
     if (els.runOrchestratorBtn) els.runOrchestratorBtn.disabled = !writer;
     if (els.fetchCalibrationSuggestionBtn) els.fetchCalibrationSuggestionBtn.disabled = !writer;
     if (els.applyCalibrationSuggestionBtn) els.applyCalibrationSuggestionBtn.disabled = !owner;
@@ -3899,12 +3908,39 @@
     return String(state.activeSectionGroup || '').trim() === 'ccoNextWorkspaceSection';
   }
 
+  function isCcoEmbedMode() {
+    return Boolean(els.ccoPreviewEmbedFrame);
+  }
+
+  function resolveCcoPreviewEmbedSrc() {
+    const fromFrame = String(els.ccoPreviewEmbedFrame?.dataset?.src || '').trim();
+    return fromFrame || CCO_PREVIEW_EMBED_SRC;
+  }
+
+  function ensureCcoPreviewEmbed() {
+    const frame = els.ccoPreviewEmbedFrame;
+    if (!frame || !state.token) return false;
+    const nextSrc = resolveCcoPreviewEmbedSrc();
+    const currentSrc = String(frame.getAttribute('src') || '').trim();
+    if (!currentSrc || currentSrc === 'about:blank') {
+      frame.setAttribute('src', nextSrc);
+    }
+    return true;
+  }
+
+  function teardownCcoPreviewEmbed() {
+    const frame = els.ccoPreviewEmbedFrame;
+    if (!frame) return;
+    frame.setAttribute('src', 'about:blank');
+  }
+
   function isCcoSurfaceActive() {
     return isCcoWorkspaceActive() || isCcoNextWorkspaceActive();
   }
 
   function shouldRunCcoAutoRefresh() {
     if (!state.token) return false;
+    if (isCcoEmbedMode() && isCcoWorkspaceActive()) return false;
     if (!isCcoSurfaceActive()) return false;
     if (document.visibilityState === 'hidden') return false;
     return true;
@@ -5678,6 +5714,7 @@
   }
 
   function syncCcoThreadRouteState(conversationId = '') {
+    if (isCcoEmbedMode()) return;
     if (state.activeSectionGroup !== 'ccoWorkspaceSection') return;
     const safeConversationId = String(conversationId || '').trim();
     const url = new URL(window.location.href);
@@ -5714,11 +5751,8 @@
     const normalized = String(groupId || '').trim();
     if (!normalized) return '';
     if (normalized === 'ccoWorkspaceSection') {
-      const threadId = String(state.ccoSelectedConversationId || '').trim();
-      const basePath = CCO_PRIMARY_PATH;
-      return threadId
-        ? `${basePath}?${CCO_THREAD_QUERY_PARAM}=${encodeURIComponent(threadId)}`
-        : basePath;
+      const preservedSearch = buildPreservedAdminSearch();
+      return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cco`;
     }
     if (normalized === 'ccoNextWorkspaceSection') {
       return CCO_NEXT_PRIMARY_PATH;
@@ -5848,14 +5882,17 @@
     }
 
     if (enteringCco) {
+      ensureCcoPreviewEmbed();
       state.ccoAdaptiveFocusShowAll = false;
       state.ccoFocusWorkloadMinutes = 0;
       hideCcoSoftBreakPanel();
       postCcoUsageEvent('workspace_open', {
-        route: '/cco',
+        route: '/admin#cco',
         workspaceId: 'cco',
       });
-      maybeShowCcoOnboarding();
+      if (!isCcoEmbedMode()) {
+        maybeShowCcoOnboarding();
+      }
     }
     if (enteringCcoNext) {
       state.ccoAdaptiveFocusShowAll = false;
@@ -8480,23 +8517,148 @@
     }
   }
 
+  async function previewOrchestratorSteps() {
+    try {
+      if (!canTemplateWrite()) throw new Error('Du saknar behörighet.');
+      const prompt = (els.orchestratorPromptInput?.value || '').trim();
+      if (!prompt) throw new Error('Skriv en intern uppgift först.');
+
+      setStatus(els.orchestratorStatus, 'Förhandsgranskar körbara steg...');
+      const response = await api('/orchestrator/admin-run', {
+        method: 'POST',
+        body: { prompt, mode: 'plan' },
+      });
+
+      const preview = response?.executePreview || {};
+      const executableSteps = Array.isArray(preview.executableSteps)
+        ? preview.executableSteps
+        : Array.isArray(response?.executableSteps)
+          ? response.executableSteps
+          : [];
+      const recommendedAgentRun = preview.recommendedAgentRun || null;
+
+      window.__orchestratorLastPreview = {
+        prompt,
+        intent: response?.intent || null,
+        confidence: response?.confidence ?? null,
+        executableSteps,
+        recommendedAgentRun,
+        fetchedAt: new Date().toISOString(),
+      };
+
+      if (els.orchestratorExecutePreview) {
+        const lines = [];
+        lines.push(`Intent: ${response?.intent || '-'} (confidence ${response?.confidence ?? '-'})`);
+        lines.push(`Läge: plan (ingen körning)`);
+        lines.push('');
+        if (recommendedAgentRun) {
+          lines.push('Rekommenderad agent-run vid execute:');
+          lines.push(
+            `  • ${recommendedAgentRun.label || recommendedAgentRun.agent} (${recommendedAgentRun.agent})`
+          );
+          lines.push('');
+        }
+        if (executableSteps.length === 0) {
+          lines.push('Inga automatiska capability-steg för detta intent.');
+        } else {
+          lines.push(`Körbara capability-steg (${executableSteps.length}):`);
+          executableSteps.forEach((step, index) => {
+            lines.push(
+              `  ${index + 1}. ${step.step} → ${step.capability} (owner: ${step.owner || '-'})`
+            );
+          });
+        }
+        els.orchestratorExecutePreview.textContent = lines.join('\n');
+      }
+
+      setStatus(
+        els.orchestratorStatus,
+        `Förhandsgranskning klar: intent=${response?.intent || '-'} steg=${executableSteps.length}${
+          recommendedAgentRun ? ' + CAO agent-run' : ''
+        }`
+      );
+    } catch (error) {
+      setStatus(
+        els.orchestratorStatus,
+        error.message || 'Kunde inte förhandsgranska körbara steg.',
+        true
+      );
+    }
+  }
+
+  const ORCHESTRATOR_L3_INTENTS = new Set([
+    'risk_review',
+    'finance_governance',
+    'staff_admin',
+    'tenant_branding',
+  ]);
+
+  function orchestratorExecuteRequiresOwnerConfirm(preview) {
+    if (!preview || !preview.fetchedAt) return true;
+    if (ORCHESTRATOR_L3_INTENTS.has(normalizeText(preview.intent))) return true;
+    const steps = Array.isArray(preview.executableSteps) ? preview.executableSteps : [];
+    const highRiskCapabilities = new Set([
+      'GenerateAdminTemplateDraft',
+      'VerifyDecisionTraceability',
+    ]);
+    if (steps.some((step) => highRiskCapabilities.has(String(step?.capability || '')))) return true;
+    if (preview.recommendedAgentRun && normalizeText(preview.intent) === 'audit_review') return true;
+    return false;
+  }
+
+  function confirmOrchestratorExecute(preview) {
+    const lines = [];
+    if (!preview || !preview.fetchedAt) {
+      lines.push('Du har inte förhandsgranskat stegen för denna prompt.');
+    }
+    lines.push('Execute-läge kör CAO/orchestrator-steg via gateway.');
+    if (preview?.intent) lines.push('Intent: ' + preview.intent);
+    if (Array.isArray(preview?.executableSteps) && preview.executableSteps.length) {
+      lines.push('Capability-steg: ' + preview.executableSteps.length);
+    }
+    if (preview?.recommendedAgentRun) {
+      lines.push('Agent-run: ' + (preview.recommendedAgentRun.label || preview.recommendedAgentRun.agent));
+    }
+    if (orchestratorExecuteRequiresOwnerConfirm(preview)) {
+      lines.push('');
+      lines.push('L3+ eller eskalera-risk: OWNER-bekräftelse krävs.');
+    }
+    return window.confirm(lines.join('\n'));
+  }
+
   async function runOrchestrator() {
     try {
       if (!canTemplateWrite()) throw new Error('Du saknar behörighet.');
       const prompt = (els.orchestratorPromptInput?.value || '').trim();
       if (!prompt) throw new Error('Skriv en intern uppgift först.');
 
+      const executeMode = Boolean(els.orchestratorExecuteMode?.checked);
+      const preview = window.__orchestratorLastPreview || null;
+      if (executeMode) {
+        if (!preview || preview.prompt !== prompt) {
+          await previewOrchestratorSteps();
+        }
+        const latestPreview = window.__orchestratorLastPreview || null;
+        if (!confirmOrchestratorExecute(latestPreview)) {
+          setStatus(els.orchestratorStatus, 'Execute avbruten av användaren.');
+          return;
+        }
+      }
+
       setStatus(els.orchestratorStatus, 'Kör orchestrator...');
-      const response = await api('/orchestrator/admin-run', {
-        method: 'POST',
-        body: { prompt },
-      });
+      const response = await api(
+        '/orchestrator/admin-run' + (executeMode ? '?mode=execute' : ''),
+        {
+          method: 'POST',
+          body: { prompt, mode: executeMode ? 'execute' : 'plan' },
+        }
+      );
       if (els.orchestratorResult) {
         els.orchestratorResult.textContent = JSON.stringify(response, null, 2);
       }
       setStatus(
         els.orchestratorStatus,
-        `Klar: intent=${response?.intent || '-'} risk=L${response?.output?.risk?.riskLevel || '-'}`
+        `Klar: intent=${response?.intent || '-'} mode=${response?.mode || 'plan'} steg=${(response?.executedSteps || []).length} risk=L${response?.output?.risk?.riskLevel || '-'}`
       );
       await Promise.all([loadDashboard(), loadOrchestratorMeta()]);
     } catch (error) {
@@ -26948,6 +27110,7 @@
   }
 
   function renderCcoInbox(output = null) {
+    if (isCcoEmbedMode()) return;
     const normalized = normalizeCcoInboxOutput(output);
     const data = normalized?.data && typeof normalized.data === 'object' ? normalized.data : null;
     const metadata =
@@ -27237,6 +27400,7 @@
   }
 
   async function loadCcoInboxBrief({ quiet = true } = {}) {
+    if (isCcoEmbedMode()) return null;
     const shouldShowLoading =
       quiet !== true ||
       !(state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object');
@@ -29564,6 +29728,9 @@
     if (els.ccoInboxSearchMeta) els.ccoInboxSearchMeta.textContent = '';
     setStatus(els.tenantOnboardStatus, '');
     if (els.riskLabResult) els.riskLabResult.textContent = 'Ingen förhandsgranskning körd ännu.';
+    if (els.orchestratorExecutePreview) {
+      els.orchestratorExecutePreview.textContent = 'Ingen förhandsgranskning ännu.';
+    }
     if (els.orchestratorResult) els.orchestratorResult.textContent = 'Ingen körning ännu.';
     if (els.orchestratorMetaSummary) els.orchestratorMetaSummary.textContent = '';
     if (els.orchestratorMetaResult) {
@@ -30009,6 +30176,7 @@
     });
   });
   els.runRiskPreviewBtn?.addEventListener('click', runRiskPreview);
+  els.previewOrchestratorStepsBtn?.addEventListener('click', previewOrchestratorSteps);
   els.runOrchestratorBtn?.addEventListener('click', runOrchestrator);
   els.runIncidentIntelligenceBtn?.addEventListener('click', runIncidentIntelligence);
   els.runDailyBriefBtn?.addEventListener('click', runDailyBrief);
@@ -31690,40 +31858,10 @@
       });
     }
 
-    var caoBtn = document.getElementById('runCaoAgentBtn');
-    var caoStatus = document.getElementById('caoRunStatus');
-    if (caoBtn) {
-      caoBtn.addEventListener('click', function () {
-        caoBtn.disabled = true;
-        if (caoStatus) caoStatus.textContent = 'Kör...';
-        agentPost('CAO').then(function (d) {
-          var out = (d && d.output && d.output.data) || (d && d.data) || {};
-          var panel = document.getElementById('caoResultPanel');
-          if (panel) panel.style.display = '';
-          var el = document.getElementById('caoSuggestionCount');
-          if (el) el.textContent = String((out.templateSuggestions || []).length);
-          el = document.getElementById('caoDisclaimerStatus');
-          if (el) el.textContent = (out.disclaimerResults ? out.disclaimerResults.compliantCount + '/' + out.disclaimerResults.totalCount : '—');
-          el = document.getElementById('caoVariableScore');
-          if (el) el.textContent = ((out.variableOptimization && out.variableOptimization.averageScore) || 100) + '%';
-          el = document.getElementById('caoExecutiveSummary');
-          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
-          el = document.getElementById('caoDisclaimerResults');
-          if (el) {
-            var nc = (out.disclaimerResults && out.disclaimerResults.nonCompliantTemplates) || [];
-            el.textContent = nc.length ? nc.map(function (t) { return t.templateName + ': saknar ' + (t.missing || []).join(', ') + (t.violations && t.violations.length ? ' | brott: ' + t.violations.map(function (v) { return v.label; }).join(', ') : ''); }).join('\n') : 'Alla mallar godkända.';
-          }
-          el = document.getElementById('caoVariableResults');
-          if (el) {
-            var top = (out.variableOptimization && out.variableOptimization.topImprovable) || [];
-            el.textContent = top.length ? top.map(function (t) { return t.templateName + ': ' + (t.suggestions || []).map(function (s) { return s.description; }).join('; '); }).join('\n') : 'Alla mallar har optimal variabelanvändning.';
-          }
-          if (caoStatus) caoStatus.textContent = 'Klar';
-        }).catch(function (err) {
-          if (caoStatus) caoStatus.textContent = 'Fel: ' + (err.message || err);
-        }).finally(function () { caoBtn.disabled = false; });
-      });
+    if (typeof window.initCaoOperatorPanel === 'function') {
+      window.initCaoOperatorPanel(getToken);
     }
+
     var cfoBtn = document.getElementById('runCfoAgentBtn');
     var cfoStatus = document.getElementById('cfoRunStatus');
     if (cfoBtn) {

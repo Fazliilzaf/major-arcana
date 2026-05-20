@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCO — Hair TP Clinic</title>
-<meta http-equiv="refresh" content="0; url=/major-arcana-preview/">
-<link rel="canonical" href="/major-arcana-preview/">
+<meta http-equiv="refresh" content="0; url=/admin#cco">
+<link rel="canonical" href="/admin#cco">
 <style>
   html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif; background: #fafaff; color: #4a4458; }
   .wrap { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 14px; }
@@ -23,16 +23,15 @@
   <span class="logo">✦</span>
   <h1>CCO — Hair TP Clinic</h1>
   <p><span class="pulse"></span>Tar dig till operatörspanelen…</p>
-  <p style="font-size: 11px; margin-top: 8px;"><a href="/major-arcana-preview/">Klicka här om sidan inte laddar</a></p>
+  <p style="font-size: 11px; margin-top: 8px;"><a href="/admin#cco">Klicka här om sidan inte laddar</a></p>
 </div>
 <script>
-  // Belt-and-suspenders: JS redirect om meta-refresh är blockerat
   (function () {
     try {
-      var target = '/major-arcana-preview/' + (window.location.search || '') + (window.location.hash || '');
+      var target = '/admin' + (window.location.search || '') + (window.location.hash || '#cco');
       window.location.replace(target);
     } catch (e) {
-      window.location.href = '/major-arcana-preview/';
+      window.location.href = '/admin#cco';
     }
   })();
 </script>

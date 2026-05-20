@@ -2605,7 +2605,8 @@
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         applyFocusWaitingState(true);
-        const isLoading = state.runtime.loading === true;
+        const isLoading =
+          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
         const isAuthRequired = state.runtime.authRequired === true;
         const emptyTitle = isOfflineHistorySelection
           ? "Välj en historikruta"
@@ -3772,7 +3773,8 @@
           }
           return;
         }
-        const isLoading = state.runtime.loading === true;
+        const isLoading =
+          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
         renderFocusSummaryCards(focusCustomerSummary, [], "customer");
         if (focusCustomerHistoryTitle) {
           focusCustomerHistoryTitle.textContent = "Kundhistorik över mejlkonton";
@@ -4998,7 +5000,8 @@
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         applyIntelWaitingState(true);
-        const isLoading = state.runtime.loading === true;
+        const isLoading =
+          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
         const isAuthRequired = state.runtime.authRequired === true;
         const supportCopy = isOfflineHistorySelection
           ? "Offline historik är tillgänglig i läsläge. Välj en historikruta i vänsterkolumnen för att läsa kundstatus och historik här. Svar, senare, anteckning och radera kräver aktiv tråd."

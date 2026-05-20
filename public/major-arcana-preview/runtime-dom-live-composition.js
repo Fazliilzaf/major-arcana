@@ -123,6 +123,7 @@
       buildMailboxCatalog,
       buildReauthUrl,
       buildTruthPrimaryWorklistConsumerHref,
+      buildWorklistDataFromTruthPrimaryOnly,
       clearAdminToken,
       canonicalizeRuntimeMailboxId,
       createIdempotencyKey,
@@ -199,6 +200,7 @@
       renderRuntimeFocusConversation,
       renderRuntimeIntel,
       renderQueueHistorySection,
+      syncRuntimeVisualStateMachine,
       renderScheduleDraft,
       renderSignalRows,
       renderStudioShell,
@@ -239,6 +241,9 @@
     let interactionsBound = false;
     let liveRuntimeRequestSequence = 0;
     let liveThreadHydrationSequence = 0;
+    let runtimeAnalyzeInboxFlight = null;
+    let runtimeAnalyzeInboxCompletedAt = 0;
+    const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 55000;
     let draggedQueueLaneId = "";
     const FULL_MAILBOX_LOOKBACK_DAYS = 1095;
     const RUNTIME_THREAD_HISTORY_CACHE_TTL_MS = 90_000;
@@ -1256,7 +1261,7 @@
     function scheduleRuntimeLiveRefresh({
       requestedMailboxIds = [],
       preferredThreadId = "",
-      intervalMs = 20000,
+      intervalMs = 60000,
     } = {}) {
       clearRuntimeLiveRefreshTimer();
       const nextRequestedMailboxIds = asArray(requestedMailboxIds)
@@ -1326,7 +1331,6 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter aktiv körning.", error);
       });
-      renderRuntimeConversationShell();
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -2614,6 +2618,315 @@
       captureRuntimeReentrySnapshot("conversation_history_toggled");
     }
 
+    async function requestAnalyzeInboxPayload(runtimeMailboxIds = [], { force = false } = {}) {
+      const now = Date.now();
+      if (
+        !force &&
+        !runtimeAnalyzeInboxFlight &&
+        now - runtimeAnalyzeInboxCompletedAt < RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS
+      ) {
+        return { skipped: true, reason: "debounced" };
+      }
+      if (runtimeAnalyzeInboxFlight) {
+        return runtimeAnalyzeInboxFlight;
+      }
+      runtimeAnalyzeInboxFlight = apiRequest("/api/v1/capabilities/AnalyzeInbox/run", {
+        method: "POST",
+        headers: {
+          "x-idempotency-key": createIdempotencyKey("major-arcana-runtime"),
+        },
+        body: {
+          channel: "admin",
+          input: {
+            includeClosed: false,
+            maxDrafts: 5,
+            mailboxIds: runtimeMailboxIds,
+          },
+        },
+      })
+        .then((payload) => ({ skipped: false, payload }))
+        .finally(() => {
+          runtimeAnalyzeInboxCompletedAt = Date.now();
+          runtimeAnalyzeInboxFlight = null;
+        });
+      return runtimeAnalyzeInboxFlight;
+    }
+
+    async function continueLiveRuntimeFromAnalyzeInbox({
+      analysisPayload,
+      runtimeMailboxIds,
+      preferredThreadId,
+      isCurrentRequest,
+      truthPrimaryPromise = null,
+      truthPrimaryPayload: initialTruthPrimaryPayload = null,
+      activeTruthPrimaryMailboxIds: initialActiveTruthPrimaryMailboxIds = [],
+      configuredTruthPrimaryMailboxIds = [],
+      truthPrimaryFallbackReason: initialTruthPrimaryFallbackReason = "",
+      configuredFocusTruthMailboxIds = [],
+      configuredStudioTruthMailboxIds = [],
+      shouldApplyPhaseA = true,
+      isBackgroundRefresh = false,
+      stableFocusThread = null,
+      selectedThreadId = "",
+      options = {},
+      status = {},
+    } = {}) {
+      let truthPrimaryPayload = initialTruthPrimaryPayload;
+      let activeTruthPrimaryMailboxIds = [...initialActiveTruthPrimaryMailboxIds];
+      let truthPrimaryFallbackReason = initialTruthPrimaryFallbackReason;
+
+      const liveData =
+        analysisPayload?.output && typeof analysisPayload.output === "object"
+          ? analysisPayload.output.data
+          : null;
+      if (!liveData || typeof liveData !== "object") {
+        throw new Error("AnalyzeInbox returnerade ingen aktiv data.");
+      }
+
+      if (!truthPrimaryPayload && truthPrimaryPromise) {
+        const truthPrimaryResult = await truthPrimaryPromise;
+        if (!isCurrentRequest()) return;
+        if (truthPrimaryResult && truthPrimaryResult.ok) {
+          truthPrimaryPayload = truthPrimaryResult.payload;
+          activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
+        } else if (truthPrimaryResult && truthPrimaryResult.error) {
+          truthPrimaryFallbackReason =
+            truthPrimaryResult.error instanceof Error
+              ? truthPrimaryResult.error.message
+              : String(truthPrimaryResult.error);
+          console.warn(
+            "CCO kunde inte läsa truth-primary worklist för wave 1. Faller tillbaka till legacy.",
+            truthPrimaryResult.error
+          );
+        }
+      } else if (
+        truthPrimaryPayload &&
+        !activeTruthPrimaryMailboxIds.length &&
+        configuredTruthPrimaryMailboxIds.length
+      ) {
+        activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
+      }
+
+      const existingQueuePreviewByThreadId = new Map(
+        asArray(state.runtime.threads)
+          .map((thread) => [normalizeKey(thread?.id), asText(thread?.queuePreviewText)])
+          .filter((entry) => entry[0] && entry[1])
+      );
+      const preserveBackgroundQueuePreviewText = (threads = [], phase = "") =>
+        asArray(threads).map((thread) => {
+          const nextThread =
+            thread && typeof thread === "object"
+              ? { ...thread, dataPhase: phase || asText(thread?.dataPhase) }
+              : thread;
+          if (!nextThread || typeof nextThread !== "object") return nextThread;
+          if (!isBackgroundRefresh || phase !== "A") return nextThread;
+          const stableQueuePreviewText = existingQueuePreviewByThreadId.get(
+            normalizeKey(nextThread.id)
+          );
+          if (!stableQueuePreviewText) return nextThread;
+          return {
+            ...nextThread,
+            queuePreviewText: stableQueuePreviewText,
+          };
+        });
+      let legacyThreads = carryRuntimeCustomerIdentity(
+        buildLiveThreads(liveData, {
+          historyMessages: [],
+          historyEvents: [],
+        })
+      );
+      legacyThreads = sortRuntimeThreadsDeterministic(
+        preserveBackgroundQueuePreviewText(legacyThreads, "A")
+      );
+      const mergedWorklistData =
+        typeof mergeTruthPrimaryWorklistData === "function"
+          ? mergeTruthPrimaryWorklistData(liveData, truthPrimaryPayload, {
+              truthPrimaryMailboxIds: activeTruthPrimaryMailboxIds,
+            })
+          : liveData;
+      let threads = carryRuntimeCustomerIdentity(
+        buildLiveThreads(mergedWorklistData, {
+          historyMessages: [],
+          historyEvents: [],
+        })
+      );
+      threads = sortRuntimeThreadsDeterministic(preserveBackgroundQueuePreviewText(threads, "A"));
+      const FAS47_MAX_WORKLIST = 40;
+      if (Array.isArray(threads) && threads.length > FAS47_MAX_WORKLIST) {
+        threads = threads.slice(0, FAS47_MAX_WORKLIST);
+      }
+      if (Array.isArray(legacyThreads) && legacyThreads.length > FAS47_MAX_WORKLIST) {
+        legacyThreads = legacyThreads.slice(0, FAS47_MAX_WORKLIST);
+      }
+      const activeFocusTruthMailboxIds = configuredFocusTruthMailboxIds.filter((mailboxId) =>
+        activeTruthPrimaryMailboxIds.includes(mailboxId)
+      );
+      const activeStudioTruthMailboxIds = configuredStudioTruthMailboxIds.filter((mailboxId) =>
+        activeTruthPrimaryMailboxIds.includes(mailboxId)
+      );
+      const focusTruthEnabled =
+        activeFocusTruthMailboxIds.length > 0 &&
+        typeof isTruthPrimaryFocusFeatureEnabled === "function" &&
+        isTruthPrimaryFocusFeatureEnabled();
+      const studioTruthEnabled =
+        activeStudioTruthMailboxIds.length > 0 &&
+        typeof isTruthPrimaryStudioFeatureEnabled === "function" &&
+        isTruthPrimaryStudioFeatureEnabled();
+      const focusTruthFallbackReason = !activeFocusTruthMailboxIds.length
+        ? truthPrimaryFallbackReason
+        : focusTruthEnabled
+          ? ""
+          : "Sanningsstyrt fokus är avstängt för wave 1. Fokusytan läser ordinarie tråd medan arbetslistan fortsatt kan vara sanningsstyrd.";
+      const studioTruthFallbackReason = !activeStudioTruthMailboxIds.length
+        ? truthPrimaryFallbackReason
+        : studioTruthEnabled
+          ? ""
+          : "Sanningsstyrd svarstudio är avstängd för wave 1. Svarsstudion läser och skriver via legacy-kedjan medan arbetslista och fokus kan vara sanningsstyrda.";
+      const metadata = analysisPayload?.output?.metadata || {};
+      recordRuntimeThreadAssignment("live_load", {
+        stage: "before_apply",
+        selectedThreadId: preferredThreadId,
+        threadCount: threads.length,
+        legacyThreadCount: legacyThreads.length,
+      });
+      if (shouldApplyPhaseA) {
+        state.runtime.truthPrimaryLegacyThreads = legacyThreads;
+        state.runtime.threads = threads;
+        try {
+          if (windowObject?.CcoThreadCache && Array.isArray(threads) && threads.length) {
+            windowObject.CcoThreadCache.saveThreads(threads);
+          }
+        } catch (_cacheError) {
+          /* cache är best-effort */
+        }
+        if (stableFocusThread) {
+          const stableFocusThreadIndex = state.runtime.threads.findIndex((thread) =>
+            runtimeConversationIdsMatch(thread?.id, selectedThreadId)
+          );
+          if (stableFocusThreadIndex >= 0) {
+            const patchedThreads = [...state.runtime.threads];
+            patchedThreads[stableFocusThreadIndex] = stableFocusThread;
+            state.runtime.threads = patchedThreads;
+          }
+        }
+      }
+      recordRuntimeThreadAssignment("live_load", {
+        stage: "after_apply",
+        selectedThreadId: preferredThreadId,
+        threadCount: threads.length,
+        legacyThreadCount: legacyThreads.length,
+      });
+      if (shouldApplyPhaseA) {
+        state.runtime.mailboxes = buildMailboxCatalog(
+          threads.map((thread) => {
+            const mailboxAddress = asText(thread?.mailboxAddress);
+            return {
+              mailboxId: mailboxAddress,
+              mailboxAddress,
+              userPrincipalName: mailboxAddress,
+            };
+          }),
+          {
+            ...metadata,
+            sourceMailboxIds: Array.from(
+              new Set([
+                ...runtimeMailboxIds,
+                ...asArray(status?.graph?.allowlistMailboxIds),
+                ...asArray(metadata?.sourceMailboxIds),
+              ])
+            ),
+            mailboxCapabilities: state.runtime.mailboxCapabilities,
+          }
+        );
+      }
+      state.runtime.defaultSenderMailbox = asText(
+        metadata?.ccoDefaultSenderMailbox,
+        state.runtime.defaultSenderMailbox
+      );
+      if (!state.runtime.defaultSenderMailbox) {
+        state.runtime.defaultSenderMailbox = CCO_DEFAULT_REPLY_SENDER;
+      }
+      state.runtime.defaultSignatureProfile = asText(
+        metadata?.ccoDefaultSignatureProfile,
+        state.runtime.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
+      );
+      state.runtime.truthPrimaryCutover = {
+        enabled: activeTruthPrimaryMailboxIds.length > 0,
+        configuredMailboxIds: configuredTruthPrimaryMailboxIds,
+        activeMailboxIds: activeTruthPrimaryMailboxIds,
+        fallbackReason: truthPrimaryFallbackReason,
+        lastAppliedAt: new Date().toISOString(),
+      };
+      state.runtime.focusTruthPrimary = {
+        enabled: focusTruthEnabled,
+        configuredMailboxIds: configuredFocusTruthMailboxIds,
+        activeMailboxIds: activeFocusTruthMailboxIds,
+        fallbackReason: focusTruthFallbackReason,
+        readOnly: true,
+        lastAppliedAt: new Date().toISOString(),
+      };
+      state.runtime.studioTruthPrimary = {
+        enabled: studioTruthEnabled,
+        configuredMailboxIds: configuredStudioTruthMailboxIds,
+        activeMailboxIds: activeStudioTruthMailboxIds,
+        fallbackReason: studioTruthFallbackReason,
+        replyOnly: true,
+        lastAppliedAt: new Date().toISOString(),
+      };
+      if (shouldApplyPhaseA) {
+        state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+          phase: "live",
+          requestedMailboxIds: runtimeMailboxIds,
+          liveData,
+          mergedWorklistData,
+          threads,
+          legacyThreads,
+          historyPayload: null,
+          truthPrimaryPayload,
+          configuredTruthPrimaryMailboxIds,
+          activeTruthPrimaryMailboxIds,
+        });
+      }
+      debugRuntimePipeline("AFTER LIVE LOAD (before restore)");
+      debugReentrySnapshot("BEFORE RESTORE");
+      if (!isCurrentRequest()) return;
+      state.runtime.loading = false;
+      state.runtime.loaded = true;
+      state.runtime.staleCacheActive = false;
+      setRuntimeModeState("live", {
+        live: true,
+        offline: false,
+        authRequired: false,
+        error: "",
+      });
+      resetRuntimeTransientRetry();
+      state.runtime.lastSyncAt = new Date().toISOString();
+      restoreRuntimeReentrySnapshot("live_runtime_load", { scopeMode: "hint_only" });
+      debugReentrySnapshot("AFTER RESTORE");
+      debugRuntimePipeline("AFTER RESTORE");
+      await finalizeRuntimeLoad({
+        preferredThreadId,
+        resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
+      });
+      debugRuntimePipeline("AFTER FINALIZE");
+      if (!isCurrentRequest()) return;
+      if (isBackgroundRefresh) {
+        state.runtime.pendingFullRefresh = false;
+      }
+      scheduleRuntimeHistoryCoverageWarmup(runtimeMailboxIds, {
+        isCurrentRequest,
+      });
+      await requestRuntimeThreadHydration(preferredThreadId, {
+        mailboxIds: runtimeMailboxIds,
+      });
+      if (!isCurrentRequest()) return;
+      scheduleRuntimeLiveRefresh({
+        requestedMailboxIds: runtimeMailboxIds,
+        preferredThreadId,
+      });
+      captureRuntimeReentrySnapshot("live_runtime_loaded");
+    }
+
     async function loadLiveRuntime(options = {}) {
       clearRuntimeLiveRefreshTimer();
       const requestedMailboxIds = asArray(options.requestedMailboxIds)
@@ -2641,7 +2954,9 @@
       const isCurrentRequest = () => runtimeRequestSequence === liveRuntimeRequestSequence;
       clearRuntimeAuthRecoveryTimer();
       const isBackgroundRefresh = options.isBackgroundRefresh === true;
-      const shouldApplyPhaseA = !isBackgroundRefresh;
+      const staleWhileRevalidate = options.staleWhileRevalidate === true;
+      const shouldClearPhaseA = !isBackgroundRefresh && !staleWhileRevalidate;
+      const shouldApplyPhaseA = !isBackgroundRefresh || staleWhileRevalidate;
       if (isBackgroundRefresh) {
         state.runtime.pendingFullRefresh = true;
         state.runtime.isBackgroundRefresh = true;
@@ -2685,8 +3000,8 @@
           return;
         }
 
-        state.runtime.loading = true;
-        if (shouldApplyPhaseA) {
+        state.runtime.loading = !staleWhileRevalidate;
+        if (shouldClearPhaseA) {
           state.runtime.truthPrimaryLegacyThreads = [];
           state.runtime.liveHydratedThreadIds = [];
           runtimeThreadHistoryPayloadCache.clear();
@@ -2695,33 +3010,38 @@
           requestSequence: runtimeRequestSequence,
           reason: "live_runtime_load",
         });
-        state.runtime.truthPrimaryCutover = {
-          enabled: false,
-          configuredMailboxIds: [],
-          activeMailboxIds: [],
-          fallbackReason: "",
-          lastAppliedAt: "",
-        };
-        state.runtime.focusTruthPrimary = {
-          enabled: false,
-          configuredMailboxIds: [],
-          activeMailboxIds: [],
-          fallbackReason: "",
-          readOnly: true,
-          lastAppliedAt: "",
-        };
-        setRuntimeModeState("", {
-          error: "",
-          live: false,
-          offline: false,
-          authRequired: false,
-        });
-        state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-          phase: "loading",
-          requestedMailboxIds: runtimeMailboxIds,
-        });
-        if (shouldApplyPhaseA) {
+        if (shouldClearPhaseA) {
+          state.runtime.truthPrimaryCutover = {
+            enabled: false,
+            configuredMailboxIds: [],
+            activeMailboxIds: [],
+            fallbackReason: "",
+            lastAppliedAt: "",
+          };
+          state.runtime.focusTruthPrimary = {
+            enabled: false,
+            configuredMailboxIds: [],
+            activeMailboxIds: [],
+            fallbackReason: "",
+            readOnly: true,
+            lastAppliedAt: "",
+          };
+          setRuntimeModeState("", {
+            error: "",
+            live: false,
+            offline: false,
+            authRequired: false,
+          });
+          state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+            phase: "loading",
+            requestedMailboxIds: runtimeMailboxIds,
+          });
           renderRuntimeConversationShell();
+        } else if (staleWhileRevalidate) {
+          state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+            phase: "cache_sync",
+            requestedMailboxIds: runtimeMailboxIds,
+          });
         }
 
         const status = await apiRequest("/api/v1/cco/runtime/status");
@@ -2743,11 +3063,8 @@
           return;
         }
 
-        // Performance: parallellisera AnalyzeInbox + TruthPrimary-fetch
-        // istället för sekventiell await-kedja. TruthPrimary räknar inte
-        // på liveData så den kan startas innan AnalyzeInbox är klar.
-        // (Total wall-clock-tid sjunker från AnalyzeInbox+TruthPrimary till
-        // max(AnalyzeInbox, TruthPrimary) ≈ 3-5s vinst per refresh.)
+        // Truth-primary-first på kallstart: måla arbetslistan direkt om rader finns,
+        // kör sedan AnalyzeInbox i bakgrunden (samma mönster som IndexedDB-cache).
         const configuredTruthPrimaryMailboxIds =
           typeof getTruthPrimaryWorklistMailboxIds === "function"
             ? getTruthPrimaryWorklistMailboxIds({ mailboxIds: runtimeMailboxIds })
@@ -2761,292 +3078,204 @@
             ? getTruthPrimaryStudioMailboxIds({ mailboxIds: runtimeMailboxIds })
             : [];
 
-        // Starta truthPrimary-fetch i bakgrund (parallel med AnalyzeInbox)
-        const truthPrimaryPromise =
-          configuredTruthPrimaryMailboxIds.length &&
-          typeof buildTruthPrimaryWorklistConsumerHref === "function"
-            ? apiRequest(
-                buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
-              ).then(
-                (payload) => ({ ok: true, payload }),
-                (error) => ({ ok: false, error })
-              )
-            : Promise.resolve(null);
-
-        const analysisPayload = await apiRequest("/api/v1/capabilities/AnalyzeInbox/run", {
-          method: "POST",
-          headers: {
-            "x-idempotency-key": createIdempotencyKey("major-arcana-runtime"),
-          },
-          body: {
-            channel: "admin",
-            input: {
-              includeClosed: false,
-              maxDrafts: 5,
-              mailboxIds: runtimeMailboxIds,
-            },
-          },
-        });
-        if (!isCurrentRequest()) return;
-
-        const liveData =
-          analysisPayload?.output && typeof analysisPayload.output === "object"
-            ? analysisPayload.output.data
-            : null;
-        if (!liveData || typeof liveData !== "object") {
-          throw new Error("AnalyzeInbox returnerade ingen aktiv data.");
-        }
-
-        // Vänta in truthPrimary (har körts parallellt — sannolikt klar nu)
         let activeTruthPrimaryMailboxIds = [];
         let truthPrimaryFallbackReason = "";
         let truthPrimaryPayload = null;
-        const truthPrimaryResult = await truthPrimaryPromise;
-        if (!isCurrentRequest()) return;
-        if (truthPrimaryResult && truthPrimaryResult.ok) {
-          truthPrimaryPayload = truthPrimaryResult.payload;
-          activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
-        } else if (truthPrimaryResult && truthPrimaryResult.error) {
-          truthPrimaryFallbackReason =
-            truthPrimaryResult.error instanceof Error
-              ? truthPrimaryResult.error.message
-              : String(truthPrimaryResult.error);
-          console.warn(
-            "CCO kunde inte läsa truth-primary worklist för wave 1. Faller tillbaka till legacy.",
-            truthPrimaryResult.error
-          );
+        let truthPrimaryFastPathApplied = false;
+        const canUseTruthPrimaryFastPath =
+          !isBackgroundRefresh &&
+          !staleWhileRevalidate &&
+          configuredTruthPrimaryMailboxIds.length > 0 &&
+          typeof buildTruthPrimaryWorklistConsumerHref === "function" &&
+          typeof buildWorklistDataFromTruthPrimaryOnly === "function";
+
+        let truthPrimaryPromise = null;
+        if (
+          configuredTruthPrimaryMailboxIds.length &&
+          typeof buildTruthPrimaryWorklistConsumerHref === "function"
+        ) {
+          if (canUseTruthPrimaryFastPath) {
+            try {
+              truthPrimaryPayload = await apiRequest(
+                buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+              );
+              if (!isCurrentRequest()) return;
+              activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
+
+              const truthRowCount = asArray(truthPrimaryPayload?.rows).length;
+              if (truthRowCount > 0) {
+                const truthOnlyWorklist = buildWorklistDataFromTruthPrimaryOnly(
+                  truthPrimaryPayload,
+                  { truthPrimaryMailboxIds: activeTruthPrimaryMailboxIds }
+                );
+                let fastPathThreads = carryRuntimeCustomerIdentity(
+                  buildLiveThreads(truthOnlyWorklist, {
+                    historyMessages: [],
+                    historyEvents: [],
+                  })
+                );
+                fastPathThreads = sortRuntimeThreadsDeterministic(fastPathThreads);
+
+                state.runtime.threads = fastPathThreads;
+                state.runtime.truthPrimaryLegacyThreads = [];
+                state.runtime.mailboxes = buildMailboxCatalog(
+                  fastPathThreads.map((thread) => {
+                    const mailboxAddress = asText(thread?.mailboxAddress);
+                    return {
+                      mailboxId: mailboxAddress,
+                      mailboxAddress,
+                      userPrincipalName: mailboxAddress,
+                    };
+                  }),
+                  {
+                    sourceMailboxIds: Array.from(
+                      new Set([
+                        ...runtimeMailboxIds,
+                        ...asArray(status?.graph?.allowlistMailboxIds),
+                      ])
+                    ),
+                    mailboxCapabilities: state.runtime.mailboxCapabilities,
+                  }
+                );
+                state.runtime.staleCacheActive = true;
+                state.runtime.loading = false;
+                state.runtime.truthPrimaryCutover = {
+                  enabled: true,
+                  configuredMailboxIds: configuredTruthPrimaryMailboxIds,
+                  activeMailboxIds: activeTruthPrimaryMailboxIds,
+                  fallbackReason: "",
+                  lastAppliedAt: new Date().toISOString(),
+                };
+                state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
+                  phase: "truth_primary_fast",
+                  requestedMailboxIds: runtimeMailboxIds,
+                  mergedWorklistData: truthOnlyWorklist,
+                  threads: fastPathThreads,
+                  legacyThreads: [],
+                  truthPrimaryPayload,
+                  configuredTruthPrimaryMailboxIds,
+                  activeTruthPrimaryMailboxIds,
+                });
+                setRuntimeModeState("live", {
+                  live: true,
+                  offline: false,
+                  authRequired: false,
+                  error: "",
+                });
+                renderRuntimeConversationShell();
+                if (typeof syncRuntimeVisualStateMachine === "function") {
+                  syncRuntimeVisualStateMachine();
+                }
+                if (windowObject.__litSwitchover?.clearBootstrapWindow) {
+                  windowObject.__litSwitchover.clearBootstrapWindow();
+                }
+                truthPrimaryFastPathApplied = true;
+              }
+            } catch (truthPrimaryError) {
+              truthPrimaryFallbackReason =
+                truthPrimaryError instanceof Error
+                  ? truthPrimaryError.message
+                  : String(truthPrimaryError);
+              console.warn(
+                "CCO kunde inte läsa truth-primary worklist för snabbstart. Fortsätter med AnalyzeInbox.",
+                truthPrimaryError
+              );
+            }
+          } else {
+            truthPrimaryPromise = apiRequest(
+              buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+            ).then(
+              (payload) => ({ ok: true, payload }),
+              (error) => ({ ok: false, error })
+            );
+          }
         }
 
-        const existingQueuePreviewByThreadId = new Map(
-          asArray(state.runtime.threads)
-            .map((thread) => [normalizeKey(thread?.id), asText(thread?.queuePreviewText)])
-            .filter((entry) => entry[0] && entry[1])
-        );
-        const preserveBackgroundQueuePreviewText = (threads = [], phase = "") =>
-          asArray(threads).map((thread) => {
-            const nextThread =
-              thread && typeof thread === "object"
-                ? { ...thread, dataPhase: phase || asText(thread?.dataPhase) }
-                : thread;
-            if (!nextThread || typeof nextThread !== "object") return nextThread;
-            if (!isBackgroundRefresh || phase !== "A") return nextThread;
-            const stableQueuePreviewText = existingQueuePreviewByThreadId.get(
-              normalizeKey(nextThread.id)
-            );
-            if (!stableQueuePreviewText) return nextThread;
-            return {
-              ...nextThread,
-              queuePreviewText: stableQueuePreviewText,
-            };
-          });
-        let legacyThreads = carryRuntimeCustomerIdentity(
-          buildLiveThreads(liveData, {
-            historyMessages: [],
-            historyEvents: [],
-          })
-        );
-        legacyThreads = sortRuntimeThreadsDeterministic(
-          preserveBackgroundQueuePreviewText(legacyThreads, "A")
-        );
-        const mergedWorklistData =
-          typeof mergeTruthPrimaryWorklistData === "function"
-            ? mergeTruthPrimaryWorklistData(liveData, truthPrimaryPayload, {
-                truthPrimaryMailboxIds: activeTruthPrimaryMailboxIds,
-              })
-            : liveData;
-        let threads = carryRuntimeCustomerIdentity(
-          buildLiveThreads(mergedWorklistData, {
-            historyMessages: [],
-            historyEvents: [],
-          })
-        );
-        threads = sortRuntimeThreadsDeterministic(preserveBackgroundQueuePreviewText(threads, "A"));
-        // Fas 47 (2026-05-20): cap worklist vid DATAKÄLLAN (inte bara render).
-        // Frysningen vid alla 6 mailboxar satt i hela pipelinen — buildMailbox
-        // Catalog, fokus-processning, Lit-hydration, kundintelligens — som alla
-        // körde över 100+ trådar synkront. Fas 45-render-capen räckte inte.
-        // Genom att kapa här (sorterat → mest relevanta först) hålls ALLT
-        // downstream lätt. Resten finns i cachen + nås via mailbox/lane-filter.
-        const FAS47_MAX_WORKLIST = 40;
-        if (Array.isArray(threads) && threads.length > FAS47_MAX_WORKLIST) {
-          threads = threads.slice(0, FAS47_MAX_WORKLIST);
-        }
-        if (Array.isArray(legacyThreads) && legacyThreads.length > FAS47_MAX_WORKLIST) {
-          legacyThreads = legacyThreads.slice(0, FAS47_MAX_WORKLIST);
-        }
-        const activeFocusTruthMailboxIds = configuredFocusTruthMailboxIds.filter((mailboxId) =>
-          activeTruthPrimaryMailboxIds.includes(mailboxId)
-        );
-        const activeStudioTruthMailboxIds = configuredStudioTruthMailboxIds.filter((mailboxId) =>
-          activeTruthPrimaryMailboxIds.includes(mailboxId)
-        );
-        const focusTruthEnabled =
-          activeFocusTruthMailboxIds.length > 0 &&
-          typeof isTruthPrimaryFocusFeatureEnabled === "function" &&
-          isTruthPrimaryFocusFeatureEnabled();
-        const studioTruthEnabled =
-          activeStudioTruthMailboxIds.length > 0 &&
-          typeof isTruthPrimaryStudioFeatureEnabled === "function" &&
-          isTruthPrimaryStudioFeatureEnabled();
-        const focusTruthFallbackReason = !activeFocusTruthMailboxIds.length
-          ? truthPrimaryFallbackReason
-          : focusTruthEnabled
-            ? ""
-            : "Sanningsstyrt fokus är avstängt för wave 1. Fokusytan läser ordinarie tråd medan arbetslistan fortsatt kan vara sanningsstyrd.";
-        const studioTruthFallbackReason = !activeStudioTruthMailboxIds.length
-          ? truthPrimaryFallbackReason
-          : studioTruthEnabled
-            ? ""
-            : "Sanningsstyrd svarstudio är avstängd för wave 1. Svarsstudion läser och skriver via legacy-kedjan medan arbetslista och fokus kan vara sanningsstyrda.";
-        const metadata = analysisPayload?.output?.metadata || {};
-        recordRuntimeThreadAssignment("live_load", {
-          stage: "before_apply",
-          selectedThreadId: preferredThreadId,
-          threadCount: threads.length,
-          legacyThreadCount: legacyThreads.length,
-        });
-        if (shouldApplyPhaseA) {
-          state.runtime.truthPrimaryLegacyThreads = legacyThreads;
-          state.runtime.threads = threads;
-          // Fas 46 (2026-05-20): cacha live-threads till IndexedDB (async,
-          // off-main-thread). Nästa bootstrap renderar inboxen INSTANT från
-          // cachen medan en ny live-fetch kör i bakgrunden. Fire-and-forget.
-          try {
-            if (window.CcoThreadCache && Array.isArray(threads) && threads.length) {
-              window.CcoThreadCache.saveThreads(threads);
-            }
-          } catch (_e) {
-            /* tyst — cache är best-effort */
+        const hasEarlyWorklist =
+          !isBackgroundRefresh &&
+          (truthPrimaryFastPathApplied ||
+            (staleWhileRevalidate &&
+              asArray(state.runtime.threads).some(
+                (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+              )));
+
+        if (hasEarlyWorklist) {
+          state.runtime.loading = false;
+          renderRuntimeConversationShell();
+          if (typeof syncRuntimeVisualStateMachine === "function") {
+            syncRuntimeVisualStateMachine();
           }
-          if (stableFocusThread) {
-            const stableFocusThreadIndex = state.runtime.threads.findIndex((thread) =>
-              runtimeConversationIdsMatch(thread?.id, selectedThreadId)
-            );
-            if (stableFocusThreadIndex >= 0) {
-              const patchedThreads = [...state.runtime.threads];
-              patchedThreads[stableFocusThreadIndex] = stableFocusThread;
-              state.runtime.threads = patchedThreads;
-            }
-          }
-        }
-        recordRuntimeThreadAssignment("live_load", {
-          stage: "after_apply",
-          selectedThreadId: preferredThreadId,
-          threadCount: threads.length,
-          legacyThreadCount: legacyThreads.length,
-        });
-        if (shouldApplyPhaseA) {
-          state.runtime.mailboxes = buildMailboxCatalog(
-            threads.map((thread) => {
-              const mailboxAddress = asText(thread?.mailboxAddress);
-              return {
-                mailboxId: mailboxAddress,
-                mailboxAddress,
-                userPrincipalName: mailboxAddress,
-              };
-            }),
-            {
-              ...metadata,
-              sourceMailboxIds: Array.from(
-                new Set([
-                  ...runtimeMailboxIds,
-                  ...asArray(status?.graph?.allowlistMailboxIds),
-                  ...asArray(metadata?.sourceMailboxIds),
-                ])
-              ),
-              mailboxCapabilities: state.runtime.mailboxCapabilities,
-            }
-          );
-        }
-        state.runtime.defaultSenderMailbox = asText(
-          metadata?.ccoDefaultSenderMailbox,
-          state.runtime.defaultSenderMailbox
-        );
-        if (!state.runtime.defaultSenderMailbox) {
-          state.runtime.defaultSenderMailbox = CCO_DEFAULT_REPLY_SENDER;
-        }
-        state.runtime.defaultSignatureProfile = asText(
-          metadata?.ccoDefaultSignatureProfile,
-          state.runtime.defaultSignatureProfile || CCO_DEFAULT_SIGNATURE_PROFILE
-        );
-        state.runtime.truthPrimaryCutover = {
-          enabled: activeTruthPrimaryMailboxIds.length > 0,
-          configuredMailboxIds: configuredTruthPrimaryMailboxIds,
-          activeMailboxIds: activeTruthPrimaryMailboxIds,
-          fallbackReason: truthPrimaryFallbackReason,
-          lastAppliedAt: new Date().toISOString(),
-        };
-        state.runtime.focusTruthPrimary = {
-          enabled: focusTruthEnabled,
-          configuredMailboxIds: configuredFocusTruthMailboxIds,
-          activeMailboxIds: activeFocusTruthMailboxIds,
-          fallbackReason: focusTruthFallbackReason,
-          readOnly: true,
-          lastAppliedAt: new Date().toISOString(),
-        };
-        state.runtime.studioTruthPrimary = {
-          enabled: studioTruthEnabled,
-          configuredMailboxIds: configuredStudioTruthMailboxIds,
-          activeMailboxIds: activeStudioTruthMailboxIds,
-          fallbackReason: studioTruthFallbackReason,
-          replyOnly: true,
-          lastAppliedAt: new Date().toISOString(),
-        };
-        if (shouldApplyPhaseA) {
-          state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
-            phase: "live",
-            requestedMailboxIds: runtimeMailboxIds,
-            liveData,
-            mergedWorklistData,
-            threads,
-            legacyThreads,
-            historyPayload: null,
-            truthPrimaryPayload,
-            configuredTruthPrimaryMailboxIds,
-            activeTruthPrimaryMailboxIds,
+          await finalizeRuntimeLoad({
+            preferredThreadId,
+            resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
           });
+          captureRuntimeReentrySnapshot("live_runtime_early_ready");
+          const deferredSequence = runtimeRequestSequence;
+          void (async () => {
+            try {
+              const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
+                force: true,
+              });
+              if (deferredSequence !== liveRuntimeRequestSequence) return;
+              if (analyzeRequest?.skipped === true) return;
+              await continueLiveRuntimeFromAnalyzeInbox({
+                analysisPayload: analyzeRequest?.payload || analyzeRequest,
+                runtimeMailboxIds,
+                preferredThreadId,
+                isCurrentRequest: () => deferredSequence === liveRuntimeRequestSequence,
+                truthPrimaryPromise,
+                truthPrimaryPayload,
+                activeTruthPrimaryMailboxIds,
+                configuredTruthPrimaryMailboxIds,
+                truthPrimaryFallbackReason,
+                configuredFocusTruthMailboxIds,
+                configuredStudioTruthMailboxIds,
+                shouldApplyPhaseA: true,
+                isBackgroundRefresh: false,
+                stableFocusThread,
+                selectedThreadId,
+                options,
+                status,
+              });
+            } catch (error) {
+              console.warn("CCO bakgrunds-AnalyzeInbox misslyckades.", error);
+            }
+          })();
+          return;
         }
-        debugRuntimePipeline("AFTER LIVE LOAD (before restore)");
-        debugReentrySnapshot("BEFORE RESTORE");
+
+        const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
+          force: truthPrimaryFastPathApplied || staleWhileRevalidate || !isBackgroundRefresh,
+        });
         if (!isCurrentRequest()) return;
-        state.runtime.loading = false;
-        state.runtime.loaded = true;
-        setRuntimeModeState("live", {
-          live: true,
-          offline: false,
-          authRequired: false,
-          error: "",
-        });
-        // Self-healing: nollställ transient-retry-räknaren när vi är live igen.
-        resetRuntimeTransientRetry();
-        state.runtime.lastSyncAt = new Date().toISOString();
-        restoreRuntimeReentrySnapshot("live_runtime_load", { scopeMode: "hint_only" });
-        debugReentrySnapshot("AFTER RESTORE");
-        debugRuntimePipeline("AFTER RESTORE");
-        await finalizeRuntimeLoad({
+        if (analyzeRequest?.skipped === true) {
+          if (isBackgroundRefresh) {
+            state.runtime.pendingFullRefresh = false;
+          }
+          return;
+        }
+        const analysisPayload = analyzeRequest?.payload || analyzeRequest;
+
+        await continueLiveRuntimeFromAnalyzeInbox({
+          analysisPayload,
+          runtimeMailboxIds,
           preferredThreadId,
-          resetHistoryOnChange: Boolean(options.resetHistoryOnChange),
-        });
-        debugRuntimePipeline("AFTER FINALIZE");
-        if (!isCurrentRequest()) return;
-        // Ingen bulk GET /runtime/history utan conversationId: tråddetaljer laddas lazy
-        // vid öppning (selectRuntimeThread) och prefetch av vald tråd nedan.
-        if (isBackgroundRefresh) {
-          state.runtime.pendingFullRefresh = false;
-        }
-        stableFocusThread = null;
-        scheduleRuntimeHistoryCoverageWarmup(runtimeMailboxIds, {
           isCurrentRequest,
+          truthPrimaryPromise,
+          truthPrimaryPayload,
+          activeTruthPrimaryMailboxIds,
+          configuredTruthPrimaryMailboxIds,
+          truthPrimaryFallbackReason,
+          configuredFocusTruthMailboxIds,
+          configuredStudioTruthMailboxIds,
+          shouldApplyPhaseA,
+          isBackgroundRefresh,
+          stableFocusThread,
+          selectedThreadId,
+          options,
+          status,
         });
-        await requestRuntimeThreadHydration(preferredThreadId, {
-          mailboxIds: runtimeMailboxIds,
-        });
-        if (!isCurrentRequest()) return;
-        scheduleRuntimeLiveRefresh({
-          requestedMailboxIds: runtimeMailboxIds,
-          preferredThreadId,
-        });
-        captureRuntimeReentrySnapshot("live_runtime_loaded");
+        stableFocusThread = null;
       } catch (error) {
         if (!isCurrentRequest()) return;
         const message = error instanceof Error ? error.message : String(error);
@@ -3102,6 +3331,57 @@
           state.runtime.isBackgroundRefresh = false;
           state.runtime.backgroundRefreshSelectedThreadId = "";
         }
+      }
+    }
+
+    function applyRuntimeThreadCacheIfAvailable() {
+      try {
+        const hasAdminToken = Boolean(
+          typeof localStorage !== "undefined" && localStorage.getItem("ARCANA_ADMIN_TOKEN")
+        );
+        if (!hasAdminToken || !windowObject?.CcoThreadCache?.loadThreads) {
+          return Promise.resolve(false);
+        }
+        return windowObject.CcoThreadCache.loadThreads()
+          .then((cached) => {
+            if (!Array.isArray(cached) || cached.length === 0) return false;
+            const alreadyLive =
+              state.runtime?.loaded === true ||
+              asArray(state.runtime?.threads).some(
+                (thread) => normalizeKey(thread?.worklistSource) !== "demo"
+              );
+            if (alreadyLive) return false;
+
+            state.runtime.threads = cached.map((thread) =>
+              thread && typeof thread === "object"
+                ? {
+                    ...thread,
+                    worklistSource: asText(thread?.worklistSource, "cache") || "cache",
+                    dataPhase: asText(thread?.dataPhase, "cache") || "cache",
+                  }
+                : thread
+            );
+            state.runtime.staleCacheActive = true;
+            state.runtime.loading = false;
+            state.runtime.loaded = false;
+            setRuntimeModeState("live", {
+              live: true,
+              offline: false,
+              authRequired: false,
+              error: "",
+            });
+            renderRuntimeConversationShell();
+            if (typeof syncRuntimeVisualStateMachine === "function") {
+              syncRuntimeVisualStateMachine();
+            }
+            if (windowObject.__litSwitchover?.clearBootstrapWindow) {
+              windowObject.__litSwitchover.clearBootstrapWindow();
+            }
+            return true;
+          })
+          .catch(() => false);
+      } catch (_error) {
+        return Promise.resolve(false);
       }
     }
 
@@ -4251,7 +4531,7 @@
       return false;
     }
 
-    function initializeWorkspaceSurface() {
+    async function initializeWorkspaceSurface() {
       bindWorkspaceInteractions();
       DEFAULT_WORKSPACE.left =
         Math.round(readPxVariable("--workspace-left-width")) || DEFAULT_WORKSPACE.left;
@@ -4300,7 +4580,10 @@
         console.warn("CCO workspace bootstrap misslyckades.", error);
       });
 
-      loadLiveRuntime().catch((error) => {
+      const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
+      loadLiveRuntime({
+        staleWhileRevalidate: cachedApplied === true,
+      }).catch((error) => {
         console.warn("CCO aktiv körning misslyckades.", error);
       });
     }

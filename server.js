@@ -490,6 +490,7 @@ const {
 const { createRedisConnection } = require('./src/infra/redisClient');
 const { createAuthRouter } = require('./src/routes/auth');
 const { createTemplateStore } = require('./src/templates/store');
+const { createAdminTasksStore } = require('./src/ops/adminTasksStore');
 const { createTemplateRouter } = require('./src/routes/templates');
 const { createTenantConfigStore } = require('./src/tenant/configStore');
 const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
@@ -500,6 +501,7 @@ const { createCcoConversationRouter } = require('./src/routes/ccoConversation');
 const { createRiskRouter } = require('./src/routes/risk');
 const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
+const { createAdminWorkspaceRouter } = require('./src/routes/adminWorkspace');
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
@@ -676,10 +678,10 @@ app.get("/admin", (req, res) => {
 });
 
 app.get('/cco', (req, res) => {
-  // Legacy /cco-vyn (admin.html-baserad) ersatt av /major-arcana-preview/
-  // som har full feature-paritet plus Cmd+K, sökning, AI-summary, follow-up filters,
-  // soft-break och density-toggle. Behåller redirect för bookmarks.
-  res.redirect(302, '/major-arcana-preview/');
+  const query = String(req.url || '').includes('?')
+    ? String(req.url).slice(String(req.url).indexOf('?'))
+    : '';
+  res.redirect(302, `/admin${query}#cco`);
 });
 
 app.get(/^\/cco-next(?:\/.*)?$/, (_req, res) => {
@@ -691,7 +693,10 @@ app.get('/unanswered', (req, res) => {
 });
 
 app.get(['/ccp', '/admin/cco'], (req, res) => {
-  res.redirect(302, '/major-arcana-preview/');
+  const query = String(req.url || '').includes('?')
+    ? String(req.url).slice(String(req.url).indexOf('?'))
+    : '';
+  res.redirect(302, `/admin${query}#cco`);
 });
 
 app.get('/admin/unanswered', (req, res) => {
@@ -1061,6 +1066,9 @@ process.once('SIGTERM', () => {
     filePath: config.templateStorePath,
     maxEvaluations: config.templateEvalMaxEntries,
   });
+  const adminTasksStore = await createAdminTasksStore({
+    filePath: config.adminTasksStorePath,
+  });
   const capabilityAnalysisStore = await createCapabilityAnalysisStore({
     filePath: config.capabilityAnalysisStorePath,
     maxEntries: config.capabilityAnalysisMaxEntries,
@@ -1196,6 +1204,8 @@ process.once('SIGTERM', () => {
     sloTicketStore,
     releaseGovernanceStore,
     postOpReviewStore,
+    adminTasksStore,
+    executiveDecisionFeed,
     alertNotifier: createAlertNotifier({
       webhookUrl: config.alertWebhookUrl,
       webhookSecret: config.alertWebhookSecret,
@@ -1545,6 +1555,30 @@ process.once('SIGTERM', () => {
     })
   );
 
+  const adminCapabilityExecutor = createCapabilityExecutor({
+    executionGateway,
+    authStore,
+    tenantConfigStore,
+    capabilityAnalysisStore,
+    buildVersion: process.env.npm_package_version || 'dev',
+  });
+  if (typeof scheduler.setCapabilityExecutor === 'function') {
+    scheduler.setCapabilityExecutor(adminCapabilityExecutor);
+  }
+
+  app.use(
+    '/api/v1',
+    createAdminWorkspaceRouter({
+      authStore,
+      templateStore,
+      adminTasksStore,
+      scheduler,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
   app.use(
     '/api/v1',
     createOrchestratorRouter({
@@ -1553,6 +1587,11 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       executionGateway,
+      capabilityExecutor: adminCapabilityExecutor,
+      templateStore,
+      adminTasksStore,
+      scheduler,
+      appConfig: config,
     })
   );
 
@@ -1637,6 +1676,7 @@ process.once('SIGTERM', () => {
       ccoSettingsStore,
       ccoConversationStateStore,
       templateStore,
+      adminTasksStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       executionGateway,
@@ -1648,6 +1688,7 @@ process.once('SIGTERM', () => {
       clientoBookingStore,
       scheduler,
       graphReadConnector,
+      executiveDecisionFeed,
     })
   );
 

@@ -31,6 +31,22 @@
     <script src="./cco-polish.js?v=build-d1befb4" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
+    <script>
+      (function () {
+        try {
+          if (new URLSearchParams(window.location.search).get('embed') === 'admin') {
+            document.documentElement.classList.add('is-admin-embed');
+            document.addEventListener(
+              'DOMContentLoaded',
+              function () {
+                document.body.classList.add('is-admin-embed');
+              },
+              { once: true }
+            );
+          }
+        } catch (_error) {}
+      })();
+    </script>
     <main class="preview-page">
       <div class="preview-canvas">
         <header class="preview-topbar" aria-label="Huvudnavigation">

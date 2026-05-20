@@ -5679,6 +5679,38 @@
     [data-section-group="settingsSection"] { --section-tint: rgba(185, 151, 118, 0.21); }
     [data-section-group="opsSection"] { --section-tint: rgba(210, 166, 121, 0.23); }
     [data-section-group="ccoWorkspaceSection"] { --section-tint: rgba(194, 170, 156, 0.14); }
+
+    .cco-preview-embed-section {
+      padding: 0;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      min-height: calc(100vh - 112px);
+    }
+
+    .cco-preview-embed-shell {
+      width: 100%;
+      height: calc(100vh - 112px);
+      min-height: 640px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(120, 105, 90, 0.14);
+      box-shadow: 0 12px 28px rgba(70, 50, 30, 0.08);
+      background: #f5f0eb;
+    }
+
+    .cco-preview-embed-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #f5f0eb;
+    }
+
+    body.cco-light-mode .cco-preview-embed-section {
+      background: transparent;
+    }
     #riskLabSection { --section-tint: rgba(187, 150, 116, 0.24); }
     #reviewsQueueSection { --section-tint: rgba(186, 150, 116, 0.24); }
     #incidentsQueueSection { --section-tint: rgba(172, 129, 103, 0.26); }
@@ -12015,7 +12047,7 @@
           <button class="btn small sectionNavBtn" data-target="caoSection" data-i18n="nav_cao">CAO</button>
           <button class="btn small sectionNavBtn" data-target="cfoSection" data-i18n="nav_cfo">CFO</button>
           <button class="btn small sectionNavBtn" data-target="cmoSection" data-i18n="nav_cmo">CMO</button>
-          <a class="btn small sectionNavBtn" href="/major-arcana-preview/" data-i18n="nav_cco" style="display:inline-flex;align-items:center;text-decoration:none">CCO</a>
+          <button class="btn small sectionNavBtn" data-target="ccoWorkspaceSection" data-i18n="nav_cco">CCO</button>
         </nav>
       </div>
 
@@ -12582,6 +12614,12 @@
           <div id="pilotReportValue" class="value">-</div>
           <div id="pilotReportMeta" class="kpi-meta">Väntar på monitor-data.</div>
         </article>
+        <article class="panel">
+          <h3>Executive feed</h3>
+          <div id="executiveFeedSummary" class="kpi-meta">Laddar beslutsunderlag...</div>
+          <div id="executiveFeedList" class="code-block" style="white-space:pre-wrap;font-size:12px;margin-top:8px;max-height:140px;overflow:auto"></div>
+          <button type="button" id="executiveFeedRefreshBtn" class="btn small" style="margin-top:8px">Uppdatera feed</button>
+        </article>
       </div>
 
       <div id="settingsSection" data-section-group="settingsSection" class="row cols-2">
@@ -13141,10 +13179,16 @@
             <label for="orchestratorPromptInput">Intern uppgift</label>
             <textarea id="orchestratorPromptInput" style="min-height:120px" placeholder="Ex: Granska höga/kritiska och föreslå ägaråtgärder för idag."></textarea>
           </div>
-          <div class="seg quick-actions glass-toolbar" style="margin-top:10px">
+          <div class="seg quick-actions glass-toolbar" style="margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap">
+            <button id="previewOrchestratorStepsBtn" class="btn">Förhandsgranska körbara steg</button>
             <button id="runOrchestratorBtn" class="btn primary">Kör orkestrering</button>
+            <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+              <input id="orchestratorExecuteMode" type="checkbox" />
+              Kör säkra steg (execute)
+            </label>
           </div>
           <div id="orchestratorStatus" class="status-line"></div>
+          <div id="orchestratorExecutePreview" class="code-block" style="margin-top:8px">Ingen förhandsgranskning ännu.</div>
           <div id="orchestratorResult" class="code-block" style="margin-top:8px">Ingen körning ännu.</div>
           <div style="margin-top:12px">
             <h3 style="margin:0 0 6px 0;font-size:13px;font-weight:700">Färdplan (agenter/intentioner)</h3>
@@ -13571,14 +13615,14 @@
       </section>
 
       <section id="caoSection" data-section-group="caoSection" class="panel" style="margin-top:14px">
-        <h2>CAO — Mallkvalitetsrådgivare</h2>
-        <div class="muted" style="margin-bottom:14px">Chief Administrative Officer-agenten analyserar mallar, validerar disclaimers och optimerar variabelanvändning.</div>
+        <h2>Arcana Admin Operator (CAO)</h2>
+        <div class="muted" style="margin-bottom:14px">Förbereder och flaggar admin/mall-läge: mallbibliotek, disclaimers, variabler och admin quality gate. Tar inga högriskbeslut.</div>
         <div class="seg glass-toolbar" style="margin-bottom:14px">
-          <button id="runCaoAgentBtn" class="btn small">Kör CAO Template Advisor</button>
+          <button id="runCaoAgentBtn" class="btn small">Kör Arcana Admin Operator</button>
           <span id="caoRunStatus" class="mini muted" style="margin-left:10px"></span>
         </div>
         <div id="caoResultPanel" class="seg" style="display:none">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px">
             <div class="overview-card">
               <h4>Förbättringsförslag</h4>
               <div id="caoSuggestionCount" class="value" style="font-size:28px">0</div>
@@ -13591,14 +13635,63 @@
               <h4>Variabel-optimering</h4>
               <div id="caoVariableScore" class="value" style="font-size:28px">—</div>
             </div>
+            <div class="overview-card">
+              <h4>Mallbibliotek</h4>
+              <div id="caoLibraryHealth" class="value" style="font-size:22px">—</div>
+            </div>
+            <div class="overview-card">
+              <h4>Admin quality gate</h4>
+              <div id="caoQualityGate" class="value" style="font-size:22px">—</div>
+            </div>
           </div>
           <h3>Executive Summary</h3>
           <div id="caoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
+          <h3 style="margin-top:14px">Mallbibliotek &amp; quality gate</h3>
+          <div id="caoAdminOpsSummary" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <h3 style="margin-top:14px">Admin brief</h3>
+          <div id="caoAdminBrief" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <h3 style="margin-top:14px">Veckosammanfattning</h3>
+          <div id="caoWeeklyBrief" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <h3 style="margin-top:14px">Go/No-Go brief (CAO)</h3>
+          <div id="caoGoNoGoBrief" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <p class="mini muted" style="margin-top:8px"><a href="#templateLifecycleSection">Gå till mallar</a> · <a href="#riskLabSection">Risk</a> · <a href="#reviewsIncidentsSection">Incidenter</a> · <a href="#monitorSection">Monitor readiness</a></p>
           <h3 style="margin-top:14px">Disclaimer-resultat</h3>
           <div id="caoDisclaimerResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
           <h3 style="margin-top:14px">Variabelförslag</h3>
           <div id="caoVariableResults" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
         </div>
+      </section>
+
+      <section id="caoAdminWorkspaceSection" data-section-group="caoSection" class="panel" style="margin-top:14px">
+        <h2>CAO Admin Workspace</h2>
+        <div class="muted" style="margin-bottom:10px">Filtervyer enligt §13 — admin tasks, incidenter/SLA, dokument och audit.</div>
+        <div class="seg glass-toolbar" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <button type="button" class="btn small caoWorkspaceTab active" data-cao-tab="tasks">Admin tasks</button>
+          <button type="button" class="btn small caoWorkspaceTab" data-cao-tab="incidents">Incidenter / SLA</button>
+          <button type="button" class="btn small caoWorkspaceTab" data-cao-tab="docs">Dokument</button>
+          <button type="button" class="btn small caoWorkspaceTab" data-cao-tab="audit">Audit</button>
+          <button type="button" class="btn small caoWorkspaceTab" data-cao-tab="readiness">Readiness</button>
+          <button type="button" id="caoWorkspaceRefreshBtn" class="btn small primary">Uppdatera</button>
+        </div>
+        <div id="caoWorkspaceActions" class="seg glass-toolbar" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <a href="#reviewsIncidentsSection" class="btn small">Öppna incidenter</a>
+          <a href="#templateLifecycleSection" class="btn small">Öppna mallar</a>
+          <button type="button" id="caoWorkspaceRunGateBtn" class="btn small">Kör CAO quality gate</button>
+          <button type="button" id="caoWorkspaceFilterUnownedBtn" class="btn small">Visa tasks utan ägare</button>
+          <button type="button" id="caoWorkspaceOwnerChecklistBtn" class="btn small">OWNER-checklista</button>
+          <button type="button" id="caoWorkspaceStaffChecklistBtn" class="btn small">STAFF-checklista</button>
+        </div>
+        <div id="caoWorkspaceFilters" class="seg" style="flex-wrap:wrap;gap:10px;margin-bottom:10px;align-items:center">
+          <label class="mini">Owner <input id="caoFilterOwner" type="text" placeholder="OWNER" style="width:90px" /></label>
+          <label class="mini">Status <input id="caoFilterStatus" type="text" placeholder="open" style="width:90px" /></label>
+          <label class="mini">Risk <input id="caoFilterRisk" type="text" placeholder="L3" style="width:60px" /></label>
+          <label class="mini">Deadline före <input id="caoFilterDeadline" type="date" style="width:140px" /></label>
+          <label class="mini cao-filter-incidents" style="display:none">SLA <input id="caoFilterSla" type="text" placeholder="breached" style="width:90px" /></label>
+          <label class="mini cao-filter-audit" style="display:none">Action <input id="caoFilterAction" type="text" placeholder="orchestrator" style="width:120px" /></label>
+        </div>
+        <div id="caoWorkspaceStatus" class="status-line"></div>
+        <div id="caoWorkspaceSummary" class="mini muted" style="margin:6px 0"></div>
+        <div id="caoWorkspaceResults" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:320px;overflow:auto">Ladda en flik för att se data.</div>
       </section>
 
       <section id="cfoSection" data-section-group="cfoSection" class="panel" style="margin-top:14px">
@@ -14135,6 +14228,9 @@
   <script src="/cco-next-collaboration.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/cco-next-follow-up-engine.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/cco-next-backbone.js?v=__ARCANA_UI_BUILD__"></script>
+  <script src="/admin/cao-operator.js?v=__ARCANA_UI_BUILD__"></script>
+  <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
+  <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/admin.js?v=__ARCANA_UI_BUILD__"></script>
 </body>
 </html>

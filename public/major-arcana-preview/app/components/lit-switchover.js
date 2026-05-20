@@ -32,11 +32,18 @@ let bootstrapWindow = true;
 const BOOTSTRAP_WINDOW_MS = 3000;
 const MUTATION_DEBOUNCE_MS = 100;
 
+function clearBootstrapWindow() {
+  bootstrapWindow = false;
+  schedule();
+}
+
 console.log('[lit-switchover] Aktiv (Fas 27B-1 stabiliserad)');
 init();
 setTimeout(() => {
-  bootstrapWindow = false;
-  schedule();
+  if (bootstrapWindow) {
+    bootstrapWindow = false;
+    schedule();
+  }
 }, BOOTSTRAP_WINDOW_MS);
 
 function init() {
@@ -177,10 +184,12 @@ function renderLitReplacement() {
   if (!grid) return;
 
   const liveCards = scrapeAllLiveCards();
+  const canvas = document.querySelector('.preview-canvas');
+  const isRuntimeSyncing = Boolean(canvas?.classList.contains('is-runtime-syncing'));
 
   if (liveCards.length === 0) {
     // Bootstrap-window: skilj på "väntar på data" vs "verkligen tom kö"
-    if (bootstrapWindow) {
+    if (bootstrapWindow || isRuntimeSyncing) {
       // Behåll det som redan finns (om något) — flashar inte loading-text
       // över redan renderade cards. Om grid är tomt visa subtil hint.
       if (!grid.children.length) {
@@ -251,6 +260,7 @@ if (typeof window !== 'undefined') {
   window.__litSwitchover = {
     get active() { return true; },
     get bootstrapWindow() { return bootstrapWindow; },
+    clearBootstrapWindow,
     rerender: schedule,
   };
 }

@@ -2356,6 +2356,8 @@
       authRecoveryArmed: false,
       pendingFullRefresh: false,
       isBackgroundRefresh: false,
+      staleCacheActive: false,
+      scopeAutoWidenedAt: "",
       backgroundRefreshSelectedThreadId: "",
       mode: "",
       live: false,
@@ -5047,7 +5049,9 @@
 
   function deriveRuntimeVisualState() {
     if (state.runtime?.authRequired === true) return "auth_required";
-    if (state.runtime?.loading === true) return "syncing";
+    if (state.runtime?.loading === true && state.runtime?.staleCacheActive !== true) {
+      return "syncing";
+    }
     if (normalizeText(state.runtime?.error)) return "runtime_error";
     if (normalizeKey(getRuntimeMode()) === "offline_history") return "offline_history";
     return "ready";
@@ -12479,6 +12483,17 @@
     };
   }
 
+  function buildWorklistDataFromTruthPrimaryOnly(
+    truthPayload = null,
+    { truthPrimaryMailboxIds = [] } = {}
+  ) {
+    return mergeTruthPrimaryWorklistData(
+      { conversationWorklist: [], needsReplyToday: [], metadata: {} },
+      truthPayload,
+      { truthPrimaryMailboxIds }
+    );
+  }
+
   function summarizeMailboxCountsForDiagnostics(items = [], mailboxResolver = null) {
     const counts = new Map();
     asArray(items).forEach((item) => {
@@ -13659,6 +13674,7 @@
       buildMailboxCatalog,
       buildReauthUrl,
       buildTruthPrimaryWorklistConsumerHref,
+      buildWorklistDataFromTruthPrimaryOnly,
       clearAdminToken,
       canonicalizeRuntimeMailboxId,
       createIdempotencyKey,
@@ -13732,6 +13748,7 @@
       renderRuntimeConversationShell,
       renderRuntimeFocusConversation,
       renderQueueHistorySection,
+      syncRuntimeVisualStateMachine,
       renderScheduleDraft,
       renderSignalRows,
       renderStudioShell,
@@ -14168,6 +14185,20 @@
       normalizeKey(workspaceSourceOfTruth.getSelectedOwnerKey() || "all") !== "all"
     ) {
       workspaceSourceOfTruth.setSelectedOwnerKey("all");
+    }
+
+    const liveThreads = allThreads.filter(
+      (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+    );
+    const availableMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
+    if (
+      !getQueueScopedRuntimeThreads().length &&
+      liveThreads.length &&
+      availableMailboxIds.length > 1 &&
+      !state.runtime?.scopeAutoWidenedAt
+    ) {
+      workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
+      state.runtime.scopeAutoWidenedAt = new Date().toISOString();
     }
 
     if (

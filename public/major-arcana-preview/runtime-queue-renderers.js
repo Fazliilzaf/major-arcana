@@ -1263,6 +1263,29 @@
       toIso,
     } = helpers;
 
+    function getScopedAftercareLaneEntries(options = {}) {
+      const entries = __getAftercareLaneEntries(options);
+      const scopedThreads = getMailboxScopedRuntimeThreads();
+      const previewState = __getPreviewState();
+      const liveThreads = asArray(previewState?.runtime?.threads).filter(
+        (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+      );
+      if (!scopedThreads.length && liveThreads.length) {
+        return [];
+      }
+      const scopedConversationIds = new Set(
+        scopedThreads.map((thread) => normalizeKey(thread?.id)).filter(Boolean)
+      );
+      if (!scopedConversationIds.size) {
+        return entries;
+      }
+      return entries.filter((entry) =>
+        scopedConversationIds.has(
+          normalizeKey(entry?.conversationId || entry?.runtimeThreadId || "")
+        )
+      );
+    }
+
     function setQueueContextVisibility(visible) {
       const documentObject = windowObject.document;
       if (!documentObject) return;
@@ -5093,7 +5116,7 @@
 
     function getQueueCount(tag, threads = getQueueScopedRuntimeThreads()) {
       if (normalizeKey(tag) === "aftercare") {
-        return __getAftercareLaneEntries().length;
+        return getScopedAftercareLaneEntries().length;
       }
       return getQueueLaneThreads(tag, threads).length;
     }
@@ -5922,11 +5945,11 @@
           return;
         }
         if (queueTitle) {
-          queueTitle.textContent = "Arbetslista (0)";
+          queueTitle.textContent = "Arbetslista (…)";
         }
-        renderQueueInlineLaneList(buildUnifiedQueueLoadingItems());
-        if (typeof enforceUnifiedCardV3Sections === "function") {
-          enforceUnifiedCardV3Sections(queueHistoryList);
+        if (queueHistoryList) {
+          queueHistoryList.innerHTML =
+            '<div class="queue-history-empty">Laddar arbetskön…</div>';
         }
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
@@ -6015,7 +6038,7 @@
         }
         const laneId = normalizeKey(leftColumnState.laneId || state.runtime.activeLaneId || "all");
         if (laneId === "aftercare") {
-          const aftercareEntries = __getAftercareLaneEntries({ limit: 12 });
+          const aftercareEntries = getScopedAftercareLaneEntries({ limit: 12 });
           if (queueTitle) {
             queueTitle.textContent = `${QUEUE_LANE_LABELS.aftercare || "Eftervård"} (${aftercareEntries.length})`;
           }
@@ -6073,7 +6096,16 @@
           queueHistoryList.dataset.queueListMode = "live";
         }
         const activeLaneId = normalizeKey(state.runtime.activeLaneId || "all");
-        const defaultThreads = getQueueLaneThreads(activeLaneId, getQueueScopedRuntimeThreads());
+        let defaultThreads = getQueueLaneThreads(activeLaneId, getQueueScopedRuntimeThreads());
+        if (
+          !defaultThreads.length &&
+          normalizeKey(state.runtime.mode || "") !== "offline_history"
+        ) {
+          const relaxedThreads = asArray(state.runtime.threads).filter(
+            (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+          );
+          defaultThreads = getQueueLaneThreads(activeLaneId, relaxedThreads);
+        }
         const offlineEmptyMessage = asText(state.runtime.error);
         if (queueTitle) {
           queueTitle.textContent = `Arbetslista (${defaultThreads.length})`;
