@@ -89,8 +89,10 @@ const CCO_KONS_HISTORY_RECENT_FRESHNESS_MS = 10 * 60 * 1000;
 const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
 const CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS = 45;
 const ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS = 45000;
+const WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS = 60000;
 const ANALYZE_INBOX_HISTORY_IO_CONCURRENCY = 2;
 const analyzeInboxGraphSnapshotCache = new Map();
+const worklistConsumerResponseCache = new Map();
 
 async function mapSettledWithConcurrencyLimit(items = [], limit = 2, mapper = async () => null) {
   const safeItems = asArray(items);
@@ -142,6 +144,36 @@ function writeAnalyzeInboxGraphSnapshotCache(cacheKey = '', snapshot = null) {
   analyzeInboxGraphSnapshotCache.set(safeKey, {
     at: Date.now(),
     snapshot,
+  });
+}
+
+function buildWorklistConsumerResponseCacheKey({
+  tenantId = '',
+  mailboxIds = [],
+  limit = 0,
+} = {}) {
+  const normalizedMailboxIds = normalizeMailboxIdList(mailboxIds, 50).sort();
+  return `${normalizeText(tenantId)}|${normalizedMailboxIds.join(',')}|${Number(limit || 0)}`;
+}
+
+function readWorklistConsumerResponseCache(cacheKey = '') {
+  const safeKey = normalizeText(cacheKey);
+  if (!safeKey) return null;
+  const entry = worklistConsumerResponseCache.get(safeKey);
+  if (!entry || typeof entry !== 'object') return null;
+  if (Date.now() - Number(entry.at || 0) > WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS) {
+    worklistConsumerResponseCache.delete(safeKey);
+    return null;
+  }
+  return entry.payload && typeof entry.payload === 'object' ? entry.payload : null;
+}
+
+function writeWorklistConsumerResponseCache(cacheKey = '', payload = null) {
+  const safeKey = normalizeText(cacheKey);
+  if (!safeKey || !payload || typeof payload !== 'object') return;
+  worklistConsumerResponseCache.set(safeKey, {
+    at: Date.now(),
+    payload,
   });
 }
 const CCO_HISTORY_SIGNAL_RESCHEDULE_PATTERN =
@@ -8626,6 +8658,17 @@ function toCcoRuntimeWorklistConsumerHandler({
     try {
       const tenantId = toTenantId(req);
       const query = toCcoRuntimeWorklistShadowQuery(req.query);
+      const responseCacheKey = buildWorklistConsumerResponseCacheKey({
+        tenantId,
+        mailboxIds: query.mailboxIds,
+        limit: query.limit,
+      });
+      const cachedResponse = readWorklistConsumerResponseCache(responseCacheKey);
+      if (cachedResponse) {
+        res.setHeader('X-CCO-Worklist-Cache', 'hit');
+        return res.json(cachedResponse);
+      }
+
       const context = await buildWorklistConsumerContext({
         tenantId,
         capabilityAnalysisStore,
@@ -8642,7 +8685,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         });
       }
 
-      return res.json({
+      const responsePayload = {
         ok: true,
         source: context.consumerModel.source,
         modelVersion: context.consumerModel.modelVersion,
@@ -8695,7 +8738,11 @@ function toCcoRuntimeWorklistConsumerHandler({
               metadata: context.shadowDiffReport.metadata,
             }
           : null,
-      });
+      };
+
+      writeWorklistConsumerResponseCache(responseCacheKey, responsePayload);
+      res.setHeader('X-CCO-Worklist-Cache', 'miss');
+      return res.json(responsePayload);
     } catch (error) {
       return res.status(500).json({
         ok: false,

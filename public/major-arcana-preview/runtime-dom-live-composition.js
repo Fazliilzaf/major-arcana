@@ -2819,7 +2819,9 @@
         state.runtime.threads = threads;
         try {
           if (windowObject?.CcoThreadCache && Array.isArray(threads) && threads.length) {
-            windowObject.CcoThreadCache.saveThreads(threads);
+            windowObject.CcoThreadCache.saveThreads(threads, {
+              mailboxIds: runtimeMailboxIds,
+            });
           }
         } catch (_cacheError) {
           /* cache är best-effort */
@@ -3390,6 +3392,52 @@
       }
     }
 
+    function mapCachedRuntimeThreads(cached = []) {
+      return asArray(cached).map((thread) =>
+        thread && typeof thread === "object"
+          ? {
+              ...thread,
+              worklistSource: asText(thread?.worklistSource, "cache") || "cache",
+              dataPhase: asText(thread?.dataPhase, "cache") || "cache",
+            }
+          : thread
+      );
+    }
+
+    function applyRuntimeScopeThreadCacheIfAvailable(requestedMailboxIds = []) {
+      try {
+        const hasAdminToken = Boolean(
+          typeof localStorage !== "undefined" && localStorage.getItem("ARCANA_ADMIN_TOKEN")
+        );
+        if (!hasAdminToken || !windowObject?.CcoThreadCache?.loadThreads) {
+          return Promise.resolve(false);
+        }
+        const mailboxIds = asArray(requestedMailboxIds).filter(Boolean);
+        return windowObject.CcoThreadCache.loadThreads({ mailboxIds })
+          .then((cached) => {
+            if (!Array.isArray(cached) || cached.length === 0) return false;
+            markRuntimeNonBlockingSync();
+            state.runtime.threads = mapCachedRuntimeThreads(cached);
+            state.runtime.staleCacheActive = true;
+            state.runtime.loading = false;
+            setRuntimeModeState("live", {
+              live: true,
+              offline: false,
+              authRequired: false,
+              error: "",
+            });
+            renderRuntimeConversationShell();
+            if (typeof syncRuntimeVisualStateMachine === "function") {
+              syncRuntimeVisualStateMachine();
+            }
+            return true;
+          })
+          .catch(() => false);
+      } catch (_error) {
+        return Promise.resolve(false);
+      }
+    }
+
     function applyRuntimeThreadCacheIfAvailable() {
       try {
         const hasAdminToken = Boolean(
@@ -3398,7 +3446,11 @@
         if (!hasAdminToken || !windowObject?.CcoThreadCache?.loadThreads) {
           return Promise.resolve(false);
         }
-        return windowObject.CcoThreadCache.loadThreads()
+        const mailboxIds =
+          typeof getRequestedRuntimeMailboxIds === "function"
+            ? getRequestedRuntimeMailboxIds()
+            : [];
+        return windowObject.CcoThreadCache.loadThreads({ mailboxIds })
           .then((cached) => {
             if (!Array.isArray(cached) || cached.length === 0) return false;
             const alreadyLive =
@@ -3408,15 +3460,7 @@
               );
             if (alreadyLive) return false;
 
-            state.runtime.threads = cached.map((thread) =>
-              thread && typeof thread === "object"
-                ? {
-                    ...thread,
-                    worklistSource: asText(thread?.worklistSource, "cache") || "cache",
-                    dataPhase: asText(thread?.dataPhase, "cache") || "cache",
-                  }
-                : thread
-            );
+            state.runtime.threads = mapCachedRuntimeThreads(cached);
             state.runtime.staleCacheActive = true;
             state.runtime.loading = false;
             state.runtime.loaded = false;
@@ -3841,6 +3885,7 @@
           debugReentrySnapshot("AFTER MAILBOX CHANGE");
           debugRuntimePipeline("AFTER MAILBOX CHANGE");
           refreshQueueInlineHistoryIfOpen();
+          void applyRuntimeScopeThreadCacheIfAvailable(nextSelectedMailboxIds);
           if (!nextSelectedMailboxIds.length) {
             state.runtime.mailboxScopePinned = false;
             clearRuntimeBackgroundSync();
