@@ -5520,30 +5520,6 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "live";
       }
-      // Fas 44 (2026-05-20): memoization-guard mot re-render-storm.
-      // renderQueueInlineLaneList anropas på VARJE state-render. Post-passes
-      // (__updateLivePill m.fl.) muterar state → schemalägger ny render →
-      // anropar oss igen. Med progressiv rAF-render (Fas 43) startade varje
-      // anrop om loopen → oändlig storm → frysning. Nu: bygg en signatur av
-      // (selectedThreadId + trådarnas id:n i ordning). Om identisk med förra
-      // renderingen → hoppa helt. Bryter stormen vid källan.
-      try {
-        const __sig =
-          asText(state.runtime?.selectedThreadId) +
-          "|" +
-          asArray(threads)
-            .map((t) => asText(t?.id))
-            .join(",");
-        if (queueHistoryList.__fas44Sig === __sig) {
-          // Identisk lista (oavsett om progressiv render pågår) → hoppa.
-          // En aktiv rAF-loop slutför sig själv. Detta bryter stormen där
-          // post-passes triggar re-render av samma lista.
-          return;
-        }
-        queueHistoryList.__fas44Sig = __sig;
-      } catch (_e) {
-        /* signatur misslyckades — fortsätt rendera normalt */
-      }
       // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
       // som producerade tomma rader när någon av build-funktionerna saknades.
       const renderLiveThreadCard = (thread, index, selected) => {
@@ -5617,77 +5593,30 @@
           "</div></article>"
         );
       };
-      // Fas 43 (2026-05-20): tidsskivad progressiv rendering (virtualisering-lite).
-      // Tidigare byggdes ALLA korten + innerHTML på en gång → 83 Lit-kort
-      // hydrerades synkront + 6 O(N)-post-passes → main-thread blockerades
-      // 30-45s ("frysningen"). Nu: rendera i bitar om CHUNK-storlek över
-      // animation-frames så UI aldrig blockerar mer än ~en bit i taget.
-      // Fas 45 (2026-05-20): hård cap på antal renderade kort. Vid alla 6
-      // mailboxar laddas 100+ trådar → render fryser även med progressiv
-      // render + memoization (tung kostnad i Lit-hydration + post-passes).
-      // Cap till MAX_CARDS = säkerställer att render aldrig blir tung nog
-      // att frysa. Användaren ser de senaste trådarna; filter/sök/mailbox-
-      // växling når resten. (Tills full virtualisering med profilering.)
-      const MAX_CARDS = 30;
-      const __fullList = asArray(threads);
-      const __list = __fullList.slice(0, MAX_CARDS);
-      const CHUNK = 18;
-
-      // Avbryt ev. pågående progressiv render (ny render-request kom in).
-      if (queueHistoryList.__fas43Token) {
-        try {
-          cancelAnimationFrame(queueHistoryList.__fas43Token);
-        } catch (_e) {}
-        queueHistoryList.__fas43Token = 0;
-      }
-
-      const __runQueuePostPasses = () => {
-        if (typeof enforceUnifiedCardV3Sections === "function") {
-          try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
-        }
-        try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
-        try { __applySecondaryFilter(); } catch (_e) {}
-        try { __applySearchFilter(); } catch (_e) {}
-        try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
-        try { __updateLivePill(); } catch (_e) {}
-        if (typeof decorateStaticPills === "function") {
-          try { decorateStaticPills(); } catch (_e) {}
-        }
-      };
-
+      // Fas 49 (2026-05-20): tillbaka till enkel direkt-render. Fas 43-45
+      // (progressiv render + cap) gav ofullständiga/stale kort — vissa kort
+      // saknade andra raden (ämne/preview) och DOM kunde visa gammal data.
+      // Med single-mailbox-default (Fas 48) är listan liten → enkel
+      // all-at-once-render är snabb och korrekt. Capet på 80 är bara ett
+      // säkerhetsskydd om någon väljer många mailboxar manuellt.
+      const FAS49_MAX = 80;
+      const __list = asArray(threads).slice(0, FAS49_MAX);
       const __selectedId = state.runtime.selectedThreadId;
-      const __renderRange = (start, end) =>
-        __list
-          .slice(start, end)
-          .map((thread, i) =>
-            renderLiveThreadCard(thread, start + i, thread.id === __selectedId)
-          )
-          .join("");
-
-      // Första biten synkront (= det användaren ser direkt). Liten → ingen frys.
-      const __firstCount = Math.min(CHUNK, __list.length);
-      queueHistoryList.innerHTML = __renderRange(0, __firstCount);
-      __runQueuePostPasses();
-
-      // Resten strömmas in i bitar över rAF. Post-passes körs BARA efter
-      // sista biten (inte per bit) → undviker O(N²). Korten syns ändå direkt
-      // eftersom HTML appendas varje frame.
-      if (__list.length > __firstCount) {
-        let __offset = __firstCount;
-        const __step = () => {
-          const __end = Math.min(__offset + CHUNK, __list.length);
-          try {
-            queueHistoryList.insertAdjacentHTML("beforeend", __renderRange(__offset, __end));
-          } catch (_e) {}
-          __offset = __end;
-          if (__offset < __list.length) {
-            queueHistoryList.__fas43Token = requestAnimationFrame(__step);
-          } else {
-            queueHistoryList.__fas43Token = 0;
-            __runQueuePostPasses(); // en gång när allt är inne
-          }
-        };
-        queueHistoryList.__fas43Token = requestAnimationFrame(__step);
+      queueHistoryList.innerHTML = __list
+        .map((thread, index) =>
+          renderLiveThreadCard(thread, index, thread.id === __selectedId)
+        )
+        .join("");
+      if (typeof enforceUnifiedCardV3Sections === "function") {
+        try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
+      }
+      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+      try { __applySecondaryFilter(); } catch (_e) {}
+      try { __applySearchFilter(); } catch (_e) {}
+      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+      try { __updateLivePill(); } catch (_e) {}
+      if (typeof decorateStaticPills === "function") {
+        try { decorateStaticPills(); } catch (_e) {}
       }
     }
 
