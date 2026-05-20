@@ -12115,12 +12115,20 @@
       <section
         id="ccoWorkspaceSection"
         data-section-group="ccoWorkspaceSection"
-        class="cco-preview-redirect-section"
+        class="cco-preview-embed-section"
         hidden
         aria-hidden="true"
       >
-        <div class="cco-preview-redirect-shell">
-          <p class="muted mini">CCO öppnas i egen arbetsyta…</p>
+        <div id="ccoPreviewEmbedShell" class="cco-preview-embed-shell">
+          <iframe
+            id="ccoPreviewEmbedFrame"
+            class="cco-preview-embed-frame"
+            title="HairTP Clinic CCO"
+            data-src="/major-arcana-preview/?embed=admin"
+            src="about:blank"
+            loading="eager"
+            referrerpolicy="same-origin"
+          ></iframe>
         </div>
       </section>
 
@@ -13279,27 +13287,89 @@
       </section>
 
       <section id="cmoSection" data-section-group="cmoSection" class="panel" style="margin-top:14px">
-        <h2>CMO — Content-rådgivare</h2>
-        <div class="muted" style="margin-bottom:14px">Chief Marketing Officer-agenten identifierar content-ämnen från mail-insikter, FAQ och mallar och bygger en content-kalender.</div>
-        <div class="seg glass-toolbar" style="margin-bottom:14px">
-          <button id="runCmoAgentBtn" class="btn small">Kör CMO Content Advisor</button>
-          <span id="cmoRunStatus" class="mini muted" style="margin-left:10px"></span>
+        <h2>Arcana Marketing Copilot</h2>
+        <div class="muted" style="margin-bottom:14px">CMO skapar strategi och produktionsutkast (social, SEO, ads, mail) — utan auto-publicering. Allt kräver OWNER-godkännande före extern distribution.</div>
+        <div class="seg glass-toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center">
+          <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+            Målgrupp
+            <input id="cmoTargetAudience" type="text" placeholder="klinikledning" style="width:160px" />
+          </label>
+          <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+            Ton
+            <select id="cmoTone" style="width:140px">
+              <option value="professional">Professionell</option>
+              <option value="personal">Personlig</option>
+              <option value="sales">Säljande</option>
+              <option value="educational">Utbildande</option>
+            </select>
+          </label>
+          <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+            E-posttyp
+            <select id="cmoEmailType" style="width:140px">
+              <option value="newsletter">Nyhetsbrev</option>
+              <option value="nurture">Nurture</option>
+              <option value="onboarding">Onboarding</option>
+            </select>
+          </label>
+          <button id="runCmoAgentBtn" class="btn small primary">Kör Marketing Copilot</button>
+          <span id="cmoRunStatus" class="mini muted"></span>
+        </div>
+        <div class="seg" style="margin-bottom:14px">
+          <label class="mini" for="cmoSourceContent">Repurpose-källa (valfritt)</label>
+          <textarea id="cmoSourceContent" rows="2" placeholder="Klistra in blogg/release notes för återanvändning..." style="width:100%;margin-top:6px;font-size:12px"></textarea>
         </div>
         <div id="cmoResultPanel" class="seg" style="display:none">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-            <div class="overview-card">
-              <h4>Content-ämnen</h4>
-              <div id="cmoTopicCount" class="value" style="font-size:28px">0</div>
-            </div>
-            <div class="overview-card">
-              <h4>Planerade inlägg</h4>
-              <div id="cmoCalendarCount" class="value" style="font-size:28px">0</div>
-            </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px">
+            <div class="overview-card"><h4>Ämnen</h4><div id="cmoTopicCount" class="value" style="font-size:24px">0</div></div>
+            <div class="overview-card"><h4>Kalender</h4><div id="cmoCalendarCount" class="value" style="font-size:24px">0</div></div>
+            <div class="overview-card"><h4>Kampanjer redo</h4><div id="cmoCampaignReadyCount" class="value" style="font-size:24px">0</div></div>
+            <div class="overview-card"><h4>Social utkast</h4><div id="cmoSocialCount" class="value" style="font-size:24px">0</div></div>
+            <div class="overview-card"><h4>SEO-briefs</h4><div id="cmoSeoCount" class="value" style="font-size:24px">0</div></div>
+            <div class="overview-card"><h4>Ad-utkast</h4><div id="cmoAdCount" class="value" style="font-size:24px">0</div></div>
           </div>
+          <div id="cmoDisclaimer" class="mini muted" style="margin-bottom:10px"></div>
           <h3>Executive Summary</h3>
           <div id="cmoExecutiveSummary" class="code-block" style="white-space:pre-wrap;font-size:14px;line-height:1.6"></div>
           <h3 style="margin-top:14px">Content-kalender</h3>
-          <div id="cmoCalendar" class="code-block" style="white-space:pre-wrap;font-size:13px"></div>
+          <div id="cmoCalendar" class="code-block" style="white-space:pre-wrap;font-size:13px;max-height:160px;overflow:auto"></div>
+          <h3 style="margin-top:14px">Social (preview)</h3>
+          <div id="cmoSocialPreview" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto"></div>
+          <h3 style="margin-top:14px">SEO (preview)</h3>
+          <div id="cmoSeoPreview" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto"></div>
+          <h3 style="margin-top:14px">Ads (preview)</h3>
+          <div id="cmoAdPreview" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto"></div>
+          <h3 style="margin-top:14px">E-post (preview)</h3>
+          <div id="cmoEmailPreview" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:120px;overflow:auto"></div>
+          <h3 style="margin-top:14px">Kampanjer</h3>
+          <div id="cmoCampaignPreview" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:120px;overflow:auto"></div>
+          <h3 style="margin-top:14px">Compliance-gate</h3>
+          <div id="cmoComplianceStatus" class="mini muted" style="margin-bottom:6px"></div>
+          <div id="cmoComplianceChecks" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto"></div>
+        </div>
+        <div class="seg" style="margin-top:14px">
+          <h3>Kampanjworkspace (godkännande)</h3>
+          <div class="muted mini" style="margin-bottom:10px">Utkast synkas från Marketing Copilot-körningar. OWNER godkänner före publicering — inget skickas automatiskt.</div>
+          <div class="seg glass-toolbar" style="flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
+            <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+              Status
+              <select id="cmoWorkspaceFilterStatus" style="width:180px">
+                <option value="">Alla</option>
+                <option value="pending_approval" selected>Väntar godkännande</option>
+                <option value="approved">Godkända</option>
+                <option value="rejected">Avvisade</option>
+                <option value="compliance_blocked">Compliance-blockerade</option>
+                <option value="draft">Utkast</option>
+              </select>
+            </label>
+            <label class="mini" style="display:inline-flex;align-items:center;gap:6px">
+              Ägare
+              <input id="cmoWorkspaceFilterOwner" type="text" placeholder="OWNER" style="width:120px" />
+            </label>
+            <button type="button" id="cmoWorkspaceRefreshBtn" class="btn small primary">Uppdatera</button>
+          </div>
+          <div id="cmoWorkspaceStatus" class="status-line"></div>
+          <div id="cmoWorkspaceSummary" class="mini muted" style="margin:6px 0"></div>
+          <div id="cmoWorkspaceResults" class="code-block" style="white-space:pre-wrap;font-size:12px;max-height:280px;overflow:auto">Laddar kampanjutkast...</div>
         </div>
       </section>
 
@@ -13784,6 +13854,8 @@
   <script src="/cco-next-follow-up-engine.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/cco-next-backbone.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/admin/cao-operator.js?v=__ARCANA_UI_BUILD__"></script>
+  <script src="/admin/cmo-copilot.js?v=__ARCANA_UI_BUILD__"></script>
+  <script src="/admin/cmo-workspace.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
   <script src="/admin.js?v=__ARCANA_UI_BUILD__"></script>

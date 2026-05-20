@@ -170,10 +170,14 @@
     window.location.replace(CCO_PREVIEW_PRIMARY_PATH);
   }
 
-  function maybeRedirectAdminToCcoPreview() {
+  function maybeActivateCcoWorkspaceFromHash() {
     if (!shouldOpenCcoPreviewFromAdminLocation()) return false;
     if (!state.token) return false;
-    openCcoPreviewWorkspace();
+    setActiveSectionGroup('ccoWorkspaceSection', {
+      targetId: 'ccoWorkspaceSection',
+      scroll: true,
+      syncHash: true,
+    });
     return true;
   }
 
@@ -3478,7 +3482,7 @@
     }
     if (isLoggedIn) {
       mountCcoHeaderNav();
-      if (maybeRedirectAdminToCcoPreview()) return;
+      if (maybeActivateCcoWorkspaceFromHash()) return;
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
       if (els.tenantSelectionSelect) els.tenantSelectionSelect.innerHTML = '';
       state.pendingLoginTicket = '';
@@ -5865,9 +5869,6 @@
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
-    if (String(groupId || '').trim() === 'ccoWorkspaceSection') {
-      if (maybeRedirectAdminToCcoPreview()) return;
-    }
     const enteringCco =
       String(groupId || '').trim() === 'ccoWorkspaceSection' &&
       String(previousGroupId || '').trim() !== 'ccoWorkspaceSection';
@@ -30011,17 +30012,20 @@
     const targetEl = document.getElementById(targetId);
     if (!targetEl) return;
     if (targetId === 'ccoWorkspaceSection') {
-      if (maybeRedirectAdminToCcoPreview()) {
-        event.preventDefault();
-        return;
-      }
+      event.preventDefault();
+      scrollToSection(targetEl);
+      return;
     }
     event.preventDefault();
     scrollToSection(targetEl);
   });
   els.openCcoWorkspaceBtn?.addEventListener('click', () => {
     if (state.token) {
-      openCcoPreviewWorkspace();
+      setActiveSectionGroup('ccoWorkspaceSection', {
+        targetId: 'ccoWorkspaceSection',
+        scroll: true,
+        syncHash: true,
+      });
       return;
     }
     const target = els.ccoWorkspaceSection || document.getElementById('ccoWorkspaceSection');
@@ -31824,8 +31828,8 @@
   syncTemplateFilterInputs();
   bindScrollableListPersistence();
   applyLanguage();
-  if (maybeRedirectAdminToCcoPreview()) {
-    // Full CCO körs som egen app — hoppa över admin-init när #cco är målet.
+  if (maybeActivateCcoWorkspaceFromHash()) {
+    // CCO-sektionen aktiveras direkt i admin via embed.
   } else {
     state.activeSectionGroup = resolveInitialSectionGroup();
     setActiveSectionGroup(state.activeSectionGroup || 'overviewSection', {
@@ -31890,6 +31894,9 @@
     if (typeof window.initCaoOperatorPanel === 'function') {
       window.initCaoOperatorPanel(getToken);
     }
+    if (typeof window.initCmoCopilotPanel === 'function') {
+      window.initCmoCopilotPanel(getToken);
+    }
 
     var cfoBtn = document.getElementById('runCfoAgentBtn');
     var cfoStatus = document.getElementById('cfoRunStatus');
@@ -31922,33 +31929,6 @@
       });
     }
 
-    var cmoBtn = document.getElementById('runCmoAgentBtn');
-    var cmoStatus = document.getElementById('cmoRunStatus');
-    if (cmoBtn) {
-      cmoBtn.addEventListener('click', function () {
-        cmoBtn.disabled = true;
-        if (cmoStatus) cmoStatus.textContent = 'Kör...';
-        agentPost('CMO').then(function (d) {
-          var out = (d && d.output && d.output.data) || (d && d.data) || {};
-          var panel = document.getElementById('cmoResultPanel');
-          if (panel) panel.style.display = '';
-          var el = document.getElementById('cmoTopicCount');
-          if (el) el.textContent = String((out.topics || []).length);
-          el = document.getElementById('cmoCalendarCount');
-          if (el) el.textContent = String((out.contentCalendar || []).length);
-          el = document.getElementById('cmoExecutiveSummary');
-          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
-          el = document.getElementById('cmoCalendar');
-          if (el) {
-            var cal = out.contentCalendar || [];
-            el.textContent = cal.length ? cal.map(function (c) { return 'Vecka ' + c.week + ': ' + c.topic + ' (' + c.format + ') — ' + c.targetDate; }).join('\n') : 'Ingen content-kalender genererad.';
-          }
-          if (cmoStatus) cmoStatus.textContent = 'Klar';
-        }).catch(function (err) {
-          if (cmoStatus) cmoStatus.textContent = 'Fel: ' + (err.message || err);
-        }).finally(function () { cmoBtn.disabled = false; });
-      });
-    }
   })();
 
   restoreSession();
