@@ -971,6 +971,11 @@
         if ((runtime.live === true || runtime.mode === "live") && threadCount > 0) {
           return { pillMode: "live", threadCount, isLive: true };
         }
+        const hasToken =
+          typeof localStorage !== "undefined" && Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
+        if (hasToken && threadCount > 0 && runtime.authRequired !== true) {
+          return { pillMode: "live", threadCount, isLive: true };
+        }
         const demoCount = Array.isArray(runtime.threads)
           ? runtime.threads.filter(
               (thread) => __normalizeKey(thread?.worklistSource || "") === "demo"
@@ -5119,6 +5124,29 @@
     }
 
     function renderRuntimeQueueCounts() {
+      if (state.runtime?.authRequired === true) {
+        renderRuntimeQueueLaneState();
+        if (queueTitle) {
+          queueTitle.textContent = "Arbetslista (0)";
+        }
+        if (queueSummaryFocus) queueSummaryFocus.textContent = "0";
+        if (queueSummaryActNow) queueSummaryActNow.textContent = "0";
+        if (queueSummarySprint) queueSummarySprint.textContent = "0";
+        if (queueSummaryRisk) queueSummaryRisk.textContent = "0 hög risk";
+        queueLaneCountNodes.forEach((node) => {
+          node.textContent = "0";
+        });
+        queueSecondarySignalCountNodes.forEach((node) => {
+          node.textContent = "0";
+        });
+        queueFeedCountNodes.forEach((node) => {
+          node.textContent = "0";
+        });
+        if (queueActiveLaneLabel) {
+          queueActiveLaneLabel.textContent = QUEUE_LANE_LABELS.all;
+        }
+        return;
+      }
       const queueScopedThreads = getQueueScopedRuntimeThreads();
       const mailboxScopedThreads = getMailboxScopedRuntimeThreads();
       const filteredThreads = getFilteredRuntimeThreads();
@@ -5163,6 +5191,17 @@
 
     function renderRuntimeMailboxMenu() {
       if (!mailboxMenuGrid || !mailboxTriggerLabel) return;
+      if (state.runtime?.authRequired === true) {
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
+        if (queueMailboxScopeLabel) {
+          queueMailboxScopeLabel.textContent = "Alla mail";
+        }
+        if (queueMailboxScopeCount) {
+          queueMailboxScopeCount.textContent = "0";
+        }
+        mailboxMenuGrid.innerHTML = "";
+        return;
+      }
       const availableMailboxes = getAvailableRuntimeMailboxes();
       const selectedIds = new Set(
         asArray(

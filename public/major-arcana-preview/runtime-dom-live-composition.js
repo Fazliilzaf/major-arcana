@@ -909,10 +909,18 @@
       state.runtime.live = live;
       state.runtime.offline = offline;
       state.runtime.authRequired = authRequired;
-      if (authRequired === true && Array.isArray(state.runtime.threads)) {
-        state.runtime.threads = state.runtime.threads.filter(
-          (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
-        );
+      if (authRequired === true) {
+        state.runtime.threads = [];
+        state.runtime.liveHydratedThreadIds = [];
+        state.runtime.truthPrimaryLegacyThreads = [];
+        state.runtime.loading = false;
+        state.runtime.backgroundSyncActive = false;
+        state.runtime.staleCacheActive = false;
+        state.runtime.bookingShellOpen = false;
+        state.runtime.bookingShellDismissed = false;
+        if (typeof workspaceSourceOfTruth?.setOverlayOpen === "function") {
+          workspaceSourceOfTruth.setOverlayOpen("booking", false);
+        }
       }
       if (normalizedMode !== "offline_history") {
         state.runtime.offlineWorkingSetSource = "";
@@ -3849,7 +3857,17 @@
           const nextSelectedMailboxIds = workspaceSourceOfTruth.setSelectedMailboxIds(
             Array.from(nextSelected)
           );
-          state.runtime.mailboxScopePinned = nextSelectedMailboxIds.length > 0;
+          const availableMailboxIds = asArray(
+            typeof getAvailableRuntimeMailboxes === "function" ? getAvailableRuntimeMailboxes() : []
+          )
+            .map((mailbox) =>
+              canonicalizeRuntimeMailboxId(mailbox?.canonicalId || mailbox?.email || mailbox?.id)
+            )
+            .filter(Boolean);
+          state.runtime.mailboxScopePinned =
+            nextSelectedMailboxIds.length > 0 &&
+            availableMailboxIds.length > 0 &&
+            nextSelectedMailboxIds.length < availableMailboxIds.length;
           markRuntimeNonBlockingSync();
           workspaceSourceOfTruth.setSelectedThreadId("");
           state.runtime.historyContextThreadId = "";
@@ -4662,6 +4680,15 @@
       setNoteModeOpen(false);
       setFeedback(noteFeedback, "", "");
       setFeedback(scheduleFeedback, "", "");
+
+      state.runtime.bookingShellOpen = false;
+      state.runtime.bookingShellDismissed = false;
+      if (typeof workspaceSourceOfTruth?.setOverlayOpen === "function") {
+        workspaceSourceOfTruth.setOverlayOpen("booking", false);
+      }
+      if (canvas) {
+        canvas.classList.remove("is-booking-open");
+      }
 
       // Self-healing: lyssna på flikfokus så att transient-fel återställs när användaren kommer tillbaka.
       bindRuntimeVisibilityRecovery();

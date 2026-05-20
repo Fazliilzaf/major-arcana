@@ -3298,3 +3298,17 @@ body.is-admin-embed .preview-canvas {
   border-radius: 0;
   box-shadow: none;
 }
+
+/* Fas 51: auth_required = ren inloggningsyta, ingen mejl-chrome bakom. */
+.preview-canvas.is-runtime-auth_required .queue-lane-quickstrip,
+.preview-canvas.is-runtime-auth_required .queue-scope-strip {
+  display: none !important;
+}
+
+.preview-canvas.is-runtime-auth_required .preview-hint {
+  display: none;
+}
+
+.preview-canvas.is-runtime-auth_required .preview-live-pill {
+  opacity: 1;
+}

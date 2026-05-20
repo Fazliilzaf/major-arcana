@@ -14088,9 +14088,7 @@
     }
     const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
     const defaultScope = availableIds;
-    const scopePinned = state.runtime?.mailboxScopePinned === true;
     if (
-      !scopePinned &&
       selectedMailboxIds.length > 0 &&
       selectedMailboxIds.length < availableIds.length
     ) {
@@ -19008,38 +19006,11 @@
   function seedJourneyDrivenWorkspace(thread, focusReadState = {}, preferredAction = "") {
     const normalizedAction = normalizeKey(preferredAction);
     if (!thread || !normalizedAction) return;
-    if (normalizedAction === "booking_surface") {
-      if (preferredAction === "booking_surface") {
-        openBookingOperatorSurface({
-          scroll: false,
-          message: "",
-        });
-        focusRecommendedBookingAction();
-      }
-      seedBookingSurfaceForCurrentThread(thread, {
-        moveActionFocus: false,
-        announce: false
-      });
-      return;
-    }
-    if (
-      preferredAction === "aftercare_open" ||
-      preferredAction === "operation_open" ||
-      preferredAction === "consultation_open" ||
-      preferredAction === "commercial_open"
-    ) {
-      openWorkspaceDomainSurface(preferredAction.replace(/_open$/, ""), {
-        threadId: normalizeKey(thread.id),
-        message: "Arbetsytan öppnades från patientresans rekommenderade nästa steg.",
-      });
-      return;
-    }
-    // Fas 31 (2026-05-19): tog bort kvarvarande auto-open-grenar för
-    // schedule_open + note_open. Dessa missades när Fas 15 rev resten av
-    // preferredAction-grenarna och orsakade att Smart anteckning + Kalender
-    // ploppade upp av sig själv vid login/reload (samma bug-kategori som
-    // mailbox-dropdown). Patientresa styr fortfarande snabbåtgärderna i
-    // fokusytan — användaren klickar själv för att öppna en modal.
+    // Fas 51: patientresan får aldrig auto-öppna modaler vid login/reload.
+    // Användaren klickar själv på Bokning, Smart anteckning, etc.
+    void focusReadState;
+    void normalizedAction;
+    void thread;
   }
 
   function syncJourneyDrivenIntelSelection(thread, focusReadState = {}, { force = false } = {}) {
@@ -40902,12 +40873,6 @@ renderStudioShell();
 	    };
 	    const bookingLaneButton = event.target.closest('[data-queue-lane="bookable"]');
 	    if (bookingLaneButton) {
-	      window.setTimeout(() => {
-	        openBookingOperatorSurface({
-	          scroll: true,
-	          message: "Bokningsytan öppnades från Bokning-kön.",
-	        });
-	      }, 120);
 	      return;
 	    }
 	    const aftercareLaneButton = event.target.closest('[data-queue-lane="aftercare"]');
