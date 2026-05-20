@@ -5840,25 +5840,30 @@
 
   function syncWorkspaceTheme(groupId) {
     const normalized = String(groupId || '').trim();
-    const ccoModeActive =
-      normalized === 'ccoWorkspaceSection' ||
-      normalized === 'ccoNextWorkspaceSection' ||
-      isCcoRoutePath(window.location.pathname || '') ||
-      isCcoNextRoutePath(window.location.pathname || '');
+    const ccoEmbedActive =
+      normalized === 'ccoWorkspaceSection' && isCcoEmbedMode();
     const ccoNextModeActive =
       normalized === 'ccoNextWorkspaceSection' || isCcoNextRoutePath(window.location.pathname || '');
-    document.body.classList.toggle('cco-light-mode', ccoModeActive);
+    const ccoLightModeActive =
+      ccoNextModeActive ||
+      isCcoRoutePath(window.location.pathname || '') ||
+      isCcoNextRoutePath(window.location.pathname || '') ||
+      (normalized === 'ccoWorkspaceSection' && !isCcoEmbedMode());
+    const hideAdminChrome = ccoEmbedActive || ccoNextModeActive;
+
+    document.body.classList.toggle('cco-preview-embed-route', ccoEmbedActive);
+    document.body.classList.toggle('cco-light-mode', ccoLightModeActive);
     document.body.classList.toggle('cco-next-preview-route', ccoNextModeActive);
     document.body.classList.remove('cco-compact-header');
     if (els.adminHeader) {
-      if (ccoNextModeActive) {
+      if (hideAdminChrome) {
         els.adminHeader.style.setProperty('display', 'none', 'important');
       } else {
         els.adminHeader.style.removeProperty('display');
       }
     }
     if (els.sectionNav) {
-      if (ccoNextModeActive) {
+      if (hideAdminChrome) {
         els.sectionNav.style.setProperty('display', 'none', 'important');
       } else {
         els.sectionNav.style.removeProperty('display');
@@ -5925,6 +5930,11 @@
       state.ccoAdaptiveFocusShowAll = false;
       state.ccoFocusWorkloadMinutes = 0;
       hideCcoSoftBreakPanel();
+    }
+    if (leavingCco) {
+      if (isCcoEmbedMode()) {
+        teardownCcoPreviewEmbed();
+      }
     }
     if (leavingCco || leavingCcoNext) {
       state.ccoLastSeenAtMs = Date.now();
