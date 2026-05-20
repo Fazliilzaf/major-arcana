@@ -27439,6 +27439,7 @@
 
   async function loadCcoInboxBrief({ quiet = true } = {}) {
     if (isCcoEmbedMode()) return null;
+    if (isCcoEmbedMode()) return null;
     const shouldShowLoading =
       quiet !== true ||
       !(state.ccoInboxData?.data && typeof state.ccoInboxData.data === 'object');
@@ -31906,6 +31907,12 @@
     }
     if (typeof window.initCmoCopilotPanel === 'function') {
       window.initCmoCopilotPanel(getToken);
+    }
+    if (typeof window.initCmoMarketingTabs === 'function') {
+      window.initCmoMarketingTabs();
+    }
+    if (typeof window.initCmoAnalyticsPanel === 'function') {
+      window.initCmoAnalyticsPanel(getToken);
     }
 
     var cfoBtn = document.getElementById('runCfoAgentBtn');

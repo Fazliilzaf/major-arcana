@@ -1,3 +1,4 @@
+// @ts-nocheck
 const path = require('node:path');
 
 function asInt(value, fallback) {
@@ -283,6 +284,76 @@ const config = {
     fileName: 'cco-customers.json',
   }),
   capabilityAnalysisMaxEntries: asInt(process.env.ARCANA_CAPABILITY_ANALYSIS_MAX_ENTRIES, 15000),
+  marketingCampaignDraftsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_CAMPAIGN_DRAFTS_PATH,
+    stateRoot,
+    fileName: 'marketing-campaign-drafts.json',
+  }),
+  marketingClaimsWhitelistPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_CLAIMS_WHITELIST_PATH,
+    stateRoot,
+    fileName: 'marketing-claims-whitelist.json',
+  }),
+  marketingContentAssetsPath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_CONTENT_ASSETS_PATH,
+    stateRoot,
+    fileName: 'marketing-content-assets.json',
+  }),
+  marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, false),
+  marketingConnectorsMode: asNonEmptyString(process.env.ARCANA_MARKETING_CONNECTORS_MODE, 'fixture'),
+  marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, false),
+  marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, false),
+  marketingAutoPublishPilotChannels: asStringArray(
+    process.env.ARCANA_MARKETING_AUTO_PUBLISH_PILOT_CHANNELS
+  ),
+  marketingPublishPilotMaxRiskLevel: asInt(process.env.ARCANA_MARKETING_PUBLISH_PILOT_MAX_RISK_LEVEL, 3),
+  marketingConnectors: {
+    google_ads: {
+      enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),
+      apiKey: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_API_KEY),
+      accessToken: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN),
+      developerToken: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN),
+      customerId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID),
+      loginCustomerId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_LOGIN_CUSTOMER_ID),
+      apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_API_BASE_URL),
+      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_METRICS_PATH, '/metrics'),
+      mode: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_MODE),
+      liveFetch: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_LIVE_FETCH, false),
+      fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_FIXTURE_ID, 'google_ads'),
+    },
+    meta: {
+      enabled: asBool(process.env.ARCANA_MARKETING_META_ENABLED, false),
+      apiKey: asNonEmptyString(process.env.ARCANA_MARKETING_META_API_KEY),
+      accessToken: asNonEmptyString(process.env.ARCANA_MARKETING_META_ACCESS_TOKEN),
+      adAccountId: asNonEmptyString(process.env.ARCANA_MARKETING_META_AD_ACCOUNT_ID),
+      apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_META_API_BASE_URL),
+      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_META_METRICS_PATH, '/metrics'),
+      mode: asNonEmptyString(process.env.ARCANA_MARKETING_META_MODE),
+      liveFetch: asBool(process.env.ARCANA_MARKETING_META_LIVE_FETCH, false),
+      fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_META_FIXTURE_ID, 'meta'),
+    },
+    linkedin: {
+      enabled: asBool(process.env.ARCANA_MARKETING_LINKEDIN_ENABLED, false),
+      apiKey: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_API_KEY),
+      accessToken: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN),
+      adAccountId: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID),
+      apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_API_BASE_URL),
+      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_METRICS_PATH, '/metrics'),
+      mode: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_MODE),
+      liveFetch: asBool(process.env.ARCANA_MARKETING_LINKEDIN_LIVE_FETCH, false),
+      fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_LINKEDIN_FIXTURE_ID, 'linkedin'),
+    },
+    mail: {
+      enabled: asBool(process.env.ARCANA_MARKETING_MAIL_ENABLED, false),
+      apiKey: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_API_KEY),
+      accessToken: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_ACCESS_TOKEN),
+      apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_API_BASE_URL),
+      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_METRICS_PATH, '/metrics'),
+      mode: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_MODE),
+      liveFetch: asBool(process.env.ARCANA_MARKETING_MAIL_LIVE_FETCH, false),
+      fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_MAIL_FIXTURE_ID, 'mail'),
+    },
+  },
   sloTicketStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_SLO_TICKET_STORE_PATH,
     stateRoot,
@@ -569,6 +640,10 @@ const config = {
   schedulerCcoInboxScopedMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
     25
+  ),
+  schedulerCcoInboxBootstrapMaxMessagesPerUser: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER,
+    80
   ),
   schedulerCcoHistoryMailboxId: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID,

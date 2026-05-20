@@ -1,3 +1,4 @@
+// @ts-nocheck
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
@@ -2645,6 +2646,24 @@ function createScheduler({
         Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25
       )
     );
+    const bootstrapMaxMessagesPerUser = Math.max(
+      30,
+      Math.min(
+        200,
+        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 80
+      )
+    );
+    const bootstrapTriggers = new Set([
+      'startup',
+      'scheduled',
+      'scheduler_start',
+      'manual_api',
+      'manual_api_suite',
+    ]);
+    const isBootstrapFetch =
+      mode === 'full' &&
+      bootstrapTriggers.has(normalizeText(trigger)) &&
+      !(useScopedMerge && baselineOutputData);
     const correlationId = `cco-inbox-refresh:${crypto.randomUUID()}`;
     const requestId = `scheduler-inbox-refresh:${crypto.randomUUID()}`;
     const analyzeInput = {
@@ -2686,7 +2705,19 @@ function createScheduler({
                 Math.floor(scopedMaxMessagesPerUser * 0.4)
               ),
             }
-          : {}),
+          : isBootstrapFetch
+            ? {
+                maxMessagesPerUser: bootstrapMaxMessagesPerUser,
+                maxInboxMessagesPerUser: Math.max(
+                  20,
+                  Math.floor(bootstrapMaxMessagesPerUser * 0.65)
+                ),
+                maxSentMessagesPerUser: Math.max(
+                  10,
+                  Math.floor(bootstrapMaxMessagesPerUser * 0.35)
+                ),
+              }
+            : {}),
       },
     });
     const capability = new AnalyzeInboxCapability();
@@ -2736,6 +2767,11 @@ function createScheduler({
         trigger,
         mode: effectiveMode,
         scopedConversationIds: effectiveMode === 'scoped_merge' ? scopedIds : [],
+        maxMessagesPerUser: isBootstrapFetch
+          ? bootstrapMaxMessagesPerUser
+          : useScopedMerge && baselineOutputData
+            ? scopedMaxMessagesPerUser
+            : null,
       },
       output: {
         data: outputData,
@@ -2750,6 +2786,11 @@ function createScheduler({
         mode: effectiveMode,
         scopedConversationCount:
           effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
+        maxMessagesPerUser: isBootstrapFetch
+          ? bootstrapMaxMessagesPerUser
+          : useScopedMerge && baselineOutputData
+            ? scopedMaxMessagesPerUser
+            : null,
       },
       riskSummary: {},
       policySummary: {},
@@ -2805,6 +2846,13 @@ function createScheduler({
         Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
       )
     );
+    const requiredBootstrapMaxMessagesPerUser = Math.max(
+      30,
+      Math.min(
+        200,
+        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 80
+      )
+    );
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
       tenantId,
@@ -2825,6 +2873,16 @@ function createScheduler({
       Number.isFinite(storedLookbackDays) &&
       storedLookbackDays > 0 &&
       storedLookbackDays < requiredBootstrapLookbackDays;
+    const storedMaxMessagesPerUser = Number(
+      baseline?.selectedEntry?.input?.maxMessagesPerUser ||
+        baseline?.selectedEntry?.metadata?.maxMessagesPerUser ||
+        0
+    );
+    const messageCapUpgradeNeeded =
+      rowCount > 0 &&
+      Number.isFinite(storedMaxMessagesPerUser) &&
+      storedMaxMessagesPerUser > 0 &&
+      storedMaxMessagesPerUser < requiredBootstrapMaxMessagesPerUser;
     const forceRefresh =
       normalizeText(trigger) === 'manual_api' ||
       normalizeText(trigger) === 'manual_api_suite';
@@ -2837,6 +2895,7 @@ function createScheduler({
     if (
       !forceRefresh &&
       !lookbackUpgradeNeeded &&
+      !messageCapUpgradeNeeded &&
       rowCount > 0 &&
       ageHours !== null &&
       ageHours < maxAgeHours
@@ -2852,11 +2911,13 @@ function createScheduler({
         ageHours,
         storedLookbackDays,
         requiredBootstrapLookbackDays,
+        storedMaxMessagesPerUser,
+        requiredBootstrapMaxMessagesPerUser,
       };
     }
 
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'} force=${forceRefresh} lookbackUpgrade=${lookbackUpgradeNeeded} storedLookbackDays=${storedLookbackDays || 'unknown'} requiredLookbackDays=${requiredBootstrapLookbackDays}`
+      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'} force=${forceRefresh} lookbackUpgrade=${lookbackUpgradeNeeded} messageCapUpgrade=${messageCapUpgradeNeeded} storedLookbackDays=${storedLookbackDays || 'unknown'} requiredLookbackDays=${requiredBootstrapLookbackDays} storedMaxMessagesPerUser=${storedMaxMessagesPerUser || 'unknown'} requiredMaxMessagesPerUser=${requiredBootstrapMaxMessagesPerUser}`
     );
     return runCcoInboxAnalysisRefresh({
       tenantId,

@@ -1309,7 +1309,7 @@
 
     function getScopedAftercareLaneEntries(options = {}) {
       const entries = __getAftercareLaneEntries(options);
-      const scopedThreads = getMailboxScopedRuntimeThreads();
+      const scopedThreads = getQueueScopedRuntimeThreads();
       const previewState = __getPreviewState();
       const liveThreads = asArray(previewState?.runtime?.threads).filter(
         (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
@@ -1317,17 +1317,23 @@
       if (!scopedThreads.length && liveThreads.length) {
         return [];
       }
-      const scopedConversationIds = new Set(
-        scopedThreads.map((thread) => normalizeKey(thread?.id)).filter(Boolean)
-      );
-      if (!scopedConversationIds.size) {
-        return entries;
+      if (!scopedThreads.length) {
+        return [];
       }
-      return entries.filter((entry) =>
-        scopedConversationIds.has(
-          normalizeKey(entry?.conversationId || entry?.runtimeThreadId || "")
-        )
-      );
+      return entries.filter((entry) => {
+        const entryIds = [entry?.conversationId, entry?.runtimeThreadId, entry?.caseId]
+          .map((value) => asText(value))
+          .filter(Boolean);
+        if (!entryIds.length) return false;
+        return scopedThreads.some((thread) => {
+          const threadIds = [thread?.id, thread?.conversationId]
+            .map((value) => asText(value))
+            .filter(Boolean);
+          return threadIds.some((threadId) =>
+            entryIds.some((entryId) => runtimeConversationIdsMatch(threadId, entryId))
+          );
+        });
+      });
     }
 
     function setQueueContextVisibility(visible) {
