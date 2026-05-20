@@ -2617,7 +2617,13 @@ function createScheduler({
           )
         );
       }
-      const bootstrapTriggers = new Set(['startup', 'scheduled']);
+      const bootstrapTriggers = new Set([
+        'startup',
+        'scheduled',
+        'scheduler_start',
+        'manual_api',
+        'manual_api_suite',
+      ]);
       if (mode === 'full' && bootstrapTriggers.has(normalizeText(trigger))) {
         return Math.max(
           7,
@@ -2792,6 +2798,13 @@ function createScheduler({
       1,
       Math.min(168, Number(config?.schedulerCcoInboxEnrichmentMaxAgeHours) || 24)
     );
+    const requiredBootstrapLookbackDays = Math.max(
+      7,
+      Math.min(
+        90,
+        Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
+      )
+    );
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
       tenantId,
@@ -2802,13 +2815,32 @@ function createScheduler({
       normalizeText(baseline?.selectedEntry?.ts) ||
       '';
     const rowCount = Number(baseline?.selection?.selectedRowCount || 0);
+    const storedLookbackDays = Number(
+      baseline?.selectedEntry?.input?.lookbackDays ||
+        baseline?.selectedEntry?.metadata?.lookbackDays ||
+        0
+    );
+    const lookbackUpgradeNeeded =
+      rowCount > 0 &&
+      Number.isFinite(storedLookbackDays) &&
+      storedLookbackDays > 0 &&
+      storedLookbackDays < requiredBootstrapLookbackDays;
+    const forceRefresh =
+      normalizeText(trigger) === 'manual_api' ||
+      normalizeText(trigger) === 'manual_api_suite';
     const generatedAtMs = Date.parse(generatedAt);
     const ageHours =
       Number.isFinite(generatedAtMs) && generatedAtMs > 0
         ? Number(((Date.now() - generatedAtMs) / (60 * 60 * 1000)).toFixed(2))
         : null;
 
-    if (rowCount > 0 && ageHours !== null && ageHours < maxAgeHours) {
+    if (
+      !forceRefresh &&
+      !lookbackUpgradeNeeded &&
+      rowCount > 0 &&
+      ageHours !== null &&
+      ageHours < maxAgeHours
+    ) {
       logger?.log?.(
         `[scheduler] cco_inbox_enrichment_bootstrap skipped: enrichment_fresh rowCount=${rowCount} ageHours=${ageHours}`
       );
@@ -2818,11 +2850,13 @@ function createScheduler({
         reason: 'enrichment_fresh',
         rowCount,
         ageHours,
+        storedLookbackDays,
+        requiredBootstrapLookbackDays,
       };
     }
 
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'}`
+      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'} force=${forceRefresh} lookbackUpgrade=${lookbackUpgradeNeeded} storedLookbackDays=${storedLookbackDays || 'unknown'} requiredLookbackDays=${requiredBootstrapLookbackDays}`
     );
     return runCcoInboxAnalysisRefresh({
       tenantId,
