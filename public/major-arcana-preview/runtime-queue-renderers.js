@@ -967,7 +967,12 @@
               (thread) => __normalizeKey(thread?.worklistSource || "") !== "demo"
             )
           : [];
-        threadCount = liveThreads.length;
+        const dataThreads = Array.isArray(st?.data?.threads)
+          ? st.data.threads.filter(
+              (thread) => __normalizeKey(thread?.worklistSource || "") !== "demo"
+            )
+          : [];
+        threadCount = liveThreads.length || dataThreads.length;
         if ((runtime.live === true || runtime.mode === "live") && threadCount > 0) {
           return { pillMode: "live", threadCount, isLive: true };
         }
@@ -981,7 +986,7 @@
               (thread) => __normalizeKey(thread?.worklistSource || "") === "demo"
             ).length
           : 0;
-        if (demoCount > 0) {
+        if (demoCount > 0 && threadCount === 0) {
           return { pillMode: "demo", threadCount: demoCount, isLive: false };
         }
         if (threadCount > 0) {
@@ -5217,7 +5222,7 @@
         mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
         compactScopeLabel = "Inga mail";
       } else if (allMailboxesSelected) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
+        mailboxTriggerLabel.textContent = "Alla Mailkonton";
         compactScopeLabel = "Alla mail";
       } else if (selectedMailboxes.length === 1) {
         mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label}`;
@@ -5304,7 +5309,7 @@
     function renderRuntimeMailboxMenu(options = {}) {
       if (!mailboxMenuGrid || !mailboxTriggerLabel) return;
       if (state.runtime?.authRequired === true) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
+        mailboxTriggerLabel.textContent = "Alla Mailkonton";
         if (queueMailboxScopeLabel) {
           queueMailboxScopeLabel.textContent = "Alla mail";
         }
@@ -5654,10 +5659,15 @@
             .map((t) => asText(t?.id))
             .join(",");
         if (queueHistoryList.__fas44Sig === __sig) {
-          // Identisk lista (oavsett om progressiv render pågår) → hoppa.
-          // En aktiv rAF-loop slutför sig själv. Detta bryter stormen där
-          // post-passes triggar re-render av samma lista.
-          return;
+          // Identisk lista (oavsett om progressiv render pågår) → hoppa,
+          // men bara om DOM faktiskt innehåller kort. Lit-switchover kan
+          // ha tömt listan medan signaturn fortfarande matchar → tom kö trots (40).
+          const __existingCards = queueHistoryList.querySelectorAll(
+            '.thread-card[data-runtime-thread]:not([data-runtime-thread="runtime-unified-empty"])'
+          );
+          if (__existingCards.length > 0) {
+            return;
+          }
         }
         queueHistoryList.__fas44Sig = __sig;
       } catch (_e) {
@@ -6213,7 +6223,9 @@
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "live";
         }
-        const activeLaneId = normalizeKey(state.runtime.activeLaneId || "all");
+        const activeLaneId = normalizeKey(
+          state.selection?.laneId || state.runtime.activeLaneId || "all"
+        );
         let defaultThreads = getQueueLaneThreads(activeLaneId, getQueueScopedRuntimeThreads());
         if (
           !defaultThreads.length &&

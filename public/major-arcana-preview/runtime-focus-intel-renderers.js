@@ -2888,10 +2888,7 @@
         typeof getBookingWorkrailDockCue === "function"
           ? getBookingWorkrailDockCue(thread)
           : { show: false, title: "", meta: "" };
-      const mergeBookingWorkrail =
-        bookingWorkrailCue.show &&
-        !isOfflineHistoryThread &&
-        !isTruthDrivenReadOnly;
+      const mergeBookingWorkrail = !isOfflineHistoryThread && !isTruthDrivenReadOnly;
       const journeyPrimaryIsBooking =
         normalizeKey(primaryJourneyAction.action) === "booking_surface";
       const recommendedActionTitle = isOfflineHistoryThread

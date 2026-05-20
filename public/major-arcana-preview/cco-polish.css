@@ -2833,32 +2833,6 @@
     grid-template-columns: 500px minmax(0, 1fr);
   }
 
-  /* --- EGZONA/ÄGARE LABEL-OVERRIDE via ::before --- */
-  [data-mailbox-trigger-label] {
-    font-size: 0;
-    line-height: 0;
-    color: transparent;
-  }
-  [data-mailbox-trigger-label]::before {
-    content: "Egzona";
-    font-size: 12px;
-    line-height: 1;
-    font-weight: 600;
-    color: #6a564a;
-  }
-  [data-owner-trigger-label] {
-    font-size: 0;
-    line-height: 0;
-    color: transparent;
-  }
-  [data-owner-trigger-label]::before {
-    content: "Ägare";
-    font-size: 12px;
-    line-height: 1;
-    font-weight: 600;
-    color: #6a564a;
-  }
-
   /* --- LAUNCHER-KNAPPAR (Svarstudio/Bokningsyta/Smart anteckning/Kalender) --- */
   /* Dölj vita wrapper-rutan */
   .conversation-next-step,

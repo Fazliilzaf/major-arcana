@@ -14411,6 +14411,12 @@
     return getQueueLaneThreads(normalizePrimaryQueueLaneId(state.selection.laneId || "all"));
   }
 
+  try {
+    window.__ccoGetVisibleQueueThreads = () => getFilteredRuntimeThreads();
+  } catch (_e) {
+    /* tyst */
+  }
+
   function getOrderedQueueLaneIds() {
     const allowed = new Set(QUEUE_LANE_ORDER);
     const persisted = asArray(state.runtime.orderedLaneIds).filter((id) => allowed.has(id));
@@ -14800,17 +14806,29 @@
     const foundationState = resolveRuntimeFoundationState(focusThread);
     const isDemoFocusThread =
       normalizeKey(focusThread?.worklistSource || focusThread?.raw?.worklistSource || "") === "demo";
+    const worklistSource = normalizeKey(
+      focusThread?.worklistSource || focusThread?.raw?.worklistSource || ""
+    );
+    const hasRenderableFocusContent =
+      Boolean(
+        asText(focusThread?.preview) ||
+          asText(focusThread?.body) ||
+          asText(focusThread?.raw?.preview) ||
+          asText(focusThread?.raw?.body)
+      ) ||
+      asNumber(foundationState?.messageCount, 0) > 0 ||
+      worklistSource === "truth_primary" ||
+      worklistSource === "cache" ||
+      worklistSource === "consumer";
     const foundationProvenance =
-      foundationState &&
-      (normalizeKey(foundationState?.source) || asNumber(foundationState?.messageCount, 0) > 0)
+      hasRenderableFocusContent || truthDriven
         ? {
             foundationDriven: true,
             fallbackDriven: false,
             foundationLabel: asText(foundationState?.label, "Mail foundation"),
-            foundationDetail: `Öppnat mail läser nu primärt canonical threaddata från ${asText(
-              foundationState?.source,
-              "mail foundation"
-            )}.`,
+            foundationDetail: truthDriven
+              ? "Fokus läser från sanningsstyrd arbetskö."
+              : `Fokus läser tråddata från ${asText(foundationState?.source, "arbetskön")}.`,
             fallbackLabel: "",
             fallbackDetail: "",
           }

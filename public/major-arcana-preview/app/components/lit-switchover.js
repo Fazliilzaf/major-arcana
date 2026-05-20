@@ -100,6 +100,44 @@ function scrapeAllLiveCards() {
   );
 }
 
+function getVisibleThreadsFromState() {
+  try {
+    if (typeof window.__ccoGetVisibleQueueThreads === 'function') {
+      return window.__ccoGetVisibleQueueThreads();
+    }
+    const ws = window.__ccoWorkspace;
+    if (!ws || typeof ws.getState !== 'function') return [];
+    const st = ws.getState();
+    const runtime = st?.runtime || {};
+    const threads = Array.isArray(st?.data?.threads) && st.data.threads.length
+      ? st.data.threads
+      : Array.isArray(runtime.threads)
+        ? runtime.threads
+        : [];
+    return threads.filter(
+      (thread) => String(thread?.worklistSource || '').toLowerCase() !== 'demo',
+    );
+  } catch (_e) {
+    return [];
+  }
+}
+
+function selectThreadFromState(threadId) {
+  if (!threadId) return;
+  try {
+    if (window.__ccoWorkspace?.setSelectedThreadId) {
+      window.__ccoWorkspace.setSelectedThreadId(threadId);
+      return;
+    }
+  } catch (_e) {
+    /* tyst */
+  }
+  const card = document.querySelector(
+    `.queue-history-list [data-runtime-thread="${CSS.escape(String(threadId))}"]`,
+  );
+  if (card) card.click();
+}
+
 function buildPropsListFromCards(cards) {
   const shapes = cards.map(scrapeCardData);
   return shapes.map((t) => ({
@@ -119,7 +157,7 @@ function applyClusterAttributes(litCard, state) {
   if (state.hidden) litCard.setAttribute('cluster-hidden', '');
 }
 
-function wireCardEvents(litCard, liveCard) {
+function wireCardEvents(litCard, liveCard, threadId = '') {
   litCard.addEventListener('click', (e) => {
     if (e.defaultPrevented) return;
     if (liveCard) {
@@ -129,7 +167,9 @@ function wireCardEvents(litCard, liveCard) {
         liveCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
       liveCard.click();
+      return;
     }
+    selectThreadFromState(threadId || litCard.thread?.id || '');
   });
   litCard.addEventListener('cluster-toggle', (e) => {
     const key = e.detail?.key;
@@ -188,6 +228,25 @@ function renderLitReplacement() {
   const isRuntimeSyncing = Boolean(canvas?.classList.contains('is-runtime-syncing'));
 
   if (liveCards.length === 0) {
+    const stateThreads = getVisibleThreadsFromState();
+    if (stateThreads.length > 0) {
+      const propsList = stateThreads.slice(0, 30).map((thread) => threadToCardProps(thread));
+      const expanded = readExpandedKeys();
+      const grouped = groupThreadsByCustomer(propsList, expanded);
+      const ordered = orderForRender(propsList, grouped);
+
+      grid.innerHTML = '';
+      ordered.forEach((props) => {
+        const state = grouped.threadStateById.get(String(props.id || ''));
+        const litCard = document.createElement('arcana-thread-card');
+        litCard.thread = props;
+        applyClusterAttributes(litCard, state);
+        wireCardEvents(litCard, null, props.id);
+        grid.appendChild(litCard);
+      });
+      return;
+    }
+
     // Bootstrap-window: skilj på "väntar på data" vs "verkligen tom kö"
     if (bootstrapWindow || isRuntimeSyncing) {
       // Behåll det som redan finns (om något) — flashar inte loading-text
