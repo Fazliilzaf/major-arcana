@@ -12,6 +12,7 @@ const { buildShadowRunOutput, summarizeShadowReview } = require('./ccoShadowRun'
 const {
   hydrateAnalyzeInboxInput,
   materializeCustomerReplyActions,
+  clearWorklistConsumerResponseCache,
 } = require('../routes/capabilities');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 const {
@@ -2544,6 +2545,138 @@ function createScheduler({
     };
   }
 
+  async function runCcoInboxAnalysisRefresh({
+    tenantId,
+    mailboxIds = [],
+    trigger = 'scheduled',
+    actorUserId = null,
+  } = {}) {
+    if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'graph_read_connector_unavailable',
+      };
+    }
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'capability_analysis_store_unavailable',
+      };
+    }
+
+    const resolvedMailboxIds = (Array.isArray(mailboxIds) ? mailboxIds : [])
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
+    const effectiveMailboxIds =
+      resolvedMailboxIds.length > 0 ? resolvedMailboxIds : resolveCcoHistoryMailboxIds(config);
+    if (effectiveMailboxIds.length === 0) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'mailbox_ids_missing',
+      };
+    }
+
+    const lookbackDays = Math.max(
+      7,
+      Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14)
+    );
+    const correlationId = `cco-inbox-refresh:${crypto.randomUUID()}`;
+    const requestId = `scheduler-inbox-refresh:${crypto.randomUUID()}`;
+    const { input, systemStateSnapshot } = await hydrateAnalyzeInboxInput({
+      tenantId,
+      input: {
+        includeClosed: false,
+        maxDrafts: 5,
+        mailboxIds: effectiveMailboxIds,
+      },
+      systemStateSnapshot: {},
+      graphReadConnector,
+      capabilityAnalysisStore,
+      ccoHistoryStore,
+      authStore,
+      actorUserId: actorUserId || 'scheduler',
+      correlationId,
+      graphReadOptionsOverride: {
+        days: lookbackDays,
+        mailboxIds: effectiveMailboxIds,
+        includeRead: true,
+        fullTenant: true,
+        userScope: 'all',
+        maxUsers: Math.max(1, effectiveMailboxIds.length),
+      },
+    });
+    const capability = new AnalyzeInboxCapability();
+    const analyzeResult = await capability.execute({
+      input,
+      systemStateSnapshot,
+      tenantId,
+      channel: 'admin',
+      requestId,
+      correlationId,
+    });
+    const outputData =
+      analyzeResult?.data ||
+      analyzeResult?.output?.data ||
+      null;
+    if (!outputData || typeof outputData !== 'object') {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'analyze_inbox_empty_output',
+      };
+    }
+
+    const entry = await capabilityAnalysisStore.append({
+      tenantId,
+      capabilityName: 'AnalyzeInbox',
+      capabilityVersion: AnalyzeInboxCapability.version || 'v1',
+      persistStrategy: 'analysis',
+      decision: 'allow',
+      actor: {
+        id: normalizeText(actorUserId) || 'scheduler',
+        role: 'SYSTEM',
+      },
+      runId: requestId,
+      correlationId,
+      input: {
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        trigger,
+      },
+      output: {
+        data: outputData,
+        metadata: analyzeResult?.metadata || {},
+        warnings: Array.isArray(analyzeResult?.warnings) ? analyzeResult.warnings : [],
+      },
+      metadata: {
+        source: 'scheduler_inbox_refresh',
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        trigger,
+      },
+      riskSummary: {},
+      policySummary: {},
+    });
+    clearWorklistConsumerResponseCache();
+
+    return {
+      tenantId,
+      skipped: false,
+      mailboxIds: effectiveMailboxIds,
+      lookbackDays,
+      entryId: entry?.id || null,
+      capturedAt: entry?.ts || null,
+      rowCount:
+        (Array.isArray(outputData?.conversationWorklist)
+          ? outputData.conversationWorklist.length
+          : 0) +
+        (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0),
+    };
+  }
+
   async function runCcoTruthDeltaSync({ tenantId }) {
     if (!config.graphReadEnabled) {
       logger?.log?.('[scheduler] cco_truth_delta_sync skipped: graph_read_disabled');
@@ -2630,9 +2763,34 @@ function createScheduler({
           `[scheduler] cco_truth_delta_sync mailbox=${mb?.mailboxId || '?'} newMessages=${mbMsgs}`
         );
       }
+
+      let inboxRefresh = null;
+      if (newMessages > 0) {
+        try {
+          logger?.log?.(
+            `[scheduler] cco_truth_delta_sync triggering inbox refresh newMessages=${newMessages}`
+          );
+          inboxRefresh = await runCcoInboxAnalysisRefresh({
+            tenantId,
+            mailboxIds,
+            trigger: 'truth_delta_sync',
+          });
+          logger?.log?.(
+            `[scheduler] cco_truth_delta_sync inbox refresh done skipped=${Boolean(inboxRefresh?.skipped)} rowCount=${Number(inboxRefresh?.rowCount || 0)}`
+          );
+        } catch (refreshError) {
+          logger?.error?.(
+            '[scheduler] cco_truth_delta_sync inbox refresh failed',
+            sanitizeError(refreshError)
+          );
+        }
+      }
+
       return {
         tenantId,
         skipped: false,
+        newMessages,
+        inboxRefresh,
         ...result,
       };
     } catch (error) {

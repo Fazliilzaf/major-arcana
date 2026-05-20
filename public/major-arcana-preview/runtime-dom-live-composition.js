@@ -265,6 +265,34 @@
       return `${generatedAt}|${rowCount}|${deltaAt}`;
     }
 
+    function resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload) {
+      const enrichment =
+        truthPrimaryPayload?.enrichment && typeof truthPrimaryPayload.enrichment === "object"
+          ? truthPrimaryPayload.enrichment
+          : null;
+      if (!enrichment) {
+        return { conversationWorklist: [], needsReplyToday: [], metadata: {} };
+      }
+      return {
+        conversationWorklist: asArray(enrichment.conversationWorklist),
+        needsReplyToday: asArray(enrichment.needsReplyToday),
+        metadata: {
+          generatedAt: asText(enrichment.generatedAt),
+          entryId: asText(enrichment.entryId),
+          capabilityName: asText(enrichment.capabilityName),
+          rowCount: Number(enrichment.rowCount || 0),
+        },
+      };
+    }
+
+    function hasTruthPrimaryServerEnrichment(truthPrimaryPayload) {
+      const enrichment = resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload);
+      return (
+        asArray(enrichment.conversationWorklist).length > 0 ||
+        asArray(enrichment.needsReplyToday).length > 0
+      );
+    }
+
     function paintTruthPrimaryWorklistFromPayload(
       truthPrimaryPayload,
       {
@@ -273,6 +301,7 @@
         activeTruthPrimaryMailboxIds = [],
         status = {},
         mergeWithExisting = true,
+        detectNewMail = true,
       } = {}
     ) {
       const truthRowCount = asArray(truthPrimaryPayload?.rows).length;
@@ -285,6 +314,7 @@
         : configuredTruthPrimaryMailboxIds;
       const truthOnlyWorklist = buildWorklistDataFromTruthPrimaryOnly(truthPrimaryPayload, {
         truthPrimaryMailboxIds: activeIds,
+        enrichmentLegacyData: resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload),
       });
       let incomingThreads = carryRuntimeCustomerIdentity(
         buildLiveThreads(truthOnlyWorklist, {
@@ -306,14 +336,19 @@
           const threadId = normalizeKey(thread?.id);
           if (!threadId || existingById.has(threadId)) return;
           existingById.set(threadId, thread);
-          hasNewMail = true;
+          if (detectNewMail) hasNewMail = true;
         });
         state.runtime.threads = sortRuntimeThreadsDeterministic([...existingById.values()]);
-        hasNewMail = hasNewMail || existingById.size > beforeCount;
+        if (detectNewMail) {
+          hasNewMail = hasNewMail || existingById.size > beforeCount;
+        }
       } else {
         state.runtime.threads = incomingThreads;
-        hasNewMail = incomingThreads.length > 0;
+        hasNewMail = detectNewMail && incomingThreads.length > 0;
       }
+
+      const enrichmentLegacy = resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload);
+      state.runtime.lastEnrichedAt = asText(enrichmentLegacy?.metadata?.generatedAt);
 
       state.runtime.truthPrimaryLegacyThreads = [];
       state.runtime.mailboxes = buildMailboxCatalog(
@@ -3356,12 +3391,16 @@
 
               const truthRowCount = asArray(truthPrimaryPayload?.rows).length;
               if (truthRowCount > 0) {
+                const bootstrapPaint = !staleWhileRevalidate && !runtimeHasLiveThreads();
+                const detectNewMail =
+                  !bootstrapPaint || !hasTruthPrimaryServerEnrichment(truthPrimaryPayload);
                 const paintResult = paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, {
                   runtimeMailboxIds,
                   configuredTruthPrimaryMailboxIds,
                   activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
                   status,
                   mergeWithExisting: staleWhileRevalidate || runtimeHasLiveThreads(),
+                  detectNewMail,
                 });
                 state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);
                 state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
@@ -3433,12 +3472,16 @@
               }
               let hasNewMail = false;
               if (truthPrimaryPayload && asArray(truthPrimaryPayload.rows).length) {
+                const bootstrapPaint = !worklistReadyAtDefer;
+                const detectNewMail =
+                  !bootstrapPaint || !hasTruthPrimaryServerEnrichment(truthPrimaryPayload);
                 const paintResult = paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, {
                   runtimeMailboxIds,
                   configuredTruthPrimaryMailboxIds,
                   activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
                   status,
                   mergeWithExisting: worklistReadyAtDefer,
+                  detectNewMail,
                 });
                 hasNewMail = paintResult.hasNewMail === true;
                 state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);

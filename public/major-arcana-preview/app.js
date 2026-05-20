@@ -12494,13 +12494,15 @@
 
   function buildWorklistDataFromTruthPrimaryOnly(
     truthPayload = null,
-    { truthPrimaryMailboxIds = [] } = {}
+    { truthPrimaryMailboxIds = [], enrichmentLegacyData = null } = {}
   ) {
-    return mergeTruthPrimaryWorklistData(
-      { conversationWorklist: [], needsReplyToday: [], metadata: {} },
-      truthPayload,
-      { truthPrimaryMailboxIds }
-    );
+    const legacyData =
+      enrichmentLegacyData && typeof enrichmentLegacyData === "object"
+        ? enrichmentLegacyData
+        : { conversationWorklist: [], needsReplyToday: [], metadata: {} };
+    return mergeTruthPrimaryWorklistData(legacyData, truthPayload, {
+      truthPrimaryMailboxIds,
+    });
   }
 
   function summarizeMailboxCountsForDiagnostics(items = [], mailboxResolver = null) {

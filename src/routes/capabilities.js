@@ -176,6 +176,64 @@ function writeWorklistConsumerResponseCache(cacheKey = '', payload = null) {
     payload,
   });
 }
+
+function clearWorklistConsumerResponseCache() {
+  worklistConsumerResponseCache.clear();
+}
+
+async function listWorklistEnrichmentEntries({
+  capabilityAnalysisStore = null,
+  tenantId = '',
+  limit = 50,
+} = {}) {
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+  const perSourceLimit = Math.max(safeLimit, 50);
+  const [ccoEntries, analyzeEntries] = await Promise.all([
+    listCapabilityEntriesByName({
+      capabilityAnalysisStore,
+      tenantId,
+      capabilityName: 'CCO.InboxAnalysis',
+      limit: perSourceLimit,
+    }),
+    listCapabilityEntriesByName({
+      capabilityAnalysisStore,
+      tenantId,
+      capabilityName: 'AnalyzeInbox',
+      limit: perSourceLimit,
+    }),
+  ]);
+  return [...asArray(ccoEntries), ...asArray(analyzeEntries)];
+}
+
+function buildWorklistEnrichmentPayload({
+  latestEntry = null,
+  latestOutputData = null,
+  baselineSelection = null,
+} = {}) {
+  const outputData = asObject(latestOutputData);
+  const conversationWorklist = asArray(outputData.conversationWorklist);
+  const needsReplyToday = asArray(outputData.needsReplyToday);
+  if (conversationWorklist.length === 0 && needsReplyToday.length === 0) {
+    return null;
+  }
+  return {
+    generatedAt:
+      normalizeText(outputData.generatedAt) ||
+      normalizeText(latestEntry?.ts) ||
+      new Date().toISOString(),
+    entryId: normalizeText(latestEntry?.id) || null,
+    capabilityName:
+      normalizeText(latestEntry?.capabilityName) ||
+      normalizeText(latestEntry?.capability?.name) ||
+      null,
+    rowCount: conversationWorklist.length + needsReplyToday.length,
+    conversationWorklist,
+    needsReplyToday,
+    baselineSelection: baselineSelection && typeof baselineSelection === 'object'
+      ? baselineSelection
+      : null,
+  };
+}
 const CCO_HISTORY_SIGNAL_RESCHEDULE_PATTERN =
   /\b(ombok|boka om|avbok|cancel|cancell|resched|ny tid|andra tid|ändra tid|flytta tid)\b/i;
 const CCO_HISTORY_SIGNAL_COMPLAINT_PATTERN =
@@ -7620,10 +7678,9 @@ async function buildWorklistShadowContext({
     store: ccoMailboxTruthStore,
     customerState: resolvedCustomerState,
   });
-  const legacyEntries = await listCapabilityEntriesByName({
+  const legacyEntries = await listWorklistEnrichmentEntries({
     capabilityAnalysisStore,
     tenantId,
-    capabilityName: 'CCO.InboxAnalysis',
     limit: 50,
   });
   const baseline = selectLatestWorklistLegacyBaseline({
@@ -8797,6 +8854,12 @@ function toCcoRuntimeWorklistConsumerHandler({
         });
       }
 
+      const enrichment = buildWorklistEnrichmentPayload({
+        latestEntry: context.latestEntry,
+        latestOutputData: context.latestOutputData,
+        baselineSelection: context.baselineSelection,
+      });
+
       const responsePayload = {
         ok: true,
         source: context.consumerModel.source,
@@ -8808,6 +8871,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         metadata: context.consumerModel.metadata,
         summary: context.consumerModel.summary,
         rows: context.consumerModel.rows,
+        enrichment,
         truthCoverage: context.truthCoverage,
         deltaCoverage: context.deltaCoverage,
         consumerExposure: {
@@ -9714,4 +9778,5 @@ module.exports = {
   hydrateCaoSystemSnapshot,
   materializeCustomerReplyActions,
   toGraphReadOptionsFromEnv,
+  clearWorklistConsumerResponseCache,
 };
