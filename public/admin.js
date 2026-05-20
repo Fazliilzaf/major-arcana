@@ -12213,6 +12213,7 @@
   }
 
   function setCcoLoadingState(isLoading = false, message = '') {
+    if (isCcoEmbedMode()) return;
     const loading = isLoading === true;
     state.ccoInboxLoading = loading;
     if (els.ccoCenterColumn) {
@@ -27469,6 +27470,7 @@
   }
 
   async function runCcoInboxBrief({ quiet = false, forceLoading = false } = {}) {
+    if (isCcoEmbedMode()) return null;
     if (state.ccoInboxBriefRunInFlight) {
       if (!quiet) {
         setStatus(els.ccoInboxStatus, 'CCO inkorgsbrief körs redan.');
@@ -29983,13 +29985,17 @@
     const targetEl = document.getElementById(targetId);
     if (!targetEl) return;
     if (targetId === 'ccoWorkspaceSection') {
-      state.ccoInboxViewMode = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
-      if (state.ccoInboxSlaFilter === 'unanswered') {
-        state.ccoInboxSlaFilter = 'all';
+      if (isCcoEmbedMode()) {
+        ensureCcoPreviewEmbed();
+      } else {
+        state.ccoInboxViewMode = sanitizeCcoViewMode(button.getAttribute('data-cco-view') || 'all');
+        if (state.ccoInboxSlaFilter === 'unanswered') {
+          state.ccoInboxSlaFilter = 'all';
+        }
+        persistCcoWorkspaceSessionState();
+        setActiveSectionNav(targetId);
+        renderCcoInbox(state.ccoInboxData);
       }
-      persistCcoWorkspaceSessionState();
-      setActiveSectionNav(targetId);
-      renderCcoInbox(state.ccoInboxData);
     }
     event.preventDefault();
     scrollToSection(targetEl);
@@ -31801,9 +31807,13 @@
     scroll: false,
   });
   if (isCcoWorkspaceActive()) {
-    renderCcoCenterReadTab();
-    renderCcoSidebar(null, null);
-    maybeShowCcoOnboarding();
+    if (isCcoEmbedMode()) {
+      ensureCcoPreviewEmbed();
+    } else {
+      renderCcoCenterReadTab();
+      renderCcoSidebar(null, null);
+      maybeShowCcoOnboarding();
+    }
   } else if (isCcoNextWorkspaceActive()) {
     renderCcoNextPreview();
   }
