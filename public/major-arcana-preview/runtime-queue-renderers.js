@@ -1304,10 +1304,7 @@
     }
 
     function shouldShowBlockingQueueSync() {
-      if (state.runtime?.staleCacheActive === true) return false;
-      if (runtimeHasLiveThreadsInQueue()) return false;
-      if (state.runtime?.backgroundSyncActive === true) return false;
-      return state.runtime?.loading === true;
+      return false;
     }
 
     function getScopedAftercareLaneEntries(options = {}) {
@@ -5644,179 +5641,21 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "live";
       }
-      // Fas 44 (2026-05-20): memoization-guard mot re-render-storm.
-      // renderQueueInlineLaneList anropas på VARJE state-render. Post-passes
-      // (__updateLivePill m.fl.) muterar state → schemalägger ny render →
-      // anropar oss igen. Med progressiv rAF-render (Fas 43) startade varje
-      // anrop om loopen → oändlig storm → frysning. Nu: bygg en signatur av
-      // (selectedThreadId + trådarnas id:n i ordning). Om identisk med förra
-      // renderingen → hoppa helt. Bryter stormen vid källan.
+      queueHistoryList.__litOverrideThreads = asArray(threads);
       try {
-        const __sig =
-          asText(state.runtime?.selectedThreadId) +
-          "|" +
-          asArray(threads)
-            .map((t) => asText(t?.id))
-            .join(",");
-        if (queueHistoryList.__fas44Sig === __sig) {
-          // Identisk lista (oavsett om progressiv render pågår) → hoppa,
-          // men bara om DOM faktiskt innehåller kort. Lit-switchover kan
-          // ha tömt listan medan signaturn fortfarande matchar → tom kö trots (40).
-          const __existingCards = queueHistoryList.querySelectorAll(
-            '.thread-card[data-runtime-thread]:not([data-runtime-thread="runtime-unified-empty"])'
-          );
-          if (__existingCards.length > 0) {
-            return;
-          }
-        }
-        queueHistoryList.__fas44Sig = __sig;
+        __updateLivePill();
       } catch (_e) {
-        /* signatur misslyckades — fortsätt rendera normalt */
+        /* tyst */
       }
-      // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
-      // som producerade tomma rader när någon av build-funktionerna saknades.
-      const renderLiveThreadCard = (thread, index, selected) => {
-        try {
-          if (typeof buildThreadCardMarkup === "function") {
-            const html = buildThreadCardMarkup(thread, index, selected);
-            if (html) return html;
-          }
-        } catch (e) {
-          if (typeof console !== "undefined") console.warn("buildThreadCardMarkup failed", e);
-        }
-        try {
-          if (
-            typeof buildQueueHistoryCardMarkup === "function" &&
-            typeof buildQueueInlineLaneHistoryItem === "function"
-          ) {
-            const html = buildQueueHistoryCardMarkup(buildQueueInlineLaneHistoryItem(thread), {
-              runtimeThreadId: thread.id,
-              selectedConversationId: state.runtime.selectedThreadId,
-              useThreadCardClass: true,
-            });
-            if (html) return html;
-          }
-        } catch (e) {
-          if (typeof console !== "undefined") console.warn("buildQueueHistoryCardMarkup failed", e);
-        }
-        // Sista fallback: matchar förväntad CSS-struktur (.thread-card-head + .thread-story)
-        // så griden inte kollapsar och överlappar grannarna.
-        const id = String(thread?.id || "").replace(/[^a-z0-9_-]/gi, "");
-        const customer = (
-          thread?.customerName ||
-          thread?.fromName ||
-          thread?.from?.name ||
-          thread?.from?.emailAddress?.name ||
-          (
-            thread?.customerEmail ||
-            thread?.from?.address ||
-            thread?.from?.emailAddress?.address ||
-            ""
-          )?.split("@")[0] ||
-          "Okänd avsändare"
-        )
-          .toString()
-          .slice(0, 80);
-        const subject = String(thread?.displaySubject || thread?.subject || "(utan ämne)").slice(
-          0,
-          120
-        );
-        const preview = String(thread?.preview || thread?.systemPreview || "").slice(0, 200);
-        const escape = (s) =>
-          String(s).replace(
-            /[&<>"']/g,
-            (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
-          );
-        return (
-          '<article class="thread-card queue-history-item unified-queue-card" ' +
-          'data-runtime-thread="' +
-          id +
-          '" tabindex="0" ' +
-          'style="position:relative;display:block;min-height:64px;padding:12px 14px;margin:0">' +
-          '<div class="thread-card-head" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
-          '<strong style="font-size:14px;color:#2b251f">' +
-          escape(customer) +
-          "</strong>" +
-          '<span style="font-size:12px;color:#8a8174">' +
-          escape(subject) +
-          "</span>" +
-          "</div>" +
-          '<div class="thread-story" style="font-size:12px;color:#5d544a;overflow:hidden;text-overflow:ellipsis">' +
-          escape(preview) +
-          "</div></article>"
-        );
-      };
-      // Fas 43 (2026-05-20): tidsskivad progressiv rendering (virtualisering-lite).
-      // Tidigare byggdes ALLA korten + innerHTML på en gång → 83 Lit-kort
-      // hydrerades synkront + 6 O(N)-post-passes → main-thread blockerades
-      // 30-45s ("frysningen"). Nu: rendera i bitar om CHUNK-storlek över
-      // animation-frames så UI aldrig blockerar mer än ~en bit i taget.
-      // Fas 45 (2026-05-20): hård cap på antal renderade kort. Vid alla 6
-      // mailboxar laddas 100+ trådar → render fryser även med progressiv
-      // render + memoization (tung kostnad i Lit-hydration + post-passes).
-      // Cap till MAX_CARDS = säkerställer att render aldrig blir tung nog
-      // att frysa. Användaren ser de senaste trådarna; filter/sök/mailbox-
-      // växling når resten. (Tills full virtualisering med profilering.)
-      const MAX_CARDS = 30;
-      const __fullList = asArray(threads);
-      const __list = __fullList.slice(0, MAX_CARDS);
-      const CHUNK = 18;
-
-      // Avbryt ev. pågående progressiv render (ny render-request kom in).
-      if (queueHistoryList.__fas43Token) {
-        try {
-          cancelAnimationFrame(queueHistoryList.__fas43Token);
-        } catch (_e) {}
-        queueHistoryList.__fas43Token = 0;
+      try {
+        window.__litSwitchover?.rerender?.();
+      } catch (_e) {
+        /* tyst */
       }
-
-      const __runQueuePostPasses = () => {
-        if (typeof enforceUnifiedCardV3Sections === "function") {
-          try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
-        }
-        try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
-        try { __applySecondaryFilter(); } catch (_e) {}
-        try { __applySearchFilter(); } catch (_e) {}
-        try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
-        try { __updateLivePill(); } catch (_e) {}
-        if (typeof decorateStaticPills === "function") {
-          try { decorateStaticPills(); } catch (_e) {}
-        }
-      };
-
-      const __selectedId = state.runtime.selectedThreadId;
-      const __renderRange = (start, end) =>
-        __list
-          .slice(start, end)
-          .map((thread, i) =>
-            renderLiveThreadCard(thread, start + i, thread.id === __selectedId)
-          )
-          .join("");
-
-      // Första biten synkront (= det användaren ser direkt). Liten → ingen frys.
-      const __firstCount = Math.min(CHUNK, __list.length);
-      queueHistoryList.innerHTML = __renderRange(0, __firstCount);
-      __runQueuePostPasses();
-
-      // Resten strömmas in i bitar över rAF. Post-passes körs BARA efter
-      // sista biten (inte per bit) → undviker O(N²). Korten syns ändå direkt
-      // eftersom HTML appendas varje frame.
-      if (__list.length > __firstCount) {
-        let __offset = __firstCount;
-        const __step = () => {
-          const __end = Math.min(__offset + CHUNK, __list.length);
-          try {
-            queueHistoryList.insertAdjacentHTML("beforeend", __renderRange(__offset, __end));
-          } catch (_e) {}
-          __offset = __end;
-          if (__offset < __list.length) {
-            queueHistoryList.__fas43Token = requestAnimationFrame(__step);
-          } else {
-            queueHistoryList.__fas43Token = 0;
-            __runQueuePostPasses(); // en gång när allt är inne
-          }
-        };
-        queueHistoryList.__fas43Token = requestAnimationFrame(__step);
+      try {
+        window.dispatchEvent(new CustomEvent("cco:queue-render"));
+      } catch (_e) {
+        /* tyst */
       }
     }
 

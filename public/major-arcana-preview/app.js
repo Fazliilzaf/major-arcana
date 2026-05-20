@@ -5068,11 +5068,6 @@
 
   function deriveRuntimeVisualState() {
     if (state.runtime?.authRequired === true) return "auth_required";
-    if (isRuntimeUiBlockingSync()) {
-      return "syncing";
-    }
-    if (normalizeText(state.runtime?.error)) return "runtime_error";
-    if (normalizeKey(getRuntimeMode()) === "offline_history") return "offline_history";
     return "ready";
   }
 
@@ -5085,10 +5080,7 @@
       state.status.authRecoveryArmed = false;
     }
 
-    if (
-      state.status.hasReachedSteadyState !== true &&
-      (visualState === "ready" || visualState === "offline_history")
-    ) {
+    if (state.status.hasReachedSteadyState !== true && visualState === "ready") {
       state.status.hasReachedSteadyState = true;
     }
 
@@ -38683,17 +38675,7 @@ renderStudioShell();
     renderAnalyticsRuntime();
     renderRuntimeIntel(selectedFocusThread, focusReadState);
     }
-    if (state.runtime?.pendingFullRefresh === true) {
-      ensureRuntimeSelection();
-      renderRuntimeQueue();
-      renderQueueCategoryStripMode();
-      renderQueueHistorySection();
-      return;
-    }
-    // Hooka in shell:en till renderApp (engångs, idempotent). Detta gör att
-    // framtida state-mutationer triggar shell-render via rAF-coalesced
-    // renderApp(state) — inte bara via manuella call sites. Tag-along till
-    // existerande call sites (de fungerar oförändrat).
+    // Hooka in shell:en till renderApp (engångs, idempotent).
     if (__renderHooks.runtimeShell !== renderRuntimeConversationShell) {
       __renderHooks.runtimeShell = renderRuntimeConversationShell;
     }
@@ -38816,13 +38798,11 @@ renderStudioShell();
       renderBookingSurface();
       renderAnalyticsRuntime();
     }
+    document.body.classList.add("is-preview-ready");
+    document.body.classList.remove("is-runtime-loading");
     const runtimeVisualState = syncRuntimeVisualStateMachine();
-    const isPreviewReady =
-      runtimeVisualState === "ready" ||
-      runtimeVisualState === "offline_history" ||
-      (state.status.hasReachedSteadyState === true && runtimeVisualState === "syncing");
-    if (isPreviewReady) {
-      document.body.classList.add("is-preview-ready");
+    if (runtimeVisualState === "auth_required") {
+      document.body.classList.remove("is-preview-ready");
     }
   }
 

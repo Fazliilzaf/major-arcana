@@ -121,10 +121,7 @@
     }
 
     function isRuntimeFocusBlockingSync() {
-      if (state.runtime?.staleCacheActive === true) return false;
-      if (runtimeHasLiveThreadsInState()) return false;
-      if (state.runtime?.backgroundSyncActive === true) return false;
-      return state.runtime?.loading === true;
+      return false;
     }
 
     const focusCustomerHistoryToneClasses = [

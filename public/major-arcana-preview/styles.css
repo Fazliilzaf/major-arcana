@@ -769,30 +769,7 @@ body {
   color: var(--ink);
   background: var(--page-gradient);
 }
-body:not(.is-preview-ready) .focus-tabs,
-body:not(.is-preview-ready) .focus-badge-row,
-body:not(.is-preview-ready) .focus-intel-tabs,
-body:not(.is-preview-ready) .focus-intel-panels,
-body:not(.is-preview-ready) .focus-intel-reason,
-body:not(.is-preview-ready) .focus-intel-customer,
-body:not(.is-preview-ready) .focus-intel-grid,
-body:not(.is-preview-ready) .focus-intel-action-row,
-body:not(.is-preview-ready) [data-focus-actions],
-body:not(.is-preview-ready) [data-intel-actions] {
-  display: none !important;
-}
-
-body:not(.is-preview-ready) .focus-conversation-layout {
-  min-height: 665px;
-}
-
-body:not(.is-preview-ready) .focus-workrail {
-  display: none !important;
-}
-
-body:not(.is-preview-ready) .focus-intel-primary-body {
-  min-height: 111px;
-}
+/* Fas B: is-preview-ready-gate av — fokusytan ska alltid vara synlig vid login. */
 
 button {
   font: inherit;

@@ -3206,7 +3206,6 @@
       const shouldClearPhaseA = !isBackgroundRefresh && !staleWhileRevalidate;
       const shouldApplyPhaseA = !isBackgroundRefresh || staleWhileRevalidate;
       if (isBackgroundRefresh) {
-        state.runtime.pendingFullRefresh = true;
         state.runtime.isBackgroundRefresh = true;
         state.runtime.backgroundRefreshSelectedThreadId = asText(
           workspaceSourceOfTruth.getSelectedThreadId()
