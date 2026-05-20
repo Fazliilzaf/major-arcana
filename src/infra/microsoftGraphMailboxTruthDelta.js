@@ -187,6 +187,7 @@ function createMicrosoftGraphMailboxTruthDelta({
           mailboxId,
           startedAt: nowIso(),
           folderReports: [],
+          affectedConversationIds: [],
         };
         const statusByFolderType = {};
 
@@ -282,6 +283,12 @@ function createMicrosoftGraphMailboxTruthDelta({
                 roundType,
               });
               lastCheckpoint = persisted?.checkpoint || null;
+              const pageConversationIds = Array.isArray(persisted?.affectedConversationIds)
+                ? persisted.affectedConversationIds
+                : [];
+              for (const conversationId of pageConversationIds) {
+                if (conversationId) mailboxStatus.affectedConversationIds.push(conversationId);
+              }
               cursorUrl = normalizeText(payload?.page?.nextPageUrl);
               refreshFolderMetadata = false;
               if (payload?.page?.complete === true || !cursorUrl) break;
@@ -310,6 +317,9 @@ function createMicrosoftGraphMailboxTruthDelta({
 
         mailboxStatus.completedAt = nowIso();
         mailboxStatus.accountStatus = toAccountStatus(statusByFolderType);
+        mailboxStatus.affectedConversationIds = Array.from(
+          new Set(asArray(mailboxStatus.affectedConversationIds).filter(Boolean))
+        );
         perMailbox.push(mailboxStatus);
       }
 
@@ -331,6 +341,11 @@ function createMicrosoftGraphMailboxTruthDelta({
       pageSize,
       maxPagesPerFolder,
       perMailbox,
+      affectedConversationIds: Array.from(
+        new Set(
+          perMailbox.flatMap((mailbox) => asArray(mailbox?.affectedConversationIds)).filter(Boolean)
+        )
+      ),
       elapsedMs: Math.max(0, Number(now()) - Date.parse(run.startedAt)),
       sync: store.getDeltaSyncReport({ mailboxIds }),
       completeness: store.getCompletenessReport({ mailboxIds }),

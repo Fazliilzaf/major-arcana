@@ -1272,6 +1272,11 @@ class AnalyzeInboxCapability extends BaseCapability {
         maxItems: 50,
         items: { type: 'string', minLength: 1, maxLength: 320 },
       },
+      conversationIds: {
+        type: 'array',
+        maxItems: 120,
+        items: { type: 'string', minLength: 1, maxLength: 320 },
+      },
       writingIdentityProfiles: { type: 'object', additionalProperties: true },
     },
   };
@@ -2261,9 +2266,20 @@ class AnalyzeInboxCapability extends BaseCapability {
       'balanserad';
 
     const rawConversations = asArray(snapshotSource.conversations);
+    const requestedConversationIds = new Set(
+      asArray(input.conversationIds)
+        .map((value) => normalizeIdentifier(value, 320).toLowerCase())
+        .filter(Boolean)
+    );
     const conversations = rawConversations
       .map(toConversationSnapshot)
-      .filter((item) => item.conversationId);
+      .filter((item) => item.conversationId)
+      .filter((item) => {
+        if (requestedConversationIds.size === 0) return true;
+        return requestedConversationIds.has(
+          normalizeIdentifier(item.conversationId, 320).toLowerCase()
+        );
+      });
 
     const mailboxCount = countMailboxesFromConversations(
       conversations,

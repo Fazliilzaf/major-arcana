@@ -610,6 +610,7 @@ async function createCcoMailboxTruthStore({
     const safeRunId = normalizeText(runId) || null;
     let upsertsApplied = 0;
     let deletesApplied = 0;
+    const affectedConversationIds = new Set();
 
     for (const rawChange of asArray(changes)) {
       const safeChange = asObject(rawChange);
@@ -658,6 +659,8 @@ async function createCcoMailboxTruthStore({
         serializeComparableMessage(existingMessage) !== serializeComparableMessage(hydrated);
       state.messages[messageKey] = hydrated;
       if (changed) upsertsApplied += 1;
+      const conversationId = normalizeText(hydrated.conversationId);
+      if (conversationId) affectedConversationIds.add(conversationId);
     }
 
     const materializedMessageCount = recomputeFolderMessageCount(safeAccount.mailboxId, folderType);
@@ -752,6 +755,7 @@ async function createCcoMailboxTruthStore({
     return {
       folder: { ...nextFolder },
       checkpoint: { ...nextCheckpoint },
+      affectedConversationIds: Array.from(affectedConversationIds),
     };
   }
 

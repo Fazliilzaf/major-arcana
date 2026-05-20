@@ -229,10 +229,79 @@ function buildWorklistEnrichmentPayload({
     rowCount: conversationWorklist.length + needsReplyToday.length,
     conversationWorklist,
     needsReplyToday,
+    bootstrapReady: true,
     baselineSelection: baselineSelection && typeof baselineSelection === 'object'
       ? baselineSelection
       : null,
   };
+}
+
+function normalizeWorklistRowConversationId(row = {}) {
+  return normalizeText(row?.conversationId || row?.id).toLowerCase();
+}
+
+function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConversationIds = []) {
+  const scopeSet = new Set(
+    asArray(scopeConversationIds)
+      .map((item) => normalizeText(item).toLowerCase())
+      .filter(Boolean)
+  );
+  const deltaById = new Map(
+    asArray(deltaRows).map((row) => [normalizeWorklistRowConversationId(row), row])
+  );
+  const merged = asArray(baseRows).filter((row) => {
+    const rowId = normalizeWorklistRowConversationId(row);
+    if (scopeSet.size > 0) {
+      return !scopeSet.has(rowId);
+    }
+    return !deltaById.has(rowId);
+  });
+  const deltaToApply =
+    scopeSet.size > 0
+      ? asArray(deltaRows).filter((row) => scopeSet.has(normalizeWorklistRowConversationId(row)))
+      : asArray(deltaRows);
+  merged.push(...deltaToApply);
+  return merged;
+}
+
+function mergeWorklistEnrichmentOutput(
+  baseOutputData = {},
+  deltaOutputData = {},
+  { scopeConversationIds = [] } = {}
+) {
+  const safeBase = asObject(baseOutputData);
+  const safeDelta = asObject(deltaOutputData);
+  return {
+    ...safeBase,
+    ...safeDelta,
+    conversationWorklist: mergeWorklistEnrichmentRows(
+      safeBase.conversationWorklist,
+      safeDelta.conversationWorklist,
+      scopeConversationIds
+    ),
+    needsReplyToday: mergeWorklistEnrichmentRows(
+      safeBase.needsReplyToday,
+      safeDelta.needsReplyToday,
+      scopeConversationIds
+    ),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function resolveLatestWorklistEnrichmentBaseline({
+  capabilityAnalysisStore = null,
+  tenantId = '',
+  mailboxIds = [],
+} = {}) {
+  const entries = await listWorklistEnrichmentEntries({
+    capabilityAnalysisStore,
+    tenantId,
+    limit: 50,
+  });
+  return selectLatestWorklistLegacyBaseline({
+    entries,
+    mailboxIds,
+  });
 }
 const CCO_HISTORY_SIGNAL_RESCHEDULE_PATTERN =
   /\b(ombok|boka om|avbok|cancel|cancell|resched|ny tid|andra tid|ändra tid|flytta tid)\b/i;
@@ -2178,6 +2247,13 @@ async function hydrateAnalyzeInboxInput({
   }
   if (requestedMailboxIds.length > 0) {
     normalizedInput.mailboxIds = requestedMailboxIds.slice();
+  }
+  const requestedConversationIds = asArray(safeInput.conversationIds)
+    .map((item) => normalizeText(item))
+    .filter(Boolean)
+    .slice(0, 120);
+  if (requestedConversationIds.length > 0) {
+    normalizedInput.conversationIds = requestedConversationIds;
   }
 
   const storedWritingProfiles = capabilityAnalysisStore
@@ -9779,4 +9855,6 @@ module.exports = {
   materializeCustomerReplyActions,
   toGraphReadOptionsFromEnv,
   clearWorklistConsumerResponseCache,
+  mergeWorklistEnrichmentOutput,
+  resolveLatestWorklistEnrichmentBaseline,
 };

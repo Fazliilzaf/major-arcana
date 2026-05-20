@@ -546,6 +546,18 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES,
     5
   ),
+  schedulerCcoInboxBootstrapOnStart: asBool(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_ON_START,
+    true
+  ),
+  schedulerCcoInboxEnrichmentMaxAgeHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_ENRICHMENT_MAX_AGE_HOURS,
+    24
+  ),
+  schedulerCcoInboxBootstrapIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_INTERVAL_HOURS,
+    24
+  ),
   schedulerCcoHistoryMailboxId: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID,
     'kons@hairtpclinic.com'
