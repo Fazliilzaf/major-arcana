@@ -2036,6 +2036,10 @@
               normalizeKey(historyItem.laneId) === "act_now" ? "urgent" : "active"
             ),
             previewLine: asText(historyItem.detail || historyItem.title),
+            // Fas 50 (2026-05-20): skicka riktigt e-postämne separat så kortet
+            // kan visa "avsändare · ämne" (rad 1) + body-preview (rad 2) som i
+            // Apple Mail, istället för att promota preview till ämnesplatsen.
+            subjectLine: asText(historyItem.title),
             footerChips,
             signalItems: asArray(historyItem.signalItems),
             laneId: asText(historyItem.laneId),
@@ -3914,18 +3918,29 @@
       const senderText = counterpartyCopy;
       const rawPreviewBody = asText(unifiedModel.previewLine);
       const subtitleText = asText(unifiedModel.subtitle);
-      const subjectText = subtitleText || whatStr;
+      // Fas 50 (2026-05-20): Apple-Mail-likt — rad 1 = avsändare · RIKTIGT ämne,
+      // rad 2 = body-preview. Tidigare sattes subjectText = whatStr (operativ
+      // signal/preview), vilket gjorde att preview promotades till ämnesplatsen
+      // och rad 2 försvann som "duplikat". Nu: använd det faktiska e-postämnet
+      // (subjectLine) på rad 1 om det finns; fall tillbaka på operativ signal.
+      const realSubject = asText(unifiedModel.subjectLine);
+      const subjectText = subtitleText || realSubject || whatStr;
       const previewLooksBroken =
         /(?:Cannot access|ReferenceError|TypeError|SyntaxError|is not defined|Cannot read properties)/i.test(
           rawPreviewBody
         );
+      // Visa rad 2 (body-preview) när den finns och skiljer sig från ämnesraden.
       const previewBody =
         !previewLooksBroken &&
         rawPreviewBody &&
         rawPreviewBody !== subjectText &&
+        rawPreviewBody !== senderText &&
         !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
-          : !previewLooksBroken && rawPreviewBody.length > subjectText.length
+          : !previewLooksBroken &&
+              rawPreviewBody &&
+              rawPreviewBody.length > subjectText.length &&
+              rawPreviewBody !== subjectText
             ? rawPreviewBody
             : "";
 
@@ -3972,8 +3987,21 @@
         ? `<div class="warm-preview">${escapeHtml(previewBody)}</div>`
         : "";
 
+      // Fas 50 (2026-05-20): färga vänster-railen per mejlkonto så användaren
+      // ser direkt vilket konto varje tråd tillhör (Apple-Mail-likt). Färgen
+      // hämtas från v5MailboxColor (V5_MAILBOX_KNOWN/palette) på mailboxLabel.
+      const railMailboxKey = asText(
+        unifiedModel.mailboxLabel || (trail.length ? trail[0] : "")
+      );
+      const railColor = railMailboxKey ? v5MailboxColor(railMailboxKey) : "";
+      const railStyle = railColor
+        ? ` style="background:${escapeHtml(railColor)}"`
+        : "";
+      const railTitle = railMailboxKey
+        ? ` title="${escapeHtml(railMailboxKey)}"`
+        : "";
       return `<!-- warm-row-v8 markup --><article data-v8-version="warm-r8" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
-        <span class="warm-rail" aria-hidden="true"></span>
+        <span class="warm-rail" aria-hidden="true"${railStyle}${railTitle}></span>
         <div class="warm-top">
           <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
           <div class="warm-top-meta">
