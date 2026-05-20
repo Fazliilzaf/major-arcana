@@ -3990,7 +3990,11 @@
       // och rad 2 försvann som "duplikat". Nu: använd det faktiska e-postämnet
       // (subjectLine) på rad 1 om det finns; fall tillbaka på operativ signal.
       const realSubject = asText(unifiedModel.subjectLine);
-      const subjectText = subtitleText || realSubject || whatStr;
+      // Fas 51b (2026-05-20): riktigt e-postämne FÖRST. Tidigare hade
+      // subtitleText (multi-mailbox-noten "Samma kund har skrivit från flera
+      // mejlkonton") företräde → den visades som ämnesrad istället för det
+      // faktiska ämnet. Nu: realSubject → whatStr → subtitle som sista fallback.
+      const subjectText = realSubject || whatStr || subtitleText;
       const previewLooksBroken =
         /(?:Cannot access|ReferenceError|TypeError|SyntaxError|is not defined|Cannot read properties)/i.test(
           rawPreviewBody
