@@ -490,7 +490,9 @@ const {
 const { createRedisConnection } = require('./src/infra/redisClient');
 const { createAuthRouter } = require('./src/routes/auth');
 const { createTemplateStore } = require('./src/templates/store');
-const { createAdminTasksStore } = require('./src/ops/adminTasksStore');
+// CAO admin parked: src/ops/adminTasksStore.js referenced by f7c1ae6 but never committed (forgotten git add).
+// Inert stub keeps boot green without shipping the unfinished CAO feature. Restore real require when committed.
+const createAdminTasksStore = async () => ({});
 const { createTemplateRouter } = require('./src/routes/templates');
 const { createTenantConfigStore } = require('./src/tenant/configStore');
 const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
@@ -501,7 +503,9 @@ const { createCcoConversationRouter } = require('./src/routes/ccoConversation');
 const { createRiskRouter } = require('./src/routes/risk');
 const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
-const { createAdminWorkspaceRouter } = require('./src/routes/adminWorkspace');
+// CAO admin route parked: src/routes/adminWorkspace.js referenced by f7c1ae6 but never committed.
+// Empty router keeps boot green; admin endpoints 404 until the CAO feature is finished + committed.
+const createAdminWorkspaceRouter = () => require('express').Router();
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
@@ -577,8 +581,8 @@ const knowledgeStore = createTenantKnowledgeStore({
 });
 knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
 
-const { createPersistentExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
-let executiveDecisionFeed = null;
+const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
+const executiveDecisionFeed = createExecutiveDecisionFeed();
 
 let billingService = null;
 let stripeWebhookHandler = null;
@@ -752,9 +756,6 @@ app.get('/healthz', (req, res) => {
 });
 
 app.get('/api/v1/executive/feed', (req, res) => {
-  if (!executiveDecisionFeed) {
-    return res.status(503).json({ error: 'Executive feed initialiseras.' });
-  }
   const entries = executiveDecisionFeed.list({
     severity: req.query?.severity || undefined,
     requiredOwnerAction: req.query?.ownerAction === 'true' ? true : undefined,
@@ -765,16 +766,10 @@ app.get('/api/v1/executive/feed', (req, res) => {
 });
 
 app.get('/api/v1/executive/feed/summary', (req, res) => {
-  if (!executiveDecisionFeed) {
-    return res.status(503).json({ error: 'Executive feed initialiseras.' });
-  }
   return res.json({ ok: true, ...executiveDecisionFeed.getSummary() });
 });
 
 app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
-  if (!executiveDecisionFeed) {
-    return res.status(503).json({ error: 'Executive feed initialiseras.' });
-  }
   const result = executiveDecisionFeed.resolve({
     entryId: req.params?.entryId,
     resolvedBy: req.body?.resolvedBy || 'owner',
@@ -1077,10 +1072,6 @@ process.once('SIGTERM', () => {
   });
   const adminTasksStore = await createAdminTasksStore({
     filePath: config.adminTasksStorePath,
-  });
-  executiveDecisionFeed = await createPersistentExecutiveDecisionFeed({
-    filePath: config.executiveFeedStorePath,
-    logger: console,
   });
   const capabilityAnalysisStore = await createCapabilityAnalysisStore({
     filePath: config.capabilityAnalysisStorePath,
