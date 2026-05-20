@@ -1896,6 +1896,57 @@
       };
     }
 
+    // Fas 51 (2026-05-20): resolva avsändarnamn via system-mail-parsern för
+    // queue-korten (HTML). Tidigare körde bara Lit-korten parsern → queue-kort
+    // visade "No Reply"/"Support"/"News" istället för riktigt namn. Trådens id
+    // ÄR avsändar-mejlen (no_reply@sendgrid-01.sportadmin.se), så vi kan härleda
+    // ett vettigt namn (Sportadmin) även när parsern inte hittar ett personnamn.
+    function resolveCardSenderName(thread) {
+      const current = asText(thread?.customerName);
+      const parser =
+        typeof window !== "undefined" ? window.MajorArcanaSystemMailParser : null;
+      // Bara override:a svaga system-namn — aldrig riktiga kundnamn.
+      const looksWeak =
+        !current ||
+        /^(no[\s_-]*reply|noreply|support|info|news|nyheter|kontakt|contact|team|kundtj[aä]nst|notifications?|do[\s_-]*not[\s_-]*reply|mailer[\s-]*daemon|postmaster|automated|system)$/i.test(
+          current.trim()
+        );
+      if (!looksWeak || !parser) return current;
+      const senderEmail = asText(
+        thread?.senderEmail ||
+          thread?.from?.address ||
+          thread?.from?.emailAddress?.address ||
+          thread?.raw?.from?.emailAddress?.address ||
+          thread?.fromEmail ||
+          thread?.id
+      );
+      const subject = asText(thread?.displaySubject || thread?.subject);
+      const body = asText(thread?.preview || thread?.systemPreview || thread?.queuePreviewText);
+      try {
+        if (typeof parser.parse === "function") {
+          const parsed = parser.parse({ senderEmail, senderName: current, subject, body });
+          if (parsed) {
+            if (asText(parsed.customerName)) return asText(parsed.customerName);
+            if (asText(parsed.systemLabel))
+              return asText(parsed.systemLabel).replace(/^via\s+/i, "");
+          }
+        }
+        // Domän-härledning: news@email.georgjensen.com → "Georgjensen"
+        if (typeof parser.systemLabelFromEmail === "function" && senderEmail) {
+          const lbl = asText(parser.systemLabelFromEmail(senderEmail));
+          if (lbl) return lbl.replace(/^via\s+/i, "");
+        }
+        // Sista chans: namn ur localpart (anna.karlsson@... → Anna Karlsson)
+        if (parser.bodyHelpers?.nameFromEmail && senderEmail) {
+          const fromEmail = asText(parser.bodyHelpers.nameFromEmail(senderEmail));
+          if (fromEmail) return fromEmail;
+        }
+      } catch (_e) {
+        /* parser-fel → behåll original */
+      }
+      return current;
+    }
+
     function buildThreadCardMarkup(thread, index, selected) {
       const applyThreadFixtureFallback =
         typeof applyDemoFixtureFallback === "function"
@@ -2025,10 +2076,25 @@
               : "";
         const v5WhySignals = v5WhySignal ? [{ text: v5WhySignal, tone: v5WhyTone }] : [];
 
+        // Fas 51: resolva ett bättre avsändarnamn (Sportadmin istället för No Reply)
+        const resolvedSenderName = asText(
+          resolveCardSenderName(thread),
+          asText(historyItem.customerName, "Okänd avsändare")
+        );
+        const resolvedInitials = asText(
+          resolvedSenderName
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0])
+            .join("")
+            .toUpperCase(),
+          asText(historyItem.customerInitials)
+        );
         const unifiedMarkup = unifiedBuilder(
           {
-            counterpartyLabel: asText(historyItem.customerName, "Okänd avsändare"),
-            customerInitials: asText(historyItem.customerInitials),
+            counterpartyLabel: asText(resolvedSenderName, "Okänd avsändare"),
+            customerInitials: resolvedInitials || asText(historyItem.customerInitials),
             mailboxTrail,
             subtitle: mailboxTrail.length > 1 ? "Samma kund har skrivit från flera mejlkonton" : "",
             statusDot: asText(
