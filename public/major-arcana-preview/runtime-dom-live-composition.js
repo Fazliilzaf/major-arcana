@@ -253,6 +253,194 @@
       );
     }
 
+    function getTruthConsumerSignature(payload) {
+      if (!payload || typeof payload !== "object") return "";
+      const generatedAt = asText(payload.generatedAt || payload.metadata?.generatedAt);
+      const rowCount = String(asArray(payload.rows).length);
+      const deltaAt = asText(
+        payload.deltaCoverage?.lastAppliedAt ||
+          payload.deltaCoverage?.lastSuccessfulSyncAt ||
+          payload.deltaCoverage?.updatedAt
+      );
+      return `${generatedAt}|${rowCount}|${deltaAt}`;
+    }
+
+    function paintTruthPrimaryWorklistFromPayload(
+      truthPrimaryPayload,
+      {
+        runtimeMailboxIds = [],
+        configuredTruthPrimaryMailboxIds = [],
+        activeTruthPrimaryMailboxIds = [],
+        status = {},
+        mergeWithExisting = true,
+      } = {}
+    ) {
+      const truthRowCount = asArray(truthPrimaryPayload?.rows).length;
+      if (truthRowCount === 0) {
+        return { applied: false, hasNewMail: false, threadCount: 0 };
+      }
+
+      const activeIds = activeTruthPrimaryMailboxIds.length
+        ? activeTruthPrimaryMailboxIds
+        : configuredTruthPrimaryMailboxIds;
+      const truthOnlyWorklist = buildWorklistDataFromTruthPrimaryOnly(truthPrimaryPayload, {
+        truthPrimaryMailboxIds: activeIds,
+      });
+      let incomingThreads = carryRuntimeCustomerIdentity(
+        buildLiveThreads(truthOnlyWorklist, {
+          historyMessages: [],
+          historyEvents: [],
+        })
+      );
+      incomingThreads = sortRuntimeThreadsDeterministic(incomingThreads);
+
+      let hasNewMail = false;
+      if (mergeWithExisting && runtimeHasLiveThreads()) {
+        const existingById = new Map(
+          asArray(state.runtime.threads)
+            .filter((thread) => normalizeKey(thread?.worklistSource || "") !== "demo")
+            .map((thread) => [normalizeKey(thread?.id), thread])
+        );
+        const beforeCount = existingById.size;
+        incomingThreads.forEach((thread) => {
+          const threadId = normalizeKey(thread?.id);
+          if (!threadId || existingById.has(threadId)) return;
+          existingById.set(threadId, thread);
+          hasNewMail = true;
+        });
+        state.runtime.threads = sortRuntimeThreadsDeterministic([...existingById.values()]);
+        hasNewMail = hasNewMail || existingById.size > beforeCount;
+      } else {
+        state.runtime.threads = incomingThreads;
+        hasNewMail = incomingThreads.length > 0;
+      }
+
+      state.runtime.truthPrimaryLegacyThreads = [];
+      state.runtime.mailboxes = buildMailboxCatalog(
+        state.runtime.threads.map((thread) => {
+          const mailboxAddress = asText(thread?.mailboxAddress);
+          return {
+            mailboxId: mailboxAddress,
+            mailboxAddress,
+            userPrincipalName: mailboxAddress,
+          };
+        }),
+        {
+          sourceMailboxIds: Array.from(
+            new Set([...runtimeMailboxIds, ...asArray(status?.graph?.allowlistMailboxIds)])
+          ),
+          mailboxCapabilities: state.runtime.mailboxCapabilities,
+        }
+      );
+      state.runtime.staleCacheActive = !hasNewMail;
+      state.runtime.loading = false;
+      state.runtime.truthPrimaryCutover = {
+        enabled: true,
+        configuredMailboxIds: configuredTruthPrimaryMailboxIds,
+        activeMailboxIds: activeIds,
+        fallbackReason: "",
+        lastAppliedAt: new Date().toISOString(),
+      };
+      setRuntimeModeState("live", {
+        live: true,
+        offline: false,
+        authRequired: false,
+        error: "",
+      });
+      return {
+        applied: true,
+        hasNewMail,
+        threadCount: asArray(state.runtime.threads).length,
+      };
+    }
+
+    async function refreshRuntimeWorklistFromTruthDelta({
+      runtimeMailboxIds = [],
+      preferredThreadId = "",
+      status = {},
+      runAnalyzeInboxForNewMail = true,
+    } = {}) {
+      const configuredTruthPrimaryMailboxIds =
+        typeof getTruthPrimaryWorklistMailboxIds === "function"
+          ? getTruthPrimaryWorklistMailboxIds({ mailboxIds: runtimeMailboxIds })
+          : [];
+      if (
+        !configuredTruthPrimaryMailboxIds.length ||
+        typeof buildTruthPrimaryWorklistConsumerHref !== "function"
+      ) {
+        return { refreshed: false, hasNewMail: false };
+      }
+
+      const truthPrimaryPayload = await apiRequest(
+        buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+      );
+      const consumerSig = getTruthConsumerSignature(truthPrimaryPayload);
+      const previousSig = asText(state.runtime?.lastTruthConsumerSig);
+      const paintResult = paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, {
+        runtimeMailboxIds,
+        configuredTruthPrimaryMailboxIds,
+        activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
+        status,
+        mergeWithExisting: true,
+      });
+      state.runtime.lastTruthConsumerSig = consumerSig;
+      if (!paintResult.applied) {
+        return { refreshed: false, hasNewMail: false };
+      }
+
+      renderRuntimeConversationShell();
+      if (typeof syncRuntimeVisualStateMachine === "function") {
+        syncRuntimeVisualStateMachine();
+      }
+      try {
+        if (windowObject?.CcoThreadCache && runtimeHasLiveThreads()) {
+          windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
+            mailboxIds: runtimeMailboxIds,
+          });
+        }
+      } catch (_cacheError) {
+        /* cache är best-effort */
+      }
+
+      const hasNewMail =
+        paintResult.hasNewMail === true ||
+        (Boolean(previousSig) && consumerSig !== previousSig && paintResult.threadCount > 0);
+      if (hasNewMail && runAnalyzeInboxForNewMail) {
+        const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
+          force: true,
+        });
+        if (analyzeRequest?.skipped !== true) {
+          await continueLiveRuntimeFromAnalyzeInbox({
+            analysisPayload: analyzeRequest?.payload || analyzeRequest,
+            runtimeMailboxIds,
+            preferredThreadId,
+            isCurrentRequest: () => true,
+            truthPrimaryPayload,
+            activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
+            configuredTruthPrimaryMailboxIds,
+            configuredFocusTruthMailboxIds:
+              typeof getTruthPrimaryFocusMailboxIds === "function"
+                ? getTruthPrimaryFocusMailboxIds({ mailboxIds: runtimeMailboxIds })
+                : [],
+            configuredStudioTruthMailboxIds:
+              typeof getTruthPrimaryStudioMailboxIds === "function"
+                ? getTruthPrimaryStudioMailboxIds({ mailboxIds: runtimeMailboxIds })
+                : [],
+            shouldApplyPhaseA: true,
+            isBackgroundRefresh: true,
+            options: {},
+            status,
+          });
+        }
+      } else if (runtimeHasLiveThreads()) {
+        state.runtime.loaded = true;
+        state.runtime.staleCacheActive = false;
+        clearRuntimeBackgroundSync();
+      }
+
+      return { refreshed: true, hasNewMail };
+    }
+
     function markRuntimeNonBlockingSync({ preserveStaleCache = true } = {}) {
       state.runtime.loading = false;
       state.runtime.backgroundSyncActive = true;
@@ -1321,11 +1509,11 @@
           return;
         }
         try {
-          await loadLiveRuntime({
-            requestedMailboxIds: mailboxIds,
+          await refreshRuntimeWorklistFromTruthDelta({
+            runtimeMailboxIds: mailboxIds,
             preferredThreadId: preferredThreadId || getRuntimeReentryThreadId(),
-            resetHistoryOnChange: false,
-            isBackgroundRefresh: true,
+            status: {},
+            runAnalyzeInboxForNewMail: true,
           });
         } catch (error) {
           console.warn("CCO aktiv körning kunde inte uppdateras i bakgrunden.", error);
@@ -3150,7 +3338,6 @@
         let truthPrimaryFastPathApplied = false;
         const canUseTruthPrimaryFastPath =
           !isBackgroundRefresh &&
-          !staleWhileRevalidate &&
           configuredTruthPrimaryMailboxIds.length > 0 &&
           typeof buildTruthPrimaryWorklistConsumerHref === "function" &&
           typeof buildWorklistDataFromTruthPrimaryOnly === "function";
@@ -3170,63 +3357,22 @@
 
               const truthRowCount = asArray(truthPrimaryPayload?.rows).length;
               if (truthRowCount > 0) {
-                const truthOnlyWorklist = buildWorklistDataFromTruthPrimaryOnly(
-                  truthPrimaryPayload,
-                  { truthPrimaryMailboxIds: activeTruthPrimaryMailboxIds }
-                );
-                let fastPathThreads = carryRuntimeCustomerIdentity(
-                  buildLiveThreads(truthOnlyWorklist, {
-                    historyMessages: [],
-                    historyEvents: [],
-                  })
-                );
-                fastPathThreads = sortRuntimeThreadsDeterministic(fastPathThreads);
-
-                state.runtime.threads = fastPathThreads;
-                state.runtime.truthPrimaryLegacyThreads = [];
-                state.runtime.mailboxes = buildMailboxCatalog(
-                  fastPathThreads.map((thread) => {
-                    const mailboxAddress = asText(thread?.mailboxAddress);
-                    return {
-                      mailboxId: mailboxAddress,
-                      mailboxAddress,
-                      userPrincipalName: mailboxAddress,
-                    };
-                  }),
-                  {
-                    sourceMailboxIds: Array.from(
-                      new Set([
-                        ...runtimeMailboxIds,
-                        ...asArray(status?.graph?.allowlistMailboxIds),
-                      ])
-                    ),
-                    mailboxCapabilities: state.runtime.mailboxCapabilities,
-                  }
-                );
-                state.runtime.staleCacheActive = true;
-                state.runtime.loading = false;
-                state.runtime.truthPrimaryCutover = {
-                  enabled: true,
-                  configuredMailboxIds: configuredTruthPrimaryMailboxIds,
-                  activeMailboxIds: activeTruthPrimaryMailboxIds,
-                  fallbackReason: "",
-                  lastAppliedAt: new Date().toISOString(),
-                };
+                const paintResult = paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, {
+                  runtimeMailboxIds,
+                  configuredTruthPrimaryMailboxIds,
+                  activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
+                  status,
+                  mergeWithExisting: staleWhileRevalidate || runtimeHasLiveThreads(),
+                });
+                state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);
                 state.runtime.mailboxDiagnostics = buildRuntimeMailboxLoadDiagnostics({
                   phase: "truth_primary_fast",
                   requestedMailboxIds: runtimeMailboxIds,
-                  mergedWorklistData: truthOnlyWorklist,
-                  threads: fastPathThreads,
+                  threads: state.runtime.threads,
                   legacyThreads: [],
                   truthPrimaryPayload,
                   configuredTruthPrimaryMailboxIds,
-                  activeTruthPrimaryMailboxIds,
-                });
-                setRuntimeModeState("live", {
-                  live: true,
-                  offline: false,
-                  authRequired: false,
-                  error: "",
+                  activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
                 });
                 renderRuntimeConversationShell();
                 if (typeof syncRuntimeVisualStateMachine === "function") {
@@ -3235,7 +3381,8 @@
                 if (windowObject.__litSwitchover?.clearBootstrapWindow) {
                   windowObject.__litSwitchover.clearBootstrapWindow();
                 }
-                truthPrimaryFastPathApplied = true;
+                truthPrimaryFastPathApplied = paintResult.applied === true;
+                activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
               }
             } catch (truthPrimaryError) {
               truthPrimaryFallbackReason =
@@ -3273,8 +3420,57 @@
           const deferredSequence = runtimeRequestSequence;
           void (async () => {
             try {
+              const worklistReadyAtDefer =
+                runtimeHasLiveThreads() || truthPrimaryFastPathApplied || staleWhileRevalidate;
+              if (
+                !truthPrimaryPayload &&
+                configuredTruthPrimaryMailboxIds.length &&
+                typeof buildTruthPrimaryWorklistConsumerHref === "function"
+              ) {
+                truthPrimaryPayload = await apiRequest(
+                  buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
+                );
+                if (deferredSequence !== liveRuntimeRequestSequence) return;
+              }
+              let hasNewMail = false;
+              if (truthPrimaryPayload && asArray(truthPrimaryPayload.rows).length) {
+                const paintResult = paintTruthPrimaryWorklistFromPayload(truthPrimaryPayload, {
+                  runtimeMailboxIds,
+                  configuredTruthPrimaryMailboxIds,
+                  activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
+                  status,
+                  mergeWithExisting: worklistReadyAtDefer,
+                });
+                hasNewMail = paintResult.hasNewMail === true;
+                state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);
+                renderRuntimeConversationShell();
+                if (typeof syncRuntimeVisualStateMachine === "function") {
+                  syncRuntimeVisualStateMachine();
+                }
+                try {
+                  if (windowObject?.CcoThreadCache && runtimeHasLiveThreads()) {
+                    windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
+                      mailboxIds: runtimeMailboxIds,
+                    });
+                  }
+                } catch (_cacheError) {
+                  /* cache är best-effort */
+                }
+              }
+
+              if (runtimeHasLiveThreads() && !hasNewMail) {
+                state.runtime.loaded = true;
+                state.runtime.staleCacheActive = false;
+                clearRuntimeBackgroundSync();
+                scheduleRuntimeLiveRefresh({
+                  requestedMailboxIds: runtimeMailboxIds,
+                  preferredThreadId,
+                });
+                return;
+              }
+
               const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
-                force: true,
+                force: !runtimeHasLiveThreads() || hasNewMail,
               });
               if (deferredSequence !== liveRuntimeRequestSequence) return;
               if (analyzeRequest?.skipped === true) return;
@@ -3304,8 +3500,19 @@
           return;
         }
 
+        if (isBackgroundRefresh) {
+          state.runtime.pendingFullRefresh = false;
+          await refreshRuntimeWorklistFromTruthDelta({
+            runtimeMailboxIds,
+            preferredThreadId,
+            status,
+            runAnalyzeInboxForNewMail: true,
+          });
+          return;
+        }
+
         const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
-          force: truthPrimaryFastPathApplied || staleWhileRevalidate || !isBackgroundRefresh,
+          force: truthPrimaryFastPathApplied || staleWhileRevalidate,
         });
         if (!isCurrentRequest()) return;
         if (analyzeRequest?.skipped === true) {

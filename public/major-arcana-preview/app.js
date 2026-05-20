@@ -12232,15 +12232,13 @@
 
   function getTruthPrimaryWorklistMailboxIds({ mailboxIds = [] } = {}) {
     if (!isTruthPrimaryWorklistFeatureEnabled()) return [];
-    const configuredMailboxIds = new Set(getTruthPrimaryConfiguredMailboxIds());
-    if (!configuredMailboxIds.size) return [];
     const scopedMailboxIds = asArray(mailboxIds)
       .map((value) => canonicalizeRuntimeMailboxId(value))
       .filter(Boolean);
-    if (!scopedMailboxIds.length) {
-      return Array.from(configuredMailboxIds);
+    if (scopedMailboxIds.length) {
+      return scopedMailboxIds;
     }
-    return scopedMailboxIds.filter((mailboxId) => configuredMailboxIds.has(mailboxId));
+    return getTruthPrimaryConfiguredMailboxIds();
   }
 
   function buildTruthPrimaryWorklistConsumerHref(

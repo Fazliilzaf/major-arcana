@@ -89,7 +89,7 @@ const CCO_KONS_HISTORY_RECENT_FRESHNESS_MS = 10 * 60 * 1000;
 const CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS = 365;
 const CCO_ANALYZE_HISTORY_SIGNAL_RECENT_WINDOW_DAYS = 45;
 const ANALYZE_INBOX_GRAPH_SNAPSHOT_CACHE_TTL_MS = 45000;
-const WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS = 60000;
+const WORKLIST_CONSUMER_RESPONSE_CACHE_TTL_MS = 300000;
 const ANALYZE_INBOX_HISTORY_IO_CONCURRENCY = 2;
 const analyzeInboxGraphSnapshotCache = new Map();
 const worklistConsumerResponseCache = new Map();
@@ -2838,6 +2838,78 @@ async function hydrateCaoSystemSnapshot({
   return nextSnapshot;
 }
 
+async function hydrateCmoSystemSnapshot({
+  tenantId,
+  templateStore,
+  tenantConfigStore = null,
+  marketingClaimsWhitelistStore = null,
+  config = null,
+  systemStateSnapshot = {},
+} = {}) {
+  let nextSnapshot =
+    systemStateSnapshot && typeof systemStateSnapshot === 'object' ? { ...systemStateSnapshot } : {};
+  const appConfig = config || require('../config');
+
+  if (templateStore && typeof templateStore.listTemplates === 'function' && !Array.isArray(nextSnapshot.templates)) {
+    const templates = await templateStore.listTemplates({ tenantId, includeVersions: false });
+    nextSnapshot = {
+      ...nextSnapshot,
+      templates: Array.isArray(templates) ? templates : [],
+    };
+  }
+
+  if (
+    tenantConfigStore &&
+    typeof tenantConfigStore.getTenantConfig === 'function' &&
+    !nextSnapshot.tenantConfig
+  ) {
+    const tenantConfig = await tenantConfigStore.getTenantConfig(tenantId);
+    nextSnapshot = {
+      ...nextSnapshot,
+      tenantConfig: tenantConfig && typeof tenantConfig === 'object' ? tenantConfig : {},
+    };
+  }
+
+  if (!Array.isArray(nextSnapshot.marketingClaimsWhitelist)) {
+    try {
+      if (
+        marketingClaimsWhitelistStore &&
+        typeof marketingClaimsWhitelistStore.listClaims === 'function'
+      ) {
+        await marketingClaimsWhitelistStore.ensureSeedDefaults?.();
+        nextSnapshot = {
+          ...nextSnapshot,
+          marketingClaimsWhitelist: await marketingClaimsWhitelistStore.listClaims(),
+        };
+      } else {
+        const { createMarketingClaimsWhitelistStore } = require('../ops/marketingClaimsWhitelistStore');
+        const store = await createMarketingClaimsWhitelistStore({
+          filePath: appConfig.marketingClaimsWhitelistPath,
+        });
+        await store.ensureSeedDefaults();
+        nextSnapshot = {
+          ...nextSnapshot,
+          marketingClaimsWhitelist: await store.listClaims(),
+        };
+      }
+    } catch {
+      nextSnapshot = { ...nextSnapshot, marketingClaimsWhitelist: [] };
+    }
+  }
+
+  if (!normalizeText(nextSnapshot.snapshotVersion)) {
+    nextSnapshot.snapshotVersion = 'cmo.snapshot.v2';
+    nextSnapshot.timestamps = {
+      capturedAt: new Date().toISOString(),
+      ...(nextSnapshot.timestamps && typeof nextSnapshot.timestamps === 'object'
+        ? nextSnapshot.timestamps
+        : {}),
+    };
+  }
+
+  return nextSnapshot;
+}
+
 const CAO_HYDRATED_CAPABILITY_NAMES = new Set(
   [
     'suggesttemplateimprovement',
@@ -2856,6 +2928,21 @@ const CAO_HYDRATED_CAPABILITY_NAMES = new Set(
     'generateadmindailybrief',
     'generateadminweeklybrief',
     'explainreadinessscore',
+  ].map((name) => name.toLowerCase())
+);
+
+const CMO_HYDRATED_CAPABILITY_NAMES = new Set(
+  [
+    'generatecontentbrief',
+    'analyzeaudiencesegments',
+    'generateoutreachcampaign',
+    'generatesocialpostpack',
+    'generateseobrief',
+    'generateadcopypack',
+    'generateemaildraft',
+    'repurposecontent',
+    'validatemarketingclaims',
+    'reviewmarketingcompliance',
   ].map((name) => name.toLowerCase())
 );
 
@@ -2903,6 +2990,18 @@ async function maybeHydrateCapabilityPayload({
         authStore,
         tenantConfigStore,
         scheduler,
+        config,
+        systemStateSnapshot,
+      }),
+    };
+  }
+  if (CMO_HYDRATED_CAPABILITY_NAMES.has(normalizedName)) {
+    return {
+      input: asObject(input),
+      systemStateSnapshot: await hydrateCmoSystemSnapshot({
+        tenantId,
+        templateStore,
+        tenantConfigStore,
         config,
         systemStateSnapshot,
       }),
@@ -3052,6 +3151,19 @@ async function maybeHydrateAgentPayload({
         authStore,
         tenantConfigStore,
         scheduler,
+        config,
+        systemStateSnapshot,
+      }),
+    };
+  }
+
+  if (normalizedAgentName === 'cmo') {
+    return {
+      input: safeInput,
+      systemStateSnapshot: await hydrateCmoSystemSnapshot({
+        tenantId,
+        templateStore,
+        tenantConfigStore,
         config,
         systemStateSnapshot,
       }),
