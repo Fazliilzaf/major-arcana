@@ -1,3 +1,4 @@
+// @ts-nocheck
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
@@ -36,6 +37,7 @@ const {
   getBootstrapStatus,
   isEnabled: isBootstrapEnabled,
 } = require('../ops/bootstrapRunner');
+const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -228,6 +230,23 @@ function classifyOwnerMfaMembers(members = [], { currentMembershipId = '' } = {}
   };
 }
 
+function resolveCcoHistoryMailboxIds(config = {}) {
+  const configuredList = Array.isArray(config?.schedulerCcoHistoryMailboxIds)
+    ? config.schedulerCcoHistoryMailboxIds
+    : [];
+  const normalized = [];
+  const seen = new Set();
+  for (const rawMailboxId of configuredList) {
+    const mailboxId = normalizeText(rawMailboxId).toLowerCase();
+    if (!mailboxId || seen.has(mailboxId)) continue;
+    seen.add(mailboxId);
+    normalized.push(mailboxId);
+  }
+  if (normalized.length > 0) return normalized;
+  const fallback = normalizeText(config?.schedulerCcoHistoryMailboxId).toLowerCase();
+  return fallback ? [fallback] : [];
+}
+
 function createOpsRouter({
   config,
   authStore,
@@ -238,6 +257,8 @@ function createOpsRouter({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   ccoMailboxTruthStore = null,
+  capabilityAnalysisStore = null,
+  ccoCustomerStore = null,
   messageIntelligenceStore = null,
   customerPreferenceStore = null,
   ccoHistoryStore = null,
@@ -294,6 +315,53 @@ function createOpsRouter({
       } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Kunde inte läsa scheduler-status.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/coverage',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'ccoMailboxTruthStore saknas.' });
+      }
+      if (!capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'capabilityAnalysisStore saknas.' });
+      }
+      try {
+        const coverage = await computeCcoInboxEnrichmentCoverage({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.coverage.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_enrichment_coverage',
+          metadata: {
+            gapCount: coverage.gapCount,
+            coveragePercent: coverage.coveragePercent,
+            readyForWork: coverage.readyForWork,
+          },
+        });
+        return res.json({
+          ok: true,
+          ...coverage,
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/coverage]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte beräkna enrichment coverage.',
+        });
       }
     }
   );

@@ -40,7 +40,10 @@ const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
+const { computeCcoInboxEnrichmentCoverage } = require('./ccoInboxEnrichmentCoverage');
 const { config: defaultSchedulerConfig } = require('../config');
+
+const CCO_INBOX_FULL_BACKFILL_TRIGGER = 'cco_full_backfill';
 
 function nowIso() {
   return new Date().toISOString();
@@ -2625,7 +2628,17 @@ function createScheduler({
         'manual_api',
         'manual_api_suite',
       ]);
-      if (mode === 'full' && bootstrapTriggers.has(normalizeText(trigger))) {
+      const normalizedTrigger = normalizeText(trigger);
+      if (mode === 'full' && normalizedTrigger === 'cco_full_backfill') {
+        return Math.max(
+          7,
+          Math.min(
+            365,
+            Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365
+          )
+        );
+      }
+      if (mode === 'full' && bootstrapTriggers.has(normalizedTrigger)) {
         return Math.max(
           7,
           Math.min(
@@ -2647,23 +2660,15 @@ function createScheduler({
       )
     );
     const bootstrapMaxMessagesPerUser = Math.max(
-      30,
+      10,
       Math.min(
         200,
-        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 80
+        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 200
       )
     );
-    const bootstrapTriggers = new Set([
-      'startup',
-      'scheduled',
-      'scheduler_start',
-      'manual_api',
-      'manual_api_suite',
-    ]);
-    const isBootstrapFetch =
-      mode === 'full' &&
-      bootstrapTriggers.has(normalizeText(trigger)) &&
-      !(useScopedMerge && baselineOutputData);
+    const normalizedTrigger = normalizeText(trigger);
+    const useElevatedBootstrapCaps =
+      mode === 'full' && normalizedTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER;
     const correlationId = `cco-inbox-refresh:${crypto.randomUUID()}`;
     const requestId = `scheduler-inbox-refresh:${crypto.randomUUID()}`;
     const analyzeInput = {
@@ -2705,16 +2710,16 @@ function createScheduler({
                 Math.floor(scopedMaxMessagesPerUser * 0.4)
               ),
             }
-          : isBootstrapFetch
+          : useElevatedBootstrapCaps
             ? {
                 maxMessagesPerUser: bootstrapMaxMessagesPerUser,
                 maxInboxMessagesPerUser: Math.max(
                   20,
-                  Math.floor(bootstrapMaxMessagesPerUser * 0.65)
+                  Math.floor(bootstrapMaxMessagesPerUser * 0.6)
                 ),
                 maxSentMessagesPerUser: Math.max(
-                  10,
-                  Math.floor(bootstrapMaxMessagesPerUser * 0.35)
+                  15,
+                  Math.floor(bootstrapMaxMessagesPerUser * 0.4)
                 ),
               }
             : {}),
@@ -2767,11 +2772,6 @@ function createScheduler({
         trigger,
         mode: effectiveMode,
         scopedConversationIds: effectiveMode === 'scoped_merge' ? scopedIds : [],
-        maxMessagesPerUser: isBootstrapFetch
-          ? bootstrapMaxMessagesPerUser
-          : useScopedMerge && baselineOutputData
-            ? scopedMaxMessagesPerUser
-            : null,
       },
       output: {
         data: outputData,
@@ -2786,11 +2786,6 @@ function createScheduler({
         mode: effectiveMode,
         scopedConversationCount:
           effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
-        maxMessagesPerUser: isBootstrapFetch
-          ? bootstrapMaxMessagesPerUser
-          : useScopedMerge && baselineOutputData
-            ? scopedMaxMessagesPerUser
-            : null,
       },
       riskSummary: {},
       policySummary: {},
@@ -2846,13 +2841,6 @@ function createScheduler({
         Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
       )
     );
-    const requiredBootstrapMaxMessagesPerUser = Math.max(
-      30,
-      Math.min(
-        200,
-        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 80
-      )
-    );
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
       tenantId,
@@ -2873,16 +2861,6 @@ function createScheduler({
       Number.isFinite(storedLookbackDays) &&
       storedLookbackDays > 0 &&
       storedLookbackDays < requiredBootstrapLookbackDays;
-    const storedMaxMessagesPerUser = Number(
-      baseline?.selectedEntry?.input?.maxMessagesPerUser ||
-        baseline?.selectedEntry?.metadata?.maxMessagesPerUser ||
-        0
-    );
-    const messageCapUpgradeNeeded =
-      rowCount > 0 &&
-      Number.isFinite(storedMaxMessagesPerUser) &&
-      storedMaxMessagesPerUser > 0 &&
-      storedMaxMessagesPerUser < requiredBootstrapMaxMessagesPerUser;
     const forceRefresh =
       normalizeText(trigger) === 'manual_api' ||
       normalizeText(trigger) === 'manual_api_suite';
@@ -2895,7 +2873,6 @@ function createScheduler({
     if (
       !forceRefresh &&
       !lookbackUpgradeNeeded &&
-      !messageCapUpgradeNeeded &&
       rowCount > 0 &&
       ageHours !== null &&
       ageHours < maxAgeHours
@@ -2911,13 +2888,11 @@ function createScheduler({
         ageHours,
         storedLookbackDays,
         requiredBootstrapLookbackDays,
-        storedMaxMessagesPerUser,
-        requiredBootstrapMaxMessagesPerUser,
       };
     }
 
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'} force=${forceRefresh} lookbackUpgrade=${lookbackUpgradeNeeded} messageCapUpgrade=${messageCapUpgradeNeeded} storedLookbackDays=${storedLookbackDays || 'unknown'} requiredLookbackDays=${requiredBootstrapLookbackDays} storedMaxMessagesPerUser=${storedMaxMessagesPerUser || 'unknown'} requiredMaxMessagesPerUser=${requiredBootstrapMaxMessagesPerUser}`
+      `[scheduler] cco_inbox_enrichment_bootstrap START trigger=${trigger} rowCount=${rowCount} ageHours=${ageHours ?? 'unknown'} force=${forceRefresh} lookbackUpgrade=${lookbackUpgradeNeeded} storedLookbackDays=${storedLookbackDays || 'unknown'} requiredLookbackDays=${requiredBootstrapLookbackDays}`
     );
     return runCcoInboxAnalysisRefresh({
       tenantId,
@@ -2926,6 +2901,153 @@ function createScheduler({
       actorUserId,
       mode: 'full',
     });
+  }
+
+  async function resolveSchedulerTruthStore() {
+    const truthPath = normalizeText(config.ccoMailboxTruthStorePath);
+    if (!truthPath) return null;
+    return createCcoMailboxTruthStore({ filePath: truthPath });
+  }
+
+  async function runCcoInboxEnrichmentFullBackfill({
+    tenantId,
+    trigger = 'cco_full_backfill',
+    actorUserId = null,
+  } = {}) {
+    if (!config.graphReadEnabled) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'graph_read_disabled',
+      };
+    }
+    const mailboxIds = resolveCcoHistoryMailboxIds(config);
+    if (mailboxIds.length === 0) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'mailbox_ids_missing',
+      };
+    }
+
+    const batchSize = Math.max(
+      1,
+      Math.min(50, Number(config?.schedulerCcoInboxFullBackfillBatchSize) || 15)
+    );
+    const incomingTrigger = normalizeText(trigger);
+    const effectiveTrigger =
+      incomingTrigger === 'manual_api' || incomingTrigger === 'manual_api_suite'
+        ? CCO_INBOX_FULL_BACKFILL_TRIGGER
+        : incomingTrigger || CCO_INBOX_FULL_BACKFILL_TRIGGER;
+
+    let truthStore = null;
+    try {
+      truthStore = await resolveSchedulerTruthStore();
+    } catch (error) {
+      logger?.error?.(
+        '[scheduler] cco_inbox_enrichment_full_backfill truth_store_open_failed',
+        sanitizeError(error)
+      );
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'truth_store_open_failed',
+        error: sanitizeError(error),
+      };
+    }
+
+    const computeCoverage = async () =>
+      computeCcoInboxEnrichmentCoverage({
+        tenantId,
+        mailboxIds,
+        capabilityAnalysisStore,
+        ccoMailboxTruthStore: truthStore,
+        ccoCustomerStore,
+      });
+
+    let coverageBefore = await computeCoverage();
+    logger?.log?.(
+      `[scheduler] cco_inbox_enrichment_full_backfill START trigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}%`
+    );
+
+    const fullBootstrap = await runCcoInboxAnalysisRefresh({
+      tenantId,
+      mailboxIds,
+      trigger: effectiveTrigger,
+      actorUserId,
+      mode: 'full',
+    });
+
+    const batchRuns = [];
+    let coverageAfterBootstrap = await computeCoverage();
+    let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
+    let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
+    let stallRounds = 0;
+
+    while (remainingGapIds.length > 0 && stallRounds < 2) {
+      for (let offset = 0; offset < remainingGapIds.length; offset += batchSize) {
+        const scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
+        const batchResult = await runCcoInboxAnalysisRefresh({
+          tenantId,
+          mailboxIds,
+          trigger: effectiveTrigger,
+          actorUserId,
+          scopedConversationIds,
+          mode: 'scoped_merge',
+        });
+        batchRuns.push({
+          batchIndex: batchRuns.length,
+          scopedConversationCount: scopedConversationIds.length,
+          skipped: Boolean(batchResult?.skipped),
+          reason: batchResult?.reason || null,
+          mode: batchResult?.mode || null,
+          rowCount: Number(batchResult?.rowCount || 0),
+          entryId: batchResult?.entryId || null,
+        });
+      }
+
+      const nextCoverage = await computeCoverage();
+      const nextGapCount = Number(nextCoverage.gapCount || 0);
+      if (nextGapCount >= previousGapCount) {
+        stallRounds += 1;
+      } else {
+        stallRounds = 0;
+      }
+      previousGapCount = nextGapCount;
+      coverageAfterBootstrap = nextCoverage;
+      remainingGapIds = asSchedulerStringArray(nextCoverage.gapConversationIds);
+      if (nextCoverage.readyForWork) break;
+    }
+
+    const finalCoverage = await computeCoverage();
+    logger?.log?.(
+      `[scheduler] cco_inbox_enrichment_full_backfill DONE batches=${batchRuns.length} truth=${finalCoverage.truthConversationCount} enriched=${finalCoverage.enrichedConversationCount} gap=${finalCoverage.gapCount} coverage=${finalCoverage.coveragePercent}% ready=${finalCoverage.readyForWork}`
+    );
+
+    return {
+      tenantId,
+      skipped: false,
+      trigger: effectiveTrigger,
+      mailboxIds,
+      batchSize,
+      coverageBefore,
+      fullBootstrap,
+      batchRuns,
+      coverage: finalCoverage,
+      readyForWork: finalCoverage.readyForWork,
+      gapCount: finalCoverage.gapCount,
+      coveragePercent: finalCoverage.coveragePercent,
+    };
+  }
+
+  function asSchedulerStringArray(value) {
+    return Array.from(
+      new Set(
+        (Array.isArray(value) ? value : [])
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+      )
+    );
   }
 
   async function runCcoTruthDeltaSync({ tenantId }) {
@@ -3141,6 +3263,14 @@ function createScheduler({
         ? toHoursMs(config.schedulerCcoInboxBootstrapIntervalHours, 24)
         : 0,
       run: runCcoInboxEnrichmentBootstrap,
+    },
+    {
+      id: 'cco_inbox_enrichment_full_backfill',
+      name: 'CCO inbox enrichment full backfill (truth gap)',
+      intervalMs: config.graphReadEnabled
+        ? toHoursMs(config.schedulerCcoInboxFullBackfillIntervalHours, 168)
+        : 0,
+      run: runCcoInboxEnrichmentFullBackfill,
     },
     {
       id: 'cco_cliento_backfill',

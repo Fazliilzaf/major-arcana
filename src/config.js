@@ -641,9 +641,21 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
     25
   ),
+  schedulerCcoInboxFullBackfillBatchSize: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE,
+    15
+  ),
   schedulerCcoInboxBootstrapMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER,
-    80
+    200
+  ),
+  schedulerCcoInboxFullBackfillLookbackDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_LOOKBACK_DAYS,
+    365
+  ),
+  schedulerCcoInboxFullBackfillIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_INTERVAL_HOURS,
+    168
   ),
   schedulerCcoHistoryMailboxId: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID,
