@@ -136,11 +136,21 @@
           try {
             const tx = db.transaction(STORE, 'readwrite');
             const store = tx.objectStore(STORE);
-            const payload = { key: scopeKey, ts: Date.now(), threads: safe };
+            const payload = {
+              key: scopeKey,
+              ts: Date.now(),
+              threads: safe,
+              lastEnrichedAt: String(options.lastEnrichedAt || '').trim(),
+            };
             store.put(payload);
             // Bakåtkompatibilitet + snabb boot utan scope: behåll legacy-nyckel.
             if (scopeKey !== LEGACY_KEY) {
-              store.put({ key: LEGACY_KEY, ts: Date.now(), threads: safe });
+              store.put({
+                key: LEGACY_KEY,
+                ts: Date.now(),
+                threads: safe,
+                lastEnrichedAt: String(options.lastEnrichedAt || '').trim(),
+              });
             }
             tx.oncomplete = () => resolve(true);
             tx.onerror = () => resolve(false);
@@ -153,33 +163,43 @@
       .catch(() => false);
   }
 
-  /**
-   * Läs cachade threads för aktivt mejlurval. Returnerar Array eller null.
-   */
-  function loadThreads(options = {}) {
+  function loadCacheEntry(options = {}) {
     const scopeKey = buildScopeKey(options.mailboxIds);
     return openDb()
       .then(async (db) => {
         const scopedEntry = await readEntry(db, scopeKey);
         if (isFreshEntry(scopedEntry)) {
-          return scopedEntry.threads;
+          return scopedEntry;
         }
 
         const legacyEntry = scopeKey === LEGACY_KEY ? null : await readEntry(db, LEGACY_KEY);
         if (isFreshEntry(legacyEntry)) {
           const filtered = filterThreadsForScope(legacyEntry.threads, options.mailboxIds);
-          if (filtered.length) return filtered;
+          if (filtered.length) {
+            return { ...legacyEntry, threads: filtered };
+          }
         }
 
         const allEntry = await readEntry(db, `${LEGACY_KEY}|all`);
         if (isFreshEntry(allEntry)) {
           const filtered = filterThreadsForScope(allEntry.threads, options.mailboxIds);
-          if (filtered.length) return filtered;
+          if (filtered.length) {
+            return { ...allEntry, threads: filtered };
+          }
         }
 
         return null;
       })
       .catch(() => null);
+  }
+
+  /**
+   * Läs cachade threads för aktivt mejlurval. Returnerar Array eller null.
+   */
+  function loadThreads(options = {}) {
+    return loadCacheEntry(options).then((entry) =>
+      entry && Array.isArray(entry.threads) ? entry.threads : null
+    );
   }
 
   function clearThreads() {
@@ -205,6 +225,7 @@
       buildScopeKey,
       saveThreads,
       loadThreads,
+      loadCacheEntry,
       clearThreads,
     });
   }

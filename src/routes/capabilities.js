@@ -64,6 +64,7 @@ const CCO_GRAPH_READ_DEFAULT_ALLOWLIST = Object.freeze([
   'info@hairtpclinic.com',
   'kons@hairtpclinic.com',
   'marknad@hairtpclinic.com',
+  'receipt@hairtpclinic.com',
 ]);
 const CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET = new Set(
   CCO_GRAPH_READ_DEFAULT_ALLOWLIST.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
@@ -3077,6 +3078,9 @@ const CMO_HYDRATED_CAPABILITY_NAMES = new Set(
     'repurposecontent',
     'validatemarketingclaims',
     'reviewmarketingcompliance',
+    'analyzecompetitorlandscape',
+    'generatenurturesequence',
+    'generatewinbackcampaign',
   ].map((name) => name.toLowerCase())
 );
 
@@ -9852,6 +9856,7 @@ module.exports = {
   createCapabilitiesRouter,
   hydrateAnalyzeInboxInput,
   hydrateCaoSystemSnapshot,
+  hydrateCmoSystemSnapshot,
   materializeCustomerReplyActions,
   toGraphReadOptionsFromEnv,
   clearWorklistConsumerResponseCache,

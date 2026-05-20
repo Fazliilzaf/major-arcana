@@ -575,6 +575,7 @@ const config = {
           'egzona@hairtpclinic.com',
           'fazli@hairtpclinic.com',
           'marknad@hairtpclinic.com',
+          'receipt@hairtpclinic.com',
         ];
   })(),
   schedulerCcoHistoryRecentWindowDays: asInt(

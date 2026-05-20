@@ -293,6 +293,30 @@
       );
     }
 
+    function persistRuntimeThreadCacheIfReady({ runtimeMailboxIds = [] } = {}) {
+      try {
+        if (!windowObject?.CcoThreadCache?.saveThreads || !runtimeHasLiveThreads()) return;
+        windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
+          mailboxIds: runtimeMailboxIds,
+          lastEnrichedAt: asText(state.runtime?.lastEnrichedAt),
+        });
+      } catch (_cacheError) {
+        /* cache är best-effort */
+      }
+    }
+
+    function markRuntimeEnrichmentReadyIfAvailable(truthPrimaryPayload = null) {
+      if (!runtimeHasLiveThreads()) return false;
+      const hasServerEnrichment =
+        truthPrimaryPayload && hasTruthPrimaryServerEnrichment(truthPrimaryPayload);
+      const hasCachedEnrichment = Boolean(asText(state.runtime?.lastEnrichedAt));
+      if (!hasServerEnrichment && !hasCachedEnrichment) return false;
+      state.runtime.loaded = true;
+      state.runtime.staleCacheActive = false;
+      state.runtime.loading = false;
+      return true;
+    }
+
     function paintTruthPrimaryWorklistFromPayload(
       truthPrimaryPayload,
       {
@@ -382,6 +406,10 @@
         authRequired: false,
         error: "",
       });
+      if (hasTruthPrimaryServerEnrichment(truthPrimaryPayload)) {
+        markRuntimeEnrichmentReadyIfAvailable(truthPrimaryPayload);
+        persistRuntimeThreadCacheIfReady({ runtimeMailboxIds });
+      }
       return {
         applied: true,
         hasNewMail,
@@ -431,6 +459,7 @@
         if (windowObject?.CcoThreadCache && runtimeHasLiveThreads()) {
           windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
             mailboxIds: runtimeMailboxIds,
+            lastEnrichedAt: asText(state.runtime?.lastEnrichedAt),
           });
         }
       } catch (_cacheError) {
@@ -440,6 +469,9 @@
       const hasNewMail =
         paintResult.hasNewMail === true ||
         (Boolean(previousSig) && consumerSig !== previousSig && paintResult.threadCount > 0);
+      if (!hasNewMail) {
+        markRuntimeEnrichmentReadyIfAvailable(truthPrimaryPayload);
+      }
       if (hasNewMail && runAnalyzeInboxForNewMail) {
         const analyzeRequest = await requestAnalyzeInboxPayload(runtimeMailboxIds, {
           force: true,
@@ -3421,6 +3453,10 @@
                 }
                 truthPrimaryFastPathApplied = paintResult.applied === true;
                 activeTruthPrimaryMailboxIds = [...configuredTruthPrimaryMailboxIds];
+                if (hasTruthPrimaryServerEnrichment(truthPrimaryPayload)) {
+                  markRuntimeEnrichmentReadyIfAvailable(truthPrimaryPayload);
+                  persistRuntimeThreadCacheIfReady({ runtimeMailboxIds });
+                }
               }
             } catch (truthPrimaryError) {
               truthPrimaryFallbackReason =
@@ -3493,6 +3529,7 @@
                   if (windowObject?.CcoThreadCache && runtimeHasLiveThreads()) {
                     windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
                       mailboxIds: runtimeMailboxIds,
+                      lastEnrichedAt: asText(state.runtime?.lastEnrichedAt),
                     });
                   }
                 } catch (_cacheError) {
@@ -3500,7 +3537,11 @@
                 }
               }
 
-              if (runtimeHasLiveThreads() && !hasNewMail) {
+              if (
+                runtimeHasLiveThreads() &&
+                (!hasNewMail || hasTruthPrimaryServerEnrichment(truthPrimaryPayload))
+              ) {
+                markRuntimeEnrichmentReadyIfAvailable(truthPrimaryPayload);
                 state.runtime.loaded = true;
                 state.runtime.staleCacheActive = false;
                 clearRuntimeBackgroundSync();
@@ -3701,8 +3742,17 @@
           typeof getRequestedRuntimeMailboxIds === "function"
             ? getRequestedRuntimeMailboxIds()
             : [];
-        return windowObject.CcoThreadCache.loadThreads({ mailboxIds })
-          .then((cached) => {
+        const loader =
+          windowObject?.CcoThreadCache?.loadCacheEntry ||
+          ((options) =>
+            windowObject?.CcoThreadCache?.loadThreads
+              ? windowObject.CcoThreadCache.loadThreads(options).then((threads) =>
+                  Array.isArray(threads) ? { threads } : null
+                )
+              : Promise.resolve(null));
+        return loader({ mailboxIds })
+          .then((entry) => {
+            const cached = entry && Array.isArray(entry.threads) ? entry.threads : null;
             if (!Array.isArray(cached) || cached.length === 0) return false;
             const alreadyLive =
               state.runtime?.loaded === true ||
@@ -3712,9 +3762,10 @@
             if (alreadyLive) return false;
 
             state.runtime.threads = mapCachedRuntimeThreads(cached);
-            state.runtime.staleCacheActive = true;
+            state.runtime.lastEnrichedAt = asText(entry?.lastEnrichedAt);
+            state.runtime.staleCacheActive = !state.runtime.lastEnrichedAt;
             state.runtime.loading = false;
-            state.runtime.loaded = false;
+            state.runtime.loaded = Boolean(state.runtime.lastEnrichedAt);
             setRuntimeModeState("live", {
               live: true,
               offline: false,
