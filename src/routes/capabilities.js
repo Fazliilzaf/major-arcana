@@ -241,25 +241,44 @@ function normalizeWorklistRowConversationId(row = {}) {
   return normalizeText(row?.conversationId || row?.id).toLowerCase();
 }
 
+function buildWorklistConversationScopeSet(scopeConversationIds = []) {
+  const scopeSet = new Set();
+  for (const item of asArray(scopeConversationIds)) {
+    const normalized = normalizeText(item).toLowerCase();
+    if (!normalized) continue;
+    scopeSet.add(normalized);
+    const colonIndex = normalized.lastIndexOf(':');
+    if (colonIndex > 0 && colonIndex < normalized.length - 1) {
+      scopeSet.add(normalized.slice(colonIndex + 1));
+    }
+  }
+  return scopeSet;
+}
+
+function worklistRowMatchesConversationScope(row = {}, scopeSet = new Set()) {
+  if (!scopeSet || scopeSet.size === 0) return false;
+  const rowId = normalizeWorklistRowConversationId(row);
+  if (!rowId) return false;
+  if (scopeSet.has(rowId)) return true;
+  const colonIndex = rowId.lastIndexOf(':');
+  if (colonIndex > 0 && scopeSet.has(rowId.slice(colonIndex + 1))) return true;
+  return false;
+}
+
 function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConversationIds = []) {
-  const scopeSet = new Set(
-    asArray(scopeConversationIds)
-      .map((item) => normalizeText(item).toLowerCase())
-      .filter(Boolean)
-  );
+  const scopeSet = buildWorklistConversationScopeSet(scopeConversationIds);
   const deltaById = new Map(
     asArray(deltaRows).map((row) => [normalizeWorklistRowConversationId(row), row])
   );
   const merged = asArray(baseRows).filter((row) => {
-    const rowId = normalizeWorklistRowConversationId(row);
     if (scopeSet.size > 0) {
-      return !scopeSet.has(rowId);
+      return !worklistRowMatchesConversationScope(row, scopeSet);
     }
-    return !deltaById.has(rowId);
+    return !deltaById.has(normalizeWorklistRowConversationId(row));
   });
   const deltaToApply =
     scopeSet.size > 0
-      ? asArray(deltaRows).filter((row) => scopeSet.has(normalizeWorklistRowConversationId(row)))
+      ? asArray(deltaRows).filter((row) => worklistRowMatchesConversationScope(row, scopeSet))
       : asArray(deltaRows);
   merged.push(...deltaToApply);
   return merged;
@@ -2319,6 +2338,14 @@ async function hydrateAnalyzeInboxInput({
       : {}),
     ...asObject(graphReadOptionsOverride),
   };
+  if (
+    requestedConversationIds.length > 0 &&
+    !Array.isArray(graphReadOptions.conversationIds)
+  ) {
+    graphReadOptions.conversationIds = requestedConversationIds.slice();
+  }
+  const skipGraphSnapshotCache =
+    requestedConversationIds.length > 0 || graphReadOptions.skipGraphSnapshotCache === true;
   const graphSnapshotCacheKey = buildAnalyzeInboxGraphSnapshotCacheKey({
     tenantId,
     mailboxIds:
@@ -2327,7 +2354,9 @@ async function hydrateAnalyzeInboxInput({
         : asArray(graphReadOptions.allowlistMailboxIds),
     days: graphReadOptions.days,
   });
-  const cachedGraphSnapshot = readAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey);
+  const cachedGraphSnapshot = skipGraphSnapshotCache
+    ? null
+    : readAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey);
   if (cachedGraphSnapshot) {
     const augmentedSnapshot = await augmentAnalyzeInboxSnapshotWithHistorySignals({
       tenantId,
@@ -2444,7 +2473,9 @@ async function hydrateAnalyzeInboxInput({
               (mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId)
             ),
     });
-    writeAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey, augmentedSnapshot);
+    if (!skipGraphSnapshotCache) {
+      writeAnalyzeInboxGraphSnapshotCache(graphSnapshotCacheKey, augmentedSnapshot);
+    }
 
     await writeMailboxReadAuditEvent({
       authStore,

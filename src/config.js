@@ -558,6 +558,18 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_INTERVAL_HOURS,
     24
   ),
+  schedulerCcoInboxBootstrapLookbackDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_LOOKBACK_DAYS,
+    90
+  ),
+  schedulerCcoInboxScopedLookbackDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS,
+    7
+  ),
+  schedulerCcoInboxScopedMaxMessagesPerUser: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
+    25
+  ),
   schedulerCcoHistoryMailboxId: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID,
     'kons@hairtpclinic.com'

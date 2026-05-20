@@ -2607,9 +2607,37 @@ function createScheduler({
       }
     }
 
-    const lookbackDays = Math.max(
-      7,
-      Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14)
+    const lookbackDays = (() => {
+      if (useScopedMerge && baselineOutputData) {
+        return Math.max(
+          1,
+          Math.min(
+            30,
+            Number(config?.schedulerCcoInboxScopedLookbackDays) || 7
+          )
+        );
+      }
+      const bootstrapTriggers = new Set(['startup', 'scheduled']);
+      if (mode === 'full' && bootstrapTriggers.has(normalizeText(trigger))) {
+        return Math.max(
+          7,
+          Math.min(
+            90,
+            Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
+          )
+        );
+      }
+      return Math.max(
+        7,
+        Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14)
+      );
+    })();
+    const scopedMaxMessagesPerUser = Math.max(
+      10,
+      Math.min(
+        50,
+        Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25
+      )
     );
     const correlationId = `cco-inbox-refresh:${crypto.randomUUID()}`;
     const requestId = `scheduler-inbox-refresh:${crypto.randomUUID()}`;
@@ -2638,6 +2666,21 @@ function createScheduler({
         fullTenant: true,
         userScope: 'all',
         maxUsers: Math.max(1, effectiveMailboxIds.length),
+        ...(useScopedMerge && baselineOutputData
+          ? {
+              conversationIds: scopedIds,
+              skipGraphSnapshotCache: true,
+              maxMessagesPerUser: scopedMaxMessagesPerUser,
+              maxInboxMessagesPerUser: Math.max(
+                8,
+                Math.floor(scopedMaxMessagesPerUser * 0.6)
+              ),
+              maxSentMessagesPerUser: Math.max(
+                5,
+                Math.floor(scopedMaxMessagesPerUser * 0.4)
+              ),
+            }
+          : {}),
       },
     });
     const capability = new AnalyzeInboxCapability();

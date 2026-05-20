@@ -196,6 +196,30 @@ function normalizeIdentifier(value, maxLength = 120) {
   return `${normalized.slice(0, headLength)}:${digest}`.slice(0, maxLength);
 }
 
+function buildConversationScopeSet(scopeConversationIds = []) {
+  const scopeSet = new Set();
+  for (const item of asArray(scopeConversationIds)) {
+    const normalized = normalizeIdentifier(item, 320).toLowerCase();
+    if (!normalized) continue;
+    scopeSet.add(normalized);
+    const colonIndex = normalized.lastIndexOf(':');
+    if (colonIndex > 0 && colonIndex < normalized.length - 1) {
+      scopeSet.add(normalized.slice(colonIndex + 1));
+    }
+  }
+  return scopeSet;
+}
+
+function conversationMatchesScope(conversationId = '', scopeSet = new Set()) {
+  if (!scopeSet || scopeSet.size === 0) return true;
+  const normalized = normalizeIdentifier(conversationId, 320).toLowerCase();
+  if (!normalized) return false;
+  if (scopeSet.has(normalized)) return true;
+  const colonIndex = normalized.lastIndexOf(':');
+  if (colonIndex > 0 && scopeSet.has(normalized.slice(colonIndex + 1))) return true;
+  return false;
+}
+
 function normalizeOpaqueId(value) {
   return normalizeText(value);
 }
@@ -2266,20 +2290,13 @@ class AnalyzeInboxCapability extends BaseCapability {
       'balanserad';
 
     const rawConversations = asArray(snapshotSource.conversations);
-    const requestedConversationIds = new Set(
-      asArray(input.conversationIds)
-        .map((value) => normalizeIdentifier(value, 320).toLowerCase())
-        .filter(Boolean)
-    );
+    const requestedConversationScope = buildConversationScopeSet(input.conversationIds);
     const conversations = rawConversations
       .map(toConversationSnapshot)
       .filter((item) => item.conversationId)
-      .filter((item) => {
-        if (requestedConversationIds.size === 0) return true;
-        return requestedConversationIds.has(
-          normalizeIdentifier(item.conversationId, 320).toLowerCase()
-        );
-      });
+      .filter((item) =>
+        conversationMatchesScope(item.conversationId, requestedConversationScope)
+      );
 
     const mailboxCount = countMailboxesFromConversations(
       conversations,

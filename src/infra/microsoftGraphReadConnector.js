@@ -621,6 +621,30 @@ function toScopedConversationId(conversationId, mailboxKey) {
   return `${normalizedMailboxKey}:${normalizedConversationId}`;
 }
 
+function buildConversationIdFilterSet(rawIds = []) {
+  const filterSet = new Set();
+  for (const rawId of asArray(rawIds)) {
+    const normalized = normalizeText(rawId).toLowerCase();
+    if (!normalized) continue;
+    filterSet.add(normalized);
+    const colonIndex = normalized.lastIndexOf(':');
+    if (colonIndex > 0 && colonIndex < normalized.length - 1) {
+      filterSet.add(normalized.slice(colonIndex + 1));
+    }
+  }
+  return filterSet;
+}
+
+function conversationMatchesIdFilter(conversation = {}, filterSet = new Set()) {
+  if (!filterSet || filterSet.size === 0) return true;
+  const conversationId = normalizeText(conversation?.conversationId).toLowerCase();
+  if (!conversationId) return false;
+  if (filterSet.has(conversationId)) return true;
+  const colonIndex = conversationId.lastIndexOf(':');
+  if (colonIndex > 0 && filterSet.has(conversationId.slice(colonIndex + 1))) return true;
+  return false;
+}
+
 function toNormalizedMessage(
   raw = {},
   { mailboxId = '', mailboxKey = '', mailboxAddress = '', userPrincipalName = '', direction = 'inbound' } = {}
@@ -2303,7 +2327,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
       throw new Error('MicrosoftGraphReadConnector now() must return a finite timestamp.');
     }
 
-    const windowDays = clampInt(options.days, 1, 30, 14);
+    const windowDays = clampInt(options.days, 1, 90, 14);
     const maxMessages = clampInt(options.maxMessages, 1, 200, 100);
     const splitDefault = Math.max(1, Math.floor(maxMessages / 2));
     const defaultInboxMaxMessages = Math.max(1, maxMessages - splitDefault);
@@ -2692,6 +2716,13 @@ function createMicrosoftGraphReadConnector(config = {}) {
 
     if (fullTenantMode) {
       conversations = toConversationSnapshots(conversations);
+    }
+
+    const conversationIdFilter = buildConversationIdFilterSet(options.conversationIds);
+    if (conversationIdFilter.size > 0 && Array.isArray(conversations)) {
+      conversations = conversations.filter((conversation) =>
+        conversationMatchesIdFilter(conversation, conversationIdFilter)
+      );
     }
 
     const snapshot = {
