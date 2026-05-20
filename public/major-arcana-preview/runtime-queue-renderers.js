@@ -1276,6 +1276,7 @@
     } = helpers;
 
     let __lastMailboxMenuSig = "";
+    let __pendingMailboxMenuSig = "";
 
     function isRuntimeDemoThread(thread) {
       return normalizeKey(thread?.worklistSource || "") === "demo";
@@ -5189,7 +5190,118 @@
       }
     }
 
-    function renderRuntimeMailboxMenu() {
+    function syncMailboxMenuCheckboxes(selectedIds) {
+      if (!mailboxMenuGrid) return;
+      mailboxMenuGrid.querySelectorAll("[data-runtime-mailbox]").forEach((input) => {
+        const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
+        input.checked = selectedIds.has(mailboxId);
+      });
+    }
+
+    function updateMailboxTriggerLabel(availableMailboxes, selectedIds) {
+      if (!mailboxTriggerLabel) return;
+      const selectedMailboxes = availableMailboxes.filter((mailbox) =>
+        selectedIds.has(normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id))
+      );
+      const allMailboxesSelected =
+        availableMailboxes.length > 0 &&
+        availableMailboxes.every((mailbox) =>
+          selectedIds.has(normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id))
+        );
+      const selectedCount =
+        allMailboxesSelected && availableMailboxes.length
+          ? availableMailboxes.length
+          : selectedMailboxes.length || (availableMailboxes.length ? availableMailboxes.length : 0);
+      let compactScopeLabel = "Inga mail";
+      if (!availableMailboxes.length) {
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
+        compactScopeLabel = "Inga mail";
+      } else if (allMailboxesSelected) {
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
+        compactScopeLabel = "Alla mail";
+      } else if (selectedMailboxes.length === 1) {
+        mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label}`;
+        compactScopeLabel = compactRuntimeCopy(selectedMailboxes[0].label, "Mejlkonto", 18);
+      } else if (selectedMailboxes.length > 1) {
+        mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label} +${selectedMailboxes.length - 1}`;
+        compactScopeLabel = compactRuntimeCopy(
+          `${selectedMailboxes[0].label} +${selectedMailboxes.length - 1}`,
+          "Valda mail",
+          18
+        );
+      } else {
+        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
+        compactScopeLabel = "Inga mail";
+      }
+      if (queueMailboxScopeLabel) {
+        queueMailboxScopeLabel.textContent = compactScopeLabel;
+      }
+      if (queueMailboxScopeCount) {
+        queueMailboxScopeCount.textContent = String(selectedCount);
+      }
+    }
+
+    function buildRuntimeMailboxMenuDom(availableMailboxes, selectedIds) {
+      if (!mailboxMenuGrid) return;
+      mailboxMenuGrid.innerHTML = "";
+      availableMailboxes.forEach((mailbox) => {
+        const mailboxScopeId = normalizeMailboxId(
+          mailbox.canonicalId || mailbox.email || mailbox.id
+        );
+        const checked = selectedIds.has(mailboxScopeId);
+        const rawStatusLabel =
+          typeof mailbox.statusLabel === "string" && mailbox.statusLabel.trim()
+            ? mailbox.statusLabel.trim()
+            : mailbox.custom
+              ? "Eget"
+              : "Aktiv";
+        const statusLabel = rawStatusLabel === "Live" ? "Aktiv" : rawStatusLabel;
+        const fallbackMeta =
+          mailbox.signatureCopy ||
+          mailbox.ownerCopy ||
+          (mailbox.custom
+            ? mailbox.signature?.label
+              ? `Signatur: ${mailbox.signature.label}`
+              : `Ägare: ${mailbox.owner || "Team"}`
+            : `Källa: ${mailbox.owner || "Aktiv"}`);
+        const label = document.createElement("label");
+        label.className = "mailbox-option";
+        if (mailbox.toneClass) {
+          label.classList.add(mailbox.toneClass);
+        }
+        if (mailbox.custom === true) {
+          label.classList.add("mailbox-option-custom");
+        }
+        label.innerHTML =
+          `<input class="mailbox-option-input" type="checkbox" data-runtime-mailbox="${escapeHtml(mailboxScopeId)}"${checked ? " checked" : ""} />` +
+          '<span class="mailbox-option-box" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 8.4 6.6 11.2l5.8-6.3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" /></svg></span>' +
+          `<span class="mailbox-option-copy">
+            <span class="mailbox-option-primary">
+              <span class="mailbox-option-name">${escapeHtml(mailbox.label)}</span>
+              <span class="mailbox-option-status">${escapeHtml(statusLabel)}</span>
+            </span>
+            <span class="mailbox-option-secondary">
+              ${
+                mailbox.email
+                  ? `<span class="mailbox-option-email">${escapeHtml(mailbox.email)}</span>`
+                  : ""
+              }
+              <span class="mailbox-option-meta">${escapeHtml(fallbackMeta)}</span>
+            </span>
+          </span>`;
+        mailboxMenuGrid.appendChild(label);
+      });
+      const addButton = document.createElement("button");
+      addButton.className = "mailbox-option mailbox-option-add";
+      addButton.type = "button";
+      addButton.dataset.mailboxAdminOpen = "true";
+      addButton.innerHTML =
+        '<span class="mailbox-option-plus" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" /></svg></span>' +
+        '<span class="mailbox-option-name">Lägg till</span>';
+      mailboxMenuGrid.appendChild(addButton);
+    }
+
+    function renderRuntimeMailboxMenu(options = {}) {
       if (!mailboxMenuGrid || !mailboxTriggerLabel) return;
       if (state.runtime?.authRequired === true) {
         mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
@@ -5200,6 +5312,8 @@
           queueMailboxScopeCount.textContent = "0";
         }
         mailboxMenuGrid.innerHTML = "";
+        __lastMailboxMenuSig = "";
+        __pendingMailboxMenuSig = "";
         return;
       }
       const availableMailboxes = getAvailableRuntimeMailboxes();
@@ -5222,117 +5336,35 @@
           custom: mailbox.custom === true,
         })),
       });
-      const preserveMenuDom =
-        menuSig === __lastMailboxMenuSig && mailboxMenuGrid.childElementCount > 0;
-      if (!preserveMenuDom) {
+      updateMailboxTriggerLabel(availableMailboxes, selectedIds);
+
+      const mailboxMenuToggle = document.getElementById("mailbox-menu-toggle");
+      const menuIsOpen = mailboxMenuToggle?.checked === true;
+      const sigChanged = menuSig !== __lastMailboxMenuSig;
+      const mustBuildDom =
+        options.forceBuild === true ||
+        mailboxMenuGrid.childElementCount === 0 ||
+        (sigChanged && (menuIsOpen || options.forceBuild === true));
+
+      if (mustBuildDom) {
         __lastMailboxMenuSig = menuSig;
-        const mailboxMenuToggle = document.getElementById("mailbox-menu-toggle");
-        const menuWasOpen = mailboxMenuToggle?.checked === true;
-        mailboxMenuGrid.innerHTML = "";
-      availableMailboxes.forEach((mailbox) => {
-        const mailboxScopeId = normalizeMailboxId(
-          mailbox.canonicalId || mailbox.email || mailbox.id
-        );
-        const checked = selectedIds.has(mailboxScopeId);
-        const rawStatusLabel =
-          typeof mailbox.statusLabel === "string" && mailbox.statusLabel.trim()
-            ? mailbox.statusLabel.trim()
-            : mailbox.custom
-              ? "Eget"
-              : "Aktiv";
-        const statusLabel = rawStatusLabel === "Live" ? "Aktiv" : rawStatusLabel;
-        const capabilityMeta =
-          typeof getRuntimeMailboxCapabilityMeta === "function"
-            ? getRuntimeMailboxCapabilityMeta(mailbox.email || mailbox.id)
-            : "";
-        const fallbackMeta =
-          mailbox.signatureCopy ||
-          mailbox.ownerCopy ||
-          (mailbox.custom
-            ? mailbox.signature?.label
-              ? `Signatur: ${mailbox.signature.label}`
-              : `Ägare: ${mailbox.owner || "Team"}`
-            : `Källa: ${mailbox.owner || "Aktiv"}`);
-        const dropdownMeta = capabilityMeta || fallbackMeta;
-        const label = document.createElement("label");
-        label.className = "mailbox-option";
-        if (mailbox.toneClass) {
-          label.classList.add(mailbox.toneClass);
-        }
-        if (mailbox.custom === true) {
-          label.classList.add("mailbox-option-custom");
-        }
-        if (capabilityMeta) {
-          label.title = capabilityMeta;
-        }
-        label.innerHTML =
-          `<input class="mailbox-option-input" type="checkbox" data-runtime-mailbox="${escapeHtml(mailboxScopeId)}"${checked ? " checked" : ""} />` +
-          '<span class="mailbox-option-box" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 8.4 6.6 11.2l5.8-6.3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" /></svg></span>' +
-          `<span class="mailbox-option-copy">
-            <span class="mailbox-option-primary">
-              <span class="mailbox-option-name">${escapeHtml(mailbox.label)}</span>
-              <span class="mailbox-option-status">${escapeHtml(statusLabel)}</span>
-            </span>
-            <span class="mailbox-option-secondary">
-              ${
-                mailbox.email
-                  ? `<span class="mailbox-option-email">${escapeHtml(mailbox.email)}</span>`
-                  : ""
-              }
-              <span class="mailbox-option-meta">${escapeHtml(dropdownMeta)}</span>
-            </span>
-          </span>`;
-        mailboxMenuGrid.appendChild(label);
-      });
-      const addButton = document.createElement("button");
-      addButton.className = "mailbox-option mailbox-option-add";
-      addButton.type = "button";
-      addButton.dataset.mailboxAdminOpen = "true";
-      addButton.innerHTML =
-        '<span class="mailbox-option-plus" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" /></svg></span>' +
-        '<span class="mailbox-option-name">Lägg till</span>';
-      mailboxMenuGrid.appendChild(addButton);
-        if (menuWasOpen && typeof windowObject?.dispatchEvent === "function") {
+        __pendingMailboxMenuSig = "";
+        buildRuntimeMailboxMenuDom(availableMailboxes, selectedIds);
+        if (menuIsOpen && typeof windowObject?.dispatchEvent === "function") {
           windowObject.dispatchEvent(new CustomEvent("cco:mailbox-menu-rendered"));
         }
       } else {
-        mailboxMenuGrid.querySelectorAll("[data-runtime-mailbox]").forEach((input) => {
-          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
-          input.checked = selectedIds.has(mailboxId);
-        });
+        if (sigChanged) {
+          __pendingMailboxMenuSig = menuSig;
+        }
+        syncMailboxMenuCheckboxes(selectedIds);
       }
+    }
 
-      const selectedMailboxes = availableMailboxes.filter((mailbox) =>
-        selectedIds.has(normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id))
-      );
-      const selectedCount =
-        selectedMailboxes.length || (availableMailboxes.length ? availableMailboxes.length : 0);
-      let compactScopeLabel = "Inga mail";
-      if (!availableMailboxes.length) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
-        compactScopeLabel = "Inga mail";
-      } else if (selectedMailboxes.length === availableMailboxes.length) {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Alla mejlkonton";
-        compactScopeLabel = "Alla mail";
-      } else if (selectedMailboxes.length === 1) {
-        mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label}`;
-        compactScopeLabel = compactRuntimeCopy(selectedMailboxes[0].label, "Mejlkonto", 18);
-      } else if (selectedMailboxes.length > 1) {
-        mailboxTriggerLabel.textContent = `Hair TP Clinic - ${selectedMailboxes[0].label} +${selectedMailboxes.length - 1}`;
-        compactScopeLabel = compactRuntimeCopy(
-          `${selectedMailboxes[0].label} +${selectedMailboxes.length - 1}`,
-          "Valda mail",
-          18
-        );
-      } else {
-        mailboxTriggerLabel.textContent = "Hair TP Clinic - Inga mejlkonton";
-        compactScopeLabel = "Inga mail";
-      }
-      if (queueMailboxScopeLabel) {
-        queueMailboxScopeLabel.textContent = compactScopeLabel;
-      }
-      if (queueMailboxScopeCount) {
-        queueMailboxScopeCount.textContent = String(selectedCount);
+    function ensureRuntimeMailboxMenuDom() {
+      if (!mailboxMenuGrid) return;
+      if (mailboxMenuGrid.childElementCount === 0 || __pendingMailboxMenuSig) {
+        renderRuntimeMailboxMenu({ forceBuild: true });
       }
     }
 
@@ -6568,6 +6600,7 @@
       renderQueueHistorySection,
       renderRuntimeQueue,
       renderThreadContextRows,
+      ensureRuntimeMailboxMenuDom,
     });
   }
 

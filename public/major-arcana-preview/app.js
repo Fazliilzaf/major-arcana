@@ -13344,6 +13344,7 @@
     renderQueueHistorySection,
     renderRuntimeQueue,
     renderThreadContextRows,
+    ensureRuntimeMailboxMenuDom,
   } = PREVIEW_QUEUE_RENDERERS.createQueueRenderers({
     dom: {
       laterMetricValueNodes,
@@ -14094,20 +14095,28 @@
     ) {
       workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
       state.runtime.mailboxScopePinned = false;
-      return;
-    }
-    if (!selectedMailboxIds.length) {
+    } else if (!selectedMailboxIds.length) {
       workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
       state.runtime.mailboxScopePinned = false;
-      return;
+    } else {
+      const validIds = new Set(availableIds);
+      workspaceSourceOfTruth.setSelectedMailboxIds(
+        selectedMailboxIds.filter((id) => validIds.has(canonicalizeRuntimeMailboxId(id)))
+      );
+      if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
+        workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
+        state.runtime.mailboxScopePinned = false;
+      }
     }
-    const validIds = new Set(availableIds);
-    workspaceSourceOfTruth.setSelectedMailboxIds(
-      selectedMailboxIds.filter((id) => validIds.has(canonicalizeRuntimeMailboxId(id)))
-    );
-    if (!workspaceSourceOfTruth.getSelectedMailboxIds().length) {
-      workspaceSourceOfTruth.setSelectedMailboxIds(defaultScope);
-      state.runtime.mailboxScopePinned = false;
+    if (state.runtime?.queueLaneBootstrapped !== true) {
+      state.runtime.queueLaneBootstrapped = true;
+      workspaceSourceOfTruth.setActiveLaneId("all");
+      state.runtime.queueInlinePanel = {
+        ...(state.runtime.queueInlinePanel || {}),
+        open: false,
+        laneId: "",
+        feedKey: "",
+      };
     }
   }
 
@@ -14232,6 +14241,15 @@
     if (
       !getFilteredRuntimeThreads().length &&
       normalizeKey(workspaceSourceOfTruth.getActiveLaneId() || "all") !== "all"
+    ) {
+      workspaceSourceOfTruth.setActiveLaneId("all");
+    }
+
+    const activeLaneAfterReset = normalizeKey(workspaceSourceOfTruth.getActiveLaneId() || "all");
+    if (
+      activeLaneAfterReset !== "all" &&
+      !getQueueLaneThreads(activeLaneAfterReset, getQueueScopedRuntimeThreads()).length &&
+      getQueueLaneThreads("all", getQueueScopedRuntimeThreads()).length
     ) {
       workspaceSourceOfTruth.setActiveLaneId("all");
     }
@@ -40287,6 +40305,9 @@ renderStudioShell();
       if (!toggle.checked) {
         clearMailboxDropdownOverlay(menu);
         return;
+      }
+      if (toggle.id === "mailbox-menu-toggle" && typeof ensureRuntimeMailboxMenuDom === "function") {
+        ensureRuntimeMailboxMenuDom();
       }
       closeMailboxDropdowns({ exceptToggle: toggle });
       window.requestAnimationFrame(() => {

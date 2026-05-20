@@ -706,6 +706,10 @@
     right: auto;
     width: min(360px, calc(100vw - 32px));
     max-height: min(520px, calc(100vh - 80px));
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
   /* Owner-dropdown: höger-anchorerad (fakturarow) */
   .owner-dropdown.mailbox-dropdown > .mailbox-menu {
