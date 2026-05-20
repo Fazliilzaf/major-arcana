@@ -743,6 +743,12 @@
     });
   }
 
+  if (typeof window !== "undefined") {
+    window.addEventListener("cco:mailbox-menu-rendered", () => {
+      syncOpenMailboxDropdownOverlays();
+    });
+  }
+
   function closeMailboxDropdowns({ exceptToggle = null } = {}) {
     mailboxDropdowns.forEach((dropdown) => {
       const parts = getMailboxDropdownParts(dropdown);
@@ -2357,6 +2363,7 @@
       pendingFullRefresh: false,
       isBackgroundRefresh: false,
       staleCacheActive: false,
+      backgroundSyncActive: false,
       scopeAutoWidenedAt: "",
       backgroundRefreshSelectedThreadId: "",
       mode: "",
@@ -2518,6 +2525,7 @@
       mailboxCapabilities: [],
       selectedMailboxIds: [],
       mailboxScopePinned: false,
+      mailboxScopeSyncing: false,
       selectedOwnerKey: "all",
       activeLaneId: "all",
       orderedLaneIds: [...QUEUE_LANE_ORDER],
@@ -2838,18 +2846,11 @@
   });
   __stateRefs.proxy = state;
 
-  // Fas 39 (2026-05-19): rensa demo-fixtures vid bootstrap om admin-token finns.
-  // De 6 demo-threads (Morten Bak, Sara Holm, Anna Svensson osv) är seedade
-  // för marknads-demot utan backend. När användaren är inloggad ska CCO
-  // starta TOMT och vänta på live-data — annars visas "Live · 6"-pillen
-  // med demo-data → mellanläge. Detta är komplement till Fas 39-fixen i
-  // runtime-dom-live-composition.js som ser till att live-load alltid
-  // overrider demo (även när live returnerar tomt).
+  // Fas 39 (2026-05-19) + Fas 48 (2026-05-20): rensa demo-fixtures vid bootstrap.
+  // Demo-kort (Morten Bak, Sara Holm osv) ska aldrig visas tillsammans med
+  // auth_required eller i admin-läge — bara tom kö + "Session krävs".
   try {
-    const __hasAdminTokenFas39 =
-      typeof localStorage !== "undefined" &&
-      Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
-    if (__hasAdminTokenFas39 && Array.isArray(__stateInternal.runtime?.threads)) {
+    if (Array.isArray(__stateInternal.runtime?.threads)) {
       __stateInternal.runtime.threads = __stateInternal.runtime.threads.filter(
         (thread) => String(thread?.worklistSource || "").toLowerCase() !== "demo"
       );
@@ -5047,9 +5048,22 @@
     "runtime_error",
   ]);
 
+  function runtimeHasLiveThreadsInState(threads = state.runtime?.threads) {
+    return asArray(threads).some(
+      (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+    );
+  }
+
+  function isRuntimeUiBlockingSync() {
+    if (state.runtime?.authRequired === true) return false;
+    if (state.runtime?.staleCacheActive === true) return false;
+    if (runtimeHasLiveThreadsInState()) return false;
+    return state.runtime?.loading === true;
+  }
+
   function deriveRuntimeVisualState() {
     if (state.runtime?.authRequired === true) return "auth_required";
-    if (state.runtime?.loading === true && state.runtime?.staleCacheActive !== true) {
+    if (isRuntimeUiBlockingSync()) {
       return "syncing";
     }
     if (normalizeText(state.runtime?.error)) return "runtime_error";
@@ -14126,7 +14140,17 @@
           .normalize("NFKD")
           .replace(/[\u0300-\u036f]/g, "") === "demo"
     );
-    const shouldPreferDemoThreads = !availableMailboxes.length && demoThreads.length > 1;
+    const shouldPreferDemoThreads =
+      !state.runtime?.authRequired &&
+      !availableMailboxes.length &&
+      demoThreads.length > 1 &&
+      (() => {
+        try {
+          return !localStorage.getItem("ARCANA_ADMIN_TOKEN");
+        } catch (_e) {
+          return true;
+        }
+      })();
     const threads = shouldPreferDemoThreads
       ? demoThreads
       : Array.isArray(state.data?.threads)
@@ -38649,6 +38673,10 @@ renderStudioShell();
     renderRuntimeIntel(selectedFocusThread, focusReadState);
     }
     if (state.runtime?.pendingFullRefresh === true) {
+      ensureRuntimeSelection();
+      renderRuntimeQueue();
+      renderQueueCategoryStripMode();
+      renderQueueHistorySection();
       return;
     }
     // Hooka in shell:en till renderApp (engångs, idempotent). Detta gör att

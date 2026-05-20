@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv" data-build="build-d1befb4">
+<html lang="sv" data-build="build-f7c1ae6">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -25,10 +25,10 @@
          Lit-switchover som sätter style="display:none !important" på
          .queue-history-list. Min critical CSS försökte tvinga listan synlig
          → konfliktade med Lit:s parallella container → vit yta. -->
-    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-d1befb4" />
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-d1befb4" />
-    <script src="./cco-polish.js?v=build-d1befb4" defer></script>
+    <link rel="stylesheet" href="./cco-polish.css?v=build-f7c1ae6" />
+    <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <script>
@@ -10542,40 +10542,40 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
-    <script src="./app/thread-cache-idb.js?v=build-d1befb4"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3b294f05e3) -->
-    <script src="./app.bundle.3b294f05e3.min.js"></script>
+    <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 56818c1b0b) -->
+    <script src="./app.bundle.56818c1b0b.min.js"></script>
     <!-- Källfil efter bundle så workrail-merge inte ligger kvar i äldre bundle-hash. -->
-    <script src="./runtime-focus-intel-renderers.js?v=build-d1befb4"></script>
+    <script src="./runtime-focus-intel-renderers.js?v=build-f7c1ae6"></script>
     <!-- App-moduler — laddas FÖRE app.js per APP-JS-MODULE-PLAN.md (Steg 1, 4) -->
-    <script src="./app/mock-worklist-api.js?v=build-d1befb4"></script>
-    <script src="./app/state-paths.js?v=build-d1befb4"></script>
-    <script src="./app/render-components.js?v=build-d1befb4"></script>
-    <script src="./app.js?v=build-d1befb4"></script>
+    <script src="./app/mock-worklist-api.js?v=build-f7c1ae6"></script>
+    <script src="./app/state-paths.js?v=build-f7c1ae6"></script>
+    <script src="./app/render-components.js?v=build-f7c1ae6"></script>
+    <script src="./app.js?v=build-f7c1ae6"></script>
     <!-- runtime-v5-layout-guard.js raderad i Fas 1 cleanup (2026-05-08) — tvingade gammal v5-grid via MutationObserver mot warm-row-markup -->
     <!-- runtime-fix-shims.js raderad — 3 kvarvarande shims flyttade till app/cco-shims.js -->
-    <script src="./app/cco-shims.js?v=build-d1befb4"></script>
+    <script src="./app/cco-shims.js?v=build-f7c1ae6"></script>
     <!-- Fas 27G: showcase-banner — visas när URL har portalCustomerKey -->
-    <script src="./app/showcase-banner.js?v=build-d1befb4"></script>
+    <script src="./app/showcase-banner.js?v=build-f7c1ae6"></script>
     <!-- Cmd+K snabbsök — laddas sist eftersom den behöver __ccoWorkspace + state -->
-    <script src="./app/cmd-k.js?v=build-d1befb4"></script>
+    <script src="./app/cmd-k.js?v=build-f7c1ae6"></script>
     <!-- Tangentbordsnav (j/k/e/r/s/?) — fungerar utanför andra overlays -->
-    <script src="./app/keyboard-nav.js?v=build-d1befb4"></script>
+    <script src="./app/keyboard-nav.js?v=build-f7c1ae6"></script>
     <!-- Bulk-actions: x togglar val, *a/*n select all/none, Shift+E/S/D batch -->
-    <script src="./app/bulk-actions.js?v=build-d1befb4"></script>
+    <script src="./app/bulk-actions.js?v=build-f7c1ae6"></script>
     <!-- Inbox-zero-streak: räknar dagar med tom kö, persist localStorage -->
-    <script src="./app/inbox-streak.js?v=build-d1befb4"></script>
+    <script src="./app/inbox-streak.js?v=build-f7c1ae6"></script>
     <!-- AI-utkast inline-edit: klicka i utkast direkt i thread-card -->
-    <script src="./app/inline-draft-edit.js?v=build-d1befb4"></script>
+    <script src="./app/inline-draft-edit.js?v=build-f7c1ae6"></script>
     <!-- System-mail-parser: extraherar kundnamn ur system-mejl (Klarna/Cliento/Foodora).
          Måste laddas FÖRE lit-switchover så parser-resolver.js har tillgång till
          window.MajorArcanaSystemMailParser via parser.parse(). -->
-    <script src="./app/system-mail-parser.js?v=build-d1befb4"></script>
+    <script src="./app/system-mail-parser.js?v=build-f7c1ae6"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
          replace-mode för alla köer. -->
-    <script type="module" src="./app/components/arcana-thread-card.js?v=build-d1befb4"></script>
-    <script type="module" src="./app/components/lit-switchover.js?v=build-d1befb4"></script>
+    <script type="module" src="./app/components/arcana-thread-card.js?v=build-f7c1ae6"></script>
+    <script type="module" src="./app/components/lit-switchover.js?v=build-f7c1ae6"></script>
   </body>
 </html>

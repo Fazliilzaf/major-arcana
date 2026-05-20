@@ -244,6 +244,26 @@
     let runtimeAnalyzeInboxFlight = null;
     let runtimeAnalyzeInboxCompletedAt = 0;
     const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 55000;
+    let runtimeMailboxScopeLoadTimer = 0;
+    const RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS = 450;
+
+    function runtimeHasLiveThreads(threads = state.runtime?.threads) {
+      return asArray(threads).some(
+        (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+      );
+    }
+
+    function markRuntimeNonBlockingSync({ preserveStaleCache = true } = {}) {
+      state.runtime.loading = false;
+      state.runtime.backgroundSyncActive = true;
+      if (preserveStaleCache && runtimeHasLiveThreads()) {
+        state.runtime.staleCacheActive = true;
+      }
+    }
+
+    function clearRuntimeBackgroundSync() {
+      state.runtime.backgroundSyncActive = false;
+    }
     let draggedQueueLaneId = "";
     const FULL_MAILBOX_LOOKBACK_DAYS = 1095;
     const RUNTIME_THREAD_HISTORY_CACHE_TTL_MS = 90_000;
@@ -889,6 +909,11 @@
       state.runtime.live = live;
       state.runtime.offline = offline;
       state.runtime.authRequired = authRequired;
+      if (authRequired === true && Array.isArray(state.runtime.threads)) {
+        state.runtime.threads = state.runtime.threads.filter(
+          (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+        );
+      }
       if (normalizedMode !== "offline_history") {
         state.runtime.offlineWorkingSetSource = "";
         state.runtime.offlineWorkingSetMeta = "";
@@ -2893,6 +2918,7 @@
       state.runtime.loading = false;
       state.runtime.loaded = true;
       state.runtime.staleCacheActive = false;
+      clearRuntimeBackgroundSync();
       setRuntimeModeState("live", {
         live: true,
         offline: false,
@@ -2925,6 +2951,30 @@
         preferredThreadId,
       });
       captureRuntimeReentrySnapshot("live_runtime_loaded");
+    }
+
+    function scheduleMailboxScopeLiveReload(requestedMailboxIds = []) {
+      if (runtimeMailboxScopeLoadTimer) {
+        windowObject.clearTimeout(runtimeMailboxScopeLoadTimer);
+      }
+      const mailboxIds = asArray(requestedMailboxIds).filter(Boolean);
+      runtimeMailboxScopeLoadTimer = windowObject.setTimeout(() => {
+        runtimeMailboxScopeLoadTimer = 0;
+        const hasLiveThreads = runtimeHasLiveThreads();
+        loadLiveRuntime({
+          requestedMailboxIds: mailboxIds,
+          preferredThreadId: "",
+          resetHistoryOnChange: true,
+          staleWhileRevalidate: hasLiveThreads,
+        })
+          .catch((error) => {
+            console.warn("CCO aktiv körning misslyckades efter mejlkontobyte.", error);
+          })
+          .finally(() => {
+            clearRuntimeBackgroundSync();
+            renderRuntimeConversationShell();
+          });
+      }, RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS);
     }
 
     async function loadLiveRuntime(options = {}) {
@@ -3000,7 +3050,13 @@
           return;
         }
 
-        state.runtime.loading = !staleWhileRevalidate;
+        if (staleWhileRevalidate || runtimeHasLiveThreads()) {
+          markRuntimeNonBlockingSync();
+        } else {
+          // Mail-pattern: kallstart blockerar inte UI — tom kö tills data kommer.
+          state.runtime.loading = false;
+          state.runtime.backgroundSyncActive = true;
+        }
         if (shouldClearPhaseA) {
           state.runtime.truthPrimaryLegacyThreads = [];
           state.runtime.liveHydratedThreadIds = [];
@@ -3756,6 +3812,7 @@
             Array.from(nextSelected)
           );
           state.runtime.mailboxScopePinned = nextSelectedMailboxIds.length > 0;
+          markRuntimeNonBlockingSync();
           workspaceSourceOfTruth.setSelectedThreadId("");
           state.runtime.historyContextThreadId = "";
           state.runtime.queueInlinePanel = {
@@ -3776,12 +3833,17 @@
             scopeKey: "",
           };
           renderRuntimeConversationShell();
+          renderQueueHistorySection();
+          if (typeof ensureRuntimeSelection === "function") {
+            ensureRuntimeSelection();
+          }
           captureRuntimeReentrySnapshot("mailboxscope_changed");
           debugReentrySnapshot("AFTER MAILBOX CHANGE");
           debugRuntimePipeline("AFTER MAILBOX CHANGE");
           refreshQueueInlineHistoryIfOpen();
           if (!nextSelectedMailboxIds.length) {
             state.runtime.mailboxScopePinned = false;
+            clearRuntimeBackgroundSync();
             state.runtime.queueHistory = {
               ...state.runtime.queueHistory,
               loading: false,
@@ -3803,13 +3865,7 @@
             });
             return;
           }
-          loadLiveRuntime({
-            requestedMailboxIds: nextSelectedMailboxIds,
-            preferredThreadId: "",
-            resetHistoryOnChange: true,
-          }).catch((error) => {
-            console.warn("CCO aktiv körning misslyckades efter mejlkontobyte.", error);
-          });
+          scheduleMailboxScopeLiveReload(nextSelectedMailboxIds);
         });
       }
 

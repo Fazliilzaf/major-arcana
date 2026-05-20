@@ -113,6 +113,20 @@
       sanitizeConversationHtmlForDisplay,
       setButtonBusy,
     } = helpers;
+
+    function runtimeHasLiveThreadsInState() {
+      return asArray(state.runtime?.threads).some(
+        (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
+      );
+    }
+
+    function isRuntimeFocusBlockingSync() {
+      if (state.runtime?.staleCacheActive === true) return false;
+      if (runtimeHasLiveThreadsInState()) return false;
+      if (state.runtime?.backgroundSyncActive === true) return false;
+      return state.runtime?.loading === true;
+    }
+
     const focusCustomerHistoryToneClasses = [
       "focus-customer-chip--blue",
       "focus-customer-chip--violet",
@@ -2245,7 +2259,7 @@
       const showPrimaryShell = waiting !== true;
       const isAuthFallback = Boolean(
         waiting === true &&
-        (state.runtime?.authRequired === true || state.runtime?.loading === true)
+        (state.runtime?.authRequired === true || isRuntimeFocusBlockingSync())
       );
       setElementVisibility(focusTabs, showPrimaryShell);
       setElementVisibility(focusSignals, showPrimaryShell);
@@ -2605,8 +2619,7 @@
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         applyFocusWaitingState(true);
-        const isLoading =
-          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
+        const isLoading = isRuntimeFocusBlockingSync();
         const isAuthRequired = state.runtime.authRequired === true;
         const emptyTitle = isOfflineHistorySelection
           ? "Välj en historikruta"
@@ -3773,8 +3786,7 @@
           }
           return;
         }
-        const isLoading =
-          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
+        const isLoading = isRuntimeFocusBlockingSync();
         renderFocusSummaryCards(focusCustomerSummary, [], "customer");
         if (focusCustomerHistoryTitle) {
           focusCustomerHistoryTitle.textContent = "Kundhistorik över mejlkonton";
@@ -5000,8 +5012,7 @@
       const focusWaveLabel = asText(focusReadState?.waveLabel, "Wave 1");
       if (!thread) {
         applyIntelWaitingState(true);
-        const isLoading =
-          state.runtime.loading === true && state.runtime.staleCacheActive !== true;
+        const isLoading = isRuntimeFocusBlockingSync();
         const isAuthRequired = state.runtime.authRequired === true;
         const supportCopy = isOfflineHistorySelection
           ? "Offline historik är tillgänglig i läsläge. Välj en historikruta i vänsterkolumnen för att läsa kundstatus och historik här. Svar, senare, anteckning och radera kräver aktiv tråd."

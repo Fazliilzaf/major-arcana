@@ -953,60 +953,67 @@
   let __lastPillSig = "";
 
   function __detectLiveState() {
-    let isLive = false;
     let threadCount = 0;
     try {
       const ws = window.__ccoWorkspace;
       if (ws && typeof ws.getState === "function") {
         const st = ws.getState();
         const runtime = st?.runtime || {};
-        if (runtime.live === true || runtime.mode === "live") isLive = true;
-        if (Array.isArray(runtime.threads)) {
-          threadCount = runtime.threads.length;
-          if (threadCount > 0) isLive = true;
-        } else if (Array.isArray(st?.threads)) {
-          threadCount = st.threads.length;
+        if (runtime.authRequired === true) {
+          return { pillMode: "auth", threadCount: 0, isLive: false };
+        }
+        const liveThreads = Array.isArray(runtime.threads)
+          ? runtime.threads.filter(
+              (thread) => __normalizeKey(thread?.worklistSource || "") !== "demo"
+            )
+          : [];
+        threadCount = liveThreads.length;
+        if ((runtime.live === true || runtime.mode === "live") && threadCount > 0) {
+          return { pillMode: "live", threadCount, isLive: true };
+        }
+        const demoCount = Array.isArray(runtime.threads)
+          ? runtime.threads.filter(
+              (thread) => __normalizeKey(thread?.worklistSource || "") === "demo"
+            ).length
+          : 0;
+        if (demoCount > 0) {
+          return { pillMode: "demo", threadCount: demoCount, isLive: false };
+        }
+        if (threadCount > 0) {
+          return { pillMode: "live", threadCount, isLive: true };
         }
       }
     } catch (_e) {
       /* tyst */
     }
 
-    const domCount = document.querySelectorAll(".thread-card").length;
-    if (domCount > 0) {
-      isLive = true;
-      threadCount = Math.max(threadCount, domCount);
-    }
-
-    try {
-      const token = localStorage.getItem("ARCANA_ADMIN_TOKEN");
-      const mailboxes = localStorage.getItem(__PILL_LS_KEY);
-      if (token && mailboxes && JSON.parse(mailboxes)?.length > 0) {
-        isLive = true;
-      }
-    } catch (_e) {
-      /* tyst */
-    }
-
-    return { isLive, threadCount };
+    return { pillMode: "demo", threadCount: 0, isLive: false };
   }
 
   function __updateLivePill() {
     const pill = document.getElementById("preview-live-status");
     if (!pill) return;
-    const { isLive, threadCount } = __detectLiveState();
+    const { pillMode, threadCount, isLive } = __detectLiveState();
     const labelEl = pill.querySelector(".preview-live-pill-label");
     if (!labelEl) return;
-    const newLabel = isLive ? `Live · ${threadCount}` : "Demo";
-    const newDemoClass = !isLive;
-    const sig = `${newLabel}|${newDemoClass}`;
+    const newLabel =
+      pillMode === "auth"
+        ? "Session krävs"
+        : pillMode === "live"
+          ? `Live · ${threadCount}`
+          : "Demo";
+    const newDemoClass = pillMode !== "live";
+    const sig = `${newLabel}|${newDemoClass}|${pillMode}`;
     if (sig === __lastPillSig) return;
     __lastPillSig = sig;
     labelEl.textContent = newLabel;
     pill.classList.toggle("preview-live-pill--demo", newDemoClass);
-    pill.title = isLive
-      ? `Live-data — ${threadCount} tråd${threadCount === 1 ? "" : "ar"} i kö`
-      : "Demo-läge — välj mejlkonton för att hämta live-data";
+    pill.title =
+      pillMode === "auth"
+        ? "Logga in i admin för att läsa aktiv kö och mejlkontostatus"
+        : pillMode === "live"
+          ? `Live-data — ${threadCount} tråd${threadCount === 1 ? "" : "ar"} i kö`
+          : "Demo-läge — logga in i admin för att hämta live-data";
   }
 
   if (typeof document !== "undefined") {
@@ -1263,6 +1270,35 @@
       toIso,
     } = helpers;
 
+    let __lastMailboxMenuSig = "";
+
+    function isRuntimeDemoThread(thread) {
+      return normalizeKey(thread?.worklistSource || "") === "demo";
+    }
+
+    function shouldSuppressDemoRuntimeThreads() {
+      if (state.runtime?.authRequired === true) return true;
+      try {
+        const token =
+          typeof localStorage !== "undefined" ? localStorage.getItem("ARCANA_ADMIN_TOKEN") : "";
+        if (token) return true;
+      } catch (_e) {
+        /* tyst */
+      }
+      return false;
+    }
+
+    function runtimeHasLiveThreadsInQueue() {
+      return asArray(state.runtime?.threads).some((thread) => !isRuntimeDemoThread(thread));
+    }
+
+    function shouldShowBlockingQueueSync() {
+      if (state.runtime?.staleCacheActive === true) return false;
+      if (runtimeHasLiveThreadsInQueue()) return false;
+      if (state.runtime?.backgroundSyncActive === true) return false;
+      return state.runtime?.loading === true;
+    }
+
     function getScopedAftercareLaneEntries(options = {}) {
       const entries = __getAftercareLaneEntries(options);
       const scopedThreads = getMailboxScopedRuntimeThreads();
@@ -1383,44 +1419,8 @@
     }
 
     function buildUnifiedQueueLoadingItems() {
-      return [
-        {
-          id: "runtime-loading-1",
-          avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
-          customerName: "Synkar aktiv kö",
-          lastActivityAt: "",
-          lastActivityLabel: "Pågår",
-          ownerLabel: "System",
-          displayOwnerLabel: "System",
-          displaySubject: "Hämtar mejl i valt mejlurval",
-          subject: "Hämtar mejl i valt mejlurval",
-          preview: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
-          mailboxLabel: "Live",
-          intentLabel: "Synkar",
-          statusLabel: "Synkar",
-          nextActionLabel: "Vänta",
-          nextActionSummary: "Vänta några sekunder medan vänsterkolumnen fylls med aktiva mejl.",
-          tags: ["all"],
-        },
-        {
-          id: "runtime-loading-2",
-          avatar: typeof buildAvatarDataUri === "function" ? buildAvatarDataUri("CCO") : "",
-          customerName: "Förbereder arbetsyta",
-          lastActivityAt: "",
-          lastActivityLabel: "Nu",
-          ownerLabel: "System",
-          displayOwnerLabel: "System",
-          displaySubject: "Urval och prioritering uppdateras",
-          subject: "Urval och prioritering uppdateras",
-          preview: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
-          mailboxLabel: "Live",
-          intentLabel: "Synkar",
-          statusLabel: "Förbereder",
-          nextActionLabel: "Vänta",
-          nextActionSummary: "Tidigare trådval rensas innan den nya mejlkontovyn öppnas.",
-          tags: ["all"],
-        },
-      ];
+      // Fas 49: avvecklad — Mail-pattern visar aldrig fejk-synkkort i kön.
+      return [];
     }
 
     // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
@@ -1919,57 +1919,6 @@
       };
     }
 
-    // Fas 51 (2026-05-20): resolva avsändarnamn via system-mail-parsern för
-    // queue-korten (HTML). Tidigare körde bara Lit-korten parsern → queue-kort
-    // visade "No Reply"/"Support"/"News" istället för riktigt namn. Trådens id
-    // ÄR avsändar-mejlen (no_reply@sendgrid-01.sportadmin.se), så vi kan härleda
-    // ett vettigt namn (Sportadmin) även när parsern inte hittar ett personnamn.
-    function resolveCardSenderName(thread) {
-      const current = asText(thread?.customerName);
-      const parser =
-        typeof window !== "undefined" ? window.MajorArcanaSystemMailParser : null;
-      // Bara override:a svaga system-namn — aldrig riktiga kundnamn.
-      const looksWeak =
-        !current ||
-        /^(no[\s_-]*reply|noreply|support|info|news|nyheter|kontakt|contact|team|kundtj[aä]nst|notifications?|do[\s_-]*not[\s_-]*reply|mailer[\s-]*daemon|postmaster|automated|system)$/i.test(
-          current.trim()
-        );
-      if (!looksWeak || !parser) return current;
-      const senderEmail = asText(
-        thread?.senderEmail ||
-          thread?.from?.address ||
-          thread?.from?.emailAddress?.address ||
-          thread?.raw?.from?.emailAddress?.address ||
-          thread?.fromEmail ||
-          thread?.id
-      );
-      const subject = asText(thread?.displaySubject || thread?.subject);
-      const body = asText(thread?.preview || thread?.systemPreview || thread?.queuePreviewText);
-      try {
-        if (typeof parser.parse === "function") {
-          const parsed = parser.parse({ senderEmail, senderName: current, subject, body });
-          if (parsed) {
-            if (asText(parsed.customerName)) return asText(parsed.customerName);
-            if (asText(parsed.systemLabel))
-              return asText(parsed.systemLabel).replace(/^via\s+/i, "");
-          }
-        }
-        // Domän-härledning: news@email.georgjensen.com → "Georgjensen"
-        if (typeof parser.systemLabelFromEmail === "function" && senderEmail) {
-          const lbl = asText(parser.systemLabelFromEmail(senderEmail));
-          if (lbl) return lbl.replace(/^via\s+/i, "");
-        }
-        // Sista chans: namn ur localpart (anna.karlsson@... → Anna Karlsson)
-        if (parser.bodyHelpers?.nameFromEmail && senderEmail) {
-          const fromEmail = asText(parser.bodyHelpers.nameFromEmail(senderEmail));
-          if (fromEmail) return fromEmail;
-        }
-      } catch (_e) {
-        /* parser-fel → behåll original */
-      }
-      return current;
-    }
-
     function buildThreadCardMarkup(thread, index, selected) {
       const applyThreadFixtureFallback =
         typeof applyDemoFixtureFallback === "function"
@@ -2099,25 +2048,10 @@
               : "";
         const v5WhySignals = v5WhySignal ? [{ text: v5WhySignal, tone: v5WhyTone }] : [];
 
-        // Fas 51: resolva ett bättre avsändarnamn (Sportadmin istället för No Reply)
-        const resolvedSenderName = asText(
-          resolveCardSenderName(thread),
-          asText(historyItem.customerName, "Okänd avsändare")
-        );
-        const resolvedInitials = asText(
-          resolvedSenderName
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join("")
-            .toUpperCase(),
-          asText(historyItem.customerInitials)
-        );
         const unifiedMarkup = unifiedBuilder(
           {
-            counterpartyLabel: asText(resolvedSenderName, "Okänd avsändare"),
-            customerInitials: resolvedInitials || asText(historyItem.customerInitials),
+            counterpartyLabel: asText(historyItem.customerName, "Okänd avsändare"),
+            customerInitials: asText(historyItem.customerInitials),
             mailboxTrail,
             subtitle: mailboxTrail.length > 1 ? "Samma kund har skrivit från flera mejlkonton" : "",
             statusDot: asText(
@@ -2125,10 +2059,6 @@
               normalizeKey(historyItem.laneId) === "act_now" ? "urgent" : "active"
             ),
             previewLine: asText(historyItem.detail || historyItem.title),
-            // Fas 50 (2026-05-20): skicka riktigt e-postämne separat så kortet
-            // kan visa "avsändare · ämne" (rad 1) + body-preview (rad 2) som i
-            // Apple Mail, istället för att promota preview till ämnesplatsen.
-            subjectLine: asText(historyItem.title),
             footerChips,
             signalItems: asArray(historyItem.signalItems),
             laneId: asText(historyItem.laneId),
@@ -4007,33 +3937,18 @@
       const senderText = counterpartyCopy;
       const rawPreviewBody = asText(unifiedModel.previewLine);
       const subtitleText = asText(unifiedModel.subtitle);
-      // Fas 50 (2026-05-20): Apple-Mail-likt — rad 1 = avsändare · RIKTIGT ämne,
-      // rad 2 = body-preview. Tidigare sattes subjectText = whatStr (operativ
-      // signal/preview), vilket gjorde att preview promotades till ämnesplatsen
-      // och rad 2 försvann som "duplikat". Nu: använd det faktiska e-postämnet
-      // (subjectLine) på rad 1 om det finns; fall tillbaka på operativ signal.
-      const realSubject = asText(unifiedModel.subjectLine);
-      // Fas 51b (2026-05-20): riktigt e-postämne FÖRST. Tidigare hade
-      // subtitleText (multi-mailbox-noten "Samma kund har skrivit från flera
-      // mejlkonton") företräde → den visades som ämnesrad istället för det
-      // faktiska ämnet. Nu: realSubject → whatStr → subtitle som sista fallback.
-      const subjectText = realSubject || whatStr || subtitleText;
+      const subjectText = subtitleText || whatStr;
       const previewLooksBroken =
         /(?:Cannot access|ReferenceError|TypeError|SyntaxError|is not defined|Cannot read properties)/i.test(
           rawPreviewBody
         );
-      // Visa rad 2 (body-preview) när den finns och skiljer sig från ämnesraden.
       const previewBody =
         !previewLooksBroken &&
         rawPreviewBody &&
         rawPreviewBody !== subjectText &&
-        rawPreviewBody !== senderText &&
         !rawPreviewBody.startsWith(subjectText)
           ? rawPreviewBody
-          : !previewLooksBroken &&
-              rawPreviewBody &&
-              rawPreviewBody.length > subjectText.length &&
-              rawPreviewBody !== subjectText
+          : !previewLooksBroken && rawPreviewBody.length > subjectText.length
             ? rawPreviewBody
             : "";
 
@@ -4080,21 +3995,8 @@
         ? `<div class="warm-preview">${escapeHtml(previewBody)}</div>`
         : "";
 
-      // Fas 50 (2026-05-20): färga vänster-railen per mejlkonto så användaren
-      // ser direkt vilket konto varje tråd tillhör (Apple-Mail-likt). Färgen
-      // hämtas från v5MailboxColor (V5_MAILBOX_KNOWN/palette) på mailboxLabel.
-      const railMailboxKey = asText(
-        unifiedModel.mailboxLabel || (trail.length ? trail[0] : "")
-      );
-      const railColor = railMailboxKey ? v5MailboxColor(railMailboxKey) : "";
-      const railStyle = railColor
-        ? ` style="background:${escapeHtml(railColor)}"`
-        : "";
-      const railTitle = railMailboxKey
-        ? ` title="${escapeHtml(railMailboxKey)}"`
-        : "";
       return `<!-- warm-row-v8 markup --><article data-v8-version="warm-r8" class="thread-card queue-history-item unified-queue-card warm-row${extraArticleClasses ? ` ${extraArticleClasses}` : ""}${selectedClass}${selectedArticleClass}${laneClass}${operationalClass}${unreadClass}${loadingClass}"${v5DataLane}${runtimeThreadAttribute}${worklistSourceAttribute}${worklistSourceLabelAttribute}${historyConversationAttribute}${runtimeTagsAttribute}${articleDataAttributes}${selectedState}>
-        <span class="warm-rail" aria-hidden="true"${railStyle}${railTitle}></span>
+        <span class="warm-rail" aria-hidden="true"></span>
         <div class="warm-top">
           <span class="lane-badge" data-lane="${escapeHtml(v5Lane)}">${escapeHtml(v5Label)}</span>
           <div class="warm-top-meta">
@@ -5271,7 +5173,23 @@
           .map((value) => normalizeMailboxId(value))
           .filter(Boolean)
       );
-      mailboxMenuGrid.innerHTML = "";
+      const menuSig = JSON.stringify({
+        selected: Array.from(selectedIds).sort(),
+        mailboxes: availableMailboxes.map((mailbox) => ({
+          id: normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id),
+          label: asText(mailbox.label),
+          email: asText(mailbox.email),
+          status: asText(mailbox.statusLabel, mailbox.custom ? "Eget" : "Aktiv"),
+          custom: mailbox.custom === true,
+        })),
+      });
+      const preserveMenuDom =
+        menuSig === __lastMailboxMenuSig && mailboxMenuGrid.childElementCount > 0;
+      if (!preserveMenuDom) {
+        __lastMailboxMenuSig = menuSig;
+        const mailboxMenuToggle = document.getElementById("mailbox-menu-toggle");
+        const menuWasOpen = mailboxMenuToggle?.checked === true;
+        mailboxMenuGrid.innerHTML = "";
       availableMailboxes.forEach((mailbox) => {
         const mailboxScopeId = normalizeMailboxId(
           mailbox.canonicalId || mailbox.email || mailbox.id
@@ -5335,6 +5253,15 @@
         '<span class="mailbox-option-plus" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" /></svg></span>' +
         '<span class="mailbox-option-name">Lägg till</span>';
       mailboxMenuGrid.appendChild(addButton);
+        if (menuWasOpen && typeof windowObject?.dispatchEvent === "function") {
+          windowObject.dispatchEvent(new CustomEvent("cco:mailbox-menu-rendered"));
+        }
+      } else {
+        mailboxMenuGrid.querySelectorAll("[data-runtime-mailbox]").forEach((input) => {
+          const mailboxId = normalizeMailboxId(input.dataset.runtimeMailbox);
+          input.checked = selectedIds.has(mailboxId);
+        });
+      }
 
       const selectedMailboxes = availableMailboxes.filter((mailbox) =>
         selectedIds.has(normalizeMailboxId(mailbox.canonicalId || mailbox.email || mailbox.id))
@@ -5641,6 +5568,30 @@
       if (queueHistoryList.dataset) {
         queueHistoryList.dataset.queueListMode = "live";
       }
+      // Fas 44 (2026-05-20): memoization-guard mot re-render-storm.
+      // renderQueueInlineLaneList anropas på VARJE state-render. Post-passes
+      // (__updateLivePill m.fl.) muterar state → schemalägger ny render →
+      // anropar oss igen. Med progressiv rAF-render (Fas 43) startade varje
+      // anrop om loopen → oändlig storm → frysning. Nu: bygg en signatur av
+      // (selectedThreadId + trådarnas id:n i ordning). Om identisk med förra
+      // renderingen → hoppa helt. Bryter stormen vid källan.
+      try {
+        const __sig =
+          asText(state.runtime?.selectedThreadId) +
+          "|" +
+          asArray(threads)
+            .map((t) => asText(t?.id))
+            .join(",");
+        if (queueHistoryList.__fas44Sig === __sig) {
+          // Identisk lista (oavsett om progressiv render pågår) → hoppa.
+          // En aktiv rAF-loop slutför sig själv. Detta bryter stormen där
+          // post-passes triggar re-render av samma lista.
+          return;
+        }
+        queueHistoryList.__fas44Sig = __sig;
+      } catch (_e) {
+        /* signatur misslyckades — fortsätt rendera normalt */
+      }
       // FIX3: explicit fallback chain. Trippel-ternär hade tom-sträng-fallback
       // som producerade tomma rader när någon av build-funktionerna saknades.
       const renderLiveThreadCard = (thread, index, selected) => {
@@ -5714,30 +5665,77 @@
           "</div></article>"
         );
       };
-      // Fas 49 (2026-05-20): tillbaka till enkel direkt-render. Fas 43-45
-      // (progressiv render + cap) gav ofullständiga/stale kort — vissa kort
-      // saknade andra raden (ämne/preview) och DOM kunde visa gammal data.
-      // Med single-mailbox-default (Fas 48) är listan liten → enkel
-      // all-at-once-render är snabb och korrekt. Capet på 80 är bara ett
-      // säkerhetsskydd om någon väljer många mailboxar manuellt.
-      const FAS49_MAX = 80;
-      const __list = asArray(threads).slice(0, FAS49_MAX);
-      const __selectedId = state.runtime.selectedThreadId;
-      queueHistoryList.innerHTML = __list
-        .map((thread, index) =>
-          renderLiveThreadCard(thread, index, thread.id === __selectedId)
-        )
-        .join("");
-      if (typeof enforceUnifiedCardV3Sections === "function") {
-        try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
+      // Fas 43 (2026-05-20): tidsskivad progressiv rendering (virtualisering-lite).
+      // Tidigare byggdes ALLA korten + innerHTML på en gång → 83 Lit-kort
+      // hydrerades synkront + 6 O(N)-post-passes → main-thread blockerades
+      // 30-45s ("frysningen"). Nu: rendera i bitar om CHUNK-storlek över
+      // animation-frames så UI aldrig blockerar mer än ~en bit i taget.
+      // Fas 45 (2026-05-20): hård cap på antal renderade kort. Vid alla 6
+      // mailboxar laddas 100+ trådar → render fryser även med progressiv
+      // render + memoization (tung kostnad i Lit-hydration + post-passes).
+      // Cap till MAX_CARDS = säkerställer att render aldrig blir tung nog
+      // att frysa. Användaren ser de senaste trådarna; filter/sök/mailbox-
+      // växling når resten. (Tills full virtualisering med profilering.)
+      const MAX_CARDS = 30;
+      const __fullList = asArray(threads);
+      const __list = __fullList.slice(0, MAX_CARDS);
+      const CHUNK = 18;
+
+      // Avbryt ev. pågående progressiv render (ny render-request kom in).
+      if (queueHistoryList.__fas43Token) {
+        try {
+          cancelAnimationFrame(queueHistoryList.__fas43Token);
+        } catch (_e) {}
+        queueHistoryList.__fas43Token = 0;
       }
-      try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
-      try { __applySecondaryFilter(); } catch (_e) {}
-      try { __applySearchFilter(); } catch (_e) {}
-      try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
-      try { __updateLivePill(); } catch (_e) {}
-      if (typeof decorateStaticPills === "function") {
-        try { decorateStaticPills(); } catch (_e) {}
+
+      const __runQueuePostPasses = () => {
+        if (typeof enforceUnifiedCardV3Sections === "function") {
+          try { enforceUnifiedCardV3Sections(queueHistoryList); } catch (_e) {}
+        }
+        try { __scanAndFixUnknownSenders(queueHistoryList); } catch (_e) {}
+        try { __applySecondaryFilter(); } catch (_e) {}
+        try { __applySearchFilter(); } catch (_e) {}
+        try { __runAllStatusFixes(queueHistoryList); } catch (_e) {}
+        try { __updateLivePill(); } catch (_e) {}
+        if (typeof decorateStaticPills === "function") {
+          try { decorateStaticPills(); } catch (_e) {}
+        }
+      };
+
+      const __selectedId = state.runtime.selectedThreadId;
+      const __renderRange = (start, end) =>
+        __list
+          .slice(start, end)
+          .map((thread, i) =>
+            renderLiveThreadCard(thread, start + i, thread.id === __selectedId)
+          )
+          .join("");
+
+      // Första biten synkront (= det användaren ser direkt). Liten → ingen frys.
+      const __firstCount = Math.min(CHUNK, __list.length);
+      queueHistoryList.innerHTML = __renderRange(0, __firstCount);
+      __runQueuePostPasses();
+
+      // Resten strömmas in i bitar över rAF. Post-passes körs BARA efter
+      // sista biten (inte per bit) → undviker O(N²). Korten syns ändå direkt
+      // eftersom HTML appendas varje frame.
+      if (__list.length > __firstCount) {
+        let __offset = __firstCount;
+        const __step = () => {
+          const __end = Math.min(__offset + CHUNK, __list.length);
+          try {
+            queueHistoryList.insertAdjacentHTML("beforeend", __renderRange(__offset, __end));
+          } catch (_e) {}
+          __offset = __end;
+          if (__offset < __list.length) {
+            queueHistoryList.__fas43Token = requestAnimationFrame(__step);
+          } else {
+            queueHistoryList.__fas43Token = 0;
+            __runQueuePostPasses(); // en gång när allt är inne
+          }
+        };
+        queueHistoryList.__fas43Token = requestAnimationFrame(__step);
       }
     }
 
@@ -5838,6 +5836,42 @@
         return;
       }
 
+      if (
+        state.runtime.authRequired &&
+        useUnifiedQueueList &&
+        !isHistoryOpen &&
+        !isFeedPanelOpen &&
+        !isLanePanelOpen
+      ) {
+        if (queueHistoryList?.dataset) {
+          queueHistoryList.dataset.queueListMode = "live";
+        }
+        if (queueTitle) {
+          queueTitle.textContent = "Arbetslista (0)";
+        }
+        renderQueueInlineLaneList([
+          buildUnifiedStateThread({
+            id: "runtime-auth-required",
+            customerName: "Aktiv kö ej ansluten",
+            ownerLabel: "System",
+            subject: "Öppna admin och logga in igen",
+            preview:
+              asText(state.runtime.error) ||
+              "Logga in igen i admin för att läsa aktiv kö, historikstöd och mejlkontostatus.",
+            mailboxLabel: "CCO",
+            statusLabel: "Session krävs",
+            nextActionLabel: "Logga in igen",
+            nextActionSummary:
+              "Återställ admin-sessionen för att fylla arbetskön med aktiva trådar igen.",
+          }),
+        ]);
+        if (typeof enforceUnifiedCardV3Sections === "function") {
+          enforceUnifiedCardV3Sections(queueHistoryList);
+        }
+        if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+        return;
+      }
+
       if (isHistoryOpen) {
         const fallbackThreads = getQueueLaneThreads("all", getQueueScopedRuntimeThreads());
         if (queueHistoryList?.dataset) {
@@ -5894,7 +5928,7 @@
         return;
       }
 
-      if (useUnifiedQueueList && state.runtime.loading) {
+      if (useUnifiedQueueList && shouldShowBlockingQueueSync()) {
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "live";
         }
@@ -5929,17 +5963,30 @@
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
         }
-        // v5: ingen riktig data alls men kanske demo-fixtures utanför scope?
-        const demoFixtures = asArray(state.runtime.threads).filter(
-          (t) => asText(t?.worklistSource) === "demo"
-        );
-        if (demoFixtures.length) {
-          if (queueTitle) {
-            queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
+        // v5: demo-fixtures bara i rent marknadsdemo (ingen token, ej authRequired)
+        if (!shouldSuppressDemoRuntimeThreads()) {
+          const demoFixtures = asArray(state.runtime.threads).filter((t) =>
+            isRuntimeDemoThread(t)
+          );
+          if (demoFixtures.length) {
+            if (queueTitle) {
+              queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
+            }
+            renderQueueInlineLaneList(demoFixtures);
+            if (typeof enforceUnifiedCardV3Sections === "function") {
+              enforceUnifiedCardV3Sections(queueHistoryList);
+            }
+            if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+            return;
           }
-          renderQueueInlineLaneList(demoFixtures);
-          if (typeof enforceUnifiedCardV3Sections === "function") {
-            enforceUnifiedCardV3Sections(queueHistoryList);
+        }
+        if (state.runtime.backgroundSyncActive && !loadingThreads.length && !liveThreadsAnyScope.length) {
+          if (queueTitle) {
+            queueTitle.textContent = "Arbetslista (0)";
+          }
+          if (queueHistoryList) {
+            queueHistoryList.innerHTML =
+              '<div class="queue-history-empty">Hämtar mejl i bakgrunden…</div>';
           }
           if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
           return;
@@ -5956,24 +6003,24 @@
       }
 
       if (useUnifiedQueueList && state.runtime.error && runtimeMode !== "offline_history") {
-        // v5: om demo-fixtures finns, visa dem istället för error-fallback så
-        // operatören ser v5-layouten med riktiga lane-badges, What/Why osv.
-        const demoFixtures = asArray(state.runtime.threads).filter(
-          (t) => asText(t?.worklistSource) === "demo"
-        );
-        if (demoFixtures.length) {
-          if (queueHistoryList?.dataset) {
-            queueHistoryList.dataset.queueListMode = "live";
+        if (!shouldSuppressDemoRuntimeThreads()) {
+          const demoFixtures = asArray(state.runtime.threads).filter((t) =>
+            isRuntimeDemoThread(t)
+          );
+          if (demoFixtures.length) {
+            if (queueHistoryList?.dataset) {
+              queueHistoryList.dataset.queueListMode = "live";
+            }
+            if (queueTitle) {
+              queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
+            }
+            renderQueueInlineLaneList(demoFixtures);
+            if (typeof enforceUnifiedCardV3Sections === "function") {
+              enforceUnifiedCardV3Sections(queueHistoryList);
+            }
+            if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
+            return;
           }
-          if (queueTitle) {
-            queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
-          }
-          renderQueueInlineLaneList(demoFixtures);
-          if (typeof enforceUnifiedCardV3Sections === "function") {
-            enforceUnifiedCardV3Sections(queueHistoryList);
-          }
-          if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
-          return;
         }
         if (queueHistoryList?.dataset) {
           queueHistoryList.dataset.queueListMode = "live";
