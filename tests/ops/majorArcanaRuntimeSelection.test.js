@@ -217,6 +217,7 @@ function createNormalizeScopeHarness({
   const normalizeVisibleRuntimeScope = new Function(
     'asText',
     'getAvailableRuntimeMailboxes',
+    'getCanonicalAvailableRuntimeMailboxIds',
     'getFilteredRuntimeThreads',
     'getMailboxScopedRuntimeThreads',
     'getOrderedQueueLaneIds',
@@ -239,6 +240,7 @@ function createNormalizeScopeHarness({
       return String(value);
     },
     () => availableMailboxes,
+    () => availableMailboxes.map((item) => item.id),
     () => {
       if (filteredThreadsByLane && typeof filteredThreadsByLane === 'object') {
         return Array.isArray(filteredThreadsByLane[laneId]) ? filteredThreadsByLane[laneId] : [];
@@ -868,8 +870,13 @@ test('reconcileRuntimeSelection synkar mailboxscope med vald trad även när sam
   assert.equal(result.changed, false);
   assert.equal(result.selectedThreadId, 'thread-2');
   assert.equal(harness.getSelectedThreadId(), 'thread-2');
-  assert.deepEqual(harness.getSelectedMailboxIds(), ['fazli@hairtpclinic.com']);
-  assert.deepEqual(harness.getSelectedMailboxWrites(), [['fazli@hairtpclinic.com']]);
+  assert.deepEqual(harness.getSelectedMailboxIds(), [
+    'contact@hairtpclinic.com',
+    'fazli@hairtpclinic.com',
+  ]);
+  assert.deepEqual(harness.getSelectedMailboxWrites(), [
+    ['contact@hairtpclinic.com', 'fazli@hairtpclinic.com'],
+  ]);
 });
 
 test('reconcileRuntimeSelection bevarar manuellt mailboxscope när scope redan är pinnat', () => {

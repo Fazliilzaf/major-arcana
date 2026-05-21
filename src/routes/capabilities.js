@@ -178,6 +178,10 @@ function writeWorklistConsumerResponseCache(cacheKey = '', payload = null) {
   });
 }
 
+function clearAnalyzeInboxGraphSnapshotCache() {
+  analyzeInboxGraphSnapshotCache.clear();
+}
+
 function clearWorklistConsumerResponseCache() {
   worklistConsumerResponseCache.clear();
 }
@@ -9939,6 +9943,7 @@ module.exports = {
   hydrateCmoSystemSnapshot,
   materializeCustomerReplyActions,
   toGraphReadOptionsFromEnv,
+  clearAnalyzeInboxGraphSnapshotCache,
   clearWorklistConsumerResponseCache,
   mergeWorklistEnrichmentOutput,
   resolveLatestWorklistEnrichmentBaseline,

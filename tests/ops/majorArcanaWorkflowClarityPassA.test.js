@@ -283,18 +283,8 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     appSource,
-    /preferredAction === "booking_surface"[\s\S]*openBookingOperatorSurface\(\{[\s\S]*scroll: false,[\s\S]*message: "",[\s\S]*\}\);/,
-    'Bokningsdomäner ska kunna landa direkt i bokningsytan utan extra feedbackbrus när tråden öppnas.'
-  );
-  assertMatchFast(
-    appSource,
-    /preferredAction === "schedule_open"[\s\S]*openRuntimeSchedule\(\{ renderDraft: true \}\)/,
-    'Eftervårdsdomäner ska kunna landa direkt i uppföljningsytan när den är patientresans primära verktyg.'
-  );
-  assertMatchFast(
-    appSource,
-    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),[\s\S]*\}\)\.catch/m,
-    'Dokument- och konsultationsdomäner ska kunna landa direkt i Smart anteckning som första arbetsläge.'
+    /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\) \{[\s\S]*Fas 51: patientresan får aldrig auto-öppna modaler/,
+    'Patientresan ska inte auto-öppna modaler vid trådbyte (Fas 51).'
   );
   assertMatchFast(
     appSource,
@@ -573,8 +563,8 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     appSource,
-    /normalizedAction === "booking_surface"[\s\S]*focusRecommendedBookingAction\(\);/,
-    'Bokningslandningen ska markera rekommenderad knapp i bokningsytan i stället för att utföra åtgärden automatiskt.'
+    /async function focusRecommendedBookingAction\(actionOverride = "", \{ moveFocus = true, announce = true \} = \{\}\)/,
+    'Bokningslandning ska kunna markera rekommenderad knapp manuellt via focusRecommendedBookingAction.'
   );
   assertMatchFast(
     appSource,
@@ -593,13 +583,8 @@ test('focusytan lyfter ut rekommenderat drag ur konversationsscrollen till en eg
   );
   assertMatchFast(
     appSource,
-    /openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
-    'Smart anteckning ska kunna öppnas med både rätt sparplats och rätt mall när patientresan ger ett tydligt defaultläge.'
-  );
-  assertMatchFast(
-    appSource,
-    /syncJourneyDrivenWorkspaceLanding\(selectedFocusThread, focusReadState\);[\s\S]*renderRuntimeIntel\(selectedFocusThread, focusReadState\);/,
-    'Fokusskalet ska synka första arbetsläge från patientresan innan högerpanelen avslutar rendern.'
+    /seedJourneyDrivenWorkspace\(thread, focusReadState, preferredAction\);[\s\S]*renderRuntimeIntel\(selectedFocusThread, focusReadState\);/,
+    'Fokusskalet ska synka journey-state utan auto-open innan högerpanelen avslutar rendern.'
   );
   assertMatchFast(
     actionEngineSource,

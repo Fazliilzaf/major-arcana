@@ -1619,6 +1619,7 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter aktiv körning.", error);
       });
+      renderRuntimeConversationShell();
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {

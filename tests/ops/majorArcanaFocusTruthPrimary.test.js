@@ -108,23 +108,13 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.match(
     source,
-    /preferredAction === "aftercare_open"[\s\S]*preferredAction === "operation_open"[\s\S]*preferredAction === "consultation_open"[\s\S]*preferredAction === "commercial_open"[\s\S]*openWorkspaceDomainSurface\(preferredAction\.replace\(\/_open\$\/, ""\),/,
-    'Förväntade att journey-driven landning öppnar rätt domänyta direkt för aftercare, operation, consultation och commercial i stället för att falla tillbaka till studio.'
+    /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\) \{[\s\S]*Fas 51: patientresan får aldrig auto-öppna modaler/,
+    'Förväntade att journey-driven landning inte auto-öppnar modaler (Fas 51).'
   );
   assert.match(
     source,
-    /preferredAction === "note_open"[\s\S]*openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
-    'Förväntade att journey-driven note-läge öppnar rätt destination och template direkt i anteckningsytan i stället för att först falla tillbaka till generiskt note-mode.'
-  );
-  assert.match(
-    source,
-    /function seedJourneyDrivenWorkspace\(thread, focusReadState = \{\}, preferredAction = ""\)/,
-    'Förväntade en separat helper som kan förfina arbetsytans startläge efter att rätt domänverktyg öppnats.'
-  );
-  assert.match(
-    source,
-    /normalizedAction === "booking_surface"[\s\S]*seedBookingSurfaceForCurrentThread\(thread,\s*\{\s*moveActionFocus:\s*false,\s*announce:\s*false\s*\}\);/,
-    'Förväntade att journey-driven bokningsläge återanvänder en gemensam seed-helper för rätt delsteg, arbetsblock och mjuk knappmarkering.'
+    /seedJourneyDrivenWorkspace\(thread, focusReadState, preferredAction\);/,
+    'Förväntade att journey-landning fortfarande anropar seed-helper efter overlay-reset.'
   );
   assert.match(
     source,
@@ -198,8 +188,8 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.match(
     source,
-    /openRuntimeNote\(\{\s*directOpen:\s*true,\s*destinationKey:\s*getJourneyPreferredNoteDestination\(thread,\s*focusReadState\),\s*templateKey:\s*getJourneyPreferredNoteTemplate\(thread,\s*focusReadState\),/m,
-    'Förväntade att journey-driven anteckningsläge öppnar rätt destination och mall direkt i note-surface, inte via ett senare seed-steg.'
+    /function getJourneyPreferredNoteTemplate\(thread, focusReadState = \{\}\)/,
+    'Förväntade helpers som kan föreslå note-destination och mall utan auto-open (Fas 51).'
   );
   assert.ok(
     source.includes(

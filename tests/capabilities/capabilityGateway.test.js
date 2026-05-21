@@ -5,12 +5,26 @@ const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
 
-const { createCapabilitiesRouter } = require('../../src/routes/capabilities');
+const { createCapabilitiesRouter, clearAnalyzeInboxGraphSnapshotCache } = require('../../src/routes/capabilities');
 const { createExecutionGateway } = require('../../src/gateway/executionGateway');
 const { createAuthStore } = require('../../src/security/authStore');
 const { createCapabilityAnalysisStore } = require('../../src/capabilities/analysisStore');
 const { AnalyzeInboxCapability } = require('../../src/capabilities/analyzeInbox');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
+
+const LOCKED_GRAPH_READ_ALLOWLIST = Object.freeze([
+  'egzona@hairtpclinic.com',
+  'contact@hairtpclinic.com',
+  'fazli@hairtpclinic.com',
+  'info@hairtpclinic.com',
+  'kons@hairtpclinic.com',
+  'marknad@hairtpclinic.com',
+  'receipt@hairtpclinic.com',
+]);
+
+test.beforeEach(() => {
+  clearAnalyzeInboxGraphSnapshotCache();
+});
 
 async function withServer(app, run) {
   const server = await new Promise((resolve) => {
@@ -1347,23 +1361,9 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
-    assert.equal(graphCalls[0].maxUsers, 6);
-    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
-    assert.deepEqual(graphCalls[0].mailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
+    assert.equal(graphCalls[0].maxUsers, 7);
+    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
     assert.deepEqual(graphCalls[0].mailboxIndexes, []);
 
     const audits = await authStore.listAuditEvents({
@@ -1373,14 +1373,7 @@ test('AnalyzeInbox uses locked default Graph read allowlist when ARCANA_MAILBOX_
     const readStartEvent = audits.find((event) => event.action === 'mailbox.read.start');
     assert.equal(Boolean(readStartEvent), true);
     assert.equal(readStartEvent.metadata.allowlistMode, true);
-    assert.deepEqual(readStartEvent.metadata.allowlistMailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
+    assert.deepEqual(readStartEvent.metadata.allowlistMailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
       if (value === undefined) delete process.env[key];
@@ -1707,23 +1700,9 @@ test('AnalyzeInbox still uses locked default Graph read allowlist when send allo
     assert.equal(graphCalls[0].allowlistMode, true);
     assert.equal(graphCalls[0].fullTenant, true);
     assert.equal(graphCalls[0].userScope, 'all');
-    assert.equal(graphCalls[0].maxUsers, 6);
-    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
-    assert.deepEqual(graphCalls[0].mailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
+    assert.equal(graphCalls[0].maxUsers, 7);
+    assert.deepEqual(graphCalls[0].allowlistMailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
   } finally {
     Object.entries(previousEnv).forEach(([key, value]) => {
       if (value === undefined) delete process.env[key];
@@ -1823,14 +1802,7 @@ test('AnalyzeInbox ignores ARCANA_GRAPH_MAILBOX_IDS outside locked allowlist', a
 
     assert.equal(graphCalls.length, 1);
     assert.equal(graphCalls[0].allowlistMode, true);
-    assert.deepEqual(graphCalls[0].mailboxIds, [
-      'egzona@hairtpclinic.com',
-      'contact@hairtpclinic.com',
-      'fazli@hairtpclinic.com',
-      'info@hairtpclinic.com',
-      'kons@hairtpclinic.com',
-      'marknad@hairtpclinic.com',
-    ]);
+    assert.deepEqual(graphCalls[0].mailboxIds, [...LOCKED_GRAPH_READ_ALLOWLIST]);
     assert.equal(graphCalls[0].mailboxIds.includes('arya@hairtpclinic.com'), false);
     assert.equal(graphCalls[0].mailboxIds.includes('clara@hairtpclinic.com'), false);
   } finally {

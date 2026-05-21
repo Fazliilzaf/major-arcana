@@ -15192,7 +15192,7 @@
     // Fas 38 (2026-05-19): UNION istället för OVERWRITE — thread-select smalnar
     // aldrig mailbox-scope. Om current är tom → sätt till thread's mailboxes;
     // annars säkerställ att thread's mailboxes ingår (UNION) men ta inget bort.
-    if (mailboxScopeChanged) {
+    if (mailboxScopeChanged && !state.runtime?.mailboxScopePinned) {
       if (!currentMailboxIds.length) {
         workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
       } else {

@@ -1801,18 +1801,12 @@ test('telefonbokningsläget lyfter valt slot, extern bekräftelse och audit hög
   );
 });
 
-test('kundlänken kan inferera booking default landing utan booking=1 när booking redan är den tydliga arbetsytan', () => {
+test('kundlänken kräver explicit URL-flag för booking auto-open (Fas 33)', () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
 
   assertMatchFast(
     source,
-    /function shouldInferBookingWorkspaceFromPortalCustomer\(\) \{[\s\S]*portalCustomerKey[\s\S]*resolveShellView\(state\.ui\.view\) !== "conversations"[\s\S]*return true;[\s\S]*\}/,
-    'Förväntade en särskild inferensregel som gör kundlåsta conversations-länkar booking-first utan att kräva booking=1 i URL:en.'
-  );
-
-  assertMatchFast(
-    source,
-    /function scheduleBookingSurfaceFromUrl\(\) \{[\s\S]*const wantsBookingSurface = urlWantsBookingWorkspace\(\);[\s\S]*const wantsInferredBookingSurface =[\s\S]*shouldInferBookingWorkspaceFromPortalCustomer\(\);[\s\S]*if \(!wantsBookingSurface && !wantsInferredBookingSurface\) return;[\s\S]*Bokningsytan öppnades direkt för kundens aktiva booking-case\./,
-    'Förväntade att direktlänksrutinen även kan öppna bookingytan från en ren kundlänk när booking redan är den tydliga första arbetsytan.'
+    /function scheduleBookingSurfaceFromUrl\(\) \{[\s\S]*const wantsBookingSurface = urlWantsBookingWorkspace\(\);[\s\S]*if \(!wantsBookingSurface\) return;[\s\S]*Bokningsytan öppnades via URL-flag\./,
+    'Förväntade att endast explicit URL-flag öppnar bokningsytan automatiskt.'
   );
 });

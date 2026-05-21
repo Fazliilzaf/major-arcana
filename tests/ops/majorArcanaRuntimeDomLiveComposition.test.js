@@ -509,18 +509,18 @@ test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cach
   );
   assert.match(
     loadLiveRuntimeSource,
-    /const analysisPayload = await apiRequest\("\/api\/v1\/capabilities\/AnalyzeInbox\/run"/,
-    'Förväntade att loadLiveRuntime fortfarande bygger worklisten via AnalyzeInbox.'
+    /const analyzeRequest = await requestAnalyzeInboxPayload\(runtimeMailboxIds/,
+    'Förväntade att loadLiveRuntime fortfarande bygger worklisten via requestAnalyzeInboxPayload.'
   );
   assert.match(
-    loadLiveRuntimeSource,
+    source,
     /buildLiveThreads\(liveData,\s*\{\s*historyMessages:\s*\[\],\s*historyEvents:\s*\[\],\s*\}\)/,
     'Förväntade att initial live-render kan byggas utan att vänta på full tunn historik.'
   );
   assert.match(
-    loadLiveRuntimeSource,
-    /await finalizeRuntimeLoad\(\{[\s\S]*scheduleRuntimeHistoryCoverageWarmup\(runtimeMailboxIds,\s*\{[\s\S]*await requestRuntimeThreadHydration\(preferredThreadId,\s*\{\s*mailboxIds:\s*runtimeMailboxIds,\s*\}\);/,
-    'Förväntade att historikvärmning och prefetch-hydrering av vald tråd triggas efter finalisering utan bulk-mailboxhistorik-fetch.'
+    source,
+    /await finalizeRuntimeLoad\(\{[\s\S]*scheduleRuntimeHistoryCoverageWarmup\(runtimeMailboxIds/,
+    'Förväntade att historikvärmning triggas efter finalisering utan bulk-mailboxhistorik-fetch.'
   );
   assert.match(
     source,
