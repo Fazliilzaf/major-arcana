@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 
 PORT="${CMO_SMOKE_PORT:-3110}"
 SERVER_PID=""
-STAGING_URL="${ARCANA_STAGING_URL:-https://arcana-staging.onrender.com}"
+STAGING_URL="${ARCANA_STAGING_URL:-https://arcana-3pji.onrender.com}"
 
 SMOKE_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-fazli@hairtpclinic.com}"
 SMOKE_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-ArcanaPilot!2026}"

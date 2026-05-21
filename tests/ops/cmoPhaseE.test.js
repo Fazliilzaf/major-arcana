@@ -11,12 +11,12 @@ const {
   INSUFFICIENT_DATA_MESSAGE,
 } = require('../../src/ops/cmoMarketingMetrics');
 
-function freshMetric(value, source, window = '7d') {
+function freshMetric(value, source, window = '7d', fetchedAt = '2026-05-21T12:00:00.000Z') {
   return {
     value,
     source,
     window,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     fresh: true,
   };
 }
@@ -27,7 +27,7 @@ const samplePerformanceSnapshot = {
       google_ads: {
         source: 'google_ads',
         window: '7d',
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: '2026-05-21T12:00:00.000Z',
         fresh: true,
         metrics: {
           ctr: freshMetric(0.008, 'google_ads'),
@@ -41,13 +41,13 @@ const samplePerformanceSnapshot = {
       linkedin: {
         source: 'linkedin',
         window: '7d',
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: '2026-05-21T11:00:00.000Z',
         fresh: true,
         metrics: {
-          ctr: freshMetric(0.03, 'linkedin'),
-          cpc: freshMetric(2.2, 'linkedin'),
+          ctr: freshMetric(0.03, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
+          cpc: freshMetric(2.2, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
         },
-        spend: freshMetric(500, 'linkedin'),
+        spend: freshMetric(500, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
       },
     },
   },
