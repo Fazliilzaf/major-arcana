@@ -282,6 +282,10 @@ button:focus-visible,
 .thread-card.unified-queue-card[data-lane="commercial"] {
   --v5-lane-color: #b45309;
 }
+.thread-card.unified-queue-card[data-lane="pending"],
+.thread-card.unified-queue-card[data-lane="analyserar"] {
+  --v5-lane-color: #64748b;
+}
 .thread-card.unified-queue-card[data-lane="act-now"] .priority-bar::after {
   content: "";
   position: absolute;
@@ -2620,9 +2624,9 @@ button {
   width: 100%;
   display: flex;
   flex-direction: column;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: min(34vh, 300px);
+  max-height: none;
   margin-top: 0;
   padding-right: 0;
   padding-bottom: 8px;
@@ -4388,8 +4392,8 @@ button {
 
 .focus-conversation-layout.is-booking-workspace .focus-conversation,
 .focus-conversation-layout:has(.focus-workrail.is-booking-active) .focus-conversation {
-  flex: 0 1 auto;
-  max-height: min(24vh, 200px);
+  flex: 1 1 auto;
+  max-height: none;
   min-height: 88px;
   border-bottom: 1px solid rgba(214, 200, 190, 0.55);
   padding-bottom: 10px;
@@ -17906,7 +17910,7 @@ button.booking-handoff-card-blocker:focus-visible {
   }
 
   .focus-conversation {
-    max-height: 132px;
+    max-height: none;
     scroll-padding-block: 12px;
   }
 

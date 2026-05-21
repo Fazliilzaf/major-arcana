@@ -186,6 +186,15 @@
   .thread-card.unified-queue-card.warm-row[data-lane="booking"] .lane-badge {
     color: var(--warm-green);
   }
+  .thread-card.unified-queue-card.warm-row[data-lane="pending"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="analyserar"] .warm-rail {
+    background: #94a3b8;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="pending"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="analyserar"] .lane-badge {
+    color: #64748b;
+    font-style: italic;
+  }
 
   /* Top meta: datum + Ej tilldelad */
   .thread-card.unified-queue-card.warm-row .warm-top-meta {
@@ -805,6 +814,17 @@
     overflow-y: auto;
   }
 
+  /* Fokusyta: mejltråden fyller tillgänglig höjd och scrollar internt */
+  .focus-conversation-layout .focus-conversation {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Email-content: tillåt scroll horisontalt om mejl-tabell är bredare */
   .conversation-mail-body,
   .conversation-mail {
@@ -814,10 +834,11 @@
   .conversation-mail-body table {
     max-width: 100%;
   }
-  /* Förhindra word-break mitt i ord (t.ex. "Nyhete r Väsko r") */
-  .conversation-mail-body td {
-    word-break: keep-all;
-    overflow-wrap: normal;
+  /* Marketing/HTML-tabeller: tillåt radbrytning i smala kolumner utan vertikal bokstavsrad */
+  .conversation-mail-body td,
+  .conversation-mail-body th {
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   /* Vid smalare viewports — låt operativt stöd falla under mailet i stället för att försvinna. */
@@ -3256,6 +3277,11 @@ body.is-admin-embed {
   margin: 0;
   overflow: hidden;
   background: transparent;
+  --topbar-height: 0px;
+  --workspace-top-clearance: 0px;
+  --shell-sticky-offset: 0px;
+  --workspace-pane-max-height: calc(100vh - 12px);
+  --workspace-left-pane-max-height: calc(100vh - 12px);
 }
 
 body.is-admin-embed .preview-page,
@@ -3284,6 +3310,30 @@ body.is-admin-embed .preview-shell {
 body.is-admin-embed .preview-canvas {
   border-radius: 0;
   box-shadow: none;
+}
+
+body.is-admin-embed .focus-shell,
+body.is-admin-embed .focus-main,
+body.is-admin-embed .focus-surface {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+body.is-admin-embed .focus-surface {
+  min-height: 0;
+}
+
+body.is-admin-embed .focus-conversation-layout,
+body.is-admin-embed .focus-section-conversation,
+body.is-admin-embed .focus-detail-block {
+  min-height: 0;
+}
+
+body.is-admin-embed .focus-conversation {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 /* Fas 51: auth_required = ren inloggningsyta, ingen mejl-chrome bakom. */

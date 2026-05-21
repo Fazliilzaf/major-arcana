@@ -2076,6 +2076,10 @@
             footerChips,
             signalItems: asArray(historyItem.signalItems),
             laneId: asText(historyItem.laneId),
+            enrichmentPending: historyItem.enrichmentPending === true,
+            worklistSource: asText(thread?.worklistSource || historyItem.worklistSource),
+            workflowLane: asText(thread?.workflowLane || thread?.raw?.workflowLane),
+            intent: asText(thread?.intent || thread?.raw?.intent),
             mailboxLabel: asText(historyItem.mailboxLabel),
             mailboxProvenanceDetail: asText(historyItem.mailboxProvenanceDetail),
             time: asText(historyItem.time),
@@ -3206,6 +3210,59 @@
       done: "admin",
       all: "admin",
     };
+    const TRUTH_PRIMARY_PLACEHOLDER_INTENTS = new Set([
+      "needs_reply",
+      "active_dialogue",
+      "unknown",
+      "unspecified",
+      "none",
+    ]);
+    const ENRICHED_RUNTIME_LANE_IDS = new Set([
+      "act-now",
+      "act_now",
+      "sprint",
+      "later",
+      "bookable",
+      "medical",
+      "medicinsk",
+      "review",
+      "granska",
+      "unclear",
+      "oklart",
+      "operation",
+      "commercial",
+      "consultation",
+      "consult",
+      "aftercare",
+      "eftervard",
+    ]);
+    function isRuntimeEnrichmentPending(thread = {}) {
+      const source = normalizeKey(thread?.worklistSource || thread?.raw?.worklistSource || "");
+      if (source !== "truth_primary") return false;
+      const workflowLane = normalizeKey(thread?.workflowLane || thread?.raw?.workflowLane || "");
+      if (workflowLane) return false;
+      const primaryLaneId = normalizeKey(
+        thread?.primaryLaneId ||
+          (typeof __getThreadPrimaryLaneId === "function" ? __getThreadPrimaryLaneId(thread) : "")
+      );
+      if (primaryLaneId && ENRICHED_RUNTIME_LANE_IDS.has(primaryLaneId)) return false;
+      const intent = normalizeKey(thread?.intent || thread?.raw?.intent || "");
+      if (intent && !TRUTH_PRIMARY_PLACEHOLDER_INTENTS.has(intent)) return false;
+      const laneTags = asArray(thread?.tags).map((tag) => normalizeKey(tag)).filter(Boolean);
+      if (
+        laneTags.some(
+          (tag) =>
+            tag !== "all" &&
+            tag !== "today" &&
+            tag !== "unassigned" &&
+            tag !== "followup" &&
+            tag !== "admin"
+        )
+      ) {
+        return false;
+      }
+      return true;
+    }
     function v5LaneCode(laneId, thread) {
       const key = __normalizeKey(laneId);
       if (V5_LANE_MAP[key]) return V5_LANE_MAP[key];
@@ -3602,8 +3659,11 @@
       // Compute What/Why/Next via existing signal-functions. unifiedModel has the
       // fields they need (intentLabel, statusLabel, riskLabel, tags, etc.) — pass
       // through any explicit override from caller.
-      const v5Lane = v5LaneCode(unifiedModel.laneId, unifiedModel);
-      const v5Label = v5LaneLabel(v5Lane);
+      const enrichmentPending =
+        unifiedModel.enrichmentPending === true ||
+        isRuntimeEnrichmentPending(unifiedModel);
+      const v5Lane = enrichmentPending ? "pending" : v5LaneCode(unifiedModel.laneId, unifiedModel);
+      const v5Label = enrichmentPending ? "Analyserar…" : v5LaneLabel(v5Lane);
       const v5Icon = v5LaneIcon(v5Lane);
 
       const whatStr = asText(
@@ -4055,6 +4115,10 @@
         mailboxTrail: asArray(v3.mailboxTrail),
         subtitle: asText(v3.subtitle),
         laneId: item.laneId,
+        enrichmentPending: item.enrichmentPending === true,
+        worklistSource: asText(item.worklistSource),
+        workflowLane: asText(item.workflowLane),
+        intent: asText(item.intent),
         ownerLabel: item.ownerLabel,
         tags: item.tags,
         signalItems: asArray(item.signalItems),
@@ -5005,6 +5069,7 @@
         explanatoryLine: explanatoryLineHint || defaultRollupExplanatoryLine,
         snippetText: cleanedPreview || rawDetail,
         laneId: primaryLaneId,
+        enrichmentPending: isRuntimeEnrichmentPending(thread),
         signalItems:
           typeof buildQueueInlineLaneSignalItems === "function"
             ? buildQueueInlineLaneSignalItems(thread)
@@ -5022,6 +5087,8 @@
         ),
         rollup: thread?.rollup || null,
         intentLabel: asText(thread.intentLabel),
+        intent: asText(thread?.intent || thread?.raw?.intent),
+        workflowLane: asText(thread?.workflowLane || thread?.raw?.workflowLane),
         worklistSource: asText(thread.worklistSource || "legacy"),
         worklistSourceLabel: asText(thread.worklistSourceLabel),
         isUnread: thread?.unread === true || thread?.isUnread === true,
