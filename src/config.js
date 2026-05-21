@@ -233,6 +233,11 @@ const config = {
     stateRoot,
     fileName: 'post-op-reviews.json',
   }),
+  adminTasksStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_ADMIN_TASKS_STORE_PATH || process.env.ADMIN_TASKS_STORE_PATH,
+    stateRoot,
+    fileName: 'admin-tasks.json',
+  }),
   // Fotofilerna ligger separat från JSON-storen (foton kan vara stora;
   // JSON läses ofta). Default: <stateRoot>/post-op-photos/<submissionId>/<photoId>.jpg
   postOpPhotosDir: process.env.ARCANA_POST_OP_PHOTOS_DIR

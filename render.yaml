@@ -88,3 +88,30 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
+      # CMO marketing connectors (Fas O) — enable in Render UI after secrets set
+      - key: ARCANA_MARKETING_CONNECTORS_ENABLED
+        value: "false"
+      - key: ARCANA_MARKETING_CONNECTORS_MODE
+        value: "fixture"
+      - key: ARCANA_MARKETING_CONNECTORS_LIVE_FETCH
+        value: "false"
+      - key: ARCANA_MARKETING_GOOGLE_ADS_ENABLED
+        value: "false"
+      - key: ARCANA_MARKETING_META_ENABLED
+        value: "false"
+      - key: ARCANA_MARKETING_LINKEDIN_ENABLED
+        value: "false"
+      - key: ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID
+        sync: false
+      - key: ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_META_AD_ACCOUNT_ID
+        sync: false
+      - key: ARCANA_MARKETING_META_ACCESS_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID
+        sync: false
+      - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN
+        sync: false
