@@ -6,104 +6,36 @@ cd "$ROOT_DIR"
 
 PORT="${CMO_SMOKE_PORT:-3110}"
 SERVER_PID=""
-STAGING_URL="${ARCANA_STAGING_URL:-https://arcana-3pji.onrender.com}"
+REMOTE_URL="${ARCANA_STAGING_URL:-https://arcana-3pji.onrender.com}"
+REMOTE_URL="${REMOTE_URL%/}"
 
 SMOKE_OWNER_EMAIL="${ARCANA_OWNER_EMAIL:-fazli@hairtpclinic.com}"
 SMOKE_OWNER_PASSWORD="${ARCANA_OWNER_PASSWORD:-ArcanaPilot!2026}"
 SMOKE_TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
 
-json_get() {
-  local path="$1"
-  node -e "
-const fs = require('fs');
-const input = fs.readFileSync(0, 'utf8');
-let data;
-try { data = JSON.parse(input); } catch { process.exit(1); }
-const parts = process.argv[1].split('.');
-let ref = data;
-for (const key of parts) {
-  if (!key) continue;
-  ref = ref?.[key];
-}
-if (ref === undefined || ref === null) process.exit(2);
-if (typeof ref === 'object') process.stdout.write(JSON.stringify(ref));
-else process.stdout.write(String(ref));
-" "$path"
-}
-
 fetch_bearer_token() {
   local base_url="$1"
-  local login_response
-  login_response="$(curl -sS -X POST "${base_url}/api/v1/auth/login" \
-    -H 'content-type: application/json' \
-    -d "{\"email\":\"${SMOKE_OWNER_EMAIL}\",\"password\":\"${SMOKE_OWNER_PASSWORD}\"}")"
+  BASE_URL="${base_url%/}" \
+  ARCANA_OWNER_EMAIL="$SMOKE_OWNER_EMAIL" \
+  ARCANA_OWNER_PASSWORD="$SMOKE_OWNER_PASSWORD" \
+  ARCANA_DEFAULT_TENANT="$SMOKE_TENANT_ID" \
+  ARCANA_OWNER_MFA_SECRET="${ARCANA_OWNER_MFA_SECRET:-}" \
+  ARCANA_OWNER_MFA_RECOVERY_CODE="${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" \
+  bash "$ROOT_DIR/scripts/extract-owner-token.sh"
+}
 
-  local token
-  token="$(printf '%s' "$login_response" | json_get token 2>/dev/null || true)"
-  if [[ -n "$token" ]]; then
-    printf '%s' "$token"
-    return 0
-  fi
-
-  local requires_mfa mfa_ticket mfa_code mfa_verify
-  requires_mfa="$(printf '%s' "$login_response" | json_get requiresMfa 2>/dev/null || true)"
-  if [[ "$requires_mfa" != "true" ]]; then
-    echo "login failed: $login_response" >&2
-    return 1
-  fi
-
-  mfa_ticket="$(printf '%s' "$login_response" | json_get mfaTicket 2>/dev/null || true)"
-  local mfa_secret
-  mfa_secret="$(printf '%s' "$login_response" | json_get mfa.secret 2>/dev/null || true)"
-  if [[ -z "$mfa_secret" && -f ./data/auth.json ]]; then
-    mfa_secret="$(node -e "
-const fs=require('fs');
-const email=process.argv[1].toLowerCase();
-const raw=JSON.parse(fs.readFileSync('./data/auth.json','utf8'));
-const users=Object.values(raw.users||{});
-const user=users.find(u=>String(u.email||'').toLowerCase()===email);
-process.stdout.write(String(user?.mfaSecret||''));
-" "$SMOKE_OWNER_EMAIL")"
-  fi
-  if [[ -z "$mfa_secret" ]]; then
-    echo "MFA required but no secret available" >&2
-    return 1
-  fi
-  mfa_code="$(node -e "
-const crypto=require('crypto');
-const secret=String(process.argv[1]).toUpperCase().replace(/[^A-Z2-7]/g,'');
-const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-let bits=0,value=0,output='';
-for (const ch of secret){const idx=alphabet.indexOf(ch);if(idx<0)continue;value=(value<<5)|idx;bits+=5;if(bits>=8){output+=String.fromCharCode((value>>(bits-8))&255);bits-=8;}}
-const step=30;const counter=Math.floor(Date.now()/1000/step);
-const buf=Buffer.alloc(8);buf.writeBigUInt64BE(BigInt(counter));
-const hmac=crypto.createHmac('sha1',Buffer.from(output)).update(buf).digest();
-const offset=hmac[hmac.length-1]&15;
-const code=((hmac[offset]&127)<<24|(hmac[offset+1]&255)<<16|(hmac[offset+2]&255)<<8|(hmac[offset+3]&255))%1000000;
-process.stdout.write(String(code).padStart(6,'0'));
-" "$mfa_secret")"
-  mfa_verify="$(curl -sS -X POST "${base_url}/api/v1/auth/mfa/verify" \
-    -H 'content-type: application/json' \
-    -d "{\"mfaTicket\":\"${mfa_ticket}\",\"code\":\"${mfa_code}\"}")"
-  token="$(printf '%s' "$mfa_verify" | json_get token 2>/dev/null || true)"
-  if [[ -n "$token" ]]; then
-    printf '%s' "$token"
-    return 0
-  fi
-  local login_ticket
-  login_ticket="$(printf '%s' "$mfa_verify" | json_get loginTicket 2>/dev/null || true)"
-  if [[ -n "$login_ticket" ]]; then
-    local tenant_select
-    tenant_select="$(curl -sS -X POST "${base_url}/api/v1/auth/select-tenant" \
-      -H 'content-type: application/json' \
-      -d "{\"loginTicket\":\"${login_ticket}\",\"tenantId\":\"${SMOKE_TENANT_ID}\"}")"
-    token="$(printf '%s' "$tenant_select" | json_get token 2>/dev/null || true)"
-    if [[ -n "$token" ]]; then
-      printf '%s' "$token"
+wait_for_readyz() {
+  local base_url="$1"
+  local label="$2"
+  local attempts="${3:-90}"
+  for _ in $(seq 1 "$attempts"); do
+    if curl -sf "${base_url}/readyz" 2>/dev/null | rg -q '"ready":true'; then
+      echo "✅ ${label} readyz OK"
       return 0
     fi
-  fi
-  echo "MFA login failed: $mfa_verify" >&2
+    sleep 1
+  done
+  echo "⚠️ ${label} not ready at ${base_url}/readyz"
   return 1
 }
 
@@ -137,25 +69,18 @@ ARCANA_DEFAULT_TENANT="$SMOKE_TENANT_ID" \
 node server.js >/tmp/arcana-cmo-smoke.log 2>&1 &
 SERVER_PID="$!"
 
-for _ in $(seq 1 90); do
-  if curl -sf "http://localhost:${PORT}/readyz" >/dev/null 2>&1; then
-    break
-  fi
-  if ! kill -0 "${SERVER_PID}" 2>/dev/null; then
-    echo "❌ Server exited during startup"
-    cat /tmp/arcana-cmo-smoke.log || true
-    exit 1
-  fi
-  sleep 1
-done
-
-if ! curl -sf "http://localhost:${PORT}/readyz" >/dev/null 2>&1; then
+LOCAL_BASE="http://localhost:${PORT}"
+if ! wait_for_readyz "$LOCAL_BASE" "local server" 90; then
   echo "❌ Server not ready on ${PORT}"
   cat /tmp/arcana-cmo-smoke.log || true
   exit 1
 fi
+if ! kill -0 "${SERVER_PID}" 2>/dev/null; then
+  echo "❌ Server exited during startup"
+  cat /tmp/arcana-cmo-smoke.log || true
+  exit 1
+fi
 
-LOCAL_BASE="http://localhost:${PORT}"
 TOKEN="$(fetch_bearer_token "$LOCAL_BASE")"
 echo "✅ Local auth token acquired"
 
@@ -164,19 +89,25 @@ ARCANA_SMOKE_TOKEN="$TOKEN" \
 npm run smoke:cmo-connectors
 
 echo ""
-echo "▶️ Fas O — remote staging probe (${STAGING_URL})"
-if curl -sf "${STAGING_URL}/healthz" >/dev/null 2>&1; then
-  echo "✅ staging healthz OK"
-  if REMOTE_TOKEN="$(fetch_bearer_token "${STAGING_URL%/}" 2>/dev/null || true)" && [[ -n "$REMOTE_TOKEN" ]]; then
-    echo "✅ staging auth OK — running HTTP connector smoke"
-    ARCANA_SMOKE_BASE_URL="${STAGING_URL%/}" \
+echo "▶️ Fas O — remote prod probe (${REMOTE_URL})"
+if wait_for_readyz "$REMOTE_URL" "remote" 30; then
+  route_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${REMOTE_URL}/api/v1/marketing/connectors/status" || true)"
+  if [[ "$route_code" == "404" ]]; then
+    echo "⚠️ marketing/connectors/status returns 404 — deploy latest main (5679cdc+) and rerun"
+  elif [[ "$route_code" == "401" || "$route_code" == "403" ]]; then
+    echo "✅ marketing route mounted (HTTP ${route_code} without auth)"
+  else
+    echo "ℹ️ marketing/connectors/status HTTP ${route_code}"
+  fi
+
+  if REMOTE_TOKEN="$(fetch_bearer_token "$REMOTE_URL" 2>/dev/null || true)" && [[ -n "$REMOTE_TOKEN" ]]; then
+    echo "✅ remote auth OK — running HTTP connector smoke"
+    ARCANA_SMOKE_BASE_URL="$REMOTE_URL" \
     ARCANA_SMOKE_TOKEN="$REMOTE_TOKEN" \
     npm run smoke:cmo-connectors
   else
-    echo "⚠️ staging auth skipped (MFA/credentials) — set secrets in Render + rerun"
+    echo "⚠️ remote auth skipped — prod credentials/MFA differ from local (use GitHub secrets or ARCANA_OWNER_MFA_SECRET)"
   fi
-else
-  echo "⚠️ staging not reachable at ${STAGING_URL}/healthz"
 fi
 
 echo "✅ Fas O HTTP smoke complete"
