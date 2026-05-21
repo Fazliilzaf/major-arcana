@@ -58,6 +58,7 @@ test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enric
           mailboxAddress: mailboxId,
           conversationId: 'AAQkMissing',
           mailboxConversationId: 'AAQkMissing',
+          conversationKey: `${mailboxId}:AAQkMissing`,
           folderType: 'inbox',
           direction: 'inbound',
           isRead: false,
@@ -108,7 +109,7 @@ test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enric
   assert.equal(coverage.gapCount, 1);
   assert.equal(coverage.coveragePercent, 50);
   assert.equal(coverage.readyForWork, false);
-  assert.ok(coverage.gapConversationIds.includes('AAQkMissing'));
+  assert.ok(coverage.gapConversationIds.includes(`${mailboxId}:AAQkMissing`));
   assert.equal(
     buildEnrichmentRowConversationKey({
       conversationId: 'AAQkEnriched',
