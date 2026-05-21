@@ -14,6 +14,21 @@ function asObject(value) {
 
 const CAO_AGENT_NAME = 'CAO';
 
+const CAO_EXTENDED_CAPABILITY_NAMES = Object.freeze([
+  'GenerateAdminTemplateDraft',
+  'AuditDocumentationMetadata',
+  'ProposeDocumentStructure',
+  'SummarizeIncidentAdmin',
+  'FlagUnownedIncidents',
+  'BuildAuditSummary',
+  'VerifyDecisionTraceability',
+  'TenantAdminHealthSummary',
+  'GenerateAdminDailyBrief',
+  'GenerateAdminWeeklyBrief',
+  'ExplainReadinessScore',
+  'GenerateGoNoGoBrief',
+]);
+
 const caoTemplateAdvisorInputSchema = Object.freeze({
   type: 'object',
   additionalProperties: false,
@@ -56,6 +71,9 @@ function composeCaoTemplateAdvisor({
   suggestOutput = null,
   disclaimerOutput = null,
   variableOutput = null,
+  libraryHealthOutput = null,
+  qualityGateOutput = null,
+  extendedOutputs = {},
   channel = 'admin',
   tenantId = '',
   correlationId = '',
@@ -63,9 +81,14 @@ function composeCaoTemplateAdvisor({
   const suggestData = asObject(asObject(suggestOutput).data);
   const disclaimerData = asObject(asObject(disclaimerOutput).data);
   const variableData = asObject(asObject(variableOutput).data);
+  const libraryHealth = asObject(asObject(libraryHealthOutput).data);
+  const adminQualityGate = asObject(asObject(qualityGateOutput).data);
+  const extended = asObject(extendedOutputs);
   const suggestWarnings = asArray(asObject(suggestOutput).warnings);
   const disclaimerWarnings = asArray(asObject(disclaimerOutput).warnings);
   const variableWarnings = asArray(asObject(variableOutput).warnings);
+  const libraryWarnings = asArray(asObject(libraryHealthOutput).warnings);
+  const qualityWarnings = asArray(asObject(qualityGateOutput).warnings);
 
   const templateSuggestions = asArray(suggestData.suggestions).slice(0, 10);
   const disclaimerResults = {
@@ -96,26 +119,44 @@ function composeCaoTemplateAdvisor({
   };
 
   const segments = [
-    `CAO Template Advisor.`,
-    `${templateSuggestions.length} mallar foreslagna for forbaettring.`,
-    `Disclaimers: ${disclaimerResults.compliantCount}/${disclaimerResults.totalCount} godkaenda, ${disclaimerResults.violationCount} regelbrott.`,
-    `Variabeloptimering: ${variableOptimization.improvableCount} mallar kan forbattras (snitt ${variableOptimization.averageScore}%).`,
+    `Arcana Admin Operator.`,
+    `${templateSuggestions.length} mallar föreslagna för förbättring.`,
+    `Disclaimers: ${disclaimerResults.compliantCount}/${disclaimerResults.totalCount} godkända, ${disclaimerResults.violationCount} regelbrott.`,
+    `Variabeloptimering: ${variableOptimization.improvableCount} mallar kan förbättras (snitt ${variableOptimization.averageScore}%).`,
   ];
-  const executiveSummary = segments.join(' ');
+  if (typeof libraryHealth.healthScore === 'number') {
+    segments.push(`Mallbibliotek: ${libraryHealth.healthScore}/100.`);
+  }
+  if (adminQualityGate.summary) {
+    segments.push(normalizeText(adminQualityGate.summary));
+  }
+  const executiveSummary = segments.filter(Boolean).join(' ');
 
   const warnings = Array.from(
     new Set(
-      [...suggestWarnings, ...disclaimerWarnings, ...variableWarnings]
+      [
+        ...suggestWarnings,
+        ...disclaimerWarnings,
+        ...variableWarnings,
+        ...libraryWarnings,
+        ...qualityWarnings,
+        ...Object.values(extended).flatMap((item) => asArray(asObject(item).warnings)),
+      ]
         .map((item) => normalizeText(item))
         .filter(Boolean)
     )
   ).slice(0, 20);
+
+  const goNoGoBrief = asObject(asObject(extended.GenerateGoNoGoBrief).data);
 
   return {
     data: {
       templateSuggestions,
       disclaimerResults,
       variableOptimization,
+      templateLibraryHealth: libraryHealth,
+      adminQualityGate,
+      goNoGoBrief: goNoGoBrief.outputType ? goNoGoBrief : null,
       executiveSummary,
       generatedAt: new Date().toISOString(),
     },
@@ -125,7 +166,15 @@ function composeCaoTemplateAdvisor({
       channel: normalizeText(channel) || 'admin',
       tenantId: normalizeText(tenantId) || 'unknown',
       correlationId: normalizeText(correlationId) || '',
-      sources: ['SuggestTemplateImprovement', 'ValidateDisclaimers', 'OptimizeVariables'],
+      operatorLabel: 'Arcana Admin Operator',
+      sources: [
+        'SuggestTemplateImprovement',
+        'ValidateDisclaimers',
+        'OptimizeVariables',
+        'AssessTemplateLibraryHealth',
+        'AssessAdminQualityGate',
+        ...CAO_EXTENDED_CAPABILITY_NAMES,
+      ],
     },
     warnings,
   };
@@ -133,6 +182,7 @@ function composeCaoTemplateAdvisor({
 
 module.exports = {
   CAO_AGENT_NAME,
+  CAO_EXTENDED_CAPABILITY_NAMES,
   caoTemplateAdvisorInputSchema,
   caoTemplateAdvisorOutputSchema,
   composeCaoTemplateAdvisor,
