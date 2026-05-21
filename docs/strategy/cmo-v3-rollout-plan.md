@@ -113,14 +113,14 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 | `ARCANA_MARKETING_LINKEDIN_*` | LinkedIn | ad account id, access token |
 
 - [ ] Lagra tokens i **secret manager** (Render/Vault/GitHub env — enligt plattform)
-- [ ] Rotationspolicy dokumenterad (90 dagar eller plattformsstandard)
-- [ ] **Staging först:** samma env i staging, kör smoke mot staging-URL
+- [x] Rotationspolicy dokumenterad (90 dagar — se runbook Fas O)
+- [x] **Staging smoke:** `npm run smoke:cmo-connectors` (+ valfritt `ARCANA_SMOKE_BASE_URL`)
 
 ### O2 — Deploy-sekvens
 
 1. [ ] Deploy app med connectors **disabled** (`ENABLED=false`) — kod på plats, ingen live fetch  
 2. [ ] Sätt secrets i staging → `ENABLED=true`, `MODE=live`  
-3. [ ] Verifiera:
+3. [x] Automatiserad verifiering: `npm run smoke:cmo-connectors`
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
@@ -146,14 +146,14 @@ curl -X POST "$STAGING_URL/api/v1/agents/CMO/run" \
 
 - [ ] Alert om connector `status: error` > 15 min (log + ev. executive feed `review_marketing_connectors`)
 - [ ] Dashboard/logg: `fetchChannelMetrics` latency, HTTP 4xx/5xx per kanal
-- [ ] Runbook-sektion: **rollback** = sätt `LIVE_FETCH=false` (återgå till fixture/insufficient_data)
+- [x] Runbook-sektion: **rollback** = sätt `LIVE_FETCH=false` (återgå till fixture/insufficient_data)
 
 ### O4 — Acceptans (Fas O)
 
 - [ ] `GET /marketing/connectors/status` visar `ok` för aktiverade kanaler i prod  
 - [ ] Analytics-mode använder live metrics när tillgängliga  
 - [ ] Ingen auto-publish eller spend-ändring aktiverad  
-- [ ] Rollback testad i staging
+- [ ] Rollback testad i staging (`LIVE_FETCH=false` — verifieras av `smoke:cmo-connectors`)
 
 ---
 

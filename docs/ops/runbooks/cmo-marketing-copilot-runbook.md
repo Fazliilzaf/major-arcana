@@ -66,6 +66,38 @@ npm run smoke:cmo-staging
 ARCANA_SMOKE_BASE_URL=http://localhost:3100 npm run smoke:cmo-staging
 ```
 
+### Marketing connectors rollout (Fas O)
+
+**Princip:** read-only metrics only. Ingen auto-publish, ingen autonom spend (ADR 0002).
+
+Deploy-sekvens:
+
+1. Deploy med `ARCANA_MARKETING_CONNECTORS_ENABLED=false`
+2. Sätt secrets i staging → `ENABLED=true`, `MODE=live`, `LIVE_FETCH=true`
+3. Kör connector-smoke lokalt + mot staging:
+
+```bash
+npm run smoke:cmo-connectors
+ARCANA_SMOKE_BASE_URL=https://<staging-host> \
+ARCANA_SMOKE_TOKEN=<owner-bearer> \
+npm run smoke:cmo-connectors
+```
+
+4. Verifiera analytics i admin (Analys-fliken) eller:
+
+```bash
+curl -X POST "$STAGING_URL/api/v1/agents/CMO/run" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"mode":"analytics","period":"weekly"}'
+```
+
+5. Upprepa i prod under underhållsfönster
+
+**Rollback:** `ARCANA_MARKETING_CONNECTORS_LIVE_FETCH=false` (fixture/insufficient_data).  
+**Rotation:** rotera ad-platform tokens var 90:e dag (eller plattformsstandard).
+
+Env-mall: `.env.example` (sektion CMO marketing connectors).
+
 ---
 
 ## API-referens (marketing workspace)
