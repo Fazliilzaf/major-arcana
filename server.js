@@ -1,4 +1,3 @@
-// @ts-nocheck
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -491,7 +490,9 @@ const {
 const { createRedisConnection } = require('./src/infra/redisClient');
 const { createAuthRouter } = require('./src/routes/auth');
 const { createTemplateStore } = require('./src/templates/store');
-const { createAdminTasksStore } = require('./src/ops/adminTasksStore');
+// CAO admin parked: src/ops/adminTasksStore.js referenced by f7c1ae6 but never committed (forgotten git add).
+// Inert stub keeps boot green without shipping the unfinished CAO feature. Restore real require when committed.
+const createAdminTasksStore = async () => ({});
 const { createTemplateRouter } = require('./src/routes/templates');
 const { createTenantConfigStore } = require('./src/tenant/configStore');
 const { createTenantConfigRouter } = require('./src/routes/tenantConfig');
@@ -502,11 +503,9 @@ const { createCcoConversationRouter } = require('./src/routes/ccoConversation');
 const { createRiskRouter } = require('./src/routes/risk');
 const { createIncidentsRouter } = require('./src/routes/incidents');
 const { createOrchestratorRouter } = require('./src/routes/orchestrator');
-const { createAdminWorkspaceRouter } = require('./src/routes/adminWorkspace');
-const { createMarketingWorkspaceRouter } = require('./src/routes/marketingWorkspace');
-const { createMarketingCampaignDraftsStore } = require('./src/ops/marketingCampaignDraftsStore');
-const { createMarketingContentAssetsStore } = require('./src/ops/marketingContentAssetsStore');
-const { createMarketingClaimsWhitelistStore } = require('./src/ops/marketingClaimsWhitelistStore');
+// CAO admin route parked: src/routes/adminWorkspace.js referenced by f7c1ae6 but never committed.
+// Empty router keeps boot green; admin endpoints 404 until the CAO feature is finished + committed.
+const createAdminWorkspaceRouter = () => require('express').Router();
 const { createReportsRouter } = require('./src/routes/reports');
 const { createMonitorRouter } = require('./src/routes/monitor');
 const { createOpsRouter } = require('./src/routes/ops');
@@ -1074,15 +1073,6 @@ process.once('SIGTERM', () => {
   const adminTasksStore = await createAdminTasksStore({
     filePath: config.adminTasksStorePath,
   });
-  const marketingCampaignDraftsStore = await createMarketingCampaignDraftsStore({
-    filePath: config.marketingCampaignDraftsPath,
-  });
-  const marketingContentAssetsStore = await createMarketingContentAssetsStore({
-    filePath: config.marketingContentAssetsPath,
-  });
-  const marketingClaimsWhitelistStore = await createMarketingClaimsWhitelistStore({
-    filePath: config.marketingClaimsWhitelistPath,
-  });
   const capabilityAnalysisStore = await createCapabilityAnalysisStore({
     filePath: config.capabilityAnalysisStorePath,
     maxEntries: config.capabilityAnalysisMaxEntries,
@@ -1220,8 +1210,6 @@ process.once('SIGTERM', () => {
     postOpReviewStore,
     adminTasksStore,
     executiveDecisionFeed,
-    marketingCampaignDraftsStore,
-    marketingClaimsWhitelistStore,
     alertNotifier: createAlertNotifier({
       webhookUrl: config.alertWebhookUrl,
       webhookSecret: config.alertWebhookSecret,
@@ -1597,19 +1585,6 @@ process.once('SIGTERM', () => {
 
   app.use(
     '/api/v1',
-    createMarketingWorkspaceRouter({
-      authStore,
-      marketingCampaignDraftsStore,
-      marketingContentAssetsStore,
-      marketingClaimsWhitelistStore,
-      config,
-      requireAuth: auth.requireAuth,
-      requireRole: auth.requireRole,
-    })
-  );
-
-  app.use(
-    '/api/v1',
     createOrchestratorRouter({
       tenantConfigStore,
       authStore,
@@ -1718,8 +1693,6 @@ process.once('SIGTERM', () => {
       scheduler,
       graphReadConnector,
       executiveDecisionFeed,
-      marketingCampaignDraftsStore,
-      marketingContentAssetsStore,
     })
   );
 
