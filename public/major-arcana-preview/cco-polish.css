@@ -696,8 +696,16 @@
    under triggern. Fungerar oavsett timing eller app.js-state. */
   .mailbox-dropdown {
     position: relative;
+    z-index: 20;
   }
-  .mailbox-dropdown > .mailbox-menu,
+  .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger,
+  .queue-lane-quickstrip > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger {
+    position: relative;
+    z-index: 1;
+  }
+  /* Only show/interact with the menu when the toggle is checked.
+     Do NOT target `.mailbox-dropdown > .mailbox-menu` unconditionally — that
+     overrode the closed-state rules and left an invisible layer blocking clicks. */
   .mailbox-menu-toggle:checked ~ .mailbox-menu {
     position: absolute;
     top: calc(100% + 6px);
@@ -710,6 +718,7 @@
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
+    z-index: 1200;
   }
   /* Owner-dropdown: höger-anchorerad (fakturarow) */
   .owner-dropdown.mailbox-dropdown > .mailbox-menu {

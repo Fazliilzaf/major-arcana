@@ -9302,6 +9302,7 @@ button {
   background: transparent;
   z-index: 6;
   isolation: isolate;
+  overflow: visible;
 }
 
 .queue-stream-tools::before {

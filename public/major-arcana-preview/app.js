@@ -759,6 +759,31 @@
       clearMailboxDropdownOverlay(menu);
     });
   }
+
+  function isMailboxDropdownInteractionTarget(target) {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest(".mailbox-dropdown") ||
+        target.closest("label[for='mailbox-menu-toggle']") ||
+        target.closest("label[for='owner-menu-toggle']")
+    );
+  }
+
+  function bindMailboxTriggerToggle(trigger, toggle) {
+    if (!trigger || !toggle || trigger.dataset.mailboxTriggerBound === "true") return;
+    trigger.dataset.mailboxTriggerBound = "true";
+    trigger.addEventListener("click", (event) => {
+      if (event.target.closest(".mailbox-menu")) return;
+      if (toggle.disabled) return;
+      const wasChecked = toggle.checked === true;
+      window.requestAnimationFrame(() => {
+        if (toggle.checked === wasChecked) {
+          toggle.checked = !wasChecked;
+          toggle.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+    });
+  }
   const intelPanelHistory = document.querySelector('[data-intel-panel-group="history"]');
   const intelPanelSignals = document.querySelector('[data-intel-panel-group="signals"]');
   const intelPanelMedicine = document.querySelector('[data-intel-panel-group="medicine"]');
@@ -40439,7 +40464,8 @@ renderStudioShell();
   mailboxDropdowns.forEach((dropdown) => {
     const parts = getMailboxDropdownParts(dropdown);
     if (!parts) return;
-    const { toggle, menu } = parts;
+    const { toggle, trigger, menu } = parts;
+    bindMailboxTriggerToggle(trigger, toggle);
 
     toggle.addEventListener("change", () => {
       if (!toggle.checked) {
@@ -40999,7 +41025,7 @@ renderStudioShell();
       });
 	      return;
 	    }
-	    if (!event.target.closest(".mailbox-dropdown")) {
+	    if (!isMailboxDropdownInteractionTarget(event.target)) {
 	      closeMailboxDropdowns();
 	    }
     if (state.ui.moreMenuOpen && !event.target.closest(".preview-more")) {
