@@ -17,6 +17,7 @@ const INTENTS = Object.freeze({
   TENANT_BRANDING: 'tenant_branding',
   AUDIT_REVIEW: 'audit_review',
   FINANCE_GOVERNANCE: 'finance_governance',
+  MARKETING_CAMPAIGN: 'marketing_campaign',
   GENERAL_ADMIN: 'general_admin',
 });
 
@@ -36,6 +37,13 @@ function inferIntent(prompt) {
   }
 
   const rules = [
+    {
+      intent: INTENTS.MARKETING_CAMPAIGN,
+      regex:
+        /\b(kampanj|campaign|marketing|utm|publicering|publicera|ads|annons|outreach|content\s*plan|go-live|golive)\b/i,
+      confidence: 0.84,
+      reason: 'marketing_keywords',
+    },
     {
       intent: INTENTS.TEMPLATE_LIBRARY,
       regex: /\b(template|mall|draft|utkast|activate|aktivera|version|aftercare|konsultation)\b/i,
@@ -94,6 +102,14 @@ function inferIntent(prompt) {
 
 function selectAgents(intent) {
   const map = {
+    [INTENTS.MARKETING_CAMPAIGN]: [
+      AGENTS.ARCANA,
+      AGENTS.CMO,
+      AGENTS.CLINICAL_GUARD,
+      AGENTS.CAO,
+      AGENTS.COO,
+      AGENTS.CFO,
+    ],
     [INTENTS.TEMPLATE_LIBRARY]: [AGENTS.ARCANA, AGENTS.CAO, AGENTS.CLINICAL_GUARD],
     [INTENTS.RISK_REVIEW]: [AGENTS.ARCANA, AGENTS.CLINICAL_GUARD, AGENTS.COO, AGENTS.CFO],
     [INTENTS.STAFF_ADMIN]: [AGENTS.ARCANA, AGENTS.COO],
@@ -108,6 +124,16 @@ function selectAgents(intent) {
 function buildActionPlan({ intent, role }) {
   const common = [{ step: 'validate_tenant_scope', owner: AGENTS.ARCANA }];
   const byIntent = {
+    [INTENTS.MARKETING_CAMPAIGN]: [
+      { step: 'hydrate_marketing_snapshot', owner: AGENTS.CMO },
+      { step: 'generate_campaign_drafts', owner: AGENTS.CMO },
+      { step: 'run_compliance_and_claims', owner: AGENTS.CLINICAL_GUARD },
+      { step: 'check_operational_readiness', owner: AGENTS.CAO },
+      { step: 'evaluate_incident_pause', owner: AGENTS.COO },
+      { step: 'check_budget_gate', owner: AGENTS.CFO },
+      { step: 'prepare_cco_handoff', owner: AGENTS.CMO },
+      { step: 'request_owner_action_if_needed', owner: AGENTS.ARCANA },
+    ],
     [INTENTS.TEMPLATE_LIBRARY]: [
       { step: 'inspect_template_status', owner: AGENTS.CAO },
       { step: 'generate_or_update_draft', owner: AGENTS.CAO },
@@ -153,6 +179,12 @@ function buildActionPlan({ intent, role }) {
 
 function buildSuggestedApiCalls(intent) {
   const map = {
+    [INTENTS.MARKETING_CAMPAIGN]: [
+      'POST /api/v1/capabilities/agents/CMO/run',
+      'GET /api/v1/marketing/campaigns',
+      'GET /api/v1/monitor/readiness',
+      'PATCH /api/v1/marketing/campaigns/:id/approve',
+    ],
     [INTENTS.TEMPLATE_LIBRARY]: [
       'GET /api/v1/templates',
       'POST /api/v1/templates/:templateId/drafts/generate',
@@ -196,6 +228,7 @@ function getOrchestratorRoadmap() {
           'staff_admin',
           'tenant_branding',
           'audit_review',
+          'marketing_campaign',
         ],
       },
       {
@@ -278,11 +311,204 @@ function enforceOutputSafety({ text, tenantRiskModifier, riskThresholdVersion = 
   };
 }
 
+const EXECUTABLE_STEP_MAP = Object.freeze({
+  inspect_template_status: {
+    capability: 'AssessTemplateLibraryHealth',
+    input: { staleDays: 30 },
+    autoExecuteAllowed: true,
+  },
+  generate_or_update_draft: {
+    capability: 'GenerateAdminTemplateDraft',
+    input: {},
+    autoExecuteAllowed: true,
+  },
+  run_risk_policy_checks: {
+    capability: 'ValidateDisclaimers',
+    input: { strictMode: false },
+    autoExecuteAllowed: true,
+  },
+  load_recent_audit_events: {
+    capability: 'BuildAuditSummary',
+    input: { limit: 100 },
+    autoExecuteAllowed: true,
+  },
+  highlight_compliance_gaps: {
+    capability: 'VerifyDecisionTraceability',
+    input: {},
+    autoExecuteAllowed: true,
+  },
+  route_to_owner_panel_action: {
+    capability: 'AssessAdminQualityGate',
+    input: {},
+    autoExecuteAllowed: true,
+  },
+  classify_request: {
+    capability: 'GenerateAdminDailyBrief',
+    input: {},
+    autoExecuteAllowed: true,
+  },
+});
+
+const CAO_PRIMARY_INTENTS = new Set([
+  INTENTS.TEMPLATE_LIBRARY,
+  INTENTS.AUDIT_REVIEW,
+  INTENTS.GENERAL_ADMIN,
+]);
+
+const MARKETING_PRIMARY_INTENTS = new Set([INTENTS.MARKETING_CAMPAIGN]);
+
+const INTENT_AGENT_EXECUTE = Object.freeze({
+  [INTENTS.MARKETING_CAMPAIGN]: {
+    agentName: AGENTS.CMO,
+    step: 'cmo_marketing_copilot_run',
+    buildInput: ({ intent, prompt }) => ({
+      maxTopics: 5,
+      orchestratorIntent: intent,
+      orchestratorPrompt: prompt,
+    }),
+  },
+  [INTENTS.TEMPLATE_LIBRARY]: {
+    agentName: AGENTS.CAO,
+    step: 'cao_admin_operator_run',
+    buildInput: ({ intent, prompt }) => ({
+      maxSuggestions: 5,
+      strictDisclaimers: false,
+      orchestratorIntent: intent,
+      orchestratorPrompt: prompt,
+    }),
+  },
+  [INTENTS.AUDIT_REVIEW]: {
+    agentName: AGENTS.CAO,
+    step: 'cao_admin_operator_run',
+    buildInput: ({ intent, prompt }) => ({
+      maxSuggestions: 3,
+      strictDisclaimers: true,
+      orchestratorIntent: intent,
+      orchestratorPrompt: prompt,
+    }),
+  },
+  [INTENTS.GENERAL_ADMIN]: {
+    agentName: AGENTS.CAO,
+    step: 'cao_admin_operator_run',
+    buildInput: ({ intent, prompt }) => ({
+      maxSuggestions: 3,
+      orchestratorIntent: intent,
+      orchestratorPrompt: prompt,
+    }),
+  },
+});
+
+function buildExecutablePreview(plan = [], intent = '') {
+  const executableSteps = buildExecutableSteps(plan);
+  const agentMapping = INTENT_AGENT_EXECUTE[intent] || null;
+  return {
+    executableSteps,
+    recommendedAgentRun: agentMapping
+      ? {
+          agent: agentMapping.agentName,
+          intent,
+          mode: 'execute',
+          label:
+            agentMapping.agentName === AGENTS.CMO
+              ? 'Arcana Marketing Copilot (CMO) agent-run'
+              : 'Arcana Admin Operator (CAO) agent-run',
+        }
+      : null,
+  };
+}
+
+async function executeIntentAgentRun({ intent, prompt, executeContext, tenantId }) {
+  const mapping = INTENT_AGENT_EXECUTE[intent];
+  if (!mapping || typeof executeContext?.runAgent !== 'function') return null;
+  const snapshot =
+    typeof executeContext.hydrateSnapshot === 'function'
+      ? await executeContext.hydrateSnapshot(mapping.agentName, intent, prompt)
+      : {};
+  const result = await executeContext.runAgent({
+    tenantId,
+    actor: executeContext.actor,
+    channel: executeContext.channel || 'admin',
+    agentName: mapping.agentName,
+    input: mapping.buildInput({ intent, prompt }),
+    systemStateSnapshot: {
+      ...snapshot,
+      orchestratorContext: { intent, prompt },
+    },
+    correlationId: executeContext.correlationId || '',
+  });
+  return {
+    step: mapping.step || 'cao_admin_operator_run',
+    agent: mapping.agentName,
+    intent,
+    decision: result?.gatewayResult?.decision || 'unknown',
+    ok: result?.gatewayResult?.decision === 'allow',
+  };
+}
+
+function buildExecutableSteps(plan = []) {
+  const steps = Array.isArray(plan) ? plan : [];
+  return steps
+    .map((step) => {
+      const mapping = EXECUTABLE_STEP_MAP[normalizeText(step?.step)];
+      if (!mapping?.autoExecuteAllowed) return null;
+      return {
+        step: step.step,
+        owner: step.owner,
+        capability: mapping.capability,
+        input: mapping.input,
+      };
+    })
+    .filter(Boolean);
+}
+
+async function executeAdminPlanSteps({
+  executableSteps = [],
+  runCapability,
+  hydrateSnapshot,
+  tenantId,
+  actor,
+  channel = 'admin',
+  correlationId = '',
+}) {
+  const snapshot = typeof hydrateSnapshot === 'function' ? await hydrateSnapshot() : {};
+  const executed = [];
+  for (const step of executableSteps) {
+    try {
+      const result = await runCapability({
+        tenantId,
+        actor,
+        channel,
+        capabilityName: step.capability,
+        input: step.input || {},
+        systemStateSnapshot: snapshot,
+        correlationId,
+      });
+      executed.push({
+        step: step.step,
+        capability: step.capability,
+        decision: result?.gatewayResult?.decision || 'unknown',
+        ok: result?.gatewayResult?.decision === 'allow',
+      });
+    } catch (error) {
+      executed.push({
+        step: step.step,
+        capability: step.capability,
+        decision: 'error',
+        ok: false,
+        error: normalizeText(error?.message) || 'execute_failed',
+      });
+    }
+  }
+  return executed;
+}
+
 async function runAdminOrchestration({
   prompt,
   role,
   tenantId,
   tenantConfig,
+  mode = 'plan',
+  executeContext = null,
 }) {
   const inference = inferIntent(prompt);
   const selectedAgents = selectAgents(inference.intent);
@@ -308,14 +534,49 @@ async function runAdminOrchestration({
         : 1,
   });
 
+  const normalizedMode = normalizeText(mode).toLowerCase() || 'plan';
+  const executableSteps = buildExecutableSteps(plan);
+  const executePreview = buildExecutablePreview(plan, inference.intent);
+  let executedSteps = [];
+
+  if (normalizedMode === 'execute' && executeContext) {
+    if (
+      (CAO_PRIMARY_INTENTS.has(inference.intent) ||
+        MARKETING_PRIMARY_INTENTS.has(inference.intent)) &&
+      typeof executeContext.runAgent === 'function'
+    ) {
+      const agentStep = await executeIntentAgentRun({
+        intent: inference.intent,
+        prompt,
+        executeContext,
+        tenantId,
+      });
+      if (agentStep) executedSteps.push(agentStep);
+    } else if (typeof executeContext.runCapability === 'function') {
+      executedSteps = await executeAdminPlanSteps({
+        executableSteps,
+        runCapability: executeContext.runCapability,
+        hydrateSnapshot: executeContext.hydrateSnapshot,
+        tenantId,
+        actor: executeContext.actor,
+        channel: executeContext.channel || 'admin',
+        correlationId: executeContext.correlationId || '',
+      });
+    }
+  }
+
   return {
     tenantId,
     role,
+    mode: normalizedMode,
     intent: inference.intent,
     confidence: inference.confidence,
     reasons: inference.reasons,
     selectedAgents,
     plan,
+    executableSteps,
+    executePreview,
+    executedSteps,
     suggestedApiCalls,
     output: {
       text: safeOutput.text,
@@ -330,6 +591,15 @@ async function runAdminOrchestration({
 module.exports = {
   AGENTS,
   INTENTS,
+  EXECUTABLE_STEP_MAP,
+  CAO_PRIMARY_INTENTS,
+  MARKETING_PRIMARY_INTENTS,
+  INTENT_AGENT_EXECUTE,
+  inferIntent,
   getOrchestratorRoadmap,
+  buildExecutableSteps,
+  buildExecutablePreview,
+  executeAdminPlanSteps,
+  executeIntentAgentRun,
   runAdminOrchestration,
 };

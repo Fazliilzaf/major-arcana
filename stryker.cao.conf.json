@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-schema.json",
+  "_comment": "CAO-focused mutation testing (Fas D). Kör: npm run test:mutation:cao",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "node --test tests/ops/caoHighPriority.test.js tests/ops/caoPhaseC.test.js tests/ops/caoPhaseD.test.js tests/orchestrator/adminOrchestratorExecute.test.js tests/capabilities/caoCapabilityContract.test.js"
+  },
+  "mutate": [
+    "src/ops/readinessEvaluator.js",
+    "src/ops/caoSchedulerJobs.js",
+    "src/orchestrator/adminOrchestrator.js",
+    "!src/**/*.test.js"
+  ],
+  "thresholds": {
+    "high": 75,
+    "low": 55,
+    "break": 35
+  },
+  "concurrency": 2,
+  "timeoutMS": 90000,
+  "ignorePatterns": ["data/", "public/", ".github/", "tests/"],
+  "reporters": ["progress", "clear-text"],
+  "htmlReporter": {
+    "fileName": "reports/stryker/cao-mutation.html"
+  }
+}

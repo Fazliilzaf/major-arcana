@@ -1,7 +1,7 @@
 const express = require('express');
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
-const { getPolicyFloorDefinition, evaluatePolicyFloorText } = require('../policy/floor');
+const { getPolicyFloorDefinition, evaluatePolicyFloorText, POLICY_CONTEXT } = require('../policy/floor');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { createExecutionGateway } = require('../gateway/executionGateway');
 const { getRuntimeProfile } = require('../agents/runtimeRegistry');
@@ -28,12 +28,37 @@ async function getTenantRuntimeConfig(tenantConfigStore, tenantId) {
   };
 }
 
+function buildOrchestratorAuditMetadata(payload, correlationId) {
+  return {
+    intent: payload.intent || null,
+    mode: payload.mode || 'plan',
+    confidence: payload.confidence || null,
+    correlationId: correlationId || null,
+    executableSteps: Array.isArray(payload.executableSteps)
+      ? payload.executableSteps.map((step) => ({
+          step: step.step,
+          capability: step.capability || null,
+          owner: step.owner || null,
+        }))
+      : [],
+    executedSteps: Array.isArray(payload.executedSteps) ? payload.executedSteps : [],
+    recommendedAgentRun: payload.executePreview?.recommendedAgentRun || null,
+    safetyAdjusted: payload.output?.safetyAdjusted === true,
+    riskLevel: payload.output?.risk?.riskLevel || null,
+  };
+}
+
 function createOrchestratorRouter({
   tenantConfigStore,
   authStore,
   requireAuth,
   requireRole,
   executionGateway = null,
+  capabilityExecutor = null,
+  templateStore = null,
+  adminTasksStore = null,
+  scheduler = null,
+  appConfig = null,
 }) {
   const router = express.Router();
   const gateway =
@@ -42,6 +67,7 @@ function createOrchestratorRouter({
       buildVersion: process.env.npm_package_version || 'dev',
     });
   const adminRuntime = getRuntimeProfile('admin');
+  const resolvedConfig = appConfig || require('../config');
 
   router.get(
     '/orchestrator/meta',
@@ -70,6 +96,10 @@ function createOrchestratorRouter({
         if (!prompt) {
           return res.status(400).json({ error: 'prompt krävs.' });
         }
+        const mode =
+          normalizeText(req.query?.mode) ||
+          normalizeText(req.body?.mode) ||
+          'plan';
 
         const correlationId =
           normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null;
@@ -120,11 +150,104 @@ function createOrchestratorRouter({
                 riskThresholdVersion: tenantRuntime.riskThresholdVersion,
               }),
             agentRun: async () => {
+              const actor = {
+                id: req.auth.userId,
+                role: req.auth.role,
+              };
+              let hydrateSnapshot = null;
+              let runCapability = null;
+              let runAgent = null;
+
+              if (capabilityExecutor) {
+                const { hydrateCaoSystemSnapshot, hydrateCmoSystemSnapshot } = require('./capabilities');
+                const { buildCaoReadinessSnapshot } = require('../ops/readinessEvaluator');
+                const { buildOrchestrationSnapshotFromHydration } = require('../ops/cmoOrchestrationGate');
+
+                hydrateSnapshot = async (agentName, intent, prompt) => {
+                  const normalizedAgent = normalizeText(agentName).toUpperCase();
+                  if (normalizedAgent === 'CMO') {
+                    const base = await hydrateCmoSystemSnapshot({
+                      tenantId: req.auth.tenantId,
+                      templateStore,
+                      tenantConfigStore,
+                      config: resolvedConfig,
+                      systemStateSnapshot: {},
+                    });
+                    return buildOrchestrationSnapshotFromHydration({
+                      baseSnapshot: base,
+                      intent,
+                      prompt,
+                      buildReadiness: () =>
+                        buildCaoReadinessSnapshot({
+                          tenantId: req.auth.tenantId,
+                          templateStore,
+                          authStore,
+                          adminTasksStore,
+                          scheduler,
+                          config: resolvedConfig,
+                        }),
+                    });
+                  }
+                  return hydrateCaoSystemSnapshot({
+                    tenantId: req.auth.tenantId,
+                    templateStore,
+                    adminTasksStore,
+                    authStore,
+                    tenantConfigStore,
+                    scheduler,
+                    config: resolvedConfig,
+                    systemStateSnapshot: {},
+                  });
+                };
+
+                if (typeof capabilityExecutor.runCapability === 'function') {
+                  runCapability = (payload) =>
+                    capabilityExecutor.runCapability({
+                      tenantId: payload.tenantId,
+                      actor: payload.actor,
+                      channel: payload.channel,
+                      capabilityName: payload.capabilityName,
+                      input: payload.input,
+                      systemStateSnapshot: payload.systemStateSnapshot,
+                      correlationId: payload.correlationId,
+                      idempotencyKey: null,
+                      requestMetadata: { source: 'orchestrator.admin_run.execute' },
+                    });
+                }
+
+                if (typeof capabilityExecutor.runAgent === 'function') {
+                  runAgent = (payload) =>
+                    capabilityExecutor.runAgent({
+                      tenantId: payload.tenantId,
+                      actor: payload.actor,
+                      channel: payload.channel,
+                      agentName: payload.agentName,
+                      input: payload.input,
+                      systemStateSnapshot: payload.systemStateSnapshot,
+                      correlationId: payload.correlationId,
+                      idempotencyKey: null,
+                      requestMetadata: { source: 'orchestrator.admin_run.execute' },
+                    });
+                }
+              }
+
               const result = await runAdminOrchestration({
                 prompt,
                 role: req.auth.role,
                 tenantId: req.auth.tenantId,
                 tenantConfig: tenantRuntime.tenantConfig,
+                mode,
+                executeContext:
+                  mode === 'execute' && (runCapability || runAgent)
+                    ? {
+                        runCapability,
+                        runAgent,
+                        hydrateSnapshot,
+                        actor,
+                        channel: 'admin',
+                        correlationId,
+                      }
+                    : null,
               });
               return {
                 result,
@@ -183,6 +306,8 @@ function createOrchestratorRouter({
               policy: gatewayResult.policy_summary,
               risk: gatewayResult.risk_summary,
               runtimeId: adminRuntime.id,
+              correlationId,
+              mode,
             },
           });
           return res.status(403).json(
@@ -206,10 +331,7 @@ function createOrchestratorRouter({
           targetType: 'orchestration',
           targetId: req.auth.tenantId,
           metadata: {
-            intent: payload.intent || null,
-            confidence: payload.confidence || null,
-            safetyAdjusted: payload.output?.safetyAdjusted === true,
-            riskLevel: payload.output?.risk?.riskLevel || null,
+            ...buildOrchestratorAuditMetadata(payload, correlationId),
             runtimeId: adminRuntime.id,
           },
         });

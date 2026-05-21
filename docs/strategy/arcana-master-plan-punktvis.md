@@ -226,13 +226,15 @@ Källor: `docs/strategy/arcana-phase-2-masterplan.md`, `docs/Pilot-1-slutrapport
 
 8.1. **COO-agent** — daglig prioritering och driftfokus (först).
 
-8.2. **CAO-agent** — admin/mall-optimering, standardisering, drafts.
+8.2. **CAO-agent (Arcana Admin Operator)** — admin/mall-optimering, standardisering, drafts, quality gate, incident/audit-readouts (analysis-only). API: `CAO`. Utökad plan: `docs/strategy/cao-arcana-admin-operator-implementation-plan.md`, risktabell: `docs/strategy/cao-capability-risk-matrix.md`.
+
+8.2.1. Extra starka CAO-områden (Fas 0–2): mallbibliotekshälsa, admin quality gate, incident-SLA-flaggor (read-only), Go/No-Go-förklaring (read-only), audit-sammanfattning.
 
 8.3. **CCO-agent** — outreach, mail, leadflows (internt).
 
 8.4. **CFO-agent** — kostnad/runway/risk-kostnad (kräver mer data).
 
-8.5. **CMO-agent** — internt content/outreach, fortfarande gated.
+8.5. **CMO-agent (Arcana Marketing Copilot)** — content, kampanjutkast, SEO/social/ad/mail-förslag, compliance-gate, schemaläggning som förslag (ingen auto-publicering v1). API: `CMO`. Plan: `docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md`, IA: `docs/ops/cmo-marketing-copilot-ia.md`, ADR: `docs/adr/0002-cmo-publish-and-spend-boundary.md`.
 
 8.6. **Patient Agent** — extern kanal, sist.
 

@@ -645,6 +645,14 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE,
     15
   ),
+  schedulerCcoInboxFullBackfillMaxStallRounds: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_MAX_STALL_ROUNDS,
+    8
+  ),
+  schedulerCcoInboxFullBackfillMaxBatchRounds: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_MAX_BATCH_ROUNDS,
+    200
+  ),
   schedulerCcoInboxBootstrapMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER,
     200

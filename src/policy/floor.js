@@ -1,5 +1,13 @@
 const POLICY_VERSION = '1.0.0';
 
+const POLICY_CONTEXT = Object.freeze({
+  TEMPLATES: 'templates',
+  PATIENT_RESPONSE: 'patient_response',
+  ORCHESTRATOR: 'orchestrator',
+  ADMIN_OPERATOR: 'admin_operator',
+  MARKETING_COPY: 'marketing_copy',
+});
+
 const RAW_RULES = Object.freeze([
   {
     id: 'NO_DIAGNOSIS_POLICY',
@@ -8,7 +16,7 @@ const RAW_RULES = Object.freeze([
     floor: 4,
     severity: 'high',
     pattern: /\b(diagnos|diagnostiser[a-z]*|du har sjukdomen|du lider av)\b/i,
-    appliesTo: ['templates', 'patient_response', 'orchestrator'],
+    appliesTo: ['templates', 'patient_response', 'orchestrator', 'admin_operator', 'marketing_copy'],
   },
   {
     id: 'NO_GUARANTEE_POLICY',
@@ -17,7 +25,7 @@ const RAW_RULES = Object.freeze([
     floor: 4,
     severity: 'high',
     pattern: /\b(garanti|garanterar|100\s*%|helt säker effekt)\b/i,
-    appliesTo: ['templates', 'patient_response', 'orchestrator'],
+    appliesTo: ['templates', 'patient_response', 'orchestrator', 'admin_operator', 'marketing_copy'],
   },
   {
     id: 'ACUTE_ESCALATION_REQUIRED',
@@ -27,7 +35,7 @@ const RAW_RULES = Object.freeze([
     severity: 'critical',
     pattern: /\b(akut|svår smärta|andningssvårigheter|ring 112)\b/i,
     requiresEscalationPhrase: true,
-    appliesTo: ['templates', 'patient_response', 'orchestrator'],
+    appliesTo: ['templates', 'patient_response', 'orchestrator', 'admin_operator', 'marketing_copy'],
   },
   {
     id: 'UNSAFE_MEDICAL_CLAIM',
@@ -36,7 +44,34 @@ const RAW_RULES = Object.freeze([
     floor: 4,
     severity: 'high',
     pattern: /\b(läkande garanti|botar|riskfri behandling|utan biverkningar)\b/i,
-    appliesTo: ['templates', 'patient_response', 'orchestrator'],
+    appliesTo: ['templates', 'patient_response', 'orchestrator', 'admin_operator', 'marketing_copy'],
+  },
+  {
+    id: 'ADMIN_OPERATOR_NO_PRODUCTION_ACTIVATION',
+    label: 'Admin operator får inte aktivera produktion',
+    description: 'CAO/Admin Operator får inte instruera auto-aktivering av mallar eller patientkanal.',
+    floor: 4,
+    severity: 'high',
+    pattern: /\b(aktivera i produktion|go live|publicera patientkanal|auto-aktivera mall)\b/i,
+    appliesTo: ['admin_operator'],
+  },
+  {
+    id: 'MARKETING_NO_AUTO_PUBLISH',
+    label: 'Marketing får inte auto-publicera',
+    description: 'CMO/marketing copy får inte instruera auto-publicering eller spend utan godkännande.',
+    floor: 4,
+    severity: 'high',
+    pattern: /\b(auto-publicera|publicera direkt|skicka utan godkännande|aktivera budget nu)\b/i,
+    appliesTo: ['marketing_copy'],
+  },
+  {
+    id: 'MARKETING_NO_PATIENT_DATA_CLAIM',
+    label: 'Patientdata utan samtyckeskontext',
+    description: 'Marketing får inte referera till patientdata/testimonial utan samtyckeshänvisning.',
+    floor: 4,
+    severity: 'high',
+    pattern: /\b(patientdata|patientjournal|läckte|testimonial utan samtycke)\b/i,
+    appliesTo: ['marketing_copy'],
   },
 ]);
 
@@ -104,6 +139,7 @@ function evaluatePolicyFloorText({ text = '', context = '' } = {}) {
 }
 
 module.exports = {
+  POLICY_CONTEXT,
   getPolicyFloorDefinition,
   evaluatePolicyFloorText,
 };

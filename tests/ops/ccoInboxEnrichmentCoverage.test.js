@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   buildEnrichmentRowConversationKey,
   hasCcoEnrichmentSignals,
+  resolveGapConversationId,
   computeCcoInboxEnrichmentCoverage,
 } = require('../../src/ops/ccoInboxEnrichmentCoverage');
 
@@ -12,6 +13,28 @@ test('hasCcoEnrichmentSignals detects intent and workflowLane', () => {
   assert.equal(hasCcoEnrichmentSignals({ workflowLane: 'action_now' }), true);
   assert.equal(hasCcoEnrichmentSignals({ intent: 'unknown' }), false);
   assert.equal(hasCcoEnrichmentSignals({}), false);
+});
+
+test('resolveGapConversationId prefers canonical conversationKey', () => {
+  const mailboxId = 'contact@hairtpclinic.com';
+  const canonicalKey = `${mailboxId}:AAQkMissing`;
+  assert.equal(
+    resolveGapConversationId({
+      mailboxId,
+      conversationId: 'AAQkMissing',
+      mailboxConversationId: 'AAQkMissing',
+      conversationKey: canonicalKey,
+    }),
+    canonicalKey
+  );
+  assert.equal(
+    resolveGapConversationId({
+      mailboxId,
+      conversationId: 'AAQkMissing',
+      mailboxConversationId: 'AAQkMissing',
+    }),
+    canonicalKey
+  );
 });
 
 test('computeCcoInboxEnrichmentCoverage reports gap for truth rows without enrichment', async () => {

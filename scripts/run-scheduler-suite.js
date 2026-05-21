@@ -125,7 +125,7 @@ const BLOCKER_CHECK_HINTS = Object.freeze({
   scheduler_required_jobs_enabled: {
     owner: 'ops_owner',
     playbook:
-      'Enable all required jobs: nightly report, backup, restore drill preview/full, audit integrity, secrets rotation snapshot, release governance review, alert probe.',
+      'Enable all required jobs: nightly report, backup, restore drill preview/full, audit integrity, secrets rotation snapshot, release governance review, alert probe, CAO daily quality gate.',
   },
   scheduler_job_freshness: {
     owner: 'ops_owner',

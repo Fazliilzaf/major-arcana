@@ -18,12 +18,46 @@ const { CcoCustomerBookingsCapability } = require('./ccoCustomerBookings');
 const { SuggestTemplateImprovementCapability } = require('./suggestTemplateImprovement');
 const { ValidateDisclaimersCapability } = require('./validateDisclaimers');
 const { OptimizeVariablesCapability } = require('./optimizeVariables');
+const { AssessTemplateLibraryHealthCapability } = require('./assessTemplateLibraryHealth');
+const { AssessAdminQualityGateCapability } = require('./assessAdminQualityGate');
+const {
+  GenerateAdminTemplateDraftCapability,
+  AuditDocumentationMetadataCapability,
+  ProposeDocumentStructureCapability,
+  SummarizeIncidentAdminCapability,
+  FlagUnownedIncidentsCapability,
+  BuildAuditSummaryCapability,
+  VerifyDecisionTraceabilityCapability,
+  TenantAdminHealthSummaryCapability,
+  GenerateAdminDailyBriefCapability,
+  GenerateAdminWeeklyBriefCapability,
+  ExplainReadinessScoreCapability,
+  GenerateGoNoGoBriefCapability,
+} = require('./caoCapabilityKit');
 const { AnalyzeRiskTrendCapability } = require('./analyzeRiskTrend');
 const { FinanceGovernanceCapability } = require('./financeGovernance');
 const { PrepareResponseDraftsCapability } = require('./prepareResponseDrafts');
 const { GenerateContentBriefCapability } = require('./generateContentBrief');
 const { AnalyzeAudienceSegmentsCapability } = require('./analyzeAudienceSegments');
 const { GenerateOutreachCampaignCapability } = require('./generateOutreachCampaign');
+const { GenerateSocialPostPackCapability } = require('./generateSocialPostPack');
+const { GenerateSeoBriefCapability } = require('./generateSeoBrief');
+const { GenerateAdCopyPackCapability } = require('./generateAdCopyPack');
+const { GenerateEmailDraftCapability } = require('./generateEmailDraft');
+const { RepurposeContentCapability } = require('./repurposeContent');
+const { ValidateMarketingClaimsCapability } = require('./validateMarketingClaims');
+const { ReviewMarketingComplianceCapability } = require('./reviewMarketingCompliance');
+const { ProposeContentCalendarCapability } = require('./proposeContentCalendar');
+const { ProposePublishScheduleCapability } = require('./proposePublishSchedule');
+const { GenerateUtmPackCapability } = require('./generateUtmPack');
+const { ValidateMarketingTrackingCapability } = require('./validateMarketingTracking');
+const { SummarizeMarketingPerformanceCapability } = require('./summarizeMarketingPerformance');
+const { GenerateMarketingBriefCapability } = require('./generateMarketingBrief');
+const { GenerateSalesEnablementPackCapability } = require('./generateSalesEnablementPack');
+const { ProposeCrisisCommsHoldCapability } = require('./proposeCrisisCommsHold');
+const { AnalyzeCompetitorLandscapeCapability } = require('./analyzeCompetitorLandscape');
+const { GenerateNurtureSequenceCapability } = require('./generateNurtureSequence');
+const { GenerateWinbackCampaignCapability } = require('./generateWinbackCampaign');
 const { PatientChatResponseCapability } = require('./patientChatResponse');
 const { RequestPostOpReviewCapability } = require('./requestPostOpReview');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
@@ -57,12 +91,44 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(SuggestTemplateImprovementCapability),
   assertCapabilityClass(ValidateDisclaimersCapability),
   assertCapabilityClass(OptimizeVariablesCapability),
+  assertCapabilityClass(AssessTemplateLibraryHealthCapability),
+  assertCapabilityClass(AssessAdminQualityGateCapability),
+  assertCapabilityClass(GenerateAdminTemplateDraftCapability),
+  assertCapabilityClass(AuditDocumentationMetadataCapability),
+  assertCapabilityClass(ProposeDocumentStructureCapability),
+  assertCapabilityClass(SummarizeIncidentAdminCapability),
+  assertCapabilityClass(FlagUnownedIncidentsCapability),
+  assertCapabilityClass(BuildAuditSummaryCapability),
+  assertCapabilityClass(VerifyDecisionTraceabilityCapability),
+  assertCapabilityClass(TenantAdminHealthSummaryCapability),
+  assertCapabilityClass(GenerateAdminDailyBriefCapability),
+  assertCapabilityClass(GenerateAdminWeeklyBriefCapability),
+  assertCapabilityClass(ExplainReadinessScoreCapability),
+  assertCapabilityClass(GenerateGoNoGoBriefCapability),
   assertCapabilityClass(PrepareResponseDraftsCapability),
   assertCapabilityClass(AnalyzeRiskTrendCapability),
   assertCapabilityClass(FinanceGovernanceCapability),
   assertCapabilityClass(GenerateContentBriefCapability),
   assertCapabilityClass(AnalyzeAudienceSegmentsCapability),
   assertCapabilityClass(GenerateOutreachCampaignCapability),
+  assertCapabilityClass(GenerateSocialPostPackCapability),
+  assertCapabilityClass(GenerateSeoBriefCapability),
+  assertCapabilityClass(GenerateAdCopyPackCapability),
+  assertCapabilityClass(GenerateEmailDraftCapability),
+  assertCapabilityClass(RepurposeContentCapability),
+  assertCapabilityClass(ValidateMarketingClaimsCapability),
+  assertCapabilityClass(ReviewMarketingComplianceCapability),
+  assertCapabilityClass(ProposeContentCalendarCapability),
+  assertCapabilityClass(ProposePublishScheduleCapability),
+  assertCapabilityClass(GenerateUtmPackCapability),
+  assertCapabilityClass(ValidateMarketingTrackingCapability),
+  assertCapabilityClass(SummarizeMarketingPerformanceCapability),
+  assertCapabilityClass(GenerateMarketingBriefCapability),
+  assertCapabilityClass(GenerateSalesEnablementPackCapability),
+  assertCapabilityClass(ProposeCrisisCommsHoldCapability),
+  assertCapabilityClass(AnalyzeCompetitorLandscapeCapability),
+  assertCapabilityClass(GenerateNurtureSequenceCapability),
+  assertCapabilityClass(GenerateWinbackCampaignCapability),
   assertCapabilityClass(PatientChatResponseCapability),
   assertCapabilityClass(RequestPostOpReviewCapability),
 ]);
@@ -94,11 +160,25 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
       'SuggestTemplateImprovement',
       'ValidateDisclaimers',
       'OptimizeVariables',
+      'AssessTemplateLibraryHealth',
+      'AssessAdminQualityGate',
+      'GenerateAdminTemplateDraft',
+      'AuditDocumentationMetadata',
+      'ProposeDocumentStructure',
+      'SummarizeIncidentAdmin',
+      'FlagUnownedIncidents',
+      'BuildAuditSummary',
+      'VerifyDecisionTraceability',
+      'TenantAdminHealthSummary',
+      'GenerateAdminDailyBrief',
+      'GenerateAdminWeeklyBrief',
+      'ExplainReadinessScore',
+      'GenerateGoNoGoBrief',
     ]),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
-    outputType: 'TemplateAdvisor',
+    outputType: 'AdminOperator',
     plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({
@@ -114,13 +194,35 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
   }),
   Object.freeze({
     name: CMO_AGENT_NAME,
-    version: '1.0.0',
+    version: '2.0.0',
     role: 'CMO',
-    capabilities: Object.freeze(['GenerateContentBrief', 'AnalyzeAudienceSegments', 'GenerateOutreachCampaign']),
+    capabilities: Object.freeze([
+      'GenerateContentBrief',
+      'AnalyzeAudienceSegments',
+      'GenerateOutreachCampaign',
+      'GenerateSocialPostPack',
+      'GenerateSeoBrief',
+      'GenerateAdCopyPack',
+      'GenerateEmailDraft',
+      'RepurposeContent',
+      'ValidateMarketingClaims',
+      'ReviewMarketingCompliance',
+      'ProposeContentCalendar',
+      'ProposePublishSchedule',
+      'GenerateUtmPack',
+      'ValidateMarketingTracking',
+      'SummarizeMarketingPerformance',
+      'GenerateMarketingBrief',
+      'GenerateSalesEnablementPack',
+      'ProposeCrisisCommsHold',
+      'AnalyzeCompetitorLandscape',
+      'GenerateNurtureSequence',
+      'GenerateWinbackCampaign',
+    ]),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),
     persistStrategy: 'analysis',
-    outputType: 'ContentAdvisor',
+    outputType: 'MarketingCopilot',
     plannedCapabilities: Object.freeze([]),
   }),
   Object.freeze({

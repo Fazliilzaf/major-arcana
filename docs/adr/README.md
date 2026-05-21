@@ -9,6 +9,7 @@ Detta är "varför"-dokumentationen för CCO. Kod säger "hur"; ADRs säger "var
 | [0001](./0001-capabilities-pattern.md) | Capabilities-pattern för server-side affärslogik | accepted |
 | [0002](./0002-multi-tenant-strategy.md) | Multi-tenant via tenantId + tenantConfigStore | accepted |
 | [0003](./0003-vanilla-runtime-modules.md) | Vanilla JS runtime-moduler (ej React/Vue) | accepted |
+| [0004](./0004-cao-admin-operator.md) | CAO som Arcana Admin Operator (Fas 0–1) | accepted |
 
 ## Skapa en ny ADR
 

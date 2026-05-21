@@ -11,6 +11,7 @@ class BaseCapability {
 
   static persistStrategy = 'none';
   static auditStrategy = 'always';
+  static autoExecute = false;
 
   static inputSchema = {};
   static outputSchema = {};

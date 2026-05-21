@@ -2934,11 +2934,22 @@ function createScheduler({
       1,
       Math.min(50, Number(config?.schedulerCcoInboxFullBackfillBatchSize) || 15)
     );
+    const maxStallRounds = Math.max(
+      1,
+      Math.min(
+        20,
+        Number(config?.schedulerCcoInboxFullBackfillMaxStallRounds) || 8
+      )
+    );
+    const maxBatchRounds = Math.max(
+      10,
+      Math.min(
+        500,
+        Number(config?.schedulerCcoInboxFullBackfillMaxBatchRounds) || 200
+      )
+    );
     const incomingTrigger = normalizeText(trigger);
-    const effectiveTrigger =
-      incomingTrigger === 'manual_api' || incomingTrigger === 'manual_api_suite'
-        ? CCO_INBOX_FULL_BACKFILL_TRIGGER
-        : incomingTrigger || CCO_INBOX_FULL_BACKFILL_TRIGGER;
+    const effectiveTrigger = CCO_INBOX_FULL_BACKFILL_TRIGGER;
 
     let truthStore = null;
     try {
@@ -2967,7 +2978,7 @@ function createScheduler({
 
     let coverageBefore = await computeCoverage();
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill START trigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}%`
+      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
     );
 
     const fullBootstrap = await runCcoInboxAnalysisRefresh({
@@ -2984,8 +2995,13 @@ function createScheduler({
     let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
     let stallRounds = 0;
 
-    while (remainingGapIds.length > 0 && stallRounds < 2) {
+    while (
+      remainingGapIds.length > 0 &&
+      stallRounds < maxStallRounds &&
+      batchRuns.length < maxBatchRounds
+    ) {
       for (let offset = 0; offset < remainingGapIds.length; offset += batchSize) {
+        if (batchRuns.length >= maxBatchRounds) break;
         const scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
         const batchResult = await runCcoInboxAnalysisRefresh({
           tenantId,
@@ -3028,8 +3044,11 @@ function createScheduler({
       tenantId,
       skipped: false,
       trigger: effectiveTrigger,
+      incomingTrigger: incomingTrigger || null,
       mailboxIds,
       batchSize,
+      maxStallRounds,
+      maxBatchRounds,
       coverageBefore,
       fullBootstrap,
       batchRuns,

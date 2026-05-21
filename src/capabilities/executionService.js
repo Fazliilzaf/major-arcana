@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
-const { evaluatePolicyFloorText } = require('../policy/floor');
+const { evaluatePolicyFloorText, POLICY_CONTEXT } = require('../policy/floor');
 const { maskInboxText } = require('../privacy/inboxMasking');
 const { validateJsonSchema } = require('./schemaValidator');
 const {
@@ -22,6 +22,7 @@ const {
   caoTemplateAdvisorInputSchema,
   caoTemplateAdvisorOutputSchema,
   composeCaoTemplateAdvisor,
+  CAO_EXTENDED_CAPABILITY_NAMES,
 } = require('../agents/caoTemplateAdvisorAgent');
 const {
   CFO_AGENT_NAME,
@@ -34,6 +35,9 @@ const {
   cmoContentInputSchema,
   cmoContentOutputSchema,
   composeCmoContentAdvisor,
+  composeCmoMarketingCopilot,
+  composeCmoAnalyticsReport,
+  composeCmoStrategyIntelReport,
 } = require('../agents/cmoContentAgent');
 const {
   CCO_AGENT_NAME,
@@ -56,6 +60,40 @@ const {
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+const CAO_POLICY_FLOOR_CAPABILITY_NAMES = new Set(
+  [
+    'SuggestTemplateImprovement',
+    'ValidateDisclaimers',
+    'OptimizeVariables',
+    'AssessTemplateLibraryHealth',
+    'AssessAdminQualityGate',
+    'GenerateAdminTemplateDraft',
+    'AuditDocumentationMetadata',
+    'ProposeDocumentStructure',
+    'SummarizeIncidentAdmin',
+    'FlagUnownedIncidents',
+    'BuildAuditSummary',
+    'VerifyDecisionTraceability',
+    'TenantAdminHealthSummary',
+    'GenerateAdminDailyBrief',
+    'GenerateAdminWeeklyBrief',
+    'ExplainReadinessScore',
+    'GenerateGoNoGoBrief',
+  ].map((name) => name.toLowerCase())
+);
+
+function resolvePolicyFloorContext({ capabilityName = '', agentName = '' } = {}) {
+  const normalizedAgent = normalizeText(agentName).toUpperCase();
+  if (normalizedAgent === CAO_AGENT_NAME) {
+    return POLICY_CONTEXT.ADMIN_OPERATOR;
+  }
+  const normalizedCapability = normalizeText(capabilityName).toLowerCase();
+  if (CAO_POLICY_FLOOR_CAPABILITY_NAMES.has(normalizedCapability)) {
+    return POLICY_CONTEXT.ADMIN_OPERATOR;
+  }
+  return POLICY_CONTEXT.ORCHESTRATOR;
 }
 
 function safeObject(value) {
@@ -1264,7 +1302,7 @@ function createCapabilityExecutor({
             }
             return evaluatePolicyFloorText({
               text: stringifyForRisk(agentResult?.output || null),
-              context: 'orchestrator',
+              context: resolvePolicyFloorContext({ capabilityName: CapabilityClass.name }),
             });
           },
           persist: async ({ runId, decision, inputRisk, outputRisk, policy, agentResult }) => {
@@ -1726,21 +1764,87 @@ function createCapabilityExecutor({
           },
         });
 
+        const libraryHealthRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'AssessTemplateLibraryHealth',
+          input: { staleDays: 30 },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:library-health`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const qualityGateRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'AssessAdminQualityGate',
+          input: { includeCompleted: false },
+          systemStateSnapshot: validatedSystemStateSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey
+            ? `${normalizedIdempotencyKey}:quality-gate`
+            : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const extendedOutputs = {};
+        const extendedRuns = [];
+        for (const capabilityName of CAO_EXTENDED_CAPABILITY_NAMES) {
+          const extendedRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName,
+            input: {},
+            systemStateSnapshot: validatedSystemStateSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:${normalizeText(capabilityName).toLowerCase()}`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+          extendedRuns.push(toDependencyRunSummary(extendedRun));
+          extendedOutputs[capabilityName] = toCapabilityResponseOutput(extendedRun);
+        }
+
         dependencyRuns = [
           toDependencyRunSummary(suggestRun),
           toDependencyRunSummary(disclaimerRun),
           toDependencyRunSummary(variableRun),
+          toDependencyRunSummary(libraryHealthRun),
+          toDependencyRunSummary(qualityGateRun),
+          ...extendedRuns,
         ];
         agentOutput = composeCaoTemplateAdvisor({
           suggestOutput: toCapabilityResponseOutput(suggestRun),
           disclaimerOutput: toCapabilityResponseOutput(disclaimerRun),
           variableOutput: toCapabilityResponseOutput(variableRun),
+          libraryHealthOutput: toCapabilityResponseOutput(libraryHealthRun),
+          qualityGateOutput: toCapabilityResponseOutput(qualityGateRun),
+          extendedOutputs,
           channel: normalizedChannel,
           tenantId: normalizedTenantId,
           correlationId: normalizedCorrelationId,
         });
         agentOutputSchema = caoTemplateAdvisorOutputSchema;
-        agentCapabilityRef = 'CAO.TemplateAdvisor';
+        agentCapabilityRef = 'CAO.AdminOperator';
       } else if (normalizedAgentName === CFO_AGENT_NAME) {
         const financeRun = await runCapability({
           tenantId: normalizedTenantId,
@@ -1781,14 +1885,250 @@ function createCapabilityExecutor({
         agentOutputSchema = cfoCostAdvisorOutputSchema;
         agentCapabilityRef = 'CFO.CostAdvisor';
       } else if (normalizedAgentName === CMO_AGENT_NAME) {
+        const cmoMode = normalizeText(validatedInput.mode).toLowerCase() || 'production_draft';
+        if (cmoMode === 'analytics') {
+          const period = normalizeText(validatedInput.period).toLowerCase() || 'weekly';
+          const windowDays =
+            Number(validatedInput.windowDays) || (period === 'monthly' ? 30 : 7);
+          const { mergeMarketingPerformanceFromConnectors, resolveAppConfig } = require('../ops/cmoMarketingConnectors');
+          const appConfig = resolveAppConfig(validatedSystemStateSnapshot.appConfig || {});
+          const hydration = await mergeMarketingPerformanceFromConnectors(validatedSystemStateSnapshot, {
+            config: appConfig,
+            tenantId: normalizedTenantId,
+            window: `${windowDays}d`,
+          });
+          const analyticsSnapshot = hydration.snapshot;
+
+          const performanceRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'SummarizeMarketingPerformance',
+            input: { windowDays },
+            systemStateSnapshot: analyticsSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:performance`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const performanceData = toCapabilityResponseOutput(performanceRun)?.data || {};
+          const briefRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateMarketingBrief',
+            input: { period, windowDays },
+            systemStateSnapshot: {
+              ...validatedSystemStateSnapshot,
+              marketingPerformanceSummary: performanceData,
+            },
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:brief` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          dependencyRuns = [
+            toDependencyRunSummary(performanceRun),
+            toDependencyRunSummary(briefRun),
+          ];
+          agentOutput = composeCmoAnalyticsReport({
+            performanceOutput: toCapabilityResponseOutput(performanceRun),
+            briefOutput: toCapabilityResponseOutput(briefRun),
+            channel: normalizedChannel,
+            tenantId: normalizedTenantId,
+            correlationId: normalizedCorrelationId,
+            period,
+            windowDays,
+          });
+
+          await writeAudit({
+            tenantId: normalizedTenantId,
+            actorUserId: normalizedActor.id,
+            action: 'cmo.analytics.report',
+            outcome: agentOutput?.data?.performanceSummary?.status === 'ok' ? 'success' : 'blocked',
+            targetType: 'cmo_analytics',
+            targetId: agentRunId,
+            metadata: {
+              period,
+              windowDays,
+              freshMetricCount: Number(agentOutput?.data?.dataQuality?.freshMetricCount || 0),
+              underperformingAds: Number(agentOutput?.data?.underperformingAds?.length || 0),
+            },
+          });
+
+          agentOutputSchema = cmoContentOutputSchema;
+          agentCapabilityRef = 'CMO.MarketingAnalytics';
+        } else if (cmoMode === 'strategy_intel') {
+          const {
+            listConnectorStatuses,
+            resolveAppConfig,
+          } = require('../ops/cmoMarketingConnectors');
+
+          const briefRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateContentBrief',
+            input: {
+              maxTopics: Number(validatedInput.maxTopics || 5) || 5,
+              targetAudience: normalizeText(validatedInput.targetAudience) || '',
+            },
+            systemStateSnapshot: validatedSystemStateSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:brief` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const briefData = toCapabilityResponseOutput(briefRun)?.data || {};
+          const intelSnapshot = {
+            ...validatedSystemStateSnapshot,
+            contentTopics: Array.isArray(briefData.topics) ? briefData.topics : [],
+            targetAudience: normalizeText(briefData.targetAudience) || normalizeText(validatedInput.targetAudience),
+          };
+
+          const audienceRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'AnalyzeAudienceSegments',
+            input: { maxSegments: 6 },
+            systemStateSnapshot: intelSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const competitorRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'AnalyzeCompetitorLandscape',
+            input: { maxCompetitors: 4 },
+            systemStateSnapshot: intelSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:competitor` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const nurtureRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateNurtureSequence',
+            input: { maxTouches: 5, segment: normalizeText(validatedInput.targetSegment) || '' },
+            systemStateSnapshot: intelSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:nurture` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const winbackRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateWinbackCampaign',
+            input: { inactivityDays: 60, maxTouches: 3 },
+            systemStateSnapshot: intelSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:winback` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          const connectorStatuses = await listConnectorStatuses({
+            config: resolveAppConfig(validatedSystemStateSnapshot.appConfig || {}),
+            tenantId: normalizedTenantId,
+          });
+
+          dependencyRuns = [
+            toDependencyRunSummary(briefRun),
+            toDependencyRunSummary(audienceRun),
+            toDependencyRunSummary(competitorRun),
+            toDependencyRunSummary(nurtureRun),
+            toDependencyRunSummary(winbackRun),
+          ];
+
+          agentOutput = composeCmoStrategyIntelReport({
+            briefOutput: toCapabilityResponseOutput(briefRun),
+            audienceOutput: toCapabilityResponseOutput(audienceRun),
+            competitorOutput: toCapabilityResponseOutput(competitorRun),
+            nurtureOutput: toCapabilityResponseOutput(nurtureRun),
+            winbackOutput: toCapabilityResponseOutput(winbackRun),
+            connectorStatuses,
+            channel: normalizedChannel,
+            tenantId: normalizedTenantId,
+            correlationId: normalizedCorrelationId,
+          });
+
+          await writeAudit({
+            tenantId: normalizedTenantId,
+            actorUserId: normalizedActor.id,
+            action: 'cmo.strategy_intel.report',
+            outcome: 'success',
+            targetType: 'cmo_strategy_intel',
+            targetId: agentRunId,
+            metadata: {
+              competitorCount: Number(agentOutput?.data?.competitorLandscape?.competitors?.length || 0),
+              nurtureTouches: Number(agentOutput?.data?.nurtureSequence?.touchCount || 0),
+              winbackTouches: Number(agentOutput?.data?.winbackCampaign?.touches?.length || 0),
+            },
+          });
+
+          agentOutputSchema = cmoContentOutputSchema;
+          agentCapabilityRef = 'CMO.StrategyIntel';
+        } else {
+        const orchestratorIntent =
+          normalizeText(validatedInput.orchestratorIntent) ||
+          normalizeText(validatedSystemStateSnapshot.orchestratorContext?.intent);
+        const isOrchestratedMarketing = orchestratorIntent === 'marketing_campaign';
+
+        const cmoInput = {
+          maxTopics: Number(validatedInput.maxTopics || 5) || 5,
+          targetAudience: normalizeText(validatedInput.targetAudience) || '',
+          targetSegment: normalizeText(validatedInput.targetSegment) || '',
+          tone: normalizeText(validatedInput.tone) || 'professional',
+          sourceContent: normalizeText(validatedInput.sourceContent) || '',
+          emailType: normalizeText(validatedInput.emailType) || 'newsletter',
+          platforms: Array.isArray(validatedInput.platforms) ? validatedInput.platforms : undefined,
+        };
+
         const contentRun = await runCapability({
           tenantId: normalizedTenantId,
           actor: normalizedActor,
           channel: normalizedChannel,
           capabilityName: 'GenerateContentBrief',
           input: {
-            maxTopics: Number(validatedInput.maxTopics || 5) || 5,
-            targetAudience: normalizeText(validatedInput.targetAudience) || '',
+            maxTopics: cmoInput.maxTopics,
+            targetAudience: cmoInput.targetAudience,
           },
           systemStateSnapshot: validatedSystemStateSnapshot,
           correlationId: normalizedCorrelationId,
@@ -1806,9 +2146,17 @@ function createCapabilityExecutor({
         ) {
           throw makeCapabilityError(
             'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
-            'GenerateContentBrief blockerade agent-korning.'
+            'GenerateContentBrief blockerade agent-körning.'
           );
         }
+
+        const contentData = toCapabilityResponseOutput(contentRun)?.data || {};
+        const cmoSnapshot = {
+          ...validatedSystemStateSnapshot,
+          contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
+          contentCalendar: Array.isArray(contentData.contentCalendar) ? contentData.contentCalendar : [],
+          targetAudience: normalizeText(contentData.targetAudience) || cmoInput.targetAudience,
+        };
 
         const audienceRun = await runCapability({
           tenantId: normalizedTenantId,
@@ -1816,9 +2164,151 @@ function createCapabilityExecutor({
           channel: normalizedChannel,
           capabilityName: 'AnalyzeAudienceSegments',
           input: { maxSegments: 6 },
-          systemStateSnapshot: validatedSystemStateSnapshot,
+          systemStateSnapshot: cmoSnapshot,
           correlationId: normalizedCorrelationId,
           idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const audienceData = toCapabilityResponseOutput(audienceRun)?.data || {};
+        const productionSnapshot = {
+          ...cmoSnapshot,
+          audienceSegments: Array.isArray(audienceData.segments) ? audienceData.segments : [],
+        };
+
+        let enablementRun = null;
+        let crisisRun = null;
+        if (isOrchestratedMarketing) {
+          enablementRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateSalesEnablementPack',
+            input: { maxBattlecards: 4 },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:enablement`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          crisisRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ProposeCrisisCommsHold',
+            input: { scenario: 'operational_incident' },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:crisis` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+        }
+
+        const socialRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateSocialPostPack',
+          input: {
+            maxPosts: 10,
+            tone: cmoInput.tone,
+            targetAudience: cmoInput.targetAudience,
+            platforms: cmoInput.platforms,
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:social` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const seoRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateSeoBrief',
+          input: {
+            maxArticles: cmoInput.maxTopics,
+            targetAudience: cmoInput.targetAudience,
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:seo` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const adRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateAdCopyPack',
+          input: {
+            maxAds: 8,
+            targetAudience: cmoInput.targetAudience,
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:ads` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const emailRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateEmailDraft',
+          input: {
+            maxEmails: 3,
+            emailType: cmoInput.emailType,
+            targetAudience: cmoInput.targetAudience,
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:email` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const repurposeRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'RepurposeContent',
+          input: {
+            sourceContent: cmoInput.sourceContent,
+            sourceType: cmoInput.sourceContent ? 'custom' : 'blog',
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:repurpose` : null,
           requestMetadata: {
             ...safeObject(requestMetadata),
             parentAgentRunId: agentRunId,
@@ -1833,14 +2323,142 @@ function createCapabilityExecutor({
           capabilityName: 'GenerateOutreachCampaign',
           input: {
             maxCampaigns: 5,
-            targetSegment: normalizeText(validatedInput.targetSegment) || '',
+            targetSegment: cmoInput.targetSegment,
           },
-          systemStateSnapshot: {
-            ...validatedSystemStateSnapshot,
-            audienceSegments: toCapabilityResponseOutput(audienceRun)?.data?.segments || [],
-          },
+          systemStateSnapshot: productionSnapshot,
           correlationId: normalizedCorrelationId,
           idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:campaign` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const complianceSnapshot = {
+          ...productionSnapshot,
+          contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
+          socialPostPack: toCapabilityResponseOutput(socialRun)?.data || {},
+          seoBrief: toCapabilityResponseOutput(seoRun)?.data || {},
+          adCopyPack: toCapabilityResponseOutput(adRun)?.data || {},
+          emailDrafts: toCapabilityResponseOutput(emailRun)?.data || {},
+          repurposedContent: toCapabilityResponseOutput(repurposeRun)?.data || {},
+          campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
+          marketingClaimsWhitelist: Array.isArray(validatedSystemStateSnapshot.marketingClaimsWhitelist)
+            ? validatedSystemStateSnapshot.marketingClaimsWhitelist
+            : [],
+        };
+
+        const claimsRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ValidateMarketingClaims',
+          input: {},
+          systemStateSnapshot: complianceSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:claims` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const complianceRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ReviewMarketingCompliance',
+          input: {},
+          systemStateSnapshot: {
+            ...complianceSnapshot,
+            validateMarketingClaims: toCapabilityResponseOutput(claimsRun)?.data || {},
+          },
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:compliance` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const scheduleSnapshot = {
+          ...complianceSnapshot,
+          validateMarketingClaims: toCapabilityResponseOutput(claimsRun)?.data || {},
+          reviewMarketingCompliance: toCapabilityResponseOutput(complianceRun)?.data || {},
+          campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
+        };
+
+        const calendarRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ProposeContentCalendar',
+          input: { horizonWeeks: 4, includeMonthView: true, targetAudience: cmoInput.targetAudience },
+          systemStateSnapshot: scheduleSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:calendar` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const calendarData = toCapabilityResponseOutput(calendarRun)?.data || {};
+        const publishSnapshot = {
+          ...scheduleSnapshot,
+          proposedContentCalendar: calendarData,
+          contentCalendar: Array.isArray(calendarData.weeklyPlan) ? calendarData.weeklyPlan : [],
+        };
+
+        const scheduleRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ProposePublishSchedule',
+          input: { maxItems: 12 },
+          systemStateSnapshot: publishSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:schedule` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const utmRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateUtmPack',
+          input: { maxLinks: 12 },
+          systemStateSnapshot: publishSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:utm` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
+        const utmData = toCapabilityResponseOutput(utmRun)?.data || {};
+        const trackingRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'ValidateMarketingTracking',
+          input: {},
+          systemStateSnapshot: {
+            ...publishSnapshot,
+            utmPack: utmData,
+          },
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:tracking` : null,
           requestMetadata: {
             ...safeObject(requestMetadata),
             parentAgentRunId: agentRunId,
@@ -1851,18 +2469,75 @@ function createCapabilityExecutor({
         dependencyRuns = [
           toDependencyRunSummary(contentRun),
           toDependencyRunSummary(audienceRun),
+          ...(enablementRun ? [toDependencyRunSummary(enablementRun)] : []),
+          ...(crisisRun ? [toDependencyRunSummary(crisisRun)] : []),
+          toDependencyRunSummary(socialRun),
+          toDependencyRunSummary(seoRun),
+          toDependencyRunSummary(adRun),
+          toDependencyRunSummary(emailRun),
+          toDependencyRunSummary(repurposeRun),
           toDependencyRunSummary(campaignRun),
+          toDependencyRunSummary(claimsRun),
+          toDependencyRunSummary(complianceRun),
+          toDependencyRunSummary(calendarRun),
+          toDependencyRunSummary(scheduleRun),
+          toDependencyRunSummary(utmRun),
+          toDependencyRunSummary(trackingRun),
         ];
-        agentOutput = composeCmoContentAdvisor({
+        agentOutput = composeCmoMarketingCopilot({
           contentBriefOutput: toCapabilityResponseOutput(contentRun),
           audienceOutput: toCapabilityResponseOutput(audienceRun),
+          enablementOutput: enablementRun ? toCapabilityResponseOutput(enablementRun) : null,
+          crisisOutput: crisisRun ? toCapabilityResponseOutput(crisisRun) : null,
+          orchestrationSnapshot: isOrchestratedMarketing ? validatedSystemStateSnapshot : null,
           campaignOutput: toCapabilityResponseOutput(campaignRun),
+          socialOutput: toCapabilityResponseOutput(socialRun),
+          seoOutput: toCapabilityResponseOutput(seoRun),
+          adOutput: toCapabilityResponseOutput(adRun),
+          emailOutput: toCapabilityResponseOutput(emailRun),
+          repurposeOutput: toCapabilityResponseOutput(repurposeRun),
+          claimsOutput: toCapabilityResponseOutput(claimsRun),
+          complianceOutput: toCapabilityResponseOutput(complianceRun),
+          calendarOutput: toCapabilityResponseOutput(calendarRun),
+          scheduleOutput: toCapabilityResponseOutput(scheduleRun),
+          utmOutput: toCapabilityResponseOutput(utmRun),
+          trackingOutput: toCapabilityResponseOutput(trackingRun),
           channel: normalizedChannel,
           tenantId: normalizedTenantId,
           correlationId: normalizedCorrelationId,
         });
+
+        const complianceStatus = normalizeText(agentOutput?.data?.complianceReview?.status);
+        await writeAudit({
+          tenantId: normalizedTenantId,
+          actorUserId: normalizedActor.id,
+          action: 'cmo.compliance.review',
+          outcome: complianceStatus === 'passed' ? 'success' : 'blocked',
+          targetType: 'cmo_compliance',
+          targetId: agentRunId,
+          metadata: {
+            status: complianceStatus || 'unknown',
+            flaggedClaims: Number(agentOutput?.data?.flaggedClaims?.length || 0),
+            scheduleAllowed: agentOutput?.data?.scheduleAllowed === true,
+          },
+        });
+        if (Number(agentOutput?.data?.flaggedClaims?.length || 0) > 0) {
+          await writeAudit({
+            tenantId: normalizedTenantId,
+            actorUserId: normalizedActor.id,
+            action: 'cmo.claims.flagged',
+            outcome: 'success',
+            targetType: 'cmo_claims',
+            targetId: agentRunId,
+            metadata: {
+              flaggedClaims: agentOutput.data.flaggedClaims.slice(0, 10),
+            },
+          });
+        }
+
         agentOutputSchema = cmoContentOutputSchema;
-        agentCapabilityRef = 'CMO.ContentAdvisor';
+        agentCapabilityRef = 'CMO.MarketingCopilot';
+        }
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
           includeClosed: validatedInput.includeClosed === true,
@@ -1972,7 +2647,7 @@ function createCapabilityExecutor({
           policyFloor: async ({ agentResult }) =>
             evaluatePolicyFloorText({
               text: stringifyForRisk(agentResult?.output || null),
-              context: 'orchestrator',
+              context: resolvePolicyFloorContext({ agentName: agentBundle.name }),
             }),
           persist: async ({ runId, decision, inputRisk, outputRisk, policy, agentResult }) => {
             if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {

@@ -513,3 +513,62 @@ npm run dev
 ```
 
 Om data ska nollstallas i lokal sandlada, verifiera forst `ARCANA_STATE_ROOT` och ta backup innan rensning.
+
+## 17. Arcana Admin Operator (CAO)
+
+- Agent: `POST /api/v1/agents/CAO/run` (17 capabilities, analysis-only).
+- Go/No-Go underlag: `GenerateGoNoGoBrief` i CAO-compose (`goNoGoBrief` i output).
+- Readiness operational core vs monitor: CAO `/admin/readiness/snapshot` (`source: shared_operational_core`) delar evidence med monitor; auktoritativ Go/No-Go = `/monitor/readiness` (fält `alignment` / `evidence.operationalCore`).
+- Rollbaserade checklistor: `GET /api/v1/admin/checklists?role=OWNER|STAFF` (kopplade till seed-mallar).
+- Executive feed: `GET /api/v1/executive/feed` — persistent store `data/executive-decision-feed.json` (`EXECUTIVE_FEED_STORE_PATH`).
+- Staging smoke: `npm run smoke:cao-staging` (valfritt `ARCANA_SMOKE_BASE_URL` för HTTP).
+- ADR orchestrator execute: `docs/adr/0001-cao-orchestrator-execute-boundary.md`.
+- Contract-tester: `tests/capabilities/caoCapabilityContract.test.js` + snapshot-fixture.
+- Mutation (CAO): `npm run test:mutation:cao` (`stryker.cao.conf.json`).
+- Runbook: `docs/ops/runbooks/cao-admin-operator-runbook.md`.
+- Orchestrator execute: `POST /api/v1/orchestrator/admin-run?mode=execute` med `{ "prompt": "..." }`.
+- Orchestrator audit: `correlationId`, `executableSteps`, `executedSteps` i audit-metadata vid success.
+- Admin workspace API (`src/routes/adminWorkspace.js`):
+  - `GET /api/v1/admin/tasks` — filter owner/status/risk/deadline
+  - `PATCH /api/v1/admin/tasks/:taskId` — tilldela owner, uppdatera status/DoD/nästa steg (audit: `admin.task.update`)
+  - `GET /api/v1/admin/incidents/admin-view` — COO+CAO incident read-model
+  - `GET /api/v1/admin/documentation/gaps` — frontmatter-audit mot docs-träd
+  - `GET /api/v1/admin/audit/trace` — read-only audit-spår
+  - `GET /api/v1/admin/readiness` — CAO readiness hydration
+- Admin UI §13: `#caoAdminWorkspaceSection` + `public/admin/cao-workspace.js` (tasks/incidents/docs/audit).
+- CAO panel: `public/admin/cao-operator.js` (`initCaoOperatorPanel`, `runCaoAgent`).
+- Orchestrator UI: L3+-intents kräver OWNER-bekräftelse före `mode=execute`.
+- Admin tasks store: `data/admin-tasks.json` via `ADMIN_TASKS_STORE_PATH`.
+- Scheduler-jobb: `cao_daily_quality_gate`, `cao_sla_risk_scan`, `cao_missing_dod_scan` (monitor `REQUIRED_SCHEDULER_JOBS`).
+- Seed draft-mallar: `npm run seed:admin-templates` → 7 INTERNAL-mallar i `data/templates.json`.
+- Daglig gate (manuell): `node scripts/cao-admin-quality-gate-daily.js`.
+- Plan/risktabell: `docs/strategy/cao-arcana-admin-operator-implementation-plan.md`, `docs/strategy/cao-capability-risk-matrix.md`, IA: `docs/ops/cao-admin-operator-ia.md`.
+
+## 18. Arcana Marketing Copilot (CMO)
+
+- Agent: `POST /api/v1/agents/CMO/run` (21 capabilities — v2.0.0, Fas A–H).
+- Modes: `production_draft` (default), `analytics`, `strategy_intel` (konkurrent + nurture + winback).
+- Compose: `composeCmoMarketingCopilot` v1.5.0 med `complianceReview`, `scheduleAllowed`, `orchestrationGates`, `salesEnablementPack`, `crisisCommsHold`.
+- Capabilities (urval): `GenerateSocialPostPack`, `ValidateMarketingClaims`, `ReviewMarketingCompliance`, `ProposeContentCalendar`, `ProposePublishSchedule`, `GenerateUtmPack`, `ValidateMarketingTracking`, `SummarizeMarketingPerformance`, `GenerateMarketingBrief`, `GenerateSalesEnablementPack`, `ProposeCrisisCommsHold`.
+- Campaign drafts: `data/marketing-campaign-drafts.json` (`MARKETING_CAMPAIGN_DRAFTS_PATH`) via `marketingCampaignDraftsStore`.
+- Claims whitelist: `data/marketing-claims-whitelist.json` (`MARKETING_CLAIMS_WHITELIST_PATH`), seed: `npm run seed:marketing-claims`.
+- Policy floor: `POLICY_CONTEXT.MARKETING_COPY` + CLINICAL_GUARD-scan i compliance-pipeline.
+- Orchestrator intent: `marketing_campaign` → CMO execute med CAO/COO/CFO-gates (`src/ops/cmoOrchestrationGate.js`).
+- Marketing workspace API (`src/routes/marketingWorkspace.js`):
+  - `GET /api/v1/marketing/campaigns`
+  - `POST /api/v1/marketing/campaigns/:id/approve`
+  - `POST /api/v1/marketing/campaigns/:id/reject`
+  - `PATCH /api/v1/marketing/campaigns/:id`
+- Executive feed actions: `approve_campaigns`, `pause_underperforming_ads`, `pause_all_external_campaigns`, `approve_marketing_budget`, `review_go_nogo`, `review_publish_schedule`, `review_missed_publications`.
+- Scheduler-jobb: `cmo_weekly_content_plan` (förslag only, ingen auto-publish).
+- Audit: `cmo.compliance.review`, `cmo.claims.flagged`, `cmo.analytics.report`.
+- Staging smoke: `npm run smoke:cmo-staging`.
+- Contract-tester: `tests/capabilities/cmoCapabilityContract.test.js` + `tests/fixtures/cmoCapabilitySnapshot.js`.
+- E2E (Fas G): `tests/ops/cmoPhaseG.test.js` — compose → sync → approve → feed resolve.
+- Mutation (CMO, valfritt): `npm run test:mutation:cmo` (`stryker.cmo.conf.json`).
+- Runbook: `docs/ops/runbooks/cmo-marketing-copilot-runbook.md`.
+- IA: `docs/ops/cmo-marketing-copilot-ia.md`, plan: `docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md`.
+- Admin UI: `#cmoSection` med sex flikar (`cmo-tabs.js`), `cmo-copilot.js`, `cmo-workspace.js`, `cmo-analytics.js`.
+- Riskmatris: `docs/strategy/cmo-capability-risk-matrix.md`.
+- Automation step 2: **No-Go** för auto-publish/auto-spend; scheduler + OWNER approve only (se runbook).
+- Tester: `tests/ops/cmoPhaseA.test.js` … `cmoPhaseG.test.js`, `tests/agents/cmoAgentGateway.test.js`, `tests/agents/cmoAnalyticsGateway.test.js`.

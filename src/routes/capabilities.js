@@ -3014,7 +3014,10 @@ async function hydrateCmoSystemSnapshot({
 } = {}) {
   let nextSnapshot =
     systemStateSnapshot && typeof systemStateSnapshot === 'object' ? { ...systemStateSnapshot } : {};
-  const appConfig = config || require('../config');
+  const loadedConfig = config && typeof config === 'object' ? config : require('../config');
+  const appConfig = loadedConfig.config && typeof loadedConfig.config === 'object'
+    ? loadedConfig.config
+    : loadedConfig;
 
   if (templateStore && typeof templateStore.listTemplates === 'function' && !Array.isArray(nextSnapshot.templates)) {
     const templates = await templateStore.listTemplates({ tenantId, includeVersions: false });
@@ -3061,6 +3064,22 @@ async function hydrateCmoSystemSnapshot({
     } catch {
       nextSnapshot = { ...nextSnapshot, marketingClaimsWhitelist: [] };
     }
+  }
+
+  nextSnapshot = {
+    ...nextSnapshot,
+    appConfig,
+  };
+
+  try {
+    const { mergeMarketingPerformanceFromConnectors } = require('../ops/cmoMarketingConnectors');
+    const hydration = await mergeMarketingPerformanceFromConnectors(nextSnapshot, {
+      config: appConfig,
+      tenantId,
+    });
+    nextSnapshot = hydration.snapshot;
+  } catch {
+    // Connector hydration is best-effort for CMO snapshot assembly.
   }
 
   if (!normalizeText(nextSnapshot.snapshotVersion)) {
@@ -5937,6 +5956,8 @@ async function runAgentHandler({
   ccoHistoryStore,
   authStore,
   executiveDecisionFeed = null,
+  marketingCampaignDraftsStore = null,
+  marketingContentAssetsStore = null,
 }) {
   const actor = toActor(req);
   const correlationId = toCorrelationId(req);
@@ -5993,10 +6014,30 @@ async function runAgentHandler({
   ) {
     const normalizedAgent = String(agentName || '').toUpperCase();
     if (['CAO', 'COO', 'CFO', 'CMO'].includes(normalizedAgent)) {
+      let marketingDraftIds = [];
+      if (
+        normalizedAgent === 'CMO' &&
+        marketingCampaignDraftsStore &&
+        typeof marketingCampaignDraftsStore.syncFromCmoOutput === 'function'
+      ) {
+        const { syncMarketingWorkspaceFromCmoOutput } = require('../ops/cmoMarketingWorkspaceSync');
+        const sync = await syncMarketingWorkspaceFromCmoOutput({
+          tenantId: toTenantId(req),
+          agentRunId:
+            normalizeText(result?.runId) ||
+            normalizeText(result?.agentRunId) ||
+            correlationId,
+          output: result.output || result,
+          marketingCampaignDraftsStore,
+          marketingContentAssetsStore,
+        });
+        marketingDraftIds = sync.marketingDraftIds;
+      }
       executiveDecisionFeed.addFromAgentOutput({
         agent: normalizedAgent,
         output: result.output || result,
         tenantId: toTenantId(req),
+        marketingDraftIds,
       });
     }
   }
@@ -6652,6 +6693,8 @@ function toAgentRunHandler({
   ccoHistoryStore,
   authStore,
   executiveDecisionFeed = null,
+  marketingCampaignDraftsStore = null,
+  marketingContentAssetsStore = null,
 }) {
   return async (req, res) => {
     const agentName = toAgentName(req);
@@ -6672,6 +6715,8 @@ function toAgentRunHandler({
         ccoHistoryStore,
         authStore,
         executiveDecisionFeed,
+        marketingCampaignDraftsStore,
+        marketingContentAssetsStore,
       });
     } catch (error) {
       return toCapabilityRunError(res, error);
@@ -9312,6 +9357,8 @@ function createCapabilitiesRouter({
   adminTasksStore = null,
   scheduler = null,
   executiveDecisionFeed = null,
+  marketingCampaignDraftsStore = null,
+  marketingContentAssetsStore = null,
   graphReadConnector = null,
   graphReadConnectorFactory = createMicrosoftGraphReadConnector,
   graphSendConnector = null,
@@ -9876,6 +9923,8 @@ function createCapabilitiesRouter({
         ccoHistoryStore,
         authStore,
         executiveDecisionFeed,
+        marketingCampaignDraftsStore,
+        marketingContentAssetsStore,
       })
     )
   );

@@ -90,21 +90,29 @@ Separata från drift-incidenter (se `incident-runbook.md`).
    ```bash
    GET /api/v1/audit/events?action=template.activate&limit=100
    GET /api/v1/audit/events?action=gateway.run.decision&limit=100
+   GET /api/v1/admin/audit/trace?action=orchestrator.admin_run&limit=50
    ```
 
-2. **Kör risk gold set-rapport:**
+2. **CAO admin-vy (incidenter + SLA):**
+   ```bash
+   GET /api/v1/admin/incidents/admin-view?status=open
+   POST /api/v1/agents/CAO/run
+   ```
+   Granska `SummarizeIncidentAdmin` och executive feed (`GET /api/v1/executive/feed`).
+
+3. **Kör risk gold set-rapport:**
    ```bash
    npm run risk:goldset:report
    ```
    Jämför FP/FN mot baseline.
 
-3. **Kontrollera policy floor:**
+4. **Kontrollera policy floor:**
    ```bash
    GET /api/v1/policy/floor
    ```
    Verifica att floor-regler inte kringgåtts.
 
-4. **Kör AnalyzeRiskTrend:**
+5. **Kör AnalyzeRiskTrend:**
    ```bash
    curl -X POST /api/v1/agents/COO/run -d '{}'
    ```
@@ -158,6 +166,7 @@ Separata från drift-incidenter (se `incident-runbook.md`).
 ## Relaterade dokument
 
 - `docs/ops/runbooks/incident-runbook.md` — drift-incidenter
+- `docs/ops/runbooks/cao-admin-operator-runbook.md` — CAO drift & scheduler
 - `docs/ops/runbooks/rollback-runbook.md` — rollback-procedur
 - `docs/risk/README.md` — riskmodell
 - `docs/legal/gdpr-dpa-template.md` — DPA-mall

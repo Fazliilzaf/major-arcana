@@ -66,6 +66,24 @@ function resolveTruthConversationIds(truthRow = {}) {
   return Array.from(ids).filter(Boolean);
 }
 
+function resolveGapConversationId(truthRow = {}) {
+  const conversationKey = normalizeText(truthRow.conversationKey);
+  if (conversationKey) return conversationKey;
+  const mailboxId = normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress);
+  const canonicalKey = toCanonicalMailboxConversationKey({
+    mailboxId,
+    conversationId: truthRow.conversationId,
+    mailboxConversationId: truthRow.mailboxConversationId,
+    messageId: 'truth-row',
+  });
+  if (canonicalKey) return canonicalKey;
+  return (
+    normalizeText(truthRow.mailboxConversationId) ||
+    normalizeText(truthRow.conversationId) ||
+    ''
+  );
+}
+
 function truthRowMatchesEnrichment(truthRow = {}, enrichmentIndex = new Map()) {
   const key = normalizeText(truthRow.conversationKey);
   if (key && enrichmentIndex.has(key)) {
@@ -159,12 +177,11 @@ async function computeCcoInboxEnrichmentCoverage({
       enrichedConversationCount += 1;
       mailboxStats.enrichedConversationCount += 1;
     } else {
-      const scopedIds = resolveTruthConversationIds(truthRow);
-      const primaryId = scopedIds[0] || normalizeText(truthRow.conversationKey);
-      if (primaryId) {
-        gapConversationIds.push(primaryId);
+      const gapId = resolveGapConversationId(truthRow);
+      if (gapId) {
+        gapConversationIds.push(gapId);
         if (sampleUnenrichedIds.length < 25) {
-          sampleUnenrichedIds.push(primaryId);
+          sampleUnenrichedIds.push(gapId);
         }
       }
       mailboxStats.gapCount += 1;
@@ -214,5 +231,7 @@ async function computeCcoInboxEnrichmentCoverage({
 module.exports = {
   buildEnrichmentRowConversationKey,
   hasCcoEnrichmentSignals,
+  resolveGapConversationId,
+  resolveTruthConversationIds,
   computeCcoInboxEnrichmentCoverage,
 };
