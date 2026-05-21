@@ -91,7 +91,7 @@ jobs:
 
   cmo-mutation:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       ARCANA_AI_PROVIDER: fallback
     steps:
