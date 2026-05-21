@@ -65,9 +65,11 @@ jobs:
         id: heal
         env:
           BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+          ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+          ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+          ARCANA_DEFAULT_TENANT: hair-tp-clinic
         run: |
           OUT_FILE="$RUNNER_TEMP/owner-mfa-setup.txt"
-          unset ARCANA_OWNER_MFA_CODE ARCANA_OWNER_MFA_SECRET ARCANA_OWNER_MFA_RECOVERY_CODE
           set +e
           npm run owner:mfa:setup -- \
             --base-url "$BASE_URL" \
@@ -103,6 +105,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: owner-mfa-heal-${{ github.run_id }}
-          path: ${{ steps.heal.outputs.artifact_path }}
-          if-no-files-found: error
+          path: ${{ runner.temp }}/owner-mfa-setup.txt
+          if-no-files-found: ignore
           retention-days: 1

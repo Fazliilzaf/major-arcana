@@ -88,6 +88,9 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
+      # One-shot MFA heal: sätt tillbaka false efter owner:mfa:setup + GitHub secret sync
+      - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
+        value: "true"
       # CMO marketing connectors (Fas O) — enable in Render UI after secrets set
       - key: ARCANA_MARKETING_CONNECTORS_ENABLED
         value: "true"

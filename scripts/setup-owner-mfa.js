@@ -118,7 +118,7 @@ function parseArgs(argv) {
   return args;
 }
 
-function generateTotpCode(secretRaw) {
+function generateTotpCode(secretRaw, stepOffset = 0) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const secret = String(secretRaw || '')
     .toUpperCase()
@@ -142,10 +142,9 @@ function generateTotpCode(secretRaw) {
   const key = Buffer.from(bytes);
   if (!key.length) return '';
 
-  const counter = Math.floor(Date.now() / 1000 / 30);
+  const counter = Math.floor(Date.now() / 1000 / 30) + Number(stepOffset || 0);
   const msg = Buffer.alloc(8);
-  msg.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
-  msg.writeUInt32BE(counter >>> 0, 4);
+  msg.writeBigUInt64BE(BigInt(counter));
 
   const hmac = crypto.createHmac('sha1', key).update(msg).digest();
   const offset = hmac[hmac.length - 1] & 0x0f;
@@ -242,11 +241,14 @@ async function completeMfaFlow({
   const setup =
     loginResponse?.mfa && typeof loginResponse.mfa === 'object' ? loginResponse.mfa : null;
   const setupSecret = normalizeText(setup?.secret || '');
-  let resolvedCode = normalizeText(mfaCode || '');
+  const explicitCode = normalizeText(mfaCode || '');
   const resolvedRecoveryCode = normalizeText(mfaRecoveryCode || '');
   let usedSetupSecret = false;
 
-  if (!resolvedCode) {
+  const verifyCandidates = [];
+  if (explicitCode) {
+    verifyCandidates.push(explicitCode);
+  } else {
     let resolvedSecret = setupSecret ? setupSecret : normalizeText(mfaSecret || '');
     if (setupSecret) {
       usedSetupSecret = true;
@@ -255,25 +257,46 @@ async function completeMfaFlow({
       resolvedSecret = await readMfaSecretFromStore({ email, authStorePath });
     }
     if (resolvedSecret) {
-      resolvedCode = generateTotpCode(resolvedSecret);
+      for (const stepOffset of [-1, 0, 1]) {
+        const generated = generateTotpCode(resolvedSecret, stepOffset);
+        if (generated && !verifyCandidates.includes(generated)) {
+          verifyCandidates.push(generated);
+        }
+      }
+    }
+    if (resolvedRecoveryCode && !verifyCandidates.includes(resolvedRecoveryCode)) {
+      verifyCandidates.push(resolvedRecoveryCode);
     }
   }
 
-  const verifyCode = resolvedCode || resolvedRecoveryCode;
-  if (!verifyCode) {
+  if (!verifyCandidates.length) {
     throw new Error(
       'MFA-kod kunde inte genereras. Ange --mfa-code, --mfa-secret eller --mfa-recovery-code (eller motsvarande ARCANA_OWNER_MFA_* env / AUTH_STORE_PATH med secret). Om recovery saknas helt: gör kontrollerad reset med ARCANA_BOOTSTRAP_RESET_OWNER_MFA=true och deploy.'
     );
   }
 
-  let verifyResponse = await fetchJson(baseUrl, '/api/v1/auth/mfa/verify', {
-    method: 'POST',
-    body: {
-      mfaTicket,
-      code: verifyCode,
-      tenantId: tenantId || undefined,
-    },
-  });
+  let verifyResponse = null;
+  let lastVerifyError = null;
+  let generatedCode = '';
+  for (const verifyCode of verifyCandidates) {
+    try {
+      verifyResponse = await fetchJson(baseUrl, '/api/v1/auth/mfa/verify', {
+        method: 'POST',
+        body: {
+          mfaTicket,
+          code: verifyCode,
+          tenantId: tenantId || undefined,
+        },
+      });
+      generatedCode = verifyCode;
+      break;
+    } catch (error) {
+      lastVerifyError = error;
+    }
+  }
+  if (!verifyResponse) {
+    throw lastVerifyError || new Error('MFA-verifiering misslyckades.');
+  }
 
   if (verifyResponse?.requiresTenantSelection === true) {
     const loginTicket = normalizeText(verifyResponse?.loginTicket || '');
@@ -297,7 +320,7 @@ async function completeMfaFlow({
     response: verifyResponse,
     setup,
     usedSetupSecret,
-    generatedCode: resolvedCode,
+    generatedCode,
   };
 }
 
